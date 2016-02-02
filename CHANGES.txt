@@ -1,5 +1,8 @@
 **8.1.0 (unreleased)**
 
+* Fix a bug when removing packages in python 3: disable INI-style parsing of the
+  entry_point.txt file to allow entry point names with colons (:pull:`3434`)
+
 
 **8.0.2 (2016-01-21)**
 
