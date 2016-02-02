@@ -8,6 +8,8 @@
 * Exclude the wheel package from the `pip freeze` output (like pip and setuptools).
   :issue:`2989`.
 
+* Add ``--classifiers`` option to ``pip show`` to print the classifiers.
+
 
 **8.0.2 (2016-01-21)**
 

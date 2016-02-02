@@ -28,6 +28,13 @@ class ShowCommand(Command):
             default=False,
             help='Show the full list of installed files for each package.')
 
+        self.cmd_opts.add_option(
+            '--classifiers',
+            dest='with_classifiers',
+            action='store_true',
+            default=False,
+            help='Show the full list of classifiers for each package.')
+
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
@@ -37,7 +44,8 @@ class ShowCommand(Command):
         query = args
 
         results = search_packages_info(query)
-        if not print_results(results, options.files):
+        if not print_results(results, options.files,
+                             with_classifiers=options.with_classifiers):
             return ERROR
         return SUCCESS
 
@@ -94,12 +102,22 @@ def search_packages_info(query):
                     'home-page', 'author', 'author-email', 'license'):
             package[key] = pkg_info_dict.get(key)
 
+        # It looks like FeedParser can not deal with repeated headers
+        classifiers = []
+        for line in metadata.splitlines():
+            if not line:
+                break
+            # Classifier: License :: OSI Approved :: MIT License
+            if line.startswith('Classifier: '):
+                classifiers.append(line[len('Classifier: '):])
+        package['classifiers'] = classifiers
+
         if file_list:
             package['files'] = sorted(file_list)
         yield package
 
 
-def print_results(distributions, list_all_files):
+def print_results(distributions, list_all_files, with_classifiers=False):
     """
     Print the informations from installed distributions found.
     """
@@ -117,6 +135,10 @@ def print_results(distributions, list_all_files):
         logger.info("License: %s", dist.get('license'))
         logger.info("Location: %s", dist['location'])
         logger.info("Requires: %s", ', '.join(dist['requires']))
+        if with_classifiers:
+            logger.info("Classifiers:")
+            for classifier in dist['classifiers']:
+                logger.info("  %s", classifier)
         if list_all_files:
             logger.info("Files:")
             if 'files' in dist:

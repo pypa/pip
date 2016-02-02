@@ -96,3 +96,14 @@ def test_more_than_one_package():
     """
     result = list(search_packages_info(['Pip', 'pytest', 'Virtualenv']))
     assert len(result) == 3
+
+
+def test_show_with_classifiers(script, data):
+    """
+    Test that classifiers can be listed
+    """
+    result = script.pip('show', '--classifiers', 'pip')
+    lines = result.stdout.split('\n')
+    assert 'Name: pip' in lines
+    assert re.search(r"Classifiers:\n(  .+\n)+", result.stdout)
+    assert "Intended Audience :: Developers" in result.stdout
