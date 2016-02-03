@@ -47,6 +47,7 @@ SUPPORTED_OPTIONS = [
     cmdoptions.process_dependency_links,
     cmdoptions.trusted_host,
     cmdoptions.require_hashes,
+    cmdoptions.no_deps,
 ]
 
 # options to be passed to requirements
