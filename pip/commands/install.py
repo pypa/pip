@@ -353,6 +353,13 @@ class InstallCommand(RequirementCommand):
             ensure_dir(options.target_dir)
 
             lib_dir = distutils_scheme('', home=temp_target_dir)['purelib']
+            if not os.path.exists(lib_dir):
+                lib_dir = distutils_scheme('', home=temp_target_dir)['platlib']
+            if not os.path.exists(lib_dir):
+                raise InstallationError(
+                    "Unable to install into target dir: %s.",
+                    options.target_dir
+                )
 
             for item in os.listdir(lib_dir):
                 target_item_dir = os.path.join(options.target_dir, item)
