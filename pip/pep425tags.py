@@ -124,10 +124,10 @@ def get_platform():
         split_ver = release.split('.')
         return 'macosx_{0}_{1}_{2}'.format(split_ver[0], split_ver[1], machine)
     # XXX remove distutils dependency
-    platform = distutils.util.get_platform().replace('.', '_').replace('-', '_')
-    if platform == "linux_x86_64" and sys.maxsize == 2147483647:
-        platform = "linux_i686"
-    return platform
+    result = distutils.util.get_platform().replace('.', '_').replace('-', '_')
+    if result == "linux_x86_64" and sys.maxsize == 2147483647:
+        result = "linux_i686"
+    return result
 
 
 def is_manylinux1_compatible():
