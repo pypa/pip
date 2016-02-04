@@ -405,7 +405,7 @@ class TestManylinux1Tags(object):
         """
         Test that manylinux1 is enabled on wide unicode linux_x86_64
         """
-        assert pep425tags.is_manylinux1_compatible() is True
+        assert pep425tags.is_manylinux1_compatible()
 
     @patch('pip.pep425tags.get_platform', lambda: 'linux_x86_64')
     @patch('pip.pep425tags.have_compatible_glibc', lambda foo, bar: True)
@@ -414,7 +414,7 @@ class TestManylinux1Tags(object):
         """
         Test that manylinux1 is disabled on narrow unicode builds
         """
-        assert pep425tags.is_manylinux1_compatible() is False
+        assert not pep425tags.is_manylinux1_compatible()
 
     @patch('pip.pep425tags.get_platform', lambda: 'linux_x86_64')
     @patch('pip.pep425tags.have_compatible_glibc', lambda foo, bar: False)
@@ -423,7 +423,7 @@ class TestManylinux1Tags(object):
         """
         Test that manylinux1 is disabled with incompatible glibc
         """
-        assert pep425tags.is_manylinux1_compatible() is False
+        assert not pep425tags.is_manylinux1_compatible()
 
 
 class TestMoveWheelFiles(object):
