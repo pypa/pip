@@ -3,9 +3,13 @@ from __future__ import absolute_import
 import sys
 
 import pip
+from pip.compat import stdlib_pkgs
 from pip.basecommand import Command
 from pip.operations.freeze import freeze
 from pip.wheel import WheelCache
+
+
+DEV_PKGS = ('pip', 'setuptools', 'distribute', 'wheel')
 
 
 class FreezeCommand(Command):
@@ -52,12 +56,23 @@ class FreezeCommand(Command):
             action='store_true',
             default=False,
             help='Only output packages installed in user-site.')
+        self.cmd_opts.add_option(
+            '--freeze-with',
+            dest='freeze_whitelist',
+            action='append',
+            default=[],
+            help='Do not skip those packages.')
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
         format_control = pip.index.FormatControl(set(), set())
         wheel_cache = WheelCache(options.cache_dir, format_control)
+        skip = set()
+        for pkg in stdlib_pkgs + DEV_PKGS:
+            if pkg not in options.freeze_whitelist:
+                skip.add(pkg)
+
         freeze_kwargs = dict(
             requirement=options.requirement,
             find_links=options.find_links,
@@ -65,7 +80,8 @@ class FreezeCommand(Command):
             user_only=options.user,
             skip_regex=options.skip_requirements_regex,
             isolated=options.isolated_mode,
-            wheel_cache=wheel_cache)
+            wheel_cache=wheel_cache,
+            skip=skip)
 
         for line in freeze(**freeze_kwargs):
             sys.stdout.write(line + '\n')

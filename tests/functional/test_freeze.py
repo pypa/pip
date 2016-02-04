@@ -63,6 +63,12 @@ def test_freeze_basic(script):
     _check_output(result.stdout, expected)
 
 
+def test_freeze_with_pip(script):
+    """Test pip shows itself"""
+    result = script.pip('freeze', '--freeze-with=pip')
+    assert 'pip==' in result.stdout
+
+
 @pytest.mark.svn
 def test_freeze_svn(script, tmpdir):
     """Test freezing a svn checkout"""

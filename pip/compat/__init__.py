@@ -138,9 +138,9 @@ def expanduser(path):
 # dist.location (py27:`sysconfig.get_paths()['stdlib']`,
 # py26:sysconfig.get_config_vars('LIBDEST')), but fear platform variation may
 # make this ineffective, so hard-coding
-stdlib_pkgs = ['python', 'wsgiref']
+stdlib_pkgs = ('python', 'wsgiref')
 if sys.version_info >= (2, 7):
-    stdlib_pkgs.extend(['argparse'])
+    stdlib_pkgs += ('argparse',)
 
 
 # windows detection, covers cpython and ironpython
