@@ -220,8 +220,12 @@ def test_nowheel_user_with_prefix_in_pydistutils_cfg(script, data, virtualenv):
             prefix=%s""" % script.scratch_path))
 
     result = script.pip('install', '--no-use-wheel', '--user', '--no-index',
-                        '-f', data.find_links, 'requiresupper')
+                        '-f', data.find_links, 'requiresupper',
+                        expect_stderr=True)
     assert 'installed requiresupper' in result.stdout
+    assert ('DEPRECATION: --no-use-wheel is deprecated and will be removed '
+            'in the future.  Please use --no-binary :all: instead.\n'
+            ) in result.stderr
 
 
 def test_install_option_in_requirements_file(script, data, virtualenv):
