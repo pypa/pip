@@ -199,7 +199,7 @@ def main(args=None):
 
     # Enable our Deprecation Warnings
     for deprecation_warning in deprecation.DEPRECATIONS:
-        warnings.simplefilter("default", deprecation_warning)
+        warnings.simplefilter("default", deprecation_warning, append=True)
 
     # Configure our deprecation warnings to be sent through loggers
     deprecation.install_warning_logger()
