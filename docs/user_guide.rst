@@ -478,7 +478,7 @@ satisfy the new parent requirements.
 E.g. supposing:
 
 * `SomePackage-1.0` requires `AnotherPackage>=1.0`
-* `SomePackage-2.0` requires `AnotherPackage>=1.0` and `OneMorePoject==1.0`
+* `SomePackage-2.0` requires `AnotherPackage>=1.0` and `OneMorePackage==1.0`
 * `SomePackage-1.0` and `AnotherPackage-1.0` are currently installed
 * `SomePackage-2.0` and `AnotherPackage-2.0` are the latest versions available on PyPI.
 
