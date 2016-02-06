@@ -13,7 +13,7 @@ from pip._vendor import pkg_resources
 logger = logging.getLogger(__name__)
 
 # packages to exclude from freeze output
-freeze_excludes = stdlib_pkgs + ['setuptools', 'pip', 'distribute']
+freeze_excludes = stdlib_pkgs + ['setuptools', 'pip', 'distribute', 'wheel']
 
 
 def freeze(
