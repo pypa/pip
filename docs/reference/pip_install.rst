@@ -229,7 +229,7 @@ Some examples:
   SomeProject[foo, bar]
   SomeProject~=1.4.2
 
-Since version 6.0, pip also supports specifers containing `environment markers
+Since version 6.0, pip also supports specifiers containing `environment markers
 <https://www.python.org/dev/peps/pep-0426/#environment-markers>`_ like so:
 
  ::
@@ -586,7 +586,7 @@ cache flushes. Compilation of C code adds further nondeterminism, as many
 compilers include random-seeded values in their output. However, wheels fetched
 from index servers are the same every time. They land in pip's HTTP cache, not
 its wheel cache, and are used normally in hash-checking mode. The only downside
-of having the the wheel cache disabled is thus extra build time for sdists, and
+of having the wheel cache disabled is thus extra build time for sdists, and
 this can be solved by making sure pre-built wheels are available from the index
 server.
 

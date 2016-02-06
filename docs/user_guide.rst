@@ -86,7 +86,7 @@ In practice, there are 4 common uses of Requirements files:
 4. Requirements files are used to override a dependency with a local patch that
    lives in version control.  For example, suppose a dependency,
    `SomeDependency` from PyPI has a bug, and you can't wait for an upstream fix.
-   You could clone/copy the src, make the fix, and place it in vcs with the tag
+   You could clone/copy the src, make the fix, and place it in VCS with the tag
    `sometag`.  You'd reference it in your requirements file with a line like so:
 
    ::
@@ -483,7 +483,7 @@ E.g. supposing:
 * `SomePackage-2.0` and `AnotherPackage-2.0` are the latest versions available on PyPI.
 
 Running ``pip install --upgrade SomePackage`` would upgrade `SomePackage` *and*
-`AnotherPackage` despite `AnotherPackage` already being satisifed.
+`AnotherPackage` despite `AnotherPackage` already being satisfied.
 
 pip doesn't currently have an option to do an "only if needed" recursive
 upgrade, but you can achieve it using these 2 steps::
