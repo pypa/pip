@@ -386,13 +386,9 @@ class InstallRequirement(object):
 
         setup_file = 'setup.py'
 
-        if self.link.subdirectory_fragment:
-            setup_py = os.path.join(self.source_dir,
-                                    self.link.subdirectory_fragment,
-                                    setup_file)
-
-        else:
-            setup_py = os.path.join(self.source_dir, setup_file)
+        setup_py = os.path.join(self.source_dir,
+                                self.link.subdirectory_fragment or '',
+                                setup_file)
 
         # Python2 __file__ should not be unicode
         if six.PY2 and isinstance(setup_py, six.text_type):
@@ -431,9 +427,8 @@ class InstallRequirement(object):
                     'pip-egg-info')
                 ensure_dir(egg_info_dir)
                 egg_base_option = ['--egg-base', 'pip-egg-info']
-            cwd = self.source_dir
-            if self.link.subdirectory_fragment:
-                cwd = os.path.join(cwd, self.link.subdirectory_fragment)
+            cwd = os.path.join(self.source_dir,
+                               self.link.subdirectory_fragment or '')
             call_subprocess(
                 egg_info_cmd + egg_base_option,
                 cwd=cwd,
@@ -988,9 +983,8 @@ class InstallRequirement(object):
 
         with indent_log():
             # FIXME: should we do --install-headers here too?
-            cwd = self.source_dir
-            if self.link.subdirectory_fragment:
-                cwd = os.path.join(cwd, self.link.subdirectory_fragment)
+            cwd = os.path.join(self.source_dir,
+                               self.link.subdirectory_fragment or '')
             call_subprocess(
                 [
                     sys.executable,
