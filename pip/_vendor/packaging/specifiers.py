@@ -213,10 +213,8 @@ class _IndividualSpecifier(BaseSpecifier):
 
 class LegacySpecifier(_IndividualSpecifier):
 
-    _regex = re.compile(
+    _regex_str = (
         r"""
-        ^
-        \s*
         (?P<operator>(==|!=|<=|>=|<|>))
         \s*
         (?P<version>
@@ -224,11 +222,11 @@ class LegacySpecifier(_IndividualSpecifier):
                    # is a "legacy" specifier and the version string can be just
                    # about anything.
         )
-        \s*
-        $
-        """,
-        re.VERBOSE | re.IGNORECASE,
+        """
     )
+
+    _regex = re.compile(
+        r"^\s*" + _regex_str + r"\s*$", re.VERBOSE | re.IGNORECASE)
 
     _operators = {
         "==": "equal",
@@ -274,10 +272,8 @@ def _require_version_compare(fn):
 
 class Specifier(_IndividualSpecifier):
 
-    _regex = re.compile(
+    _regex_str = (
         r"""
-        ^
-        \s*
         (?P<operator>(~=|==|!=|<=|>=|<|>|===))
         (?P<version>
             (?:
@@ -368,11 +364,11 @@ class Specifier(_IndividualSpecifier):
                 (?:[-_\.]?dev[-_\.]?[0-9]*)?          # dev release
             )
         )
-        \s*
-        $
-        """,
-        re.VERBOSE | re.IGNORECASE,
+        """
     )
+
+    _regex = re.compile(
+        r"^\s*" + _regex_str + r"\s*$", re.VERBOSE | re.IGNORECASE)
 
     _operators = {
         "~=": "compatible",
