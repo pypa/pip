@@ -369,6 +369,12 @@ class InstallRequirement(object):
         return native_str(self.req.project_name)
 
     @property
+    def setup_py_dir(self):
+        return os.path.join(
+            self.source_dir,
+            self.link and self.link.subdirectory_fragment or '')
+
+    @property
     def setup_py(self):
         assert self.source_dir, "No source dir for %s" % self
         try:
@@ -384,15 +390,7 @@ class InstallRequirement(object):
                 "install from a source distribution.\n%s" % add_msg
             )
 
-        setup_file = 'setup.py'
-
-        if self.editable_options and 'subdirectory' in self.editable_options:
-            setup_py = os.path.join(self.source_dir,
-                                    self.editable_options['subdirectory'],
-                                    setup_file)
-
-        else:
-            setup_py = os.path.join(self.source_dir, setup_file)
+        setup_py = os.path.join(self.setup_py_dir, 'setup.py')
 
         # Python2 __file__ should not be unicode
         if six.PY2 and isinstance(setup_py, six.text_type):
@@ -425,16 +423,12 @@ class InstallRequirement(object):
             if self.editable:
                 egg_base_option = []
             else:
-                egg_info_dir = os.path.join(self.source_dir, 'pip-egg-info')
+                egg_info_dir = os.path.join(self.setup_py_dir, 'pip-egg-info')
                 ensure_dir(egg_info_dir)
                 egg_base_option = ['--egg-base', 'pip-egg-info']
-            cwd = self.source_dir
-            if self.editable_options and \
-                    'subdirectory' in self.editable_options:
-                cwd = os.path.join(cwd, self.editable_options['subdirectory'])
             call_subprocess(
                 egg_info_cmd + egg_base_option,
-                cwd=cwd,
+                cwd=self.setup_py_dir,
                 show_stdout=False,
                 command_level=logging.DEBUG,
                 command_desc='python setup.py egg_info')
@@ -481,7 +475,7 @@ class InstallRequirement(object):
             if self.editable:
                 base = self.source_dir
             else:
-                base = os.path.join(self.source_dir, 'pip-egg-info')
+                base = os.path.join(self.setup_py_dir, 'pip-egg-info')
             filenames = os.listdir(base)
             if self.editable:
                 filenames = []
@@ -889,7 +883,7 @@ class InstallRequirement(object):
                 with indent_log():
                     call_subprocess(
                         install_args + install_options,
-                        cwd=self.source_dir,
+                        cwd=self.setup_py_dir,
                         show_stdout=False,
                         spinner=spinner,
                     )
@@ -981,10 +975,6 @@ class InstallRequirement(object):
 
         with indent_log():
             # FIXME: should we do --install-headers here too?
-            cwd = self.source_dir
-            if self.editable_options and \
-                    'subdirectory' in self.editable_options:
-                cwd = os.path.join(cwd, self.editable_options['subdirectory'])
             call_subprocess(
                 [
                     sys.executable,
@@ -995,7 +985,7 @@ class InstallRequirement(object):
                 ['develop', '--no-deps'] +
                 list(install_options),
 
-                cwd=cwd,
+                cwd=self.setup_py_dir,
                 show_stdout=False)
 
         self.install_succeeded = True
