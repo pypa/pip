@@ -197,10 +197,6 @@ def main(args=None):
     if args is None:
         args = sys.argv[1:]
 
-    # Enable our Deprecation Warnings
-    for deprecation_warning in deprecation.DEPRECATIONS:
-        warnings.simplefilter("default", deprecation_warning, append=True)
-
     # Configure our deprecation warnings to be sent through loggers
     deprecation.install_warning_logger()
 

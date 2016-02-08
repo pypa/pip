@@ -27,11 +27,6 @@ class Python26DeprecationWarning(PipDeprecationWarning, Pending):
     pass
 
 
-DEPRECATIONS = [
-    RemovedInPip9Warning, RemovedInPip10Warning, Python26DeprecationWarning
-]
-
-
 # Warnings <-> Logging Integration
 
 
@@ -71,6 +66,9 @@ def _showwarning(message, category, filename, lineno, file=None, line=None):
 
 
 def install_warning_logger():
+    # Enable our Deprecation Warnings
+    warnings.simplefilter("default", PipDeprecationWarning, append=True)
+
     global _warnings_showwarning
 
     if _warnings_showwarning is None:
