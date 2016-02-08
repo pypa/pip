@@ -9,7 +9,10 @@
   :issue:`2989`.
 
 * Allow installing modules from a subdirectory of a vcs repository 
-  in non-editable mode (:issue:`3217`).
+  in non-editable mode (:issue:`3217`, :pull:`3466`).
+
+* Make pip wheel work with vcs urls with subdirectory option
+  (:pull:`3466`).
 
 
 **8.0.2 (2016-01-21)**
