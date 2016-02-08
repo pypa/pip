@@ -932,6 +932,15 @@ class Link(object):
         r'(sha1|sha224|sha384|sha256|sha512|md5)=([a-f0-9]+)'
     )
 
+    _subdirectory_fragment_re = re.compile(r'[#&]subdirectory=([^&]*)')
+
+    @property
+    def subdirectory_fragment(self):
+        match = self._subdirectory_fragment_re.search(self.url)
+        if not match:
+            return None
+        return match.group(1)
+
     @property
     def hash(self):
         match = self._hash_re.search(self.url)

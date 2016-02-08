@@ -386,9 +386,9 @@ class InstallRequirement(object):
 
         setup_file = 'setup.py'
 
-        if self.editable_options and 'subdirectory' in self.editable_options:
+        if self.link.subdirectory_fragment:
             setup_py = os.path.join(self.source_dir,
-                                    self.editable_options['subdirectory'],
+                                    self.link.subdirectory_fragment,
                                     setup_file)
 
         else:
@@ -425,13 +425,15 @@ class InstallRequirement(object):
             if self.editable:
                 egg_base_option = []
             else:
-                egg_info_dir = os.path.join(self.source_dir, 'pip-egg-info')
+                egg_info_dir = os.path.join(
+                    self.source_dir,
+                    self.link.subdirectory_fragment or '',
+                    'pip-egg-info')
                 ensure_dir(egg_info_dir)
                 egg_base_option = ['--egg-base', 'pip-egg-info']
             cwd = self.source_dir
-            if self.editable_options and \
-                    'subdirectory' in self.editable_options:
-                cwd = os.path.join(cwd, self.editable_options['subdirectory'])
+            if self.link.subdirectory_fragment:
+                cwd = os.path.join(cwd, self.link.subdirectory_fragment)
             call_subprocess(
                 egg_info_cmd + egg_base_option,
                 cwd=cwd,
@@ -481,7 +483,10 @@ class InstallRequirement(object):
             if self.editable:
                 base = self.source_dir
             else:
-                base = os.path.join(self.source_dir, 'pip-egg-info')
+                base = os.path.join(
+                    self.source_dir,
+                    self.link.subdirectory_fragment or '',
+                    'pip-egg-info')
             filenames = os.listdir(base)
             if self.editable:
                 filenames = []
@@ -889,7 +894,9 @@ class InstallRequirement(object):
                 with indent_log():
                     call_subprocess(
                         install_args + install_options,
-                        cwd=self.source_dir,
+                        cwd=os.path.join(
+                            self.source_dir,
+                            self.link.subdirectory_fragment or ''),
                         show_stdout=False,
                         spinner=spinner,
                     )
@@ -982,9 +989,8 @@ class InstallRequirement(object):
         with indent_log():
             # FIXME: should we do --install-headers here too?
             cwd = self.source_dir
-            if self.editable_options and \
-                    'subdirectory' in self.editable_options:
-                cwd = os.path.join(cwd, self.editable_options['subdirectory'])
+            if self.link.subdirectory_fragment:
+                cwd = os.path.join(cwd, self.link.subdirectory_fragment)
             call_subprocess(
                 [
                     sys.executable,

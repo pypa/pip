@@ -8,6 +8,9 @@
 * Exclude the wheel package from the `pip freeze` output (like pip and setuptools).
   :issue:`2989`.
 
+* Allow installing modules from a subdirectory of a vcs repository 
+  in non-editable mode (:issue:`3217`).
+
 
 **8.0.2 (2016-01-21)**
 
