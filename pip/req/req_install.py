@@ -1167,6 +1167,8 @@ def parse_editable(editable_req, default_vcs=None):
 
     package_name = Link(url).egg_fragment
     if not package_name:
+        package_name = _build_req_from_url(editable_req)
+    if not package_name:
         raise InstallationError(
             '--editable=%s is not the right format; it must have '
             '#egg=Package' % editable_req
