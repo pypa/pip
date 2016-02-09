@@ -67,7 +67,7 @@ def _strip_extras(path):
 class InstallRequirement(object):
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
-                 link=None, as_egg=False, update=True, editable_options=None,
+                 link=None, as_egg=False, update=True,
                  pycompile=True, markers=None, isolated=False, options=None,
                  wheel_cache=None, constraint=False):
         self.extras = ()
@@ -91,10 +91,6 @@ class InstallRequirement(object):
         self.source_dir = source_dir
         self.editable = editable
 
-        if editable_options is None:
-            editable_options = {}
-
-        self.editable_options = editable_options
         self._wheel_cache = wheel_cache
         self.link = self.original_link = link
         self.as_egg = as_egg
@@ -135,7 +131,7 @@ class InstallRequirement(object):
                       constraint=False):
         from pip.index import Link
 
-        name, url, extras_override, editable_options = parse_editable(
+        name, url, extras_override = parse_editable(
             editable_req, default_vcs)
         if url.startswith('file:'):
             source_dir = url_to_path(url)
@@ -146,7 +142,6 @@ class InstallRequirement(object):
                   editable=True,
                   link=Link(url),
                   constraint=constraint,
-                  editable_options=editable_options,
                   isolated=isolated,
                   options=options if options else {},
                   wheel_cache=wheel_cache)
@@ -1101,26 +1096,6 @@ def _build_req_from_url(url):
     return req
 
 
-def _build_editable_options(req):
-
-    """
-        This method generates a dictionary of the query string
-        parameters contained in a given editable URL.
-    """
-    regexp = re.compile(r"[\?#&](?P<name>[^&=]+)=(?P<value>[^&=]+)")
-    matched = regexp.findall(req)
-
-    if matched:
-        ret = dict()
-        for option in matched:
-            (name, value) = option
-            if name in ret:
-                raise Exception("%s option already defined" % name)
-            ret[name] = value
-        return ret
-    return None
-
-
 def parse_editable(editable_req, default_vcs=None):
     """Parses an editable requirement into:
         - a requirement name
@@ -1163,10 +1138,9 @@ def parse_editable(editable_req, default_vcs=None):
                 pkg_resources.Requirement.parse(
                     '__placeholder__' + extras
                 ).extras,
-                {},
             )
         else:
-            return package_name, url_no_extras, None, {}
+            return package_name, url_no_extras, None
 
     for version_control in vcs:
         if url.lower().startswith('%s:' % version_control):
@@ -1191,21 +1165,10 @@ def parse_editable(editable_req, default_vcs=None):
             ' is currently supported'
         raise InstallationError(error_message)
 
-    try:
-        options = _build_editable_options(editable_req)
-    except Exception as exc:
+    package_name = Link(url).egg_fragment
+    if not package_name:
         raise InstallationError(
-            '--editable=%s error in editable options:%s' % (editable_req, exc)
+            '--editable=%s is not the right format; it must have '
+            '#egg=Package' % editable_req
         )
-    if not options or 'egg' not in options:
-        req = _build_req_from_url(editable_req)
-        if not req:
-            raise InstallationError(
-                '--editable=%s is not the right format; it must have '
-                '#egg=Package' % editable_req
-            )
-    else:
-        req = options['egg']
-
-    package = _strip_postfix(req)
-    return package, url, None, options
+    return _strip_postfix(package_name), url, None
