@@ -18,7 +18,8 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 from pip.compat import ipaddress
 from pip.utils import (
     cached_property, splitext, normalize_path,
-    ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, canonicalize_name)
+    ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS,
+)
 from pip.utils.deprecation import RemovedInPip9Warning, RemovedInPip10Warning
 from pip.utils.logging import indent_log
 from pip.exceptions import (
@@ -30,6 +31,7 @@ from pip.wheel import Wheel, wheel_ext
 from pip.pep425tags import supported_tags
 from pip._vendor import html5lib, requests, six
 from pip._vendor.packaging.version import parse as parse_version
+from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.requests.exceptions import SSLError
 
 
