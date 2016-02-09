@@ -793,7 +793,7 @@ class InstallRequirement(object):
                 archive_path, 'w', zipfile.ZIP_DEFLATED,
                 allowZip64=True
             )
-            dir = os.path.normcase(os.path.abspath(self.source_dir))
+            dir = os.path.normcase(os.path.abspath(self.setup_py_dir))
             for dirpath, dirnames, filenames in os.walk(dir):
                 if 'pip-egg-info' in dirnames:
                     dirnames.remove('pip-egg-info')
