@@ -75,6 +75,17 @@ class TestLink(object):
     def test_is_wheel_false(self):
         assert not Link('http://yo/not_a_wheel').is_wheel
 
+    def test_fragments(self):
+        url = 'git+https://example.com/package#egg=eggname'
+        assert 'eggname' == Link(url).egg_fragment
+        assert None is Link(url).subdirectory_fragment
+        url = 'git+https://example.com/package#egg=eggname&subdirectory=subdir'
+        assert 'eggname' == Link(url).egg_fragment
+        assert 'subdir' == Link(url).subdirectory_fragment
+        url = 'git+https://example.com/package#subdirectory=subdir&egg=eggname'
+        assert 'eggname' == Link(url).egg_fragment
+        assert 'subdir' == Link(url).subdirectory_fragment
+
 
 @pytest.mark.parametrize(
     ("html", "url", "expected"),
