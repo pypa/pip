@@ -135,10 +135,6 @@ def is_manylinux1_compatible():
     if get_platform() not in ("linux_x86_64", "linux_i686"):
         return False
 
-    # "wide" Unicode mode is mandatory (always true on CPython 3.3+)
-    if sys.maxunicode <= 0xFFFF:
-        return False
-
     # Check for presence of _manylinux module
     try:
         import _manylinux
