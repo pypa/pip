@@ -400,31 +400,28 @@ class TestManylinux1Tags(object):
 
     @patch('pip.pep425tags.get_platform', lambda: 'linux_x86_64')
     @patch('pip.pep425tags.have_compatible_glibc', lambda foo, bar: True)
-    @patch('sys.maxunicode', 0x10FFFF)
     def test_manylinux1_1(self):
         """
-        Test that manylinux1 is enabled on wide unicode linux_x86_64
+        Test that manylinux1 is enabled on linux_x86_64
         """
         assert pep425tags.is_manylinux1_compatible()
 
-    @patch('pip.pep425tags.get_platform', lambda: 'linux_x86_64')
-    @patch('pip.pep425tags.have_compatible_glibc', lambda foo, bar: True)
-    @patch('sys.maxunicode', 0xFFFF)
-    def test_manylinux1_2(self):
-        """
-        Test that manylinux1 is disabled on narrow unicode builds
-        """
-        assert not pep425tags.is_manylinux1_compatible()
 
     @patch('pip.pep425tags.get_platform', lambda: 'linux_x86_64')
     @patch('pip.pep425tags.have_compatible_glibc', lambda foo, bar: False)
-    @patch('sys.maxunicode', 0x10FFFF)
     def test_manylinux1_3(self):
         """
         Test that manylinux1 is disabled with incompatible glibc
         """
         assert not pep425tags.is_manylinux1_compatible()
 
+    @patch('pip.pep425tags.get_platform', lambda: 'arm6vl')
+    @patch('pip.pep425tags.have_compatible_glibc', lambda foo, bar: True)
+    def test_manylinux1_3(self):
+        """
+        Test that manylinux1 is disabled on arm6vl
+        """
+        assert not pep425tags.is_manylinux1_compatible()
 
 class TestMoveWheelFiles(object):
     """
