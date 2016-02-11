@@ -8,11 +8,14 @@
 * Exclude the wheel package from the `pip freeze` output (like pip and setuptools).
   :issue:`2989`.
 
-* Allow installing modules from a subdirectory of a vcs repository 
+* Allow installing modules from a subdirectory of a vcs repository
   in non-editable mode (:issue:`3217`, :pull:`3466`).
 
 * Make pip wheel and pip download work with vcs urls with subdirectory option
   (:pull:`3466`).
+
+* Fix PipDeprecationWarning so that warnings can be turned off by
+  ``-W`` / ``PYTHONWARNINGS`` (:pull:`3455`)
 
 
 **8.0.2 (2016-01-21)**
