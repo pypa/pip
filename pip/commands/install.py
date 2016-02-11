@@ -355,16 +355,16 @@ class InstallCommand(RequirementCommand):
             lib_dir_purelib = distutils_scheme('', home=temp_target_dir)['purelib']
             lib_dir_platlib = distutils_scheme('', home=temp_target_dir)['platlib']
             if os.path.exists(lib_dir_purelib):
-                self._install_to_target(lib_dir_purelib)
+                self._install_to_target(lib_dir_purelib, options.target_dir)
             if os.path.exists(lib_dir_platlib):
-                self._install_to_target(lib_dir_platlib)
+                self._install_to_target(lib_dir_platlib, options.target_dir)
 
         return requirement_set
 
     @staticmethod
-    def _install_to_target(lib_dir):
+    def _install_to_target(lib_dir, target_dir):
         for item in os.listdir(lib_dir):
-            target_item_dir = os.path.join(options.target_dir, item)
+            target_item_dir = os.path.join(target_dir, item)
             if os.path.exists(target_item_dir):
                 if not options.upgrade:
                     logger.warning(
