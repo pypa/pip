@@ -357,7 +357,7 @@ class InstallCommand(RequirementCommand):
             if os.path.exists(lib_dir_purelib):
                 self._install_to_target(lib_dir_purelib)
             if os.path.exists(lib_dir_platlib):
-                self._install_to_target(lib_dir_purelib)
+                self._install_to_target(lib_dir_platlib)
 
         return requirement_set
 
