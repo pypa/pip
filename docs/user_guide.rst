@@ -42,7 +42,8 @@ installed using :ref:`pip install` like so:
 Details on the format of the files are here: :ref:`Requirements File Format`.
 
 Logically, a Requirements file is just a list of :ref:`pip install` arguments
-placed in a file.
+placed in a file. Note that you should not rely on the items in the file being
+installed by pip in any particular order.
 
 In practice, there are 4 common uses of Requirements files:
 
