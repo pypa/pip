@@ -19,7 +19,7 @@ from pip.compat import ipaddress
 from pip.utils import (
     cached_property, splitext, normalize_path,
     ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, canonicalize_name)
-from pip.utils.deprecation import RemovedInPip9Warning
+from pip.utils.deprecation import RemovedInPip9Warning, RemovedInPip10Warning
 from pip.utils.logging import indent_log
 from pip.exceptions import (
     DistributionNotFound, BestVersionAlreadyInstalled, InvalidWheelFilename,
@@ -1019,7 +1019,7 @@ def fmt_ctl_no_use_wheel(fmt_ctl):
     fmt_ctl_no_binary(fmt_ctl)
     warnings.warn(
         '--no-use-wheel is deprecated and will be removed in the future. '
-        ' Please use --no-binary :all: instead.', DeprecationWarning,
+        ' Please use --no-binary :all: instead.', RemovedInPip10Warning,
         stacklevel=2)
 
 
