@@ -29,6 +29,7 @@ from pip.models import PyPI
 from pip.utils import (splitext, rmtree, format_size, display_path,
                        backup_dir, ask_path_exists, unpack_file,
                        ARCHIVE_EXTENSIONS, consume, call_subprocess)
+from pip.utils.encoding import auto_decode
 from pip.utils.filesystem import check_path_owner
 from pip.utils.logging import indent_log
 from pip.utils.setuptools_build import SETUPTOOLS_SHIM
@@ -413,8 +414,8 @@ def get_file_content(url, comes_from=None, session=None):
             else:
                 return resp.url, resp.content
     try:
-        with open(url) as f:
-            content = f.read()
+        with open(url, 'rb') as f:
+            content = auto_decode(f.read())
     except IOError as exc:
         raise InstallationError(
             'Could not open requirements file: %s' % str(exc)
