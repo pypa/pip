@@ -137,12 +137,12 @@ class MultiDomainBasicAuth(AuthBase):
         # Set the url of the request to the url without any credentials
         req.url = urllib_parse.urlunparse(parsed[:1] + (netloc,) + parsed[2:])
 
-        # Use any stored credentials that we have for this netloc
-        username, password = self.passwords.get(netloc, (None, None))
-
         # Extract credentials embedded in the url if we have none stored
+        username, password = self.parse_credentials(parsed.netloc)
+
+        # Use any stored credentials that we have for this netloc
         if username is None:
-            username, password = self.parse_credentials(parsed.netloc)
+            username, password = self.passwords.get(netloc, (None, None))
 
         if username or password:
             # Store the username and password
