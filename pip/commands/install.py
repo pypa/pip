@@ -359,6 +359,7 @@ class InstallCommand(RequirementCommand):
             if os.path.exists(lib_dir_platlib):
                 self._install_to_target(lib_dir_platlib, options.target_dir)
 
+            shutil.rmtree(temp_target_dir)
         return requirement_set
 
     @staticmethod
@@ -391,4 +392,3 @@ class InstallCommand(RequirementCommand):
                 os.path.join(lib_dir, item),
                 target_item_dir
             )
-        shutil.rmtree(temp_target_dir)
