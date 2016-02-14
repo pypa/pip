@@ -462,6 +462,6 @@ class TestEncoding(object):
         )
         assert auto_decode(data) == "Django==1.4.2"
 
-    def test_auto_decode_utf8_no_bom(self):
-        data = u"Fort de café"
-        assert auto_decode(data.encode('utf8')) == data
+    def test_auto_decode_no_bom(self):
+        data = b"foobar"
+        assert auto_decode(data) == data
