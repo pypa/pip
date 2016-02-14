@@ -408,11 +408,7 @@ def get_file_content(url, comes_from=None, session=None):
             # FIXME: catch some errors
             resp = session.get(url)
             resp.raise_for_status()
-
-            if six.PY3:
-                return resp.url, resp.text
-            else:
-                return resp.url, resp.content
+            return resp.url, resp.text
     try:
         with open(url, 'rb') as f:
             content = auto_decode(f.read())
