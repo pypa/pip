@@ -17,6 +17,7 @@ from email.parser import FeedParser
 from pip._vendor import pkg_resources, six
 from pip._vendor.distlib.markers import interpret as markers_interpret
 from pip._vendor.packaging import specifiers
+from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.six.moves import configparser
 
 import pip.wheel
@@ -33,7 +34,7 @@ from pip.utils import (
     display_path, rmtree, ask_path_exists, backup_dir, is_installable_dir,
     dist_in_usersite, dist_in_site_packages, egg_link_path,
     call_subprocess, read_text_file, FakeFile, _make_build_dir, ensure_dir,
-    get_installed_version, canonicalize_name, normalize_path, dist_is_local,
+    get_installed_version, normalize_path, dist_is_local,
 )
 
 from pip.utils.hashes import Hashes
