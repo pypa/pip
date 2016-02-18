@@ -345,10 +345,6 @@ So if your repository layout is:
 
 You'll need to use ``pip install -e vcs+protocol://repo_url/#egg=pkg&subdirectory=pkg_dir``.
 
-.. note::
-
-    The subdirectory component can currently only be used for editable installs.
-
 
 Git
 ~~~
