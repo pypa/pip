@@ -31,4 +31,4 @@ Code of Conduct
 Everyone interacting in the pip project's codebases, issue trackers, chat
 rooms, and mailing lists is expected to follow the `PyPA Code of Conduct`_.
 
-.. _PyPA Code of Conduct: https://www.pypa.io/en/latest/code-of-conduct/
+.. _PyPA Code of Conduct: http://pypaio.readthedocs.org/en/latest/code-of-conduct/
