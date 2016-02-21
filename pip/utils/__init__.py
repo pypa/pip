@@ -623,7 +623,7 @@ def unpack_file(filename, location, content_type, link):
 
 def call_subprocess(cmd, show_stdout=True, cwd=None,
                     on_returncode='raise',
-                    command_level=std_logging.DEBUG, command_desc=None,
+                    command_desc=None,
                     extra_environ=None, spinner=None):
     # This function's handling of subprocess output is confusing and I
     # previously broke it terribly, so as penance I will write a long comment
@@ -657,7 +657,7 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
                 part = '"%s"' % part.replace('"', '\\"')
             cmd_parts.append(part)
         command_desc = ' '.join(cmd_parts)
-    logger.log(command_level, "Running command %s", command_desc)
+    logger.debug("Running command %s", command_desc)
     env = os.environ.copy()
     if extra_environ:
         env.update(extra_environ)
