@@ -396,6 +396,33 @@ class TestPEP425Tags(object):
         self.abi_tag_unicode('dm', {'Py_DEBUG': True, 'WITH_PYMALLOC': True})
 
 
+class TestManylinux1Tags(object):
+
+    @patch('pip.pep425tags.get_platform', lambda: 'linux_x86_64')
+    @patch('pip.pep425tags.have_compatible_glibc', lambda foo, bar: True)
+    def test_manylinux1_1(self):
+        """
+        Test that manylinux1 is enabled on linux_x86_64
+        """
+        assert pep425tags.is_manylinux1_compatible()
+
+
+    @patch('pip.pep425tags.get_platform', lambda: 'linux_x86_64')
+    @patch('pip.pep425tags.have_compatible_glibc', lambda foo, bar: False)
+    def test_manylinux1_3(self):
+        """
+        Test that manylinux1 is disabled with incompatible glibc
+        """
+        assert not pep425tags.is_manylinux1_compatible()
+
+    @patch('pip.pep425tags.get_platform', lambda: 'arm6vl')
+    @patch('pip.pep425tags.have_compatible_glibc', lambda foo, bar: True)
+    def test_manylinux1_3(self):
+        """
+        Test that manylinux1 is disabled on arm6vl
+        """
+        assert not pep425tags.is_manylinux1_compatible()
+
 class TestMoveWheelFiles(object):
     """
     Tests for moving files from wheel src to scheme paths
