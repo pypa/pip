@@ -49,7 +49,7 @@ EXTRAS = (LBRACKET + Optional(EXTRAS_LIST) + RBRACKET)("extras")
 VERSION_PEP440 = Regex(Specifier._regex_str, re.VERBOSE | re.IGNORECASE)
 VERSION_LEGACY = Regex(LegacySpecifier._regex_str, re.VERBOSE | re.IGNORECASE)
 
-VERSION_ONE = VERSION_PEP440 | VERSION_LEGACY
+VERSION_ONE = VERSION_PEP440 ^ VERSION_LEGACY
 VERSION_MANY = Combine(VERSION_ONE + ZeroOrMore(COMMA + VERSION_ONE),
                        joinString=",")("_raw_spec")
 _VERSION_SPEC = Optional(((LPAREN + VERSION_MANY + RPAREN) | VERSION_MANY))
