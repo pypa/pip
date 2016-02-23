@@ -104,3 +104,58 @@ class TestPEP425Tags(object):
         Test that the `dm` flags are set on a PyDebug, Pymalloc ABI tag.
         """
         self.abi_tag_unicode('dm', {'Py_DEBUG': True, 'WITH_PYMALLOC': True})
+
+
+class TestManylinux1Tags(object):
+
+    @patch('pip.pep425tags.get_platform', lambda: 'linux_x86_64')
+    @patch('pip.pep425tags.have_compatible_glibc', lambda major, minor: True)
+    def test_manylinux1_compatible_on_linux_x86_64(self):
+        """
+        Test that manylinux1 is enabled on linux_x86_64
+        """
+        assert pep425tags.is_manylinux1_compatible()
+
+    @patch('pip.pep425tags.get_platform', lambda: 'linux_i686')
+    @patch('pip.pep425tags.have_compatible_glibc', lambda major, minor: True)
+    def test_manylinux1_compatible_on_linux_i686(self):
+        """
+        Test that manylinux1 is enabled on linux_i686
+        """
+        assert pep425tags.is_manylinux1_compatible()
+
+    @patch('pip.pep425tags.get_platform', lambda: 'linux_x86_64')
+    @patch('pip.pep425tags.have_compatible_glibc', lambda major, minor: False)
+    def test_manylinux1_2(self):
+        """
+        Test that manylinux1 is disabled with incompatible glibc
+        """
+        assert not pep425tags.is_manylinux1_compatible()
+
+    @patch('pip.pep425tags.get_platform', lambda: 'arm6vl')
+    @patch('pip.pep425tags.have_compatible_glibc', lambda major, minor: True)
+    def test_manylinux1_3(self):
+        """
+        Test that manylinux1 is disabled on arm6vl
+        """
+        assert not pep425tags.is_manylinux1_compatible()
+
+    @patch('pip.pep425tags.get_platform', lambda: 'linux_x86_64')
+    @patch('pip.pep425tags.have_compatible_glibc', lambda major, minor: True)
+    @patch('sys.platform', 'linux2')
+    def test_manylinux1_tag_is_first(self):
+        """
+        Test that the more specific tag manylinux1 comes first.
+        """
+        groups = {}
+        for pyimpl, abi, arch in pep425tags.get_supported():
+            groups.setdefault((pyimpl, abi), []).append(arch)
+
+        for arches in groups.values():
+            if arches == ['any']:
+                continue
+            # Expect the most specific arch first:
+            if len(arches) == 3:
+                assert arches == ['manylinux1_x86_64', 'linux_x86_64', 'any']
+            else:
+                assert arches == ['manylinux1_x86_64', 'linux_x86_64']
