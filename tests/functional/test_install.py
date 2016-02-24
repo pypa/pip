@@ -820,6 +820,32 @@ def test_install_upgrade_editable_depending_on_other_editable(script):
     assert "pkgb" in result.stdout
 
 
+def test_install_subprocess_output_handling(script, data):
+    args = ['install', data.src.join('chattymodule')]
+
+    # Regular install should not show output from the chatty setup.py
+    result = script.pip(*args)
+    assert 0 == result.stdout.count("HELLO FROM CHATTYMODULE")
+    script.pip("uninstall", "-y", "chattymodule")
+
+    # With --verbose we should show the output.
+    # Only count examples with sys.argv[1] == egg_info, because we call
+    # setup.py multiple times, which should not count as duplicate output.
+    result = script.pip(*(args + ["--verbose"]))
+    assert 1 == result.stdout.count("HELLO FROM CHATTYMODULE egg_info")
+    script.pip("uninstall", "-y", "chattymodule")
+
+    # If the install fails, then we *should* show the output... but only once,
+    # even if --verbose is given.
+    result = script.pip(*(args + ["--global-option=--fail"]),
+                        expect_error=True)
+    assert 1 == result.stdout.count("I DIE, I DIE")
+
+    result = script.pip(*(args + ["--global-option=--fail", "--verbose"]),
+                        expect_error=True)
+    assert 1 == result.stdout.count("I DIE, I DIE")
+
+
 def test_install_topological_sort(script, data):
     args = ['install', 'TopoRequires4', '-f', data.packages]
     res = str(script.pip(*args, expect_error=False))

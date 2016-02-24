@@ -6,6 +6,12 @@
   entry_point.txt file to allow entry point names with colons (:pull:`3434`)
 
 
+**8.0.3 (unreleased)**
+
+* Fix bug introduced in 8.0.0 where subcommand output was not shown,
+  even when the user specified ``-v`` / ``--verbose``.
+
+
 **8.0.2 (2016-01-21)**
 
 * Stop attempting to trust the system CA trust store because it's extremely
