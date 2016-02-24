@@ -14,7 +14,7 @@ import posixpath
 import re
 try:
     import threading
-except ImportError:
+except ImportError:  # pragma: no cover
     import dummy_threading as threading
 import zlib
 
@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 HASHER_HASH = re.compile('^(\w+)=([a-f0-9]+)')
 CHARSET = re.compile(r';\s*charset\s*=\s*(.*)\s*$', re.I)
 HTML_CONTENT_TYPE = re.compile('text/html|application/x(ht)?ml')
-DEFAULT_INDEX = 'http://python.org/pypi'
+DEFAULT_INDEX = 'https://pypi.python.org/pypi'
 
 def get_all_distribution_names(url=None):
     """
@@ -354,7 +354,7 @@ class Locator(object):
                         else:
                             logger.debug('skipping pre-release '
                                          'version %s of %s', k, matcher.name)
-                except Exception:
+                except Exception:  # pragma: no cover
                     logger.warning('error matching %s with %r', matcher, k)
                     pass # slist.append(k)
             if len(slist) > 1:
@@ -763,18 +763,18 @@ class SimpleScrapingLocator(Locator):
                             encoding = m.group(1)
                         try:
                             data = data.decode(encoding)
-                        except UnicodeError:
+                        except UnicodeError:  # pragma: no cover
                             data = data.decode('latin-1')    # fallback
                         result = Page(data, final_url)
                         self._page_cache[final_url] = result
                 except HTTPError as e:
                     if e.code != 404:
                         logger.exception('Fetch failed: %s: %s', url, e)
-                except URLError as e:
+                except URLError as e:  # pragma: no cover
                     logger.exception('Fetch failed: %s: %s', url, e)
                     with self._lock:
                         self._bad_hosts.add(host)
-                except Exception as e:
+                except Exception as e:  # pragma: no cover
                     logger.exception('Fetch failed: %s: %s', url, e)
                 finally:
                     self._page_cache[url] = result   # even if None (failure)
@@ -812,7 +812,7 @@ class DirectoryLocator(Locator):
         self.recursive = kwargs.pop('recursive', True)
         super(DirectoryLocator, self).__init__(**kwargs)
         path = os.path.abspath(path)
-        if not os.path.isdir(path):
+        if not os.path.isdir(path):  # pragma: no cover
             raise DistlibException('Not a directory: %r' % path)
         self.base_dir = path
 
@@ -1083,7 +1083,7 @@ class DependencyFinder(object):
         """
         try:
             matcher = self.scheme.matcher(reqt)
-        except UnsupportedVersionError:
+        except UnsupportedVersionError:  # pragma: no cover
             # XXX compat-mode if cannot read the version
             name = reqt.split()[0]
             matcher = self.scheme.matcher(name)
