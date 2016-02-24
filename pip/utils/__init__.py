@@ -635,6 +635,31 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
                     on_returncode='raise',
                     command_level=std_logging.DEBUG, command_desc=None,
                     extra_environ=None, spinner=None):
+    # This function's handling of subprocess output is confusing and I
+    # previously broke it terribly, so as penance I will write a long comment
+    # explaining things.
+    #
+    # The obvious thing that affects output is the show_stdout=
+    # kwarg. show_stdout=True means, let the subprocess write directly to our
+    # stdout. Even though it is nominally the default, it is almost never used
+    # inside pip (and should not be used in new code without a very good
+    # reason); as of 2016-02-22 it is only used in a few places inside the VCS
+    # wrapper code. Ideally we should get rid of it entirely, because it
+    # creates a lot of complexity here for a rarely used feature.
+    #
+    # Most places in pip set show_stdout=False. What this means is:
+    # - We connect the child stdout to a pipe, which we read.
+    # - By default, we hide the output but show a spinner -- unless the
+    #   subprocess exits with an error, in which case we show the output.
+    # - If the --verbose option was passed (= loglevel is DEBUG), then we show
+    #   the output unconditionally. (But in this case we don't want to show
+    #   the output a second time if it turns out that there was an error.)
+    #
+    # stderr is always merged with stdout (even if show_stdout=True).
+    if show_stdout:
+        stdout = None
+    else:
+        stdout = subprocess.PIPE
     if command_desc is None:
         cmd_parts = []
         for part in cmd:
@@ -648,24 +673,28 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
         env.update(extra_environ)
     try:
         proc = subprocess.Popen(
-            cmd, stderr=subprocess.STDOUT, stdin=None, stdout=subprocess.PIPE,
+            cmd, stderr=subprocess.STDOUT, stdin=None, stdout=stdout,
             cwd=cwd, env=env)
     except Exception as exc:
         logger.critical(
             "Error %s while executing command %s", exc, command_desc,
         )
         raise
-    all_output = []
-    while True:
-        line = console_to_str(proc.stdout.readline())
-        if not line:
-            break
-        line = line.rstrip()
-        all_output.append(line + '\n')
-        if show_stdout:
-            logger.debug(line)
-        if spinner is not None:
-            spinner.spin()
+    if stdout is not None:
+        all_output = []
+        while True:
+            line = console_to_str(proc.stdout.readline())
+            if not line:
+                break
+            line = line.rstrip()
+            all_output.append(line + '\n')
+            if logger.getEffectiveLevel() <= std_logging.DEBUG:
+                # Show the line immediately
+                logger.debug(line)
+            else:
+                # Update the spinner
+                if spinner is not None:
+                    spinner.spin()
     proc.wait()
     if spinner is not None:
         if proc.returncode:
@@ -674,7 +703,7 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
             spinner.finish("done")
     if proc.returncode:
         if on_returncode == 'raise':
-            if all_output:
+            if logger.getEffectiveLevel() > std_logging.DEBUG:
                 logger.info(
                     'Complete output from command %s:', command_desc,
                 )
