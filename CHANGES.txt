@@ -1,3 +1,22 @@
+**8.0.3 (2016-02-25)**
+
+* Make ``install --quiet`` really quiet. See :issue:`3418`.
+
+* Fix a bug when removing packages in python 3: disable INI-style parsing of the
+  entry_point.txt file to allow entry point names with colons (:pull:`3434`)
+
+* Normalize generated script files path in RECORD files. (:pull:`3448`)
+
+* Fix bug introduced in 8.0.0 where subcommand output was not shown,
+  even when the user specified ``-v`` / ``--verbose``. :issue:`3486`.
+
+* Enable python -W with respect to PipDeprecationWarning. (:pull:`3455`)
+
+* Upgrade distlib to 0.2.2 (fix :issue:`3467`):
+
+  * Improved support for Jython when quoting executables in output scripts.
+
+
 **8.0.2 (2016-01-21)**
 
 * Stop attempting to trust the system CA trust store because it's extremely

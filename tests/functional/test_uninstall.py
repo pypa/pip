@@ -154,6 +154,32 @@ def test_uninstall_overlapping_package(script, data):
     assert_all_changes(result2, result3, [])
 
 
+def test_uninstall_entry_point(script):
+    """
+    Test uninstall package with two or more entry points in the same section,
+    whose name contain a colon.
+    """
+    script.scratch_path.join("ep_install").mkdir()
+    pkg_path = script.scratch_path / 'ep_install'
+    pkg_path.join("setup.py").write(textwrap.dedent("""
+        from setuptools import setup
+        setup(
+            name='ep-install',
+            version='0.1',
+            entry_points={"pip_test.ep":
+                          ["ep:name1 = distutils_install",
+                           "ep:name2 = distutils_install"]
+                          }
+        )
+    """))
+    result = script.pip('install', pkg_path)
+    result = script.pip('list')
+    assert "ep-install (0.1)" in result.stdout
+    script.pip('uninstall', 'ep_install', '-y')
+    result2 = script.pip('list')
+    assert "ep-install (0.1)" not in result2.stdout
+
+
 @pytest.mark.network
 def test_uninstall_console_scripts(script):
     """

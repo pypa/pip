@@ -30,7 +30,7 @@ import pip.cmdoptions
 cmdoptions = pip.cmdoptions
 
 # The version as used in the setup.py and the docs conf.py
-__version__ = "8.0.2"
+__version__ = "8.0.3"
 
 
 logger = logging.getLogger(__name__)
@@ -196,10 +196,6 @@ def check_isolated(args):
 def main(args=None):
     if args is None:
         args = sys.argv[1:]
-
-    # Enable our Deprecation Warnings
-    for deprecation_warning in deprecation.DEPRECATIONS:
-        warnings.simplefilter("default", deprecation_warning)
 
     # Configure our deprecation warnings to be sent through loggers
     deprecation.install_warning_logger()

@@ -519,7 +519,7 @@ if __name__ == '__main__':
                 writer.writerow(row)
             for f in generated:
                 h, l = rehash(f)
-                writer.writerow((f, h, l))
+                writer.writerow((normpath(f, lib_dir), h, l))
             for f in installed:
                 writer.writerow((installed[f], '', ''))
     shutil.move(temp_record, record)

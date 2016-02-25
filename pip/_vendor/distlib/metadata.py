@@ -50,7 +50,8 @@ PKG_INFO_ENCODING = 'utf-8'
 # to 1.2 once PEP 345 is supported everywhere
 PKG_INFO_PREFERRED_VERSION = '1.1'
 
-_LINE_PREFIX = re.compile('\n       \|')
+_LINE_PREFIX_1_2 = re.compile('\n       \|')
+_LINE_PREFIX_PRE_1_2 = re.compile('\n        ')
 _241_FIELDS = ('Metadata-Version', 'Name', 'Version', 'Platform',
                'Summary', 'Description',
                'Keywords', 'Home-page', 'Author', 'Author-email',
@@ -295,7 +296,10 @@ class LegacyMetadata(object):
         return 'UNKNOWN'
 
     def _remove_line_prefix(self, value):
-        return _LINE_PREFIX.sub('\n', value)
+        if self.metadata_version in ('1.0', '1.1'):
+            return _LINE_PREFIX_PRE_1_2.sub('\n', value)
+        else:
+            return _LINE_PREFIX_1_2.sub('\n', value)
 
     def __getattr__(self, name):
         if name in _ATTR2FIELD:
@@ -374,7 +378,10 @@ class LegacyMetadata(object):
                 continue
             if field not in _LISTFIELDS:
                 if field == 'Description':
-                    values = values.replace('\n', '\n       |')
+                    if self.metadata_version in ('1.0', '1.1'):
+                        values = values.replace('\n', '\n        ')
+                    else:
+                        values = values.replace('\n', '\n       |')
                 values = [values]
 
             if field in _LISTTUPLEFIELDS:
@@ -548,7 +555,7 @@ class LegacyMetadata(object):
             ('description', 'Description'),
             ('keywords', 'Keywords'),
             ('platform', 'Platform'),
-            ('classifier', 'Classifier'),
+            ('classifiers', 'Classifier'),
             ('download_url', 'Download-URL'),
         )
 
@@ -617,6 +624,7 @@ class LegacyMetadata(object):
 
 
 METADATA_FILENAME = 'pydist.json'
+WHEEL_METADATA_FILENAME = 'metadata.json'
 
 
 class Metadata(object):
