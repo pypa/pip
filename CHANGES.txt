@@ -32,7 +32,7 @@
 **8.0.2 (2016-01-21)**
 
 * Stop attempting to trust the system CA trust store because it's extremely
-  common for them to be broken, often in incompatible ways. See #3416.
+  common for them to be broken, often in incompatible ways. See :pull:`3416`.
 
 
 **8.0.1 (2016-01-21)**
