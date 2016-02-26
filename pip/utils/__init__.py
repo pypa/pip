@@ -704,13 +704,14 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
     if proc.returncode:
         if on_returncode == 'raise':
             if logger.getEffectiveLevel() > std_logging.DEBUG:
-                logger.info(
-                    'Complete output from command %s:', command_desc,
-                )
-                logger.info(
-                    ''.join(all_output) +
-                    '\n----------------------------------------'
-                )
+                if not show_stdout:
+                    logger.info(
+                        'Complete output from command %s:', command_desc,
+                    )
+                    logger.info(
+                        ''.join(all_output) +
+                        '\n----------------------------------------'
+                    )
             raise InstallationError(
                 'Command "%s" failed with error code %s in %s'
                 % (command_desc, proc.returncode, cwd))
