@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from collections import deque
 import contextlib
 import errno
+import io
 import locale
 # we have a submodule named 'logging' which would shadow this if we used the
 # regular name:
@@ -199,7 +200,7 @@ def file_contents(filename):
         return fp.read().decode('utf-8')
 
 
-def read_chunks(file, size=4096):
+def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):
     """Yield pieces of data from a file-like object until EOF."""
     while True:
         chunk = file.read(size)
