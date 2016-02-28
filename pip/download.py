@@ -38,7 +38,7 @@ from pip.vcs import vcs
 from pip._vendor import requests, six
 from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
-from pip._vendor.requests.models import Response
+from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
 from pip._vendor.requests.structures import CaseInsensitiveDict
 from pip._vendor.requests.packages import urllib3
 from pip._vendor.cachecontrol import CacheControlAdapter
@@ -588,8 +588,12 @@ def _download_url(resp, link, content_file, hashes):
 
     logger.debug('Downloading from URL %s', link)
 
-    downloaded_chunks = written_chunks(progress_indicator(resp_read(4096),
-                                                          4096))
+    downloaded_chunks = written_chunks(
+        progress_indicator(
+            resp_read(CONTENT_CHUNK_SIZE),
+            CONTENT_CHUNK_SIZE
+        )
+    )
     if hashes:
         hashes.check_against_chunks(downloaded_chunks)
     else:
