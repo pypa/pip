@@ -193,6 +193,18 @@ def check_isolated(args):
     return isolated
 
 
+def check_scripts_path(args):
+    if os.name == 'nt':
+        if any(each in ['-t', '--target'] for each in args):
+            check = any(each.startswith(
+                '--install-option=--install-scripts=') for each in args)
+            if not check:
+                warnings.warn(
+                    'You are using --target/-t option without using --install'
+                    '-option, scripts/script files for this package may not '
+                    'be copied to your default Scripts folder', stacklevel=2)
+
+
 def main(args=None):
     if args is None:
         args = sys.argv[1:]
@@ -209,6 +221,7 @@ def main(args=None):
         sys.stderr.write(os.linesep)
         sys.exit(1)
 
+    check_scripts_path(cmd_args)
     command = commands_dict[cmd_name](isolated=check_isolated(cmd_args))
     return command.main(cmd_args)
 
