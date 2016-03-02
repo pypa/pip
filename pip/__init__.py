@@ -194,15 +194,14 @@ def check_isolated(args):
 
 
 def check_scripts_path(args):
-    if os.name == 'nt':
-        if any(each in ['-t', '--target'] for each in args):
-            check = any(each.startswith(
-                '--install-option=--install-scripts=') for each in args)
-            if not check:
-                warnings.warn(
-                    'You are using --target/-t option without using --install'
-                    '-option, scripts/script files for this package may not '
-                    'be copied to your default Scripts folder', stacklevel=2)
+    if any(each in ['-t', '--target'] for each in args):
+        check = any(each.startswith(
+            '--install-option=--install-scripts=') for each in args)
+        if not check:
+            warnings.warn(
+                'You are using --target/-t option without using --install'
+                '-option, scripts/script files for this package may not '
+                'be copied to your default Scripts folder', stacklevel=2)
 
 
 def main(args=None):
