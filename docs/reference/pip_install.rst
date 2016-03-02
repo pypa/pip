@@ -191,7 +191,7 @@ Use ``pip install -r example-requirements.txt`` to install::
     docopt == 0.6.1             # Version Matching. Must be version 0.6.1
     keyring >= 4.1.1            # Minimum version 4.1.1
     coverage != 3.5             # Version Exclusion. Anything except version 3.5
-    Mopidy-Dirble ~= 1.1        # Compatible release. Same as >= 1.1, == 1.1.*
+    Mopidy-Dirble ~= 1.1        # Compatible release. Same as >= 1.1, == 1.*
     #
     ###### Refer to other requirements files ######
     -r other-requirements.txt
