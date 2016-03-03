@@ -218,9 +218,11 @@ class LegacySpecifier(_IndividualSpecifier):
         (?P<operator>(==|!=|<=|>=|<|>))
         \s*
         (?P<version>
-            [^\s]* # We just match everything, except for whitespace since this
-                   # is a "legacy" specifier and the version string can be just
-                   # about anything.
+            [^,;\s)]* # Since this is a "legacy" specifier, and the version
+                      # string can be just about anything, we match everything
+                      # except for whitespace, a semi-colon for marker support,
+                      # a closing paren since versions can be enclosed in
+                      # them, and a comma since it's a version separator.
         )
         """
     )
