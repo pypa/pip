@@ -5,8 +5,9 @@ import re
 
 import pip
 from pip.req import InstallRequirement
-from pip.utils import canonicalize_name, get_installed_distributions
+from pip.utils import get_installed_distributions
 from pip._vendor import pkg_resources
+from pip._vendor.packaging.utils import canonicalize_name
 
 
 logger = logging.getLogger(__name__)
