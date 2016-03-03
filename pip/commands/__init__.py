@@ -41,6 +41,7 @@ commands_order = [
     SearchCommand,
     WheelCommand,
     HashCommand,
+    CompletionCommand,
     HelpCommand,
 ]
 
