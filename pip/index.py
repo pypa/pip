@@ -293,7 +293,9 @@ class PackageFinder(object):
             except ValueError:
                 # We don't have both a valid address or a valid network, so
                 # we'll check this origin against hostnames.
-                if origin[1] != secure_origin[1] and secure_origin[1] != "*":
+                if (origin[1] and
+                        origin[1].lower() != secure_origin[1].lower() and
+                        secure_origin[1] != "*"):
                     continue
             else:
                 # We have a valid address and network, so see if the address
