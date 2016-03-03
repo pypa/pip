@@ -33,7 +33,6 @@ class CompletionCommand(Command):
     """A helper command to be used for command completion."""
     name = 'completion'
     summary = 'A helper command used for command completion'
-    hidden = False
 
     def __init__(self, *args, **kw):
         super(CompletionCommand, self).__init__(*args, **kw)
