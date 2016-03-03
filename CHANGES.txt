@@ -1,5 +1,8 @@
 **8.1.0 (unreleased)**
 
+* Fixed an issue where ``call_subprocess`` would crash trying to print debug
+  data on child process failure (:issue:`3521`, :pull:`3522`).
+
 * Exclude the wheel package from the `pip freeze` output (like pip and setuptools).
   :issue:`2989`.
 
