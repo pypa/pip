@@ -256,12 +256,10 @@ def get_supported(versions=None, noarch=False):
             supported.append(('py%s' % (versions[0][0]), 'none', arch))
 
     # No abi / arch, but requires our implementation:
-    for i, version in enumerate(versions):
-        supported.append(('%s%s' % (impl, version), 'none', 'any'))
-        if i == 0:
-            # Tagged specifically as being cross-version compatible
-            # (with just the major version specified)
-            supported.append(('%s%s' % (impl, versions[0][0]), 'none', 'any'))
+    supported.append(('%s%s' % (impl, versions[0]), 'none', 'any'))
+    # Tagged specifically as being cross-version compatible
+    # (with just the major version specified)
+    supported.append(('%s%s' % (impl, versions[0][0]), 'none', 'any'))
 
     # No abi / arch, generic Python
     for i, version in enumerate(versions):

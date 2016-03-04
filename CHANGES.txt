@@ -26,6 +26,10 @@
 * Fix and deprecate package name detection from url path (:issue:`3523` and
   :pull:`3495`).
 
+* Correct the behavior where interpreter specific tags (such as cp34) were
+  being used on later versions of the same interprter instead of only for that
+  specific interpreter (:issue:`3472`).
+
 
 **8.0.3 (2016-02-25)**
 
