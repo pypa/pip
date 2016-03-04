@@ -26,6 +26,9 @@
 * Fix and deprecate package name detection from url path (:issue:`3523` and
   :pull:`3495`).
 
+* Fix an issue where pip would erroneously install a 64 bit wheel on a 32 bit
+  Python running on a 64 bit OS X machine.
+
 
 **8.0.3 (2016-02-25)**
 
