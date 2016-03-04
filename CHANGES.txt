@@ -19,6 +19,9 @@
 * Decode requirement files according to their BOM if present (:pull:`3485`,
   :issue:`2865`).
 
+* Fix and deprecate package name detection from url path (:issue:`3523` and
+  :pull:`3495`).
+
 
 **8.0.3 (2016-02-25)**
 
