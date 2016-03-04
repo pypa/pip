@@ -6,6 +6,7 @@ import sys
 import warnings
 import platform
 import logging
+import ctypes
 
 try:
     import sysconfig
@@ -124,7 +125,58 @@ def get_platform():
         split_ver = release.split('.')
         return 'macosx_{0}_{1}_{2}'.format(split_ver[0], split_ver[1], machine)
     # XXX remove distutils dependency
-    return distutils.util.get_platform().replace('.', '_').replace('-', '_')
+    result = distutils.util.get_platform().replace('.', '_').replace('-', '_')
+    if result == "linux_x86_64" and sys.maxsize == 2147483647:
+        # 32 bit Python program (running on a 64 bit Linux): pip should only
+        # install and run 32 bit compiled extensions in that case.
+        result = "linux_i686"
+    return result
+
+
+def is_manylinux1_compatible():
+    # Only Linux, and only x86-64 / i686
+    if get_platform() not in ("linux_x86_64", "linux_i686"):
+        return False
+
+    # Check for presence of _manylinux module
+    try:
+        import _manylinux
+        return bool(_manylinux.manylinux1_compatible)
+    except (ImportError, AttributeError):
+        # Fall through to heuristic check below
+        pass
+
+    # Check glibc version. CentOS 5 uses glibc 2.5.
+    return have_compatible_glibc(2, 5)
+
+
+def have_compatible_glibc(major, minimum_minor):
+    # ctypes.CDLL(None) internally calls dlopen(NULL), and as the dlopen
+    # manpage says, "If filename is NULL, then the returned handle is for the
+    # main program". This way we can let the linker do the work to figure out
+    # which libc our process is actually using.
+    process_namespace = ctypes.CDLL(None)
+    try:
+        gnu_get_libc_version = process_namespace.gnu_get_libc_version
+    except AttributeError:
+        # Symbol doesn't exist -> therefore, we are not linked to
+        # glibc.
+        return False
+
+    # Call gnu_get_libc_version, which returns a string like "2.5".
+    gnu_get_libc_version.restype = ctypes.c_char_p
+    version_str = gnu_get_libc_version()
+    # py2 / py3 compatibility:
+    if not isinstance(version_str, str):
+        version_str = version_str.decode("ascii")
+
+    # Parse string and check against requested version.
+    version = [int(piece) for piece in version_str.split(".")]
+    if len(version) < 2:
+        warnings.warn("Expected glibc version with 2 components major.minor,"
+                      " got: %s" % version_str, RuntimeWarning)
+        return False
+    return version[0] == major and version[1] >= minimum_minor
 
 
 def get_supported(versions=None, noarch=False):
@@ -189,6 +241,8 @@ def get_supported(versions=None, noarch=False):
             else:
                 # arch pattern didn't match (?!)
                 arches = [arch]
+        elif is_manylinux1_compatible():
+            arches = [arch.replace('linux', 'manylinux1'), arch]
         else:
             arches = [arch]
 
@@ -198,7 +252,8 @@ def get_supported(versions=None, noarch=False):
                 supported.append(('%s%s' % (impl, versions[0]), abi, arch))
 
         # Has binaries, does not use the Python API:
-        supported.append(('py%s' % (versions[0][0]), 'none', arch))
+        for arch in arches:
+            supported.append(('py%s' % (versions[0][0]), 'none', arch))
 
     # No abi / arch, but requires our implementation:
     for i, version in enumerate(versions):
