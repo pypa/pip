@@ -199,14 +199,35 @@ def get_darwin_arches(major, minor, machine):
     arches = []
 
     def _supports_arch(major, minor, arch):
+        # Looking at the application support for OS X versions in the chart
+        # provided by https://en.wikipedia.org/wiki/OS_X#Versions it appears
+        # our timeline looks roughly like:
+        #
+        # 10.0 - Introduces ppc support.
+        # 10.4 - Introduces ppc64, i386, and x86_64 support, however the ppc64
+        #        and x86_64 support is CLI only, and cannot be used for GUI
+        #        applications.
+        # 10.5 - Extends ppc64 and x86_64 support to cover GUI applications.
+        # 10.6 - Drops support for ppc64
+        # 10.7 - Drops support for ppc
+        #
+        # Given that we do not know if we're installing a CLI or a GUI
+        # application, we must be conservative and assume it might be a GUI
+        # application and behave as if ppc64 and x86_64 support did not occur
+        # until 10.5.
+        #
+        # Note: The above information is taken from the "Application support"
+        #       column in the chart not the "Processor support" since I believe
+        #       that we care about what instruction sets an application can use
+        #       not which processors the OS supports.
         if arch == 'ppc':
             return (major, minor) <= (10, 5)
         if arch == 'ppc64':
-            return (10, 2) <= (major, minor) <= (10, 5)
+            return (major, minor) == (10, 5)
         if arch == 'i386':
-            return (10, 4) <= (major, minor) <= (10, 6)
-        if arch == 'x86_64':
             return (major, minor) >= (10, 4)
+        if arch == 'x86_64':
+            return (major, minor) >= (10, 5)
         if arch in groups:
             for garch in groups[arch]:
                 if _supports_arch(major, minor, garch):
@@ -222,9 +243,11 @@ def get_darwin_arches(major, minor, machine):
 
     if _supports_arch(major, minor, machine):
         arches.append(machine)
+
     for garch in groups:
         if machine in groups[garch] and _supports_arch(major, minor, garch):
             arches.append(garch)
+
     arches.append('universal')
 
     return arches
