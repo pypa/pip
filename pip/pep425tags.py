@@ -124,8 +124,18 @@ def get_platform():
         split_ver = release.split('.')
         return 'macosx_{0}_{1}_{2}'.format(split_ver[0], split_ver[1], machine)
     # XXX remove distutils dependency
-    return distutils.util.get_platform().replace('.', '_').replace('-', '_')
+    platform = distutils.util.get_platform().replace('.', '_').replace('-', '_')
 
+    if platform == 'linux_x86_64':
+        # HACK: work around get_platform() claiming we're running in 64-bit
+        #       mode just because we have a 64-bit kernel, even though this
+        #       Python version has been compiled for 32-bit mode.
+        import struct
+        ptr_size = struct.calcsize('P') * 8
+        if ptr_size == 32:
+            return 'linux_x86_32'
+
+    return platform
 
 def get_supported(versions=None, noarch=False):
     """Return a list of supported tags for each version specified in
