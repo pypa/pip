@@ -12,6 +12,8 @@
 * Make pip wheel and pip download work with vcs urls with subdirectory option
   (:pull:`3466`).
 
+* Show classifiers in ``pip show``.
+
 * Unhide completion command (:pull:`1810`).
 
 * Decode requirement files according to their BOM if present (:pull:`3485`,

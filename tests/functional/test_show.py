@@ -10,7 +10,7 @@ def test_show(script):
     """
     result = script.pip('show', 'pip')
     lines = result.stdout.split('\n')
-    assert len(lines) == 17
+    assert len(lines) == 30
     assert lines[0] == '---', lines[0]
     assert 'Name: pip' in lines
     assert 'Version: %s' % __version__ in lines
@@ -27,7 +27,7 @@ def test_show_with_files_not_found(script, data):
     script.pip('install', '-e', editable)
     result = script.pip('show', '-f', 'SetupPyUTF8')
     lines = result.stdout.split('\n')
-    assert len(lines) == 14
+    assert len(lines) == 15
     assert lines[0] == '---', lines[0]
     assert 'Name: SetupPyUTF8' in lines
     assert 'Version: 0.0.0' in lines
@@ -96,3 +96,14 @@ def test_more_than_one_package():
     """
     result = list(search_packages_info(['Pip', 'pytest', 'Virtualenv']))
     assert len(result) == 3
+
+
+def test_show_with_classifiers(script, data):
+    """
+    Test that classifiers can be listed
+    """
+    result = script.pip('show', 'pip')
+    lines = result.stdout.split('\n')
+    assert 'Name: pip' in lines
+    assert re.search(r"Classifiers:\n(  .+\n)+", result.stdout)
+    assert "Intended Audience :: Developers" in result.stdout
