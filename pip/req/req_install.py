@@ -38,7 +38,7 @@ from pip.utils import (
 )
 
 from pip.utils.hashes import Hashes
-from pip.utils.deprecation import RemovedInPip10Warning
+from pip.utils.deprecation import RemovedInPip9Warning, RemovedInPip10Warning
 from pip.utils.logging import indent_log
 from pip.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip.utils.ui import open_spinner
@@ -1094,6 +1094,12 @@ def _build_req_from_url(url):
         req = parts[-3]
     elif parts[-1] == 'trunk':
         req = parts[-2]
+    if req:
+        warnings.warn(
+            'Sniffing the requirement name from the url is deprecated and '
+            'will be removed in the future. Please specify an #egg segment '
+            'instead.', RemovedInPip9Warning,
+            stacklevel=2)
     return req
 
 
