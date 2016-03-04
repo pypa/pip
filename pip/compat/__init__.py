@@ -13,6 +13,11 @@ except ImportError:
     from pip.compat.dictconfig import dictConfig as logging_dictConfig
 
 try:
+    from collections import OrderedDict
+except ImportError:
+    from pip.compat.ordereddict import OrderedDict
+
+try:
     import ipaddress
 except ImportError:
     try:
@@ -45,7 +50,8 @@ except ImportError:
 
 __all__ = [
     "logging_dictConfig", "ipaddress", "uses_pycache", "console_to_str",
-    "native_str", "get_path_uid", "stdlib_pkgs", "WINDOWS", "samefile"
+    "native_str", "get_path_uid", "stdlib_pkgs", "WINDOWS", "samefile",
+    "OrderedDict",
 ]
 
 
