@@ -9,6 +9,8 @@
 * Make pip wheel and pip download work with vcs urls with subdirectory option
   (:pull:`3466`).
 
+* Unhide completion command (:pull:`1810`).
+
 
 **8.0.3 (2016-02-25)**
 
