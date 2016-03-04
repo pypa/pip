@@ -10,7 +10,7 @@ def test_show(script):
     """
     result = script.pip('show', 'pip')
     lines = result.stdout.split('\n')
-    assert len(lines) == 31
+    assert len(lines) == 30
     assert lines[0] == '---', lines[0]
     assert 'Name: pip' in lines
     assert 'Version: %s' % __version__ in lines
@@ -27,7 +27,7 @@ def test_show_with_files_not_found(script, data):
     script.pip('install', '-e', editable)
     result = script.pip('show', '-f', 'SetupPyUTF8')
     lines = result.stdout.split('\n')
-    assert len(lines) == 16
+    assert len(lines) == 15
     assert lines[0] == '---', lines[0]
     assert 'Name: SetupPyUTF8' in lines
     assert 'Version: 0.0.0' in lines
