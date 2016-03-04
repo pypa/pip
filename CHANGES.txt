@@ -37,6 +37,9 @@
   being used on later versions of the same interprter instead of only for that
   specific interpreter (:issue:`3472`).
 
+* Fix an issue where pip would erroneously install a 64 bit wheel on a 32 bit
+  Python running on a 64 bit OS X machine.
+
 
 **8.0.3 (2016-02-25)**
 
