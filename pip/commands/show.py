@@ -85,6 +85,14 @@ def search_packages_info(query):
             entry_points = dist.get_metadata_lines('entry_points.txt')
             package['entry_points'] = entry_points
 
+        installer = 'UNKNOWN'
+        if dist.has_metadata('INSTALLER'):
+            for line in dist.get_metadata_lines('INSTALLER'):
+                if line.strip():
+                    installer = line.strip()
+                    break
+        package['installer'] = installer
+
         # @todo: Should pkg_resources.Distribution have a
         # `get_pkg_info` method?
         feed_parser = FeedParser()
@@ -124,6 +132,7 @@ def print_results(distributions, list_all_files):
         logger.info("Home-page: %s", dist.get('home-page'))
         logger.info("Author: %s", dist.get('author'))
         logger.info("Author-email: %s", dist.get('author-email'))
+        logger.info("Installer: %s", dist.get('installer'))
         logger.info("License: %s", dist.get('license'))
         logger.info("Location: %s", dist['location'])
         logger.info("Requires: %s", ', '.join(dist['requires']))

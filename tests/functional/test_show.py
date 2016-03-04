@@ -10,7 +10,7 @@ def test_show(script):
     """
     result = script.pip('show', 'pip')
     lines = result.stdout.split('\n')
-    assert len(lines) == 30
+    assert len(lines) == 31
     assert lines[0] == '---', lines[0]
     assert 'Name: pip' in lines
     assert 'Version: %s' % __version__ in lines
@@ -27,7 +27,7 @@ def test_show_with_files_not_found(script, data):
     script.pip('install', '-e', editable)
     result = script.pip('show', '-f', 'SetupPyUTF8')
     lines = result.stdout.split('\n')
-    assert len(lines) == 15
+    assert len(lines) == 16
     assert lines[0] == '---', lines[0]
     assert 'Name: SetupPyUTF8' in lines
     assert 'Version: 0.0.0' in lines
@@ -107,3 +107,15 @@ def test_show_with_classifiers(script, data):
     assert 'Name: pip' in lines
     assert re.search(r"Classifiers:\n(  .+\n)+", result.stdout)
     assert "Intended Audience :: Developers" in result.stdout
+
+
+def test_show_installer(script, data):
+    """
+    Test that the installer is shown (this currently needs a wheel install)
+    """
+    wheel_file = data.packages.join('simple.dist-0.1-py2.py3-none-any.whl')
+    script.pip('install', '--no-index', wheel_file)
+    result = script.pip('show', 'simple.dist')
+    lines = result.stdout.split('\n')
+    assert 'Name: simple.dist' in lines
+    assert 'Installer: pip' in lines
