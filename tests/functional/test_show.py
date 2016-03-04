@@ -107,3 +107,15 @@ def test_show_with_classifiers(script, data):
     assert 'Name: pip' in lines
     assert re.search(r"Classifiers:\n(  .+\n)+", result.stdout)
     assert "Intended Audience :: Developers" in result.stdout
+
+
+def test_show_installer(script, data):
+    """
+    Test that the installer is shown (this currently needs a wheel install)
+    """
+    wheel_file = data.packages.join('simple.dist-0.1-py2.py3-none-any.whl')
+    script.pip('install', '--no-index', wheel_file)
+    result = script.pip('show', 'simple.dist')
+    lines = result.stdout.split('\n')
+    assert 'Name: simple.dist' in lines
+    assert 'Installer: pip' in lines

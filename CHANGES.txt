@@ -14,6 +14,8 @@
 
 * Show classifiers in ``pip show``.
 
+* Show PEP376 Installer in ``pip show`` (:issue:`3517`).
+
 * Unhide completion command (:pull:`1810`).
 
 * Show latest version number in ``pip search`` results (:pull:`1415`).
