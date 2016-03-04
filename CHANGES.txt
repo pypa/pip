@@ -16,6 +16,8 @@
 
 * Unhide completion command (:pull:`1810`).
 
+* Show latest version number in ``pip search`` results (:pull:`1415`).
+
 * Decode requirement files according to their BOM if present (:pull:`3485`,
   :issue:`2865`).
 
