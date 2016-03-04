@@ -7,6 +7,7 @@ from __future__ import absolute_import
 import os
 import re
 import shlex
+import sys
 import optparse
 import warnings
 
@@ -133,6 +134,9 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
         # `finder.format_control` will be updated during parsing
         defaults.format_control = finder.format_control
     args_str, options_str = break_args_options(line)
+    if sys.version_info < (2, 7, 3):
+        # Priori to 2.7.3, shlex can not deal with unicode entries
+        options_str = options_str.encode('utf8')
     opts, _ = parser.parse_args(shlex.split(options_str), defaults)
 
     # preserve for the nested code path
