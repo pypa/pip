@@ -9,6 +9,8 @@
 * Make pip wheel and pip download work with vcs urls with subdirectory option
   (:pull:`3466`).
 
+* Show classifiers in ``pip show``.
+
 * Unhide completion command (:pull:`1810`).
 
 
@@ -32,8 +34,6 @@
 
 * Add a `--all` option to `pip freeze` to include usually skipped package
   (like pip, setuptools and wheel) to the freeze output. :issue:`1610`.
-
-* Add ``--classifiers`` option to ``pip show`` to print the classifiers.
 
 
 **8.0.2 (2016-01-21)**

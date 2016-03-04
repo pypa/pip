@@ -28,13 +28,6 @@ class ShowCommand(Command):
             default=False,
             help='Show the full list of installed files for each package.')
 
-        self.cmd_opts.add_option(
-            '--classifiers',
-            dest='with_classifiers',
-            action='store_true',
-            default=False,
-            help='Show the full list of classifiers for each package.')
-
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
@@ -44,8 +37,7 @@ class ShowCommand(Command):
         query = args
 
         results = search_packages_info(query)
-        if not print_results(results, options.files,
-                             with_classifiers=options.with_classifiers):
+        if not print_results(results, options.files):
             return ERROR
         return SUCCESS
 
@@ -117,7 +109,7 @@ def search_packages_info(query):
         yield package
 
 
-def print_results(distributions, list_all_files, with_classifiers=False):
+def print_results(distributions, list_all_files):
     """
     Print the informations from installed distributions found.
     """
@@ -135,10 +127,9 @@ def print_results(distributions, list_all_files, with_classifiers=False):
         logger.info("License: %s", dist.get('license'))
         logger.info("Location: %s", dist['location'])
         logger.info("Requires: %s", ', '.join(dist['requires']))
-        if with_classifiers:
-            logger.info("Classifiers:")
-            for classifier in dist['classifiers']:
-                logger.info("  %s", classifier)
+        logger.info("Classifiers:")
+        for classifier in dist['classifiers']:
+            logger.info("  %s", classifier)
         if list_all_files:
             logger.info("Files:")
             if 'files' in dist:
