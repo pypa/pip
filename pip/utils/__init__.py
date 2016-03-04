@@ -704,7 +704,8 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
             spinner.finish("done")
     if proc.returncode:
         if on_returncode == 'raise':
-            if logger.getEffectiveLevel() > std_logging.DEBUG:
+            if (logger.getEffectiveLevel() > std_logging.DEBUG and
+                    not show_stdout):
                 logger.info(
                     'Complete output from command %s:', command_desc,
                 )
