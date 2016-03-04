@@ -116,6 +116,10 @@ def get_abi_tag():
     return abi
 
 
+def _is_running_32bit():
+    return sys.maxsize == 2147483647
+
+
 def get_platform():
     """Return our platform name 'win32', 'linux_x86_64'"""
     if sys.platform == 'darwin':
@@ -124,13 +128,21 @@ def get_platform():
         # be signficantly older than the user's current machine.
         release, _, machine = platform.mac_ver()
         split_ver = release.split('.')
+
+        if machine == "x86_64" and _is_running_32bit():
+            machine = "i386"
+        elif machine == "ppc64" and _is_running_32bit():
+            machine = "ppc"
+
         return 'macosx_{0}_{1}_{2}'.format(split_ver[0], split_ver[1], machine)
+
     # XXX remove distutils dependency
     result = distutils.util.get_platform().replace('.', '_').replace('-', '_')
-    if result == "linux_x86_64" and sys.maxsize == 2147483647:
+    if result == "linux_x86_64" and _is_running_32bit():
         # 32 bit Python program (running on a 64 bit Linux): pip should only
         # install and run 32 bit compiled extensions in that case.
         result = "linux_i686"
+
     return result
 
 
