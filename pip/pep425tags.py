@@ -15,9 +15,10 @@ except ImportError:  # pragma nocover
     import distutils.sysconfig as sysconfig
 import distutils.util
 
+from pip.compat import OrderedDict
+
 
 logger = logging.getLogger(__name__)
-
 
 _osx_arch_pat = re.compile(r'(.+)_(\d+)_(\d+)_(.+)')
 
@@ -200,11 +201,13 @@ def get_darwin_arches(major, minor, machine):
                     return True
         return False
 
-    groups = {'fat': ('i386', 'ppc'),
-              'intel': ('x86_64', 'i386'),
-              'fat64': ('x86_64', 'ppc64'),
-              'fat32': ('x86_64', 'i386', 'ppc')
-              }
+    groups = OrderedDict([
+        ("fat", ("i386", "ppc")),
+        ("intel", ("x86_64", "i386")),
+        ("fat64", ("x86_64", "ppc64")),
+        ("fat32", ("x86_64", "i386", "ppc")),
+    ])
+
     if _supports_arch(major, minor, machine):
         arches.append(machine)
     for garch in groups:
