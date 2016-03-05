@@ -40,6 +40,11 @@
 * Fix an issue where pip would erroneously install a 64 bit wheel on a 32 bit
   Python running on a 64 bit OS X machine.
 
+* Do not assume that all git repositories have an origin remote.
+
+* Correctly display the line to add to a requirements.txt for an URL based
+  dependency when ``--require-hashes`` is enabled.
+
 
 **8.0.3 (2016-02-25)**
 
