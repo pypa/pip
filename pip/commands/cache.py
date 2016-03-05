@@ -5,10 +5,11 @@ import logging
 import os.path
 
 from pip._vendor.packaging import version
+from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor import pkg_resources
 from pip.basecommand import Command, SUCCESS
 from pip.exceptions import InvalidWheelFilename
-from pip.utils import ask, cached_property, canonicalize_name
+from pip.utils import ask, cached_property
 from pip.wheel import Wheel
 
 
