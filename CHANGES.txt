@@ -1,4 +1,4 @@
-**8.1.0 (unreleased)**
+**8.1.0 (2016-03-05)**
 
 * Implement PEP 513, which adds support for the manylinux1 platform tag,
   allowing carefully compiled binary wheels to be installed on compatible Linux
