@@ -93,6 +93,12 @@ class TestRequirementSet(object):
             list(process_line('https://pypi.python.org/packages/source/m/more-'
                               'itertools/more-itertools-1.0.tar.gz#md5=b21850c'
                               '3cfa7efbb70fd662ab5413bdd', 'file', 3))[0])
+        # The error text should list this as a URL and not `peep==3.1.1`:
+        reqset.add_requirement(
+            list(process_line('https://pypi.python.org/packages/source/p/peep/'
+                              'peep-3.1.1.tar.gz',
+                              'file',
+                              4))[0])
         finder = PackageFinder([],
                                ['https://pypi.python.org/simple'],
                                session=PipSession())
@@ -100,6 +106,8 @@ class TestRequirementSet(object):
             HashErrors,
             r'Hashes are required in --require-hashes mode, but they are '
             r'missing .*\n'
+            r'    https://pypi\.python\.org/packages/source/p/peep/peep'
+            r'-3\.1\.1\.tar\.gz --hash=sha256:[0-9a-f]+\n'
             r'    blessings==1.0 --hash=sha256:[0-9a-f]+\n'
             r'THESE PACKAGES DO NOT MATCH THE HASHES.*\n'
             r'    tracefront==0.1 .*:\n'
