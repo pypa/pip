@@ -18,7 +18,8 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 from pip.compat import ipaddress
 from pip.utils import (
     cached_property, splitext, normalize_path,
-    ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, canonicalize_name)
+    ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS,
+)
 from pip.utils.deprecation import RemovedInPip9Warning, RemovedInPip10Warning
 from pip.utils.logging import indent_log
 from pip.exceptions import (
@@ -30,6 +31,7 @@ from pip.wheel import Wheel, wheel_ext
 from pip.pep425tags import supported_tags
 from pip._vendor import html5lib, requests, six
 from pip._vendor.packaging.version import parse as parse_version
+from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.requests.exceptions import SSLError
 
 
@@ -291,7 +293,9 @@ class PackageFinder(object):
             except ValueError:
                 # We don't have both a valid address or a valid network, so
                 # we'll check this origin against hostnames.
-                if origin[1] != secure_origin[1] and secure_origin[1] != "*":
+                if (origin[1] and
+                        origin[1].lower() != secure_origin[1].lower() and
+                        secure_origin[1] != "*"):
                     continue
             else:
                 # We have a valid address and network, so see if the address
@@ -919,11 +923,20 @@ class Link(object):
         scheme, netloc, path, query, fragment = urllib_parse.urlsplit(self.url)
         return urllib_parse.urlunsplit((scheme, netloc, path, query, None))
 
-    _egg_fragment_re = re.compile(r'#egg=([^&]*)')
+    _egg_fragment_re = re.compile(r'[#&]egg=([^&]*)')
 
     @property
     def egg_fragment(self):
         match = self._egg_fragment_re.search(self.url)
+        if not match:
+            return None
+        return match.group(1)
+
+    _subdirectory_fragment_re = re.compile(r'[#&]subdirectory=([^&]*)')
+
+    @property
+    def subdirectory_fragment(self):
+        match = self._subdirectory_fragment_re.search(self.url)
         if not match:
             return None
         return match.group(1)

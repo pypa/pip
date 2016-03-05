@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from collections import deque
 import contextlib
 import errno
+import io
 import locale
 # we have a submodule named 'logging' which would shadow this if we used the
 # regular name:
@@ -38,7 +39,7 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'format_size', 'is_installable_dir',
            'is_svn_page', 'file_contents',
            'split_leading_dir', 'has_leading_dir',
-           'normalize_path', 'canonicalize_name',
+           'normalize_path',
            'renames', 'get_terminal_size', 'get_prog',
            'unzip_file', 'untar_file', 'unpack_file', 'call_subprocess',
            'captured_stdout', 'remove_tracebacks', 'ensure_dir',
@@ -199,7 +200,7 @@ def file_contents(filename):
         return fp.read().decode('utf-8')
 
 
-def read_chunks(file, size=4096):
+def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):
     """Yield pieces of data from a file-like object until EOF."""
     while True:
         chunk = file.read(size)
@@ -703,7 +704,8 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
             spinner.finish("done")
     if proc.returncode:
         if on_returncode == 'raise':
-            if logger.getEffectiveLevel() > std_logging.DEBUG:
+            if (logger.getEffectiveLevel() > std_logging.DEBUG and
+                    not show_stdout):
                 logger.info(
                     'Complete output from command %s:', command_desc,
                 )
@@ -851,11 +853,6 @@ def get_installed_version(dist_name):
     # Check to see if we got an installed distribution or not, if we did
     # we want to return it's version.
     return dist.version if dist else None
-
-
-def canonicalize_name(name):
-    """Convert an arbitrary string to a canonical name used for comparison"""
-    return pkg_resources.safe_name(name).lower()
 
 
 def consume(iterator):

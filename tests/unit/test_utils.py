@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 """
 util tests
 
@@ -15,8 +17,8 @@ from mock import Mock, patch
 from pip.exceptions import HashMismatch, HashMissing, InstallationError
 from pip.utils import (egg_link_path, get_installed_distributions,
                        untar_file, unzip_file, rmtree, normalize_path)
+from pip.utils.encoding import auto_decode
 from pip.utils.hashes import Hashes, MissingHashes
-from pip.operations.freeze import freeze_excludes
 from pip._vendor.six import BytesIO
 
 
@@ -261,7 +263,8 @@ class Tests_get_installed_distributions:
         mock_dist_is_editable.side_effect = self.dist_is_editable
         mock_dist_is_local.side_effect = self.dist_is_local
         mock_dist_in_usersite.side_effect = self.dist_in_usersite
-        dists = get_installed_distributions(skip=freeze_excludes)
+        dists = get_installed_distributions(
+            skip=('setuptools', 'pip', 'distribute'))
         assert len(dists) == 0
 
 
@@ -447,3 +450,17 @@ class TestHashes(object):
         assert Hashes({'sha256': 'dummy'})
         assert not Hashes()
         assert not Hashes({})
+
+
+class TestEncoding(object):
+    """Tests for pip.utils.encoding"""
+
+    def test_auto_decode_utf16_le(self):
+        data = (
+            b'\xff\xfeD\x00j\x00a\x00n\x00g\x00o\x00=\x00'
+            b'=\x001\x00.\x004\x00.\x002\x00'
+        )
+        assert auto_decode(data) == "Django==1.4.2"
+
+    def test_auto_decode_no_bom(self):
+        assert auto_decode(b'foobar') == u'foobar'

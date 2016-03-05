@@ -49,10 +49,7 @@ class Tests_UserSite:
             "('initools').project_name)",
         )
         project_name = result.stdout.strip()
-        assert (
-            'INITools' == project_name, "'%s' should be 'INITools'" %
-            project_name
-        )
+        assert 'INITools' == project_name, project_name
 
     @pytest.mark.network
     def test_install_subversion_usersite_editable_with_distribute(

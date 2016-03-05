@@ -63,6 +63,12 @@ def test_freeze_basic(script):
     _check_output(result.stdout, expected)
 
 
+def test_freeze_with_pip(script):
+    """Test pip shows itself"""
+    result = script.pip('freeze', '--all')
+    assert 'pip==' in result.stdout
+
+
 @pytest.mark.svn
 def test_freeze_svn(script, tmpdir):
     """Test freezing a svn checkout"""
@@ -305,6 +311,9 @@ def test_freeze_with_requirement_option(script):
         --always-unzip ignore
         -f http://ignore
         -i http://ignore
+        --pre
+        --trusted-host url
+        --process-dependency-links
         --extra-index-url http://ignore
         --find-links http://ignore
         --index-url http://ignore

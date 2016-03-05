@@ -17,6 +17,7 @@ from email.parser import FeedParser
 from pip._vendor import pkg_resources, six
 from pip._vendor.distlib.markers import interpret as markers_interpret
 from pip._vendor.packaging import specifiers
+from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.six.moves import configparser
 
 import pip.wheel
@@ -33,11 +34,11 @@ from pip.utils import (
     display_path, rmtree, ask_path_exists, backup_dir, is_installable_dir,
     dist_in_usersite, dist_in_site_packages, egg_link_path,
     call_subprocess, read_text_file, FakeFile, _make_build_dir, ensure_dir,
-    get_installed_version, canonicalize_name, normalize_path, dist_is_local,
+    get_installed_version, normalize_path, dist_is_local,
 )
 
 from pip.utils.hashes import Hashes
-from pip.utils.deprecation import RemovedInPip10Warning
+from pip.utils.deprecation import RemovedInPip9Warning, RemovedInPip10Warning
 from pip.utils.logging import indent_log
 from pip.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip.utils.ui import open_spinner
@@ -67,7 +68,7 @@ def _strip_extras(path):
 class InstallRequirement(object):
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
-                 link=None, as_egg=False, update=True, editable_options=None,
+                 link=None, as_egg=False, update=True,
                  pycompile=True, markers=None, isolated=False, options=None,
                  wheel_cache=None, constraint=False):
         self.extras = ()
@@ -91,10 +92,6 @@ class InstallRequirement(object):
         self.source_dir = source_dir
         self.editable = editable
 
-        if editable_options is None:
-            editable_options = {}
-
-        self.editable_options = editable_options
         self._wheel_cache = wheel_cache
         self.link = self.original_link = link
         self.as_egg = as_egg
@@ -135,7 +132,7 @@ class InstallRequirement(object):
                       constraint=False):
         from pip.index import Link
 
-        name, url, extras_override, editable_options = parse_editable(
+        name, url, extras_override = parse_editable(
             editable_req, default_vcs)
         if url.startswith('file:'):
             source_dir = url_to_path(url)
@@ -146,7 +143,6 @@ class InstallRequirement(object):
                   editable=True,
                   link=Link(url),
                   constraint=constraint,
-                  editable_options=editable_options,
                   isolated=isolated,
                   options=options if options else {},
                   wheel_cache=wheel_cache)
@@ -369,6 +365,12 @@ class InstallRequirement(object):
         return native_str(self.req.project_name)
 
     @property
+    def setup_py_dir(self):
+        return os.path.join(
+            self.source_dir,
+            self.link and self.link.subdirectory_fragment or '')
+
+    @property
     def setup_py(self):
         assert self.source_dir, "No source dir for %s" % self
         try:
@@ -384,15 +386,7 @@ class InstallRequirement(object):
                 "install from a source distribution.\n%s" % add_msg
             )
 
-        setup_file = 'setup.py'
-
-        if self.editable_options and 'subdirectory' in self.editable_options:
-            setup_py = os.path.join(self.source_dir,
-                                    self.editable_options['subdirectory'],
-                                    setup_file)
-
-        else:
-            setup_py = os.path.join(self.source_dir, setup_file)
+        setup_py = os.path.join(self.setup_py_dir, 'setup.py')
 
         # Python2 __file__ should not be unicode
         if six.PY2 and isinstance(setup_py, six.text_type):
@@ -425,16 +419,12 @@ class InstallRequirement(object):
             if self.editable:
                 egg_base_option = []
             else:
-                egg_info_dir = os.path.join(self.source_dir, 'pip-egg-info')
+                egg_info_dir = os.path.join(self.setup_py_dir, 'pip-egg-info')
                 ensure_dir(egg_info_dir)
                 egg_base_option = ['--egg-base', 'pip-egg-info']
-            cwd = self.source_dir
-            if self.editable_options and \
-                    'subdirectory' in self.editable_options:
-                cwd = os.path.join(cwd, self.editable_options['subdirectory'])
             call_subprocess(
                 egg_info_cmd + egg_base_option,
-                cwd=cwd,
+                cwd=self.setup_py_dir,
                 show_stdout=False,
                 command_level=logging.DEBUG,
                 command_desc='python setup.py egg_info')
@@ -481,7 +471,7 @@ class InstallRequirement(object):
             if self.editable:
                 base = self.source_dir
             else:
-                base = os.path.join(self.source_dir, 'pip-egg-info')
+                base = os.path.join(self.setup_py_dir, 'pip-egg-info')
             filenames = os.listdir(base)
             if self.editable:
                 filenames = []
@@ -799,7 +789,7 @@ class InstallRequirement(object):
                 archive_path, 'w', zipfile.ZIP_DEFLATED,
                 allowZip64=True
             )
-            dir = os.path.normcase(os.path.abspath(self.source_dir))
+            dir = os.path.normcase(os.path.abspath(self.setup_py_dir))
             for dirpath, dirnames, filenames in os.walk(dir):
                 if 'pip-egg-info' in dirnames:
                     dirnames.remove('pip-egg-info')
@@ -889,7 +879,7 @@ class InstallRequirement(object):
                 with indent_log():
                     call_subprocess(
                         install_args + install_options,
-                        cwd=self.source_dir,
+                        cwd=self.setup_py_dir,
                         show_stdout=False,
                         spinner=spinner,
                     )
@@ -981,10 +971,6 @@ class InstallRequirement(object):
 
         with indent_log():
             # FIXME: should we do --install-headers here too?
-            cwd = self.source_dir
-            if self.editable_options and \
-                    'subdirectory' in self.editable_options:
-                cwd = os.path.join(cwd, self.editable_options['subdirectory'])
             call_subprocess(
                 [
                     sys.executable,
@@ -995,7 +981,7 @@ class InstallRequirement(object):
                 ['develop', '--no-deps'] +
                 list(install_options),
 
-                cwd=cwd,
+                cwd=self.setup_py_dir,
                 show_stdout=False)
 
         self.install_succeeded = True
@@ -1104,31 +1090,17 @@ def _build_req_from_url(url):
     parts = [p for p in url.split('#', 1)[0].split('/') if p]
 
     req = None
-    if parts[-2] in ('tags', 'branches', 'tag', 'branch'):
+    if len(parts) > 2 and parts[-2] in ('tags', 'branches', 'tag', 'branch'):
         req = parts[-3]
-    elif parts[-1] == 'trunk':
+    elif len(parts) > 1 and parts[-1] == 'trunk':
         req = parts[-2]
+    if req:
+        warnings.warn(
+            'Sniffing the requirement name from the url is deprecated and '
+            'will be removed in the future. Please specify an #egg segment '
+            'instead.', RemovedInPip9Warning,
+            stacklevel=2)
     return req
-
-
-def _build_editable_options(req):
-
-    """
-        This method generates a dictionary of the query string
-        parameters contained in a given editable URL.
-    """
-    regexp = re.compile(r"[\?#&](?P<name>[^&=]+)=(?P<value>[^&=]+)")
-    matched = regexp.findall(req)
-
-    if matched:
-        ret = dict()
-        for option in matched:
-            (name, value) = option
-            if name in ret:
-                raise Exception("%s option already defined" % name)
-            ret[name] = value
-        return ret
-    return None
 
 
 def parse_editable(editable_req, default_vcs=None):
@@ -1173,10 +1145,9 @@ def parse_editable(editable_req, default_vcs=None):
                 pkg_resources.Requirement.parse(
                     '__placeholder__' + extras
                 ).extras,
-                {},
             )
         else:
-            return package_name, url_no_extras, None, {}
+            return package_name, url_no_extras, None
 
     for version_control in vcs:
         if url.lower().startswith('%s:' % version_control):
@@ -1201,21 +1172,12 @@ def parse_editable(editable_req, default_vcs=None):
             ' is currently supported'
         raise InstallationError(error_message)
 
-    try:
-        options = _build_editable_options(editable_req)
-    except Exception as exc:
+    package_name = Link(url).egg_fragment
+    if not package_name:
+        package_name = _build_req_from_url(editable_req)
+    if not package_name:
         raise InstallationError(
-            '--editable=%s error in editable options:%s' % (editable_req, exc)
+            '--editable=%s is not the right format; it must have '
+            '#egg=Package' % editable_req
         )
-    if not options or 'egg' not in options:
-        req = _build_req_from_url(editable_req)
-        if not req:
-            raise InstallationError(
-                '--editable=%s is not the right format; it must have '
-                '#egg=Package' % editable_req
-            )
-    else:
-        req = options['egg']
-
-    package = _strip_postfix(req)
-    return package, url, None, options
+    return _strip_postfix(package_name), url, None

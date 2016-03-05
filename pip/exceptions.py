@@ -160,13 +160,16 @@ class HashMissing(HashError):
     def body(self):
         from pip.utils.hashes import FAVORITE_HASH  # Dodge circular import.
 
-        package_name = (self.req.req if self.req and
-                        # In case someone feeds something
-                        # downright stupid to
-                        # InstallRequirement's constructor:
-                        getattr(self.req, 'req', None)
-                        else 'unknown package')
-        return '    %s --hash=%s:%s' % (package_name,
+        package = None
+        if self.req:
+            # In the case of URL-based requirements, display the original URL
+            # seen in the requirements file rather than the package name,
+            # so the output can be directly copied into the requirements file.
+            package = (self.req.original_link if self.req.original_link
+                       # In case someone feeds something downright stupid
+                       # to InstallRequirement's constructor.
+                       else getattr(self.req, 'req', None))
+        return '    %s --hash=%s:%s' % (package or 'unknown package',
                                         FAVORITE_HASH,
                                         self.gotten_hash)
 

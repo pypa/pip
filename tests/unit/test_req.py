@@ -93,6 +93,12 @@ class TestRequirementSet(object):
             list(process_line('https://pypi.python.org/packages/source/m/more-'
                               'itertools/more-itertools-1.0.tar.gz#md5=b21850c'
                               '3cfa7efbb70fd662ab5413bdd', 'file', 3))[0])
+        # The error text should list this as a URL and not `peep==3.1.1`:
+        reqset.add_requirement(
+            list(process_line('https://pypi.python.org/packages/source/p/peep/'
+                              'peep-3.1.1.tar.gz',
+                              'file',
+                              4))[0])
         finder = PackageFinder([],
                                ['https://pypi.python.org/simple'],
                                session=PipSession())
@@ -100,6 +106,8 @@ class TestRequirementSet(object):
             HashErrors,
             r'Hashes are required in --require-hashes mode, but they are '
             r'missing .*\n'
+            r'    https://pypi\.python\.org/packages/source/p/peep/peep'
+            r'-3\.1\.1\.tar\.gz --hash=sha256:[0-9a-f]+\n'
             r'    blessings==1.0 --hash=sha256:[0-9a-f]+\n'
             r'THESE PACKAGES DO NOT MATCH THE HASHES.*\n'
             r'    tracefront==0.1 .*:\n'
@@ -507,10 +515,10 @@ def test_parse_editable_local(
     exists_mock.return_value = isdir_mock.return_value = True
     # mocks needed to support path operations on windows tests
     abspath_mock.return_value = "/some/path"
-    assert parse_editable('.', 'git') == (None, 'file:///some/path', None, {})
+    assert parse_editable('.', 'git') == (None, 'file:///some/path', None)
     abspath_mock.return_value = "/some/path/foo"
     assert parse_editable('foo', 'git') == (
-        None, 'file:///some/path/foo', None, {},
+        None, 'file:///some/path/foo', None,
     )
 
 
@@ -519,7 +527,6 @@ def test_parse_editable_default_vcs():
         'foo',
         'git+https://foo#egg=foo',
         None,
-        {'egg': 'foo'},
     )
 
 
@@ -528,7 +535,6 @@ def test_parse_editable_explicit_vcs():
         'foo',
         'svn+https://foo#egg=foo',
         None,
-        {'egg': 'foo'},
     )
 
 
@@ -537,7 +543,6 @@ def test_parse_editable_vcs_extras():
         'foo[extras]',
         'svn+https://foo#egg=foo[extras]',
         None,
-        {'egg': 'foo[extras]'},
     )
 
 
@@ -549,11 +554,11 @@ def test_parse_editable_local_extras(
     exists_mock.return_value = isdir_mock.return_value = True
     abspath_mock.return_value = "/some/path"
     assert parse_editable('.[extras]', 'git') == (
-        None, 'file://' + "/some/path", ('extras',), {},
+        None, 'file://' + "/some/path", ('extras',),
     )
     abspath_mock.return_value = "/some/path/foo"
     assert parse_editable('foo[bar,baz]', 'git') == (
-        None, 'file:///some/path/foo', ('bar', 'baz'), {},
+        None, 'file:///some/path/foo', ('bar', 'baz'),
     )
 
 

@@ -31,13 +31,14 @@ from pip.exceptions import (
 from pip.locations import distutils_scheme, PIP_DELETE_MARKER_FILENAME
 from pip import pep425tags
 from pip.utils import (
-    call_subprocess, ensure_dir, captured_stdout, rmtree, canonicalize_name,
-    read_chunks)
+    call_subprocess, ensure_dir, captured_stdout, rmtree, read_chunks,
+)
 from pip.utils.ui import open_spinner
 from pip.utils.logging import indent_log
 from pip.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor import pkg_resources
+from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.six.moves import configparser
 
 
@@ -715,7 +716,7 @@ class WheelBuilder(object):
                 wheel_args += ["--python-tag", python_tag]
 
             try:
-                call_subprocess(wheel_args, cwd=req.source_dir,
+                call_subprocess(wheel_args, cwd=req.setup_py_dir,
                                 show_stdout=False, spinner=spinner)
                 return True
             except:

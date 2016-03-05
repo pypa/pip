@@ -42,7 +42,8 @@ installed using :ref:`pip install` like so:
 Details on the format of the files are here: :ref:`Requirements File Format`.
 
 Logically, a Requirements file is just a list of :ref:`pip install` arguments
-placed in a file.
+placed in a file. Note that you should not rely on the items in the file being
+installed by pip in any particular order.
 
 In practice, there are 4 common uses of Requirements files:
 
@@ -86,7 +87,7 @@ In practice, there are 4 common uses of Requirements files:
 4. Requirements files are used to override a dependency with a local patch that
    lives in version control.  For example, suppose a dependency,
    `SomeDependency` from PyPI has a bug, and you can't wait for an upstream fix.
-   You could clone/copy the src, make the fix, and place it in vcs with the tag
+   You could clone/copy the src, make the fix, and place it in VCS with the tag
    `sometag`.  You'd reference it in your requirements file with a line like so:
 
    ::
@@ -434,7 +435,7 @@ To setup for zsh::
     $ pip completion --zsh >> ~/.zprofile
 
 Alternatively, you can use the result of the ``completion`` command
-directly with the eval function of you shell, e.g. by adding the following to your startup file::
+directly with the eval function of your shell, e.g. by adding the following to your startup file::
 
     eval "`pip completion --bash`"
 
@@ -478,12 +479,12 @@ satisfy the new parent requirements.
 E.g. supposing:
 
 * `SomePackage-1.0` requires `AnotherPackage>=1.0`
-* `SomePackage-2.0` requires `AnotherPackage>=1.0` and `OneMorePoject==1.0`
+* `SomePackage-2.0` requires `AnotherPackage>=1.0` and `OneMorePackage==1.0`
 * `SomePackage-1.0` and `AnotherPackage-1.0` are currently installed
 * `SomePackage-2.0` and `AnotherPackage-2.0` are the latest versions available on PyPI.
 
 Running ``pip install --upgrade SomePackage`` would upgrade `SomePackage` *and*
-`AnotherPackage` despite `AnotherPackage` already being satisifed.
+`AnotherPackage` despite `AnotherPackage` already being satisfied.
 
 pip doesn't currently have an option to do an "only if needed" recursive
 upgrade, but you can achieve it using these 2 steps::
@@ -621,7 +622,7 @@ Hash-checking Mode
 Beyond pinning version numbers, you can add hashes against which to verify
 downloaded packages::
 
-    FooProject == 1.2 --hash:sha256=2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824
+    FooProject == 1.2 --hash=sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824
 
 This protects against a compromise of PyPI or the HTTPS
 certificate chain. It also guards against a package changing

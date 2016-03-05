@@ -135,9 +135,12 @@ class Git(VersionControl):
             self.update_submodules(dest)
 
     def get_url(self, location):
-        url = self.run_command(
-            ['config', 'remote.origin.url'],
+        """Return URL of the first remote encountered."""
+        remotes = self.run_command(
+            ['config', '--get-regexp', 'remote\..*\.url'],
             show_stdout=False, cwd=location)
+        first_remote = remotes.splitlines()[0]
+        url = first_remote.split(' ')[1]
         return url.strip()
 
     def get_revision(self, location):
