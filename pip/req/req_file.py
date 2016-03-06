@@ -25,6 +25,12 @@ __all__ = ['parse_requirements']
 SCHEME_RE = re.compile(r'^(http|https|file):', re.I)
 COMMENT_RE = re.compile(r'(^|\s)+#.*$')
 
+# Matches environment variable-style values in '${MY_VARIABLE_1}' with the
+# variable name consisting of only uppercase letters, digits or the '_'
+# (underscore). This follows the POSIX standard defined in IEEE Std 1003.1,
+# 2013 Edition.
+ENV_VAR_RE = re.compile(r'(?P<var>\$\{(?P<name>[A-Z0-9_]+)\})')
+
 SUPPORTED_OPTIONS = [
     cmdoptions.constraints,
     cmdoptions.editable,
@@ -340,9 +346,29 @@ def skip_regex(lines_enum, options):
 
 
 def expand_env_variables(lines_enum):
+    """ Replace all environment variables that can be retrieved via `os.getenv`.
+
+    The only allowed format for environment variables defined in the
+    requirement file is `${MY_VARIABLE_1}` to ensure two things:
+
+    1. Strings that contain a `$` aren't accidentally (partially) expanded.
+    2. Ensure consistency across platforms for requirement files.
+
+    These points are the result of a discusssion on the `github pull
+    request #3514 <https://github.com/pypa/pip/pull/3514>`_.
+
+    Valid characters in variable names follow the `POSIX standard
+    <http://pubs.opengroup.org/onlinepubs/9699919799/>`_ and are limited
+    to uppercase letter, digits and the `_` (underscore).
     """
-    Replace environment variables in requirement if it's defined.
-    """
-    for line in lines_enum:
-        line = os.path.expandvars(line)
-        yield line
+    for line_number, line in lines_enum:
+
+        for env_var, var_name in ENV_VAR_RE.findall(line):
+            value = os.getenv(var_name)
+
+            if not value:
+                continue
+
+            line = line.replace(env_var, value)
+
+        yield line_number, line
