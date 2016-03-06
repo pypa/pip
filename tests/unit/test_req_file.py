@@ -500,30 +500,37 @@ class TestParseRequirements(object):
 
     def test_expand_existing_env_variables(self, tmpdir, finder):
         template = ('https://%s:x-oauth-basic@'
-                    'github.com/user/repo/archive/master.zip')
+                    'github.com/user/%s/archive/master.zip')
+
+        env_vars = (
+            ('GITHUB_TOKEN', 'notarealtoken'),
+            ('DO_12_FACTOR', 'awwyeah'),
+        )
 
         with open(tmpdir.join('req1.txt'), 'w') as fp:
-            fp.write(template % ('$GITHUB_TOKEN',))
+            fp.write(template % tuple(['${%s}' % k for k, _ in env_vars]))
 
-        with patch('pip.req.req_file.os.path.expandvars') as expandvars:
-            expandvars.return_value = (1, template % ('notarealtoken',))
+        with patch('pip.req.req_file.os.getenv') as getenv:
+            getenv.side_effect = lambda n: dict(env_vars)[n]
 
             reqs = list(parse_requirements(tmpdir.join('req1.txt'),
                                            finder=finder,
                                            session=PipSession()))
 
             assert len(reqs) == 1
-            assert reqs[0].link.url == template % ('notarealtoken',)
+
+            expected_url = template % tuple([v for _, v in env_vars])
+            assert reqs[0].link.url == expected_url
 
     def test_expand_missing_env_variables(self, tmpdir, finder):
-        req_url = ('https://$NON_EXISTING_VARIABLE:x-oauth-basic@'
-                   'github.com/user/repo/archive/master.zip')
+        req_url = ('https://${NON_EXISTING_VARIABLE}:$WRONG_FORMAT@'
+                   '%WINDOWS_FORMAT%github.com/user/repo/archive/master.zip')
 
         with open(tmpdir.join('req1.txt'), 'w') as fp:
             fp.write(req_url)
 
-        with patch('pip.req.req_file.os.path.expandvars') as expandvars:
-            expandvars.return_value = (1, req_url)
+        with patch('pip.req.req_file.os.getenv') as getenv:
+            getenv.return_value = ''
 
             reqs = list(parse_requirements(tmpdir.join('req1.txt'),
                                            finder=finder,
