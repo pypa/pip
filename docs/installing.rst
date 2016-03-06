@@ -11,7 +11,7 @@ downloaded from `python.org <https://www.python.org>`_, but you'll need to
 :ref:`upgrade pip <Upgrading pip>`.
 
 Additionally, pip will already be installed if you're working in a :ref:`Virtual
-Envionment <pypug:Creating and using Virtual Environments>` created by
+Environment <pypug:Creating and using Virtual Environments>` created by
 :ref:`pypug:virtualenv` or :ref:`pyvenv <pypug:venv>`.
 
 
