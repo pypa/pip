@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
 
+import locale
 import logging
 import os
 import optparse
@@ -209,6 +210,9 @@ def main(args=None):
         sys.stderr.write(os.linesep)
         sys.exit(1)
 
+    # Needed for locale.getpreferredencoding(False) to work
+    # in pip.utils.encoding.auto_decode
+    locale.setlocale(locale.LC_ALL, '')
     command = commands_dict[cmd_name](isolated=check_isolated(cmd_args))
     return command.main(cmd_args)
 
