@@ -13,7 +13,7 @@ BOMS = [
     (codecs.BOM_UTF32_LE, 'utf32-le'),
 ]
 
-ENCODING_RE = re.compile('coding[:=]\s*([-\w.]+)')
+ENCODING_RE = re.compile(b'coding[:=]\s*([-\w.]+)')
 
 
 def auto_decode(data):
@@ -24,8 +24,8 @@ def auto_decode(data):
         if data.startswith(bom):
             return data[len(bom):].decode(encoding)
     # Lets check the first two lines as in PEP263
-    for line in data.splitlines()[:2]:
-        if line.startswith('#') and ENCODING_RE.search(line):
-            encoding = ENCODING_RE.search(line).groups()[0]
+    for line in data.split(b'\n')[:2]:
+        if line[0:1] == b'#' and ENCODING_RE.search(line):
+            encoding = ENCODING_RE.search(line).groups()[0].decode('ascii')
             return data.decode(encoding)
     return data.decode(locale.getpreferredencoding(False))
