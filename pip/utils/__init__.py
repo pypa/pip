@@ -681,8 +681,8 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
             "Error %s while executing command %s", exc, command_desc,
         )
         raise
+    all_output = []
     if stdout is not None:
-        all_output = []
         while True:
             line = console_to_str(proc.stdout.readline())
             if not line:
