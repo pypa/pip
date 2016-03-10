@@ -457,3 +457,16 @@ def test_install_distribution_union_conflicting_extras(script, data):
                                       expect_error=True)
     assert 'installed' not in result.stdout
     assert "Conflict" in result.stderr
+
+def test_install_unsupported_wheel_with_marker(script, data):
+    script.scratch_path.join("with-marker.txt").write(textwrap.dedent("""\
+        https://github.com/a/b/c/asdf-1.5.2-cp27-none-xyz.whl; sys_platform == "xyz"
+        """))
+    result = script.pip(
+        'install', '-r', script.scratch_path / 'with-marker.txt',
+        expect_error=False,
+        expect_stderr=True,
+    )
+    assert ("Ignoring asdf: markers u'sys_platform == \"xyz\"' don't " +
+        "match your environment" in result.stderr)
+    assert len(result.files_created) == 0
