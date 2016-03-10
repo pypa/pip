@@ -1,3 +1,9 @@
+**8.2.0 (Unreleased)**
+
+* Use environment markers to filter packages before determining if a
+  required wheel is supported. Solves (:issue:`3254`).
+
+
 **8.1.0 (2016-03-05)**
 
 * Implement PEP 513, which adds support for the manylinux1 platform tag,

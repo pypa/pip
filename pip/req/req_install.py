@@ -25,7 +25,7 @@ import pip.wheel
 from pip.compat import native_str, get_stdlib, WINDOWS
 from pip.download import is_url, url_to_path, path_to_url, is_archive_file
 from pip.exceptions import (
-    InstallationError, UninstallationError, UnsupportedWheel,
+    InstallationError, UninstallationError,
 )
 from pip.locations import (
     bin_py, running_under_virtualenv, PIP_DELETE_MARKER_FILENAME, bin_user,
@@ -209,11 +209,6 @@ class InstallRequirement(object):
             # wheel file
             if link.is_wheel:
                 wheel = Wheel(link.filename)  # can raise InvalidWheelFilename
-                if not wheel.supported():
-                    raise UnsupportedWheel(
-                        "%s is not a supported wheel on this platform." %
-                        wheel.filename
-                    )
                 req = "%s==%s" % (wheel.name, wheel.version)
             else:
                 # set the req to the egg fragment.  when it's not there, this
