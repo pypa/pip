@@ -8,7 +8,7 @@ import pytest
 from mock import Mock, patch, mock_open
 from pip.commands.install import InstallCommand
 from pip.exceptions import (PreviousBuildDirError, InvalidWheelFilename,
-                            InstallationError, UnsupportedWheel, HashErrors)
+                            InstallationError, HashErrors)
 from pip.download import path_to_url, PipSession
 from pip.index import PackageFinder
 from pip.req import (InstallRequirement, RequirementSet, Requirements)
@@ -301,6 +301,20 @@ def test_egg_info_data(file_contents, expected):
 
 
 class TestInstallRequirement(object):
+    def setup(self):
+        self.tempdir = tempfile.mkdtemp()
+
+    def teardown(self):
+        shutil.rmtree(self.tempdir, ignore_errors=True)
+
+    def basic_reqset(self, **kwargs):
+        return RequirementSet(
+            build_dir=os.path.join(self.tempdir, 'build'),
+            src_dir=os.path.join(self.tempdir, 'src'),
+            download_dir=None,
+            session=PipSession(),
+            **kwargs
+        )
 
     def test_url_with_query(self):
         """InstallRequirement should strip the fragment, but not the query."""
@@ -309,11 +323,29 @@ class TestInstallRequirement(object):
         req = InstallRequirement.from_line(url + fragment)
         assert req.link.url == url + fragment, req.link
 
-    def test_unsupported_wheel_requirement_raises(self):
-        with pytest.raises(UnsupportedWheel):
-            InstallRequirement.from_line(
-                'peppercorn-0.4-py2.py3-bogus-any.whl',
-            )
+    def test_unsupported_wheel_link_requirement_raises(self):
+        reqset = self.basic_reqset()
+        req = InstallRequirement.from_line(
+            'https://whatever.com/peppercorn-0.4-py2.py3-bogus-any.whl',
+        )
+        assert req.link is not None
+        assert req.link.is_wheel
+        assert req.link.scheme == "https"
+
+        with pytest.raises(InstallationError):
+            reqset.add_requirement(req)
+
+    def test_unsupported_wheel_local_file_requirement_raises(self, data):
+        reqset = self.basic_reqset()
+        req = InstallRequirement.from_line(
+            data.packages.join('simple.dist-0.1-py1-none-invalid.whl'),
+        )
+        assert req.link is not None
+        assert req.link.is_wheel
+        assert req.link.scheme == "file"
+
+        with pytest.raises(InstallationError):
+            reqset.add_requirement(req)
 
     def test_installed_version_not_installed(self):
         req = InstallRequirement.from_line('simple-0.1-py2.py3-none-any.whl')

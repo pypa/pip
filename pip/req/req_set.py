@@ -21,7 +21,7 @@ from pip.utils import (
 from pip.utils.hashes import MissingHashes
 from pip.utils.logging import indent_log
 from pip.vcs import vcs
-
+from pip.wheel import Wheel
 
 logger = logging.getLogger(__name__)
 
@@ -226,6 +226,16 @@ class RequirementSet(object):
                            "environment", install_req.name,
                            install_req.markers)
             return []
+
+        # This check has to come after we filter requirements with the
+        # environment markers.
+        if install_req.link and install_req.link.is_wheel:
+            wheel = Wheel(install_req.link.filename)
+            if not wheel.supported():
+                raise InstallationError(
+                    "%s is not a supported wheel on this platform." %
+                    wheel.filename
+                )
 
         install_req.as_egg = self.as_egg
         install_req.use_user_site = self.use_user_site
