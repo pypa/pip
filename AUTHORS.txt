@@ -99,6 +99,7 @@ Hugo Lopes Tavares <hltbra@gmail.com>
 Hynek Schlawack <hs@ox.cx>
 Ian Bicking <ianb@colorstudy.com>
 Ian Cordasco <graffatcolmingov@gmail.com>
+Ian Lee <IanLee1521@gmail.com>
 Ian Wienand <iwienand@redhat.com>
 Igor Sobreira <igor@igorsobreira.com>
 Ilya Baryshev <baryshev@gmail.com>
@@ -261,6 +262,7 @@ Thomas Smith <smithtg@ncbi.nlm.nih.gov>
 Tim Harder <radhermit@gmail.com>
 tim smith <github@tim-smith.us>
 Tomer Chachamu <tomer.chachamu@gmail.com>
+Tony Zhaocheng Tan <tony@tonytan.io>
 Toshio Kuratomi <toshio@fedoraproject.org>
 Travis Swicegood <development@domain51.com>
 Valentin Haenel <valentin.haenel@gmx.de>
