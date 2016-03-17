@@ -464,3 +464,7 @@ class TestEncoding(object):
 
     def test_auto_decode_no_bom(self):
         assert auto_decode(b'foobar') == u'foobar'
+
+    def test_auto_decode_pep263_headers(self):
+        latin1_req = u'# coding=latin1\n# Pas trop de café'
+        assert auto_decode(latin1_req.encode('latin1')) == latin1_req

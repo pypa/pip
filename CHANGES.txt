@@ -1,3 +1,9 @@
+**8.1.1 (2016-03-17)**
+
+* Fix regression with non-ascii requirement files on Python 2 and add support
+  for encoding headers in requirement files (:issue:`3548`, :pull:`3547`).
+
+
 **8.1.0 (2016-03-05)**
 
 * Implement PEP 513, which adds support for the manylinux1 platform tag,

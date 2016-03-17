@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
 
+import locale
 import logging
 import os
 import optparse
@@ -30,7 +31,7 @@ import pip.cmdoptions
 cmdoptions = pip.cmdoptions
 
 # The version as used in the setup.py and the docs conf.py
-__version__ = "8.1.0"
+__version__ = "8.1.1"
 
 
 logger = logging.getLogger(__name__)
@@ -209,6 +210,9 @@ def main(args=None):
         sys.stderr.write(os.linesep)
         sys.exit(1)
 
+    # Needed for locale.getpreferredencoding(False) to work
+    # in pip.utils.encoding.auto_decode
+    locale.setlocale(locale.LC_ALL, '')
     command = commands_dict[cmd_name](isolated=check_isolated(cmd_args))
     return command.main(cmd_args)
 
