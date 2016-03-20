@@ -29,7 +29,7 @@ class SearchCommand(Command):
     def __init__(self, *args, **kw):
         super(SearchCommand, self).__init__(*args, **kw)
         self.cmd_opts.add_option(
-            '--index',
+            '-i', '--index',
             dest='index',
             metavar='URL',
             default=PyPI.pypi_url,
