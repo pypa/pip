@@ -202,10 +202,8 @@ class InstallRequirement(object):
 
         # it's a local file, dir, or url
         if link:
-            # Handle relative file URLs
-            if link.scheme == 'file' and re.search(r'\.\./', link.url):
-                link = Link(
-                    path_to_url(os.path.normpath(os.path.abspath(link.path))))
+            # Normalize URLs
+            link.normalize()
             # wheel file
             if link.is_wheel:
                 wheel = Wheel(link.filename)  # can raise InvalidWheelFilename
