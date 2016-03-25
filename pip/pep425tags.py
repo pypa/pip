@@ -184,7 +184,11 @@ def have_compatible_glibc(major, minimum_minor):
         version_str = version_str.decode("ascii")
 
     # Parse string and check against requested version.
-    version = [int(piece) for piece in version_str.split(".")]
+    try:
+        version = [int(piece) for piece in version_str.split(".")]
+    except ValueError:
+        return False
+    
     if len(version) < 2:
         warnings.warn("Expected glibc version with 2 components major.minor,"
                       " got: %s" % version_str, RuntimeWarning)
