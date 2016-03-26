@@ -12,6 +12,7 @@ from pip.commands.list import ListCommand
 from pip.commands.search import SearchCommand
 from pip.commands.show import ShowCommand
 from pip.commands.install import InstallCommand
+from pip.commands.install_src import InstallSrcCommand
 from pip.commands.uninstall import UninstallCommand
 from pip.commands.wheel import WheelCommand
 
@@ -24,6 +25,7 @@ commands_dict = {
     SearchCommand.name: SearchCommand,
     ShowCommand.name: ShowCommand,
     InstallCommand.name: InstallCommand,
+    InstallSrcCommand.name: InstallSrcCommand,
     UninstallCommand.name: UninstallCommand,
     DownloadCommand.name: DownloadCommand,
     ListCommand.name: ListCommand,
