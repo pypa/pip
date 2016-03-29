@@ -75,9 +75,14 @@ VARIABLE = (
     L("python_version") |
     L("sys_platform") |
     L("os_name") |
+    L("os.name") |  # PEP-345
+    L("sys.platform") |  # PEP-345
+    L("platform.version") |  # PEP-345
+    L("platform.machine") |  # PEP-345
+    L("platform.python_implementation") |  # PEP-345
     L("extra")
 )
-VARIABLE.setParseAction(lambda s, l, t: Variable(t[0]))
+VARIABLE.setParseAction(lambda s, l, t: Variable(t[0].replace('.', '_')))
 
 VERSION_CMP = (
     L("===") |
