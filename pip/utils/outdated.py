@@ -10,9 +10,9 @@ from pip._vendor import lockfile
 from pip._vendor.packaging import version as packaging_version
 
 from pip.compat import total_seconds, WINDOWS
-from pip.index import PyPI
+from pip.models import PyPI
 from pip.locations import USER_CACHE_DIR, running_under_virtualenv
-from pip.utils import ensure_dir
+from pip.utils import ensure_dir, get_installed_version
 from pip.utils.filesystem import check_path_owner
 
 
@@ -99,7 +99,11 @@ def pip_version_check(session):
     the active virtualenv or in the user's USER_CACHE_DIR keyed off the prefix
     of the pip script path.
     """
-    import pip  # imported here to prevent circular imports
+    installed_version = get_installed_version("pip")
+    if installed_version is None:
+        return
+
+    pip_version = packaging_version.parse(installed_version)
     pypi_version = None
 
     try:
@@ -133,7 +137,6 @@ def pip_version_check(session):
             # save that we've performed a check
             state.save(pypi_version, current_time)
 
-        pip_version = packaging_version.parse(pip.__version__)
         remote_version = packaging_version.parse(pypi_version)
 
         # Determine if our pypi_version is older
@@ -148,9 +151,8 @@ def pip_version_check(session):
             logger.warning(
                 "You are using pip version %s, however version %s is "
                 "available.\nYou should consider upgrading via the "
-                "'%s install --upgrade pip' command." % (pip.__version__,
-                                                         pypi_version,
-                                                         pip_cmd)
+                "'%s install --upgrade pip' command.",
+                pip_version, pypi_version, pip_cmd
             )
 
     except Exception:

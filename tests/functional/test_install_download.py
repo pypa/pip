@@ -27,7 +27,8 @@ def test_download_wheel(script):
     result = script.pip(
         'install',
         '-f', 'https://bitbucket.org/pypa/pip-test-package/downloads',
-        '-d', '.', 'pip-test-package'
+        '-d', '.', 'pip-test-package',
+        expect_stderr=True,
     )
     assert (
         Path('scratch') / 'pip_test_package-0.1.1-py2.py3-none-any.whl'
@@ -77,7 +78,8 @@ def test_download_wheel_archive(script, data):
     wheel_path = os.path.join(data.find_links, wheel_filename)
     result = script.pip(
         'install', wheel_path,
-        '-d', '.', '--no-deps'
+        '-d', '.', '--no-deps',
+        expect_stderr=True,
     )
     assert Path('scratch') / wheel_filename in result.files_created
 
@@ -91,7 +93,8 @@ def test_download_should_download_wheel_deps(script, data):
     wheel_path = os.path.join(data.find_links, wheel_filename)
     result = script.pip(
         'install', wheel_path,
-        '-d', '.', '--find-links', data.find_links, '--no-index'
+        '-d', '.', '--find-links', data.find_links, '--no-index',
+        expect_stderr=True,
     )
     assert Path('scratch') / wheel_filename in result.files_created
     assert Path('scratch') / dep_filename in result.files_created
@@ -139,7 +142,8 @@ def test_download_vcs_link(script):
     It should allow -d flag for vcs links, regression test for issue #798.
     """
     result = script.pip(
-        'install', '-d', '.', 'git+git://github.com/pypa/pip-test-package.git'
+        'install', '-d', '.', 'git+git://github.com/pypa/pip-test-package.git',
+        expect_stderr=True,
     )
     assert (
         Path('scratch') / 'pip-test-package-0.1.1.zip'

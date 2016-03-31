@@ -4,6 +4,8 @@ import logging
 import tempfile
 import os.path
 
+from pip.compat import samefile
+from pip.exceptions import BadCommand
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
@@ -65,7 +67,7 @@ class Git(VersionControl):
         and branches may need origin/ as a prefix.
         Returns the SHA1 of the branch or tag if found.
         """
-        revisions = self.get_refs(dest)
+        revisions = self.get_short_refs(dest)
 
         origin_rev = 'origin/%s' % rev
         if origin_rev in revisions:
@@ -80,6 +82,15 @@ class Git(VersionControl):
             )
             return rev_options
 
+    def check_version(self, dest, rev_options):
+        """
+        Compare the current sha to the ref. ref may be a branch or tag name,
+        but current rev will always point to a sha. This means that a branch
+        or tag will never compare as True. So this ultimately only matches
+        against exact shas.
+        """
+        return self.get_revision(dest).startswith(rev_options[0])
+
     def switch(self, dest, url, rev_options):
         self.run_command(['config', 'remote.origin.url', url], cwd=dest)
         self.run_command(['checkout', '-q'] + rev_options, cwd=dest)
@@ -89,7 +100,7 @@ class Git(VersionControl):
     def update(self, dest, rev_options):
         # First fetch changes from the default remote
         self.run_command(['fetch', '-q'], cwd=dest)
-        # Then reset to wanted revision (maby even origin/master)
+        # Then reset to wanted revision (maybe even origin/master)
         if rev_options:
             rev_options = self.check_rev_options(
                 rev_options[0], dest, rev_options,
@@ -115,7 +126,7 @@ class Git(VersionControl):
             if rev:
                 rev_options = self.check_rev_options(rev, dest, rev_options)
                 # Only do a checkout if rev_options differs from HEAD
-                if not self.get_revision(dest).startswith(rev_options[0]):
+                if not self.check_version(dest, rev_options):
                     self.run_command(
                         ['checkout', '-q'] + rev_options,
                         cwd=dest,
@@ -124,9 +135,12 @@ class Git(VersionControl):
             self.update_submodules(dest)
 
     def get_url(self, location):
-        url = self.run_command(
-            ['config', 'remote.origin.url'],
+        """Return URL of the first remote encountered."""
+        remotes = self.run_command(
+            ['config', '--get-regexp', 'remote\..*\.url'],
             show_stdout=False, cwd=location)
+        first_remote = remotes.splitlines()[0]
+        url = first_remote.split(' ')[1]
         return url.strip()
 
     def get_revision(self, location):
@@ -134,26 +148,78 @@ class Git(VersionControl):
             ['rev-parse', 'HEAD'], show_stdout=False, cwd=location)
         return current_rev.strip()
 
-    def get_refs(self, location):
-        """Return map of named refs (branches or tags) to commit hashes."""
+    def get_full_refs(self, location):
+        """Yields tuples of (commit, ref) for branches and tags"""
         output = self.run_command(['show-ref'],
                                   show_stdout=False, cwd=location)
-        rv = {}
         for line in output.strip().splitlines():
             commit, ref = line.split(' ', 1)
-            ref = ref.strip()
+            yield commit.strip(), ref.strip()
+
+    def is_ref_remote(self, ref):
+        return ref.startswith('refs/remotes/')
+
+    def is_ref_branch(self, ref):
+        return ref.startswith('refs/heads/')
+
+    def is_ref_tag(self, ref):
+        return ref.startswith('refs/tags/')
+
+    def is_ref_commit(self, ref):
+        """A ref is a commit sha if it is not anything else"""
+        return not any((
+            self.is_ref_remote(ref),
+            self.is_ref_branch(ref),
+            self.is_ref_tag(ref),
+        ))
+
+    # Should deprecate `get_refs` since it's ambiguous
+    def get_refs(self, location):
+        return self.get_short_refs(location)
+
+    def get_short_refs(self, location):
+        """Return map of named refs (branches or tags) to commit hashes."""
+        rv = {}
+        for commit, ref in self.get_full_refs(location):
             ref_name = None
-            if ref.startswith('refs/remotes/'):
+            if self.is_ref_remote(ref):
                 ref_name = ref[len('refs/remotes/'):]
-            elif ref.startswith('refs/heads/'):
+            elif self.is_ref_branch(ref):
                 ref_name = ref[len('refs/heads/'):]
-            elif ref.startswith('refs/tags/'):
+            elif self.is_ref_tag(ref):
                 ref_name = ref[len('refs/tags/'):]
             if ref_name is not None:
-                rv[ref_name] = commit.strip()
+                rv[ref_name] = commit
         return rv
 
-    def get_src_requirement(self, dist, location, find_tags):
+    def _get_subdirectory(self, location):
+        """Return the relative path of setup.py to the git repo root."""
+        # find the repo root
+        git_dir = self.run_command(['rev-parse', '--git-dir'],
+                                   show_stdout=False, cwd=location).strip()
+        if not os.path.isabs(git_dir):
+            git_dir = os.path.join(location, git_dir)
+        root_dir = os.path.join(git_dir, '..')
+        # find setup.py
+        orig_location = location
+        while not os.path.exists(os.path.join(location, 'setup.py')):
+            last_location = location
+            location = os.path.dirname(location)
+            if location == last_location:
+                # We've traversed up to the root of the filesystem without
+                # finding setup.py
+                logger.warning(
+                    "Could not find setup.py for directory %s (tried all "
+                    "parent directories)",
+                    orig_location,
+                )
+                return None
+        # relative path of setup.py to repo root
+        if samefile(root_dir, location):
+            return None
+        return os.path.relpath(location, root_dir)
+
+    def get_src_requirement(self, dist, location):
         repo = self.get_url(location)
         if not repo.lower().startswith('git:'):
             repo = 'git+' + repo
@@ -161,25 +227,11 @@ class Git(VersionControl):
         if not repo:
             return None
         current_rev = self.get_revision(location)
-        refs = self.get_refs(location)
-        # refs maps names to commit hashes; we need the inverse
-        # if multiple names map to a single commit, we pick the first one
-        # alphabetically
-        names_by_commit = {}
-        for ref, commit in sorted(refs.items()):
-            if commit not in names_by_commit:
-                names_by_commit[commit] = ref
-
-        if current_rev in names_by_commit:
-            # It's a tag or branch.
-            name = names_by_commit[current_rev]
-            full_egg_name = (
-                '%s-%s' % (egg_project_name, self.translate_egg_surname(name))
-            )
-        else:
-            full_egg_name = '%s-dev' % egg_project_name
-
-        return '%s@%s#egg=%s' % (repo, current_rev, full_egg_name)
+        req = '%s@%s#egg=%s' % (repo, current_rev, egg_project_name)
+        subdirectory = self._get_subdirectory(location)
+        if subdirectory:
+            req += '&subdirectory=' + subdirectory
+        return req
 
     def get_url_rev(self):
         """
@@ -205,5 +257,21 @@ class Git(VersionControl):
             ['submodule', 'update', '--init', '--recursive', '-q'],
             cwd=location,
         )
+
+    @classmethod
+    def controls_location(cls, location):
+        if super(Git, cls).controls_location(location):
+            return True
+        try:
+            r = cls().run_command(['rev-parse'],
+                                  cwd=location,
+                                  show_stdout=False,
+                                  on_returncode='ignore')
+            return not r
+        except BadCommand:
+            logger.debug("could not determine if %s is under git control "
+                         "because git is not available", location)
+            return False
+
 
 vcs.register(Git)

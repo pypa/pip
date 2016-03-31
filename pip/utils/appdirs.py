@@ -1,13 +1,13 @@
 """
 This code was taken from https://github.com/ActiveState/appdirs and modified
-to suite our purposes.
+to suit our purposes.
 """
 from __future__ import absolute_import
 
 import os
 import sys
 
-from pip.compat import WINDOWS
+from pip.compat import WINDOWS, expanduser
 
 
 def user_cache_dir(appname):
@@ -39,13 +39,13 @@ def user_cache_dir(appname):
         path = os.path.join(path, appname, "Cache")
     elif sys.platform == "darwin":
         # Get the base path
-        path = os.path.expanduser("~/Library/Caches")
+        path = expanduser("~/Library/Caches")
 
         # Add our app name to it
         path = os.path.join(path, appname)
     else:
         # Get the base path
-        path = os.getenv("XDG_CACHE_HOME", os.path.expanduser("~/.cache"))
+        path = os.getenv("XDG_CACHE_HOME", expanduser("~/.cache"))
 
         # Add our app name to it
         path = os.path.join(path, appname)
@@ -85,46 +85,14 @@ def user_data_dir(appname, roaming=False):
         path = os.path.join(os.path.normpath(_get_win_folder(const)), appname)
     elif sys.platform == "darwin":
         path = os.path.join(
-            os.path.expanduser('~/Library/Application Support/'),
+            expanduser('~/Library/Application Support/'),
             appname,
         )
     else:
         path = os.path.join(
-            os.getenv('XDG_DATA_HOME', os.path.expanduser("~/.local/share")),
+            os.getenv('XDG_DATA_HOME', expanduser("~/.local/share")),
             appname,
         )
-
-    return path
-
-
-def user_log_dir(appname):
-    """
-    Return full path to the user-specific log dir for this application.
-
-        "appname" is the name of application.
-            If None, just the system directory is returned.
-
-    Typical user cache directories are:
-        Mac OS X:   ~/Library/Logs/<AppName>
-        Unix:       ~/.cache/<AppName>/log  # or under $XDG_CACHE_HOME if
-                    defined
-        Win XP:     C:\Documents and Settings\<username>\Local Settings\ ...
-                    ...Application Data\<AppName>\Logs
-        Vista:      C:\\Users\<username>\AppData\Local\<AppName>\Logs
-
-    On Windows the only suggestion in the MSDN docs is that local settings
-    go in the `CSIDL_LOCAL_APPDATA` directory. (Note: I'm interested in
-    examples of what some windows apps use for a logs dir.)
-
-    OPINION: This function appends "Logs" to the `CSIDL_LOCAL_APPDATA`
-    value for Windows and appends "log" to the user cache dir for Unix.
-    """
-    if WINDOWS:
-        path = os.path.join(user_data_dir(appname), "Logs")
-    elif sys.platform == "darwin":
-        path = os.path.join(os.path.expanduser('~/Library/Logs'), appname)
-    else:
-        path = os.path.join(user_cache_dir(appname), "log")
 
     return path
 
@@ -154,7 +122,7 @@ def user_config_dir(appname, roaming=True):
     elif sys.platform == "darwin":
         path = user_data_dir(appname)
     else:
-        path = os.getenv('XDG_CONFIG_HOME', os.path.expanduser("~/.config"))
+        path = os.getenv('XDG_CONFIG_HOME', expanduser("~/.config"))
         path = os.path.join(path, appname)
 
     return path
@@ -188,7 +156,7 @@ def site_config_dirs(appname):
         xdg_config_dirs = os.getenv('XDG_CONFIG_DIRS', '/etc/xdg')
         if xdg_config_dirs:
             pathlist = [
-                os.sep.join([os.path.expanduser(x), appname])
+                os.path.join(expanduser(x), appname)
                 for x in xdg_config_dirs.split(os.pathsep)
             ]
         else:

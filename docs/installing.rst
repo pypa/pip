@@ -3,40 +3,58 @@
 Installation
 ============
 
-Python & OS Support
--------------------
+Do I need to install pip?
+-------------------------
 
-pip works with CPython versions 2.6, 2.7, 3.2, 3.3, 3.4 and also pypy.
+pip is already installed if you're using Python 2 >=2.7.9 or Python 3 >=3.4
+downloaded from `python.org <https://www.python.org>`_, but you'll need to
+:ref:`upgrade pip <Upgrading pip>`.
 
-pip works on Unix/Linux, OS X, and Windows.
+Additionally, pip will already be installed if you're working in a :ref:`Virtual
+Environment <pypug:Creating and using Virtual Environments>` created by
+:ref:`pypug:virtualenv` or :ref:`pyvenv <pypug:venv>`.
 
-.. note::
-
-  Python 2.5 was supported through v1.3.1, and Python 2.4 was supported through v1.1.
-
-pip included with Python
-------------------------
-Python 2.7.9 and later (on the python2 series), and Python 3.4
-and later include pip by default [1]_, so you may have pip already.
 
 .. _`get-pip`:
 
-Install pip
------------
+Installing with get-pip.py
+--------------------------
 
 To install pip, securely download `get-pip.py
 <https://bootstrap.pypa.io/get-pip.py>`_. [2]_
 
-Then run the following (which may require administrator access):
+Then run the following:
 
 ::
 
  python get-pip.py
 
-If `setuptools`_ is not already installed, ``get-pip.py`` will install
-`setuptools`_ for you. [3]_
 
-To upgrade an existing `setuptools`_, run ``pip install -U setuptools``.
+.. warning::
+
+   Be cautious if you're using a Python install that's managed by your operating
+   system or another package manager. get-pip.py does not coordinate with
+   those tools, and may leave your system in an inconsistent state.
+
+get-pip.py will also install :ref:`pypug:setuptools` [3]_ and :ref:`pypug:wheel`,
+if they're not already. :ref:`pypug:setuptools` is required to install
+:term:`source distributions <pypug:Source Distribution (or "sdist")>`.  Both are
+required to be able to build a :ref:`Wheel cache` (which improves installation
+speed), although neither are required to install pre-built :term:`wheels
+<pypug:Wheel>`.
+
+
+get-pip.py options
+~~~~~~~~~~~~~~~~~~~
+
+.. option:: --no-setuptools
+
+    If set, don't attempt to install :ref:`pypug:setuptools`
+
+.. option:: --no-wheel
+
+    If set, don't attempt to install :ref:`pypug:wheel`
+
 
 Additionally, ``get-pip.py`` supports using the :ref:`pip install options <pip
 install Options>` and the :ref:`general options <General Options>`. Below are
@@ -55,8 +73,17 @@ Install behind a proxy::
   python get-pip.py --proxy="[user:passwd@]proxy.server:port"
 
 
-Upgrade pip
------------
+Using Linux Package Managers
+----------------------------
+
+See :ref:`pypug:Installing pip/setuptools/wheel with Linux Package Managers` in
+the `Python Packaging User Guide
+<https://packaging.python.org/en/latest/current/>`_.
+
+.. _`Upgrading pip`:
+
+Upgrading pip
+-------------
 
 On Linux or OS X:
 
@@ -72,26 +99,22 @@ On Windows [5]_:
  python -m pip install -U pip
 
 
+Python and OS Compatibility
+---------------------------
 
-Using OS Package Managers
--------------------------
+pip works with CPython versions 2.6, 2.7, 3.3, 3.4, 3.5 and also pypy.
 
-On Linux, pip will generally be available for the system install of python using
-the system package manager, although often the latest version will be
-unavailable.
+This means pip works on the latest patch version of each of these minor versions
+(i.e. 2.6.9 for 2.6, etc).
+Previous patch versions are supported on a best effort approach.
 
-On Debian and Ubuntu::
-
-   sudo apt-get install python-pip
-
-On Fedora::
-
-   sudo yum install python-pip
+pip works on Unix/Linux, OS X, and Windows.
 
 
 ----
 
-.. [1] https://docs.python.org/3/installing/
+.. [1] For Python 2, see https://docs.python.org/2/installing, and for Python3,
+       see https://docs.python.org/3/installing.
 
 .. [2] "Secure" in this context means using a modern browser or a
        tool like `curl` that verifies SSL certificates when downloading from
@@ -107,6 +130,3 @@ On Fedora::
        <https://github.com/pypa/pip/issues/1668>`_.
 
 .. [5] https://github.com/pypa/pip/issues/1299
-
-.. _setuptools: https://pypi.python.org/pypi/setuptools
-.. _distribute: https://pypi.python.org/pypi/distribute

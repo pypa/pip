@@ -43,6 +43,7 @@ Module Variables
 .. _crime attack: https://en.wikipedia.org/wiki/CRIME_(security_exploit)
 
 '''
+from __future__ import absolute_import
 
 try:
     from ndg.httpsclient.ssl_peer_verification import SUBJ_ALT_NAME_SUPPORT
@@ -53,7 +54,7 @@ except SyntaxError as e:
 import OpenSSL.SSL
 from pyasn1.codec.der import decoder as der_decoder
 from pyasn1.type import univ, constraint
-from socket import _fileobject, timeout
+from socket import _fileobject, timeout, error as SocketError
 import ssl
 import select
 
@@ -71,6 +72,12 @@ _openssl_versions = {
     ssl.PROTOCOL_TLSv1: OpenSSL.SSL.TLSv1_METHOD,
 }
 
+if hasattr(ssl, 'PROTOCOL_TLSv1_1') and hasattr(OpenSSL.SSL, 'TLSv1_1_METHOD'):
+    _openssl_versions[ssl.PROTOCOL_TLSv1_1] = OpenSSL.SSL.TLSv1_1_METHOD
+
+if hasattr(ssl, 'PROTOCOL_TLSv1_2') and hasattr(OpenSSL.SSL, 'TLSv1_2_METHOD'):
+    _openssl_versions[ssl.PROTOCOL_TLSv1_2] = OpenSSL.SSL.TLSv1_2_METHOD
+
 try:
     _openssl_versions.update({ssl.PROTOCOL_SSLv3: OpenSSL.SSL.SSLv3_METHOD})
 except AttributeError:
@@ -79,12 +86,14 @@ except AttributeError:
 _openssl_verify = {
     ssl.CERT_NONE: OpenSSL.SSL.VERIFY_NONE,
     ssl.CERT_OPTIONAL: OpenSSL.SSL.VERIFY_PEER,
-    ssl.CERT_REQUIRED: OpenSSL.SSL.VERIFY_PEER
-                       + OpenSSL.SSL.VERIFY_FAIL_IF_NO_PEER_CERT,
+    ssl.CERT_REQUIRED:
+        OpenSSL.SSL.VERIFY_PEER + OpenSSL.SSL.VERIFY_FAIL_IF_NO_PEER_CERT,
 }
 
 DEFAULT_SSL_CIPHER_LIST = util.ssl_.DEFAULT_CIPHERS
 
+# OpenSSL will only write 16K at a time
+SSL_WRITE_BLOCKSIZE = 16384
 
 orig_util_HAS_SNI = util.HAS_SNI
 orig_connection_ssl_wrap_socket = connection.ssl_wrap_socket
@@ -104,7 +113,7 @@ def extract_from_urllib3():
     util.HAS_SNI = orig_util_HAS_SNI
 
 
-### Note: This is a slightly bug-fixed version of same from ndg-httpsclient.
+# Note: This is a slightly bug-fixed version of same from ndg-httpsclient.
 class SubjectAltName(BaseSubjectAltName):
     '''ASN.1 implementation for subjectAltNames support'''
 
@@ -115,7 +124,7 @@ class SubjectAltName(BaseSubjectAltName):
         constraint.ValueSizeConstraint(1, 1024)
 
 
-### Note: This is a slightly bug-fixed version of same from ndg-httpsclient.
+# Note: This is a slightly bug-fixed version of same from ndg-httpsclient.
 def get_subj_alt_name(peer_cert):
     # Search through extensions
     dns_name = []
@@ -173,7 +182,7 @@ class WrappedSocket(object):
             if self.suppress_ragged_eofs and e.args == (-1, 'Unexpected EOF'):
                 return b''
             else:
-                raise
+                raise SocketError(e)
         except OpenSSL.SSL.ZeroReturnError as e:
             if self.connection.get_shutdown() == OpenSSL.SSL.RECEIVED_SHUTDOWN:
                 return b''
@@ -204,13 +213,21 @@ class WrappedSocket(object):
                 continue
 
     def sendall(self, data):
-        while len(data):
-            sent = self._send_until_done(data)
-            data = data[sent:]
+        total_sent = 0
+        while total_sent < len(data):
+            sent = self._send_until_done(data[total_sent:total_sent + SSL_WRITE_BLOCKSIZE])
+            total_sent += sent
+
+    def shutdown(self):
+        # FIXME rethrow compatible exceptions should we ever use this
+        self.connection.shutdown()
 
     def close(self):
         if self._makefile_refs < 1:
-            return self.connection.shutdown()
+            try:
+                return self.connection.close()
+            except OpenSSL.SSL.Error:
+                return
         else:
             self._makefile_refs -= 1
 
@@ -251,7 +268,7 @@ def _verify_callback(cnx, x509, err_no, err_depth, return_code):
 
 def ssl_wrap_socket(sock, keyfile=None, certfile=None, cert_reqs=None,
                     ca_certs=None, server_hostname=None,
-                    ssl_version=None):
+                    ssl_version=None, ca_cert_dir=None):
     ctx = OpenSSL.SSL.Context(_openssl_versions[ssl_version])
     if certfile:
         keyfile = keyfile or certfile  # Match behaviour of the normal python ssl library
@@ -260,9 +277,9 @@ def ssl_wrap_socket(sock, keyfile=None, certfile=None, cert_reqs=None,
         ctx.use_privatekey_file(keyfile)
     if cert_reqs != ssl.CERT_NONE:
         ctx.set_verify(_openssl_verify[cert_reqs], _verify_callback)
-    if ca_certs:
+    if ca_certs or ca_cert_dir:
         try:
-            ctx.load_verify_locations(ca_certs, None)
+            ctx.load_verify_locations(ca_certs, ca_cert_dir)
         except OpenSSL.SSL.Error as e:
             raise ssl.SSLError('bad ca_certs: %r' % ca_certs, e)
     else:
@@ -287,7 +304,7 @@ def ssl_wrap_socket(sock, keyfile=None, certfile=None, cert_reqs=None,
                 raise timeout('select timed out')
             continue
         except OpenSSL.SSL.Error as e:
-            raise ssl.SSLError('bad handshake', e)
+            raise ssl.SSLError('bad handshake: %r' % e)
         break
 
     return WrappedSocket(cnx, sock)

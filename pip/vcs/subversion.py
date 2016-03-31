@@ -163,8 +163,13 @@ class Subversion(VersionControl):
     def _get_svn_url_rev(self, location):
         from pip.exceptions import InstallationError
 
-        with open(os.path.join(location, self.dirname, 'entries')) as f:
-            data = f.read()
+        entries_path = os.path.join(location, self.dirname, 'entries')
+        if os.path.exists(entries_path):
+            with open(entries_path) as f:
+                data = f.read()
+        else:  # subversion >= 1.7 does not have the 'entries' file
+            data = ''
+
         if (data.startswith('8') or
                 data.startswith('9') or
                 data.startswith('10')):
@@ -199,65 +204,18 @@ class Subversion(VersionControl):
 
         return url, rev
 
-    def get_tag_revs(self, svn_tag_url):
-        stdout = self.run_command(['ls', '-v', svn_tag_url], show_stdout=False)
-        results = []
-        for line in stdout.splitlines():
-            parts = line.split()
-            rev = int(parts[0])
-            tag = parts[-1].strip('/')
-            results.append((tag, rev))
-        return results
-
-    def find_tag_match(self, rev, tag_revs):
-        best_match_rev = None
-        best_tag = None
-        for tag, tag_rev in tag_revs:
-            if (tag_rev > rev and
-                    (best_match_rev is None or best_match_rev > tag_rev)):
-                # FIXME: Is best_match > tag_rev really possible?
-                # or is it a sign something is wacky?
-                best_match_rev = tag_rev
-                best_tag = tag
-        return best_tag
-
-    def get_src_requirement(self, dist, location, find_tags=False):
+    def get_src_requirement(self, dist, location):
         repo = self.get_url(location)
         if repo is None:
             return None
-        parts = repo.split('/')
         # FIXME: why not project name?
         egg_project_name = dist.egg_name().split('-', 1)[0]
         rev = self.get_revision(location)
-        if parts[-2] in ('tags', 'tag'):
-            # It's a tag, perfect!
-            full_egg_name = '%s-%s' % (egg_project_name, parts[-1])
-        elif parts[-2] in ('branches', 'branch'):
-            # It's a branch :(
-            full_egg_name = '%s-%s-r%s' % (dist.egg_name(), parts[-1], rev)
-        elif parts[-1] == 'trunk':
-            # Trunk :-/
-            full_egg_name = '%s-dev_r%s' % (dist.egg_name(), rev)
-            if find_tags:
-                tag_url = '/'.join(parts[:-1]) + '/tags'
-                tag_revs = self.get_tag_revs(tag_url)
-                match = self.find_tag_match(rev, tag_revs)
-                if match:
-                    logger.info(
-                        'trunk checkout %s seems to be equivalent to tag %s',
-                        match,
-                    )
-                    repo = '%s/%s' % (tag_url, match)
-                    full_egg_name = '%s-%s' % (egg_project_name, match)
-        else:
-            # Don't know what it is
-            logger.warning(
-                'svn URL does not fit normal structure (tags/branches/trunk): '
-                '%s',
-                repo,
-            )
-            full_egg_name = '%s-dev_r%s' % (egg_project_name, rev)
-        return 'svn+%s@%s#egg=%s' % (repo, rev, full_egg_name)
+        return 'svn+%s@%s#egg=%s' % (repo, rev, egg_project_name)
+
+    def check_version(self, dest, rev_options):
+        """Always assume the versions don't match"""
+        return False
 
 
 def get_rev_options(url, rev):

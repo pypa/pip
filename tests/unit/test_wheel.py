@@ -4,8 +4,9 @@ import os
 import pytest
 from mock import patch, Mock
 
-from pip._vendor import pkg_resources
+from pip._vendor.packaging.requirements import Requirement
 from pip import pep425tags, wheel
+from pip.compat import expanduser, WINDOWS
 from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip.utils import unpack_file
 
@@ -291,23 +292,6 @@ class TestWheelFile(object):
         assert w.version == '0.1-1'
 
 
-class TestPEP425Tags(object):
-
-    def test_broken_sysconfig(self):
-        """
-        Test that pep425tags still works when sysconfig is broken.
-        Can be a problem on Python 2.7
-        Issue #1074.
-        """
-        import pip.pep425tags
-
-        def raises_ioerror(var):
-            raise IOError("I have the wrong path!")
-
-        with patch('pip.pep425tags.sysconfig.get_config_var', raises_ioerror):
-            assert len(pip.pep425tags.get_supported())
-
-
 class TestMoveWheelFiles(object):
     """
     Tests for moving files from wheel src to scheme paths
@@ -317,7 +301,7 @@ class TestMoveWheelFiles(object):
         self.name = 'sample'
         self.wheelpath = data.packages.join(
             'sample-1.2.0-py2.py3-none-any.whl')
-        self.req = pkg_resources.Requirement.parse('sample')
+        self.req = Requirement('sample')
         self.src = os.path.join(tmpdir, 'src')
         self.dest = os.path.join(tmpdir, 'dest')
         unpack_file(self.wheelpath, self.src, None, None)
@@ -352,6 +336,21 @@ class TestMoveWheelFiles(object):
             self.name, self.req, self.src, scheme=self.scheme)
         self.assert_installed()
 
+    def test_install_prefix(self, data, tmpdir):
+        prefix = os.path.join(os.path.sep, 'some', 'path')
+        self.prep(data, tmpdir)
+        wheel.move_wheel_files(
+            self.name,
+            self.req,
+            self.src,
+            root=tmpdir,
+            prefix=prefix,
+        )
+
+        bin_dir = 'Scripts' if WINDOWS else 'bin'
+        assert os.path.exists(os.path.join(tmpdir, 'some', 'path', bin_dir))
+        assert os.path.exists(os.path.join(tmpdir, 'some', 'path', 'my_data'))
+
     def test_dist_info_contains_empty_dir(self, data, tmpdir):
         """
         Test that empty dirs are not installed
@@ -373,7 +372,7 @@ class TestWheelBuilder(object):
 
     def test_skip_building_wheels(self, caplog):
         with patch('pip.wheel.WheelBuilder._build_one') as mock_build_one:
-            wheel_req = Mock(is_wheel=True, editable=False)
+            wheel_req = Mock(is_wheel=True, editable=False, constraint=False)
             reqset = Mock(requirements=Mock(values=lambda: [wheel_req]),
                           wheel_download_dir='/wheel/dir')
             wb = wheel.WheelBuilder(reqset, Mock())
@@ -383,10 +382,21 @@ class TestWheelBuilder(object):
 
     def test_skip_building_editables(self, caplog):
         with patch('pip.wheel.WheelBuilder._build_one') as mock_build_one:
-            editable_req = Mock(editable=True, is_wheel=False)
-            reqset = Mock(requirements=Mock(values=lambda: [editable_req]),
+            editable = Mock(editable=True, is_wheel=False, constraint=False)
+            reqset = Mock(requirements=Mock(values=lambda: [editable]),
                           wheel_download_dir='/wheel/dir')
             wb = wheel.WheelBuilder(reqset, Mock())
             wb.build()
             assert "due to being editable" in caplog.text()
             assert mock_build_one.mock_calls == []
+
+
+class TestWheelCache:
+
+    def test_expands_path(self):
+        wc = wheel.WheelCache("~/.foo/", None)
+        assert wc._cache_dir == expanduser("~/.foo/")
+
+    def test_falsey_path_none(self):
+        wc = wheel.WheelCache(False, None)
+        assert wc._cache_dir is None

@@ -4,17 +4,16 @@ from __future__ import absolute_import
 import logging
 import os
 import sys
-import traceback
 import optparse
 import warnings
 
-from pip._vendor.six import StringIO
-
 from pip import cmdoptions
+from pip.index import PackageFinder
 from pip.locations import running_under_virtualenv
 from pip.download import PipSession
 from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
                             CommandError, PreviousBuildDirError)
+
 from pip.compat import logging_dictConfig
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.req import InstallRequirement, parse_requirements
@@ -22,8 +21,7 @@ from pip.status_codes import (
     SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND,
     PREVIOUS_BUILD_DIR_ERROR,
 )
-from pip.utils import get_prog, normalize_path
-from pip.utils.deprecation import RemovedInPip8Warning
+from pip.utils import deprecation, get_prog, normalize_path
 from pip.utils.logging import IndentingFormatter
 from pip.utils.outdated import pip_version_check
 
@@ -131,11 +129,7 @@ class Command(object):
             "formatters": {
                 "indent": {
                     "()": IndentingFormatter,
-                    "format": (
-                        "%(message)s"
-                        if not options.log_explicit_levels
-                        else "[%(levelname)s] %(message)s"
-                    ),
+                    "format": "%(message)s",
                 },
             },
             "handlers": {
@@ -186,11 +180,12 @@ class Command(object):
             ),
         })
 
-        if options.log_explicit_levels:
+        if sys.version_info[:2] == (2, 6):
             warnings.warn(
-                "--log-explicit-levels has been deprecated and will be removed"
-                " in a future version.",
-                RemovedInPip8Warning,
+                "Python 2.6 is no longer supported by the Python core team, "
+                "please upgrade your Python. A future version of pip will "
+                "drop support for Python 2.6",
+                deprecation.Python26DeprecationWarning
             )
 
         # TODO: try to get these passing down from the command?
@@ -210,15 +205,6 @@ class Command(object):
                 )
                 sys.exit(VIRTUALENV_NOT_FOUND)
 
-        # Check if we're using the latest version of pip available
-        if (not options.disable_pip_version_check and not
-                getattr(options, "no_index", False)):
-            with self._build_session(
-                    options,
-                    retries=0,
-                    timeout=min(5, options.timeout)) as session:
-                pip_version_check(session)
-
         try:
             status = self.run(options, args)
             # FIXME: all commands should return an exit status
@@ -227,28 +213,37 @@ class Command(object):
                 return status
         except PreviousBuildDirError as exc:
             logger.critical(str(exc))
-            logger.debug('Exception information:\n%s', format_exc())
+            logger.debug('Exception information:', exc_info=True)
 
             return PREVIOUS_BUILD_DIR_ERROR
         except (InstallationError, UninstallationError, BadCommand) as exc:
             logger.critical(str(exc))
-            logger.debug('Exception information:\n%s', format_exc())
+            logger.debug('Exception information:', exc_info=True)
 
             return ERROR
         except CommandError as exc:
             logger.critical('ERROR: %s', exc)
-            logger.debug('Exception information:\n%s', format_exc())
+            logger.debug('Exception information:', exc_info=True)
 
             return ERROR
         except KeyboardInterrupt:
             logger.critical('Operation cancelled by user')
-            logger.debug('Exception information:\n%s', format_exc())
+            logger.debug('Exception information:', exc_info=True)
 
             return ERROR
         except:
-            logger.critical('Exception:\n%s', format_exc())
+            logger.critical('Exception:', exc_info=True)
 
             return UNKNOWN_ERROR
+        finally:
+            # Check if we're using the latest version of pip available
+            if (not options.disable_pip_version_check and not
+                    getattr(options, "no_index", False)):
+                with self._build_session(
+                        options,
+                        retries=0,
+                        timeout=min(5, options.timeout)) as session:
+                    pip_version_check(session)
 
         return SUCCESS
 
@@ -261,6 +256,13 @@ class RequirementCommand(Command):
         """
         Marshal cmd line args into a requirement set.
         """
+        for filename in options.constraints:
+            for req in parse_requirements(
+                    filename,
+                    constraint=True, finder=finder, options=options,
+                    session=session, wheel_cache=wheel_cache):
+                requirement_set.add_requirement(req)
+
         for req in args:
             requirement_set.add_requirement(
                 InstallRequirement.from_line(
@@ -287,6 +289,9 @@ class RequirementCommand(Command):
                     wheel_cache=wheel_cache):
                 found_req_in_file = True
                 requirement_set.add_requirement(req)
+        # If --require-hashes was a line in a requirements file, tell
+        # RequirementSet about it:
+        requirement_set.require_hashes = options.require_hashes
 
         if not (args or options.editables or found_req_in_file):
             opts = {'name': name}
@@ -300,10 +305,21 @@ class RequirementCommand(Command):
                        'to %(name)s (see "pip help %(name)s")' % opts)
             logger.warning(msg)
 
+    def _build_package_finder(self, options, session):
+        """
+        Create a package finder appropriate to this requirement command.
+        """
+        index_urls = [options.index_url] + options.extra_index_urls
+        if options.no_index:
+            logger.info('Ignoring indexes: %s', ','.join(index_urls))
+            index_urls = []
 
-def format_exc(exc_info=None):
-    if exc_info is None:
-        exc_info = sys.exc_info()
-    out = StringIO()
-    traceback.print_exception(*exc_info, **dict(file=out))
-    return out.getvalue()
+        return PackageFinder(
+            find_links=options.find_links,
+            format_control=options.format_control,
+            index_urls=index_urls,
+            trusted_hosts=options.trusted_hosts,
+            allow_all_prereleases=options.pre,
+            process_dependency_links=options.process_dependency_links,
+            session=session,
+        )

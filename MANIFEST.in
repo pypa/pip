@@ -8,13 +8,16 @@ include pip/_vendor/vendor.txt
 exclude .coveragerc
 exclude .mailmap
 exclude .travis.yml
+exclude .landscape.yml
 exclude pip/_vendor/Makefile
 exclude tox.ini
 exclude dev-requirements.txt
+exclude appveyor.yml
 
 recursive-include pip/_vendor *.pem
 recursive-include docs Makefile *.rst *.py *.bat
 
+prune .github
 prune .travis
 prune docs/_build
 prune contrib

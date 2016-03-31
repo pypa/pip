@@ -7,12 +7,6 @@ from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
 
-# We support this primarily for downstream distributions. This is NOT intended
-# to be used by end users and any actual use of thus is not considered a
-# supported configuration.
-NO_VENDOR = ("PIP_NO_VENDOR_FOR_DOWNSTREAM" in os.environ)
-
-
 here = os.path.abspath(os.path.dirname(__file__))
 
 
@@ -47,25 +41,8 @@ def find_version(*file_paths):
 
 long_description = read('README.rst')
 
-tests_require = ['pytest', 'virtualenv>=1.10', 'scripttest>=1.3', 'mock']
-
-find_excludes = ["contrib", "docs", "tests*", "tasks"]
-
-py_modules = []
-
-package_data = {}
-
-
-if NO_VENDOR:
-    find_excludes += ["pip._vendor", "pip._vendor.*"]
-    py_modules += ["pip._vendor.__init__"]
-else:
-    package_data.update({
-        "pip._vendor.certifi": ["*.pem"],
-        "pip._vendor.requests": ["*.pem"],
-        "pip._vendor.distlib._backport": ["sysconfig.cfg"],
-        "pip._vendor.distlib": ["t32.exe", "t64.exe", "w32.exe", "w64.exe"],
-    })
+tests_require = ['pytest', 'virtualenv>=1.10', 'scripttest>=1.3', 'mock',
+                 'pretend']
 
 
 setup(
@@ -82,9 +59,9 @@ setup(
         "Programming Language :: Python :: 2.6",
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.2",
         "Programming Language :: Python :: 3.3",
         "Programming Language :: Python :: 3.4",
+        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: Implementation :: PyPy"
     ],
     keywords='easy_install distutils setuptools egg virtualenv',
@@ -92,9 +69,13 @@ setup(
     author_email='python-virtualenv@groups.google.com',
     url='https://pip.pypa.io/',
     license='MIT',
-    py_modules=py_modules,
-    packages=find_packages(exclude=find_excludes),
-    package_data=package_data,
+    packages=find_packages(exclude=["contrib", "docs", "tests*", "tasks"]),
+    package_data={
+        "pip._vendor.certifi": ["*.pem"],
+        "pip._vendor.requests": ["*.pem"],
+        "pip._vendor.distlib._backport": ["sysconfig.cfg"],
+        "pip._vendor.distlib": ["t32.exe", "t64.exe", "w32.exe", "w64.exe"],
+    },
     entry_points={
         "console_scripts": [
             "pip=pip:main",
@@ -109,18 +90,3 @@ setup(
     },
     cmdclass={'test': PyTest},
 )
-
-
-if NO_VENDOR:
-    print("""
-###########################################################################
-## IMPORTANT IMPORTANT IMPORTANT IMPORTANT IMPORTANT IMPORTANT IMPORTANT ##
-###########################################################################
-## You are installing pip without the bundled dependencies.              ##
-##                                                                       ##
-## This is not an officially supported option for end users and should   ##
-## only be used by downstream redistributors such as the various Linux   ##
-## distributions. This method of installation is not as well tested by   ##
-## the pip team.                                                         ##
-###########################################################################
-""")

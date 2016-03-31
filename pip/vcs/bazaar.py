@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import logging
 import os
 import tempfile
-import re
 
 # TODO: Get this into six.moves.urllib.parse
 try:
@@ -99,19 +98,7 @@ class Bazaar(VersionControl):
             ['revno'], show_stdout=False, cwd=location)
         return revision.splitlines()[-1]
 
-    def get_tag_revs(self, location):
-        tags = self.run_command(
-            ['tags'], show_stdout=False, cwd=location)
-        tag_revs = []
-        for line in tags.splitlines():
-            tags_match = re.search(r'([.\w-]+)\s*(.*)$', line)
-            if tags_match:
-                tag = tags_match.group(1)
-                rev = tags_match.group(2)
-                tag_revs.append((rev.strip(), tag.strip()))
-        return dict(tag_revs)
-
-    def get_src_requirement(self, dist, location, find_tags):
+    def get_src_requirement(self, dist, location):
         repo = self.get_url(location)
         if not repo:
             return None
@@ -119,14 +106,11 @@ class Bazaar(VersionControl):
             repo = 'bzr+' + repo
         egg_project_name = dist.egg_name().split('-', 1)[0]
         current_rev = self.get_revision(location)
-        tag_revs = self.get_tag_revs(location)
+        return '%s@%s#egg=%s' % (repo, current_rev, egg_project_name)
 
-        if current_rev in tag_revs:
-            # It's a tag
-            full_egg_name = '%s-%s' % (egg_project_name, tag_revs[current_rev])
-        else:
-            full_egg_name = '%s-dev_r%s' % (dist.egg_name(), current_rev)
-        return '%s@%s#egg=%s' % (repo, current_rev, full_egg_name)
+    def check_version(self, dest, rev_options):
+        """Always assume the versions don't match"""
+        return False
 
 
 vcs.register(Bazaar)

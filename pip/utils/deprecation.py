@@ -11,15 +11,20 @@ class PipDeprecationWarning(Warning):
     pass
 
 
-class RemovedInPip8Warning(PipDeprecationWarning, PendingDeprecationWarning):
+class Pending(object):
     pass
 
 
-class RemovedInPip9Warning(PipDeprecationWarning, PendingDeprecationWarning):
+class RemovedInPip9Warning(PipDeprecationWarning):
     pass
 
 
-DEPRECATIONS = [RemovedInPip8Warning, RemovedInPip9Warning]
+class RemovedInPip10Warning(PipDeprecationWarning, Pending):
+    pass
+
+
+class Python26DeprecationWarning(PipDeprecationWarning, Pending):
+    pass
 
 
 # Warnings <-> Logging Integration
@@ -45,15 +50,15 @@ def _showwarning(message, category, filename, lineno, file=None, line=None):
             # want it to appear as if someone typed this entire message out.
             log_message = "DEPRECATION: %s" % message
 
-            # Things that are DeprecationWarnings will be removed in the very
-            # next version of pip. We want these to be more obvious so we
-            # use the ERROR logging level while the PendingDeprecationWarnings
-            # are still have at least 2 versions to go until they are removed
-            # so they can just be warnings.
-            if issubclass(category, DeprecationWarning):
-                logger.error(log_message)
-            else:
+            # PipDeprecationWarnings that are Pending still have at least 2
+            # versions to go until they are removed so they can just be
+            # warnings.  Otherwise, they will be removed in the very next
+            # version of pip. We want these to be more obvious so we use the
+            # ERROR logging level.
+            if issubclass(category, Pending):
                 logger.warning(log_message)
+            else:
+                logger.error(log_message)
         else:
             _warnings_showwarning(
                 message, category, filename, lineno, file, line,
@@ -61,6 +66,9 @@ def _showwarning(message, category, filename, lineno, file=None, line=None):
 
 
 def install_warning_logger():
+    # Enable our Deprecation Warnings
+    warnings.simplefilter("default", PipDeprecationWarning, append=True)
+
     global _warnings_showwarning
 
     if _warnings_showwarning is None:

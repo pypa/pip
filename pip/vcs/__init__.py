@@ -72,10 +72,7 @@ class VcsSupport(object):
         location, e.g. vcs.get_backend_name('/path/to/vcs/checkout')
         """
         for vc_type in self._registry.values():
-            logger.debug('Checking in %s for %s (%s)...',
-                         location, vc_type.dirname, vc_type.name)
-            path = os.path.join(location, vc_type.dirname)
-            if os.path.exists(path):
+            if vc_type.controls_location(location):
                 logger.debug('Determine that %s uses VCS: %s',
                              location, vc_type.name)
                 return vc_type.name
@@ -186,6 +183,13 @@ class VersionControl(object):
         """
         raise NotImplementedError
 
+    def check_version(self, dest, rev_options):
+        """
+        Return True if the version is identical to what exists and
+        doesn't need to be updated.
+        """
+        raise NotImplementedError
+
     def check_destination(self, dest, url, rev_options, rev_display):
         """
         Prepare a location to receive a checkout/clone.
@@ -206,13 +210,17 @@ class VersionControl(object):
                         display_path(dest),
                         url,
                     )
-                    logger.info(
-                        'Updating %s %s%s',
-                        display_path(dest),
-                        self.repo_name,
-                        rev_display,
-                    )
-                    self.update(dest, rev_options)
+                    if not self.check_version(dest, rev_options):
+                        logger.info(
+                            'Updating %s %s%s',
+                            display_path(dest),
+                            self.repo_name,
+                            rev_display,
+                        )
+                        self.update(dest, rev_options)
+                    else:
+                        logger.info(
+                            'Skipping because already up-to-date.')
                 else:
                     logger.warning(
                         '%s %s in %s exists with URL %s',
@@ -274,13 +282,12 @@ class VersionControl(object):
             rmtree(location)
         self.obtain(location)
 
-    def get_src_requirement(self, dist, location, find_tags=False):
+    def get_src_requirement(self, dist, location):
         """
         Return a string representing the requirement needed to
         redownload the files currently present in location, something
         like:
           {repository_url}@{revision}#egg={project_name}-{version_identifier}
-        If find_tags is True, try to find a tag matching the revision
         """
         raise NotImplementedError
 
@@ -299,9 +306,9 @@ class VersionControl(object):
         raise NotImplementedError
 
     def run_command(self, cmd, show_stdout=True, cwd=None,
-                    raise_on_returncode=True,
+                    on_returncode='raise',
                     command_level=logging.DEBUG, command_desc=None,
-                    extra_environ=None):
+                    extra_environ=None, spinner=None):
         """
         Run a VCS subcommand
         This is simply a wrapper around call_subprocess that adds the VCS
@@ -310,24 +317,36 @@ class VersionControl(object):
         cmd = [self.name] + cmd
         try:
             return call_subprocess(cmd, show_stdout, cwd,
-                                   raise_on_returncode, command_level,
-                                   command_desc, extra_environ)
+                                   on_returncode, command_level,
+                                   command_desc, extra_environ,
+                                   spinner)
         except OSError as e:
             # errno.ENOENT = no such file or directory
             # In other words, the VCS executable isn't available
             if e.errno == errno.ENOENT:
                 raise BadCommand('Cannot find command %r' % self.name)
             else:
-                raise  # re-raise exception if a different error occured
+                raise  # re-raise exception if a different error occurred
+
+    @classmethod
+    def controls_location(cls, location):
+        """
+        Check if a location is controlled by the vcs.
+        It is meant to be overridden to implement smarter detection
+        mechanisms for specific vcs.
+        """
+        logger.debug('Checking in %s for %s (%s)...',
+                     location, cls.dirname, cls.name)
+        path = os.path.join(location, cls.dirname)
+        return os.path.exists(path)
 
 
-def get_src_requirement(dist, location, find_tags):
+def get_src_requirement(dist, location):
     version_control = vcs.get_backend_from_location(location)
     if version_control:
         try:
             return version_control().get_src_requirement(dist,
-                                                         location,
-                                                         find_tags)
+                                                         location)
         except BadCommand:
             logger.warning(
                 'cannot determine version of editable source in %s '

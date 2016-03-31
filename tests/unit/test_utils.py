@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 """
 util tests
 
@@ -12,9 +14,12 @@ import tempfile
 import pytest
 
 from mock import Mock, patch
-from pip.utils import (egg_link_path, Inf, get_installed_distributions,
+from pip.exceptions import HashMismatch, HashMissing, InstallationError
+from pip.utils import (egg_link_path, get_installed_distributions,
                        untar_file, unzip_file, rmtree, normalize_path)
-from pip.operations.freeze import freeze_excludes
+from pip.utils.encoding import auto_decode
+from pip.utils.hashes import Hashes, MissingHashes
+from pip._vendor.six import BytesIO
 
 
 class Tests_EgglinkPath:
@@ -151,16 +156,6 @@ class Tests_EgglinkPath:
         assert egg_link_path(self.mock_dist) is None
 
 
-def test_Inf_greater():
-    """Test Inf compares greater."""
-    assert Inf > object()
-
-
-def test_Inf_equals_Inf():
-    """Test Inf compares greater."""
-    assert Inf == Inf
-
-
 @patch('pip.utils.dist_in_usersite')
 @patch('pip.utils.dist_is_local')
 @patch('pip.utils.dist_is_editable')
@@ -268,7 +263,8 @@ class Tests_get_installed_distributions:
         mock_dist_is_editable.side_effect = self.dist_is_editable
         mock_dist_is_local.side_effect = self.dist_is_local
         mock_dist_in_usersite.side_effect = self.dist_in_usersite
-        dists = get_installed_distributions(skip=freeze_excludes)
+        dists = get_installed_distributions(
+            skip=('setuptools', 'pip', 'distribute'))
         assert len(dists) == 0
 
 
@@ -334,6 +330,10 @@ class TestUnpackArchives(object):
         test_file = data.packages.join("test_tar.tgz")
         untar_file(test_file, self.tempdir)
         self.confirm_files()
+        # Check the timestamp of an extracted file
+        file_txt_path = os.path.join(self.tempdir, 'file.txt')
+        mtime = time.gmtime(os.stat(file_txt_path).st_mtime)
+        assert mtime[0:6] == (2013, 8, 16, 5, 13, 37), mtime
 
     def test_unpack_zip(self, data):
         """
@@ -406,3 +406,65 @@ class Test_normalize_path(object):
             ) == os.path.join(tmpdir, 'file_link')
         finally:
             os.chdir(orig_working_dir)
+
+
+class TestHashes(object):
+    """Tests for pip.utils.hashes"""
+
+    def test_success(self, tmpdir):
+        """Make sure no error is raised when at least one hash matches.
+
+        Test check_against_path because it calls everything else.
+
+        """
+        file = tmpdir / 'to_hash'
+        file.write('hello')
+        hashes = Hashes({
+            'sha256': ['2cf24dba5fb0a30e26e83b2ac5b9e29e'
+                       '1b161e5c1fa7425e73043362938b9824'],
+            'sha224': ['wrongwrong'],
+            'md5': ['5d41402abc4b2a76b9719d911017c592']})
+        hashes.check_against_path(file)
+
+    def test_failure(self):
+        """Hashes should raise HashMismatch when no hashes match."""
+        hashes = Hashes({'sha256': ['wrongwrong']})
+        with pytest.raises(HashMismatch):
+            hashes.check_against_file(BytesIO(b'hello'))
+
+    def test_missing_hashes(self):
+        """MissingHashes should raise HashMissing when any check is done."""
+        with pytest.raises(HashMissing):
+            MissingHashes().check_against_file(BytesIO(b'hello'))
+
+    def test_unknown_hash(self):
+        """Hashes should raise InstallationError when it encounters an unknown
+        hash."""
+        hashes = Hashes({'badbad': ['dummy']})
+        with pytest.raises(InstallationError):
+            hashes.check_against_file(BytesIO(b'hello'))
+
+    def test_non_zero(self):
+        """Test that truthiness tests tell whether any known-good hashes
+        exist."""
+        assert Hashes({'sha256': 'dummy'})
+        assert not Hashes()
+        assert not Hashes({})
+
+
+class TestEncoding(object):
+    """Tests for pip.utils.encoding"""
+
+    def test_auto_decode_utf16_le(self):
+        data = (
+            b'\xff\xfeD\x00j\x00a\x00n\x00g\x00o\x00=\x00'
+            b'=\x001\x00.\x004\x00.\x002\x00'
+        )
+        assert auto_decode(data) == "Django==1.4.2"
+
+    def test_auto_decode_no_bom(self):
+        assert auto_decode(b'foobar') == u'foobar'
+
+    def test_auto_decode_pep263_headers(self):
+        latin1_req = u'# coding=latin1\n# Pas trop de café'
+        assert auto_decode(latin1_req.encode('latin1')) == latin1_req

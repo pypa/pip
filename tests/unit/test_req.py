@@ -6,15 +6,18 @@ import tempfile
 import pytest
 
 from mock import Mock, patch, mock_open
+from pip.commands.install import InstallCommand
 from pip.exceptions import (PreviousBuildDirError, InvalidWheelFilename,
-                            UnsupportedWheel)
-from pip.download import PipSession
+                            InstallationError, UnsupportedWheel, HashErrors)
+from pip.download import path_to_url, PipSession
 from pip.index import PackageFinder
 from pip.req import (InstallRequirement, RequirementSet, Requirements)
+from pip.req.req_file import process_line
 from pip.req.req_install import parse_editable
 from pip.utils import read_text_file
 from pip._vendor import pkg_resources
-from tests.lib import assert_raises_regexp
+from pip._vendor.packaging.requirements import Requirement
+from tests.lib import assert_raises_regexp, requirements_file
 
 
 class TestRequirementSet(object):
@@ -26,12 +29,13 @@ class TestRequirementSet(object):
     def teardown(self):
         shutil.rmtree(self.tempdir, ignore_errors=True)
 
-    def basic_reqset(self):
+    def basic_reqset(self, **kwargs):
         return RequirementSet(
             build_dir=os.path.join(self.tempdir, 'build'),
             src_dir=os.path.join(self.tempdir, 'src'),
             download_dir=None,
             session=PipSession(),
+            **kwargs
         )
 
     def test_no_reuse_existing_build_dir(self, data):
@@ -68,6 +72,217 @@ class TestRequirementSet(object):
             assert reqset.has_requirement('simple')
         else:
             assert not reqset.has_requirement('simple')
+
+    @pytest.mark.network
+    def test_missing_hash_checking(self, data):
+        """Make sure prepare_files() raises an error when a requirement has no
+        hash in implicit hash-checking mode.
+        """
+        reqset = self.basic_reqset()
+        # No flags here. This tests that detection of later flags nonetheless
+        # requires earlier packages to have hashes:
+        reqset.add_requirement(
+            list(process_line('blessings==1.0', 'file', 1))[0])
+        # This flag activates --require-hashes mode:
+        reqset.add_requirement(
+            list(process_line('tracefront==0.1 --hash=sha256:somehash',
+                              'file',
+                              2))[0])
+        # This hash should be accepted because it came from the reqs file, not
+        # from the internet:
+        reqset.add_requirement(
+            list(process_line('https://pypi.python.org/packages/source/m/more-'
+                              'itertools/more-itertools-1.0.tar.gz#md5=b21850c'
+                              '3cfa7efbb70fd662ab5413bdd', 'file', 3))[0])
+        # The error text should list this as a URL and not `peep==3.1.1`:
+        reqset.add_requirement(
+            list(process_line('https://pypi.python.org/packages/source/p/peep/'
+                              'peep-3.1.1.tar.gz',
+                              'file',
+                              4))[0])
+        finder = PackageFinder([],
+                               ['https://pypi.python.org/simple'],
+                               session=PipSession())
+        assert_raises_regexp(
+            HashErrors,
+            r'Hashes are required in --require-hashes mode, but they are '
+            r'missing .*\n'
+            r'    https://pypi\.python\.org/packages/source/p/peep/peep'
+            r'-3\.1\.1\.tar\.gz --hash=sha256:[0-9a-f]+\n'
+            r'    blessings==1.0 --hash=sha256:[0-9a-f]+\n'
+            r'THESE PACKAGES DO NOT MATCH THE HASHES.*\n'
+            r'    tracefront==0.1 .*:\n'
+            r'        Expected sha256 somehash\n'
+            r'             Got        [0-9a-f]+$',
+            reqset.prepare_files,
+            finder)
+
+    def test_missing_hash_with_require_hashes(self, data):
+        """Setting --require-hashes explicitly should raise errors if hashes
+        are missing.
+        """
+        reqset = self.basic_reqset(require_hashes=True)
+        reqset.add_requirement(
+            list(process_line('simple==1.0', 'file', 1))[0])
+        finder = PackageFinder([data.find_links], [], session=PipSession())
+        assert_raises_regexp(
+            HashErrors,
+            r'Hashes are required in --require-hashes mode, but they are '
+            r'missing .*\n'
+            r'    simple==1.0 --hash=sha256:393043e672415891885c9a2a0929b1af95'
+            r'fb866d6ca016b42d2e6ce53619b653$',
+            reqset.prepare_files,
+            finder)
+
+    def test_missing_hash_with_require_hashes_in_reqs_file(self, data, tmpdir):
+        """--require-hashes in a requirements file should make its way to the
+        RequirementSet.
+        """
+        req_set = self.basic_reqset(require_hashes=False)
+        session = PipSession()
+        finder = PackageFinder([data.find_links], [], session=session)
+        command = InstallCommand()
+        with requirements_file('--require-hashes', tmpdir) as reqs_file:
+            options, args = command.parse_args(['-r', reqs_file])
+            command.populate_requirement_set(
+                req_set, args, options, finder, session, command.name,
+                wheel_cache=None)
+        assert req_set.require_hashes
+
+    def test_unsupported_hashes(self, data):
+        """VCS and dir links should raise errors when --require-hashes is
+        on.
+
+        In addition, complaints about the type of requirement (VCS or dir)
+        should trump the presence or absence of a hash.
+
+        """
+        reqset = self.basic_reqset(require_hashes=True)
+        reqset.add_requirement(
+            list(process_line(
+                'git+git://github.com/pypa/pip-test-package --hash=sha256:123',
+                'file',
+                1))[0])
+        dir_path = data.packages.join('FSPkg')
+        reqset.add_requirement(
+            list(process_line(
+                'file://%s' % (dir_path,),
+                'file',
+                2))[0])
+        finder = PackageFinder([data.find_links], [], session=PipSession())
+        sep = os.path.sep
+        if sep == '\\':
+            sep = '\\\\'  # This needs to be escaped for the regex
+        assert_raises_regexp(
+            HashErrors,
+            r"Can't verify hashes for these requirements because we don't "
+            r"have a way to hash version control repositories:\n"
+            r"    git\+git://github\.com/pypa/pip-test-package \(from -r file "
+            r"\(line 1\)\)\n"
+            r"Can't verify hashes for these file:// requirements because they "
+            r"point to directories:\n"
+            r"    file://.*{sep}data{sep}packages{sep}FSPkg "
+            "\(from -r file \(line 2\)\)".format(sep=sep),
+            reqset.prepare_files,
+            finder)
+
+    def test_unpinned_hash_checking(self, data):
+        """Make sure prepare_files() raises an error when a requirement is not
+        version-pinned in hash-checking mode.
+        """
+        reqset = self.basic_reqset()
+        # Test that there must be exactly 1 specifier:
+        reqset.add_requirement(
+            list(process_line('simple --hash=sha256:a90427ae31f5d1d0d7ec06ee97'
+                              'd9fcf2d0fc9a786985250c1c83fd68df5911dd',
+                              'file',
+                              1))[0])
+        # Test that the operator must be ==:
+        reqset.add_requirement(list(process_line(
+            'simple2>1.0 --hash=sha256:3ad45e1e9aa48b4462af0'
+            '123f6a7e44a9115db1ef945d4d92c123dfe21815a06',
+            'file',
+            2))[0])
+        finder = PackageFinder([data.find_links], [], session=PipSession())
+        assert_raises_regexp(
+            HashErrors,
+            # Make sure all failing requirements are listed:
+            r'versions pinned with ==. These do not:\n'
+            r'    simple .* \(from -r file \(line 1\)\)\n'
+            r'    simple2>1.0 .* \(from -r file \(line 2\)\)',
+            reqset.prepare_files,
+            finder)
+
+    def test_hash_mismatch(self, data):
+        """A hash mismatch should raise an error."""
+        file_url = path_to_url(
+            (data.packages / 'simple-1.0.tar.gz').abspath)
+        reqset = self.basic_reqset(require_hashes=True)
+        reqset.add_requirement(
+            list(process_line('%s --hash=sha256:badbad' % file_url,
+                              'file',
+                              1))[0])
+        finder = PackageFinder([data.find_links], [], session=PipSession())
+        assert_raises_regexp(
+            HashErrors,
+            r'THESE PACKAGES DO NOT MATCH THE HASHES.*\n'
+            r'    file:///.*/data/packages/simple-1\.0\.tar\.gz .*:\n'
+            r'        Expected sha256 badbad\n'
+            r'             Got        393043e672415891885c9a2a0929b1af95fb866d'
+            r'6ca016b42d2e6ce53619b653$',
+            reqset.prepare_files,
+            finder)
+
+    def test_unhashed_deps_on_require_hashes(self, data):
+        """Make sure unhashed, unpinned, or otherwise unrepeatable
+        dependencies get complained about when --require-hashes is on."""
+        reqset = self.basic_reqset()
+        finder = PackageFinder([data.find_links], [], session=PipSession())
+        reqset.add_requirement(next(process_line(
+            'TopoRequires2==0.0.1 '  # requires TopoRequires
+            '--hash=sha256:eaf9a01242c9f2f42cf2bd82a6a848cd'
+            'e3591d14f7896bdbefcf48543720c970',
+            'file', 1)))
+        assert_raises_regexp(
+            HashErrors,
+            r'In --require-hashes mode, all requirements must have their '
+            r'versions pinned.*\n'
+            r'    TopoRequires from .*$',
+            reqset.prepare_files,
+            finder)
+
+    def test_hashed_deps_on_require_hashes(self, data):
+        """Make sure hashed dependencies get installed when --require-hashes
+        is on.
+
+        (We actually just check that no "not all dependencies are hashed!"
+        error gets raised while preparing; there is no reason to expect
+        installation to then fail, as the code paths are the same as ever.)
+
+        """
+        reqset = self.basic_reqset()
+        reqset.add_requirement(next(process_line(
+            'TopoRequires2==0.0.1 '  # requires TopoRequires
+            '--hash=sha256:eaf9a01242c9f2f42cf2bd82a6a848cd'
+            'e3591d14f7896bdbefcf48543720c970',
+            'file', 1)))
+        reqset.add_requirement(next(process_line(
+            'TopoRequires==0.0.1 '
+            '--hash=sha256:d6dd1e22e60df512fdcf3640ced3039b3b02a56ab2cee81ebcb'
+            '3d0a6d4e8bfa6',
+            'file', 2)))
+
+    def test_no_egg_on_require_hashes(self, data):
+        """Make sure --egg is illegal with --require-hashes.
+
+        --egg would cause dependencies to always be installed, since it cedes
+        control directly to setuptools.
+
+        """
+        reqset = self.basic_reqset(require_hashes=True, as_egg=True)
+        finder = PackageFinder([data.find_links], [], session=PipSession())
+        with pytest.raises(InstallationError):
+            reqset.prepare_files(finder)
 
 
 @pytest.mark.parametrize(('file_contents', 'expected'), [
@@ -120,7 +335,8 @@ class TestInstallRequirement(object):
 
     def test_wheel_requirement_sets_req_attribute(self):
         req = InstallRequirement.from_line('simple-0.1-py2.py3-none-any.whl')
-        assert req.req == pkg_resources.Requirement.parse('simple==0.1')
+        assert isinstance(req.req, Requirement)
+        assert str(req.req) == 'simple==0.1'
 
     def test_url_preserved_line_req(self):
         """Confirm the url is preserved in a non-editable requirement"""
@@ -161,15 +377,15 @@ class TestInstallRequirement(object):
             'mock3;python_version >= "3"',
         ):
             req = InstallRequirement.from_line(line)
-            assert req.req.project_name == 'mock3'
-            assert req.req.specs == []
+            assert req.req.name == 'mock3'
+            assert str(req.req.specifier) == ''
             assert req.markers == 'python_version >= "3"'
 
     def test_markers_semicolon(self):
         # check that the markers can contain a semicolon
         req = InstallRequirement.from_line('semicolon; os_name == "a; b"')
-        assert req.req.project_name == 'semicolon'
-        assert req.req.specs == []
+        assert req.req.name == 'semicolon'
+        assert str(req.req.specifier) == ''
         assert req.markers == 'os_name == "a; b"'
 
     def test_markers_url(self):
@@ -177,14 +393,14 @@ class TestInstallRequirement(object):
         url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
         line = '%s; python_version >= "3"' % url
         req = InstallRequirement.from_line(line)
-        assert req.link.url == url, req.link
+        assert req.link.url == url, req.url
         assert req.markers == 'python_version >= "3"'
 
         # without space, markers are part of the URL
         url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
         line = '%s;python_version >= "3"' % url
         req = InstallRequirement.from_line(line)
-        assert req.link.url == line, req.link
+        assert req.link.url == line, req.url
         assert req.markers is None
 
     def test_markers_match(self):
@@ -214,8 +430,7 @@ class TestInstallRequirement(object):
         comes_from = '-r %s (line %s)' % (filename, 1)
         req = InstallRequirement.from_line(line, comes_from=comes_from)
         assert len(req.extras) == 2
-        assert req.extras[0] == 'ex1'
-        assert req.extras[1] == 'ex2'
+        assert req.extras == set(['ex1', 'ex2'])
 
     def test_extras_for_line_url_requirement(self):
         line = 'git+https://url#egg=SomeProject[ex1,ex2]'
@@ -223,8 +438,7 @@ class TestInstallRequirement(object):
         comes_from = '-r %s (line %s)' % (filename, 1)
         req = InstallRequirement.from_line(line, comes_from=comes_from)
         assert len(req.extras) == 2
-        assert req.extras[0] == 'ex1'
-        assert req.extras[1] == 'ex2'
+        assert req.extras == set(['ex1', 'ex2'])
 
     def test_extras_for_editable_path_requirement(self):
         url = '.[ex1,ex2]'
@@ -232,8 +446,7 @@ class TestInstallRequirement(object):
         comes_from = '-r %s (line %s)' % (filename, 1)
         req = InstallRequirement.from_editable(url, comes_from=comes_from)
         assert len(req.extras) == 2
-        assert req.extras[0] == 'ex1'
-        assert req.extras[1] == 'ex2'
+        assert req.extras == set(['ex1', 'ex2'])
 
     def test_extras_for_editable_url_requirement(self):
         url = 'git+https://url#egg=SomeProject[ex1,ex2]'
@@ -241,8 +454,29 @@ class TestInstallRequirement(object):
         comes_from = '-r %s (line %s)' % (filename, 1)
         req = InstallRequirement.from_editable(url, comes_from=comes_from)
         assert len(req.extras) == 2
-        assert req.extras[0] == 'ex1'
-        assert req.extras[1] == 'ex2'
+        assert req.extras == set(['ex1', 'ex2'])
+
+    def test_unexisting_path(self):
+        with pytest.raises(InstallationError) as e:
+            InstallRequirement.from_line(
+                os.path.join('this', 'path', 'does', 'not', 'exist'))
+        err_msg = e.value.args[0]
+        assert "Invalid requirement" in err_msg
+        assert "It looks like a path. Does it exist ?" in err_msg
+
+    def test_single_equal_sign(self):
+        with pytest.raises(InstallationError) as e:
+            InstallRequirement.from_line('toto=42')
+        err_msg = e.value.args[0]
+        assert "Invalid requirement" in err_msg
+        assert "= is not a valid operator. Did you mean == ?" in err_msg
+
+    def test_traceback(self):
+        with pytest.raises(InstallationError) as e:
+            InstallRequirement.from_line('toto 42')
+        err_msg = e.value.args[0]
+        assert "Invalid requirement" in err_msg
+        assert "\nTraceback " in err_msg
 
 
 def test_requirements_data_structure_keeps_order():
@@ -271,19 +505,18 @@ def test_requirements_data_structure_implements__contains__():
     assert 'nose' not in requirements
 
 
-@patch('os.path.normcase')
-@patch('pip.req.req_install.os.getcwd')
+@patch('pip.req.req_install.os.path.abspath')
 @patch('pip.req.req_install.os.path.exists')
 @patch('pip.req.req_install.os.path.isdir')
 def test_parse_editable_local(
-        isdir_mock, exists_mock, getcwd_mock, normcase_mock):
+        isdir_mock, exists_mock, abspath_mock):
     exists_mock.return_value = isdir_mock.return_value = True
     # mocks needed to support path operations on windows tests
-    normcase_mock.return_value = getcwd_mock.return_value = "/some/path"
-    assert parse_editable('.', 'git') == (None, 'file:///some/path', None, {})
-    normcase_mock.return_value = "/some/path/foo"
+    abspath_mock.return_value = "/some/path"
+    assert parse_editable('.', 'git') == (None, 'file:///some/path', None)
+    abspath_mock.return_value = "/some/path/foo"
     assert parse_editable('foo', 'git') == (
-        None, 'file:///some/path/foo', None, {},
+        None, 'file:///some/path/foo', None,
     )
 
 
@@ -292,7 +525,6 @@ def test_parse_editable_default_vcs():
         'foo',
         'git+https://foo#egg=foo',
         None,
-        {'egg': 'foo'},
     )
 
 
@@ -301,7 +533,6 @@ def test_parse_editable_explicit_vcs():
         'foo',
         'svn+https://foo#egg=foo',
         None,
-        {'egg': 'foo'},
     )
 
 
@@ -310,24 +541,22 @@ def test_parse_editable_vcs_extras():
         'foo[extras]',
         'svn+https://foo#egg=foo[extras]',
         None,
-        {'egg': 'foo[extras]'},
     )
 
 
-@patch('os.path.normcase')
-@patch('pip.req.req_install.os.getcwd')
+@patch('pip.req.req_install.os.path.abspath')
 @patch('pip.req.req_install.os.path.exists')
 @patch('pip.req.req_install.os.path.isdir')
 def test_parse_editable_local_extras(
-        isdir_mock, exists_mock, getcwd_mock, normcase_mock):
+        isdir_mock, exists_mock, abspath_mock):
     exists_mock.return_value = isdir_mock.return_value = True
-    normcase_mock.return_value = getcwd_mock.return_value = "/some/path"
+    abspath_mock.return_value = "/some/path"
     assert parse_editable('.[extras]', 'git') == (
-        None, 'file://' + "/some/path", ('extras',), {},
+        None, 'file://' + "/some/path", set(['extras']),
     )
-    normcase_mock.return_value = "/some/path/foo"
+    abspath_mock.return_value = "/some/path/foo"
     assert parse_editable('foo[bar,baz]', 'git') == (
-        None, 'file:///some/path/foo', ('bar', 'baz'), {},
+        None, 'file:///some/path/foo', set(['bar', 'baz']),
     )
 
 

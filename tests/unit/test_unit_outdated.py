@@ -7,7 +7,6 @@ import freezegun
 import pytest
 import pretend
 
-import pip
 from pip._vendor import lockfile
 from pip.utils import outdated
 
@@ -22,7 +21,7 @@ from pip.utils import outdated
     ]
 )
 def test_pip_version_check(monkeypatch, stored_time, newver, check, warn):
-    monkeypatch.setattr(pip, '__version__', '1.0')
+    monkeypatch.setattr(outdated, 'get_installed_version', lambda name: '1.0')
 
     resp = pretend.stub(
         raise_for_status=pretend.call_recorder(lambda: None),
@@ -42,7 +41,7 @@ def test_pip_version_check(monkeypatch, stored_time, newver, check, warn):
     )
 
     monkeypatch.setattr(outdated.logger, 'warning',
-                        pretend.call_recorder(lambda s: None))
+                        pretend.call_recorder(lambda *a, **kw: None))
     monkeypatch.setattr(outdated.logger, 'debug',
                         pretend.call_recorder(lambda s, exc_info=None: None))
 
