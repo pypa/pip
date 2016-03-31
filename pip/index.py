@@ -17,20 +17,21 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip.compat import ipaddress
 from pip.utils import (
-    Inf, cached_property, splitext, normalize_path,
-    ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, canonicalize_name)
-from pip.utils.deprecation import RemovedInPip9Warning
+    cached_property, splitext, normalize_path,
+    ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS,
+)
+from pip.utils.deprecation import RemovedInPip9Warning, RemovedInPip10Warning
 from pip.utils.logging import indent_log
 from pip.exceptions import (
     DistributionNotFound, BestVersionAlreadyInstalled, InvalidWheelFilename,
     UnsupportedWheel,
 )
-from pip.download import HAS_TLS, url_to_path, path_to_url
-from pip.models import PyPI
+from pip.download import HAS_TLS, is_url, path_to_url, url_to_path
 from pip.wheel import Wheel, wheel_ext
-from pip.pep425tags import supported_tags, supported_tags_noarch, get_platform
+from pip.pep425tags import supported_tags
 from pip._vendor import html5lib, requests, six
 from pip._vendor.packaging.version import parse as parse_version
+from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.requests.exceptions import SSLError
 
 
@@ -214,8 +215,17 @@ class PackageFinder(object):
                         urls.append(url)
                 elif os.path.isfile(path):
                     sort_path(path)
-            else:
+                else:
+                    logger.warning(
+                        "Url '%s' is ignored: it is neither a file "
+                        "nor a directory.", url)
+            elif is_url(url):
+                # Only add url with clear scheme
                 urls.append(url)
+            else:
+                logger.warning(
+                    "Url '%s' is ignored. It is either a non-existing "
+                    "path or lacks a specific scheme.", url)
 
         return files, urls
 
@@ -233,9 +243,7 @@ class PackageFinder(object):
               with the same version, would have to be considered equal
         """
         support_num = len(supported_tags)
-        if candidate.location == INSTALLED_VERSION:
-            pri = 1
-        elif candidate.location.is_wheel:
+        if candidate.location.is_wheel:
             # can raise InvalidWheelFilename
             wheel = Wheel(candidate.location.filename)
             if not wheel.supported():
@@ -247,18 +255,6 @@ class PackageFinder(object):
         else:  # sdist
             pri = -(support_num)
         return (candidate.version, pri)
-
-    def _sort_versions(self, applicable_versions):
-        """
-        Bring the latest version (and wheels) to the front, but maintain the
-        existing ordering as secondary. See the docstring for `_link_sort_key`
-        for details. This function is isolated for easier unit testing.
-        """
-        return sorted(
-            applicable_versions,
-            key=self._candidate_sort_key,
-            reverse=True
-        )
 
     def _validate_secure_origin(self, logger, location):
         # Determine if this url used a secure transport mechanism
@@ -297,7 +293,9 @@ class PackageFinder(object):
             except ValueError:
                 # We don't have both a valid address or a valid network, so
                 # we'll check this origin against hostnames.
-                if origin[1] != secure_origin[1] and secure_origin[1] != "*":
+                if (origin[1] and
+                        origin[1].lower() != secure_origin[1].lower() and
+                        secure_origin[1] != "*"):
                     continue
             else:
                 # We have a valid address and network, so see if the address
@@ -337,7 +335,9 @@ class PackageFinder(object):
         """
 
         def mkurl_pypi_url(url):
-            loc = posixpath.join(url, urllib_parse.quote(project_name.lower()))
+            loc = posixpath.join(
+                url,
+                urllib_parse.quote(canonicalize_name(project_name)))
             # For maximum compatibility with easy_install, ensure the path
             # ends in a trailing slash.  Although this isn't in the spec
             # (and PyPI can handle it without the slash) some other index
@@ -349,8 +349,8 @@ class PackageFinder(object):
 
         return [mkurl_pypi_url(url) for url in self.index_urls]
 
-    def _find_all_versions(self, project_name):
-        """Find all available versions for project_name
+    def find_all_candidates(self, project_name):
+        """Find all available InstallationCandidate for project_name
 
         This checks index_urls, find_links and dependency_links.
         All versions found are returned as an InstallationCandidate list.
@@ -439,10 +439,10 @@ class PackageFinder(object):
         Returns a Link if found,
         Raises DistributionNotFound or BestVersionAlreadyInstalled otherwise
         """
-        all_versions = self._find_all_versions(req.name)
+        all_candidates = self.find_all_candidates(req.name)
 
         # Filter out anything which doesn't match our specifier
-        _versions = set(
+        compatible_versions = set(
             req.specifier.filter(
                 # We turn the version object into a str here because otherwise
                 # when we're debundled but setuptools isn't, Python will see
@@ -451,58 +451,37 @@ class PackageFinder(object):
                 # types. This way we'll use a str as a common data interchange
                 # format. If we stop using the pkg_resources provided specifier
                 # and start using our own, we can drop the cast to str().
-                [str(x.version) for x in all_versions],
+                [str(c.version) for c in all_candidates],
                 prereleases=(
                     self.allow_all_prereleases
                     if self.allow_all_prereleases else None
                 ),
             )
         )
-        applicable_versions = [
+        applicable_candidates = [
             # Again, converting to str to deal with debundling.
-            x for x in all_versions if str(x.version) in _versions
+            c for c in all_candidates if str(c.version) in compatible_versions
         ]
 
-        if req.satisfied_by is not None:
-            # Finally add our existing versions to the front of our versions.
-            applicable_versions.insert(
-                0,
-                InstallationCandidate(
-                    req.name,
-                    req.satisfied_by.version,
-                    INSTALLED_VERSION,
-                )
-            )
-            existing_applicable = True
+        if applicable_candidates:
+            best_candidate = max(applicable_candidates,
+                                 key=self._candidate_sort_key)
         else:
-            existing_applicable = False
+            best_candidate = None
 
-        applicable_versions = self._sort_versions(applicable_versions)
+        if req.satisfied_by is not None:
+            installed_version = parse_version(req.satisfied_by.version)
+        else:
+            installed_version = None
 
-        if not upgrade and existing_applicable:
-            if applicable_versions[0].location is INSTALLED_VERSION:
-                logger.debug(
-                    'Existing installed version (%s) is most up-to-date and '
-                    'satisfies requirement',
-                    req.satisfied_by.version,
-                )
-            else:
-                logger.debug(
-                    'Existing installed version (%s) satisfies requirement '
-                    '(most up-to-date version is %s)',
-                    req.satisfied_by.version,
-                    applicable_versions[0][2],
-                )
-            return None
-
-        if not applicable_versions:
+        if installed_version is None and best_candidate is None:
             logger.critical(
                 'Could not find a version that satisfies the requirement %s '
                 '(from versions: %s)',
                 req,
                 ', '.join(
                     sorted(
-                        set(str(i.version) for i in all_versions),
+                        set(str(c.version) for c in all_candidates),
                         key=parse_version,
                     )
                 )
@@ -512,27 +491,45 @@ class PackageFinder(object):
                 'No matching distribution found for %s' % req
             )
 
-        if applicable_versions[0].location is INSTALLED_VERSION:
+        best_installed = False
+        if installed_version and (
+                best_candidate is None or
+                best_candidate.version <= installed_version):
+            best_installed = True
+
+        if not upgrade and installed_version is not None:
+            if best_installed:
+                logger.debug(
+                    'Existing installed version (%s) is most up-to-date and '
+                    'satisfies requirement',
+                    installed_version,
+                )
+            else:
+                logger.debug(
+                    'Existing installed version (%s) satisfies requirement '
+                    '(most up-to-date version is %s)',
+                    installed_version,
+                    best_candidate.version,
+                )
+            return None
+
+        if best_installed:
             # We have an existing version, and its the best version
             logger.debug(
                 'Installed version (%s) is most up-to-date (past versions: '
                 '%s)',
-                req.satisfied_by.version,
-                ', '.join(str(i.version) for i in applicable_versions[1:]) or
+                installed_version,
+                ', '.join(sorted(compatible_versions, key=parse_version)) or
                 "none",
             )
             raise BestVersionAlreadyInstalled
 
-        if len(applicable_versions) > 1:
-            logger.debug(
-                'Using version %s (newest of versions: %s)',
-                applicable_versions[0].version,
-                ', '.join(str(i.version) for i in applicable_versions)
-            )
-
-        selected_version = applicable_versions[0].location
-
-        return selected_version
+        logger.debug(
+            'Using version %s (newest of versions: %s)',
+            best_candidate.version,
+            ', '.join(sorted(compatible_versions, key=parse_version))
+        )
+        return best_candidate.location
 
     def _get_pages(self, locations, project_name):
         """
@@ -584,7 +581,6 @@ class PackageFinder(object):
 
     def _link_package_versions(self, link, search):
         """Return an InstallationCandidate or None"""
-        platform = get_platform()
 
         version = None
         if link.egg_fragment:
@@ -620,30 +616,7 @@ class PackageFinder(object):
                     self._log_skipped_link(
                         link, 'it is not compatible with this Python')
                     return
-                # This is a dirty hack to prevent installing Binary Wheels from
-                # PyPI unless it is a Windows or Mac Binary Wheel. This is
-                # paired with a change to PyPI disabling uploads for the
-                # same. Once we have a mechanism for enabling support for
-                # binary wheels on linux that deals with the inherent problems
-                # of binary distribution this can be removed.
-                comes_from = getattr(link, "comes_from", None)
-                if (
-                        (
-                            not platform.startswith('win') and not
-                            platform.startswith('macosx') and not
-                            platform == 'cli'
-                        ) and
-                        comes_from is not None and
-                        urllib_parse.urlparse(
-                            comes_from.url
-                        ).netloc.endswith(PyPI.netloc)):
-                    if not wheel.supported(tags=supported_tags_noarch):
-                        self._log_skipped_link(
-                            link,
-                            "it is a pypi-hosted binary "
-                            "Wheel on an unsupported platform",
-                        )
-                        return
+
                 version = wheel.version
 
         # This should be up by the search.ok_binary check, but see issue 2700.
@@ -802,21 +775,20 @@ class HTMLPage(object):
 
             inst = cls(resp.content, resp.url, resp.headers)
         except requests.HTTPError as exc:
-            level = 2 if exc.response.status_code == 404 else 1
-            cls._handle_fail(link, exc, url, level=level)
+            cls._handle_fail(link, exc, url)
+        except SSLError as exc:
+            reason = ("There was a problem confirming the ssl certificate: "
+                      "%s" % exc)
+            cls._handle_fail(link, reason, url, meth=logger.info)
         except requests.ConnectionError as exc:
             cls._handle_fail(link, "connection error: %s" % exc, url)
         except requests.Timeout:
             cls._handle_fail(link, "timed out", url)
-        except SSLError as exc:
-            reason = ("There was a problem confirming the ssl certificate: "
-                      "%s" % exc)
-            cls._handle_fail(link, reason, url, level=2, meth=logger.info)
         else:
             return inst
 
     @staticmethod
-    def _handle_fail(link, reason, url, level=1, meth=None):
+    def _handle_fail(link, reason, url, meth=None):
         if meth is None:
             meth = logger.debug
 
@@ -873,7 +845,7 @@ class Link(object):
     def __init__(self, url, comes_from=None):
 
         # url can be a UNC windows share
-        if url != Inf and url.startswith('\\\\'):
+        if url.startswith('\\\\'):
             url = path_to_url(url)
 
         self.url = url
@@ -953,11 +925,20 @@ class Link(object):
         scheme, netloc, path, query, fragment = urllib_parse.urlsplit(self.url)
         return urllib_parse.urlunsplit((scheme, netloc, path, query, None))
 
-    _egg_fragment_re = re.compile(r'#egg=([^&]*)')
+    _egg_fragment_re = re.compile(r'[#&]egg=([^&]*)')
 
     @property
     def egg_fragment(self):
         match = self._egg_fragment_re.search(self.url)
+        if not match:
+            return None
+        return match.group(1)
+
+    _subdirectory_fragment_re = re.compile(r'[#&]subdirectory=([^&]*)')
+
+    @property
+    def subdirectory_fragment(self):
+        match = self._subdirectory_fragment_re.search(self.url)
         if not match:
             return None
         return match.group(1)
@@ -1000,11 +981,6 @@ class Link(object):
             return False
 
         return True
-
-
-# An object to represent the "link" for the installed version of a requirement.
-# Using Inf as the url makes it sort higher.
-INSTALLED_VERSION = Link(Inf)
 
 
 FormatControl = namedtuple('FormatControl', 'no_binary only_binary')
@@ -1058,7 +1034,7 @@ def fmt_ctl_no_use_wheel(fmt_ctl):
     fmt_ctl_no_binary(fmt_ctl)
     warnings.warn(
         '--no-use-wheel is deprecated and will be removed in the future. '
-        ' Please use --no-binary :all: instead.', DeprecationWarning,
+        ' Please use --no-binary :all: instead.', RemovedInPip10Warning,
         stacklevel=2)
 
 

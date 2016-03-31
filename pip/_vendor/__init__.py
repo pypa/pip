@@ -32,10 +32,22 @@ def vendored(modulename):
     try:
         __import__(vendored_name, globals(), locals(), level=0)
     except ImportError:
-        __import__(modulename, globals(), locals(), level=0)
-        sys.modules[vendored_name] = sys.modules[modulename]
-        base, head = vendored_name.rsplit(".", 1)
-        setattr(sys.modules[base], head, sys.modules[modulename])
+        try:
+            __import__(modulename, globals(), locals(), level=0)
+        except ImportError:
+            # We can just silently allow import failures to pass here. If we
+            # got to this point it means that ``import pip._vendor.whatever``
+            # failed and so did ``import whatever``. Since we're importing this
+            # upfront in an attempt to alias imports, not erroring here will
+            # just mean we get a regular import error whenever pip *actually*
+            # tries to import one of these modules to use it, which actually
+            # gives us a better error message than we would have otherwise
+            # gotten.
+            pass
+        else:
+            sys.modules[vendored_name] = sys.modules[modulename]
+            base, head = vendored_name.rsplit(".", 1)
+            setattr(sys.modules[base], head, sys.modules[modulename])
 
 
 # If we're operating in a debundled setup, then we want to go ahead and trigger
@@ -64,3 +76,31 @@ if DEBUNDLED:
     vendored("progress")
     vendored("retrying")
     vendored("requests")
+    vendored("requests.packages")
+    vendored("requests.packages.urllib3")
+    vendored("requests.packages.urllib3._collections")
+    vendored("requests.packages.urllib3.connection")
+    vendored("requests.packages.urllib3.connectionpool")
+    vendored("requests.packages.urllib3.contrib")
+    vendored("requests.packages.urllib3.contrib.ntlmpool")
+    vendored("requests.packages.urllib3.contrib.pyopenssl")
+    vendored("requests.packages.urllib3.exceptions")
+    vendored("requests.packages.urllib3.fields")
+    vendored("requests.packages.urllib3.filepost")
+    vendored("requests.packages.urllib3.packages")
+    vendored("requests.packages.urllib3.packages.ordered_dict")
+    vendored("requests.packages.urllib3.packages.six")
+    vendored("requests.packages.urllib3.packages.ssl_match_hostname")
+    vendored("requests.packages.urllib3.packages.ssl_match_hostname."
+             "_implementation")
+    vendored("requests.packages.urllib3.poolmanager")
+    vendored("requests.packages.urllib3.request")
+    vendored("requests.packages.urllib3.response")
+    vendored("requests.packages.urllib3.util")
+    vendored("requests.packages.urllib3.util.connection")
+    vendored("requests.packages.urllib3.util.request")
+    vendored("requests.packages.urllib3.util.response")
+    vendored("requests.packages.urllib3.util.retry")
+    vendored("requests.packages.urllib3.util.ssl_")
+    vendored("requests.packages.urllib3.util.timeout")
+    vendored("requests.packages.urllib3.util.url")

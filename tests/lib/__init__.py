@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from contextlib import contextmanager
 import os
 import sys
 import re
@@ -333,6 +334,9 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
         if (pyversion_tuple < (2, 7, 9) and
                 args and args[0] in ('search', 'install', 'download')):
             kwargs['expect_stderr'] = True
+        # Python 2.6 is deprecated and we emit a warning on it.
+        if pyversion_tuple[:2] == (2, 6):
+            kwargs['expect_stderr'] = True
 
         return self.run("pip", *args, **kwargs)
 
@@ -468,6 +472,28 @@ setup(name='version_subpkg',
     return version_pkg_path
 
 
+def _create_test_package_with_srcdir(script, name='version_pkg', vcs='git'):
+    script.scratch_path.join(name).mkdir()
+    version_pkg_path = script.scratch_path / name
+    subdir_path = version_pkg_path.join('subdir')
+    subdir_path.mkdir()
+    src_path = subdir_path.join('src')
+    src_path.mkdir()
+    pkg_path = src_path.join('pkg')
+    pkg_path.mkdir()
+    pkg_path.join('__init__.py').write('')
+    subdir_path.join("setup.py").write(textwrap.dedent("""
+        from setuptools import setup, find_packages
+        setup(
+            name='{name}',
+            version='0.1',
+            packages=find_packages(),
+            package_dir={{'': 'src'}},
+        )
+    """.format(name=name)))
+    return _vcs_add(script, version_pkg_path, vcs)
+
+
 def _create_test_package(script, name='version_pkg', vcs='git'):
     script.scratch_path.join(name).mkdir()
     version_pkg_path = script.scratch_path / name
@@ -485,6 +511,10 @@ def _create_test_package(script, name='version_pkg', vcs='git'):
             entry_points=dict(console_scripts=['{name}={name}:main'])
         )
     """.format(name=name)))
+    return _vcs_add(script, version_pkg_path, vcs)
+
+
+def _vcs_add(script, version_pkg_path, vcs='git'):
     if vcs == 'git':
         script.run('git', 'init', cwd=version_pkg_path)
         script.run('git', 'add', '.', cwd=version_pkg_path)
@@ -569,7 +599,22 @@ def assert_raises_regexp(exception, reg, run, *args, **kwargs):
     try:
         run(*args, **kwargs)
         assert False, "%s should have been thrown" % exception
-    except Exception:
+    except exception:
         e = sys.exc_info()[1]
         p = re.compile(reg)
         assert p.search(str(e)), str(e)
+
+
+@contextmanager
+def requirements_file(contents, tmpdir):
+    """Return a Path to a requirements file of given contents.
+
+    As long as the context manager is open, the requirements file will exist.
+
+    :param tmpdir: A Path to the folder in which to create the file
+
+    """
+    path = tmpdir / 'reqs.txt'
+    path.write(contents)
+    yield path
+    path.remove()

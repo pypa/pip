@@ -2,7 +2,7 @@ pip
 ===
 
 The `PyPA recommended
-<https://python-packaging-user-guide.readthedocs.org/en/latest/current.html>`_
+<https://packaging.python.org/en/latest/current/>`_
 tool for installing Python packages.
 
 * `Installation <https://pip.pypa.io/en/stable/installing.html>`_
@@ -17,11 +17,13 @@ tool for installing Python packages.
 
 
 .. image:: https://img.shields.io/pypi/v/pip.svg
-        :target: https://pypi.python.org/pypi/pip
+   :target: https://pypi.python.org/pypi/pip
 
 .. image:: https://img.shields.io/travis/pypa/pip/develop.svg
    :target: http://travis-ci.org/pypa/pip
 
+.. image:: https://readthedocs.org/projects/pip/badge/?version=stable
+   :target: https://pip.pypa.io/en/stable
 
 Code of Conduct
 ---------------

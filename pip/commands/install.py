@@ -137,6 +137,14 @@ class InstallCommand(RequirementCommand):
                  "directory.")
 
         cmd_opts.add_option(
+            '--prefix',
+            dest='prefix_path',
+            metavar='dir',
+            default=None,
+            help="Installation prefix where lib, bin and other top-level "
+                 "folders are placed")
+
+        cmd_opts.add_option(
             "--compile",
             action="store_true",
             dest="compile",
@@ -156,8 +164,8 @@ class InstallCommand(RequirementCommand):
         cmd_opts.add_option(cmdoptions.no_binary())
         cmd_opts.add_option(cmdoptions.only_binary())
         cmd_opts.add_option(cmdoptions.pre())
-
         cmd_opts.add_option(cmdoptions.no_clean())
+        cmd_opts.add_option(cmdoptions.require_hashes())
 
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
@@ -210,6 +218,11 @@ class InstallCommand(RequirementCommand):
         options.src_dir = os.path.abspath(options.src_dir)
         install_options = options.install_options or []
         if options.use_user_site:
+            if options.prefix_path:
+                raise CommandError(
+                    "Can not combine '--user' and '--prefix' as they imply "
+                    "different installation locations"
+                )
             if virtualenv_no_global():
                 raise InstallationError(
                     "Can not perform a '--user' install. User site-packages "
@@ -266,6 +279,7 @@ class InstallCommand(RequirementCommand):
                     pycompile=options.compile,
                     isolated=options.isolated_mode,
                     wheel_cache=wheel_cache,
+                    require_hashes=options.require_hashes,
                 )
 
                 self.populate_requirement_set(
@@ -300,6 +314,7 @@ class InstallCommand(RequirementCommand):
                             install_options,
                             global_options,
                             root=options.root_path,
+                            prefix=options.prefix_path,
                         )
                         reqs = sorted(
                             requirement_set.successfully_installed,

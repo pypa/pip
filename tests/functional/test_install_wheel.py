@@ -1,4 +1,5 @@
 import os
+import sys
 import pytest
 import glob
 
@@ -82,6 +83,17 @@ def test_install_from_wheel_file(script, data):
     assert dist_info_folder in result.files_created, (dist_info_folder,
                                                       result.files_created,
                                                       result.stdout)
+    installer = dist_info_folder / 'INSTALLER'
+    assert installer in result.files_created, (dist_info_folder,
+                                               result.files_created,
+                                               result.stdout)
+    with open(script.base_path / installer, 'rb') as installer_file:
+        installer_details = installer_file.read()
+        assert installer_details == b'pip\n'
+    installer_temp = dist_info_folder / 'INSTALLER.pip'
+    assert installer_temp not in result.files_created, (dist_info_folder,
+                                                        result.files_created,
+                                                        result.stdout)
 
 
 # header installs are broke in pypy virtualenvs
@@ -125,6 +137,22 @@ def test_install_wheel_with_root(script, data):
         '--no-index', '--find-links=' + data.find_links,
     )
     assert Path('scratch') / 'root' in result.files_created
+
+
+def test_install_wheel_with_prefix(script, data):
+    """
+    Test installing a wheel using pip install --prefix
+    """
+    prefix_dir = script.scratch_path / 'prefix'
+    result = script.pip(
+        'install', 'simple.dist==0.1', '--prefix', prefix_dir,
+        '--no-index', '--find-links=' + data.find_links,
+    )
+    if hasattr(sys, "pypy_version_info"):
+        lib = Path('scratch') / 'prefix' / 'site-packages'
+    else:
+        lib = Path('scratch') / 'prefix' / 'lib'
+    assert lib in result.files_created
 
 
 def test_install_from_wheel_installs_deps(script, data):
@@ -183,6 +211,26 @@ def test_install_from_wheel_gen_entrypoint(script, data):
         wrapper_file = script.bin / 't1.exe'
     else:
         wrapper_file = script.bin / 't1'
+    assert wrapper_file in result.files_created
+
+    if os.name != "nt":
+        assert bool(os.access(script.base_path / wrapper_file, os.X_OK))
+
+
+def test_install_from_wheel_gen_uppercase_entrypoint(script, data):
+    """
+    Test installing scripts with uppercase letters in entry point names
+    """
+    result = script.pip(
+        'install', 'console-scripts-uppercase==1.0', '--no-index',
+        '--find-links=' + data.find_links,
+        expect_error=False,
+    )
+    if os.name == 'nt':
+        # Case probably doesn't make any difference on NT
+        wrapper_file = script.bin / 'cmdName.exe'
+    else:
+        wrapper_file = script.bin / 'cmdName'
     assert wrapper_file in result.files_created
 
     if os.name != "nt":

@@ -5,6 +5,7 @@ import logging
 import os
 import sys
 import optparse
+import warnings
 
 from pip import cmdoptions
 from pip.index import PackageFinder
@@ -20,7 +21,7 @@ from pip.status_codes import (
     SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND,
     PREVIOUS_BUILD_DIR_ERROR,
 )
-from pip.utils import get_prog, normalize_path
+from pip.utils import deprecation, get_prog, normalize_path
 from pip.utils.logging import IndentingFormatter
 from pip.utils.outdated import pip_version_check
 
@@ -179,6 +180,14 @@ class Command(object):
             ),
         })
 
+        if sys.version_info[:2] == (2, 6):
+            warnings.warn(
+                "Python 2.6 is no longer supported by the Python core team, "
+                "please upgrade your Python. A future version of pip will "
+                "drop support for Python 2.6",
+                deprecation.Python26DeprecationWarning
+            )
+
         # TODO: try to get these passing down from the command?
         #      without resorting to os.environ to hold these.
 
@@ -280,6 +289,9 @@ class RequirementCommand(Command):
                     wheel_cache=wheel_cache):
                 found_req_in_file = True
                 requirement_set.add_requirement(req)
+        # If --require-hashes was a line in a requirements file, tell
+        # RequirementSet about it:
+        requirement_set.require_hashes = options.require_hashes
 
         if not (args or options.editables or found_req_in_file):
             opts = {'name': name}

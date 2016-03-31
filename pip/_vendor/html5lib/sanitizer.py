@@ -207,15 +207,19 @@ class HTMLSanitizerMixin(object):
                                        unescape(attrs[attr])).lower()
                 # remove replacement characters from unescaped characters
                 val_unescaped = val_unescaped.replace("\ufffd", "")
-                uri = urlparse.urlparse(val_unescaped)
-                if uri:
+                try:
+                    uri = urlparse.urlparse(val_unescaped)
+                except ValueError:
+                    uri = None
+                    del attrs[attr]
+                if uri and uri.scheme:
                     if uri.scheme not in self.allowed_protocols:
                         del attrs[attr]
                     if uri.scheme == 'data':
                         m = content_type_rgx.match(uri.path)
                         if not m:
                             del attrs[attr]
-                        if m.group('content_type') not in self.allowed_content_types:
+                        elif m.group('content_type') not in self.allowed_content_types:
                             del attrs[attr]
 
             for attr in self.svg_attr_val_allows_ref:

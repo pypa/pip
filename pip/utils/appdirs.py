@@ -1,6 +1,6 @@
 """
 This code was taken from https://github.com/ActiveState/appdirs and modified
-to suite our purposes.
+to suit our purposes.
 """
 from __future__ import absolute_import
 
@@ -156,7 +156,7 @@ def site_config_dirs(appname):
         xdg_config_dirs = os.getenv('XDG_CONFIG_DIRS', '/etc/xdg')
         if xdg_config_dirs:
             pathlist = [
-                os.sep.join([expanduser(x), appname])
+                os.path.join(expanduser(x), appname)
                 for x in xdg_config_dirs.split(os.pathsep)
             ]
         else:

@@ -5,7 +5,7 @@ import zlib
 
 from pip._vendor.requests.structures import CaseInsensitiveDict
 
-from .compat import HTTPResponse, pickle
+from .compat import HTTPResponse, pickle, text_type
 
 
 def _b64_encode_bytes(b):
@@ -14,6 +14,12 @@ def _b64_encode_bytes(b):
 
 def _b64_encode_str(s):
     return _b64_encode_bytes(s.encode("utf8"))
+
+
+def _b64_encode(s):
+    if isinstance(s, text_type):
+        return _b64_encode_str(s)
+    return _b64_encode_bytes(s)
 
 
 def _b64_decode_bytes(b):
@@ -48,7 +54,7 @@ class Serializer(object):
             "response": {
                 "body": _b64_encode_bytes(body),
                 "headers": dict(
-                    (_b64_encode_str(k), _b64_encode_str(v))
+                    (_b64_encode(k), _b64_encode(v))
                     for k, v in response.headers.items()
                 ),
                 "status": response.status,
@@ -69,7 +75,7 @@ class Serializer(object):
 
         # Encode our Vary headers to ensure they can be serialized as JSON
         data["vary"] = dict(
-            (_b64_encode_str(k), _b64_encode_str(v) if v is not None else v)
+            (_b64_encode(k), _b64_encode(v) if v is not None else v)
             for k, v in data["vary"].items()
         )
 

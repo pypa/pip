@@ -14,7 +14,7 @@ from __future__ import unicode_literals
 import itertools
 import struct
 
-__version__ = '1.0.14'
+__version__ = '1.0.16'
 
 # Compatibility functions
 _compat_int_types = (int,)
@@ -191,6 +191,12 @@ def ip_network(address, strict=True):
         return IPv6Network(address, strict)
     except (AddressValueError, NetmaskValueError):
         pass
+
+    if isinstance(address, bytes):
+        raise AddressValueError(
+            '%r does not appear to be an IPv4 or IPv6 network. '
+            'Did you pass in a bytes (str in Python 2) instead of'
+            ' a unicode object?' % address)
 
     raise ValueError('%r does not appear to be an IPv4 or IPv6 network' %
                      address)

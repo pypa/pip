@@ -1,5 +1,5 @@
-
 import os
+import sys
 import textwrap
 import glob
 
@@ -7,15 +7,17 @@ from os.path import join, curdir, pardir
 
 import pytest
 
+from pip import pep425tags
 from pip.utils import appdirs, rmtree
 from tests.lib import (pyversion, pyversion_tuple,
-                       _create_test_package, _create_svn_repo, path_to_url)
+                       _create_test_package, _create_svn_repo, path_to_url,
+                       requirements_file)
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
 
 
 def test_without_setuptools(script, data):
-    script.run("pip", "uninstall", "setuptools", "-y")
+    script.pip("uninstall", "setuptools", "-y")
     result = script.run(
         "python", "-c",
         "import pip; pip.main(["
@@ -159,17 +161,6 @@ def test_download_editable_to_custom_path(script, tmpdir):
             'should be used instead.') in result.stderr
 
 
-@pytest.mark.network
-def test_install_dev_version_from_pypi(script):
-    """
-    Test using package==dev.
-    """
-    result = script.pip('install', 'INITools===dev', expect_error=True)
-    assert (script.site_packages / 'initools') in result.files_created, (
-        str(result.stdout)
-    )
-
-
 def _test_install_editable_from_git(script, tmpdir, wheel):
     """Test cloning from Git."""
     if wheel:
@@ -244,6 +235,57 @@ def test_install_from_local_directory(script, data):
     assert egg_info_folder in result.files_created, str(result)
 
 
+def test_install_quiet(script, data):
+    """
+    Test that install -q is actually quiet.
+    """
+    # Apparently if pip install -q is not actually quiet, then it breaks
+    # everything. See:
+    #   https://github.com/pypa/pip/issues/3418
+    #   https://github.com/docker-library/python/issues/83
+    to_install = data.packages.join("FSPkg")
+    result = script.pip('install', '-q', to_install, expect_error=False)
+    assert result.stdout == ""
+    assert result.stderr == ""
+
+
+def test_hashed_install_success(script, data, tmpdir):
+    """
+    Test that installing various sorts of requirements with correct hashes
+    works.
+
+    Test file URLs and index packages (which become HTTP URLs behind the
+    scenes).
+
+    """
+    file_url = path_to_url(
+        (data.packages / 'simple-1.0.tar.gz').abspath)
+    with requirements_file(
+            'simple2==1.0 --hash=sha256:9336af72ca661e6336eb87bc7de3e8844d853e'
+            '3848c2b9bbd2e8bf01db88c2c7\n'
+            '{simple} --hash=sha256:393043e672415891885c9a2a0929b1af95fb866d6c'
+            'a016b42d2e6ce53619b653'.format(simple=file_url),
+            tmpdir) as reqs_file:
+        script.pip_install_local('-r', reqs_file.abspath, expect_error=False)
+
+
+def test_hashed_install_failure(script, data, tmpdir):
+    """Test that wrong hashes stop installation.
+
+    This makes sure prepare_files() is called in the course of installation
+    and so has the opportunity to halt if hashes are wrong. Checks on various
+    kinds of hashes are in test_req.py.
+
+    """
+    with requirements_file('simple2==1.0 --hash=sha256:9336af72ca661e6336eb87b'
+                           'c7de3e8844d853e3848c2b9bbd2e8bf01db88c2c\n',
+                           tmpdir) as reqs_file:
+        result = script.pip_install_local('-r',
+                                          reqs_file.abspath,
+                                          expect_error=True)
+    assert len(result.files_created) == 0
+
+
 def test_install_from_local_directory_with_symlinks_to_directories(
         script, data):
     """
@@ -275,6 +317,29 @@ def test_editable_install_from_local_directory_with_no_setup_py(script, data):
     result = script.pip('install', '-e', data.root, expect_error=True)
     assert not result.files_created
     assert "is not installable. File 'setup.py' not found." in result.stderr
+
+
+@pytest.mark.skipif("sys.version_info < (2,7) or sys.version_info >= (3,4)")
+@pytest.mark.xfail
+def test_install_argparse_shadowed(script, data):
+    # When argparse is in the stdlib, we support installing it
+    # even though thats pretty useless because older packages did need to
+    # depend on it, and not having its metadata will cause pkg_resources
+    # requirements checks to fail // trigger easy-install, both of which are
+    # bad.
+    # XXX: Note, this test hits the outside-environment check, not the
+    # in-stdlib check, because our tests run in virtualenvs...
+    result = script.pip('install', 'argparse>=1.4')
+    assert "Not uninstalling argparse" in result.stdout
+
+
+@pytest.mark.skipif("sys.version_info < (3,4)")
+def test_upgrade_argparse_shadowed(script, data):
+    # If argparse is installed - even if shadowed for imported - we support
+    # upgrading it and properly remove the older versions files.
+    script.pip('install', 'argparse==1.3')
+    result = script.pip('install', 'argparse>=1.4')
+    assert "Not uninstalling argparse" not in result.stdout
 
 
 def test_install_as_egg(script, data):
@@ -512,6 +577,69 @@ def test_install_package_with_root(script, data):
     assert root_path in result.files_created, str(result)
 
 
+def test_install_package_with_prefix(script, data):
+    """
+    Test installing a package using pip install --prefix
+    """
+    prefix_path = script.scratch_path / 'prefix'
+    result = script.pip(
+        'install', '--prefix', prefix_path, '-f', data.find_links,
+        '--no-binary', 'simple', '--no-index', 'simple==1.0',
+    )
+
+    if hasattr(sys, "pypy_version_info"):
+        path = script.scratch / 'prefix'
+    else:
+        path = script.scratch / 'prefix' / 'lib' / 'python{0}'.format(pyversion)  # noqa
+    install_path = (
+        path / 'site-packages' / 'simple-1.0-py{0}.egg-info'.format(pyversion)
+    )
+    assert install_path in result.files_created, str(result)
+
+
+def test_install_editable_with_prefix(script):
+    # make a dummy project
+    pkga_path = script.scratch_path / 'pkga'
+    pkga_path.mkdir()
+    pkga_path.join("setup.py").write(textwrap.dedent("""
+        from setuptools import setup
+        setup(name='pkga',
+              version='0.1')
+    """))
+
+    site_packages = os.path.join(
+        'prefix', 'lib', 'python{0}'.format(pyversion), 'site-packages')
+
+    # make sure target path is in PYTHONPATH
+    pythonpath = script.scratch_path / site_packages
+    pythonpath.makedirs()
+    script.environ["PYTHONPATH"] = pythonpath
+
+    # install pkga package into the absolute prefix directory
+    prefix_path = script.scratch_path / 'prefix'
+    result = script.pip(
+        'install', '--editable', pkga_path, '--prefix', prefix_path)
+
+    # assert pkga is installed at correct location
+    install_path = script.scratch / site_packages / 'pkga.egg-link'
+    assert install_path in result.files_created, str(result)
+
+
+def test_install_package_conflict_prefix_and_user(script, data):
+    """
+    Test installing a package using pip install --prefix --user errors out
+    """
+    prefix_path = script.scratch_path / 'prefix'
+    result = script.pip(
+        'install', '-f', data.find_links, '--no-index', '--user',
+        '--prefix', prefix_path, 'simple==1.0',
+        expect_error=True, quiet=True,
+    )
+    assert (
+        "Can not combine '--user' and '--prefix'" in result.stderr
+    )
+
+
 # skip on win/py3 for now, see issue #782
 @pytest.mark.skipif("sys.platform == 'win32' and sys.version_info >= (3,)")
 def test_install_package_that_emits_unicode(script, data):
@@ -692,6 +820,32 @@ def test_install_upgrade_editable_depending_on_other_editable(script):
     assert "pkgb" in result.stdout
 
 
+def test_install_subprocess_output_handling(script, data):
+    args = ['install', data.src.join('chattymodule')]
+
+    # Regular install should not show output from the chatty setup.py
+    result = script.pip(*args)
+    assert 0 == result.stdout.count("HELLO FROM CHATTYMODULE")
+    script.pip("uninstall", "-y", "chattymodule")
+
+    # With --verbose we should show the output.
+    # Only count examples with sys.argv[1] == egg_info, because we call
+    # setup.py multiple times, which should not count as duplicate output.
+    result = script.pip(*(args + ["--verbose"]))
+    assert 1 == result.stdout.count("HELLO FROM CHATTYMODULE egg_info")
+    script.pip("uninstall", "-y", "chattymodule")
+
+    # If the install fails, then we *should* show the output... but only once,
+    # even if --verbose is given.
+    result = script.pip(*(args + ["--global-option=--fail"]),
+                        expect_error=True)
+    assert 1 == result.stdout.count("I DIE, I DIE")
+
+    result = script.pip(*(args + ["--global-option=--fail", "--verbose"]),
+                        expect_error=True)
+    assert 1 == result.stdout.count("I DIE, I DIE")
+
+
 def test_install_topological_sort(script, data):
     args = ['install', 'TopoRequires4', '-f', data.packages]
     res = str(script.pip(*args, expect_error=False))
@@ -737,7 +891,7 @@ def test_install_builds_wheels(script, data):
     assert expected in str(res), str(res)
     root = appdirs.user_cache_dir('pip')
     wheels = []
-    for top, dirs, files in os.walk(root):
+    for top, dirs, files in os.walk(os.path.join(root, "wheels")):
         wheels.extend(files)
     # and built wheels for upper and wheelbroken
     assert "Running setup.py bdist_wheel for upper" in str(res), str(res)
@@ -754,6 +908,10 @@ def test_install_builds_wheels(script, data):
     assert "Running setup.py install for requires-wheel" in str(res), str(res)
     # wheelbroken has to run install
     assert "Running setup.py install for wheelb" in str(res), str(res)
+    # We want to make sure we used the correct implementation tag
+    assert wheels == [
+        "Upper-2.0-{0}-none-any.whl".format(pep425tags.implementation_tag),
+    ]
 
 
 def test_install_no_binary_disables_building_wheels(script, data):
@@ -816,4 +974,43 @@ def test_install_editable_with_wrong_egg_name(script):
         'install', '--editable', 'file://%s#egg=pkgb' % pkga_path,
         expect_error=True)
     assert ("egg_info for package pkgb produced metadata "
-            "for project name pkga") in result.stderr
+            "for project name pkga. Fix your #egg=pkgb "
+            "fragments.") in result.stderr
+    assert "Successfully installed pkga" in str(result), str(result)
+
+
+def test_install_tar_xz(script, data):
+    try:
+        import lzma  # noqa
+    except ImportError:
+        pytest.skip("No lzma support")
+    res = script.pip('install', data.packages / 'singlemodule-0.0.1.tar.xz')
+    assert "Successfully installed singlemodule-0.0.1" in res.stdout, res
+
+
+def test_install_tar_lzma(script, data):
+    try:
+        import lzma  # noqa
+    except ImportError:
+        pytest.skip("No lzma support")
+    res = script.pip('install', data.packages / 'singlemodule-0.0.1.tar.lzma')
+    assert "Successfully installed singlemodule-0.0.1" in res.stdout, res
+
+
+def test_double_install(script, data):
+    """
+    Test double install passing with two same version requirements
+    """
+    result = script.pip('install', 'pip', 'pip', expect_error=False)
+    msg = "Double requirement given: pip (already in pip, name='pip')"
+    assert msg not in result.stderr
+
+
+def test_double_install_fail(script, data):
+    """
+    Test double install failing with two different version requirements
+    """
+    result = script.pip('install', 'pip==*', 'pip==7.1.2', expect_error=True)
+    msg = ("Double requirement given: pip==7.1.2 (already in pip==*, "
+           "name='pip')")
+    assert msg in result.stderr

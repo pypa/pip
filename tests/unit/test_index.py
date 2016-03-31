@@ -1,8 +1,9 @@
+import os.path
 import pytest
 
 from pip.download import PipSession
 from pip.index import HTMLPage
-from pip.index import PackageFinder, Link, INSTALLED_VERSION
+from pip.index import PackageFinder, Link
 
 
 def test_sort_locations_file_expand_dir(data):
@@ -23,13 +24,18 @@ def test_sort_locations_file_not_find_link(data):
     run
     """
     finder = PackageFinder([], [], session=PipSession())
-    files, urls = finder._sort_locations(data.index_url("empty_with_pkg"))
+    files, urls = finder._sort_locations([data.index_url("empty_with_pkg")])
     assert urls and not files, "urls, but not files should have been found"
 
 
-def test_INSTALLED_VERSION_greater():
-    """Test INSTALLED_VERSION compares greater."""
-    assert INSTALLED_VERSION > Link("some link")
+def test_sort_locations_non_existing_path():
+    """
+    Test that a non-existing path is ignored.
+    """
+    finder = PackageFinder([], [], session=PipSession())
+    files, urls = finder._sort_locations(
+        [os.path.join('this', 'doesnt', 'exist')])
+    assert not urls and not files, "nothing should have been found"
 
 
 class TestLink(object):
@@ -68,6 +74,17 @@ class TestLink(object):
 
     def test_is_wheel_false(self):
         assert not Link('http://yo/not_a_wheel').is_wheel
+
+    def test_fragments(self):
+        url = 'git+https://example.com/package#egg=eggname'
+        assert 'eggname' == Link(url).egg_fragment
+        assert None is Link(url).subdirectory_fragment
+        url = 'git+https://example.com/package#egg=eggname&subdirectory=subdir'
+        assert 'eggname' == Link(url).egg_fragment
+        assert 'subdir' == Link(url).subdirectory_fragment
+        url = 'git+https://example.com/package#subdirectory=subdir&egg=eggname'
+        assert 'eggname' == Link(url).egg_fragment
+        assert 'subdir' == Link(url).subdirectory_fragment
 
 
 @pytest.mark.parametrize(
@@ -114,6 +131,7 @@ class MockLogger(object):
         ("http://127.0.0.1", [], False),
         ("http://example.com/something/", [], True),
         ("http://example.com/something/", ["example.com"], False),
+        ("http://eXample.com/something/", ["example.cOm"], False),
     ],
 )
 def test_secure_origin(location, trusted, expected):

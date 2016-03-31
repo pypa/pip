@@ -85,6 +85,14 @@ def search_packages_info(query):
             entry_points = dist.get_metadata_lines('entry_points.txt')
             package['entry_points'] = entry_points
 
+        installer = None
+        if dist.has_metadata('INSTALLER'):
+            for line in dist.get_metadata_lines('INSTALLER'):
+                if line.strip():
+                    installer = line.strip()
+                    break
+        package['installer'] = installer
+
         # @todo: Should pkg_resources.Distribution have a
         # `get_pkg_info` method?
         feed_parser = FeedParser()
@@ -93,6 +101,16 @@ def search_packages_info(query):
         for key in ('metadata-version', 'summary',
                     'home-page', 'author', 'author-email', 'license'):
             package[key] = pkg_info_dict.get(key)
+
+        # It looks like FeedParser can not deal with repeated headers
+        classifiers = []
+        for line in metadata.splitlines():
+            if not line:
+                break
+            # Classifier: License :: OSI Approved :: MIT License
+            if line.startswith('Classifier: '):
+                classifiers.append(line[len('Classifier: '):])
+        package['classifiers'] = classifiers
 
         if file_list:
             package['files'] = sorted(file_list)
@@ -107,25 +125,30 @@ def print_results(distributions, list_all_files):
     for dist in distributions:
         results_printed = True
         logger.info("---")
-        logger.info("Metadata-Version: %s" % dist.get('metadata-version'))
-        logger.info("Name: %s" % dist['name'])
-        logger.info("Version: %s" % dist['version'])
-        logger.info("Summary: %s" % dist.get('summary'))
-        logger.info("Home-page: %s" % dist.get('home-page'))
-        logger.info("Author: %s" % dist.get('author'))
-        logger.info("Author-email: %s" % dist.get('author-email'))
-        logger.info("License: %s" % dist.get('license'))
-        logger.info("Location: %s" % dist['location'])
-        logger.info("Requires: %s" % ', '.join(dist['requires']))
+        logger.info("Metadata-Version: %s", dist.get('metadata-version'))
+        logger.info("Name: %s", dist['name'])
+        logger.info("Version: %s", dist['version'])
+        logger.info("Summary: %s", dist.get('summary'))
+        logger.info("Home-page: %s", dist.get('home-page'))
+        logger.info("Author: %s", dist.get('author'))
+        logger.info("Author-email: %s", dist.get('author-email'))
+        if dist['installer'] is not None:
+            logger.info("Installer: %s", dist['installer'])
+        logger.info("License: %s", dist.get('license'))
+        logger.info("Location: %s", dist['location'])
+        logger.info("Requires: %s", ', '.join(dist['requires']))
+        logger.info("Classifiers:")
+        for classifier in dist['classifiers']:
+            logger.info("  %s", classifier)
         if list_all_files:
             logger.info("Files:")
             if 'files' in dist:
                 for line in dist['files']:
-                    logger.info("  %s" % line.strip())
+                    logger.info("  %s", line.strip())
             else:
                 logger.info("Cannot locate installed-files.txt")
         if 'entry_points' in dist:
             logger.info("Entry-points:")
             for line in dist['entry_points']:
-                logger.info("  %s" % line.strip())
+                logger.info("  %s", line.strip())
     return results_printed

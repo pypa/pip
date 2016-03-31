@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2012-2014 Vinay Sajip.
+# Copyright (C) 2012-2016 Vinay Sajip.
 # Licensed to the Python Software Foundation under a contributor agreement.
 # See LICENSE.txt and CONTRIBUTORS.txt.
 #
 import logging
 
-__version__ = '0.2.1'
+__version__ = '0.2.2'
 
 class DistlibException(Exception):
     pass

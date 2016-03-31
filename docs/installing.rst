@@ -11,7 +11,7 @@ downloaded from `python.org <https://www.python.org>`_, but you'll need to
 :ref:`upgrade pip <Upgrading pip>`.
 
 Additionally, pip will already be installed if you're working in a :ref:`Virtual
-Envionment <pypug:Creating and using Virtual Environments>` created by
+Environment <pypug:Creating and using Virtual Environments>` created by
 :ref:`pypug:virtualenv` or :ref:`pyvenv <pypug:venv>`.
 
 
@@ -36,7 +36,7 @@ Then run the following:
    system or another package manager. get-pip.py does not coordinate with
    those tools, and may leave your system in an inconsistent state.
 
-get-pip.py will also intall :ref:`pypug:setuptools` [3]_ and :ref:`pypug:wheel`,
+get-pip.py will also install :ref:`pypug:setuptools` [3]_ and :ref:`pypug:wheel`,
 if they're not already. :ref:`pypug:setuptools` is required to install
 :term:`source distributions <pypug:Source Distribution (or "sdist")>`.  Both are
 required to be able to build a :ref:`Wheel cache` (which improves installation
@@ -103,6 +103,10 @@ Python and OS Compatibility
 ---------------------------
 
 pip works with CPython versions 2.6, 2.7, 3.3, 3.4, 3.5 and also pypy.
+
+This means pip works on the latest patch version of each of these minor versions
+(i.e. 2.6.9 for 2.6, etc).
+Previous patch versions are supported on a best effort approach.
 
 pip works on Unix/Linux, OS X, and Windows.
 

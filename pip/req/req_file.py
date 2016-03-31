@@ -7,6 +7,7 @@ from __future__ import absolute_import
 import os
 import re
 import shlex
+import sys
 import optparse
 import warnings
 
@@ -46,12 +47,14 @@ SUPPORTED_OPTIONS = [
     cmdoptions.pre,
     cmdoptions.process_dependency_links,
     cmdoptions.trusted_host,
+    cmdoptions.require_hashes,
 ]
 
 # options to be passed to requirements
 SUPPORTED_OPTIONS_REQ = [
     cmdoptions.install_options,
-    cmdoptions.global_options
+    cmdoptions.global_options,
+    cmdoptions.hash,
 ]
 
 # the 'dest' string values
@@ -122,6 +125,7 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
     affect the finder.
 
     :param constraint: If True, parsing a constraints file.
+    :param options: OptionParser options that we may update
     """
     parser = build_parser()
     defaults = parser.get_default_values()
@@ -130,6 +134,9 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
         # `finder.format_control` will be updated during parsing
         defaults.format_control = finder.format_control
     args_str, options_str = break_args_options(line)
+    if sys.version_info < (2, 7, 3):
+        # Priori to 2.7.3, shlex can not deal with unicode entries
+        options_str = options_str.encode('utf8')
     opts, _ = parser.parse_args(shlex.split(options_str), defaults)
 
     # preserve for the nested code path
@@ -176,7 +183,6 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
         # original file and nested file are paths
         elif not SCHEME_RE.search(req_path):
             # do a join so relative paths work
-            req_dir = os.path.dirname(filename)
             req_path = os.path.join(os.path.dirname(filename), req_path)
         # TODO: Why not use `comes_from='-r {} (line {})'` here as well?
         parser = parse_requirements(
@@ -185,6 +191,10 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
         )
         for req in parser:
             yield req
+
+    # percolate hash-checking option upward
+    elif opts.require_hashes:
+        options.require_hashes = opts.require_hashes
 
     # set finder options
     elif finder:

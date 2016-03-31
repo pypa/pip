@@ -8,10 +8,7 @@ from pip.req import InstallRequirement
 from pip.index import (
     InstallationCandidate, PackageFinder, Link, FormatControl,
     fmt_ctl_formats)
-from pip.exceptions import (
-    BestVersionAlreadyInstalled, DistributionNotFound, InstallationError,
-)
-from pip.utils import Inf
+from pip.exceptions import BestVersionAlreadyInstalled, DistributionNotFound
 from pip.download import PipSession
 
 from mock import Mock, patch
@@ -35,13 +32,11 @@ def test_no_partial_name_match(data):
     assert found.url.endswith("gmpy-1.15.tar.gz"), found
 
 
-@patch(
-    'pip.index.os.path.exists',
-    return_value=True  # b/c we only use tilde expanded version if it exists
-)
 def test_tilde(data):
     """Finder can accept a path with ~ in it and will normalize it."""
-    finder = PackageFinder(['~/python-pkgs'], [], session=PipSession())
+    session = PipSession()
+    with patch('pip.index.os.path.exists', return_value=True):
+        finder = PackageFinder(['~/python-pkgs'], [], session=session)
     req = InstallRequirement.from_line("gmpy")
     with pytest.raises(DistributionNotFound):
         finder.find_requirement(req, False)
@@ -225,7 +220,6 @@ class TestWheel:
         Test link sorting
         """
         links = [
-            InstallationCandidate("simple", "2.0", Link(Inf)),
             InstallationCandidate("simple", "2.0", Link('simple-2.0.tar.gz')),
             InstallationCandidate(
                 "simple",
@@ -251,23 +245,12 @@ class TestWheel:
 
         finder = PackageFinder([], [], session=PipSession())
 
-        results = finder._sort_versions(links)
-        results2 = finder._sort_versions(reversed(links))
+        results = sorted(links,
+                         key=finder._candidate_sort_key, reverse=True)
+        results2 = sorted(reversed(links),
+                          key=finder._candidate_sort_key, reverse=True)
 
         assert links == results == results2, results2
-
-    @patch('pip.pep425tags.supported_tags', [])
-    def test_link_sorting_raises_when_wheel_unsupported(self):
-        links = [
-            InstallationCandidate(
-                "simple",
-                '1.0',
-                Link('simple-1.0-py2.py3-none-TEST.whl'),
-            ),
-        ]
-        finder = PackageFinder([], [], session=PipSession())
-        with pytest.raises(InstallationError):
-            finder._sort_versions(links)
 
 
 def test_finder_priority_file_over_page(data):
@@ -278,7 +261,7 @@ def test_finder_priority_file_over_page(data):
         ["http://pypi.python.org/simple"],
         session=PipSession(),
     )
-    all_versions = finder._find_all_versions(req.name)
+    all_versions = finder.find_all_candidates(req.name)
     # 1 file InstallationCandidate followed by all https ones
     assert all_versions[0].location.scheme == 'file'
     assert all(version.location.scheme == 'https'
@@ -319,7 +302,7 @@ def test_finder_priority_page_over_deplink():
     )
     finder.add_dependency_links([
         'https://warehouse.python.org/packages/source/p/pip/pip-1.5.6.tar.gz'])
-    all_versions = finder._find_all_versions(req.name)
+    all_versions = finder.find_all_candidates(req.name)
     # Check that the dependency_link is last
     assert all_versions[-1].location.url.startswith('https://warehouse')
     link = finder.find_requirement(req, False)
@@ -334,7 +317,7 @@ def test_finder_priority_nonegg_over_eggfragments():
     finder = PackageFinder(links, [], session=PipSession())
 
     with patch.object(finder, "_get_pages", lambda x, y: []):
-        all_versions = finder._find_all_versions(req.name)
+        all_versions = finder.find_all_candidates(req.name)
         assert all_versions[0].location.url.endswith('tar.gz')
         assert all_versions[1].location.url.endswith('#egg=bar-1.0')
 
@@ -346,7 +329,7 @@ def test_finder_priority_nonegg_over_eggfragments():
     finder = PackageFinder(links, [], session=PipSession())
 
     with patch.object(finder, "_get_pages", lambda x, y: []):
-        all_versions = finder._find_all_versions(req.name)
+        all_versions = finder.find_all_candidates(req.name)
         assert all_versions[0].location.url.endswith('tar.gz')
         assert all_versions[1].location.url.endswith('#egg=bar-1.0')
         link = finder.find_requirement(req, False)
@@ -516,30 +499,30 @@ def test_get_index_urls_locations():
                          'file://index2/complex-name/']
 
 
-def test_find_all_versions_nothing(data):
+def test_find_all_candidates_nothing(data):
     """Find nothing without anything"""
     finder = PackageFinder([], [], session=PipSession())
-    assert not finder._find_all_versions('pip')
+    assert not finder.find_all_candidates('pip')
 
 
-def test_find_all_versions_find_links(data):
+def test_find_all_candidates_find_links(data):
     finder = PackageFinder(
         [data.find_links], [], session=PipSession())
-    versions = finder._find_all_versions('simple')
+    versions = finder.find_all_candidates('simple')
     assert [str(v.version) for v in versions] == ['3.0', '2.0', '1.0']
 
 
-def test_find_all_versions_index(data):
+def test_find_all_candidates_index(data):
     finder = PackageFinder(
         [], [data.index_url('simple')], session=PipSession())
-    versions = finder._find_all_versions('simple')
+    versions = finder.find_all_candidates('simple')
     assert [str(v.version) for v in versions] == ['1.0']
 
 
-def test_find_all_versions_find_links_and_index(data):
+def test_find_all_candidates_find_links_and_index(data):
     finder = PackageFinder(
         [data.find_links], [data.index_url('simple')], session=PipSession())
-    versions = finder._find_all_versions('simple')
+    versions = finder.find_all_candidates('simple')
     # first the find-links versions then the page versions
     assert [str(v.version) for v in versions] == ['3.0', '2.0', '1.0', '1.0']
 

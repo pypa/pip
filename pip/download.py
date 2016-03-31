@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import cgi
 import email.utils
-import hashlib
 import getpass
 import json
 import logging
@@ -29,16 +28,18 @@ from pip.exceptions import InstallationError, HashMismatch
 from pip.models import PyPI
 from pip.utils import (splitext, rmtree, format_size, display_path,
                        backup_dir, ask_path_exists, unpack_file,
-                       call_subprocess, ARCHIVE_EXTENSIONS)
+                       ARCHIVE_EXTENSIONS, consume, call_subprocess)
+from pip.utils.encoding import auto_decode
 from pip.utils.filesystem import check_path_owner
 from pip.utils.logging import indent_log
+from pip.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip.utils.ui import DownloadProgressBar, DownloadProgressSpinner
 from pip.locations import write_delete_marker_file
 from pip.vcs import vcs
 from pip._vendor import requests, six
 from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
-from pip._vendor.requests.models import Response
+from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
 from pip._vendor.requests.structures import CaseInsensitiveDict
 from pip._vendor.requests.packages import urllib3
 from pip._vendor.cachecontrol import CacheControlAdapter
@@ -111,6 +112,10 @@ def user_agent():
 
     if platform.machine():
         data["cpu"] = platform.machine()
+
+    # Python 2.6 doesn't have ssl.OPENSSL_VERSION.
+    if HAS_TLS and sys.version_info[:2] > (2, 6):
+        data["openssl_version"] = ssl.OPENSSL_VERSION
 
     return "{data[installer][name]}/{data[installer][version]} {json}".format(
         data=data,
@@ -339,7 +344,7 @@ class PipSession(requests.Session):
         # We want to _only_ cache responses on securely fetched origins. We do
         # this because we can't validate the response of an insecurely fetched
         # origin, and we don't want someone to be able to poison the cache and
-        # require manual evication from the cache to fix it.
+        # require manual eviction from the cache to fix it.
         if cache:
             secure_adapter = CacheControlAdapter(
                 cache=SafeFileCache(cache, use_dir_lock=True),
@@ -403,14 +408,10 @@ def get_file_content(url, comes_from=None, session=None):
             # FIXME: catch some errors
             resp = session.get(url)
             resp.raise_for_status()
-
-            if six.PY3:
-                return resp.url, resp.text
-            else:
-                return resp.url, resp.content
+            return resp.url, resp.text
     try:
-        with open(url) as f:
-            content = f.read()
+        with open(url, 'rb') as f:
+            content = auto_decode(f.read())
     except IOError as exc:
         raise InstallationError(
             'Could not open requirements file: %s' % str(exc)
@@ -485,57 +486,22 @@ def is_file_url(link):
     return link.url.lower().startswith('file:')
 
 
-def _check_hash(download_hash, link):
-    if download_hash.digest_size != hashlib.new(link.hash_name).digest_size:
-        logger.critical(
-            "Hash digest size of the package %d (%s) doesn't match the "
-            "expected hash name %s!",
-            download_hash.digest_size, link, link.hash_name,
-        )
-        raise HashMismatch('Hash name mismatch for package %s' % link)
-    if download_hash.hexdigest() != link.hash:
-        logger.critical(
-            "Hash of the package %s (%s) doesn't match the expected hash %s!",
-            link, download_hash.hexdigest(), link.hash,
-        )
-        raise HashMismatch(
-            'Bad %s hash for package %s' % (link.hash_name, link)
-        )
+def is_dir_url(link):
+    """Return whether a file:// Link points to a directory.
 
+    ``link`` must not have any other scheme but file://. Call is_file_url()
+    first.
 
-def _get_hash_from_file(target_file, link):
-    try:
-        download_hash = hashlib.new(link.hash_name)
-    except (ValueError, TypeError):
-        logger.warning(
-            "Unsupported hash name %s for package %s", link.hash_name, link,
-        )
-        return None
-
-    with open(target_file, 'rb') as fp:
-        while True:
-            chunk = fp.read(4096)
-            if not chunk:
-                break
-            download_hash.update(chunk)
-    return download_hash
+    """
+    link_path = url_to_path(link.url_without_fragment)
+    return os.path.isdir(link_path)
 
 
 def _progress_indicator(iterable, *args, **kwargs):
     return iterable
 
 
-def _download_url(resp, link, content_file):
-    download_hash = None
-    if link.hash and link.hash_name:
-        try:
-            download_hash = hashlib.new(link.hash_name)
-        except ValueError:
-            logger.warning(
-                "Unsupported hash name %s for package %s",
-                link.hash_name, link,
-            )
-
+def _download_url(resp, link, content_file, hashes):
     try:
         total_length = int(resp.headers['content-length'])
     except (ValueError, KeyError, TypeError):
@@ -561,7 +527,7 @@ def _download_url(resp, link, content_file):
             # Special case for urllib3.
             for chunk in resp.raw.stream(
                     chunk_size,
-                    # We use decode_content=False here because we do
+                    # We use decode_content=False here because we don't
                     # want urllib3 to mess with the raw bytes we get
                     # from the server. If we decompress inside of
                     # urllib3 then we cannot verify the checksum
@@ -593,6 +559,11 @@ def _download_url(resp, link, content_file):
                     break
                 yield chunk
 
+    def written_chunks(chunks):
+        for chunk in chunks:
+            content_file.write(chunk)
+            yield chunk
+
     progress_indicator = _progress_indicator
 
     if link.netloc == PyPI.netloc:
@@ -602,12 +573,8 @@ def _download_url(resp, link, content_file):
 
     if show_progress:  # We don't show progress on cached responses
         if total_length:
-            logger.info(
-                "Downloading %s (%s)", url, format_size(total_length),
-            )
-            progress_indicator = DownloadProgressBar(
-                max=total_length,
-            ).iter
+            logger.info("Downloading %s (%s)", url, format_size(total_length))
+            progress_indicator = DownloadProgressBar(max=total_length).iter
         else:
             logger.info("Downloading %s", url)
             progress_indicator = DownloadProgressSpinner().iter
@@ -618,16 +585,19 @@ def _download_url(resp, link, content_file):
 
     logger.debug('Downloading from URL %s', link)
 
-    for chunk in progress_indicator(resp_read(4096), 4096):
-        if download_hash is not None:
-            download_hash.update(chunk)
-        content_file.write(chunk)
-    if link.hash and link.hash_name:
-        _check_hash(download_hash, link)
-    return download_hash
+    downloaded_chunks = written_chunks(
+        progress_indicator(
+            resp_read(CONTENT_CHUNK_SIZE),
+            CONTENT_CHUNK_SIZE
+        )
+    )
+    if hashes:
+        hashes.check_against_chunks(downloaded_chunks)
+    else:
+        consume(downloaded_chunks)
 
 
-def _copy_file(filename, location, content_type, link):
+def _copy_file(filename, location, link):
     copy = True
     download_location = os.path.join(location, link.filename)
     if os.path.exists(download_location):
@@ -652,7 +622,8 @@ def _copy_file(filename, location, content_type, link):
         logger.info('Saved %s', display_path(download_location))
 
 
-def unpack_http_url(link, location, download_dir=None, session=None):
+def unpack_http_url(link, location, download_dir=None,
+                    session=None, hashes=None):
     if session is None:
         raise TypeError(
             "unpack_http_url() missing 1 required keyword argument: 'session'"
@@ -663,14 +634,19 @@ def unpack_http_url(link, location, download_dir=None, session=None):
     # If a download dir is specified, is the file already downloaded there?
     already_downloaded_path = None
     if download_dir:
-        already_downloaded_path = _check_download_dir(link, download_dir)
+        already_downloaded_path = _check_download_dir(link,
+                                                      download_dir,
+                                                      hashes)
 
     if already_downloaded_path:
         from_path = already_downloaded_path
         content_type = mimetypes.guess_type(from_path)[0]
     else:
         # let's download to a tmp dir
-        from_path, content_type = _download_http_url(link, session, temp_dir)
+        from_path, content_type = _download_http_url(link,
+                                                     session,
+                                                     temp_dir,
+                                                     hashes)
 
     # unpack the archive to the build dir location. even when only downloading
     # archives, they have to be unpacked to parse dependencies
@@ -678,22 +654,23 @@ def unpack_http_url(link, location, download_dir=None, session=None):
 
     # a download dir is specified; let's copy the archive there
     if download_dir and not already_downloaded_path:
-        _copy_file(from_path, download_dir, content_type, link)
+        _copy_file(from_path, download_dir, link)
 
     if not already_downloaded_path:
         os.unlink(from_path)
     rmtree(temp_dir)
 
 
-def unpack_file_url(link, location, download_dir=None):
+def unpack_file_url(link, location, download_dir=None, hashes=None):
     """Unpack link into location.
-    If download_dir is provided and link points to a file, make a copy
-    of the link file inside download_dir."""
 
+    If download_dir is provided and link points to a file, make a copy
+    of the link file inside download_dir.
+    """
     link_path = url_to_path(link.url_without_fragment)
 
     # If it's a url to a local directory
-    if os.path.isdir(link_path):
+    if is_dir_url(link):
         if os.path.isdir(location):
             rmtree(location)
         shutil.copytree(link_path, location, symlinks=True)
@@ -701,15 +678,20 @@ def unpack_file_url(link, location, download_dir=None):
             logger.info('Link is a directory, ignoring download_dir')
         return
 
-    # if link has a hash, let's confirm it matches
-    if link.hash:
-        link_path_hash = _get_hash_from_file(link_path, link)
-        _check_hash(link_path_hash, link)
+    # If --require-hashes is off, `hashes` is either empty, the
+    # link's embeddded hash, or MissingHashes; it is required to
+    # match. If --require-hashes is on, we are satisfied by any
+    # hash in `hashes` matching: a URL-based or an option-based
+    # one; no internet-sourced hash will be in `hashes`.
+    if hashes:
+        hashes.check_against_path(link_path)
 
     # If a download dir is specified, is the file already there and valid?
     already_downloaded_path = None
     if download_dir:
-        already_downloaded_path = _check_download_dir(link, download_dir)
+        already_downloaded_path = _check_download_dir(link,
+                                                      download_dir,
+                                                      hashes)
 
     if already_downloaded_path:
         from_path = already_downloaded_path
@@ -724,7 +706,7 @@ def unpack_file_url(link, location, download_dir=None):
 
     # a download dir is specified and not already downloaded
     if download_dir and not already_downloaded_path:
-        _copy_file(from_path, download_dir, content_type, link)
+        _copy_file(from_path, download_dir, link)
 
 
 def _copy_dist_from_dir(link_path, location):
@@ -749,10 +731,7 @@ def _copy_dist_from_dir(link_path, location):
     setup_py = 'setup.py'
     sdist_args = [sys.executable]
     sdist_args.append('-c')
-    sdist_args.append(
-        "import setuptools, tokenize;__file__=%r;"
-        "exec(compile(getattr(tokenize, 'open', open)(__file__).read()"
-        ".replace('\\r\\n', '\\n'), __file__, 'exec'))" % setup_py)
+    sdist_args.append(SETUPTOOLS_SHIM % setup_py)
     sdist_args.append('sdist')
     sdist_args += ['--dist-dir', location]
     logger.info('Running setup.py sdist for %s', link_path)
@@ -795,7 +774,7 @@ class PipXmlrpcTransport(xmlrpc_client.Transport):
 
 
 def unpack_url(link, location, download_dir=None,
-               only_download=False, session=None):
+               only_download=False, session=None, hashes=None):
     """Unpack link.
        If link is a VCS link:
          if only_download, export into download_dir and ignore location
@@ -804,6 +783,11 @@ def unpack_url(link, location, download_dir=None,
          - unpack into location
          - if download_dir, copy the file into download_dir
          - if only_download, mark location for deletion
+
+    :param hashes: A Hashes object, one of whose embedded hashes must match,
+        or HashMismatch will be raised. If the Hashes is empty, no matches are
+        required, and unhashable types of requirements (like VCS ones, which
+        would ordinarily raise HashUnsupported) are allowed.
     """
     # non-editable vcs urls
     if is_vcs_url(link):
@@ -811,7 +795,7 @@ def unpack_url(link, location, download_dir=None,
 
     # file urls
     elif is_file_url(link):
-        unpack_file_url(link, location, download_dir)
+        unpack_file_url(link, location, download_dir, hashes=hashes)
 
     # http urls
     else:
@@ -823,12 +807,13 @@ def unpack_url(link, location, download_dir=None,
             location,
             download_dir,
             session,
+            hashes=hashes
         )
     if only_download:
         write_delete_marker_file(location)
 
 
-def _download_http_url(link, session, temp_dir):
+def _download_http_url(link, session, temp_dir, hashes):
     """Download link url into temp_dir using provided session"""
     target_url = link.url.split('#', 1)[0]
     try:
@@ -883,11 +868,11 @@ def _download_http_url(link, session, temp_dir):
             filename += ext
     file_path = os.path.join(temp_dir, filename)
     with open(file_path, 'wb') as content_file:
-        _download_url(resp, link, content_file)
+        _download_url(resp, link, content_file, hashes)
     return file_path, content_type
 
 
-def _check_download_dir(link, download_dir):
+def _check_download_dir(link, download_dir, hashes):
     """ Check download_dir for previously downloaded file with correct hash
         If a correct file is found return its path else None
     """
@@ -895,14 +880,13 @@ def _check_download_dir(link, download_dir):
     if os.path.exists(download_path):
         # If already downloaded, does its hash match?
         logger.info('File was already downloaded %s', download_path)
-        if link.hash:
-            download_hash = _get_hash_from_file(download_path, link)
+        if hashes:
             try:
-                _check_hash(download_hash, link)
+                hashes.check_against_path(download_path)
             except HashMismatch:
                 logger.warning(
-                    'Previously-downloaded file %s has bad hash, '
-                    're-downloading.',
+                    'Previously-downloaded file %s has bad hash. '
+                    'Re-downloading.',
                     download_path
                 )
                 os.unlink(download_path)

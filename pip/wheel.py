@@ -31,10 +31,14 @@ from pip.exceptions import (
 from pip.locations import distutils_scheme, PIP_DELETE_MARKER_FILENAME
 from pip import pep425tags
 from pip.utils import (
-    call_subprocess, ensure_dir, captured_stdout, rmtree, canonicalize_name)
+    call_subprocess, ensure_dir, captured_stdout, rmtree, read_chunks,
+)
+from pip.utils.ui import open_spinner
 from pip.utils.logging import indent_log
+from pip.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor import pkg_resources
+from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.six.moves import configparser
 
 
@@ -149,11 +153,9 @@ def rehash(path, algo='sha256', blocksize=1 << 20):
     h = hashlib.new(algo)
     length = 0
     with open(path, 'rb') as f:
-        block = f.read(blocksize)
-        while block:
+        for block in read_chunks(f, size=blocksize):
             length += len(block)
             h.update(block)
-            block = f.read(blocksize)
     digest = 'sha256=' + urlsafe_b64encode(
         h.digest()
     ).decode('latin1').rstrip('=')
@@ -223,6 +225,7 @@ def get_entrypoints(filename):
         data.seek(0)
 
     cp = configparser.RawConfigParser()
+    cp.optionxform = lambda option: option
     cp.readfp(data)
 
     console = {}
@@ -235,12 +238,13 @@ def get_entrypoints(filename):
 
 
 def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
-                     pycompile=True, scheme=None, isolated=False):
+                     pycompile=True, scheme=None, isolated=False, prefix=None):
     """Install a wheel"""
 
     if not scheme:
         scheme = distutils_scheme(
-            name, user=user, home=home, root=root, isolated=isolated
+            name, user=user, home=home, root=root, isolated=isolated,
+            prefix=prefix,
         )
 
     if root_is_purelib(name, wheeldir):
@@ -296,7 +300,7 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
                         s.endswith('.dist-info') and
                         # is self.req.project_name case preserving?
                         s.lower().startswith(
-                            req.project_name.replace('-', '_').lower())):
+                            req.name.replace('-', '_').lower())):
                     assert not info_dir, 'Multiple .dist-info directories'
                     info_dir.append(destsubdir)
             for f in files:
@@ -494,6 +498,15 @@ if __name__ == '__main__':
             )
         )
 
+    # Record pip as the installer
+    installer = os.path.join(info_dir[0], 'INSTALLER')
+    temp_installer = os.path.join(info_dir[0], 'INSTALLER.pip')
+    with open(temp_installer, 'wb') as installer_file:
+        installer_file.write(b'pip\n')
+    shutil.move(temp_installer, installer)
+    generated.append(installer)
+
+    # Record details of all files installed
     record = os.path.join(info_dir[0], 'RECORD')
     temp_record = os.path.join(info_dir[0], 'RECORD.pip')
     with open_for_csv(record, 'r') as record_in:
@@ -507,7 +520,7 @@ if __name__ == '__main__':
                 writer.writerow(row)
             for f in generated:
                 h, l = rehash(f)
-                writer.writerow((f, h, l))
+                writer.writerow((normpath(f, lib_dir), h, l))
             for f in installed:
                 writer.writerow((installed[f], '', ''))
     shutil.move(temp_record, record)
@@ -662,14 +675,14 @@ class WheelBuilder(object):
         self.build_options = build_options or []
         self.global_options = global_options or []
 
-    def _build_one(self, req, output_dir):
+    def _build_one(self, req, output_dir, python_tag=None):
         """Build one wheel.
 
         :return: The filename of the built wheel, or None if the build failed.
         """
         tempd = tempfile.mkdtemp('pip-wheel-')
         try:
-            if self.__build_one(req, tempd):
+            if self.__build_one(req, tempd, python_tag=python_tag):
                 try:
                     wheel_name = os.listdir(tempd)[0]
                     wheel_path = os.path.join(output_dir, wheel_name)
@@ -686,25 +699,30 @@ class WheelBuilder(object):
 
     def _base_setup_args(self, req):
         return [
-            sys.executable, '-c',
-            "import setuptools;__file__=%r;"
-            "exec(compile(open(__file__).read().replace('\\r\\n', '\\n'), "
-            "__file__, 'exec'))" % req.setup_py
+            sys.executable, "-u", '-c',
+            SETUPTOOLS_SHIM % req.setup_py
         ] + list(self.global_options)
 
-    def __build_one(self, req, tempd):
+    def __build_one(self, req, tempd, python_tag=None):
         base_args = self._base_setup_args(req)
 
-        logger.info('Running setup.py bdist_wheel for %s', req.name)
-        logger.debug('Destination directory: %s', tempd)
-        wheel_args = base_args + ['bdist_wheel', '-d', tempd] \
-            + self.build_options
-        try:
-            call_subprocess(wheel_args, cwd=req.source_dir, show_stdout=False)
-            return True
-        except:
-            logger.error('Failed building wheel for %s', req.name)
-            return False
+        spin_message = 'Running setup.py bdist_wheel for %s' % (req.name,)
+        with open_spinner(spin_message) as spinner:
+            logger.debug('Destination directory: %s', tempd)
+            wheel_args = base_args + ['bdist_wheel', '-d', tempd] \
+                + self.build_options
+
+            if python_tag is not None:
+                wheel_args += ["--python-tag", python_tag]
+
+            try:
+                call_subprocess(wheel_args, cwd=req.setup_py_dir,
+                                show_stdout=False, spinner=spinner)
+                return True
+            except:
+                spinner.finish("error")
+                logger.error('Failed building wheel for %s', req.name)
+                return False
 
     def _clean_one(self, req):
         base_args = self._base_setup_args(req)
@@ -721,7 +739,7 @@ class WheelBuilder(object):
     def build(self, autobuilding=False):
         """Build wheels.
 
-        :param unpack: If True, replace the sdist we built from the with the
+        :param unpack: If True, replace the sdist we built from with the
             newly built wheel, in preparation for installation.
         :return: True if all the wheels built correctly.
         """
@@ -776,7 +794,9 @@ class WheelBuilder(object):
         with indent_log():
             build_success, build_failure = [], []
             for req in buildset:
+                python_tag = None
                 if autobuilding:
+                    python_tag = pep425tags.implementation_tag
                     output_dir = _cache_for_link(self._cache_root, req.link)
                     try:
                         ensure_dir(output_dir)
@@ -787,7 +807,10 @@ class WheelBuilder(object):
                         continue
                 else:
                     output_dir = self._wheel_dir
-                wheel_file = self._build_one(req, output_dir)
+                wheel_file = self._build_one(
+                    req, output_dir,
+                    python_tag=python_tag,
+                )
                 if wheel_file:
                     build_success.append(req)
                     if autobuilding:

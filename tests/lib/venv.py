@@ -50,7 +50,7 @@ class VirtualEnvironment(object):
         _virtualenv.create_environment(
             self.location,
             clear=clear,
-            never_download=True,
+            download=False,
             no_pip=True,
             no_wheel=True,
         )

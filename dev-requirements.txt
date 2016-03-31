@@ -1,9 +1,10 @@
-https://github.com/spulec/freezegun/archive/master.zip#egg=freezegun
+freezegun
 pretend
 # Pinned to 2.7.2 to avoid an issue with parallel builds
 pytest==2.7.2
 pytest-capturelog
-pytest-timeout
+# Pinned to 0.5 to stay compatible with pytest==2.7.2
+pytest-timeout==0.5
 pytest-xdist
 mock<1.1
 scripttest>=1.3

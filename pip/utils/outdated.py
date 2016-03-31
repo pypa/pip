@@ -10,7 +10,7 @@ from pip._vendor import lockfile
 from pip._vendor.packaging import version as packaging_version
 
 from pip.compat import total_seconds, WINDOWS
-from pip.index import PyPI
+from pip.models import PyPI
 from pip.locations import USER_CACHE_DIR, running_under_virtualenv
 from pip.utils import ensure_dir, get_installed_version
 from pip.utils.filesystem import check_path_owner
@@ -151,9 +151,8 @@ def pip_version_check(session):
             logger.warning(
                 "You are using pip version %s, however version %s is "
                 "available.\nYou should consider upgrading via the "
-                "'%s install --upgrade pip' command." % (pip_version,
-                                                         pypi_version,
-                                                         pip_cmd)
+                "'%s install --upgrade pip' command.",
+                pip_version, pypi_version, pip_cmd
             )
 
     except Exception:
