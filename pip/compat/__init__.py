@@ -13,6 +13,11 @@ except ImportError:
     from pip.compat.dictconfig import dictConfig as logging_dictConfig
 
 try:
+    from collections import OrderedDict
+except ImportError:
+    from pip.compat.ordereddict import OrderedDict
+
+try:
     import ipaddress
 except ImportError:
     try:
@@ -23,9 +28,30 @@ except ImportError:
         ipaddress.ip_network = ipaddress.IPNetwork
 
 
+try:
+    import sysconfig
+
+    def get_stdlib():
+        paths = [
+            sysconfig.get_path("stdlib"),
+            sysconfig.get_path("platstdlib"),
+        ]
+        return set(filter(bool, paths))
+except ImportError:
+    from distutils import sysconfig
+
+    def get_stdlib():
+        paths = [
+            sysconfig.get_python_lib(standard_lib=True),
+            sysconfig.get_python_lib(standard_lib=True, plat_specific=True),
+        ]
+        return set(filter(bool, paths))
+
+
 __all__ = [
     "logging_dictConfig", "ipaddress", "uses_pycache", "console_to_str",
-    "native_str", "get_path_uid", "stdlib_pkgs", "WINDOWS",
+    "native_str", "get_path_uid", "stdlib_pkgs", "WINDOWS", "samefile",
+    "OrderedDict",
 ]
 
 
@@ -101,16 +127,38 @@ def get_path_uid(path):
     return file_uid
 
 
+def expanduser(path):
+    """
+    Expand ~ and ~user constructions.
+
+    Includes a workaround for http://bugs.python.org/issue14768
+    """
+    expanded = os.path.expanduser(path)
+    if path.startswith('~/') and expanded.startswith('//'):
+        expanded = expanded[1:]
+    return expanded
+
+
 # packages in the stdlib that may have installation metadata, but should not be
 # considered 'installed'.  this theoretically could be determined based on
 # dist.location (py27:`sysconfig.get_paths()['stdlib']`,
 # py26:sysconfig.get_config_vars('LIBDEST')), but fear platform variation may
 # make this ineffective, so hard-coding
-stdlib_pkgs = ['python', 'wsgiref']
+stdlib_pkgs = ('python', 'wsgiref')
 if sys.version_info >= (2, 7):
-    stdlib_pkgs.extend(['argparse'])
+    stdlib_pkgs += ('argparse',)
 
 
 # windows detection, covers cpython and ironpython
 WINDOWS = (sys.platform.startswith("win") or
            (sys.platform == 'cli' and os.name == 'nt'))
+
+
+def samefile(file1, file2):
+    """Provide an alternative for os.path.samefile on Windows/Python2"""
+    if hasattr(os.path, 'samefile'):
+        return os.path.samefile(file1, file2)
+    else:
+        path1 = os.path.normcase(os.path.abspath(file1))
+        path2 = os.path.normcase(os.path.abspath(file2))
+        return path1 == path2

@@ -4,13 +4,17 @@ from __future__ import division
 import itertools
 import sys
 from signal import signal, SIGINT, default_int_handler
+import time
+import contextlib
+import logging
 
 from pip.compat import WINDOWS
 from pip.utils import format_size
 from pip.utils.logging import get_indentation
 from pip._vendor import six
 from pip._vendor.progress.bar import Bar, IncrementalBar
-from pip._vendor.progress.helpers import WritelnMixin
+from pip._vendor.progress.helpers import (WritelnMixin,
+                                          HIDE_CURSOR, SHOW_CURSOR)
 from pip._vendor.progress.spinner import Spinner
 
 try:
@@ -19,6 +23,8 @@ try:
 # ImportError.
 except Exception:
     colorama = None
+
+logger = logging.getLogger(__name__)
 
 
 def _select_progress_class(preferred, fallback):
@@ -197,3 +203,142 @@ class DownloadProgressSpinner(WindowsMixin, InterruptibleMixin,
         ])
 
         self.writeln(line)
+
+
+################################################################
+# Generic "something is happening" spinners
+#
+# We don't even try using progress.spinner.Spinner here because it's actually
+# simpler to reimplement from scratch than to coerce their code into doing
+# what we need.
+################################################################
+
+@contextlib.contextmanager
+def hidden_cursor(file):
+    # The Windows terminal does not support the hide/show cursor ANSI codes,
+    # even via colorama. So don't even try.
+    if WINDOWS:
+        yield
+    # We don't want to clutter the output with control characters if we're
+    # writing to a file, or if the user is running with --quiet.
+    # See https://github.com/pypa/pip/issues/3418
+    elif not file.isatty() or logger.getEffectiveLevel() > logging.INFO:
+        yield
+    else:
+        file.write(HIDE_CURSOR)
+        try:
+            yield
+        finally:
+            file.write(SHOW_CURSOR)
+
+
+class RateLimiter(object):
+    def __init__(self, min_update_interval_seconds):
+        self._min_update_interval_seconds = min_update_interval_seconds
+        self._last_update = 0
+
+    def ready(self):
+        now = time.time()
+        delta = now - self._last_update
+        return delta >= self._min_update_interval_seconds
+
+    def reset(self):
+        self._last_update = time.time()
+
+
+class InteractiveSpinner(object):
+    def __init__(self, message, file=None, spin_chars="-\\|/",
+                 # Empirically, 8 updates/second looks nice
+                 min_update_interval_seconds=0.125):
+        self._message = message
+        if file is None:
+            file = sys.stdout
+        self._file = file
+        self._rate_limiter = RateLimiter(min_update_interval_seconds)
+        self._finished = False
+
+        self._spin_cycle = itertools.cycle(spin_chars)
+
+        self._file.write(" " * get_indentation() + self._message + " ... ")
+        self._width = 0
+
+    def _write(self, status):
+        assert not self._finished
+        # Erase what we wrote before by backspacing to the beginning, writing
+        # spaces to overwrite the old text, and then backspacing again
+        backup = "\b" * self._width
+        self._file.write(backup + " " * self._width + backup)
+        # Now we have a blank slate to add our status
+        self._file.write(status)
+        self._width = len(status)
+        self._file.flush()
+        self._rate_limiter.reset()
+
+    def spin(self):
+        if self._finished:
+            return
+        if not self._rate_limiter.ready():
+            return
+        self._write(next(self._spin_cycle))
+
+    def finish(self, final_status):
+        if self._finished:
+            return
+        self._write(final_status)
+        self._file.write("\n")
+        self._file.flush()
+        self._finished = True
+
+
+# Used for dumb terminals, non-interactive installs (no tty), etc.
+# We still print updates occasionally (once every 60 seconds by default) to
+# act as a keep-alive for systems like Travis-CI that take lack-of-output as
+# an indication that a task has frozen.
+class NonInteractiveSpinner(object):
+    def __init__(self, message, min_update_interval_seconds=60):
+        self._message = message
+        self._finished = False
+        self._rate_limiter = RateLimiter(min_update_interval_seconds)
+        self._update("started")
+
+    def _update(self, status):
+        assert not self._finished
+        self._rate_limiter.reset()
+        logger.info("%s: %s", self._message, status)
+
+    def spin(self):
+        if self._finished:
+            return
+        if not self._rate_limiter.ready():
+            return
+        self._update("still running...")
+
+    def finish(self, final_status):
+        if self._finished:
+            return
+        self._update("finished with status '%s'" % (final_status,))
+        self._finished = True
+
+
+@contextlib.contextmanager
+def open_spinner(message):
+    # Interactive spinner goes directly to sys.stdout rather than being routed
+    # through the logging system, but it acts like it has level INFO,
+    # i.e. it's only displayed if we're at level INFO or better.
+    # Non-interactive spinner goes through the logging system, so it is always
+    # in sync with logging configuration.
+    if sys.stdout.isatty() and logger.getEffectiveLevel() <= logging.INFO:
+        spinner = InteractiveSpinner(message)
+    else:
+        spinner = NonInteractiveSpinner(message)
+    try:
+        with hidden_cursor(sys.stdout):
+            yield spinner
+    except KeyboardInterrupt:
+        spinner.finish("canceled")
+        raise
+    except Exception:
+        spinner.finish("error")
+        raise
+    else:
+        spinner.finish("done")

@@ -209,12 +209,6 @@ class TestGeneralOptions(object):
         options2, args2 = main(['fake', '--log', 'path'])
         assert options1.log == options2.log == 'path'
 
-    def test_log_explicit_levels(self):
-        options1, args1 = main(['--log-explicit-levels', 'fake'])
-        options2, args2 = main(['fake', '--log-explicit-levels'])
-        assert options1.log_explicit_levels
-        assert options2.log_explicit_levels
-
     def test_local_log(self):
         options1, args1 = main(['--local-log', 'path', 'fake'])
         options2, args2 = main(['fake', '--local-log', 'path'])

@@ -14,9 +14,11 @@ from optparse import OptionGroup, SUPPRESS_HELP, Option
 import warnings
 
 from pip.index import (
-    PyPI, FormatControl, fmt_ctl_handle_mutual_exclude, fmt_ctl_no_binary,
+    FormatControl, fmt_ctl_handle_mutual_exclude, fmt_ctl_no_binary,
     fmt_ctl_no_use_wheel)
-from pip.locations import CA_BUNDLE_PATH, USER_CACHE_DIR, src_prefix
+from pip.models import PyPI
+from pip.locations import USER_CACHE_DIR, src_prefix
+from pip.utils.hashes import STRONG_HASHES
 
 
 def make_option_group(group, parser):
@@ -122,15 +124,6 @@ log = partial(
     help="Path to a verbose appending log."
 )
 
-log_explicit_levels = partial(
-    Option,
-    # Writes the log levels explicitely to the log'
-    '--log-explicit-levels',
-    dest='log_explicit_levels',
-    action='store_true',
-    default=False,
-    help=SUPPRESS_HELP)
-
 no_input = partial(
     Option,
     # Don't ask for input
@@ -204,7 +197,6 @@ cert = partial(
     '--cert',
     dest='cert',
     type='str',
-    default=CA_BUNDLE_PATH,
     metavar='path',
     help="Path to alternate CA bundle.")
 
@@ -255,7 +247,7 @@ def find_links():
         default=[],
         metavar='url',
         help="If a url or path to an html file, then parse for links to "
-             "archives. If a local path or file:// url that's a directory,"
+             "archives. If a local path or file:// url that's a directory, "
              "then look for archives in the directory listing.")
 
 
@@ -266,8 +258,7 @@ def allow_external():
         action="append",
         default=[],
         metavar="PACKAGE",
-        help="Allow the installation of a package even if it is externally "
-             "hosted",
+        help=SUPPRESS_HELP,
     )
 
 
@@ -277,7 +268,7 @@ allow_all_external = partial(
     dest="allow_all_external",
     action="store_true",
     default=False,
-    help="Allow the installation of all packages that are externally hosted",
+    help=SUPPRESS_HELP,
 )
 
 
@@ -312,8 +303,7 @@ def allow_unsafe():
         action="append",
         default=[],
         metavar="PACKAGE",
-        help="Allow the installation of a package even if it is hosted "
-        "in an insecure and unverifiable way",
+        help=SUPPRESS_HELP,
     )
 
 # Remove after 7.0
@@ -463,13 +453,6 @@ no_cache = partial(
     help="Disable the cache.",
 )
 
-download_cache = partial(
-    Option,
-    '--download-cache',
-    dest='download_cache',
-    default=None,
-    help=SUPPRESS_HELP)
-
 no_deps = partial(
     Option,
     '--no-deps', '--no-dependencies',
@@ -514,6 +497,14 @@ no_clean = partial(
     default=False,
     help="Don't clean up build directories.")
 
+pre = partial(
+    Option,
+    '--pre',
+    action='store_true',
+    default=False,
+    help="Include pre-release and development versions. By default, "
+         "pip only finds stable versions.")
+
 disable_pip_version_check = partial(
     Option,
     "--disable-pip-version-check",
@@ -533,6 +524,47 @@ always_unzip = partial(
 )
 
 
+def _merge_hash(option, opt_str, value, parser):
+    """Given a value spelled "algo:digest", append the digest to a list
+    pointed to in a dict by the algo name."""
+    if not parser.values.hashes:
+        parser.values.hashes = {}
+    try:
+        algo, digest = value.split(':', 1)
+    except ValueError:
+        parser.error('Arguments to %s must be a hash name '
+                     'followed by a value, like --hash=sha256:abcde...' %
+                     opt_str)
+    if algo not in STRONG_HASHES:
+        parser.error('Allowed hash algorithms for %s are %s.' %
+                     (opt_str, ', '.join(STRONG_HASHES)))
+    parser.values.hashes.setdefault(algo, []).append(digest)
+
+
+hash = partial(
+    Option,
+    '--hash',
+    # Hash values eventually end up in InstallRequirement.hashes due to
+    # __dict__ copying in process_line().
+    dest='hashes',
+    action='callback',
+    callback=_merge_hash,
+    type='string',
+    help="Verify that the package's archive matches this "
+         'hash before installing. Example: --hash=sha256:abcdef...')
+
+
+require_hashes = partial(
+    Option,
+    '--require-hashes',
+    dest='require_hashes',
+    action='store_true',
+    default=False,
+    help='Require a hash to check each requirement against, for '
+         'repeatable installs. This option is implied when any package in a '
+         'requirements file has a --hash option.')
+
+
 ##########
 # groups #
 ##########
@@ -547,7 +579,6 @@ general_group = {
         version,
         quiet,
         log,
-        log_explicit_levels,
         no_input,
         proxy,
         retries,
@@ -564,18 +595,24 @@ general_group = {
     ]
 }
 
-index_group = {
+non_deprecated_index_group = {
     'name': 'Package Index Options',
     'options': [
         index_url,
         extra_index_url,
         no_index,
         find_links,
+        process_dependency_links,
+    ]
+}
+
+index_group = {
+    'name': 'Package Index Options (including deprecated options)',
+    'options': non_deprecated_index_group['options'] + [
         allow_external,
         allow_all_external,
         no_allow_external,
         allow_unsafe,
         no_allow_unsafe,
-        process_dependency_links,
     ]
 }

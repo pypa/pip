@@ -63,6 +63,22 @@ if __name__ == '__main__':
 '''
 
 
+def _enquote_executable(executable):
+    if ' ' in executable:
+        # make sure we quote only the executable in case of env
+        # for example /usr/bin/env "/dir with spaces/bin/jython"
+        # instead of "/usr/bin/env /dir with spaces/bin/jython"
+        # otherwise whole
+        if executable.startswith('/usr/bin/env '):
+            env, _executable = executable.split(' ', 1)
+            if ' ' in _executable and not _executable.startswith('"'):
+                executable = '%s "%s"' % (env, _executable)
+        else:
+            if not executable.startswith('"'):
+                executable = '"%s"' % executable
+    return executable
+
+
 class ScriptMaker(object):
     """
     A class to copy or create scripts from source scripts or callable
@@ -85,8 +101,11 @@ class ScriptMaker(object):
         self.variants = set(('', 'X.Y'))
         self._fileop = fileop or FileOperator(dry_run)
 
+        self._is_nt = os.name == 'nt' or (
+            os.name == 'java' and os._name == 'nt')
+
     def _get_alternate_executable(self, executable, options):
-        if options.get('gui', False) and os.name == 'nt':
+        if options.get('gui', False) and self._is_nt:  # pragma: no cover
             dn, fn = os.path.split(executable)
             fn = fn.replace('python', 'pythonw')
             executable = os.path.join(dn, fn)
@@ -124,10 +143,10 @@ class ScriptMaker(object):
             enquote = False     # assume this will be taken care of
         elif not sysconfig.is_python_build():
             executable = get_executable()
-        elif in_venv():
+        elif in_venv():  # pragma: no cover
             executable = os.path.join(sysconfig.get_path('scripts'),
                             'python%s' % sysconfig.get_config_var('EXE'))
-        else:
+        else:  # pragma: no cover
             executable = os.path.join(
                 sysconfig.get_config_var('BINDIR'),
                'python%s%s' % (sysconfig.get_config_var('VERSION'),
@@ -141,14 +160,14 @@ class ScriptMaker(object):
         executable = os.path.normcase(executable)
         # If the user didn't specify an executable, it may be necessary to
         # cater for executable paths with spaces (not uncommon on Windows)
-        if enquote and ' ' in executable:
-            executable = '"%s"' % executable
+        if enquote:
+            executable = _enquote_executable(executable)
         # Issue #51: don't use fsencode, since we later try to
         # check that the shebang is decodable using utf-8.
         executable = executable.encode('utf-8')
         # in case of IronPython, play safe and enable frames support
         if (sys.platform == 'cli' and '-X:Frames' not in post_interp
-            and '-X:FullFrames' not in post_interp):
+            and '-X:FullFrames' not in post_interp):  # pragma: no cover
             post_interp += b' -X:Frames'
         shebang = b'#!' + executable + post_interp + b'\n'
         # Python parser starts to read a script using UTF-8 until
@@ -158,7 +177,7 @@ class ScriptMaker(object):
         # UTF-8.
         try:
             shebang.decode('utf-8')
-        except UnicodeDecodeError:
+        except UnicodeDecodeError:  # pragma: no cover
             raise ValueError(
                 'The shebang (%r) is not decodable from utf-8' % shebang)
         # If the script is encoded to a custom encoding (use a
@@ -167,7 +186,7 @@ class ScriptMaker(object):
         if encoding != 'utf-8':
             try:
                 shebang.decode(encoding)
-            except UnicodeDecodeError:
+            except UnicodeDecodeError:  # pragma: no cover
                 raise ValueError(
                     'The shebang (%r) is not decodable '
                     'from the script encoding (%r)' % (shebang, encoding))
@@ -184,11 +203,11 @@ class ScriptMaker(object):
         return self.manifest % base
 
     def _write_script(self, names, shebang, script_bytes, filenames, ext):
-        use_launcher = self.add_launchers and os.name == 'nt'
+        use_launcher = self.add_launchers and self._is_nt
         linesep = os.linesep.encode('utf-8')
         if not use_launcher:
             script_bytes = shebang + linesep + script_bytes
-        else:
+        else:  # pragma: no cover
             if ext == 'py':
                 launcher = self._get_launcher('t')
             else:
@@ -200,7 +219,7 @@ class ScriptMaker(object):
             script_bytes = launcher + shebang + linesep + zip_data
         for name in names:
             outname = os.path.join(self.target_dir, name)
-            if use_launcher:
+            if use_launcher:  # pragma: no cover
                 n, e = os.path.splitext(outname)
                 if e.startswith('.py'):
                     outname = n
@@ -223,7 +242,7 @@ class ScriptMaker(object):
                     except Exception:
                         pass    # still in use - ignore error
             else:
-                if os.name == 'nt' and not outname.endswith('.' + ext):
+                if self._is_nt and not outname.endswith('.' + ext):  # pragma: no cover
                     outname = '%s.%s' % (outname, ext)
                 if os.path.exists(outname) and not self.clobber:
                     logger.warning('Skipping existing file %s', outname)
@@ -269,15 +288,13 @@ class ScriptMaker(object):
         # script.
         try:
             f = open(script, 'rb')
-        except IOError:
+        except IOError:  # pragma: no cover
             if not self.dry_run:
                 raise
             f = None
         else:
-            encoding, lines = detect_encoding(f.readline)
-            f.seek(0)
             first_line = f.readline()
-            if not first_line:
+            if not first_line:  # pragma: no cover
                 logger.warning('%s: %s is an empty file (skipping)',
                                self.get_command_name(),  script)
                 return
@@ -298,8 +315,10 @@ class ScriptMaker(object):
             logger.info('copying and adjusting %s -> %s', script,
                         self.target_dir)
             if not self._fileop.dry_run:
+                encoding, lines = detect_encoding(f.readline)
+                f.seek(0)
                 shebang = self._get_shebang(encoding, post_interp)
-                if b'pythonw' in first_line:
+                if b'pythonw' in first_line:  # pragma: no cover
                     ext = 'pyw'
                 else:
                     ext = 'py'
@@ -316,7 +335,7 @@ class ScriptMaker(object):
     def dry_run(self, value):
         self._fileop.dry_run = value
 
-    if os.name == 'nt':
+    if os.name == 'nt' or (os.name == 'java' and os._name == 'nt'):  # pragma: no cover
         # Executable launcher support.
         # Launchers are from https://bitbucket.org/vinay.sajip/simple_launcher/
 

@@ -2,13 +2,11 @@ from __future__ import absolute_import
 
 import logging
 import os
-import sys
 import tempfile
 
 from pip.compat import uses_pycache, WINDOWS, cache_from_source
 from pip.exceptions import UninstallationError
-from pip.utils import (rmtree, ask, is_local, dist_is_local, renames,
-                       normalize_path)
+from pip.utils import rmtree, ask, is_local, renames, normalize_path
 from pip.utils.logging import indent_log
 
 
@@ -34,19 +32,13 @@ class UninstallPathSet(object):
         """
         return is_local(path)
 
-    def _can_uninstall(self):
-        if not dist_is_local(self.dist):
-            logger.info(
-                "Not uninstalling %s at %s, outside environment %s",
-                self.dist.project_name,
-                normalize_path(self.dist.location),
-                sys.prefix,
-            )
-            return False
-        return True
-
     def add(self, path):
-        path = normalize_path(path, resolve_symlinks=False)
+        head, tail = os.path.split(path)
+
+        # we normalize the head to resolve parent directory symlinks, but not
+        # the tail, since we only want to uninstall symlinks, not their targets
+        path = os.path.join(normalize_path(head), os.path.normcase(tail))
+
         if not os.path.exists(path):
             return
         if self._permitted(path):
@@ -89,8 +81,6 @@ class UninstallPathSet(object):
     def remove(self, auto_confirm=False):
         """Remove paths in ``self.paths`` with confirmation (unless
         ``auto_confirm`` is True)."""
-        if not self._can_uninstall():
-            return
         if not self.paths:
             logger.info(
                 "Can't uninstall '%s'. No files were found to uninstall.",

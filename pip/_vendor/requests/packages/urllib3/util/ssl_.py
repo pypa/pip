@@ -1,15 +1,42 @@
+from __future__ import absolute_import
+import errno
+import warnings
+import hmac
+
 from binascii import hexlify, unhexlify
 from hashlib import md5, sha1, sha256
 
-from ..exceptions import SSLError, InsecurePlatformWarning
+from ..exceptions import SSLError, InsecurePlatformWarning, SNIMissingWarning
 
 
 SSLContext = None
 HAS_SNI = False
 create_default_context = None
 
-import errno
-import warnings
+# Maps the length of a digest to a possible hash function producing this digest
+HASHFUNC_MAP = {
+    32: md5,
+    40: sha1,
+    64: sha256,
+}
+
+
+def _const_compare_digest_backport(a, b):
+    """
+    Compare two digests of equal length in constant time.
+
+    The digests must be of type str/bytes.
+    Returns True if the digests match, and False otherwise.
+    """
+    result = abs(len(a) - len(b))
+    for l, r in zip(bytearray(a), bytearray(b)):
+        result |= l ^ r
+    return result == 0
+
+
+_const_compare_digest = getattr(hmac, 'compare_digest',
+                                _const_compare_digest_backport)
+
 
 try:  # Test for SSL features
     import ssl
@@ -68,8 +95,11 @@ except ImportError:
             self.certfile = certfile
             self.keyfile = keyfile
 
-        def load_verify_locations(self, location):
-            self.ca_certs = location
+        def load_verify_locations(self, cafile=None, capath=None):
+            self.ca_certs = cafile
+
+            if capath is not None:
+                raise SSLError("CA directories not supported in older Pythons")
 
         def set_ciphers(self, cipher_suite):
             if not self.supports_set_ciphers:
@@ -112,31 +142,21 @@ def assert_fingerprint(cert, fingerprint):
         Fingerprint as string of hexdigits, can be interspersed by colons.
     """
 
-    # Maps the length of a digest to a possible hash function producing
-    # this digest.
-    hashfunc_map = {
-        16: md5,
-        20: sha1,
-        32: sha256,
-    }
-
     fingerprint = fingerprint.replace(':', '').lower()
-    digest_length, odd = divmod(len(fingerprint), 2)
-
-    if odd or digest_length not in hashfunc_map:
-        raise SSLError('Fingerprint is of invalid length.')
+    digest_length = len(fingerprint)
+    hashfunc = HASHFUNC_MAP.get(digest_length)
+    if not hashfunc:
+        raise SSLError(
+            'Fingerprint of invalid length: {0}'.format(fingerprint))
 
     # We need encode() here for py32; works on py2 and p33.
     fingerprint_bytes = unhexlify(fingerprint.encode())
 
-    hashfunc = hashfunc_map[digest_length]
-
     cert_digest = hashfunc(cert).digest()
 
-    if not cert_digest == fingerprint_bytes:
+    if not _const_compare_digest(cert_digest, fingerprint_bytes):
         raise SSLError('Fingerprints did not match. Expected "{0}", got "{1}".'
-                       .format(hexlify(fingerprint_bytes),
-                               hexlify(cert_digest)))
+                       .format(fingerprint, hexlify(cert_digest)))
 
 
 def resolve_cert_reqs(candidate):
@@ -243,10 +263,11 @@ def create_urllib3_context(ssl_version=None, cert_reqs=None,
 
 def ssl_wrap_socket(sock, keyfile=None, certfile=None, cert_reqs=None,
                     ca_certs=None, server_hostname=None,
-                    ssl_version=None, ciphers=None, ssl_context=None):
+                    ssl_version=None, ciphers=None, ssl_context=None,
+                    ca_cert_dir=None):
     """
-    All arguments except for server_hostname and ssl_context have the same
-    meaning as they do when using :func:`ssl.wrap_socket`.
+    All arguments except for server_hostname, ssl_context, and ca_cert_dir have
+    the same meaning as they do when using :func:`ssl.wrap_socket`.
 
     :param server_hostname:
         When SNI is supported, the expected hostname of the certificate
@@ -256,15 +277,19 @@ def ssl_wrap_socket(sock, keyfile=None, certfile=None, cert_reqs=None,
     :param ciphers:
         A string of ciphers we wish the client to support. This is not
         supported on Python 2.6 as the ssl module does not support it.
+    :param ca_cert_dir:
+        A directory containing CA certificates in multiple separate files, as
+        supported by OpenSSL's -CApath flag or the capath argument to
+        SSLContext.load_verify_locations().
     """
     context = ssl_context
     if context is None:
         context = create_urllib3_context(ssl_version, cert_reqs,
                                          ciphers=ciphers)
 
-    if ca_certs:
+    if ca_certs or ca_cert_dir:
         try:
-            context.load_verify_locations(ca_certs)
+            context.load_verify_locations(ca_certs, ca_cert_dir)
         except IOError as e:  # Platform-specific: Python 2.6, 2.7, 3.2
             raise SSLError(e)
         # Py33 raises FileNotFoundError which subclasses OSError
@@ -273,8 +298,20 @@ def ssl_wrap_socket(sock, keyfile=None, certfile=None, cert_reqs=None,
             if e.errno == errno.ENOENT:
                 raise SSLError(e)
             raise
+
     if certfile:
         context.load_cert_chain(certfile, keyfile)
     if HAS_SNI:  # Platform-specific: OpenSSL with enabled SNI
         return context.wrap_socket(sock, server_hostname=server_hostname)
+
+    warnings.warn(
+        'An HTTPS request has been made, but the SNI (Subject Name '
+        'Indication) extension to TLS is not available on this platform. '
+        'This may cause the server to present an incorrect TLS '
+        'certificate, which can cause validation failures. For more '
+        'information, see '
+        'https://urllib3.readthedocs.org/en/latest/security.html'
+        '#snimissingwarning.',
+        SNIMissingWarning
+    )
     return context.wrap_socket(sock)

@@ -4,8 +4,9 @@ import os
 import pytest
 from mock import patch, Mock
 
-from pip._vendor import pkg_resources
+from pip._vendor.packaging.requirements import Requirement
 from pip import pep425tags, wheel
+from pip.compat import expanduser, WINDOWS
 from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip.utils import unpack_file
 
@@ -291,44 +292,6 @@ class TestWheelFile(object):
         assert w.version == '0.1-1'
 
 
-class TestPEP425Tags(object):
-
-    def test_broken_sysconfig(self):
-        """
-        Test that pep425tags still works when sysconfig is broken.
-        Can be a problem on Python 2.7
-        Issue #1074.
-        """
-        import pip.pep425tags
-
-        def raises_ioerror(var):
-            raise IOError("I have the wrong path!")
-
-        with patch('pip.pep425tags.sysconfig.get_config_var', raises_ioerror):
-            assert len(pip.pep425tags.get_supported())
-
-    def test_no_hyphen_tag(self):
-        """
-        Test that no tag contains a hyphen.
-        """
-        import pip.pep425tags
-
-        get_config_var = pip.pep425tags.sysconfig.get_config_var
-
-        def mock_soabi(var):
-            if var == 'SOABI':
-                return 'cpython-35m-darwin'
-            return get_config_var(var)
-
-        with patch('pip.pep425tags.sysconfig.get_config_var', mock_soabi):
-            supported = pip.pep425tags.get_supported()
-
-        for (py, abi, plat) in supported:
-            assert '-' not in py
-            assert '-' not in abi
-            assert '-' not in plat
-
-
 class TestMoveWheelFiles(object):
     """
     Tests for moving files from wheel src to scheme paths
@@ -338,7 +301,7 @@ class TestMoveWheelFiles(object):
         self.name = 'sample'
         self.wheelpath = data.packages.join(
             'sample-1.2.0-py2.py3-none-any.whl')
-        self.req = pkg_resources.Requirement.parse('sample')
+        self.req = Requirement('sample')
         self.src = os.path.join(tmpdir, 'src')
         self.dest = os.path.join(tmpdir, 'dest')
         unpack_file(self.wheelpath, self.src, None, None)
@@ -372,6 +335,21 @@ class TestMoveWheelFiles(object):
         wheel.move_wheel_files(
             self.name, self.req, self.src, scheme=self.scheme)
         self.assert_installed()
+
+    def test_install_prefix(self, data, tmpdir):
+        prefix = os.path.join(os.path.sep, 'some', 'path')
+        self.prep(data, tmpdir)
+        wheel.move_wheel_files(
+            self.name,
+            self.req,
+            self.src,
+            root=tmpdir,
+            prefix=prefix,
+        )
+
+        bin_dir = 'Scripts' if WINDOWS else 'bin'
+        assert os.path.exists(os.path.join(tmpdir, 'some', 'path', bin_dir))
+        assert os.path.exists(os.path.join(tmpdir, 'some', 'path', 'my_data'))
 
     def test_dist_info_contains_empty_dir(self, data, tmpdir):
         """
@@ -417,7 +395,7 @@ class TestWheelCache:
 
     def test_expands_path(self):
         wc = wheel.WheelCache("~/.foo/", None)
-        assert wc._cache_dir == os.path.expanduser("~/.foo/")
+        assert wc._cache_dir == expanduser("~/.foo/")
 
     def test_falsey_path_none(self):
         wc = wheel.WheelCache(False, None)

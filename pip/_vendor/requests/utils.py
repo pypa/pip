@@ -29,7 +29,7 @@ from .compat import (quote, urlparse, bytes, str, OrderedDict, unquote, is_py2,
                      basestring)
 from .cookies import RequestsCookieJar, cookiejar_from_dict
 from .structures import CaseInsensitiveDict
-from .exceptions import InvalidURL
+from .exceptions import InvalidURL, FileModeWarning
 
 _hush_pyflakes = (RequestsCookieJar,)
 
@@ -48,26 +48,47 @@ def dict_to_sequence(d):
 
 
 def super_len(o):
+    total_length = 0
+    current_position = 0
+
     if hasattr(o, '__len__'):
-        return len(o)
+        total_length = len(o)
 
-    if hasattr(o, 'len'):
-        return o.len
+    elif hasattr(o, 'len'):
+        total_length = o.len
 
-    if hasattr(o, 'fileno'):
+    elif hasattr(o, 'getvalue'):
+        # e.g. BytesIO, cStringIO.StringIO
+        total_length = len(o.getvalue())
+
+    elif hasattr(o, 'fileno'):
         try:
             fileno = o.fileno()
         except io.UnsupportedOperation:
             pass
         else:
-            return os.fstat(fileno).st_size
+            total_length = os.fstat(fileno).st_size
 
-    if hasattr(o, 'getvalue'):
-        # e.g. BytesIO, cStringIO.StringIO
-        return len(o.getvalue())
+            # Having used fstat to determine the file length, we need to
+            # confirm that this file was opened up in binary mode.
+            if 'b' not in o.mode:
+                warnings.warn((
+                    "Requests has determined the content-length for this "
+                    "request using the binary size of the file: however, the "
+                    "file has been opened in text mode (i.e. without the 'b' "
+                    "flag in the mode). This may lead to an incorrect "
+                    "content-length. In Requests 3.0, support will be removed "
+                    "for files in text mode."),
+                    FileModeWarning
+                )
+
+    if hasattr(o, 'tell'):
+        current_position = o.tell()
+
+    return max(0, total_length - current_position)
 
 
-def get_netrc_auth(url):
+def get_netrc_auth(url, raise_errors=False):
     """Returns the Requests tuple auth for a given url from netrc."""
 
     try:
@@ -94,8 +115,12 @@ def get_netrc_auth(url):
 
         ri = urlparse(url)
 
-        # Strip port numbers from netloc
-        host = ri.netloc.split(':')[0]
+        # Strip port numbers from netloc. This weird `if...encode`` dance is
+        # used for Python 3.2, which doesn't support unicode literals.
+        splitstr = b':'
+        if isinstance(url, str):
+            splitstr = splitstr.decode('ascii')
+        host = ri.netloc.split(splitstr)[0]
 
         try:
             _netrc = netrc(netrc_path).authenticators(host)
@@ -105,8 +130,9 @@ def get_netrc_auth(url):
                 return (_netrc[login_i], _netrc[2])
         except (NetrcParseError, IOError):
             # If there was a parsing error or a permissions issue reading the file,
-            # we'll just skip netrc auth
-            pass
+            # we'll just skip netrc auth unless explicitly asked to raise errors.
+            if raise_errors:
+                raise
 
     # AppEngine hackiness.
     except (ImportError, AttributeError):
@@ -498,7 +524,9 @@ def should_bypass_proxies(url):
     if no_proxy:
         # We need to check whether we match here. We need to see if we match
         # the end of the netloc, both with and without the port.
-        no_proxy = no_proxy.replace(' ', '').split(',')
+        no_proxy = (
+            host for host in no_proxy.replace(' ', '').split(',') if host
+        )
 
         ip = netloc.split(':')[0]
         if is_ipv4_address(ip):
@@ -536,36 +564,22 @@ def get_environ_proxies(url):
     else:
         return getproxies()
 
+def select_proxy(url, proxies):
+    """Select a proxy for the url, if applicable.
+
+    :param url: The url being for the request
+    :param proxies: A dictionary of schemes or schemes and hosts to proxy URLs
+    """
+    proxies = proxies or {}
+    urlparts = urlparse(url)
+    proxy = proxies.get(urlparts.scheme+'://'+urlparts.hostname)
+    if proxy is None:
+        proxy = proxies.get(urlparts.scheme)
+    return proxy
 
 def default_user_agent(name="python-requests"):
     """Return a string representing the default user agent."""
-    _implementation = platform.python_implementation()
-
-    if _implementation == 'CPython':
-        _implementation_version = platform.python_version()
-    elif _implementation == 'PyPy':
-        _implementation_version = '%s.%s.%s' % (sys.pypy_version_info.major,
-                                                sys.pypy_version_info.minor,
-                                                sys.pypy_version_info.micro)
-        if sys.pypy_version_info.releaselevel != 'final':
-            _implementation_version = ''.join([_implementation_version, sys.pypy_version_info.releaselevel])
-    elif _implementation == 'Jython':
-        _implementation_version = platform.python_version()  # Complete Guess
-    elif _implementation == 'IronPython':
-        _implementation_version = platform.python_version()  # Complete Guess
-    else:
-        _implementation_version = 'Unknown'
-
-    try:
-        p_system = platform.system()
-        p_release = platform.release()
-    except IOError:
-        p_system = 'Unknown'
-        p_release = 'Unknown'
-
-    return " ".join(['%s/%s' % (name, __version__),
-                     '%s/%s' % (_implementation, _implementation_version),
-                     '%s/%s' % (p_system, p_release)])
+    return '%s/%s' % (name, __version__)
 
 
 def default_headers():

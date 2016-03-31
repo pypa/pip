@@ -7,7 +7,7 @@ from pip.commands import commands_dict as commands
 from mock import Mock
 
 
-def test_run_method_should_return_sucess_when_finds_command_name():
+def test_run_method_should_return_success_when_finds_command_name():
     """
     Test HelpCommand.run for existing command
     """
@@ -18,7 +18,7 @@ def test_run_method_should_return_sucess_when_finds_command_name():
     assert status == SUCCESS
 
 
-def test_run_method_should_return_sucess_when_command_name_not_specified():
+def test_run_method_should_return_success_when_command_name_not_specified():
     """
     Test HelpCommand.run when there are no args
     """

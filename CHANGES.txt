@@ -1,4 +1,264 @@
-**7.2.0 (unreleased)**
+**8.1.1 (2016-03-17)**
+
+* Fix regression with non-ascii requirement files on Python 2 and add support
+  for encoding headers in requirement files (:issue:`3548`, :pull:`3547`).
+
+
+**8.1.0 (2016-03-05)**
+
+* Implement PEP 513, which adds support for the manylinux1 platform tag,
+  allowing carefully compiled binary wheels to be installed on compatible Linux
+  platforms.
+
+* Allow wheels which are not specific to a particular Python interpreter but
+  which are specific to a particular platform (:issue:`3202`).
+
+* Fixed an issue where ``call_subprocess`` would crash trying to print debug
+  data on child process failure (:issue:`3521`, :pull:`3522`).
+
+* Exclude the wheel package from the `pip freeze` output (like pip and setuptools).
+  :issue:`2989`.
+
+* Allow installing modules from a subdirectory of a vcs repository
+  in non-editable mode (:issue:`3217`, :pull:`3466`).
+
+* Make pip wheel and pip download work with vcs urls with subdirectory option
+  (:pull:`3466`).
+
+* Show classifiers in ``pip show``.
+
+* Show PEP376 Installer in ``pip show`` (:issue:`3517`).
+
+* Unhide completion command (:pull:`1810`).
+
+* Show latest version number in ``pip search`` results (:pull:`1415`).
+
+* Decode requirement files according to their BOM if present (:pull:`3485`,
+  :issue:`2865`).
+
+* Fix and deprecate package name detection from url path (:issue:`3523` and
+  :pull:`3495`).
+
+* Correct the behavior where interpreter specific tags (such as cp34) were
+  being used on later versions of the same interprter instead of only for that
+  specific interpreter (:issue:`3472`).
+
+* Fix an issue where pip would erroneously install a 64 bit wheel on a 32 bit
+  Python running on a 64 bit OS X machine.
+
+* Do not assume that all git repositories have an origin remote.
+
+* Correctly display the line to add to a requirements.txt for an URL based
+  dependency when ``--require-hashes`` is enabled.
+
+
+**8.0.3 (2016-02-25)**
+
+* Make ``install --quiet`` really quiet. See :issue:`3418`.
+
+* Fix a bug when removing packages in python 3: disable INI-style parsing of the
+  entry_point.txt file to allow entry point names with colons (:pull:`3434`)
+
+* Normalize generated script files path in RECORD files. (:pull:`3448`)
+
+* Fix bug introduced in 8.0.0 where subcommand output was not shown,
+  even when the user specified ``-v`` / ``--verbose``. :issue:`3486`.
+
+* Enable python -W with respect to PipDeprecationWarning. (:pull:`3455`)
+
+* Upgrade distlib to 0.2.2 (fix :issue:`3467`):
+
+  * Improved support for Jython when quoting executables in output scripts.
+
+* Add a `--all` option to `pip freeze` to include usually skipped package
+  (like pip, setuptools and wheel) to the freeze output. :issue:`1610`.
+
+
+**8.0.2 (2016-01-21)**
+
+* Stop attempting to trust the system CA trust store because it's extremely
+  common for them to be broken, often in incompatible ways. See :pull:`3416`.
+
+
+**8.0.1 (2016-01-21)**
+
+* Detect CAPaths in addition to CAFiles on platforms that provide them.
+
+* Installing argparse or wsgiref will no longer warn or error - pip will allow
+  the installation even though it may be useless (since the installed thing
+  will be shadowed by the standard library).
+
+* Upgrading a distutils installed item that is installed outside of a virtual
+  environment, while inside of a virtual environment will no longer warn or
+  error.
+
+* Fix a bug where pre-releases were showing up in ``pip list --outdated``
+  without the ``--pre`` flag.
+
+* Switch the SOABI emulation from using RuntimeWarnings to debug logging.
+
+* Rollback the removal of the ability to uninstall distutils installed items
+  until a future date.
+
+
+**8.0.0 (2016-01-19)**
+
+* **BACKWARD INCOMPATIBLE** Drop support for Python 3.2.
+
+* **BACKWARD INCOMPATIBLE** Remove the ability to find any files other than the
+  ones directly linked from the index or find-links pages.
+
+* **BACKWARD INCOMPATIBLE** Remove the ``--download-cache`` which had been
+  deprecated and no-op'd in 6.0.
+
+* **BACKWARD INCOMPATIBLE** Remove the ``--log-explicit-levels`` which had been
+  deprecated in 6.0.
+
+* **BACKWARD INCOMPATIBLE** Change pip wheel --wheel-dir default path from
+  <cwd>/wheelhouse to <cwd>.
+
+* Deprecate and no-op the ``--allow-external``, ``--allow-all-external``, and
+  ``--allow-unverified`` functionality that was added as part of PEP 438. With
+  changes made to the repository protocol made in PEP 470, these options are no
+  longer functional.
+
+* Allow ``--trusted-host`` within a requirements file. :issue:`2822`.
+
+* Allow ``--process-dependency-links`` within a requirements file. :issue:`1274`.
+
+* Allow ``--pre`` within a requirements file. :issue:`1273`.
+
+* Allow repository URLs with secure transports to count as trusted. (E.g.,
+  "git+ssh" is okay.) :issue:`2811`.
+
+* Implement a top-level ``pip download`` command and deprecate
+  ``pip install --download``.
+
+* Fixed :issue:`3141`, when uninstalling, look for the case of paths containing
+  symlinked directories (:pull:`3154`)
+
+* When installing, if building a wheel fails, clear up the build directory
+  before falling back to a source install. :issue:`3047`.
+
+* Fix user directory expansion when ``HOME=/``. Workaround for Python bug
+  http://bugs.python.org/issue14768, reported in :issue:`2996`.
+
+* Fixed :issue:`3009`, correct reporting of requirements file line numbers
+  (:pull:`3125`)
+
+* Fixed :issue:`1062`, Exception(IOError) for ``pip freeze`` and ``pip list``
+  commands with subversion >= 1.7. (:pull:`3346`)
+
+* Provide a spinner showing that progress is happening when installing or
+  building a package via ``setup.py``. This will alleviate concerns that
+  projects with unusually long build times have with pip appearing to stall.
+
+* Include the functionality of ``peep`` into pip, allowing hashes to be baked
+  into a requirements file and ensuring that the packages being downloaded
+  match one of those hashes. This is an additional, opt-in security measure
+  that, when used, removes the need to trust the repository.
+
+* Fix a bug causing pip to not select a wheel compiled against an OSX SDK later
+  than what Python itself was compiled against when running on a newer version
+  of OSX.
+
+* Add a new ``--prefix`` option for ``pip install`` that supports wheels and
+  sdists. (:pull:`3252`)
+
+* Fixed :issue:`2042` regarding wheel building with setup.py using a different
+  encoding than the system.
+
+* Drop PasteScript specific egg_info hack. (:pull:`3270`)
+
+* Allow combination of pip list options --editable with --outdated/--uptodate.
+  (:issue:`933`)
+
+* Gives VCS implementations control over saying whether a project
+  is under their control (:pull:`3258`)
+
+* Git detection now works when ``setup.py`` is not at the Git repo root
+  and when ``package_dir`` is used, so ``pip freeze`` works in more
+  cases (:pull:`3258`)
+
+* Correctly freeze Git develop packages in presence of the &subdirectory
+  option (:pull:`3258`)
+
+* The detection of editable packages now relies on the presence of ``.egg-link``
+  instead of looking for a VCS, so ``pip list -e`` is more reliable
+  (:pull:`3258`)
+
+* Add the ``--prefix`` flag to ``pip install`` which allows specifying a root
+  prefix to use instead of ``sys.prefix`` (:pull:`3252`).
+
+* Allow duplicate specifications in the case that only the extras differ, and
+  union all specified extras together (:pull:`3198`).
+
+* Fix the detection of the user's current platform on OSX when determining the
+  OSX SDK version (:pull:`3232`).
+
+* Prevent the automatically built wheels from mistakenly being used across
+  multiple versions of Python when they may not be correctly configured for
+  that by making the wheel specific to a specific version of Python and
+  specific interpreter (:pull:`3225`).
+
+* Emulate the SOABI support in wheels from Python 2.x on Python 2.x as closely
+  as we can with the information available within the interpreter
+  (:pull:`3075`).
+
+* Don't roundtrip to the network when git is pinned to a specific commit hash
+  and that hash already exists locally (:pull:`3066`).
+
+* Prefer wheels built against a newer SDK to wheels built against an older SDK
+  on OSX (:pull:`3163`).
+
+* Show entry points for projects installed via wheel (:pull:`3122`).
+
+* Improve message when an unexisting path is passed to --find-links option
+  (:issue:`2968`).
+
+* pip freeze does not add the VCS branch/tag name in the #egg=... fragment anymore
+  (:pull:`3312`).
+
+* Warn on installation of editable if the provided #egg=name part does not
+  match the metadata produced by `setup.py egg_info`. :issue:`3143`.
+
+* Add support for .xz files for python versions supporting them (>= 3.3).
+  :issue:`722`.
+
+
+**7.1.2 (2015-08-22)**
+
+* Don't raise an error if pip is not installed when checking for the latest pip
+  version.
+
+
+**7.1.1 (2015-08-20)**
+
+* Check that the wheel cache directory is writable before we attempt to write
+  cached files to them.
+
+* Move the pip version check until *after* any installs have been performed,
+  thus removing the extraenous warning when upgrading pip.
+
+* Added debug logging when using a cached wheel.
+
+* Respect platlib by default on platforms that have it separated from purlib.
+
+* Upgrade packaging to 15.3.
+
+  * Normalize post-release spellings for rev/r prefixes.
+
+* Upgrade distlib to 0.2.1.
+
+  * Updated launchers to decode shebangs using UTF-8. This allows non-ASCII
+    pathnames to be correctly handled.
+
+  * Ensured that the executable written to shebangs is normcased.
+
+  * Changed ScriptMaker to work better under Jython.
+
+* Upgrade ipaddress to 1.0.13.
+
 
 **7.1.0 (2015-06-30)**
 
@@ -73,6 +333,9 @@
   markers must now be quoted due to parser changes from (:pull:`2697`) and
   (:pull:`2725`).  For example, use ``"SomeProject; python_version < '2.7'"``,
   not simply ``SomeProject; python_version < '2.7'``
+
+* `get-pip.py` now installs the "wheel" package, when it's not already installed
+  (:pull:`2800`).
 
 * Ignores bz2 archives if Python wasn't compiled with bz2 support.
   Fixes :issue:`497`
@@ -308,7 +571,7 @@
   directory lower. (:pull:`1933`)
 
 * **BACKWARD INCOMPATIBLE** The ability to install files over the FTP protocol
-  was accidently lost in pip 1.5 and it has now been decided to not restore
+  was accidentally lost in pip 1.5 and it has now been decided to not restore
   that ability.
 
 * **BACKWARD INCOMPATIBLE** PEP 440 is now fully implemented, this means that

@@ -1,9 +1,13 @@
 from __future__ import absolute_import
 
+from collections import deque
 import contextlib
 import errno
+import io
 import locale
-import logging
+# we have a submodule named 'logging' which would shadow this if we used the
+# regular name:
+import logging as std_logging
 import re
 import os
 import posixpath
@@ -15,7 +19,7 @@ import tarfile
 import zipfile
 
 from pip.exceptions import InstallationError
-from pip.compat import console_to_str, stdlib_pkgs
+from pip.compat import console_to_str, expanduser, stdlib_pkgs
 from pip.locations import (
     site_packages, user_site, running_under_virtualenv, virtualenv_no_global,
     write_delete_marker_file,
@@ -31,11 +35,11 @@ else:
     from io import StringIO
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
-           'ask', 'Inf', 'normalize_name', 'splitext',
+           'ask', 'splitext',
            'format_size', 'is_installable_dir',
            'is_svn_page', 'file_contents',
            'split_leading_dir', 'has_leading_dir',
-           'make_path_relative', 'normalize_path',
+           'normalize_path',
            'renames', 'get_terminal_size', 'get_prog',
            'unzip_file', 'untar_file', 'unpack_file', 'call_subprocess',
            'captured_stdout', 'remove_tracebacks', 'ensure_dir',
@@ -43,19 +47,27 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'get_installed_version']
 
 
-logger = logging.getLogger(__name__)
-
+logger = std_logging.getLogger(__name__)
 
 BZ2_EXTENSIONS = ('.tar.bz2', '.tbz')
+XZ_EXTENSIONS = ('.tar.xz', '.txz', '.tlz', '.tar.lz', '.tar.lzma')
 ZIP_EXTENSIONS = ('.zip', '.whl')
 TAR_EXTENSIONS = ('.tar.gz', '.tgz', '.tar')
-ARCHIVE_EXTENSIONS = ZIP_EXTENSIONS + BZ2_EXTENSIONS + TAR_EXTENSIONS
+ARCHIVE_EXTENSIONS = (
+    ZIP_EXTENSIONS + BZ2_EXTENSIONS + TAR_EXTENSIONS + XZ_EXTENSIONS)
+SUPPORTED_EXTENSIONS = ZIP_EXTENSIONS + TAR_EXTENSIONS
 try:
     import bz2  # noqa
-    SUPPORTED_EXTENSIONS = ZIP_EXTENSIONS + BZ2_EXTENSIONS + TAR_EXTENSIONS
+    SUPPORTED_EXTENSIONS += BZ2_EXTENSIONS
 except ImportError:
     logger.debug('bz2 module is not available')
-    SUPPORTED_EXTENSIONS = ZIP_EXTENSIONS + TAR_EXTENSIONS
+
+try:
+    # Only for Python 3.3+
+    import lzma  # noqa
+    SUPPORTED_EXTENSIONS += XZ_EXTENSIONS
+except ImportError:
+    logger.debug('lzma module is not available')
 
 
 def import_or_raise(pkg_or_module_string, ExceptionType, *args, **kwargs):
@@ -154,45 +166,6 @@ def ask(message, options):
             return response
 
 
-class _Inf(object):
-    """I am bigger than everything!"""
-
-    def __eq__(self, other):
-        if self is other:
-            return True
-        else:
-            return False
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    def __lt__(self, other):
-        return False
-
-    def __le__(self, other):
-        return False
-
-    def __gt__(self, other):
-        return True
-
-    def __ge__(self, other):
-        return True
-
-    def __repr__(self):
-        return 'Inf'
-
-
-Inf = _Inf()  # this object is not currently used as a sortable in our code
-del _Inf
-
-
-_normalize_re = re.compile(r'[^a-z]', re.I)
-
-
-def normalize_name(name):
-    return _normalize_re.sub('-', name.lower())
-
-
 def format_size(bytes):
     if bytes > 1000 * 1000:
         return '%.1fMB' % (bytes / 1000.0 / 1000)
@@ -227,8 +200,16 @@ def file_contents(filename):
         return fp.read().decode('utf-8')
 
 
+def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):
+    """Yield pieces of data from a file-like object until EOF."""
+    while True:
+        chunk = file.read(size)
+        if not chunk:
+            break
+        yield chunk
+
+
 def split_leading_dir(path):
-    path = str(path)
     path = path.lstrip('/').lstrip('\\')
     if '/' in path and (('\\' in path and path.find('/') < path.find('\\')) or
                         '\\' not in path):
@@ -254,41 +235,12 @@ def has_leading_dir(paths):
     return True
 
 
-def make_path_relative(path, rel_to):
-    """
-    Make a filename relative, where the filename path, and it is
-    relative to rel_to
-
-        >>> make_path_relative('/usr/share/something/a-file.pth',
-        ...                    '/usr/share/another-place/src/Directory')
-        '../../../something/a-file.pth'
-        >>> make_path_relative('/usr/share/something/a-file.pth',
-        ...                    '/home/user/src/Directory')
-        '../../../usr/share/something/a-file.pth'
-        >>> make_path_relative('/usr/share/a-file.pth', '/usr/share/')
-        'a-file.pth'
-    """
-    path_filename = os.path.basename(path)
-    path = os.path.dirname(path)
-    path = os.path.normpath(os.path.abspath(path))
-    rel_to = os.path.normpath(os.path.abspath(rel_to))
-    path_parts = path.strip(os.path.sep).split(os.path.sep)
-    rel_to_parts = rel_to.strip(os.path.sep).split(os.path.sep)
-    while path_parts and rel_to_parts and path_parts[0] == rel_to_parts[0]:
-        path_parts.pop(0)
-        rel_to_parts.pop(0)
-    full_parts = ['..'] * len(rel_to_parts) + path_parts + [path_filename]
-    if full_parts == ['']:
-        return '.' + os.path.sep
-    return os.path.sep.join(full_parts)
-
-
 def normalize_path(path, resolve_symlinks=True):
     """
     Convert a path to its canonical, case-normalized, absolute version.
 
     """
-    path = os.path.expanduser(path)
+    path = expanduser(path)
     if resolve_symlinks:
         path = os.path.realpath(path)
     else:
@@ -365,10 +317,11 @@ def dist_in_site_packages(dist):
 
 def dist_is_editable(dist):
     """Is distribution an editable install?"""
-    # TODO: factor out determining editableness out of FrozenRequirement
-    from pip import FrozenRequirement
-    req = FrozenRequirement.from_dist(dist, [])
-    return req.editable
+    for path_item in sys.path:
+        egg_link = os.path.join(path_item, dist.project_name + '.egg-link')
+        if os.path.isfile(egg_link):
+            return True
+    return False
 
 
 def get_installed_distributions(local_only=True,
@@ -573,6 +526,8 @@ def untar_file(filename, location):
         mode = 'r:gz'
     elif filename.lower().endswith(BZ2_EXTENSIONS):
         mode = 'r:bz2'
+    elif filename.lower().endswith(XZ_EXTENSIONS):
+        mode = 'r:xz'
     elif filename.lower().endswith('.tar'):
         mode = 'r'
     else:
@@ -619,12 +574,11 @@ def untar_file(filename, location):
                     )
                     continue
                 ensure_dir(os.path.dirname(path))
-                destfp = open(path, 'wb')
-                try:
+                with open(path, 'wb') as destfp:
                     shutil.copyfileobj(fp, destfp)
-                finally:
-                    destfp.close()
                 fp.close()
+                # Update the timestamp (useful for cython compiled files)
+                tar.utime(member, path)
                 # member have any execute permissions for user/group/world?
                 if member.mode & 0o111:
                     # make dest file have execute for user/group/world
@@ -646,7 +600,8 @@ def unpack_file(filename, location, content_type, link):
         )
     elif (content_type == 'application/x-gzip' or
             tarfile.is_tarfile(filename) or
-            filename.lower().endswith(TAR_EXTENSIONS + BZ2_EXTENSIONS)):
+            filename.lower().endswith(
+                TAR_EXTENSIONS + BZ2_EXTENSIONS + XZ_EXTENSIONS)):
         untar_file(filename, location)
     elif (content_type and content_type.startswith('text/html') and
             is_svn_page(file_contents(filename))):
@@ -678,9 +633,34 @@ def remove_tracebacks(output):
 
 
 def call_subprocess(cmd, show_stdout=True, cwd=None,
-                    raise_on_returncode=True,
-                    command_level=logging.DEBUG, command_desc=None,
-                    extra_environ=None):
+                    on_returncode='raise',
+                    command_level=std_logging.DEBUG, command_desc=None,
+                    extra_environ=None, spinner=None):
+    # This function's handling of subprocess output is confusing and I
+    # previously broke it terribly, so as penance I will write a long comment
+    # explaining things.
+    #
+    # The obvious thing that affects output is the show_stdout=
+    # kwarg. show_stdout=True means, let the subprocess write directly to our
+    # stdout. Even though it is nominally the default, it is almost never used
+    # inside pip (and should not be used in new code without a very good
+    # reason); as of 2016-02-22 it is only used in a few places inside the VCS
+    # wrapper code. Ideally we should get rid of it entirely, because it
+    # creates a lot of complexity here for a rarely used feature.
+    #
+    # Most places in pip set show_stdout=False. What this means is:
+    # - We connect the child stdout to a pipe, which we read.
+    # - By default, we hide the output but show a spinner -- unless the
+    #   subprocess exits with an error, in which case we show the output.
+    # - If the --verbose option was passed (= loglevel is DEBUG), then we show
+    #   the output unconditionally. (But in this case we don't want to show
+    #   the output a second time if it turns out that there was an error.)
+    #
+    # stderr is always merged with stdout (even if show_stdout=True).
+    if show_stdout:
+        stdout = None
+    else:
+        stdout = subprocess.PIPE
     if command_desc is None:
         cmd_parts = []
         for part in cmd:
@@ -688,10 +668,6 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
                 part = '"%s"' % part.replace('"', '\\"')
             cmd_parts.append(part)
         command_desc = ' '.join(cmd_parts)
-    if show_stdout:
-        stdout = None
-    else:
-        stdout = subprocess.PIPE
     logger.log(command_level, "Running command %s", command_desc)
     env = os.environ.copy()
     if extra_environ:
@@ -705,22 +681,31 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
             "Error %s while executing command %s", exc, command_desc,
         )
         raise
-    all_output = []
     if stdout is not None:
+        all_output = []
         while True:
             line = console_to_str(proc.stdout.readline())
             if not line:
                 break
             line = line.rstrip()
             all_output.append(line + '\n')
-            logger.debug(line)
-    if not all_output:
-        returned_stdout, returned_stderr = proc.communicate()
-        all_output = [returned_stdout or '']
+            if logger.getEffectiveLevel() <= std_logging.DEBUG:
+                # Show the line immediately
+                logger.debug(line)
+            else:
+                # Update the spinner
+                if spinner is not None:
+                    spinner.spin()
     proc.wait()
+    if spinner is not None:
+        if proc.returncode:
+            spinner.finish("error")
+        else:
+            spinner.finish("done")
     if proc.returncode:
-        if raise_on_returncode:
-            if all_output:
+        if on_returncode == 'raise':
+            if (logger.getEffectiveLevel() > std_logging.DEBUG and
+                    not show_stdout):
                 logger.info(
                     'Complete output from command %s:', command_desc,
                 )
@@ -731,12 +716,17 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
             raise InstallationError(
                 'Command "%s" failed with error code %s in %s'
                 % (command_desc, proc.returncode, cwd))
-        else:
+        elif on_returncode == 'warn':
             logger.warning(
                 'Command "%s" had error code %s in %s',
                 command_desc, proc.returncode, cwd,
             )
-    if stdout is not None:
+        elif on_returncode == 'ignore':
+            pass
+        else:
+            raise ValueError('Invalid value: on_returncode=%s' %
+                             repr(on_returncode))
+    if not show_stdout:
         return remove_tracebacks(''.join(all_output))
 
 
@@ -863,3 +853,8 @@ def get_installed_version(dist_name):
     # Check to see if we got an installed distribution or not, if we did
     # we want to return it's version.
     return dist.version if dist else None
+
+
+def consume(iterator):
+    """Consume an iterable at C speed."""
+    deque(iterator, maxlen=0)

@@ -12,7 +12,7 @@ from tests.lib.git_submodule_helpers import (
 
 
 @pytest.mark.network
-def test_get_refs_should_return_tag_name_and_commit_pair(script):
+def test_get_short_refs_should_return_tag_name_and_commit_pair(script):
     version_pkg_path = _create_test_package(script)
     script.run('git', 'tag', '0.1', cwd=version_pkg_path)
     script.run('git', 'tag', '0.2', cwd=version_pkg_path)
@@ -21,13 +21,13 @@ def test_get_refs_should_return_tag_name_and_commit_pair(script):
         cwd=version_pkg_path
     ).stdout.strip()
     git = Git()
-    result = git.get_refs(version_pkg_path)
+    result = git.get_short_refs(version_pkg_path)
     assert result['0.1'] == commit, result
     assert result['0.2'] == commit, result
 
 
 @pytest.mark.network
-def test_get_refs_should_return_branch_name_and_commit_pair(script):
+def test_get_short_refs_should_return_branch_name_and_commit_pair(script):
     version_pkg_path = _create_test_package(script)
     script.run('git', 'branch', 'branch0.1', cwd=version_pkg_path)
     commit = script.run(
@@ -35,13 +35,13 @@ def test_get_refs_should_return_branch_name_and_commit_pair(script):
         cwd=version_pkg_path
     ).stdout.strip()
     git = Git()
-    result = git.get_refs(version_pkg_path)
+    result = git.get_short_refs(version_pkg_path)
     assert result['master'] == commit, result
     assert result['branch0.1'] == commit, result
 
 
 @pytest.mark.network
-def test_get_refs_should_ignore_no_branch(script):
+def test_get_short_refs_should_ignore_no_branch(script):
     version_pkg_path = _create_test_package(script)
     script.run('git', 'branch', 'branch0.1', cwd=version_pkg_path)
     commit = script.run(
@@ -55,12 +55,27 @@ def test_get_refs_should_ignore_no_branch(script):
         expect_stderr=True,
     )
     git = Git()
-    result = git.get_refs(version_pkg_path)
+    result = git.get_short_refs(version_pkg_path)
     assert result['master'] == commit, result
     assert result['branch0.1'] == commit, result
 
 
-@patch('pip.vcs.git.Git.get_refs')
+@pytest.mark.network
+def test_check_version(script):
+    version_pkg_path = _create_test_package(script)
+    script.run('git', 'branch', 'branch0.1', cwd=version_pkg_path)
+    commit = script.run(
+        'git', 'rev-parse', 'HEAD',
+        cwd=version_pkg_path
+    ).stdout.strip()
+    git = Git()
+    assert git.check_version(version_pkg_path, [commit])
+    assert git.check_version(version_pkg_path, [commit[:7]])
+    assert not git.check_version(version_pkg_path, ['branch0.1'])
+    assert not git.check_version(version_pkg_path, ['abc123'])
+
+
+@patch('pip.vcs.git.Git.get_short_refs')
 def test_check_rev_options_should_handle_branch_name(get_refs_mock):
     get_refs_mock.return_value = {'master': '123456', '0.1': '123456'}
     git = Git()
@@ -69,7 +84,7 @@ def test_check_rev_options_should_handle_branch_name(get_refs_mock):
     assert result == ['123456']
 
 
-@patch('pip.vcs.git.Git.get_refs')
+@patch('pip.vcs.git.Git.get_short_refs')
 def test_check_rev_options_should_handle_tag_name(get_refs_mock):
     get_refs_mock.return_value = {'master': '123456', '0.1': '123456'}
     git = Git()
@@ -78,7 +93,7 @@ def test_check_rev_options_should_handle_tag_name(get_refs_mock):
     assert result == ['123456']
 
 
-@patch('pip.vcs.git.Git.get_refs')
+@patch('pip.vcs.git.Git.get_short_refs')
 def test_check_rev_options_should_handle_ambiguous_commit(get_refs_mock):
     get_refs_mock.return_value = {'master': '123456', '0.1': '123456'}
     git = Git()

@@ -49,10 +49,7 @@ class Tests_UserSite:
             "('initools').project_name)",
         )
         project_name = result.stdout.strip()
-        assert (
-            'INITools' == project_name, "'%s' should be 'INITools'" %
-            project_name
-        )
+        assert 'INITools' == project_name, project_name
 
     @pytest.mark.network
     def test_install_subversion_usersite_editable_with_distribute(
@@ -113,9 +110,10 @@ class Tests_UserSite:
         """
         virtualenv.system_site_packages = True
 
-        script.pip('install', '--user', 'INITools==0.3')
+        script.pip('install', '--user', 'INITools==0.3', '--no-binary=:all:')
 
-        result2 = script.pip('install', '--user', 'INITools==0.1')
+        result2 = script.pip(
+            'install', '--user', 'INITools==0.1', '--no-binary=:all:')
 
         # usersite has 0.1
         egg_info_folder = (
@@ -151,9 +149,10 @@ class Tests_UserSite:
         script.environ["PYTHONPATH"] = script.base_path / script.user_site
         _patch_dist_in_site_packages(script)
 
-        script.pip('install', 'INITools==0.2')
+        script.pip('install', 'INITools==0.2', '--no-binary=:all:')
 
-        result2 = script.pip('install', '--user', 'INITools==0.1')
+        result2 = script.pip(
+            'install', '--user', 'INITools==0.1', '--no-binary=:all:')
 
         # usersite has 0.1
         egg_info_folder = (
@@ -194,8 +193,9 @@ class Tests_UserSite:
         script.environ["PYTHONPATH"] = script.base_path / script.user_site
         _patch_dist_in_site_packages(script)
 
-        script.pip('install', 'INITools==0.2')
-        result2 = script.pip('install', '--user', '--upgrade', 'INITools')
+        script.pip('install', 'INITools==0.2', '--no-binary=:all:')
+        result2 = script.pip(
+            'install', '--user', '--upgrade', 'INITools', '--no-binary=:all:')
 
         # usersite has 0.3.1
         egg_info_folder = (
@@ -237,10 +237,11 @@ class Tests_UserSite:
         script.environ["PYTHONPATH"] = script.base_path / script.user_site
         _patch_dist_in_site_packages(script)
 
-        script.pip('install', 'INITools==0.2')
-        script.pip('install', '--user', 'INITools==0.3')
+        script.pip('install', 'INITools==0.2', '--no-binary=:all:')
+        script.pip('install', '--user', 'INITools==0.3', '--no-binary=:all:')
 
-        result3 = script.pip('install', '--user', 'INITools==0.1')
+        result3 = script.pip(
+            'install', '--user', 'INITools==0.1', '--no-binary=:all:')
 
         # usersite has 0.1
         egg_info_folder = (
