@@ -1,3 +1,13 @@
+"""
+Install package as cloned repo from guessed vcs (from pypi data) or fallback to
+regular pip installation
+
+    $ pip install --clone requests
+
+produces dir with cloned request package and its requirements.
+"""
+
+
 from __future__ import absolute_import
 
 import logging
@@ -26,6 +36,174 @@ from pip.wheel import WheelCache, WheelBuilder
 
 
 logger = logging.getLogger(__name__)
+
+
+
+
+from pip.req.req_install import get_setup_py
+from pip.utils import call_subprocess
+from pip.utils.setuptools_build import SETUPTOOLS_SHIM
+import sys
+import glob
+import ast
+import contextlib
+import os
+@contextlib.contextmanager
+def working_directory(path):
+    prev_cwd = os.getcwd()
+    os.chdir(path)
+    try:
+        yield
+    finally:
+        os.chdir(prev_cwd)
+
+
+#TODO:: write tests
+#TODO:: mergable code quality
+#TODO:: respect versions by tags or branches
+#TODO:: py2 py3
+import shutil
+from pip._vendor import requests
+from html.parser import HTMLParser
+import re
+def is_vcs_link(url):
+    return re.findall(r'(github.com|bitbucket.org)', url)
+
+class MyHTMLParser(HTMLParser):
+    def feed(self, data):
+        self.anchor_list = []
+        return super().feed(data)
+    def handle_starttag(self, tag, attrs):
+        if tag == 'a':
+            for attr, value in attrs:
+                if attr == 'href':
+                    if is_vcs_link(value):
+                        #TODO:: good vcs matcher
+                        self.anchor_list.append(value)
+
+parser = MyHTMLParser()
+
+def url2vcses(url):
+    from urllib.parse import urlparse
+    vcses = []
+    parsed = urlparse(url)
+    config = {
+        #TODO:: comes from config?
+        'github.com': ['git'],
+        'bitbucket.org': ['git', 'hg'],
+    }
+    from pip.vcs import vcs
+    vcs_names = config.get(parsed.netloc, [])
+    for name in vcs_names:
+        for registered_vcs in vcs.backends:
+            if registered_vcs.name == name:
+                vcses.append(registered_vcs)
+    return vcses
+
+import ast
+class FuncLister(ast.NodeVisitor):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.pkg_name = None
+    def visit_Call(self, node):
+        if getattr(node.func, 'id', '') == 'setup':
+            for keyword in node.keywords:
+                if keyword.arg == 'name':
+                    if isinstance(keyword.value, ast.Str):
+                        # handle case: name='pkg_name'
+                        self.pkg_name = keyword.value.s
+                    elif (
+                        # handle case: name=__name__
+                        isinstance(keyword.value, ast.Attribute) and
+                        keyword.value.attr == '__name__'
+                    ):
+                        self.pkg_name = keyword.value.value.id
+                    else:
+                        self.pkg_name = None
+        self.generic_visit(node)
+
+
+def clone_repo(url):
+    vcses = url2vcses(url)
+    import pip
+    for vcs_class in vcses:
+        vcs = vcs_class(url)
+        try:
+            #TODO:: this should handle cloning instead of 'clone' command
+            # vcses can have different commands
+            vcs.run_command(['clone', url])
+        except pip.exceptions.InstallationError as e:
+            logger.info('failed cloning: {}'.format(url))
+            continue
+        else:
+            return vcs
+    return False
+
+
+def source2pkg_name(setuppy_source):
+    tree = ast.parse(setuppy_source)
+    fl = FuncLister()
+    fl.visit(tree)
+    return fl.pkg_name
+
+def is_matching(pkg_name, pkg_dir):
+    from pip.req.req_install import get_setup_py
+    setup_py_path = get_setup_py(pkg_dir, pkg_dir, pkg_dir)
+    try:
+        with open(setup_py_path) as f:
+            setuppy_source = f.read()
+    except FileNotFoundError as e:
+        logger.info("setup.py not found: {}".format(e))
+        shutil.rmtree(pkg_dir)
+        return False
+
+    cloned_pkg_name = source2pkg_name(setuppy_source)
+    if not cloned_pkg_name or cloned_pkg_name.lower() != pkg_name.lower():
+        return False
+    return True
+
+
+#TODO:: get links from indexes :P
+def get_links_from_pypi(package_name):
+    """
+    Get all links from `package_name` setup.py.
+    """
+    links = []
+    pypi_url = 'https://pypi.python.org/pypi/{}'.format(package_name)
+    response = requests.get(pypi_url)
+    parser.feed(response.content.decode('utf8'))
+    return parser.anchor_list
+
+def source_install(requirement_set):
+    for pkg_name in requirement_set.requirements.keys()[:]:
+        logger.info("processing: {}".format(pkg_name))
+        urls = get_links_from_pypi(package_name=pkg_name)
+        if not urls:
+            continue
+        for url in urls:
+            vcs = clone_repo(url)
+            if not vcs:
+                continue
+            pkg_dir = max(glob.iglob('*'), key=os.path.getctime)
+            matched = is_matching(pkg_name, pkg_dir)
+            if matched:
+                logger.info("found source: {}".format(url))
+                setup_py = get_setup_py(pkg_name, os.getcwd(), '')
+                call_subprocess(
+                    [sys.executable, '-c', SETUPTOOLS_SHIM % setup_py] +
+                    ['develop', '--no-deps'], cwd=pkg_dir,
+                    show_stdout=False,)
+                del requirement_set.requirements[pkg_name]
+                break
+            else:
+                shutil.rmtree(pkg_dir)
+        else:
+            logger.info("FAILED source clone for: {} urls: {}".format(pkg_name, urls))
+    return requirement_set
+
+
+
+
 
 
 class InstallCommand(RequirementCommand):
@@ -172,6 +350,19 @@ class InstallCommand(RequirementCommand):
             self.parser,
         )
 
+
+
+
+        cmd_opts.add_option(
+            '--clone',
+            action='store_true',
+            default=False,
+            help=('install from guessed vcs from (pypi page) or fallback to regular instllation'),
+        )
+
+
+
+
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, cmd_opts)
 
@@ -308,6 +499,19 @@ class InstallCommand(RequirementCommand):
                         # Ignore the result: a failed wheel will be
                         # installed from the sdist/vcs whatever.
                         wb.build(autobuilding=True)
+
+
+
+
+                    if options.clone:
+                        dirname = requirement_set.requirements.keys()[0]
+                        os.mkdir(dirname)
+                        with working_directory(dirname) as cd:
+                            requirement_set = source_install(requirement_set)
+
+
+
+
 
                     if not options.download_dir:
                         requirement_set.install(
