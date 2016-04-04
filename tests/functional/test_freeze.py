@@ -360,27 +360,27 @@ def test_freeze_with_requirement_option_multiple(script):
     """) + _freeze_req_opts)
     script.scratch_path.join('hint2.txt').write(textwrap.dedent("""\
         NoExist2==2.0
-        simple2==3.0
+        simple2==1.0
     """) + _freeze_req_opts)
     result = script.pip_install_local('initools==0.2')
     result = script.pip_install_local('simple')
-    result = script.pip_install_local('simple2')
-    result = script.pip_install_local('Upper')
+    result = script.pip_install_local('simple2==1.0')
+    result = script.pip_install_local('meta')
     result = script.pip(
         'freeze', '--requirement', 'hint1.txt', '--requirement', 'hint2.txt',
         expect_stderr=True,
     )
     expected = textwrap.dedent("""\
         INITools==0.2
-        simple==3.0
+        simple==1.0
     """)
     expected += _freeze_req_opts
     expected += textwrap.dedent("""\
-        simple2==3.0
+        simple2==1.0
     """)
     expected += "## The following requirements were added by pip freeze:"
     expected += os.linesep + textwrap.dedent("""\
-        Upper==2.0
+        ...meta==1.0...
     """)
     _check_output(result.stdout, expected)
     assert (
