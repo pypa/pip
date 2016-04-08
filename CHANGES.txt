@@ -2,6 +2,9 @@
 
 * Fix a regression on systems with uninitialized locale (:issue:`3575`).
 
+* Use environment markers to filter packages before determining if a
+  required wheel is supported. Solves (:issue:`3254`).
+
 
 **8.1.1 (2016-03-17)**
 
