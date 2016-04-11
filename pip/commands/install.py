@@ -18,7 +18,7 @@ from pip.exceptions import (
     InstallationError, CommandError, PreviousBuildDirError,
 )
 from pip import cmdoptions
-from pip.utils import ensure_dir
+from pip.utils import ensure_dir, get_installed_version
 from pip.utils.build import BuildDirectory
 from pip.utils.deprecation import RemovedInPip10Warning
 from pip.utils.filesystem import check_path_owner
@@ -316,6 +316,12 @@ class InstallCommand(RequirementCommand):
                             root=options.root_path,
                             prefix=options.prefix_path,
                         )
+
+                        possible_lib_locations = get_lib_location_guesses(
+                            user=options.use_user_site,
+                            home=temp_target_dir,
+                            prefix=options.prefix_path
+                        )
                         reqs = sorted(
                             requirement_set.successfully_installed,
                             key=operator.attrgetter('name'))
@@ -323,9 +329,11 @@ class InstallCommand(RequirementCommand):
                         for req in reqs:
                             item = req.name
                             try:
-                                if hasattr(req, 'installed_version'):
-                                    if req.installed_version:
-                                        item += '-' + req.installed_version
+                                installed_version = get_installed_version(
+                                    req.name, possible_lib_locations
+                                )
+                                if installed_version:
+                                    item += '-' + installed_version
                             except Exception:
                                 pass
                             items.append(item)
@@ -384,3 +392,10 @@ class InstallCommand(RequirementCommand):
                 )
             shutil.rmtree(temp_target_dir)
         return requirement_set
+
+
+def get_lib_location_guesses(user=False, home=None, root=None, prefix=None):
+    scheme = distutils_scheme(
+        '', user=user, home=home, root=root, prefix=prefix
+    )
+    return [scheme['purelib'], scheme['platlib']]

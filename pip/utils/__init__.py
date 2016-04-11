@@ -838,14 +838,17 @@ class cached_property(object):
         return value
 
 
-def get_installed_version(dist_name):
+def get_installed_version(dist_name, lookup_dirs=None):
     """Get the installed version of dist_name avoiding pkg_resources cache"""
     # Create a requirement that we'll look for inside of setuptools.
     req = pkg_resources.Requirement.parse(dist_name)
 
     # We want to avoid having this cached, so we need to construct a new
     # working set each time.
-    working_set = pkg_resources.WorkingSet()
+    if lookup_dirs is None:
+        working_set = pkg_resources.WorkingSet()
+    else:
+        working_set = pkg_resources.WorkingSet(lookup_dirs)
 
     # Get the installed distribution from our working set
     dist = working_set.find(req)
