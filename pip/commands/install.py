@@ -320,7 +320,8 @@ class InstallCommand(RequirementCommand):
                         possible_lib_locations = get_lib_location_guesses(
                             user=options.use_user_site,
                             home=temp_target_dir,
-                            prefix=options.prefix_path
+                            prefix=options.prefix_path,
+                            isolated=options.isolated_mode,
                         )
                         reqs = sorted(
                             requirement_set.successfully_installed,
@@ -394,8 +395,6 @@ class InstallCommand(RequirementCommand):
         return requirement_set
 
 
-def get_lib_location_guesses(user=False, home=None, root=None, prefix=None):
-    scheme = distutils_scheme(
-        '', user=user, home=home, root=root, prefix=prefix
-    )
+def get_lib_location_guesses(*args, **kwargs):
+    scheme = distutils_scheme('', *args, **kwargs)
     return [scheme['purelib'], scheme['platlib']]
