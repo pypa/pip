@@ -717,11 +717,6 @@ def _copy_dist_from_dir(link_path, location):
 
     """
 
-    # Note: This is currently VERY SLOW if you have a lot of data in the
-    # directory, because it copies everything with `shutil.copytree`.
-    # What it should really do is build an sdist and install that.
-    # See https://github.com/pypa/pip/issues/2195
-
     if os.path.isdir(location):
         rmtree(location)
 
@@ -741,6 +736,13 @@ def _copy_dist_from_dir(link_path, location):
     sdist = os.path.join(location, os.listdir(location)[0])
     logger.info('Unpacking sdist %s into %s', sdist, location)
     unpack_file(sdist, location, content_type=None, link=None)
+
+    # copy the original setup.py into `location`, since the shim's
+    # sys.argv[0] confuses distutils.command.sdist.add_defaults() into not
+    # automatically adding setup.py to the tarball
+    logger.info('Copying setup.py from original into %s', location)
+    shutil.copy(os.path.join(link_path, setup_py),
+                os.path.join(location, "setup.py"))
 
 
 class PipXmlrpcTransport(xmlrpc_client.Transport):
