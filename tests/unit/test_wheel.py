@@ -77,7 +77,7 @@ def test_check_compatibility():
         wheel.check_compatibility(higher_v, name)
     assert 'is not compatible' in str(e)
 
-    # Should only log.warn - minor version is greator
+    # Should only log.warning - minor version is greater
     higher_v = (vc[0], vc[1] + 1)
     wheel.check_compatibility(higher_v, name)
 

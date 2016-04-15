@@ -803,8 +803,8 @@ class WheelBuilder(object):
                     try:
                         ensure_dir(output_dir)
                     except OSError as e:
-                        logger.warn("Building wheel for %s failed: %s",
-                                    req.name, e)
+                        logger.warning("Building wheel for %s failed: %s",
+                                       req.name, e)
                         build_failure.append(req)
                         continue
                 else:
