@@ -92,20 +92,19 @@ situation that we expect pip to be used and not mandate some external mechanism
 such as OS packages.
 
 
-_markerlib and pkg_resources
-----------------------------
+pkg_resources
+-------------
 
-_markerlib and pkg_resources has been pulled in from setuptools 19.4
+pkg_resources has been pulled in from setuptools 20.3.1
 
 
 Modifications
 -------------
 
 * html5lib has been modified to import six from pip._vendor
-* pkg_resources has been modified to import _markerlib from pip._vendor
-* markerlib has been modified to import its API from pip._vendor
+* pkg_resources has been modified to import its dependencies from pip._vendor
 * CacheControl has been modified to import its dependencies from pip._vendor
-* packaging has been modified to import its dependencies from pip._vendor.
+* packaging has been modified to import its dependencies from pip._vendor
 
 
 Debundling
