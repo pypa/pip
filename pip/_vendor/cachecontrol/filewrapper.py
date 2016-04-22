@@ -45,19 +45,34 @@ class CallbackFileWrapper(object):
         # TODO: Add some logging here...
         return False
 
+    def _close(self):
+        if self.__callback:
+            self.__callback(self.__buf.getvalue())
+
+        # We assign this to None here, because otherwise we can get into
+        # really tricky problems where the CPython interpreter dead locks
+        # because the callback is holding a reference to something which
+        # has a __del__ method. Setting this to None breaks the cycle
+        # and allows the garbage collector to do it's thing normally.
+        self.__callback = None
+
     def read(self, amt=None):
         data = self.__fp.read(amt)
         self.__buf.write(data)
-
         if self.__is_fp_closed():
-            if self.__callback:
-                self.__callback(self.__buf.getvalue())
+            self._close()
 
-            # We assign this to None here, because otherwise we can get into
-            # really tricky problems where the CPython interpreter dead locks
-            # because the callback is holding a reference to something which
-            # has a __del__ method. Setting this to None breaks the cycle
-            # and allows the garbage collector to do it's thing normally.
-            self.__callback = None
+        return data
+
+    def _safe_read(self, amt):
+        data = self.__fp._safe_read(amt)
+        if amt == 2 and data == b'\r\n':
+            # urllib executes this read to toss the CRLF at the end
+            # of the chunk.
+            return data
+
+        self.__buf.write(data)
+        if self.__is_fp_closed():
+            self._close()
 
         return data

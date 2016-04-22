@@ -1,3 +1,4 @@
+import types
 import functools
 
 from pip._vendor.requests.adapters import HTTPAdapter
@@ -97,6 +98,14 @@ class CacheControlAdapter(HTTPAdapter):
                         response,
                     )
                 )
+                if response.chunked:
+                    super_update_chunk_length = response._update_chunk_length
+
+                    def _update_chunk_length(self):
+                        super_update_chunk_length()
+                        if self.chunk_left == 0:
+                            self._fp._close()
+                    response._update_chunk_length = types.MethodType(_update_chunk_length, response)
 
         resp = super(CacheControlAdapter, self).build_response(
             request, response
