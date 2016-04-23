@@ -16,6 +16,7 @@ exclude appveyor.yml
 
 recursive-include pip/_vendor *.pem
 recursive-include docs Makefile *.rst *.py *.bat
+recursive-include tests *.py
 
 prune .github
 prune .travis
