@@ -146,9 +146,10 @@ def get_platform():
     return result
 
 
-def is_manylinux1_compatible():
+def is_manylinux1_compatible(platform=None):
+    platform = platform or get_platform()
     # Only Linux, and only x86-64 / i686
-    if get_platform() not in ("linux_x86_64", "linux_i686"):
+    if platform not in ("linux_x86_64", "linux_i686"):
         return False
 
     # Check for presence of _manylinux module
@@ -304,7 +305,7 @@ def get_supported(versions=None, noarch=False, specificplatform=None):
 
     if not noarch:
         arch = specificplatform or get_platform()
-        if sys.platform == 'darwin':
+        if arch.startswith('macosx'):
             # support macosx-10.6-intel on macosx-10.9-x86_64
             match = _osx_arch_pat.match(arch)
             if match:
@@ -317,7 +318,7 @@ def get_supported(versions=None, noarch=False, specificplatform=None):
             else:
                 # arch pattern didn't match (?!)
                 arches = [arch]
-        elif is_manylinux1_compatible():
+        elif is_manylinux1_compatible(arch):
             arches = [arch.replace('linux', 'manylinux1'), arch]
         else:
             arches = [arch]
