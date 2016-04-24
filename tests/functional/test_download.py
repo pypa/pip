@@ -200,7 +200,7 @@ def test_download_specify_platform(script, data):
     )
     assert (
         Path('scratch') /
-        'simpleplatdist-1.0-cp27-none-macosx_10_9_x86_64.whl'
+        'simpleplatdist-1.0-py2.py3-none-macosx_10_9_x86_64.whl'
         in result.files_created
     )
 
@@ -229,7 +229,7 @@ def test_download_specify_platform(script, data):
         'simpleplatdist==2.0'
     )
     assert (
-        Path('scratch') / 'simpleplatdist-2.0-py2.py3-none-any.whl'
+        Path('scratch') / 'simpleplatdist-2.0-py2.py3-none-linux_x86_64.whl'
         in result.files_created
     )
 
