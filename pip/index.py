@@ -602,8 +602,6 @@ class PackageFinder(object):
 
     def _link_package_versions(self, link, search):
         """Return an InstallationCandidate or None"""
-        platform = self.platform
-
         version = None
         if link.egg_fragment:
             egg_info = link.egg_fragment
