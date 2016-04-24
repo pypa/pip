@@ -54,6 +54,6 @@ Examples
 
   ::
 
-  	$ pip download --platform macosx-10.10-x86_64 --interpreter-version py27 SomePackage
+	$ pip download --platform macosx-10.10-x86_64 --interpreter-version 27 SomePackage
 
 

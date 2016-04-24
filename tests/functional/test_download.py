@@ -167,6 +167,8 @@ def test_download_specify_platform(script, data):
     Test using "pip download --platform" to download a .whl archive
     supported for a specific platform
     """
+    # Confirm that universal wheels are returned even for specific
+    # platforms.
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
         '--dest', '.', '--platform', 'linux_x86_64', 'simplewheel'
@@ -186,15 +188,49 @@ def test_download_specify_platform(script, data):
         in result.files_created
     )
 
+    # Now confirm that platform specific wheels will also be fetched.
+    result = script.pip(
+        'download', '--no-index', '--find-links', data.find_links,
+        '--dest', '.', '--platform', 'macosx_10_10_x86_64', 'simpleplatdist==1.0'
+    )
+    assert (
+        Path('scratch') / 'simpleplatdist-1.0-cp27-none-macosx_10_9_x86_64.whl'
+        in result.files_created
+    )
+
+    # OSX platform wheels are not forward-compatible.
+    result = script.pip(
+        'download', '--no-index', '--find-links', data.find_links,
+        '--dest', '.', '--platform', 'macosx_10_8_x86_64', 'simpleplatdist==1.0',
+        expect_error=True,
+    )
+
+    # No linux wheel provided for this version.
+    result = script.pip(
+        'download', '--no-index', '--find-links', data.find_links,
+        '--dest', '.', '--platform', 'linux_x86_64', 'simpleplatdist==1.0',
+        expect_error=True,
+    )
+
+    result = script.pip(
+        'download', '--no-index', '--find-links', data.find_links,
+        '--dest', '.', '--platform', 'linux_x86_64', 'simpleplatdist==2.0'
+    )
+    assert (
+        Path('scratch') / 'simpleplatdist-2.0-py2.py3-none-any.whl'
+        in result.files_created
+    )
+
+
 @pytest.mark.network
 def test_download_specify_interpreter_version(script, data):
     """
     Test using "pip download --interpreter-version" to download a .whl archive
-    supported for a specific platform
+    supported for a specific interpreter
     """
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
-        '--dest', '.', '--interpreter-version', 'py2', 'simplewheel'
+        '--dest', '.', '--interpreter-version', '2', 'simplewheel'
     )
     assert (
         Path('scratch') / 'simplewheel-2.0-py2.py3-none-any.whl'
@@ -203,10 +239,160 @@ def test_download_specify_interpreter_version(script, data):
 
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
-        '--dest', '.', '--interpreter-version', 'py3',
+        '--dest', '.', '--interpreter-version', '3',
         'requires_source'
     )
     assert (
         Path('scratch') / 'requires_source-1.0-py2.py3-none-any.whl'
+        in result.files_created
+    )
+
+    # No py3 provided for version 1.
+    result = script.pip(
+        'download', '--no-index', '--find-links', data.find_links,
+        '--dest', '.', '--interpreter-version', '3', 'simpleinterpdist==1.0',
+        expect_error=True,
+    )
+
+
+    # Because of the existing compatibility semantics, a "cp27" wheel IS considered
+    # compatible with the pep425 tags for a plain interpreter version of "27".
+    # (Is this correct?  cp27 seems more specific than "27", i.e. "py27")
+    result = script.pip(
+        'download', '--no-index', '--find-links', data.find_links,
+        '--dest', '.', '--interpreter-version', '27', 'simpleinterpdist==1.0'
+    )
+    assert (
+        Path('scratch') / 'simpleinterpdist-1.0-cp27-none-any.whl'
+        in result.files_created
+    )
+
+    # Because of the existing compatibility semantics, a "cp27" wheel is not considered
+    # compatible with the pep425 tags for a plain interpreter version of "2".
+    # (Is this correct?  Given the above behavior, it seems like "xp27" should satisfy "py2"
+    # if "xp27" would satisfy "py27")
+    result = script.pip(
+        'download', '--no-index', '--find-links', data.find_links,
+        '--dest', '.', '--interpreter-version', '2', 'simpleinterpdist==1.0',
+        expect_error=True,
+    )
+
+    result = script.pip(
+        'download', '--no-index', '--find-links', data.find_links,
+        '--dest', '.', '--interpreter-version', '2', 'simpleinterpdist'
+    )
+    assert (
+        Path('scratch') / 'simpleinterpdist-2.0-py2.py3-none-any.whl'
+        in result.files_created
+    )
+
+    result = script.pip(
+        'download', '--no-index', '--find-links', data.find_links,
+        '--dest', './scratch2', '--interpreter-version', '3', 'simpleinterpdist',
+    )
+    assert (
+        Path('scratch') / 'scratch2' / 'simpleinterpdist-2.0-py2.py3-none-any.whl'
+        in result.files_created
+    )
+
+
+@pytest.mark.network
+def test_download_specify_interpreter_version_and_platform(script, data):
+    """
+    Test using "pip download --interpreter-version X --platform Y" to download
+    a .whl archive supported for a specific interpreter and version combination.
+    """
+    result = script.pip(
+        'download', '--no-index', '--find-links', data.find_links,
+        '--dest', '.',
+        '--interpreter-version', '2',
+        '--platform', 'linux_x86_64',
+        'simpleinterpplatdist==1'
+    )
+    assert (
+        Path('scratch') / 'simpleinterpplatdist-1.0-py2.py3-none-any.whl'
+        in result.files_created
+    )
+    script.pip(
+        'download', '--no-index', '--find-links', data.find_links,
+        '--dest', '.',
+        '--interpreter-version', '3',
+        '--platform', 'linux_x86_64',
+        'simpleinterpplatdist==1'
+    )
+    script.pip(
+        'download', '--no-index', '--find-links', data.find_links,
+        '--dest', '.',
+        '--interpreter-version', '3',
+        '--platform', 'macosx_10_9_x86_64.whl',
+        'simpleinterpplatdist'
+    )
+
+    result = script.pip(
+        'download', '--no-index', '--find-links', data.find_links,
+        '--dest', '.',
+        '--interpreter-version', '27',
+        '--platform', 'linux_x86_64',
+        'simpleinterpplatdist==2'
+    )
+    assert (
+        Path('scratch') / 'simpleinterpplatdist-2.0-cp27-none-linux_x86_64.whl'
+        in result.files_created
+    )
+
+    result = script.pip(
+        'download', '--no-index', '--find-links', data.find_links,
+        '--dest', '.',
+        '--interpreter-version', '27',
+        '--platform', 'macosx_10_10_x86_64',
+        'simpleinterpplatdist==2'
+    )
+    assert (
+        Path('scratch') / 'simpleinterpplatdist-2.0-cp27-none-macosx_10_9_x86_64.whl'
+        in result.files_created
+    )
+
+    result = script.pip(
+        'download', '--no-index', '--find-links', data.find_links,
+        '--dest', '.',
+        '--interpreter-version', '2',
+        '--platform', 'linux_x86_64',
+        'simpleinterpplatdist==2'
+    )
+    assert (
+        Path('scratch') / 'simpleinterpplatdist-2.0-py2.py3-none-linux_x86_64.whl'
+        in result.files_created
+    )
+
+    result = script.pip(
+        'download', '--no-index', '--find-links', data.find_links,
+        '--dest', '.',
+        '--interpreter-version', '3',
+        '--platform', 'macosx_10_10_x86_64',
+        'simpleinterpplatdist==2'
+    )
+    assert (
+        Path('scratch') / 'simpleinterpplatdist-2.0-py2.py3-none-macosx_10_9_x86_64.whl'
+        in result.files_created
+    )
+
+    result = script.pip(
+        'download', '--no-index', '--find-links', data.find_links,
+        '--dest', '.',
+        '--interpreter-version', '3',
+        '--platform', 'fake_platform',
+        'simpleinterpplatdist==2',
+        expect_error=True,
+    )
+
+    result = script.pip(
+        'download', '--no-index', '--find-links', data.find_links,
+        '--dest', '.',
+        '--interpreter-version', '3',
+        '--platform', 'fake_platform',
+        'simpleinterpdist==2'
+    )
+    assert (
+        Path('scratch') / 'simpleinterpdist-2.0-py2.py3-none-any.whl'
         in result.files_created
     )

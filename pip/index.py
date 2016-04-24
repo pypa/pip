@@ -264,9 +264,7 @@ class PackageFinder(object):
               with the same version, would have to be considered equal
         """
         support_num = len(self.valid_tags)
-        if candidate.location == INSTALLED_VERSION:
-            pri = 1
-        elif candidate.location.is_wheel:
+        if candidate.location.is_wheel:
             # can raise InvalidWheelFilename
             wheel = Wheel(candidate.location.filename)
             if not wheel.supported(self.valid_tags):
