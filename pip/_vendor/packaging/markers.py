@@ -80,9 +80,18 @@ VARIABLE = (
     L("platform.version") |  # PEP-345
     L("platform.machine") |  # PEP-345
     L("platform.python_implementation") |  # PEP-345
+    L("python_implementation") |  # undocumented setuptools legacy
     L("extra")
 )
-VARIABLE.setParseAction(lambda s, l, t: Variable(t[0].replace('.', '_')))
+ALIASES = {
+    'os.name': 'os_name',
+    'sys.platform': 'sys_platform',
+    'platform.version': 'platform_version',
+    'platform.machine': 'platform_machine',
+    'platform.python_implementation': 'platform_python_implementation',
+    'python_implementation': 'platform_python_implementation'
+}
+VARIABLE.setParseAction(lambda s, l, t: Variable(ALIASES.get(t[0], t[0])))
 
 VERSION_CMP = (
     L("===") |

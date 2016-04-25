@@ -15,8 +15,8 @@ from distutils.util import change_root
 from email.parser import FeedParser
 
 from pip._vendor import pkg_resources, six
-from pip._vendor.distlib.markers import interpret as markers_interpret
 from pip._vendor.packaging import specifiers
+from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
@@ -814,7 +814,7 @@ class InstallRequirement(object):
 
     def match_markers(self):
         if self.markers is not None:
-            return markers_interpret(self.markers)
+            return Marker(self.markers).evaluate()
         else:
             return True
 
