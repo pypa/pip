@@ -211,7 +211,7 @@ def test_download_specify_platform(script, data):
         in result.files_created
     )
 
-    # OSX platform wheels are not forward-compatible.
+    # OSX platform wheels are not backward-compatible.
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
         '--dest', '.',

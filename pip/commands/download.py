@@ -68,8 +68,8 @@ class DownloadCommand(RequirementCommand):
             dest='platform',
             metavar='platform',
             default=None,
-            help=("Only download wheels compatible with <platform> "
-                  "where the default is the platform of the local computer."),
+            help=("Only download wheels compatible with <platform>. "
+                  "Defaults to the platform of the local computer."),
         )
 
         cmd_opts.add_option(
@@ -79,9 +79,10 @@ class DownloadCommand(RequirementCommand):
             default=None,
             help=("Only download wheels compatible with Python "
                   "interpreter version <version>. If not specified, then the "
-                  "current system interpreter version is used. This is meant "
-                  "to be used to download packages that support "
-                  "an exact version of Python."),
+                  "current system interpreter minor version is used. A major "
+                  "version (e.g. '2') can be specified to match all "
+                  "minor revs of that major version.  A minor version "
+                  "(e.g. '34') can also be specified."),
         )
 
         cmd_opts.add_option(
@@ -120,7 +121,7 @@ class DownloadCommand(RequirementCommand):
                   "If --platform is not specified, the current "
                   "interpreter's manylinux compatibility is used. "
                   "If --platform is specified, the value of this option "
-                  "is used strictly (defaulting to False)."),
+                  "is used strictly (default False)."),
         )
 
         index_opts = cmdoptions.make_option_group(
