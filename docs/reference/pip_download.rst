@@ -31,7 +31,7 @@ directory). This directory can later be passed as the value to
 installation.
 
 ``pip download`` with the ``--platform``, ``--interpreter-version``,
-``--implementation``, ``--manylinux1``, and ``--abi`` options provides
+``--implementation``, ``--manylinux``, and ``--abi`` options provides
 the ability to fetch dependencies for an interpreter and system other
 than the ones that pip is running on.  It is important to note that
 these options all default to the current system/interpreter, and not
@@ -63,41 +63,54 @@ Examples
     $ pip download -d . SomePackage  # equivalent to above
     $ pip download --no-index --find-links=/tmp/wheelhouse -d /tmp/otherwheelhouse SomePackage
 
-2. Download a package and all of its dependencies with specific interpreter constraints
+2. Download a package and all of its dependencies with OSX specific interpreter constraints.
+   This forces OSX 10.10 or lower compatibility. Since OSX deps are forward compatible,
+   this will also match ``macosx-10_9_x86_64``, ``macosx-10_8_x86_64``, ``macosx-10_8_intel``,
+   etc.
+   It will also match deps with platform ``any``.  Also force the interpreter version to ``27``
+   (or more generic, i.e. ``2``) and implementation to ``cp`` (or more generic, i.e. ``py``).
 
   ::
 
-	$ pip download \
-		# Force OSX 10.10 or lower compatibility. Since OSX deps
-		# are forward compatible, this will also match
-		# macosx-10_9_x86_64, macosx-10_8_x86_64, etc.
-		# It will also match deps with platform any.
-		--platform macosx-10_10_x86_64 \
-		# Force Python 2.7 compatible deps.  This will still match more
-		# generic interpreter versions, like '2'.
-		--interpreter-version 27 \
-		# Force CPython interpreter implementation.  This will still
-		# match the most generic interpreter impelementation, 'py'.
-		--implementation cp \
-		SomePackage
+    $ pip download \
+        --platform macosx-10_10_x86_64 \
+        --interpreter-version 27 \
+        --implementation cp \
+        SomePackage
 
-	$ pip download \
-		--platform linux_x86_64 --minilinux1 \ # Force linux or minilinux1
-		--interpreter-version 3 \ # Allow any py3 minor rev
-		--implementation cp \ # Force a specific interpreter implementation
-		--abi cp34m \ # Force a specific abi (default is current one)
-		SomePackage
+3.  Download a package and its dependencies with linux specific constraints, including
+    packages that support the ``manylinux1`` platform.  Force the interpreter to be any
+    minor version of py3k, and only accept ``cp34m`` or ``none`` as the abi.
 
-	$ pip download \
-		--platform any \ # Force platform agnostic deps
-		--interpreter-version 3 \
-		--implementation py \ # Force implementation agnostic deps
-		--abi none \ # Force abi agnostic deps
-		SomePackage
+  ::
 
-	$ pip download \ # Overconstrained; still fetches the pip universal wheel.
-		--platform linux_x86_64 --minilinux1 \
-		--interpreter-version 33 \
-		--implementation cp \
-		--abi cp34m \
-		pip>=8
+    $ pip download \
+        --platform linux_x86_64 --manylinux \
+        --interpreter-version 3 \
+        --implementation cp \
+        --abi cp34m \
+        SomePackage
+
+4.  Force platform, implementation, and abi agnostic deps.
+
+  ::
+
+    $ pip download \
+        --platform any \
+        --interpreter-version 3 \
+        --implementation py \
+        --abi none \
+        SomePackage
+
+5.  Even when overconstrained, this will still correctly fetch the pip universal wheel.
+
+  ::
+
+    $ pip download \
+        --platform linux_x86_64 --manylinux \
+        --interpreter-version 33 \
+        --implementation cp \
+        --abi cp34m \
+        pip>=8
+    $ ls pip-8.1.1-py2.py3-none-any.whl
+    pip-8.1.1-py2.py3-none-any.whl
