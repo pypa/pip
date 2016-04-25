@@ -28,7 +28,7 @@ from pip.exceptions import (
 )
 from pip.download import HAS_TLS, is_url, path_to_url, url_to_path
 from pip.wheel import Wheel, wheel_ext
-from pip.pep425tags import get_platform, get_supported
+from pip.pep425tags import get_supported
 from pip._vendor import html5lib, requests, six
 from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.packaging.utils import canonicalize_name
@@ -105,7 +105,8 @@ class PackageFinder(object):
     def __init__(self, find_links, index_urls, allow_all_prereleases=False,
                  trusted_hosts=None, process_dependency_links=False,
                  session=None, format_control=None, platform=None,
-                 versions=None):
+                 versions=None, abi=None, implementation=None,
+                 manylinux1=None):
         """Create a PackageFinder.
 
         :param format_control: A FormatControl object or None. Used to control
@@ -117,6 +118,12 @@ class PackageFinder(object):
             understood that these packages will only be downloaded for
             distribution: they will not be built locally.
         :param versions: A list of strings or None. This is passed directly
+            to pep425tags.py in the get_supported() method.
+        :param abi: A string or None. This is passed directly
+            to pep425tags.py in the get_supported() method.
+        :param implementation: A string or None. This is passed directly
+            to pep425tags.py in the get_supported() method.
+        :param manylinux1: A boolean or None. This is passed directly
             to pep425tags.py in the get_supported() method.
         """
         if session is None:
@@ -161,13 +168,13 @@ class PackageFinder(object):
         # The Session we'll use to make requests
         self.session = session
 
-        # The platform for which to find compatible packages
-        self.platform = platform or get_platform()
-
         # The valid tags to check potential found wheel candidates against
         self.valid_tags = get_supported(
             versions=versions,
-            specificplatform=self.platform
+            platform=platform,
+            abi=abi,
+            impl=implementation,
+            manylinux1=manylinux1,
         )
         self.valid_tags_noarch = get_supported(
             versions=versions,

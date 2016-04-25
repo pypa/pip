@@ -6,7 +6,6 @@ import os
 from pip.req import RequirementSet
 from pip.basecommand import RequirementCommand
 from pip import cmdoptions
-from pip.pep425tags import get_platform
 from pip.utils import ensure_dir, normalize_path
 from pip.utils.build import BuildDirectory
 from pip.utils.filesystem import check_path_owner
@@ -68,24 +67,60 @@ class DownloadCommand(RequirementCommand):
             '--platform',
             dest='platform',
             metavar='platform',
-            default=get_platform(),
-            help=("Specifically download wheels compatible with <platform> "
-                  "where the default is the platfrom of the local computer."),
+            default=None,
+            help=("Only download wheels compatible with <platform> "
+                  "where the default is the platform of the local computer."),
         )
 
         cmd_opts.add_option(
             '--interpreter-version',
             dest='interpreter_version',
-            metavar='version',
-            default='',
-            help=("Specifically download wheels compatible with Python "
+            metavar='interpreter_version',
+            default=None,
+            help=("Only download wheels compatible with Python "
                   "interpreter version <version>. If not specified, then the "
-                  "current system interpreter version is used. This "
-                  "is a stricter approach compared to the native search "
-                  "performed without this option specified: this does not "
-                  "accept previous minor versions of Python. It is meant to "
-                  "be used when you want to download packages that support an "
-                  "exact version of Python."),
+                  "current system interpreter version is used. This is meant "
+                  "to be used to download packages that support "
+                  "an exact version of Python."),
+        )
+
+        cmd_opts.add_option(
+            '--implementation',
+            dest='implementation',
+            metavar='implementation',
+            default=None,
+            help=("Only download wheels compatible with Python "
+                  "implementation <implementation>, e.g. 'pp', 'jy', 'cp', "
+                  " or 'ip'. If not specified, then the current "
+                  "interpreter implementation is used.  Use 'py' to force "
+                  "implementation-agnostic wheels."),
+        )
+
+        cmd_opts.add_option(
+            '--abi',
+            dest='abi',
+            metavar='abi',
+            default=None,
+            help=("Only download wheels compatible with Python "
+                  "abi <abi>, e.g. 'pypy_41'.  If not specified, then the "
+                  "current interpreter abi tag is used.  Generally "
+                  "you will need to specify --implementation, "
+                  "--platform, and --interpreter-version when using "
+                  "this option."),
+        )
+
+        cmd_opts.add_option(
+            '--manylinux1',
+            dest='manylinux1',
+            metavar='manylinux1',
+            action='store_true',
+            default=False,
+            help=("When downloading linux platform wheels, "
+                  "allow manylinux1 platforms. "
+                  "If --platform is not specified, the current "
+                  "interpreter's manylinux compatibility is used. "
+                  "If --platform is specified, the value of this option "
+                  "is used strictly (defaulting to False)."),
         )
 
         index_opts = cmdoptions.make_option_group(
@@ -115,6 +150,9 @@ class DownloadCommand(RequirementCommand):
                 session=session,
                 platform=options.platform,
                 desired_interp_versions=desired_interp_versions,
+                abi=options.abi,
+                implementation=options.implementation,
+                manylinux1=options.manylinux1,
             )
             build_delete = (not (options.no_clean or options.build_dir))
             if options.cache_dir and not check_path_owner(options.cache_dir):

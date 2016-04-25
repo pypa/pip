@@ -306,7 +306,8 @@ class RequirementCommand(Command):
             logger.warning(msg)
 
     def _build_package_finder(self, options, session,
-                              platform=None, desired_interp_versions=None):
+                              platform=None, desired_interp_versions=None,
+                              abi=None, implementation=None, manylinux1=None):
         """
         Create a package finder appropriate to this requirement command.
         """
@@ -325,4 +326,7 @@ class RequirementCommand(Command):
             session=session,
             platform=platform,
             versions=desired_interp_versions,
+            abi=abi,
+            implementation=implementation,
+            manylinux1=manylinux1,
         )
