@@ -990,7 +990,13 @@ class InstallRequirement(object):
         if self.req is None:
             return False
         try:
-            self.satisfied_by = pkg_resources.get_distribution(str(self.req))
+            # get_distribution() will resolve the entire list of requirements
+            # anyway, and we've already determined that we need the requirement
+            # in question, so strip the marker so that we don't try to
+            # evaluate it.
+            no_marker = Requirement(str(self.req))
+            no_marker.marker = None
+            self.satisfied_by = pkg_resources.get_distribution(str(no_marker))
         except pkg_resources.DistributionNotFound:
             return False
         except pkg_resources.VersionConflict:
