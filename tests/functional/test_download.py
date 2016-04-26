@@ -242,9 +242,9 @@ def test_download_specify_platform(script, data):
 
 
 @pytest.mark.network
-def test_download_specify_manylinux(script, data):
+def test_download_platform_manylinux(script, data):
     """
-    Test using "pip download --manylinux1" to download a .whl archive
+    Test using "pip download --platform" to download a .whl archive
     supported for a specific platform.
     """
     fake_wheel(data, 'fake-1.0-py2.py3-none-any.whl')
@@ -254,7 +254,6 @@ def test_download_specify_manylinux(script, data):
         'download', '--no-index', '--find-links', data.find_links,
         '--dest', '.',
         '--platform', 'linux_x86_64',
-        '--manylinux1',
         'fake',
     )
     assert (
@@ -267,9 +266,8 @@ def test_download_specify_manylinux(script, data):
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
         '--dest', '.',
-        '--platform', 'linux_x86_64',
-        '--manylinux1',
-        'fake'
+        '--platform', 'manylinux1_x86_64',
+        'fake',
     )
     assert (
         Path('scratch') /
@@ -277,46 +275,31 @@ def test_download_specify_manylinux(script, data):
         in result.files_created
     )
 
-    # Regular linux platform wheels still satisfy this option.
+    # When specifying the platform, manylinux1 needs to be the
+    # explicit platform--it won't ever be added to the compatible
+    # tags.
     data.reset()
     fake_wheel(data, 'fake-1.0-py2.py3-none-linux_x86_64.whl')
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
         '--dest', '.',
         '--platform', 'linux_x86_64',
-        '--manylinux1',
-        'fake'
-    )
-    assert (
-        Path('scratch') /
-        'fake-1.0-py2.py3-none-linux_x86_64.whl'
-        in result.files_created
-    )
-
-    # Specifying manylinux with a non-linux platform is a noop.
-    data.reset()
-    fake_wheel(data, 'fake-1.0-py2.py3-none-manylinux1_x86_64.whl')
-    result = script.pip(
-        'download', '--no-index', '--find-links', data.find_links,
-        '--dest', '.',
-        '--platform', 'macosx_10_10_x86_64',
-        '--manylinux1',
         'fake',
         expect_error=True,
     )
 
 
 @pytest.mark.network
-def test_download_specify_interpreter_version(script, data):
+def test_download_specify_python_version(script, data):
     """
-    Test using "pip download --interpreter-version" to download a .whl archive
+    Test using "pip download --python-version" to download a .whl archive
     supported for a specific interpreter
     """
     fake_wheel(data, 'fake-1.0-py2.py3-none-any.whl')
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
         '--dest', '.',
-        '--interpreter-version', '2',
+        '--python-version', '2',
         'fake'
     )
     assert (
@@ -327,21 +310,21 @@ def test_download_specify_interpreter_version(script, data):
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
         '--dest', '.',
-        '--interpreter-version', '3',
+        '--python-version', '3',
         'fake'
     )
 
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
         '--dest', '.',
-        '--interpreter-version', '27',
+        '--python-version', '27',
         'fake'
     )
 
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
         '--dest', '.',
-        '--interpreter-version', '33',
+        '--python-version', '33',
         'fake'
     )
 
@@ -353,7 +336,7 @@ def test_download_specify_interpreter_version(script, data):
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
         '--dest', '.',
-        '--interpreter-version', '3',
+        '--python-version', '3',
         'fake==1.0',
         expect_error=True,
     )
@@ -361,7 +344,7 @@ def test_download_specify_interpreter_version(script, data):
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
         '--dest', '.',
-        '--interpreter-version', '2',
+        '--python-version', '2',
         'fake'
     )
     assert (
@@ -372,14 +355,14 @@ def test_download_specify_interpreter_version(script, data):
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
         '--dest', '.',
-        '--interpreter-version', '26',
+        '--python-version', '26',
         'fake'
     )
 
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
         '--dest', '.',
-        '--interpreter-version', '3',
+        '--python-version', '3',
         'fake'
     )
     assert (
@@ -428,7 +411,7 @@ def test_download_specify_abi(script, data):
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
         '--dest', '.',
-        '--interpreter-version', '2',
+        '--python-version', '2',
         '--implementation', 'fk',
         '--platform', 'fake_platform',
         '--abi', 'fakeabi',
@@ -487,7 +470,7 @@ def test_download_specify_implementation(script, data):
         'download', '--no-index', '--find-links', data.find_links,
         '--dest', '.',
         '--implementation', 'fk',
-        '--interpreter-version', '3',
+        '--python-version', '3',
         'fake'
     )
     assert (
@@ -499,7 +482,7 @@ def test_download_specify_implementation(script, data):
         'download', '--no-index', '--find-links', data.find_links,
         '--dest', '.',
         '--implementation', 'fk',
-        '--interpreter-version', '2',
+        '--python-version', '2',
         'fake',
         expect_error=True,
     )

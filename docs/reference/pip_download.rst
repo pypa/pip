@@ -30,7 +30,7 @@ directory). This directory can later be passed as the value to
 ``pip install --find-links`` to facilitate offline or locked down package
 installation.
 
-``pip download`` with the ``--platform``, ``--interpreter-version``,
+``pip download`` with the ``--platform``, ``--python-version``,
 ``--implementation``, ``--manylinux``, and ``--abi`` options provides
 the ability to fetch dependencies for an interpreter and system other
 than the ones that pip is running on.  It is important to note that
@@ -74,7 +74,7 @@ Examples
 
     $ pip download \
         --platform macosx-10_10_x86_64 \
-        --interpreter-version 27 \
+        --python-version 27 \
         --implementation cp \
         SomePackage
 
@@ -86,7 +86,7 @@ Examples
 
     $ pip download \
         --platform linux_x86_64 --manylinux \
-        --interpreter-version 3 \
+        --python-version 3 \
         --implementation cp \
         --abi cp34m \
         SomePackage
@@ -97,7 +97,7 @@ Examples
 
     $ pip download \
         --platform any \
-        --interpreter-version 3 \
+        --python-version 3 \
         --implementation py \
         --abi none \
         SomePackage
@@ -108,7 +108,7 @@ Examples
 
     $ pip download \
         --platform linux_x86_64 --manylinux \
-        --interpreter-version 33 \
+        --python-version 33 \
         --implementation cp \
         --abi cp34m \
         pip>=8

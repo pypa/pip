@@ -73,9 +73,9 @@ class DownloadCommand(RequirementCommand):
         )
 
         cmd_opts.add_option(
-            '--interpreter-version',
-            dest='interpreter_version',
-            metavar='interpreter_version',
+            '--python-version',
+            dest='python_version',
+            metavar='python_version',
             default=None,
             help=("Only download wheels compatible with Python "
                   "interpreter version <version>. If not specified, then the "
@@ -106,22 +106,8 @@ class DownloadCommand(RequirementCommand):
                   "abi <abi>, e.g. 'pypy_41'.  If not specified, then the "
                   "current interpreter abi tag is used.  Generally "
                   "you will need to specify --implementation, "
-                  "--platform, and --interpreter-version when using "
+                  "--platform, and --python-version when using "
                   "this option."),
-        )
-
-        cmd_opts.add_option(
-            '--manylinux1',
-            dest='manylinux1',
-            metavar='manylinux1',
-            action='store_true',
-            default=False,
-            help=("When downloading linux platform wheels, "
-                  "allow manylinux1 platforms. "
-                  "If --platform is not specified, the current "
-                  "interpreter's manylinux compatibility is used. "
-                  "If --platform is specified, the value of this option "
-                  "is used strictly (default False)."),
         )
 
         index_opts = cmdoptions.make_option_group(
@@ -135,10 +121,10 @@ class DownloadCommand(RequirementCommand):
     def run(self, options, args):
         options.ignore_installed = True
 
-        if options.interpreter_version:
-            desired_interp_versions = [options.interpreter_version]
+        if options.python_version:
+            python_versions = [options.python_version]
         else:
-            desired_interp_versions = None
+            python_versions = None
 
         options.src_dir = os.path.abspath(options.src_dir)
         options.download_dir = normalize_path(options.download_dir)
@@ -150,10 +136,9 @@ class DownloadCommand(RequirementCommand):
                 options=options,
                 session=session,
                 platform=options.platform,
-                desired_interp_versions=desired_interp_versions,
+                python_versions=python_versions,
                 abi=options.abi,
                 implementation=options.implementation,
-                manylinux1=options.manylinux1,
             )
             build_delete = (not (options.no_clean or options.build_dir))
             if options.cache_dir and not check_path_owner(options.cache_dir):

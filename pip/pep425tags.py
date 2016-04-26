@@ -265,7 +265,7 @@ def get_darwin_arches(major, minor, machine):
 
 
 def get_supported(versions=None, noarch=False, platform=None,
-                  impl=None, abi=None, manylinux1=None):
+                  impl=None, abi=None):
     """Return a list of supported tags for each version specified in
     `versions`.
 
@@ -277,10 +277,6 @@ def get_supported(versions=None, noarch=False, platform=None,
         tags for, or None. If None, use the local interpreter impl.
     :param abi: specify the exact abi you want valid
         tags for, or None. If None, use the local interpreter abi.
-    :param manylinux1: Whether or not to add manylinux1 as a comatible
-        linux architecture.  If None or False and platform is None,
-        defaults to whether the current system is manylinux1 compatible.
-        If True, forces 'manylinux1' as an arch tag.
     """
     supported = []
 
@@ -326,7 +322,7 @@ def get_supported(versions=None, noarch=False, platform=None,
             else:
                 # arch pattern didn't match (?!)
                 arches = [arch]
-        elif manylinux1 or platform is None and is_manylinux1_compatible():
+        elif platform is None and is_manylinux1_compatible():
             arches = [arch.replace('linux', 'manylinux1'), arch]
         else:
             arches = [arch]

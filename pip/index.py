@@ -105,8 +105,7 @@ class PackageFinder(object):
     def __init__(self, find_links, index_urls, allow_all_prereleases=False,
                  trusted_hosts=None, process_dependency_links=False,
                  session=None, format_control=None, platform=None,
-                 versions=None, abi=None, implementation=None,
-                 manylinux1=None):
+                 versions=None, abi=None, implementation=None):
         """Create a PackageFinder.
 
         :param format_control: A FormatControl object or None. Used to control
@@ -174,7 +173,6 @@ class PackageFinder(object):
             platform=platform,
             abi=abi,
             impl=implementation,
-            manylinux1=manylinux1,
         )
         self.valid_tags_noarch = get_supported(
             versions=versions,
