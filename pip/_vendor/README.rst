@@ -95,7 +95,7 @@ such as OS packages.
 pkg_resources
 -------------
 
-pkg_resources has been pulled in from setuptools 20.4
+pkg_resources has been pulled in from setuptools 20.7.0
 
 
 Modifications
@@ -104,7 +104,7 @@ Modifications
 * html5lib has been modified to import six from pip._vendor
 * pkg_resources has been modified to import its externs from pip._vendor
 * CacheControl has been modified to import its dependencies from pip._vendor
-* packaging has been modified to import its dependencies from pip._vendor.
+* packaging has been modified to import its dependencies from pip._vendor
 
 
 Debundling

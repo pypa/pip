@@ -28,8 +28,6 @@ import warnings
 import stat
 import functools
 import pkgutil
-import token
-import symbol
 import operator
 import platform
 import collections
@@ -66,11 +64,6 @@ try:
     importlib_machinery.__name__
 except ImportError:
     importlib_machinery = None
-
-try:
-    import parser
-except ImportError:
-    pass
 
 from pip._vendor import packaging
 __import__('pip._vendor.packaging.version')
@@ -799,6 +792,8 @@ class WorkingSet(object):
         best = {}
         to_activate = []
 
+        req_extras = _ReqExtras()
+
         # Mapping of requirement to set of distributions that required it;
         # useful for reporting info about conflicts.
         required_by = collections.defaultdict(set)
@@ -809,6 +804,10 @@ class WorkingSet(object):
             if req in processed:
                 # Ignore cyclic or redundant dependencies
                 continue
+
+            if not req_extras.markers_pass(req):
+                continue
+
             dist = best.get(req.key)
             if dist is None:
                 # Find the best distribution and add it to the map
@@ -841,6 +840,7 @@ class WorkingSet(object):
             # Register the new requirements needed by req
             for new_requirement in new_requirements:
                 required_by[new_requirement].add(req.project_name)
+                req_extras[new_requirement] = req.extras
 
             processed[req] = True
 
@@ -971,6 +971,26 @@ class WorkingSet(object):
         self.entry_keys = keys.copy()
         self.by_key = by_key.copy()
         self.callbacks = callbacks[:]
+
+
+class _ReqExtras(dict):
+    """
+    Map each requirement to the extras that demanded it.
+    """
+
+    def markers_pass(self, req):
+        """
+        Evaluate markers for req against each extra that
+        demanded it.
+
+        Return False if the req has a marker and fails
+        evaluation. Otherwise, return True.
+        """
+        evals = (
+            req.marker.evaluate({'extra': extra})
+            for extra in self.get(req) or ['']
+        )
+        return not req.marker or any(evals)
 
 
 class Environment(object):
@@ -1839,7 +1859,13 @@ class FileMetadata(EmptyProvider):
     def get_metadata(self, name):
         if name=='PKG-INFO':
             with io.open(self.path, encoding='utf-8') as f:
-                metadata = f.read()
+                try:
+                    metadata = f.read()
+                except UnicodeDecodeError as exc:
+                    # add path context to error message
+                    tmpl = " in {self.path}"
+                    exc.reason += tmpl.format(self=self)
+                    raise
             return metadata
         raise KeyError("No metadata except PKG-INFO is available")
 
