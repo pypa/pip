@@ -167,18 +167,16 @@ def test_download_vcs_link(script):
     assert script.site_packages / 'piptestpackage' not in result.files_created
 
 
-@pytest.mark.network
-def test_download_specify_platform(script, data):
+def test_download_specify_platform_only_binary(script, data):
     """
-    Test using "pip download --platform" to download a .whl archive
-    supported for a specific platform
+    Confirm that specifying an interpreter/platform constraint
+    enforces that ``--only-binary=:all:`` is set.
     """
     fake_wheel(data, 'fake-1.0-py2.py3-none-any.whl')
 
-    # Confirm that universal wheels are returned even for specific
-    # platforms.
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
         '--dest', '.',
         '--platform', 'linux_x86_64',
         'fake'
@@ -191,6 +189,58 @@ def test_download_specify_platform(script, data):
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
         '--dest', '.',
+        '--platform', 'linux_x86_64',
+        'fake',
+        expect_error=True,
+    )
+    assert '--only-binary=:all:' in result.stderr
+
+    result = script.pip(
+        'download', '--no-index', '--find-links', data.find_links,
+        '--dest', '.',
+        '--platform', 'linux_x86_64',
+        'fake',
+        expect_error=True,
+    )
+    assert '--only-binary=:all:' in result.stderr
+
+    result = script.pip(
+        'download', '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
+        '--no-binary=fake',
+        '--dest', '.',
+        '--platform', 'linux_x86_64',
+        'fake',
+        expect_error=True,
+    )
+    assert '--only-binary=:all:' in result.stderr
+
+
+def test_download_specify_platform(script, data):
+    """
+    Test using "pip download --platform" to download a .whl archive
+    supported for a specific platform
+    """
+    fake_wheel(data, 'fake-1.0-py2.py3-none-any.whl')
+
+    # Confirm that universal wheels are returned even for specific
+    # platforms.
+    result = script.pip(
+        'download', '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
+        '--dest', '.',
+        '--platform', 'linux_x86_64',
+        'fake'
+    )
+    assert (
+        Path('scratch') / 'fake-1.0-py2.py3-none-any.whl'
+        in result.files_created
+    )
+
+    result = script.pip(
+        'download', '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
+        '--dest', '.',
         '--platform', 'macosx_10_9_x86_64',
         'fake'
     )
@@ -201,6 +251,7 @@ def test_download_specify_platform(script, data):
 
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
         '--dest', '.',
         '--platform', 'macosx_10_10_x86_64',
         'fake'
@@ -214,6 +265,7 @@ def test_download_specify_platform(script, data):
     # OSX platform wheels are not backward-compatible.
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
         '--dest', '.',
         '--platform', 'macosx_10_8_x86_64',
         'fake',
@@ -223,6 +275,7 @@ def test_download_specify_platform(script, data):
     # No linux wheel provided for this version.
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
         '--dest', '.',
         '--platform', 'linux_x86_64',
         'fake==1',
@@ -231,6 +284,7 @@ def test_download_specify_platform(script, data):
 
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
         '--dest', '.',
         '--platform', 'linux_x86_64',
         'fake==2'
@@ -252,6 +306,7 @@ def test_download_platform_manylinux(script, data):
     # platforms.
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
         '--dest', '.',
         '--platform', 'linux_x86_64',
         'fake',
@@ -265,6 +320,7 @@ def test_download_platform_manylinux(script, data):
     fake_wheel(data, 'fake-1.0-py2.py3-none-manylinux1_x86_64.whl')
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
         '--dest', '.',
         '--platform', 'manylinux1_x86_64',
         'fake',
@@ -282,6 +338,7 @@ def test_download_platform_manylinux(script, data):
     fake_wheel(data, 'fake-1.0-py2.py3-none-linux_x86_64.whl')
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
         '--dest', '.',
         '--platform', 'linux_x86_64',
         'fake',
@@ -298,6 +355,7 @@ def test_download_specify_python_version(script, data):
     fake_wheel(data, 'fake-1.0-py2.py3-none-any.whl')
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
         '--dest', '.',
         '--python-version', '2',
         'fake'
@@ -309,6 +367,7 @@ def test_download_specify_python_version(script, data):
 
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
         '--dest', '.',
         '--python-version', '3',
         'fake'
@@ -316,6 +375,7 @@ def test_download_specify_python_version(script, data):
 
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
         '--dest', '.',
         '--python-version', '27',
         'fake'
@@ -323,6 +383,7 @@ def test_download_specify_python_version(script, data):
 
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
         '--dest', '.',
         '--python-version', '33',
         'fake'
@@ -335,6 +396,7 @@ def test_download_specify_python_version(script, data):
     # No py3 provided for version 1.
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
         '--dest', '.',
         '--python-version', '3',
         'fake==1.0',
@@ -343,6 +405,7 @@ def test_download_specify_python_version(script, data):
 
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
         '--dest', '.',
         '--python-version', '2',
         'fake'
@@ -354,6 +417,7 @@ def test_download_specify_python_version(script, data):
 
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
         '--dest', '.',
         '--python-version', '26',
         'fake'
@@ -361,6 +425,7 @@ def test_download_specify_python_version(script, data):
 
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
         '--dest', '.',
         '--python-version', '3',
         'fake'
@@ -380,6 +445,7 @@ def test_download_specify_abi(script, data):
     fake_wheel(data, 'fake-1.0-py2.py3-none-any.whl')
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
         '--dest', '.',
         '--implementation', 'fk',
         '--abi', 'fake_abi',
@@ -392,6 +458,7 @@ def test_download_specify_abi(script, data):
 
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
         '--dest', '.',
         '--implementation', 'fk',
         '--abi', 'none',
@@ -400,6 +467,7 @@ def test_download_specify_abi(script, data):
 
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
         '--dest', '.',
         '--abi', 'cp27m',
         'fake',
@@ -410,6 +478,7 @@ def test_download_specify_abi(script, data):
     fake_wheel(data, 'fake-1.0-fk2-fakeabi-fake_platform.whl')
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
         '--dest', '.',
         '--python-version', '2',
         '--implementation', 'fk',
@@ -424,6 +493,7 @@ def test_download_specify_abi(script, data):
 
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
         '--dest', '.',
         '--implementation', 'fk',
         '--platform', 'fake_platform',
@@ -442,6 +512,7 @@ def test_download_specify_implementation(script, data):
     fake_wheel(data, 'fake-1.0-py2.py3-none-any.whl')
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
         '--dest', '.',
         '--implementation', 'fk',
         'fake'
@@ -455,6 +526,7 @@ def test_download_specify_implementation(script, data):
     fake_wheel(data, 'fake-1.0-fk2.fk3-none-any.whl')
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
         '--dest', '.',
         '--implementation', 'fk',
         'fake'
@@ -468,6 +540,7 @@ def test_download_specify_implementation(script, data):
     fake_wheel(data, 'fake-1.0-fk3-none-any.whl')
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
         '--dest', '.',
         '--implementation', 'fk',
         '--python-version', '3',
@@ -480,6 +553,7 @@ def test_download_specify_implementation(script, data):
 
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
         '--dest', '.',
         '--implementation', 'fk',
         '--python-version', '2',

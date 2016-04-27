@@ -26,22 +26,22 @@ which is now deprecated and will be removed in pip 10.
 ``pip download`` does the same resolution and downloading as ``pip install``,
 but instead of installing the dependencies, it collects the downloaded
 distributions into the directory provided (defaulting to the current
-directory). This directory can later be passed as the value to
-``pip install --find-links`` to facilitate offline or locked down package
-installation.
+directory). This directory can later be passed as the value to ``pip install
+--find-links`` to facilitate offline or locked down package installation.
 
 ``pip download`` with the ``--platform``, ``--python-version``,
-``--implementation``, ``--manylinux``, and ``--abi`` options provides
-the ability to fetch dependencies for an interpreter and system other
-than the ones that pip is running on.  It is important to note that
-these options all default to the current system/interpreter, and not
-to the most restrictive constraints (e.g. platform any, abi none, etc).
-To avoid fetching dependencies that happen to match the constraint
-of the current interpreter (but not your target one), it is recommended
-to specify all of these options if you are specifying one of them.
-Generic dependencies (e.g. universal wheels, or dependencies with no
-platform, abi, or implementation constraints) will still match
-an over-constrained download requirement.
+``--implementation``, and ``--abi`` options provides the ability to fetch
+dependencies for an interpreter and system other than the ones that pip is
+running on.  ``--only-binary=:all:`` is required when using any of these
+options.  It is important to note that these options all default to the
+current system/interpreter, and not to the most restrictive constraints (e.g.
+platform any, abi none, etc). To avoid fetching dependencies that happen to
+match the constraint of the current interpreter (but not your target one), it
+is recommended to specify all of these options if you are specifying one of
+them. Generic dependencies (e.g. universal wheels, or dependencies with no
+platform, abi, or implementation constraints) will still match an over-
+constrained download requirement.
+
 
 
 Options
@@ -73,6 +73,7 @@ Examples
   ::
 
     $ pip download \
+        --only-binary=:all: \
         --platform macosx-10_10_x86_64 \
         --python-version 27 \
         --implementation cp \
@@ -85,6 +86,7 @@ Examples
   ::
 
     $ pip download \
+        --only-binary=:all: \
         --platform linux_x86_64 --manylinux \
         --python-version 3 \
         --implementation cp \
@@ -96,6 +98,7 @@ Examples
   ::
 
     $ pip download \
+        --only-binary=:all: \
         --platform any \
         --python-version 3 \
         --implementation py \
@@ -107,6 +110,7 @@ Examples
   ::
 
     $ pip download \
+        --only-binary=:all: \
         --platform linux_x86_64 --manylinux \
         --python-version 33 \
         --implementation cp \

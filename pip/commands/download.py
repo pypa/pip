@@ -3,6 +3,8 @@ from __future__ import absolute_import
 import logging
 import os
 
+from pip.exceptions import CommandError
+from pip.index import FormatControl
 from pip.req import RequirementSet
 from pip.basecommand import RequirementCommand
 from pip import cmdoptions
@@ -125,6 +127,21 @@ class DownloadCommand(RequirementCommand):
             python_versions = [options.python_version]
         else:
             python_versions = None
+
+        dist_restriction_set = any([
+            options.python_version,
+            options.platform,
+            options.abi,
+            options.implementation,
+        ])
+        binary_only = FormatControl(set(), set([':all:']))
+        if dist_restriction_set and options.format_control != binary_only:
+            raise CommandError(
+                "--only-binary=:all: must be set and --no-binary must not "
+                "be set (or must be set to :none:) when restricting platform "
+                "and interpreter constraints using --python-version, "
+                "--platform, --abi, or --implementation."
+            )
 
         options.src_dir = os.path.abspath(options.src_dir)
         options.download_dir = normalize_path(options.download_dir)
