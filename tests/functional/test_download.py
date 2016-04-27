@@ -295,7 +295,6 @@ def test_download_specify_platform(script, data):
     )
 
 
-@pytest.mark.network
 def test_download_platform_manylinux(script, data):
     """
     Test using "pip download --platform" to download a .whl archive
@@ -346,7 +345,6 @@ def test_download_platform_manylinux(script, data):
     )
 
 
-@pytest.mark.network
 def test_download_specify_python_version(script, data):
     """
     Test using "pip download --python-version" to download a .whl archive
@@ -436,7 +434,6 @@ def test_download_specify_python_version(script, data):
     )
 
 
-@pytest.mark.network
 def test_download_specify_abi(script, data):
     """
     Test using "pip download --abi" to download a .whl archive
@@ -503,7 +500,6 @@ def test_download_specify_abi(script, data):
     )
 
 
-@pytest.mark.network
 def test_download_specify_implementation(script, data):
     """
     Test using "pip download --abi" to download a .whl archive
