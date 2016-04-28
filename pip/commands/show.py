@@ -6,6 +6,7 @@ import os
 
 from pip.basecommand import Command
 from pip.status_codes import SUCCESS, ERROR
+from pip.utils.packaging import get_classifiers
 from pip._vendor import pkg_resources
 
 
@@ -102,15 +103,7 @@ def search_packages_info(query):
                     'home-page', 'author', 'author-email', 'license'):
             package[key] = pkg_info_dict.get(key)
 
-        # It looks like FeedParser can not deal with repeated headers
-        classifiers = []
-        for line in metadata.splitlines():
-            if not line:
-                break
-            # Classifier: License :: OSI Approved :: MIT License
-            if line.startswith('Classifier: '):
-                classifiers.append(line[len('Classifier: '):])
-        package['classifiers'] = classifiers
+        package['classifiers'] = get_classifiers(metadata)
 
         if file_list:
             package['files'] = sorted(file_list)

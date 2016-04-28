@@ -20,6 +20,7 @@ from pip.utils import (
     display_path, dist_in_usersite, ensure_dir, normalize_path)
 from pip.utils.hashes import MissingHashes
 from pip.utils.logging import indent_log
+from pip.utils.packaging import check_python_classifiers
 from pip.vcs import vcs
 
 
@@ -619,6 +620,7 @@ class RequirementSet(object):
             # # parse dependencies # #
             # ###################### #
             dist = abstract_dist.dist(finder)
+            check_python_classifiers(dist)
             more_reqs = []
 
             def add_req(subreq):
