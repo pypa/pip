@@ -15,13 +15,15 @@ import warnings
 import pytest
 
 from mock import Mock, patch
-from pip.exceptions import HashMismatch, HashMissing, InstallationError
+from pip.exceptions import (HashMismatch, HashMissing, InstallationError,
+                            UnsupportedPythonVersion)
 from pip.utils import (egg_link_path, get_installed_distributions,
                        untar_file, unzip_file, rmtree, normalize_path)
 from pip.utils.build import BuildDirectory
 from pip.utils.encoding import auto_decode
 from pip.utils.hashes import Hashes, MissingHashes
 from pip.utils.glibc import check_glibc_version
+from pip.utils.packaging import check_dist_requires_python
 from pip._vendor.six import BytesIO
 
 
@@ -524,3 +526,25 @@ class TestGlibc(object):
                 else:
                     # Didn't find the warning we were expecting
                     assert False
+
+
+class TestCheckRequiresPython(object):
+
+    @pytest.mark.parametrize(
+        ("metadata", "should_raise"),
+        [
+            ("Name: test\n", False),
+            ("Name: test\nRequires-Python:", False),
+            ("Name: test\nRequires-Python: invalid_spec", False),
+            ("Name: test\nRequires-Python: <=1", True),
+        ],
+    )
+    def test_check_requires(self, metadata, should_raise):
+        fake_dist = Mock(
+            has_metadata=lambda _: True,
+            get_metadata=lambda _: metadata)
+        if should_raise:
+            with pytest.raises(UnsupportedPythonVersion):
+                check_dist_requires_python(fake_dist)
+        else:
+            check_dist_requires_python(fake_dist)

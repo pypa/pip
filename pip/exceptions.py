@@ -237,3 +237,7 @@ class HashMismatch(HashError):
                          self.gots[hash_name].hexdigest())
             prefix = '    or'
         return '\n'.join(lines)
+
+
+class UnsupportedPythonVersion(InstallationError):
+    """Unsupported python version (related to PEP 345 Requires-Python)."""

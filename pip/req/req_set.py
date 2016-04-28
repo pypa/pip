@@ -20,6 +20,7 @@ from pip.utils import (
     display_path, dist_in_usersite, ensure_dir, normalize_path)
 from pip.utils.hashes import MissingHashes
 from pip.utils.logging import indent_log
+from pip.utils.packaging import check_dist_requires_python
 from pip.vcs import vcs
 from pip.wheel import Wheel
 
@@ -655,6 +656,7 @@ class RequirementSet(object):
             # # parse dependencies # #
             # ###################### #
             dist = abstract_dist.dist(finder)
+            check_dist_requires_python(dist)
             more_reqs = []
 
             def add_req(subreq):
