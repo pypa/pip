@@ -1,3 +1,6 @@
+
+* Add warning when python version classifiers do not match the running version.
+
 **8.1.1 (2016-03-17)**
 
 * Fix regression with non-ascii requirement files on Python 2 and add support
