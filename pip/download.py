@@ -199,6 +199,13 @@ class MultiDomainBasicAuth(AuthBase):
             return userinfo, None
         return None, None
 
+    def __nonzero__(self):
+       # needed in order to evalue authentication object to False when we have no credentials, prevents failure to load .netrc files
+       print("FATAL: %s" % self.passwords)
+       return bool(self.passwords)
+
+    def __bool__(self):
+       return self.__nonzero__()
 
 class LocalFSAdapter(BaseAdapter):
 
