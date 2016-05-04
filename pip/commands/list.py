@@ -2,6 +2,10 @@ from __future__ import absolute_import
 
 import logging
 import warnings
+try:
+    from itertools import zip_longest
+except ImportError:
+    from itertools import izip_longest as zip_longest
 
 from pip.basecommand import Command
 from pip.exceptions import CommandError
@@ -68,6 +72,20 @@ class ListCommand(Command):
                   "pip only finds stable versions."),
         )
 
+        cmd_opts.add_option(
+            '--columns',
+            action='store_true',
+            default=False,
+            help="Align package names and versions into vertical columns."
+        )
+
+        cmd_opts.add_option(
+            '--no-header',
+            action='store_true',
+            default=False,
+            help="Do not display the header when --columns is used."
+        )
+
         index_opts = make_option_group(index_group, self.parser)
 
         self.parser.insert_option_group(0, index_opts)
@@ -114,6 +132,10 @@ class ListCommand(Command):
             raise CommandError(
                 "Options --outdated and --uptodate cannot be combined.")
 
+        if options.no_header and not options.columns:
+            raise CommandError(
+                "Option --no-header can only be used with --columns.")
+
         if options.outdated:
             self.run_outdated(options)
         elif options.uptodate:
@@ -122,10 +144,27 @@ class ListCommand(Command):
             self.run_listing(options)
 
     def run_outdated(self, options):
+        latest_pkgs = []
         for dist, latest_version, typ in sorted(
                 self.find_packages_latest_versions(options),
                 key=lambda p: p[0].project_name.lower()):
             if latest_version > dist.parsed_version:
+                latest_pkgs.append((dist, latest_version, typ))
+
+        if options.columns and len(latest_pkgs) > 0:
+            header = ["Package", "Version", "Latest", "Type"]
+            data = [[dist.project_name,
+                     dist.version,
+                     latest_version,
+                     typ,
+                    ]
+                    for dist, latest_version, typ in latest_pkgs]
+            if any(dist_is_editable(x[0]) for x in latest_pkgs):
+                header.append("Location")
+                data = [x + [x[0].location] for x in data]
+            self.output_package_listing_columns(data, options, header)
+        else:
+            for dist, latest_version, typ in latest_pkgs:
                 logger.info(
                     '%s - Latest: %s [%s]',
                     self.output_package(dist), latest_version, typ,
@@ -181,7 +220,7 @@ class ListCommand(Command):
             user_only=options.user,
             editables_only=options.editable,
         )
-        self.output_package_listing(installed_packages)
+        self.output_package_listing(installed_packages, options)
 
     def output_package(self, dist):
         if dist_is_editable(dist):
@@ -193,17 +232,72 @@ class ListCommand(Command):
         else:
             return '%s (%s)' % (dist.project_name, dist.version)
 
-    def output_package_listing(self, installed_packages):
+    def output_package_listing(self, installed_packages, options=None):
         installed_packages = sorted(
             installed_packages,
             key=lambda dist: dist.project_name.lower(),
         )
-        for dist in installed_packages:
-            logger.info(self.output_package(dist))
+
+        if options.columns and len(installed_packages) > 0:
+            header = ["Package", "Version"]
+
+            data = []
+            any_is_editable = False
+
+            for proj in installed_packages:
+                if dist_is_editable(proj):
+                    any_is_editable = True
+                    data.append([proj.project_name,
+                                 proj.version,
+                                 proj.location,
+                                 ])
+                else:
+                    data.append([proj.project_name, proj.version])
+
+            if any_is_editable:
+                header.append("Location")
+
+            self.output_package_listing_columns(data, options, header)
+
+        else:
+            for dist in installed_packages:
+                logger.info(self.output_package(dist))
+
+    def output_package_listing_columns(self, data, options, header=None):
+        # insert the header first: we need to know the size of column names
+        if not options.no_header and len(data) > 0:
+            data.insert(0, header)
+
+        pkg_strings, sizes = tabulate(data)
+
+        # Create and add a separator.
+        if not options.no_header and len(data) > 0:
+            pkg_strings.insert(1, " ".join(map(lambda x: '-' * x, sizes)))
+
+        for val in pkg_strings:
+            logger.info(val)
 
     def run_uptodate(self, options):
         uptodate = []
         for dist, version, typ in self.find_packages_latest_versions(options):
             if dist.parsed_version == version:
                 uptodate.append(dist)
-        self.output_package_listing(uptodate)
+        self.output_package_listing(uptodate, options)
+
+
+def tabulate(vals):
+    # From pfmoore on GitHub:
+    # https://github.com/pypa/pip/issues/3651#issuecomment-216932564
+    assert len(vals) > 0
+
+    sizes = [0] * max(len(x) for x in vals)
+    for row in vals:
+        sizes = [max(s, len(str(c))) for s, c in zip_longest(sizes, row)]
+
+    result = []
+    for row in vals:
+        display = " ".join([str(c).ljust(s) if c is not None else ''
+                            for s, c in zip_longest(sizes, row)])
+        result.append(display)
+
+    return result, sizes
