@@ -293,11 +293,13 @@ class Wheel(object):
         return hash_kind, result
 
     def write_record(self, records, record_path, base):
+        records = list(records) # make a copy for sorting
+        p = to_posix(os.path.relpath(record_path, base))
+        records.append((p, '', ''))
+        records.sort()
         with CSVWriter(record_path) as writer:
             for row in records:
                 writer.writerow(row)
-            p = to_posix(os.path.relpath(record_path, base))
-            writer.writerow((p, '', ''))
 
     def write_records(self, info, libdir, archive_paths):
         records = []
