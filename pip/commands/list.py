@@ -151,7 +151,9 @@ class ListCommand(Command):
             if latest_version > dist.parsed_version:
                 latest_pkgs.append((dist, latest_version, typ))
 
-        if options.columns and len(latest_pkgs) > 0:
+        if (hasattr(options, "columns")
+                and options.columns
+                and len(latest_pkgs) > 0):
             header = ["Package", "Version", "Latest", "Type"]
             data = [[dist.project_name,
                      dist.version,
@@ -238,7 +240,9 @@ class ListCommand(Command):
             key=lambda dist: dist.project_name.lower(),
         )
 
-        if options.columns and len(installed_packages) > 0:
+        if (hasattr(options, "columns")
+                and options.columns
+                and len(installed_packages) > 0):
             header = ["Package", "Version"]
 
             data = []
@@ -264,6 +268,10 @@ class ListCommand(Command):
                 logger.info(self.output_package(dist))
 
     def output_package_listing_columns(self, data, options, header=None):
+        if header is None and not options.no_header:
+            raise ValueError("A value for `header` must be given "
+                             "if --no-header is not set")
+
         # insert the header first: we need to know the size of column names
         if not options.no_header and len(data) > 0:
             data.insert(0, header)
