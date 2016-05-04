@@ -1,5 +1,7 @@
 **8.2.0 (unreleased)**
 
+* Added optional column formatting to ``pip list`` (:issue:`3651`).
+
 
 **8.1.2 (2016-05-10)**
 
