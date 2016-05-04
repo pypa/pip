@@ -5,6 +5,8 @@
 * Use environment markers to filter packages before determining if a
   required wheel is supported. Solves (:issue:`3254`).
 
+* Added optional column formatting to pip list (:issue:`3651`).
+
 
 **8.1.1 (2016-03-17)**
 
