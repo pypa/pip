@@ -141,11 +141,11 @@ class ScriptMaker(object):
         if self.executable:
             executable = self.executable
             enquote = False     # assume this will be taken care of
-        elif not sysconfig.is_python_build():
-            executable = get_executable()
         elif in_venv():  # pragma: no cover
             executable = os.path.join(sysconfig.get_path('scripts'),
                             'python%s' % sysconfig.get_config_var('EXE'))
+        elif not sysconfig.is_python_build():
+            executable = get_executable()
         else:  # pragma: no cover
             executable = os.path.join(
                 sysconfig.get_config_var('BINDIR'),
