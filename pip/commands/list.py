@@ -151,15 +151,15 @@ class ListCommand(Command):
             if latest_version > dist.parsed_version:
                 latest_pkgs.append((dist, latest_version, typ))
 
-        if (hasattr(options, "columns")
-                and options.columns
-                and len(latest_pkgs) > 0):
+        if (hasattr(options, "columns") and
+                options.columns and
+                len(latest_pkgs) > 0):
             header = ["Package", "Version", "Latest", "Type"]
             data = [[dist.project_name,
                      dist.version,
                      latest_version,
                      typ,
-                    ]
+                     ]
                     for dist, latest_version, typ in latest_pkgs]
             if any(dist_is_editable(x[0]) for x in latest_pkgs):
                 header.append("Location")
@@ -240,9 +240,9 @@ class ListCommand(Command):
             key=lambda dist: dist.project_name.lower(),
         )
 
-        if (hasattr(options, "columns")
-                and options.columns
-                and len(installed_packages) > 0):
+        if (hasattr(options, "columns") and
+                options.columns and
+                len(installed_packages) > 0):
             header = ["Package", "Version"]
 
             data = []
