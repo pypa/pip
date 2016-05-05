@@ -116,12 +116,11 @@ def print_results(hits, name_column_width=None, terminal_width=None):
         summary = hit['summary'] or ''
         version = hit.get('versions', ['-'])[-1]
         if terminal_width is not None:
-            # wrap and indent summary to fit terminal
-            summary = textwrap.wrap(
-                summary,
-                terminal_width - name_column_width - 5,
-            )
-            summary = ('\n' + ' ' * (name_column_width + 3)).join(summary)
+            target_width = terminal_width - name_column_width - 5
+            if target_width > 10:
+                # wrap and indent summary to fit terminal
+                summary = textwrap.wrap(summary, target_width)
+                summary = ('\n' + ' ' * (name_column_width + 3)).join(summary)
 
         line = '%-*s - %s' % (name_column_width,
                               '%s (%s)' % (name, version), summary)
