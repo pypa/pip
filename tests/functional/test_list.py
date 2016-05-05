@@ -58,8 +58,12 @@ def test_noheader_flag(script, data):
         'install', '-f', data.find_links, '--no-index', 'simple==1.0',
         'simple2==3.0',
     )
-    result = script.pip('list', '--no-header')
-    assert 'Option --no-header can only be' in result.stderr, str(result)
+    try:
+        result = script.pip('list', '--no-header')
+    except CommandError:
+        assert True
+    else:
+        assert False, "CommandError not raised: %s" % str(result)
 
 
 def test_local_flag(script, data):
@@ -104,8 +108,12 @@ def test_local_noheader_flag(script, data):
     command.
     """
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
-    result = script.pip('list', '--local', '--no-header')
-    assert 'Option --no-header can only be' in result.stderr, str(result)
+    try:
+        result = script.pip('list', '--local', '--no-header')
+    except CommandError:
+        assert True
+    else:
+        assert False, "CommandError not raised: %s" % str(result)
 
 
 def test_user_flag(script, data, virtualenv):
@@ -163,8 +171,12 @@ def test_user_noheader_flag(script, data, virtualenv):
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
     script.pip('install', '-f', data.find_links, '--no-index',
                '--user', 'simple2==2.0')
-    result = script.pip('list', '--user', '--no-header')
-    assert 'Option --no-header can only be' in result.stderr, str(result)
+    try:
+        result = script.pip('list', '--user', '--no-header')
+    except CommandError:
+        assert True
+    else:
+        assert False, "CommandError not raised: %s" % str(result)
 
 
 @pytest.mark.network
@@ -238,7 +250,7 @@ def test_uptodate_columns_noheader_flag(script, data):
     assert 'Version' not in result.stdout
     assert 'Location' not in result.stdout      # editables included
     assert 'pip-test-package (0.1.1,' not in result.stdout
-    assert 'pip-test-package 0.1.1,' in result.stdout
+    assert 'pip-test-package 0.1.1' in result.stdout, str(result)
     assert 'simple2          3.0' in result.stdout, str(result)
 
 
@@ -256,11 +268,15 @@ def test_uptodate_noheader_flag(script, data):
         'install', '-e',
         'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package'
     )
-    result = script.pip(
-        'list', '-f', data.find_links, '--no-index', '--uptodate',
-        '--no-header', expect_stderr=True,
-    )
-    assert 'Option --no-header can only be' in result.stderr, str(result)
+    try:
+        result = script.pip(
+            'list', '-f', data.find_links, '--no-index', '--uptodate',
+            '--no-header', expect_stderr=True,
+        )
+    except CommandError:
+        assert True
+    else:
+        assert False, "CommandError not raised: %s" % str(result)
 
 
 @pytest.mark.network
@@ -335,7 +351,7 @@ def test_outdated_columns_noheader_flag(script, data):
     )
     result = script.pip(
         'list', '-f', data.find_links, '--no-index', '--outdated',
-        '--columns', '--noheader', expect_stderr=True,
+        '--columns', '--no-header', expect_stderr=True,
     )
     assert 'Package' not in result.stdout
     assert 'Version' not in result.stdout
@@ -362,12 +378,15 @@ def test_outdated_noheader_flag(script, data):
         'git+https://github.com/pypa/pip-test-package.git'
         '@0.1#egg=pip-test-package'
     )
-
-    result = script.pip(
-        'list', '-f', data.find_links, '--no-index', '--outdated',
-        '--noheader', expect_stderr=True,
-    )
-    assert 'Option --no-header can only be' in result.stderr, str(result)
+    try:
+        result = script.pip(
+            'list', '-f', data.find_links, '--no-index', '--outdated',
+            '--noheader', expect_stderr=True,
+        )
+    except CommandError:
+        assert True
+    else:
+        assert False, "CommandError not raised: %s" % str(result)
 
 
 @pytest.mark.network
@@ -435,8 +454,12 @@ def test_editables_noheader_flag(script, data):
         'install', '-e',
         'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package'
     )
-    result = script.pip('list', '--editable', '--no-header')
-    assert 'Option --no-header can only be' in result.stderr, str(result)
+    try:
+        result = script.pip('list', '--editable', '--no-header')
+    except CommandError:
+        assert True
+    else:
+        assert False, "CommandError not raised: %s" % str(result)
 
 
 @pytest.mark.network
@@ -519,12 +542,16 @@ def test_uptodate_editables_noheader_flag(script, data):
         'install', '-e',
         'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package'
     )
-    result = script.pip(
-        'list', '-f', data.find_links, '--no-index',
-        '--editable', '--uptodate', '--no-header',
-        expect_stderr=True,
-    )
-    assert 'Option --no-header can only be' in result.stderr, str(result)
+    try:
+        result = script.pip(
+            'list', '-f', data.find_links, '--no-index',
+            '--editable', '--uptodate', '--no-header',
+            expect_stderr=True,
+        )
+    except CommandError:
+        assert True
+    else:
+        assert False, "CommandError not raised: %s" % str(result)
 
 
 @pytest.mark.network
@@ -608,12 +635,16 @@ def test_outdated_editables_noheader_flag(script, data):
         'git+https://github.com/pypa/pip-test-package.git'
         '@0.1#egg=pip-test-package'
     )
-    result = script.pip(
-        'list', '-f', data.find_links, '--no-index',
-        '--editable', '--outdated', '--no-header',
-        expect_stderr=True,
-    )
-    assert 'Option --no-header can only be' in result.stderr, str(result)
+    try:
+        result = script.pip(
+            'list', '-f', data.find_links, '--no-index',
+            '--editable', '--outdated', '--no-header',
+            expect_stderr=True,
+        )
+    except CommandError:
+        assert True
+    else:
+        assert False, "CommandError not raised: %s" % str(result)
 
 
 def test_outdated_pre(script, data):
@@ -692,8 +723,12 @@ def test_outdated_pre_noheader(script, data):
     result = script.pip('list', '--no-index', '--find-links', wheelhouse_path,
                         '--outdated')
     assert 'simple (1.0) - Latest: 1.1 [wheel]' in result.stdout
-    result = script.pip('list', '--no-index',
-        '--find-links', wheelhouse_path,
-        '--outdated', '--pre', '--no-header',
-    )
-    assert 'Option --no-header can only be' in result.stderr, str(result)
+    try:
+        result = script.pip('list', '--no-index',
+                            '--find-links', wheelhouse_path,
+                            '--outdated', '--pre', '--no-header',
+                            )
+    except CommandError:
+        assert True
+    else:
+        assert False, "CommandError not raised: %s" % str(result)
