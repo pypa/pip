@@ -61,7 +61,7 @@ def test_columns_nocolumns(script, data):
         'install', '-f', data.find_links, '--no-index', 'simple==1.0',
         'simple2==3.0',
     )
-    result = script.pip('list')
+    result = script.pip('list', '--columns', '--no-columns')
     assert ERR_COL_NOCOL in result.stderr, str(result)
     assert 'simple (1.0)' not in result.stdout, str(result)
     assert 'simple2 (3.0)' not in result.stdout, str(result)
