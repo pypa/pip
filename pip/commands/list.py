@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+import sys
 import warnings
 try:
     from itertools import zip_longest
@@ -57,7 +58,7 @@ class ListCommand(Command):
             help=('If in a virtualenv that has global access, do not list '
                   'globally-installed packages.'),
         )
-        self.cmd_opts.add_option(
+        cmd_opts.add_option(
             '--user',
             dest='user',
             action='store_true',
@@ -76,14 +77,15 @@ class ListCommand(Command):
             '--columns',
             action='store_true',
             default=False,
-            help="Align package names and versions into vertical columns."
+            help="Align package names and versions into vertical columns.",
         )
 
         cmd_opts.add_option(
-            '--no-header',
+            '--no-columns',
             action='store_true',
-            default=False,
-            help="Do not display the header when --columns is used."
+            default=True,
+            help=("Do not align package names and versions into "
+                  "vertical columns (old-style formatting)"),
         )
 
         index_opts = make_option_group(index_group, self.parser)
@@ -128,13 +130,25 @@ class ListCommand(Command):
                 "no longer has any effect.",
                 RemovedInPip10Warning,
             )
+
+        # will this work in all usage cases?
+        if '--columns' in sys.argv and '--no-columns' in sys.argv:
+            raise CommandError(
+                "Options --columns and --no-columns cannot be combined.")
+
+        # prevent the deprecaiton warning from appearing if --columns is set.
+        if options.columns:
+            options.no_columns = False
+
+        if options.no_columns:
+            warnings.warn(
+                "The --no-columns option will be removed in the future.",
+                RemovedInPip10Warning,
+            )
+
         if options.outdated and options.uptodate:
             raise CommandError(
                 "Options --outdated and --uptodate cannot be combined.")
-
-        if options.no_header and not options.columns:
-            raise CommandError(
-                "Option --no-header can only be used with --columns.")
 
         if options.outdated:
             self.run_outdated(options)
@@ -155,15 +169,22 @@ class ListCommand(Command):
                 options.columns and
                 len(latest_pkgs) > 0):
             header = ["Package", "Version", "Latest", "Type"]
-            data = [[dist.project_name,
-                     dist.version,
-                     latest_version,
-                     typ,
-                     ]
-                    for dist, latest_version, typ in latest_pkgs]
             if any(dist_is_editable(x[0]) for x in latest_pkgs):
                 header.append("Location")
-                data = [x + [x[0].location] for x in data]
+
+            data = []
+            for (dist, latest_version, typ) in latest_pkgs:
+                row = [dist.project_name,
+                       dist.version,
+                       latest_version,
+                       typ,
+                       ]
+
+                if dist_is_editable(dist):
+                    row.append(dist.location)
+
+                data.append(row)
+
             self.output_package_listing_columns(data, options, header)
         else:
             for dist, latest_version, typ in latest_pkgs:
@@ -268,18 +289,18 @@ class ListCommand(Command):
                 logger.info(self.output_package(dist))
 
     def output_package_listing_columns(self, data, options, header=None):
-        if header is None and not options.no_header:
+        if header is None and options.columns:
             raise ValueError("A value for `header` must be given "
-                             "if --no-header is not set")
+                             "if --columns is set")
 
         # insert the header first: we need to know the size of column names
-        if not options.no_header and len(data) > 0:
+        if len(data) > 0:
             data.insert(0, header)
 
         pkg_strings, sizes = tabulate(data)
 
         # Create and add a separator.
-        if not options.no_header and len(data) > 0:
+        if len(data) > 0:
             pkg_strings.insert(1, " ".join(map(lambda x: '-' * x, sizes)))
 
         for val in pkg_strings:
