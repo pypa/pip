@@ -16,7 +16,7 @@ def test_list_command(script, data):
         'install', '-f', data.find_links, '--no-index', 'simple==1.0',
         'simple2==3.0',
     )
-    result = script.pip('list')
+    result = script.pip('list', expect_stderr=True)
     assert WARN_NOCOL in result.stderr, str(result)
     assert 'simple (1.0)' in result.stdout, str(result)
     assert 'simple2 (3.0)' in result.stdout, str(result)
@@ -47,7 +47,7 @@ def test_nocolumns_flag(script, data):
         'install', '-f', data.find_links, '--no-index', 'simple==1.0',
         'simple2==3.0',
     )
-    result = script.pip('list', '--no-columns')
+    result = script.pip('list', '--no-columns', expect_stderr=True)
     assert WARN_NOCOL in result.stderr, str(result)
     assert 'simple (1.0)' in result.stdout, str(result)
     assert 'simple2 (3.0)' in result.stdout, str(result)
@@ -63,7 +63,7 @@ def test_columns_nocolumns(script, data):
     )
     result = script.pip(
         'list', '--columns', '--no-columns',
-        expect_error=True,
+        expect_stderr=True,
     )
     assert ERR_COL_NOCOL in result.stderr, str(result)
     assert 'simple (1.0)' not in result.stdout, str(result)
@@ -77,7 +77,10 @@ def test_local_flag(script, data):
     Test the behavior of --local flag in the list command
 
     """
-    script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
+    script.pip(
+        'install', '-f', data.find_links, '--no-index', 'simple==1.0',
+        expect_stderr=True,
+    )
     result = script.pip('list', '--local')
     assert WARN_NOCOL in result.stderr, str(result)
     assert 'simple (1.0)' in result.stdout
@@ -102,7 +105,7 @@ def test_local_nocolumns_flag(script, data):
     command.
     """
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
-    result = script.pip('list', '--local', '--no-columns')
+    result = script.pip('list', '--local', '--no-columns', expect_stderr=True)
     assert WARN_NOCOL in result.stderr, str(result)
     assert 'simple (1.0)' in result.stdout
 
@@ -116,7 +119,7 @@ def test_user_flag(script, data, virtualenv):
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
     script.pip('install', '-f', data.find_links, '--no-index',
                '--user', 'simple2==2.0')
-    result = script.pip('list', '--user')
+    result = script.pip('list', '--user', expect_stderr=True)
     assert WARN_NOCOL in result.stderr, str(result)
     assert 'simple (1.0)' not in result.stdout
     assert 'simple2 (2.0)' in result.stdout, str(result)
@@ -147,7 +150,7 @@ def test_user_nocolumns_flag(script, data, virtualenv):
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
     script.pip('install', '-f', data.find_links, '--no-index',
                '--user', 'simple2==2.0')
-    result = script.pip('list', '--user', '--no-columns')
+    result = script.pip('list', '--user', '--no-columns', expect_stderr=True)
     assert WARN_NOCOL in result.stderr, str(result)
     assert 'simple (1.0)' not in result.stdout
     assert 'simple2 (2.0)' in result.stdout, str(result)
@@ -325,7 +328,7 @@ def test_editables_flag(script, data):
         'install', '-e',
         'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package'
     )
-    result = script.pip('list', '--editable')
+    result = script.pip('list', '--editable', expect_stderr=True)
     assert WARN_NOCOL in result.stderr, str(result)
     assert 'simple (1.0)' not in result.stdout, str(result)
     assert os.path.join('src', 'pip-test-package') in result.stdout, (
@@ -516,16 +519,23 @@ def test_outdated_pre(script, data):
     wheelhouse_path = script.scratch_path / 'wheelhouse'
     wheelhouse_path.join('simple-1.1-py2.py3-none-any.whl').write('')
     wheelhouse_path.join('simple-2.0.dev0-py2.py3-none-any.whl').write('')
-    result = script.pip('list', '--no-index', '--find-links', wheelhouse_path)
+    result = script.pip(
+        'list', '--no-index', '--find-links', wheelhouse_path,
+        expect_stderr=True,
+    )
     assert WARN_NOCOL in result.stderr, str(result)
     assert 'simple (1.0)' in result.stdout
-    result = script.pip('list', '--no-index', '--find-links', wheelhouse_path,
-                        '--outdated')
+    result = script.pip(
+        'list', '--no-index', '--find-links', wheelhouse_path,
+        '--outdated', expect_stderr=True,
+    )
     assert WARN_NOCOL in result.stderr, str(result)
     assert 'simple (1.0) - Latest: 1.1 [wheel]' in result.stdout
-    result_pre = script.pip('list', '--no-index',
-                            '--find-links', wheelhouse_path,
-                            '--outdated', '--pre')
+    result_pre = script.pip(
+        'list', '--no-index',
+        '--find-links', wheelhouse_path,
+        '--outdated', '--pre', expect_stderr=True,
+    )
     assert WARN_NOCOL in result.stderr, str(result_pre)
     assert 'simple (1.0) - Latest: 2.0.dev0 [wheel]' in result_pre.stdout
 
@@ -538,14 +548,20 @@ def test_outdated_pre_columns(script, data):
     wheelhouse_path = script.scratch_path / 'wheelhouse'
     wheelhouse_path.join('simple-1.1-py2.py3-none-any.whl').write('')
     wheelhouse_path.join('simple-2.0.dev0-py2.py3-none-any.whl').write('')
-    result = script.pip('list', '--no-index', '--find-links', wheelhouse_path)
+    result = script.pip(
+        'list', '--no-index', '--find-links', wheelhouse_path,
+        expect_stderr=True,
+    )
     assert 'simple (1.0)' in result.stdout
-    result = script.pip('list', '--no-index', '--find-links', wheelhouse_path,
-                        '--outdated')
+    result = script.pip(
+        'list', '--no-index', '--find-links', wheelhouse_path,
+        '--outdated', expect_stderr=True
+    )
     assert 'simple (1.0) - Latest: 1.1 [wheel]' in result.stdout
-    result_pre = script.pip('list', '--no-index',
-                            '--find-links', wheelhouse_path,
-                            '--outdated', '--pre', '--columns')
+    result_pre = script.pip(
+        'list', '--no-index', '--find-links', wheelhouse_path,
+        '--outdated', '--pre', '--columns', expect_stderr=True,
+    )
     assert 'Package' in result_pre.stdout
     assert 'Version' in result_pre.stdout
     assert 'Latest' in result_pre.stdout
@@ -560,13 +576,19 @@ def test_outdated_pre_nocolumns(script, data):
     wheelhouse_path = script.scratch_path / 'wheelhouse'
     wheelhouse_path.join('simple-1.1-py2.py3-none-any.whl').write('')
     wheelhouse_path.join('simple-2.0.dev0-py2.py3-none-any.whl').write('')
-    result = script.pip('list', '--no-index', '--find-links', wheelhouse_path)
+    result = script.pip(
+        'list', '--no-index', '--find-links', wheelhouse_path,
+        expect_stderr=True,
+    )
     assert 'simple (1.0)' in result.stdout
-    result = script.pip('list', '--no-index', '--find-links', wheelhouse_path,
-                        '--outdated')
+    result = script.pip(
+        'list', '--no-index', '--find-links', wheelhouse_path,
+        '--outdated', expect_stderr=True,
+    )
     assert 'simple (1.0) - Latest: 1.1 [wheel]' in result.stdout
-    result = script.pip('list', '--no-index',
-                        '--find-links', wheelhouse_path,
-                        '--outdated', '--pre', '--no-columns',
-                        )
+    result = script.pip(
+        'list', '--no-index',
+        '--find-links', wheelhouse_path,
+        '--outdated', '--pre', '--no-columns', expect_stderr=True
+    )
     assert WARN_NOCOL in result.stderr, str(result)
