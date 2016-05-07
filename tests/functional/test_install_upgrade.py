@@ -362,7 +362,7 @@ class TestUpgradeDistributeToSetuptools(object):
         )
         result = self.script.run(
             self.ve_bin / 'pip', 'list',
-            expect_stderr=True if sys.version_info[:2] == (2, 6) else False,
+            expect_stderr=True,
         )
         assert "setuptools (0.9.8)" in result.stdout
         assert "distribute (0.7.3)" in result.stdout
