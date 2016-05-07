@@ -63,7 +63,7 @@ def test_columns_nocolumns(script, data):
     )
     result = script.pip(
         'list', '--columns', '--no-columns',
-        expect_stderr=True,
+        expect_error=True,
     )
     assert ERR_COL_NOCOL in result.stderr, str(result)
     assert 'simple (1.0)' not in result.stdout, str(result)
@@ -81,7 +81,7 @@ def test_local_flag(script, data):
         'install', '-f', data.find_links, '--no-index', 'simple==1.0',
         expect_stderr=True,
     )
-    result = script.pip('list', '--local')
+    result = script.pip('list', '--local', expect_stderr=True)
     assert WARN_NOCOL in result.stderr, str(result)
     assert 'simple (1.0)' in result.stdout
 
@@ -365,7 +365,9 @@ def test_editables_nocolumns_flag(script, data):
         'install', '-e',
         'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package'
     )
-    result = script.pip('list', '--editable', '--no-columns')
+    result = script.pip(
+        'list', '--editable', '--no-columns', expect_stderr=True,
+    )
     assert WARN_NOCOL in result.stderr, str(result)
     assert 'simple (1.0)' not in result.stdout, str(result)
     assert os.path.join('src', 'pip-test-package') in result.stdout, (

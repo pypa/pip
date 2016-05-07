@@ -47,7 +47,7 @@ def test_simple_uninstall_distutils(script):
         )
     """))
     result = script.run('python', pkg_path / 'setup.py', 'install')
-    result = script.pip('list')
+    result = script.pip('list', expect_stderr=True)
     assert "distutils-install (0.1)" in result.stdout
     script.pip('uninstall', 'distutils_install', '-y', expect_stderr=True)
     result2 = script.pip('list', expect_stderr=True)
@@ -416,7 +416,7 @@ def test_uninstall_setuptools_develop_install(script, data):
                expect_stderr=True, cwd=pkg_path)
     script.run('python', 'setup.py', 'install',
                expect_stderr=True, cwd=pkg_path)
-    list_result = script.pip('list')
+    list_result = script.pip('list', expect_stderr=True)
     assert "FSPkg (0.1.dev0, " in list_result.stdout
     # Uninstall both develop and install
     uninstall = script.pip('uninstall', 'FSPkg', '-y')
@@ -426,5 +426,5 @@ def test_uninstall_setuptools_develop_install(script, data):
     assert join(
         script.site_packages, 'FSPkg.egg-link'
     ) in uninstall2.files_deleted, list(uninstall2.files_deleted.keys())
-    list_result2 = script.pip('list')
+    list_result2 = script.pip('list', expect_stderr=True)
     assert "FSPkg" not in list_result2.stdout
