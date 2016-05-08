@@ -33,7 +33,8 @@ from .compat import (string_types, text_type, shutil, raw_input, StringIO,
                      cache_from_source, urlopen, urljoin, httplib, xmlrpclib,
                      splittype, HTTPHandler, HTTPSHandler as BaseHTTPSHandler,
                      BaseConfigurator, valid_ident, Container, configparser,
-                     URLError, match_hostname, CertificateError, ZipFile)
+                     URLError, match_hostname, CertificateError, ZipFile,
+                     fsdecode)
 
 logger = logging.getLogger(__name__)
 
@@ -165,7 +166,10 @@ def get_executable():
 #    else:
 #        result = sys.executable
 #    return result
-    return os.path.normcase(sys.executable)
+    result = os.path.normcase(sys.executable)
+    if not isinstance(result, text_type):
+        result = fsdecode(result)
+    return result
 
 
 def proceed(prompt, allowed_chars, error_prompt=None, default=None):
@@ -553,11 +557,10 @@ class ExportEntry(object):
     __hash__ = object.__hash__
 
 
-ENTRY_RE = re.compile(r'''(?P<name>(\w|[-.])+)
+ENTRY_RE = re.compile(r'''(?P<name>(\w|[-.+])+)
                       \s*=\s*(?P<callable>(\w+)([:\.]\w+)*)
                       \s*(\[\s*(?P<flags>\w+(=\w+)?(,\s*\w+(=\w+)?)*)\s*\])?
                       ''', re.VERBOSE)
-
 
 def get_export_entry(specification):
     m = ENTRY_RE.search(specification)
@@ -760,8 +763,9 @@ def _get_external_data(url):
         # using a custom redirect handler.
         resp = urlopen(url)
         headers = resp.info()
-        if headers.get('Content-Type') != 'application/json':
-            logger.debug('Unexpected response for JSON request')
+        ct = headers.get('Content-Type')
+        if not ct.startswith('application/json'):
+            logger.debug('Unexpected response for JSON request: %s', ct)
         else:
             reader = codecs.getreader('utf-8')(resp)
             #data = reader.read().decode('utf-8')
