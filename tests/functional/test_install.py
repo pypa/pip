@@ -846,6 +846,18 @@ def test_install_subprocess_output_handling(script, data):
     assert 1 == result.stdout.count("I DIE, I DIE")
 
 
+def test_install_log(script, data, tmpdir):
+    # test that verbose logs go to "--log" file
+    f = tmpdir.join("log.txt")
+    args = ['--log=%s' % f,
+            'install', data.src.join('chattymodule')]
+    result = script.pip(*args)
+    assert 0 == result.stdout.count("HELLO FROM CHATTYMODULE")
+    with open(f, 'r') as fp:
+        # one from egg_info, one from install
+        assert 2 == fp.read().count("HELLO FROM CHATTYMODULE")
+
+
 def test_install_topological_sort(script, data):
     args = ['install', 'TopoRequires4', '-f', data.packages]
     res = str(script.pip(*args, expect_error=False))
