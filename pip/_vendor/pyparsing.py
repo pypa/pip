@@ -57,8 +57,8 @@ The pyparsing module handles some of the problems that are typically vexing when
  - embedded comments
 """
 
-__version__ = "2.1.0"
-__versionTime__ = "7 Feb 2016 14:09"
+__version__ = "2.1.1"
+__versionTime__ = "21 Mar 2016 05:04 UTC"
 __author__ = "Paul McGuire <ptmcg@users.sourceforge.net>"
 
 import string
@@ -328,7 +328,7 @@ class ParseResults(object):
         if isinstance(v,_ParseResultsWithOffset):
             self.__tokdict[k] = self.__tokdict.get(k,list()) + [v]
             sub = v[0]
-        elif isinstance(k,int):
+        elif isinstance(k,(int,slice)):
             self.__toklist[k] = v
             sub = v
         else:
@@ -541,7 +541,17 @@ class ParseResults(object):
             item_fn = self.items
         else:
             item_fn = self.iteritems
-        return dict((k,v.asDict()) if isinstance(v, ParseResults) else (k,v) for k,v in item_fn())
+            
+        def toItem(obj):
+            if isinstance(obj, ParseResults):
+                if obj.haskeys():
+                    return obj.asDict()
+                else:
+                    return [toItem(v) for v in obj]
+            else:
+                return obj
+                
+        return dict((k,toItem(v)) for k,v in item_fn())
 
     def copy( self ):
         """Returns a new copy of a C{ParseResults} object."""
@@ -1552,7 +1562,7 @@ class ParserElement(object):
 
     def __eq__(self,other):
         if isinstance(other, ParserElement):
-            return self is other or self.__dict__ == other.__dict__
+            return self is other or vars(self) == vars(other)
         elif isinstance(other, basestring):
             try:
                 self.parseString(_ustr(other), parseAll=True)
@@ -1931,15 +1941,15 @@ class Regex(Token):
 class QuotedString(Token):
     """Token for matching strings that are delimited by quoting characters.
     """
-    def __init__( self, quoteChar, escChar=None, escQuote=None, multiline=False, unquoteResults=True, endQuoteChar=None):
-        """
-           Defined with the following parameters:
+    def __init__( self, quoteChar, escChar=None, escQuote=None, multiline=False, unquoteResults=True, endQuoteChar=None, convertWhitespaceEscapes=True):
+        r"""Defined with the following parameters:
             - quoteChar - string of one or more characters defining the quote delimiting string
             - escChar - character to escape quotes, typically backslash (default=None)
             - escQuote - special quote sequence to escape an embedded quote string (such as SQL's "" to escape an embedded ") (default=None)
             - multiline - boolean indicating whether quotes can span multiple lines (default=C{False})
             - unquoteResults - boolean indicating whether the matched text should be unquoted (default=C{True})
             - endQuoteChar - string of one or more characters defining the end of the quote delimited string (default=C{None} => same as quoteChar)
+            - convertWhitespaceEscapes - convert escaped whitespace (C{'\t'}, C{'\n'}, etc.) to actual whitespace (default=C{True})
         """
         super(QuotedString,self).__init__()
 
@@ -1965,6 +1975,7 @@ class QuotedString(Token):
         self.escChar = escChar
         self.escQuote = escQuote
         self.unquoteResults = unquoteResults
+        self.convertWhitespaceEscapes = convertWhitespaceEscapes
 
         if multiline:
             self.flags = re.MULTILINE | re.DOTALL
@@ -2018,6 +2029,17 @@ class QuotedString(Token):
             ret = ret[self.quoteCharLen:-self.endQuoteCharLen]
 
             if isinstance(ret,basestring):
+                # replace escaped whitespace
+                if '\\' in ret and self.convertWhitespaceEscapes:
+                    ws_map = {
+                        r'\t' : '\t',
+                        r'\n' : '\n',
+                        r'\f' : '\f',
+                        r'\r' : '\r',
+                    }
+                    for wslit,wschar in ws_map.items():
+                        ret = ret.replace(wslit, wschar)
+
                 # replace escaped characters
                 if self.escChar:
                     ret = re.sub(self.escCharReplacePattern,"\g<1>",ret)
@@ -2622,14 +2644,16 @@ class Each(ParseExpression):
             tmpExprs = tmpReqd + tmpOpt + self.multioptionals + self.multirequired
             failed = []
             for e in tmpExprs:
-                if e.canParseNext(instring, tmpLoc):
+                try:
+                    tmpLoc = e.tryParse( instring, tmpLoc )
+                except ParseException:
+                    failed.append(e)
+                else:
                     matchOrder.append(self.opt1map.get(id(e),e))
                     if e in tmpReqd:
                         tmpReqd.remove(e)
                     elif e in tmpOpt:
                         tmpOpt.remove(e)
-                else:
-                    failed.append(e)
             if len(failed) == len(tmpExprs):
                 keepMatching = False
 
@@ -2938,7 +2962,7 @@ class SkipTo(ParseElementEnhance):
         self.mayIndexError = False
         self.includeMatch = include
         self.asList = False
-        if failOn is not None and isinstance(failOn, basestring):
+        if isinstance(failOn, basestring):
             self.failOn = Literal(failOn)
         else:
             self.failOn = failOn
@@ -2956,7 +2980,7 @@ class SkipTo(ParseElementEnhance):
         while tmploc <= instrlen:
             if self_failOn_canParseNext is not None:
                 # break if failOn expression matches
-                if self_failOn.canParseNext(instring, tmploc):
+                if self_failOn_canParseNext(instring, tmploc):
                     break
                     
             if self_ignoreExpr_tryParse is not None:
@@ -3400,10 +3424,7 @@ def originalTextFor(expr, asString=True):
         extractText = lambda s,l,t: s[t._original_start:t._original_end]
     else:
         def extractText(s,l,t):
-            del t[:]
-            t.insert(0, s[t._original_start:t._original_end])
-            del t["_original_start"]
-            del t["_original_end"]
+            t[:] = [s[t.pop('_original_start'):t.pop('_original_end')]]
     matchExpr.setParseAction(extractText)
     return matchExpr
 
@@ -3476,10 +3497,7 @@ def replaceWith(replStr):
     """Helper method for common parse actions that simply return a literal value.  Especially
        useful when used with C{L{transformString<ParserElement.transformString>}()}.
     """
-    #def _replFunc(*args):
-    #    return [replStr]
-    #return _replFunc
-    return functools.partial(next, itertools.repeat([replStr]))
+    return lambda s,l,t: [replStr]
 
 def removeQuotes(s,l,t):
     """Helper parse action for removing quotation marks from parsed quoted strings.
@@ -3495,22 +3513,6 @@ def upcaseTokens(s,l,t):
 def downcaseTokens(s,l,t):
     """Helper parse action to convert tokens to lower case."""
     return [ tt.lower() for tt in map(_ustr,t) ]
-
-def getTokensEndLoc():
-    """Method to be called from within a parse action to determine the end
-       location of the parsed tokens."""
-    import inspect
-    fstack = inspect.stack()
-    try:
-        # search up the stack (through intervening argument normalizers) for correct calling routine
-        for f in fstack[2:]:
-            if f[3] == "_parseNoCache":
-                endloc = f[0].f_locals["loc"]
-                return endloc
-        else:
-            raise ParseFatalException("incorrect usage of getTokensEndLoc - may only be called from within a parse action")
-    finally:
-        del fstack
 
 def _makeTags(tagStr, xml):
     """Internal helper to construct opening and closing tag expressions, given a tag name"""
