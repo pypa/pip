@@ -1,7 +1,7 @@
 distlib==0.2.3
 html5lib==1.0b8
 six==1.10.0
-colorama==0.3.6
+colorama==0.3.7
 requests==2.9.1
 CacheControl==0.11.6
 lockfile==0.12.2
