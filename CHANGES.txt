@@ -1,3 +1,6 @@
+**8.2.0 (unreleased)**
+
+
 **8.1.2 (2016-05-10)**
 
 * Fix a regression on systems with uninitialized locale (:issue:`3575`).
