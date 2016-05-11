@@ -5,6 +5,17 @@
 * Use environment markers to filter packages before determining if a
   required wheel is supported. Solves (:issue:`3254`).
 
+* Make glibc parsing for `manylinux1` support more robust for the variety of
+  glibc versions found in the wild (:issue:`3588`).
+
+* Update environment marker support to fully support PEP 508 and legacy
+  environment markers (:issue:`3624`).
+
+* Always use debug logging to the ``--log`` file (:issue:`3351`).
+
+* Don't attempt to wrap search results for extremely narrow terminal windows
+  (:issue:`3655`).
+
 
 **8.1.1 (2016-03-17)**
 
