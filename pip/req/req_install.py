@@ -17,7 +17,9 @@ from email.parser import FeedParser
 from pip._vendor import pkg_resources, six
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.markers import Marker
-from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
+from pip._vendor.packaging.requirements import (
+    InvalidRequirement, Requirement as BaseRequirement
+)
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 from pip._vendor.six.moves import configparser
@@ -64,6 +66,19 @@ def _strip_extras(path):
         path_no_extras = path
 
     return path_no_extras, extras
+
+
+class Requirement(BaseRequirement):
+    '''
+    Retro compat derived class that assure the access to a project_name
+    attribute, to be retro-compatible with code that relied on
+    pkg_resources.Requirement that pip "Requirement.parse_requirements"
+    would have returned in releases previous to 8.1.2
+    '''
+
+    @property
+    def project_name(self):
+        return self.name
 
 
 class InstallRequirement(object):
