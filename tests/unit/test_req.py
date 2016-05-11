@@ -307,6 +307,15 @@ class TestInstallRequirement(object):
     def teardown(self):
         shutil.rmtree(self.tempdir, ignore_errors=True)
 
+    def test_api_consumers(self, data):
+        """Test prepare_files raise exception with previous build dir"""
+
+        ireq = InstallRequirement.from_line('Simple_blah > 1')
+        assert ireq.req.project_name == 'Simple-blah'
+        assert ireq.req.unsafe_name == 'Simple_blah'
+        assert ireq.req.key == 'simple-blah'
+        assert ireq.req.spec == [('>', '1')]
+
     def basic_reqset(self, **kwargs):
         return RequirementSet(
             build_dir=os.path.join(self.tempdir, 'build'),
