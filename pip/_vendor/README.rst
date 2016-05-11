@@ -95,7 +95,7 @@ such as OS packages.
 pkg_resources
 -------------
 
-pkg_resources has been pulled in from setuptools 20.7.0
+pkg_resources has been pulled in from setuptools 21.0.0
 
 
 Modifications
