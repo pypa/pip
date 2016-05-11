@@ -47,6 +47,15 @@ class HTTPBasicAuth(AuthBase):
         self.username = username
         self.password = password
 
+    def __eq__(self, other):
+        return all([
+            self.username == getattr(other, 'username', None),
+            self.password == getattr(other, 'password', None)
+        ])
+
+    def __ne__(self, other):
+        return not self == other
+
     def __call__(self, r):
         r.headers['Authorization'] = _basic_auth_str(self.username, self.password)
         return r
@@ -84,6 +93,7 @@ class HTTPDigestAuth(AuthBase):
         qop = self._thread_local.chal.get('qop')
         algorithm = self._thread_local.chal.get('algorithm')
         opaque = self._thread_local.chal.get('opaque')
+        hash_utf8 = None
 
         if algorithm is None:
             _algorithm = 'MD5'
@@ -221,3 +231,12 @@ class HTTPDigestAuth(AuthBase):
         self._thread_local.num_401_calls = 1
 
         return r
+
+    def __eq__(self, other):
+        return all([
+            self.username == getattr(other, 'username', None),
+            self.password == getattr(other, 'password', None)
+        ])
+
+    def __ne__(self, other):
+        return not self == other

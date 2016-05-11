@@ -163,6 +163,23 @@ def is_manylinux1_compatible():
     return have_compatible_glibc(2, 5)
 
 
+# Separated out from have_compatible_glibc for easier unit testing
+def check_glibc_version(version_str, needed_major, needed_minor):
+    # Parse string and check against requested version.
+    #
+    # We use a regexp instead of str.split because we want to discard any
+    # random junk that might come after the minor version -- this might happen
+    # in patched/forked versions of glibc (e.g. Linaro's version of glibc
+    # uses version strings like "2.20-2014.11"). See gh-3588.
+    m = re.match(r"(?P<major>[0-9]+)\.(?P<minor>[0-9]+)", version_str)
+    if not m:
+        warnings.warn("Expected glibc version with 2 components major.minor,"
+                      " got: %s" % version_str, RuntimeWarning)
+        return False
+    return (int(m.group("major")) == needed_major and
+            int(m.group("minor")) >= needed_minor)
+
+
 def have_compatible_glibc(major, minimum_minor):
     # ctypes.CDLL(None) internally calls dlopen(NULL), and as the dlopen
     # manpage says, "If filename is NULL, then the returned handle is for the
@@ -183,13 +200,7 @@ def have_compatible_glibc(major, minimum_minor):
     if not isinstance(version_str, str):
         version_str = version_str.decode("ascii")
 
-    # Parse string and check against requested version.
-    version = [int(piece) for piece in version_str.split(".")]
-    if len(version) < 2:
-        warnings.warn("Expected glibc version with 2 components major.minor,"
-                      " got: %s" % version_str, RuntimeWarning)
-        return False
-    return version[0] == major and version[1] >= minimum_minor
+    return check_glibc_version(version_str, major, minimum_minor)
 
 
 def get_darwin_arches(major, minor, machine):

@@ -300,8 +300,10 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
                         s.endswith('.dist-info') and
                         # is self.req.project_name case preserving?
                         s.lower().startswith(
-                            req.project_name.replace('-', '_').lower())):
-                    assert not info_dir, 'Multiple .dist-info directories'
+                            req.name.replace('-', '_').lower())):
+                    assert not info_dir, ('Multiple .dist-info directories: ' +
+                                          destsubdir + ', ' +
+                                          ', '.join(info_dir))
                     info_dir.append(destsubdir)
             for f in files:
                 # Skip unwanted files
@@ -801,8 +803,8 @@ class WheelBuilder(object):
                     try:
                         ensure_dir(output_dir)
                     except OSError as e:
-                        logger.warn("Building wheel for %s failed: %s",
-                                    req.name, e)
+                        logger.warning("Building wheel for %s failed: %s",
+                                       req.name, e)
                         build_failure.append(req)
                         continue
                 else:

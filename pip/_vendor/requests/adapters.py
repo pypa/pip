@@ -19,7 +19,7 @@ from .packages.urllib3.util.retry import Retry
 from .compat import urlparse, basestring
 from .utils import (DEFAULT_CA_BUNDLE_PATH, get_encoding_from_headers,
                     prepend_scheme_if_needed, get_auth_from_url, urldefragauth,
-                    select_proxy)
+                    select_proxy, to_native_string)
 from .structures import CaseInsensitiveDict
 from .packages.urllib3.exceptions import ClosedPoolError
 from .packages.urllib3.exceptions import ConnectTimeoutError
@@ -33,8 +33,14 @@ from .packages.urllib3.exceptions import SSLError as _SSLError
 from .packages.urllib3.exceptions import ResponseError
 from .cookies import extract_cookies_to_jar
 from .exceptions import (ConnectionError, ConnectTimeout, ReadTimeout, SSLError,
-                         ProxyError, RetryError)
+                         ProxyError, RetryError, InvalidSchema)
 from .auth import _basic_auth_str
+
+try:
+    from .packages.urllib3.contrib.socks import SOCKSProxyManager
+except ImportError:
+    def SOCKSProxyManager(*args, **kwargs):
+        raise InvalidSchema("Missing dependencies for SOCKS support.")
 
 DEFAULT_POOLBLOCK = False
 DEFAULT_POOLSIZE = 10
@@ -65,7 +71,7 @@ class HTTPAdapter(BaseAdapter):
 
     :param pool_connections: The number of urllib3 connection pools to cache.
     :param pool_maxsize: The maximum number of connections to save in the pool.
-    :param int max_retries: The maximum number of retries each connection
+    :param max_retries: The maximum number of retries each connection
         should attempt. Note, this applies only to failed DNS lookups, socket
         connections and connection timeouts, never to requests where data has
         made it to the server. By default, Requests does not retry failed
@@ -149,9 +155,22 @@ class HTTPAdapter(BaseAdapter):
         :param proxy_kwargs: Extra keyword arguments used to configure the Proxy Manager.
         :returns: ProxyManager
         """
-        if not proxy in self.proxy_manager:
+        if proxy in self.proxy_manager:
+            manager = self.proxy_manager[proxy]
+        elif proxy.lower().startswith('socks'):
+            username, password = get_auth_from_url(proxy)
+            manager = self.proxy_manager[proxy] = SOCKSProxyManager(
+                proxy,
+                username=username,
+                password=password,
+                num_pools=self._pool_connections,
+                maxsize=self._pool_maxsize,
+                block=self._pool_block,
+                **proxy_kwargs
+            )
+        else:
             proxy_headers = self.proxy_headers(proxy)
-            self.proxy_manager[proxy] = proxy_from_url(
+            manager = self.proxy_manager[proxy] = proxy_from_url(
                 proxy,
                 proxy_headers=proxy_headers,
                 num_pools=self._pool_connections,
@@ -159,7 +178,7 @@ class HTTPAdapter(BaseAdapter):
                 block=self._pool_block,
                 **proxy_kwargs)
 
-        return self.proxy_manager[proxy]
+        return manager
 
     def cert_verify(self, conn, url, verify, cert):
         """Verify a SSL certificate. This method should not be called from user
@@ -264,10 +283,12 @@ class HTTPAdapter(BaseAdapter):
     def close(self):
         """Disposes of any internal state.
 
-        Currently, this just closes the PoolManager, which closes pooled
-        connections.
+        Currently, this closes the PoolManager and any active ProxyManager,
+        which closes any pooled connections.
         """
         self.poolmanager.clear()
+        for proxy in self.proxy_manager.values():
+            proxy.clear()
 
     def request_url(self, request, proxies):
         """Obtain the url to use when making the final request.
@@ -284,10 +305,16 @@ class HTTPAdapter(BaseAdapter):
         """
         proxy = select_proxy(request.url, proxies)
         scheme = urlparse(request.url).scheme
-        if proxy and scheme != 'https':
+
+        is_proxied_http_request = (proxy and scheme != 'https')
+        using_socks_proxy = False
+        if proxy:
+            proxy_scheme = urlparse(proxy).scheme.lower()
+            using_socks_proxy = proxy_scheme.startswith('socks')
+
+        url = request.path_url
+        if is_proxied_http_request and not using_socks_proxy:
             url = urldefragauth(request.url)
-        else:
-            url = request.path_url
 
         return url
 
@@ -433,6 +460,9 @@ class HTTPAdapter(BaseAdapter):
 
             if isinstance(e.reason, ResponseError):
                 raise RetryError(e, request=request)
+
+            if isinstance(e.reason, _ProxyError):
+                raise ProxyError(e, request=request)
 
             raise ConnectionError(e, request=request)
 

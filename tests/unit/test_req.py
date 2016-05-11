@@ -8,7 +8,7 @@ import pytest
 from mock import Mock, patch, mock_open
 from pip.commands.install import InstallCommand
 from pip.exceptions import (PreviousBuildDirError, InvalidWheelFilename,
-                            InstallationError, UnsupportedWheel, HashErrors)
+                            InstallationError, HashErrors)
 from pip.download import path_to_url, PipSession
 from pip.index import PackageFinder
 from pip.req import (InstallRequirement, RequirementSet, Requirements)
@@ -16,6 +16,7 @@ from pip.req.req_file import process_line
 from pip.req.req_install import parse_editable
 from pip.utils import read_text_file
 from pip._vendor import pkg_resources
+from pip._vendor.packaging.requirements import Requirement
 from tests.lib import assert_raises_regexp, requirements_file
 
 
@@ -300,6 +301,20 @@ def test_egg_info_data(file_contents, expected):
 
 
 class TestInstallRequirement(object):
+    def setup(self):
+        self.tempdir = tempfile.mkdtemp()
+
+    def teardown(self):
+        shutil.rmtree(self.tempdir, ignore_errors=True)
+
+    def basic_reqset(self, **kwargs):
+        return RequirementSet(
+            build_dir=os.path.join(self.tempdir, 'build'),
+            src_dir=os.path.join(self.tempdir, 'src'),
+            download_dir=None,
+            session=PipSession(),
+            **kwargs
+        )
 
     def test_url_with_query(self):
         """InstallRequirement should strip the fragment, but not the query."""
@@ -308,11 +323,29 @@ class TestInstallRequirement(object):
         req = InstallRequirement.from_line(url + fragment)
         assert req.link.url == url + fragment, req.link
 
-    def test_unsupported_wheel_requirement_raises(self):
-        with pytest.raises(UnsupportedWheel):
-            InstallRequirement.from_line(
-                'peppercorn-0.4-py2.py3-bogus-any.whl',
-            )
+    def test_unsupported_wheel_link_requirement_raises(self):
+        reqset = self.basic_reqset()
+        req = InstallRequirement.from_line(
+            'https://whatever.com/peppercorn-0.4-py2.py3-bogus-any.whl',
+        )
+        assert req.link is not None
+        assert req.link.is_wheel
+        assert req.link.scheme == "https"
+
+        with pytest.raises(InstallationError):
+            reqset.add_requirement(req)
+
+    def test_unsupported_wheel_local_file_requirement_raises(self, data):
+        reqset = self.basic_reqset()
+        req = InstallRequirement.from_line(
+            data.packages.join('simple.dist-0.1-py1-none-invalid.whl'),
+        )
+        assert req.link is not None
+        assert req.link.is_wheel
+        assert req.link.scheme == "file"
+
+        with pytest.raises(InstallationError):
+            reqset.add_requirement(req)
 
     def test_installed_version_not_installed(self):
         req = InstallRequirement.from_line('simple-0.1-py2.py3-none-any.whl')
@@ -334,7 +367,8 @@ class TestInstallRequirement(object):
 
     def test_wheel_requirement_sets_req_attribute(self):
         req = InstallRequirement.from_line('simple-0.1-py2.py3-none-any.whl')
-        assert req.req == pkg_resources.Requirement.parse('simple==0.1')
+        assert isinstance(req.req, Requirement)
+        assert str(req.req) == 'simple==0.1'
 
     def test_url_preserved_line_req(self):
         """Confirm the url is preserved in a non-editable requirement"""
@@ -375,15 +409,15 @@ class TestInstallRequirement(object):
             'mock3;python_version >= "3"',
         ):
             req = InstallRequirement.from_line(line)
-            assert req.req.project_name == 'mock3'
-            assert req.req.specs == []
+            assert req.req.name == 'mock3'
+            assert str(req.req.specifier) == ''
             assert req.markers == 'python_version >= "3"'
 
     def test_markers_semicolon(self):
         # check that the markers can contain a semicolon
         req = InstallRequirement.from_line('semicolon; os_name == "a; b"')
-        assert req.req.project_name == 'semicolon'
-        assert req.req.specs == []
+        assert req.req.name == 'semicolon'
+        assert str(req.req.specifier) == ''
         assert req.markers == 'os_name == "a; b"'
 
     def test_markers_url(self):
@@ -391,14 +425,14 @@ class TestInstallRequirement(object):
         url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
         line = '%s; python_version >= "3"' % url
         req = InstallRequirement.from_line(line)
-        assert req.link.url == url, req.link
+        assert req.link.url == url, req.url
         assert req.markers == 'python_version >= "3"'
 
         # without space, markers are part of the URL
         url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
         line = '%s;python_version >= "3"' % url
         req = InstallRequirement.from_line(line)
-        assert req.link.url == line, req.link
+        assert req.link.url == line, req.url
         assert req.markers is None
 
     def test_markers_match(self):
@@ -428,8 +462,7 @@ class TestInstallRequirement(object):
         comes_from = '-r %s (line %s)' % (filename, 1)
         req = InstallRequirement.from_line(line, comes_from=comes_from)
         assert len(req.extras) == 2
-        assert req.extras[0] == 'ex1'
-        assert req.extras[1] == 'ex2'
+        assert req.extras == set(['ex1', 'ex2'])
 
     def test_extras_for_line_url_requirement(self):
         line = 'git+https://url#egg=SomeProject[ex1,ex2]'
@@ -437,8 +470,7 @@ class TestInstallRequirement(object):
         comes_from = '-r %s (line %s)' % (filename, 1)
         req = InstallRequirement.from_line(line, comes_from=comes_from)
         assert len(req.extras) == 2
-        assert req.extras[0] == 'ex1'
-        assert req.extras[1] == 'ex2'
+        assert req.extras == set(['ex1', 'ex2'])
 
     def test_extras_for_editable_path_requirement(self):
         url = '.[ex1,ex2]'
@@ -446,8 +478,7 @@ class TestInstallRequirement(object):
         comes_from = '-r %s (line %s)' % (filename, 1)
         req = InstallRequirement.from_editable(url, comes_from=comes_from)
         assert len(req.extras) == 2
-        assert req.extras[0] == 'ex1'
-        assert req.extras[1] == 'ex2'
+        assert req.extras == set(['ex1', 'ex2'])
 
     def test_extras_for_editable_url_requirement(self):
         url = 'git+https://url#egg=SomeProject[ex1,ex2]'
@@ -455,8 +486,7 @@ class TestInstallRequirement(object):
         comes_from = '-r %s (line %s)' % (filename, 1)
         req = InstallRequirement.from_editable(url, comes_from=comes_from)
         assert len(req.extras) == 2
-        assert req.extras[0] == 'ex1'
-        assert req.extras[1] == 'ex2'
+        assert req.extras == set(['ex1', 'ex2'])
 
     def test_unexisting_path(self):
         with pytest.raises(InstallationError) as e:
@@ -554,11 +584,11 @@ def test_parse_editable_local_extras(
     exists_mock.return_value = isdir_mock.return_value = True
     abspath_mock.return_value = "/some/path"
     assert parse_editable('.[extras]', 'git') == (
-        None, 'file://' + "/some/path", ('extras',),
+        None, 'file://' + "/some/path", set(['extras']),
     )
     abspath_mock.return_value = "/some/path/foo"
     assert parse_editable('foo[bar,baz]', 'git') == (
-        None, 'file:///some/path/foo', ('bar', 'baz'),
+        None, 'file:///some/path/foo', set(['bar', 'baz']),
     )
 
 

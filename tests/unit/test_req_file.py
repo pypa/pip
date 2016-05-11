@@ -196,7 +196,7 @@ class TestProcessLine(object):
         comes_from = '-r %s (line %s)' % (filename, 1)
         req = InstallRequirement.from_line(line, comes_from=comes_from)
         assert repr(list(process_line(line, filename, 1))[0]) == repr(req)
-        assert req.req.specs == [('>=', '2')]
+        assert str(req.req.specifier) == '>=2'
 
     def test_yield_editable_requirement(self):
         url = 'git+https://url#egg=SomeProject'

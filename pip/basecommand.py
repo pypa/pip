@@ -117,6 +117,12 @@ class Command(object):
         else:
             level = "INFO"
 
+        # The root logger should match the "console" level *unless* we
+        # specified "--log" to send debug logs to a file.
+        root_level = level
+        if options.log:
+            root_level = "DEBUG"
+
         logging_dictConfig({
             "version": 1,
             "disable_existing_loggers": False,
@@ -155,7 +161,7 @@ class Command(object):
                 },
             },
             "root": {
-                "level": level,
+                "level": root_level,
                 "handlers": list(filter(None, [
                     "console",
                     "console_errors",

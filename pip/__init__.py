@@ -31,7 +31,7 @@ import pip.cmdoptions
 cmdoptions = pip.cmdoptions
 
 # The version as used in the setup.py and the docs conf.py
-__version__ = "8.1.1"
+__version__ = "8.1.2"
 
 
 logger = logging.getLogger(__name__)
@@ -212,7 +212,11 @@ def main(args=None):
 
     # Needed for locale.getpreferredencoding(False) to work
     # in pip.utils.encoding.auto_decode
-    locale.setlocale(locale.LC_ALL, '')
+    try:
+        locale.setlocale(locale.LC_ALL, '')
+    except locale.Error as e:
+        # setlocale can apparently crash if locale are uninitialized
+        logger.debug("Ignoring error %s when setting locale", e)
     command = commands_dict[cmd_name](isolated=check_isolated(cmd_args))
     return command.main(cmd_args)
 

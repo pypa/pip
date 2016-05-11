@@ -4,7 +4,7 @@ import os
 import pytest
 from mock import patch, Mock
 
-from pip._vendor import pkg_resources
+from pip._vendor.packaging.requirements import Requirement
 from pip import pep425tags, wheel
 from pip.compat import expanduser, WINDOWS
 from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
@@ -77,7 +77,7 @@ def test_check_compatibility():
         wheel.check_compatibility(higher_v, name)
     assert 'is not compatible' in str(e)
 
-    # Should only log.warn - minor version is greator
+    # Should only log.warning - minor version is greater
     higher_v = (vc[0], vc[1] + 1)
     wheel.check_compatibility(higher_v, name)
 
@@ -301,7 +301,7 @@ class TestMoveWheelFiles(object):
         self.name = 'sample'
         self.wheelpath = data.packages.join(
             'sample-1.2.0-py2.py3-none-any.whl')
-        self.req = pkg_resources.Requirement.parse('sample')
+        self.req = Requirement('sample')
         self.src = os.path.join(tmpdir, 'src')
         self.dest = os.path.join(tmpdir, 'dest')
         unpack_file(self.wheelpath, self.src, None, None)

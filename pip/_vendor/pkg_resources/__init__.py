@@ -28,8 +28,6 @@ import warnings
 import stat
 import functools
 import pkgutil
-import token
-import symbol
 import operator
 import platform
 import collections
@@ -46,7 +44,7 @@ except ImportError:
     import imp as _imp
 
 from pip._vendor import six
-from pip._vendor.six.moves import urllib, map
+from pip._vendor.six.moves import urllib, map, filter
 
 # capture these to bypass sandboxing
 from os import utime
@@ -60,24 +58,19 @@ except ImportError:
 from os import open as os_open
 from os.path import isdir, split
 
-# Avoid try/except due to potential problems with delayed import mechanisms.
-if sys.version_info >= (3, 3) and sys.implementation.name == "cpython":
-    import importlib.machinery as importlib_machinery
-else:
-    importlib_machinery = None
-
 try:
-    import parser
+    import importlib.machinery as importlib_machinery
+    # access attribute to force import under delayed import mechanisms.
+    importlib_machinery.__name__
 except ImportError:
-    pass
+    importlib_machinery = None
 
 from pip._vendor import packaging
 __import__('pip._vendor.packaging.version')
 __import__('pip._vendor.packaging.specifiers')
+__import__('pip._vendor.packaging.requirements')
+__import__('pip._vendor.packaging.markers')
 
-
-filter = six.moves.filter
-map = six.moves.map
 
 if (3, 0) < sys.version_info < (3, 3):
     msg = (
@@ -799,6 +792,8 @@ class WorkingSet(object):
         best = {}
         to_activate = []
 
+        req_extras = _ReqExtras()
+
         # Mapping of requirement to set of distributions that required it;
         # useful for reporting info about conflicts.
         required_by = collections.defaultdict(set)
@@ -809,6 +804,10 @@ class WorkingSet(object):
             if req in processed:
                 # Ignore cyclic or redundant dependencies
                 continue
+
+            if not req_extras.markers_pass(req):
+                continue
+
             dist = best.get(req.key)
             if dist is None:
                 # Find the best distribution and add it to the map
@@ -841,6 +840,7 @@ class WorkingSet(object):
             # Register the new requirements needed by req
             for new_requirement in new_requirements:
                 required_by[new_requirement].add(req.project_name)
+                req_extras[new_requirement] = req.extras
 
             processed[req] = True
 
@@ -971,6 +971,26 @@ class WorkingSet(object):
         self.entry_keys = keys.copy()
         self.by_key = by_key.copy()
         self.callbacks = callbacks[:]
+
+
+class _ReqExtras(dict):
+    """
+    Map each requirement to the extras that demanded it.
+    """
+
+    def markers_pass(self, req):
+        """
+        Evaluate markers for req against each extra that
+        demanded it.
+
+        Return False if the req has a marker and fails
+        evaluation. Otherwise, return True.
+        """
+        extra_evals = (
+            req.marker.evaluate({'extra': extra})
+            for extra in self.get(req, ()) + (None,)
+        )
+        return not req.marker or any(extra_evals)
 
 
 class Environment(object):
@@ -1176,22 +1196,23 @@ class ResourceManager:
         old_exc = sys.exc_info()[1]
         cache_path = self.extraction_path or get_default_cache()
 
-        err = ExtractionError("""Can't extract file(s) to egg cache
+        tmpl = textwrap.dedent("""
+            Can't extract file(s) to egg cache
 
-The following error occurred while trying to extract file(s) to the Python egg
-cache:
+            The following error occurred while trying to extract file(s) to the Python egg
+            cache:
 
-  %s
+              {old_exc}
 
-The Python egg cache directory is currently set to:
+            The Python egg cache directory is currently set to:
 
-  %s
+              {cache_path}
 
-Perhaps your account does not have write access to this directory?  You can
-change the cache directory by setting the PYTHON_EGG_CACHE environment
-variable to point to an accessible directory.
-""" % (old_exc, cache_path)
-        )
+            Perhaps your account does not have write access to this directory?  You can
+            change the cache directory by setting the PYTHON_EGG_CACHE environment
+            variable to point to an accessible directory.
+            """).lstrip()
+        err = ExtractionError(tmpl.format(**locals()))
         err.manager = self
         err.cache_path = cache_path
         err.original_error = old_exc
@@ -1386,202 +1407,34 @@ def to_filename(name):
     return name.replace('-','_')
 
 
-class MarkerEvaluation(object):
-    values = {
-        'os_name': lambda: os.name,
-        'sys_platform': lambda: sys.platform,
-        'python_full_version': platform.python_version,
-        'python_version': lambda: platform.python_version()[:3],
-        'platform_version': platform.version,
-        'platform_machine': platform.machine,
-        'platform_python_implementation': platform.python_implementation,
-        'python_implementation': platform.python_implementation,
-    }
+def invalid_marker(text):
+    """
+    Validate text as a PEP 508 environment marker; return an exception
+    if invalid or False otherwise.
+    """
+    try:
+        evaluate_marker(text)
+    except SyntaxError as e:
+        e.filename = None
+        e.lineno = None
+        return e
+    return False
 
-    @classmethod
-    def is_invalid_marker(cls, text):
-        """
-        Validate text as a PEP 426 environment marker; return an exception
-        if invalid or False otherwise.
-        """
-        try:
-            cls.evaluate_marker(text)
-        except SyntaxError as e:
-            return cls.normalize_exception(e)
-        return False
 
-    @staticmethod
-    def normalize_exception(exc):
-        """
-        Given a SyntaxError from a marker evaluation, normalize the error
-        message:
-         - Remove indications of filename and line number.
-         - Replace platform-specific error messages with standard error
-           messages.
-        """
-        subs = {
-            'unexpected EOF while parsing': 'invalid syntax',
-            'parenthesis is never closed': 'invalid syntax',
-        }
-        exc.filename = None
-        exc.lineno = None
-        exc.msg = subs.get(exc.msg, exc.msg)
-        return exc
+def evaluate_marker(text, extra=None):
+    """
+    Evaluate a PEP 508 environment marker.
+    Return a boolean indicating the marker result in this environment.
+    Raise SyntaxError if marker is invalid.
 
-    @classmethod
-    def and_test(cls, nodelist):
-        # MUST NOT short-circuit evaluation, or invalid syntax can be skipped!
-        items = [
-            cls.interpret(nodelist[i])
-            for i in range(1, len(nodelist), 2)
-        ]
-        return functools.reduce(operator.and_, items)
+    This implementation uses the 'pyparsing' module.
+    """
+    try:
+        marker = packaging.markers.Marker(text)
+        return marker.evaluate()
+    except packaging.markers.InvalidMarker as e:
+        raise SyntaxError(e)
 
-    @classmethod
-    def test(cls, nodelist):
-        # MUST NOT short-circuit evaluation, or invalid syntax can be skipped!
-        items = [
-            cls.interpret(nodelist[i])
-            for i in range(1, len(nodelist), 2)
-        ]
-        return functools.reduce(operator.or_, items)
-
-    @classmethod
-    def atom(cls, nodelist):
-        t = nodelist[1][0]
-        if t == token.LPAR:
-            if nodelist[2][0] == token.RPAR:
-                raise SyntaxError("Empty parentheses")
-            return cls.interpret(nodelist[2])
-        msg = "Language feature not supported in environment markers"
-        raise SyntaxError(msg)
-
-    @classmethod
-    def comparison(cls, nodelist):
-        if len(nodelist) > 4:
-            msg = "Chained comparison not allowed in environment markers"
-            raise SyntaxError(msg)
-        comp = nodelist[2][1]
-        cop = comp[1]
-        if comp[0] == token.NAME:
-            if len(nodelist[2]) == 3:
-                if cop == 'not':
-                    cop = 'not in'
-                else:
-                    cop = 'is not'
-        try:
-            cop = cls.get_op(cop)
-        except KeyError:
-            msg = repr(cop) + " operator not allowed in environment markers"
-            raise SyntaxError(msg)
-        return cop(cls.evaluate(nodelist[1]), cls.evaluate(nodelist[3]))
-
-    @classmethod
-    def get_op(cls, op):
-        ops = {
-            symbol.test: cls.test,
-            symbol.and_test: cls.and_test,
-            symbol.atom: cls.atom,
-            symbol.comparison: cls.comparison,
-            'not in': lambda x, y: x not in y,
-            'in': lambda x, y: x in y,
-            '==': operator.eq,
-            '!=': operator.ne,
-            '<':  operator.lt,
-            '>':  operator.gt,
-            '<=': operator.le,
-            '>=': operator.ge,
-        }
-        if hasattr(symbol, 'or_test'):
-            ops[symbol.or_test] = cls.test
-        return ops[op]
-
-    @classmethod
-    def evaluate_marker(cls, text, extra=None):
-        """
-        Evaluate a PEP 426 environment marker on CPython 2.4+.
-        Return a boolean indicating the marker result in this environment.
-        Raise SyntaxError if marker is invalid.
-
-        This implementation uses the 'parser' module, which is not implemented
-        on
-        Jython and has been superseded by the 'ast' module in Python 2.6 and
-        later.
-        """
-        return cls.interpret(parser.expr(text).totuple(1)[1])
-
-    @staticmethod
-    def _translate_metadata2(env):
-        """
-        Markerlib implements Metadata 1.2 (PEP 345) environment markers.
-        Translate the variables to Metadata 2.0 (PEP 426).
-        """
-        return dict(
-            (key.replace('.', '_'), value)
-            for key, value in env.items()
-        )
-
-    @classmethod
-    def _markerlib_evaluate(cls, text):
-        """
-        Evaluate a PEP 426 environment marker using markerlib.
-        Return a boolean indicating the marker result in this environment.
-        Raise SyntaxError if marker is invalid.
-        """
-        from pip._vendor import _markerlib
-
-        env = cls._translate_metadata2(_markerlib.default_environment())
-        try:
-            result = _markerlib.interpret(text, env)
-        except NameError as e:
-            raise SyntaxError(e.args[0])
-        return result
-
-    if 'parser' not in globals():
-        # Fall back to less-complete _markerlib implementation if 'parser' module
-        # is not available.
-        evaluate_marker = _markerlib_evaluate
-
-    @classmethod
-    def interpret(cls, nodelist):
-        while len(nodelist)==2: nodelist = nodelist[1]
-        try:
-            op = cls.get_op(nodelist[0])
-        except KeyError:
-            raise SyntaxError("Comparison or logical expression expected")
-        return op(nodelist)
-
-    @classmethod
-    def evaluate(cls, nodelist):
-        while len(nodelist)==2: nodelist = nodelist[1]
-        kind = nodelist[0]
-        name = nodelist[1]
-        if kind==token.NAME:
-            try:
-                op = cls.values[name]
-            except KeyError:
-                raise SyntaxError("Unknown name %r" % name)
-            return op()
-        if kind==token.STRING:
-            s = nodelist[1]
-            if not cls._safe_string(s):
-                raise SyntaxError(
-                    "Only plain strings allowed in environment markers")
-            return s[1:-1]
-        msg = "Language feature not supported in environment markers"
-        raise SyntaxError(msg)
-
-    @staticmethod
-    def _safe_string(cand):
-        return (
-            cand[:1] in "'\"" and
-            not cand.startswith('"""') and
-            not cand.startswith("'''") and
-            '\\' not in cand
-        )
-
-invalid_marker = MarkerEvaluation.is_invalid_marker
-evaluate_marker = MarkerEvaluation.evaluate_marker
 
 class NullProvider:
     """Try to implement resources and metadata for arbitrary PEP 302 loaders"""
@@ -1727,10 +1580,13 @@ class DefaultProvider(EggProvider):
         with open(path, 'rb') as stream:
             return stream.read()
 
-register_loader_type(type(None), DefaultProvider)
+    @classmethod
+    def _register(cls):
+        loader_cls = getattr(importlib_machinery, 'SourceFileLoader',
+            type(None))
+        register_loader_type(loader_cls, cls)
 
-if importlib_machinery is not None:
-    register_loader_type(importlib_machinery.SourceFileLoader, DefaultProvider)
+DefaultProvider._register()
 
 
 class EmptyProvider(NullProvider):
@@ -2003,7 +1859,13 @@ class FileMetadata(EmptyProvider):
     def get_metadata(self, name):
         if name=='PKG-INFO':
             with io.open(self.path, encoding='utf-8') as f:
-                metadata = f.read()
+                try:
+                    metadata = f.read()
+                except UnicodeDecodeError as exc:
+                    # add path context to error message
+                    tmpl = " in {self.path}"
+                    exc.reason += tmpl.format(self=self)
+                    raise
             return metadata
         raise KeyError("No metadata except PKG-INFO is available")
 
@@ -2136,7 +1998,7 @@ def find_on_path(importer, path_item, only=False):
                         break
 register_finder(pkgutil.ImpImporter, find_on_path)
 
-if importlib_machinery is not None:
+if hasattr(importlib_machinery, 'FileFinder'):
     register_finder(importlib_machinery.FileFinder, find_on_path)
 
 _declare_state('dict', _namespace_handlers={})
@@ -2182,18 +2044,28 @@ def _handle_ns(packageName, path_item):
         path = module.__path__
         path.append(subpath)
         loader.load_module(packageName)
-
-        # Rebuild mod.__path__ ensuring that all entries are ordered
-        # corresponding to their sys.path order
-        sys_path= [(p and _normalize_cached(p) or p) for p in sys.path]
-        def sort_key(p):
-            parts = p.split(os.sep)
-            parts = parts[:-(packageName.count('.') + 1)]
-            return sys_path.index(_normalize_cached(os.sep.join(parts)))
-
-        path.sort(key=sort_key)
-        module.__path__[:] = [_normalize_cached(p) for p in path]
+        _rebuild_mod_path(path, packageName, module)
     return subpath
+
+
+def _rebuild_mod_path(orig_path, package_name, module):
+    """
+    Rebuild module.__path__ ensuring that all entries are ordered
+    corresponding to their sys.path order
+    """
+    sys_path = [_normalize_cached(p) for p in sys.path]
+    def position_in_sys_path(path):
+        """
+        Return the ordinal of the path based on its position in sys.path
+        """
+        path_parts = path.split(os.sep)
+        module_parts = package_name.count('.') + 1
+        parts = path_parts[:-module_parts]
+        return sys_path.index(_normalize_cached(os.sep.join(parts)))
+
+    orig_path.sort(key=position_in_sys_path)
+    module.__path__[:] = [_normalize_cached(p) for p in orig_path]
+
 
 def declare_namespace(packageName):
     """Declare that package 'packageName' is a namespace package"""
@@ -2253,7 +2125,7 @@ def file_ns_handler(importer, path_item, packageName, module):
 register_namespace_handler(pkgutil.ImpImporter, file_ns_handler)
 register_namespace_handler(zipimport.zipimporter, file_ns_handler)
 
-if importlib_machinery is not None:
+if hasattr(importlib_machinery, 'FileFinder'):
     register_namespace_handler(importlib_machinery.FileFinder, file_ns_handler)
 
 
@@ -2303,18 +2175,6 @@ def yield_lines(strs):
             for s in yield_lines(ss):
                 yield s
 
-# whitespace and comment
-LINE_END = re.compile(r"\s*(#.*)?$").match
-# line continuation
-CONTINUE = re.compile(r"\s*\\\s*(#.*)?$").match
-# Distribution or extra
-DISTRO = re.compile(r"\s*((\w|[-.])+)").match
-# ver. info
-VERSION = re.compile(r"\s*(<=?|>=?|===?|!=|~=)\s*((\w|[-.*_!+])+)").match
-# comma between items
-COMMA = re.compile(r"\s*,").match
-OBRACKET = re.compile(r"\s*\[").match
-CBRACKET = re.compile(r"\s*\]").match
 MODULE = re.compile(r"\w+(\.\w+)*$").match
 EGG_NAME = re.compile(
     r"""
@@ -2853,34 +2713,18 @@ class DistInfoDistribution(Distribution):
             self.__dep_map = self._compute_dependencies()
             return self.__dep_map
 
-    def _preparse_requirement(self, requires_dist):
-        """Convert 'Foobar (1); baz' to ('Foobar ==1', 'baz')
-        Split environment marker, add == prefix to version specifiers as
-        necessary, and remove parenthesis.
-        """
-        parts = requires_dist.split(';', 1) + ['']
-        distvers = parts[0].strip()
-        mark = parts[1].strip()
-        distvers = re.sub(self.EQEQ, r"\1==\2\3", distvers)
-        distvers = distvers.replace('(', '').replace(')', '')
-        return (distvers, mark)
-
     def _compute_dependencies(self):
         """Recompute this distribution's dependencies."""
-        from pip._vendor._markerlib import compile as compile_marker
         dm = self.__dep_map = {None: []}
 
         reqs = []
         # Including any condition expressions
         for req in self._parsed_pkg_info.get_all('Requires-Dist') or []:
-            distvers, mark = self._preparse_requirement(req)
-            parsed = next(parse_requirements(distvers))
-            parsed.marker_fn = compile_marker(mark)
-            reqs.append(parsed)
+            reqs.extend(parse_requirements(req))
 
         def reqs_for_extra(extra):
             for req in reqs:
-                if req.marker_fn(override={'extra':extra}):
+                if not req.marker or req.marker.evaluate({'extra': extra}):
                     yield req
 
         common = frozenset(reqs_for_extra(None))
@@ -2926,84 +2770,37 @@ def parse_requirements(strs):
     # create a steppable iterator, so we can handle \-continuations
     lines = iter(yield_lines(strs))
 
-    def scan_list(ITEM, TERMINATOR, line, p, groups, item_name):
-
-        items = []
-
-        while not TERMINATOR(line, p):
-            if CONTINUE(line, p):
-                try:
-                    line = next(lines)
-                    p = 0
-                except StopIteration:
-                    msg = "\\ must not appear on the last nonblank line"
-                    raise RequirementParseError(msg)
-
-            match = ITEM(line, p)
-            if not match:
-                msg = "Expected " + item_name + " in"
-                raise RequirementParseError(msg, line, "at", line[p:])
-
-            items.append(match.group(*groups))
-            p = match.end()
-
-            match = COMMA(line, p)
-            if match:
-                # skip the comma
-                p = match.end()
-            elif not TERMINATOR(line, p):
-                msg = "Expected ',' or end-of-list in"
-                raise RequirementParseError(msg, line, "at", line[p:])
-
-        match = TERMINATOR(line, p)
-        # skip the terminator, if any
-        if match:
-            p = match.end()
-        return line, p, items
-
     for line in lines:
-        match = DISTRO(line)
-        if not match:
-            raise RequirementParseError("Missing distribution spec", line)
-        project_name = match.group(1)
-        p = match.end()
-        extras = []
-
-        match = OBRACKET(line, p)
-        if match:
-            p = match.end()
-            line, p, extras = scan_list(
-                DISTRO, CBRACKET, line, p, (1,), "'extra' name"
-            )
-
-        line, p, specs = scan_list(VERSION, LINE_END, line, p, (1, 2),
-            "version spec")
-        specs = [(op, val) for op, val in specs]
-        yield Requirement(project_name, specs, extras)
+        # Drop comments -- a hash without a space may be in a URL.
+        if ' #' in line:
+            line = line[:line.find(' #')]
+        # If there is a line continuation, drop it, and append the next line.
+        if line.endswith('\\'):
+            line = line[:-2].strip()
+            line += next(lines)
+        yield Requirement(line)
 
 
-class Requirement:
-    def __init__(self, project_name, specs, extras):
+class Requirement(packaging.requirements.Requirement):
+    def __init__(self, requirement_string):
         """DO NOT CALL THIS UNDOCUMENTED METHOD; use Requirement.parse()!"""
-        self.unsafe_name, project_name = project_name, safe_name(project_name)
+        try:
+            super(Requirement, self).__init__(requirement_string)
+        except packaging.requirements.InvalidRequirement as e:
+            raise RequirementParseError(str(e))
+        self.unsafe_name = self.name
+        project_name = safe_name(self.name)
         self.project_name, self.key = project_name, project_name.lower()
-        self.specifier = packaging.specifiers.SpecifierSet(
-            ",".join(["".join([x, y]) for x, y in specs])
-        )
-        self.specs = specs
-        self.extras = tuple(map(safe_extra, extras))
+        self.specs = [
+            (spec.operator, spec.version) for spec in self.specifier]
+        self.extras = tuple(map(safe_extra, self.extras))
         self.hashCmp = (
             self.key,
             self.specifier,
             frozenset(self.extras),
+            str(self.marker) if self.marker else None,
         )
         self.__hash = hash(self.hashCmp)
-
-    def __str__(self):
-        extras = ','.join(self.extras)
-        if extras:
-            extras = '[%s]' % extras
-        return '%s%s%s' % (self.project_name, extras, self.specifier)
 
     def __eq__(self, other):
         return (

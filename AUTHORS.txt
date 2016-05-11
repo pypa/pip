@@ -31,6 +31,7 @@ Bradley Ayers <bradley.ayers@gmail.com>
 Brian Rosner <brosner@gmail.com>
 Bruno Renié <brutasse@gmail.com>
 Buck Golemon <buck@yelp.com>
+burrows <burrows@preveil.com>
 Bussonnier Matthias <bussonniermatthias@gmail.com>
 Carl Meyer <carl@oddbird.net>
 Carlos Liam <carlos@aarzee.me>
@@ -47,6 +48,7 @@ Clay McClure <clay@daemons.net>
 Cody Soyland <codysoyland@gmail.com>
 Colin Watson <cjwatson@debian.org>
 Cory Benfield <lukasaoz@gmail.com>
+Cory Wright <corywright@gmail.com>
 Craig Kerstiens <craig.kerstiens@gmail.com>
 Cristian Sorinel <cristian.sorinel@gmail.com>
 Dan Savilonis <djs@n-cube.org>
@@ -88,6 +90,7 @@ Francesco Montesano <franz.bergesund@gmail.com>
 Gabriel de Perthuis <g2p.code@gmail.com>
 Garry Polley <garrympolley@gmail.com>
 Geoffrey Lehée <geoffrey@lehee.name>
+Geoffrey Sneddon <me@gsnedders.com>
 George Song <george@55minutes.com>
 Georgi Valkov <georgi.t.valkov@gmail.com>
 gizmoguy1 <gizmoguy1@gmail.com>
@@ -100,6 +103,7 @@ Hynek Schlawack <hs@ox.cx>
 Ian Bicking <ianb@colorstudy.com>
 Ian Cordasco <graffatcolmingov@gmail.com>
 Ian Lee <IanLee1521@gmail.com>
+Ian Wienand <ian@wienand.org>
 Ian Wienand <iwienand@redhat.com>
 Igor Sobreira <igor@igorsobreira.com>
 Ilya Baryshev <baryshev@gmail.com>
@@ -261,6 +265,7 @@ Thomas Kluyver <takowl@gmail.com>
 Thomas Smith <smithtg@ncbi.nlm.nih.gov>
 Tim Harder <radhermit@gmail.com>
 tim smith <github@tim-smith.us>
+tinruufu <tinruufu@gmail.com>
 Tomer Chachamu <tomer.chachamu@gmail.com>
 Tony Zhaocheng Tan <tony@tonytan.io>
 Toshio Kuratomi <toshio@fedoraproject.org>
@@ -276,6 +281,7 @@ Wil Tan <wil@dready.org>
 William ML Leslie <william.leslie.ttg@gmail.com>
 Xavier Fernandez <xav.fernandez@gmail.com>
 Xavier Fernandez <xavier.fernandez@polyconseil.fr>
+Yen Chi Hsuan <yan12125@gmail.com>
 Yoval P <yoval@gmx.com>
 Yu Jian <askingyj@gmail.com>
 Zearin <zearin@gonk.net>
