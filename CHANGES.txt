@@ -1,5 +1,6 @@
 **8.2.0 (unreleased)**
 
+* Add project_name/key/spec properties to Requirement (:issue:`3673`, pull:`3676`)
 
 **8.1.2 (2016-05-10)**
 

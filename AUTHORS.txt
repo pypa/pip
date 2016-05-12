@@ -164,6 +164,7 @@ Markus Hametner <fin+github@xbhd.org>
 Masklinn <bitbucket.org@masklinn.net>
 Matej Stuchlik <mstuchli@redhat.com>
 Mathew Jennings <mjennings@foursquare.com>
+Mathieu Le Marec - Pasquet <kiorky@cryptelium.net>
 Matt Good <matt@matt-good.net>
 Matt Maker <trip@monstro.us>
 Matt Robenolt <matt@ydekproductions.com>
