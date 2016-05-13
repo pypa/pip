@@ -1,11 +1,14 @@
 from __future__ import absolute_import
 
+import json
 import logging
 import warnings
 try:
     from itertools import zip_longest
 except ImportError:
     from itertools import izip_longest as zip_longest
+
+from pip._vendor import six
 
 from pip.basecommand import Command
 from pip.exceptions import CommandError
@@ -14,7 +17,6 @@ from pip.utils import (
     get_installed_distributions, dist_is_editable)
 from pip.utils.deprecation import RemovedInPip10Warning
 from pip.cmdoptions import make_option_group, index_group
-
 
 logger = logging.getLogger(__name__)
 
@@ -72,19 +74,31 @@ class ListCommand(Command):
                   "pip only finds stable versions."),
         )
 
+        cmd_opts.add_option(
+            '--format',
+            action='store',
+            dest='list_format',
+            choices=('legacy', 'columns', 'freeze', 'json'),
+            default='legacy',
+            help="Select the output format among: legacy (default), columns, "
+                 "freeze or json",
+        )
+
         # TODO: When we switch the default, set default=True here.
         cmd_opts.add_option(
             '--columns',
-            action='store_true',
-            dest='columns',
+            action='store_const',
+            const='columns',
+            dest='list_format',
             # default=True,
             help="Align package names and versions into vertical columns.",
         )
 
         cmd_opts.add_option(
             '--no-columns',
-            action='store_false',
-            dest='columns',
+            action='store_const',
+            const='legacy',
+            dest='list_format',
             help=("Do not align package names and versions into "
                   "vertical columns (old-style formatting)"),
         )
@@ -132,43 +146,33 @@ class ListCommand(Command):
                 RemovedInPip10Warning,
             )
 
-        # TODO: When we switch the default, remove
-        #       ``and options.columns is not None``
-        if not options.columns and options.columns is not None:
-            warnings.warn(
-                "The --no-columns option will be removed in the future.",
-                RemovedInPip10Warning,
-            )
-
         if options.outdated and options.uptodate:
             raise CommandError(
                 "Options --outdated and --uptodate cannot be combined.")
 
         if options.outdated:
-            self.run_outdated(options)
+            packages = self.get_outdated(options)
         elif options.uptodate:
-            self.run_uptodate(options)
+            packages = self.get_uptodate(options)
         else:
-            self.run_listing(options)
+            packages = self.get_listing(options)
+        self.output_package_listing(packages, options)
 
-    def run_outdated(self, options):
+    def get_outdated(self, options):
         latest_pkgs = []
-        for dist, latest_version, typ in sorted(
+        for dist in sorted(
                 self.find_packages_latest_versions(options),
-                key=lambda p: p[0].project_name.lower()):
-            if latest_version > dist.parsed_version:
-                latest_pkgs.append((dist, latest_version, typ))
-        if (hasattr(options, "columns") and
-                options.columns and
-                len(latest_pkgs) > 0):
-            data, header = format_for_columns(latest_pkgs, options)
-            self.output_package_listing_columns(data, header)
-        else:
-            for dist, latest_version, typ in latest_pkgs:
-                logger.info(
-                    '%s - Latest: %s [%s]',
-                    self.output_package(dist), latest_version, typ,
-                )
+                key=lambda dist: dist.project_name.lower()):
+            if dist.latest_version > dist.parsed_version:
+                latest_pkgs.append(dist)
+        return latest_pkgs
+
+    def get_uptodate(self, options):
+        uptodate = []
+        for dist in self.find_packages_latest_versions(options):
+            if dist.parsed_version == dist.latest_version:
+                uptodate.append(dist)
+        return uptodate
 
     def find_packages_latest_versions(self, options):
         index_urls = [options.index_url] + options.extra_index_urls
@@ -212,17 +216,21 @@ class ListCommand(Command):
                     typ = 'wheel'
                 else:
                     typ = 'sdist'
-                yield dist, remote_version, typ
+                # This is dirty but makes the rest of the code much cleaner
+                dist.latest_version = remote_version
+                dist.latest_filetype = typ
+                yield dist
 
-    def run_listing(self, options):
-        installed_packages = get_installed_distributions(
-            local_only=options.local,
-            user_only=options.user,
-            editables_only=options.editable,
-        )
-        self.output_package_listing(installed_packages, options)
+    def get_listing(self, options):
+        packages = []
+        for dist in get_installed_distributions(
+                local_only=options.local,
+                user_only=options.user,
+                editables_only=options.editable):
+            packages.append(dist)
+        return packages
 
-    def output_package(self, dist):
+    def output_legacy(self, dist):
         if dist_is_editable(dist):
             return '%s (%s, %s)' % (
                 dist.project_name,
@@ -232,19 +240,42 @@ class ListCommand(Command):
         else:
             return '%s (%s)' % (dist.project_name, dist.version)
 
-    def output_package_listing(self, installed_packages, options=None):
-        installed_packages = sorted(
-            installed_packages,
+    def output_legacy_latest(self, dist):
+        return '%s - Latest: %s [%s]' % (
+            self.output_legacy(dist),
+            dist.latest_version,
+            dist.latest_filetype,
+        )
+
+    def output_package_listing(self, packages, options):
+        packages = sorted(
+            packages,
             key=lambda dist: dist.project_name.lower(),
         )
-        if (hasattr(options, "columns") and
-                options.columns and
-                len(installed_packages) > 0):
-            data, header = format_for_columns(installed_packages, options)
+        if options.list_format == 'columns' and packages:
+            data, header = format_for_columns(packages, options)
             self.output_package_listing_columns(data, header)
-        else:
-            for dist in installed_packages:
-                logger.info(self.output_package(dist))
+        elif options.list_format == 'freeze':
+            for dist in packages:
+                logger.info("%s==%s", dist.project_name, dist.version)
+        elif options.list_format == 'json':
+            data = []
+            for dist in packages:
+                info = {
+                    'name': dist.project_name,
+                    'version': six.text_type(dist.version),
+                }
+                if options.outdated:
+                    info['latest_version'] = six.text_type(dist.latest_version)
+                    info['latest_filetype'] = dist.latest_filetype
+                data.append(info)
+            logger.info(json.dumps(data))
+        else:  # legacy
+            for dist in packages:
+                if options.outdated:
+                    logger.info(self.output_legacy_latest(dist))
+                else:
+                    logger.info(self.output_legacy(dist))
 
     def output_package_listing_columns(self, data, header):
         # insert the header first: we need to know the size of column names
@@ -259,13 +290,6 @@ class ListCommand(Command):
 
         for val in pkg_strings:
             logger.info(val)
-
-    def run_uptodate(self, options):
-        uptodate = []
-        for dist, version, typ in self.find_packages_latest_versions(options):
-            if dist.parsed_version == version:
-                uptodate.append(dist)
-        self.output_package_listing(uptodate, options)
 
 
 def tabulate(vals):
@@ -291,31 +315,25 @@ def format_for_columns(pkgs, options):
     Convert the package data into something usable
     by output_package_listing_columns.
     """
-    header = ["Package", "Version"]
-    running_outdated = False
+    running_outdated = options.outdated
     # Adjust the header for the `pip list --outdated` case.
-    if isinstance(pkgs[0], (list, tuple)):
-        running_outdated = True
+    if running_outdated:
         header = ["Package", "Version", "Latest", "Type"]
+    else:
+        header = ["Package", "Version"]
 
     data = []
-    if any(dist_is_editable(x[0])
-           if running_outdated
-           else dist_is_editable(x)
-           for x in pkgs):
+    if any(dist_is_editable(x) for x in pkgs):
         header.append("Location")
 
     for proj in pkgs:
         # if we're working on the 'outdated' list, separate out the
         # latest_version and type
-        if running_outdated:
-            proj, latest_version, typ = proj
-
         row = [proj.project_name, proj.version]
 
         if running_outdated:
-            row.append(latest_version)
-            row.append(typ)
+            row.append(proj.latest_version)
+            row.append(proj.latest_filetype)
 
         if dist_is_editable(proj):
             row.append(proj.location)

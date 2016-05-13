@@ -1,8 +1,6 @@
+import json
 import os
 import pytest
-
-WARN_NOCOL = ("DEPRECATION: The --no-columns option will be "
-              "removed in the future.")
 
 
 def test_list_command(script, data):
@@ -45,7 +43,6 @@ def test_nocolumns_flag(script, data):
         'simple2==3.0',
     )
     result = script.pip('list', '--no-columns', expect_stderr=True)
-    assert WARN_NOCOL in result.stderr, str(result)
     assert 'simple (1.0)' in result.stdout, str(result)
     assert 'simple2 (3.0)' in result.stdout, str(result)
 
@@ -62,7 +59,6 @@ def test_columns_nocolumns(script, data):
         'list', '--columns', '--no-columns',
         expect_error=True,
     )
-    assert WARN_NOCOL in result.stderr, str(result)
     assert 'simple (1.0)' in result.stdout, str(result)
     assert 'simple2 (3.0)' in result.stdout, str(result)
     assert 'simple     1.0' not in result.stdout, str(result)
@@ -118,7 +114,6 @@ def test_local_nocolumns_flag(script, data):
     """
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
     result = script.pip('list', '--local', '--no-columns', expect_stderr=True)
-    assert WARN_NOCOL in result.stderr, str(result)
     assert 'simple (1.0)' in result.stdout
 
 
@@ -162,7 +157,6 @@ def test_user_nocolumns_flag(script, data, virtualenv):
     script.pip('install', '-f', data.find_links, '--no-index',
                '--user', 'simple2==2.0')
     result = script.pip('list', '--user', '--no-columns', expect_stderr=True)
-    assert WARN_NOCOL in result.stderr, str(result)
     assert 'simple (1.0)' not in result.stdout
     assert 'simple2 (2.0)' in result.stdout, str(result)
 
@@ -234,7 +228,6 @@ def test_uptodate_nocolumns_flag(script, data):
         'list', '-f', data.find_links, '--no-index', '--uptodate',
         '--no-columns', expect_stderr=True,
     )
-    assert WARN_NOCOL in result.stderr, str(result)
     assert 'simple (1.0)' not in result.stdout  # 3.0 is latest
     assert 'pip-test-package (0.1.1,' in result.stdout  # editables included
     assert 'simple2 (3.0)' in result.stdout, str(result)
@@ -319,7 +312,6 @@ def test_outdated_nocolumns_flag(script, data):
         'list', '-f', data.find_links, '--no-index', '--outdated',
         '--no-columns', expect_stderr=True,
     )
-    assert WARN_NOCOL in result.stderr, str(result)
     assert 'simple (1.0) - Latest: 3.0 [sdist]' in result.stdout
     assert 'simplewheel (1.0) - Latest: 2.0 [wheel]' in result.stdout
     assert 'pip-test-package (0.1, ' in result.stdout
@@ -376,7 +368,6 @@ def test_editables_nocolumns_flag(script, data):
     result = script.pip(
         'list', '--editable', '--no-columns', expect_stderr=True,
     )
-    assert WARN_NOCOL in result.stderr, str(result)
     assert 'simple (1.0)' not in result.stdout, str(result)
     assert os.path.join('src', 'pip-test-package') in result.stdout, (
         str(result)
@@ -442,7 +433,6 @@ def test_uptodate_editables_nocolumns_flag(script, data):
         'list', '-f', data.find_links, '--no-index', '--editable',
         '--uptodate', '--no-columns', expect_stderr=True,
     )
-    assert WARN_NOCOL in result.stderr, str(result)
     assert 'simple (1.0)' not in result.stdout, str(result)
     assert os.path.join('src', 'pip-test-package') in result.stdout, (
         str(result)
@@ -510,7 +500,6 @@ def test_outdated_editables_nocolumns_flag(script, data):
         '--editable', '--outdated', '--no-columns',
         expect_stderr=True,
     )
-    assert WARN_NOCOL in result.stderr, str(result)
     assert 'simple (1.0)' not in result.stdout, str(result)
     assert os.path.join('src', 'pip-test-package') in result.stdout, (
         str(result)
@@ -579,4 +568,32 @@ def test_outdated_pre_nocolumns(script, data):
         '--find-links', wheelhouse_path,
         '--outdated', '--pre', '--no-columns', expect_stderr=True
     )
-    assert WARN_NOCOL in result.stderr, str(result)
+
+
+def test_list_freeze(script, data):
+    """
+    Test freeze formating of list command
+
+    """
+    script.pip(
+        'install', '-f', data.find_links, '--no-index', 'simple==1.0',
+        'simple2==3.0',
+    )
+    result = script.pip('list', '--format=freeze')
+    assert 'simple==1.0' in result.stdout, str(result)
+    assert 'simple2==3.0' in result.stdout, str(result)
+
+
+def test_list_json(script, data):
+    """
+    Test json formating of list command
+
+    """
+    script.pip(
+        'install', '-f', data.find_links, '--no-index', 'simple==1.0',
+        'simple2==3.0',
+    )
+    result = script.pip('list', '--format=json')
+    data = json.loads(result.stdout)
+    assert {'name': 'simple', 'version': '1.0'} in data
+    assert {'name': 'simple2', 'version': '3.0'} in data
