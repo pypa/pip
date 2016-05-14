@@ -47,10 +47,10 @@ def test_simple_uninstall_distutils(script):
         )
     """))
     result = script.run('python', pkg_path / 'setup.py', 'install')
-    result = script.pip('list')
+    result = script.pip('list', '--format=legacy')
     assert "distutils-install (0.1)" in result.stdout
     script.pip('uninstall', 'distutils_install', '-y', expect_stderr=True)
-    result2 = script.pip('list')
+    result2 = script.pip('list', '--format=legacy')
     assert "distutils-install (0.1)" not in result2.stdout
 
 
@@ -173,10 +173,10 @@ def test_uninstall_entry_point(script):
         )
     """))
     result = script.pip('install', pkg_path)
-    result = script.pip('list')
+    result = script.pip('list', '--format=legacy')
     assert "ep-install (0.1)" in result.stdout
     script.pip('uninstall', 'ep_install', '-y')
-    result2 = script.pip('list')
+    result2 = script.pip('list', '--format=legacy')
     assert "ep-install (0.1)" not in result2.stdout
 
 
@@ -416,7 +416,7 @@ def test_uninstall_setuptools_develop_install(script, data):
                expect_stderr=True, cwd=pkg_path)
     script.run('python', 'setup.py', 'install',
                expect_stderr=True, cwd=pkg_path)
-    list_result = script.pip('list')
+    list_result = script.pip('list', '--format=legacy')
     assert "FSPkg (0.1.dev0, " in list_result.stdout
     # Uninstall both develop and install
     uninstall = script.pip('uninstall', 'FSPkg', '-y')
@@ -426,5 +426,5 @@ def test_uninstall_setuptools_develop_install(script, data):
     assert join(
         script.site_packages, 'FSPkg.egg-link'
     ) in uninstall2.files_deleted, list(uninstall2.files_deleted.keys())
-    list_result2 = script.pip('list')
+    list_result2 = script.pip('list', '--format=legacy')
     assert "FSPkg" not in list_result2.stdout
