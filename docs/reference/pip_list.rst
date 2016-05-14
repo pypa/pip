@@ -66,13 +66,29 @@ Examples
      retry      0.8.1   0.9.1  wheel
      setuptools 20.6.7  21.0.0 wheel
 
-#. Do not use column formatting.
+#. Use legacy formatting
 
     ::
 
-     $ pip list --no-columns
-     DEPRECATION: The --no-columns option will be removed in the future.
+     $ pip list --format=legacy
      colorama (0.3.7)
      docopt (0.6.2)
      idlex (1.13)
      jedi (0.9.0)
+
+#. Use json formatting
+
+    ::
+
+     $ pip list --format=json
+     [{'name': 'colorama', 'version': '0.3.7'}, {'name': 'docopt', 'version': '0.6.2'}, ...
+
+#. Use freeze formatting
+
+    ::
+
+     $ pip list --format=freeze
+     colorama==0.3.7
+     docopt==0.6.2
+     idlex==1.13
+     jedi==0.9.0
