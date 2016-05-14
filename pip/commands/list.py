@@ -79,7 +79,6 @@ class ListCommand(Command):
             action='store',
             dest='list_format',
             choices=('legacy', 'columns', 'freeze', 'json'),
-            default='legacy',
             help="Select the output format among: legacy (default), columns, "
                  "freeze or json",
         )
@@ -146,45 +145,49 @@ class ListCommand(Command):
                 RemovedInPip10Warning,
             )
 
+        if options.list_format is None:
+            warnings.warn(
+                "The default format will switch to columns in the future. "
+                "You can use --format=legacy (or define a list_format "
+                "in your pip.conf) to disable this warning.",
+                RemovedInPip10Warning,
+            )
+
         if options.outdated and options.uptodate:
             raise CommandError(
                 "Options --outdated and --uptodate cannot be combined.")
 
+        packages = get_installed_distributions(
+            local_only=options.local,
+            user_only=options.user,
+            editables_only=options.editable,
+        )
         if options.outdated:
-            packages = self.get_outdated(options)
+            packages = self.get_outdated(packages, options)
         elif options.uptodate:
-            packages = self.get_uptodate(options)
-        else:
-            packages = self.get_listing(options)
+            packages = self.get_uptodate(packages, options)
         self.output_package_listing(packages, options)
 
-    def get_outdated(self, options):
-        latest_pkgs = []
-        for dist in sorted(
-                self.find_packages_latest_versions(options),
-                key=lambda dist: dist.project_name.lower()):
-            if dist.latest_version > dist.parsed_version:
-                latest_pkgs.append(dist)
-        return latest_pkgs
+    def get_outdated(self, packages, options):
+        return [
+            dist for dist in self.iter_packages_latest_infos(packages, options)
+            if dist.latest_version > dist.parsed_version
+        ]
 
-    def get_uptodate(self, options):
-        uptodate = []
-        for dist in self.find_packages_latest_versions(options):
-            if dist.parsed_version == dist.latest_version:
-                uptodate.append(dist)
-        return uptodate
+    def get_uptodate(self, packages, options):
+        return [
+            dist for dist in self.iter_packages_latest_infos(packages, options)
+            if dist.latest_version == dist.parsed_version
+        ]
 
-    def find_packages_latest_versions(self, options):
+    def iter_packages_latest_infos(self, packages, options):
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:
             logger.info('Ignoring indexes: %s', ','.join(index_urls))
             index_urls = []
 
         dependency_links = []
-        for dist in get_installed_distributions(
-                local_only=options.local,
-                user_only=options.user,
-                editables_only=options.editable):
+        for dist in packages:
             if dist.has_metadata('dependency_links.txt'):
                 dependency_links.extend(
                     dist.get_metadata_lines('dependency_links.txt'),
@@ -194,12 +197,7 @@ class ListCommand(Command):
             finder = self._build_package_finder(options, index_urls, session)
             finder.add_dependency_links(dependency_links)
 
-            installed_packages = get_installed_distributions(
-                local_only=options.local,
-                user_only=options.user,
-                editables_only=options.editable,
-            )
-            for dist in installed_packages:
+            for dist in packages:
                 typ = 'unknown'
                 all_candidates = finder.find_all_candidates(dist.key)
                 if not options.pre:
@@ -220,15 +218,6 @@ class ListCommand(Command):
                 dist.latest_version = remote_version
                 dist.latest_filetype = typ
                 yield dist
-
-    def get_listing(self, options):
-        packages = []
-        for dist in get_installed_distributions(
-                local_only=options.local,
-                user_only=options.user,
-                editables_only=options.editable):
-            packages.append(dist)
-        return packages
 
     def output_legacy(self, dist):
         if dist_is_editable(dist):
@@ -259,17 +248,7 @@ class ListCommand(Command):
             for dist in packages:
                 logger.info("%s==%s", dist.project_name, dist.version)
         elif options.list_format == 'json':
-            data = []
-            for dist in packages:
-                info = {
-                    'name': dist.project_name,
-                    'version': six.text_type(dist.version),
-                }
-                if options.outdated:
-                    info['latest_version'] = six.text_type(dist.latest_version)
-                    info['latest_filetype'] = dist.latest_filetype
-                data.append(info)
-            logger.info(json.dumps(data))
+            logger.info(format_for_json(packages, options))
         else:  # legacy
             for dist in packages:
                 if options.outdated:
@@ -341,3 +320,17 @@ def format_for_columns(pkgs, options):
         data.append(row)
 
     return data, header
+
+
+def format_for_json(packages, options):
+    data = []
+    for dist in packages:
+        info = {
+            'name': dist.project_name,
+            'version': six.text_type(dist.version),
+        }
+        if options.outdated:
+            info['latest_version'] = six.text_type(dist.latest_version)
+            info['latest_filetype'] = dist.latest_filetype
+        data.append(info)
+    return json.dumps(data)
