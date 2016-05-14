@@ -80,26 +80,15 @@ class ListCommand(Command):
             dest='list_format',
             choices=('legacy', 'columns', 'freeze', 'json'),
             help="Select the output format among: legacy (default), columns, "
-                 "freeze or json",
+                 "freeze or json.",
         )
 
-        # TODO: When we switch the default, set default=True here.
         cmd_opts.add_option(
             '--columns',
             action='store_const',
             const='columns',
             dest='list_format',
-            # default=True,
             help="Align package names and versions into vertical columns.",
-        )
-
-        cmd_opts.add_option(
-            '--no-columns',
-            action='store_const',
-            const='legacy',
-            dest='list_format',
-            help=("Do not align package names and versions into "
-                  "vertical columns (old-style formatting)"),
         )
 
         index_opts = make_option_group(index_group, self.parser)
@@ -183,7 +172,7 @@ class ListCommand(Command):
     def iter_packages_latest_infos(self, packages, options):
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:
-            logger.info('Ignoring indexes: %s', ','.join(index_urls))
+            logger.debug('Ignoring indexes: %s', ','.join(index_urls))
             index_urls = []
 
         dependency_links = []

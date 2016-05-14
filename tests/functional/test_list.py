@@ -2,17 +2,23 @@ import json
 import os
 import pytest
 
+WARN_FORMAT = ("DEPRECATION: The default format will switch to columns in the "
+               "future. You can use --format=legacy (or define a list_format "
+               "in your pip.conf) to disable this warning.")
+
 
 def test_list_command(script, data):
     """
-    Test default behavior of list command.
+    Test default behavior of list command without format specifier.
+    A warning is expected.
 
     """
     script.pip(
         'install', '-f', data.find_links, '--no-index', 'simple==1.0',
         'simple2==3.0',
     )
-    result = script.pip('list')
+    result = script.pip('list', expect_stderr=True)
+    assert WARN_FORMAT in result.stderr, str(result)
     assert 'simple (1.0)' in result.stdout, str(result)
     assert 'simple2 (3.0)' in result.stdout, str(result)
 
@@ -33,49 +39,34 @@ def test_columns_flag(script, data):
     assert 'simple2    3.0' in result.stdout, str(result)
 
 
-def test_nocolumns_flag(script, data):
+def test_legacy_format(script, data):
     """
-    Test that --no-columns raises the deprecation warning and still outputs
-    the old-style formatting.
+    Test that legacy format
     """
     script.pip(
         'install', '-f', data.find_links, '--no-index', 'simple==1.0',
         'simple2==3.0',
     )
-    result = script.pip('list', '--no-columns', expect_stderr=True)
+    result = script.pip('list', '--format=legacy')
     assert 'simple (1.0)' in result.stdout, str(result)
     assert 'simple2 (3.0)' in result.stdout, str(result)
 
 
-def test_columns_nocolumns(script, data):
+def test_format_priority(script, data):
     """
-    Test that --no-columns has priority in --columns --no-columns.
+    Test that latest format has priority over previous ones.
     """
     script.pip(
         'install', '-f', data.find_links, '--no-index', 'simple==1.0',
         'simple2==3.0',
     )
-    result = script.pip(
-        'list', '--columns', '--no-columns',
-        expect_error=True,
-    )
+    result = script.pip('list', '--format=columns', '--format=legacy')
     assert 'simple (1.0)' in result.stdout, str(result)
     assert 'simple2 (3.0)' in result.stdout, str(result)
     assert 'simple     1.0' not in result.stdout, str(result)
     assert 'simple2    3.0' not in result.stdout, str(result)
 
-
-def test_nocolumns_columns(script, data):
-    """
-    Test that --columns has priority in --no-columns --columns.
-    """
-    script.pip(
-        'install', '-f', data.find_links, '--no-index', 'simple==1.0',
-        'simple2==3.0',
-    )
-    result = script.pip(
-        'list', '--no-columns', '--columns',
-    )
+    result = script.pip('list', '--format=legacy', '--columns')
     assert 'Package' in result.stdout, str(result)
     assert 'Version' in result.stdout, str(result)
     assert 'simple (1.0)' not in result.stdout, str(result)
@@ -90,7 +81,7 @@ def test_local_flag(script, data):
 
     """
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
-    result = script.pip('list', '--local')
+    result = script.pip('list', '--local', '--format=legacy')
     assert 'simple (1.0)' in result.stdout
 
 
@@ -107,13 +98,13 @@ def test_local_columns_flag(script, data):
     assert 'simple     1.0' in result.stdout, str(result)
 
 
-def test_local_nocolumns_flag(script, data):
+def test_local_legacy_flag(script, data):
     """
-    Test the behavior of --local --no-columns flags in the list
+    Test the behavior of --local --format=legacy flags in the list
     command.
     """
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
-    result = script.pip('list', '--local', '--no-columns', expect_stderr=True)
+    result = script.pip('list', '--local', '--format=legacy')
     assert 'simple (1.0)' in result.stdout
 
 
@@ -126,7 +117,7 @@ def test_user_flag(script, data, virtualenv):
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
     script.pip('install', '-f', data.find_links, '--no-index',
                '--user', 'simple2==2.0')
-    result = script.pip('list', '--user')
+    result = script.pip('list', '--user', '--format=legacy')
     assert 'simple (1.0)' not in result.stdout
     assert 'simple2 (2.0)' in result.stdout
 
@@ -147,7 +138,7 @@ def test_user_columns_flag(script, data, virtualenv):
     assert 'simple2 2.0' in result.stdout, str(result)
 
 
-def test_user_nocolumns_flag(script, data, virtualenv):
+def test_user_legacy(script, data, virtualenv):
     """
     Test the behavior of --user flag in the list command
 
@@ -156,7 +147,7 @@ def test_user_nocolumns_flag(script, data, virtualenv):
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
     script.pip('install', '-f', data.find_links, '--no-index',
                '--user', 'simple2==2.0')
-    result = script.pip('list', '--user', '--no-columns', expect_stderr=True)
+    result = script.pip('list', '--user', '--format=legacy')
     assert 'simple (1.0)' not in result.stdout
     assert 'simple2 (2.0)' in result.stdout, str(result)
 
@@ -177,7 +168,7 @@ def test_uptodate_flag(script, data):
     )
     result = script.pip(
         'list', '-f', data.find_links, '--no-index', '--uptodate',
-        expect_stderr=True,
+        '--format=legacy',
     )
     assert 'simple (1.0)' not in result.stdout  # 3.0 is latest
     assert 'pip-test-package (0.1.1,' in result.stdout  # editables included
@@ -211,9 +202,9 @@ def test_uptodate_columns_flag(script, data):
 
 
 @pytest.mark.network
-def test_uptodate_nocolumns_flag(script, data):
+def test_uptodate_legacy_flag(script, data):
     """
-    Test the behavior of --uptodate --no-columns flag in the list command
+    Test the behavior of --uptodate --format=legacy flag in the list command
 
     """
     script.pip(
@@ -226,7 +217,7 @@ def test_uptodate_nocolumns_flag(script, data):
     )
     result = script.pip(
         'list', '-f', data.find_links, '--no-index', '--uptodate',
-        '--no-columns', expect_stderr=True,
+        '--format=legacy',
     )
     assert 'simple (1.0)' not in result.stdout  # 3.0 is latest
     assert 'pip-test-package (0.1.1,' in result.stdout  # editables included
@@ -250,7 +241,7 @@ def test_outdated_flag(script, data):
     )
     result = script.pip(
         'list', '-f', data.find_links, '--no-index', '--outdated',
-        expect_stderr=True,
+        '--format=legacy',
     )
     assert 'simple (1.0) - Latest: 3.0 [sdist]' in result.stdout
     assert 'simplewheel (1.0) - Latest: 2.0 [wheel]' in result.stdout
@@ -294,9 +285,9 @@ def test_outdated_columns_flag(script, data):
 
 
 @pytest.mark.network
-def test_outdated_nocolumns_flag(script, data):
+def test_outdated_legacy(script, data):
     """
-    Test the behavior of --outdated --no-columns flag in the list command
+    Test the behavior of --outdated --format=legacy flag in the list command
 
     """
     script.pip(
@@ -310,7 +301,7 @@ def test_outdated_nocolumns_flag(script, data):
     )
     result = script.pip(
         'list', '-f', data.find_links, '--no-index', '--outdated',
-        '--no-columns', expect_stderr=True,
+        '--format=legacy',
     )
     assert 'simple (1.0) - Latest: 3.0 [sdist]' in result.stdout
     assert 'simplewheel (1.0) - Latest: 2.0 [wheel]' in result.stdout
@@ -329,7 +320,7 @@ def test_editables_flag(script, data):
         'install', '-e',
         'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package'
     )
-    result = script.pip('list', '--editable')
+    result = script.pip('list', '--editable', '--format=legacy')
     assert 'simple (1.0)' not in result.stdout, str(result)
     assert os.path.join('src', 'pip-test-package') in result.stdout, (
         str(result)
@@ -356,7 +347,7 @@ def test_editables_columns_flag(script, data):
 
 
 @pytest.mark.network
-def test_editables_nocolumns_flag(script, data):
+def test_editables_legacy(script, data):
     """
     Test the behavior of --editables flag in the list command
     """
@@ -366,7 +357,7 @@ def test_editables_nocolumns_flag(script, data):
         'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package'
     )
     result = script.pip(
-        'list', '--editable', '--no-columns', expect_stderr=True,
+        'list', '--editable', '--format=legacy', expect_stderr=True,
     )
     assert 'simple (1.0)' not in result.stdout, str(result)
     assert os.path.join('src', 'pip-test-package') in result.stdout, (
@@ -387,7 +378,7 @@ def test_uptodate_editables_flag(script, data):
     result = script.pip(
         'list', '-f', data.find_links, '--no-index',
         '--editable', '--uptodate',
-        expect_stderr=True,
+        '--format=legacy',
     )
     assert 'simple (1.0)' not in result.stdout, str(result)
     assert os.path.join('src', 'pip-test-package') in result.stdout, (
@@ -419,9 +410,9 @@ def test_uptodate_editables_columns_flag(script, data):
 
 
 @pytest.mark.network
-def test_uptodate_editables_nocolumns_flag(script, data):
+def test_uptodate_editables_legacy(script, data):
     """
-    test the behavior of --editable --uptodate --columns --no-columns flag
+    test the behavior of --editable --uptodate --columns --format=legacy flag
     in the list command
     """
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
@@ -431,7 +422,7 @@ def test_uptodate_editables_nocolumns_flag(script, data):
     )
     result = script.pip(
         'list', '-f', data.find_links, '--no-index', '--editable',
-        '--uptodate', '--no-columns', expect_stderr=True,
+        '--uptodate', '--format=legacy',
     )
     assert 'simple (1.0)' not in result.stdout, str(result)
     assert os.path.join('src', 'pip-test-package') in result.stdout, (
@@ -453,7 +444,7 @@ def test_outdated_editables_flag(script, data):
     result = script.pip(
         'list', '-f', data.find_links, '--no-index',
         '--editable', '--outdated',
-        expect_stderr=True,
+        '--format=legacy',
     )
     assert 'simple (1.0)' not in result.stdout, str(result)
     assert os.path.join('src', 'pip-test-package') in result.stdout, (
@@ -485,7 +476,7 @@ def test_outdated_editables_columns_flag(script, data):
 
 
 @pytest.mark.network
-def test_outdated_editables_nocolumns_flag(script, data):
+def test_outdated_editables_legacy(script, data):
     """
     test the behavior of --editable --outdated flag in the list command
     """
@@ -497,8 +488,7 @@ def test_outdated_editables_nocolumns_flag(script, data):
     )
     result = script.pip(
         'list', '-f', data.find_links, '--no-index',
-        '--editable', '--outdated', '--no-columns',
-        expect_stderr=True,
+        '--editable', '--outdated', '--format=legacy',
     )
     assert 'simple (1.0)' not in result.stdout, str(result)
     assert os.path.join('src', 'pip-test-package') in result.stdout, (
@@ -514,60 +504,64 @@ def test_outdated_pre(script, data):
     wheelhouse_path = script.scratch_path / 'wheelhouse'
     wheelhouse_path.join('simple-1.1-py2.py3-none-any.whl').write('')
     wheelhouse_path.join('simple-2.0.dev0-py2.py3-none-any.whl').write('')
-    result = script.pip('list', '--no-index', '--find-links', wheelhouse_path)
+    result = script.pip(
+        'list', '--no-index', '--find-links', wheelhouse_path,
+        '--format=legacy',
+    )
     assert 'simple (1.0)' in result.stdout
-    result = script.pip('list', '--no-index', '--find-links', wheelhouse_path,
-                        '--outdated')
+    result = script.pip(
+        'list', '--no-index', '--find-links', wheelhouse_path, '--outdated',
+        '--format=legacy',
+    )
     assert 'simple (1.0) - Latest: 1.1 [wheel]' in result.stdout
     result_pre = script.pip('list', '--no-index',
                             '--find-links', wheelhouse_path,
-                            '--outdated', '--pre')
+                            '--outdated', '--pre', '--format=legacy')
     assert 'simple (1.0) - Latest: 2.0.dev0 [wheel]' in result_pre.stdout
 
 
-def test_outdated_pre_columns(script, data):
-    """ Test of interaction behavior of --pre and --columns """
+def test_outdated_formats(script, data):
+    """ Test of different outdated formats """
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
 
     # Let's build a fake wheelhouse
     script.scratch_path.join("wheelhouse").mkdir()
     wheelhouse_path = script.scratch_path / 'wheelhouse'
     wheelhouse_path.join('simple-1.1-py2.py3-none-any.whl').write('')
-    wheelhouse_path.join('simple-2.0.dev0-py2.py3-none-any.whl').write('')
-    result = script.pip('list', '--no-index', '--find-links', wheelhouse_path)
-    assert 'simple (1.0)' in result.stdout
-    result = script.pip('list', '--no-index', '--find-links', wheelhouse_path,
-                        '--outdated')
-    assert 'simple (1.0) - Latest: 1.1 [wheel]' in result.stdout
-    result_pre = script.pip(
-        'list', '--no-index', '--find-links', wheelhouse_path,
-        '--outdated', '--pre', '--columns',
-    )
-    assert 'Package' in result_pre.stdout
-    assert 'Version' in result_pre.stdout
-    assert 'Latest' in result_pre.stdout
-    assert 'Type' in result_pre.stdout
-
-
-def test_outdated_pre_nocolumns(script, data):
-    """ Test of interaction behavior of --pre and --no-columns """
-    script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
-
-    # Let's build a fake wheelhouse
-    script.scratch_path.join("wheelhouse").mkdir()
-    wheelhouse_path = script.scratch_path / 'wheelhouse'
-    wheelhouse_path.join('simple-1.1-py2.py3-none-any.whl').write('')
-    wheelhouse_path.join('simple-2.0.dev0-py2.py3-none-any.whl').write('')
-    result = script.pip('list', '--no-index', '--find-links', wheelhouse_path)
-    assert 'simple (1.0)' in result.stdout
-    result = script.pip('list', '--no-index', '--find-links', wheelhouse_path,
-                        '--outdated')
-    assert 'simple (1.0) - Latest: 1.1 [wheel]' in result.stdout
     result = script.pip(
-        'list', '--no-index',
-        '--find-links', wheelhouse_path,
-        '--outdated', '--pre', '--no-columns', expect_stderr=True
+        'list', '--no-index', '--find-links', wheelhouse_path,
+        '--format=freeze',
     )
+    assert 'simple==1.0' in result.stdout
+
+    # Check legacy
+    result = script.pip('list', '--no-index', '--find-links', wheelhouse_path,
+                        '--outdated', '--format=legacy')
+    assert 'simple (1.0) - Latest: 1.1 [wheel]' in result.stdout
+
+    # Check columns
+    result = script.pip(
+        'list', '--no-index', '--find-links', wheelhouse_path,
+        '--outdated', '--columns',
+    )
+    assert 'Package Version Latest Type' in result.stdout
+    assert 'simple  1.0     1.1    wheel' in result.stdout
+
+    # Check freeze
+    result = script.pip(
+        'list', '--no-index', '--find-links', wheelhouse_path,
+        '--outdated', '--format=freeze',
+    )
+    assert 'simple==1.0' in result.stdout
+
+    # Check json
+    result = script.pip(
+        'list', '--no-index', '--find-links', wheelhouse_path,
+        '--outdated', '--format=json',
+    )
+    data = json.loads(result.stdout)
+    assert data == [{'name': 'simple', 'version': '1.0',
+                     'latest_version': '1.1', 'latest_filetype': 'wheel'}]
 
 
 def test_list_freeze(script, data):
