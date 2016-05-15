@@ -54,6 +54,33 @@ logger = logging.getLogger(__name__)
 operators = specifiers.Specifier._operators.keys()
 
 
+
+def get_setup_py(name, source_dir, setup_py_dir):
+    assert source_dir, "No source dir for %s" % name
+    try:
+        import setuptools  # noqa
+    except ImportError:
+        if get_installed_version('setuptools') is None:
+            add_msg = "Please install setuptools."
+        else:
+            add_msg = traceback.format_exc()
+        # Setuptools is not available
+        raise InstallationError(
+            "Could not import setuptools which is required to "
+            "install from a source distribution.\n%s" % add_msg
+        )
+
+    setup_py = os.path.join(setup_py_dir, 'setup.py')
+
+    # Python2 __file__ should not be unicode
+    if six.PY2 and isinstance(setup_py, six.text_type):
+        setup_py = setup_py.encode(sys.getfilesystemencoding())
+
+    return setup_py
+
+
+
+
 def _strip_extras(path):
     m = re.match(r'^(.+)(\[[^\]]+\])$', path)
     extras = None
@@ -367,27 +394,7 @@ class InstallRequirement(object):
 
     @property
     def setup_py(self):
-        assert self.source_dir, "No source dir for %s" % self
-        try:
-            import setuptools  # noqa
-        except ImportError:
-            if get_installed_version('setuptools') is None:
-                add_msg = "Please install setuptools."
-            else:
-                add_msg = traceback.format_exc()
-            # Setuptools is not available
-            raise InstallationError(
-                "Could not import setuptools which is required to "
-                "install from a source distribution.\n%s" % add_msg
-            )
-
-        setup_py = os.path.join(self.setup_py_dir, 'setup.py')
-
-        # Python2 __file__ should not be unicode
-        if six.PY2 and isinstance(setup_py, six.text_type):
-            setup_py = setup_py.encode(sys.getfilesystemencoding())
-
-        return setup_py
+        return get_setup_py(str(self), self.source_dir, self.setup_py_dir)
 
     def run_egg_info(self):
         assert self.source_dir
