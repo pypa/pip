@@ -17,7 +17,8 @@ from email.parser import FeedParser
 from pip._vendor import pkg_resources, six
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.markers import Marker
-from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
+from pip._vendor.packaging.requirements import InvalidRequirement
+from pip._vendor.pkg_resources import Requirement
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 from pip._vendor.six.moves import configparser
