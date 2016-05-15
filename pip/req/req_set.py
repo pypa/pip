@@ -49,6 +49,10 @@ class Requirements(object):
     def __getitem__(self, key):
         return self._dict[key]
 
+    def __delitem__(self, key):
+        self._keys.remove(key)
+        del self._dict[key]
+
     def __repr__(self):
         values = ['%s: %s' % (repr(k), repr(self[k])) for k in self.keys()]
         return 'Requirements({%s})' % ', '.join(values)
