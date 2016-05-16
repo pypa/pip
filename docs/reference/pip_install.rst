@@ -742,86 +742,86 @@ Options
 Examples
 ********
 
-1) Install `SomePackage` and its dependencies from `PyPI`_ using :ref:`Requirement Specifiers`
+#. Install `SomePackage` and its dependencies from `PyPI`_ using :ref:`Requirement Specifiers`
 
-  ::
+    ::
 
-  $ pip install SomePackage            # latest version
-  $ pip install SomePackage==1.0.4     # specific version
-  $ pip install 'SomePackage>=1.0.4'     # minimum version
-
-
-2) Install a list of requirements specified in a file.  See the :ref:`Requirements files <Requirements Files>`.
-
-  ::
-
-  $ pip install -r requirements.txt
+      $ pip install SomePackage            # latest version
+      $ pip install SomePackage==1.0.4     # specific version
+      $ pip install 'SomePackage>=1.0.4'     # minimum version
 
 
-3) Upgrade an already installed `SomePackage` to the latest from PyPI.
+#. Install a list of requirements specified in a file.  See the :ref:`Requirements files <Requirements Files>`.
 
-  ::
+    ::
 
-  $ pip install --upgrade SomePackage
-
-
-4) Install a local project in "editable" mode. See the section on :ref:`Editable Installs <editable-installs>`.
-
-  ::
-
-  $ pip install -e .                     # project in current directory
-  $ pip install -e path/to/project       # project in another directory
+      $ pip install -r requirements.txt
 
 
-5) Install a project from VCS in "editable" mode. See the sections on :ref:`VCS Support <VCS Support>` and :ref:`Editable Installs <editable-installs>`.
+#. Upgrade an already installed `SomePackage` to the latest from PyPI.
 
-  ::
+    ::
 
-  $ pip install -e git+https://git.repo/some_pkg.git#egg=SomePackage          # from git
-  $ pip install -e hg+https://hg.repo/some_pkg.git#egg=SomePackage            # from mercurial
-  $ pip install -e svn+svn://svn.repo/some_pkg/trunk/#egg=SomePackage         # from svn
-  $ pip install -e git+https://git.repo/some_pkg.git@feature#egg=SomePackage  # from 'feature' branch
-  $ pip install -e "git+https://git.repo/some_repo.git#egg=subdir&subdirectory=subdir_path" # install a python package from a repo subdirectory
-
-6) Install a package with `setuptools extras`_.
-
-  ::
-
-  $ pip install SomePackage[PDF]
-  $ pip install SomePackage[PDF]==3.0
-  $ pip install -e .[PDF]==3.0  # editable project in current directory
+      $ pip install --upgrade SomePackage
 
 
-7) Install a particular source archive file.
+#. Install a local project in "editable" mode. See the section on :ref:`Editable Installs <editable-installs>`.
 
-  ::
+    ::
 
-  $ pip install ./downloads/SomePackage-1.0.4.tar.gz
-  $ pip install http://my.package.repo/SomePackage-1.0.4.zip
-
-
-8) Install from alternative package repositories.
-
-  Install from a different index, and not `PyPI`_ ::
-
-  $ pip install --index-url http://my.package.repo/simple/ SomePackage
-
-  Search an additional index during install, in addition to `PyPI`_ ::
-
-  $ pip install --extra-index-url http://my.package.repo/simple SomePackage
-
-  Install from a local flat directory containing archives (and don't scan indexes)::
-
-  $ pip install --no-index --find-links=file:///local/dir/ SomePackage
-  $ pip install --no-index --find-links=/local/dir/ SomePackage
-  $ pip install --no-index --find-links=relative/dir/ SomePackage
+      $ pip install -e .                     # project in current directory
+      $ pip install -e path/to/project       # project in another directory
 
 
-9) Find pre-release and development versions, in addition to stable versions.  By default, pip only finds stable versions.
+#. Install a project from VCS in "editable" mode. See the sections on :ref:`VCS Support <VCS Support>` and :ref:`Editable Installs <editable-installs>`.
 
- ::
+    ::
 
-  $ pip install --pre SomePackage
+      $ pip install -e git+https://git.repo/some_pkg.git#egg=SomePackage          # from git
+      $ pip install -e hg+https://hg.repo/some_pkg.git#egg=SomePackage            # from mercurial
+      $ pip install -e svn+svn://svn.repo/some_pkg/trunk/#egg=SomePackage         # from svn
+      $ pip install -e git+https://git.repo/some_pkg.git@feature#egg=SomePackage  # from 'feature' branch
+      $ pip install -e "git+https://git.repo/some_repo.git#egg=subdir&subdirectory=subdir_path" # install a python package from a repo subdirectory
+
+#. Install a package with `setuptools extras`_.
+
+    ::
+
+      $ pip install SomePackage[PDF]
+      $ pip install SomePackage[PDF]==3.0
+      $ pip install -e .[PDF]==3.0  # editable project in current directory
+
+
+#. Install a particular source archive file.
+
+    ::
+
+      $ pip install ./downloads/SomePackage-1.0.4.tar.gz
+      $ pip install http://my.package.repo/SomePackage-1.0.4.zip
+
+
+#. Install from alternative package repositories.
+
+   Install from a different index, and not `PyPI`_ ::
+
+     $ pip install --index-url http://my.package.repo/simple/ SomePackage
+
+   Search an additional index during install, in addition to `PyPI`_ ::
+
+     $ pip install --extra-index-url http://my.package.repo/simple SomePackage
+
+   Install from a local flat directory containing archives (and don't scan indexes)::
+
+     $ pip install --no-index --find-links=file:///local/dir/ SomePackage
+     $ pip install --no-index --find-links=/local/dir/ SomePackage
+     $ pip install --no-index --find-links=relative/dir/ SomePackage
+
+
+#. Find pre-release and development versions, in addition to stable versions.  By default, pip only finds stable versions.
+
+    ::
+
+      $ pip install --pre SomePackage
 
 ----
 

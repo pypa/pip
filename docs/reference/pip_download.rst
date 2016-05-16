@@ -42,12 +42,10 @@ Options
 Examples
 ********
 
-1. Download a package and all of its dependencies
+#. Download a package and all of its dependencies
 
-  ::
+    ::
 
-    $ pip download SomePackage
-    $ pip download -d . SomePackage  # equivalent to above
-    $ pip download --no-index --find-links=/tmp/wheelhouse -d /tmp/otherwheelhouse SomePackage
-
-
+      $ pip download SomePackage
+      $ pip download -d . SomePackage  # equivalent to above
+      $ pip download --no-index --find-links=/tmp/wheelhouse -d /tmp/otherwheelhouse SomePackage
