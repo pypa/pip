@@ -24,7 +24,7 @@ Options
 Examples
 ********
 
-1) Uninstall a package.
+#. Uninstall a package.
 
   ::
 

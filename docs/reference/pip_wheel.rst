@@ -65,11 +65,9 @@ Options
 Examples
 ********
 
-1. Build wheels for a requirement (and all its dependencies), and then install
+#. Build wheels for a requirement (and all its dependencies), and then install
 
-  ::
+    ::
 
-    $ pip wheel --wheel-dir=/tmp/wheelhouse SomePackage
-    $ pip install --no-index --find-links=/tmp/wheelhouse SomePackage
-
-
+      $ pip wheel --wheel-dir=/tmp/wheelhouse SomePackage
+      $ pip install --no-index --find-links=/tmp/wheelhouse SomePackage
