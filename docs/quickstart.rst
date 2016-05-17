@@ -11,6 +11,15 @@ Install a package from `PyPI`_:
     [...]
     Successfully installed SomePackage
 
+Install a package already downloaded from `PyPI`_ or got elsewhere.
+This is useful if the target machine does not have a network connection:
+
+::
+
+  $ pip install SomePackage-1.0-py2.py3-none-any.whl
+    [...]
+    Successfully installed SomePackage
+
 Show what files were installed:
 
 ::
