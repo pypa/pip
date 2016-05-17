@@ -11,6 +11,7 @@ from pip.utils import get_terminal_size
 from pip.utils.logging import indent_log
 from pip.exceptions import CommandError
 from pip.status_codes import NO_MATCHES_FOUND
+from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor import pkg_resources
 from pip._vendor.six.moves import xmlrpc_client
 
@@ -140,6 +141,4 @@ def print_results(hits, name_column_width=None, terminal_width=None):
 
 
 def highest_version(versions):
-    return next(iter(
-        sorted(versions, key=pkg_resources.parse_version, reverse=True)
-    ))
+    return max(versions, key=parse_version)

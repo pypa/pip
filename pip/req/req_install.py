@@ -19,7 +19,7 @@ from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.packaging.version import Version
+from pip._vendor.packaging.version import Version, parse as parse_version
 from pip._vendor.six.moves import configparser
 
 import pip.wheel
@@ -425,9 +425,7 @@ class InstallRequirement(object):
                 command_desc='python setup.py egg_info')
 
         if not self.req:
-            if isinstance(
-                    pkg_resources.parse_version(self.pkg_info()["Version"]),
-                    Version):
+            if isinstance(parse_version(self.pkg_info()["Version"]), Version):
                 op = "=="
             else:
                 op = "==="
