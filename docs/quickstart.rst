@@ -11,7 +11,7 @@ Install a package from `PyPI`_:
     [...]
     Successfully installed SomePackage
 
-Install a distribution already downloaded from `PyPI`_ or got elsewhere.
+Install a package already downloaded from `PyPI`_ or got elsewhere.
 This is useful if the target machine does not have a network connection:
 
 ::
