@@ -2,6 +2,9 @@
 
 * Added optional column formatting to ``pip list`` (:issue:`3651`).
 
+* Fix the build on systems with symlinked /tmp directory for custom
+  builds such as numpy.
+
 
 **8.1.2 (2016-05-10)**
 
