@@ -361,7 +361,7 @@ class TestUpgradeDistributeToSetuptools(object):
             "Found existing installation: distribute 0.6.34" in result.stdout
         )
         result = self.script.run(
-            self.ve_bin / 'pip', 'list',
+            self.ve_bin / 'pip', 'list', '--format=legacy',
             expect_stderr=True if sys.version_info[:2] == (2, 6) else False,
         )
         assert "setuptools (0.9.8)" in result.stdout

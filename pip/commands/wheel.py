@@ -151,7 +151,7 @@ class WheelCommand(RequirementCommand):
 
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:
-            logger.info('Ignoring indexes: %s', ','.join(index_urls))
+            logger.debug('Ignoring indexes: %s', ','.join(index_urls))
             index_urls = []
 
         if options.build_dir:

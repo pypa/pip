@@ -804,8 +804,8 @@ def test_install_upgrade_editable_depending_on_other_editable(script):
               version='0.1')
     """))
     script.pip('install', '--editable', pkga_path)
-    result = script.pip('list')
-    assert "pkga" in result.stdout
+    result = script.pip('list', '--format=freeze')
+    assert "pkga==0.1" in result.stdout
 
     script.scratch_path.join("pkgb").mkdir()
     pkgb_path = script.scratch_path / 'pkgb'
@@ -815,9 +815,9 @@ def test_install_upgrade_editable_depending_on_other_editable(script):
               version='0.1',
               install_requires=['pkga'])
     """))
-    script.pip('install', '--upgrade', '--editable', pkgb_path)
-    result = script.pip('list')
-    assert "pkgb" in result.stdout
+    script.pip('install', '--upgrade', '--editable', pkgb_path, '--no-index')
+    result = script.pip('list', '--format=freeze')
+    assert "pkgb==0.1" in result.stdout
 
 
 def test_install_subprocess_output_handling(script, data):
