@@ -29,12 +29,13 @@ class FreezeCommand(Command):
 
         self.cmd_opts.add_option(
             '-r', '--requirement',
-            dest='requirement',
-            action='store',
-            default=None,
+            dest='requirements',
+            action='append',
+            default=[],
             metavar='file',
             help="Use the order in the given requirements file and its "
-                 "comments when generating output.")
+                 "comments when generating output. This option can be "
+                 "used multiple times.")
         self.cmd_opts.add_option(
             '-f', '--find-links',
             dest='find_links',
@@ -73,7 +74,7 @@ class FreezeCommand(Command):
             skip.update(DEV_PKGS)
 
         freeze_kwargs = dict(
-            requirement=options.requirement,
+            requirement=options.requirements,
             find_links=options.find_links,
             local_only=options.local,
             user_only=options.user,
