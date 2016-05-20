@@ -50,7 +50,7 @@ def freeze(
             )
         except RequirementParseError:
             logger.warning(
-                "Could not parse requirement: %s", 
+                "Could not parse requirement: %s",
                 dist.project_name
             )
             continue
