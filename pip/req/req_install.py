@@ -307,7 +307,12 @@ class InstallRequirement(object):
             # package is not available yet so we create a temp directory
             # Once run_egg_info will have run, we'll be able
             # to fix it via _correct_build_location
-            self._temp_build_dir = tempfile.mkdtemp('-build', 'pip-')
+            # Some systems have /tmp as a symlink which confuses custom
+            # builds (such as numpy). Thus, we ensure that the real path
+            # is returned.
+            self._temp_build_dir = os.path.realpath(
+                tempfile.mkdtemp('-build', 'pip-')
+            )
             self._ideal_build_dir = build_dir
             return self._temp_build_dir
         if self.editable:
