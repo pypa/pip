@@ -1,4 +1,5 @@
 import sys
+import os
 import re
 import textwrap
 import pytest
@@ -298,46 +299,101 @@ def test_freeze_with_local_option(script):
     _check_output(result.stdout, expected)
 
 
+# used by the test_freeze_with_requirement_* tests below
+_freeze_req_opts = textwrap.dedent("""\
+    # Unchanged requirements below this line
+    -r ignore.txt
+    --requirement ignore.txt
+    -Z ignore
+    --always-unzip ignore
+    -f http://ignore
+    -i http://ignore
+    --pre
+    --trusted-host url
+    --process-dependency-links
+    --extra-index-url http://ignore
+    --find-links http://ignore
+    --index-url http://ignore
+""")
+
+
 def test_freeze_with_requirement_option(script):
     """
     Test that new requirements are created correctly with --requirement hints
 
     """
-    ignores = textwrap.dedent("""\
-        # Unchanged requirements below this line
-        -r ignore.txt
-        --requirement ignore.txt
-        -Z ignore
-        --always-unzip ignore
-        -f http://ignore
-        -i http://ignore
-        --pre
-        --trusted-host url
-        --process-dependency-links
-        --extra-index-url http://ignore
-        --find-links http://ignore
-        --index-url http://ignore
-        """)
+
     script.scratch_path.join("hint.txt").write(textwrap.dedent("""\
         INITools==0.1
         NoExist==4.2
         simple==3.0; python_version > '1.0'
-        """) + ignores)
+        """) + _freeze_req_opts)
     result = script.pip_install_local('initools==0.2')
     result = script.pip_install_local('simple')
     result = script.pip(
         'freeze', '--requirement', 'hint.txt',
         expect_stderr=True,
     )
-    expected = """\
-INITools==0.2
-simple==3.0
-""" + ignores + "## The following requirements were added by pip freeze:..."
+    expected = textwrap.dedent("""\
+        INITools==0.2
+        simple==3.0
+    """)
+    expected += _freeze_req_opts
+    expected += "## The following requirements were added by pip freeze:..."
     _check_output(result.stdout, expected)
     assert (
-        "Requirement file contains NoExist==4.2, but that package is not "
-        "installed"
+        "Requirement file [hint.txt] contains NoExist==4.2, but that package "
+        "is not installed"
     ) in result.stderr
+
+
+def test_freeze_with_requirement_option_multiple(script):
+    """
+    Test that new requirements are created correctly with multiple
+    --requirement hints
+
+    """
+    script.scratch_path.join('hint1.txt').write(textwrap.dedent("""\
+        INITools==0.1
+        NoExist==4.2
+        simple==3.0; python_version > '1.0'
+    """) + _freeze_req_opts)
+    script.scratch_path.join('hint2.txt').write(textwrap.dedent("""\
+        NoExist2==2.0
+        simple2==1.0
+    """) + _freeze_req_opts)
+    result = script.pip_install_local('initools==0.2')
+    result = script.pip_install_local('simple')
+    result = script.pip_install_local('simple2==1.0')
+    result = script.pip_install_local('meta')
+    result = script.pip(
+        'freeze', '--requirement', 'hint1.txt', '--requirement', 'hint2.txt',
+        expect_stderr=True,
+    )
+    expected = textwrap.dedent("""\
+        INITools==0.2
+        simple==1.0
+    """)
+    expected += _freeze_req_opts
+    expected += textwrap.dedent("""\
+        simple2==1.0
+    """)
+    expected += "## The following requirements were added by pip freeze:"
+    expected += os.linesep + textwrap.dedent("""\
+        ...meta==1.0...
+    """)
+    _check_output(result.stdout, expected)
+    assert (
+        "Requirement file [hint1.txt] contains NoExist==4.2, but that "
+        "package is not installed"
+    ) in result.stderr
+    assert (
+        "Requirement file [hint2.txt] contains NoExist2==2.0, but that "
+        "package is not installed"
+    ) in result.stderr
+    # any options like '--index-url http://ignore' should only be emitted once
+    # even if they are listed in multiple requirements files
+    assert result.stdout.count("--index-url http://ignore") == 1
 
 
 def test_freeze_user(script, virtualenv):
