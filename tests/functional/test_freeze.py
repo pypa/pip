@@ -76,10 +76,10 @@ def test_freeze_with_invalid_names(script):
     bad_starters = '-_3.'
     for char in bad_starters:
         script.pip_install_local('{0}invalid==1.0'.format(char))
-        script.pip_install_local('valid{0}==1.0'.format(char))
+        script.pip_install_local('val{0}id==1.0'.format(char))
     result = script.pip('freeze', expect_stderr=True)
     expected_out = '\n'.join(
-        'valid{0}==1.0'.format(char) for char in bad_starters
+        'val{0}id==1.0'.format(char) for char in bad_starters
     ) + '\n<BLANKLINE>'
     expected_err = '\n'.join(
         'Could not parse requirement: {0}invalid'.format(
