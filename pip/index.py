@@ -757,7 +757,22 @@ class HTMLPage(object):
                     "Cache-Control": "max-age=600",
                 },
             )
-            resp.raise_for_status()
+            try:
+                resp.raise_for_status()
+            except IOError as e:
+                logger.debug(
+                    ' url %s raise %s: retrying with index.html', e, url)
+                resp = session.get(
+                    urllib_parse.urljoin(url, 'index.html'),
+                    headers={
+                        "Accept": "text/html",
+                        "Cache-Control": "max-age=600",
+                    },
+                )
+
+                resp.raise_for_status()
+
+
 
             # The check for archives above only works if the url ends with
             #   something that looks like an archive. However that is not a
