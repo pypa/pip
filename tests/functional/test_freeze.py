@@ -69,6 +69,27 @@ def test_freeze_with_pip(script):
     assert 'pip==' in result.stdout
 
 
+def test_freeze_with_invalid_names(script):
+    """
+    Test that invalid names produce warnings and are passed over gracefully.
+    """
+    bad_starters = '-_3.'
+    for char in bad_starters:
+        script.pip_install_local('{0}invalid==1.0'.format(char))
+        script.pip_install_local('valid{0}==1.0'.format(char))
+    result = script.pip('freeze', expect_stderr=True)
+    expected_out = '\n'.join(
+        'valid{0}==1.0'.format(char) for char in bad_starters
+    ) + '\n<BLANKLINE>'
+    expected_err = '\n'.join(
+        'Could not parse requirement: {0}invalid'.format(
+            char
+        ) for char in bad_starters
+    ) + '\n<BLANKLINE>'
+    _check_output(result.stdout, expected_out)
+    _check_output(result.stderr, expected_err)
+
+
 @pytest.mark.svn
 def test_freeze_svn(script, tmpdir):
     """Test freezing a svn checkout"""
