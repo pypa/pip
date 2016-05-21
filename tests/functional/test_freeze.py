@@ -77,9 +77,14 @@ def test_freeze_with_invalid_names(script):
     """
 
     def fake_install(pkgname):
+        try:
+            pkgdir = site.getsitepackages()[0]
+        except AttributeError:
+            pkgdir = os.path.join(
+                os.path.dirname(site.__file__), 'site-packages'
+            )
         egg_info_path = os.path.join(
-            site.getsitepackages()[0],
-            '{0}-1.0-py{1}.{2}.egg-info'.format(
+            pkgdir, '{0}-1.0-py{1}.{2}.egg-info'.format(
                 pkgname.replace('-', '_'),
                 sys.version_info.major,
                 sys.version_info.minor
