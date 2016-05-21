@@ -1,9 +1,7 @@
 import sys
-import os
 import re
 import textwrap
 import pytest
-import site
 from doctest import OutputChecker, ELLIPSIS
 
 from tests.lib import _create_test_package, _create_test_package_with_srcdir
@@ -75,44 +73,26 @@ def test_freeze_with_invalid_names(script):
     """
     Test that invalid names produce warnings and are passed over gracefully.
     """
-
-    def fake_install(pkgname):
-        egg_info_path = os.path.join(
-            os.path.join(os.path.dirname(site.__file__), 'site-packages'),
-            '{0}-1.0-py{1}.{2}.egg-info'.format(
-                pkgname.replace('-', '_'),
-                sys.version_info[0],
-                sys.version_info[1]
-            )
-        )
-        with open(egg_info_path, 'w') as egg_info_file:
-            egg_info_file.write(
-                'Metadata-Version: 1.0\nName: {0}\nVersion: 1.0\n'.format(
-                    pkgname
-                )
-            )
-
-    bad_starters = '-_.'
-    for char in bad_starters:
-        fake_install('val{0}id'.format(char))
-        fake_install('{0}invalid'.format(char))
+    script.pip_install_local('-leadingdash==1.0')
+    script.pip_install_local('.leadingdot==1.0')
+    script.pip_install_local('_leadingunderscore==1.0')
+    script.pip_install_local('simple==1.0')
+    script.pip_install_local('simple2==1.0')
     result = script.pip('freeze', expect_stderr=True)
-    expected_out = '\n'.join(
-        'val{0}id==1.0'.format(
-            char.replace('_', '-')
-        ) for char in bad_starters
-    ) + '\n<BLANKLINE>'
-    expected_err = '\n'.join(
-        'Could not parse requirement: {0}invalid'.format(
-            char.replace('_', '-')
-        ) for char in bad_starters
-    ) + '\n<BLANKLINE>'
+    expected_out = textwrap.dedent("""\
+        simple==1.0
+        simple2==1.0
+        <BLANKLINE>""")
+    expected_err = textwrap.dedent("""\
+        Could not parse requirement: -leadingdash
+        Could not parse requirement: .leadingdot
+        Could not parse requirement: -leadingunderscore
+        <BLANKLINE>""")
     if (sys.version_info[0], sys.version_info[1]) == (2, 6):
-        expected_err = ' '.join((
-            'DEPRECATION: Python 2.6 is no longer supported by the Python',
-            'core team, please upgrade your Python. A future version of pip',
-            'will drop support for Python 2.6\n'
-        )) + expected_err
+        expected_err = \
+            'DEPRECATION: Python 2.6 is no longer supported by the Python '\
+            'core team, please upgrade your Python. A future version of pip '\
+            'will drop support for Python 2.6\n' + expected_err
     _check_output(result.stderr, expected_err)
     _check_output(result.stdout, expected_out)
 
