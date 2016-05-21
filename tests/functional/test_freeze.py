@@ -77,14 +77,9 @@ def test_freeze_with_invalid_names(script):
     """
 
     def fake_install(pkgname):
-        try:
-            pkgdir = site.getsitepackages()[0]
-        except AttributeError:
-            pkgdir = os.path.join(
-                os.path.dirname(site.__file__), 'site-packages'
-            )
         egg_info_path = os.path.join(
-            pkgdir, '{0}-1.0-py{1}.{2}.egg-info'.format(
+            os.path.join(os.path.dirname(site.__file__), 'site-packages'),
+            '{0}-1.0-py{1}.{2}.egg-info'.format(
                 pkgname.replace('-', '_'),
                 sys.version_info[0],
                 sys.version_info[1]
@@ -112,6 +107,12 @@ def test_freeze_with_invalid_names(script):
             char.replace('_', '-')
         ) for char in bad_starters
     ) + '\n<BLANKLINE>'
+    if (sys.version_info[0], sys.version_info[1]) == (2, 6):
+        expected_err = textwrap.dedent('''\
+            DEPRECATION: Python 2.6 is no longer supported by the Python core \
+            team, please upgrade your Python. A future version of pip will \
+            drop support for Python 2.6
+            ''') + expected_err
     _check_output(result.stderr, expected_err)
     _check_output(result.stdout, expected_out)
 
