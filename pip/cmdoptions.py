@@ -216,7 +216,10 @@ index_url = partial(
     dest='index_url',
     metavar='URL',
     default=PyPI.simple_url,
-    help='Base URL of Python Package Index (default %default).')
+    help="Base URL of Python Package Index (default %default). "
+         "This should point to a repository compliant with PEP 503 "
+         "(the simple repository API) or a local directory laid out "
+         "in the same format.")
 
 
 def extra_index_url():
@@ -226,7 +229,9 @@ def extra_index_url():
         metavar='URL',
         action='append',
         default=[],
-        help='Extra URLs of package indexes to use in addition to --index-url.'
+        help="Extra URLs of package indexes to use in addition to "
+             "--index-url. Should follow the same rules as "
+             "--index-url."
     )
 
 
