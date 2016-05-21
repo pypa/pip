@@ -139,8 +139,13 @@ class Git(VersionControl):
         remotes = self.run_command(
             ['config', '--get-regexp', 'remote\..*\.url'],
             show_stdout=False, cwd=location)
-        first_remote = remotes.splitlines()[0]
-        url = first_remote.split(' ')[1]
+        remotes = remotes.splitlines()
+        found_remote = remotes[0]
+        for remote in remotes:
+            if remote.startswith('remote.origin.url '):
+                found_remote = remote
+                break
+        url = found_remote.split(' ')[1]
         return url.strip()
 
     def get_revision(self, location):

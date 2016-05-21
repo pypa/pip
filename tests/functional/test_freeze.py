@@ -193,6 +193,59 @@ def test_freeze_git_clone_srcdir(script, tmpdir):
     _check_output(result.stdout, expected)
 
 
+@pytest.mark.git
+def test_freeze_git_remote(script, tmpdir):
+    """
+    Test freezing a Git clone.
+    """
+    # Returns path to a generated package called "version_pkg"
+    pkg_version = _create_test_package(script)
+
+    result = script.run(
+        'git', 'clone', pkg_version, 'pip-test-package',
+        expect_stderr=True,
+    )
+    repo_dir = script.scratch_path / 'pip-test-package'
+    result = script.run(
+        'python', 'setup.py', 'develop',
+        cwd=repo_dir,
+        expect_stderr=True,
+    )
+    origin_remote = pkg_version
+    other_remote = pkg_version + '-other'
+    # check frozen remote after clone
+    result = script.pip('freeze', expect_stderr=True)
+    expected = textwrap.dedent(
+        """
+            ...-e git+{remote}@...#egg=version_pkg
+            ...
+        """
+    ).format(remote=origin_remote).strip()
+    _check_output(result.stdout, expected)
+    # check frozen remote when there is no remote named origin
+    script.run('git', 'remote', 'remove', 'origin', cwd=repo_dir)
+    script.run('git', 'remote', 'add', 'other', other_remote, cwd=repo_dir)
+    result = script.pip('freeze', expect_stderr=True)
+    expected = textwrap.dedent(
+        """
+            ...-e git+{remote}@...#egg=version_pkg
+            ...
+        """
+    ).format(remote=other_remote).strip()
+    _check_output(result.stdout, expected)
+    # when there are more than one origin, priority is given to the
+    # remote named origin
+    script.run('git', 'remote', 'add', 'origin', origin_remote, cwd=repo_dir)
+    result = script.pip('freeze', expect_stderr=True)
+    expected = textwrap.dedent(
+        """
+            ...-e git+{remote}@...#egg=version_pkg
+            ...
+        """
+    ).format(remote=origin_remote).strip()
+    _check_output(result.stdout, expected)
+
+
 @pytest.mark.mercurial
 def test_freeze_mercurial_clone(script, tmpdir):
     """
