@@ -75,25 +75,27 @@ def test_freeze_with_invalid_names(script):
     """
     Test that invalid names produce warnings and are passed over gracefully.
     """
-    bad_starters = '-_.'
-    for char in bad_starters:
-        valid_name = 'val{0}id'.format(char)
-        invalid_name = '{0}invalid'.format(char)
-        for name in (valid_name, invalid_name):
-            egg_info_path = os.path.join(
-                site.getsitepackages()[0],
-                '{0}-1.0-py{1}.{2}.egg-info'.format(
-                    name.replace('-', '_'),
-                    sys.version_info.major,
-                    sys.version_info.minor
+
+    def fake_install(pkgname):
+        egg_info_path = os.path.join(
+            site.getsitepackages()[0],
+            '{0}-1.0-py{1}.{2}.egg-info'.format(
+                pkgname.replace('-', '_'),
+                sys.version_info.major,
+                sys.version_info.minor
+            )
+        )
+        with open(egg_info_path, 'w') as egg_info_file:
+            egg_info_file.write(
+                'Metadata-Version: 1.0\nName: {0}\nVersion: 1.0\n'.format(
+                    pkgname
                 )
             )
-            with open(egg_info_path, 'w') as egg_info_file:
-                egg_info_file.write(
-                    'Metadata-Version: 1.0\nName: {0}\nVersion: 1.0\n'.format(
-                        name
-                    )
-                )
+
+    bad_starters = '-_.'
+    for char in bad_starters:
+        fake_install('val{0}id'.format(char))
+        fake_install('{0}invalid'.format(char))
     result = script.pip('freeze', expect_stderr=True)
     expected_out = '\n'.join(
         'val{0}id==1.0'.format(
