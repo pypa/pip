@@ -5,6 +5,9 @@
 * Fix the build on systems with symlinked /tmp directory for custom
   builds such as numpy.
 
+* Fix regression in pip freeze: when there is more than one git remote,
+  priority is given to the remote named origin (:issue:`3616`)
+
 
 **8.1.2 (2016-05-10)**
 
