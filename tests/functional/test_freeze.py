@@ -86,8 +86,8 @@ def test_freeze_with_invalid_names(script):
         egg_info_path = os.path.join(
             pkgdir, '{0}-1.0-py{1}.{2}.egg-info'.format(
                 pkgname.replace('-', '_'),
-                sys.version_info.major,
-                sys.version_info.minor
+                sys.version_info[0],
+                sys.version_info[1]
             )
         )
         with open(egg_info_path, 'w') as egg_info_file:
@@ -112,8 +112,8 @@ def test_freeze_with_invalid_names(script):
             char.replace('_', '-')
         ) for char in bad_starters
     ) + '\n<BLANKLINE>'
-    _check_output(result.stdout, expected_out)
     _check_output(result.stderr, expected_err)
+    _check_output(result.stdout, expected_out)
 
 
 @pytest.mark.svn
