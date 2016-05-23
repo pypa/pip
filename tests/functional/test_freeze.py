@@ -3,7 +3,7 @@ import os
 import re
 import textwrap
 import pytest
-import site
+import inspect
 from doctest import OutputChecker, ELLIPSIS
 
 from tests.lib import _create_test_package, _create_test_package_with_srcdir
@@ -78,7 +78,8 @@ def test_freeze_with_invalid_names(script):
 
     def fake_install(pkgname):
         egg_info_path = os.path.join(
-            site.getsitepackages()[0],
+            # Workaround for virtualenv #355 (no site.getsitepackages):
+            os.path.dirname(inspect.getfile(pytest)),
             '{0}-1.0-py{1}.{2}.egg-info'.format(
                 pkgname.replace('-', '_'),
                 sys.version_info[0],
