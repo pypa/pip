@@ -78,7 +78,7 @@ def test_freeze_with_invalid_names(script):
 
     def fake_install(pkgname):
         egg_info_path = os.path.join(
-            # Workaround for virtualenv #355 (no site.getsitepackages):
+            # Workaround for virtualenv issue #355 (no site.getsitepackages):
             os.path.dirname(inspect.getfile(pytest)),
             '{0}-1.0-py{1}.{2}.egg-info'.format(
                 pkgname.replace('-', '_'),
