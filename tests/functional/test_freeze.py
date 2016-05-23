@@ -78,7 +78,8 @@ def test_freeze_with_invalid_names(script):
 
     def fake_install(pkgname):
         egg_info_path = os.path.join(
-            os.path.join(os.path.dirname(site.__file__), 'site-packages'),
+            os.path.dirname(site.__file__),
+            'site-packages',
             '{0}-1.0-py{1}.{2}.egg-info'.format(
                 pkgname.replace('-', '_'),
                 sys.version_info[0],
