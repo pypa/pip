@@ -93,21 +93,22 @@ def test_freeze_with_invalid_names(script):
                 )
             )
 
-    bad_starters = '-_.'
-    for char in bad_starters:
-        fake_install('val{0}id'.format(char))
-        fake_install('{0}invalid'.format(char))
+    valid_pkgs = ('simple==1.0', 'simple2==1.0')
+    for pkg in valid_pkgs:
+        script.pip_install_local(pkg)
+    invalid_pkgnames = ('-leadingdash', '_leadingunderscore', '.leadingdot')
+    for pkgname in invalid_pkgnames:
+        fake_install(pkgname)
     result = script.pip('freeze', expect_stderr=True)
-    expected_out = '\n'.join(
-        'val{0}id==1.0'.format(
-            char.replace('_', '-')
-        ) for char in bad_starters
-    ) + '\n<BLANKLINE>'
-    expected_err = '\n'.join(
-        'Could not parse requirement: {0}invalid'.format(
-            char.replace('_', '-')
-        ) for char in bad_starters
-    ) + '\n<BLANKLINE>'
+    expected_out = textwrap.dedent("""\
+        simple==1.0
+        simple2==1.0
+        <BLANKLINE>""")
+    expected_err = textwrap.dedent("""\
+        Could not parse requirement: -leadingdash
+        Could not parse requirement: -leadingunderscore
+        Could not parse requirement: .leadingdot
+        <BLANKLINE>""")
     if (sys.version_info[0], sys.version_info[1]) == (2, 6):
         expected_err = \
             'DEPRECATION: Python 2.6 is no longer supported by the Python '\
