@@ -114,8 +114,8 @@ def test_freeze_with_invalid_names(script):
             'DEPRECATION: Python 2.6 is no longer supported by the Python '\
             'core team, please upgrade your Python. A future version of pip '\
             'will drop support for Python 2.6\n' + expected_err
-    _check_output(result.stderr, expected_err)
     _check_output(result.stdout, expected_out)
+    _check_output(result.stderr, expected_err)
 
 
 @pytest.mark.svn
