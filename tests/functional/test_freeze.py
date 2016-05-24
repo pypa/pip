@@ -76,11 +76,9 @@ def test_freeze_with_invalid_names(script):
     Test that invalid names produce warnings and are passed over gracefully.
     """
 
-    def fake_install(pkgname):
+    def fake_install(pkgname, dest=os.path.dirname(inspect.getfile(pytest))):
         egg_info_path = os.path.join(
-            # Workaround for virtualenv issue #355 (no site.getsitepackages):
-            os.path.dirname(inspect.getfile(pytest)),
-            '{0}-1.0-py{1}.{2}.egg-info'.format(
+            dest, '{0}-1.0-py{1}.{2}.egg-info'.format(
                 pkgname.replace('-', '_'),
                 sys.version_info[0],
                 sys.version_info[1]
@@ -96,9 +94,11 @@ def test_freeze_with_invalid_names(script):
     valid_pkgs = ('simple==1.0', 'simple2==1.0')
     for pkg in valid_pkgs:
         script.pip_install_local(pkg)
+    import simple
+    dest = os.path.dirname(inspect.getfile(simple))
     invalid_pkgnames = ('-leadingdash', '_leadingunderscore', '.leadingdot')
     for pkgname in invalid_pkgnames:
-        fake_install(pkgname)
+        fake_install(pkgname, dest)
     result = script.pip('freeze', expect_stderr=True)
     expected_out = textwrap.dedent("""\
         simple==1.0
