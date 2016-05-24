@@ -3,7 +3,6 @@ import os
 import re
 import textwrap
 import pytest
-import inspect
 from doctest import OutputChecker, ELLIPSIS
 
 from tests.lib import _create_test_package, _create_test_package_with_srcdir
@@ -76,7 +75,7 @@ def test_freeze_with_invalid_names(script):
     Test that invalid names produce warnings and are passed over gracefully.
     """
 
-    def fake_install(pkgname, dest=os.path.dirname(inspect.getfile(pytest))):
+    def fake_install(pkgname, dest):
         egg_info_path = os.path.join(
             dest, '{0}-1.0-py{1}.{2}.egg-info'.format(
                 pkgname.replace('-', '_'),
@@ -94,11 +93,9 @@ def test_freeze_with_invalid_names(script):
     valid_pkgs = ('simple==1.0', 'simple2==1.0')
     for pkg in valid_pkgs:
         script.pip_install_local(pkg)
-    import simple
-    dest = os.path.dirname(inspect.getfile(simple))
     invalid_pkgnames = ('-leadingdash', '_leadingunderscore', '.leadingdot')
     for pkgname in invalid_pkgnames:
-        fake_install(pkgname, dest)
+        fake_install(pkgname, script.site_packages_path)
     result = script.pip('freeze', expect_stderr=True)
     expected_out = textwrap.dedent("""\
         simple==1.0
