@@ -102,9 +102,9 @@ def test_freeze_with_invalid_names(script):
         simple2==1.0
         <BLANKLINE>""")
     expected_err = textwrap.dedent("""\
-        Could not parse requirement: -leadingdash
         Could not parse requirement: -leadingunderscore
         Could not parse requirement: .leadingdot
+        Could not parse requirement: -leadingdash
         <BLANKLINE>""")
     if (sys.version_info[0], sys.version_info[1]) == (2, 6):
         expected_err = \
