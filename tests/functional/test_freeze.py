@@ -90,51 +90,22 @@ def test_freeze_with_invalid_names(script):
                 )
             )
 
-    for pkg in ('simple==1.0', 'simple2==1.0'):
+    valid_pkgs = ('simple==1.0', 'simple2==1.0')
+    invalid_pkgnames = ('-leadingdash', '_leadingunderscore', '.leadingdot')
+    for pkg in valid_pkgs:
         script.pip_install_local(pkg)
-    for pkgname in ('-leadingdash', '_leadingunderscore', '.leadingdot'):
+    for pkgname in invalid_pkgnames:
         fake_install(pkgname, script.site_packages_path)
     result = script.pip('freeze', expect_stderr=True)
-    expected_out = textwrap.dedent("""\
-        ...simple==1.0
-        simple2==1.0
-        <BLANKLINE>""")
-    pymajor_minor = (sys.version_info[0], sys.version_info[1])
-    if pymajor_minor == (2, 6):
-        expected_err = \
-            'DEPRECATION: Python 2.6 is no longer supported by the Python '\
-            'core team, please upgrade your Python. A future version of pip '\
-            'will drop support for Python 2.6\n' + textwrap.dedent("""\
-            Could not parse requirement: -leadingunderscore
-            Could not parse requirement: .leadingdot
-            Could not parse requirement: -leadingdash
-            <BLANKLINE>""")
-    elif pymajor_minor == (2, 7):
-        expected_err = textwrap.dedent("""\
-            Could not parse requirement: .leadingdot
-            Could not parse requirement: -leadingdash
-            Could not parse requirement: -leadingunderscore
-            <BLANKLINE>""")
-    elif pymajor_minor in ((3, 3), (3, 4)):
-        expected_err = textwrap.dedent("""\
-            Could not parse requirement: .leadingdot
-            Could not parse requirement: -leadingunderscore
-            Could not parse requirement: -leadingdash
-            <BLANKLINE>""")
-    elif pymajor_minor == (3, 5):
-        expected_err = textwrap.dedent("""\
-            Could not parse requirement: -leadingunderscore
-            Could not parse requirement: -leadingdash
-            Could not parse requirement: .leadingdot
-            <BLANKLINE>""")
-    elif pymajor_minor == (3, 6):
-        expected_err = textwrap.dedent("""\
-            Could not parse requirement: -leadingdash
-            Could not parse requirement: -leadingunderscore
-            Could not parse requirement: .leadingdot
-            <BLANKLINE>""")
-    _check_output(result.stdout, expected_out)
-    _check_output(result.stderr, expected_err)
+    for pkg in valid_pkgs:
+        _check_output(result.stdout, '...{}...'.format(pkg))
+    for pkgname in invalid_pkgnames:
+        _check_output(
+            result.stderr,
+            '...Could not parse requirement: {}...'.format(
+                pkgname.replace('_', '-')
+            )
+        )
 
 
 @pytest.mark.svn
