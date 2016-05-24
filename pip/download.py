@@ -199,6 +199,14 @@ class MultiDomainBasicAuth(AuthBase):
             return userinfo, None
         return None, None
 
+    def __nonzero__(self):
+        # needed in order to evalue authentication object to False when we have
+        # no credentials, prevents failure to load .netrc files
+        return bool(self.passwords)
+
+    def __bool__(self):
+        return self.__nonzero__()
+
 
 class LocalFSAdapter(BaseAdapter):
 
@@ -749,6 +757,7 @@ class PipXmlrpcTransport(xmlrpc_client.Transport):
     """Provide a `xmlrpclib.Transport` implementation via a `PipSession`
     object.
     """
+
     def __init__(self, index_url, session, use_datetime=False):
         xmlrpc_client.Transport.__init__(self, use_datetime)
         index_parts = urllib_parse.urlparse(index_url)
