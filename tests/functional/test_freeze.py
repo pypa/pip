@@ -98,11 +98,11 @@ def test_freeze_with_invalid_names(script):
         fake_install(pkgname, script.site_packages_path)
     result = script.pip('freeze', expect_stderr=True)
     for pkg in valid_pkgs:
-        _check_output(result.stdout, '...{}...'.format(pkg))
+        _check_output(result.stdout, '...{0}...'.format(pkg))
     for pkgname in invalid_pkgnames:
         _check_output(
             result.stderr,
-            '...Could not parse requirement: {}...'.format(
+            '...Could not parse requirement: {0}...'.format(
                 pkgname.replace('_', '-')
             )
         )
