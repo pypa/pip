@@ -90,15 +90,16 @@ def test_freeze_with_invalid_names(script):
                 )
             )
 
-    valid_pkgs = ('simple==1.0', 'simple2==1.0')
-    invalid_pkgnames = ('-leadingdash', '_leadingunderscore', '.leadingdot')
-    for pkg in valid_pkgs:
-        script.pip_install_local(pkg)
-    for pkgname in invalid_pkgnames:
+    valid_pkgnames = ('middle-dash', 'middle_underscore', 'middle.dot')
+    invalid_pkgnames = (
+        '-leadingdash', '_leadingunderscore', '.leadingdot',
+        'trailingdash-', 'trailingunderscore_', 'trailingdot.'
+    )
+    for pkgname in valid_pkgnames + invalid_pkgnames:
         fake_install(pkgname, script.site_packages_path)
     result = script.pip('freeze', expect_stderr=True)
-    for pkg in valid_pkgs:
-        _check_output(result.stdout, '...{0}...'.format(pkg))
+    for pkgname in valid_pkgnames:
+        _check_output(result.stdout, '...{0}==1.0...'.format(pkgname))
     for pkgname in invalid_pkgnames:
         _check_output(
             result.stderr,
