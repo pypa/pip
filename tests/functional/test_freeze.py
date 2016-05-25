@@ -101,12 +101,12 @@ def test_freeze_with_invalid_names(script):
     for pkgname in valid_pkgnames:
         _check_output(
             result.stdout,
-            '...{0}==1.0...'.format(pkgname.replace('_', '-'))
+            '...\n{0}==1.0\n...'.format(pkgname.replace('_', '-'))
         )
     for pkgname in invalid_pkgnames:
         _check_output(
             result.stderr,
-            '...Could not parse requirement: {0}...'.format(
+            '...\nCould not parse requirement: {0}\n...'.format(
                 pkgname.replace('_', '-')
             )
         )
