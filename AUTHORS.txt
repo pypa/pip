@@ -222,6 +222,7 @@ Razzi Abuissa <razzi53@gmail.com>
 Remi Rampin <remirampin@gmail.com>
 Rene Dudfield <renesd@gmail.com>
 Richard Jones <r1chardj0n3s@gmail.com>
+Rob Prentiss <jediorange@users.noreply.github.com>
 RobberPhex <robberphex@gmail.com>
 Robert Collins <rbtcollins@hp.com>
 Robert McGibbon <rmcgibbo@gmail.com>
