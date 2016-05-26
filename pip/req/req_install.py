@@ -421,7 +421,6 @@ class InstallRequirement(object):
                 egg_info_cmd + egg_base_option,
                 cwd=self.setup_py_dir,
                 show_stdout=False,
-                command_level=logging.DEBUG,
                 command_desc='python setup.py egg_info')
 
         if not self.req:

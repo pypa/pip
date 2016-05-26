@@ -42,7 +42,7 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'normalize_path',
            'renames', 'get_terminal_size', 'get_prog',
            'unzip_file', 'untar_file', 'unpack_file', 'call_subprocess',
-           'captured_stdout', 'remove_tracebacks', 'ensure_dir',
+           'captured_stdout', 'ensure_dir',
            'ARCHIVE_EXTENSIONS', 'SUPPORTED_EXTENSIONS',
            'get_installed_version']
 
@@ -621,20 +621,9 @@ def unpack_file(filename, location, content_type, link):
         )
 
 
-def remove_tracebacks(output):
-    pattern = (r'(?:\W+File "(?:.*)", line (?:.*)\W+(?:.*)\W+\^\W+)?'
-               r'Syntax(?:Error|Warning): (?:.*)')
-    output = re.sub(pattern, '', output)
-    if PY2:
-        return output
-    # compileall.compile_dir() prints different messages to stdout
-    # in Python 3
-    return re.sub(r"\*\*\* Error compiling (?:.*)", '', output)
-
-
 def call_subprocess(cmd, show_stdout=True, cwd=None,
                     on_returncode='raise',
-                    command_level=std_logging.DEBUG, command_desc=None,
+                    command_desc=None,
                     extra_environ=None, spinner=None):
     # This function's handling of subprocess output is confusing and I
     # previously broke it terribly, so as penance I will write a long comment
@@ -668,7 +657,7 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
                 part = '"%s"' % part.replace('"', '\\"')
             cmd_parts.append(part)
         command_desc = ' '.join(cmd_parts)
-    logger.log(command_level, "Running command %s", command_desc)
+    logger.debug("Running command %s", command_desc)
     env = os.environ.copy()
     if extra_environ:
         env.update(extra_environ)
@@ -727,7 +716,7 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
             raise ValueError('Invalid value: on_returncode=%s' %
                              repr(on_returncode))
     if not show_stdout:
-        return remove_tracebacks(''.join(all_output))
+        return ''.join(all_output)
 
 
 def read_text_file(filename):
