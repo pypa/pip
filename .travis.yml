@@ -31,7 +31,7 @@ matrix:
           env: TOXENV=py35 VENDOR=no WHEELS=yes
 
 
-install: .travis/install.sh
+install: travis_retry .travis/install.sh
 
 
 script: .travis/run.sh
