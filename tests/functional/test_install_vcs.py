@@ -144,8 +144,10 @@ def test_git_branch_should_not_be_changed(script, tmpdir):
         expect_error=True,
     )
     source_dir = script.venv_path / 'src' / 'pip-test-package'
-    result = script.run('git', 'branch', cwd=source_dir)
-    assert '* master' in result.stdout, result.stdout
+    # Check we are on master
+    head = script.run('git', 'rev-parse', 'HEAD', cwd=source_dir).stdout
+    master = script.run('git', 'rev-parse', 'master', cwd=source_dir).stdout
+    assert head == master
 
 
 @pytest.mark.network
