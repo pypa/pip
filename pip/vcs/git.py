@@ -113,7 +113,7 @@ class Git(VersionControl):
         url, rev = self.get_url_rev()
         if rev:
             rev_options = [rev]
-            rev_display = ' (to %s)' % rev
+            rev_display = ' (from %s)' % rev
         else:
             rev_options = ['origin/master']
             rev_display = ''
