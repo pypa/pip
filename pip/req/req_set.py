@@ -751,6 +751,5 @@ class RequirementSet(object):
                     if (requirement.conflicts_with and
                             requirement.install_succeeded):
                         requirement.commit_uninstall()
-                requirement.remove_temporary_source()
 
         self.successfully_installed = to_install
