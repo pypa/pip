@@ -31,11 +31,11 @@ def indent_log(num=2):
     A context manager which will cause the log output to be indented for any
     log messages emitted inside it.
     """
-    _log_state.indentation += num
+    _log_state.indentation = get_indentation() + num
     try:
         yield
     finally:
-        _log_state.indentation -= num
+        _log_state.indentation = get_indentation() - num
 
 
 def get_indentation():
