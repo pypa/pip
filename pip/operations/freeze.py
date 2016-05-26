@@ -8,6 +8,7 @@ from pip.req import InstallRequirement
 from pip.utils import get_installed_distributions
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.pkg_resources import RequirementParseError
 
 
 logger = logging.getLogger(__name__)
@@ -42,10 +43,17 @@ def freeze(
     for dist in get_installed_distributions(local_only=local_only,
                                             skip=(),
                                             user_only=user_only):
-        req = pip.FrozenRequirement.from_dist(
-            dist,
-            dependency_links
-        )
+        try:
+            req = pip.FrozenRequirement.from_dist(
+                dist,
+                dependency_links
+            )
+        except RequirementParseError:
+            logger.warning(
+                "Could not parse requirement: %s",
+                dist.project_name
+            )
+            continue
         installations[req.name] = req
 
     if requirement:

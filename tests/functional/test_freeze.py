@@ -1,4 +1,5 @@
 import sys
+import os
 import re
 import textwrap
 import pytest
@@ -67,6 +68,49 @@ def test_freeze_with_pip(script):
     """Test pip shows itself"""
     result = script.pip('freeze', '--all')
     assert 'pip==' in result.stdout
+
+
+def test_freeze_with_invalid_names(script):
+    """
+    Test that invalid names produce warnings and are passed over gracefully.
+    """
+
+    def fake_install(pkgname, dest):
+        egg_info_path = os.path.join(
+            dest, '{0}-1.0-py{1}.{2}.egg-info'.format(
+                pkgname.replace('-', '_'),
+                sys.version_info[0],
+                sys.version_info[1]
+            )
+        )
+        with open(egg_info_path, 'w') as egg_info_file:
+            egg_info_file.write(textwrap.dedent("""\
+                Metadata-Version: 1.0
+                Name: {0}
+                Version: 1.0
+                """.format(pkgname)
+            ))
+
+    valid_pkgnames = ('middle-dash', 'middle_underscore', 'middle.dot')
+    invalid_pkgnames = (
+        '-leadingdash', '_leadingunderscore', '.leadingdot',
+        'trailingdash-', 'trailingunderscore_', 'trailingdot.'
+    )
+    for pkgname in valid_pkgnames + invalid_pkgnames:
+        fake_install(pkgname, script.site_packages_path)
+    result = script.pip('freeze', expect_stderr=True)
+    for pkgname in valid_pkgnames:
+        _check_output(
+            result.stdout,
+            '...{0}==1.0...'.format(pkgname.replace('_', '-'))
+        )
+    for pkgname in invalid_pkgnames:
+        _check_output(
+            result.stderr,
+            '...Could not parse requirement: {0}\n...'.format(
+                pkgname.replace('_', '-')
+            )
+        )
 
 
 @pytest.mark.svn
