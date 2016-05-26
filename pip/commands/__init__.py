@@ -9,6 +9,7 @@ from pip.commands.freeze import FreezeCommand
 from pip.commands.hash import HashCommand
 from pip.commands.help import HelpCommand
 from pip.commands.list import ListCommand
+from pip.commands.check import CheckCommand
 from pip.commands.search import SearchCommand
 from pip.commands.show import ShowCommand
 from pip.commands.install import InstallCommand
@@ -27,6 +28,7 @@ commands_dict = {
     UninstallCommand.name: UninstallCommand,
     DownloadCommand.name: DownloadCommand,
     ListCommand.name: ListCommand,
+    CheckCommand.name: CheckCommand,
     WheelCommand.name: WheelCommand,
 }
 
@@ -38,6 +40,7 @@ commands_order = [
     FreezeCommand,
     ListCommand,
     ShowCommand,
+    CheckCommand,
     SearchCommand,
     WheelCommand,
     HashCommand,
