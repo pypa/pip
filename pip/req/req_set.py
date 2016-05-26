@@ -471,7 +471,11 @@ class RequirementSet(object):
                     path = url_to_path(req_to_install.link.url)
                     logger.info('Processing %s', display_path(path))
                 else:
-                    logger.info('Collecting %s', req_to_install)
+                    if req_to_install.link:
+                        logger.info('Collecting %s', req_to_install)
+                    else:
+                        logger.info(
+                            'Collecting %s from %s', req_to_install, finder)
 
         with indent_log():
             # ################################ #
