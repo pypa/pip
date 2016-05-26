@@ -5,6 +5,7 @@ from shutil import rmtree, copy
 from tempfile import mkdtemp
 
 from pip._vendor.six.moves.urllib import request as urllib_request
+from pip._vendor.requests.auth import HTTPBasicAuth
 
 from mock import Mock, patch
 import pytest
@@ -13,7 +14,7 @@ import pip
 from pip.exceptions import HashMismatch
 from pip.download import (
     PipSession, SafeFileCache, path_to_url, unpack_http_url, url_to_path,
-    unpack_file_url,
+    unpack_file_url, MultiDomainBasicAuth,
 )
 from pip.index import Link
 from pip.utils.hashes import Hashes
@@ -312,6 +313,11 @@ class TestPipSession:
 
         assert not hasattr(session.adapters["http://"], "cache")
         assert not hasattr(session.adapters["https://"], "cache")
+
+    def test_authlib_returns_HTTPBasicAuth(self):
+        session = PipSession()
+        assert isinstance(session.auth, MultiDomainBasicAuth)
+        assert session.auth.authlib == HTTPBasicAuth
 
     def test_cache_is_enabled(self, tmpdir):
         session = PipSession(cache=tmpdir.join("test-cache"))

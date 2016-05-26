@@ -60,6 +60,23 @@ def test_with_setuptools_and_import_error(script, data):
     assert "ImportError: toto" in result.stderr
 
 
+def test_without_ntlm(script, data):
+    result = script.run(
+        "python", "-c",
+        "import pip; pip.main(["
+        "'install', "
+        "'INITools==0.2', "
+        "'-f', '%s', "
+        "'--auth-ntlm'])" % data.packages,
+        expect_error=True,
+    )
+    assert (
+        "Dependencies for Ntlm authentication are missing. Install "
+        "dependencies via the 'pip install pip[ntlm]' command."
+        in result.stderr
+    )
+
+
 def test_pip_second_command_line_interface_works(script, data):
     """
     Check if ``pip<PYVERSION>`` commands behaves equally

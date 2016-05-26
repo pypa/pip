@@ -87,6 +87,7 @@ setup(
     zip_safe=False,
     extras_require={
         'testing': tests_require,
+        'ntlm': ['requests_ntlm'],
     },
     cmdclass={'test': PyTest},
 )
