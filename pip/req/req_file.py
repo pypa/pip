@@ -55,6 +55,7 @@ SUPPORTED_OPTIONS_REQ = [
     cmdoptions.install_options,
     cmdoptions.global_options,
     cmdoptions.hash,
+    cmdoptions.archive_extension,
 ]
 
 # the 'dest' string values

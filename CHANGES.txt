@@ -5,6 +5,10 @@
 
 **8.1.2 (2016-05-10)**
 
+* Fix wrong calculate hash if package is available in multiple formats. The
+  validation will fail because pip may pick different format than was used to
+  calculate hash. (:issue: `3622`).
+
 * Fix a regression on systems with uninitialized locale (:issue:`3575`).
 
 * Use environment markers to filter packages before determining if a

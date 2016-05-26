@@ -564,6 +564,16 @@ require_hashes = partial(
          'repeatable installs. This option is implied when any package in a '
          'requirements file has a --hash option.')
 
+archive_extension = partial(
+    Option,
+    '--archive-extension',
+    dest='archive-extension',
+    action='store',
+    type='string',
+    default='',
+    help='Extra param for select package where used --hash in requirements. '
+         'Select packages only with this extension.')
+
 
 ##########
 # groups #

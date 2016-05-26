@@ -614,6 +614,16 @@ Hash-checking mode also works with :ref:`pip download` and :ref:`pip wheel`. A
 
         pip install --no-deps .
 
+.. _`--archive-extension`:
+
+The `--hash` and `--require-hashes` options allow to validate archive that was
+downloaded from PyPI. However, if package is available in multiple formats
+the validation will fail because pip may pick different format than was used
+to calculate hash. To determine what kind of archive you need to use the
+option to specify::
+
+    FooProject == 1.2 --hash=sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824 --archive-extension=tar.gz
+
 
 Hashes from PyPI
 ~~~~~~~~~~~~~~~~
