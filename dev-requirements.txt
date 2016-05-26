@@ -8,4 +8,4 @@ pytest-timeout==0.5
 pytest-xdist
 mock<1.1
 scripttest>=1.3
-https://github.com/pypa/virtualenv/archive/develop.zip#egg=virtualenv
+https://github.com/pypa/virtualenv/archive/master.zip#egg=virtualenv
