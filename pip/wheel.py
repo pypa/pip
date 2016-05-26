@@ -802,6 +802,11 @@ class WheelBuilder(object):
                     output_dir = _cache_for_link(self._cache_root, req.link)
                     try:
                         ensure_dir(output_dir)
+                        # Write a link file
+                        link_filename = os.path.join(output_dir, 'link')
+                        if not os.path.exists(link_filename) and req.link.url:
+                            with open(link_filename, 'w') as lf:
+                                lf.write(req.link.url)
                     except OSError as e:
                         logger.warning("Building wheel for %s failed: %s",
                                        req.name, e)
