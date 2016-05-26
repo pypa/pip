@@ -84,11 +84,12 @@ def test_freeze_with_invalid_names(script):
             )
         )
         with open(egg_info_path, 'w') as egg_info_file:
-            egg_info_file.write(
-                'Metadata-Version: 1.0\nName: {0}\nVersion: 1.0\n'.format(
-                    pkgname
-                )
-            )
+            egg_info_file.write(textwrap.dedent("""\
+                Metadata-Version: 1.0
+                Name: {0}
+                Version: 1.0
+                """.format(pkgname)
+            ))
 
     valid_pkgnames = ('middle-dash', 'middle_underscore', 'middle.dot')
     invalid_pkgnames = (
