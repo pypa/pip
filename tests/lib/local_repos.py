@@ -1,12 +1,17 @@
 from __future__ import absolute_import
 
+import logging
 import os
 import subprocess
 
 from pip._vendor.six.moves.urllib import request as urllib_request
+from pip._vendor.retrying import retry
 
 from pip.vcs import subversion, git, bazaar, mercurial
 from tests.lib import path_to_url
+
+
+logger = logging.getLogger(__name__)
 
 
 if hasattr(subprocess, "check_call"):
@@ -65,11 +70,17 @@ def _get_vcs_and_checkout_url(remote_repository, directory):
 
     destination_path = os.path.join(directory, repository_name)
     if not os.path.exists(destination_path):
-        vcs_class(remote_repository).obtain(destination_path)
+        _obtain_repo_from_vcs(vcs_class, remote_repository, destination_path)
     return '%s+%s' % (
         vcs,
         path_to_url('/'.join([directory, repository_name, branch])),
     )
+
+
+@retry(stop_max_attempt_number=5,
+       wait_exponential_multiplier=1000, wait_exponential_max=10000)
+def _obtain_repo_from_vcs(vcs_class, remote_repository, destination_path):
+    vcs_class(remote_repository).obtain(destination_path)
 
 
 def local_checkout(remote_repo, directory):
