@@ -157,6 +157,8 @@ class WheelCommand(RequirementCommand):
         if options.build_dir:
             options.build_dir = os.path.abspath(options.build_dir)
 
+        options.src_dir = os.path.abspath(options.src_dir)
+
         with self._build_session(options) as session:
             finder = self._build_package_finder(options, session)
             build_delete = (not (options.no_clean or options.build_dir))

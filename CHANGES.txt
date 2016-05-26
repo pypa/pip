@@ -8,6 +8,10 @@
 * Fix regression in pip freeze: when there is more than one git remote,
   priority is given to the remote named origin (:issue:`3616`)
 
+* Pip wheel now works on editable packages too (it was only working on
+  editable dependencies before); this allows running pip wheel on the result
+  of pip freeze in presence of editable requirements (:issue:`3291`)
+
 
 **8.1.2 (2016-05-10)**
 
