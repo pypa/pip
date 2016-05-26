@@ -316,25 +316,22 @@ def test_freeze_bazaar_clone(script, tmpdir):
     _check_output(result.stdout, expected)
 
 
-def test_freeze_with_local_option(script):
+def test_freeze_with_local_option(virtualenv, script):
     """
-    Test that wsgiref (from global site-packages) is reported normally, but not
-    with --local.
+    Test that packages from system site-packages are reported normally,
+    but not with --local.
+    This requires at least one python package installed outside of the
+    venv and that is not one of freeze_excludes.
     """
-    result = script.pip_install_local('initools==0.2')
+    virtualenv.system_site_packages = True
+    script.pip_install_local('initools==0.2')
     result = script.pip('freeze', expect_stderr=True)
-    expected = textwrap.dedent("""\
-        INITools==0.2
-        wsgiref==...
-        <BLANKLINE>""")
 
-    # The following check is broken (see
-    # http://bitbucket.org/ianb/pip/issue/110).  For now we are simply
-    # neutering this test, but if we can't find a way to fix it,
-    # this whole function should be removed.
+    # We expect a bunch of packages (from system-site-package)
+    assert 'INITools==0.2' in result.stdout
+    assert len(result.stdout.split()) >= 1
 
-    # _check_output(result, expected)
-
+    # Only INITools found with --local
     result = script.pip('freeze', '--local', expect_stderr=True)
     expected = textwrap.dedent("""\
         INITools==0.2
