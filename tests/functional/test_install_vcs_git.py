@@ -112,7 +112,8 @@ def test_check_submodule_addition(script):
     module_path, submodule_path = _create_test_package_with_submodule(script)
 
     install_result = script.pip(
-        'install', '-e', 'git+' + module_path + '#egg=version_pkg'
+        'install', '-e', 'git+' + module_path + '#egg=version_pkg',
+        expect_stderr=True
     )
     assert (
         script.venv / 'src/version-pkg/testpkg/static/testfile'
@@ -133,3 +134,23 @@ def test_check_submodule_addition(script):
         script.venv / 'src/version-pkg/testpkg/static/testfile2'
         in update_result.files_created
     )
+
+
+@pytest.mark.network
+def test_shallow_clone(script):
+    """
+    Installing from a tag rev should be shallow.
+    """
+    src = script.venv_path + '/src/' + 'pip-test-package'
+
+    script.pip(
+        'install', '-e', 'git+https://github.com/pypa/pip-test-package.git' +
+        '@0.1.1#egg=pip-test-package', expect_stderr=True
+    )
+
+    tag = script.run('git', 'describe', '--tags', cwd=src).stdout.strip('\n')
+    assert tag == '0.1.1'
+
+    depth = script.run(
+        'git', 'rev-list', 'HEAD', '--count', cwd=src).stdout.strip('\n')
+    assert depth == '1'
