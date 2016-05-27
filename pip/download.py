@@ -163,7 +163,7 @@ class MultiDomainBasicAuth(AuthBase):
         if resp.status_code != 401:
             return resp
 
-        # We are not able to prompt the user so simple return the response
+        # We are not able to prompt the user so simply return the response
         if not self.prompting:
             return resp
 
