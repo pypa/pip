@@ -55,7 +55,7 @@ Options
 Examples
 ********
 
-#. Download a package and all of its dependencies
+1. Download a package and all of its dependencies
 
   ::
 
@@ -63,7 +63,7 @@ Examples
     $ pip download -d . SomePackage  # equivalent to above
     $ pip download --no-index --find-links=/tmp/wheelhouse -d /tmp/otherwheelhouse SomePackage
 
-#. Download a package and all of its dependencies with OSX specific interpreter constraints.
+2. Download a package and all of its dependencies with OSX specific interpreter constraints.
    This forces OSX 10.10 or lower compatibility. Since OSX deps are forward compatible,
    this will also match ``macosx-10_9_x86_64``, ``macosx-10_8_x86_64``, ``macosx-10_8_intel``,
    etc.
@@ -79,7 +79,7 @@ Examples
         --implementation cp \
         SomePackage
 
-#.  Download a package and its dependencies with linux specific constraints, including
+3.  Download a package and its dependencies with linux specific constraints, including
     packages that support the ``manylinux1`` platform.  Force the interpreter to be any
     minor version of py3k, and only accept ``cp34m`` or ``none`` as the abi.
 
@@ -93,7 +93,7 @@ Examples
         --abi cp34m \
         SomePackage
 
-#.  Force platform, implementation, and abi agnostic deps.
+4.  Force platform, implementation, and abi agnostic deps.
 
   ::
 
@@ -105,7 +105,7 @@ Examples
         --abi none \
         SomePackage
 
-#.  Even when overconstrained, this will still correctly fetch the pip universal wheel.
+5.  Even when overconstrained, this will still correctly fetch the pip universal wheel.
 
   ::
 
