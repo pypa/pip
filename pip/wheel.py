@@ -182,8 +182,10 @@ def fix_script(path):
             if not firstline.startswith(b'#!python'):
                 return False
             exename = sys.executable.encode(sys.getfilesystemencoding())
-            # Keep anything after #!python; may include flags that should be passed to script
-            firstline = firstline.replace(b'python', exename).rstrip() + os.linesep.encode("ascii")
+            # Keep anything after #!python; may include flags that should be
+            # passed to script
+            firstline = firstline.replace(b'python', exename).rstrip() + \
+                os.linesep.encode("ascii")
             rest = script.read()
         with open(path, 'wb') as script:
             script.write(firstline)
