@@ -944,7 +944,7 @@
 * Fixed :issue:`32` - pip fails when server does not send content-type header.
   Thanks Hugo Lopes Tavares and Kelsey Hightower (:pull:`872`).
 
-* "Vendorized" distlib as pip.vendor.distlib (https://distlib.readthedocs.org/).
+* "Vendorized" distlib as pip.vendor.distlib (https://distlib.readthedocs.io/).
 
 * Fixed git VCS backend with git 1.8.3. (:pull:`967`)
 
