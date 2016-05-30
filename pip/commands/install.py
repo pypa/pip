@@ -320,6 +320,7 @@ class InstallCommand(RequirementCommand):
                         possible_lib_locations = get_lib_location_guesses(
                             user=options.use_user_site,
                             home=temp_target_dir,
+                            root=options.root_path,
                             prefix=options.prefix_path,
                             isolated=options.isolated_mode,
                         )
