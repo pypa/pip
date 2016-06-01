@@ -849,30 +849,8 @@ class InstallRequirement(object):
         temp_location = tempfile.mkdtemp('-record', 'pip-')
         record_filename = os.path.join(temp_location, 'install-record.txt')
         try:
-            install_args = [sys.executable, "-u"]
-            install_args.append('-c')
-            install_args.append(SETUPTOOLS_SHIM % self.setup_py)
-            install_args += list(global_options) + \
-                ['install', '--record', record_filename]
-
-            if not self.as_egg:
-                install_args += ['--single-version-externally-managed']
-
-            if root is not None:
-                install_args += ['--root', root]
-            if prefix is not None:
-                install_args += ['--prefix', prefix]
-
-            if self.pycompile:
-                install_args += ["--compile"]
-            else:
-                install_args += ["--no-compile"]
-
-            if running_under_virtualenv():
-                py_ver_str = 'python' + sysconfig.get_python_version()
-                install_args += ['--install-headers',
-                                 os.path.join(sys.prefix, 'include', 'site',
-                                              py_ver_str, self.name)]
+            install_args = self.get_install_args(
+                global_options, record_filename, root, prefix)
             msg = 'Running setup.py install for %s' % (self.name,)
             with open_spinner(msg) as spinner:
                 with indent_log():
@@ -944,6 +922,34 @@ class InstallRequirement(object):
         if self.source_dir is None:
             self.source_dir = self.build_location(parent_dir)
         return self.source_dir
+
+    def get_install_args(self, global_options, record_filename, root, prefix):
+        install_args = [sys.executable, "-u"]
+        install_args.append('-c')
+        install_args.append(SETUPTOOLS_SHIM % self.setup_py)
+        install_args += list(global_options) + \
+            ['install', '--record', record_filename]
+
+        if not self.as_egg:
+            install_args += ['--single-version-externally-managed']
+
+        if root is not None:
+            install_args += ['--root', root]
+        if prefix is not None:
+            install_args += ['--prefix', prefix]
+
+        if self.pycompile:
+            install_args += ["--compile"]
+        else:
+            install_args += ["--no-compile"]
+
+        if running_under_virtualenv():
+            py_ver_str = 'python' + sysconfig.get_python_version()
+            install_args += ['--install-headers',
+                             os.path.join(sys.prefix, 'include', 'site',
+                                          py_ver_str, self.name)]
+
+        return install_args
 
     def remove_temporary_source(self):
         """Remove the source files from this requirement, if they are marked
