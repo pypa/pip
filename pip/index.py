@@ -113,16 +113,14 @@ class PackageFinder(object):
             the index and links.
         :param platform: A string or None. If None, searches for packages
             that are supported by the current system. Otherwise, will find
-            packages that can be built on the platform passed in. It is
-            understood that these packages will only be downloaded for
-            distribution: they will not be built locally.
+            packages that can be built on the platform passed in. These
+            packages will only be downloaded for distribution: they will
+            not be built locally.
         :param versions: A list of strings or None. This is passed directly
             to pep425tags.py in the get_supported() method.
         :param abi: A string or None. This is passed directly
             to pep425tags.py in the get_supported() method.
         :param implementation: A string or None. This is passed directly
-            to pep425tags.py in the get_supported() method.
-        :param manylinux1: A boolean or None. This is passed directly
             to pep425tags.py in the get_supported() method.
         """
         if session is None:
