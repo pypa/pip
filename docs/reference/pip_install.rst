@@ -423,7 +423,7 @@ Finding Packages
 
 pip searches for packages on `PyPI`_ using the
 `http simple interface <http://pypi.python.org/simple>`_,
-which is documented `here <http://packages.python.org/setuptools/easy_install.html#package-index-api>`_
+which is documented `here <https://setuptools.readthedocs.io/en/latest/easy_install.html#package-index-api>`_
 and `there <http://www.python.org/dev/peps/pep-0301/>`_
 
 pip offers a number of Package Index Options for modifying how packages are found.
@@ -633,7 +633,7 @@ local hash.
 +++++++++++++++++++
 
 "Editable" installs are fundamentally `"setuptools develop mode"
-<http://packages.python.org/setuptools/setuptools.html#development-mode>`_
+<https://setuptools.readthedocs.io/en/latest/setuptools.html#development-mode>`_
 installs.
 
 You can install local projects or VCS projects in "editable" mode::
@@ -654,7 +654,7 @@ Controlling setup_requires
 ++++++++++++++++++++++++++
 
 Setuptools offers the ``setup_requires`` `setup() keyword
-<http://pythonhosted.org/setuptools/setuptools.html#new-and-changed-setup-keywords>`_
+<https://setuptools.readthedocs.io/en/latest/setuptools.html#new-and-changed-setup-keywords>`_
 for specifying dependencies that need to be present in order for the `setup.py`
 script to run.  Internally, Setuptools uses ``easy_install`` to fulfill these
 dependencies.
@@ -694,7 +694,7 @@ the following commands::
 
 The ``egg_info`` command should create egg metadata for the package, as
 described in the setuptools documentation at
-http://pythonhosted.org/setuptools/setuptools.html#egg-info-create-egg-metadata-and-set-build-tags
+https://setuptools.readthedocs.io/en/latest/setuptools.html#egg-info-create-egg-metadata-and-set-build-tags
 
 The ``install`` command should implement the complete process of installing the
 package to the target directory XXX.
@@ -723,7 +723,7 @@ No other build system commands are invoked by the ``pip install`` command.
 Installing a package from a wheel does not invoke the build system at all.
 
 .. _PyPI: http://pypi.python.org/pypi/
-.. _setuptools extras: http://packages.python.org/setuptools/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies
+.. _setuptools extras: https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies
 
 
 
