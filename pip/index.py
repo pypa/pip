@@ -172,10 +172,6 @@ class PackageFinder(object):
             abi=abi,
             impl=implementation,
         )
-        self.valid_tags_noarch = get_supported(
-            versions=versions,
-            noarch=True
-        )
 
         # If we don't have TLS enabled, then WARN if anyplace we're looking
         # relies on TLS.
