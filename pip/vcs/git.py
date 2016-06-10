@@ -8,6 +8,7 @@ from pip.compat import samefile
 from pip.exceptions import BadCommand
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
+from pip._vendor.packaging.version import parse as parse_version
 
 from pip.utils import display_path, rmtree
 from pip.vcs import vcs, VersionControl
@@ -48,6 +49,19 @@ class Git(VersionControl):
                 )
 
         super(Git, self).__init__(url, *args, **kwargs)
+
+    def get_git_version(self):
+        VERSION_PFX = 'git version '
+        version = self.run_command(['version'], show_stdout=False)
+        if version.startswith(VERSION_PFX):
+            version = version[len(VERSION_PFX):]
+        else:
+            version = ''
+        # get first 3 positions of the git version becasue
+        # on windows it is x.y.z.windows.t, and this parses as
+        # LegacyVersion which always smaller than a Version.
+        version = '.'.join(version.split('.')[:3])
+        return parse_version(version)
 
     def export(self, location):
         """Export the Git repository at the url to the destination location"""
@@ -99,7 +113,11 @@ class Git(VersionControl):
 
     def update(self, dest, rev_options):
         # First fetch changes from the default remote
-        self.run_command(['fetch', '-q'], cwd=dest)
+        if self.get_git_version() >= parse_version('1.9.0'):
+            # fetch tags in addition to everything else
+            self.run_command(['fetch', '-q', '--tags'], cwd=dest)
+        else:
+            self.run_command(['fetch', '-q'], cwd=dest)
         # Then reset to wanted revision (maybe even origin/master)
         if rev_options:
             rev_options = self.check_rev_options(
