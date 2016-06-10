@@ -273,7 +273,7 @@ class ConfigOptionParser(CustomOptionParser):
                 yield (_environ_prefix_re.sub("", key).lower(), val)
 
     def get_default_values(self):
-        """Overridding to make updating the defaults after instantiation of
+        """Overriding to make updating the defaults after instantiation of
         the option parser possible, _update_defaults() does the dirty work."""
         if not self.process_default_values:
             # Old, pre-Optik 1.5 behaviour.

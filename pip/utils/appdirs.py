@@ -115,7 +115,7 @@ def user_config_dir(appname, roaming=True):
         Win *:                  same as user_data_dir
 
     For Unix, we follow the XDG spec and support $XDG_CONFIG_HOME.
-    That means, by deafult "~/.config/<AppName>".
+    That means, by default "~/.config/<AppName>".
     """
     if WINDOWS:
         path = user_data_dir(appname, roaming=roaming)

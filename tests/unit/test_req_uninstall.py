@@ -18,8 +18,8 @@ class TestUninstallPathSet(object):
         monkeypatch.setattr(pip.req.req_uninstall, 'is_local', mock_is_local)
         # Fix case for windows tests
         file_extant = os.path.normcase(os.path.join(tmpdir, 'foo'))
-        file_nonexistant = os.path.normcase(
-            os.path.join(tmpdir, 'nonexistant'))
+        file_nonexistent = os.path.normcase(
+            os.path.join(tmpdir, 'nonexistent'))
         with open(file_extant, 'w'):
             pass
 
@@ -28,7 +28,7 @@ class TestUninstallPathSet(object):
         ups.add(file_extant)
         assert ups.paths == set([file_extant])
 
-        ups.add(file_nonexistant)
+        ups.add(file_nonexistent)
         assert ups.paths == set([file_extant])
 
     @pytest.mark.skipif("sys.platform == 'win32'")

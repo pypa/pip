@@ -125,7 +125,7 @@ def get_platform():
     if sys.platform == 'darwin':
         # distutils.util.get_platform() returns the release based on the value
         # of MACOSX_DEPLOYMENT_TARGET on which Python was built, which may
-        # be signficantly older than the user's current machine.
+        # be significantly older than the user's current machine.
         release, _, machine = platform.mac_ver()
         split_ver = release.split('.')
 

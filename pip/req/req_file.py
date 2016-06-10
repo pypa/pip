@@ -135,7 +135,7 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
         defaults.format_control = finder.format_control
     args_str, options_str = break_args_options(line)
     if sys.version_info < (2, 7, 3):
-        # Priori to 2.7.3, shlex can not deal with unicode entries
+        # Prior to 2.7.3, shlex cannot deal with unicode entries
         options_str = options_str.encode('utf8')
     opts, _ = parser.parse_args(shlex.split(options_str), defaults)
 

@@ -566,7 +566,7 @@ def test_outdated_formats(script, data):
 
 def test_list_freeze(script, data):
     """
-    Test freeze formating of list command
+    Test freeze formatting of list command
 
     """
     script.pip(
@@ -580,7 +580,7 @@ def test_list_freeze(script, data):
 
 def test_list_json(script, data):
     """
-    Test json formating of list command
+    Test json formatting of list command
 
     """
     script.pip(

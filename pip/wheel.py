@@ -440,7 +440,7 @@ if __name__ == '__main__':
     # Because setuptools and pip are bundled with _ensurepip and virtualenv,
     # we need to use universal wheels. So, as a stopgap until Metadata 2.0, we
     # override the versioned entry points in the wheel and generate the
-    # correct ones. This code is purely a short-term measure until Metadat 2.0
+    # correct ones. This code is purely a short-term measure until Metadata 2.0
     # is available.
     #
     # To add the level of hack in this section of code, in order to support

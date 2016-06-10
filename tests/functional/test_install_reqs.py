@@ -169,7 +169,7 @@ def test_install_local_editable_with_extras(script, data):
 
 
 @pytest.mark.network
-def test_install_collected_dependancies_first(script):
+def test_install_collected_dependencies_first(script):
     result = script.pip(
         'install', 'paramiko',
     )

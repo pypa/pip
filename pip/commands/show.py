@@ -102,7 +102,7 @@ def search_packages_info(query):
                     'home-page', 'author', 'author-email', 'license'):
             package[key] = pkg_info_dict.get(key)
 
-        # It looks like FeedParser can not deal with repeated headers
+        # It looks like FeedParser cannot deal with repeated headers
         classifiers = []
         for line in metadata.splitlines():
             if not line:
