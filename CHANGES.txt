@@ -38,6 +38,10 @@
 
 * Added pip completion support for fish shell.
 
+* Use git fetch --tags to fetch tags in addition to everything else that
+  is normally fetched; this is necessary in case a git requirement url
+  points to a tag or commit that is not on a branch (:pull:`3791`)
+
 
 **8.1.2 (2016-05-10)**
 

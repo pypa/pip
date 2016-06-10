@@ -5,6 +5,7 @@ from pip.vcs.bazaar import Bazaar
 from pip.vcs.git import Git
 from pip.vcs.subversion import Subversion
 from mock import Mock
+from pip._vendor.packaging.version import parse as parse_version
 
 if pyversion >= '3':
     VERBOSE_FALSE = False
@@ -137,3 +138,8 @@ def test_subversion_remove_auth_from_url():
     expected_url = 'https://svnrepo.org/svn/project/trunk@8181'
     url = Subversion.remove_auth_from_url(svn_rev_url)
     assert url == expected_url
+
+
+def test_get_git_version():
+    git_version = Git().get_git_version()
+    assert git_version >= parse_version('1.0.0')
