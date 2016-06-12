@@ -74,7 +74,7 @@
   :pull:`3495`).
 
 * Correct the behavior where interpreter specific tags (such as cp34) were
-  being used on later versions of the same interprter instead of only for that
+  being used on later versions of the same interpreter instead of only for that
   specific interpreter (:issue:`3472`).
 
 * Fix an issue where pip would erroneously install a 64 bit wheel on a 32 bit
@@ -272,11 +272,11 @@
   cached files to them.
 
 * Move the pip version check until *after* any installs have been performed,
-  thus removing the extraenous warning when upgrading pip.
+  thus removing the extraneous warning when upgrading pip.
 
 * Added debug logging when using a cached wheel.
 
-* Respect platlib by default on platforms that have it separated from purlib.
+* Respect platlib by default on platforms that have it separated from purelib.
 
 * Upgrade packaging to 15.3.
 
@@ -485,7 +485,7 @@
 * Fix an issue where distutils installed projects were not actually uninstalled
   and deprecate attempting to uninstall them altogether.
 
-* Retry deleting directories incase a process like an antivirus is holding the
+* Retry deleting directories in case a process like an antivirus is holding the
   directory open temporarily.
 
 * Fix an issue where pip would hide the cursor on Windows but would not reshow
@@ -639,7 +639,7 @@
 
 * Added a virtualenv-specific configuration file. (:pull:`1364`)
 
-* Added site-wide configuation files. (:pull:`1978`)
+* Added site-wide configuration files. (:pull:`1978`)
 
 * Added an automatic check to warn if there is an updated version of pip
   available (:pull:`2049`).
@@ -882,7 +882,7 @@
 * Fixed :issue:`1006`, error when installing local projects with symlinks in
   Python 3. (:pull:`1311`)
 
-* The previously hidden ``--log-file`` otion, is now shown as a general option.
+* The previously hidden ``--log-file`` option, is now shown as a general option.
   (:pull:`1316`)
 
 
@@ -953,7 +953,7 @@
 
 
 * Fixed a major backward incompatible change of parsing URLs to externally
-  hosted packages that got accidentily included in 1.3.
+  hosted packages that got accidentally included in 1.3.
 
 
 **1.3 (2013-03-07)**
@@ -1145,7 +1145,7 @@
 
 * Fixed :issue:`366` - pip throws IndexError when it calls `scraped_rel_links`
 
-* Fixed :issue:`22` - pip search should set and return a userful shell status code
+* Fixed :issue:`22` - pip search should set and return a useful shell status code
 
 * Fixed :issue:`351` and :issue:`365` - added global ``--exists-action`` command line
   option to easier script file exists conflicts, e.g. from editable
@@ -1331,7 +1331,7 @@
   override this location with the ``$PIP_LOG_FILE`` environment variable.
   For a complete (appended) logfile use the separate ``'--log'`` command line
   option.
-* Fixed an issue with Git that left an editable packge as a checkout of a
+* Fixed an issue with Git that left an editable package as a checkout of a
   remote branch, even if the default behaviour would have been fine, too.
 * Fixed installing from a Git tag with older versions of Git.
 * Expand "~" in logfile and download cache paths.

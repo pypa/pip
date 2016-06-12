@@ -401,7 +401,7 @@ class TestInstallRequirement(object):
 
     def test_markers(self):
         for line in (
-            # recommanded syntax
+            # recommended syntax
             'mock3; python_version >= "3"',
             # with more spaces
             'mock3 ; python_version >= "3" ',

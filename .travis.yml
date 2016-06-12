@@ -40,7 +40,7 @@ script: .travis/run.sh
 notifications:
   irc:
     channels:
-      # This is set to a secure variable to prevent forks from notifiying the
+      # This is set to a secure variable to prevent forks from notifying the
       # IRC channel whenever they fail a build. This can be removed when travis
       # implements https://github.com/travis-ci/travis-ci/issues/1094.
       # The actual value here is: irc.freenode.org#pypa-dev

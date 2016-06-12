@@ -106,7 +106,7 @@ class VersionControl(object):
     def _is_local_repository(self, repo):
         """
            posix absolute paths start with os.path.sep,
-           win32 ones ones start with drive (like c:\\folder)
+           win32 ones start with drive (like c:\\folder)
         """
         drive, tail = os.path.splitdrive(repo)
         return repo.startswith(os.path.sep) or drive

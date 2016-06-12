@@ -300,7 +300,7 @@ class TestUnpackArchives(object):
         return stat.S_IMODE(os.stat(path).st_mode)
 
     def confirm_files(self):
-        # expections based on 022 umask set above and the unpack logic that
+        # expectations based on 022 umask set above and the unpack logic that
         # sets execute permissions, not preservation
         for fname, expected_mode, test in [
                 ('file.txt', 0o644, os.path.isfile),

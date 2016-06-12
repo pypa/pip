@@ -323,7 +323,7 @@ def test_editable_install_from_local_directory_with_no_setup_py(script, data):
 @pytest.mark.xfail
 def test_install_argparse_shadowed(script, data):
     # When argparse is in the stdlib, we support installing it
-    # even though thats pretty useless because older packages did need to
+    # even though that's pretty useless because older packages did need to
     # depend on it, and not having its metadata will cause pkg_resources
     # requirements checks to fail // trigger easy-install, both of which are
     # bad.

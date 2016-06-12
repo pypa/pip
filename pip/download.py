@@ -200,8 +200,8 @@ class MultiDomainBasicAuth(AuthBase):
         return None, None
 
     def __nonzero__(self):
-        # needed in order to evalue authentication object to False when we have
-        # no credentials, prevents failure to load .netrc files
+        # needed in order to evaluate authentication object to False when we
+        # have no credentials, prevents failure to load .netrc files
         return bool(self.passwords)
 
     def __bool__(self):
@@ -339,7 +339,7 @@ class PipSession(requests.Session):
             total=retries,
 
             # A 503 error from PyPI typically means that the Fastly -> Origin
-            # connection got interupted in some way. A 503 error in general
+            # connection got interrupted in some way. A 503 error in general
             # is typically considered a transient error so we'll go ahead and
             # retry it.
             status_forcelist=[503],
@@ -687,7 +687,7 @@ def unpack_file_url(link, location, download_dir=None, hashes=None):
         return
 
     # If --require-hashes is off, `hashes` is either empty, the
-    # link's embeddded hash, or MissingHashes; it is required to
+    # link's embedded hash, or MissingHashes; it is required to
     # match. If --require-hashes is on, we are satisfied by any
     # hash in `hashes` matching: a URL-based or an option-based
     # one; no internet-sourced hash will be in `hashes`.

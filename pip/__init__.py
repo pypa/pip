@@ -36,7 +36,7 @@ __version__ = "8.2.0.dev0"
 
 logger = logging.getLogger(__name__)
 
-# Hide the InsecureRequestWArning from urllib3
+# Hide the InsecureRequestWarning from urllib3
 warnings.filterwarnings("ignore", category=InsecureRequestWarning)
 
 
