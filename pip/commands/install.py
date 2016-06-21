@@ -67,9 +67,7 @@ class InstallCommand(RequirementCommand):
             metavar='dir',
             default=None,
             help='Install packages into <dir>. '
-                 'By default this will not replace existing files/folders in '
-                 '<dir>. Use --upgrade to replace existing packages in <dir> '
-                 'with new versions.'
+                 'This will not replace existing files/folders in <dir>.'
         )
 
         cmd_opts.add_option(
@@ -364,26 +362,11 @@ class InstallCommand(RequirementCommand):
                 for item in os.listdir(lib_dir):
                     target_item_dir = os.path.join(options.target_dir, item)
                     if os.path.exists(target_item_dir):
-                        if not options.upgrade:
-                            logger.warning(
-                                'Target directory %s already exists. Specify '
-                                '--upgrade to force replacement.',
-                                target_item_dir
-                            )
-                            continue
-                        if os.path.islink(target_item_dir):
-                            logger.warning(
-                                'Target directory %s already exists and is '
-                                'a link. Pip will not automatically replace '
-                                'links, please remove if replacement is '
-                                'desired.',
-                                target_item_dir
-                            )
-                            continue
-                        if os.path.isdir(target_item_dir):
-                            shutil.rmtree(target_item_dir)
-                        else:
-                            os.remove(target_item_dir)
+                        logger.warning(
+                            'Target directory %s already exists.',
+                            target_item_dir
+                        )
+                        continue
 
                     shutil.move(
                         os.path.join(lib_dir, item),
