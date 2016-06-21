@@ -67,9 +67,16 @@ class InstallCommand(RequirementCommand):
             metavar='dir',
             default=None,
             help='Install packages into <dir>. '
-                 'By default this will not replace existing files/folders in '
-                 '<dir>. Use --upgrade to replace existing packages in <dir> '
-                 'with new versions.'
+                 'This will replace existing files/folders in <dir>. '
+                 'Use --no-replace to disable this behaviour.'
+        )
+
+        cmd_opts.add_option(
+            '--no-replace',
+            dest='no_replace',
+            action="store_true",
+            help='Disallow replacement of already-installed packages and '
+                 'existing folders.'
         )
 
         cmd_opts.add_option(
@@ -265,6 +272,7 @@ class InstallCommand(RequirementCommand):
                     build_dir=build_dir,
                     src_dir=options.src_dir,
                     download_dir=options.download_dir,
+                    no_replace=options.no_replace,
                     as_egg=options.as_egg,
                     ignore_installed=options.ignore_installed,
                     ignore_dependencies=options.ignore_dependencies,
@@ -364,10 +372,10 @@ class InstallCommand(RequirementCommand):
                 for item in os.listdir(lib_dir):
                     target_item_dir = os.path.join(options.target_dir, item)
                     if os.path.exists(target_item_dir):
-                        if not options.upgrade:
+                        if options.no_replace:
                             logger.warning(
-                                'Target directory %s already exists. Specify '
-                                '--upgrade to force replacement.',
+                                'Target directory %s already exists. Skipping '
+                                'due to --no-replace',
                                 target_item_dir
                             )
                             continue

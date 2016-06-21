@@ -139,7 +139,7 @@ class Installed(DistAbstraction):
 
 class RequirementSet(object):
 
-    def __init__(self, build_dir, src_dir, download_dir,
+    def __init__(self, build_dir, src_dir, download_dir, no_replace=False,
                  ignore_installed=False, as_egg=False, target_dir=None,
                  ignore_dependencies=False, force_reinstall=False,
                  use_user_site=False, session=None, pycompile=True,
@@ -169,6 +169,7 @@ class RequirementSet(object):
         # be combined if we're willing to have non-wheel archives present in
         # the wheelhouse output by 'pip wheel'.
         self.download_dir = download_dir
+        self.no_replace = no_replace
         self.ignore_installed = ignore_installed
         self.force_reinstall = force_reinstall
         self.requirements = Requirements()
@@ -399,8 +400,9 @@ class RequirementSet(object):
         if req_to_install.satisfied_by:
             upgrade_allowed = False
 
-            # Determine why upgrading this may not allowed.
-            if req_to_install.is_direct:
+            if self.no_replace:
+                skip_reason = 'skipped due to --no-replace'
+            elif req_to_install.is_direct:
                 upgrade_allowed = True
                 skip_reason = 'already satisfied'
             else:
