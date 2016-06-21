@@ -402,9 +402,9 @@ class RequirementSet(object):
             # Determine why upgrading this may not allowed.
             if req_to_install.is_direct:
                 upgrade_allowed = True
-                skip_reason = 'satisfied'
+                skip_reason = 'already satisfied'
             else:
-                skip_reason = 'skipping as not directly required'
+                skip_reason = 'skipped as not directly required'
 
             if upgrade_allowed:
                 best_installed = False
@@ -416,7 +416,7 @@ class RequirementSet(object):
                         finder.find_requirement(
                             req_to_install, upgrade_allowed)
                     except BestVersionAlreadyInstalled:
-                        skip_reason = 'up-to-date'
+                        skip_reason = 'already up-to-date'
                         best_installed = True
                     except DistributionNotFound:
                         # No distribution found, so we squash the
@@ -474,7 +474,7 @@ class RequirementSet(object):
                     'req_to_install.satisfied_by is set to %r'
                     % (req_to_install.satisfied_by,))
                 logger.info(
-                    'Requirement already %s: %s', skip_reason,
+                    'Requirement %s: %s', skip_reason,
                     req_to_install)
             else:
                 if (req_to_install.link and
