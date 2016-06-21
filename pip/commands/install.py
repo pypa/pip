@@ -87,17 +87,14 @@ class InstallCommand(RequirementCommand):
             '-U', '--upgrade',
             dest='upgrade',
             action='store_true',
-            help='Upgrade all specified packages to the newest available '
-                 'version. This process is recursive regardless of whether '
-                 'a dependency is already satisfied.'
+            help='No-op option. Kept for backwards compatibility.'
         )
 
         cmd_opts.add_option(
             '--force-reinstall',
             dest='force_reinstall',
             action='store_true',
-            help='When upgrading, reinstall all packages even if they are '
-                 'already up-to-date.')
+            help='Reinstall all packages even if they are already up-to-date.')
 
         cmd_opts.add_option(
             '-I', '--ignore-installed',
@@ -268,7 +265,6 @@ class InstallCommand(RequirementCommand):
                     build_dir=build_dir,
                     src_dir=options.src_dir,
                     download_dir=options.download_dir,
-                    upgrade=options.upgrade,
                     as_egg=options.as_egg,
                     ignore_installed=options.ignore_installed,
                     ignore_dependencies=options.ignore_dependencies,
