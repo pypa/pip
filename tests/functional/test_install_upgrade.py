@@ -11,16 +11,44 @@ from tests.lib import (
 from tests.lib.local_repos import local_checkout
 
 
-def test_no_upgrade_unless_requested(script):
+def test_upgrade_by_default(script):
     """
-    No upgrade if not specifically requested.
+    It does upgrade if not specifically requested.
 
     """
     script.pip('install', 'INITools==0.1', expect_error=True)
     result = script.pip('install', 'INITools', expect_error=True)
-    assert not result.files_created, (
-        'pip install INITools upgraded when it should not have'
+    assert result.files_created, (
+        'pip install INITools did not upgrade when it should have'
     )
+
+
+def test_does_not_upgrade_dependecies_if_existing_version_satisfies(script):
+    """
+    It does not upgrade a dependency if it already satisfies the requirements.
+
+    """
+    script.pip('install', 'simple==2.0', expect_error=True)
+    result = script.pip('install', 'require_simple', expect_error=True)
+
+    assert (
+        script.site_packages / 'simple-2.0-py%s.egg-info' %
+        pyversion not in result.files_deleted
+    ), "should not have uninstalled simple==2.0"
+
+
+def test_upgrade_dependecies_if_existing_version_does_not_satisfy(script):
+    """
+    It does upgrade a dependency if it already satisfies the requirements.
+
+    """
+    script.pip('install', 'simple==1.0', expect_error=True)
+    result = script.pip('install', 'require_simple', expect_error=True)
+
+    assert (
+        script.site_packages / 'simple-1.0-py%s.egg-info' %
+        pyversion not in result.files_deleted
+    ), "should have uninstalled simple==1.0"
 
 
 @pytest.mark.network
@@ -51,8 +79,8 @@ def test_upgrade_if_requested(script):
 
     """
     script.pip('install', 'INITools==0.1', expect_error=True)
-    result = script.pip('install', '--upgrade', 'INITools', expect_error=True)
-    assert result.files_created, 'pip install --upgrade did not upgrade'
+    result = script.pip('install', 'INITools', expect_error=True)
+    assert result.files_created, 'pip install did not upgrade'
     assert (
         script.site_packages / 'INITools-0.1-py%s.egg-info' %
         pyversion not in result.files_created
@@ -66,7 +94,7 @@ def test_upgrade_with_newest_already_installed(script, data):
     """
     script.pip('install', '-f', data.find_links, '--no-index', 'simple')
     result = script.pip(
-        'install', '--upgrade', '-f', data.find_links, '--no-index', 'simple'
+        'install', '-f', data.find_links, '--no-index', 'simple'
     )
     assert not result.files_created, 'simple upgraded when it should not have'
     assert 'already up-to-date' in result.stdout, result.stdout
@@ -83,7 +111,7 @@ def test_upgrade_force_reinstall_newest(script):
         sorted(result.files_created.keys())
     )
     result2 = script.pip(
-        'install', '--upgrade', '--force-reinstall', 'INITools'
+        'install', '--force-reinstall', 'INITools'
     )
     assert result2.files_updated, 'upgrade to INITools 0.3 failed'
     result3 = script.pip('uninstall', 'initools', '-y', expect_error=True)
@@ -130,8 +158,8 @@ def test_uninstall_before_upgrade_from_url(script):
 @pytest.mark.network
 def test_upgrade_to_same_version_from_url(script):
     """
-    When installing from a URL the same version that is already installed, no
-    need to uninstall and reinstall if --upgrade is not specified.
+    When installing from a URL the same version that is already installed,
+    ensure an uninstall and reinstall take place.
 
     """
     result = script.pip('install', 'INITools==0.3', expect_error=True)
@@ -144,7 +172,7 @@ def test_upgrade_to_same_version_from_url(script):
         '0.3.tar.gz',
         expect_error=True,
     )
-    assert not result2.files_updated, 'INITools 0.3 reinstalled same version'
+    assert result2.files_updated, 'INITools 0.3 did not reinstall same version'
     result3 = script.pip('uninstall', 'initools', '-y', expect_error=True)
     assert_all_changes(result, result3, [script.venv / 'build', 'cache'])
 
@@ -169,7 +197,7 @@ def test_upgrade_from_reqs_file(script):
         INITools
         """))
     script.pip(
-        'install', '--upgrade', '-r', script.scratch_path / 'test-req.txt'
+        'install', '-r', script.scratch_path / 'test-req.txt'
     )
     uninstall_result = script.pip(
         'uninstall', '-r', script.scratch_path / 'test-req.txt', '-y'
@@ -277,7 +305,7 @@ def test_upgrade_vcs_req_with_no_dists_found(script, tmpdir):
         tmpdir.join("cache"),
     )
     script.pip("install", req)
-    result = script.pip("install", "-U", req)
+    result = script.pip("install", req)
     assert not result.returncode
 
 
@@ -294,7 +322,7 @@ def test_upgrade_vcs_req_with_dist_found(script):
         )
     )
     script.pip("install", req, expect_stderr=True)
-    result = script.pip("install", "-U", req, expect_stderr=True)
+    result = script.pip("install", req, expect_stderr=True)
     assert "pypi.python.org" not in result.stdout, result.stdout
 
 
@@ -304,12 +332,17 @@ class TestUpgradeDistributeToSetuptools(object):
     allow distribute to conflict with setuptools, so that the following would
     work to upgrade distribute:
 
-     ``pip install -U  setuptools``
+     ``pip install -U setuptools``
 
     In pip7, the hacks were removed.  This test remains to at least confirm pip
     can upgrade distribute to setuptools using:
 
       ``pip install -U distribute``
+
+    In pip9, install started upgrading by default, thus removing the need to
+    pass -U:
+
+      ``pip install distribute``
 
     The reason this works is that a final version of distribute (v0.7.3) was
     released that is simple wrapper with:
@@ -354,7 +387,7 @@ class TestUpgradeDistributeToSetuptools(object):
         )
         result = self.script.run(
             self.ve_bin / 'pip', 'install', '--no-index',
-            '--find-links=%s' % data.find_links, '-U', 'distribute',
+            '--find-links=%s' % data.find_links, 'distribute',
             expect_stderr=True if sys.version_info[:2] == (2, 6) else False,
         )
         assert (
