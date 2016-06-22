@@ -118,7 +118,7 @@ def test_uninstall_before_upgrade_from_url(script):
     )
     result2 = script.pip(
         'install',
-        'http://pypi.python.org/packages/source/I/INITools/INITools-'
+        'https://pypi.python.org/packages/source/I/INITools/INITools-'
         '0.3.tar.gz',
         expect_error=True,
     )
@@ -140,7 +140,7 @@ def test_upgrade_to_same_version_from_url(script):
     )
     result2 = script.pip(
         'install',
-        'http://pypi.python.org/packages/source/I/INITools/INITools-'
+        'https://pypi.python.org/packages/source/I/INITools/INITools-'
         '0.3.tar.gz',
         expect_error=True,
     )
