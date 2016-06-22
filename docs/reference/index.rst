@@ -12,6 +12,7 @@ Reference Guide
    pip_freeze
    pip_list
    pip_show
+   pip_home
    pip_search
    pip_wheel
    pip_hash
