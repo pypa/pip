@@ -28,12 +28,16 @@ def test_does_not_upgrade_dependecies_if_existing_version_satisfies(script):
     It does not upgrade a dependency if it already satisfies the requirements.
 
     """
-    script.pip('install', 'simple==2.0', expect_error=True)
-    result = script.pip('install', 'require_simple', expect_error=True)
+    script.pip_install_local('simple==2.0', expect_error=True)
+    result = script.pip_install_local('require_simple', expect_error=True)
 
     assert (
-        script.site_packages / 'simple-2.0-py%s.egg-info' %
-        pyversion not in result.files_deleted
+        (script.site_packages / 'require_simple-1.0-py%s.egg-info' % pyversion)
+        not in result.files_deleted
+    ), "should have installed require_simple==1.0"
+    assert (
+        (script.site_packages / 'simple-2.0-py%s.egg-info' % pyversion)
+        not in result.files_deleted
     ), "should not have uninstalled simple==2.0"
 
 
@@ -42,12 +46,20 @@ def test_upgrade_dependecies_if_existing_version_does_not_satisfy(script):
     It does upgrade a dependency if it already satisfies the requirements.
 
     """
-    script.pip('install', 'simple==1.0', expect_error=True)
-    result = script.pip('install', 'require_simple', expect_error=True)
+    script.pip_install_local('simple==1.0', expect_error=True)
+    result = script.pip_install_local('require_simple', expect_error=True)
 
     assert (
+        (script.site_packages / 'require_simple-1.0-py%s.egg-info' % pyversion)
+        not in result.files_deleted
+    ), "should have installed require_simple==1.0"
+    assert (
+        script.site_packages / 'simple-3.0-py%s.egg-info' %
+        pyversion in result.files_created
+    ), "should have installed simple==3.0"
+    assert (
         script.site_packages / 'simple-1.0-py%s.egg-info' %
-        pyversion not in result.files_deleted
+        pyversion in result.files_deleted
     ), "should have uninstalled simple==1.0"
 
 
