@@ -63,6 +63,26 @@ def test_upgrade_dependecies_if_existing_version_does_not_satisfy(script):
     ), "should have uninstalled simple==1.0"
 
 
+def test_upgrade_option_does_not_affect_behaviour(script):
+    """
+    It does not change behaviour on passing --upgrade.
+    """
+    script.pip_install_local('simple==2.0', expect_error=True)
+    result = script.pip_install_local(
+        'require_simple', '--upgrade', expect_error=True
+    )
+
+    assert (
+        (script.site_packages / 'require_simple-1.0-py%s.egg-info' % pyversion)
+        not in result.files_deleted
+    ), "should have installed require_simple==1.0"
+    assert (
+        (script.site_packages / 'simple-2.0-py%s.egg-info' % pyversion)
+        not in result.files_deleted
+    ), "should not have uninstalled simple==2.0"
+
+
+
 @pytest.mark.network
 def test_upgrade_to_specific_version(script):
     """
