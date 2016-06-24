@@ -25,7 +25,7 @@ def test_upgrade_by_default(script):
 
 def test_does_not_upgrade_dependecies_if_existing_version_satisfies(script):
     """
-    It does not upgrade a dependency if it already satisfies the requirements.
+    It doesn't upgrade a dependency if it already satisfies the requirements.
 
     """
     script.pip_install_local('simple==2.0', expect_error=True)
