@@ -363,7 +363,8 @@ class InstallCommand(RequirementCommand):
                     target_item_dir = os.path.join(options.target_dir, item)
                     if os.path.exists(target_item_dir):
                         logger.warning(
-                            'Target directory %s already exists.',
+                            'Skipping target directory %s as it already '
+                            'exists.',
                             target_item_dir
                         )
                         continue
