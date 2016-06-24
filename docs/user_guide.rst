@@ -469,33 +469,32 @@ Then, to install from local only, you'll be using :ref:`--find-links
 $ pip install --no-index --find-links=DIR -r requirements.txt
 
 
-Upgrade Behaviour
-*****************
+"Only if needed" Recursive Upgrade
+**********************************
 
-``pip install`` is currently performs a non-eager recursive upgrade, i.e.
-it upgrades dependencies only when they no longer satisfy the new parent
-requirements.
+``pip install``, now, defaults to performs a "only if needed" recursive
+upgrade, i.e. it upgrades dependencies only when they no longer satisfy the
+new parent requirements. This was not always the case.
 
-As an example, consider this scenario:
+Before pip 9.0, the upgrade behaviour defaulted to a different "eager"
+upgrade, i.e. it used to upgrade all dependencies regardless of whether they
+already satisfied the new parent requirements. This behaviour was seen as
+problematic and was replaced with the current behaviour in pip 9.0. This
+section contained instructions on how to work around the problematic
+behaviour. The recommended fix for that behaviour, now, is to upgrade to
+pip 9.0 or greater.
 
-* Only `SomePackage-1.0` and `AnotherPackage-1.0` are currently installed
-* `SomePackage-2.0`, `AnotherPackage-2.0` are the latest versions available on PyPI.
-* `SomePackage-1.0` requires `AnotherPackage>=1.0`
-* `SomePackage-2.0` requires `AnotherPackage>=1.0` and `OneMorePackage==1.0`
+See :issue:`59` and :issue:`3786` for the discussion on this change in
+behaviour.
 
-Running ``pip install SomePackage`` would:
-* install `OneMorePackage-1.0` and `SomePackage-2.0`
-* do not install/upgrade `AnotherPackage` as it satisfies existing requirements
 
-pip doesn't currently have an option to do an upgrade package(s) and
-dependencies to latest version. This can currently only be achieved by
-explicitly listing all the dependencies of the package(s) as command line
-arguments or in a requirements file.
+As an historic note, the fix for the behaviour was::
 
-See :issue:`59` for discussion related to this behaviour. An ``upgrade-all``
-command has been proposed, with the intent of using it in virtual environments
-as an alternative to the earlier behaviour (before pip 9.0) of eager upgrading,
-upgrading dependencies to the latest version.
+    pip install --upgrade --no-deps SomePackage
+    pip install SomePackage
+
+A proposal for an ``upgrade-all`` command is being considered as a safer
+alternative to the earlier behaviour of eager upgrading.
 
 
 User Installs
