@@ -397,17 +397,12 @@ class RequirementSet(object):
         # Check whether to upgrade/reinstall this req or not.
         req_to_install.check_if_exists()
         if req_to_install.satisfied_by:
-            upgrade_allowed = False
+            upgrade_allowed = req_to_install.is_direct
 
-            # Determine why upgrading this may not allowed.
-            if req_to_install.is_direct:
-                upgrade_allowed = True
-                skip_reason = 'already satisfied'
-            else:
-                skip_reason = 'skipped as not directly required'
+            # Is the best version is installed.
+            best_installed = False
 
             if upgrade_allowed:
-                best_installed = False
                 # For link based requirements we have to pull the
                 # tree down and inspect to assess the version #, so
                 # its handled way down.
@@ -416,7 +411,6 @@ class RequirementSet(object):
                         finder.find_requirement(
                             req_to_install, upgrade_allowed)
                     except BestVersionAlreadyInstalled:
-                        skip_reason = 'already up-to-date'
                         best_installed = True
                     except DistributionNotFound:
                         # No distribution found, so we squash the
@@ -433,6 +427,17 @@ class RequirementSet(object):
                         req_to_install.conflicts_with = \
                             req_to_install.satisfied_by
                     req_to_install.satisfied_by = None
+
+            # Figure out a nice message to say why we're skipping this.
+            if best_installed:
+                skip_reason = 'already up-to-date'
+            elif not upgrade_allowed:
+                # NOTE: Change this message if someday the upgrade strategy
+                #       changes.
+                skip_reason = 'not upgraded as not directly required'
+            else:
+                skip_reason = 'already satisfied'
+
             return skip_reason
         else:
             return None
