@@ -82,7 +82,6 @@ def test_upgrade_option_does_not_affect_behaviour(script):
     ), "should not have uninstalled simple==2.0"
 
 
-
 @pytest.mark.network
 def test_upgrade_to_specific_version(script):
     """
