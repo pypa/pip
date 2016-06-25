@@ -1010,3 +1010,89 @@ def test_double_install_fail(script, data):
     msg = ("Double requirement given: pip==7.1.2 (already in pip==*, "
            "name='pip')")
     assert msg in result.stderr
+
+
+@pytest.mark.network
+def test_install_when_older_version_explicitly_passed_as_url(script):
+    """
+    When a file URL is passed, forcefully reinstall the package regardless
+    of whether it has a newer version already installed.
+
+    """
+    result = script.pip('install', 'INITools==0.3', expect_error=True)
+    assert script.site_packages / 'initools' in result.files_created, (
+        sorted(result.files_created.keys())
+    )
+    result2 = script.pip(
+        'install',
+        'https://pypi.python.org/packages/source/I/INITools/INITools-'
+        '0.2.tar.gz',
+        expect_error=True,
+    )
+    assert result2.files_updated, (
+        'INITools==0.2 was not installed over INITools==0.3 when explicitly '
+        'passed with a URL'
+    )
+
+
+def test_install_when_older_version_explicitly_passed_as_path(script, data):
+    """
+    When a file path is passed, forcefully reinstall the package regardless
+    of whether it has a newer version already installed.
+
+    """
+    result = script.pip_install_local('simple==3.0', expect_error=True)
+    assert script.site_packages / 'simple' in result.files_created, (
+        sorted(result.files_created.keys())
+    )
+    result2 = script.pip_install_local(
+        data.packages.join("simple-2.0.tar.gz"),
+        expect_error=True,
+    )
+    assert result2.files_updated, (
+        'simple==0.2 was not installed over simple==0.3 when explicitly '
+        'passed with a path'
+    )
+
+
+@pytest.mark.network
+def test_install_when_same_version_explicitly_passed_as_url(script):
+    """
+    When a file URL is passed, forcefully reinstall the package regardless
+    of whether it has a newer version already installed.
+
+    """
+    result = script.pip('install', 'INITools==0.3', expect_error=True)
+    assert script.site_packages / 'initools' in result.files_created, (
+        sorted(result.files_created.keys())
+    )
+    result2 = script.pip(
+        'install',
+        'https://pypi.python.org/packages/source/I/INITools/INITools-'
+        '0.3.tar.gz',
+        expect_error=True,
+    )
+    assert result2.files_updated, (
+        'INITools==0.3 was not installed over INITools==0.3 when explicitly '
+        'passed with a URL'
+    )
+
+
+def test_install_when_same_version_explicitly_passed_as_path(script, data):
+    """
+    When a file path is passed, forcefully reinstall the package regardless
+    of whether it has a newer version already installed.
+
+    """
+    result = script.pip_install_local('simple==3.0', expect_error=True)
+    assert script.site_packages / 'simple' in result.files_created, (
+        sorted(result.files_created.keys())
+    )
+    result2 = script.pip_install_local(
+        data.packages.join("simple-3.0.tar.gz"),
+        expect_error=True,
+    )
+    assert result2.files_updated, (
+        'simple==0.3 was not installed over simple==0.3 when explicitly '
+        'passed with a path'
+    )
