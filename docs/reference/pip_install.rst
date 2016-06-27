@@ -633,7 +633,7 @@ local hash.
 +++++++++++++++++++
 
 "Editable" installs are fundamentally `"setuptools develop mode"
-<http://packages.python.org/setuptools/setuptools.html#development-mode>`_
+<http://setuptools.readthedocs.io/en/latest/setuptools.html#development-mode>`_
 installs.
 
 You can install local projects or VCS projects in "editable" mode::
