@@ -760,10 +760,10 @@ class HTMLPage(object):
             resp.raise_for_status()
 
             # The check for archives above only works if the url ends with
-            #   something that looks like an archive. However that is not a
-            #   requirement of an url. Unless we issue a HEAD request on every
-            #   url we cannot know ahead of time for sure if something is HTML
-            #   or not. However we can check after we've downloaded it.
+            # something that looks like an archive. However that is not a
+            # requirement of an url. Unless we issue a HEAD request on every
+            # url we cannot know ahead of time for sure if something is HTML
+            # or not. However we can check after we've downloaded it.
             content_type = resp.headers.get('Content-Type', 'unknown')
             if not content_type.lower().startswith("text/html"):
                 logger.debug(
