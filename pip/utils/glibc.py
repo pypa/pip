@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import re
 import ctypes
-import platform
 import warnings
 
 
@@ -75,7 +74,10 @@ def have_compatible_glibc(required_major, minimum_minor):
 def libc_ver():
     glibc_version = glibc_version_string()
     if glibc_version is None:
-        # For non-glibc platforms, fall back on platform.libc_ver
-        return platform.libc_ver()
+        # At least as of Python 3.6a2, platform.libc_ver() doesn't do anything
+        # meaningful with non-glibc versions anyway, so there's no point in
+        # even falling back on it -- pretty much all it would do is give us
+        # the opportunity to get more corrupt data.
+        ("not-glibc", "")
     else:
         return ("glibc", glibc_version)
