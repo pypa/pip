@@ -33,6 +33,7 @@ from pip.utils.encoding import auto_decode
 from pip.utils.filesystem import check_path_owner
 from pip.utils.logging import indent_log
 from pip.utils.setuptools_build import SETUPTOOLS_SHIM
+from pip.utils.glibc import libc_ver
 from pip.utils.ui import DownloadProgressBar, DownloadProgressSpinner
 from pip.locations import write_delete_marker_file
 from pip.vcs import vcs
@@ -94,7 +95,7 @@ def user_agent():
         ))
         libc = dict(filter(
             lambda x: x[1],
-            zip(["lib", "version"], platform.libc_ver()),
+            zip(["lib", "version"], libc_ver()),
         ))
         if libc:
             distro["libc"] = libc

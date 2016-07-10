@@ -10,6 +10,7 @@ import sys
 import time
 import shutil
 import tempfile
+import warnings
 
 import pytest
 
@@ -20,6 +21,7 @@ from pip.utils import (egg_link_path, get_installed_distributions,
 from pip.utils.build import BuildDirectory
 from pip.utils.encoding import auto_decode
 from pip.utils.hashes import Hashes, MissingHashes
+from pip.utils.glibc import check_glibc_version
 from pip._vendor.six import BytesIO
 
 
@@ -488,3 +490,37 @@ class TestBuildDirectory(object):
                 assert os.path.dirname(build_dir) == os.path.dirname(tmp_dir)
             os.rmdir(tmp_dir)
             assert not os.path.exists(tmp_dir)
+
+
+class TestGlibc(object):
+    def test_manylinux1_check_glibc_version(self):
+        """
+        Test that the check_glibc_version function is robust against weird
+        glibc version strings.
+        """
+        for two_twenty in ["2.20",
+                           # used by "linaro glibc", see gh-3588
+                           "2.20-2014.11",
+                           # weird possibilities that I just made up
+                           "2.20+dev",
+                           "2.20-custom",
+                           "2.20.1",
+                           ]:
+            assert check_glibc_version(two_twenty, 2, 15)
+            assert check_glibc_version(two_twenty, 2, 20)
+            assert not check_glibc_version(two_twenty, 2, 21)
+            assert not check_glibc_version(two_twenty, 3, 15)
+            assert not check_glibc_version(two_twenty, 1, 15)
+
+        # For strings that we just can't parse at all, we should warn and
+        # return false
+        for bad_string in ["asdf", "", "foo.bar"]:
+            with warnings.catch_warnings(record=True) as ws:
+                warnings.filterwarnings("always")
+                assert not check_glibc_version(bad_string, 2, 5)
+                for w in ws:
+                    if "Expected glibc version with" in str(w.message):
+                        break
+                else:
+                    # Didn't find the warning we were expecting
+                    assert False

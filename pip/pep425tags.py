@@ -6,7 +6,6 @@ import sys
 import warnings
 import platform
 import logging
-import ctypes
 
 try:
     import sysconfig
@@ -16,7 +15,7 @@ except ImportError:  # pragma nocover
 import distutils.util
 
 from pip.compat import OrderedDict
-
+import pip.utils.glibc
 
 logger = logging.getLogger(__name__)
 
@@ -160,47 +159,7 @@ def is_manylinux1_compatible():
         pass
 
     # Check glibc version. CentOS 5 uses glibc 2.5.
-    return have_compatible_glibc(2, 5)
-
-
-# Separated out from have_compatible_glibc for easier unit testing
-def check_glibc_version(version_str, needed_major, needed_minor):
-    # Parse string and check against requested version.
-    #
-    # We use a regexp instead of str.split because we want to discard any
-    # random junk that might come after the minor version -- this might happen
-    # in patched/forked versions of glibc (e.g. Linaro's version of glibc
-    # uses version strings like "2.20-2014.11"). See gh-3588.
-    m = re.match(r"(?P<major>[0-9]+)\.(?P<minor>[0-9]+)", version_str)
-    if not m:
-        warnings.warn("Expected glibc version with 2 components major.minor,"
-                      " got: %s" % version_str, RuntimeWarning)
-        return False
-    return (int(m.group("major")) == needed_major and
-            int(m.group("minor")) >= needed_minor)
-
-
-def have_compatible_glibc(major, minimum_minor):
-    # ctypes.CDLL(None) internally calls dlopen(NULL), and as the dlopen
-    # manpage says, "If filename is NULL, then the returned handle is for the
-    # main program". This way we can let the linker do the work to figure out
-    # which libc our process is actually using.
-    process_namespace = ctypes.CDLL(None)
-    try:
-        gnu_get_libc_version = process_namespace.gnu_get_libc_version
-    except AttributeError:
-        # Symbol doesn't exist -> therefore, we are not linked to
-        # glibc.
-        return False
-
-    # Call gnu_get_libc_version, which returns a string like "2.5".
-    gnu_get_libc_version.restype = ctypes.c_char_p
-    version_str = gnu_get_libc_version()
-    # py2 / py3 compatibility:
-    if not isinstance(version_str, str):
-        version_str = version_str.decode("ascii")
-
-    return check_glibc_version(version_str, major, minimum_minor)
+    return pip.utils.glibc.have_compatible_glibc(2, 5)
 
 
 def get_darwin_arches(major, minor, machine):
