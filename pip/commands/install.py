@@ -118,6 +118,7 @@ class InstallCommand(RequirementCommand):
             action='store_true',
             help='Ignore the installed packages (reinstalling instead).')
 
+        cmd_opts.add_option(cmdoptions.ignore_requires_python())
         cmd_opts.add_option(cmdoptions.no_deps())
 
         cmd_opts.add_option(cmdoptions.install_options())
@@ -295,6 +296,7 @@ class InstallCommand(RequirementCommand):
                     as_egg=options.as_egg,
                     ignore_installed=options.ignore_installed,
                     ignore_dependencies=options.ignore_dependencies,
+                    ignore_requires_python=options.ignore_requires_python,
                     force_reinstall=options.force_reinstall,
                     use_user_site=options.use_user_site,
                     target_dir=temp_target_dir,

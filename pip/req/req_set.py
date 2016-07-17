@@ -14,7 +14,8 @@ from pip.download import (is_file_url, is_dir_url, is_vcs_url, url_to_path,
 from pip.exceptions import (InstallationError, BestVersionAlreadyInstalled,
                             DistributionNotFound, PreviousBuildDirError,
                             HashError, HashErrors, HashUnpinned,
-                            DirectoryUrlHashUnsupported, VcsHashUnsupported)
+                            DirectoryUrlHashUnsupported, VcsHashUnsupported,
+                            UnsupportedPythonVersion)
 from pip.req.req_install import InstallRequirement
 from pip.utils import (
     display_path, dist_in_usersite, ensure_dir, normalize_path)
@@ -145,7 +146,8 @@ class RequirementSet(object):
                  target_dir=None, ignore_dependencies=False,
                  force_reinstall=False, use_user_site=False, session=None,
                  pycompile=True, isolated=False, wheel_download_dir=None,
-                 wheel_cache=None, require_hashes=False):
+                 wheel_cache=None, require_hashes=False,
+                 ignore_requires_python=False):
         """Create a RequirementSet.
 
         :param wheel_download_dir: Where still-packed .whl files should be
@@ -179,6 +181,7 @@ class RequirementSet(object):
         self.requirement_aliases = {}
         self.unnamed_requirements = []
         self.ignore_dependencies = ignore_dependencies
+        self.ignore_requires_python = ignore_requires_python
         self.successfully_downloaded = []
         self.successfully_installed = []
         self.reqs_to_cleanup = []
@@ -656,7 +659,13 @@ class RequirementSet(object):
             # # parse dependencies # #
             # ###################### #
             dist = abstract_dist.dist(finder)
-            check_dist_requires_python(dist)
+            try:
+                check_dist_requires_python(dist)
+            except UnsupportedPythonVersion as e:
+                if self.ignore_requires_python:
+                    logger.warning(e.args[0])
+                else:
+                    raise
             more_reqs = []
 
             def add_req(subreq):
