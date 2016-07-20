@@ -37,6 +37,23 @@ compctl -K _pip_completion pip"""
     assert zsh_completion in result.stdout, 'zsh completion is wrong'
 
 
+def test_completion_for_fish(script):
+    """
+    Test getting completion for fish shell
+    """
+    fish_completion = """\
+    function __fish_complete_pip
+        set -lx COMP_WORDS (commandline -o) ""
+        set -lx COMP_CWORD (math (contains -i -- (commandline -t) $COMP_WORDS)-1)
+        set -lx PIP_AUTO_COMPLETE 1
+        string split \  -- (eval $COMP_WORDS[1])
+    end
+    complete -fa "(__fish_complete_pip)" -c pip"""
+
+    result = script.pip('completion', '--fish')
+    assert fish_completion in result.stdout, 'fish completion is wrong'
+
+
 def test_completion_for_unknown_shell(script):
     """
     Test getting completion for an unknown shell

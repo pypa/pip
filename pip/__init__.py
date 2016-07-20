@@ -44,7 +44,7 @@ def autocomplete():
     """Command and option completion for the main option parser (and options)
     and its subcommands (and options).
 
-    Enable by sourcing one of the completion shell scripts (bash or zsh).
+    Enable by sourcing one of the completion shell scripts (bash, zsh or fish).
     """
     # Don't complete if user hasn't sourced bash_completion file.
     if 'PIP_AUTO_COMPLETE' not in os.environ:
