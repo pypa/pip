@@ -1076,3 +1076,67 @@ def test_double_install_fail(script, data):
     msg = ("Double requirement given: pip==7.1.2 (already in pip==*, "
            "name='pip')")
     assert msg in result.stderr
+
+
+def test_install_incompatible_python_requires(script):
+    script.scratch_path.join("pkga").mkdir()
+    pkga_path = script.scratch_path / 'pkga'
+    pkga_path.join("setup.py").write(textwrap.dedent("""
+        from setuptools import setup
+        setup(name='pkga',
+              python_requires='<1.0',
+              version='0.1')
+    """))
+    script.pip('install', 'setuptools>24.2')  # This should not be needed
+    result = script.pip('install', pkga_path, expect_error=True)
+    assert ("pkga requires Python '<1.0' "
+            "but the running Python is ") in result.stderr
+
+
+def test_install_incompatible_python_requires_editable(script):
+    script.scratch_path.join("pkga").mkdir()
+    pkga_path = script.scratch_path / 'pkga'
+    pkga_path.join("setup.py").write(textwrap.dedent("""
+        from setuptools import setup
+        setup(name='pkga',
+              python_requires='<1.0',
+              version='0.1')
+    """))
+    script.pip('install', 'setuptools>24.2')  # This should not be needed
+    result = script.pip(
+        'install', '--editable=%s' % pkga_path, expect_error=True)
+    assert ("pkga requires Python '<1.0' "
+            "but the running Python is ") in result.stderr
+
+
+def test_install_incompatible_python_requires_wheel(script):
+    script.scratch_path.join("pkga").mkdir()
+    pkga_path = script.scratch_path / 'pkga'
+    pkga_path.join("setup.py").write(textwrap.dedent("""
+        from setuptools import setup
+        setup(name='pkga',
+              python_requires='<1.0',
+              version='0.1')
+    """))
+    script.pip('install', 'setuptools>24.2')  # This should not be needed
+    script.pip('install', 'wheel')
+    script.run(
+        'python', 'setup.py', 'bdist_wheel', '--universal', cwd=pkga_path)
+    result = script.pip('install', './pkga/dist/pkga-0.1-py2.py3-none-any.whl',
+                        expect_error=True)
+    assert ("pkga requires Python '<1.0' "
+            "but the running Python is ") in result.stderr
+
+
+def test_install_compatible_python_requires(script):
+    script.scratch_path.join("pkga").mkdir()
+    pkga_path = script.scratch_path / 'pkga'
+    pkga_path.join("setup.py").write(textwrap.dedent("""
+        from setuptools import setup
+        setup(name='pkga',
+              python_requires='>1.0',
+              version='0.1')
+    """))
+    script.pip('install', 'setuptools>24.2')  # This should not be needed
+    res = script.pip('install', pkga_path, expect_error=True)
+    assert "Successfully installed pkga-0.1" in res.stdout, res

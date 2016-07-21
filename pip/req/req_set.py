@@ -665,6 +665,7 @@ class RequirementSet(object):
                 if self.ignore_requires_python:
                     logger.warning(e.args[0])
                 else:
+                    req_to_install.remove_temporary_source()
                     raise
             more_reqs = []
 
