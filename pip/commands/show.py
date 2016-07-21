@@ -86,13 +86,11 @@ def search_packages_info(query):
             entry_points = dist.get_metadata_lines('entry_points.txt')
             package['entry_points'] = entry_points
 
-        installer = None
         if dist.has_metadata('INSTALLER'):
             for line in dist.get_metadata_lines('INSTALLER'):
                 if line.strip():
-                    installer = line.strip()
+                    package['installer'] = line.strip()
                     break
-        package['installer'] = installer
 
         # @todo: Should pkg_resources.Distribution have a
         # `get_pkg_info` method?
