@@ -71,7 +71,7 @@ class DownloadCommand(RequirementCommand):
             metavar='platform',
             default=None,
             help=("Only download wheels compatible with <platform>. "
-                  "Defaults to the platform of the local computer."),
+                  "Defaults to the platform of the running system."),
         )
 
         cmd_opts.add_option(
