@@ -2,16 +2,6 @@
 set -e
 set -x
 
-# If we're running under Python 3.5, we can't use anything but --asert=plain
-if [[ $TOXENV = "py35" ]]; then
-    export TOXARGS="--assert=plain"
-fi
-
-# If we're running under Python 3.6, we can't use anything but --asert=plain
-if [[ $TOXENV = "py36" ]]; then
-    export TOXARGS="--assert=plain"
-fi
-
 # We want to create the virtual environment here, but not actually run anything
 tox --notest
 
