@@ -43,6 +43,12 @@ required to be able to build a :ref:`Wheel cache` (which improves installation
 speed), although neither are required to install pre-built :term:`wheels
 <pypug:Wheel>`.
 
+.. note::
+
+   The get-pip.py script is supported on the same python version as pip.
+   For the now unsupported Python 3.2, an alternate script is available
+   `here <https://bootstrap.pypa.io/3.2/get-pip.py>`_.
+
 
 get-pip.py options
 ~~~~~~~~~~~~~~~~~~~
