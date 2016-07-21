@@ -24,7 +24,7 @@ class WheelCommand(RequirementCommand):
 
     Wheel is a built-package format, and offers the advantage of not
     recompiling your software during every install. For more details, see the
-    wheel docs: http://wheel.readthedocs.org/en/latest.
+    wheel docs: https://wheel.readthedocs.io/en/latest/
 
     Requirements: setuptools>=0.8, and wheel.
 
