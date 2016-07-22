@@ -1,5 +1,5 @@
 freezegun
-https://github.com/xavfernandez/pytest/archive/fde0890d584cedb43bfb7c5abecdc61af74a9784.zip#egg=pytest
+https://github.com/xavfernandez/pytest/archive/980552e02708df2d480825618895416828286143.zip#egg=pytest
 apipkg==1.4
 execnet==1.4.1
 pretend==1.0.8
