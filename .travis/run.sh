@@ -51,7 +51,7 @@ if [[ $VENDOR = "no" ]]; then
 fi
 
 # Run the unit tests
-tox -- -m unit $TOXARGS
+#tox -- -m unit $TOXARGS
 
 # Run our integration tests
 tox -- -m integration -n 8 $TOXARGS
