@@ -60,7 +60,7 @@ def tmpdir(request):
     # Clear out the temporary directory after the test has finished using it.
     # This should prevent us from needing a multiple gigabyte temporary
     # directory while running the tests.
-    request.addfinalizer(lambda: shutil.rmtree(str(tmp), ignore_errors=True))
+    #request.addfinalizer(lambda: shutil.rmtree(str(tmp), ignore_errors=True))
 
     return Path(str(tmp))
 
