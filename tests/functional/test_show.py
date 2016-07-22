@@ -71,7 +71,6 @@ def test_missing_argument(script):
 def test_find_package_not_found():
     """
     Test trying to get info about a nonexistent package.
-
     """
     result = search_packages_info(['abcd3'])
     assert len(list(result)) == 0
@@ -117,3 +116,46 @@ def test_show_verbose_installer(script, data):
     lines = result.stdout.splitlines()
     assert 'Name: simple.dist' in lines
     assert 'Installer: pip' in lines
+
+
+def test_show_verbose(script):
+    """
+    Test end to end test for verbose show command.
+    """
+    result = script.pip('show', '--verbose', 'pip')
+    lines = result.stdout.splitlines()
+    assert any(line.startswith('Metadata-Version: ') for line in lines)
+    assert any(line.startswith('Installer: ') for line in lines)
+    assert 'Entry-points:' in lines
+    assert 'Classifiers:' in lines
+
+
+def test_all_fields(script):
+    """
+    Test that all the fields are present
+    """
+    result = script.pip('show', 'pip')
+    lines = result.stdout.splitlines()
+    expected = set(['Name', 'Version', 'Summary', 'Home-page', 'Author',
+                    'Author-email', 'License', 'Location', 'Requires'])
+    actual = set(re.sub(':.*$', '', line) for line in lines)
+    assert actual == expected
+
+
+def test_pip_show_is_short(script):
+    """
+    Test that pip show stays short
+    """
+    result = script.pip('show', 'pip')
+    lines = result.stdout.splitlines()
+    assert len(lines) <= 10
+
+
+def test_pip_show_divider(script):
+    """
+    Expect a divider between packages
+    """
+    script.pip('install', 'initools')
+    result = script.pip('show', 'pip', 'initools')
+    lines = result.stdout.splitlines()
+    assert "---" in lines
