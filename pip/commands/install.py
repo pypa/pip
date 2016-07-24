@@ -3,9 +3,11 @@ from __future__ import absolute_import
 import logging
 import operator
 import os
-import shutil
 import tempfile
+import shutil
 import warnings
+
+from pip._vendor import six
 
 try:
     import wheel
@@ -27,6 +29,11 @@ from pip.wheel import WheelCache, WheelBuilder
 
 
 logger = logging.getLogger(__name__)
+
+
+if six.PY2:
+    class FileNotFoundError(OSError):
+        pass
 
 
 class InstallCommand(RequirementCommand):
@@ -171,6 +178,7 @@ class InstallCommand(RequirementCommand):
         cmd_opts.add_option(
             '--save-to',
             dest='save_to',
+            default='requirements.txt',
             help='Path to the requirements file'
         )
 
@@ -191,6 +199,18 @@ class InstallCommand(RequirementCommand):
         self.parser.insert_option_group(0, cmd_opts)
 
     def run(self, options, args):
+        if options.save:
+            requirements_fpath = options.save_to
+            if not os.path.isabs(requirements_fpath):
+                requirements_fpath = os.path.join(os.getcwd(),
+                                                  requirements_fpath)
+
+            basedir = os.path.dirname(requirements_fpath)
+            if not os.path.exists(basedir):
+                raise FileNotFoundError(
+                    'Directory for the requirements file doesn\'t exist: '
+                    '{basedir}.'.format(basedir=basedir))
+
         cmdoptions.resolve_wheel_no_use_binary(options)
         cmdoptions.check_install_build_global(options)
 
@@ -411,17 +431,37 @@ class InstallCommand(RequirementCommand):
             shutil.rmtree(temp_target_dir)
 
         if options.save:
-            if options.save_to:
-                requirements_fpath = options.save_to
-            else:
-                requirements_fpath = 'requirements.txt'
+            lines = []
+            if os.path.exists(requirements_fpath):
+                saved_packages = {}
+                with open(requirements_fpath, 'r') as requirements_file:
+                    req_lines = requirements_file.readlines()
+                    for line_number, line in enumerate(req_lines):
+                        lines.append(line)
+                        if '==' in line:
+                            name, _ = line.rstrip().split('==')
+                            saved_packages[name] = line_number
 
-            with open(requirements_fpath, 'a') as requirements_file:
-                for requirement in requirement_set.requirements.values():
-                    if not requirement.comes_from:  # not a dependency of smth
-                        requirements_file.write(
-                            '{pkg}=={pkg_version}\n'.format(
-                                pkg=requirement.name,
-                                pkg_version=requirement.installed_version))
+            for requirement in requirement_set.requirements.values():
+                if not requirement.comes_from:
+                    pkg_name = requirement.name
+                    pkg_version = requirement.installed_version
+                    pkg_output_line = '{pkg_name}=={pkg_version}\n'.format(
+                        pkg_name=pkg_name,
+                        pkg_version=pkg_version)
+
+                    if len(lines) == 0:
+                        lines.append(pkg_output_line)
+                        continue
+
+                    if pkg_name in saved_packages:
+                        # if same version, nothing bad will happen
+                        line_number = saved_packages[pkg_name]
+                        lines[line_number] = pkg_output_line
+                    else:
+                        lines.append(pkg_output_line)
+
+            with open(requirements_fpath, 'w') as requirements_file:
+                requirements_file.writelines(lines)
 
         return requirement_set
