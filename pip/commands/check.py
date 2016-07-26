@@ -35,3 +35,5 @@ class CheckCommand(Command):
 
         if missing_reqs_dict or incompatible_reqs_dict:
             return 1
+        else:
+            logger.info("No broken requirements found.")
