@@ -1,5 +1,7 @@
 **8.2.0 (unreleased)**
 
+* Pip show is less verbose by default. `--verbose` prints multiline fields
+
 * Added optional column formatting to ``pip list`` (:issue:`3651`).
 
 * Fix the build on systems with symlinked /tmp directory for custom
