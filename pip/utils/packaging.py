@@ -1,22 +1,11 @@
 from __future__ import absolute_import
-
 import logging
 import sys
 
-from pip._vendor import pkg_resources
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging import version
 
 logger = logging.getLogger(__name__)
-
-
-def get_metadata(dist):
-    if (isinstance(dist, pkg_resources.DistInfoDistribution) and
-            dist.has_metadata('METADATA')):
-        return dist.get_metadata('METADATA')
-    elif dist.has_metadata('PKG-INFO'):
-        return dist.get_metadata('PKG-INFO')
-
 
 def check_requires_python(requires_python):
     """
