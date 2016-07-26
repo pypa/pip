@@ -19,6 +19,13 @@ def get_metadata(dist):
 
 
 def check_requires_python(requires_python):
+    """
+    Check if the python version in used match the `requires_python` specifier passed.
+
+    Return `True` if the version of python in use matches the requirement.
+    Return `False` if the version of python in use does not matches the requirement.
+    Raises an InvalidSpecifier if `requires_python` have an invalid format.
+    """
     if requires_python is None:
         # The package provides no information
         return True
@@ -28,9 +35,9 @@ def check_requires_python(requires_python):
         logger.debug(
             "Package %s has an invalid Requires-Python entry - %s" % (
                  requires_python, e))
-        return ValueError('Wrong Specifier')
+        raise specifiers.InvalidSpecifier(*e.args)
 
     # We only use major.minor.micro
     python_version = version.parse('.'.join(map(str, sys.version_info[:3])))
-    if python_version not in requires_python_specifier:
-        return False
+    return python_version in requires_python_specifier
+
