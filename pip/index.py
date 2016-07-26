@@ -644,9 +644,8 @@ class PackageFinder(object):
                 return
 
         if not check_requires_python(link.requires_python):
-            print('check on ', link, "Showed it's not compatible with python version in use:", link.requires_python)
+            logger.debug('The package ', link, "is incompatible with the python version in use. Acceptable python versions are:", link.requires_python)
             return
-        #import ipdb; ipdb.set_trace()
         logger.debug('Found link %s, version: %s', link, version)
 
         return InstallationCandidate(search.supplied, version, link)
