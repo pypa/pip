@@ -849,6 +849,19 @@ class HTMLPage(object):
 class Link(object):
 
     def __init__(self, url, comes_from=None, requires_python=None):
+        """
+        Object representing a parsed link from https://pypi.python.org/simple/<packagename>/
+
+        url:
+            url of the resource pointed to (href of the link)
+        comes_form:
+            <Not sure>
+        requires_python:
+            String containing the `Requires-Python` metadata field, specified
+            in PEP 345. This is to understand pep 503. The `requires_python`
+            string will be unescaped as pep 503 requires `<` and `>` to be
+            escaped, then stored under the `requires_python` attribute.
+        """
 
         # url can be a UNC windows share
         if url.startswith('\\\\'):
