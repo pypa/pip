@@ -644,7 +644,9 @@ class PackageFinder(object):
                 return
 
         if not check_requires_python(link.requires_python):
-            logger.debug('The package ', link, "is incompatible with the python version in use. Acceptable python versions are:", link.requires_python)
+            logger.debug("The package %s is incompatible with the python"
+                         "version in use. Acceptable python versions are:%s",
+                         link, link.requires_python)
             return
         logger.debug('Found link %s, version: %s', link, version)
 
@@ -834,7 +836,8 @@ class HTMLPage(object):
                 url = self.clean_link(
                     urllib_parse.urljoin(self.base_url, href)
                 )
-                yield Link(url, self, requires_python=anchor.get('data-requires-python'))
+                pyrequire = anchor.get('data-requires-python')
+                yield Link(url, self, requires_python=pyrequire)
 
     _clean_re = re.compile(r'[^a-z0-9$&+,/:;=?@.#%_\\|-]', re.I)
 
@@ -850,7 +853,7 @@ class Link(object):
 
     def __init__(self, url, comes_from=None, requires_python=None):
         """
-        Object representing a parsed link from https://pypi.python.org/simple/<packagename>/
+        Object representing a parsed link from https://pypi.python.org/simple/*
 
         url:
             url of the resource pointed to (href of the link)
