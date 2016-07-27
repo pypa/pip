@@ -57,7 +57,7 @@ def check_dist_requires_python(dist):
                     '.'.join(map(str, sys.version_info[:3])),)
             )
     except specifiers.InvalidSpecifier as e:
-        logger.debug(
+        logger.warning(
             "Package %s has an invalid Requires-Python entry %s - %s" % (
                 dist.project_name, requires_python, e))
         return
