@@ -33,6 +33,7 @@ from pip.pep425tags import supported_tags
 from pip._vendor import html5lib, requests, six
 from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.packaging import specifiers
 from pip._vendor.requests.exceptions import SSLError
 from pip._vendor.distlib.compat import unescape
 
@@ -642,8 +643,12 @@ class PackageFinder(object):
                 self._log_skipped_link(
                     link, 'Python version is incorrect')
                 return
+        try:
+            support_this_python = check_requires_python(link.requires_python)
+        except specifiers.InvalidSpecifier:
+            support_this_python = True
 
-        if not check_requires_python(link.requires_python):
+        if not support_this_python:
             logger.debug("The package %s is incompatible with the python"
                          "version in use. Acceptable python versions are:%s",
                          link, link.requires_python)
@@ -836,7 +841,7 @@ class HTMLPage(object):
                 url = self.clean_link(
                     urllib_parse.urljoin(self.base_url, href)
                 )
-                pyrequire = anchor.get('data-requires-python')
+                pyrequire = unescape(anchor.get('data-requires-python'))
                 yield Link(url, self, requires_python=pyrequire)
 
     _clean_re = re.compile(r'[^a-z0-9$&+,/:;=?@.#%_\\|-]', re.I)
@@ -857,13 +862,11 @@ class Link(object):
 
         url:
             url of the resource pointed to (href of the link)
-        comes_form:
+        comes_from:
             <Not sure>
         requires_python:
             String containing the `Requires-Python` metadata field, specified
-            in PEP 345. This is to understand pep 503. The `requires_python`
-            string will be unescaped as pep 503 requires `<` and `>` to be
-            escaped, then stored under the `requires_python` attribute.
+            in PEP 345.
         """
 
         # url can be a UNC windows share
@@ -875,7 +878,7 @@ class Link(object):
         if not requires_python:
             self.requires_python = None
         else:
-            self.requires_python = unescape(requires_python)
+            self.requires_python = requires_python
 
     def __str__(self):
         if self.requires_python:
