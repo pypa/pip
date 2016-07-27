@@ -506,3 +506,10 @@ def test_install_unsupported_wheel_file(script, data):
     assert ("simple.dist-0.1-py1-none-invalid.whl is not a supported " +
             "wheel on this platform" in result.stderr)
     assert len(result.files_created) == 0
+
+
+def test_install_with_extras_merged(script, data):
+    to_install = data.packages.join("LocalExtrasDuplicated")
+    result = script.pip_install_local('--no-index', '-f', data.find_links,
+                                      to_install + '[shrubbery]')
+    assert ("simple-3.0 singlemodule-0.0.1" in result.stdout)

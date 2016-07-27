@@ -131,6 +131,14 @@ class RequirementSet(object):
                                  existing_req, existing_req.extras)
                     # And now we need to scan this.
                     result = [existing_req]
+                elif not install_req.constraint:
+                    existing_req.extras = tuple(
+                        sorted(set(existing_req.extras).union(
+                               set(install_req.extras))))
+                    logger.debug("Setting %s extras to: %s",
+                                 existing_req, existing_req.extras)
+                    # And now we need to scan this.
+                    result = [existing_req]
                 # Canonicalise to the already-added object for the backref
                 # check below.
                 install_req = existing_req
