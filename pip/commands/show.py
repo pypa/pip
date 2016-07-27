@@ -37,7 +37,8 @@ class ShowCommand(Command):
         query = args
 
         results = search_packages_info(query)
-        if not print_results(results, options.files):
+        if not print_results(
+                results, list_files=options.files, verbose=options.verbose):
             return ERROR
         return SUCCESS
 
@@ -85,13 +86,11 @@ def search_packages_info(query):
             entry_points = dist.get_metadata_lines('entry_points.txt')
             package['entry_points'] = entry_points
 
-        installer = None
         if dist.has_metadata('INSTALLER'):
             for line in dist.get_metadata_lines('INSTALLER'):
                 if line.strip():
-                    installer = line.strip()
+                    package['installer'] = line.strip()
                     break
-        package['installer'] = installer
 
         # @todo: Should pkg_resources.Distribution have a
         # `get_pkg_info` method?
@@ -117,38 +116,38 @@ def search_packages_info(query):
         yield package
 
 
-def print_results(distributions, list_all_files):
+def print_results(distributions, list_files=False, verbose=False):
     """
     Print the informations from installed distributions found.
     """
     results_printed = False
-    for dist in distributions:
+    for i, dist in enumerate(distributions):
         results_printed = True
-        logger.info("---")
-        logger.info("Metadata-Version: %s", dist.get('metadata-version'))
-        logger.info("Name: %s", dist['name'])
-        logger.info("Version: %s", dist['version'])
-        logger.info("Summary: %s", dist.get('summary'))
-        logger.info("Home-page: %s", dist.get('home-page'))
-        logger.info("Author: %s", dist.get('author'))
-        logger.info("Author-email: %s", dist.get('author-email'))
-        if dist['installer'] is not None:
-            logger.info("Installer: %s", dist['installer'])
-        logger.info("License: %s", dist.get('license'))
-        logger.info("Location: %s", dist['location'])
-        logger.info("Requires: %s", ', '.join(dist['requires']))
-        logger.info("Classifiers:")
-        for classifier in dist['classifiers']:
-            logger.info("  %s", classifier)
-        if list_all_files:
-            logger.info("Files:")
-            if 'files' in dist:
-                for line in dist['files']:
-                    logger.info("  %s", line.strip())
-            else:
-                logger.info("Cannot locate installed-files.txt")
-        if 'entry_points' in dist:
+        if i > 0:
+            logger.info("---")
+        logger.info("Name: %s", dist.get('name', ''))
+        logger.info("Version: %s", dist.get('version', ''))
+        logger.info("Summary: %s", dist.get('summary', ''))
+        logger.info("Home-page: %s", dist.get('home-page', ''))
+        logger.info("Author: %s", dist.get('author', ''))
+        logger.info("Author-email: %s", dist.get('author-email', ''))
+        logger.info("License: %s", dist.get('license', ''))
+        logger.info("Location: %s", dist.get('location', ''))
+        logger.info("Requires: %s", ', '.join(dist.get('requires', [])))
+        if verbose:
+            logger.info("Metadata-Version: %s",
+                        dist.get('metadata-version', ''))
+            logger.info("Installer: %s", dist.get('installer', ''))
+            logger.info("Classifiers:")
+            for classifier in dist.get('classifiers', []):
+                logger.info("  %s", classifier)
             logger.info("Entry-points:")
-            for line in dist['entry_points']:
+            for entry in dist.get('entry_points', []):
+                logger.info("  %s", entry.strip())
+        if list_files:
+            logger.info("Files:")
+            for line in dist.get('files', []):
                 logger.info("  %s", line.strip())
+            if "files" not in dist:
+                logger.info("Cannot locate installed-files.txt")
     return results_printed

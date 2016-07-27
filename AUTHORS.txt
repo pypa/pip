@@ -47,6 +47,7 @@ Clark Boylan <clark.boylan@gmail.com>
 Clay McClure <clay@daemons.net>
 Cody Soyland <codysoyland@gmail.com>
 Colin Watson <cjwatson@debian.org>
+Connor Osborn <cdosborn@email.arizona.edu>
 Cory Benfield <lukasaoz@gmail.com>
 Cory Wright <corywright@gmail.com>
 Craig Kerstiens <craig.kerstiens@gmail.com>
