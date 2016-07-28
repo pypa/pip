@@ -646,6 +646,8 @@ class PackageFinder(object):
         try:
             support_this_python = check_requires_python(link.requires_python)
         except specifiers.InvalidSpecifier:
+            logger.debug("Package %s has an invalid Requires-Python entry: %s",
+                         link.filename, link.requires_python)
             support_this_python = True
 
         if not support_this_python:
@@ -841,7 +843,8 @@ class HTMLPage(object):
                 url = self.clean_link(
                     urllib_parse.urljoin(self.base_url, href)
                 )
-                pyrequire = unescape(anchor.get('data-requires-python'))
+                pyrequire = anchor.get('data-requires-python')
+                pyrequire = unescape(pyrequire) if pyrequire else None
                 yield Link(url, self, requires_python=pyrequire)
 
     _clean_re = re.compile(r'[^a-z0-9$&+,/:;=?@.#%_\\|-]', re.I)
@@ -863,10 +866,11 @@ class Link(object):
         url:
             url of the resource pointed to (href of the link)
         comes_from:
-            <Not sure>
+            instance of HTMLPage where the link was found, or string.
         requires_python:
             String containing the `Requires-Python` metadata field, specified
-            in PEP 345.
+            in PEP 345. This may be specified by a data-requires-python
+            attribute in the HTML link tag, as described in PEP 503.
         """
 
         # url can be a UNC windows share
@@ -875,10 +879,7 @@ class Link(object):
 
         self.url = url
         self.comes_from = comes_from
-        if not requires_python:
-            self.requires_python = None
-        else:
-            self.requires_python = requires_python
+        self.requires_python = requires_python if requires_python else None
 
     def __str__(self):
         if self.requires_python:

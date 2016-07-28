@@ -1,4 +1,5 @@
 import pytest
+import sys
 
 import pip.wheel
 import pip.pep425tags
@@ -363,6 +364,27 @@ def test_finder_only_installs_stable_releases(data):
     with patch.object(finder, "_get_pages", lambda x, y: []):
         link = finder.find_requirement(req, False)
         assert link.url == "https://foo/bar-1.0.tar.gz"
+
+
+def test_finder_only_installs_data_require(data):
+    """
+    """
+
+    # using a local index (that has pre & dev releases)
+    finder = PackageFinder([],
+                           [data.index_url("datarequire")],
+                           session=PipSession())
+    links = finder.find_all_candidates("fakepackage")
+
+    expected = ['1.0.0', '9.9.9']
+    if sys.version_info < (2, 7):
+        expected.append('2.6.0')
+    elif (2, 7) < sys.version_info < (3,):
+        expected.append('2.7.0')
+    elif sys.version_info > (3, 3):
+        expected.append('3.3.0')
+
+    assert set([str(v.version) for v in links]) == set(expected)
 
 
 def test_finder_installs_pre_releases(data):
