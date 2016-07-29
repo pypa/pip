@@ -1,7 +1,7 @@
 freezegun
 pretend
 pytest
-pytest-capturelog
+pytest-catchlog
 pytest-timeout
 pytest-xdist
 mock<1.1
