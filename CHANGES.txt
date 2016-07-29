@@ -8,6 +8,10 @@
 * Fix regression in pip freeze: when there is more than one git remote,
   priority is given to the remote named origin (:issue:`3616`)
 
+* Implementation of pep-503 ``data-requires-python``. When this field is
+  present for a release link, pip will ignore the download when
+  installing to a Python version that doesn't satisfy the requirement.
+
 * Pip wheel now works on editable packages too (it was only working on
   editable dependencies before); this allows running pip wheel on the result
   of pip freeze in presence of editable requirements (:issue:`3291`)

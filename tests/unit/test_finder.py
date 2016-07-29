@@ -368,6 +368,13 @@ def test_finder_only_installs_stable_releases(data):
 
 def test_finder_only_installs_data_require(data):
     """
+    Test whether the PackageFinder understand data-python-requires
+
+    This can optionally be exposed by a simple-repository to tell which
+    distribution are compatible with which version of Python by adding a
+    data-python-require to the anchor links.
+
+    See pep 503 for more informations.
     """
 
     # using a local index (that has pre & dev releases)
