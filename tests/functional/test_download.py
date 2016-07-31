@@ -30,20 +30,18 @@ def test_download_setuptools(script):
     )
 
 
-@pytest.mark.network
-def test_download_wheel(script):
+def test_download_wheel(script, data):
     """
     Test using "pip download" to download a *.whl archive.
-    FIXME: this test could use a local --find-links dir, but -d with local
-           --find-links has a bug https://github.com/pypa/pip/issues/1111
     """
     result = script.pip(
         'download',
-        '-f', 'https://bitbucket.org/pypa/pip-test-package/downloads',
-        '-d', '.', 'pip-test-package'
+        '--no-index',
+        '-f', data.packages,
+        '-d', '.', 'meta'
     )
     assert (
-        Path('scratch') / 'pip_test_package-0.1.1-py2.py3-none-any.whl'
+        Path('scratch') / 'meta-1.0-py2.py3-none-any.whl'
         in result.files_created
     )
     assert script.site_packages / 'piptestpackage' not in result.files_created
