@@ -117,6 +117,7 @@ quiet = partial(
     help=('Give less output. Option is additive, and can be used up to 3'
           ' times (corresponding to WARNING, ERROR, and CRITICAL logging'
           ' levels).')
+)
 
 log = partial(
     Option,
