@@ -7,10 +7,8 @@ Do I need to install pip?
 -------------------------
 
 pip is already installed if you're using Python 2 >=2.7.9 or Python 3 >=3.4
-binaries downloaded from `python.org <https://www.python.org>`_, but you'll
-need to :ref:`upgrade pip <Upgrading pip>`.
-
-Additionally, pip will already be installed if you're working in a :ref:`Virtual
+binaries downloaded from `python.org <https://www.python.org>`_, but you would
+need to :ref:`upgrade pip <Upgrading pip>` or if you are working in a :ref:`Virtual
 Environment <pypug:Creating and using Virtual Environments>` created by
 :ref:`pypug:virtualenv` or :ref:`pyvenv <pypug:venv>`.
 
@@ -36,21 +34,21 @@ Then run the following:
 
 .. warning::
 
-   Be cautious if you're using a Python install that's managed by your operating
-   system or another package manager. get-pip.py does not coordinate with
+   Be cautious if you are using a Python install that's managed by your operating
+   system or another package manager. ``get-pip.py`` does not coordinate with
    those tools, and may leave your system in an inconsistent state.
 
-get-pip.py will also install :ref:`pypug:setuptools` [3]_ and :ref:`pypug:wheel`,
-if they're not already. :ref:`pypug:setuptools` is required to install
+``get-pip.py`` also installs :ref:`pypug:setuptools` [3]_ and :ref:`pypug:wheel`. 
+If they are not already, :ref:`pypug:setuptools` is required to install
 :term:`source distributions <pypug:Source Distribution (or "sdist")>`.  Both are
-required to be able to build a :ref:`Wheel cache` (which improves installation
+required in order to build a :ref:`Wheel cache` (which improves installation
 speed), although neither are required to install pre-built :term:`wheels
 <pypug:Wheel>`.
 
 .. note::
 
-   The get-pip.py script is supported on the same python version as pip.
-   For the now unsupported Python 3.2, an alternate script is available
+   ``get-pip.py`` is supported on the same python version as pip.
+   For Python 3.2, an alternate script is available
    `here <https://bootstrap.pypa.io/3.2/get-pip.py>`_.
 
 
@@ -59,14 +57,14 @@ get-pip.py options
 
 .. option:: --no-setuptools
 
-    If set, don't attempt to install :ref:`pypug:setuptools`
+    If set, do not attempt to install :ref:`pypug:setuptools`
 
 .. option:: --no-wheel
 
-    If set, don't attempt to install :ref:`pypug:wheel`
+    If set, do not attempt to install :ref:`pypug:wheel`
 
 
-Additionally, ``get-pip.py`` supports using the :ref:`pip install options <pip
+``get-pip.py`` allows :ref:`pip install options <pip
 install Options>` and the :ref:`general options <General Options>`. Below are
 some examples:
 
@@ -112,13 +110,10 @@ On Windows [5]_:
 Python and OS Compatibility
 ---------------------------
 
-pip works with CPython versions 2.6, 2.7, 3.3, 3.4, 3.5 and also pypy.
-
-This means pip works on the latest patch version of each of these minor versions
-(i.e. 2.6.9 for 2.6, etc).
-Previous patch versions are supported on a best effort approach.
-
-pip works on Unix/Linux, OS X, and Windows.
+pip works with CPython versions 2.6, 2.7, 3.3, 3.4, 3.5 and also pypy 
+which means pip works on the latest patch version of each of these minor 
+versions (i.e. 2.6.9 for 2.6, etc).Previous patch versions are supported 
+on a best effort approach. pip works on Unix/Linux, OS X, and Windows.
 
 
 ----
