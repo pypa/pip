@@ -104,7 +104,7 @@ class PackageFinder(object):
 
     def __init__(self, find_links, index_urls, allow_all_prereleases=False,
                  trusted_hosts=None, process_dependency_links=False,
-                 session=None, format_control=None):
+                 session=None, format_control=None, no_manylinux=False):
         """Create a PackageFinder.
 
         :param format_control: A FormatControl object or None. Used to control
@@ -165,6 +165,8 @@ class PackageFinder(object):
                         "available."
                     )
                     break
+
+        self.no_manylinux = no_manylinux
 
     def add_dependency_links(self, links):
         # # FIXME: this shouldn't be global list this, it should only
@@ -615,6 +617,17 @@ class PackageFinder(object):
                 if not wheel.supported():
                     self._log_skipped_link(
                         link, 'it is not compatible with this Python')
+                    return
+
+                if (
+                        self.no_manylinux and
+                        any(
+                            plat.startswith('manylinux')
+                            for plat in wheel.plats
+                        )
+                ):
+                    self._log_skipped_link(
+                        link, 'skipping manylinux due to --no-manylinux')
                     return
 
                 version = wheel.version

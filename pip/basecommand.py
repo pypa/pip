@@ -328,4 +328,5 @@ class RequirementCommand(Command):
             allow_all_prereleases=options.pre,
             process_dependency_links=options.process_dependency_links,
             session=session,
+            no_manylinux=options.no_manylinux,
         )
