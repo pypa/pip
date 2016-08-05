@@ -6,11 +6,11 @@ Installation
 Do I need to install pip?
 -------------------------
 
-pip is already installed if you are using Python 2 >=2.7.9 or Python 3 >=3.4
-binaries downloaded from `python.org <https://www.python.org>`_ (but you would
-need to :ref:`upgrade pip <Upgrading pip>` or if you are working in a :ref:`Virtual
-Environment <pypug:Creating and using Virtual Environments>` created by
-:ref:`pypug:virtualenv` or :ref:`pyvenv <pypug:venv>`.
+pip is already installed if you are using Python 2 >=2.7.9 or Python 3 >=3.4 
+downloaded from `python.org <https://www.python.org>`_ or if you are working 
+in a :ref:`Virtual Environment <pypug:Creating and using Virtual Environments>` 
+created by :ref:`pypug:virtualenv` or :ref:`pyvenv <pypug:venv>`. 
+Just make sure to :ref:`upgrade pip <Upgrading pip>`.
 
 
 .. _`get-pip`:
@@ -23,7 +23,7 @@ To install pip, securely download `get-pip.py
 
 ::
 
- curl https://bootstrap.pypa.io/get-pip.py -o
+ curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
  
 Inspect ``get-pip.py`` for any malevolence. Then run the following:
 
@@ -38,8 +38,8 @@ Inspect ``get-pip.py`` for any malevolence. Then run the following:
    system or another package manager. ``get-pip.py`` does not coordinate with
    those tools, and may leave your system in an inconsistent state.
 
-``get-pip.py`` also installs :ref:`pypug:setuptools` [3]_ and :ref:`pypug:wheel`. 
-If they are not already, :ref:`pypug:setuptools` is required to install
+``get-pip.py`` also installs :ref:`pypug:setuptools` [3]_ and :ref:`pypug:wheel` 
+if they are not already. :ref:`pypug:setuptools` is required to install
 :term:`source distributions <pypug:Source Distribution (or "sdist")>`.  Both are
 required in order to build a :ref:`Wheel cache` (which improves installation
 speed), although neither are required to install pre-built :term:`wheels
@@ -93,7 +93,7 @@ the `Python Packaging User Guide
 Upgrading pip
 -------------
 
-On Linux or OS X:
+On Linux or macOS:
 
 ::
 
@@ -112,8 +112,10 @@ Python and OS Compatibility
 
 pip works with CPython versions 2.6, 2.7, 3.3, 3.4, 3.5 and also pypy 
 which means pip works on the latest patch version of each of these minor 
-versions (i.e. 2.6.9 for 2.6, etc).Previous patch versions are supported 
-on a best effort approach. pip works on Unix/Linux, OS X, and Windows.
+versions (i.e. 2.6.9 for 2.6, etc). 
+
+Previous patch versions are supported on a best effort approach. 
+pip works on Unix/Linux, macOS, and Windows.
 
 
 ----
