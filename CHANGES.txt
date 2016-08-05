@@ -1,5 +1,8 @@
 **8.2.0 (unreleased)**
 
+* Uninstall existing packages when performing an editable installation of
+  the same packages (:issue:`1548`).
+
 * Pip show is less verbose by default. `--verbose` prints multiline fields
 
 * Added optional column formatting to ``pip list`` (:issue:`3651`).

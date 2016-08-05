@@ -489,6 +489,7 @@ class RequirementSet(object):
                 abstract_dist.prep_for_dist()
                 if self.is_download:
                     req_to_install.archive(self.download_dir)
+                req_to_install.check_if_exists()
             elif req_to_install.satisfied_by:
                 if require_hashes:
                     logger.debug(

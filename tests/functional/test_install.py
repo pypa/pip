@@ -201,8 +201,32 @@ def test_install_editable_uninstalls_existing(data, script, tmpdir):
     )
     result.assert_installed('pip-test-package', with_files=['.git'])
     assert 'Found existing installation: pip-test-package 0.1' in result.stdout
-    assert 'Uninstalling pip-test-package:' in result.stdout
+    assert 'Uninstalling pip-test-package-' in result.stdout
     assert 'Successfully uninstalled pip-test-package' in result.stdout
+
+
+def test_install_editable_uninstalls_existing_from_path(script, data):
+    """
+    Test that installing an editable uninstalls a previously installed
+    non-editable version from path
+    """
+    to_install = data.src.join('simplewheel-1.0')
+    result = script.pip_install_local(to_install)
+    assert 'Successfully installed simplewheel' in result.stdout
+    simple_folder = script.site_packages / 'simple'
+    result.assert_installed('simple', editable=False)
+    assert simple_folder in result.files_created, str(result.stdout)
+
+    result = script.pip(
+        'install', '-e',
+        to_install,
+    )
+    install_path = script.site_packages / 'simplewheel.egg-link'
+    assert install_path in result.files_created, str(result)
+    assert 'Found existing installation: simplewheel 1.0' in result.stdout
+    assert 'Uninstalling simplewheel-' in result.stdout
+    assert 'Successfully uninstalled simplewheel' in result.stdout
+    assert simple_folder in result.files_deleted, str(result.stdout)
 
 
 def test_install_editable_from_hg(script, tmpdir):
