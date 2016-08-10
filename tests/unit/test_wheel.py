@@ -14,7 +14,8 @@ from pip.utils import unpack_file
 @pytest.mark.parametrize("console_scripts",
                          ["pip = pip.main:pip", "pip:pip = pip.main:pip"])
 def test_get_entrypoints(tmpdir, console_scripts):
-    with open(str(tmpdir.join("entry_points.txt")), "w") as fp:
+    entry_points = tmpdir.join("entry_points.txt")
+    with open(str(entry_points), "w") as fp:
         fp.write("""
             [console_scripts]
             {0}
@@ -22,9 +23,8 @@ def test_get_entrypoints(tmpdir, console_scripts):
             common:one = module:func
             common:two = module:other_func
         """.format(console_scripts))
-        fp.write(console_scripts + '\n')
 
-    assert wheel.get_entrypoints(str(tmpdir.join("entry_points.txt"))) == (
+    assert wheel.get_entrypoints(str(entry_points)) == (
         dict([console_scripts.split(' = ')]),
         {},
     )

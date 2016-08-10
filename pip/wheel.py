@@ -225,20 +225,19 @@ def get_entrypoints(filename):
             data.write("\n")
         data.seek(0)
 
-    if six.PY2:
-        options = {}
-    else:
-        options = {"delimiters": ('=', )}
-    cp = configparser.RawConfigParser(**options)
-    cp.optionxform = lambda option: option
-    cp.readfp(data)
+    # get the entry points and then the script names
+    entry_points = pkg_resources.EntryPoint.parse_map(data)
+    console = entry_points.get('console_scripts', {})
+    gui = entry_points.get('gui_scripts', {})
 
-    console = {}
-    gui = {}
-    if cp.has_section('console_scripts'):
-        console = dict(cp.items('console_scripts'))
-    if cp.has_section('gui_scripts'):
-        gui = dict(cp.items('gui_scripts'))
+    def _split_ep(s):
+        """get the string representation of EntryPoint, remove space and split
+        on '='"""
+        return str(s).replace(" ", "").split("=")
+
+    # convert the EntryPoint objects into strings with module:function
+    console = dict(_split_ep(v) for v in console.values())
+    gui = dict(_split_ep(v) for v in gui.values())
     return console, gui
 
 
