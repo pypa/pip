@@ -39,8 +39,6 @@ from pip.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor import six
-from pip._vendor.six.moves import configparser
 
 
 wheel_ext = '.whl'
