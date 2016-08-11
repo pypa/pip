@@ -444,6 +444,13 @@ def only_binary():
              "used on them.")
 
 
+def no_manylinux():
+    return Option(
+        "--no-manylinux", dest="no_manylinux", action="store_true",
+        default=False,
+        help="Do not consider manylinux wheels.")
+
+
 cache_dir = partial(
     Option,
     "--cache-dir",
