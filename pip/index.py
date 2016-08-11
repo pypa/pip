@@ -22,6 +22,7 @@ from pip.utils import (
 )
 from pip.utils.deprecation import RemovedInPip9Warning, RemovedInPip10Warning
 from pip.utils.logging import indent_log
+from pip.utils.packaging import check_requires_python
 from pip.exceptions import (
     DistributionNotFound, BestVersionAlreadyInstalled, InvalidWheelFilename,
     UnsupportedWheel,
@@ -32,7 +33,9 @@ from pip.pep425tags import supported_tags
 from pip._vendor import html5lib, requests, six
 from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.packaging import specifiers
 from pip._vendor.requests.exceptions import SSLError
+from pip._vendor.distlib.compat import unescape
 
 
 __all__ = ['FormatControl', 'fmt_ctl_handle_mutual_exclude', 'PackageFinder']
@@ -640,6 +643,18 @@ class PackageFinder(object):
                 self._log_skipped_link(
                     link, 'Python version is incorrect')
                 return
+        try:
+            support_this_python = check_requires_python(link.requires_python)
+        except specifiers.InvalidSpecifier:
+            logger.debug("Package %s has an invalid Requires-Python entry: %s",
+                         link.filename, link.requires_python)
+            support_this_python = True
+
+        if not support_this_python:
+            logger.debug("The package %s is incompatible with the python"
+                         "version in use. Acceptable python versions are:%s",
+                         link, link.requires_python)
+            return
         logger.debug('Found link %s, version: %s', link, version)
 
         return InstallationCandidate(search.supplied, version, link)
@@ -828,7 +843,9 @@ class HTMLPage(object):
                 url = self.clean_link(
                     urllib_parse.urljoin(self.base_url, href)
                 )
-                yield Link(url, self)
+                pyrequire = anchor.get('data-requires-python')
+                pyrequire = unescape(pyrequire) if pyrequire else None
+                yield Link(url, self, requires_python=pyrequire)
 
     _clean_re = re.compile(r'[^a-z0-9$&+,/:;=?@.#%_\\|-]', re.I)
 
@@ -842,7 +859,19 @@ class HTMLPage(object):
 
 class Link(object):
 
-    def __init__(self, url, comes_from=None):
+    def __init__(self, url, comes_from=None, requires_python=None):
+        """
+        Object representing a parsed link from https://pypi.python.org/simple/*
+
+        url:
+            url of the resource pointed to (href of the link)
+        comes_from:
+            instance of HTMLPage where the link was found, or string.
+        requires_python:
+            String containing the `Requires-Python` metadata field, specified
+            in PEP 345. This may be specified by a data-requires-python
+            attribute in the HTML link tag, as described in PEP 503.
+        """
 
         # url can be a UNC windows share
         if url.startswith('\\\\'):
@@ -850,10 +879,15 @@ class Link(object):
 
         self.url = url
         self.comes_from = comes_from
+        self.requires_python = requires_python if requires_python else None
 
     def __str__(self):
+        if self.requires_python:
+            rp = ' (requires-python:%s)' % self.requires_python
+        else:
+            rp = ''
         if self.comes_from:
-            return '%s (from %s)' % (self.url, self.comes_from)
+            return '%s (from %s)%s' % (self.url, self.comes_from, rp)
         else:
             return str(self.url)
 
