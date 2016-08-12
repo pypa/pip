@@ -3,6 +3,8 @@ from __future__ import absolute_import
 import logging
 import os
 
+from pip.exceptions import CommandError
+from pip.index import FormatControl
 from pip.req import RequirementSet
 from pip.basecommand import RequirementCommand
 from pip import cmdoptions
@@ -63,6 +65,53 @@ class DownloadCommand(RequirementCommand):
             help=("Download packages into <dir>."),
         )
 
+        cmd_opts.add_option(
+            '--platform',
+            dest='platform',
+            metavar='platform',
+            default=None,
+            help=("Only download wheels compatible with <platform>. "
+                  "Defaults to the platform of the running system."),
+        )
+
+        cmd_opts.add_option(
+            '--python-version',
+            dest='python_version',
+            metavar='python_version',
+            default=None,
+            help=("Only download wheels compatible with Python "
+                  "interpreter version <version>. If not specified, then the "
+                  "current system interpreter minor version is used. A major "
+                  "version (e.g. '2') can be specified to match all "
+                  "minor revs of that major version.  A minor version "
+                  "(e.g. '34') can also be specified."),
+        )
+
+        cmd_opts.add_option(
+            '--implementation',
+            dest='implementation',
+            metavar='implementation',
+            default=None,
+            help=("Only download wheels compatible with Python "
+                  "implementation <implementation>, e.g. 'pp', 'jy', 'cp', "
+                  " or 'ip'. If not specified, then the current "
+                  "interpreter implementation is used.  Use 'py' to force "
+                  "implementation-agnostic wheels."),
+        )
+
+        cmd_opts.add_option(
+            '--abi',
+            dest='abi',
+            metavar='abi',
+            default=None,
+            help=("Only download wheels compatible with Python "
+                  "abi <abi>, e.g. 'pypy_41'.  If not specified, then the "
+                  "current interpreter abi tag is used.  Generally "
+                  "you will need to specify --implementation, "
+                  "--platform, and --python-version when using "
+                  "this option."),
+        )
+
         index_opts = cmdoptions.make_option_group(
             cmdoptions.non_deprecated_index_group,
             self.parser,
@@ -73,14 +122,41 @@ class DownloadCommand(RequirementCommand):
 
     def run(self, options, args):
         options.ignore_installed = True
+
+        if options.python_version:
+            python_versions = [options.python_version]
+        else:
+            python_versions = None
+
+        dist_restriction_set = any([
+            options.python_version,
+            options.platform,
+            options.abi,
+            options.implementation,
+        ])
+        binary_only = FormatControl(set(), set([':all:']))
+        if dist_restriction_set and options.format_control != binary_only:
+            raise CommandError(
+                "--only-binary=:all: must be set and --no-binary must not "
+                "be set (or must be set to :none:) when restricting platform "
+                "and interpreter constraints using --python-version, "
+                "--platform, --abi, or --implementation."
+            )
+
         options.src_dir = os.path.abspath(options.src_dir)
         options.download_dir = normalize_path(options.download_dir)
 
         ensure_dir(options.download_dir)
 
         with self._build_session(options) as session:
-
-            finder = self._build_package_finder(options, session)
+            finder = self._build_package_finder(
+                options=options,
+                session=session,
+                platform=options.platform,
+                python_versions=python_versions,
+                abi=options.abi,
+                implementation=options.implementation,
+            )
             build_delete = (not (options.no_clean or options.build_dir))
             if options.cache_dir and not check_path_owner(options.cache_dir):
                 logger.warning(

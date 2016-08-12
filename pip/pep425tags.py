@@ -223,12 +223,19 @@ def get_darwin_arches(major, minor, machine):
     return arches
 
 
-def get_supported(versions=None, noarch=False):
+def get_supported(versions=None, noarch=False, platform=None,
+                  impl=None, abi=None):
     """Return a list of supported tags for each version specified in
     `versions`.
 
     :param versions: a list of string versions, of the form ["33", "32"],
         or None. The first version will be assumed to support our ABI.
+    :param platform: specify the exact platform you want valid
+        tags for, or None. If None, use the local system platform.
+    :param impl: specify the exact implementation you want valid
+        tags for, or None. If None, use the local interpreter impl.
+    :param abi: specify the exact abi you want valid
+        tags for, or None. If None, use the local interpreter abi.
     """
     supported = []
 
@@ -241,11 +248,11 @@ def get_supported(versions=None, noarch=False):
         for minor in range(version_info[-1], -1, -1):
             versions.append(''.join(map(str, major + (minor,))))
 
-    impl = get_abbr_impl()
+    impl = impl or get_abbr_impl()
 
     abis = []
 
-    abi = get_abi_tag()
+    abi = abi or get_abi_tag()
     if abi:
         abis[0:0] = [abi]
 
@@ -260,8 +267,8 @@ def get_supported(versions=None, noarch=False):
     abis.append('none')
 
     if not noarch:
-        arch = get_platform()
-        if sys.platform == 'darwin':
+        arch = platform or get_platform()
+        if arch.startswith('macosx'):
             # support macosx-10.6-intel on macosx-10.9-x86_64
             match = _osx_arch_pat.match(arch)
             if match:
@@ -274,7 +281,7 @@ def get_supported(versions=None, noarch=False):
             else:
                 # arch pattern didn't match (?!)
                 arches = [arch]
-        elif is_manylinux1_compatible():
+        elif platform is None and is_manylinux1_compatible():
             arches = [arch.replace('linux', 'manylinux1'), arch]
         else:
             arches = [arch]
