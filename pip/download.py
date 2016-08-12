@@ -37,6 +37,7 @@ from pip.utils.glibc import libc_ver
 from pip.utils.ui import DownloadProgressBar, DownloadProgressSpinner
 from pip.locations import write_delete_marker_file
 from pip.vcs import vcs
+from pip._vendor import distro
 from pip._vendor import requests, six
 from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
@@ -89,18 +90,18 @@ def user_agent():
         data["implementation"]["version"] = platform.python_version()
 
     if sys.platform.startswith("linux"):
-        distro = dict(filter(
+        distro_infos = dict(filter(
             lambda x: x[1],
-            zip(["name", "version", "id"], platform.linux_distribution()),
+            zip(["name", "version", "id"], distro.linux_distribution()),
         ))
         libc = dict(filter(
             lambda x: x[1],
             zip(["lib", "version"], libc_ver()),
         ))
         if libc:
-            distro["libc"] = libc
-        if distro:
-            data["distro"] = distro
+            distro_infos["libc"] = libc
+        if distro_infos:
+            data["distro"] = distro_infos
 
     if sys.platform.startswith("darwin") and platform.mac_ver()[0]:
         data["distro"] = {"name": "OS X", "version": platform.mac_ver()[0]}

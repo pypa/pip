@@ -64,6 +64,7 @@ if DEBUNDLED:
     vendored("cachecontrol")
     vendored("colorama")
     vendored("distlib")
+    vendored("distro")
     vendored("html5lib")
     vendored("lockfile")
     vendored("six")
