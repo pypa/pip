@@ -483,7 +483,7 @@ class InstallRequirement(object):
                         # Don't search in anything that looks like a virtualenv
                         # environment
                         if (
-                                os.path.exists(
+                                os.path.lexists(
                                     os.path.join(root, dir, 'bin', 'python')
                                 ) or
                                 os.path.exists(

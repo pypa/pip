@@ -23,6 +23,9 @@
   distributions for interpreters other than the one pip is being run on.
   (:pull:`3760`)
 
+* Skip scanning virtual environments even when venv/bin/python is a dangling
+  symlink.
+
 
 **8.1.2 (2016-05-10)**
 
