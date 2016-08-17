@@ -68,7 +68,7 @@ def test_completion_alone(script):
     Test getting completion for none shell, just pip completion
     """
     result = script.pip('completion', expect_error=True)
-    assert 'ERROR: You must pass --bash or --zsh' in result.stderr, \
+    assert 'ERROR: You must pass --bash or --fish or --zsh' in result.stderr, \
            'completion alone failed -- ' + result.stderr
 
 
