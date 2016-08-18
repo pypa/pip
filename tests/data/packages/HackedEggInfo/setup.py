@@ -11,7 +11,6 @@ class egg_info (orig_egg_info.egg_info):
 setup(
     name="hackedegginfo",
     version='0.0.0',
-    cmdclass={'egg_info':egg_info },
+    cmdclass={'egg_info':egg_info},
     zip_safe=False,
 )
-

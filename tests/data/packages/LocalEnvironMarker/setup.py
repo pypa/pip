@@ -24,6 +24,6 @@ setup(
     name='LocalEnvironMarker',
     version='0.0.1',
     packages=find_packages(),
-    extras_require={":python_version == '2.7' or python_version == '3.4'": ['simple'] },
+    extras_require={":python_version == '2.7' or python_version == '3.4'": ['simple']},
     dependency_links=[DEP_URL]
 )
