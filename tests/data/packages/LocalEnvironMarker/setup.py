@@ -13,7 +13,7 @@ def path_to_url(path):
     url = '/'.join(filepath)
     if drive:
         return 'file:///' + drive + url
-    return 'file://' +url
+    return 'file://' + url
 
 
 HERE = os.path.dirname(__file__)
