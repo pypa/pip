@@ -282,7 +282,7 @@ def get_supported(versions=None, noarch=False, platform=None,
                 # arch pattern didn't match (?!)
                 arches = [arch]
         elif platform is None and is_manylinux1_compatible():
-            arches = [arch.replace('linux', 'manylinux1'), arch]
+            arches = [arch, arch.replace('linux', 'manylinux1')]
         else:
             arches = [arch]
 
