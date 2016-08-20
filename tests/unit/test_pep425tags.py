@@ -143,9 +143,9 @@ class TestManylinux1Tags(object):
     @patch('pip.pep425tags.get_platform', lambda: 'linux_x86_64')
     @patch('pip.utils.glibc.have_compatible_glibc', lambda major, minor: True)
     @patch('sys.platform', 'linux2')
-    def test_manylinux1_tag_is_first(self):
+    def test_manylinux1_tag_is_second(self):
         """
-        Test that the more specific tag manylinux1 comes first.
+        Test that the less specific tag manylinux1 comes second.
         """
         groups = {}
         for pyimpl, abi, arch in pep425tags.get_supported():
@@ -156,6 +156,6 @@ class TestManylinux1Tags(object):
                 continue
             # Expect the most specific arch first:
             if len(arches) == 3:
-                assert arches == ['manylinux1_x86_64', 'linux_x86_64', 'any']
+                assert arches == ['linux_x86_64', 'manylinux1_x86_64', 'any']
             else:
-                assert arches == ['manylinux1_x86_64', 'linux_x86_64']
+                assert arches == ['linux_x86_64', 'manylinux1_x86_64']
