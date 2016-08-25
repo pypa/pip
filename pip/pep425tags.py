@@ -291,6 +291,15 @@ def get_supported(versions=None, noarch=False, platform=None,
             for arch in arches:
                 supported.append(('%s%s' % (impl, versions[0]), abi, arch))
 
+        # abi3 modules compatible with older version of Python
+        for version in versions[1:]:
+            # abi3 was introduced in Python 3.2
+            if version in ('31', '30'):
+                break
+            for abi in abi3s:   # empty set if not Python 3
+                for arch in arches:
+                    supported.append(("%s%s" % (impl, version), abi, arch))
+
         # Has binaries, does not use the Python API:
         for arch in arches:
             supported.append(('py%s' % (versions[0][0]), 'none', arch))
