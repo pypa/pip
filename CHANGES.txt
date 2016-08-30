@@ -1,5 +1,7 @@
 **8.2.0 (unreleased)**
 
+* Added option to allow user to abort pip operation if file/directory exists
+
 * **DEPRECATION** ``pip install --egg`` have been deprecated and will be
   removed in the future. This "feature" has a long list of drawbacks where it
   breaks almost all of pip's other features in subtle and hard to diagnose
