@@ -187,12 +187,12 @@ def exists_action():
         '--exists-action',
         dest='exists_action',
         type='choice',
-        choices=['s', 'i', 'w', 'b'],
+        choices=['s', 'i', 'w', 'b', 'a'],
         default=[],
         action='append',
         metavar='action',
         help="Default action when a path already exists: "
-        "(s)witch, (i)gnore, (w)ipe, (b)ackup.")
+        "(s)witch, (i)gnore, (w)ipe, (b)ackup, (a)bort.")
 
 
 cert = partial(
