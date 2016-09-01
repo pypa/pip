@@ -37,7 +37,7 @@ from pip.utils.glibc import libc_ver
 from pip.utils.ui import DownloadProgressBar, DownloadProgressSpinner
 from pip.locations import write_delete_marker_file
 from pip.vcs import vcs
-from pip._vendor import distro
+
 from pip._vendor import requests, six
 from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
@@ -48,6 +48,10 @@ from pip._vendor.cachecontrol import CacheControlAdapter
 from pip._vendor.cachecontrol.caches import FileCache
 from pip._vendor.lockfile import LockError
 from pip._vendor.six.moves import xmlrpc_client
+
+# Fails at import time.
+if sys.platform.startswith("linux"):
+    from pip._vendor import distro
 
 
 __all__ = ['get_file_content',
