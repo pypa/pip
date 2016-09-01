@@ -37,7 +37,11 @@ from pip.utils.glibc import libc_ver
 from pip.utils.ui import DownloadProgressBar, DownloadProgressSpinner
 from pip.locations import write_delete_marker_file
 from pip.vcs import vcs
-from pip._vendor import distro
+
+# Fails at import time.
+if sys.platform.startswith("linux"):
+    from pip._vendor import distro
+
 from pip._vendor import requests, six
 from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
