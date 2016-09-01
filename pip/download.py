@@ -37,7 +37,6 @@ from pip.utils.glibc import libc_ver
 from pip.utils.ui import DownloadProgressBar, DownloadProgressSpinner
 from pip.locations import write_delete_marker_file
 from pip.vcs import vcs
-from pip._vendor import distro
 from pip._vendor import requests, six
 from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
@@ -90,6 +89,7 @@ def user_agent():
         data["implementation"]["version"] = platform.python_version()
 
     if sys.platform.startswith("linux"):
+        from pip._vendor import distro
         distro_infos = dict(filter(
             lambda x: x[1],
             zip(["name", "version", "id"], distro.linux_distribution()),
