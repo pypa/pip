@@ -1,5 +1,7 @@
 **8.2.0 (unreleased)**
 
+* Added Appveyor CI
+
 * Uninstall existing packages when performing an editable installation of
   the same packages (:issue:`1548`).
 
