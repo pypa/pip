@@ -3,9 +3,10 @@ from __future__ import absolute_import
 import logging
 import operator
 import os
-import tempfile
 import shutil
+import tempfile
 import warnings
+
 try:
     import wheel
 except ImportError:
@@ -157,6 +158,20 @@ class InstallCommand(RequirementCommand):
             action="store_false",
             dest="compile",
             help="Do not compile py files to pyc",
+        )
+
+        cmd_opts.add_option(
+            '--save',
+            action='store_true',
+            dest='save',
+            default=False,
+            help='Add package(s) to requirements file'
+        )
+
+        cmd_opts.add_option(
+            '--save-to',
+            dest='save_to',
+            help='Path to the requirements file'
         )
 
         cmd_opts.add_option(cmdoptions.use_wheel())
@@ -403,4 +418,19 @@ class InstallCommand(RequirementCommand):
                         target_item_dir
                     )
             shutil.rmtree(temp_target_dir)
+
+        if options.save:
+            if options.save_to:
+                requirements_fpath = options.save_to
+            else:
+                requirements_fpath = 'requirements.txt'
+
+            with open(requirements_fpath, 'a') as requirements_file:
+                for requirement in requirement_set.requirements.values():
+                    if not requirement.comes_from:  # not a dependency of smth
+                        requirements_file.write(
+                            '{pkg}=={pkg_version}\n'.format(
+                                pkg=requirement.name,
+                                pkg_version=requirement.installed_version))
+
         return requirement_set

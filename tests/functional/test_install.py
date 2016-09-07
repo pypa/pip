@@ -1076,3 +1076,11 @@ def test_double_install_fail(script, data):
     msg = ("Double requirement given: pip==7.1.2 (already in pip==*, "
            "name='pip')")
     assert msg in result.stderr
+
+
+def test_save_installed_package_in_requirements(script, tmpdir):
+    requirements_fpath = tmpdir.join('requirements.txt')
+    script.pip('install', '--save',
+               '--save-to', requirements_fpath, 'pip')
+    with open(requirements_fpath, 'r') as requirements_file:
+        assert 'pip==' in requirements_file.read()
