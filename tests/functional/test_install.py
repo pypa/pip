@@ -397,7 +397,7 @@ def test_install_as_egg(script, data):
     Test installing as egg, instead of flat install.
     """
     to_install = data.packages.join("FSPkg")
-    result = script.pip('install', to_install, '--egg', expect_error=False)
+    result = script.pip('install', to_install, '--egg', expect_error=True)
     fspkg_folder = script.site_packages / 'fspkg'
     egg_folder = script.site_packages / 'FSPkg-0.1.dev0-py%s.egg' % pyversion
     assert fspkg_folder not in result.files_created, str(result.stdout)
