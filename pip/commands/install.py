@@ -179,6 +179,15 @@ class InstallCommand(RequirementCommand):
         cmdoptions.resolve_wheel_no_use_binary(options)
         cmdoptions.check_install_build_global(options)
 
+        if options.as_egg:
+            warnings.warn(
+                "--egg has been deprecated and will be removed in the future. "
+                "This flag is mutually exclusive with large parts of pip, and "
+                "actually using it invalidates pip's ability to manage the "
+                "installation process.",
+                RemovedInPip10Warning,
+            )
+
         if options.allow_external:
             warnings.warn(
                 "--allow-external has been deprecated and will be removed in "

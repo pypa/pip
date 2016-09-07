@@ -1,5 +1,10 @@
 **8.2.0 (unreleased)**
 
+* **DEPRECATION** ``pip install --egg`` have been deprecated and will be
+  removed in the future. This "feature" has a long list of drawbacks where it
+  breaks almost all of pip's other features in subtle and hard to diagnose
+  ways.
+
 * Added Appveyor CI
 
 * Uninstall existing packages when performing an editable installation of
