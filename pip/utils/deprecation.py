@@ -23,7 +23,7 @@ class RemovedInPip10Warning(PipDeprecationWarning, Pending):
     pass
 
 
-class Python26DeprecationWarning(PipDeprecationWarning, Pending):
+class Python26DeprecationWarning(PipDeprecationWarning):
     pass
 
 
