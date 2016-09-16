@@ -88,8 +88,20 @@ class InstallCommand(RequirementCommand):
             dest='upgrade',
             action='store_true',
             help='Upgrade all specified packages to the newest available '
-                 'version. This process is recursive regardless of whether '
-                 'a dependency is already satisfied.'
+                 'version. The handling of dependencies depends on the '
+                 'upgrade-strategy used.'
+        )
+
+        cmd_opts.add_option(
+            '--upgrade-strategy',
+            dest='upgrade_strategy',
+            default='non-eager',
+            help='Determines how dependency upgrading should be handled. '
+                 '"eager" - dependencies are upgraded regardless of '
+                 'whether the currently installed version satisfies the '
+                 'requirements of the upgraded package(s). '
+                 '"non-eager" -  are upgraded only when they do not satisfy '
+                 'the requirements of the upgraded package(s).'
         )
 
         cmd_opts.add_option(
@@ -224,6 +236,14 @@ class InstallCommand(RequirementCommand):
         if options.build_dir:
             options.build_dir = os.path.abspath(options.build_dir)
 
+        allowed_strategies = ["eager", "non-eager"]
+        if options.upgrade_strategy not in allowed_strategies:
+            raise CommandError(
+                "pip does not know upgrade strategy provided: '%s'" % (
+                    options.upgrade_strategy,
+                )
+            )
+
         options.src_dir = os.path.abspath(options.src_dir)
         install_options = options.install_options or []
         if options.use_user_site:
@@ -278,6 +298,7 @@ class InstallCommand(RequirementCommand):
                     src_dir=options.src_dir,
                     download_dir=options.download_dir,
                     upgrade=options.upgrade,
+                    upgrade_strategy=options.upgrade_strategy,
                     as_egg=options.as_egg,
                     ignore_installed=options.ignore_installed,
                     ignore_dependencies=options.ignore_dependencies,

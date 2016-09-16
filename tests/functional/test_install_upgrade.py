@@ -23,6 +23,112 @@ def test_no_upgrade_unless_requested(script):
     )
 
 
+def test_invalid_upgrade_strategy_causes_error(script):
+    """
+    It errors out when the upgrade-strategy is an invalid/unrecognised one
+
+    """
+    result = script.pip_install_local(
+        '--upgrade', '--upgrade-strategy=bazinga', 'simple',
+        expect_error=True
+    )
+
+    assert result.returncode
+    assert "upgrade strategy provided: 'bazinga'" in result.stderr
+
+
+def test_non_eager_does_not_upgrade_dependecies_if_existing_version_satisfies(script):
+    """
+    It doesn't upgrade a dependency if it already satisfies the requirements.
+
+    """
+    script.pip_install_local('simple==2.0', expect_error=True)
+    result = script.pip_install_local(
+        '--upgrade', '--upgrade-strategy=non-eager', 'require_simple',
+        expect_error=True
+    )
+
+    assert (
+        (script.site_packages / 'require_simple-1.0-py%s.egg-info' % pyversion)
+        not in result.files_deleted
+    ), "should have installed require_simple==1.0"
+    assert (
+        (script.site_packages / 'simple-2.0-py%s.egg-info' % pyversion)
+        not in result.files_deleted
+    ), "should not have uninstalled simple==2.0"
+
+
+def test_non_eager_upgrade_dependecies_if_existing_version_does_not_satisfy(script):
+    """
+    It does upgrade a dependency if it already satisfies the requirements.
+
+    """
+    script.pip_install_local('simple==1.0', expect_error=True)
+    result = script.pip_install_local(
+        '--upgrade', '--upgrade-strategy=non-eager', 'require_simple',
+        expect_error=True
+    )
+
+    assert (
+        (script.site_packages / 'require_simple-1.0-py%s.egg-info' % pyversion)
+        not in result.files_deleted
+    ), "should have installed require_simple==1.0"
+    assert (
+        script.site_packages / 'simple-3.0-py%s.egg-info' %
+        pyversion in result.files_created
+    ), "should have installed simple==3.0"
+    assert (
+        script.site_packages / 'simple-1.0-py%s.egg-info' %
+        pyversion in result.files_deleted
+    ), "should have uninstalled simple==1.0"
+
+
+def test_eager_does_upgrade_dependecies_if_existing_version_satisfies(script):
+    """
+    It doesn't upgrade a dependency if it already satisfies the requirements.
+
+    """
+    script.pip_install_local('simple==2.0', expect_error=True)
+    result = script.pip_install_local(
+        '--upgrade', '--upgrade-strategy=eager', 'require_simple',
+        expect_error=True
+    )
+
+    assert (
+        (script.site_packages / 'require_simple-1.0-py%s.egg-info' % pyversion)
+        not in result.files_deleted
+    ), "should have installed require_simple==1.0"
+    assert (
+        (script.site_packages / 'simple-2.0-py%s.egg-info' % pyversion)
+        in result.files_deleted
+    ), "should have uninstalled simple==2.0"
+
+
+def test_eager_upgrade_dependecies_if_existing_version_does_not_satisfy(script):
+    """
+    It does upgrade a dependency if it already satisfies the requirements.
+
+    """
+    script.pip_install_local('simple==1.0', expect_error=True)
+    result = script.pip_install_local(
+        '--upgrade', '--upgrade-strategy=eager', 'require_simple',
+        expect_error=True
+    )
+
+    assert (
+        (script.site_packages / 'require_simple-1.0-py%s.egg-info' % pyversion)
+        not in result.files_deleted
+    ), "should have installed require_simple==1.0"
+    assert (
+        script.site_packages / 'simple-3.0-py%s.egg-info' %
+        pyversion in result.files_created
+    ), "should have installed simple==3.0"
+    assert (
+        script.site_packages / 'simple-1.0-py%s.egg-info' %
+        pyversion in result.files_deleted
+    ), "should have uninstalled simple==1.0"
+
+
 @pytest.mark.network
 def test_upgrade_to_specific_version(script):
     """

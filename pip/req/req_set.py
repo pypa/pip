@@ -140,10 +140,10 @@ class Installed(DistAbstraction):
 class RequirementSet(object):
 
     def __init__(self, build_dir, src_dir, download_dir, upgrade=False,
-                 ignore_installed=False, as_egg=False, target_dir=None,
-                 ignore_dependencies=False, force_reinstall=False,
-                 use_user_site=False, session=None, pycompile=True,
-                 isolated=False, wheel_download_dir=None,
+                 upgrade_strategy=None, ignore_installed=False, as_egg=False,
+                 target_dir=None, ignore_dependencies=False,
+                 force_reinstall=False, use_user_site=False, session=None,
+                 pycompile=True, isolated=False, wheel_download_dir=None,
                  wheel_cache=None, require_hashes=False):
         """Create a RequirementSet.
 
@@ -170,6 +170,7 @@ class RequirementSet(object):
         # the wheelhouse output by 'pip wheel'.
         self.download_dir = download_dir
         self.upgrade = upgrade
+        self.upgrade_strategy = upgrade_strategy
         self.ignore_installed = ignore_installed
         self.force_reinstall = force_reinstall
         self.requirements = Requirements()
@@ -241,6 +242,8 @@ class RequirementSet(object):
         install_req.use_user_site = self.use_user_site
         install_req.target_dir = self.target_dir
         install_req.pycompile = self.pycompile
+        install_req.is_direct = (parent_req_name is None)
+
         if not name:
             # url or path requirement w/o an egg fragment
             self.unnamed_requirements.append(install_req)
@@ -375,6 +378,13 @@ class RequirementSet(object):
         if hash_errors:
             raise hash_errors
 
+    def _is_upgrade_allowed(self, req):
+        return self.upgrade and (
+            self.upgrade_strategy == "eager" or (
+                self.upgrade_strategy == "non-eager" and req.is_direct
+            )
+        )
+
     def _check_skip_installed(self, req_to_install, finder):
         """Check if req_to_install should be skipped.
 
@@ -396,17 +406,20 @@ class RequirementSet(object):
         # Check whether to upgrade/reinstall this req or not.
         req_to_install.check_if_exists()
         if req_to_install.satisfied_by:
-            skip_reason = 'satisfied (use --upgrade to upgrade)'
-            if self.upgrade:
-                best_installed = False
+            upgrade_allowed = self._is_upgrade_allowed(req_to_install)
+
+            # Is the best version is installed.
+            best_installed = False
+
+            if upgrade_allowed:
                 # For link based requirements we have to pull the
                 # tree down and inspect to assess the version #, so
                 # its handled way down.
                 if not (self.force_reinstall or req_to_install.link):
                     try:
-                        finder.find_requirement(req_to_install, self.upgrade)
+                        finder.find_requirement(
+                            req_to_install, upgrade_allowed)
                     except BestVersionAlreadyInstalled:
-                        skip_reason = 'up-to-date'
                         best_installed = True
                     except DistributionNotFound:
                         # No distribution found, so we squash the
@@ -423,6 +436,15 @@ class RequirementSet(object):
                         req_to_install.conflicts_with = \
                             req_to_install.satisfied_by
                     req_to_install.satisfied_by = None
+
+            # Figure out a nice message to say why we're skipping this.
+            if best_installed:
+                skip_reason = 'already up-to-date'
+            elif self.upgrade_strategy == "non-eager":
+                skip_reason = 'not upgraded as not directly required'
+            else:
+                skip_reason = 'already satisfied'
+
             return skip_reason
         else:
             return None
@@ -520,7 +542,10 @@ class RequirementSet(object):
                         % (req_to_install, req_to_install.source_dir)
                     )
                 req_to_install.populate_link(
-                    finder, self.upgrade, require_hashes)
+                    finder,
+                    self._is_upgrade_allowed(req_to_install),
+                    require_hashes
+                )
                 # We can't hit this spot and have populate_link return None.
                 # req_to_install.satisfied_by is None here (because we're
                 # guarded) and upgrade has no impact except when satisfied_by
