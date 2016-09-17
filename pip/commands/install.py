@@ -95,7 +95,7 @@ class InstallCommand(RequirementCommand):
         cmd_opts.add_option(
             '--upgrade-strategy',
             dest='upgrade_strategy',
-            default='non-eager',
+            default='eager',
             choices=['non-eager', 'eager'],
             help='Determines how dependency upgrading should be handled. '
                  '"eager" - dependencies are upgraded regardless of '
