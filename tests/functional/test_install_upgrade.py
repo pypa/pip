@@ -37,7 +37,7 @@ def test_invalid_upgrade_strategy_causes_error(script):
     assert "upgrade strategy provided: 'bazinga'" in result.stderr
 
 
-def test_non_eager_does_not_upgrade_dependecies_if_existing_version_satisfies(script):
+def test_non_eager_does_not_upgrade_dependecies_when_satisfied(script):
     """
     It doesn't upgrade a dependency if it already satisfies the requirements.
 
@@ -58,9 +58,9 @@ def test_non_eager_does_not_upgrade_dependecies_if_existing_version_satisfies(sc
     ), "should not have uninstalled simple==2.0"
 
 
-def test_non_eager_upgrade_dependecies_if_existing_version_does_not_satisfy(script):
+def test_non_eager_does_upgrade_dependecies_when_no_longer_satisfied(script):
     """
-    It does upgrade a dependency if it already satisfies the requirements.
+    It does upgrade a dependency if it no longer satisfies the requirements.
 
     """
     script.pip_install_local('simple==1.0', expect_error=True)
@@ -83,9 +83,9 @@ def test_non_eager_upgrade_dependecies_if_existing_version_does_not_satisfy(scri
     ), "should have uninstalled simple==1.0"
 
 
-def test_eager_does_upgrade_dependecies_if_existing_version_satisfies(script):
+def test_eager_does_upgrade_dependecies_when_currently_satisfied(script):
     """
-    It doesn't upgrade a dependency if it already satisfies the requirements.
+    It does upgrade a dependency even if it already satisfies the requirements.
 
     """
     script.pip_install_local('simple==2.0', expect_error=True)
@@ -104,9 +104,9 @@ def test_eager_does_upgrade_dependecies_if_existing_version_satisfies(script):
     ), "should have uninstalled simple==2.0"
 
 
-def test_eager_upgrade_dependecies_if_existing_version_does_not_satisfy(script):
+def test_eager_does_upgrade_dependecies_when_no_longer_satisfied(script):
     """
-    It does upgrade a dependency if it already satisfies the requirements.
+    It does upgrade a dependency if it no longer satisfies the requirements.
 
     """
     script.pip_install_local('simple==1.0', expect_error=True)
