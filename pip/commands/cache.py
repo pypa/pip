@@ -2,9 +2,11 @@ from __future__ import absolute_import
 
 import logging
 import os
+import textwrap
 
 from pip.basecommand import Command
 from pip.status_codes import SUCCESS, ERROR
+from pip.utils.filesystem import tree_statistics, human_size
 
 
 logger = logging.getLogger(__name__)
@@ -15,8 +17,9 @@ class CacheCommand(Command):
     Operate on pip's caches.
 
     Subcommands:
-        location: Print the location of the cache."""
-    actions = ["location"]
+        location: Print the location of the cache.
+        info: Show statistics on the cache."""
+    actions = ["location", "info"]
     name = "cache"
     usage = """
       %%prog [options] %s""" % "|".join(actions)
@@ -45,10 +48,32 @@ class CacheCommand(Command):
         method = getattr(self, "action_%s" % args[0])
         return method(options, args[1:])
 
-    def action_location(self, options, args):
-        location = options.cache_dir
+    def get_cache_location(self, cache_root, cache_type):
+        location = cache_root
         suffix = {"wheel": "wheels", "http": "http"}
-        if options.type != "all":
-            location = os.path.join(location, suffix[options.type])
-        logger.info(location)
+        if cache_type != "all":
+            location = os.path.join(location, suffix[cache_type])
+        return location
+
+    def action_location(self, options, args):
+        logger.info(self.get_cache_location(options.cache_dir, options.type))
+        return SUCCESS
+
+    def action_info(self, options, args):
+        caches = ["http", "wheel"] if options.type == "all" else [options.type]
+        result = []
+        for cache_type in caches:
+            location = self.get_cache_location(options.cache_dir, cache_type)
+            stats = tree_statistics(location)
+            name = {"wheel": "Wheel cache", "http": "HTTP cache"}
+            result.append(textwrap.dedent(
+                """\
+                %s info:
+                   Location: %s
+                   Number of files: %s
+                   Size: %s""" %
+                (name[cache_type], location, stats["files"],
+                 human_size(stats["size"]))
+            ))
+        logger.info("\n\n".join(result))
         return SUCCESS
