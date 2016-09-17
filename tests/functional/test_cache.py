@@ -3,7 +3,7 @@ import os
 from pip.utils import appdirs
 
 
-def test_cache(script, monkeypatch):
+def test_wheel_cache_location(script, monkeypatch):
     result = script.pip("cache", "location")
     lines = result.stdout.splitlines()
     assert len(lines) == 1
@@ -12,3 +12,9 @@ def test_cache(script, monkeypatch):
         monkeypatch.setenv(k, v)
     cache_dir = os.path.join(appdirs.user_cache_dir("pip"), "wheels")
     assert cache_dir in lines
+
+
+def test_cache_rejects_invalid_cache_type(script):
+    result = script.pip("cache", "--type", "wombat", "location",
+                        expect_error=True)
+    assert "invalid choice" in result.stderr
