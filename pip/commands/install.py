@@ -96,6 +96,7 @@ class InstallCommand(RequirementCommand):
             '--upgrade-strategy',
             dest='upgrade_strategy',
             default='non-eager',
+            choices=['non-eager', 'eager'],
             help='Determines how dependency upgrading should be handled. '
                  '"eager" - dependencies are upgraded regardless of '
                  'whether the currently installed version satisfies the '
@@ -235,14 +236,6 @@ class InstallCommand(RequirementCommand):
 
         if options.build_dir:
             options.build_dir = os.path.abspath(options.build_dir)
-
-        allowed_strategies = ["eager", "non-eager"]
-        if options.upgrade_strategy not in allowed_strategies:
-            raise CommandError(
-                "pip does not know upgrade strategy provided: '%s'" % (
-                    options.upgrade_strategy,
-                )
-            )
 
         options.src_dir = os.path.abspath(options.src_dir)
         install_options = options.install_options or []
