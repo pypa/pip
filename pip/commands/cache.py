@@ -28,7 +28,7 @@ class CacheCommand(Command):
                 "ERROR: Please provide one of these subcommands: %s" %
                 ", ".join(self.actions))
             return ERROR
-        method = self.__getattribute__("action_%s" % args[0])
+        method = getattr(self, "action_%s" % args[0])
         return method(options, args[1:])
 
     def action_location(self, options, args):
