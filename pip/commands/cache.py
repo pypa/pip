@@ -12,15 +12,29 @@ logger = logging.getLogger(__name__)
 
 class CacheCommand(Command):
     """\
-    Show information about pip's wheel cache.
+    Operate on pip's caches.
 
     Subcommands:
-        location: Print the location of the wheel cache."""
+        location: Print the location of the cache."""
     actions = ["location"]
     name = "cache"
     usage = """
       %%prog [options] %s""" % "|".join(actions)
-    summary = "Show information about pip's wheel cache."
+    summary = "Operate on pip's caches."
+
+    def __init__(self, *args, **kw):
+        super(CacheCommand, self).__init__(*args, **kw)
+
+        cache_types = ["all", "http", "wheel"]
+
+        self.cmd_opts.add_option(
+            "--type", "-t",
+            choices=cache_types,
+            default="wheel",
+            help="The cache upon which to operate: %s (default: %%default)" %
+                 ", ".join(cache_types)
+        )
+        self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
         if not args or args[0] not in self.actions:
@@ -32,5 +46,9 @@ class CacheCommand(Command):
         return method(options, args[1:])
 
     def action_location(self, options, args):
-        logger.info(os.path.join(options.cache_dir, "wheels"))
+        location = options.cache_dir
+        suffix = {"wheel": "wheels", "http": "http"}
+        if options.type != "all":
+            location = os.path.join(location, suffix[options.type])
+        logger.info(location)
         return SUCCESS
