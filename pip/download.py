@@ -41,6 +41,7 @@ from pip._vendor import requests, six
 from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
+from pip._vendor.requests.utils import get_netrc_auth
 from pip._vendor.requests.structures import CaseInsensitiveDict
 from pip._vendor.requests.packages import urllib3
 from pip._vendor.cachecontrol import CacheControlAdapter
@@ -147,6 +148,11 @@ class MultiDomainBasicAuth(AuthBase):
         if username is None:
             username, password = self.parse_credentials(parsed.netloc)
 
+        # Get creds from netrc if we still don't have them
+        if username is None and password is None:
+            netrc_auth = get_netrc_auth(req.url)
+            username, password = netrc_auth if netrc_auth else (None, None)
+
         if username or password:
             # Store the username and password
             self.passwords[netloc] = (username, password)
@@ -200,14 +206,6 @@ class MultiDomainBasicAuth(AuthBase):
                 return userinfo.split(":", 1)
             return userinfo, None
         return None, None
-
-    def __nonzero__(self):
-        # needed in order to evaluate authentication object to False when we
-        # have no credentials, prevents failure to load .netrc files
-        return bool(self.passwords)
-
-    def __bool__(self):
-        return self.__nonzero__()
 
 
 class LocalFSAdapter(BaseAdapter):
