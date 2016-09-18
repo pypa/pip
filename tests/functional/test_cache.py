@@ -1,5 +1,7 @@
 import os
 
+import pytest
+
 from pip.utils import appdirs
 
 
@@ -18,3 +20,9 @@ def test_cache_rejects_invalid_cache_type(script):
     result = script.pip("cache", "--type", "wombat", "location",
                         expect_error=True)
     assert "invalid choice" in result.stderr
+
+
+@pytest.mark.parametrize("cache_type", ["all", "wheel", "http"])
+def test_cache_info(script, cache_type):
+    result = script.pip("cache", "-t", cache_type, "info")
+    assert "Size:" in result.stdout
