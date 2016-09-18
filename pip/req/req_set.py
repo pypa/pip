@@ -485,7 +485,7 @@ class RequirementSet(object):
                     'req_to_install.satisfied_by is set to %r'
                     % (req_to_install.satisfied_by,))
                 logger.info(
-                    'Requirement already %s: %s', skip_reason,
+                    'Requirement %s: %s', skip_reason,
                     req_to_install)
             else:
                 if (req_to_install.link and
