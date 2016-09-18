@@ -150,7 +150,7 @@ class MultiDomainBasicAuth(AuthBase):
 
         # Get creds from netrc if we still don't have them
         if username is None and password is None:
-            netrc_auth= get_netrc_auth(req.url)
+            netrc_auth = get_netrc_auth(req.url)
             username, password = netrc_auth if netrc_auth else (None, None)
 
         if username or password:
