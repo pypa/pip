@@ -96,13 +96,13 @@ class InstallCommand(RequirementCommand):
             '--upgrade-strategy',
             dest='upgrade_strategy',
             default='eager',
-            choices=['non-eager', 'eager'],
+            choices=['only-if-needed', 'eager'],
             help='Determines how dependency upgrading should be handled. '
                  '"eager" - dependencies are upgraded regardless of '
                  'whether the currently installed version satisfies the '
                  'requirements of the upgraded package(s). '
-                 '"non-eager" -  are upgraded only when they do not satisfy '
-                 'the requirements of the upgraded package(s).'
+                 '"only-if-needed" -  are upgraded only when they do not '
+                 'satisfy the requirements of the upgraded package(s).'
         )
 
         cmd_opts.add_option(

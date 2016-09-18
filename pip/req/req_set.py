@@ -381,7 +381,7 @@ class RequirementSet(object):
     def _is_upgrade_allowed(self, req):
         return self.upgrade and (
             self.upgrade_strategy == "eager" or (
-                self.upgrade_strategy == "non-eager" and req.is_direct
+                self.upgrade_strategy == "only-if-needed" and req.is_direct
             )
         )
 
@@ -440,7 +440,7 @@ class RequirementSet(object):
             # Figure out a nice message to say why we're skipping this.
             if best_installed:
                 skip_reason = 'already up-to-date'
-            elif self.upgrade_strategy == "non-eager":
+            elif self.upgrade_strategy == "only-if-needed":
                 skip_reason = 'not upgraded as not directly required'
             else:
                 skip_reason = 'already satisfied'

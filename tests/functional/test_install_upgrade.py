@@ -37,14 +37,14 @@ def test_invalid_upgrade_strategy_causes_error(script):
     assert "invalid choice" in result.stderr
 
 
-def test_non_eager_does_not_upgrade_dependecies_when_satisfied(script):
+def test_only_if_needed_does_not_upgrade_deps_when_satisfied(script):
     """
     It doesn't upgrade a dependency if it already satisfies the requirements.
 
     """
     script.pip_install_local('simple==2.0', expect_error=True)
     result = script.pip_install_local(
-        '--upgrade', '--upgrade-strategy=non-eager', 'require_simple',
+        '--upgrade', '--upgrade-strategy=only-if-needed', 'require_simple',
         expect_error=True
     )
 
@@ -58,14 +58,14 @@ def test_non_eager_does_not_upgrade_dependecies_when_satisfied(script):
     ), "should not have uninstalled simple==2.0"
 
 
-def test_non_eager_does_upgrade_dependecies_when_no_longer_satisfied(script):
+def test_only_if_needed_does_upgrade_deps_when_no_longer_satisfied(script):
     """
     It does upgrade a dependency if it no longer satisfies the requirements.
 
     """
     script.pip_install_local('simple==1.0', expect_error=True)
     result = script.pip_install_local(
-        '--upgrade', '--upgrade-strategy=non-eager', 'require_simple',
+        '--upgrade', '--upgrade-strategy=only-if-needed', 'require_simple',
         expect_error=True
     )
 
