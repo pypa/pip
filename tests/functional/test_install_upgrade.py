@@ -34,7 +34,7 @@ def test_invalid_upgrade_strategy_causes_error(script):
     )
 
     assert result.returncode
-    assert "upgrade strategy provided: 'bazinga'" in result.stderr
+    assert "invalid choice" in result.stderr
 
 
 def test_non_eager_does_not_upgrade_dependecies_when_satisfied(script):
