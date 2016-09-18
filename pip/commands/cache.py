@@ -6,7 +6,8 @@ import textwrap
 
 from pip.basecommand import Command
 from pip.status_codes import SUCCESS, ERROR
-from pip.utils.filesystem import tree_statistics, human_size
+from pip.utils import format_size
+from pip.utils.filesystem import tree_statistics
 
 
 logger = logging.getLogger(__name__)
@@ -73,7 +74,7 @@ class CacheCommand(Command):
                    Number of files: %s
                    Size: %s""" %
                 (name[cache_type], location, stats["files"],
-                 human_size(stats["size"]))
+                 format_size(stats["size"]))
             ))
         logger.info("\n\n".join(result))
         return SUCCESS

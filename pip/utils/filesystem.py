@@ -40,17 +40,3 @@ def tree_statistics(path):
         abs_paths = (os.path.join(root, f) for f in files)
         result["size"] += sum(os.path.getsize(f) for f in abs_paths)
     return result
-
-
-def human_size(n_bytes):
-    units = ["B", "KiB", "MiB", "GiB", "TiB"]
-    size = n_bytes
-    for unit in units:
-        if size <= 1024:
-            if unit == "B":
-                result = "%d %s" % (size, unit)
-            else:
-                result = "%.1f %s" % (size, unit)
-            return result
-        size /= 1024.
-    return "%.1f %s" % (size, "PiB")
