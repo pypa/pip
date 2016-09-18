@@ -472,32 +472,29 @@ $ pip install --no-index --find-links=DIR -r requirements.txt
 "Only if needed" Recursive Upgrade
 **********************************
 
-``pip install --upgrade`` is currently written to perform an eager recursive
-upgrade, i.e. it upgrades all dependencies regardless of whether they still
-satisfy the new parent requirements.
+``pip install``, now, defaults to performs a "only if needed" recursive
+upgrade, i.e. it upgrades dependencies only when they no longer satisfy the
+new parent requirements. This was not always the case.
 
-E.g. supposing:
+Before pip 9.0, the upgrade behaviour defaulted to a different "eager"
+upgrade, i.e. it used to upgrade all dependencies regardless of whether they
+already satisfied the new parent requirements. This behaviour was seen as
+problematic and was replaced with the current behaviour in pip 9.0. This
+section contained instructions on how to work around the problematic
+behaviour. The recommended fix for that behaviour, now, is to upgrade to
+pip 9.0 or greater.
 
-* `SomePackage-1.0` requires `AnotherPackage>=1.0`
-* `SomePackage-2.0` requires `AnotherPackage>=1.0` and `OneMorePackage==1.0`
-* `SomePackage-1.0` and `AnotherPackage-1.0` are currently installed
-* `SomePackage-2.0` and `AnotherPackage-2.0` are the latest versions available on PyPI.
+See :issue:`59` and :issue:`3786` for the discussion on this change in
+behaviour.
 
-Running ``pip install --upgrade SomePackage`` would upgrade `SomePackage` *and*
-`AnotherPackage` despite `AnotherPackage` already being satisfied.
 
-pip doesn't currently have an option to do an "only if needed" recursive
-upgrade, but you can achieve it using these 2 steps::
+As an historic note, the fix for the behaviour was::
 
-  pip install --upgrade --no-deps SomePackage
-  pip install SomePackage
+    pip install --upgrade --no-deps SomePackage
+    pip install SomePackage
 
-The first line will upgrade `SomePackage`, but not dependencies like
-`AnotherPackage`.  The 2nd line will fill in new dependencies like
-`OneMorePackage`.
-
-See :issue:`59` for a plan of making "only if needed" recursive the default
-behavior for a new ``pip upgrade`` command.
+A proposal for an ``upgrade-all`` command is being considered as a safer
+alternative to the earlier behaviour of eager upgrading.
 
 
 User Installs
@@ -565,20 +562,12 @@ From within a real python, where ``SomePackage`` *is* installed globally, but is
 
   $ pip install --user SomePackage
   [...]
-  Requirement already satisfied (use --upgrade to upgrade)
-
-  $ pip install --user --upgrade SomePackage
-  [...]
   Successfully installed SomePackage
 
 
 From within a real python, where ``SomePackage`` *is* installed globally, and is the latest version::
 
   $ pip install --user SomePackage
-  [...]
-  Requirement already satisfied (use --upgrade to upgrade)
-
-  $ pip install --user --upgrade SomePackage
   [...]
   Requirement already up-to-date: SomePackage
 
@@ -657,7 +646,7 @@ You can then install from the archive like this::
 
     $ tempdir=$(mktemp -d /tmp/wheelhouse-XXXXX)
     $ (cd $tempdir; tar -xvf /path/to/bundled.tar.bz2)
-    $ pip install --force-reinstall --ignore-installed --upgrade --no-index --no-deps $tempdir/*
+    $ pip install --force-reinstall --ignore-installed --no-index --no-deps $tempdir/*
 
 Note that compiled packages are typically OS- and architecture-specific, so
 these archives are not necessarily portable across machines.

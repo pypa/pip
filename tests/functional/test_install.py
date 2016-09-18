@@ -577,32 +577,16 @@ def test_install_package_with_target(script):
         str(result)
     )
 
-    # Test repeated call without --upgrade, no files should have changed
+    # Test repeated call, no files should have changed
     result = script.pip_install_local(
         '-t', target_dir, "simple==1.0", expect_stderr=True,
     )
     assert not Path('scratch') / 'target' / 'simple' in result.files_updated
 
-    # Test upgrade call, check that new version is installed
-    result = script.pip_install_local('--upgrade', '-t',
-                                      target_dir, "simple==2.0")
-    assert Path('scratch') / 'target' / 'simple' in result.files_updated, (
-        str(result)
-    )
-    egg_folder = (
-        Path('scratch') / 'target' / 'simple-2.0-py%s.egg-info' % pyversion)
-    assert egg_folder in result.files_created, (
-        str(result)
-    )
-
-    # Test install and upgrade of single-module package
+    # Test install of single-module package
     result = script.pip_install_local('-t', target_dir, 'singlemodule==0.0.0')
     singlemodule_py = Path('scratch') / 'target' / 'singlemodule.py'
     assert singlemodule_py in result.files_created, str(result)
-
-    result = script.pip_install_local('-t', target_dir, 'singlemodule==0.0.1',
-                                      '--upgrade')
-    assert singlemodule_py in result.files_updated, str(result)
 
 
 def test_install_package_with_root(script, data):
@@ -865,7 +849,7 @@ def test_install_upgrade_editable_depending_on_other_editable(script):
               version='0.1',
               install_requires=['pkga'])
     """))
-    script.pip('install', '--upgrade', '--editable', pkgb_path, '--no-index')
+    script.pip('install', '--editable', pkgb_path, '--no-index')
     result = script.pip('list', '--format=freeze')
     assert "pkgb==0.1" in result.stdout
 
@@ -1076,3 +1060,89 @@ def test_double_install_fail(script, data):
     msg = ("Double requirement given: pip==7.1.2 (already in pip==*, "
            "name='pip')")
     assert msg in result.stderr
+
+
+@pytest.mark.network
+def test_install_when_older_version_explicitly_passed_as_url(script):
+    """
+    When a file URL is passed, forcefully reinstall the package regardless
+    of whether it has a newer version already installed.
+
+    """
+    result = script.pip('install', 'INITools==0.3', expect_error=True)
+    assert script.site_packages / 'initools' in result.files_created, (
+        sorted(result.files_created.keys())
+    )
+    result2 = script.pip(
+        'install',
+        'https://pypi.python.org/packages/source/I/INITools/INITools-'
+        '0.2.tar.gz',
+        expect_error=True,
+    )
+    assert result2.files_updated, (
+        'INITools==0.2 was not installed over INITools==0.3 when explicitly '
+        'passed with a URL'
+    )
+
+
+def test_install_when_older_version_explicitly_passed_as_path(script, data):
+    """
+    When a file path is passed, forcefully reinstall the package regardless
+    of whether it has a newer version already installed.
+
+    """
+    result = script.pip_install_local('simple==3.0', expect_error=True)
+    assert script.site_packages / 'simple' in result.files_created, (
+        sorted(result.files_created.keys())
+    )
+    result2 = script.pip_install_local(
+        data.packages.join("simple-2.0.tar.gz"),
+        expect_error=True,
+    )
+    assert result2.files_updated, (
+        'simple==0.2 was not installed over simple==0.3 when explicitly '
+        'passed with a path'
+    )
+
+
+@pytest.mark.network
+def test_install_when_same_version_explicitly_passed_as_url(script):
+    """
+    When a file URL is passed, forcefully reinstall the package regardless
+    of whether it has a newer version already installed.
+
+    """
+    result = script.pip('install', 'INITools==0.3', expect_error=True)
+    assert script.site_packages / 'initools' in result.files_created, (
+        sorted(result.files_created.keys())
+    )
+    result2 = script.pip(
+        'install',
+        'https://pypi.python.org/packages/source/I/INITools/INITools-'
+        '0.3.tar.gz',
+        expect_error=True,
+    )
+    assert result2.files_updated, (
+        'INITools==0.3 was not installed over INITools==0.3 when explicitly '
+        'passed with a URL'
+    )
+
+
+def test_install_when_same_version_explicitly_passed_as_path(script, data):
+    """
+    When a file path is passed, forcefully reinstall the package regardless
+    of whether it has a newer version already installed.
+
+    """
+    result = script.pip_install_local('simple==3.0', expect_error=True)
+    assert script.site_packages / 'simple' in result.files_created, (
+        sorted(result.files_created.keys())
+    )
+    result2 = script.pip_install_local(
+        data.packages.join("simple-3.0.tar.gz"),
+        expect_error=True,
+    )
+    assert result2.files_updated, (
+        'simple==0.3 was not installed over simple==0.3 when explicitly '
+        'passed with a path'
+    )

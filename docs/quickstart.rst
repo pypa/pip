@@ -11,7 +11,7 @@ Install a package from `PyPI`_:
     [...]
     Successfully installed SomePackage
 
-Install a package already downloaded from `PyPI`_ or got elsewhere.
+Install a package already downloaded from `PyPI`_ or obtained via other means.
 This is useful if the target machine does not have a network connection:
 
 ::
@@ -39,11 +39,11 @@ List what packages are outdated:
   $ pip list --outdated
     SomePackage (Current: 1.0 Latest: 2.0)
 
-Upgrade a package:
+To upgrade an existing package, simply run the install command again:
 
 ::
 
-  $ pip install --upgrade SomePackage
+  $ pip install SomePackage
     [...]
     Found existing installation: SomePackage 1.0
     Uninstalling SomePackage:

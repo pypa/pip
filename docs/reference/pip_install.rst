@@ -758,13 +758,6 @@ Examples
       $ pip install -r requirements.txt
 
 
-#. Upgrade an already installed `SomePackage` to the latest from PyPI.
-
-    ::
-
-      $ pip install --upgrade SomePackage
-
-
 #. Install a local project in "editable" mode. See the section on :ref:`Editable Installs <editable-installs>`.
 
     ::

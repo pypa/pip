@@ -67,9 +67,7 @@ class InstallCommand(RequirementCommand):
             metavar='dir',
             default=None,
             help='Install packages into <dir>. '
-                 'By default this will not replace existing files/folders in '
-                 '<dir>. Use --upgrade to replace existing packages in <dir> '
-                 'with new versions.'
+                 'This will not replace existing files/folders in <dir>.'
         )
 
         cmd_opts.add_option(
@@ -87,17 +85,14 @@ class InstallCommand(RequirementCommand):
             '-U', '--upgrade',
             dest='upgrade',
             action='store_true',
-            help='Upgrade all specified packages to the newest available '
-                 'version. This process is recursive regardless of whether '
-                 'a dependency is already satisfied.'
+            help='No-op option. Kept for backwards compatibility.'
         )
 
         cmd_opts.add_option(
             '--force-reinstall',
             dest='force_reinstall',
             action='store_true',
-            help='When upgrading, reinstall all packages even if they are '
-                 'already up-to-date.')
+            help='Reinstall all packages even if they are already up-to-date.')
 
         cmd_opts.add_option(
             '-I', '--ignore-installed',
@@ -277,7 +272,6 @@ class InstallCommand(RequirementCommand):
                     build_dir=build_dir,
                     src_dir=options.src_dir,
                     download_dir=options.download_dir,
-                    upgrade=options.upgrade,
                     as_egg=options.as_egg,
                     ignore_installed=options.ignore_installed,
                     ignore_dependencies=options.ignore_dependencies,
@@ -377,26 +371,12 @@ class InstallCommand(RequirementCommand):
                 for item in os.listdir(lib_dir):
                     target_item_dir = os.path.join(options.target_dir, item)
                     if os.path.exists(target_item_dir):
-                        if not options.upgrade:
-                            logger.warning(
-                                'Target directory %s already exists. Specify '
-                                '--upgrade to force replacement.',
-                                target_item_dir
-                            )
-                            continue
-                        if os.path.islink(target_item_dir):
-                            logger.warning(
-                                'Target directory %s already exists and is '
-                                'a link. Pip will not automatically replace '
-                                'links, please remove if replacement is '
-                                'desired.',
-                                target_item_dir
-                            )
-                            continue
-                        if os.path.isdir(target_item_dir):
-                            shutil.rmtree(target_item_dir)
-                        else:
-                            os.remove(target_item_dir)
+                        logger.warning(
+                            'Skipping target directory %s as it already '
+                            'exists.',
+                            target_item_dir
+                        )
+                        continue
 
                     shutil.move(
                         os.path.join(lib_dir, item),
