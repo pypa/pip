@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import sys
-
 from pip.basecommand import Command, SUCCESS
 
 from pip._vendor import rwt
