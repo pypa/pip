@@ -67,7 +67,7 @@ class CacheCommand(Command):
                 """\
                 %s info:
                    Location: %s
-                   Number of files: %s
+                   Files: %s
                    Size: %s""" %
                 (name[cache_type], location, stats["files"],
                  format_size(stats["size"]))
