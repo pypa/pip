@@ -20,7 +20,7 @@ class CacheCommand(Command):
     Subcommands:
         location: Print the location of the cache.
         info: Show statistics on the cache."""
-    actions = ["location", "info"]
+    actions = ["info"]
     name = "cache"
     usage = """
       %%prog [options] %s""" % "|".join(actions)
@@ -55,10 +55,6 @@ class CacheCommand(Command):
         if cache_type != "all":
             location = os.path.join(location, suffix[cache_type])
         return location
-
-    def action_location(self, options, args):
-        logger.info(self.get_cache_location(options.cache_dir, options.type))
-        return SUCCESS
 
     def action_info(self, options, args):
         caches = ["http", "wheel"] if options.type == "all" else [options.type]
