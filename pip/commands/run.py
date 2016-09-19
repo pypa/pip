@@ -17,7 +17,6 @@ class RunCommand(Command):
         if ['--help'] == args:
             return super(RunCommand, self).main(args)
 
-        sys.argv[1:] = args
-        rwt.run()
+        rwt.run(args)
 
         return SUCCESS
