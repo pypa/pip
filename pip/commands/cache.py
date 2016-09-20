@@ -18,7 +18,6 @@ class CacheCommand(Command):
     Operate on pip's caches.
 
     Subcommands:
-        location: Print the location of the cache.
         info: Show statistics on the cache."""
     actions = ["info"]
     name = "cache"
