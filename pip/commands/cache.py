@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
+import fnmatch
 import logging
 import os
-from os.path import realpath
 import textwrap
 
 from pip.basecommand import Command
@@ -97,23 +97,15 @@ class CacheCommand(Command):
             raise CommandError(
                 "Must specify the filename of (a) wheel(s) to remove.")
         cache_location = self.get_cache_location(options.cache_dir, "wheel")
-        cache_realpath = realpath(cache_location)
         value = SUCCESS
         for target in args:
             matches = find_files(cache_location, target)
+            matches = fnmatch.filter(matches, "*.whl")
             if not matches:
                 logger.warning("No match found for %s" % target)
                 value = ERROR
                 continue
             for match in matches:
-                # protect against symlink attacks
-                if (os.path.commonprefix([cache_realpath, realpath(match)]) !=
-                        cache_realpath):
-                    logger.warning(
-                        "Did not remove %s because it is not a child of the "
-                        "wheel cache." % realpath(match))
-                    value = ERROR
-                    continue
                 try:
                     os.unlink(match)
                 except OSError as e:

@@ -53,9 +53,9 @@ def test_cache_rm(script, monkeypatch):
     cache_base = appdirs.user_cache_dir("pip")
     wheel_cache_dir = os.path.join(cache_base, "wheels")
     os.makedirs(wheel_cache_dir)
-    with open(os.path.join(wheel_cache_dir, "zzz"), "w"):
+    with open(os.path.join(wheel_cache_dir, "zzz.whl"), "w"):
         pass
 
     script.pip("cache", "rm", expect_error=True)
-    result = script.pip("cache", "rm", "zzz")
-    assert re.match("^Removed.*zzz$", result.stdout)
+    result = script.pip("cache", "rm", "zzz.whl")
+    assert re.match(r"^Removed.*zzz\.whl$", result.stdout)
