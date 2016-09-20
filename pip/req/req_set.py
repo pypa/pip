@@ -1,14 +1,12 @@
 from __future__ import absolute_import
 
-from collections import defaultdict
-from itertools import chain
 import logging
 import os
+from collections import defaultdict
 
 from pip._vendor import pkg_resources
 from pip._vendor import requests
 from pip._vendor.concurrent.futures.thread import ThreadPoolExecutor
-
 from pip.compat import expanduser
 from pip.download import (is_file_url, is_dir_url, is_vcs_url, url_to_path,
                           unpack_url)
@@ -190,7 +188,6 @@ class RequirementSet(object):
         self.require_hashes = require_hashes
         # Maps from install_req -> dependencies_of_install_req
         self._dependencies = defaultdict(list)
-        self._thread_pool = ThreadPoolExecutor(8)
 
     def __str__(self):
         reqs = [req for req in self.requirements.values()
@@ -361,6 +358,8 @@ class RequirementSet(object):
         # based on link type.
         hash_errors = HashErrors()
 
+        self._thread_pool = ThreadPoolExecutor(8)
+
         discovered_reqs = self._prepare_requirements_in_parallel(root_reqs, finder, require_hashes)
 
         def resolve_futures(requirements):
@@ -377,6 +376,8 @@ class RequirementSet(object):
             discovered_reqs = resolve_futures(discovered_reqs)
             if discovered_reqs:
                 discovered_reqs = self._prepare_requirements_in_parallel(discovered_reqs, finder, require_hashes)
+
+        self._thread_pool.shutdown()
 
         if hash_errors:
             raise hash_errors
