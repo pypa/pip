@@ -81,15 +81,15 @@ class InterruptibleMixin(object):
         """
         super(InterruptibleMixin, self).__init__(*args, **kwargs)
 
-        self.original_handler = signal(SIGINT, self.handle_sigint)
+        #self.original_handler = signal(SIGINT, self.handle_sigint)
 
         # If signal() returns None, the previous handler was not installed from
         # Python, and we cannot restore it. This probably should not happen,
         # but if it does, we must restore something sensible instead, at least.
         # The least bad option should be Python's default SIGINT handler, which
         # just raises KeyboardInterrupt.
-        if self.original_handler is None:
-            self.original_handler = default_int_handler
+        #if self.original_handler is None:
+        self.original_handler = default_int_handler
 
     def finish(self):
         """
@@ -99,7 +99,7 @@ class InterruptibleMixin(object):
         normally, or gets interrupted.
         """
         super(InterruptibleMixin, self).finish()
-        signal(SIGINT, self.original_handler)
+        #signal(SIGINT, self.original_handler)
 
     def handle_sigint(self, signum, frame):
         """

@@ -5,7 +5,7 @@
 
 __author__ = 'Brian Quinlan (brian@sweetapp.com)'
 
-from concurrent.futures._base import (FIRST_COMPLETED,
+from ._base import (FIRST_COMPLETED,
                                       FIRST_EXCEPTION,
                                       ALL_COMPLETED,
                                       CancelledError,
@@ -14,10 +14,10 @@ from concurrent.futures._base import (FIRST_COMPLETED,
                                       Executor,
                                       wait,
                                       as_completed)
-from concurrent.futures.thread import ThreadPoolExecutor
+from .thread import ThreadPoolExecutor
 
 try:
-    from concurrent.futures.process import ProcessPoolExecutor
+    from .process import ProcessPoolExecutor
 except ImportError:
     # some platforms don't have multiprocessing
     pass
