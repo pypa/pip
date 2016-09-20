@@ -46,10 +46,10 @@ class CacheCommand(Command):
 
     def run(self, options, args):
         if not args or args[0] not in self.actions:
-            logger.warning(
-                "ERROR: Please provide one of these subcommands: %s" %
-                ", ".join(self.actions))
-            return ERROR
+            raise CommandError(
+                "Please provide one of these subcommands: %s" %
+                ", ".join(self.actions)
+            )
         method = getattr(self, "action_%s" % args[0])
         return method(options, args[1:])
 
@@ -81,9 +81,8 @@ class CacheCommand(Command):
 
     def action_list(self, options, args):
         if options.type != "wheel":
-            logger.warning(
-                "ERROR: pip cache list only operates on the wheel cache.")
-            return ERROR
+            raise CommandError(
+                "pip cache list only operates on the wheel cache.")
         cache_location = self.get_cache_location(options.cache_dir, "wheel")
         wheels = [os.path.basename(f) for f in
                   find_files(cache_location, "*.whl")]
