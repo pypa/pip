@@ -22,7 +22,7 @@ class CacheCommand(Command):
 
     Subcommands:
         info: Show information about the caches.
-        list (wheel cache only): List wheels stored in the cache.
+        list (wheel cache only): List filenames of wheels stored in the cache.
         rm <filename> (wheel cache only): Remove one or more wheels from the cache.
         purge: Remove all items from the cache.
     """  # noqa
