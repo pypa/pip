@@ -7,7 +7,7 @@ import textwrap
 from pip.basecommand import Command
 from pip.status_codes import SUCCESS, ERROR
 from pip.utils import format_size
-from pip.utils.filesystem import tree_statistics
+from pip.utils.filesystem import tree_statistics, find_files
 
 
 logger = logging.getLogger(__name__)
@@ -18,8 +18,9 @@ class CacheCommand(Command):
     Operate on pip's caches.
 
     Subcommands:
-        info: Show statistics on the cache."""
-    actions = ["info"]
+        info: Show information about the caches.
+        list (wheel cache only): List wheels stored in the cache."""
+    actions = ["info", "list"]
     name = "cache"
     usage = """
       %%prog [options] %s""" % "|".join(actions)
@@ -73,3 +74,14 @@ class CacheCommand(Command):
             ))
         logger.info("\n\n".join(result))
         return SUCCESS
+
+    def action_list(self, options, args):
+        if options.type != "wheel":
+            logger.warning(
+                "ERROR: pip cache list only operates on the wheel cache.")
+            return ERROR
+        cache_location = self.get_cache_location(options.cache_dir, "wheel")
+        wheels = [os.path.basename(f) for f in
+                  find_files(cache_location, "*.whl")]
+        wheels.sort()
+        logger.info("\n".join(wheels))

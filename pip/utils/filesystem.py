@@ -1,3 +1,4 @@
+import fnmatch
 import os
 import os.path
 
@@ -39,4 +40,14 @@ def tree_statistics(path):
         result["files"] += len(files)
         abs_paths = (os.path.join(root, f) for f in files)
         result["size"] += sum(os.path.getsize(f) for f in abs_paths)
+    return result
+
+
+def find_files(path, pattern):
+    """Returns a list of absolute paths of files beneath path, recursively,
+    with filenames which match the UNIX-style shell glob pattern."""
+    result = []
+    for root, dirs, files in os.walk(path):
+        matches = fnmatch.filter(files, pattern)
+        result.extend(os.path.join(root, f) for f in matches)
     return result
