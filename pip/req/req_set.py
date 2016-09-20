@@ -383,12 +383,12 @@ class RequirementSet(object):
             raise hash_errors
 
     def _prepare_requirements_in_parallel(self, requirements, finder, require_hashes):
-        return ((requirement, self._thread_pool.submit(self._prepare_file,
+        return [(requirement, self._thread_pool.submit(self._prepare_file,
                                                        finder,
                                                        requirement,
                                                        require_hashes=require_hashes,
                                                        ignore_dependencies=self.ignore_dependencies)) for requirement in
-                requirements)
+                requirements]
 
     def _is_upgrade_allowed(self, req):
         return self.upgrade and (
