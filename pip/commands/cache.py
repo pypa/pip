@@ -3,12 +3,13 @@ from __future__ import absolute_import
 import fnmatch
 import logging
 import os
+from os.path import basename, isdir, islink
 import textwrap
 
 from pip.basecommand import Command
 from pip.exceptions import CommandError
 from pip.status_codes import SUCCESS, ERROR
-from pip.utils import format_size
+from pip.utils import format_size, rmtree
 from pip.utils.filesystem import tree_statistics, find_files
 
 
@@ -23,8 +24,9 @@ class CacheCommand(Command):
         info: Show information about the caches.
         list (wheel cache only): List wheels stored in the cache.
         rm <filename> (wheel cache only): Remove one or more wheels from the cache.
+        purge: Remove all items from the cache.
     """  # noqa
-    actions = ["info", "list", "rm"]
+    actions = ["info", "list", "rm", "purge"]
     name = "cache"
     usage = """
       %%prog [options] %s""" % "|".join(actions)
@@ -114,5 +116,23 @@ class CacheCommand(Command):
                     value = ERROR
                 else:
                     logger.info("Removed %s" % match)
+        return value
 
+    def action_purge(self, options, args):
+        caches = ["http", "wheel"] if options.type == "all" else [options.type]
+        value = SUCCESS
+        for cache_type in caches:
+            cache_location = self.get_cache_location(
+                options.cache_dir, cache_type)
+            if islink(cache_location) or not isdir(cache_location):
+                logger.info("%s is not a directory; skipping"
+                            % cache_location)
+                continue
+            try:
+                rmtree(cache_location)
+            except OSError as e:
+                logger.warning("Could not remove %s; %s" % (cache_location, e))
+                value = ERROR
+            else:
+                logger.info("Removed %s" % cache_location)
         return value
