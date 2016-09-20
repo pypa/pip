@@ -1,4 +1,5 @@
 import os
+import re
 
 import pytest
 
@@ -31,3 +32,30 @@ def test_cache_info(script, monkeypatch, cache_type):
     else:
         assert "Location: %s" % wheel_cache_dir in result.stdout
         assert "Location: %s" % http_cache_dir in result.stdout
+
+
+def test_cache_list(script, monkeypatch):
+    for k, v in script.environ.items():
+        monkeypatch.setenv(k, v)
+    cache_base = appdirs.user_cache_dir("pip")
+    wheel_cache_dir = os.path.join(cache_base, "wheels")
+    destination = os.path.join(wheel_cache_dir, "arbitrary", "pathname")
+    os.makedirs(destination)
+    with open(os.path.join(destination, "zzz.whl"), "w"):
+        pass
+    result = script.pip("cache", "list")
+    assert "zzz.whl" in result.stdout
+
+
+def test_cache_rm(script, monkeypatch):
+    for k, v in script.environ.items():
+        monkeypatch.setenv(k, v)
+    cache_base = appdirs.user_cache_dir("pip")
+    wheel_cache_dir = os.path.join(cache_base, "wheels")
+    os.makedirs(wheel_cache_dir)
+    with open(os.path.join(wheel_cache_dir, "zzz"), "w"):
+        pass
+
+    script.pip("cache", "rm", expect_error=True)
+    result = script.pip("cache", "rm", "zzz")
+    assert re.match("^Removed.*zzz$", result.stdout)
