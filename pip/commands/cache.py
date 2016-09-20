@@ -76,7 +76,7 @@ class CacheCommand(Command):
                 (name[cache_type], location, stats["files"],
                  format_size(stats["size"]))
             ))
-        logger.info("\n\n".join(result))
+        logger.info((os.linesep * 2).join(result))
         return SUCCESS
 
     def action_list(self, options, args):
@@ -87,7 +87,7 @@ class CacheCommand(Command):
         wheels = [os.path.basename(f) for f in
                   find_files(cache_location, "*.whl")]
         wheels.sort()
-        logger.info("\n".join(wheels))
+        logger.info(os.linesep.join(wheels))
 
     def action_rm(self, options, args):
         if options.type != "wheel":
