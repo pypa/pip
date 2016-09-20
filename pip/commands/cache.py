@@ -86,8 +86,7 @@ class CacheCommand(Command):
             raise CommandError(
                 "pip cache list only operates on the wheel cache.")
         cache_location = self.get_cache_location(options.cache_dir, "wheel")
-        wheels = [os.path.basename(f) for f in
-                  find_files(cache_location, "*.whl")]
+        wheels = [basename(f) for f in find_files(cache_location, "*.whl")]
         wheels.sort()
         logger.info(os.linesep.join(wheels))
 
