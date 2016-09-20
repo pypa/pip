@@ -6,7 +6,10 @@ from collections import defaultdict
 
 from pip._vendor import pkg_resources
 from pip._vendor import requests
-from pip._vendor.concurrent.futures.thread import ThreadPoolExecutor
+try:
+    from concurrent.futures.thread import ThreadPoolExecutor
+except ImportError:
+    from pip._vendor.concurrent.futures.thread import ThreadPoolExecutor
 from pip.compat import expanduser
 from pip.download import (is_file_url, is_dir_url, is_vcs_url, url_to_path,
                           unpack_url)
