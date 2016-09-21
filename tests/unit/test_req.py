@@ -288,7 +288,7 @@ class TestRequirementSet(object):
         with pytest.raises(InstallationError):
             reqset.prepare_files(finder)
 
-    def test_missing_hash_with_require_hashes_in_reqs_file(self, data, tmpdir):
+    def test_no_deps_in_reqs_file(self, data, tmpdir):
         """--no-deps in a requirements file should make its way to the
         RequirementSet.
         """
@@ -622,5 +622,3 @@ def test_exclusive_environment_markers():
     req_set.add_requirement(eq26)
     req_set.add_requirement(ne26)
     assert req_set.has_requirement('Django')
-
-
