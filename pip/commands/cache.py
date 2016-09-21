@@ -11,6 +11,8 @@ from pip.exceptions import CommandError
 from pip.status_codes import SUCCESS, ERROR
 from pip.utils import format_size, rmtree
 from pip.utils.filesystem import tree_statistics, find_files
+from pip.wheel import Wheel, InvalidWheelFilename
+from pip._vendor.pkg_resources import safe_name
 
 
 logger = logging.getLogger(__name__)
@@ -21,10 +23,15 @@ class CacheCommand(Command):
     Operate on pip's caches.
 
     Subcommands:
-        info: Show information about the caches.
-        list (wheel cache only): List filenames of wheels stored in the cache.
-        rm <filename> (wheel cache only): Remove one or more wheels from the cache.
-        purge: Remove all items from the cache.
+        info:
+            Show information about the caches.
+        list (wheel cache only):
+            List filenames of wheels stored in the cache.
+        rm <pattern|packagename> (wheel cache only):
+            Remove one or more wheels from the cache. `rm` accepts one or more
+            package names, filenames, or shell glob expressions matching filenames.
+        purge:
+            Remove all items from the cache.
     """  # noqa
     actions = ["info", "list", "rm", "purge"]
     name = "cache"
@@ -99,12 +106,26 @@ class CacheCommand(Command):
                 "Must specify the filename of (a) wheel(s) to remove.")
         cache_location = self.get_cache_location(options.cache_dir, "wheel")
         value = SUCCESS
+        shell_metachars = '*?'
         for target in args:
-            matches = find_files(cache_location, target)
-            matches = fnmatch.filter(matches, "*.whl")
+            if (any(m in target for m in shell_metachars) or
+                    target.endswith(".whl")):
+                matches = find_files(cache_location, target)
+                matches = fnmatch.filter(matches, "*.whl")
+            else:
+                wheels = find_files(cache_location, "*.whl")
+                pkgname = safe_name(target).lower()
+                matches = []
+                for filename in wheels:
+                    try:
+                        wheel = Wheel(basename(filename))
+                    except InvalidWheelFilename:
+                        continue
+                    if wheel.name.lower() == pkgname:
+                        matches.append(filename)
+
             if not matches:
-                logger.warning("No match found for %s" % target)
-                value = ERROR
+                logger.info("No match found for %s" % target)
                 continue
             for match in matches:
                 try:
