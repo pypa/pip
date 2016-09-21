@@ -62,12 +62,39 @@ class CacheCommand(Command):
         method = getattr(self, "action_%s" % args[0])
         return method(options, args[1:])
 
-    def get_cache_location(self, cache_root, cache_type):
+    @staticmethod
+    def get_cache_location(cache_root, cache_type):
         location = cache_root
         suffix = {"wheel": "wheels", "http": "http"}
         if cache_type != "all":
             location = os.path.join(location, suffix[cache_type])
         return location
+
+    @staticmethod
+    def wheels_matching(cache_location, pattern):
+        """Returns a list of absolute filenames of wheels with filenames
+        matching `pattern`. A pattern may be:
+            * the name of a package
+            * a shell glob expression matching the basename of the wheel
+            * an exact basename
+        """
+        shell_metachars = '*?'
+        if (any(m in pattern for m in shell_metachars) or
+                pattern.endswith(".whl")):
+            matches = find_files(cache_location, pattern)
+            matches = fnmatch.filter(matches, "*.whl")
+        else:
+            wheels = find_files(cache_location, "*.whl")
+            pkgname = safe_name(pattern).lower()
+            matches = []
+            for filename in wheels:
+                try:
+                    wheel = Wheel(basename(filename))
+                except InvalidWheelFilename:
+                    continue
+                if wheel.name.lower() == pkgname:
+                    matches.append(filename)
+        return matches
 
     def action_info(self, options, args):
         caches = ["http", "wheel"] if options.type == "all" else [options.type]
@@ -108,26 +135,10 @@ class CacheCommand(Command):
                 "Must specify the filename of (a) wheel(s) to remove.")
         cache_location = self.get_cache_location(options.cache_dir, "wheel")
         value = SUCCESS
-        shell_metachars = '*?'
-        for target in args:
-            if (any(m in target for m in shell_metachars) or
-                    target.endswith(".whl")):
-                matches = find_files(cache_location, target)
-                matches = fnmatch.filter(matches, "*.whl")
-            else:
-                wheels = find_files(cache_location, "*.whl")
-                pkgname = safe_name(target).lower()
-                matches = []
-                for filename in wheels:
-                    try:
-                        wheel = Wheel(basename(filename))
-                    except InvalidWheelFilename:
-                        continue
-                    if wheel.name.lower() == pkgname:
-                        matches.append(filename)
-
+        for pattern in args:
+            matches = self.wheels_matching(cache_location, pattern)
             if not matches:
-                logger.info("No match found for %s" % target)
+                logger.info("No match found for %s" % pattern)
                 continue
             for match in matches:
                 try:
