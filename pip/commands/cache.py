@@ -95,7 +95,9 @@ class CacheCommand(Command):
         cache_location = self.get_cache_location(options.cache_dir, "wheel")
         wheels = [basename(f) for f in find_files(cache_location, "*.whl")]
         wheels.sort()
-        logger.info(os.linesep.join(wheels))
+        if wheels:
+            logger.info(os.linesep.join(wheels))
+        return SUCCESS
 
     def action_rm(self, options, args):
         if options.type != "wheel":
