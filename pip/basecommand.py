@@ -295,9 +295,10 @@ class RequirementCommand(Command):
                     wheel_cache=wheel_cache):
                 found_req_in_file = True
                 requirement_set.add_requirement(req)
-        # If --require-hashes was a line in a requirements file, tell
-        # RequirementSet about it:
+        # If --require-hashes or --no-deps was a line in a requirements file,
+        # tell RequirementSet about it:
         requirement_set.require_hashes = options.require_hashes
+        requirement_set.ignore_dependencies = options.ignore_dependencies
 
         if not (args or options.editables or found_req_in_file):
             opts = {'name': name}

@@ -48,6 +48,7 @@ SUPPORTED_OPTIONS = [
     cmdoptions.process_dependency_links,
     cmdoptions.trusted_host,
     cmdoptions.require_hashes,
+    cmdoptions.no_deps
 ]
 
 # options to be passed to requirements
@@ -195,6 +196,10 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
     # percolate hash-checking option upward
     elif opts.require_hashes:
         options.require_hashes = opts.require_hashes
+
+    # percolate ignore dependencies option upward
+    elif opts.ignore_dependencies:
+        options.ignore_dependencies = opts.ignore_dependencies
 
     # set finder options
     elif finder:
