@@ -27,13 +27,13 @@ class CacheCommand(Command):
             Show information about the caches.
         list (wheel cache only):
             List filenames of wheels stored in the cache.
-        rm <pattern|packagename> (wheel cache only):
-            Remove one or more wheels from the cache. `rm` accepts one or more
+        remove <pattern|packagename> (wheel cache only):
+            Remove one or more wheels from the cache. `remove` accepts one or more
             package names, filenames, or shell glob expressions matching filenames.
         purge:
             Remove all items from the cache.
     """  # noqa
-    actions = ["info", "list", "rm", "purge"]
+    actions = ["info", "list", "remove", "purge"]
     name = "cache"
     usage = """
       %%prog [options] %s""" % "|".join(actions)
@@ -126,10 +126,10 @@ class CacheCommand(Command):
             logger.info(os.linesep.join(wheels))
         return SUCCESS
 
-    def action_rm(self, options, args):
+    def action_remove(self, options, args):
         if options.type != "wheel":
             raise CommandError(
-                "pip cache rm only operates on the wheel cache.")
+                "pip cache remove only operates on the wheel cache.")
         if len(args) == 0:
             raise CommandError(
                 "Must specify the filename of (a) wheel(s) to remove.")
