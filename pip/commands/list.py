@@ -92,9 +92,9 @@ class ListCommand(Command):
         )
 
         cmd_opts.add_option(
-            '--leaves',
+            '--nodeps',
             action='store_true',
-            dest='leaves',
+            dest='nodeps',
             help="List packages that are not dependencies of installed packages.",
         )
 
@@ -166,7 +166,7 @@ class ListCommand(Command):
         elif options.uptodate:
             packages = self.get_uptodate(packages, options)
         elif options.leaves:
-            packages = self.get_leaves(packages, options)
+            packages = self.get_nodeps(packages, options)
         self.output_package_listing(packages, options)
 
     def get_outdated(self, packages, options):
@@ -181,11 +181,14 @@ class ListCommand(Command):
             if dist.latest_version == dist.parsed_version
         ]
 
-    def get_leaves(self, packages, options):
-        return [
-            dist for dist in self.iter_packages_latest_infos(packages, options)
-            if not dist.requires()
-        ]
+    def get_nodeps(self, packages, options):
+        installed_packages = [
+            dist for dist in self.iter_packages_latest_infos(packages, options)]
+        all_dependencies = []
+        for dist in installed_packages:
+            all_dependencies.extend(dist.requires())
+        dep_keys = set(dep.key for dep in all_dependencies)
+        return set(pkg for pkg in installed_packages if pkg.key not in dep_keys)
 
     def iter_packages_latest_infos(self, packages, options):
         index_urls = [options.index_url] + options.extra_index_urls
