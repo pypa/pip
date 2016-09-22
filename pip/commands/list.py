@@ -91,6 +91,13 @@ class ListCommand(Command):
             help="Align package names and versions into vertical columns.",
         )
 
+        cmd_opts.add_option(
+            '--leaves',
+            action='store_true',
+            dest='leaves',
+            help="List packages that are not dependencies of installed packages.",
+        )
+
         index_opts = make_option_group(index_group, self.parser)
 
         self.parser.insert_option_group(0, index_opts)
@@ -146,15 +153,20 @@ class ListCommand(Command):
             raise CommandError(
                 "Options --outdated and --uptodate cannot be combined.")
 
+        # TODO (nvdv): Check options combinations.
+
         packages = get_installed_distributions(
             local_only=options.local,
             user_only=options.user,
             editables_only=options.editable,
         )
+
         if options.outdated:
             packages = self.get_outdated(packages, options)
         elif options.uptodate:
             packages = self.get_uptodate(packages, options)
+        elif options.leaves:
+            packages = self.get_leaves(packages, options)
         self.output_package_listing(packages, options)
 
     def get_outdated(self, packages, options):
@@ -167,6 +179,12 @@ class ListCommand(Command):
         return [
             dist for dist in self.iter_packages_latest_infos(packages, options)
             if dist.latest_version == dist.parsed_version
+        ]
+
+    def get_leaves(self, packages, options):
+        return [
+            dist for dist in self.iter_packages_latest_infos(packages, options)
+            if not dist.requires()
         ]
 
     def iter_packages_latest_infos(self, packages, options):
