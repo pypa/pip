@@ -424,7 +424,7 @@ Examples:
 Command Completion
 ------------------
 
-pip comes with support for command line completion in bash and zsh.
+pip comes with support for command line completion in bash, zsh and fish.
 
 To setup for bash::
 
@@ -433,6 +433,10 @@ To setup for bash::
 To setup for zsh::
 
     $ pip completion --zsh >> ~/.zprofile
+
+To setup for fish::
+
+$ pip completion --fish > ~/.config/fish/completions/pip.fish
 
 Alternatively, you can use the result of the ``completion`` command
 directly with the eval function of your shell, e.g. by adding the following to your startup file::
