@@ -92,9 +92,9 @@ class ListCommand(Command):
         )
 
         cmd_opts.add_option(
-            '--nodeps',
+            '--no-deps-only',
             action='store_true',
-            dest='nodeps',
+            dest='nodeps_only',
             help="List packages that are not dependencies of installed packages.",
         )
 
@@ -153,8 +153,6 @@ class ListCommand(Command):
             raise CommandError(
                 "Options --outdated and --uptodate cannot be combined.")
 
-        # TODO (nvdv): Check options combinations.
-
         packages = get_installed_distributions(
             local_only=options.local,
             user_only=options.user,
@@ -165,8 +163,10 @@ class ListCommand(Command):
             packages = self.get_outdated(packages, options)
         elif options.uptodate:
             packages = self.get_uptodate(packages, options)
-        elif options.leaves:
-            packages = self.get_nodeps(packages, options)
+
+        if options.nodeps_only:
+            packages = self.get_nodeps_only(packages, options)
+
         self.output_package_listing(packages, options)
 
     def get_outdated(self, packages, options):
@@ -181,7 +181,7 @@ class ListCommand(Command):
             if dist.latest_version == dist.parsed_version
         ]
 
-    def get_nodeps(self, packages, options):
+    def get_nodeps_only(self, packages, options):
         installed_packages = [
             dist for dist in self.iter_packages_latest_infos(packages, options)]
         all_dependencies = []
