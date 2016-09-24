@@ -184,10 +184,9 @@ class ListCommand(Command):
     def get_nodeps_only(self, packages, options):
         installed_packages = [
             dist for dist in self.iter_packages_latest_infos(packages, options)]
-        all_dependencies = []
+        dep_keys = set()
         for dist in installed_packages:
-            all_dependencies.extend(dist.requires())
-        dep_keys = set(dep.key for dep in all_dependencies)
+            dep_keys.update(requirement.key for requirement in dist.requires())
         return set(pkg for pkg in installed_packages if pkg.key not in dep_keys)
 
     def iter_packages_latest_infos(self, packages, options):
