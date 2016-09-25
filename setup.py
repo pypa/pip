@@ -42,7 +42,7 @@ def find_version(*file_paths):
 long_description = read('README.rst')
 
 tests_require = ['pytest', 'virtualenv>=1.10', 'scripttest>=1.3', 'mock',
-                 'pretend', 'pytest-catchlog', 'freezegun']
+                 'pretend']
 
 
 setup(
