@@ -95,7 +95,8 @@ class ListCommand(Command):
             '--no-deps-only',
             action='store_true',
             dest='nodeps_only',
-            help="List packages that are not dependencies of installed packages.",
+            help="List packages that are not dependencies of "
+                 "installed packages.",
         )
 
         index_opts = make_option_group(index_group, self.parser)
@@ -182,12 +183,13 @@ class ListCommand(Command):
         ]
 
     def get_nodeps_only(self, packages, options):
-        installed_packages = [
-            dist for dist in self.iter_packages_latest_infos(packages, options)]
+        installed_pkgs = [
+            dist for dist in self.iter_packages_latest_infos(packages, options)
+        ]
         dep_keys = set()
-        for dist in installed_packages:
+        for dist in installed_pkgs:
             dep_keys.update(requirement.key for requirement in dist.requires())
-        return set(pkg for pkg in installed_packages if pkg.key not in dep_keys)
+        return set(pkg for pkg in installed_pkgs if pkg.key not in dep_keys)
 
     def iter_packages_latest_infos(self, packages, options):
         index_urls = [options.index_url] + options.extra_index_urls
