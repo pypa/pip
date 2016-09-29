@@ -88,8 +88,21 @@ class InstallCommand(RequirementCommand):
             dest='upgrade',
             action='store_true',
             help='Upgrade all specified packages to the newest available '
-                 'version. This process is recursive regardless of whether '
-                 'a dependency is already satisfied.'
+                 'version. The handling of dependencies depends on the '
+                 'upgrade-strategy used.'
+        )
+
+        cmd_opts.add_option(
+            '--upgrade-strategy',
+            dest='upgrade_strategy',
+            default='eager',
+            choices=['only-if-needed', 'eager'],
+            help='Determines how dependency upgrading should be handled. '
+                 '"eager" - dependencies are upgraded regardless of '
+                 'whether the currently installed version satisfies the '
+                 'requirements of the upgraded package(s). '
+                 '"only-if-needed" -  are upgraded only when they do not '
+                 'satisfy the requirements of the upgraded package(s).'
         )
 
         cmd_opts.add_option(
@@ -278,6 +291,7 @@ class InstallCommand(RequirementCommand):
                     src_dir=options.src_dir,
                     download_dir=options.download_dir,
                     upgrade=options.upgrade,
+                    upgrade_strategy=options.upgrade_strategy,
                     as_egg=options.as_egg,
                     ignore_installed=options.ignore_installed,
                     ignore_dependencies=options.ignore_dependencies,

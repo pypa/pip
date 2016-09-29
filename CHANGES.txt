@@ -36,6 +36,8 @@
 * Skip scanning virtual environments even when venv/bin/python is a dangling
   symlink.
 
+* Added pip completion support for fish shell.
+
 * Fix problems on Windows on Python 2 when username or hostname contains
   non-ASCII characters (:issue:`3463`, :pull:`3970`).
 
