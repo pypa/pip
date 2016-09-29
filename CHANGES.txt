@@ -36,6 +36,9 @@
 * Skip scanning virtual environments even when venv/bin/python is a dangling
   symlink.
 
+* Fix problems on Windows on Python 2 when username or hostname contains
+  non-ASCII characters (:issue:`3463`, :pull:`3970`).
+
 
 **8.1.2 (2016-05-10)**
 
