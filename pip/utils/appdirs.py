@@ -36,7 +36,7 @@ def user_cache_dir(appname):
         # Get the base path
         path = os.path.normpath(_get_win_folder("CSIDL_LOCAL_APPDATA"))
 
-        # When using Python 2, return paths as bytes on Windows similarly as on
+        # When using Python 2, return paths as bytes on Windows like we do on
         # other operating systems. See helper function docs for more details.
         if PY2 and isinstance(path, unicode):
             path = _win_path_to_bytes(path)
@@ -231,15 +231,14 @@ if WINDOWS:
 
 
 def _win_path_to_bytes(path):
-    """Encode Windows paths to bytes when using Python 2.
+    """Encode Windows paths to bytes. Only used on Python 2.
 
     Motivation is to be consistent with other operating systems where paths
     are also returned as bytes. This avoids problems mixing bytes and Unicode
-    elsewhere in the codebase.
+    elsewhere in the codebase. For more details and discussion see
+    <https://github.com/pypa/pip/issues/3463>.
 
     If encoding using ASCII and MBCS fails, return the original Unicode path.
-
-    See https://github.com/pypa/pip/issues/3463 for more details and discussion.
     """
     for encoding in ('ASCII', 'MBCS'):
         try:
