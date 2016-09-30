@@ -564,6 +564,17 @@ def test_outdated_formats(script, data):
                      'latest_version': '1.1', 'latest_filetype': 'wheel'}]
 
 
+def test_no_deps_only_flag(script, data):
+    script.pip(
+        'install', '-f', data.find_links, '--no-index', 'TopoRequires4'
+    )
+    result = script.pip('list', '--no-deps-only', expect_stderr=True)
+    assert 'TopoRequires4 ' in result.stdout, str(result)
+    assert 'TopoRequires ' not in result.stdout
+    assert 'TopoRequires2 ' not in result.stdout
+    assert 'TopoRequires3 ' not in result.stdout
+
+
 def test_list_freeze(script, data):
     """
     Test freeze formatting of list command
