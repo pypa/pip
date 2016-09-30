@@ -8,7 +8,7 @@ import os
 import sys
 
 from pip.compat import WINDOWS, expanduser
-from pip._vendor.six import PY2
+from pip._vendor.six import PY2, text_type
 
 
 def user_cache_dir(appname):
@@ -38,7 +38,7 @@ def user_cache_dir(appname):
 
         # When using Python 2, return paths as bytes on Windows like we do on
         # other operating systems. See helper function docs for more details.
-        if PY2 and isinstance(path, unicode):
+        if PY2 and isinstance(path, text_type):
             path = _win_path_to_bytes(path)
 
         # Add our app name and Cache directory to it
