@@ -526,6 +526,7 @@ class TestGlibc(object):
                     # Didn't find the warning we were expecting
                     assert False
 
+
 class Test_user_cache_dir(object):
 
     def test_return_path_as_str(self):
