@@ -22,6 +22,7 @@ from pip.utils.build import BuildDirectory
 from pip.utils.encoding import auto_decode
 from pip.utils.hashes import Hashes, MissingHashes
 from pip.utils.glibc import check_glibc_version
+from pip.utils.appdirs import user_cache_dir
 from pip._vendor.six import BytesIO
 
 
@@ -524,3 +525,9 @@ class TestGlibc(object):
                 else:
                     # Didn't find the warning we were expecting
                     assert False
+
+class Test_user_cache_dir(object):
+
+    def test_return_path_as_str(self):
+        """Test that path is bytes on Python 2 and Unicode on Python 3."""
+        assert isinstance(user_cache_dir('test'), str)
