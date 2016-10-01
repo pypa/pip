@@ -48,6 +48,8 @@
   is normally fetched; this is necessary in case a git requirement url
   points to a tag or commit that is not on a branch (:pull:`3791`)
 
+* Normalize package names before using in ``pip show`` (:issue:`3976`)
+
 
 **8.1.2 (2016-05-10)**
 
