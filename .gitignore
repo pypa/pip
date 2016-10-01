@@ -10,3 +10,4 @@ MANIFEST
 .coverage
 coverage.xml
 .*.sw?
+.idea/

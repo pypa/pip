@@ -1,4 +1,5 @@
 import re
+
 import pytest
 from pip import __version__
 from pip.commands.show import search_packages_info
@@ -159,3 +160,14 @@ def test_pip_show_divider(script):
     result = script.pip('show', 'pip', 'initools')
     lines = result.stdout.splitlines()
     assert "---" in lines
+
+
+def test_package_name_is_canonicalized(script, data):
+    script.pip('install', 'pip-test-package', '--no-index', '-f',
+               data.packages)
+
+    dash_show_result = script.pip('show', 'pip-test-package')
+    underscore_upper_show_result = script.pip('show', 'pip-test_Package')
+
+    assert underscore_upper_show_result.returncode == 0
+    assert underscore_upper_show_result.stdout == dash_show_result.stdout
