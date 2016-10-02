@@ -105,12 +105,12 @@ class WheelCommand(RequirementCommand):
             'wheel.bdist_wheel',
             CommandError,
             "'pip wheel' requires the 'wheel' package. To fix this, run: "
-            "pip install wheel"
+            "pip install --upgrade wheel"
         )
 
         need_setuptools_message = (
             "'pip wheel' requires setuptools >= 0.8 for dist-info support. "
-            "To fix this, run: pip install setuptools>=0.8"
+            "To fix this, run: pip install --upgrade setuptools>=0.8"
         )
         pkg_resources = import_or_raise(
             'pkg_resources',
