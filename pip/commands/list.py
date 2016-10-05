@@ -91,6 +91,14 @@ class ListCommand(Command):
             help="Align package names and versions into vertical columns.",
         )
 
+        cmd_opts.add_option(
+            '--not-required',
+            action='store_true',
+            dest='not_required',
+            help="List packages that are not dependencies of "
+                 "installed packages.",
+        )
+
         index_opts = make_option_group(index_group, self.parser)
 
         self.parser.insert_option_group(0, index_opts)
@@ -151,10 +159,15 @@ class ListCommand(Command):
             user_only=options.user,
             editables_only=options.editable,
         )
+
         if options.outdated:
             packages = self.get_outdated(packages, options)
         elif options.uptodate:
             packages = self.get_uptodate(packages, options)
+
+        if options.not_required:
+            packages = self.get_not_required(packages, options)
+
         self.output_package_listing(packages, options)
 
     def get_outdated(self, packages, options):
@@ -168,6 +181,12 @@ class ListCommand(Command):
             dist for dist in self.iter_packages_latest_infos(packages, options)
             if dist.latest_version == dist.parsed_version
         ]
+
+    def get_not_required(self, packages, options):
+        dep_keys = set()
+        for dist in packages:
+            dep_keys.update(requirement.key for requirement in dist.requires())
+        return set(pkg for pkg in packages if pkg.key not in dep_keys)
 
     def iter_packages_latest_infos(self, packages, options):
         index_urls = [options.index_url] + options.extra_index_urls

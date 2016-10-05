@@ -66,6 +66,14 @@ Examples
      retry      0.8.1   0.9.1  wheel
      setuptools 20.6.7  21.0.0 wheel
 
+#. List packages that are not dependencies of other packages. Can be combined with
+   other options.
+
+    ::
+
+     $ pip list --outdated --not-required
+     docutils (Current: 0.10 Latest: 0.11)
+
 #. Use legacy formatting
 
     ::
