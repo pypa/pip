@@ -92,9 +92,9 @@ class ListCommand(Command):
         )
 
         cmd_opts.add_option(
-            '--no-deps-only',
+            '--not-required',
             action='store_true',
-            dest='nodeps_only',
+            dest='not_required',
             help="List packages that are not dependencies of "
                  "installed packages.",
         )
@@ -165,8 +165,8 @@ class ListCommand(Command):
         elif options.uptodate:
             packages = self.get_uptodate(packages, options)
 
-        if options.nodeps_only:
-            packages = self.get_nodeps_only(packages, options)
+        if options.not_required:
+            packages = self.get_not_required(packages, options)
 
         self.output_package_listing(packages, options)
 
@@ -182,7 +182,7 @@ class ListCommand(Command):
             if dist.latest_version == dist.parsed_version
         ]
 
-    def get_nodeps_only(self, packages, options):
+    def get_not_required(self, packages, options):
         dep_keys = set()
         for dist in packages:
             dep_keys.update(requirement.key for requirement in dist.requires())

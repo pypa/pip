@@ -14,7 +14,7 @@
 
 * Added optional column formatting to ``pip list`` (:issue:`3651`).
 
-* Add `--no-deps-only` option to ``pip list`` to list packages that are
+* Add `--not-required` option to ``pip list`` to list packages that are
   not dependencies of other packages.
 
 * Fix the build on systems with symlinked /tmp directory for custom

@@ -71,7 +71,7 @@ Examples
 
     ::
 
-     $ pip list --outdated --no-deps-only
+     $ pip list --outdated --not-required
      docutils (Current: 0.10 Latest: 0.11)
 
 #. Use legacy formatting
