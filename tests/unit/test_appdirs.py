@@ -83,6 +83,7 @@ class TestUserCacheDir:
         from pip import create_main_parser
         create_main_parser().print_help()  # This should not crash
 
+
 class TestSiteConfigDirs:
 
     def test_site_config_dirs_win(self, monkeypatch):
