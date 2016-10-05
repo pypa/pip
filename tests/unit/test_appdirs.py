@@ -64,6 +64,24 @@ class TestUserCacheDir:
 
         assert appdirs.user_cache_dir("pip") == "/.cache/pip"
 
+    def test_user_cache_dir_unicode(self, monkeypatch):
+        if sys.platform != 'win32':
+            return
+
+        def my_get_win_folder(csidl_name):
+            return u"\u00DF\u00E4\u03B1\u20AC"
+
+        monkeypatch.setattr(appdirs, "_get_win_folder", my_get_win_folder)
+
+        # Do not use the isinstance expression directly in the
+        # assert statement, as the Unicode characters in the result
+        # cause pytest to fail with an internal error on Python 2.7
+        result_is_str = isinstance(appdirs.user_cache_dir('test'), str)
+        assert result_is_str, "user_cache_dir did not return a str"
+
+        # Test against regression #3463
+        from pip import create_main_parser
+        create_main_parser().print_help()  # This should not crash
 
 class TestSiteConfigDirs:
 
