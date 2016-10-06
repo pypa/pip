@@ -42,7 +42,7 @@
 * Added pip completion support for fish shell.
 
 * Fix problems on Windows on Python 2 when username or hostname contains
-  non-ASCII characters (:issue:`3463`, :pull:`3970`).
+  non-ASCII characters (:issue:`3463`, :pull:`3970`, :pull:`4000`).
 
 * Use git fetch --tags to fetch tags in addition to everything else that
   is normally fetched; this is necessary in case a git requirement url
