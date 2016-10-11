@@ -240,4 +240,5 @@ class HashMismatch(HashError):
 
 
 class UnsupportedPythonVersion(InstallationError):
-    """Unsupported python version (related to PEP 345 Requires-Python)."""
+    """Unsupported python version according to Requires-Python package
+    metadata."""
