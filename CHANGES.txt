@@ -116,6 +116,9 @@
 * Restore the ability to use inline comments in requirements files passed to
   ``pip freeze`` (:issue:`3680`).
 
+* Add `--exclude-editable` to ``pip freeze`` to exclude editable packages
+  from installed package list.
+
 **8.1.2 (2016-05-10)**
 
 * Fix a regression on systems with uninitialized locale (:issue:`3575`).
