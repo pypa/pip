@@ -10,6 +10,9 @@
 * Add `--exclude-editable` to ``pip freeze`` to exclude editable packages
   from installed package list.
 
+* Add `--exclude-editable` to ``pip list`` to exclude editable packages
+  from installed package list.
+
 * Add `--progress-bar <progress_bar>` to ``pip download``, ``pip install``
   and ``pip wheel`` to suppress progress bar in the console (:pull:`4194`)
 
