@@ -135,7 +135,7 @@ def test_freeze_svn(script, tmpdir):
 @pytest.mark.xfail
 def test_freeze_exclude_editable(script, tmpdir):
     """
-    Test excluding editable from freezing list. 
+    Test excluding editable from freezing list.
     """
     # Returns path to a generated package called "version_pkg"
     pkg_version = _create_test_package(script)

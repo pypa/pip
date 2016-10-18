@@ -69,7 +69,6 @@ class FreezeCommand(Command):
             action='store_true',
             help='Exclude editable package from output.')
 
-
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
