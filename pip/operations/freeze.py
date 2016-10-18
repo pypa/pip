@@ -21,6 +21,7 @@ def freeze(
         default_vcs=None,
         isolated=False,
         wheel_cache=None,
+        exclude_editable=False,
         skip=()):
     find_links = find_links or []
     skip_match = None
@@ -54,6 +55,8 @@ def freeze(
                 "Could not parse requirement: %s",
                 dist.project_name
             )
+            continue
+        if exclude_editable and req.editable:
             continue
         installations[req.name] = req
 
