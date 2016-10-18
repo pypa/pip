@@ -91,6 +91,13 @@ class ListCommand(Command):
                  "installed packages.",
         )
 
+        cmd_opts.add_option(
+            '--exclude-editable',
+            action='store_true',
+            dest='exclude_editable',
+            help='Exclude editable package from output.',
+        )
+
         index_opts = make_option_group(index_group, self.parser)
 
         self.parser.insert_option_group(0, index_opts)
@@ -151,6 +158,7 @@ class ListCommand(Command):
             local_only=options.local,
             user_only=options.user,
             editables_only=options.editable,
+            include_editables=not options.exclude_editable,
         )
 
         if options.outdated:
