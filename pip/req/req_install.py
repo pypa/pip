@@ -766,8 +766,8 @@ class InstallRequirement(object):
         archive_path = os.path.join(build_dir, archive_name)
         if os.path.exists(archive_path):
             response = ask_path_exists(
-                'The file %s exists. (i)gnore, (w)ipe, (b)ackup ' %
-                display_path(archive_path), ('i', 'w', 'b'))
+                'The file %s exists. (i)gnore, (w)ipe, (b)ackup, (a)bort ' %
+                display_path(archive_path), ('i', 'w', 'b', 'a'))
             if response == 'i':
                 create_archive = False
             elif response == 'w':
@@ -781,6 +781,8 @@ class InstallRequirement(object):
                     display_path(dest_file),
                 )
                 shutil.move(archive_path, dest_file)
+            elif response == 'a':
+                sys.exit(-1)
         if create_archive:
             zip = zipfile.ZipFile(
                 archive_path, 'w', zipfile.ZIP_DEFLATED,

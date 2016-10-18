@@ -5,6 +5,7 @@ import errno
 import logging
 import os
 import shutil
+import sys
 
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
@@ -271,6 +272,8 @@ class VersionControl(object):
                 )
                 shutil.move(dest, dest_dir)
                 checkout = True
+            elif response == 'a':
+                sys.exit(-1)
         return checkout
 
     def unpack(self, location):

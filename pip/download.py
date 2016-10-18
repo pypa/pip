@@ -610,8 +610,8 @@ def _copy_file(filename, location, link):
     download_location = os.path.join(location, link.filename)
     if os.path.exists(download_location):
         response = ask_path_exists(
-            'The file %s exists. (i)gnore, (w)ipe, (b)ackup ' %
-            display_path(download_location), ('i', 'w', 'b'))
+            'The file %s exists. (i)gnore, (w)ipe, (b)ackup, (a)abort' %
+            display_path(download_location), ('i', 'w', 'b', 'a'))
         if response == 'i':
             copy = False
         elif response == 'w':
@@ -625,6 +625,8 @@ def _copy_file(filename, location, link):
                 display_path(dest_file),
             )
             shutil.move(download_location, dest_file)
+        elif response == 'a':
+            sys.exit(-1)
     if copy:
         shutil.copy(filename, download_location)
         logger.info('Saved %s', display_path(download_location))
