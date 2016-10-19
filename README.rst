@@ -22,6 +22,9 @@ tool for installing Python packages.
 .. image:: https://img.shields.io/travis/pypa/pip/master.svg
    :target: http://travis-ci.org/pypa/pip
 
+.. image:: https://img.shields.io/appveyor/ci/pypa/pip.svg
+   :target: https://ci.appveyor.com/project/pypa/pip/history
+
 .. image:: https://readthedocs.org/projects/pip/badge/?version=stable
    :target: https://pip.pypa.io/en/stable
 
