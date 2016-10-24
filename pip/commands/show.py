@@ -109,9 +109,9 @@ def search_packages_info(query):
         classifiers = []
         for line in metadata.splitlines():
             if not line:
-                break
+                pass  # The Problem SJB
             # Classifier: License :: OSI Approved :: MIT License
-            if line.startswith('Classifier: '):
+            elif line.startswith('Classifier: '):
                 classifiers.append(line[len('Classifier: '):])
         package['classifiers'] = classifiers
 
