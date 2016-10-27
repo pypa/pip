@@ -52,6 +52,9 @@
 
 * Normalize package names before using in ``pip show`` (:issue:`3976`)
 
+* Raises when Requires-Python do not match the running version.
+  Add ``--ignore-requires-python`` escape hatch.
+
 
 **8.1.2 (2016-05-10)**
 

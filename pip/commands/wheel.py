@@ -70,6 +70,7 @@ class WheelCommand(RequirementCommand):
         cmd_opts.add_option(cmdoptions.editable())
         cmd_opts.add_option(cmdoptions.requirements())
         cmd_opts.add_option(cmdoptions.src())
+        cmd_opts.add_option(cmdoptions.ignore_requires_python())
         cmd_opts.add_option(cmdoptions.no_deps())
         cmd_opts.add_option(cmdoptions.build_dir())
 
@@ -171,6 +172,7 @@ class WheelCommand(RequirementCommand):
                     download_dir=None,
                     ignore_dependencies=options.ignore_dependencies,
                     ignore_installed=True,
+                    ignore_requires_python=options.ignore_requires_python,
                     isolated=options.isolated_mode,
                     session=session,
                     wheel_cache=wheel_cache,

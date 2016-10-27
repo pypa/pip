@@ -477,6 +477,13 @@ build_dir = partial(
     help='Directory to unpack packages into and build in.'
 )
 
+ignore_requires_python = partial(
+    Option,
+    '--ignore-requires-python',
+    dest='ignore_requires_python',
+    action='store_true',
+    help='Ignore the Requires-Python information.')
+
 install_options = partial(
     Option,
     '--install-option',
