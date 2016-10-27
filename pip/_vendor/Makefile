@@ -8,6 +8,9 @@ vendor:
 	@# Install vendored libraries
 	pip install -t . -r vendor.txt
 
+	# remove the tests
+	rm -rf rwt/tests
+
 	@# Cleanup .egg-info directories
 	rm -rf *.egg-info
 	rm -rf *.dist-info

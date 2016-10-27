@@ -15,6 +15,7 @@ from pip.commands.show import ShowCommand
 from pip.commands.install import InstallCommand
 from pip.commands.uninstall import UninstallCommand
 from pip.commands.wheel import WheelCommand
+from pip.commands.run import RunCommand
 
 
 commands_dict = {
@@ -30,6 +31,7 @@ commands_dict = {
     ListCommand.name: ListCommand,
     CheckCommand.name: CheckCommand,
     WheelCommand.name: WheelCommand,
+    RunCommand.name: RunCommand,
 }
 
 
@@ -45,6 +47,7 @@ commands_order = [
     WheelCommand,
     HashCommand,
     CompletionCommand,
+    RunCommand,
     HelpCommand,
 ]
 
