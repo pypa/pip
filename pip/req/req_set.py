@@ -744,6 +744,7 @@ class RequirementSet(object):
         the packages)
         """
         to_install = self._to_install()
+        editable_reinstall = False
 
         if to_install:
             logger.info(
@@ -760,6 +761,23 @@ class RequirementSet(object):
                     )
                     with indent_log():
                         requirement.uninstall(auto_confirm=True)
+
+                if requirement.installed_version and requirement.editable:
+                    # If we have an existing installation but are
+                    # re-installing as editable, make sure we remove
+                    # the existing version.  Note that with
+                    # setuptools<25 this is not strictly required, as
+                    # there setuptools will modify easy-install.pth to
+                    # put the "develop" mode install first in sys.path
+                    # (see SETUPTOOLS_SYS_PATH_TECHNIQUE), effectively
+                    # overwriting the prior installed version.
+                    logger.info(
+                        'Found prior install %s, reinstalling for develop mode'
+                        % requirement.installed_version)
+                    with indent_log():
+                        requirement.uninstall(auto_confirm=True)
+                        editable_reinstall = True
+
                 try:
                     requirement.install(
                         install_options,
@@ -769,12 +787,12 @@ class RequirementSet(object):
                     )
                 except:
                     # if install did not succeed, rollback previous uninstall
-                    if (requirement.conflicts_with and not
-                            requirement.install_succeeded):
+                    if ((requirement.conflicts_with or editable_reinstall) and
+                            not requirement.install_succeeded):
                         requirement.rollback_uninstall()
                     raise
                 else:
-                    if (requirement.conflicts_with and
+                    if ((requirement.conflicts_with or editable_reinstall) and
                             requirement.install_succeeded):
                         requirement.commit_uninstall()
                 requirement.remove_temporary_source()

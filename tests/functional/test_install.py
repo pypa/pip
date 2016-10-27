@@ -12,7 +12,7 @@ from pip.utils import appdirs, rmtree
 from tests.lib import (pyversion, pyversion_tuple,
                        _create_test_package, _create_svn_repo, path_to_url,
                        requirements_file)
-from tests.lib.local_repos import local_checkout
+from tests.lib.local_repos import local_checkout, local_repo
 from tests.lib.path import Path
 
 
@@ -1076,3 +1076,25 @@ def test_double_install_fail(script, data):
     msg = ("Double requirement given: pip==7.1.2 (already in pip==*, "
            "name='pip')")
     assert msg in result.stderr
+
+
+@pytest.mark.network
+def test_update_to_develop(script, tmpdir):
+    """
+    Test updating from install to develop mode removes original package
+    """
+    path = local_repo(
+        'git+http://github.com/pypa/pip-test-package.git',
+        tmpdir.join("cache"),
+    )
+
+    # regular install, then re-install with develop mode
+    result = script.pip(
+        'install', '%s' % path, expect_error=False)
+    result = script.pip(
+        'install', '-e', '%s' % path, expect_error=False)
+
+    # make sure we have overwritten the non-develop install with the
+    # git version.
+    result = script.pip('freeze', expect_stderr=True)
+    assert 'pip-test-package.git' in result.stdout
