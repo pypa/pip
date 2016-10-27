@@ -108,9 +108,6 @@ def search_packages_info(query):
         # It looks like FeedParser cannot deal with repeated headers
         classifiers = []
         for line in metadata.splitlines():
-            if not line:
-                break
-            # Classifier: License :: OSI Approved :: MIT License
             if line.startswith('Classifier: '):
                 classifiers.append(line[len('Classifier: '):])
         package['classifiers'] = classifiers
