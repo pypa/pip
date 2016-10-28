@@ -1,18 +1,22 @@
 **8.2.0 (unreleased)**
 
-* Added option to allow user to abort pip operation if file/directory exists
-
 * **DEPRECATION** ``pip install --egg`` have been deprecated and will be
   removed in the future. This "feature" has a long list of drawbacks where it
   breaks almost all of pip's other features in subtle and hard to diagnose
   ways.
+
+* Add a pip check command to check installed packages dependencies
+  (:pull:`3750`).
+
+* Added option to allow user to abort pip operation if file/directory exists
 
 * Added Appveyor CI
 
 * Uninstall existing packages when performing an editable installation of
   the same packages (:issue:`1548`).
 
-* Pip show is less verbose by default. `--verbose` prints multiline fields
+* Pip show is less verbose by default. `--verbose` prints multiline fields.
+  (:pull:`3858`).
 
 * Added optional column formatting to ``pip list`` (:issue:`3651`).
 
@@ -20,10 +24,15 @@
   not dependencies of other packages.
 
 * Fix the build on systems with symlinked /tmp directory for custom
-  builds such as numpy.
+  builds such as numpy (:pull:`3701`).
 
 * Fix regression in pip freeze: when there is more than one git remote,
-  priority is given to the remote named origin (:issue:`3616`)
+  priority is given to the remote named origin (:pull:`3708`, :issue:`3616`).
+
+* Fix crash when calling pip freeze with invalid requirement installed
+  (:pull:`3704`, :issue:`3681`).
+
+* Support multiple --requirement files in pip freeze (:pull:`3703`).
 
 * Implementation of pep-503 ``data-requires-python``. When this field is
   present for a release link, pip will ignore the download when
@@ -31,7 +40,10 @@
 
 * Pip wheel now works on editable packages too (it was only working on
   editable dependencies before); this allows running pip wheel on the result
-  of pip freeze in presence of editable requirements (:issue:`3291`)
+  of pip freeze in presence of editable requirements (:pull:`3695`,
+  :issue:`3291`).
+
+* Load credentials from .netrc files (:pull:`3715`, :issue:`3569`).
 
 * Add --platform, --python-version, --implementation and --abi parameters to
   ``pip download``. These allow utilities and advanced users to gather
@@ -52,8 +64,21 @@
 
 * Normalize package names before using in ``pip show`` (:issue:`3976`)
 
-* Raises when Requires-Python do not match the running version.
-  Add ``--ignore-requires-python`` escape hatch.
+* Raise when Requires-Python do not match the running version and add
+  ``--ignore-requires-python`` option as escape hatch (:pull:`3846`).
+
+* Report the correct installed version when performing an upgrade in some
+  corner cases (:issue:`2382`)
+
+* Add -i shorthand for --index flag in pip search
+
+* Do not optionally load C dependencies in requests (:issue:`1840`,
+  :issue:`2930`, :issue:`3024`)
+
+* Strip authentication from SVN url prior to passing it into svn
+  (:pull:`3697`, :issue:`3209`).
+
+* Also install in platlib with --target option (:pull:`3694`, :issue:`3682`).
 
 
 **8.1.2 (2016-05-10)**
