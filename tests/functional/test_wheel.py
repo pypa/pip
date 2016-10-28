@@ -53,10 +53,12 @@ def test_pip_wheel_downloads_wheels(script, data):
 @pytest.mark.network
 def test_pip_wheel_builds_when_no_binary_set(script, data):
     script.pip('install', 'wheel')
+    data.packages.join('simple-3.0-py2.py3-none-any.whl').touch()
+    # Check that the wheel package is ignored
     res = script.pip(
         'wheel', '--no-index', '--no-binary', ':all:', '-f', data.find_links,
-        'setuptools==0.9.8')
-    assert "Running setup.py bdist_wheel for setuptools" in str(res), str(res)
+        'simple==3.0')
+    assert "Running setup.py bdist_wheel for simple" in str(res), str(res)
 
 
 @pytest.mark.network
