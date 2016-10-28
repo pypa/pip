@@ -105,6 +105,7 @@ Modifications
 * pkg_resources has been modified to import its externs from pip._vendor
 * CacheControl has been modified to import its dependencies from pip._vendor
 * packaging has been modified to import its dependencies from pip._vendor
+* requests has been modified *not* to optionally load any C dependencies.
 
 
 Debundling
