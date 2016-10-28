@@ -1,13 +1,15 @@
 from __future__ import absolute_import
 
-from collections import defaultdict
-from itertools import chain
 import logging
 import os
+from collections import defaultdict
 
 from pip._vendor import pkg_resources
 from pip._vendor import requests
-
+try:
+    from concurrent.futures.thread import ThreadPoolExecutor
+except ImportError:
+    from pip._vendor.concurrent.futures.thread import ThreadPoolExecutor
 from pip.compat import expanduser
 from pip.download import (is_file_url, is_dir_url, is_vcs_url, url_to_path,
                           unpack_url)
@@ -29,7 +31,6 @@ logger = logging.getLogger(__name__)
 
 
 class Requirements(object):
-
     def __init__(self):
         self._keys = []
         self._dict = {}
@@ -104,7 +105,6 @@ def make_abstract_dist(req_to_install):
 
 
 class IsWheel(DistAbstraction):
-
     def dist(self, finder):
         return list(pkg_resources.find_distributions(
             self.req_to_install.source_dir))[0]
@@ -115,7 +115,6 @@ class IsWheel(DistAbstraction):
 
 
 class IsSDist(DistAbstraction):
-
     def dist(self, finder):
         dist = self.req_to_install.get_dist()
         # FIXME: shouldn't be globally added:
@@ -131,7 +130,6 @@ class IsSDist(DistAbstraction):
 
 
 class Installed(DistAbstraction):
-
     def dist(self, finder):
         return self.req_to_install.satisfied_by
 
@@ -140,7 +138,6 @@ class Installed(DistAbstraction):
 
 
 class RequirementSet(object):
-
     def __init__(self, build_dir, src_dir, download_dir, upgrade=False,
                  upgrade_strategy=None, ignore_installed=False, as_egg=False,
                  target_dir=None, ignore_dependencies=False,
@@ -258,9 +255,9 @@ class RequirementSet(object):
             except KeyError:
                 existing_req = None
             if (parent_req_name is None and existing_req and not
-                    existing_req.constraint and
-                    existing_req.extras == install_req.extras and not
-                    existing_req.req.specifier == install_req.req.specifier):
+            existing_req.constraint and
+                        existing_req.extras == install_req.extras and not
+                existing_req.req.specifier == install_req.req.specifier):
                 raise InstallationError(
                     'Double requirement given: %s (already in %s, name=%r)'
                     % (install_req, existing_req, name))
@@ -277,7 +274,7 @@ class RequirementSet(object):
                 result = []
                 if not install_req.constraint and existing_req.constraint:
                     if (install_req.link and not (existing_req.link and
-                       install_req.link.path == existing_req.link.path)):
+                                                          install_req.link.path == existing_req.link.path)):
                         self.reqs_to_cleanup.append(install_req)
                         raise InstallationError(
                             "Could not satisfy constraints for '%s': "
@@ -288,7 +285,7 @@ class RequirementSet(object):
                     existing_req.constraint = False
                     existing_req.extras = tuple(
                         sorted(set(existing_req.extras).union(
-                               set(install_req.extras))))
+                            set(install_req.extras))))
                     logger.debug("Setting %s extras to: %s",
                                  existing_req, existing_req.extras)
                     # And now we need to scan this.
@@ -304,16 +301,16 @@ class RequirementSet(object):
     def has_requirement(self, project_name):
         name = project_name.lower()
         if (name in self.requirements and
-           not self.requirements[name].constraint or
-           name in self.requirement_aliases and
-           not self.requirements[self.requirement_aliases[name]].constraint):
+                not self.requirements[name].constraint or
+                        name in self.requirement_aliases and
+                    not self.requirements[self.requirement_aliases[name]].constraint):
             return True
         return False
 
     @property
     def has_requirements(self):
         return list(req for req in self.requirements.values() if not
-                    req.constraint) or self.unnamed_requirements
+        req.constraint) or self.unnamed_requirements
 
     @property
     def is_download(self):
@@ -366,21 +363,39 @@ class RequirementSet(object):
         # exceptions cannot be checked ahead of time, because
         # req.populate_link() needs to be called before we can make decisions
         # based on link type.
-        discovered_reqs = []
         hash_errors = HashErrors()
-        for req in chain(root_reqs, discovered_reqs):
-            try:
-                discovered_reqs.extend(self._prepare_file(
-                    finder,
-                    req,
-                    require_hashes=require_hashes,
-                    ignore_dependencies=self.ignore_dependencies))
-            except HashError as exc:
-                exc.req = req
-                hash_errors.append(exc)
+
+        self._thread_pool = ThreadPoolExecutor(8)
+
+        discovered_reqs = self._prepare_requirements_in_parallel(root_reqs, finder, require_hashes)
+
+        def resolve_futures(requirements):
+            discovered_reqs = []
+            for requirement, future in requirements:
+                try:
+                    discovered_reqs.extend(future.result())
+                except HashError as exc:
+                    exc.req = requirement
+                    hash_errors.append(exc)
+            return discovered_reqs
+
+        while discovered_reqs:
+            discovered_reqs = resolve_futures(discovered_reqs)
+            if discovered_reqs:
+                discovered_reqs = self._prepare_requirements_in_parallel(discovered_reqs, finder, require_hashes)
+
+        self._thread_pool.shutdown()
 
         if hash_errors:
             raise hash_errors
+
+    def _prepare_requirements_in_parallel(self, requirements, finder, require_hashes):
+        return [(requirement, self._thread_pool.submit(self._prepare_file,
+                                                       finder,
+                                                       requirement,
+                                                       require_hashes=require_hashes,
+                                                       ignore_dependencies=self.ignore_dependencies)) for requirement in
+                requirements]
 
     def _is_upgrade_allowed(self, req):
         return self.upgrade and (
@@ -436,7 +451,7 @@ class RequirementSet(object):
                     # don't uninstall conflict if user install and
                     # conflict is not user install
                     if not (self.use_user_site and not
-                            dist_in_usersite(req_to_install.satisfied_by)):
+                    dist_in_usersite(req_to_install.satisfied_by)):
                         req_to_install.conflicts_with = \
                             req_to_install.satisfied_by
                     req_to_install.satisfied_by = None
@@ -493,7 +508,7 @@ class RequirementSet(object):
                     req_to_install)
             else:
                 if (req_to_install.link and
-                        req_to_install.link.scheme == 'file'):
+                            req_to_install.link.scheme == 'file'):
                     path = url_to_path(req_to_install.link.url)
                     logger.info('Processing %s', display_path(path))
                 else:
@@ -643,8 +658,8 @@ class RequirementSet(object):
                         # don't uninstall conflict if user install and
                         # conflict is not user install
                         if not (self.use_user_site and not
-                                dist_in_usersite(
-                                    req_to_install.satisfied_by)):
+                        dist_in_usersite(
+                            req_to_install.satisfied_by)):
                             req_to_install.conflicts_with = \
                                 req_to_install.satisfied_by
                         req_to_install.satisfied_by = None
@@ -746,6 +761,7 @@ class RequirementSet(object):
             for dep in self._dependencies[req]:
                 schedule(dep)
             order.append(req)
+
         for install_req in self.requirements.values():
             schedule(install_req)
         return order
@@ -782,7 +798,7 @@ class RequirementSet(object):
                 except:
                     # if install did not succeed, rollback previous uninstall
                     if (requirement.conflicts_with and not
-                            requirement.install_succeeded):
+                    requirement.install_succeeded):
                         requirement.rollback_uninstall()
                     raise
                 else:
