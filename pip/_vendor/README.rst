@@ -106,6 +106,7 @@ Modifications
 * CacheControl has been modified to import its dependencies from pip._vendor
 * packaging has been modified to import its dependencies from pip._vendor
 * requests has been modified *not* to optionally load any C dependencies.
+* Modified distro to delay importing argparse to avoid errors on 2.6
 
 
 Debundling

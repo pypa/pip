@@ -1,5 +1,5 @@
 distlib==0.2.4
-distro==0.6.0
+distro==1.0.0
 html5lib==1.0b8
 six==1.10.0
 colorama==0.3.7
