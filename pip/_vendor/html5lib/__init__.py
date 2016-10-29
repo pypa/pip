@@ -22,4 +22,4 @@ __all__ = ["HTMLParser", "parse", "parseFragment", "getTreeBuilder",
            "getTreeWalker", "serialize"]
 
 # this has to be at the top level, see how setup.py parses this
-__version__ = "1.0b8"
+__version__ = "1.0b10"

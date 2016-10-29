@@ -1,6 +1,6 @@
 distlib==0.2.4
 distro==1.0.0
-html5lib==1.0b8
+html5lib==1.0b10
 six==1.10.0
 colorama==0.3.7
 requests==2.10.0
