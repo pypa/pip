@@ -134,6 +134,12 @@ class Serializer(object):
 
         body_raw = cached["response"].pop("body")
 
+        headers = CaseInsensitiveDict(data=cached['response']['headers'])
+        if headers.get('transfer-encoding', '') == 'chunked':
+            headers.pop('transfer-encoding')
+
+        cached['response']['headers'] = headers
+
         try:
             body = io.BytesIO(body_raw)
         except TypeError:
