@@ -9,5 +9,5 @@ lockfile==0.12.2
 progress==1.2
 ipaddress==1.0.17  # Only needed on 2.6 and 2.7
 packaging==16.7
-pyparsing==2.1.1
+pyparsing==2.1.10
 retrying==1.3.3
