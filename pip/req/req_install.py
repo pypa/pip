@@ -66,6 +66,10 @@ def _strip_extras(path):
     return path_no_extras, extras
 
 
+def _safe_extras(extras):
+    return set(pkg_resources.safe_extra(extra) for extra in extras)
+
+
 class InstallRequirement(object):
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
@@ -85,7 +89,7 @@ class InstallRequirement(object):
                     add_msg = traceback.format_exc()
                 raise InstallationError(
                     "Invalid requirement: '%s'\n%s" % (req, add_msg))
-            self.extras = req.extras
+            self.extras = _safe_extras(req.extras)
 
         self.req = req
         self.comes_from = comes_from
@@ -149,7 +153,7 @@ class InstallRequirement(object):
                   wheel_cache=wheel_cache)
 
         if extras_override is not None:
-            res.extras = extras_override
+            res.extras = _safe_extras(extras_override)
 
         return res
 
@@ -224,7 +228,8 @@ class InstallRequirement(object):
                   wheel_cache=wheel_cache, constraint=constraint)
 
         if extras:
-            res.extras = Requirement('placeholder' + extras).extras
+            res.extras = _safe_extras(
+                Requirement('placeholder' + extras).extras)
 
         return res
 
@@ -1158,7 +1163,7 @@ def parse_editable(editable_req, default_vcs=None):
             return (
                 package_name,
                 url_no_extras,
-                Requirement("placeholder" + extras).extras,
+                Requirement("placeholder" + extras.lower()).extras,
             )
         else:
             return package_name, url_no_extras, None
