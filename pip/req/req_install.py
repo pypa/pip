@@ -683,6 +683,10 @@ class InstallRequirement(object):
                                             'easy-install.pth')
             paths_to_remove.add_pth(easy_install_pth, './' + easy_install_egg)
 
+        elif egg_info_exists and dist.egg_info.endswith('.dist-info'):
+            for path in pip.wheel.uninstallation_paths(dist):
+                paths_to_remove.add(path)
+
         elif develop_egg_link:
             # develop egg
             with open(develop_egg_link, 'r') as fh:
@@ -695,10 +699,6 @@ class InstallRequirement(object):
             easy_install_pth = os.path.join(os.path.dirname(develop_egg_link),
                                             'easy-install.pth')
             paths_to_remove.add_pth(easy_install_pth, dist.location)
-
-        elif egg_info_exists and dist.egg_info.endswith('.dist-info'):
-            for path in pip.wheel.uninstallation_paths(dist):
-                paths_to_remove.add(path)
 
         else:
             logger.debug(

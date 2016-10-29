@@ -428,3 +428,30 @@ def test_uninstall_setuptools_develop_install(script, data):
     ) in uninstall2.files_deleted, list(uninstall2.files_deleted.keys())
     list_result2 = script.pip('list', '--format=legacy')
     assert "FSPkg" not in list_result2.stdout
+
+
+def test_uninstall_editable_and_pip_install(script, data):
+    """Try uninstall after pip install -e after pip install"""
+    # SETUPTOOLS_SYS_PATH_TECHNIQUE=raw removes the assumption that `-e`
+    # installs are always higher priority than regular installs.
+    # This becomes the default behavior in setuptools 25.
+    script.environ['SETUPTOOLS_SYS_PATH_TECHNIQUE'] = 'raw'
+
+    pkg_path = data.packages.join("FSPkg")
+    script.pip('install', '-e', '.',
+               expect_stderr=True, cwd=pkg_path)
+    # ensure both are installed with --ignore-installed:
+    script.pip('install', '--ignore-installed', '.',
+               expect_stderr=True, cwd=pkg_path)
+    list_result = script.pip('list', '--format=legacy')
+    assert "FSPkg (0.1.dev0, " in list_result.stdout
+    # Uninstall both develop and install
+    uninstall = script.pip('uninstall', 'FSPkg', '-y')
+    assert not any(filename.endswith('.egg-link')
+                   for filename in uninstall.files_deleted.keys())
+    uninstall2 = script.pip('uninstall', 'FSPkg', '-y')
+    assert join(
+        script.site_packages, 'FSPkg.egg-link'
+    ) in uninstall2.files_deleted, list(uninstall2.files_deleted.keys())
+    list_result2 = script.pip('list', '--format=legacy')
+    assert "FSPkg" not in list_result2.stdout
