@@ -1,4 +1,4 @@
-distlib==0.2.3
+distlib==0.2.4
 distro==0.6.0
 html5lib==1.0b8
 six==1.10.0

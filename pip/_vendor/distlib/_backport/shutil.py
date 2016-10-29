@@ -55,8 +55,8 @@ class ReadError(EnvironmentError):
     """Raised when an archive cannot be read"""
 
 class RegistryError(Exception):
-    """Raised when a registery operation with the archiving
-    and unpacking registeries fails"""
+    """Raised when a registry operation with the archiving
+    and unpacking registries fails"""
 
 
 try:
@@ -648,7 +648,7 @@ def register_unpack_format(name, extensions, function, extra_args=None,
     _UNPACK_FORMATS[name] = extensions, function, extra_args, description
 
 def unregister_unpack_format(name):
-    """Removes the pack format from the registery."""
+    """Removes the pack format from the registry."""
     del _UNPACK_FORMATS[name]
 
 def _ensure_directory(path):
