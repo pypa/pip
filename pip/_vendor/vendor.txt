@@ -6,6 +6,7 @@ colorama==0.3.7
 requests==2.11.1
 CacheControl==0.11.7
 lockfile==0.12.2
+ordereddict==1.1  # Only needed on 2.6
 progress==1.2
 ipaddress==1.0.17  # Only needed on 2.6 and 2.7
 packaging==16.8
