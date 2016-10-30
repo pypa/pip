@@ -40,7 +40,7 @@ from pip.utils import (
 )
 
 from pip.utils.hashes import Hashes
-from pip.utils.deprecation import RemovedInPip9Warning, RemovedInPip10Warning
+from pip.utils.deprecation import RemovedInPip10Warning
 from pip.utils.logging import indent_log
 from pip.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip.utils.ui import open_spinner
@@ -1106,24 +1106,6 @@ def _strip_postfix(req):
     return req
 
 
-def _build_req_from_url(url):
-
-    parts = [p for p in url.split('#', 1)[0].split('/') if p]
-
-    req = None
-    if len(parts) > 2 and parts[-2] in ('tags', 'branches', 'tag', 'branch'):
-        req = parts[-3]
-    elif len(parts) > 1 and parts[-1] == 'trunk':
-        req = parts[-2]
-    if req:
-        warnings.warn(
-            'Sniffing the requirement name from the url is deprecated and '
-            'will be removed in the future. Please specify an #egg segment '
-            'instead.', RemovedInPip9Warning,
-            stacklevel=2)
-    return req
-
-
 def parse_editable(editable_req, default_vcs=None):
     """Parses an editable requirement into:
         - a requirement name
@@ -1193,7 +1175,9 @@ def parse_editable(editable_req, default_vcs=None):
 
     package_name = Link(url).egg_fragment
     if not package_name:
-        package_name = _build_req_from_url(editable_req)
+        raise InstallationError(
+            "Could not detect requirement name, please specify one with #egg="
+        )
     if not package_name:
         raise InstallationError(
             '--editable=%s is not the right format; it must have '
