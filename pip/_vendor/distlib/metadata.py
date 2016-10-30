@@ -444,16 +444,16 @@ class LegacyMetadata(object):
                     # check that the values are valid
                     if not scheme.is_valid_matcher(v.split(';')[0]):
                         logger.warning(
-                            '%r: %r is not valid (field %r)',
+                            "'%s': '%s' is not valid (field '%s')",
                             project_name, v, name)
             # FIXME this rejects UNKNOWN, is that right?
             elif name in _VERSIONS_FIELDS and value is not None:
                 if not scheme.is_valid_constraint_list(value):
-                    logger.warning('%r: %r is not a valid version (field %r)',
+                    logger.warning("'%s': '%s' is not a valid version (field '%s')",
                                    project_name, value, name)
             elif name in _VERSION_FIELDS and value is not None:
                 if not scheme.is_valid_version(value):
-                    logger.warning('%r: %r is not a valid version (field %r)',
+                    logger.warning("'%s': '%s' is not a valid version (field '%s')",
                                    project_name, value, name)
 
         if name in _UNICODEFIELDS:
@@ -531,7 +531,7 @@ class LegacyMetadata(object):
             for field in fields:
                 value = self.get(field, None)
                 if value is not None and not controller(value):
-                    warnings.append('Wrong value for %r: %s' % (field, value))
+                    warnings.append("Wrong value for '%s': %s" % (field, value))
 
         return missing, warnings
 
@@ -766,6 +766,8 @@ class Metadata(object):
                                 result = d.get(key, value)
                         else:
                             d = d.get('python.exports')
+                            if not d:
+                                d = self._data.get('python.exports')
                             if d:
                                 result = d.get(key, value)
                     if result is sentinel:
@@ -784,8 +786,8 @@ class Metadata(object):
             if (scheme or self.scheme) not in exclusions:
                 m = pattern.match(value)
                 if not m:
-                    raise MetadataInvalidError('%r is an invalid value for '
-                                               'the %r property' % (value,
+                    raise MetadataInvalidError("'%s' is an invalid value for "
+                                               "the '%s' property" % (value,
                                                                     key))
 
     def __setattr__(self, key, value):

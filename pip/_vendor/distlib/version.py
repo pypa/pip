@@ -137,7 +137,7 @@ class Matcher(object):
         Check if the provided version matches the constraints.
 
         :param version: The version to match against this instance.
-        :type version: Strring or :class:`Version` instance.
+        :type version: String or :class:`Version` instance.
         """
         if isinstance(version, string_types):
             version = self.version_class(version)
@@ -265,7 +265,7 @@ class NormalizedVersion(Version):
         TODO: fill this out
 
     Bad:
-        1           # mininum two numbers
+        1           # minimum two numbers
         1.2a        # release level must have a release serial
         1.2.3b
     """
@@ -494,7 +494,7 @@ def _suggest_normalized_version(s):
     rs = re.sub(r"dev$", r"dev0", rs)
 
     # if we have something like "b-2" or "a.2" at the end of the
-    # version, that is pobably beta, alpha, etc
+    # version, that is probably beta, alpha, etc
     # let's remove the dash or dot
     rs = re.sub(r"([abc]|rc)[\-\.](\d+)$", r"\1\2", rs)
 

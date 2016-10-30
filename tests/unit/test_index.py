@@ -90,18 +90,18 @@ class TestLink(object):
 @pytest.mark.parametrize(
     ("html", "url", "expected"),
     [
-        ("<html></html>", "https://example.com/", "https://example.com/"),
+        (b"<html></html>", "https://example.com/", "https://example.com/"),
         (
-            "<html><head>"
-            "<base href=\"https://foo.example.com/\">"
-            "</head></html>",
+            b"<html><head>"
+            b"<base href=\"https://foo.example.com/\">"
+            b"</head></html>",
             "https://example.com/",
             "https://foo.example.com/",
         ),
         (
-            "<html><head>"
-            "<base><base href=\"https://foo.example.com/\">"
-            "</head></html>",
+            b"<html><head>"
+            b"<base><base href=\"https://foo.example.com/\">"
+            b"</head></html>",
             "https://example.com/",
             "https://foo.example.com/",
         ),

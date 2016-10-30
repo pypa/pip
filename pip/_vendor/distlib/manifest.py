@@ -12,6 +12,7 @@ import fnmatch
 import logging
 import os
 import re
+import sys
 
 from . import DistlibException
 from .compat import fsdecode
@@ -26,6 +27,12 @@ logger = logging.getLogger(__name__)
 _COLLAPSE_PATTERN = re.compile('\\\w*\n', re.M)
 _COMMENTED_LINE = re.compile('#.*?(?=\n)|\n(?=$)', re.M | re.S)
 
+#
+# Due to the different results returned by fnmatch.translate, we need
+# to do slightly different processing for Python 2.7 and 3.2 ... this needed
+# to be brought in for Python 3.6 onwards.
+#
+_PYTHON_VERSION = sys.version_info[:2]
 
 class Manifest(object):
     """A list of files built by on exploring the filesystem and filtered by
@@ -322,24 +329,43 @@ class Manifest(object):
             else:
                 return pattern
 
+        if _PYTHON_VERSION > (3, 2):
+            # ditch start and end characters
+            start, _, end = self._glob_to_re('_').partition('_')
+
         if pattern:
             pattern_re = self._glob_to_re(pattern)
+            if _PYTHON_VERSION > (3, 2):
+                assert pattern_re.startswith(start) and pattern_re.endswith(end)
         else:
             pattern_re = ''
 
         base = re.escape(os.path.join(self.base, ''))
         if prefix is not None:
             # ditch end of pattern character
-            empty_pattern = self._glob_to_re('')
-            prefix_re = self._glob_to_re(prefix)[:-len(empty_pattern)]
+            if _PYTHON_VERSION <= (3, 2):
+                empty_pattern = self._glob_to_re('')
+                prefix_re = self._glob_to_re(prefix)[:-len(empty_pattern)]
+            else:
+                prefix_re = self._glob_to_re(prefix)
+                assert prefix_re.startswith(start) and prefix_re.endswith(end)
+                prefix_re = prefix_re[len(start): len(prefix_re) - len(end)]
             sep = os.sep
             if os.sep == '\\':
                 sep = r'\\'
-            pattern_re = '^' + base + sep.join((prefix_re,
-                                                '.*' + pattern_re))
-        else:                               # no prefix -- respect anchor flag
+            if _PYTHON_VERSION <= (3, 2):
+                pattern_re = '^' + base + sep.join((prefix_re,
+                                                    '.*' + pattern_re))
+            else:
+                pattern_re = pattern_re[len(start): len(pattern_re) - len(end)]
+                pattern_re = r'%s%s%s%s.*%s%s' % (start, base, prefix_re, sep,
+                                                  pattern_re, end)
+        else:  # no prefix -- respect anchor flag
             if anchor:
-                pattern_re = '^' + base + pattern_re
+                if _PYTHON_VERSION <= (3, 2):
+                    pattern_re = '^' + base + pattern_re
+                else:
+                    pattern_re = r'%s%s%s' % (start, base, pattern_re[len(start):])
 
         return re.compile(pattern_re)
 

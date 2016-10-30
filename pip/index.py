@@ -727,7 +727,7 @@ class HTMLPage(object):
         self.content = content
         self.parsed = html5lib.parse(
             self.content,
-            encoding=encoding,
+            transport_encoding=encoding,
             namespaceHTMLElements=False,
         )
         self.url = url

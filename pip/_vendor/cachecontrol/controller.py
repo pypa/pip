@@ -290,7 +290,7 @@ class CacheController(object):
         elif 'date' in response_headers:
             # cache when there is a max-age > 0
             if cc and cc.get('max-age'):
-                if int(cc['max-age']) > 0:
+                if cc['max-age'].isdigit() and int(cc['max-age']) > 0:
                     logger.debug('Caching b/c date exists and max-age > 0')
                     self.cache.set(
                         cache_url,
