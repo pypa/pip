@@ -80,6 +80,9 @@
 
 * Also install in platlib with --target option (:pull:`3694`, :issue:`3682`).
 
+* Restore the ability to use inline comments in requirements files passed to
+  ``pip freeze`` (:issue:`3680`).
+
 
 **8.1.2 (2016-05-10)**
 

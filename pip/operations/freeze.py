@@ -5,6 +5,7 @@ import re
 
 import pip
 from pip.req import InstallRequirement
+from pip.req.req_file import COMMENT_RE
 from pip.utils import get_installed_distributions
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.utils import canonicalize_name
@@ -96,7 +97,7 @@ def freeze(
                         )
                     else:
                         line_req = InstallRequirement.from_line(
-                            line,
+                            COMMENT_RE.sub('', line).strip(),
                             isolated=isolated,
                             wheel_cache=wheel_cache,
                         )
@@ -115,7 +116,7 @@ def freeze(
                         logger.warning(
                             "Requirement file [%s] contains %s, but that "
                             "package is not installed",
-                            req_file_path, line.strip(),
+                            req_file_path, COMMENT_RE.sub('', line).strip(),
                         )
                     else:
                         yield str(installations[line_req.name]).rstrip()
