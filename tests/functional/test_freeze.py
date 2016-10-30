@@ -421,7 +421,7 @@ def test_freeze_with_requirement_option(script):
 
     script.scratch_path.join("hint.txt").write(textwrap.dedent("""\
         INITools==0.1
-        NoExist==4.2
+        NoExist==4.2  # A comment that ensures end of line comments work.
         simple==3.0; python_version > '1.0'
         """) + _freeze_req_opts)
     result = script.pip_install_local('initools==0.2')
