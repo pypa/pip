@@ -5,6 +5,7 @@ import sys
 import textwrap
 
 from pip.basecommand import Command, SUCCESS
+from pip.compat import OrderedDict
 from pip.download import PipXmlrpcTransport
 from pip.models import PyPI
 from pip.utils import get_terminal_size
@@ -68,21 +69,17 @@ def transform_hits(hits):
     packages with the list of versions stored inline. This converts the
     list from pypi into one we can use.
     """
-    packages = {}
+    packages = OrderedDict()
     for hit in hits:
         name = hit['name']
         summary = hit['summary']
         version = hit['version']
-        score = hit['_pypi_ordering']
-        if score is None:
-            score = 0
 
         if name not in packages.keys():
             packages[name] = {
                 'name': name,
                 'summary': summary,
                 'versions': [version],
-                'score': score,
             }
         else:
             packages[name]['versions'].append(version)
@@ -90,16 +87,8 @@ def transform_hits(hits):
             # if this is the highest version, replace summary and score
             if version == highest_version(packages[name]['versions']):
                 packages[name]['summary'] = summary
-                packages[name]['score'] = score
 
-    # each record has a unique name now, so we will convert the dict into a
-    # list sorted by score
-    package_list = sorted(
-        packages.values(),
-        key=lambda x: x['score'],
-        reverse=True,
-    )
-    return package_list
+    return list(packages.values())
 
 
 def print_results(hits, name_column_width=None, terminal_width=None):
