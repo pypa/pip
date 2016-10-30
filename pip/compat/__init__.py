@@ -15,7 +15,7 @@ except ImportError:
 try:
     from collections import OrderedDict
 except ImportError:
-    from pip.compat.ordereddict import OrderedDict
+    from pip._vendor.ordereddict import OrderedDict
 
 try:
     import ipaddress
