@@ -10,6 +10,18 @@ import warnings
 import sys
 import re
 
+# 2016-06-17 barry@debian.org: urllib3 1.14 added optional support for socks,
+# but if invoked (i.e. imported), it will issue a warning to stderr if socks
+# isn't available.  requests unconditionally imports urllib3's socks contrib
+# module, triggering this warning.  The warning breaks DEP-8 tests (because of
+# the stderr output) and is just plain annoying in normal usage.  I don't want
+# to add socks as yet another dependency for pip, nor do I want to allow-stder
+# in the DEP-8 tests, so just suppress the warning.  pdb tells me this has to
+# be done before the import of pip.vcs.
+from pip._vendor.requests.packages.urllib3.exceptions import DependencyWarning
+warnings.filterwarnings("ignore", category=DependencyWarning)  # noqa
+
+
 from pip.exceptions import InstallationError, CommandError, PipError
 from pip.utils import get_installed_distributions, get_prog
 from pip.utils import deprecation, dist_is_editable
