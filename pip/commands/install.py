@@ -56,9 +56,12 @@ class InstallCommand(RequirementCommand):
 
         cmd_opts = self.cmd_opts
 
-        cmd_opts.add_option(cmdoptions.constraints())
-        cmd_opts.add_option(cmdoptions.editable())
         cmd_opts.add_option(cmdoptions.requirements())
+        cmd_opts.add_option(cmdoptions.constraints())
+        cmd_opts.add_option(cmdoptions.no_deps())
+        cmd_opts.add_option(cmdoptions.pre())
+
+        cmd_opts.add_option(cmdoptions.editable())
         cmd_opts.add_option(cmdoptions.build_dir())
 
         cmd_opts.add_option(
@@ -119,7 +122,6 @@ class InstallCommand(RequirementCommand):
             help='Ignore the installed packages (reinstalling instead).')
 
         cmd_opts.add_option(cmdoptions.ignore_requires_python())
-        cmd_opts.add_option(cmdoptions.no_deps())
 
         cmd_opts.add_option(cmdoptions.install_options())
         cmd_opts.add_option(cmdoptions.global_options())
@@ -177,7 +179,6 @@ class InstallCommand(RequirementCommand):
         cmd_opts.add_option(cmdoptions.no_use_wheel())
         cmd_opts.add_option(cmdoptions.no_binary())
         cmd_opts.add_option(cmdoptions.only_binary())
-        cmd_opts.add_option(cmdoptions.pre())
         cmd_opts.add_option(cmdoptions.no_clean())
         cmd_opts.add_option(cmdoptions.require_hashes())
 
