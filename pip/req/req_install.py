@@ -1157,6 +1157,11 @@ def parse_editable(editable_req, default_vcs=None):
 
     if '+' not in url:
         if default_vcs:
+            warnings.warn(
+                "--default-vcs has been deprecated and will be removed in "
+                "the future.",
+                RemovedInPip10Warning,
+            )
             url = default_vcs + '+' + url
         else:
             raise InstallationError(
