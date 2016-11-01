@@ -100,7 +100,10 @@ class InstallRequirement(object):
         self._wheel_cache = wheel_cache
         self.link = self.original_link = link
         self.as_egg = as_egg
-        self.markers = markers
+        if markers is not None:
+            self.markers = markers
+        else:
+            self.markers = req and req.marker and str(req.marker)
         self._egg_info_path = None
         # This holds the pkg_resources.Distribution object if this requirement
         # is already available:
