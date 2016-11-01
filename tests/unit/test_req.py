@@ -416,14 +416,14 @@ class TestInstallRequirement(object):
             req = InstallRequirement.from_line(line)
             assert req.req.name == 'mock3'
             assert str(req.req.specifier) == ''
-            assert req.markers == 'python_version >= "3"'
+            assert str(req.markers) == 'python_version >= "3"'
 
     def test_markers_semicolon(self):
         # check that the markers can contain a semicolon
         req = InstallRequirement.from_line('semicolon; os_name == "a; b"')
         assert req.req.name == 'semicolon'
         assert str(req.req.specifier) == ''
-        assert req.markers == 'os_name == "a; b"'
+        assert str(req.markers) == 'os_name == "a; b"'
 
     def test_markers_url(self):
         # test "URL; markers" syntax
@@ -431,7 +431,7 @@ class TestInstallRequirement(object):
         line = '%s; python_version >= "3"' % url
         req = InstallRequirement.from_line(line)
         assert req.link.url == url, req.url
-        assert req.markers == 'python_version >= "3"'
+        assert str(req.markers) == 'python_version >= "3"'
 
         # without space, markers are part of the URL
         url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
@@ -448,7 +448,7 @@ class TestInstallRequirement(object):
         ):
             line = 'name; ' + markers
             req = InstallRequirement.from_line(line)
-            assert req.markers == markers
+            assert str(req.markers) == str(Marker(markers))
             assert req.match_markers()
 
         # don't match
@@ -458,7 +458,7 @@ class TestInstallRequirement(object):
         ):
             line = 'name; ' + markers
             req = InstallRequirement.from_line(line)
-            assert req.markers == markers
+            assert str(req.markers) == str(Marker(markers))
             assert not req.match_markers()
 
     def test_markers_match(self):
