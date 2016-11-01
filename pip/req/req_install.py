@@ -103,7 +103,7 @@ class InstallRequirement(object):
         if markers is not None:
             self.markers = markers
         else:
-            self.markers = req and req.marker and str(req.marker)
+            self.markers = req and req.marker
         self._egg_info_path = None
         # This holds the pkg_resources.Distribution object if this requirement
         # is already available:
@@ -178,6 +178,8 @@ class InstallRequirement(object):
             markers = markers.strip()
             if not markers:
                 markers = None
+            else:
+                markers = Marker(markers)
         else:
             markers = None
         name = name.strip()
@@ -824,7 +826,7 @@ class InstallRequirement(object):
 
     def match_markers(self):
         if self.markers is not None:
-            return Marker(self.markers).evaluate()
+            return self.markers.evaluate()
         else:
             return True
 

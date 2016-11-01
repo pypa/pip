@@ -227,7 +227,7 @@ class RequirementSet(object):
         """
         name = install_req.name
         if not install_req.match_markers():
-            logger.warning("Ignoring %s: markers %r don't match your "
+            logger.warning("Ignoring %s: markers '%s' don't match your "
                            "environment", install_req.name,
                            install_req.markers)
             return []
