@@ -100,7 +100,10 @@ class InstallRequirement(object):
         self._wheel_cache = wheel_cache
         self.link = self.original_link = link
         self.as_egg = as_egg
-        self.markers = markers
+        if markers is not None:
+            self.markers = markers
+        else:
+            self.markers = req and req.marker
         self._egg_info_path = None
         # This holds the pkg_resources.Distribution object if this requirement
         # is already available:
@@ -175,6 +178,8 @@ class InstallRequirement(object):
             markers = markers.strip()
             if not markers:
                 markers = None
+            else:
+                markers = Marker(markers)
         else:
             markers = None
         name = name.strip()
@@ -819,9 +824,15 @@ class InstallRequirement(object):
         name = name.replace(os.path.sep, '/')
         return name
 
-    def match_markers(self):
+    def match_markers(self, extras_requested=None):
+        if not extras_requested:
+            # Provide an extra to safely evaluate the markers
+            # without matching any extra
+            extras_requested = ('',)
         if self.markers is not None:
-            return Marker(self.markers).evaluate()
+            return any(
+                self.markers.evaluate({'extra': extra})
+                for extra in extras_requested)
         else:
             return True
 

@@ -16,6 +16,7 @@ from pip.req.req_file import process_line
 from pip.req.req_install import parse_editable
 from pip.utils import read_text_file
 from pip._vendor import pkg_resources
+from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
 from tests.lib import assert_raises_regexp, requirements_file
 
@@ -415,14 +416,14 @@ class TestInstallRequirement(object):
             req = InstallRequirement.from_line(line)
             assert req.req.name == 'mock3'
             assert str(req.req.specifier) == ''
-            assert req.markers == 'python_version >= "3"'
+            assert str(req.markers) == 'python_version >= "3"'
 
     def test_markers_semicolon(self):
         # check that the markers can contain a semicolon
         req = InstallRequirement.from_line('semicolon; os_name == "a; b"')
         assert req.req.name == 'semicolon'
         assert str(req.req.specifier) == ''
-        assert req.markers == 'os_name == "a; b"'
+        assert str(req.markers) == 'os_name == "a; b"'
 
     def test_markers_url(self):
         # test "URL; markers" syntax
@@ -430,7 +431,7 @@ class TestInstallRequirement(object):
         line = '%s; python_version >= "3"' % url
         req = InstallRequirement.from_line(line)
         assert req.link.url == url, req.url
-        assert req.markers == 'python_version >= "3"'
+        assert str(req.markers) == 'python_version >= "3"'
 
         # without space, markers are part of the URL
         url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
@@ -439,7 +440,7 @@ class TestInstallRequirement(object):
         assert req.link.url == line, req.url
         assert req.markers is None
 
-    def test_markers_match(self):
+    def test_markers_match_from_line(self):
         # match
         for markers in (
             'python_version >= "1.0"',
@@ -447,7 +448,7 @@ class TestInstallRequirement(object):
         ):
             line = 'name; ' + markers
             req = InstallRequirement.from_line(line)
-            assert req.markers == markers
+            assert str(req.markers) == str(Marker(markers))
             assert req.match_markers()
 
         # don't match
@@ -457,7 +458,28 @@ class TestInstallRequirement(object):
         ):
             line = 'name; ' + markers
             req = InstallRequirement.from_line(line)
-            assert req.markers == markers
+            assert str(req.markers) == str(Marker(markers))
+            assert not req.match_markers()
+
+    def test_markers_match(self):
+        # match
+        for markers in (
+            'python_version >= "1.0"',
+            'sys_platform == %r' % sys.platform,
+        ):
+            line = 'name; ' + markers
+            req = InstallRequirement(line, comes_from='')
+            assert str(req.markers) == str(Marker(markers))
+            assert req.match_markers()
+
+        # don't match
+        for markers in (
+            'python_version >= "5.0"',
+            'sys_platform != %r' % sys.platform,
+        ):
+            line = 'name; ' + markers
+            req = InstallRequirement(line, comes_from='')
+            assert str(req.markers) == str(Marker(markers))
             assert not req.match_markers()
 
     def test_extras_for_line_path_requirement(self):
