@@ -825,7 +825,7 @@ class InstallRequirement(object):
         return name
 
     def match_markers(self, extras_requested=None):
-        if extras_requested is None:
+        if not extras_requested:
             # Provide an extra to safely evaluate the markers
             # without matching any extra
             extras_requested = ('',)
