@@ -84,14 +84,6 @@ class ListCommand(Command):
         )
 
         cmd_opts.add_option(
-            '--columns',
-            action='store_const',
-            const='columns',
-            dest='list_format',
-            help="Align package names and versions into vertical columns.",
-        )
-
-        cmd_opts.add_option(
             '--not-required',
             action='store_true',
             dest='not_required',
