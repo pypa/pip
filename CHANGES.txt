@@ -86,6 +86,8 @@
 * Restore the ability to use inline comments in requirements files passed to
   ``pip freeze`` (:issue:`3680`).
 
+* Deprecate --default-vcs option (:issue:`4052`).
+
 
 **8.1.2 (2016-05-10)**
 
