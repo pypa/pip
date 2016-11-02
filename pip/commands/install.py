@@ -62,8 +62,6 @@ class InstallCommand(RequirementCommand):
         cmd_opts.add_option(cmdoptions.pre())
 
         cmd_opts.add_option(cmdoptions.editable())
-        cmd_opts.add_option(cmdoptions.build_dir())
-
         cmd_opts.add_option(
             '-t', '--target',
             dest='target_dir',
@@ -74,6 +72,28 @@ class InstallCommand(RequirementCommand):
                  '<dir>. Use --upgrade to replace existing packages in <dir> '
                  'with new versions.'
         )
+        cmd_opts.add_option(
+            '--user',
+            dest='use_user_site',
+            action='store_true',
+            help="Install to the Python user install directory for your "
+                 "platform. Typically ~/.local/, or %APPDATA%\Python on "
+                 "Windows. (See the Python documentation for site.USER_BASE "
+                 "for full details.)")
+        cmd_opts.add_option(
+            '--root',
+            dest='root_path',
+            metavar='dir',
+            default=None,
+            help="Install everything relative to this alternate root "
+                 "directory.")
+        cmd_opts.add_option(
+            '--prefix',
+            dest='prefix_path',
+            metavar='dir',
+            default=None,
+            help="Installation prefix where lib, bin and other top-level "
+                 "folders are placed")
 
         cmd_opts.add_option(
             '-d', '--download', '--download-dir', '--download-directory',
@@ -83,6 +103,7 @@ class InstallCommand(RequirementCommand):
             help=("Download packages into <dir> instead of installing them, "
                   "regardless of what's already installed."),
         )
+        cmd_opts.add_option(cmdoptions.build_dir())
 
         cmd_opts.add_option(cmdoptions.src())
 
@@ -127,15 +148,6 @@ class InstallCommand(RequirementCommand):
         cmd_opts.add_option(cmdoptions.global_options())
 
         cmd_opts.add_option(
-            '--user',
-            dest='use_user_site',
-            action='store_true',
-            help="Install to the Python user install directory for your "
-                 "platform. Typically ~/.local/, or %APPDATA%\Python on "
-                 "Windows. (See the Python documentation for site.USER_BASE "
-                 "for full details.)")
-
-        cmd_opts.add_option(
             '--egg',
             dest='as_egg',
             action='store_true',
@@ -143,22 +155,6 @@ class InstallCommand(RequirementCommand):
                  "does. This option is not about installing *from* eggs. "
                  "(WARNING: Because this option overrides pip's normal install"
                  " logic, requirements files may not behave as expected.)")
-
-        cmd_opts.add_option(
-            '--root',
-            dest='root_path',
-            metavar='dir',
-            default=None,
-            help="Install everything relative to this alternate root "
-                 "directory.")
-
-        cmd_opts.add_option(
-            '--prefix',
-            dest='prefix_path',
-            metavar='dir',
-            default=None,
-            help="Installation prefix where lib, bin and other top-level "
-                 "folders are placed")
 
         cmd_opts.add_option(
             "--compile",
