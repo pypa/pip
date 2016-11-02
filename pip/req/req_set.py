@@ -212,7 +212,8 @@ class RequirementSet(object):
         return ('<%s object; %d requirement(s): %s>'
                 % (self.__class__.__name__, len(reqs), reqs_str))
 
-    def add_requirement(self, install_req, parent_req_name=None):
+    def add_requirement(self, install_req, parent_req_name=None,
+                        extras_requested=None):
         """Add install_req as a requirement to install.
 
         :param parent_req_name: The name of the requirement that needed this
@@ -221,12 +222,14 @@ class RequirementSet(object):
             links that point outside the Requirements set. parent_req must
             already be added. Note that None implies that this is a user
             supplied requirement, vs an inferred one.
+        :param extras_requested: an iterable of extras used to evaluate the
+            environement markers.
         :return: Additional requirements to scan. That is either [] if
             the requirement is not applicable, or [install_req] if the
             requirement is applicable and has just been added.
         """
         name = install_req.name
-        if not install_req.match_markers():
+        if not install_req.match_markers(extras_requested):
             logger.warning("Ignoring %s: markers '%s' don't match your "
                            "environment", install_req.name,
                            install_req.markers)
@@ -669,7 +672,7 @@ class RequirementSet(object):
                     raise
             more_reqs = []
 
-            def add_req(subreq):
+            def add_req(subreq, extras_requested):
                 sub_install_req = InstallRequirement(
                     str(subreq),
                     req_to_install,
@@ -677,7 +680,8 @@ class RequirementSet(object):
                     wheel_cache=self._wheel_cache,
                 )
                 more_reqs.extend(self.add_requirement(
-                    sub_install_req, req_to_install.name))
+                    sub_install_req, req_to_install.name,
+                    extras_requested=extras_requested))
 
             # We add req_to_install before its dependencies, so that we
             # can refer to it when adding dependencies.
@@ -704,7 +708,7 @@ class RequirementSet(object):
                     set(dist.extras) & set(req_to_install.extras)
                 )
                 for subreq in dist.requires(available_requested):
-                    add_req(subreq)
+                    add_req(subreq, extras_requested=available_requested)
 
             # cleanup tmp src
             self.reqs_to_cleanup.append(req_to_install)

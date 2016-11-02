@@ -824,9 +824,15 @@ class InstallRequirement(object):
         name = name.replace(os.path.sep, '/')
         return name
 
-    def match_markers(self):
+    def match_markers(self, extras_requested=None):
+        if extras_requested is None:
+            # Provide an extra to safely evaluate the markers
+            # without matching any extra
+            extras_requested = ('',)
         if self.markers is not None:
-            return self.markers.evaluate()
+            return any(
+                self.markers.evaluate({'extra': extra})
+                for extra in extras_requested)
         else:
             return True
 
