@@ -352,13 +352,17 @@ You'll need to use ``pip install -e vcs+protocol://repo_url/#egg=pkg&subdirector
 Git
 ~~~
 
-pip currently supports cloning over ``git``, ``git+https`` and ``git+ssh``:
+pip currently supports cloning over ``git``, ``git+http``, ``git+https``,
+``git+ssh``, ``git+git`` and ``git+file``:
 
 Here are the supported forms::
 
-    [-e] git+git://git.myproject.org/MyProject#egg=MyProject
+    [-e] git://git.myproject.org/MyProject#egg=MyProject
+    [-e] git+http://git.myproject.org/MyProject#egg=MyProject
     [-e] git+https://git.myproject.org/MyProject#egg=MyProject
     [-e] git+ssh://git.myproject.org/MyProject#egg=MyProject
+    [-e] git+git://git.myproject.org/MyProject#egg=MyProject
+    [-e] git+file://git.myproject.org/MyProject#egg=MyProject
     -e git+git@git.myproject.org:MyProject#egg=MyProject
 
 Passing branch names, a commit hash or a tag name is possible like so::
