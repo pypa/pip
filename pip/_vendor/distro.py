@@ -589,12 +589,14 @@ class LinuxDistribution(object):
         self.os_release_file = os_release_file or \
             os.path.join(_UNIXCONFDIR, _OS_RELEASE_BASENAME)
         self.distro_release_file = distro_release_file or ''  # updated later
-        self._os_release_info = self._os_release_info()
-        self._lsb_release_info = self._lsb_release_info() \
+        self._os_release_info = self._get_os_release_info()
+        self._lsb_release_info = self._get_lsb_release_info() \
             if include_lsb else {}
-        self._distro_release_info = self._distro_release_info()
+        self._distro_release_info = self._get_distro_release_info()
 
     def __repr__(self):
+        """Return repr of all info
+        """
         return \
             "LinuxDistribution(" \
             "os_release_file={0!r}, " \
@@ -623,12 +625,10 @@ class LinuxDistribution(object):
         )
 
     def id(self):
-        """
-        Return the distro ID of the Linux distribution, as a string.
+        """Return the distro ID of the Linux distribution, as a string.
 
         For details, see :func:`distro.id`.
         """
-
         def normalize(distro_id, table):
             distro_id = distro_id.lower().replace(' ', '_')
             return table.get(distro_id, distro_id)
@@ -833,7 +833,7 @@ class LinuxDistribution(object):
         """
         return self._distro_release_info.get(attribute, '')
 
-    def _os_release_info(self):
+    def _get_os_release_info(self):
         """
         Get the information items from the specified os-release file.
 
@@ -905,7 +905,7 @@ class LinuxDistribution(object):
                 pass
         return props
 
-    def _lsb_release_info(self):
+    def _get_lsb_release_info(self):
         """
         Get the information items from the lsb_release command output.
 
@@ -919,7 +919,7 @@ class LinuxDistribution(object):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE)
         stdout, stderr = process.communicate()
-        stdout, stderr = stdout.decode('ascii'), stderr.decode('ascii')
+        stdout, stderr = stdout.decode('utf-8'), stderr.decode('utf-8')
         code = process.returncode
         if code == 0:
             content = stdout.splitlines()
@@ -950,8 +950,7 @@ class LinuxDistribution(object):
         """
         props = {}
         for line in lines:
-            if isinstance(line, bytes):
-                line = line.decode('utf-8')
+            line = line.decode('utf-8') if isinstance(line, bytes) else line
             kv = line.strip('\n').split(':', 1)
             if len(kv) != 2:
                 # Ignore lines without colon.
@@ -960,7 +959,7 @@ class LinuxDistribution(object):
             props.update({k.replace(' ', '_').lower(): v.strip()})
         return props
 
-    def _distro_release_info(self):
+    def _get_distro_release_info(self):
         """
         Get the information items from the specified distro release file.
 
@@ -1067,15 +1066,15 @@ def main():
     args = parser.parse_args()
 
     if args.json:
-        logger.info(json.dumps(info()))
+        logger.info(json.dumps(info(), indent=4, sort_keys=True))
     else:
-        logger.info('Name: {0}'.format(name(pretty=True)))
+        logger.info('Name: %s', name(pretty=True))
         distribution_version = version(pretty=True)
         if distribution_version:
-            logger.info('Version: {0}'.format(distribution_version))
+            logger.info('Version: %s', distribution_version)
         distribution_codename = codename()
         if distribution_codename:
-            logger.info('Codename: {0}'.format(distribution_codename))
+            logger.info('Codename: %s', distribution_codename)
 
 
 if __name__ == '__main__':
