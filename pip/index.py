@@ -1036,16 +1036,6 @@ class Link(object):
 
         return True
 
-    def normalize(self):
-        parsed = urllib_parse.urlsplit(self.url)
-        if parsed.scheme == 'file':
-            path = urllib_request.url2pathname(parsed.path)
-            path = normalize_path(path)
-            path = urllib_request.pathname2url(path)
-            self.url = urllib_parse.urlunsplit(
-                (parsed.scheme, parsed.netloc,
-                 path, parsed.query, parsed.fragment))
-
 
 FormatControl = namedtuple('FormatControl', 'no_binary only_binary')
 """This object has two fields, no_binary and only_binary.
