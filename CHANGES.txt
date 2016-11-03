@@ -14,8 +14,11 @@
   removed in the future. This "feature" has a long list of drawbacks which 
   break nearly all of pip's other features in subtle and hard-to-diagnose
   ways.
-  
+
 * **DEPRECATION** ``--default-vcs`` option (:issue:`4052`).
+
+* **WARNING** pip 9 cache can break forward compatibility with previous pip
+  versions if your package repository allows chunked responses (:issue:`4078`).
 
 * Add a ``pip check`` command to check installed packages dependencies
   (:pull:`3750`).
