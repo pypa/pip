@@ -337,29 +337,6 @@ def test_constrained_to_url_install_same_url(script, data):
     assert 'Running setup.py install for singlemodule' in result.stdout
 
 
-def test_constraints_constrain_to_local_dotdot(script, data):
-    to_install = data.src.join("singlemodule/subdir/..")
-    script.scratch_path.join("constraints.txt").write(
-        "file://%s#egg=singlemodule" % to_install
-    )
-    result = script.pip(
-        'install', '--no-index', '-f', data.find_links, '-c',
-        script.scratch_path / 'constraints.txt', to_install)
-    assert 'Running setup.py install for singlemodule' in result.stdout
-
-
-def test_constraints_constrain_to_local_extraslash(script, data):
-    to_install = data.src.join("singlemodule")
-    to_install = '//'.join(to_install.rsplit('/', 1))
-    script.scratch_path.join("constraints.txt").write(
-        "file://%s#egg=singlemodule" % to_install
-    )
-    result = script.pip(
-        'install', '--no-index', '-f', data.find_links, '-c',
-        script.scratch_path / 'constraints.txt', to_install)
-    assert 'Running setup.py install for singlemodule' in result.stdout
-
-
 @pytest.mark.network
 def test_double_install_spurious_hash_mismatch(script, tmpdir):
     """Make sure installing the same hashed sdist twice doesn't throw hash
