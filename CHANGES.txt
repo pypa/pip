@@ -1,5 +1,9 @@
 **9.1.0 (unreleased)**
 
+* Correct the deprecation message when not specifying a --format so that it
+  uses the correct setting name (``format``) rather than the incorrect one
+  (``list_format``) (:issue:`4058`).
+
 
 **9.0.0 (2016-11-02)**
 

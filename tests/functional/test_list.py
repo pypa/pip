@@ -3,8 +3,9 @@ import os
 import pytest
 
 WARN_FORMAT = ("DEPRECATION: The default format will switch to columns in the "
-               "future. You can use --format=legacy (or define a list_format "
-               "in your pip.conf) to disable this warning.")
+               "future. You can use --format=(legacy|columns) (or define a "
+               "format=(legacy|columns) in your pip.conf under the [list] "
+               "section) to disable this warning.")
 
 
 def test_list_command(script, data):
