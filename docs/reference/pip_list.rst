@@ -49,7 +49,7 @@ Examples
 
     ::
 
-     $ pip list --columns
+     $ pip list --format columns
      Package Version
      ------- -------
      docopt  0.6.2
@@ -60,7 +60,7 @@ Examples
 
     ::
 
-     $ pip list -o --columns
+     $ pip list -o --format columns
      Package    Version Latest Type
      ---------- ------- ------ -----
      retry      0.8.1   0.9.1  wheel
