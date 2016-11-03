@@ -43,10 +43,8 @@ def get_incompatible_reqs(dist, installed_dists):
     for installed_dist in installed_dists:
         installed_dists_by_name[installed_dist.project_name] = installed_dist
 
-    incompatible_requirements = set()
     for requirement in dist.requires():
         present_dist = installed_dists_by_name.get(requirement.project_name)
 
         if present_dist and present_dist not in requirement:
-            incompatible_requirements.add((requirement, present_dist))
             yield (requirement, present_dist)
