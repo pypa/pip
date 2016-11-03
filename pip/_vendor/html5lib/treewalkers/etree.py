@@ -10,7 +10,7 @@ except ImportError:
 
 import re
 
-from pip._vendor. import string_types
+from pip._vendor.six import string_types
 
 from . import base
 from .._utils import moduleFactoryFactory
