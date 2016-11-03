@@ -91,7 +91,7 @@ the `Python Packaging User Guide
 Upgrading pip
 -------------
 
-On Linux or OS X:
+On Linux or macOS:
 
 ::
 
@@ -114,7 +114,7 @@ This means pip works on the latest patch version of each of these minor versions
 (i.e. 2.6.9 for 2.6, etc).
 Previous patch versions are supported on a best effort approach.
 
-pip works on Unix/Linux, OS X, and Windows.
+pip works on Unix/Linux, macOS, and Windows.
 
 
 ----

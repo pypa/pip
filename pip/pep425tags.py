@@ -164,12 +164,12 @@ def is_manylinux1_compatible():
 
 def get_darwin_arches(major, minor, machine):
     """Return a list of supported arches (including group arches) for
-    the given major, minor and machine architecture of an OS X machine.
+    the given major, minor and machine architecture of an macOS machine.
     """
     arches = []
 
     def _supports_arch(major, minor, arch):
-        # Looking at the application support for OS X versions in the chart
+        # Looking at the application support for macOS versions in the chart
         # provided by https://en.wikipedia.org/wiki/OS_X#Versions it appears
         # our timeline looks roughly like:
         #

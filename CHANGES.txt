@@ -157,7 +157,7 @@
   specific interpreter (:issue:`3472`).
 
 * Fix an issue where pip would erroneously install a 64 bit wheel on a 32 bit
-  Python running on a 64 bit OS X machine.
+  Python running on a 64 bit macOS machine.
 
 * Do not assume that all git repositories have an origin remote.
 
@@ -1049,7 +1049,7 @@
 
 * Improvements to sphinx docs and cli help. (:pull:`773`)
 
-* Fixed :issue:`707`, dealing with OS X temp dir handling, which was causing
+* Fixed :issue:`707`, dealing with macOS temp dir handling, which was causing
   global NumPy installs to fail. (:pull:`768`)
 
 * Split help output into general vs command-specific option groups.
@@ -1194,10 +1194,10 @@
   get the benefits of pip's support you must use Distribute rather than
   setuptools.
 
-* Fixed :issue:`57` - ignore py2app-generated OS X mpkg zip files in finder.
+* Fixed :issue:`57` - ignore py2app-generated macOS mpkg zip files in finder.
   Thanks Rene Dudfield.
 
-* Fixed :issue:`182` - log to ~/Library/Logs/ by default on OS X framework
+* Fixed :issue:`182` - log to ~/Library/Logs/ by default on macOS framework
   installs. Thanks Dan Callahan for report and patch.
 
 * Fixed :issue:`310` - understand version tags without minor version ("py3")
@@ -1320,7 +1320,7 @@
 
     pip install git+https://github.com/pypa/pip/
 
-* Fixed :issue:`175` - Correctly locate build and source directory on Mac OS X.
+* Fixed :issue:`175` - Correctly locate build and source directory on macOS.
 
 * Added ``git+https://`` scheme to Git VCS backend.
 
@@ -1405,7 +1405,7 @@
   a non-writable symlink to the global location).
 * pip now logs to a central location by default (instead of creating
   ``pip-log.txt`` all over the place) and constantly overwrites the
-  file in question. On Unix and Mac OS X this is ``'$HOME/.pip/pip.log'``
+  file in question. On Unix and macOS this is ``'$HOME/.pip/pip.log'``
   and on Windows it's ``'%HOME%\\pip\\pip.log'``. You are still able to
   override this location with the ``$PIP_LOG_FILE`` environment variable.
   For a complete (appended) logfile use the separate ``'--log'`` command line
@@ -1489,7 +1489,7 @@
 
 * Fixed uninstallation of easy_installed console_scripts.
 
-* Fixed uninstallation on Mac OS X Framework layout installs
+* Fixed uninstallation on macOS Framework layout installs
 
 * Fixed bug preventing uninstall of editables with source outside venv.
 

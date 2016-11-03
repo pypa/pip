@@ -155,7 +155,7 @@ class TestWheelFile(object):
     @patch('pip.pep425tags.get_platform', lambda: 'macosx_10_9_intel')
     def test_supported_osx_version(self):
         """
-        Wheels built for OS X 10.6 are supported on 10.9
+        Wheels built for macOS 10.6 are supported on 10.9
         """
         tags = pep425tags.get_supported(['27'], False)
         w = wheel.Wheel('simple-0.1-cp27-none-macosx_10_6_intel.whl')
@@ -168,7 +168,7 @@ class TestWheelFile(object):
     @patch('pip.pep425tags.get_platform', lambda: 'macosx_10_6_intel')
     def test_not_supported_osx_version(self):
         """
-        Wheels built for OS X 10.9 are not supported on 10.6
+        Wheels built for macOS 10.9 are not supported on 10.6
         """
         tags = pep425tags.get_supported(['27'], False)
         w = wheel.Wheel('simple-0.1-cp27-none-macosx_10_9_intel.whl')
