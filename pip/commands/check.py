@@ -1,8 +1,8 @@
 import logging
 
 from pip.basecommand import Command
-from pip.operations.check import (
-    check_requirements, get_installed_distributions)
+from pip.operations.check import check_requirements
+from pip.utils import get_installed_distributions
 
 
 logger = logging.getLogger(__name__)
@@ -16,10 +16,10 @@ class CheckCommand(Command):
     summary = 'Verify installed packages have compatible dependencies.'
 
     def run(self, options, args):
-        installed = get_installed_distributions(skip=())
-        missing_reqs_dict, incompatible_reqs_dict = check_requirements()
+        dists = get_installed_distributions(local_only=False, skip=())
+        missing_reqs_dict, incompatible_reqs_dict = check_requirements(dists)
 
-        for dist in installed:
+        for dist in dists:
             key = '%s==%s' % (dist.project_name, dist.version)
 
             for requirement in missing_reqs_dict.get(key, []):
