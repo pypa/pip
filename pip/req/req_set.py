@@ -489,8 +489,9 @@ class RequirementSet(object):
                     'req_to_install.satisfied_by is set to %r'
                     % (req_to_install.satisfied_by,))
                 logger.info(
-                    'Requirement %s: %s', skip_reason,
-                    req_to_install)
+                    'Requirement %s: %s (%s)', skip_reason,
+                    req_to_install,
+                    req_to_install.satisfied_by.version)
             else:
                 if (req_to_install.link and
                         req_to_install.link.scheme == 'file'):
