@@ -1,4 +1,4 @@
-import pytest
+from tests.lib import create_test_package_with_setup
 
 
 def matches_expected_lines(string, expected_lines):
@@ -20,78 +20,101 @@ def test_check_clean(script):
     assert matches_expected_lines(result.stdout, expected_lines)
 
 
-@pytest.mark.network
 def test_check_missing_dependency(script):
-    # this will also install ipython, a dependency
-    script.pip('install', 'ipdb==0.7')
-
-    # deliberately remove the dependency
-    script.pip('uninstall', 'ipython', '--yes')
+    # Setup a small project
+    pkga_path = create_test_package_with_setup(
+        script,
+        name='pkga', version='1.0', install_requires=['missing==0.1'],
+    )
+    # Let's install pkga without its dependency
+    res = script.pip('install', '--no-index', pkga_path, '--no-deps')
+    assert "Successfully installed pkga-1.0" in res.stdout, str(res)
 
     result = script.pip('check', expect_error=True)
 
     expected_lines = (
-        "ipdb 0.7 requires ipython, which is not installed.",
+        "pkga 1.0 requires missing, which is not installed.",
     )
     assert matches_expected_lines(result.stdout, expected_lines)
     assert result.returncode == 1
 
 
-@pytest.mark.network
-def test_check_missing_dependency_normalize_case(script):
-    # Install some things
-    script.pip('install', 'devpi-web==2.2.2')
-    script.pip('install', 'pyramid==1.5.2')
-
-    # deliberately remove some dependencies
-    script.pip('uninstall', 'pygments', '--yes')
-    script.pip('uninstall', 'zope.deprecation', '--yes')
-
-    result = script.pip('check', expect_error=True)
-
-    expected_lines = (
-        "devpi-web 2.2.2 requires pygments, which is not installed.",
-        "pyramid 1.5.2 requires zope.deprecation, which is not installed.",
-    )
-    assert matches_expected_lines(result.stdout, expected_lines)
-    assert result.returncode == 1
-
-
-@pytest.mark.network
 def test_check_broken_dependency(script):
-    # this will also install a compatible version of jinja2
-    script.pip('install', 'flask==0.10.1')
+    # Setup pkga depending on pkgb>=1.0
+    pkga_path = create_test_package_with_setup(
+        script,
+        name='pkga', version='1.0', install_requires=['broken>=1.0'],
+    )
+    # Let's install pkga without its dependency
+    res = script.pip('install', '--no-index', pkga_path, '--no-deps')
+    assert "Successfully installed pkga-1.0" in res.stdout, str(res)
 
-    # deliberately change dependency to a version that is too old
-    script.pip('install', 'jinja2==2.3')
+    # Setup broken==0.1
+    broken_path = create_test_package_with_setup(
+        script,
+        name='broken', version='0.1',
+    )
+    # Let's install broken==0.1
+    res = script.pip('install', '--no-index', broken_path)
+    assert "Successfully installed broken-0.1" in res.stdout, str(res)
 
     result = script.pip('check', expect_error=True)
 
     expected_lines = (
-        "Flask 0.10.1 has requirement Jinja2>=2.4, but you have Jinja2 2.3.",
+        "pkga 1.0 has requirement broken>=1.0, but you have broken 0.1.",
     )
     assert matches_expected_lines(result.stdout, expected_lines)
     assert result.returncode == 1
 
 
-@pytest.mark.network
 def test_check_broken_dependency_and_missing_dependency(script):
-    # this will also install a compatible version of jinja2
-    script.pip('install', 'flask==0.10.1')
-    script.pip('install', 'pyramid==1.5.2')
+    pkga_path = create_test_package_with_setup(
+        script,
+        name='pkga', version='1.0', install_requires=['broken>=1.0'],
+    )
+    # Let's install pkga without its dependency
+    res = script.pip('install', '--no-index', pkga_path, '--no-deps')
+    assert "Successfully installed pkga-1.0" in res.stdout, str(res)
 
-    # deliberately remove a dependency
-    script.pip('uninstall', 'zope.deprecation', '--yes')
-
-    # deliberately change dependency to a version that is too old
-    script.pip('install', 'jinja2==2.3')
+    # Setup broken==0.1
+    broken_path = create_test_package_with_setup(
+        script,
+        name='broken', version='0.1', install_requires=['missing'],
+    )
+    # Let's install broken==0.1
+    res = script.pip('install', '--no-index', broken_path, '--no-deps')
+    assert "Successfully installed broken-0.1" in res.stdout, str(res)
 
     result = script.pip('check', expect_error=True)
 
     expected_lines = (
-        "pyramid 1.5.2 requires zope.deprecation, which is not installed.",
-        "Flask 0.10.1 has requirement Jinja2>=2.4, but you have Jinja2 2.3."
+        "broken 0.1 requires missing, which is not installed.",
+        "pkga 1.0 has requirement broken>=1.0, but you have broken 0.1."
     )
 
     assert matches_expected_lines(result.stdout, expected_lines)
     assert result.returncode == 1
+
+
+def test_check_complex_names(script):
+    # Check that uppercase letters and '-' are dealt with
+    # Setup two small projects
+    pkga_path = create_test_package_with_setup(
+        script,
+        name='pkga', version='1.0', install_requires=['Complex_Name==0.1'],
+    )
+
+    complex_path = create_test_package_with_setup(
+        script,
+        name='Complex-Name', version='0.1',
+    )
+
+    res = script.pip('install', '--no-index', complex_path)
+    assert "Successfully installed Complex-Name-0.1" in res.stdout, str(res)
+
+    res = script.pip('install', '--no-index', pkga_path, '--no-deps')
+    assert "Successfully installed pkga-1.0" in res.stdout, str(res)
+
+    # Check that Complex_Name is correctly dealt with
+    res = script.pip('check')
+    assert "No broken requirements found." in res.stdout, str(res)
