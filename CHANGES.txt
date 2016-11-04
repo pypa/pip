@@ -4,6 +4,9 @@
   uses the correct setting name (``format``) rather than the incorrect one
   (``list_format``) (:issue:`4058`).
 
+* Fix ``pip check`` to check all available distributions and not just the
+  local ones (:issue:`4083`).
+
 
 **9.0.0 (2016-11-02)**
 

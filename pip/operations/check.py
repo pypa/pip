@@ -1,19 +1,18 @@
-from pip.utils import get_installed_distributions
 
 
-def check_requirements():
-    installed = get_installed_distributions(skip=())
+def check_requirements(installed_dists):
     missing_reqs_dict = {}
     incompatible_reqs_dict = {}
 
-    for dist in installed:
+    for dist in installed_dists:
         key = '%s==%s' % (dist.project_name, dist.version)
 
-        missing_reqs = list(get_missing_reqs(dist, installed))
+        missing_reqs = list(get_missing_reqs(dist, installed_dists))
         if missing_reqs:
             missing_reqs_dict[key] = missing_reqs
 
-        incompatible_reqs = list(get_incompatible_reqs(dist, installed))
+        incompatible_reqs = list(get_incompatible_reqs(
+            dist, installed_dists))
         if incompatible_reqs:
             incompatible_reqs_dict[key] = incompatible_reqs
 
