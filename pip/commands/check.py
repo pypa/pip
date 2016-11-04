@@ -20,14 +20,13 @@ class CheckCommand(Command):
         missing_reqs_dict, incompatible_reqs_dict = check_requirements(dists)
 
         for dist in dists:
-            key = '%s==%s' % (dist.project_name, dist.version)
-
-            for requirement in missing_reqs_dict.get(key, []):
+            for requirement in missing_reqs_dict.get(dist.key, []):
                 logger.info(
                     "%s %s requires %s, which is not installed.",
                     dist.project_name, dist.version, requirement.project_name)
 
-            for requirement, actual in incompatible_reqs_dict.get(key, []):
+            for requirement, actual in incompatible_reqs_dict.get(
+                    dist.key, []):
                 logger.info(
                     "%s %s has requirement %s, but you have %s %s.",
                     dist.project_name, dist.version, requirement,
