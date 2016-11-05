@@ -15,7 +15,8 @@ Policy
   pure Python.
 
 * Any modifications made to libraries **MUST** be noted in
-  ``pip/_vendor/README.rst``.
+  ``pip/_vendor/README.rst`` and **MUST** be automatically applied via
+  ``tasks/re-vendor.py``.
 
 
 Rationale
@@ -107,6 +108,14 @@ Modifications
 * packaging has been modified to import its dependencies from pip._vendor
 * requests has been modified *not* to optionally load any C dependencies.
 * Modified distro to delay importing argparse to avoid errors on 2.6
+
+
+Automatic Vendoring
+-------------------
+
+Vendoring is automated via ``tasks/re-vendor.py`` from the content of
+``pip/_vendor/vendor.txt``. Special cases adaptation MUST be reported in the
+``tasks/re-vendor.py`` file.
 
 
 Debundling
