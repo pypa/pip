@@ -1,4 +1,4 @@
-**9.1.0 (UNRELEASED)**
+**9.0.1 (UNRELEASED)**
 
 * Correct the deprecation message when not specifying a --format so that it
   uses the correct setting name (``format``) rather than the incorrect one
@@ -7,6 +7,13 @@
 * Fix ``pip check`` to check all available distributions and not just the
   local ones (:issue:`4083`).
 
+* Fix a crash on non ASCII characters from `lsb_release` (:issue:`4062`).
+
+* Fix an SyntaxError in an an used module of a vendored dependency
+  (:issue:`4059`).
+
+* Fix UNC paths on Windows (:issue:`4064`).
+
 
 **9.0.0 (2016-11-02)**
 
@@ -14,7 +21,7 @@
   names from URLs, URLs must include a name via ``#egg=``.
 
 * **DEPRECATION** ``pip install --egg`` have been deprecated and will be
-  removed in the future. This "feature" has a long list of drawbacks which 
+  removed in the future. This "feature" has a long list of drawbacks which
   break nearly all of pip's other features in subtle and hard-to-diagnose
   ways.
 
