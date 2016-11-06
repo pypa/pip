@@ -4,7 +4,7 @@ try:
     from collections import OrderedDict
 except ImportError:
     try:
-        from ordereddict import OrderedDict
+        from pip._vendor.ordereddict import OrderedDict
     except ImportError:
         OrderedDict = dict
 
