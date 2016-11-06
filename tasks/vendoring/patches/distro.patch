@@ -1,0 +1,21 @@
+diff --git a/pip/_vendor/distro.py b/pip/_vendor/distro.py
+index 0afa527..9e7daad 100644
+--- a/pip/_vendor/distro.py
++++ b/pip/_vendor/distro.py
+@@ -34,7 +34,6 @@ import sys
+ import json
+ import shlex
+ import logging
+-import argparse
+ import subprocess
+ 
+ 
+@@ -1052,6 +1051,8 @@ _distro = LinuxDistribution()
+ 
+ 
+ def main():
++    import argparse
++
+     logger = logging.getLogger(__name__)
+     logger.setLevel(logging.DEBUG)
+     logger.addHandler(logging.StreamHandler(sys.stdout))
