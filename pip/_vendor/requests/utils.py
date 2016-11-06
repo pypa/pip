@@ -581,7 +581,7 @@ def should_bypass_proxies(url):
 
     # If the system proxy settings indicate that this URL should be bypassed,
     # don't proxy.
-    # The proxy_bypass function is incredibly buggy on OS X in early versions
+    # The proxy_bypass function is incredibly buggy on macOS in early versions
     # of Python 2.6, so allow this call to fail. Only catch the specific
     # exceptions we've seen, though: this call failing in other ways can reveal
     # legitimate problems.

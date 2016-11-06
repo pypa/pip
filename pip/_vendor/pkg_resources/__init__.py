@@ -255,10 +255,10 @@ def get_supported_platform():
     """Return this platform's maximum compatible version.
 
     distutils.util.get_platform() normally reports the minimum version
-    of Mac OS X that would be required to *use* extensions produced by
+    of macOS that would be required to *use* extensions produced by
     distutils.  But what we want when checking compatibility is to know the
-    version of Mac OS X that we are *running*.  To allow usage of packages that
-    explicitly require a newer version of Mac OS X, we must also know the
+    version of macOS that we are *running*.  To allow usage of packages that
+    explicitly require a newer version of macOS, we must also know the
     current version of the OS.
 
     If this condition occurs for any other platform with a version in its
@@ -270,7 +270,7 @@ def get_supported_platform():
         try:
             plat = 'macosx-%s-%s' % ('.'.join(_macosx_vers()[:2]), m.group(3))
         except ValueError:
-            # not Mac OS X
+            # not macOS
             pass
     return plat
 
@@ -462,7 +462,7 @@ def get_build_platform():
     """Return this platform's string for platform-specific distributions
 
     XXX Currently this is the same as ``distutils.util.get_platform()``, but it
-    needs some hacks for Linux and Mac OS X.
+    needs some hacks for Linux and macOS.
     """
     try:
         # Python 2.7 or >=3.2
@@ -501,7 +501,7 @@ def compatible_platforms(provided, required):
         # easy case
         return True
 
-    # Mac OS X special cases
+    # macOS special cases
     reqMac = macosVersionString.match(required)
     if reqMac:
         provMac = macosVersionString.match(provided)

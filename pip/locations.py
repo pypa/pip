@@ -73,7 +73,7 @@ else:
             "The folder you are executing pip from can no longer be found."
         )
 
-# under Mac OS X + virtualenv sys.prefix is not properly resolved
+# under macOS + virtualenv sys.prefix is not properly resolved
 # it is something like /path/to/python/bin/..
 # Note: using realpath due to tmp dirs on OSX being symlinks
 src_prefix = os.path.abspath(src_prefix)
@@ -110,7 +110,7 @@ else:
         config_basename,
     )
 
-    # Forcing to use /usr/local/bin for standard Mac OS X framework installs
+    # Forcing to use /usr/local/bin for standard macOS framework installs
     # Also log to ~/Library/Logs/ for use with the Console.app log viewer
     if sys.platform[:6] == 'darwin' and sys.prefix[:16] == '/System/Library/':
         bin_py = '/usr/local/bin'

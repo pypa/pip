@@ -528,7 +528,7 @@ def get_config_vars(*args):
             major_version = int(kernel_version.split('.')[0])
 
             if major_version < 8:
-                # On Mac OS X before 10.4, check if -arch and -isysroot
+                # On macOS before 10.4, check if -arch and -isysroot
                 # are in CFLAGS or LDFLAGS and remove them if they are.
                 # This is needed when building extensions on a 10.3 system
                 # using a universal build of python.
