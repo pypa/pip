@@ -169,6 +169,7 @@ Laurent Bristiel <laurent@bristiel.com>
 Leon Sasson <leonsassonha@gmail.com>
 Lev Givon <lev@columbia.edu>
 Lincoln de Sousa <lincoln@comum.org>
+Lipis <lipiridis@gmail.com>
 Ludovic Gasc <gmludo@gmail.com>
 Luke Macken <lmacken@redhat.com>
 Marc Abramowitz <marc@marc-abramowitz.com>
@@ -272,6 +273,7 @@ Sergey Vasilyev <nolar@nolar.info>
 Seth Woodworth <seth@sethish.com>
 Simeon Visser <svisser@users.noreply.github.com>
 Simon Cross <hodgestar@gmail.com>
+Simon Pichugin <simon.pichugin@gmail.com>
 Sorin Sbarnea <sorin.sbarnea@gmail.com>
 Stavros Korokithakis <stavros@korokithakis.net>
 Stefan Scherfke <stefan@sofa-rockers.org>
@@ -297,6 +299,7 @@ Tim Harder <radhermit@gmail.com>
 Tim Heap <tim@timheap.me>
 tim smith <github@tim-smith.us>
 tinruufu <tinruufu@gmail.com>
+Tom V <tom@viner.tv>
 Tomer Chachamu <tomer.chachamu@gmail.com>
 Tony Zhaocheng Tan <tony@tonytan.io>
 Toshio Kuratomi <toshio@fedoraproject.org>
@@ -304,6 +307,7 @@ Travis Swicegood <development@domain51.com>
 Valentin Haenel <valentin.haenel@gmx.de>
 Victor Stinner <victor.stinner@gmail.com>
 Victor Stinner <vstinner@redhat.com>
+Viktor Szépe <viktor@szepe.net>
 Ville Skyttä <ville.skytta@iki.fi>
 Vinay Sajip <vinay_sajip@yahoo.co.uk>
 Vitaly Babiy <vbabiy86@gmail.com>
@@ -320,5 +324,6 @@ Yen Chi Hsuan <yan12125@gmail.com>
 Yoval P <yoval@gmx.com>
 Yu Jian <askingyj@gmail.com>
 Zearin <zearin@gonk.net>
+Zearin <Zearin@users.noreply.github.com>
 Zhiping Deng <kofreestyler@gmail.com>
 Zvezdan Petkovic <zpetkovic@acm.org>
