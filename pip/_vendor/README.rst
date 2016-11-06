@@ -16,7 +16,7 @@ Policy
 
 * Any modifications made to libraries **MUST** be noted in
   ``pip/_vendor/README.rst`` and **MUST** be automatically applied via
-  ``tasks/re-vendor.py``.
+  ``tasks/vendoring.py``.
 
 
 Rationale
@@ -108,9 +108,9 @@ Modifications
 Automatic Vendoring
 -------------------
 
-Vendoring is automated via ``tasks/re-vendor.py`` from the content of
+Vendoring is automated via ``tasks/vendoring.py`` from the content of
 ``pip/_vendor/vendor.txt``. Special cases adaptation MUST be reported in the
-``tasks/re-vendor.py`` file.
+``tasks/vendoring.py`` file. Launch it via ``invoke vendoring.update``.
 
 
 Debundling

@@ -3,10 +3,10 @@
 from pathlib import Path
 import re
 import shutil
-import subprocess
 
-import pip
+import invoke
 
+TASK_NAME = 'update'
 
 FILE_WHITE_LIST = (
     'Makefile',
@@ -104,14 +104,21 @@ def remove_all(paths):
             path.unlink()
 
 
-def clean_vendor(vendor_dir):
+def log(msg):
+    print('[vendoring.%s] %s' % (TASK_NAME, msg))
+
+
+def clean_vendor(ctx, vendor_dir):
     # Old _vendor cleanup
     remove_all(vendor_dir.glob('*.pyc'))
+    log('Cleaning %s' % vendor_dir)
     for item in vendor_dir.iterdir():
         if item.is_dir():
             shutil.rmtree(str(item))
         elif item.name not in FILE_WHITE_LIST:
             item.unlink()
+        else:
+            log('Skipping %s' % item)
 
 
 def rewrite_imports(package_dir, vendored_libs):
@@ -156,13 +163,13 @@ def apply_special_cases(vendor_dir, special_cases):
         patched_file.write_text(text)
 
 
-def vendor(vendor_dir):
-    pip.main([
-        'install',
-        '-t', str(vendor_dir),
-        '-r', str(vendor_dir / 'vendor.txt'),
-        '--no-compile',
-    ])
+def vendor(ctx, vendor_dir):
+    log('Reinstalling vendored libraries')
+    ctx.run(
+        'pip install -t {0} -r {0}/vendor.txt --no-compile'.format(
+            str(vendor_dir),
+        )
+    )
     remove_all(vendor_dir.glob('*.dist-info'))
     remove_all(vendor_dir.glob('*.egg-info'))
 
@@ -179,9 +186,10 @@ def vendor(vendor_dir):
             vendored_libs.append(item.name)
         elif item.name not in FILE_WHITE_LIST:
             vendored_libs.append(item.name[:-3])
-    print("Vendored lib: %s" % ", ".join(vendored_libs))
+    log("Detected vendored libraries: %s" % ", ".join(vendored_libs))
 
     # Global import rewrites
+    log("Rewriting all imports related to vendored libs")
     for item in vendor_dir.iterdir():
         if item.is_dir():
             rewrite_imports(item, vendored_libs)
@@ -189,17 +197,17 @@ def vendor(vendor_dir):
             rewrite_file_imports(item, vendored_libs)
 
     # Special cases
+    log("Dealing with special cases")
     apply_special_cases(vendor_dir, SPECIAL_CASES)
 
 
-def main():
-    git_root = Path(subprocess.check_output(
-        ['git', 'rev-parse', '--show-toplevel']
-    ).decode().strip())
+@invoke.task(name=TASK_NAME)
+def main(ctx):
+    git_root = Path(
+        ctx.run('git rev-parse --show-toplevel', hide=True).stdout.strip()
+    )
     vendor_dir = git_root / 'pip' / '_vendor'
-    clean_vendor(vendor_dir)
-    vendor(vendor_dir)
-
-
-if __name__ == '__main__':
-    main()
+    log('Using vendor dir: %s' % vendor_dir)
+    clean_vendor(ctx, vendor_dir)
+    vendor(ctx, vendor_dir)
+    log('Revendoring complete')
