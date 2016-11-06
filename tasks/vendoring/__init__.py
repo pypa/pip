@@ -16,82 +16,6 @@ FILE_WHITE_LIST = (
 )
 
 
-SPECIAL_CASES = (
-    # Modified distro to delay importing argparse to avoid errors on 2.6
-    (
-        'distro.py',
-        """\
-import logging
-import argparse
-import subprocess""",
-        """\
-import logging
-import subprocess""",
-    ),
-    (
-        'distro.py',
-        r'def main():',
-        r'def main():\n    import argparse\n',
-    ),
-    # Remove unvendored requests special case
-    (
-        'cachecontrol/compat.py',
-        """\
-# Handle the case where the requests module has been patched to not have
-# urllib3 bundled as part of its source.
-try:
-    from pip._vendor.requests.packages.urllib3.response import HTTPResponse
-except ImportError:
-    from urllib3.response import HTTPResponse
-
-try:
-    from pip._vendor.requests.packages.urllib3.util import is_fp_closed
-except ImportError:
-    from urllib3.util import is_fp_closed""",
-        """\
-from pip._vendor.requests.packages.urllib3.response import HTTPResponse
-from pip._vendor.requests.packages.urllib3.util import is_fp_closed""",
-    ),
-    # requests has been modified *not* to optionally load any C dependencies
-    (
-        'requests/__init__.py',
-        """\
-try:
-    from .packages.urllib3.contrib import pyopenssl
-    pyopenssl.inject_into_urllib3()
-except ImportError:
-    pass""",
-        """\
-# Note: Patched by pip to prevent using the PyOpenSSL module. On Windows this
-#       prevents upgrading cryptography.
-# try:
-#     from .packages.urllib3.contrib import pyopenssl
-#     pyopenssl.inject_into_urllib3()
-# except ImportError:
-#     pass""",
-    ),
-    (
-        'requests/compat.py',
-        """\
-try:
-    import simplejson as json
-except (ImportError, SyntaxError):
-    # simplejson does not support Python 3.2, it throws a SyntaxError
-    # because of u'...' Unicode literals.
-    import json""",
-        """\
-# Note: We've patched out simplejson support in pip because it prevents
-#       upgrading simplejson on Windows.
-# try:
-#     import simplejson as json
-# except (ImportError, SyntaxError):
-#     # simplejson does not support Python 3.2, it throws a SyntaxError
-#     # because of u'...' Unicode literals.
-import json""",
-    )
-)
-
-
 def drop_dir(path):
     shutil.rmtree(str(path))
 
@@ -148,19 +72,9 @@ def rewrite_file_imports(item, vendored_libs):
     item.write_text(text)
 
 
-def apply_special_cases(vendor_dir, special_cases):
-    for filename, to_replace, replacement in special_cases:
-        patched_file = vendor_dir / filename
-        text = patched_file.read_text()
-        text, nb_apply = re.subn(
-            # Escape parenthesis for re.subn
-            to_replace.replace('(', '\\(').replace(')', '\\)'),
-            replacement,
-            text,
-        )
-        # Make sure the patch is correctly applied
-        assert nb_apply, filename
-        patched_file.write_text(text)
+def apply_patch(ctx, patch_file_path):
+    log('Applying patch %s' % patch_file_path.name)
+    ctx.run('git apply %s' % patch_file_path)
 
 
 def vendor(ctx, vendor_dir):
@@ -196,9 +110,11 @@ def vendor(ctx, vendor_dir):
         elif item.name not in FILE_WHITE_LIST:
             rewrite_file_imports(item, vendored_libs)
 
-    # Special cases
-    log("Dealing with special cases")
-    apply_special_cases(vendor_dir, SPECIAL_CASES)
+    # Special cases: apply stored patches
+    log("Apply patches")
+    patch_dir = Path(__file__).parent / 'patches'
+    for patch in patch_dir.glob('*.patch'):
+        apply_patch(ctx, patch)
 
 
 @invoke.task(name=TASK_NAME)
