@@ -8,9 +8,7 @@ import os
 import platform
 import sys
 
-from pip._vendor.pyparsing import (
-    ParseException, ParseResults, stringStart, stringEnd,
-)
+from pip._vendor.pyparsing import ParseException, ParseResults, stringStart, stringEnd
 from pip._vendor.pyparsing import ZeroOrMore, Group, Forward, QuotedString
 from pip._vendor.pyparsing import Literal as L  # noqa
 

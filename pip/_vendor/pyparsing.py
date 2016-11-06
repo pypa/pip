@@ -36,7 +36,7 @@ C{"<salutation>, <addressee>!"}), built up using L{Word}, L{Literal}, and L{And}
 (L{'+'<ParserElement.__add__>} operator gives L{And} expressions, strings are auto-converted to
 L{Literal} expressions)::
 
-    from pyparsing import Word, alphas
+    from pip._vendor.pyparsing import Word, alphas
 
     # define grammar of a greeting
     greet = Word(alphas) + "," + Word(alphas) + "!"
@@ -86,7 +86,7 @@ try:
     from collections import OrderedDict as _OrderedDict
 except ImportError:
     try:
-        from ordereddict import OrderedDict as _OrderedDict
+        from pip._vendor.ordereddict import OrderedDict as _OrderedDict
     except ImportError:
         _OrderedDict = None
 
@@ -1557,7 +1557,7 @@ class ParserElement(object):
            after importing pyparsing.
            
            Example::
-               import pyparsing
+               from pip._vendor import pyparsing
                pyparsing.ParserElement.enablePackrat()
         """
         if not ParserElement._packratEnabled:
