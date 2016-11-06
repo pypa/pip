@@ -93,16 +93,11 @@ situation that we expect pip to be used and not mandate some external mechanism
 such as OS packages.
 
 
-pkg_resources
--------------
-
-pkg_resources has been pulled in from setuptools 28.8.0
-
-
 Modifications
 -------------
 
 * html5lib has been modified to import six from pip._vendor
+* setuptools is completely stripped to only keep pkg_resources
 * pkg_resources has been modified to import its externs from pip._vendor
 * CacheControl has been modified to import its dependencies from pip._vendor
 * packaging has been modified to import its dependencies from pip._vendor
