@@ -36,6 +36,7 @@ import plistlib
 import email.parser
 import tempfile
 import textwrap
+import itertools
 from pkgutil import get_importer
 
 try:
@@ -255,10 +256,10 @@ def get_supported_platform():
     """Return this platform's maximum compatible version.
 
     distutils.util.get_platform() normally reports the minimum version
-    of macOS that would be required to *use* extensions produced by
+    of Mac OS X that would be required to *use* extensions produced by
     distutils.  But what we want when checking compatibility is to know the
-    version of macOS that we are *running*.  To allow usage of packages that
-    explicitly require a newer version of macOS, we must also know the
+    version of Mac OS X that we are *running*.  To allow usage of packages that
+    explicitly require a newer version of Mac OS X, we must also know the
     current version of the OS.
 
     If this condition occurs for any other platform with a version in its
@@ -270,7 +271,7 @@ def get_supported_platform():
         try:
             plat = 'macosx-%s-%s' % ('.'.join(_macosx_vers()[:2]), m.group(3))
         except ValueError:
-            # not macOS
+            # not Mac OS X
             pass
     return plat
 
@@ -462,7 +463,7 @@ def get_build_platform():
     """Return this platform's string for platform-specific distributions
 
     XXX Currently this is the same as ``distutils.util.get_platform()``, but it
-    needs some hacks for Linux and macOS.
+    needs some hacks for Linux and Mac OS X.
     """
     try:
         # Python 2.7 or >=3.2
@@ -501,7 +502,7 @@ def compatible_platforms(provided, required):
         # easy case
         return True
 
-    # macOS special cases
+    # Mac OS X special cases
     reqMac = macosVersionString.match(required)
     if reqMac:
         provMac = macosVersionString.match(provided)
@@ -1967,6 +1968,32 @@ def find_nothing(importer, path_item, only=False):
 register_finder(object, find_nothing)
 
 
+def _by_version_descending(names):
+    """
+    Given a list of filenames, return them in descending order
+    by version number.
+
+    >>> names = 'bar', 'foo', 'Python-2.7.10.egg', 'Python-2.7.2.egg'
+    >>> _by_version_descending(names)
+    ['Python-2.7.10.egg', 'Python-2.7.2.egg', 'foo', 'bar']
+    >>> names = 'Setuptools-1.2.3b1.egg', 'Setuptools-1.2.3.egg'
+    >>> _by_version_descending(names)
+    ['Setuptools-1.2.3.egg', 'Setuptools-1.2.3b1.egg']
+    >>> names = 'Setuptools-1.2.3b1.egg', 'Setuptools-1.2.3.post1.egg'
+    >>> _by_version_descending(names)
+    ['Setuptools-1.2.3.post1.egg', 'Setuptools-1.2.3b1.egg']
+    """
+    def _by_version(name):
+        """
+        Parse each component of the filename
+        """
+        name, ext = os.path.splitext(name)
+        parts = itertools.chain(name.split('-'), [ext])
+        return [packaging.version.parse(part) for part in parts]
+
+    return sorted(names, key=_by_version, reverse=True)
+
+
 def find_on_path(importer, path_item, only=False):
     """Yield distributions accessible on a sys.path directory"""
     path_item = _normalize_cached(path_item)
@@ -1980,11 +2007,7 @@ def find_on_path(importer, path_item, only=False):
             )
         else:
             # scan for .egg and .egg-info in directory
-
-            path_item_entries = os.listdir(path_item)
-            # Reverse so we find the newest version of a distribution,
-            path_item_entries.sort()
-            path_item_entries.reverse()
+            path_item_entries = _by_version_descending(os.listdir(path_item))
             for entry in path_item_entries:
                 lower = entry.lower()
                 if lower.endswith('.egg-info') or lower.endswith('.dist-info'):
