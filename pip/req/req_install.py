@@ -723,21 +723,40 @@ class InstallRequirement(object):
                     paths_to_remove.add(os.path.join(bin_dir, script) + '.bat')
 
         # find console_scripts
+        _scripts_to_remove = []
         console_scripts = dist.get_entry_map(group='console_scripts')
         for name in console_scripts.keys():
-            if dist_in_usersite(dist):
-                bin_dir = bin_user
-            else:
-                bin_dir = bin_py
-            exe_name = os.path.join(bin_dir, name)
-            paths_to_remove.add(exe_name)
-            if WINDOWS:
-                paths_to_remove.add(exe_name + '.exe')
-                paths_to_remove.add(exe_name + '.exe.manifest')
-                paths_to_remove.add(exe_name + '-script.py')
+            _scripts_to_remove.extend(self._script_names(dist, name, False))
+        # find gui_scripts
+        gui_scripts = dist.get_entry_map(group='gui_scripts')
+        for name in gui_scripts.keys():
+            _scripts_to_remove.extend(self._script_names(dist, name, True))
+
+        for s in _scripts_to_remove:
+            paths_to_remove.add(s)
 
         paths_to_remove.remove(auto_confirm)
         self.uninstalled = paths_to_remove
+
+    def _script_names(self, dist, name, is_gui):
+        '''Create the fully qualified name of the files created by
+        {console,gui}_scripts for the given ``dist``. Returns the list of file
+        names'''
+        if dist_in_usersite(dist):
+            bin_dir = bin_user
+        else:
+            bin_dir = bin_py
+        exe_name = os.path.join(bin_dir, name)
+        paths_to_remove = [exe_name, ]
+        if WINDOWS:
+            paths_to_remove.add(exe_name + '.exe')
+            paths_to_remove.add(exe_name + '.exe.manifest')
+            if is_gui:
+                paths_to_remove.add(exe_name + '-script.pyw')
+            else:
+                paths_to_remove.add(exe_name + '-script.py')
+
+        return paths_to_remove
 
     def rollback_uninstall(self):
         if self.uninstalled:
