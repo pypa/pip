@@ -388,7 +388,12 @@ class PipSession(requests.Session):
 
 def get_file_content(url, comes_from=None, session=None):
     """Gets the content of a file; it may be a filename, file: URL, or
-    http: URL.  Returns (location, content).  Content is unicode."""
+    http: URL.  Returns (location, content).  Content is unicode.
+
+    :param url:         File path or url.
+    :param comes_from:  Origin description of requirements.
+    :param session:     Instance of pip.download.PipSession.
+    """
     if session is None:
         raise TypeError(
             "get_file_content() missing 1 required keyword argument: 'session'"
