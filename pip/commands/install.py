@@ -266,6 +266,7 @@ class InstallCommand(RequirementCommand):
                     "continue."
                 )
             install_options.append('--home=' + temp_target_dir)
+            install_options.append('--prefix=')
 
         global_options = options.global_options or []
 
