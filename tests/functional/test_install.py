@@ -706,6 +706,37 @@ def test_install_package_conflict_prefix_and_user(script, data):
     )
 
 
+def test_install_package_conflict_target_and_user(script, data):
+    """
+    Test installing a package using pip install --target --user errors out
+    """
+    target_path = script.scratch_path / 'target'
+    result = script.pip(
+        'install', '-f', data.find_links, '--no-index', '--user',
+        '--target', target_path, 'simple==1.0',
+        expect_error=True, quiet=True,
+    )
+    assert (
+        "Can not combine '--user' and '--target'" in result.stderr
+    )
+
+
+def test_install_package_conflict_prefix_and_target(script, data):
+    """
+    Test installing a package using pip install --prefix --targetx errors out
+    """
+    prefix_path = script.scratch_path / 'prefix'
+    target_path = script.scratch_path / 'target'
+    result = script.pip(
+        'install', '-f', data.find_links, '--no-index', '--target',
+        target_path, '--prefix', prefix_path, 'simple==1.0',
+        expect_error=True, quiet=True,
+    )
+    assert (
+        "Can not combine '--target' and '--prefix'" in result.stderr
+    )
+
+
 # skip on win/py3 for now, see issue #782
 @pytest.mark.skipif("sys.platform == 'win32' and sys.version_info >= (3,)")
 def test_install_package_that_emits_unicode(script, data):

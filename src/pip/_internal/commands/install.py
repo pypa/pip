@@ -190,6 +190,11 @@ class InstallCommand(RequirementCommand):
                     "Can not combine '--user' and '--prefix' as they imply "
                     "different installation locations"
                 )
+            if options.target_dir:
+                raise CommandError(
+                    "Can not combine '--user' and '--target' as they imply "
+                    "different installation locations"
+                )
             if virtualenv_no_global():
                 raise InstallationError(
                     "Can not perform a '--user' install. User site-packages "
@@ -200,6 +205,11 @@ class InstallCommand(RequirementCommand):
 
         target_temp_dir = TempDirectory(kind="target")
         if options.target_dir:
+            if options.prefix_path:
+                raise CommandError(
+                    "Can not combine '--target' and '--prefix' as they imply "
+                    "different installation locations"
+                )
             options.ignore_installed = True
             options.target_dir = os.path.abspath(options.target_dir)
             if (os.path.exists(options.target_dir) and not
@@ -212,6 +222,7 @@ class InstallCommand(RequirementCommand):
             # Create a target directory for using with the target option
             target_temp_dir.create()
             install_options.append('--home=' + target_temp_dir.path)
+            install_options.append('--prefix=')
 
         global_options = options.global_options or []
 
