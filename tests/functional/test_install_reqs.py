@@ -241,6 +241,45 @@ def test_nowheel_user_with_prefix_in_pydistutils_cfg(script, data, virtualenv):
             ) in result.stderr
 
 
+@pytest.mark.network
+def test_wheel_target_with_prefix_in_pydistutils_cfg(script, data, virtualenv):
+    # Make sure wheel is available in the virtualenv
+    script.pip('install', 'wheel')
+    virtualenv.system_site_packages = True
+    homedir = script.environ["HOME"]
+    script.scratch_path.join("bin").mkdir()
+    with open(os.path.join(homedir, ".pydistutils.cfg"), "w") as cfg:
+        cfg.write(textwrap.dedent("""
+            [install]
+            prefix=%s""" % script.scratch_path))
+
+    target_path = script.scratch_path / 'target'
+    result = script.pip('install', '--target', target_path, '--no-index', '-f',
+                        data.find_links, 'requiresupper')
+    # Check that we are really installing a wheel
+    assert 'Running setup.py install for requiresupper' not in result.stdout
+    assert 'installed requiresupper' in result.stdout
+
+
+def test_nowheel_target_with_prefix_in_pydistutils_cfg(script, data, virtualenv):
+    virtualenv.system_site_packages = True
+    homedir = script.environ["HOME"]
+    script.scratch_path.join("bin").mkdir()
+    with open(os.path.join(homedir, ".pydistutils.cfg"), "w") as cfg:
+        cfg.write(textwrap.dedent("""
+            [install]
+            prefix=%s""" % script.scratch_path))
+
+    target_path = script.scratch_path / 'target'
+    result = script.pip('install', '--no-use-wheel', '--target', target_path,
+                        '--no-index', '-f', data.find_links, 'requiresupper',
+                        expect_stderr=True)
+    assert 'installed requiresupper' in result.stdout
+    assert ('DEPRECATION: --no-use-wheel is deprecated and will be removed '
+            'in the future.  Please use --no-binary :all: instead.\n'
+            ) in result.stderr
+
+
 def test_install_option_in_requirements_file(script, data, virtualenv):
     """
     Test --install-option in requirements file overrides same option in cli
