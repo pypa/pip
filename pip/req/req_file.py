@@ -64,12 +64,6 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
         requirements file.
     :param wheel_cache: Instance of pip.wheel.WheelCache
     """
-    if session is None:
-        raise TypeError(
-            "parse_requirements() missing 1 required keyword argument: "
-            "'session'"
-        )
-
     _, content = get_file_content(
         filename, comes_from=comes_from, session=session
     )
