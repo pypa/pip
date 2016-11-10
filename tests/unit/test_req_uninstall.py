@@ -4,13 +4,40 @@ import pytest
 from mock import Mock
 
 import pip.req.req_uninstall
-from pip.req.req_uninstall import UninstallPathSet
+from pip.req.req_uninstall import UninstallPathSet, uninstallation_paths
 
 
 # Pretend all files are local, so UninstallPathSet accepts files in the tmpdir,
 # outside the virtualenv
 def mock_is_local(path):
     return True
+
+
+def test_uninstallation_paths():
+    class dist(object):
+        def get_metadata_lines(self, record):
+            return ['file.py,,',
+                    'file.pyc,,',
+                    'file.so,,',
+                    'nopyc.py']
+        location = ''
+
+    d = dist()
+
+    paths = list(uninstallation_paths(d))
+
+    expected = ['file.py',
+                'file.pyc',
+                'file.so',
+                'nopyc.py',
+                'nopyc.pyc']
+
+    assert paths == expected
+
+    # Avoid an easy 'unique generator' bug
+    paths2 = list(uninstallation_paths(d))
+
+    assert paths2 == paths
 
 
 class TestUninstallPathSet(object):
