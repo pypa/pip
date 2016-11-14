@@ -187,6 +187,29 @@ def test_uninstall_entry_point(script, console_scripts):
     assert "ep-install (0.1)" not in result2.stdout
 
 
+def test_uninstall_gui_scripts(script):
+    """
+    Make sure that uninstall removes gui scripts
+    """
+    pkg_name = "gui_pkg"
+    script.scratch_path.join(pkg_name).mkdir()
+    pkg_path = script.scratch_path / pkg_name
+    pkg_path.join("setup.py").write(textwrap.dedent("""
+        from setuptools import setup
+        setup(
+            name='{0}',
+            version='0.1',
+            entry_points={{"gui_scripts": ["test_ = distutils_install", ],
+                          }}
+        )
+    """.format(pkg_name)))
+    script_name = script.bin_path.join('test_')
+    script.pip('install', pkg_path)
+    assert script_name.exists
+    script.pip('uninstall', pkg_name, '-y')
+    assert not script_name.exists
+
+
 @pytest.mark.network
 def test_uninstall_console_scripts(script):
     """
