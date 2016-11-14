@@ -262,7 +262,8 @@ def test_wheel_target_with_prefix_in_pydistutils_cfg(script, data,
     assert 'installed requiresupper' in result.stdout
 
 
-def test_nowheel_target_with_prefix_in_pydistutils_cfg(script, data, virtualenv):
+def test_nowheel_target_with_prefix_in_pydistutils_cfg(script, data,
+                                                       virtualenv):
     virtualenv.system_site_packages = True
     homedir = script.environ["HOME"]
     script.scratch_path.join("bin").mkdir()
