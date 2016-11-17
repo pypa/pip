@@ -165,14 +165,14 @@ def test_uninstall_entry_point(script, console_scripts):
     """
     pkg_name = 'ep_install'
     pkg_path = create_test_package_with_setup(
-            script,
-            name=pkg_name,
-            version='0.1',
-            entry_points={"console_scripts": [console_scripts, ],
-                          "pip_test.ep":
-                          ["ep:name1 = distutils_install",
-                           "ep:name2 = distutils_install"]
-                          }
+        script,
+        name=pkg_name,
+        version='0.1',
+        entry_points={"console_scripts": [console_scripts, ],
+                      "pip_test.ep":
+                      ["ep:name1 = distutils_install",
+                       "ep:name2 = distutils_install"]
+                      }
     )
     script_name = script.bin_path.join(console_scripts.split('=')[0].strip())
     result = script.pip('install', pkg_path)
@@ -191,10 +191,10 @@ def test_uninstall_gui_scripts(script):
     """
     pkg_name = "gui_pkg"
     pkg_path = create_test_package_with_setup(
-            script,
-            name=pkg_name,
-            version='0.1',
-            entry_points={"gui_scripts": ["test_ = distutils_install", ], }
+        script,
+        name=pkg_name,
+        version='0.1',
+        entry_points={"gui_scripts": ["test_ = distutils_install", ], }
     )
     script_name = script.bin_path.join('test_')
     script.pip('install', pkg_path)
