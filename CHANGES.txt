@@ -1,5 +1,7 @@
 **9.1.0 (UNRELEASED)**
 
+* Use pkg_resources to parse the entry points file to allow names with
+  colons (:pull:`3901`)
 
 **9.0.1 (2016-11-06)**
 
@@ -110,9 +112,6 @@
 
 * Restore the ability to use inline comments in requirements files passed to
   ``pip freeze`` (:issue:`3680`).
-
-* Python 3: disable INI-style parsing of the entry points file to allow names
-  with colons (:pull:`3901`)
 
 **8.1.2 (2016-05-10)**
 
