@@ -20,7 +20,6 @@ from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version, parse as parse_version
-from pip._vendor.six.moves import configparser
 
 import pip.wheel
 
@@ -35,7 +34,7 @@ from pip.locations import (
 from pip.utils import (
     display_path, rmtree, ask_path_exists, backup_dir, is_installable_dir,
     dist_in_usersite, dist_in_site_packages, egg_link_path,
-    call_subprocess, read_text_file, FakeFile, _make_build_dir, ensure_dir,
+    call_subprocess, read_text_file, _make_build_dir, ensure_dir,
     get_installed_version, normalize_path, dist_is_local,
 )
 
@@ -724,35 +723,40 @@ class InstallRequirement(object):
                     paths_to_remove.add(os.path.join(bin_dir, script) + '.bat')
 
         # find console_scripts
-        if dist.has_metadata('entry_points.txt'):
-            if six.PY2:
-                options = {}
-            else:
-                options = {"delimiters": ('=', )}
-            config = configparser.SafeConfigParser(**options)
-            config.readfp(
-                FakeFile(dist.get_metadata_lines('entry_points.txt'))
-            )
-            if config.has_section('console_scripts'):
-                for name, value in config.items('console_scripts'):
-                    if dist_in_usersite(dist):
-                        bin_dir = bin_user
-                    else:
-                        bin_dir = bin_py
-                    paths_to_remove.add(os.path.join(bin_dir, name))
-                    if WINDOWS:
-                        paths_to_remove.add(
-                            os.path.join(bin_dir, name) + '.exe'
-                        )
-                        paths_to_remove.add(
-                            os.path.join(bin_dir, name) + '.exe.manifest'
-                        )
-                        paths_to_remove.add(
-                            os.path.join(bin_dir, name) + '-script.py'
-                        )
+        _scripts_to_remove = []
+        console_scripts = dist.get_entry_map(group='console_scripts')
+        for name in console_scripts.keys():
+            _scripts_to_remove.extend(self._script_names(dist, name, False))
+        # find gui_scripts
+        gui_scripts = dist.get_entry_map(group='gui_scripts')
+        for name in gui_scripts.keys():
+            _scripts_to_remove.extend(self._script_names(dist, name, True))
+
+        for s in _scripts_to_remove:
+            paths_to_remove.add(s)
 
         paths_to_remove.remove(auto_confirm)
         self.uninstalled = paths_to_remove
+
+    def _script_names(self, dist, name, is_gui):
+        '''Create the fully qualified name of the files created by
+        {console,gui}_scripts for the given ``dist``. Returns the list of file
+        names'''
+        if dist_in_usersite(dist):
+            bin_dir = bin_user
+        else:
+            bin_dir = bin_py
+        exe_name = os.path.join(bin_dir, name)
+        paths_to_remove = [exe_name, ]
+        if WINDOWS:
+            paths_to_remove.add(exe_name + '.exe')
+            paths_to_remove.add(exe_name + '.exe.manifest')
+            if is_gui:
+                paths_to_remove.add(exe_name + '-script.pyw')
+            else:
+                paths_to_remove.add(exe_name + '-script.py')
+
+        return paths_to_remove
 
     def rollback_uninstall(self):
         if self.uninstalled:
