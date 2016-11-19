@@ -280,7 +280,9 @@ all users) configuration:
 * On Unix the default configuration file is: :file:`$HOME/.config/pip/pip.conf`
   which respects the ``XDG_CONFIG_HOME`` environment variable.
 * On macOS the configuration file is
-  :file:`$HOME/Library/Application Support/pip/pip.conf`.
+  :file:`$HOME/Library/Application Support/pip/pip.conf`
+  if directory ``$HOME/Library/Application Support/pip`` exists
+  else :file:`$HOME/.config/pip/pip.conf`.
 * On Windows the configuration file is :file:`%APPDATA%\\pip\\pip.ini`.
 
 There are also a legacy per-user configuration file which is also respected,
