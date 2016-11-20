@@ -12,12 +12,13 @@
 * Fix ``pip check`` to check all available distributions and not just the
   local ones (:issue:`4083`).
 
-* Fix a crash on non ASCII characters from `lsb_release` (:issue:`4062`).
+* Fix a crash on non ASCII characters from `lsb_release` (:issue:`4062`,
+  :pull:`4067`).
 
 * Fix an SyntaxError in an an used module of a vendored dependency
-  (:issue:`4059`).
+  (:issue:`4059`, :pull:`4068`).
 
-* Fix UNC paths on Windows (:issue:`4064`).
+* Fix UNC paths on Windows (:issue:`4064`, :pull:`4071`).
 
 
 **9.0.0 (2016-11-02)**
