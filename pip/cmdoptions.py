@@ -580,6 +580,14 @@ require_hashes = partial(
          'requirements file has a --hash option.')
 
 
+auth_ntlm = partial(
+    Option,
+    '--auth-ntlm',
+    dest='auth_ntlm',
+    action='store_true',
+    default=False,
+    help='Authenticate on host using NTLM.')
+
 ##########
 # groups #
 ##########
@@ -607,6 +615,7 @@ general_group = {
         cache_dir,
         no_cache,
         disable_pip_version_check,
+        auth_ntlm,
     ]
 }
 

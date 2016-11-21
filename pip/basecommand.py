@@ -10,7 +10,7 @@ import warnings
 from pip import cmdoptions
 from pip.index import PackageFinder
 from pip.locations import running_under_virtualenv
-from pip.download import PipSession
+from pip.download import PipSession, MultiDomainNtlmAuth
 from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
                             CommandError, PreviousBuildDirError)
 
@@ -92,6 +92,14 @@ class Command(object):
                 "http": options.proxy,
                 "https": options.proxy,
             }
+
+        if options.auth_ntlm:
+            try:
+                session.auth = MultiDomainNtlmAuth()
+            except InstallationError:
+                # Needed to allow pip to check for updates
+                options.auth_ntlm = False
+                raise
 
         # Determine if we can prompt the user for authentication or not
         session.auth.prompting = not options.no_input

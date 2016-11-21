@@ -88,6 +88,7 @@ setup(
     python_requires='>=2.6,!=3.0.*,!=3.1.*,!=3.2.*',
     extras_require={
         'testing': tests_require,
+        'ntlm': ['requests_ntlm'],
     },
     cmdclass={'test': PyTest},
 )

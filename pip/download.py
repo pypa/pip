@@ -19,6 +19,11 @@ try:
 except ImportError:
     HAS_TLS = False
 
+try:
+    from requests_ntlm import HttpNtlmAuth  # noqa
+except ImportError:
+    HttpNtlmAuth = None
+
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
@@ -126,7 +131,7 @@ def user_agent():
     )
 
 
-class MultiDomainBasicAuth(AuthBase):
+class MultiDomainAuth(AuthBase):
 
     def __init__(self, prompting=True):
         self.prompting = prompting
@@ -158,7 +163,7 @@ class MultiDomainBasicAuth(AuthBase):
             self.passwords[netloc] = (username, password)
 
             # Send the basic auth with this request
-            req = HTTPBasicAuth(username or "", password or "")(req)
+            req = self.authlib(username or "", password or "")(req)
 
         # Attach a hook to handle 401 responses
         req.register_hook("response", self.handle_401)
@@ -191,7 +196,7 @@ class MultiDomainBasicAuth(AuthBase):
         resp.raw.release_conn()
 
         # Add our new username and password to the request
-        req = HTTPBasicAuth(username or "", password or "")(resp.request)
+        req = self.authlib(username or "", password or "")(resp.request)
 
         # Send our new request
         new_resp = resp.connection.send(req, **kwargs)
@@ -206,6 +211,31 @@ class MultiDomainBasicAuth(AuthBase):
                 return userinfo.split(":", 1)
             return userinfo, None
         return None, None
+
+    @property
+    def authlib(self):
+        # Place holder for Authentication Class
+        raise NotImplementedError
+
+
+class MultiDomainBasicAuth(MultiDomainAuth):
+    @property
+    def authlib(self):
+        return HTTPBasicAuth
+
+
+class MultiDomainNtlmAuth(MultiDomainAuth):
+    def __init__(self, *args, **kwargs):
+        if HttpNtlmAuth is None:
+            raise InstallationError(
+                "Dependencies for Ntlm authentication are missing. Install "
+                "dependencies via the 'pip install pip[ntlm]' command."
+            )
+        super(MultiDomainNtlmAuth, self).__init__(*args, **kwargs)
+
+    @property
+    def authlib(self):
+        return HttpNtlmAuth
 
 
 class LocalFSAdapter(BaseAdapter):
