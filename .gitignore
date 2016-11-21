@@ -4,6 +4,7 @@ docs/_build/
 pip.egg-info/
 MANIFEST
 .tox
+.cache
 *.egg
 *.py[cod]
 *~
