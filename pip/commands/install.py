@@ -252,7 +252,6 @@ class InstallCommand(RequirementCommand):
                     "are not visible in this virtualenv."
                 )
             install_options.append('--user')
-            install_options.append('--prefix=')
 
         temp_target_dir = None
         if options.target_dir:
