@@ -144,12 +144,10 @@ def sort_hits(query, hits):
     query = query[0]
     p = re.compile(query)
     p_ignorecase = re.compile(query, re.IGNORECASE)
-    for index, item in enumerate(hits):
-        hits[index]['match_score'] = 0
+    for item in hits:
+        item['match_score'] = 0
         name = item['name']
-        summary = item['summary']
-        if summary is None:
-            summary = ''
+        summary = item['summary'] or ''
         m1 = p.match(name)
         m2 = p_ignorecase.match(name)
         m3 = p_ignorecase.findall(name)
@@ -157,17 +155,17 @@ def sort_hits(query, hits):
 
         # Ordering strategy
         if name == query:
-            hits[index]['match_score'] += 10000
+            item['match_score'] += 10000
         elif name.lower() == query.lower():
-            hits[index]['match_score'] += 9000
+            item['match_score'] += 9000
         if m1 is not None:
-            hits[index]['match_score'] += 1000
+            item['match_score'] += 1000
         elif m2 is not None:
-            hits[index]['match_score'] += 900
+            item['match_score'] += 900
         elif m3 is not None:
-            hits[index]['match_score'] += 800
+            item['match_score'] += 800
         if m4 is not None:
-            hits[index]['match_score'] += len(m3)
+            item['match_score'] += len(m3) + len(m4)
 
     hits.sort(key=lambda i: i['match_score'], reverse=True)
     return hits
