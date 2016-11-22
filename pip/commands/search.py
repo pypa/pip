@@ -135,10 +135,11 @@ def print_results(hits, name_column_width=None, terminal_width=None):
 def highest_version(versions):
     return max(versions, key=parse_version)
 
+
 def sort_hits(query, hits):
     if len(query) != 1:
-#   Now only handle the easiest condition,
-#   which is possibly the most frequent condition
+        # Now only handle the easiest condition,
+        # which is possibly the most frequent condition
         return hits
     query = query[0]
     p = re.compile(query)
@@ -168,5 +169,5 @@ def sort_hits(query, hits):
         if m4 is not None:
             hits[index]['match_score'] += len(m3)
 
-    hits.sort(key = lambda i: i['match_score'], reverse=True)
+    hits.sort(key=lambda i: i['match_score'], reverse=True)
     return hits
