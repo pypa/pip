@@ -137,12 +137,13 @@ def highest_version(versions):
 
 def sort_hits(query, hits):
     if len(query) != 1:
-        #Now only handle the easiest condition, which is possibly the most frequent condition
+#   Now only handle the easiest condition,
+#   which is possibly the most frequent condition
         return hits
     query = query[0]
     p = re.compile(query)
     p_ignorecase = re.compile(query, re.IGNORECASE)
-    for index,item in enumerate(hits):
+    for index, item in enumerate(hits):
         hits[index]['match_score'] = 0
         name = item['name']
         summary = item['summary']
@@ -153,7 +154,7 @@ def sort_hits(query, hits):
         m3 = p_ignorecase.findall(name)
         m4 = p_ignorecase.findall(summary)
 
-        #Ordering strategy
+        # Ordering strategy
         if name == query:
             hits[index]['match_score'] += 10000
         elif name.lower() == query.lower():
