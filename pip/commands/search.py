@@ -2,9 +2,9 @@
 from __future__ import absolute_import
 
 import logging
+import re
 import sys
 import textwrap
-import re
 
 from pip.basecommand import Command, SUCCESS
 from pip.compat import OrderedDict
