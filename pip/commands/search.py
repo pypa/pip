@@ -3,12 +3,15 @@ from __future__ import absolute_import
 import logging
 import sys
 import textwrap
+import warnings
 
+from pip import cmdoptions
 from pip.basecommand import Command, SUCCESS
 from pip.compat import OrderedDict
 from pip.download import PipXmlrpcTransport
 from pip.models import PyPI
 from pip.utils import get_terminal_size
+from pip.utils.deprecation import RemovedInPip10Warning
 from pip.utils.logging import indent_log
 from pip.exceptions import CommandError
 from pip.status_codes import NO_MATCHES_FOUND
@@ -33,9 +36,13 @@ class SearchCommand(Command):
             '-i', '--index',
             dest='index',
             metavar='URL',
-            default=PyPI.pypi_url,
             help='Base URL of Python Package Index (default %default)')
-
+        self.cmd_opts.add_option(
+            '-i', '--index-url', '--pypi-url',
+            dest='index_url',
+            metavar='URL',
+            default=PyPI.pypi_url,
+            help='Base URL of Python Package Index (default %default).')
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
@@ -55,7 +62,14 @@ class SearchCommand(Command):
         return NO_MATCHES_FOUND
 
     def search(self, query, options):
-        index_url = options.index
+        if options.index is not None:
+            warnings.warn(
+                "--index has been deprecated in favor of --index-url.",
+                RemovedInPip10Warning,
+            )
+            index_url = options.index
+        else:
+            index_url = options.index_url
         with self._build_session(options) as session:
             transport = PipXmlrpcTransport(index_url, session)
             pypi = xmlrpc_client.ServerProxy(index_url, transport)
