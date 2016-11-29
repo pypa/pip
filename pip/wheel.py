@@ -724,16 +724,18 @@ class WheelBuilder(object):
             with BuildEnvironment() as prefix:
                 self._install_build_reqs(build_reqs, prefix)
                 return self._build_one_inside_env(req, output_dir,
-                                                  python_tag=python_tag)
+                                            python_tag=python_tag, isolate=True)
         else:
             # Old style build, in the current environment
             return self._build_one_inside_env(req, output_dir,
                                               python_tag=python_tag)
 
-    def _build_one_inside_env(self, req, output_dir, python_tag=None):
+    def _build_one_inside_env(self, req, output_dir, python_tag=None,
+                              isolate=False):
         tempd = tempfile.mkdtemp('pip-wheel-')
         try:
-            if self.__build_one(req, tempd, python_tag=python_tag):
+            if self.__build_one(req, tempd, python_tag=python_tag,
+                                isolate=isolate):
                 try:
                     wheel_name = os.listdir(tempd)[0]
                     wheel_path = os.path.join(output_dir, wheel_name)
@@ -748,14 +750,17 @@ class WheelBuilder(object):
         finally:
             rmtree(tempd)
 
-    def _base_setup_args(self, req):
+    def _base_setup_args(self, req, isolate=False):
+        flags = '-u'
+        if isolate:
+            flags += 'S'
         return [
-            sys.executable, "-u", '-c',
+            sys.executable, flags, '-c',
             SETUPTOOLS_SHIM % req.setup_py
         ] + list(self.global_options)
 
-    def __build_one(self, req, tempd, python_tag=None):
-        base_args = self._base_setup_args(req)
+    def __build_one(self, req, tempd, python_tag=None, isolate=False):
+        base_args = self._base_setup_args(req, isolate=isolate)
 
         spin_message = 'Running setup.py bdist_wheel for %s' % (req.name,)
         with open_spinner(spin_message) as spinner:
@@ -766,8 +771,13 @@ class WheelBuilder(object):
             if python_tag is not None:
                 wheel_args += ["--python-tag", python_tag]
 
+            env = {}
+            if isolate:
+                env['PYTHONNOUSERSITE'] = '1'
+
             try:
                 call_subprocess(wheel_args, cwd=req.setup_py_dir,
+                                extra_environ=env,
                                 show_stdout=False, spinner=spinner)
                 return True
             except:
