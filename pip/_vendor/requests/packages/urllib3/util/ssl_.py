@@ -112,15 +112,32 @@ except ImportError:
             self.ciphers = cipher_suite
 
         def wrap_socket(self, socket, server_hostname=None, server_side=False):
-            warnings.warn(
-                'A true SSLContext object is not available. This prevents '
-                'urllib3 from configuring SSL appropriately and may cause '
-                'certain SSL connections to fail. You can upgrade to a newer '
-                'version of Python to solve this. For more information, see '
-                'https://urllib3.readthedocs.io/en/latest/security.html'
-                '#insecureplatformwarning.',
-                InsecurePlatformWarning
-            )
+            from pip.compat import LOAD_C_DEPENDENCIES
+            if LOAD_C_DEPENDENCIES:
+                warnings.warn(
+                    'A true SSLContext object is not available. This prevents '
+                    'urllib3 from configuring SSL appropriately and may cause '
+                    'certain SSL connections to fail. You can upgrade to a newer '
+                    'version of Python to solve this. For more information, see '
+                    'https://urllib3.readthedocs.io/en/latest/security.html'
+                    '#insecureplatformwarning.',
+                    InsecurePlatformWarning
+                )
+            else:
+                warnings.warn(
+                    'A true SSLContext object is not available. This prevents '
+                    'urllib3 from configuring SSL appropriately and may cause '
+                    'certain SSL connections to fail. You can upgrade to a newer '
+                    'version of Python to solve this. For more information, see '
+                    'https://urllib3.readthedocs.io/en/latest/security.html'
+                    '#insecureplatformwarning. '
+                    'NOTE: Since pip uses vendored versions of '
+                    'requests and urllib3 and cannot load C dependencies based '
+                    'on the current platform, installing additional security '
+                    'packages will NOT resolve this warning.',
+                    InsecurePlatformWarning
+                )
+
             kwargs = {
                 'keyfile': self.keyfile,
                 'certfile': self.certfile,
@@ -307,14 +324,31 @@ def ssl_wrap_socket(sock, keyfile=None, certfile=None, cert_reqs=None,
     if HAS_SNI:  # Platform-specific: OpenSSL with enabled SNI
         return context.wrap_socket(sock, server_hostname=server_hostname)
 
-    warnings.warn(
-        'An HTTPS request has been made, but the SNI (Subject Name '
-        'Indication) extension to TLS is not available on this platform. '
-        'This may cause the server to present an incorrect TLS '
-        'certificate, which can cause validation failures. You can upgrade to '
-        'a newer version of Python to solve this. For more information, see '
-        'https://urllib3.readthedocs.io/en/latest/security.html'
-        '#snimissingwarning.',
-        SNIMissingWarning
-    )
+    from pip.compat import LOAD_C_DEPENDENCIES
+    if LOAD_C_DEPENDENCIES:
+        warnings.warn(
+            'An HTTPS request has been made, but the SNI (Subject Name '
+            'Indication) extension to TLS is not available on this platform. '
+            'This may cause the server to present an incorrect TLS '
+            'certificate, which can cause validation failures. You can upgrade to '
+            'a newer version of Python to solve this. For more information, see '
+            'https://urllib3.readthedocs.io/en/latest/security.html'
+            '#snimissingwarning.',
+            SNIMissingWarning
+        )
+    else:
+        warnings.warn(
+            'An HTTPS request has been made, but the SNI (Subject Name '
+            'Indication) extension to TLS is not available on this platform. '
+            'This may cause the server to present an incorrect TLS '
+            'certificate, which can cause validation failures. You can upgrade to '
+            'a newer version of Python to solve this. For more information, see '
+            'https://urllib3.readthedocs.io/en/latest/security.html'
+            '#snimissingwarning. '
+            'NOTE: Since pip uses vendored versions of '
+            'requests and urllib3 and cannot load C dependencies based '
+            'on the current platform, installing additional security '
+            'packages will NOT resolve this warning.',
+            SNIMissingWarning
+        )
     return context.wrap_socket(sock)
