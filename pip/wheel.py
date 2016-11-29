@@ -658,9 +658,11 @@ class BuildEnvironment(object):
         if install_dirs['purelib'] == install_dirs['platlib']:
             lib_dirs = install_dirs['purelib']
         else:
-            lib_dirs = install_dirs['purelib'] + os.pathsep + install_dirs['platlib']
+            lib_dirs = install_dirs['purelib'] + os.pathsep + \
+                       install_dirs['platlib']
         if self.save_pythonpath:
-            os.environ['PYTHONPATH'] = lib_dirs + os.pathsep + self.save_pythonpath
+            os.environ['PYTHONPATH'] = lib_dirs + os.pathsep + \
+                                       self.save_pythonpath
         else:
             os.environ['PYTHONPATH'] = lib_dirs
 
@@ -724,7 +726,8 @@ class WheelBuilder(object):
             with BuildEnvironment() as prefix:
                 self._install_build_reqs(build_reqs, prefix)
                 return self._build_one_inside_env(req, output_dir,
-                                            python_tag=python_tag, isolate=True)
+                                                  python_tag=python_tag,
+                                                  isolate=True)
         else:
             # Old style build, in the current environment
             return self._build_one_inside_env(req, output_dir,
