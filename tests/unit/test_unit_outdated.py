@@ -6,6 +6,7 @@ from contextlib import contextmanager
 import freezegun
 import pytest
 import pretend
+from pip.req import InstallRequirement
 
 from pip._vendor import lockfile
 from pip.utils import outdated
@@ -23,16 +24,20 @@ from pip.utils import outdated
 def test_pip_version_check(monkeypatch, stored_time, newver, check, warn):
     monkeypatch.setattr(outdated, 'get_installed_version', lambda name: '1.0')
 
-    resp = pretend.stub(
-        raise_for_status=pretend.call_recorder(lambda: None),
-        json=pretend.call_recorder(lambda: {"releases": {newver: {}}}),
+    version = pretend.stub(
+        base_version=newver,
     )
-    session = pretend.stub(
-        get=pretend.call_recorder(lambda u, headers=None: resp),
+
+    install_candidate = pretend.stub(
+        version=version,
+    )
+
+    finder = pretend.stub(
+        find_requirement=pretend.call_recorder(lambda _, upgrade: install_candidate),
     )
 
     fake_state = pretend.stub(
-        state={"last_check": stored_time, 'pypi_version': '1.0'},
+        state={"last_check": stored_time, 'remote_version': '1.0'},
         save=pretend.call_recorder(lambda v, t: None),
     )
 
@@ -52,15 +57,12 @@ def test_pip_version_check(monkeypatch, stored_time, newver, check, warn):
                 "pip._vendor.six.moves",
                 "pip._vendor.requests.packages.urllib3.packages.six.moves",
             ]):
-        outdated.pip_version_check(session)
+        outdated.pip_version_check(finder)
 
     assert not outdated.logger.debug.calls
 
     if check:
-        assert session.get.calls == [pretend.call(
-            "https://pypi.python.org/pypi/pip/json",
-            headers={"Accept": "application/json"}
-        )]
+        assert len(finder.find_requirement.calls) == 1
         assert fake_state.save.calls == [
             pretend.call(newver, datetime.datetime(1970, 1, 9, 10, 00, 00)),
         ]
@@ -69,12 +71,12 @@ def test_pip_version_check(monkeypatch, stored_time, newver, check, warn):
         else:
             assert len(outdated.logger.warning.calls) == 0
     else:
-        assert session.get.calls == []
+        assert finder.find_requirement.calls == []
         assert fake_state.save.calls == []
 
 
 def test_virtualenv_state(monkeypatch):
-    CONTENT = '{"last_check": "1970-01-02T11:00:00Z", "pypi_version": "1.0"}'
+    CONTENT = '{"last_check": "1970-01-02T11:00:00Z", "remote_version": "1.0"}'
     fake_file = pretend.stub(
         read=pretend.call_recorder(lambda: CONTENT),
         write=pretend.call_recorder(lambda s: None),
@@ -109,7 +111,7 @@ def test_virtualenv_state(monkeypatch):
 
 def test_global_state(monkeypatch):
     CONTENT = '''{"pip_prefix": {"last_check": "1970-01-02T11:00:00Z",
-        "pypi_version": "1.0"}}'''
+        "remote_version": "1.0"}}'''
     fake_file = pretend.stub(
         read=pretend.call_recorder(lambda: CONTENT),
         write=pretend.call_recorder(lambda s: None),

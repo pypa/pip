@@ -5,7 +5,7 @@ import logging
 import os
 import warnings
 
-from pip.basecommand import RequirementCommand
+from pip.basecommand import Command
 from pip.exceptions import CommandError, PreviousBuildDirError
 from pip.req import RequirementSet
 from pip.utils import import_or_raise
@@ -18,7 +18,7 @@ from pip import cmdoptions
 logger = logging.getLogger(__name__)
 
 
-class WheelCommand(RequirementCommand):
+class WheelCommand(Command):
     """
     Build Wheel archives for your requirements and dependencies.
 

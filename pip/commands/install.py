@@ -12,7 +12,7 @@ except ImportError:
     wheel = None
 
 from pip.req import RequirementSet
-from pip.basecommand import RequirementCommand
+from pip.basecommand import Command
 from pip.locations import virtualenv_no_global, distutils_scheme
 from pip.exceptions import (
     InstallationError, CommandError, PreviousBuildDirError,
@@ -28,7 +28,7 @@ from pip.wheel import WheelCache, WheelBuilder
 logger = logging.getLogger(__name__)
 
 
-class InstallCommand(RequirementCommand):
+class InstallCommand(Command):
     """
     Install packages from:
 

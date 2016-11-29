@@ -274,7 +274,8 @@ class InstallRequirement(object):
         to file modification times.
         """
         if self.link is None:
-            self.link = finder.find_requirement(self, upgrade)
+            self.link = getattr(finder.find_requirement(self, upgrade),
+                                'location', None)
         if self._wheel_cache is not None and not require_hashes:
             old_link = self.link
             self.link = self._wheel_cache.cached_wheel(self.link, self.name)

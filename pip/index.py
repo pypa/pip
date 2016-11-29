@@ -552,7 +552,7 @@ class PackageFinder(object):
             best_candidate.version,
             ', '.join(sorted(compatible_versions, key=parse_version))
         )
-        return best_candidate.location
+        return best_candidate
 
     def _get_pages(self, locations, project_name):
         """

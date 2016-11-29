@@ -6,7 +6,7 @@ import os
 from pip.exceptions import CommandError
 from pip.index import FormatControl
 from pip.req import RequirementSet
-from pip.basecommand import RequirementCommand
+from pip.basecommand import Command
 from pip import cmdoptions
 from pip.utils import ensure_dir, normalize_path
 from pip.utils.build import BuildDirectory
@@ -16,7 +16,7 @@ from pip.utils.filesystem import check_path_owner
 logger = logging.getLogger(__name__)
 
 
-class DownloadCommand(RequirementCommand):
+class DownloadCommand(Command):
     """
     Download packages from:
 
