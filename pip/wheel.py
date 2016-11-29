@@ -39,6 +39,7 @@ from pip.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor import pytoml
 
 
 wheel_ext = '.whl'
@@ -693,11 +694,43 @@ class WheelBuilder(object):
         self.build_options = build_options or []
         self.global_options = global_options or []
 
+    def _find_build_reqs(self, req):
+        """Get a list of the packages required to build the project, if any.
+
+        Build requirements can be specified in a pyproject.toml, as described
+        in PEP 518
+        """
+        if os.path.isfile(req.pyproject_toml):
+            with open(req.pyproject_toml) as f:
+                pp_toml = pytoml.load(f)
+            return pp_toml.get('build-system', {}).get('requires', [])
+
+        return []  # No pyproject.toml
+
+    def _install_build_reqs(self, reqs, prefix):
+        args = [sys.executable, '-m', 'pip', '--prefix', prefix] + list(reqs)
+        with open_spinner("Installing build dependencies") as spinner:
+            call_subprocess(args, show_stdout=False, spinner=spinner)
+
     def _build_one(self, req, output_dir, python_tag=None):
         """Build one wheel.
 
         :return: The filename of the built wheel, or None if the build failed.
         """
+        build_reqs = self._find_build_reqs(req)
+
+        if build_reqs:
+            # Install build deps into temporary prefix (PEP 518)
+            with BuildEnvironment() as prefix:
+                self._install_build_reqs(build_reqs, prefix)
+                return self._build_one_inside_env(req, output_dir,
+                                                  python_tag=python_tag)
+        else:
+            # Old style build, in the current environment
+            return self._build_one_inside_env(req, output_dir,
+                                              python_tag=python_tag)
+
+    def _build_one_inside_env(self, req, output_dir, python_tag=None):
         tempd = tempfile.mkdtemp('pip-wheel-')
         try:
             if self.__build_one(req, tempd, python_tag=python_tag):
