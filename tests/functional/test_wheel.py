@@ -197,3 +197,16 @@ def test_wheel_package_with_latin1_setup(script, data):
     pkg_to_wheel = data.packages.join("SetupPyLatin1")
     result = script.pip('wheel', pkg_to_wheel)
     assert 'Successfully built SetupPyUTF8' in result.stdout
+
+
+@pytest.mark.network
+def test_pip_wheel_with_pep518_build_reqs(script, data):
+    script.pip('install', 'wheel')
+    result = script.pip(
+        'wheel', '--no-index', '-f', data.find_links, 'pep518==3.0',
+    )
+    wheel_file_name = 'simple-3.0-py%s-none-any.whl' % pyversion[0]
+    wheel_file_path = script.scratch / wheel_file_name
+    assert wheel_file_path in result.files_created, result.stdout
+    assert "Successfully built simple" in result.stdout, result.stdout
+    assert "Installing build dependencies" in result.stdout, result.stdout
