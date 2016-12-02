@@ -205,7 +205,7 @@ def test_pip_wheel_with_pep518_build_reqs(script, data):
     result = script.pip(
         'wheel', '--no-index', '-f', data.find_links, 'pep518==3.0',
     )
-    wheel_file_name = 'simple-3.0-py%s-none-any.whl' % pyversion[0]
+    wheel_file_name = 'pep518-3.0-py%s-none-any.whl' % pyversion[0]
     wheel_file_path = script.scratch / wheel_file_name
     assert wheel_file_path in result.files_created, result.stdout
     assert "Successfully built simple" in result.stdout, result.stdout
