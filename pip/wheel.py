@@ -43,8 +43,8 @@ from pip._vendor import pytoml
 try:
     from sysconfig import get_paths
 except ImportError:
-    # This section is for compatibility with Python 2.6, and can be removed once
-    # Python 2.7 is the minimum supported version.
+    # This section is for compatibility with Python 2.6, and can be removed
+    # once Python 2.7 is the minimum supported version.
     sysconfig = None
 
     def get_paths(install_scheme, vars):
@@ -683,10 +683,10 @@ class BuildEnvironment(object):
             lib_dirs = install_dirs['purelib']
         else:
             lib_dirs = install_dirs['purelib'] + os.pathsep + \
-                       install_dirs['platlib']
+                install_dirs['platlib']
         if self.save_pythonpath:
             os.environ['PYTHONPATH'] = lib_dirs + os.pathsep + \
-                                       self.save_pythonpath
+                self.save_pythonpath
         else:
             os.environ['PYTHONPATH'] = lib_dirs
 
