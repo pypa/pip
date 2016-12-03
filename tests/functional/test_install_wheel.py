@@ -133,10 +133,10 @@ def test_install_wheel_with_target(script, data):
 def test_install_wheel_with_target_and_data_files(script, data):
     """
     Test for issue #4092. It will be checked that a data_files specification in
-    setup.py is handled correctly when a wheel is installed with the --target 
-    option. 
+    setup.py is handled correctly when a wheel is installed with the --target
+    option.
 
-    The setup() for the wheel 'pip_issue_4092-1.0-py2.py3-none-any.whl' is as 
+    The setup() for the wheel 'pip_issue_4092-1.0-py2.py3-none-any.whl' is as
     follows ::
 
         setup(
