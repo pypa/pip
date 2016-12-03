@@ -128,6 +128,39 @@ def test_install_wheel_with_target(script, data):
         str(result)
     )
 
+@pytest.mark.network
+def test_install_wheel_with_target_and_data_files(script, data):
+    """
+    Test for issue #4092. It will be checked that a data_files specification in setup.py is
+	handled correctly when a wheel is installed with the --target option. 
+
+	The setup() for the wheel 'pip_issue_4092-1.0-py2.py3-none-any.whl' is as follows ::
+
+		setup(
+		    name='pip_issue_4092',
+		    version='1.0',
+		    packages=['pip_issue_4092'],
+		    data_files=[
+		        (r'packages1', ['pip_issue_4092/README.txt']),
+		        (r'packages2', ['pip_issue_4092/README.txt'])
+		    ]
+		)
+    """
+    script.pip('install', 'wheel')
+    target_dir = script.scratch_path / 'target_4092'
+    package = data.packages.join("pip_issue_4092-1.0-py2.py3-none-any.whl")    
+    result = script.pip('install', package, 
+    					'-t', target_dir, 
+    					'--no-index',
+    					expect_error=False)
+
+    assert (Path('scratch') / 'target_4092' / 'packages1' / 'README.txt' 
+    	in result.files_created), str(result)
+    assert (Path('scratch') / 'target_4092' / 'packages2' / 'README.txt' 
+    	in result.files_created), str(result)
+    assert (Path('scratch') / 'target_4092' / 'lib' / 'python' 
+    	not in result.files_created), str(result)
+
 
 def test_install_wheel_with_root(script, data):
     """
