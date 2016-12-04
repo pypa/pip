@@ -468,7 +468,7 @@ class TestInstallRequirement(object):
             'sys_platform == %r' % sys.platform,
         ):
             line = 'name; ' + markers
-            req = InstallRequirement(line, comes_from='')
+            req = InstallRequirement.from_line(line, comes_from='')
             assert str(req.markers) == str(Marker(markers))
             assert req.match_markers()
 
@@ -478,7 +478,7 @@ class TestInstallRequirement(object):
             'sys_platform != %r' % sys.platform,
         ):
             line = 'name; ' + markers
-            req = InstallRequirement(line, comes_from='')
+            req = InstallRequirement.from_line(line, comes_from='')
             assert str(req.markers) == str(Marker(markers))
             assert not req.match_markers()
 

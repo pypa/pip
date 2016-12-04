@@ -65,31 +65,13 @@ def _strip_extras(path):
     return path_no_extras, extras
 
 
-def _safe_extras(extras):
-    return set(pkg_resources.safe_extra(extra) for extra in extras)
-
-
 class InstallRequirement(object):
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
                  link=None, as_egg=False, update=True,
                  pycompile=True, markers=None, isolated=False, options=None,
-                 wheel_cache=None, constraint=False):
-        self.extras = ()
-        if isinstance(req, six.string_types):
-            try:
-                req = Requirement(req)
-            except InvalidRequirement:
-                if os.path.sep in req:
-                    add_msg = "It looks like a path. Does it exist ?"
-                elif '=' in req and not any(op in req for op in operators):
-                    add_msg = "= is not a valid operator. Did you mean == ?"
-                else:
-                    add_msg = traceback.format_exc()
-                raise InstallationError(
-                    "Invalid requirement: '%s'\n%s" % (req, add_msg))
-            self.extras = _safe_extras(req.extras)
-
+                 wheel_cache=None, constraint=False, extras=()):
+        assert req is None or isinstance(req, Requirement), req
         self.req = req
         self.comes_from = comes_from
         self.constraint = constraint
@@ -99,6 +81,14 @@ class InstallRequirement(object):
         self._wheel_cache = wheel_cache
         self.link = self.original_link = link
         self.as_egg = as_egg
+        if extras:
+            self.extras = extras
+        elif req:
+            self.extras = set(
+                pkg_resources.safe_extra(extra) for extra in req.extras
+            )
+        else:
+            self.extras = set()
         if markers is not None:
             self.markers = markers
         else:
@@ -143,18 +133,31 @@ class InstallRequirement(object):
         else:
             source_dir = None
 
-        res = cls(name, comes_from, source_dir=source_dir,
-                  editable=True,
-                  link=Link(url),
-                  constraint=constraint,
-                  isolated=isolated,
-                  options=options if options else {},
-                  wheel_cache=wheel_cache)
+        if name is not None:
+            try:
+                req = Requirement(name)
+            except InvalidRequirement:
+                raise InstallationError("Invalid requirement: '%s'" % req)
+        else:
+            req = None
+        return cls(
+            req, comes_from, source_dir=source_dir,
+            editable=True,
+            link=Link(url),
+            constraint=constraint,
+            isolated=isolated,
+            options=options if options else {},
+            wheel_cache=wheel_cache,
+            extras=extras_override or (),
+        )
 
-        if extras_override is not None:
-            res.extras = _safe_extras(extras_override)
-
-        return res
+    @classmethod
+    def from_req(cls, req, comes_from=None, isolated=False, wheel_cache=None):
+        try:
+            req = Requirement(req)
+        except InvalidRequirement:
+            raise InstallationError("Invalid requirement: '%s'" % req)
+        return cls(req, comes_from, isolated=isolated, wheel_cache=wheel_cache)
 
     @classmethod
     def from_line(
@@ -225,16 +228,30 @@ class InstallRequirement(object):
         else:
             req = name
 
-        options = options if options else {}
-        res = cls(req, comes_from, link=link, markers=markers,
-                  isolated=isolated, options=options,
-                  wheel_cache=wheel_cache, constraint=constraint)
-
         if extras:
-            res.extras = _safe_extras(
-                Requirement('placeholder' + extras).extras)
-
-        return res
+            extras = Requirement("placeholder" + extras.lower()).extras
+        else:
+            extras = ()
+        if req is not None:
+            try:
+                req = Requirement(req)
+            except InvalidRequirement:
+                if os.path.sep in req:
+                    add_msg = "It looks like a path. Does it exist ?"
+                elif '=' in req and not any(op in req for op in operators):
+                    add_msg = "= is not a valid operator. Did you mean == ?"
+                else:
+                    add_msg = traceback.format_exc()
+                raise InstallationError(
+                    "Invalid requirement: '%s'\n%s" % (req, add_msg))
+        return cls(
+            req, comes_from, link=link, markers=markers,
+            isolated=isolated,
+            options=options if options else {},
+            wheel_cache=wheel_cache,
+            constraint=constraint,
+            extras=extras,
+        )
 
     def __str__(self):
         if self.req:
