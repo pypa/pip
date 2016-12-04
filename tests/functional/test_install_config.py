@@ -198,6 +198,7 @@ def test_options_from_venv_config(script, virtualenv):
     )
 
 
+@pytest.mark.network
 def test_install_no_binary_via_config_disables_cached_wheels(script, data):
     script.pip('install', 'wheel')
     config_file = tempfile.NamedTemporaryFile(mode='wt')
