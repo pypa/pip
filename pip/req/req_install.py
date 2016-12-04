@@ -23,7 +23,7 @@ from pip._vendor.packaging.version import Version, parse as parse_version
 
 import pip.wheel
 
-from pip.compat import native_str, get_stdlib
+from pip.compat import native_str
 from pip.download import is_url, url_to_path, path_to_url, is_archive_file
 from pip.exceptions import (
     InstallationError, UninstallationError,
@@ -35,7 +35,7 @@ from pip.utils import (
     display_path, rmtree, ask_path_exists, backup_dir, is_installable_dir,
     dist_in_usersite, dist_in_site_packages,
     call_subprocess, read_text_file, _make_build_dir, ensure_dir,
-    get_installed_version, normalize_path, dist_is_local,
+    get_installed_version,
 )
 
 from pip.utils.hashes import Hashes
@@ -121,9 +121,6 @@ class InstallRequirement(object):
         self.install_succeeded = None
         # UninstallPathSet of uninstalled distribution (for possible rollback)
         self.uninstalled_pathset = None
-        # Set True if a legitimate do-nothing-on-uninstall has happened - e.g.
-        # system site packages, stdlib packages.
-        self.nothing_to_uninstall = False
         self.use_user_site = False
         self.target_dir = None
         self.options = options if options else {}
@@ -609,44 +606,8 @@ class InstallRequirement(object):
             )
         dist = self.satisfied_by or self.conflicts_with
 
-        dist_path = normalize_path(dist.location)
-        if not dist_is_local(dist):
-            logger.info(
-                "Not uninstalling %s at %s, outside environment %s",
-                dist.key,
-                dist_path,
-                sys.prefix,
-            )
-            self.nothing_to_uninstall = True
-            return
-
-        if dist_path in get_stdlib():
-            logger.info(
-                "Not uninstalling %s at %s, as it is in the standard library.",
-                dist.key,
-                dist_path,
-            )
-            self.nothing_to_uninstall = True
-            return
-
         self.uninstalled_pathset = UninstallPathSet.from_dist(dist)
         self.uninstalled_pathset.remove(auto_confirm)
-
-    def rollback_uninstall(self):
-        if self.uninstalled_pathset:
-            self.uninstalled_pathset.rollback()
-        else:
-            logger.error(
-                "Can't rollback %s, nothing uninstalled.", self.name,
-            )
-
-    def commit_uninstall(self):
-        if self.uninstalled_pathset:
-            self.uninstalled_pathset.commit()
-        elif not self.nothing_to_uninstall:
-            logger.error(
-                "Can't commit %s, nothing uninstalled.", self.name,
-            )
 
     def archive(self, build_dir):
         assert self.source_dir

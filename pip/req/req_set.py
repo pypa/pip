@@ -344,7 +344,7 @@ class RequirementSet(object):
             if req.constraint:
                 continue
             req.uninstall(auto_confirm=auto_confirm)
-            req.commit_uninstall()
+            req.uninstalled_pathset.commit()
 
     def prepare_files(self, finder):
         """
@@ -788,12 +788,12 @@ class RequirementSet(object):
                     # if install did not succeed, rollback previous uninstall
                     if (requirement.conflicts_with and not
                             requirement.install_succeeded):
-                        requirement.rollback_uninstall()
+                        requirement.uninstalled_pathset.rollback()
                     raise
                 else:
                     if (requirement.conflicts_with and
                             requirement.install_succeeded):
-                        requirement.commit_uninstall()
+                        requirement.uninstalled_pathset.commit()
                 requirement.remove_temporary_source()
 
         self.successfully_installed = to_install
