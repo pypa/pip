@@ -674,7 +674,7 @@ class RequirementSet(object):
             more_reqs = []
 
             def add_req(subreq, extras_requested):
-                sub_install_req = InstallRequirement(
+                sub_install_req = InstallRequirement.from_req(
                     str(subreq),
                     req_to_install,
                     isolated=self.isolated,
