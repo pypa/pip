@@ -47,7 +47,7 @@ def test_cache_list(script, monkeypatch):
     assert "zzz.whl" in result.stdout
 
 
-def test_cache_rm(script, monkeypatch):
+def test_cache_remove(script, monkeypatch):
     for k, v in script.environ.items():
         monkeypatch.setenv(k, v)
     cache_base = appdirs.user_cache_dir("pip")
@@ -56,6 +56,6 @@ def test_cache_rm(script, monkeypatch):
     with open(os.path.join(wheel_cache_dir, "zzz.whl"), "w"):
         pass
 
-    script.pip("cache", "rm", expect_error=True)
-    result = script.pip("cache", "rm", "zzz.whl")
+    script.pip("cache", "remove", expect_error=True)
+    result = script.pip("cache", "remove", "zzz.whl")
     assert re.match(r"^Removed.*zzz\.whl$", result.stdout)
