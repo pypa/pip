@@ -734,8 +734,10 @@ class WheelBuilder(object):
         return []  # No pyproject.toml
 
     def _install_build_reqs(self, reqs, prefix):
+        urls = [self.finder.find_requirement(r, upgrade=False).url
+                for r in reqs]
         args = [sys.executable, '-m', 'pip', 'install', '--prefix', prefix] \
-            + list(reqs)
+            + list(urls)
         with open_spinner("Installing build dependencies") as spinner:
             call_subprocess(args, show_stdout=False, spinner=spinner)
 
