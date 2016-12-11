@@ -12,6 +12,7 @@ from pip.utils import appdirs, rmtree
 from pip.status_codes import ERROR
 from tests.lib import (pyversion, pyversion_tuple,
                        _create_test_package, _create_svn_repo, path_to_url,
+                       create_test_package_with_setup,
                        requirements_file)
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
@@ -1203,3 +1204,20 @@ def test_install_pep508_with_url(script):
         'ce1a869fe039fbf7e217df36c4653d1dbe657778b2d41709593a0003584405f4'
     )
     assert "Successfully installed packaging-15.3" in str(res), str(res)
+
+
+@pytest.mark.network
+def test_install_pep508_with_url_in_install_requires(script):
+    pkga_path = create_test_package_with_setup(
+        script, name='pkga', version='1.0',
+        install_requires=[
+            'packaging@https://files.pythonhosted.org/packages/2f/2b/'
+            'c681de3e1dbcd469537aefb15186b800209aa1f299d933d23b48d85c9d56/'
+            'packaging-15.3-py2.py3-none-any.whl#sha256='
+            'ce1a869fe039fbf7e217df36c4653d1dbe657778b2d41709593a0003584405f4'
+        ],
+    )
+    res = script.pip('install', pkga_path)
+    assert "Successfully installed" in str(res), str(res)
+    res = script.pip('list', '--format=freeze')
+    assert 'packaging==15.3' in res.stdout
