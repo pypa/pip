@@ -152,12 +152,13 @@ def test_pip_show_is_short(script):
     assert len(lines) <= 10
 
 
-def test_pip_show_divider(script):
+def test_pip_show_divider(script, data):
     """
     Expect a divider between packages
     """
-    script.pip('install', 'initools')
-    result = script.pip('show', 'pip', 'initools')
+    script.pip('install', 'pip-test-package', '--no-index',
+               '-f', data.packages)
+    result = script.pip('show', 'pip', 'pip-test-package')
     lines = result.stdout.splitlines()
     assert "---" in lines
 

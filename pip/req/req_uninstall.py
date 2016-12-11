@@ -4,12 +4,14 @@ import csv
 import functools
 import logging
 import os
+import sys
 import tempfile
 import warnings
 
 from pip._vendor import pkg_resources
 
 from pip.compat import uses_pycache, WINDOWS, cache_from_source
+from pip.compat import get_stdlib
 from pip.exceptions import UninstallationError
 from pip.locations import (
     bin_py, bin_user,
@@ -17,7 +19,7 @@ from pip.locations import (
 from pip.utils import (
     rmtree, ask, dist_in_usersite, is_local,
     egg_link_path, FakeFile,
-    renames, normalize_path,
+    renames, normalize_path, dist_is_local,
 )
 from pip.utils.deprecation import RemovedInPip10Warning
 from pip.utils.logging import indent_log
@@ -211,6 +213,24 @@ class UninstallPathSet(object):
 
     @classmethod
     def from_dist(cls, dist):
+        dist_path = normalize_path(dist.location)
+        if not dist_is_local(dist):
+            logger.info(
+                "Not uninstalling %s at %s, outside environment %s",
+                dist.key,
+                dist_path,
+                sys.prefix,
+            )
+            return cls(dist)
+
+        if dist_path in get_stdlib():
+            logger.info(
+                "Not uninstalling %s at %s, as it is in the standard library.",
+                dist.key,
+                dist_path,
+            )
+            return cls(dist)
+
         paths_to_remove = cls(dist)
         develop_egg_link = egg_link_path(dist)
         develop_egg_link_egg_info = '{0}.egg-info'.format(

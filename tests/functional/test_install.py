@@ -60,6 +60,7 @@ def test_with_setuptools_and_import_error(script, data):
     assert "ImportError: toto" in result.stderr
 
 
+@pytest.mark.network
 def test_pip_second_command_line_interface_works(script, data):
     """
     Check if ``pip<PYVERSION>`` commands behaves equally
@@ -109,6 +110,7 @@ def test_editable_install(script):
     assert not result.files_updated
 
 
+@pytest.mark.svn
 def test_install_editable_from_svn(script):
     """
     Test checking out from svn.
@@ -175,10 +177,12 @@ def test_install_editable_from_git(script, tmpdir):
     _test_install_editable_from_git(script, tmpdir, False)
 
 
+@pytest.mark.network
 def test_install_editable_from_git_autobuild_wheel(script, tmpdir):
     _test_install_editable_from_git(script, tmpdir, True)
 
 
+@pytest.mark.network
 def test_install_editable_uninstalls_existing(data, script, tmpdir):
     """
     Test that installing an editable uninstalls a previously installed
@@ -247,6 +251,7 @@ def test_vcs_url_final_slash_normalization(script, tmpdir):
     result.assert_installed('testpackage', with_files=['.hg'])
 
 
+@pytest.mark.bzr
 def test_install_editable_from_bazaar(script, tmpdir):
     """Test checking out from Bazaar."""
     pkg_path = _create_test_package(script, name='testpackage', vcs='bazaar')
@@ -256,6 +261,7 @@ def test_install_editable_from_bazaar(script, tmpdir):
 
 
 @pytest.mark.network
+@pytest.mark.bzr
 def test_vcs_url_urlquote_normalization(script, tmpdir):
     """
     Test that urlquoted characters are normalized for repo URL comparison.
@@ -909,13 +915,14 @@ def test_install_log(script, data, tmpdir):
 
 
 def test_install_topological_sort(script, data):
-    args = ['install', 'TopoRequires4', '-f', data.packages]
+    args = ['install', 'TopoRequires4', '--no-index', '-f', data.packages]
     res = str(script.pip(*args, expect_error=False))
     order1 = 'TopoRequires, TopoRequires2, TopoRequires3, TopoRequires4'
     order2 = 'TopoRequires, TopoRequires3, TopoRequires2, TopoRequires4'
     assert order1 in res or order2 in res, res
 
 
+@pytest.mark.network
 def test_install_wheel_broken(script, data):
     script.pip('install', 'wheel')
     res = script.pip(
@@ -924,6 +931,7 @@ def test_install_wheel_broken(script, data):
     assert "Successfully installed wheelbroken-0.1" in str(res), str(res)
 
 
+@pytest.mark.network
 def test_cleanup_after_failed_wheel(script, data):
     script.pip('install', 'wheel')
     res = script.pip(
@@ -938,6 +946,7 @@ def test_cleanup_after_failed_wheel(script, data):
     assert "Running setup.py clean for wheelbrokenafter" in str(res), str(res)
 
 
+@pytest.mark.network
 def test_install_builds_wheels(script, data):
     # NB This incidentally tests a local tree + tarball inputs
     # see test_install_editable_from_git_autobuild_wheel for editable
@@ -976,6 +985,7 @@ def test_install_builds_wheels(script, data):
     ]
 
 
+@pytest.mark.network
 def test_install_no_binary_disables_building_wheels(script, data):
     script.pip('install', 'wheel')
     to_install = data.packages.join('requires_wheelbroken_upper')
@@ -1007,6 +1017,7 @@ def test_install_no_binary_disables_building_wheels(script, data):
     assert "Running setup.py install for upper" in str(res), str(res)
 
 
+@pytest.mark.network
 def test_install_no_binary_disables_cached_wheels(script, data):
     script.pip('install', 'wheel')
     # Seed the cache
@@ -1109,6 +1120,7 @@ def test_install_incompatible_python_requires_editable(script):
             "but the running Python is ") in result.stderr
 
 
+@pytest.mark.network
 def test_install_incompatible_python_requires_wheel(script):
     script.scratch_path.join("pkga").mkdir()
     pkga_path = script.scratch_path / 'pkga'
