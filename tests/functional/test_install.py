@@ -1217,7 +1217,6 @@ def test_install_pep508_with_url_in_install_requires(script):
             'ce1a869fe039fbf7e217df36c4653d1dbe657778b2d41709593a0003584405f4'
         ],
     )
-    res = script.pip('install', pkga_path)
-    assert "Successfully installed" in str(res), str(res)
-    res = script.pip('list', '--format=freeze')
-    assert 'packaging==15.3' in res.stdout
+    res = script.pip('install', pkga_path, expect_error=True)
+    assert "Direct url requirement " in res.stderr, str(res)
+    assert "are not allowed for dependencies" in res.stderr, str(res)

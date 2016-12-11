@@ -164,6 +164,11 @@ class InstallRequirement(object):
             req = Requirement(req)
         except InvalidRequirement:
             raise InstallationError("Invalid requirement: '%s'" % req)
+        if req.url:
+            raise InstallationError(
+                "Direct url requirement (like %s) are not allowed for "
+                "dependencies" % req
+            )
         return cls(req, comes_from, isolated=isolated, wheel_cache=wheel_cache)
 
     @classmethod
