@@ -972,15 +972,9 @@ def parse_editable(editable_req, default_vcs=None):
     from pip.index import Link
 
     url = editable_req
-    extras = None
 
     # If a file path is specified with extras, strip off the extras.
-    m = re.match(r'^(.+)(\[[^\]]+\])$', url)
-    if m:
-        url_no_extras = m.group(1)
-        extras = m.group(2)
-    else:
-        url_no_extras = url
+    url_no_extras, extras = _strip_extras(url)
 
     if os.path.isdir(url_no_extras):
         if not os.path.exists(os.path.join(url_no_extras, 'setup.py')):
