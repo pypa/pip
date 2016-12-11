@@ -989,15 +989,9 @@ def parse_editable(editable_req, default_vcs=None):
     from pip.index import Link
 
     url = editable_req
-    extras = None
 
     # If a file path is specified with extras, strip off the extras.
-    m = re.match(r'^(.+)(\[[^\]]+\])$', url)
-    if m:
-        url_no_extras = m.group(1)
-        extras = m.group(2)
-    else:
-        url_no_extras = url
+    url_no_extras, extras = _strip_extras(url)
 
     if os.path.isdir(url_no_extras):
         if not os.path.exists(os.path.join(url_no_extras, 'setup.py')):
@@ -1050,11 +1044,7 @@ def parse_editable(editable_req, default_vcs=None):
     package_name = Link(url).egg_fragment
     if not package_name:
         raise InstallationError(
-            "Could not detect requirement name, please specify one with #egg="
-        )
-    if not package_name:
-        raise InstallationError(
-            '--editable=%s is not the right format; it must have '
-            '#egg=Package' % editable_req
+            "Could not detect requirement name for '%s', please specify one "
+            "with #egg=your_package_name" % editable_req
         )
     return _strip_postfix(package_name), url, None
