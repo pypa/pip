@@ -659,9 +659,13 @@ class RequirementSet(object):
                             req_to_install,
                         )
 
+            # register tmp src for cleanup in case something goes wrong
+            self.reqs_to_cleanup.append(req_to_install)
+
             # ###################### #
             # # parse dependencies # #
             # ###################### #
+
             dist = abstract_dist.dist(finder)
             try:
                 check_dist_requires_python(dist)
@@ -669,7 +673,6 @@ class RequirementSet(object):
                 if self.ignore_requires_python:
                     logger.warning(e.args[0])
                 else:
-                    req_to_install.remove_temporary_source()
                     raise
             more_reqs = []
 
@@ -710,9 +713,6 @@ class RequirementSet(object):
                 )
                 for subreq in dist.requires(available_requested):
                     add_req(subreq, extras_requested=available_requested)
-
-            # cleanup tmp src
-            self.reqs_to_cleanup.append(req_to_install)
 
             if not req_to_install.editable and not req_to_install.satisfied_by:
                 # XXX: --no-install leads this to report 'Successfully
