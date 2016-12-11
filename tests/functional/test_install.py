@@ -152,7 +152,7 @@ def test_download_editable_to_custom_path(script, tmpdir):
     result = script.pip(
         'install',
         '-e',
-        '%s#egg=initools-dev' %
+        '%s#egg=initools' %
         local_checkout(
             'svn+http://svn.colorstudy.com/INITools/trunk',
             tmpdir.join("cache")

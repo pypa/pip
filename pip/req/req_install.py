@@ -41,7 +41,7 @@ from pip.utils import (
 )
 
 from pip.utils.hashes import Hashes
-from pip.utils.deprecation import RemovedInPip10Warning
+from pip.utils.deprecation import RemovedInPip10Warning, RemovedInPip11Warning
 from pip.utils.logging import indent_log
 from pip.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip.utils.ui import open_spinner
@@ -984,6 +984,10 @@ def _strip_postfix(req):
     match = re.search(r'^(.*?)(?:-dev|-\d.*)$', req)
     if match:
         # Strip off -dev, -0.2, etc.
+        warnings.warn(
+            "#egg cleanup for editable urls will be dropped in the future",
+            RemovedInPip11Warning,
+        )
         req = match.group(1)
     return req
 
