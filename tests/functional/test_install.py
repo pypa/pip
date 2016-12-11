@@ -1191,3 +1191,15 @@ def test_install_environment_markers(script, data):
     assert ("Ignoring missing-pkg: markers 'python_version == \"1.0\"' don't "
             "match your environment") in res.stderr, str(res)
     assert "Successfully installed pkga-0.1" in res.stdout, str(res)
+
+
+@pytest.mark.network
+def test_install_pep508_with_url(script):
+    res = script.pip(
+        'install', '--no-index',
+        'packaging@https://files.pythonhosted.org/packages/2f/2b/'
+        'c681de3e1dbcd469537aefb15186b800209aa1f299d933d23b48d85c9d56/'
+        'packaging-15.3-py2.py3-none-any.whl#sha256='
+        'ce1a869fe039fbf7e217df36c4653d1dbe657778b2d41709593a0003584405f4'
+    )
+    assert "Successfully installed packaging-15.3" in str(res), str(res)

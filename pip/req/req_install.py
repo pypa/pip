@@ -81,7 +81,12 @@ class InstallRequirement(object):
         self.editable = editable
 
         self._wheel_cache = wheel_cache
-        self.link = self.original_link = link
+        if link is not None:
+            self.link = self.original_link = link
+        else:
+            from pip.index import Link
+            self.link = self.original_link = req and req.url and Link(req.url)
+
         self.as_egg = as_egg
         if extras:
             self.extras = extras
