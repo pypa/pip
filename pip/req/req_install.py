@@ -1033,11 +1033,7 @@ def parse_editable(editable_req, default_vcs=None):
     package_name = Link(url).egg_fragment
     if not package_name:
         raise InstallationError(
-            "Could not detect requirement name, please specify one with #egg="
-        )
-    if not package_name:
-        raise InstallationError(
-            '--editable=%s is not the right format; it must have '
-            '#egg=Package' % editable_req
+            "Could not detect requirement name for '%s', please specify one "
+            "with #egg=your_package_name" % editable_req
         )
     return _strip_postfix(package_name), url, None
