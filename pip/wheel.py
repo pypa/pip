@@ -29,7 +29,6 @@ from pip.exceptions import (
     InstallationError, InvalidWheelFilename, UnsupportedWheel)
 from pip.locations import distutils_scheme, PIP_DELETE_MARKER_FILENAME
 from pip import pep425tags
-from pip.req.req_install import InstallRequirement
 from pip.utils import (
     call_subprocess, ensure_dir, captured_stdout, rmtree, read_chunks,
 )
@@ -735,6 +734,8 @@ class WheelBuilder(object):
         return []  # No pyproject.toml
 
     def _install_build_reqs(self, reqs, prefix):
+        # Local install to avoid circular import (wheel <-> req_install)
+        from pip.req.req_install import InstallRequirement
         urls = [self.finder.find_requirement(InstallRequirement.from_line(r),
                                              upgrade=False).url
                 for r in reqs]
