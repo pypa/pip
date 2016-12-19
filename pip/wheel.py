@@ -739,7 +739,12 @@ class WheelBuilder(object):
         urls = [self.finder.find_requirement(InstallRequirement.from_line(r),
                                              upgrade=False).url
                 for r in reqs]
-        args = [sys.executable, '-m', 'pip', 'install', '--prefix', prefix] \
+
+        if sys.version_info >= (2, 7):
+            mpip = 'pip'
+        else:
+            mpip = 'pip.__main__'  # Python 2.6 can't execute a package with -m
+        args = [sys.executable, '-m', mpip, 'install', '--prefix', prefix] \
             + list(urls)
         with open_spinner("Installing build dependencies") as spinner:
             call_subprocess(args, show_stdout=False, spinner=spinner)
