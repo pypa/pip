@@ -785,8 +785,10 @@ class WheelBuilder(object):
 
     def _base_setup_args(self, req, isolate=False):
         flags = '-u'
-        if isolate:
-            flags += 'S'
+        # The install process needs to be able to import setuptools from where
+        # it's installed as a dependency of pip, so skipping isolation for now.
+        # if isolate:
+        #     flags += 'S'
         return [
             sys.executable, flags, '-c',
             SETUPTOOLS_SHIM % req.setup_py
