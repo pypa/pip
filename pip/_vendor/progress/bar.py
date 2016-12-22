@@ -41,6 +41,11 @@ class Bar(WritelnMixin, Progress):
         self.writeln(line)
 
 
+class SilentBar(Bar):
+    def update(self):
+        pass
+
+
 class ChargingBar(Bar):
     suffix = '%(percent)d%%'
     bar_prefix = ' '
@@ -81,3 +86,10 @@ class IncrementalBar(Bar):
 
 class ShadyBar(IncrementalBar):
     phases = (u' ', u'░', u'▒', u'▓', u'█')
+
+
+class BlueEmojiBar(IncrementalBar):
+    suffix = '%(percent)d%%'
+    bar_prefix = ' '
+    bar_suffix = ' '
+    phases = (u"\U0001F539", u"\U0001F537", u"\U0001F535")
