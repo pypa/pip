@@ -12,7 +12,7 @@ class HelpCommand(Command):
     summary = 'Show help for commands.'
 
     def run(self, options, args):
-        from pip.commands import commands_dict, get_similar_commands
+        from pip.commands import commands_dict, get_similar_command
 
         try:
             # 'pip help' with no args is handled by pip.__init__.parseopt()
@@ -21,11 +21,11 @@ class HelpCommand(Command):
             return SUCCESS
 
         if cmd_name not in commands_dict:
-            guess = get_similar_commands(cmd_name)
+            score, guess = get_similar_command(cmd_name)
 
-            msg = ['unknown command "%s"' % cmd_name]
+            msg = ['pip does not have a command "%s"' % cmd_name]
             if guess:
-                msg.append('maybe you meant "%s"' % guess)
+                msg.append('did you mean "%s"?' % guess)
 
             raise CommandError(' - '.join(msg))
 

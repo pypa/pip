@@ -9,6 +9,7 @@ import warnings
 
 import sys
 import re
+import time
 
 # 2016-06-17 barry@debian.org: urllib3 1.14 added optional support for socks,
 # but if invoked (i.e. imported), it will issue a warning to stderr if socks
@@ -27,8 +28,7 @@ from pip.utils import get_installed_distributions, get_prog
 from pip.utils import deprecation, dist_is_editable
 from pip.vcs import git, mercurial, subversion, bazaar  # noqa
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
-from pip.commands import get_summaries, get_similar_commands
-from pip.commands import commands_dict
+from pip.commands import get_summaries, get_similar_command, commands_dict
 from pip._vendor.requests.packages.urllib3.exceptions import (
     InsecureRequestWarning,
 )
@@ -181,18 +181,50 @@ def parseopts(args):
     # the subcommand name
     cmd_name = args_else[0]
 
-    if cmd_name not in commands_dict:
-        guess = get_similar_commands(cmd_name)
-
-        msg = ['unknown command "%s"' % cmd_name]
-        if guess:
-            msg.append('maybe you meant "%s"' % guess)
-
-        raise CommandError(' - '.join(msg))
-
     # all the args without the subcommand
     cmd_args = args[:]
     cmd_args.remove(cmd_name)
+
+    # Autocorrect command name
+    if cmd_name not in commands_dict:
+        # MARK: The following should be loaded from the configuration file
+        #       in the future. For now, it can stay like this, I guess.
+        wait_time = 2          # Numeric, only first post decimal significant
+        suggest_cut_off = 0.6  # float between 0-1
+        replace_cut_off = 0.8  # float between 0-1
+
+        assert suggest_cut_off <= replace_cut_off, \
+               "autocorrect - suggestions cut off value invalid!"
+
+        score, guess = get_similar_command(cmd_name)
+
+        if guess is None:  # nothing similar
+            err_msg = 'pip does not have a command "%s"' % cmd_name
+        elif score < replace_cut_off:  # not similar enough
+            err_msg = (
+                'pip does not have a command "%s" - did you mean "%s"?'
+            ) % (cmd_name, guess)
+        else:  # close enough - no error
+            err_msg = None
+
+        if err_msg is not None:
+            raise CommandError(err_msg)
+
+        msg = (
+            'You called a pip command named "%s" which does not exist.\n'
+            'Assuming you meant "%s", pip will continue in %.1f seconds...'
+        )
+
+        logger.warn(msg, cmd_name, guess, wait_time)
+        try:
+            # time.sleep in a loop because KeyboardInterrupt is raised after
+            # it returns
+            for i in range(int(wait_time * 10)):
+                time.sleep(0.1)
+        except KeyboardInterrupt:
+            sys.exit()
+
+        cmd_name = guess
 
     return cmd_name, cmd_args
 
@@ -229,6 +261,7 @@ def main(args=None):
     except locale.Error as e:
         # setlocale can apparently crash if locale are uninitialized
         logger.debug("Ignoring error %s when setting locale", e)
+
     command = commands_dict[cmd_name](isolated=check_isolated(cmd_args))
     return command.main(cmd_args)
 

@@ -61,18 +61,42 @@ def get_summaries(ordered=True):
         yield (name, command_class.summary)
 
 
-def get_similar_commands(name):
+def get_close_matches(word, possibilities, n=1, cutoff=0.6):
+    """A re-implementation of difflib.get_close_matches that returns best
+    matches with scores.
+
+    NOTE: The default number of close matches returned is 1.
+    """
+    import heapq
+    from difflib import SequenceMatcher
+
+    if not n >  0:
+        raise ValueError("n must be > 0: %r" % (n,))
+    if not 0.0 <= cutoff <= 1.0:
+        raise ValueError("cutoff must be in [0.0, 1.0]: %r" % (cutoff,))
+    result = []
+    s = SequenceMatcher()
+    s.set_seq2(word)
+    for x in possibilities:
+        s.set_seq1(x)
+        if s.real_quick_ratio() >= cutoff and \
+           s.quick_ratio() >= cutoff and \
+           s.ratio() >= cutoff:
+            result.append((s.ratio(), x))
+
+    # Move the best scorers to head of list
+    return heapq.nlargest(n, result)
+
+
+def get_similar_command(name):
     """Command name auto-correct."""
-    from difflib import get_close_matches
-
     name = name.lower()
-
     close_commands = get_close_matches(name, commands_dict.keys())
 
     if close_commands:
         return close_commands[0]
     else:
-        return False
+        return 0, None
 
 
 def _sort_commands(cmddict, order):
