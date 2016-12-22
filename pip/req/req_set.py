@@ -147,7 +147,7 @@ class RequirementSet(object):
                  force_reinstall=False, use_user_site=False, session=None,
                  pycompile=True, isolated=False, wheel_download_dir=None,
                  wheel_cache=None, require_hashes=False,
-                 ignore_requires_python=False):
+                 ignore_requires_python=False, progress_bar="on"):
         """Create a RequirementSet.
 
         :param wheel_download_dir: Where still-packed .whl files should be
@@ -182,6 +182,7 @@ class RequirementSet(object):
         self.unnamed_requirements = []
         self.ignore_dependencies = ignore_dependencies
         self.ignore_requires_python = ignore_requires_python
+        self.progress_bar = progress_bar
         self.successfully_downloaded = []
         self.successfully_installed = []
         self.reqs_to_cleanup = []
@@ -618,7 +619,8 @@ class RequirementSet(object):
                     unpack_url(
                         req_to_install.link, req_to_install.source_dir,
                         download_dir, autodelete_unpacked,
-                        session=self.session, hashes=hashes)
+                        session=self.session, hashes=hashes,
+                        progress_bar=self.progress_bar)
                 except requests.HTTPError as exc:
                     logger.critical(
                         'Could not install requirement %s because '
