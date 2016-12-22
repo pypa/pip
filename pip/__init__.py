@@ -194,7 +194,7 @@ def parseopts(args):
         replace_cut_off = 0.8  # float between 0-1
 
         assert suggest_cut_off <= replace_cut_off, \
-               "autocorrect - suggestions cut off value invalid!"
+            "autocorrect - suggestions cut off value invalid!"
 
         score, guess = get_similar_command(cmd_name)
 

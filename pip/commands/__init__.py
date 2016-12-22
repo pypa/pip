@@ -70,7 +70,7 @@ def get_close_matches(word, possibilities, n=1, cutoff=0.6):
     import heapq
     from difflib import SequenceMatcher
 
-    if not n >  0:
+    if not n > 0:
         raise ValueError("n must be > 0: %r" % (n,))
     if not 0.0 <= cutoff <= 1.0:
         raise ValueError("cutoff must be in [0.0, 1.0]: %r" % (cutoff,))
