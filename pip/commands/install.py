@@ -60,6 +60,7 @@ class InstallCommand(RequirementCommand):
         cmd_opts.add_option(cmdoptions.editable())
         cmd_opts.add_option(cmdoptions.requirements())
         cmd_opts.add_option(cmdoptions.build_dir())
+        cmd_opts.add_option(cmdoptions.no_progress())
 
         cmd_opts.add_option(
             '-t', '--target',
@@ -306,6 +307,7 @@ class InstallCommand(RequirementCommand):
                     isolated=options.isolated_mode,
                     wheel_cache=wheel_cache,
                     require_hashes=options.require_hashes,
+                    no_progress=options.no_progress,
                 )
 
                 self.populate_requirement_set(
@@ -330,6 +332,7 @@ class InstallCommand(RequirementCommand):
                             finder,
                             build_options=[],
                             global_options=[],
+                            no_progress=options.no_progress,
                         )
                         # Ignore the result: a failed wheel will be
                         # installed from the sdist/vcs whatever.
