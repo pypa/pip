@@ -266,7 +266,9 @@ class TestOptionsConfigFiles(object):
 
     def test_venv_config_file_found(self, monkeypatch):
         # strict limit on the site_config_files list
-        monkeypatch.setattr(pip.configuration, 'site_config_files', ['/a/place'])
+        monkeypatch.setattr(
+            pip.configuration, 'site_config_files', ['/a/place']
+        )
 
         # If we are running in a virtualenv and all files appear to exist,
         # we should see two config files.
