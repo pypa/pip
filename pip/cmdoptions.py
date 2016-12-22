@@ -119,6 +119,15 @@ quiet = partial(
           ' levels).')
 )
 
+no_progress_bar = partial(
+    Option,
+    "--no-progress-bar",
+    dest="no_progress_bar",
+    action="store_true",
+    default=False,
+    help="Surpress progress bar.")
+
+
 log = partial(
     Option,
     "--log", "--log-file", "--local-log",
@@ -528,6 +537,7 @@ disable_pip_version_check = partial(
     default=False,
     help="Don't periodically check PyPI to determine whether a new version "
          "of pip is available for download. Implied with --no-index.")
+
 
 # Deprecated, Remove later
 always_unzip = partial(
