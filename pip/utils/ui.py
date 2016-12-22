@@ -12,7 +12,12 @@ from pip.compat import WINDOWS
 from pip.utils import format_size
 from pip.utils.logging import get_indentation
 from pip._vendor import six
+
 from pip._vendor.progress.bar import Bar, IncrementalBar
+from pip._vendor.progress.bar import FillingCirclesBar, FillingSquaresBar
+from pip._vendor.progress.bar import ChargingBar, ShadyBar
+from pip._vendor.progress.bar import BlueEmojiBar, SilentBar
+
 from pip._vendor.progress.helpers import (WritelnMixin,
                                           HIDE_CURSOR, SHOW_CURSOR)
 from pip._vendor.progress.spinner import Spinner
@@ -171,12 +176,44 @@ class WindowsMixin(object):
             self.file.flush = lambda: self.file.wrapped.flush()
 
 
-class DownloadProgressBar(WindowsMixin, InterruptibleMixin,
-                          DownloadProgressMixin, _BaseBar):
+class BaseDownloadProgressBar(WindowsMixin, InterruptibleMixin,
+                              DownloadProgressMixin):
 
     file = sys.stdout
     message = "%(percent)d%%"
     suffix = "%(downloaded)s %(download_speed)s %(pretty_eta)s"
+
+
+class DefaultDownloadProgressBar(BaseDownloadProgressBar, _BaseBar):
+    pass
+
+
+class DownloadSilentBar(BaseDownloadProgressBar, SilentBar):
+    pass
+
+
+class DownloadIncrementalBar(BaseDownloadProgressBar, IncrementalBar):
+    pass
+
+
+class DownloadChargingBar(BaseDownloadProgressBar, ChargingBar):
+    pass
+
+
+class DownloadShadyBar(BaseDownloadProgressBar, ShadyBar):
+    pass
+
+
+class DownloadFillingSquaresBar(BaseDownloadProgressBar, FillingSquaresBar):
+    pass
+
+
+class DownloadFillingCirclesBar(BaseDownloadProgressBar, FillingCirclesBar):
+    pass
+
+
+class DownloadBlueEmojiProgressBar(BaseDownloadProgressBar, BlueEmojiBar):
+    pass
 
 
 class DownloadProgressSpinner(WindowsMixin, InterruptibleMixin,
@@ -203,6 +240,22 @@ class DownloadProgressSpinner(WindowsMixin, InterruptibleMixin,
         ])
 
         self.writeln(line)
+
+
+BAR_TYPES = {
+    "off": (DownloadSilentBar, DownloadSilentBar),
+    "on": (DefaultDownloadProgressBar, DownloadProgressSpinner),
+    "ascii": (DownloadIncrementalBar, DownloadProgressSpinner),
+    "pretty": (DownloadFillingCirclesBar, DownloadProgressSpinner),
+    "emoji": (DownloadBlueEmojiProgressBar, DownloadProgressSpinner)
+}
+
+
+def DownloadProgressProvider(progress_bar, max=None):
+    if max is None or max == 0:
+        return BAR_TYPES[progress_bar][1]().iter
+    else:
+        return BAR_TYPES[progress_bar][0](max=max).iter
 
 
 ################################################################

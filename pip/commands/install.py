@@ -178,6 +178,7 @@ class InstallCommand(RequirementCommand):
         cmd_opts.add_option(cmdoptions.only_binary())
         cmd_opts.add_option(cmdoptions.no_clean())
         cmd_opts.add_option(cmdoptions.require_hashes())
+        cmd_opts.add_option(cmdoptions.progress_bar())
 
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
@@ -303,6 +304,7 @@ class InstallCommand(RequirementCommand):
                     isolated=options.isolated_mode,
                     wheel_cache=wheel_cache,
                     require_hashes=options.require_hashes,
+                    progress_bar=options.progress_bar,
                 )
 
                 self.populate_requirement_set(

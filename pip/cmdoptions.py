@@ -19,6 +19,7 @@ from pip.index import (
 from pip.models import PyPI
 from pip.locations import USER_CACHE_DIR, src_prefix
 from pip.utils.hashes import STRONG_HASHES
+from pip.utils.ui import BAR_TYPES
 
 
 def make_option_group(group, parser):
@@ -118,6 +119,16 @@ quiet = partial(
           ' times (corresponding to WARNING, ERROR, and CRITICAL logging'
           ' levels).')
 )
+
+progress_bar = partial(
+    Option,
+    '--progress-bar',
+    dest='progress_bar',
+    type='choice',
+    choices=list(BAR_TYPES.keys()),
+    default='on',
+    help='Specify type of progress to be displayed [' +
+         '|'.join(BAR_TYPES.keys()) + '] (default: %default)')
 
 log = partial(
     Option,
@@ -528,6 +539,7 @@ disable_pip_version_check = partial(
     default=False,
     help="Don't periodically check PyPI to determine whether a new version "
          "of pip is available for download. Implied with --no-index.")
+
 
 # Deprecated, Remove later
 always_unzip = partial(
