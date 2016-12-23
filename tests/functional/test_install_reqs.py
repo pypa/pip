@@ -171,7 +171,7 @@ def test_install_local_editable_with_extras(script, data):
 @pytest.mark.network
 def test_install_collected_dependencies_first(script):
     result = script.pip(
-        'install', 'paramiko',
+        'install', 'paramiko==1.17',
     )
     text = [line for line in result.stdout.split('\n')
             if 'Installing' in line][0]
