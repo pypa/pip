@@ -133,7 +133,7 @@ class ConfigOptionParser(CustomOptionParser):
     def __init__(self, *args, **kwargs):
         self.name = kwargs.pop('name')
         self.isolated = kwargs.pop("isolated", False)
-        self.config = Configuration()
+        self.config = Configuration(self.isolated)
         assert self.name
         optparse.OptionParser.__init__(self, *args, **kwargs)
 
@@ -148,10 +148,9 @@ class ConfigOptionParser(CustomOptionParser):
         """Updates the given defaults with values from the config files and
         the environ. Does a little special handling for certain types of
         options (lists)."""
-        self.config.load_config_files(self.name, self.isolated)
-        # 2. environmental variables
-        if not self.isolated:
-            self.config.load_environment_vars()
+
+        # Load the configuration
+        self.config.load()
 
         # Accumulate complex default state.
         self.values = optparse.Values(self.defaults)
