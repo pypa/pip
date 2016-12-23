@@ -189,9 +189,9 @@ def parseopts(args):
     if cmd_name not in commands_dict:
         # MARK: The following should be loaded from the configuration file
         #       in the future. For now, it can stay like this, I guess.
-        wait_time = 2          # Numeric, only first post decimal significant
-        suggest_cut_off = 0.6  # float between 0-1
-        replace_cut_off = 0.8  # float between 0-1
+        wait_time = 2          # float
+        suggest_cut_off = 0.6  # float, between 0-1
+        replace_cut_off = 0.8  # float, between 0-1
 
         assert suggest_cut_off <= replace_cut_off, \
             "autocorrect - suggestions cut off value invalid!"
@@ -217,12 +217,11 @@ def parseopts(args):
 
         logger.warning(msg, cmd_name, guess, wait_time)
         try:
-            # time.sleep in a loop because KeyboardInterrupt is raised after
-            # it returns
-            for i in range(int(wait_time * 10)):
-                time.sleep(0.1)
+            time.sleep(wait_time)
         except KeyboardInterrupt:
-            sys.exit()
+            logger.critical('Operation cancelled by user')
+            logger.debug('Exception information:', exc_info=True)
+            sys.exit(pip.status_codes.ERROR)
 
         cmd_name = guess
 
