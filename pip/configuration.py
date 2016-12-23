@@ -26,10 +26,10 @@ class Configuration(object):
         self._config = {}
         self.isolated = isolated
 
-    def load(self, name):
+    def load(self, section):
         """Loads configuration
         """
-        self._load_config_files(name)
+        self._load_config_files(section)
         if not self.isolated:
             self._load_environment_vars()
 
@@ -39,7 +39,7 @@ class Configuration(object):
         """
         return self._config.items()
 
-    def _load_config_files(self, name):
+    def _load_config_files(self, section):
         """Loads configuration from configuration files
         """
         files = self._get_config_files()
@@ -47,7 +47,7 @@ class Configuration(object):
         if files:
             self._configparser.read(files)
 
-        for section in ('global', name):
+        for section in ('global', section):
             self._config.update(
                 self._normalize_keys(self._get_config_section(section))
             )
@@ -56,7 +56,6 @@ class Configuration(object):
         """Loads configuration from environment variables
         """
         self._config.update(self._normalize_keys(self._get_environ_vars()))
-
 
     def _normalize_keys(self, items):
         """Return a config dictionary with normalized keys regardless of

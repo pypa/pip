@@ -150,7 +150,7 @@ class ConfigOptionParser(CustomOptionParser):
         options (lists)."""
 
         # Load the configuration
-        self.config.load()
+        self.config.load(self.name)
 
         # Accumulate complex default state.
         self.values = optparse.Values(self.defaults)
