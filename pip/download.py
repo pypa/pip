@@ -34,7 +34,7 @@ from pip.utils.filesystem import check_path_owner
 from pip.utils.logging import indent_log
 from pip.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip.utils.glibc import libc_ver
-from pip.utils.ui import DownloadProgressBar, DownloadProgressSpinner
+from pip.utils.ui import DownloadProgressProvider
 from pip.locations import write_delete_marker_file
 from pip.vcs import vcs
 from pip._vendor import requests, six
@@ -523,8 +523,6 @@ def _download_url(resp, link, content_file, hashes, progress_bar):
     cached_resp = getattr(resp, "from_cache", False)
     if logger.getEffectiveLevel() > logging.INFO:
         show_progress = False
-    elif not progress_bar:
-        show_progress = False
     elif cached_resp:
         show_progress = False
     elif total_length > (40 * 1000):
@@ -586,12 +584,12 @@ def _download_url(resp, link, content_file, hashes, progress_bar):
         url = link.url_without_fragment
 
     if show_progress:  # We don't show progress on cached responses
+        progress_indicator = DownloadProgressProvider(progress_bar,
+                                                      max=total_length)
         if total_length:
             logger.info("Downloading %s (%s)", url, format_size(total_length))
-            progress_indicator = DownloadProgressBar(max=total_length).iter
         else:
             logger.info("Downloading %s", url)
-            progress_indicator = DownloadProgressSpinner().iter
     elif cached_resp:
         logger.info("Using cached %s", url)
     else:
@@ -639,7 +637,7 @@ def _copy_file(filename, location, link):
 
 
 def unpack_http_url(link, location, download_dir=None,
-                    session=None, hashes=None, progress_bar=True):
+                    session=None, hashes=None, progress_bar="on"):
     if session is None:
         raise TypeError(
             "unpack_http_url() missing 1 required keyword argument: 'session'"
@@ -793,7 +791,7 @@ class PipXmlrpcTransport(xmlrpc_client.Transport):
 
 def unpack_url(link, location, download_dir=None,
                only_download=False, session=None, hashes=None,
-               progress_bar=True):
+               progress_bar="on"):
     """Unpack link.
        If link is a VCS link:
          if only_download, export into download_dir and ignore location

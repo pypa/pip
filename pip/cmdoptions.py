@@ -19,6 +19,7 @@ from pip.index import (
 from pip.models import PyPI
 from pip.locations import USER_CACHE_DIR, src_prefix
 from pip.utils.hashes import STRONG_HASHES
+from pip.utils.ui import BAR_TYPES
 
 
 def make_option_group(group, parser):
@@ -119,14 +120,15 @@ quiet = partial(
           ' levels).')
 )
 
-no_progress_bar = partial(
+progress_bar = partial(
     Option,
-    "--no-progress-bar",
-    dest="no_progress_bar",
-    action="store_true",
-    default=False,
-    help="Surpress progress bar.")
-
+    "--progress-bar",
+    dest="progress_bar",
+    type='choice',
+    choices=list(BAR_TYPES.keys()),
+    default='on',
+    help="Specify type of progress to be displayed [%s]. " %
+         '|'.join(BAR_TYPES.keys()))
 
 log = partial(
     Option,

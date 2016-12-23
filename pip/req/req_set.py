@@ -147,7 +147,7 @@ class RequirementSet(object):
                  force_reinstall=False, use_user_site=False, session=None,
                  pycompile=True, isolated=False, wheel_download_dir=None,
                  wheel_cache=None, require_hashes=False,
-                 ignore_requires_python=False, progress_bar=True):
+                 ignore_requires_python=False, progress_bar="on"):
         """Create a RequirementSet.
 
         :param wheel_download_dir: Where still-packed .whl files should be
