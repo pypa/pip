@@ -168,14 +168,13 @@ def test_install_local_editable_with_extras(script, data):
     assert script.site_packages / 'simple' in res.files_created, str(res)
 
 
-@pytest.mark.network
 def test_install_collected_dependencies_first(script):
-    result = script.pip(
-        'install', 'paramiko==1.17',
+    result = script.pip_install_local(
+        'toporequires2',
     )
     text = [line for line in result.stdout.split('\n')
             if 'Installing' in line][0]
-    assert text.endswith('paramiko')
+    assert text.endswith('toporequires2')
 
 
 @pytest.mark.network
