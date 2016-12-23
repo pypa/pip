@@ -61,42 +61,54 @@ def get_summaries(ordered=True):
         yield (name, command_class.summary)
 
 
-def get_close_matches(word, possibilities, n=1, cutoff=0.6):
-    """A re-implementation of difflib.get_close_matches that returns best
-    matches with scores.
+def _get_closest_match(word, possibilities, cutoff):
+    """Get the closest match of word in possibilities.
 
-    NOTE: The default number of close matches returned is 1.
+    Returns a tuple of (similarity, possibility) where possibility has the
+    highest similarity greater than cutoff.
+    Returns (0, None) if there is no such possibility in possibilities.
+
+    If more than one possibilities have the highest similarity, the first
+    matched is returned.
     """
-    import heapq
     from difflib import SequenceMatcher
 
-    if not n > 0:
-        raise ValueError("n must be > 0: %r" % (n,))
     if not 0.0 <= cutoff <= 1.0:
         raise ValueError("cutoff must be in [0.0, 1.0]: %r" % (cutoff,))
-    result = []
+
+    result = None
+
     s = SequenceMatcher()
     s.set_seq2(word)
     for x in possibilities:
         s.set_seq1(x)
-        if s.real_quick_ratio() >= cutoff and \
-           s.quick_ratio() >= cutoff and \
-           s.ratio() >= cutoff:
-            result.append((s.ratio(), x))
+        # These are upper limits. So, this check is valid
+        if s.real_quick_ratio() >= cutoff and s.quick_ratio() >= cutoff:
+            score = s.ratio()
+            # Because we only care about the first best match
+            if score > cutoff or (score == cutoff and result is None):
+                result = (score, x)
+                cutoff = score
 
-    # Move the best scorers to head of list
-    return heapq.nlargest(n, result)
-
-
-def get_similar_command(name):
-    """Command name auto-correct."""
-    name = name.lower()
-    close_commands = get_close_matches(name, commands_dict.keys())
-
-    if close_commands:
-        return close_commands[0]
-    else:
+    if result is None:
         return 0, None
+    return result
+
+
+def get_similar_command(name, cutoff):
+    """Command name auto-correct.
+
+    If there are any commands with a similarity greater than cutoff, returns
+    (similarity, name) of the command with highest similarity.
+
+    If there is no such command, returns (0, None).
+
+    If more than one commands have the highest similarity, the alphabetically
+    first is returned.
+    """
+    return _get_closest_match(
+        name.lower(), sorted(commands_dict.keys()), cutoff
+    )
 
 
 def _sort_commands(cmddict, order):

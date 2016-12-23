@@ -196,7 +196,7 @@ def parseopts(args):
         assert suggest_cut_off <= replace_cut_off, \
             "autocorrect - suggestions cut off value invalid!"
 
-        score, guess = get_similar_command(cmd_name)
+        score, guess = get_similar_command(cmd_name, suggest_cut_off)
 
         if guess is None:  # nothing similar
             err_msg = 'pip does not have a command "%s"' % cmd_name
