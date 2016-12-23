@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from pip.basecommand import Command, SUCCESS
-from pip.exceptions import CommandError
+from pip.exceptions import CommandError, ConfigurationError
 
 
 class HelpCommand(Command):
@@ -14,8 +14,15 @@ class HelpCommand(Command):
     def run(self, options, args):
         from pip.commands import commands_dict, get_similar_command
 
-        suggest_cut_off = 0.6  # float, between 0-1
+        di = dict(self.parser.config.items())
+        suggest_cut_off = di.get("suggest_cut_off", 0.6)  # float, between 0-1
 
+        try:
+            suggest_cut_off = float(suggest_cut_off)
+        except Exception:
+            raise ConfigurationError(
+                "suggest_cut_off should be a floating point value"
+            )
         try:
             # 'pip help' with no args is handled by pip.__init__.parseopt()
             cmd_name = args[0]  # the command we need help for

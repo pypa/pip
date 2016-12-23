@@ -22,13 +22,14 @@ import time
 from pip._vendor.requests.packages.urllib3.exceptions import DependencyWarning
 warnings.filterwarnings("ignore", category=DependencyWarning)  # noqa
 
-
-from pip.exceptions import InstallationError, CommandError, PipError
 from pip.utils import get_installed_distributions, get_prog
 from pip.utils import deprecation, dist_is_editable
 from pip.vcs import git, mercurial, subversion, bazaar  # noqa
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.commands import get_summaries, get_similar_command, commands_dict
+from pip.exceptions import (
+    InstallationError, CommandError, PipError, ConfigurationError,
+)
 from pip._vendor.requests.packages.urllib3.exceptions import (
     InsecureRequestWarning,
 )
@@ -155,6 +156,39 @@ def create_main_parser():
     return parser
 
 
+def _get_autocorrect_configuration_values(config):
+    di = dict(config.items())
+    configuration_problems = []
+
+    def get_float(var_name, default):
+        if var_name not in di:
+            return default
+
+        val = di[var_name]
+        try:
+            return float(val)
+        except Exception:
+            configuration_problems.append(
+                var_name + " should be a floating point value"
+            )
+            return None
+
+    wait_time = get_float("wait_time", 2.0)
+    suggest_cut_off = get_float("suggest_cut_off", 0.6)
+    replace_cut_off = get_float("replace_cut_off", 0.8)
+
+    if suggest_cut_off is not None and replace_cut_off is not None:
+        if suggest_cut_off > replace_cut_off:
+            configuration_problems.append(
+                "suggest_cut_off should be less than that of "
+                "replace_cut_off in configuration files"
+            )
+
+    if configuration_problems:
+        raise ConfigurationError(", ".join(configuration_problems))
+    return wait_time, suggest_cut_off, replace_cut_off
+
+
 def parseopts(args):
     parser = create_main_parser()
 
@@ -187,14 +221,8 @@ def parseopts(args):
 
     # Autocorrect command name
     if cmd_name not in commands_dict:
-        # MARK: The following should be loaded from the configuration file
-        #       in the future. For now, it can stay like this, I guess.
-        wait_time = 2          # float
-        suggest_cut_off = 0.6  # float, between 0-1
-        replace_cut_off = 0.8  # float, between 0-1
-
-        assert suggest_cut_off <= replace_cut_off, \
-            "autocorrect - suggestions cut off value invalid!"
+        vals = _get_autocorrect_configuration_values(parser.config)
+        wait_time, suggest_cut_off, replace_cut_off = vals
 
         score, guess = get_similar_command(cmd_name, suggest_cut_off)
 
