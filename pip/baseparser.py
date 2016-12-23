@@ -3,21 +3,12 @@ from __future__ import absolute_import
 
 import sys
 import optparse
-import os
-import re
 import textwrap
 from distutils.util import strtobool
 
 from pip._vendor.six import string_types
-from pip._vendor.six.moves import configparser
-from pip.locations import (
-    legacy_config_file, config_basename, running_under_virtualenv,
-    site_config_files
-)
-from pip.utils import appdirs, get_terminal_size
-
-
-_environ_prefix_re = re.compile(r"^PIP_", re.I)
+from pip.configuration import Configuration
+from pip.utils import get_terminal_size
 
 
 class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
@@ -140,54 +131,11 @@ class ConfigOptionParser(CustomOptionParser):
     isolated = False
 
     def __init__(self, *args, **kwargs):
-        self.config = configparser.RawConfigParser()
         self.name = kwargs.pop('name')
         self.isolated = kwargs.pop("isolated", False)
-        self.files = self.get_config_files()
-        if self.files:
-            self.config.read(self.files)
+        self.config = Configuration()
         assert self.name
         optparse.OptionParser.__init__(self, *args, **kwargs)
-
-    def get_config_files(self):
-        # the files returned by this method will be parsed in order with the
-        # first files listed being overridden by later files in standard
-        # ConfigParser fashion
-        config_file = os.environ.get('PIP_CONFIG_FILE', False)
-        if config_file == os.devnull:
-            return []
-
-        # at the base we have any site-wide configuration
-        files = list(site_config_files)
-
-        # per-user configuration next
-        if not self.isolated:
-            if config_file and os.path.exists(config_file):
-                files.append(config_file)
-            else:
-                # This is the legacy config file, we consider it to be a lower
-                # priority than the new file location.
-                files.append(legacy_config_file)
-
-                # This is the new config file, we consider it to be a higher
-                # priority than the legacy file.
-                files.append(
-                    os.path.join(
-                        appdirs.user_config_dir("pip"),
-                        config_basename,
-                    )
-                )
-
-        # finally virtualenv configuration first trumping others
-        if running_under_virtualenv():
-            venv_config_file = os.path.join(
-                sys.prefix,
-                config_basename,
-            )
-            if os.path.exists(venv_config_file):
-                files.append(venv_config_file)
-
-        return files
 
     def check_default(self, option, key, val):
         try:
@@ -200,26 +148,23 @@ class ConfigOptionParser(CustomOptionParser):
         """Updates the given defaults with values from the config files and
         the environ. Does a little special handling for certain types of
         options (lists)."""
-        # Then go and look for the other sources of configuration:
-        config = {}
-        # 1. config files
-        for section in ('global', self.name):
-            config.update(
-                self.normalize_keys(self.get_config_section(section))
-            )
+        self.config.load_config_files(self.name, self.isolated)
         # 2. environmental variables
         if not self.isolated:
-            config.update(self.normalize_keys(self.get_environ_vars()))
+            self.config.load_environment_vars()
+
         # Accumulate complex default state.
         self.values = optparse.Values(self.defaults)
         late_eval = set()
         # Then set the options with those values
-        for key, val in config.items():
+        for key, val in self.config.items():
             # ignore empty values
             if not val:
                 continue
 
-            option = self.get_option(key)
+            # '--' because configuration supports only long names
+            option = self.get_option('--' + key)
+
             # Ignore options not present in this parser. E.g. non-globals put
             # in [global] by users that want them to apply to all applicable
             # commands.
@@ -248,30 +193,6 @@ class ConfigOptionParser(CustomOptionParser):
             defaults[key] = getattr(self.values, key)
         self.values = None
         return defaults
-
-    def normalize_keys(self, items):
-        """Return a config dictionary with normalized keys regardless of
-        whether the keys were specified in environment variables or in config
-        files"""
-        normalized = {}
-        for key, val in items:
-            key = key.replace('_', '-')
-            if not key.startswith('--'):
-                key = '--%s' % key  # only prefer long opts
-            normalized[key] = val
-        return normalized
-
-    def get_config_section(self, name):
-        """Get a section of a configuration"""
-        if self.config.has_section(name):
-            return self.config.items(name)
-        return []
-
-    def get_environ_vars(self):
-        """Returns a generator with all environmental vars with prefix PIP_"""
-        for key, val in os.environ.items():
-            if _environ_prefix_re.search(key):
-                yield (_environ_prefix_re.sub("", key).lower(), val)
 
     def get_default_values(self):
         """Overriding to make updating the defaults after instantiation of
