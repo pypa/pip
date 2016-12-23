@@ -215,7 +215,7 @@ def parseopts(args):
             'Assuming you meant "%s", pip will continue in %.1f seconds...'
         )
 
-        logger.warn(msg, cmd_name, guess, wait_time)
+        logger.warning(msg, cmd_name, guess, wait_time)
         try:
             # time.sleep in a loop because KeyboardInterrupt is raised after
             # it returns
