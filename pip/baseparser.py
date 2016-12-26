@@ -132,8 +132,10 @@ class ConfigOptionParser(CustomOptionParser):
 
     def __init__(self, *args, **kwargs):
         self.name = kwargs.pop('name')
-        self.isolated = kwargs.pop("isolated", False)
-        self.config = Configuration(self.isolated)
+
+        isolated = kwargs.pop("isolated", False)
+        self.config = Configuration(isolated)
+
         assert self.name
         optparse.OptionParser.__init__(self, *args, **kwargs)
 
