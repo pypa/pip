@@ -75,7 +75,10 @@ class InstallRequirement(object):
         self.req = req
         self.comes_from = comes_from
         self.constraint = constraint
-        self.source_dir = source_dir
+        if source_dir is not None:
+            self.source_dir = os.path.normpath(os.path.abspath(source_dir))
+        else:
+            self.source_dir = None
         self.editable = editable
 
         self._wheel_cache = wheel_cache
@@ -378,7 +381,7 @@ class InstallRequirement(object):
         shutil.move(old_location, new_location)
         self._temp_build_dir = new_location
         self._ideal_build_dir = None
-        self.source_dir = new_location
+        self.source_dir = os.path.normpath(os.path.abspath(new_location))
         self._egg_info_path = None
 
     @property
