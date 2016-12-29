@@ -120,7 +120,9 @@ def user_agent():
     if HAS_TLS:
         data["openssl_version"] = ssl.OPENSSL_VERSION
 
-    data["setuptools_version"] = get_installed_version("setuptools")
+    setuptools_version = get_installed_version("setuptools")
+    if setuptools_version is not None:
+        data["setuptools_version"] = setuptools_version
 
     return "{data[installer][name]}/{data[installer][version]} {json}".format(
         data=data,
