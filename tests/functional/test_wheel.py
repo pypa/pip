@@ -30,6 +30,15 @@ def test_wheel_exit_status_code_when_no_requirements(script):
     assert result.returncode == ERROR
 
 
+def test_wheel_exit_status_code_when_blank_requirements_file(script):
+    """
+    Test wheel exit status code when blank requirements file specified
+    """
+    script.pip('install', 'wheel')
+    script.scratch_path.join("blank.txt").write("\n")
+    script.pip('wheel', '-r', 'blank.txt')
+
+
 @pytest.mark.network
 def test_pip_wheel_success(script, data):
     """

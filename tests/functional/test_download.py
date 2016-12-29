@@ -566,3 +566,11 @@ def test_download_exit_status_code_when_no_requirements(script):
         "You must give at least one requirement to download" in result.stderr
     )
     assert result.returncode == ERROR
+
+
+def test_download_exit_status_code_when_blank_requirements_file(script):
+    """
+    Test download exit status code when blank requirements file specified
+    """
+    script.scratch_path.join("blank.txt").write("\n")
+    script.pip('download', '-r', 'blank.txt')
