@@ -28,7 +28,8 @@ from pip.exceptions import InstallationError, HashMismatch
 from pip.models import PyPI
 from pip.utils import (splitext, rmtree, format_size, display_path,
                        backup_dir, ask_path_exists, unpack_file,
-                       ARCHIVE_EXTENSIONS, consume, call_subprocess)
+                       ARCHIVE_EXTENSIONS, consume, call_subprocess,
+                       get_installed_version)
 from pip.utils.encoding import auto_decode
 from pip.utils.filesystem import check_path_owner
 from pip.utils.logging import indent_log
@@ -119,6 +120,8 @@ def user_agent():
     # Python 2.6 doesn't have ssl.OPENSSL_VERSION.
     if HAS_TLS and sys.version_info[:2] > (2, 6):
         data["openssl_version"] = ssl.OPENSSL_VERSION
+
+    data["setuptools_version"] = get_installed_version("setuptools")
 
     return "{data[installer][name]}/{data[installer][version]} {json}".format(
         data=data,
