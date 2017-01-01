@@ -20,6 +20,8 @@ from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version, parse as parse_version
+from pip._vendor.pkg_resources import parse_requirements, RequirementParseError
+
 
 import pip.wheel
 
@@ -237,7 +239,24 @@ class InstallRequirement(object):
                 req = Requirement(req)
             except InvalidRequirement:
                 if os.path.sep in req:
-                    add_msg = "It looks like a path. Does it exist ?"
+                    add_msg = "It looks like a path."
+                    if os.path.exists(req):
+                        add_msg += " It does exist."
+                        # Try to parse and check if it is a requirements file.
+                        try:
+                            with open(req, 'r') as fp:
+                                # parse first line only
+                                parse_requirements(fp.read()).next()
+                                add_msg += " The argument you provided " + \
+                                    "(%s) appears to be a" % (req) + \
+                                    " requirements file. If that is the" + \
+                                    " case, use the '-r' flag to install" + \
+                                    " the packages specified within it."
+                        except RequirementParseError:
+                            logger.debug("Cannot parse '%s' as requirements \
+                                file" % (req), exc_info=1)
+                    else:
+                        add_msg += " File '%s' does not exist." % (req)
                 elif '=' in req and not any(op in req for op in operators):
                     add_msg = "= is not a valid operator. Did you mean == ?"
                 else:
