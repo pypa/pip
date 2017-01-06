@@ -185,9 +185,6 @@ class WheelCommand(RequirementCommand):
                     wheel_cache
                 )
 
-                if not requirement_set.has_requirements:
-                    return
-
                 try:
                     # build wheels
                     wb = WheelBuilder(

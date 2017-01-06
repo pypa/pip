@@ -192,9 +192,6 @@ class DownloadCommand(RequirementCommand):
                     None
                 )
 
-                if not requirement_set.has_requirements:
-                    return
-
                 requirement_set.prepare_files(finder)
 
                 downloaded = ' '.join([
