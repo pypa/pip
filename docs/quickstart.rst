@@ -7,6 +7,8 @@ Install a package from `PyPI`_:
 
 ::
 
+pip runs in Python. (To start pip from the OS command line, type: python -m pip)
+
   $ pip install SomePackage
     [...]
     Successfully installed SomePackage
