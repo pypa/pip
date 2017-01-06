@@ -21,33 +21,41 @@ class Configuration(object):
     accessing data within them.
     """
 
-    def __init__(self):
+    def __init__(self, isolated):
         self._configparser = configparser.RawConfigParser()
         self._config = {}
+        self.isolated = isolated
 
-    def load_config_files(self, name, isolated):
-        """Loads configuration from configuration files
+    def load(self, section):
+        """Loads configuration
         """
-        files = self._get_config_files(isolated)
-
-        if files:
-            self._configparser.read(files)
-
-        for section in ('global', name):
-            self._config.update(
-                self._normalize_keys(self._get_config_section(section))
-            )
-
-    def load_environment_vars(self):
-        """Loads configuration from environment variables
-        """
-        self._config.update(self._normalize_keys(self._get_environ_vars()))
+        self._load_config_files(section)
+        if not self.isolated:
+            self._load_environment_vars()
 
     def items(self):
         """Returns key-value pairs like dict.values() representing the loaded
         configuration
         """
         return self._config.items()
+
+    def _load_config_files(self, section):
+        """Loads configuration from configuration files
+        """
+        files = self._get_config_files()
+
+        if files:
+            self._configparser.read(files)
+
+        for section in ('global', section):
+            self._config.update(
+                self._normalize_keys(self._get_config_section(section))
+            )
+
+    def _load_environment_vars(self):
+        """Loads configuration from environment variables
+        """
+        self._config.update(self._normalize_keys(self._get_environ_vars()))
 
     def _normalize_keys(self, items):
         """Return a config dictionary with normalized keys regardless of
@@ -67,7 +75,7 @@ class Configuration(object):
             if _environ_prefix_re.search(key):
                 yield (_environ_prefix_re.sub("", key).lower(), val)
 
-    def _get_config_files(self, isolated):
+    def _get_config_files(self):
         """Returns configuration files in a defined order.
 
         The order is that the first files are overridden by the latter files;
@@ -84,7 +92,7 @@ class Configuration(object):
         files = list(site_config_files)
 
         # per-user configuration next
-        if not isolated:
+        if not self.isolated:
             if config_file and os.path.exists(config_file):
                 files.append(config_file)
             else:
