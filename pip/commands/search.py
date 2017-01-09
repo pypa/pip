@@ -96,7 +96,7 @@ def print_results(hits, name_column_width=None, terminal_width=None):
         return
     if name_column_width is None:
         name_column_width = max([
-            len(hit['name']) + len(hit.get('versions', ['-'])[-1])
+            len(hit['name']) + len(highest_version(hit.get('versions', ['-'])))
             for hit in hits
         ]) + 4
 
@@ -104,7 +104,7 @@ def print_results(hits, name_column_width=None, terminal_width=None):
     for hit in hits:
         name = hit['name']
         summary = hit['summary'] or ''
-        version = hit.get('versions', ['-'])[-1]
+        latest = highest_version(hit.get('versions', ['-']))
         if terminal_width is not None:
             target_width = terminal_width - name_column_width - 5
             if target_width > 10:
@@ -113,13 +113,12 @@ def print_results(hits, name_column_width=None, terminal_width=None):
                 summary = ('\n' + ' ' * (name_column_width + 3)).join(summary)
 
         line = '%-*s - %s' % (name_column_width,
-                              '%s (%s)' % (name, version), summary)
+                              '%s (%s)' % (name, latest), summary)
         try:
             logger.info(line)
             if name in installed_packages:
                 dist = pkg_resources.get_distribution(name)
                 with indent_log():
-                    latest = highest_version(hit['versions'])
                     if dist.version == latest:
                         logger.info('INSTALLED: %s (latest)', dist.version)
                     else:
