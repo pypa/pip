@@ -445,7 +445,7 @@ def is_url(name):
     if ':' not in name:
         return False
     scheme = name.split(':', 1)[0].lower()
-    return scheme in ['http', 'https', 'file', 'ftp'] + vcs.all_schemes
+    return scheme in ['http', 'https', 'file', 'ftp', 's3'] + vcs.all_schemes
 
 
 def url_to_path(url):
