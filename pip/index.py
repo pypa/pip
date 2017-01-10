@@ -51,6 +51,8 @@ SECURE_ORIGINS = [
     ("file", "*", None),
     # ssh is always secure.
     ("ssh", "*", "*"),
+    # s3 is always secure because we force https
+    ("s3", "*", "*"),
 ]
 
 
@@ -358,9 +360,15 @@ class PackageFinder(object):
         """
 
         def mkurl_pypi_url(url):
-            loc = posixpath.join(
-                url,
-                urllib_parse.quote(canonicalize_name(project_name)))
+            # Amazon S3 buckets provide XML listing only when accessing the
+            # root directory of the bucket so don't append the project name
+            # to it!
+            if url.startswith('s3://'):
+                loc = url
+            else:
+                loc = posixpath.join(
+                    url,
+                    urllib_parse.quote(canonicalize_name(project_name)))
             # For maximum compatibility with easy_install, ensure the path
             # ends in a trailing slash.  Although this isn't in the spec
             # (and PyPI can handle it without the slash) some other index
@@ -784,6 +792,9 @@ class HTMLPage(object):
                     url += '/'
                 url = urllib_parse.urljoin(url, 'index.html')
                 logger.debug(' file: URL is directory, getting %s', url)
+            elif scheme == 's3':
+                # Amazon S3 supports HTTPS so make use of it
+                url = url.replace('s3://', 'https://')
 
             resp = session.get(
                 url,
@@ -800,7 +811,8 @@ class HTMLPage(object):
             # url we cannot know ahead of time for sure if something is HTML
             # or not. However we can check after we've downloaded it.
             content_type = resp.headers.get('Content-Type', 'unknown')
-            if not content_type.lower().startswith("text/html"):
+            if scheme != 's3' and \
+               not content_type.lower().startswith("text/html"):
                 logger.debug(
                     'Skipping page %s because of Content-Type: %s',
                     link,
@@ -857,6 +869,7 @@ class HTMLPage(object):
     @property
     def links(self):
         """Yields all links in the page"""
+        # handle HTML links
         for anchor in self.parsed.findall(".//a"):
             if anchor.get("href"):
                 href = anchor.get("href")
@@ -866,6 +879,15 @@ class HTMLPage(object):
                 pyrequire = anchor.get('data-requires-python')
                 pyrequire = unescape(pyrequire) if pyrequire else None
                 yield Link(url, self, requires_python=pyrequire)
+
+        # handle Amazon S3 bucket XML listings
+        for anchor in self.parsed.findall(".//listbucketresult/contents/key"):
+            if anchor.text:
+                href = anchor.text
+                url = self.clean_link(
+                    urllib_parse.urljoin(self.base_url, href)
+                )
+                yield Link(url, self, requires_python=None)
 
     _clean_re = re.compile(r'[^a-z0-9$&+,/:;=?@.#%_\\|-]', re.I)
 

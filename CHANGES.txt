@@ -23,6 +23,12 @@
 
 * Add support for the new ``@ url`` syntax from PEP 508 (:pull:`4175`)
 
+* Allow using repositories hosted on Amazon S3 buckets specified as
+  `pip --extra-index-url s3://s3.region.amazonaws.com/bucket-name/`. To
+  create a new repository upload your packages to an S3 bucket and grant
+  the `List` permission to the `Everyone` role. No need to enable static
+  website hosting, however it doesn't make a difference as long as the XML
+  listing is enabled. HTTPS is forced for these URLs. (:pull:`4225`)
 
 **9.0.1 (2016-11-06)**
 
