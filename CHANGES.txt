@@ -6,6 +6,10 @@
 * Return a failing exit status when `pip install`, `pip download`, or
   `pip wheel` is called with no requirements. (:issue:`2720`, :pull:`2721`)
 
+
+* Add `--exclude-editable` to ``pip freeze`` to exclude editable packages
+  from installed package list.
+
 **9.0.1 (2016-11-06)**
 
 * Correct the deprecation message when not specifying a --format so that it
@@ -115,9 +119,6 @@
 
 * Restore the ability to use inline comments in requirements files passed to
   ``pip freeze`` (:issue:`3680`).
-
-* Add `--exclude-editable` to ``pip freeze`` to exclude editable packages
-  from installed package list.
 
 **8.1.2 (2016-05-10)**
 
