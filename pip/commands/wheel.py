@@ -105,7 +105,7 @@ class WheelCommand(RequirementCommand):
             'wheel.bdist_wheel',
             CommandError,
             "'pip wheel' requires the 'wheel' package. To fix this, run: "
-            "pip install --upgrade wheel"
+            "pip install wheel"
         )
 
         need_setuptools_message = (
