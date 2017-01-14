@@ -240,23 +240,7 @@ class InstallRequirement(object):
             except InvalidRequirement:
                 if os.path.sep in req:
                     add_msg = "It looks like a path."
-                    if os.path.exists(req):
-                        add_msg += " It does exist."
-                        # Try to parse and check if it is a requirements file.
-                        try:
-                            with open(req, 'r') as fp:
-                                # parse first line only
-                                parse_requirements(fp.read()).next()
-                                add_msg += " The argument you provided " + \
-                                    "(%s) appears to be a" % (req) + \
-                                    " requirements file. If that is the" + \
-                                    " case, use the '-r' flag to install" + \
-                                    " the packages specified within it."
-                        except RequirementParseError:
-                            logger.debug("Cannot parse '%s' as requirements \
-                                file" % (req), exc_info=1)
-                    else:
-                        add_msg += " File '%s' does not exist." % (req)
+                    add_msg += deduce_helpful_msg(req)
                 elif '=' in req and not any(op in req for op in operators):
                     add_msg = "= is not a valid operator. Did you mean == ?"
                 else:
@@ -1067,3 +1051,30 @@ def parse_editable(editable_req, default_vcs=None):
             "with #egg=your_package_name" % editable_req
         )
     return _strip_postfix(package_name), url, None
+
+
+def deduce_helpful_msg(req):
+    """Returns helpful msg in case requirements file does not exist,
+    or cannot be parsed.
+
+    :params req: Requirements file path
+    """
+    msg = ""
+    if os.path.exists(req):
+        msg = " It does exist."
+        # Try to parse and check if it is a requirements file.
+        try:
+            with open(req, 'r') as fp:
+                # parse first line only
+                parse_requirements(fp.read()).next()
+                msg += " The argument you provided " + \
+                    "(%s) appears to be a" % (req) + \
+                    " requirements file. If that is the" + \
+                    " case, use the '-r' flag to install" + \
+                    " the packages specified within it."
+        except RequirementParseError:
+            logger.debug("Cannot parse '%s' as requirements \
+            file" % (req), exc_info=1)
+    else:
+        msg += " File '%s' does not exist." % (req)
+    return msg
