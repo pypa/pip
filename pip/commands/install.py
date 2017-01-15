@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import errno
 import logging
 import operator
 import os
@@ -297,6 +298,23 @@ class InstallCommand(RequirementCommand):
                     installed = ' '.join(items)
                     if installed:
                         logger.info('Successfully installed %s', installed)
+                except OSError:
+                    base_msg = (
+                        "Unable to install due to lack of permissions in "
+                        "installation directory."
+                    )
+                    no_user_msg = (
+                        "Consider using the `--user` option"
+                    )
+                    check_perms_msg = (
+                        "Check the permissions in the installation "
+                        "directory"
+                    )
+                    if e.errno == errno.EPERM:
+                        parts = [check_perms_msg]
+                        if not options.use_user_site:
+                            parts.insert(0, no_user_msg)
+                        logger.info("%s %s", base_msg, " or ".join(parts))
                 except PreviousBuildDirError:
                     options.no_clean = True
                     raise
