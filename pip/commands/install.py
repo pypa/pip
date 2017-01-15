@@ -298,7 +298,7 @@ class InstallCommand(RequirementCommand):
                     installed = ' '.join(items)
                     if installed:
                         logger.info('Successfully installed %s', installed)
-                except OSError:
+                except EnvironmentError:
                     base_msg = (
                         "Unable to install due to lack of permissions in "
                         "installation directory."
