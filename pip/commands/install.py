@@ -377,8 +377,7 @@ class InstallCommand(RequirementCommand):
                             )
                 except EnvironmentError:
                     base_msg = (
-                        "Unable to install due to lack of permissions in "
-                        "installation directory."
+                        "Unable to install in installation directory."
                     )
                     no_user_msg = (
                         "Consider using the `--user` option"
@@ -391,7 +390,9 @@ class InstallCommand(RequirementCommand):
                         parts = [check_perms_msg]
                         if not options.use_user_site:
                             parts.insert(0, no_user_msg)
-                        logger.info("%s %s", base_msg, " or ".join(parts))
+                        logger.error("%s %s", base_msg, " or ".join(parts))
+                    else:
+                        logger.error("%s", base_msg)
                 except PreviousBuildDirError:
                     options.no_clean = True
                     raise
