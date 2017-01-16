@@ -379,6 +379,40 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
 
     maker = ScriptMaker(None, scheme['scripts'])
 
+    def get_padded_executable():
+        executable = sys.executable
+        if ' ' in executable:
+            needs_padding = True
+        else:
+            platform = sys.platform
+            if platform.startswith('linux'):
+                platform = 'linux'
+            # See http://www.in-ulm.de/~mascheck/various/shebang/#length
+            shebang_max_lengths = {
+                'linux': 127,
+                'darwin': 512,
+            }
+            needs_padding = (
+                len(executable) > shebang_max_lengths.get(platform, 127)
+            )
+
+        if not needs_padding:
+            return None
+
+        # Creates a script that is started as an sh script and then
+        # re-executed with the specified Python executable. Proper quoting
+        # makes sure that the same code is valid as both. See
+        # https://hg.mozilla.org/mozilla-central/file/tip/mach
+        new_executable = b'/usr/bin/env sh\n'
+        new_executable += b"'''exec' '" + executable + b"'" + b' "$0" "$@"\n'
+        new_executable += b"' '''"
+        return new_executable
+
+    if sys.platform != 'win32':
+        padded_executable = get_padded_executable()
+        if padded_executable:
+            maker.executable = padded_executable
+
     # Ensure old scripts are overwritten.
     # See https://github.com/pypa/pip/issues/1800
     maker.clobber = True
