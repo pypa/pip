@@ -108,18 +108,18 @@ class WheelCommand(RequirementCommand):
             "'pip wheel' requires the 'wheel' package. To fix this, run: "
             "pip install wheel"
         )
+
+        need_setuptools_message = (
+            "'pip wheel' requires setuptools >= 0.8 for dist-info support. "
+            "To fix this, run: pip install --upgrade setuptools>=0.8"
+        )
         pkg_resources = import_or_raise(
             'pkg_resources',
             CommandError,
-            "'pip wheel' requires setuptools >= 0.8 for dist-info support."
-            " To fix this, run: pip install --upgrade setuptools"
+            need_setuptools_message
         )
         if not hasattr(pkg_resources, 'DistInfoDistribution'):
-            raise CommandError(
-                "'pip wheel' requires setuptools >= 0.8 for dist-info "
-                "support. To fix this, run: pip install --upgrade "
-                "setuptools"
-            )
+            raise CommandError(need_setuptools_message)
 
     def run(self, options, args):
         self.check_required_packages()
