@@ -520,7 +520,7 @@ class TestInstallRequirement(object):
                 os.path.join('this', 'path', 'does', 'not', 'exist'))
         err_msg = e.value.args[0]
         assert "Invalid requirement" in err_msg
-        assert "It looks like a path. Does it exist ?" in err_msg
+        assert "It looks like a path." in err_msg
 
     def test_single_equal_sign(self):
         with pytest.raises(InstallationError) as e:
