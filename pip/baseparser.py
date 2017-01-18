@@ -133,7 +133,7 @@ class ConfigOptionParser(CustomOptionParser):
         self.name = kwargs.pop('name')
 
         isolated = kwargs.pop("isolated", False)
-        self.config = Configuration(isolated)
+        self._configuration_obj = Configuration(isolated)
 
         assert self.name
         optparse.OptionParser.__init__(self, *args, **kwargs)
@@ -151,15 +151,18 @@ class ConfigOptionParser(CustomOptionParser):
         options (lists)."""
 
         # Load the configuration
-        self.config.load(self.name)
+        self._configuration_obj.load()
 
         # Accumulate complex default state.
         self.values = optparse.Values(self.defaults)
         late_eval = set()
         # Then set the options with those values
-        for key, val in self.config.items():
+        for key, val in self._configuration_obj.items():
             # ignore empty values
             if not val:
+                continue
+            section, key = key.split(".", 1)
+            if section not in [self.name, "global", ":env:"]:
                 continue
 
             # '--' because configuration supports only long names

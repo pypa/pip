@@ -4,68 +4,235 @@
 import os
 import re
 import sys
+import logging
 
+from pip._vendor.six import next
 from pip._vendor.six.moves import configparser
 
 from pip.locations import (
     config_basename, legacy_config_file, running_under_virtualenv,
     site_config_files
 )
-from pip.utils import appdirs
+from pip.utils import appdirs, ensure_dir
 
 _environ_prefix_re = re.compile(r"^PIP_", re.I)
+_need_file_err_msg = "Needed a specific file to be modifying."
+
+
+logger = logging.getLogger(__name__)
+
+
+# NOTE: Maybe use the optionx attribtue to normalize keynames.
+def _normalize_name(name):
+    """Make a name consistent regardless of source (environment or file)
+    """
+    name = name.lower().replace('_', '-')
+    if name.startswith('--'):
+        name = name[2:]  # only prefer long opts
+    return name
+
+
+def _disassemble_key(name):
+    return name.split(".", 1)
+
+
+def _make_key(variant, name):
+    return ".".join((variant, name))
+
+# Some terminology:
+# - name
+#   Name of options, as written in config files.
+# - value
+#   Value associated with a name
+# - key
+#   Name combined with it's section (section.name)
+# - variant
+#   A single word describing where the configuration key-value pair came from
 
 
 class Configuration(object):
-    """Handles the loading of configuration files and providing an interface to
-    accessing data within them.
+    """Handles management of configuration.
+
+    Provides an interface to accessing and managing configuration files.
+
+    This class converts provides an API that takes "section.key-name" style
+    keys and stores the value associated with it as "key-name" under the
+    section "section". This allows for a clean interface wherein the
+
+
     """
 
-    def __init__(self, isolated):
-        self._configparser = configparser.RawConfigParser()
-        self._config = {}
-        self.isolated = isolated
+    def __init__(self, isolated, load_only=None):
+        super(Configuration, self).__init__()
 
-    def load(self, section):
-        """Loads configuration
+        if load_only not in ["user", "site-wide", "venv", None]:
+            raise ValueError(
+                "Got invalid value for load_only - should be one of 'user', "
+                "'site-wide', 'venv'"
+            )
+        self.isolated = isolated
+        self.load_only = load_only
+
+        # The order here determines the override order.
+        self._override_order = ["site-wide", "user", "venv", "environment"]
+        # Because we keep track of where we got the data from
+        self._parsers = {variant: [] for variant in self._override_order}
+        self._config = {variant: {} for variant in self._override_order}
+        self._modified_parsers = []
+
+    def load(self):
+        """Loads configuration from configuration files and environment
         """
-        self._load_config_files(section)
+        self._load_config_files()
         if not self.isolated:
             self._load_environment_vars()
 
     def items(self):
-        """Returns key-value pairs like dict.values() representing the loaded
+        """Returns key-value pairs like dict.items() representing the loaded
         configuration
         """
-        return self._config.items()
+        return self._dictionary.items()
 
-    def _load_config_files(self, section):
+    #
+    # Exposed only for config command. Other commands should not touch this.
+    #
+
+    def get_value(self, key):
+        return self._dictionary[key]
+
+    def set_value(self, key, value):
+        """Modify a value in the configuration.
+
+        Pre-Conditions:
+        - Need to be initialized with `load_only`.
+        - Need to be initialized with `load_only`.
+
+        """
+        assert self.load_only is not None, _need_file_err_msg
+
+        file, parser = self._get_parser_to_modify()
+        section, name = _disassemble_key(key)
+
+        # logger.info("Setting: [%s]%s=%r", section, name, value)
+
+        # Modify the parser and the configuration
+        if not parser.has_section(section):
+            parser.add_section(section)
+        parser.set(section, name, value)
+        self._config[self.load_only][key] = value
+
+        if parser not in self._modified_parsers:
+            self._modified_parsers.append((file, parser))
+
+    def unset_value(self, key):
+        assert self.load_only is not None, _need_file_err_msg
+
+        file, parser = self._get_parser_to_modify()
+        section, name = _disassemble_key(key)
+
+        # Remove the key in the parser
+        modified_something = (
+            parser.has_section(section) and
+            parser.remove_option(section, name)
+        )
+
+        if modified_something:
+            # option removed, section may now be empty
+            if next(iter(parser.items(section)), None) is None:
+                parser.remove_section(section)
+            if parser not in self._modified_parsers:
+                self._modified_parsers.append((file, parser))
+        else:
+            return False
+
+        # This is guarenteed
+        assert key in self._config[self.load_only]
+        del self._config[self.load_only][key]
+
+        return True
+
+    def save(self):
+        assert self.load_only is not None, _need_file_err_msg
+
+        # NOTE: Improve once the sat and unset routines are implemented.
+        for file, parser in self._modified_parsers:
+            logger.info("Writing to %s", file)
+
+            # Ensure directory exists.
+            ensure_dir(os.path.dirname(file))
+
+            with open(file, "w") as f:
+                parser.write(f)
+
+    #
+    # Private routines
+    #
+
+    @property
+    def _dictionary(self):
+        """A dictionary representing the loaded configuration.
+        """
+        # NOTE: Dictionaries are not populated if not loaded. So, conditionals
+        #       are not needed here.
+        retval = {}
+
+        for variant in self._override_order:
+            retval.update(self._config[variant])
+
+        return retval
+
+    def _load_config_files(self):
         """Loads configuration from configuration files
         """
-        files = self._get_config_files()
+        for variant, files in self._get_config_files():
+            for file in files:
+                # If there's specific variant set in `load_only`, load only
+                # that variant, not the others.
+                if self.load_only is not None and variant != self.load_only:
+                    continue
 
-        if files:
-            self._configparser.read(files)
+                parser = self._load_file(variant, file)
 
-        for section in ('global', section):
-            self._config.update(
-                self._normalize_keys(self._get_config_section(section))
+                # Keeping track of the parsers used
+                self._parsers[variant].append((file, parser))
+
+    def _load_file(self, variant, file):
+        parser = self._construct_parser(file)
+
+        for section in parser.sections():
+            self._config[variant].update(
+                self._normalized_keys(section, parser.items(section))
             )
+        return parser
+
+    def _construct_parser(self, file):
+        parser = configparser.RawConfigParser()
+        # If there is no such file, don't bother reading it but create the
+        # parser anyway, to hold the data.
+        # Doing this is useful when modifying and saving files, where we don't
+        # need to construct a parser.
+        if os.path.exists(file):
+            parser.read(file)
+
+        return parser
 
     def _load_environment_vars(self):
         """Loads configuration from environment variables
         """
-        self._config.update(self._normalize_keys(self._get_environ_vars()))
+        self._config["environment"].update(
+            self._normalized_keys(":env:", self._get_environ_vars())
+        )
 
-    def _normalize_keys(self, items):
-        """Return a config dictionary with normalized keys regardless of
-        whether the keys were specified in environment variables or in config
-        files"""
+    def _normalized_keys(self, section, items):
+        """Normalizes items to construct a dictionary with normalized keys.
+
+        This routine is where the names become keys and are made the same
+        regardless of source - configuration files or environment.
+        """
         normalized = {}
-        for key, val in items:
-            key = key.replace('_', '-')
-            if key.startswith('--'):
-                key = key[2:]  # only prefer long opts
+        for name, val in items:
+            key = _make_key(section, _normalize_name(name))
+
             normalized[key] = val
         return normalized
 
@@ -76,51 +243,40 @@ class Configuration(object):
                 yield (_environ_prefix_re.sub("", key).lower(), val)
 
     def _get_config_files(self):
-        """Returns configuration files in a defined order.
-
-        The order is that the first files are overridden by the latter files;
-        like what ConfigParser expects.
+        """Returns configuration files and what variant it is associated with.
         """
-        # the files returned by this method will be parsed in order with the
-        # first files listed being overridden by later files in standard
-        # ConfigParser fashion
         config_file = os.environ.get('PIP_CONFIG_FILE', False)
         if config_file == os.devnull:
-            return []
+            return
 
         # at the base we have any site-wide configuration
-        files = list(site_config_files)
+        yield "site-wide", list(site_config_files)
 
         # per-user configuration next
         if not self.isolated:
             if config_file and os.path.exists(config_file):
-                files.append(config_file)
+                yield "user", [config_file]
             else:
-                # This is the legacy config file, we consider it to be a lower
-                # priority than the new file location.
-                files.append(legacy_config_file)
-
-                # This is the new config file, we consider it to be a higher
-                # priority than the legacy file.
-                files.append(
-                    os.path.join(
-                        appdirs.user_config_dir("pip"),
-                        config_basename,
-                    )
+                new_config_file = os.path.join(
+                    appdirs.user_config_dir("pip"),
+                    config_basename,
                 )
+
+                # The legacy config file is overridden by the new config file
+                yield "user", [legacy_config_file, new_config_file]
 
         # finally virtualenv configuration first trumping others
         if running_under_virtualenv():
-            venv_config_file = os.path.join(
+            yield "venv", [os.path.join(
                 sys.prefix,
                 config_basename,
-            )
-            if os.path.exists(venv_config_file):
-                files.append(venv_config_file)
+            )]
 
-        return files
+    def _get_parser_to_modify(self):
+        # Determine which parser to modify
+        parsers = self._parsers[self.load_only]
+        if not parsers:
+            raise Exception("What!?")
 
-    def _get_config_section(self, section):
-        if self._configparser.has_section(section):
-            return self._configparser.items(section)
-        return []
+        # Use the highest priority parser.
+        return parsers[-1]
