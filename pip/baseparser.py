@@ -133,7 +133,7 @@ class ConfigOptionParser(CustomOptionParser):
         self.name = kwargs.pop('name')
 
         isolated = kwargs.pop("isolated", False)
-        self._configuration_obj = Configuration(isolated)
+        self.config = Configuration(isolated)
 
         assert self.name
         optparse.OptionParser.__init__(self, *args, **kwargs)
@@ -151,13 +151,13 @@ class ConfigOptionParser(CustomOptionParser):
         options (lists)."""
 
         # Load the configuration
-        self._configuration_obj.load()
+        self.config.load()
 
         # Accumulate complex default state.
         self.values = optparse.Values(self.defaults)
         late_eval = set()
         # Then set the options with those values
-        for key, val in self._configuration_obj.items():
+        for key, val in self.config.items():
             # ignore empty values
             if not val:
                 continue
