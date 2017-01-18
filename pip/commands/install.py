@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
-import errno
 import logging
 import operator
+import errno
 import os
 import shutil
 import tempfile
@@ -298,7 +298,7 @@ class InstallCommand(RequirementCommand):
                     installed = ' '.join(items)
                     if installed:
                         logger.info('Successfully installed %s', installed)
-                except EnvironmentError:
+                except EnvironmentError as e:
                     base_msg = (
                         "Unable to install in installation directory."
                     )
