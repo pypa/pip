@@ -165,6 +165,7 @@ class WheelCommand(RequirementCommand):
                         finder,
                         build_options=options.build_options or [],
                         global_options=options.global_options or [],
+                        no_clean=options.no_clean,
                     )
                     if not wb.build():
                         raise CommandError(

@@ -660,8 +660,9 @@ class Wheel(object):
 class BuildEnvironment(object):
     """Context manager to install build deps in a simple temporary environment
     """
-    def __init__(self):
+    def __init__(self, no_clean=False):
         self.prefix = tempfile.mkdtemp('pip-build-env-')
+        self.no_clean = no_clean
 
     def __enter__(self):
         self.save_path = os.environ.get('PATH', None)
@@ -703,7 +704,8 @@ class BuildEnvironment(object):
         else:
             os.environ['PYTHONPATH'] = self.save_pythonpath
 
-        rmtree(self.prefix)
+        if not self.no_clean:
+            rmtree(self.prefix)
 
         return False  # Do not suppress exceptions
 
@@ -712,13 +714,14 @@ class WheelBuilder(object):
     """Build wheels from a RequirementSet."""
 
     def __init__(self, requirement_set, finder, build_options=None,
-                 global_options=None):
+                 global_options=None, no_clean=False):
         self.requirement_set = requirement_set
         self.finder = finder
         self._cache_root = requirement_set._wheel_cache._cache_dir
         self._wheel_dir = requirement_set.wheel_download_dir
         self.build_options = build_options or []
         self.global_options = global_options or []
+        self.no_clean = no_clean
 
     def _find_build_reqs(self, req):
         """Get a list of the packages required to build the project, if any.
@@ -758,7 +761,7 @@ class WheelBuilder(object):
 
         if build_reqs:
             # Install build deps into temporary prefix (PEP 518)
-            with BuildEnvironment() as prefix:
+            with BuildEnvironment(no_clean=self.no_clean) as prefix:
                 self._install_build_reqs(build_reqs, prefix)
                 return self._build_one_inside_env(req, output_dir,
                                                   python_tag=python_tag,
