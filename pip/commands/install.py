@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
-import errno
 import logging
 import operator
+import errno
 import os
 import tempfile
 import shutil
@@ -375,7 +375,7 @@ class InstallCommand(RequirementCommand):
                             logger.info(
                                 'Successfully downloaded %s', downloaded
                             )
-                except EnvironmentError:
+                except EnvironmentError as e:
                     base_msg = (
                         "Unable to install in installation directory."
                     )
