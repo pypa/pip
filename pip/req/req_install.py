@@ -610,7 +610,8 @@ class InstallRequirement(object):
     def confirm_dependencies(self, installed_packages):
         dep_keys = set()
         for dist in installed_packages:
-            dep_keys.update([dist for d in dist.requires() if d.key == self.req.name])
+            dep_keys.update(
+                [dist for d in dist.requires() if d.key == self.req.name])
         if not dep_keys:
             return True
         print("%s is depended from:" % self.req)
