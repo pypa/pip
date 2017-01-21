@@ -18,7 +18,7 @@ from pip.exceptions import (InstallationError, BestVersionAlreadyInstalled,
                             UnsupportedPythonVersion)
 from pip.req.req_install import InstallRequirement
 from pip.utils import (
-    display_path, dist_in_usersite, ensure_dir, normalize_path)
+    display_path, dist_in_usersite, ensure_dir, normalize_path, get_installed_distributions)
 from pip.utils.hashes import MissingHashes
 from pip.utils.logging import indent_log
 from pip.utils.packaging import check_dist_requires_python
@@ -341,8 +341,11 @@ class RequirementSet(object):
         raise KeyError("No project with the name %r" % project_name)
 
     def uninstall(self, auto_confirm=False):
+        installed_packages = get_installed_distributions()
         for req in self.requirements.values():
             if req.constraint:
+                continue
+            if not req.confirm_dependencies(installed_packages):
                 continue
             req.uninstall(auto_confirm=auto_confirm)
             req.uninstalled_pathset.commit()
