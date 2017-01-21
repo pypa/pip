@@ -10,6 +10,8 @@
 * Add `--exclude-editable` to ``pip freeze`` to exclude editable packages
   from installed package list.
 
+* Confirm dependencies when uninstall package.
+
 **9.0.1 (2016-11-06)**
 
 * Correct the deprecation message when not specifying a --format so that it
