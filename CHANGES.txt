@@ -23,6 +23,7 @@
 
 * Add support for the new ``@ url`` syntax from PEP 508 (:pull:`4175`)
 
+* Confirm dependencies when uninstall package.
 
 **9.0.1 (2016-11-06)**
 
