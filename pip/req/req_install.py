@@ -34,7 +34,7 @@ from pip.locations import (
     running_under_virtualenv, PIP_DELETE_MARKER_FILENAME,
 )
 from pip.utils import (
-    display_path, rmtree, ask_path_exists, backup_dir, is_installable_dir,
+    display_path, rmtree, ask, ask_path_exists, backup_dir, is_installable_dir,
     dist_in_usersite, dist_in_site_packages,
     call_subprocess, read_text_file, _make_build_dir, ensure_dir,
     get_installed_version,
@@ -606,6 +606,18 @@ class InstallRequirement(object):
             assert 0, (
                 'Unexpected version control type (in %s): %s'
                 % (self.link, vc_type))
+
+    def confirm_dependencies(self, installed_packages):
+        dep_keys = set()
+        for dist in installed_packages:
+            dep_keys.update([dist for d in dist.requires() if d.key == self.req.name])
+        if not dep_keys:
+            return True
+        print("%s is depended from:" % self.req)
+        for dep in dep_keys:
+            print(dep)
+        response = ask('Proceed (y/n)? ', ('y', 'n'))
+        return response == 'y'
 
     def uninstall(self, auto_confirm=False):
         """
