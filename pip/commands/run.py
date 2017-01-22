@@ -6,7 +6,7 @@ from pip._vendor import rwt
 
 
 class RunCommand(Command):
-    """Show help for commands"""
+    """Run a new Python interpreter with packages transient-installed"""
     name = 'run'
     usage = rwt.commands.help_doc
     summary = 'Run Python with dependencies loaded.'
