@@ -15,3 +15,4 @@ Reference Guide
    pip_search
    pip_wheel
    pip_hash
+   pip_run
