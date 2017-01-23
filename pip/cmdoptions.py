@@ -119,6 +119,15 @@ quiet = partial(
           ' levels).')
 )
 
+no_progress = partial(
+    Option,
+    '--no-progress',
+    dest='no_progress',
+    action='store_true',
+    default=False,
+    help=('Disable progress bar.')
+)
+
 log = partial(
     Option,
     "--log", "--log-file", "--local-log",

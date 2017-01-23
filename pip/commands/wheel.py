@@ -73,6 +73,7 @@ class WheelCommand(RequirementCommand):
         cmd_opts.add_option(cmdoptions.ignore_requires_python())
         cmd_opts.add_option(cmdoptions.no_deps())
         cmd_opts.add_option(cmdoptions.build_dir())
+        cmd_opts.add_option(cmdoptions.no_progress())
 
         cmd_opts.add_option(
             '--global-option',
@@ -177,7 +178,8 @@ class WheelCommand(RequirementCommand):
                     session=session,
                     wheel_cache=wheel_cache,
                     wheel_download_dir=options.wheel_dir,
-                    require_hashes=options.require_hashes
+                    require_hashes=options.require_hashes,
+                    no_progress=options.no_progress,
                 )
 
                 self.populate_requirement_set(
@@ -192,6 +194,7 @@ class WheelCommand(RequirementCommand):
                         finder,
                         build_options=options.build_options or [],
                         global_options=options.global_options or [],
+                        no_progress=options.no_progress,
                     )
                     if not wb.build():
                         raise CommandError(

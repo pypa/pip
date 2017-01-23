@@ -635,13 +635,14 @@ class WheelBuilder(object):
     """Build wheels from a RequirementSet."""
 
     def __init__(self, requirement_set, finder, build_options=None,
-                 global_options=None):
+                 global_options=None, no_progress=False):
         self.requirement_set = requirement_set
         self.finder = finder
         self._cache_root = requirement_set._wheel_cache._cache_dir
         self._wheel_dir = requirement_set.wheel_download_dir
         self.build_options = build_options or []
         self.global_options = global_options or []
+        self.no_progress = no_progress
 
     def _build_one(self, req, output_dir, python_tag=None):
         """Build one wheel.
@@ -801,7 +802,8 @@ class WheelBuilder(object):
                         # extract the wheel into the dir
                         unpack_url(
                             req.link, req.source_dir, None, False,
-                            session=self.requirement_set.session)
+                            session=self.requirement_set.session,
+                            no_progress=self.no_progress)
                 else:
                     build_failure.append(req)
 
