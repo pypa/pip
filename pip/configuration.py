@@ -97,55 +97,65 @@ class Configuration(object):
     #
 
     def get_value(self, key):
+        """Get a value from the configuration.
+        """
         return self._dictionary[key]
 
     def set_value(self, key, value):
         """Modify a value in the configuration.
-
-        Pre-Conditions:
-        - Need to be initialized with `load_only`.
-        - Need to be initialized with `load_only`.
-
         """
         assert self.load_only is not None, _need_file_err_msg
 
         file, parser = self._get_parser_to_modify()
-        section, name = _disassemble_key(key)
 
-        # logger.info("Setting: [%s]%s=%r", section, name, value)
+        if parser is not None:
+            section, name = _disassemble_key(key)
 
-        # Modify the parser and the configuration
-        if not parser.has_section(section):
-            parser.add_section(section)
-        parser.set(section, name, value)
+            # Modify the parser and the configuration
+            if not parser.has_section(section):
+                parser.add_section(section)
+            parser.set(section, name, value)
+
         self._config[self.load_only][key] = value
 
-        if parser not in self._modified_parsers:
-            self._modified_parsers.append((file, parser))
+        # MARK:: Maybe DRY this.
+        file_parser_tuple = (file, parser)
+        if file_parser_tuple not in self._modified_parsers:
+            self._modified_parsers.append(file_parser_tuple)
 
     def unset_value(self, key):
+        """Unset a value in the configuration.
+        """
         assert self.load_only is not None, _need_file_err_msg
 
+        if key not in self._config[self.load_only]:
+            raise KeyError(key)
+
         file, parser = self._get_parser_to_modify()
-        section, name = _disassemble_key(key)
 
-        # Remove the key in the parser
-        modified_something = (
-            parser.has_section(section) and
-            parser.remove_option(section, name)
-        )
+        if parser is not None:
+            section, name = _disassemble_key(key)
 
-        if modified_something:
-            # option removed, section may now be empty
-            if next(iter(parser.items(section)), None) is None:
-                parser.remove_section(section)
-            if parser not in self._modified_parsers:
-                self._modified_parsers.append((file, parser))
-        else:
-            return False
+            # Remove the key in the parser
+            modified_something = (
+                parser.has_section(section) and
+                parser.remove_option(section, name)
+            )
 
-        # This is guarenteed
-        assert key in self._config[self.load_only]
+            if modified_something:
+                # name removed from parser, section may now be empty
+                if next(iter(parser.items(section)), None) is None:
+                    parser.remove_section(section)
+
+                # MARK:: Maybe DRY this.
+                file_parser_tuple = (file, parser)
+                if file_parser_tuple not in self._modified_parsers:
+                    self._modified_parsers.append(file_parser_tuple)
+            else:
+                # If here, something is there in the dictionary but not in the
+                # parser. This should not happen.
+                pass
+
         del self._config[self.load_only][key]
 
         return True
@@ -153,7 +163,6 @@ class Configuration(object):
     def save(self):
         assert self.load_only is not None, _need_file_err_msg
 
-        # NOTE: Improve once the sat and unset routines are implemented.
         for file, parser in self._modified_parsers:
             logger.info("Writing to %s", file)
 
@@ -268,6 +277,7 @@ class Configuration(object):
         # Determine which parser to modify
         parsers = self._parsers[self.load_only]
         if not parsers:
+            # This should not happen if we're doing it correctly.
             raise Exception("What!?")
 
         # Use the highest priority parser.
