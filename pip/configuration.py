@@ -3,17 +3,16 @@
 
 import os
 import re
-import sys
 import logging
 
 from pip._vendor.six import next
 from pip._vendor.six.moves import configparser
 
 from pip.locations import (
-    config_basename, legacy_config_file, running_under_virtualenv,
-    site_config_files
+    legacy_config_file, new_config_file, running_under_virtualenv,
+    site_config_files, venv_config_file
 )
-from pip.utils import appdirs, ensure_dir
+from pip.utils import ensure_dir
 
 _environ_prefix_re = re.compile(r"^PIP_", re.I)
 _need_file_err_msg = "Needed a specific file to be modifying."
@@ -242,6 +241,7 @@ class Configuration(object):
             if _environ_prefix_re.search(key):
                 yield (_environ_prefix_re.sub("", key).lower(), val)
 
+    # MARK: Can be made into a dictionary returning function.
     def _get_config_files(self):
         """Returns configuration files and what variant it is associated with.
         """
@@ -257,20 +257,12 @@ class Configuration(object):
             if config_file and os.path.exists(config_file):
                 yield "user", [config_file]
             else:
-                new_config_file = os.path.join(
-                    appdirs.user_config_dir("pip"),
-                    config_basename,
-                )
-
                 # The legacy config file is overridden by the new config file
                 yield "user", [legacy_config_file, new_config_file]
 
         # finally virtualenv configuration first trumping others
         if running_under_virtualenv():
-            yield "venv", [os.path.join(
-                sys.prefix,
-                config_basename,
-            )]
+            yield "venv", [venv_config_file]
 
     def _get_parser_to_modify(self):
         # Determine which parser to modify

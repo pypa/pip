@@ -119,7 +119,6 @@ else:
         legacy_storage_dir,
         config_basename,
     )
-
     # Forcing to use /usr/local/bin for standard macOS framework installs
     # Also log to ~/Library/Logs/ for use with the Console.app log viewer
     if sys.platform[:6] == 'darwin' and sys.prefix[:16] == '/System/Library/':
@@ -129,6 +128,9 @@ site_config_files = [
     os.path.join(path, config_basename)
     for path in appdirs.site_config_dirs('pip')
 ]
+
+venv_config_file = os.path.join(sys.prefix, config_basename)
+new_config_file = os.path.join(appdirs.user_config_dir("pip"), config_basename)
 
 
 def distutils_scheme(dist_name, user=False, home=None, root=None,
