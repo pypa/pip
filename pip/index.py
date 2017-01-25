@@ -571,7 +571,7 @@ class PackageFinder(object):
 
             yield page
 
-    _py_version_re = re.compile(r'-py([123]\.?[0-9]?)$')
+    _py_version_re = re.compile(r'-py([123](?:\.\d+)?)$')
 
     def _sort_links(self, links):
         """
