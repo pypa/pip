@@ -737,7 +737,7 @@ class WheelBuilder(object):
         return []  # No pyproject.toml
 
     def _install_build_reqs(self, reqs, prefix):
-        # Local install to avoid circular import (wheel <-> req_install)
+        # Local import to avoid circular import (wheel <-> req_install)
         from pip.req.req_install import InstallRequirement
         urls = [self.finder.find_requirement(InstallRequirement.from_line(r),
                                              upgrade=False).url
