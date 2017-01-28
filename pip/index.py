@@ -486,6 +486,14 @@ class PackageFinder(object):
             c for c in all_candidates if str(c.version) in compatible_versions
         ]
 
+        archive_extension = req.options.get('archive-extension')
+        # If identified archive-extension, select only this extension packages
+        if archive_extension:
+            applicable_candidates = [
+                candidate for candidate in applicable_candidates
+                if candidate.location.ext.endswith(archive_extension)
+            ]
+
         if applicable_candidates:
             best_candidate = max(applicable_candidates,
                                  key=self._candidate_sort_key)

@@ -178,6 +178,7 @@ class InstallCommand(RequirementCommand):
         cmd_opts.add_option(cmdoptions.only_binary())
         cmd_opts.add_option(cmdoptions.no_clean())
         cmd_opts.add_option(cmdoptions.require_hashes())
+        cmd_opts.add_option(cmdoptions.archive_extension())
 
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
