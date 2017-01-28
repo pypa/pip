@@ -6,37 +6,36 @@ import tempfile
 from pip.utils import rmtree
 
 
-class BuildDirectory(object):
+class TempDirectory(object):
+    """A Helper class that owns and cleans up a temporary directory.
+    """
 
-    def __init__(self, name=None, delete=None):
-        # If we were not given an explicit directory, and we were not given an
-        # explicit delete option, then we'll default to deleting.
-        if name is None and delete is None:
-            delete = True
-
-        if name is None:
+    def __init__(self, path=None, delete=None, type="temp"):
+        if path is None:
             # We realpath here because some systems have their default tmpdir
             # symlinked to another directory.  This tends to confuse build
             # scripts, so we canonicalize the path by traversing potential
             # symlinks here.
-            name = os.path.realpath(tempfile.mkdtemp(prefix="pip-build-"))
+            path = os.path.realpath(
+                tempfile.mkdtemp(prefix="pip-", suffix="-" + type)
+            )
             # If we were not given an explicit directory, and we were not given
             # an explicit delete option, then we'll default to deleting.
             if delete is None:
                 delete = True
 
-        self.name = name
+        self.path = path
         self.delete = delete
 
     def __repr__(self):
-        return "<{} {!r}>".format(self.__class__.__name__, self.name)
+        return "<{} {!r}>".format(self.__class__.__name__, self.path)
 
     def __enter__(self):
-        return self.name
+        return self
 
     def __exit__(self, exc, value, tb):
-        self.cleanup()
+        if self.delete:
+            self.cleanup()
 
     def cleanup(self):
-        if self.delete:
-            rmtree(self.name)
+        rmtree(self.path)

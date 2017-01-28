@@ -8,7 +8,7 @@ from pip.basecommand import RequirementCommand
 from pip.exceptions import CommandError, PreviousBuildDirError
 from pip.req import RequirementSet
 from pip.utils import import_or_raise
-from pip.utils.build import BuildDirectory
+from pip.utils.temp_dir import TempDirectory
 from pip.wheel import WheelCache, WheelBuilder
 from pip import cmdoptions
 
@@ -136,10 +136,12 @@ class WheelCommand(RequirementCommand):
             finder = self._build_package_finder(options, session)
             build_delete = (not (options.no_clean or options.build_dir))
             wheel_cache = WheelCache(options.cache_dir, options.format_control)
-            with BuildDirectory(options.build_dir,
-                                delete=build_delete) as build_dir:
+
+            with TempDirectory(
+                options.build_dir, delete=build_delete, type="build"
+            ) as directory:
                 requirement_set = RequirementSet(
-                    build_dir=build_dir,
+                    build_dir=directory.path,
                     src_dir=options.src_dir,
                     download_dir=None,
                     ignore_dependencies=options.ignore_dependencies,
