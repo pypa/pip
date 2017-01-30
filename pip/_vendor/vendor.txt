@@ -5,7 +5,8 @@ html5lib==1.0b10
 six==1.10.0
 colorama==0.3.7
 requests==2.11.1
-CacheControl==0.11.7
+CacheControl==0.12.0
+msgpack-python==0.4.8
 lockfile==0.12.2
 ordereddict==1.1  # Only needed on 2.6
 progress==1.2

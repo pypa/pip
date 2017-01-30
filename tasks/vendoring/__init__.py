@@ -93,6 +93,10 @@ def vendor(ctx, vendor_dir):
     drop_dir(vendor_dir / 'pkg_resources' / '_vendor')
     drop_dir(vendor_dir / 'pkg_resources' / 'extern')
 
+    # Drop interpreter and OS specific msgpack libs.
+    # Pip will rely on the python-only fallback instead.
+    remove_all(vendor_dir.glob('msgpack/*.so'))
+
     # Detect the vendored packages/modules
     vendored_libs = []
     for item in vendor_dir.iterdir():
