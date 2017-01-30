@@ -12,3 +12,4 @@ MANIFEST
 coverage.xml
 .*.sw?
 .idea/
+pip/_vendor/msgpack/*.so
