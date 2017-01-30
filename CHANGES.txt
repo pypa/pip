@@ -16,8 +16,10 @@
 * Add `--exclude-editable` to ``pip list`` to exclude editable packages
   from installed package list.
 
-* Add `--progress-bar <progress_bar>` to ``pip download``, ``pip install``
-  and ``pip wheel`` to suppress progress bar in the console (:pull:`4194`)
+* Add `--progress-bar <progress_bar>` to ``pip download``, ``pip install`` and
+  ``pip wheel`` commands, to allow selecting a specific progress indicator
+  type (:pull:`4194`). To completely suppress (for example in a CI environment)
+  use ``--progress-bar off```.
 
 
 **9.0.1 (2016-11-06)**
