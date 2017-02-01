@@ -624,7 +624,7 @@ class InstallRequirement(object):
                 [dist for d in dist.requires() if d.key == self.req.name])
         if not dep_keys:
             return True
-        print("%s is depended from:" % self.req)
+        logger.info("%s is depended from:" % self.req)
         for dep in dep_keys:
             print(dep)
         response = ask('Proceed (y/n)? ', ('y', 'n'))
