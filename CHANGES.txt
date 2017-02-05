@@ -21,6 +21,8 @@
   type (:pull:`4194`). To completely suppress (for example in a CI environment)
   use ``--progress-bar off```.
 
+* Add support for the new ``@ url`` syntax from PEP 508 (:pull:`4175`)
+
 
 **9.0.1 (2016-11-06)**
 
