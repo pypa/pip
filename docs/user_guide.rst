@@ -60,7 +60,7 @@ In practice, there are 4 common uses of Requirements files:
 2. Requirements files are used to force pip to properly resolve dependencies.
    As it is now, pip `doesn't have true dependency resolution
    <https://github.com/pypa/pip/issues/988>`_, but instead simply uses the first
-   specification it finds for a project. E.g if `pkg1` requires `pkg3>=1.0` and
+   specification it finds for a project. E.g. if `pkg1` requires `pkg3>=1.0` and
    `pkg2` requires `pkg3>=1.0,<=2.0`, and if `pkg1` is resolved first, pip will
    only use `pkg3>=1.0`, and could easily end up installing a version of `pkg3`
    that conflicts with the needs of `pkg2`.  To solve this problem, you can

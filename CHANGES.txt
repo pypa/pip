@@ -35,7 +35,7 @@
 
 * Fix a crash on non ASCII characters from `lsb_release` (:issue:`4062`).
 
-* Fix an SyntaxError in an an used module of a vendored dependency
+* Fix an SyntaxError in an unused module of a vendored dependency
   (:issue:`4059`).
 
 * Fix UNC paths on Windows (:issue:`4064`).
