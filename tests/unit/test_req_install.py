@@ -40,18 +40,19 @@ class TestInstallRequirementBuildDirectory(object):
 
         with mock.patch('pip.req.req_install.ask') as mock_ask:
             mock_ask.return_value = confirm_answer
+
             class req(Requirement):
                 def __init__(self, key):
                     self.key = key
 
             class installed(object):
+
                 def __init__(self, requires):
                     self._requires = [req(r) for r in requires]
 
                 def requires(self):
                     return self._requires
 
-            comes_from = None
             requirement = InstallRequirement(Requirement("dummy"), None)
             installed_packages = [installed(installed_requires)]
             assert requirement.confirm_dependencies(installed_packages)
