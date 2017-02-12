@@ -626,7 +626,7 @@ class InstallRequirement(object):
             return True
         logger.info("%s is depended from:" % self.req)
         for dep in dep_keys:
-            print(dep)
+            logger.info(dep)
         response = ask('Proceed (y/n)? ', ('y', 'n'))
         return response == 'y'
 
