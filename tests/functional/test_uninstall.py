@@ -249,7 +249,7 @@ def test_uninstall_editable_from_svn(script, tmpdir):
     """
     result = script.pip(
         'install', '-e',
-        '%s#egg=initools-dev' % local_checkout(
+        '%s#egg=initools' % local_checkout(
             'svn+http://svn.colorstudy.com/INITools/trunk',
             tmpdir.join("cache"),
         ),
@@ -320,7 +320,7 @@ def test_uninstall_from_reqs_file(script, tmpdir):
     """
     script.scratch_path.join("test-req.txt").write(
         textwrap.dedent("""
-            -e %s#egg=initools-dev
+            -e %s#egg=initools
             # and something else to test out:
             PyLogo<0.4
         """) %
@@ -337,7 +337,7 @@ def test_uninstall_from_reqs_file(script, tmpdir):
             -i http://www.example.com
             --extra-index-url http://www.example.com
 
-            -e %s#egg=initools-dev
+            -e %s#egg=initools
             # and something else to test out:
             PyLogo<0.4
         """) %

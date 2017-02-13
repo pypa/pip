@@ -83,7 +83,7 @@ def test_multiple_requirements_files(script, tmpdir):
     other_lib_name, other_lib_version = 'anyjson', '0.3'
     script.scratch_path.join("initools-req.txt").write(
         textwrap.dedent("""
-            -e %s@10#egg=INITools-dev
+            -e %s@10#egg=INITools
             -r %s-req.txt
         """) %
         (
