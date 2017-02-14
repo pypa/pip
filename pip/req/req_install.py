@@ -383,17 +383,10 @@ class InstallRequirement(object):
     @property
     def setup_py(self):
         assert self.source_dir, "No source dir for %s" % self
-        try:
-            import setuptools  # noqa
-        except ImportError:
-            if get_installed_version('setuptools') is None:
-                add_msg = "Please install setuptools."
-            else:
-                add_msg = traceback.format_exc()
-            # Setuptools is not available
-            raise InstallationError(
-                "Could not import setuptools which is required to "
-                "install from a source distribution.\n%s" % add_msg
+        if get_installed_version('setuptools') is None:
+            raise InstallationError("Setuptools is required to install "
+                "from a source distribution, but none was found. Please "
+                "install setuptools."
             )
 
         setup_py = os.path.join(self.setup_py_dir, 'setup.py')

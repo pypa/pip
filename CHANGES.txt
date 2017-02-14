@@ -1,3 +1,9 @@
+** 9.0.2 (2017-02-??) **
+
+* Only check that setuptools appears to be installed but no longer test
+  the import before invoking a sdist build (:issue:`4264`).
+
+
 **9.0.1 (2016-11-06)**
 
 * Correct the deprecation message when not specifying a --format so that it

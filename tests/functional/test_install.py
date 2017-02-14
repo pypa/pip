@@ -28,36 +28,11 @@ def test_without_setuptools(script, data):
         expect_error=True,
     )
     assert (
-        "Could not import setuptools which is required to install from a "
-        "source distribution."
+        "Setuptools is required to install from a source distribution, but "
+        "none was found."
         in result.stderr
     )
     assert "Please install setuptools" in result.stderr
-
-
-def test_with_setuptools_and_import_error(script, data):
-    # Make sure we get an ImportError while importing setuptools
-    setuptools_init_path = script.site_packages_path.join(
-        "setuptools", "__init__.py")
-    with open(setuptools_init_path, 'a') as f:
-        f.write('\nraise ImportError("toto")')
-
-    result = script.run(
-        "python", "-c",
-        "import pip; pip.main(["
-        "'install', "
-        "'INITools==0.2', "
-        "'-f', '%s', "
-        "'--no-binary=:all:'])" % data.packages,
-        expect_error=True,
-    )
-    assert (
-        "Could not import setuptools which is required to install from a "
-        "source distribution."
-        in result.stderr
-    )
-    assert "Traceback " in result.stderr
-    assert "ImportError: toto" in result.stderr
 
 
 def test_pip_second_command_line_interface_works(script, data):
