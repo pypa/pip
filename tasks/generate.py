@@ -4,12 +4,12 @@ import invoke
 
 
 @invoke.task
-def authors():
+def authors(ctx):
     print("[generate.authors] Generating AUTHORS")
 
     # Get our list of authors
     print("[generate.authors] Collecting author names")
-    r = invoke.run("git log --use-mailmap --format'=%aN <%aE>'", hide=True)
+    r = ctx.run("git log --use-mailmap --format'=%aN <%aE>'", hide=True)
     authors = []
     seen_authors = set()
     for author in r.stdout.splitlines():

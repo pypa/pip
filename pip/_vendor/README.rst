@@ -15,7 +15,8 @@ Policy
   pure Python.
 
 * Any modifications made to libraries **MUST** be noted in
-  ``pip/_vendor/README.rst``.
+  ``pip/_vendor/README.rst`` and their corresponding patches **MUST** be
+  included ``tasks/vendoring/patches``.
 
 
 Rationale
@@ -92,21 +93,26 @@ situation that we expect pip to be used and not mandate some external mechanism
 such as OS packages.
 
 
-pkg_resources
--------------
-
-pkg_resources has been pulled in from setuptools 28.8.0
-
-
 Modifications
 -------------
 
 * html5lib has been modified to import six from pip._vendor
+* setuptools is completely stripped to only keep pkg_resources
 * pkg_resources has been modified to import its externs from pip._vendor
 * CacheControl has been modified to import its dependencies from pip._vendor
 * packaging has been modified to import its dependencies from pip._vendor
 * requests has been modified *not* to optionally load any C dependencies.
 * Modified distro to delay importing argparse to avoid errors on 2.6
+
+
+Automatic Vendoring
+-------------------
+
+Vendoring is automated via the ``vendoring.update`` task (defined in
+``tasks/vendoring/__init__.py``) from the content of
+``pip/_vendor/vendor.txt`` and the different patches in
+``tasks/vendoring/patches/``.
+Launch it via ``invoke vendoring.update`` (you will need ``invoke>=0.13.0``).
 
 
 Debundling

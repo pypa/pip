@@ -287,29 +287,27 @@ class RequirementCommand(Command):
                 )
             )
 
-        found_req_in_file = False
         for filename in options.requirements:
             for req in parse_requirements(
                     filename,
                     finder=finder, options=options, session=session,
                     wheel_cache=wheel_cache):
-                found_req_in_file = True
                 requirement_set.add_requirement(req)
         # If --require-hashes was a line in a requirements file, tell
         # RequirementSet about it:
         requirement_set.require_hashes = options.require_hashes
 
-        if not (args or options.editables or found_req_in_file):
+        if not (args or options.editables or options.requirements):
             opts = {'name': name}
             if options.find_links:
-                msg = ('You must give at least one requirement to '
-                       '%(name)s (maybe you meant "pip %(name)s '
-                       '%(links)s"?)' %
-                       dict(opts, links=' '.join(options.find_links)))
+                raise CommandError(
+                    'You must give at least one requirement to %(name)s '
+                    '(maybe you meant "pip %(name)s %(links)s"?)' %
+                    dict(opts, links=' '.join(options.find_links)))
             else:
-                msg = ('You must give at least one requirement '
-                       'to %(name)s (see "pip help %(name)s")' % opts)
-            logger.warning(msg)
+                raise CommandError(
+                    'You must give at least one requirement to %(name)s '
+                    '(see "pip help %(name)s")' % opts)
 
     def _build_package_finder(self, options, session,
                               platform=None, python_versions=None,

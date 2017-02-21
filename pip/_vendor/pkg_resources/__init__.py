@@ -74,7 +74,6 @@ __import__('pip._vendor.packaging.specifiers')
 __import__('pip._vendor.packaging.requirements')
 __import__('pip._vendor.packaging.markers')
 
-
 if (3, 0) < sys.version_info < (3, 3):
     msg = (
         "Support for Python 3.0-3.2 has been dropped. Future versions "

@@ -132,6 +132,35 @@ def test_freeze_svn(script, tmpdir):
 
 
 @pytest.mark.git
+@pytest.mark.xfail
+def test_freeze_exclude_editable(script, tmpdir):
+    """
+    Test excluding editable from freezing list.
+    """
+    # Returns path to a generated package called "version_pkg"
+    pkg_version = _create_test_package(script)
+
+    result = script.run(
+        'git', 'clone', pkg_version, 'pip-test-package',
+        expect_stderr=True,
+    )
+    repo_dir = script.scratch_path / 'pip-test-package'
+    result = script.run(
+        'python', 'setup.py', 'develop',
+        cwd=repo_dir,
+        expect_stderr=True,
+    )
+    result = script.pip('freeze', '--exclude-editable', expect_stderr=True)
+    expected = textwrap.dedent(
+        """
+            ...-e git+...#egg=version_pkg
+            ...
+        """
+    ).strip()
+    _check_output(result.stdout, expected)
+
+
+@pytest.mark.git
 def test_freeze_git_clone(script, tmpdir):
     """
     Test freezing a Git clone.

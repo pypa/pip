@@ -1,6 +1,32 @@
+**9.1.0 (UNRELEASED)**
+
+* **WARNING** pip 9.1 cache format has changed. Old versions of pip cannot
+  read cache entries written by 9.1 but will handle this gracefully by
+  re-downloading the affected packages (:issue:`3515`).
+
+* Use pkg_resources to parse the entry points file to allow names with
+  colons (:pull:`3901`)
+
+* Return a failing exit status when `pip install`, `pip download`, or
+  `pip wheel` is called with no requirements. (:issue:`2720`, :pull:`2721`)
+
+* Add `--exclude-editable` to ``pip freeze`` to exclude editable packages
+  from installed package list.
+
+* Add `--exclude-editable` to ``pip list`` to exclude editable packages
+  from installed package list.
+
+* Add `--progress-bar <progress_bar>` to ``pip download``, ``pip install`` and
+  ``pip wheel`` commands, to allow selecting a specific progress indicator
+  type (:pull:`4194`). To completely suppress (for example in a CI environment)
+  use ``--progress-bar off```.
+
+* Add support for the new ``@ url`` syntax from PEP 508 (:pull:`4175`)
+
 * When checking for the presence of setuptools in preparation for building
   from an sdist, check in a subprocess to avoid the side-effects of
   importing setuptools (:issue:4264).
+
 
 **9.0.1 (2016-11-06)**
 
@@ -13,7 +39,7 @@
 
 * Fix a crash on non ASCII characters from `lsb_release` (:issue:`4062`).
 
-* Fix an SyntaxError in an an used module of a vendored dependency
+* Fix an SyntaxError in an unused module of a vendored dependency
   (:issue:`4059`).
 
 * Fix UNC paths on Windows (:issue:`4064`).
@@ -111,7 +137,6 @@
 
 * Restore the ability to use inline comments in requirements files passed to
   ``pip freeze`` (:issue:`3680`).
-
 
 **8.1.2 (2016-05-10)**
 

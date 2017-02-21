@@ -468,7 +468,7 @@ class TestInstallRequirement(object):
             'sys_platform == %r' % sys.platform,
         ):
             line = 'name; ' + markers
-            req = InstallRequirement(line, comes_from='')
+            req = InstallRequirement.from_line(line, comes_from='')
             assert str(req.markers) == str(Marker(markers))
             assert req.match_markers()
 
@@ -478,7 +478,7 @@ class TestInstallRequirement(object):
             'sys_platform != %r' % sys.platform,
         ):
             line = 'name; ' + markers
-            req = InstallRequirement(line, comes_from='')
+            req = InstallRequirement.from_line(line, comes_from='')
             assert str(req.markers) == str(Marker(markers))
             assert not req.match_markers()
 
@@ -520,7 +520,7 @@ class TestInstallRequirement(object):
                 os.path.join('this', 'path', 'does', 'not', 'exist'))
         err_msg = e.value.args[0]
         assert "Invalid requirement" in err_msg
-        assert "It looks like a path. Does it exist ?" in err_msg
+        assert "It looks like a path." in err_msg
 
     def test_single_equal_sign(self):
         with pytest.raises(InstallationError) as e:

@@ -73,6 +73,7 @@ class WheelCommand(RequirementCommand):
         cmd_opts.add_option(cmdoptions.ignore_requires_python())
         cmd_opts.add_option(cmdoptions.no_deps())
         cmd_opts.add_option(cmdoptions.build_dir())
+        cmd_opts.add_option(cmdoptions.progress_bar())
 
         cmd_opts.add_option(
             '--global-option',
@@ -108,18 +109,18 @@ class WheelCommand(RequirementCommand):
             "'pip wheel' requires the 'wheel' package. To fix this, run: "
             "pip install wheel"
         )
+
+        need_setuptools_message = (
+            "'pip wheel' requires setuptools >= 0.8 for dist-info support. "
+            "To fix this, run: pip install --upgrade setuptools>=0.8"
+        )
         pkg_resources = import_or_raise(
             'pkg_resources',
             CommandError,
-            "'pip wheel' requires setuptools >= 0.8 for dist-info support."
-            " To fix this, run: pip install --upgrade setuptools"
+            need_setuptools_message
         )
         if not hasattr(pkg_resources, 'DistInfoDistribution'):
-            raise CommandError(
-                "'pip wheel' requires setuptools >= 0.8 for dist-info "
-                "support. To fix this, run: pip install --upgrade "
-                "setuptools"
-            )
+            raise CommandError(need_setuptools_message)
 
     def run(self, options, args):
         self.check_required_packages()
@@ -177,16 +178,14 @@ class WheelCommand(RequirementCommand):
                     session=session,
                     wheel_cache=wheel_cache,
                     wheel_download_dir=options.wheel_dir,
-                    require_hashes=options.require_hashes
+                    require_hashes=options.require_hashes,
+                    progress_bar=options.progress_bar
                 )
 
                 self.populate_requirement_set(
                     requirement_set, args, options, finder, session, self.name,
                     wheel_cache
                 )
-
-                if not requirement_set.has_requirements:
-                    return
 
                 try:
                     # build wheels

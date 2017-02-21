@@ -6,7 +6,7 @@ is largely compatible with modern desktop web browsers.
 
 Example usage:
 
-import html5lib
+from pip._vendor import html5lib
 f = open("my_document.html")
 tree = html5lib.parse(f)
 """
