@@ -595,8 +595,8 @@ class TestParseRequirements(object):
             last_call = popen.call_args_list[-1]
             args = last_call[0][0]
             assert (
-                0 < args.index(global_option) < args.index('install')
-                < args.index(install_option)
+                0 < args.index(global_option) < args.index('install') <
+                args.index(install_option)
             )
         assert options.format_control.no_binary == set([':all:'])
         assert options.format_control.only_binary == set([])
