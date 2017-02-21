@@ -1,3 +1,7 @@
+* When checking for the presence of setuptools in preparation for building
+  from an sdist, check in a subprocess to avoid the side-effects of
+  importing setuptools (:issue:4264).
+
 **9.0.1 (2016-11-06)**
 
 * Correct the deprecation message when not specifying a --format so that it
