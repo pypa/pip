@@ -17,7 +17,7 @@ matrix:
       env: TOXENV=py34
     - python: 3.5
       env: TOXENV=py35
-    - python: "3.6-dev"
+    - python: 3.6
       env: TOXENV=py36
     - python: nightly
       env: TOXENV=py37
@@ -25,12 +25,12 @@ matrix:
       env: TOXENV=pypy
     - python: 2.7
       env: TOXENV=py27 VENDOR=no
-    - python: 3.5
-      env: TOXENV=py35 VENDOR=no
+    - python: 3.6
+      env: TOXENV=py36 VENDOR=no
     - python: 2.7
       env: TOXENV=py27 VENDOR=no WHEELS=yes
-    - python: 3.5
-      env: TOXENV=py35 VENDOR=no WHEELS=yes
+    - python: 3.6
+      env: TOXENV=py36 VENDOR=no WHEELS=yes
 
   allow_failures:
     - python: nightly

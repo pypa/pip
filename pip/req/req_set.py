@@ -147,7 +147,7 @@ class RequirementSet(object):
                  force_reinstall=False, use_user_site=False, session=None,
                  pycompile=True, isolated=False, wheel_download_dir=None,
                  wheel_cache=None, require_hashes=False,
-                 ignore_requires_python=False):
+                 ignore_requires_python=False, progress_bar="on"):
         """Create a RequirementSet.
 
         :param wheel_download_dir: Where still-packed .whl files should be
@@ -182,6 +182,7 @@ class RequirementSet(object):
         self.unnamed_requirements = []
         self.ignore_dependencies = ignore_dependencies
         self.ignore_requires_python = ignore_requires_python
+        self.progress_bar = progress_bar
         self.successfully_downloaded = []
         self.successfully_installed = []
         self.reqs_to_cleanup = []
@@ -344,7 +345,7 @@ class RequirementSet(object):
             if req.constraint:
                 continue
             req.uninstall(auto_confirm=auto_confirm)
-            req.commit_uninstall()
+            req.uninstalled_pathset.commit()
 
     def prepare_files(self, finder):
         """
@@ -492,8 +493,9 @@ class RequirementSet(object):
                     'req_to_install.satisfied_by is set to %r'
                     % (req_to_install.satisfied_by,))
                 logger.info(
-                    'Requirement %s: %s', skip_reason,
-                    req_to_install)
+                    'Requirement %s: %s (%s)', skip_reason,
+                    req_to_install,
+                    req_to_install.satisfied_by.version)
             else:
                 if (req_to_install.link and
                         req_to_install.link.scheme == 'file'):
@@ -617,7 +619,8 @@ class RequirementSet(object):
                     unpack_url(
                         req_to_install.link, req_to_install.source_dir,
                         download_dir, autodelete_unpacked,
-                        session=self.session, hashes=hashes)
+                        session=self.session, hashes=hashes,
+                        progress_bar=self.progress_bar)
                 except requests.HTTPError as exc:
                     logger.critical(
                         'Could not install requirement %s because '
@@ -658,9 +661,13 @@ class RequirementSet(object):
                             req_to_install,
                         )
 
+            # register tmp src for cleanup in case something goes wrong
+            self.reqs_to_cleanup.append(req_to_install)
+
             # ###################### #
             # # parse dependencies # #
             # ###################### #
+
             dist = abstract_dist.dist(finder)
             try:
                 check_dist_requires_python(dist)
@@ -668,12 +675,11 @@ class RequirementSet(object):
                 if self.ignore_requires_python:
                     logger.warning(e.args[0])
                 else:
-                    req_to_install.remove_temporary_source()
                     raise
             more_reqs = []
 
             def add_req(subreq, extras_requested):
-                sub_install_req = InstallRequirement(
+                sub_install_req = InstallRequirement.from_req(
                     str(subreq),
                     req_to_install,
                     isolated=self.isolated,
@@ -709,9 +715,6 @@ class RequirementSet(object):
                 )
                 for subreq in dist.requires(available_requested):
                     add_req(subreq, extras_requested=available_requested)
-
-            # cleanup tmp src
-            self.reqs_to_cleanup.append(req_to_install)
 
             if not req_to_install.editable and not req_to_install.satisfied_by:
                 # XXX: --no-install leads this to report 'Successfully
@@ -787,12 +790,12 @@ class RequirementSet(object):
                     # if install did not succeed, rollback previous uninstall
                     if (requirement.conflicts_with and not
                             requirement.install_succeeded):
-                        requirement.rollback_uninstall()
+                        requirement.uninstalled_pathset.rollback()
                     raise
                 else:
                     if (requirement.conflicts_with and
                             requirement.install_succeeded):
-                        requirement.commit_uninstall()
+                        requirement.uninstalled_pathset.commit()
                 requirement.remove_temporary_source()
 
         self.successfully_installed = to_install

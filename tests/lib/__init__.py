@@ -618,3 +618,15 @@ def requirements_file(contents, tmpdir):
     path.write(contents)
     yield path
     path.remove()
+
+
+def create_test_package_with_setup(script, **setup_kwargs):
+    assert 'name' in setup_kwargs, setup_kwargs
+    pkg_path = script.scratch_path / setup_kwargs['name']
+    pkg_path.mkdir()
+    pkg_path.join("setup.py").write(textwrap.dedent("""
+        from setuptools import setup
+        kwargs = %r
+        setup(**kwargs)
+    """) % setup_kwargs)
+    return pkg_path

@@ -34,7 +34,7 @@ from pip.utils.filesystem import check_path_owner
 from pip.utils.logging import indent_log
 from pip.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip.utils.glibc import libc_ver
-from pip.utils.ui import DownloadProgressBar, DownloadProgressSpinner
+from pip.utils.ui import DownloadProgressProvider
 from pip.locations import write_delete_marker_file
 from pip.vcs import vcs
 from pip._vendor import requests, six
@@ -388,7 +388,12 @@ class PipSession(requests.Session):
 
 def get_file_content(url, comes_from=None, session=None):
     """Gets the content of a file; it may be a filename, file: URL, or
-    http: URL.  Returns (location, content).  Content is unicode."""
+    http: URL.  Returns (location, content).  Content is unicode.
+
+    :param url:         File path or url.
+    :param comes_from:  Origin description of requirements.
+    :param session:     Instance of pip.download.PipSession.
+    """
     if session is None:
         raise TypeError(
             "get_file_content() missing 1 required keyword argument: 'session'"
@@ -509,14 +514,13 @@ def _progress_indicator(iterable, *args, **kwargs):
     return iterable
 
 
-def _download_url(resp, link, content_file, hashes):
+def _download_url(resp, link, content_file, hashes, progress_bar):
     try:
         total_length = int(resp.headers['content-length'])
     except (ValueError, KeyError, TypeError):
         total_length = 0
 
     cached_resp = getattr(resp, "from_cache", False)
-
     if logger.getEffectiveLevel() > logging.INFO:
         show_progress = False
     elif cached_resp:
@@ -580,12 +584,12 @@ def _download_url(resp, link, content_file, hashes):
         url = link.url_without_fragment
 
     if show_progress:  # We don't show progress on cached responses
+        progress_indicator = DownloadProgressProvider(progress_bar,
+                                                      max=total_length)
         if total_length:
             logger.info("Downloading %s (%s)", url, format_size(total_length))
-            progress_indicator = DownloadProgressBar(max=total_length).iter
         else:
             logger.info("Downloading %s", url)
-            progress_indicator = DownloadProgressSpinner().iter
     elif cached_resp:
         logger.info("Using cached %s", url)
     else:
@@ -633,7 +637,7 @@ def _copy_file(filename, location, link):
 
 
 def unpack_http_url(link, location, download_dir=None,
-                    session=None, hashes=None):
+                    session=None, hashes=None, progress_bar="on"):
     if session is None:
         raise TypeError(
             "unpack_http_url() missing 1 required keyword argument: 'session'"
@@ -656,7 +660,8 @@ def unpack_http_url(link, location, download_dir=None,
         from_path, content_type = _download_http_url(link,
                                                      session,
                                                      temp_dir,
-                                                     hashes)
+                                                     hashes,
+                                                     progress_bar)
 
     # unpack the archive to the build dir location. even when only downloading
     # archives, they have to be unpacked to parse dependencies
@@ -785,7 +790,8 @@ class PipXmlrpcTransport(xmlrpc_client.Transport):
 
 
 def unpack_url(link, location, download_dir=None,
-               only_download=False, session=None, hashes=None):
+               only_download=False, session=None, hashes=None,
+               progress_bar="on"):
     """Unpack link.
        If link is a VCS link:
          if only_download, export into download_dir and ignore location
@@ -818,13 +824,14 @@ def unpack_url(link, location, download_dir=None,
             location,
             download_dir,
             session,
-            hashes=hashes
+            hashes=hashes,
+            progress_bar=progress_bar
         )
     if only_download:
         write_delete_marker_file(location)
 
 
-def _download_http_url(link, session, temp_dir, hashes):
+def _download_http_url(link, session, temp_dir, hashes, progress_bar):
     """Download link url into temp_dir using provided session"""
     target_url = link.url.split('#', 1)[0]
     try:
@@ -879,7 +886,7 @@ def _download_http_url(link, session, temp_dir, hashes):
             filename += ext
     file_path = os.path.join(temp_dir, filename)
     with open(file_path, 'wb') as content_file:
-        _download_url(resp, link, content_file, hashes)
+        _download_url(resp, link, content_file, hashes, progress_bar)
     return file_path, content_type
 
 

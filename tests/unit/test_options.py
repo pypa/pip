@@ -1,6 +1,6 @@
 import os
 import pytest
-import pip.baseparser
+import pip.configuration
 from pip import main
 from pip import cmdoptions
 from pip.basecommand import Command
@@ -107,8 +107,8 @@ class TestOptionPrecedence(object):
         Test an environment variable overrides the config file
         """
         monkeypatch.setattr(
-            pip.baseparser.ConfigOptionParser,
-            "get_config_section",
+            pip.configuration.Configuration,
+            "_get_config_section",
             self.get_config_section,
         )
         os.environ['PIP_TIMEOUT'] = '-1'
@@ -120,8 +120,8 @@ class TestOptionPrecedence(object):
         Test that command config overrides global config
         """
         monkeypatch.setattr(
-            pip.baseparser.ConfigOptionParser,
-            "get_config_section",
+            pip.configuration.Configuration,
+            "_get_config_section",
             self.get_config_section,
         )
         options, args = main(['fake'])
@@ -132,8 +132,8 @@ class TestOptionPrecedence(object):
         Test that global config is used
         """
         monkeypatch.setattr(
-            pip.baseparser.ConfigOptionParser,
-            "get_config_section",
+            pip.configuration.Configuration,
+            "_get_config_section",
             self.get_config_section_global,
         )
         options, args = main(['fake'])
@@ -265,23 +265,18 @@ class TestGeneralOptions(object):
 class TestOptionsConfigFiles(object):
 
     def test_venv_config_file_found(self, monkeypatch):
-        # We only want a dummy object to call the get_config_files method
-        monkeypatch.setattr(
-            pip.baseparser.ConfigOptionParser,
-            '__init__',
-            lambda self: None,
-        )
-
         # strict limit on the site_config_files list
-        monkeypatch.setattr(pip.baseparser, 'site_config_files', ['/a/place'])
+        monkeypatch.setattr(
+            pip.configuration, 'site_config_files', ['/a/place']
+        )
 
         # If we are running in a virtualenv and all files appear to exist,
         # we should see two config files.
         monkeypatch.setattr(
-            pip.baseparser,
+            pip.configuration,
             'running_under_virtualenv',
             lambda: True,
         )
         monkeypatch.setattr(os.path, 'exists', lambda filename: True)
-        cp = pip.baseparser.ConfigOptionParser()
-        assert len(cp.get_config_files()) == 4
+        cp = pip.configuration.Configuration(isolated=False)
+        assert len(cp._get_config_files()) == 4

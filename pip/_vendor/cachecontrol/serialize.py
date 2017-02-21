@@ -3,23 +3,10 @@ import io
 import json
 import zlib
 
+from pip._vendor import msgpack
 from pip._vendor.requests.structures import CaseInsensitiveDict
 
-from .compat import HTTPResponse, pickle, text_type
-
-
-def _b64_encode_bytes(b):
-    return base64.b64encode(b).decode("ascii")
-
-
-def _b64_encode_str(s):
-    return _b64_encode_bytes(s.encode("utf8"))
-
-
-def _b64_encode(s):
-    if isinstance(s, text_type):
-        return _b64_encode_str(s)
-    return _b64_encode_bytes(s)
+from .compat import HTTPResponse, pickle
 
 
 def _b64_decode_bytes(b):
@@ -52,14 +39,11 @@ class Serializer(object):
 
         data = {
             "response": {
-                "body": _b64_encode_bytes(body),
-                "headers": dict(
-                    (_b64_encode(k), _b64_encode(v))
-                    for k, v in response.headers.items()
-                ),
+                "body": body,
+                "headers": dict(response.headers),
                 "status": response.status,
                 "version": response.version,
-                "reason": _b64_encode_str(response.reason),
+                "reason": response.reason,
                 "strict": response.strict,
                 "decode_content": response.decode_content,
             },
@@ -73,20 +57,7 @@ class Serializer(object):
                 header = header.strip()
                 data["vary"][header] = request.headers.get(header, None)
 
-        # Encode our Vary headers to ensure they can be serialized as JSON
-        data["vary"] = dict(
-            (_b64_encode(k), _b64_encode(v) if v is not None else v)
-            for k, v in data["vary"].items()
-        )
-
-        return b",".join([
-            b"cc=2",
-            zlib.compress(
-                json.dumps(
-                    data, separators=(",", ":"), sort_keys=True,
-                ).encode("utf8"),
-            ),
-        ])
+        return b",".join([b"cc=3", msgpack.dumps(data, use_bin_type=True)])
 
     def loads(self, request, data):
         # Short circuit if we've been given an empty set of data
@@ -174,7 +145,7 @@ class Serializer(object):
     def _loads_v2(self, request, data):
         try:
             cached = json.loads(zlib.decompress(data).decode("utf8"))
-        except ValueError:
+        except (ValueError, zlib.error):
             return
 
         # We need to decode the items that we've base64 encoded
@@ -192,5 +163,13 @@ class Serializer(object):
             (_b64_decode_str(k), _b64_decode_str(v) if v is not None else v)
             for k, v in cached["vary"].items()
         )
+
+        return self.prepare_response(request, cached)
+
+    def _loads_v3(self, request, data):
+        try:
+            cached = msgpack.loads(data, encoding='utf-8')
+        except ValueError:
+            return
 
         return self.prepare_response(request, cached)

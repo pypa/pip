@@ -60,7 +60,7 @@ In practice, there are 4 common uses of Requirements files:
 2. Requirements files are used to force pip to properly resolve dependencies.
    As it is now, pip `doesn't have true dependency resolution
    <https://github.com/pypa/pip/issues/988>`_, but instead simply uses the first
-   specification it finds for a project. E.g if `pkg1` requires `pkg3>=1.0` and
+   specification it finds for a project. E.g. if `pkg1` requires `pkg3>=1.0` and
    `pkg2` requires `pkg3>=1.0,<=2.0`, and if `pkg1` is resolved first, pip will
    only use `pkg3>=1.0`, and could easily end up installing a version of `pkg3`
    that conflicts with the needs of `pkg2`.  To solve this problem, you can
@@ -476,32 +476,26 @@ $ pip install --no-index --find-links=DIR -r requirements.txt
 "Only if needed" Recursive Upgrade
 **********************************
 
-``pip install --upgrade`` is currently written to perform an eager recursive
-upgrade, i.e. it upgrades all dependencies regardless of whether they still
-satisfy the new parent requirements.
+``pip install --upgrade`` now has a ``--upgrade-strategy`` option which
+controls how pip handles upgrading of dependencies. There are 2 upgrade
+strategies supported:
 
-E.g. supposing:
+- ``eager``: upgrades all dependencies regardless of whether they still satisfy
+  the new parent requirements
+- ``only-if-needed``: upgrades a dependency only if it does not satisfy the new
+  parent requirements
+ 
+Currently, the default strategy is ``eager``, which was the strategy prior to 
+the ``--upgrade-strategy`` option being added.
 
-* `SomePackage-1.0` requires `AnotherPackage>=1.0`
-* `SomePackage-2.0` requires `AnotherPackage>=1.0` and `OneMorePackage==1.0`
-* `SomePackage-1.0` and `AnotherPackage-1.0` are currently installed
-* `SomePackage-2.0` and `AnotherPackage-2.0` are the latest versions available on PyPI.
-
-Running ``pip install --upgrade SomePackage`` would upgrade `SomePackage` *and*
-`AnotherPackage` despite `AnotherPackage` already being satisfied.
-
-pip doesn't currently have an option to do an "only if needed" recursive
-upgrade, but you can achieve it using these 2 steps::
+As an historic note, an earlier "fix" for getting the ``only-if-needed``
+behaviour was::
 
   pip install --upgrade --no-deps SomePackage
   pip install SomePackage
 
-The first line will upgrade `SomePackage`, but not dependencies like
-`AnotherPackage`.  The 2nd line will fill in new dependencies like
-`OneMorePackage`.
-
-See :issue:`59` for a plan of making "only if needed" recursive the default
-behavior for a new ``pip upgrade`` command.
+A proposal for an ``upgrade-all`` command is being considered as a safer
+alternative to the behaviour of eager upgrading.
 
 
 User Installs

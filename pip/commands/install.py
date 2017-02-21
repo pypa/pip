@@ -56,11 +56,12 @@ class InstallCommand(RequirementCommand):
 
         cmd_opts = self.cmd_opts
 
-        cmd_opts.add_option(cmdoptions.constraints())
-        cmd_opts.add_option(cmdoptions.editable())
         cmd_opts.add_option(cmdoptions.requirements())
-        cmd_opts.add_option(cmdoptions.build_dir())
+        cmd_opts.add_option(cmdoptions.constraints())
+        cmd_opts.add_option(cmdoptions.no_deps())
+        cmd_opts.add_option(cmdoptions.pre())
 
+        cmd_opts.add_option(cmdoptions.editable())
         cmd_opts.add_option(
             '-t', '--target',
             dest='target_dir',
@@ -71,6 +72,28 @@ class InstallCommand(RequirementCommand):
                  '<dir>. Use --upgrade to replace existing packages in <dir> '
                  'with new versions.'
         )
+        cmd_opts.add_option(
+            '--user',
+            dest='use_user_site',
+            action='store_true',
+            help="Install to the Python user install directory for your "
+                 "platform. Typically ~/.local/, or %APPDATA%\Python on "
+                 "Windows. (See the Python documentation for site.USER_BASE "
+                 "for full details.)")
+        cmd_opts.add_option(
+            '--root',
+            dest='root_path',
+            metavar='dir',
+            default=None,
+            help="Install everything relative to this alternate root "
+                 "directory.")
+        cmd_opts.add_option(
+            '--prefix',
+            dest='prefix_path',
+            metavar='dir',
+            default=None,
+            help="Installation prefix where lib, bin and other top-level "
+                 "folders are placed")
 
         cmd_opts.add_option(
             '-d', '--download', '--download-dir', '--download-directory',
@@ -80,6 +103,7 @@ class InstallCommand(RequirementCommand):
             help=("Download packages into <dir> instead of installing them, "
                   "regardless of what's already installed."),
         )
+        cmd_opts.add_option(cmdoptions.build_dir())
 
         cmd_opts.add_option(cmdoptions.src())
 
@@ -97,7 +121,8 @@ class InstallCommand(RequirementCommand):
             dest='upgrade_strategy',
             default='eager',
             choices=['only-if-needed', 'eager'],
-            help='Determines how dependency upgrading should be handled. '
+            help='Determines how dependency upgrading should be handled '
+                 '(default: %(default)s). '
                  '"eager" - dependencies are upgraded regardless of '
                  'whether the currently installed version satisfies the '
                  'requirements of the upgraded package(s). '
@@ -119,19 +144,9 @@ class InstallCommand(RequirementCommand):
             help='Ignore the installed packages (reinstalling instead).')
 
         cmd_opts.add_option(cmdoptions.ignore_requires_python())
-        cmd_opts.add_option(cmdoptions.no_deps())
 
         cmd_opts.add_option(cmdoptions.install_options())
         cmd_opts.add_option(cmdoptions.global_options())
-
-        cmd_opts.add_option(
-            '--user',
-            dest='use_user_site',
-            action='store_true',
-            help="Install to the Python user install directory for your "
-                 "platform. Typically ~/.local/, or %APPDATA%\Python on "
-                 "Windows. (See the Python documentation for site.USER_BASE "
-                 "for full details.)")
 
         cmd_opts.add_option(
             '--egg',
@@ -141,22 +156,6 @@ class InstallCommand(RequirementCommand):
                  "does. This option is not about installing *from* eggs. "
                  "(WARNING: Because this option overrides pip's normal install"
                  " logic, requirements files may not behave as expected.)")
-
-        cmd_opts.add_option(
-            '--root',
-            dest='root_path',
-            metavar='dir',
-            default=None,
-            help="Install everything relative to this alternate root "
-                 "directory.")
-
-        cmd_opts.add_option(
-            '--prefix',
-            dest='prefix_path',
-            metavar='dir',
-            default=None,
-            help="Installation prefix where lib, bin and other top-level "
-                 "folders are placed")
 
         cmd_opts.add_option(
             "--compile",
@@ -177,9 +176,9 @@ class InstallCommand(RequirementCommand):
         cmd_opts.add_option(cmdoptions.no_use_wheel())
         cmd_opts.add_option(cmdoptions.no_binary())
         cmd_opts.add_option(cmdoptions.only_binary())
-        cmd_opts.add_option(cmdoptions.pre())
         cmd_opts.add_option(cmdoptions.no_clean())
         cmd_opts.add_option(cmdoptions.require_hashes())
+        cmd_opts.add_option(cmdoptions.progress_bar())
 
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
@@ -305,15 +304,13 @@ class InstallCommand(RequirementCommand):
                     isolated=options.isolated_mode,
                     wheel_cache=wheel_cache,
                     require_hashes=options.require_hashes,
+                    progress_bar=options.progress_bar,
                 )
 
                 self.populate_requirement_set(
                     requirement_set, args, options, finder, session, self.name,
                     wheel_cache
                 )
-
-                if not requirement_set.has_requirements:
-                    return
 
                 try:
                     if (options.download_dir or not wheel or not

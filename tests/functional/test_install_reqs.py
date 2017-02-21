@@ -83,7 +83,7 @@ def test_multiple_requirements_files(script, tmpdir):
     other_lib_name, other_lib_version = 'anyjson', '0.3'
     script.scratch_path.join("initools-req.txt").write(
         textwrap.dedent("""
-            -e %s@10#egg=INITools-dev
+            -e %s@10#egg=INITools
             -r %s-req.txt
         """) %
         (
@@ -168,14 +168,13 @@ def test_install_local_editable_with_extras(script, data):
     assert script.site_packages / 'simple' in res.files_created, str(res)
 
 
-@pytest.mark.network
 def test_install_collected_dependencies_first(script):
-    result = script.pip(
-        'install', 'paramiko',
+    result = script.pip_install_local(
+        'toporequires2',
     )
     text = [line for line in result.stdout.split('\n')
             if 'Installing' in line][0]
-    assert text.endswith('paramiko')
+    assert text.endswith('toporequires2')
 
 
 @pytest.mark.network

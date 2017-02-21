@@ -1,0 +1,24 @@
+diff --git a/pip/_vendor/cachecontrol/compat.py b/pip/_vendor/cachecontrol/compat.py
+index 54ec211..018e6ac 100644
+--- a/pip/_vendor/cachecontrol/compat.py
++++ b/pip/_vendor/cachecontrol/compat.py
+@@ -10,17 +10,8 @@ except ImportError:
+     import pickle
+ 
+ 
+-# Handle the case where the requests module has been patched to not have
+-# urllib3 bundled as part of its source.
+-try:
+-    from pip._vendor.requests.packages.urllib3.response import HTTPResponse
+-except ImportError:
+-    from urllib3.response import HTTPResponse
+-
+-try:
+-    from pip._vendor.requests.packages.urllib3.util import is_fp_closed
+-except ImportError:
+-    from urllib3.util import is_fp_closed
++from pip._vendor.requests.packages.urllib3.response import HTTPResponse
++from pip._vendor.requests.packages.urllib3.util import is_fp_closed
+ 
+ # Replicate some six behaviour
+ try:

@@ -56,6 +56,7 @@ class DownloadCommand(RequirementCommand):
         cmd_opts.add_option(cmdoptions.pre())
         cmd_opts.add_option(cmdoptions.no_clean())
         cmd_opts.add_option(cmdoptions.require_hashes())
+        cmd_opts.add_option(cmdoptions.progress_bar())
 
         cmd_opts.add_option(
             '-d', '--dest', '--destination-dir', '--destination-directory',
@@ -180,7 +181,8 @@ class DownloadCommand(RequirementCommand):
                     ignore_dependencies=options.ignore_dependencies,
                     session=session,
                     isolated=options.isolated_mode,
-                    require_hashes=options.require_hashes
+                    require_hashes=options.require_hashes,
+                    progress_bar=options.progress_bar
                 )
                 self.populate_requirement_set(
                     requirement_set,
@@ -191,9 +193,6 @@ class DownloadCommand(RequirementCommand):
                     self.name,
                     None
                 )
-
-                if not requirement_set.has_requirements:
-                    return
 
                 requirement_set.prepare_files(finder)
 

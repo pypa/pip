@@ -47,7 +47,9 @@ speed), although neither are required to install pre-built :term:`wheels
 
    The get-pip.py script is supported on the same python version as pip.
    For the now unsupported Python 3.2, an alternate script is available
-   `here <https://bootstrap.pypa.io/3.2/get-pip.py>`_.
+   `here <https://bootstrap.pypa.io/3.2/get-pip.py>`__. For Python 2.6
+   which will be unsupported in pip 10.0, an alternative script is available
+   `here <https://bootstrap.pypa.io/2.6/get-pip.py>`__.
 
 
 get-pip.py options

@@ -9,8 +9,10 @@ import pytest
 
 from pip import pep425tags
 from pip.utils import appdirs, rmtree
+from pip.status_codes import ERROR
 from tests.lib import (pyversion, pyversion_tuple,
                        _create_test_package, _create_svn_repo, path_to_url,
+                       create_test_package_with_setup,
                        requirements_file)
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
@@ -35,6 +37,7 @@ def test_without_setuptools(script, data):
     assert "Please install setuptools" in result.stderr
 
 
+@pytest.mark.network
 def test_pip_second_command_line_interface_works(script, data):
     """
     Check if ``pip<PYVERSION>`` commands behaves equally
@@ -55,6 +58,23 @@ def test_pip_second_command_line_interface_works(script, data):
     initools_folder = script.site_packages / 'initools'
     assert egg_info_folder in result.files_created, str(result)
     assert initools_folder in result.files_created, str(result)
+
+
+def test_install_exit_status_code_when_no_requirements(script):
+    """
+    Test install exit status code when no requirements specified
+    """
+    result = script.pip('install', expect_error=True)
+    assert "You must give at least one requirement to install" in result.stderr
+    assert result.returncode == ERROR
+
+
+def test_install_exit_status_code_when_blank_requirements_file(script):
+    """
+    Test install exit status code when blank requirements file specified
+    """
+    script.scratch_path.join("blank.txt").write("\n")
+    script.pip('install', '-r', 'blank.txt')
 
 
 @pytest.mark.network
@@ -84,6 +104,7 @@ def test_editable_install(script):
     assert not result.files_updated
 
 
+@pytest.mark.svn
 def test_install_editable_from_svn(script):
     """
     Test checking out from svn.
@@ -106,7 +127,7 @@ def test_download_editable_to_custom_path(script, tmpdir):
     result = script.pip(
         'install',
         '-e',
-        '%s#egg=initools-dev' %
+        '%s#egg=initools' %
         local_checkout(
             'svn+http://svn.colorstudy.com/INITools/trunk',
             tmpdir.join("cache")
@@ -150,10 +171,12 @@ def test_install_editable_from_git(script, tmpdir):
     _test_install_editable_from_git(script, tmpdir, False)
 
 
+@pytest.mark.network
 def test_install_editable_from_git_autobuild_wheel(script, tmpdir):
     _test_install_editable_from_git(script, tmpdir, True)
 
 
+@pytest.mark.network
 def test_install_editable_uninstalls_existing(data, script, tmpdir):
     """
     Test that installing an editable uninstalls a previously installed
@@ -222,6 +245,7 @@ def test_vcs_url_final_slash_normalization(script, tmpdir):
     result.assert_installed('testpackage', with_files=['.hg'])
 
 
+@pytest.mark.bzr
 def test_install_editable_from_bazaar(script, tmpdir):
     """Test checking out from Bazaar."""
     pkg_path = _create_test_package(script, name='testpackage', vcs='bazaar')
@@ -231,6 +255,7 @@ def test_install_editable_from_bazaar(script, tmpdir):
 
 
 @pytest.mark.network
+@pytest.mark.bzr
 def test_vcs_url_urlquote_normalization(script, tmpdir):
     """
     Test that urlquoted characters are normalized for repo URL comparison.
@@ -884,13 +909,14 @@ def test_install_log(script, data, tmpdir):
 
 
 def test_install_topological_sort(script, data):
-    args = ['install', 'TopoRequires4', '-f', data.packages]
+    args = ['install', 'TopoRequires4', '--no-index', '-f', data.packages]
     res = str(script.pip(*args, expect_error=False))
     order1 = 'TopoRequires, TopoRequires2, TopoRequires3, TopoRequires4'
     order2 = 'TopoRequires, TopoRequires3, TopoRequires2, TopoRequires4'
     assert order1 in res or order2 in res, res
 
 
+@pytest.mark.network
 def test_install_wheel_broken(script, data):
     script.pip('install', 'wheel')
     res = script.pip(
@@ -899,6 +925,7 @@ def test_install_wheel_broken(script, data):
     assert "Successfully installed wheelbroken-0.1" in str(res), str(res)
 
 
+@pytest.mark.network
 def test_cleanup_after_failed_wheel(script, data):
     script.pip('install', 'wheel')
     res = script.pip(
@@ -913,6 +940,7 @@ def test_cleanup_after_failed_wheel(script, data):
     assert "Running setup.py clean for wheelbrokenafter" in str(res), str(res)
 
 
+@pytest.mark.network
 def test_install_builds_wheels(script, data):
     # NB This incidentally tests a local tree + tarball inputs
     # see test_install_editable_from_git_autobuild_wheel for editable
@@ -951,6 +979,7 @@ def test_install_builds_wheels(script, data):
     ]
 
 
+@pytest.mark.network
 def test_install_no_binary_disables_building_wheels(script, data):
     script.pip('install', 'wheel')
     to_install = data.packages.join('requires_wheelbroken_upper')
@@ -982,6 +1011,7 @@ def test_install_no_binary_disables_building_wheels(script, data):
     assert "Running setup.py install for upper" in str(res), str(res)
 
 
+@pytest.mark.network
 def test_install_no_binary_disables_cached_wheels(script, data):
     script.pip('install', 'wheel')
     # Seed the cache
@@ -1084,6 +1114,7 @@ def test_install_incompatible_python_requires_editable(script):
             "but the running Python is ") in result.stderr
 
 
+@pytest.mark.network
 def test_install_incompatible_python_requires_wheel(script):
     script.scratch_path.join("pkga").mkdir()
     pkga_path = script.scratch_path / 'pkga'
@@ -1136,3 +1167,31 @@ def test_install_environment_markers(script, data):
     assert ("Ignoring missing-pkg: markers 'python_version == \"1.0\"' don't "
             "match your environment") in res.stderr, str(res)
     assert "Successfully installed pkga-0.1" in res.stdout, str(res)
+
+
+@pytest.mark.network
+def test_install_pep508_with_url(script):
+    res = script.pip(
+        'install', '--no-index',
+        'packaging@https://files.pythonhosted.org/packages/2f/2b/'
+        'c681de3e1dbcd469537aefb15186b800209aa1f299d933d23b48d85c9d56/'
+        'packaging-15.3-py2.py3-none-any.whl#sha256='
+        'ce1a869fe039fbf7e217df36c4653d1dbe657778b2d41709593a0003584405f4'
+    )
+    assert "Successfully installed packaging-15.3" in str(res), str(res)
+
+
+@pytest.mark.network
+def test_install_pep508_with_url_in_install_requires(script):
+    pkga_path = create_test_package_with_setup(
+        script, name='pkga', version='1.0',
+        install_requires=[
+            'packaging@https://files.pythonhosted.org/packages/2f/2b/'
+            'c681de3e1dbcd469537aefb15186b800209aa1f299d933d23b48d85c9d56/'
+            'packaging-15.3-py2.py3-none-any.whl#sha256='
+            'ce1a869fe039fbf7e217df36c4653d1dbe657778b2d41709593a0003584405f4'
+        ],
+    )
+    res = script.pip('install', pkga_path, expect_error=True)
+    assert "Direct url requirement " in res.stderr, str(res)
+    assert "are not allowed for dependencies" in res.stderr, str(res)

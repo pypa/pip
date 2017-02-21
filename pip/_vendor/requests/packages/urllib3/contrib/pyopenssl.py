@@ -64,7 +64,7 @@ except ImportError:  # Platform-specific: Python 3
 
 import ssl
 import select
-import six
+from pip._vendor import six
 
 from .. import connection
 from .. import util

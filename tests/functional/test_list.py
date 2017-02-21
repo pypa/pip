@@ -329,6 +329,21 @@ def test_editables_flag(script, data):
 
 
 @pytest.mark.network
+def test_exclude_editable_flag(script, data):
+    """
+    Test the behavior of --editables flag in the list command
+    """
+    script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
+    result = script.pip(
+        'install', '-e',
+        'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package'
+    )
+    result = script.pip('list', '--exclude-editable', '--format=legacy')
+    assert 'simple (1.0)' in result.stdout, str(result)
+    assert 'pip-test-package (0.1, ' not in result.stdout
+
+
+@pytest.mark.network
 def test_editables_columns_flag(script, data):
     """
     Test the behavior of --editables flag in the list command

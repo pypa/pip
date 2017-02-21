@@ -54,7 +54,7 @@ class Git(VersionControl):
         VERSION_PFX = 'git version '
         version = self.run_command(['version'], show_stdout=False)
         if version.startswith(VERSION_PFX):
-            version = version[len(VERSION_PFX):]
+            version = version[len(VERSION_PFX):].split()[0]
         else:
             version = ''
         # get first 3 positions of the git version becasue
