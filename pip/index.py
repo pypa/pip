@@ -278,6 +278,7 @@ class PackageFinder(object):
               with the same version, would have to be considered equal
         """
         support_num = len(self.valid_tags)
+        build_tag = tuple()
         if candidate.location.is_wheel:
             # can raise InvalidWheelFilename
             wheel = Wheel(candidate.location.filename)
@@ -287,9 +288,13 @@ class PackageFinder(object):
                     "can't be sorted." % wheel.filename
                 )
             pri = -(wheel.support_index_min(self.valid_tags))
+            if wheel.build_tag is not None:
+                match = re.match('^(\d+)(.*)$', wheel.build_tag)
+                build_tag_groups = match.groups()
+                build_tag = (int(build_tag_groups[0]), build_tag_groups[1])
         else:  # sdist
             pri = -(support_num)
-        return (candidate.version, pri)
+        return (candidate.version, build_tag, pri)
 
     def _validate_secure_origin(self, logger, location):
         # Determine if this url used a secure transport mechanism
