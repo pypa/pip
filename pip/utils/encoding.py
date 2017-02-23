@@ -13,7 +13,7 @@ BOMS = [
     (codecs.BOM_UTF32_LE, 'utf32-le'),
 ]
 
-ENCODING_RE = re.compile(b'coding[:=]\s*([-\w.]+)')
+ENCODING_RE = re.compile(br'coding[:=]\s*([-\w.]+)')
 
 
 def auto_decode(data):
