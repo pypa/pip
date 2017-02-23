@@ -412,7 +412,7 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
         }
 
     maker._get_script_text = _get_script_text
-    maker.script_template = """# -*- coding: utf-8 -*-
+    maker.script_template = r"""# -*- coding: utf-8 -*-
 import re
 import sys
 
