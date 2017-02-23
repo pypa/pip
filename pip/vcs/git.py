@@ -155,7 +155,7 @@ class Git(VersionControl):
     def get_url(self, location):
         """Return URL of the first remote encountered."""
         remotes = self.run_command(
-            ['config', '--get-regexp', 'remote\..*\.url'],
+            ['config', '--get-regexp', r'remote\..*\.url'],
             show_stdout=False, cwd=location)
         remotes = remotes.splitlines()
         found_remote = remotes[0]

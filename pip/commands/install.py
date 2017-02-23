@@ -77,7 +77,7 @@ class InstallCommand(RequirementCommand):
             dest='use_user_site',
             action='store_true',
             help="Install to the Python user install directory for your "
-                 "platform. Typically ~/.local/, or %APPDATA%\Python on "
+                 "platform. Typically ~/.local/, or %APPDATA%\\Python on "
                  "Windows. (See the Python documentation for site.USER_BASE "
                  "for full details.)")
         cmd_opts.add_option(

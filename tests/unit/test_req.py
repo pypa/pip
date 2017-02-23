@@ -51,7 +51,7 @@ class TestRequirementSet(object):
         finder = PackageFinder([data.find_links], [], session=PipSession())
         assert_raises_regexp(
             PreviousBuildDirError,
-            "pip can't proceed with [\s\S]*%s[\s\S]*%s" %
+            r"pip can't proceed with [\s\S]*%s[\s\S]*%s" %
             (req, build_dir.replace('\\', '\\\\')),
             reqset.prepare_files,
             finder,
@@ -187,7 +187,7 @@ class TestRequirementSet(object):
             r"Can't verify hashes for these file:// requirements because they "
             r"point to directories:\n"
             r"    file://.*{sep}data{sep}packages{sep}FSPkg "
-            "\(from -r file \(line 2\)\)".format(sep=sep),
+            r"\(from -r file \(line 2\)\)".format(sep=sep),
             reqset.prepare_files,
             finder)
 
