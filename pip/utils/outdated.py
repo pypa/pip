@@ -10,6 +10,7 @@ from pip._vendor import lockfile
 from pip._vendor.packaging import version as packaging_version
 
 from pip.compat import total_seconds, WINDOWS
+from pip.index import PackageFinder
 from pip.models import PyPI
 from pip.locations import USER_CACHE_DIR, running_under_virtualenv
 from pip.utils import ensure_dir, get_installed_version
@@ -92,14 +93,15 @@ def load_selfcheck_statefile():
         return GlobalSelfCheckState()
 
 
-def pip_version_check(session):
+def pip_version_check(session, options):
     """Check for an update for pip.
 
     Limit the frequency of checks to once per week. State is stored either in
     the active virtualenv or in the user's USER_CACHE_DIR keyed off the prefix
     of the pip script path.
     """
-    installed_version = get_installed_version("pip")
+    pip_pypi_package_name = "pip"
+    installed_version = get_installed_version(pip_pypi_package_name)
     if installed_version is None:
         return
 
@@ -121,18 +123,21 @@ def pip_version_check(session):
 
         # Refresh the version if we need to or just see if we need to warn
         if pypi_version is None:
-            resp = session.get(
-                PyPI.pip_json_url,
-                headers={"Accept": "application/json"},
+            # Lets use PackageFinder to see what the latest pip version is
+            # This will allow local mirrors to be used for the check
+            finder = PackageFinder(
+                find_links=options.find_links,
+                index_urls=[options.index_url] + options.extra_index_urls,
+                # Old code use to effectively set this to False - Do we wish to maintain?
+                allow_all_prereleases=options.pre,
+                trusted_hosts=options.trusted_hosts,
+                process_dependency_links=options.process_dependency_links,
+                session=session,
             )
-            resp.raise_for_status()
-            pypi_version = [
-                v for v in sorted(
-                    list(resp.json()["releases"]),
-                    key=packaging_version.parse,
-                )
-                if not packaging_version.parse(v).is_prerelease
-            ][-1]
+            # Greb newest pacakge from the InstallationCandidate list
+            all_candidates = finder.find_all_candidates(pip_pypi_package_name,
+                                                        return_sorted=True)
+            pypi_version = str(all_candidates[-1].version)
 
             # save that we've performed a check
             state.save(pypi_version, current_time)

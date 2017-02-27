@@ -372,11 +372,13 @@ class PackageFinder(object):
 
         return [mkurl_pypi_url(url) for url in self.index_urls]
 
-    def find_all_candidates(self, project_name):
+    def find_all_candidates(self, project_name, return_sorted=False):
         """Find all available InstallationCandidate for project_name
 
         This checks index_urls, find_links and dependency_links.
         All versions found are returned as an InstallationCandidate list.
+
+        peram: return_sorted - Sort list of InstallationCandidates before returning
 
         See _link_package_versions for details on which files are accepted
         """
@@ -450,10 +452,15 @@ class PackageFinder(object):
             )
 
         # This is an intentional priority ordering
-        return (
+        priority_versions = (
             file_versions + find_links_versions + page_versions +
             dependency_versions
         )
+        if return_sorted:
+            # Get the newest version as the last index of the list
+            return sorted(priority_versions)
+        return priority_versions
+
 
     def find_requirement(self, req, upgrade):
         """Try to find a Link matching req

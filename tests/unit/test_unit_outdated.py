@@ -8,7 +8,27 @@ import pytest
 import pretend
 
 from pip._vendor import lockfile
+from pip.download import PipSession
+from pip.index import InstallationCandidate
 from pip.utils import outdated
+
+# TODO: Use this fake data for tests / asserts - @cooperlees
+BASE_URL='https://pypi.python.org/simple/pip-{0}.tar.gz'
+PIP_PROJECT_NAME='pip'
+INSTALLATION_CANDIDATES = [
+    InstallationCandidate(PIP_PROJECT_NAME, '1.2.0', BASE_URL.format('1.2.0')),
+    InstallationCandidate(PIP_PROJECT_NAME, '3.3.1', BASE_URL.format('3.3.1')),
+    InstallationCandidate(PIP_PROJECT_NAME, '6.9.0', BASE_URL.format('6.9.0')),
+]
+
+
+@pytest.fixture
+def _options():
+    ''' Some default options that we pass to outdated.pip_version_check '''
+    return pretend.stub(
+        find_links=False, extra_index_urls=[], index_url='default_url', pre=False,
+        trusted_hosts=False, process_dependency_links=False
+    )
 
 
 @pytest.mark.parametrize(
@@ -23,23 +43,6 @@ from pip.utils import outdated
 def test_pip_version_check(monkeypatch, stored_time, newver, check, warn):
     monkeypatch.setattr(outdated, 'get_installed_version', lambda name: '1.0')
 
-    resp = pretend.stub(
-        raise_for_status=pretend.call_recorder(lambda: None),
-        json=pretend.call_recorder(lambda: {"releases": {newver: {}}}),
-    )
-    session = pretend.stub(
-        get=pretend.call_recorder(lambda u, headers=None: resp),
-    )
-
-    fake_state = pretend.stub(
-        state={"last_check": stored_time, 'pypi_version': '1.0'},
-        save=pretend.call_recorder(lambda v, t: None),
-    )
-
-    monkeypatch.setattr(
-        outdated, 'load_selfcheck_statefile', lambda: fake_state
-    )
-
     monkeypatch.setattr(outdated.logger, 'warning',
                         pretend.call_recorder(lambda *a, **kw: None))
     monkeypatch.setattr(outdated.logger, 'debug',
@@ -52,14 +55,14 @@ def test_pip_version_check(monkeypatch, stored_time, newver, check, warn):
                 "pip._vendor.six.moves",
                 "pip._vendor.requests.packages.urllib3.packages.six.moves",
             ]):
-        outdated.pip_version_check(session)
+        # TODO: Actually mock this well - @cooperlees
+        outdated.pip_version_check(PipSession(), _options())
 
     assert not outdated.logger.debug.calls
 
     if check:
         assert session.get.calls == [pretend.call(
-            "https://pypi.python.org/pypi/pip/json",
-            headers={"Accept": "application/json"}
+            "https://pypi.python.org/simple",
         )]
         assert fake_state.save.calls == [
             pretend.call(newver, datetime.datetime(1970, 1, 9, 10, 00, 00)),
