@@ -41,7 +41,11 @@ if sys.version_info >= (3,):
         try:
             return s.decode(sys.__stdout__.encoding)
         except UnicodeDecodeError:
-            return s.decode('utf_8')
+            try:
+                return s.decode('utf_8')
+            except UnicodeDecodeError:
+                # Decode at least line breaks manually
+                return repr(s)[2:-1].replace('\\r', '\r').replace('\\n', '\n')
 
     def native_str(s, replace=False):
         if isinstance(s, bytes):
