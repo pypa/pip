@@ -23,6 +23,9 @@
 
 * Add support for the new ``@ url`` syntax from PEP 508 (:pull:`4175`)
 
+* Only check that setuptools appears to be installed but no longer test
+  the import before invoking a sdist build (:issue:`4264`).
+
 
 **9.0.1 (2016-11-06)**
 
