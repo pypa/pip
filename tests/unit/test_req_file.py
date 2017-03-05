@@ -586,15 +586,17 @@ class TestParseRequirements(object):
 
         req.source_dir = os.curdir
         with patch.object(subprocess, 'Popen') as popen:
-            popen.return_value.stdout.readline.return_value = ""
+            popen.return_value.stdout.readline.return_value = b""
             try:
                 req.install([])
             except:
                 pass
 
-            call = popen.call_args_list[0][0][0]
-            assert call.index(install_option) > \
-                call.index('install') > \
-                call.index(global_option) > 0
+            last_call = popen.call_args_list[-1]
+            args = last_call[0][0]
+            assert (
+                0 < args.index(global_option) < args.index('install') <
+                args.index(install_option)
+            )
         assert options.format_control.no_binary == set([':all:'])
         assert options.format_control.only_binary == set([])

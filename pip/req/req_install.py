@@ -409,13 +409,19 @@ class InstallRequirement(object):
     @property
     def setup_py(self):
         assert self.source_dir, "No source dir for %s" % self
-        try:
-            import setuptools  # noqa
-        except ImportError:
+        cmd = [sys.executable, '-c', 'import setuptools']
+        output = call_subprocess(
+            cmd,
+            show_stdout=False,
+            command_desc='python -c "import setuptools"',
+            on_returncode='ignore',
+        )
+
+        if output:
             if get_installed_version('setuptools') is None:
                 add_msg = "Please install setuptools."
             else:
-                add_msg = traceback.format_exc()
+                add_msg = output
             # Setuptools is not available
             raise InstallationError(
                 "Could not import setuptools which is required to "
