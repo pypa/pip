@@ -4,6 +4,8 @@ from collections import defaultdict
 from itertools import chain
 import logging
 import os
+import subprocess
+import io
 
 from pip._vendor import pkg_resources
 from pip._vendor import requests
@@ -147,7 +149,8 @@ class RequirementSet(object):
                  force_reinstall=False, use_user_site=False, session=None,
                  pycompile=True, isolated=False, wheel_download_dir=None,
                  wheel_cache=None, require_hashes=False,
-                 ignore_requires_python=False, progress_bar="on"):
+                 ignore_requires_python=False, progress_bar="on",
+                 dependency_resolver=None):
         """Create a RequirementSet.
 
         :param wheel_download_dir: Where still-packed .whl files should be
@@ -183,6 +186,7 @@ class RequirementSet(object):
         self.ignore_dependencies = ignore_dependencies
         self.ignore_requires_python = ignore_requires_python
         self.progress_bar = progress_bar
+        self.dependency_resolver = dependency_resolver
         self.successfully_downloaded = []
         self.successfully_installed = []
         self.reqs_to_cleanup = []
@@ -466,6 +470,33 @@ class RequirementSet(object):
 
         :return: A list of additional InstallRequirements to also install.
         """
+
+        if self.dependency_resolver is not None:
+            cmd = "%s '%s'" % (self.dependency_resolver, req_to_install.req)
+            logger.info(
+                "Running \"%s\" to resolve requirement: %s",
+                cmd,
+                req_to_install)
+            try:
+                with indent_log():
+                    process = subprocess.Popen(
+                        cmd,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT,
+                        shell=True)
+                    output, error = process.communicate()
+                    logger.info(io.StringIO(output.decode('utf-8')).read())
+                    exitcode = process.wait()
+                    if exitcode != 0:
+                        raise subprocess.CalledProcessError
+            except:
+                logger.info(
+                    "External dependency resolver \"%s\" could not satisfy "
+                    "requirement: %s",
+                    self.dependency_resolver,
+                    req_to_install)
+                pass
+
         # Tell user what we are doing for this requirement:
         # obtain (editable), skipping, processing (local url), collecting
         # (remote url or package name)

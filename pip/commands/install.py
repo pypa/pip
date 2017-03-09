@@ -172,6 +172,18 @@ class InstallCommand(RequirementCommand):
             help="Do not compile py files to pyc",
         )
 
+        cmd_opts.add_option(
+            "--dependency-resolver", "--dep-resolver",
+            dest="dependency_resolver",
+            type='str',
+            default=None,
+            help="Use this command to resolve dependencies. The command is "
+                 "called with the requirement string `req` as the first argument "
+                 "using `subprocess.run([cmd, req], shell=True, check=True)`. If "
+                 "the command is unable to resolve a dependency or encounters an "
+                 "error, pip's dependency resolution is used instead."
+        )
+
         cmd_opts.add_option(cmdoptions.use_wheel())
         cmd_opts.add_option(cmdoptions.no_use_wheel())
         cmd_opts.add_option(cmdoptions.no_binary())
@@ -305,6 +317,7 @@ class InstallCommand(RequirementCommand):
                     wheel_cache=wheel_cache,
                     require_hashes=options.require_hashes,
                     progress_bar=options.progress_bar,
+                    dependency_resolver=options.dependency_resolver,
                 )
 
                 self.populate_requirement_set(
