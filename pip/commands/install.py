@@ -178,10 +178,11 @@ class InstallCommand(RequirementCommand):
             type='str',
             default=None,
             help="Use this command to resolve dependencies. The command is "
-                 "called with the requirement string `req` as the first argument "
-                 "using `subprocess.run([cmd, req], shell=True, check=True)`. If "
-                 "the command is unable to resolve a dependency or encounters an "
-                 "error, pip's dependency resolution is used instead."
+                 "called with the requirement string `req` as the first "
+                 "argument using `subprocess.run([cmd, req], shell=True, "
+                 "check=True)`. If the command is unable to resolve a "
+                 "dependency or encounters an error, pip's dependency "
+                 "resolution is used instead."
         )
 
         cmd_opts.add_option(cmdoptions.use_wheel())
