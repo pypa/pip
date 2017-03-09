@@ -55,6 +55,11 @@ __all__ = [
 ]
 
 
+# windows detection, covers cpython and ironpython
+WINDOWS = (sys.platform.startswith("win") or
+           (sys.platform == 'cli' and os.name == 'nt'))
+
+
 if sys.version_info >= (3, 4):
     uses_pycache = True
     from importlib.util import cache_from_source
@@ -72,7 +77,14 @@ if sys.version_info >= (3,):
         try:
             return s.decode(sys.__stdout__.encoding)
         except UnicodeDecodeError:
-            return s.decode('utf_8')
+            if WINDOWS:
+                try:
+                    from ctypes import cdll 
+                    return s.decode("cp" + str(cdll.kernel32.GetACP()))
+                except ImportError:
+                    return s.decode("utf-8")
+            else:
+                return s.decode("utf-8"
 
     def native_str(s, replace=False):
         if isinstance(s, bytes):
@@ -147,11 +159,6 @@ def expanduser(path):
 stdlib_pkgs = ('python', 'wsgiref')
 if sys.version_info >= (2, 7):
     stdlib_pkgs += ('argparse',)
-
-
-# windows detection, covers cpython and ironpython
-WINDOWS = (sys.platform.startswith("win") or
-           (sys.platform == 'cli' and os.name == 'nt'))
 
 
 def samefile(file1, file2):
