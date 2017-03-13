@@ -11,18 +11,7 @@ class TempDirectory(object):
     """
 
     def __init__(self, path=None, delete=None, type="temp"):
-        if path is None:
-            # We realpath here because some systems have their default tmpdir
-            # symlinked to another directory.  This tends to confuse build
-            # scripts, so we canonicalize the path by traversing potential
-            # symlinks here.
-            path = os.path.realpath(
-                tempfile.mkdtemp(prefix="pip-", suffix="-" + type)
-            )
-            # If we were not given an explicit directory, and we were not given
-            # an explicit delete option, then we'll default to deleting.
-            if delete is None:
-                delete = True
+        super(TempDirectory, self).__init__()
 
         self.path = path
         self.delete = delete
@@ -31,6 +20,19 @@ class TempDirectory(object):
         return "<{} {!r}>".format(self.__class__.__name__, self.path)
 
     def __enter__(self):
+        if self.path is None:
+            # We realpath here because some systems have their default tmpdir
+            # symlinked to another directory.  This tends to confuse build
+            # scripts, so we canonicalize the path by traversing potential
+            # symlinks here.
+            self.path = os.path.realpath(
+                tempfile.mkdtemp(prefix="pip-", suffix="-" + type)
+            )
+            # If we were not given an explicit directory, and we were not given
+            # an explicit delete option, then we'll default to deleting.
+            if self.delete is None:
+                self.delete = True
+
         return self
 
     def __exit__(self, exc, value, tb):
