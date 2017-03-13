@@ -540,7 +540,7 @@ class InstallRequirement(object):
                         elif dir == 'test' or dir == 'tests':
                             dirs.remove(dir)
                     filenames.extend([os.path.join(root, dir)
-                                     for dir in dirs])
+                                      for dir in dirs])
                 filenames = [f for f in filenames if f.endswith('.egg-info')]
 
             if not filenames:
@@ -744,7 +744,7 @@ class InstallRequirement(object):
             record_filename = os.path.join(temp_dir.path, 'install-record.txt')
             try:
                 install_args = self.get_install_args(
-                global_options, record_filename, root, prefix)
+                    global_options, record_filename, root, prefix)
                 msg = 'Running setup.py install for %s' % (self.name,)
                 with open_spinner(msg) as spinner:
                     with indent_log():
@@ -795,7 +795,8 @@ class InstallRequirement(object):
                             os.path.relpath(
                                 prepend_root(filename), egg_info_dir)
                         )
-                inst_files_path = os.path.join(egg_info_dir, 'installed-files.txt')
+                inst_files_path = os.path.join(
+                    egg_info_dir, 'installed-files.txt')
                 with open(inst_files_path, 'w') as f:
                     f.write('\n'.join(new_lines) + '\n')
             finally:

@@ -654,8 +654,8 @@ def unpack_http_url(link, location, download_dir=None,
         already_downloaded_path = None
         if download_dir:
             already_downloaded_path = _check_download_dir(link,
-                                                         download_dir,
-                                                         hashes)
+                                                          download_dir,
+                                                          hashes)
 
         if already_downloaded_path:
             from_path = already_downloaded_path
@@ -663,10 +663,10 @@ def unpack_http_url(link, location, download_dir=None,
         else:
             # let's download to a tmp dir
             from_path, content_type = _download_http_url(link,
-                                                        session,
-                                                        temp_dir.path,
-                                                        hashes,
-                                                        progress_bar)
+                                                         session,
+                                                         temp_dir.path,
+                                                         hashes,
+                                                         progress_bar)
 
         # unpack the archive to the build dir location. even when only downloading
         # archives, they have to be unpacked to parse dependencies
