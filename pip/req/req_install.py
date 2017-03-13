@@ -764,23 +764,23 @@ class InstallRequirement(object):
                     # command so we unable to save the installed-files.txt
                     return
 
-            def prepend_root(path):
-                if root is None or not os.path.isabs(path):
-                    return path
-                else:
-                    return change_root(root, path)
+                def prepend_root(path):
+                    if root is None or not os.path.isabs(path):
+                        return path
+                    else:
+                        return change_root(root, path)
 
-            with open(record_filename) as f:
-                for line in f:
-                    directory = os.path.dirname(line)
-                    if directory.endswith('.egg-info'):
-                        egg_info_dir = prepend_root(directory)
-                        break
-                else:
-                    logger.warning(
+                with open(record_filename) as f:
+                    for line in f:
+                        directory = os.path.dirname(line)
+                        if directory.endswith('.egg-info'):
+                            egg_info_dir = prepend_root(directory)
+                            break
+                    else:
+                        logger.warning(
                         'Could not find .egg-info directory in install record'
                         ' for %s',
-                            self,
+                        self,
                     )
                     # FIXME: put the record somewhere
                     # FIXME: should this be an error?
@@ -794,8 +794,8 @@ class InstallRequirement(object):
                         new_lines.append(
                             os.path.relpath(
                                 prepend_root(filename), egg_info_dir)
-                )
-            inst_files_path = os.path.join(egg_info_dir, 'installed-files.txt')
+                        )
+                inst_files_path = os.path.join(egg_info_dir, 'installed-files.txt')
                 with open(inst_files_path, 'w') as f:
                     f.write('\n'.join(new_lines) + '\n')
             finally:
