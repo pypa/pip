@@ -44,6 +44,7 @@ from pip.utils.hashes import Hashes
 from pip.utils.deprecation import RemovedInPip11Warning
 from pip.utils.logging import indent_log
 from pip.utils.setuptools_build import SETUPTOOLS_SHIM
+from pip.utils.temp_dir import TempDirectory
 from pip.utils.ui import open_spinner
 from pip.req.req_uninstall import UninstallPathSet
 from pip.vcs import vcs
@@ -715,6 +716,7 @@ class InstallRequirement(object):
 
     def install(self, install_options, global_options=[], root=None,
                 prefix=None):
+        # TODO:: Maybe simplify?
         if self.editable:
             self.install_editable(
                 install_options, global_options, prefix=prefix)
@@ -738,25 +740,29 @@ class InstallRequirement(object):
         if self.isolated:
             global_options = list(global_options) + ["--no-user-cfg"]
 
-        temp_location = tempfile.mkdtemp('-record', 'pip-')
-        record_filename = os.path.join(temp_location, 'install-record.txt')
-        try:
-            install_args = self.get_install_args(
+        with TempDirectory(type="record") as temp_dir:
+            record_filename = os.path.join(temp_dir.path, 'install-record.txt')
+            try:
+                install_args = self.get_install_args(
                 global_options, record_filename, root, prefix)
-            msg = 'Running setup.py install for %s' % (self.name,)
-            with open_spinner(msg) as spinner:
-                with indent_log():
-                    call_subprocess(
-                        install_args + install_options,
-                        cwd=self.setup_py_dir,
-                        show_stdout=False,
-                        spinner=spinner,
-                    )
+                msg = 'Running setup.py install for %s' % (self.name,)
+                with open_spinner(msg) as spinner:
+                    with indent_log():
+                        call_subprocess(
+                            install_args + install_options,
+                            cwd=self.setup_py_dir,
+                            show_stdout=False,
+                            spinner=spinner,
+                        )
 
-            if not os.path.exists(record_filename):
-                logger.debug('Record file %s not found', record_filename)
-                return
-            self.install_succeeded = True
+                if not os.path.exists(record_filename):
+                    logger.debug('Record file %s not found', record_filename)
+                    return
+                self.install_succeeded = True
+                if self.as_egg:
+                    # there's no --always-unzip option we can pass to install
+                    # command so we unable to save the installed-files.txt
+                    return
 
             def prepend_root(path):
                 if root is None or not os.path.isabs(path):
@@ -774,28 +780,27 @@ class InstallRequirement(object):
                     logger.warning(
                         'Could not find .egg-info directory in install record'
                         ' for %s',
-                        self,
+                            self,
                     )
                     # FIXME: put the record somewhere
                     # FIXME: should this be an error?
                     return
-            new_lines = []
-            with open(record_filename) as f:
-                for line in f:
-                    filename = line.strip()
-                    if os.path.isdir(filename):
-                        filename += os.path.sep
-                    new_lines.append(
-                        os.path.relpath(
-                            prepend_root(filename), egg_info_dir)
-                    )
+                new_lines = []
+                with open(record_filename) as f:
+                    for line in f:
+                        filename = line.strip()
+                        if os.path.isdir(filename):
+                            filename += os.path.sep
+                        new_lines.append(
+                            os.path.relpath(
+                                prepend_root(filename), egg_info_dir)
+                )
             inst_files_path = os.path.join(egg_info_dir, 'installed-files.txt')
-            with open(inst_files_path, 'w') as f:
-                f.write('\n'.join(new_lines) + '\n')
-        finally:
-            if os.path.exists(record_filename):
-                os.remove(record_filename)
-            rmtree(temp_location)
+                with open(inst_files_path, 'w') as f:
+                    f.write('\n'.join(new_lines) + '\n')
+            finally:
+                if os.path.exists(record_filename):
+                    os.remove(record_filename)
 
     def ensure_has_source_dir(self, parent_dir):
         """Ensure that a source_dir is set.

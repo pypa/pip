@@ -14,7 +14,6 @@ import re
 import shutil
 import stat
 import sys
-import tempfile
 import warnings
 
 from base64 import urlsafe_b64encode
@@ -34,6 +33,7 @@ from pip.utils import (
 )
 from pip.utils.ui import open_spinner
 from pip.utils.logging import indent_log
+from pip.utils.temp_dir import TempDirectory
 from pip.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor import pkg_resources
@@ -648,13 +648,14 @@ class WheelBuilder(object):
 
         :return: The filename of the built wheel, or None if the build failed.
         """
-        tempd = tempfile.mkdtemp('pip-wheel-')
-        try:
-            if self.__build_one(req, tempd, python_tag=python_tag):
+        with TempDirectory(type="wheel") as temp_dir:
+            if self.__build_one(req, temp_dir.path, python_tag=python_tag):
                 try:
-                    wheel_name = os.listdir(tempd)[0]
+                    wheel_name = os.listdir(temp_dir.path)[0]
                     wheel_path = os.path.join(output_dir, wheel_name)
-                    shutil.move(os.path.join(tempd, wheel_name), wheel_path)
+                    shutil.move(
+                        os.path.join(temp_dir.path, wheel_name), wheel_path
+                    )
                     logger.info('Stored in directory: %s', output_dir)
                     return wheel_path
                 except:
@@ -662,8 +663,6 @@ class WheelBuilder(object):
             # Ignore return, we can't do anything else useful.
             self._clean_one(req)
             return None
-        finally:
-            rmtree(tempd)
 
     def _base_setup_args(self, req):
         return [
