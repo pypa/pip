@@ -465,7 +465,7 @@ class TestEncoding(object):
 class TestTempDirectory(object):
     # No need to test symlinked directories on Windows
     @pytest.mark.skipif("sys.platform == 'win32'")
-    def test_build_directory(self):
+    def test_temporary_directory(self):
         with TempDirectory() as tmp_dir:
             alt_tmp_dir = tempfile.mkdtemp(prefix="pip-build-test")
             assert (
@@ -473,7 +473,7 @@ class TestTempDirectory(object):
                 os.path.dirname(os.path.realpath(alt_tmp_dir))
             )
             # are we on a system where /tmp is a symlink
-            if os.path.realpath(alt_tmp_dir) != os.path.abspath(tmp_dir):
+            if os.path.realpath(alt_tmp_dir) != os.path.abspath(alt_tmp_dir):
                 assert (
                     os.path.dirname(tmp_dir.path) !=
                     os.path.dirname(alt_tmp_dir)
