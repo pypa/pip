@@ -29,7 +29,7 @@ from pip.exceptions import (
 from pip.locations import distutils_scheme, PIP_DELETE_MARKER_FILENAME
 from pip import pep425tags
 from pip.utils import (
-    call_subprocess, ensure_dir, captured_stdout, rmtree, read_chunks,
+    call_subprocess, ensure_dir, captured_stdout, read_chunks,
 )
 from pip.utils.ui import open_spinner
 from pip.utils.logging import indent_log
@@ -186,6 +186,7 @@ def fix_script(path):
             script.write(firstline)
             script.write(rest)
         return True
+
 
 dist_info_re = re.compile(r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>\d.+?))?)
                                 \.dist-info$""", re.VERBOSE)
