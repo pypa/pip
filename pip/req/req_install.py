@@ -778,8 +778,8 @@ class InstallRequirement(object):
                             break
                     else:
                         logger.warning(
-                        'Could not find .egg-info directory in install record'
-                        ' for %s',
+                            'Could not find .egg-info directory in install record'
+                            ' for %s',
                             self,
                         )
                         # FIXME: put the record somewhere
@@ -794,8 +794,8 @@ class InstallRequirement(object):
                         new_lines.append(
                             os.path.relpath(
                                 prepend_root(filename), egg_info_dir)
-                )
-            inst_files_path = os.path.join(egg_info_dir, 'installed-files.txt')
+                        )
+                inst_files_path = os.path.join(egg_info_dir, 'installed-files.txt')
                 with open(inst_files_path, 'w') as f:
                     f.write('\n'.join(new_lines) + '\n')
             finally:
