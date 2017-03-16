@@ -1012,10 +1012,14 @@ class LinuxDistribution(object):
             A dictionary containing all information items.
         """
         if os.path.isfile(filepath):
-            with open(filepath) as fp:
-                # Only parse the first line. For instance, on SLES there
-                # are multiple lines. We don't want them...
-                return self._parse_distro_release_content(fp.readline())
+            try:
+                with open(filepath) as fp:
+                    # Only parse the first line. For instance, on SLES there
+                    # are multiple lines. We don't want them...
+                    return self._parse_distro_release_content(fp.readline())
+            except PermissionError:
+                # If we don't have read permissions for the file, skip it.
+                pass
         return {}
 
     @staticmethod
