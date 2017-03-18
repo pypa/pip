@@ -80,7 +80,7 @@ src_prefix = os.path.abspath(src_prefix)
 
 # FIXME doesn't account for venv linked to global site-packages
 
-site_packages = sysconfig.get_python_lib()
+site_packages = sysconfig.get_path("purelib")
 user_site = site.USER_SITE
 user_dir = expanduser('~')
 if WINDOWS:
