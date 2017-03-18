@@ -47,7 +47,7 @@ class Configuration(object):
         if files:
             self._configparser.read(files)
 
-        for section in {'global', section}:
+        for section in ('global', section):
             self._config.update(
                 self._normalize_keys(self._get_config_section(section))
             )
