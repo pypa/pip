@@ -238,19 +238,6 @@ class Tests_get_installed_distributions:
         assert len(dists) == 1
         assert dists[0].test_name == "user"
 
-    @pytest.mark.skipif("sys.version_info >= (2,7)")
-    @patch('pip._vendor.pkg_resources.working_set', workingset_stdlib)
-    def test_py26_excludes(self, mock_dist_is_editable,
-                           mock_dist_is_local,
-                           mock_dist_in_usersite):
-        mock_dist_is_editable.side_effect = self.dist_is_editable
-        mock_dist_is_local.side_effect = self.dist_is_local
-        mock_dist_in_usersite.side_effect = self.dist_in_usersite
-        dists = get_installed_distributions()
-        assert len(dists) == 1
-        assert dists[0].key == 'argparse'
-
-    @pytest.mark.skipif("sys.version_info < (2,7)")
     @patch('pip._vendor.pkg_resources.working_set', workingset_stdlib)
     def test_gte_py27_excludes(self, mock_dist_is_editable,
                                mock_dist_is_local,

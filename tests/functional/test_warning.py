@@ -1,7 +1,4 @@
-import pytest
 
-
-@pytest.mark.skipif("sys.version_info < (2,7)")
 def test_environ(script, tmpdir):
     """$PYTHONWARNINGS was added in python2.7"""
     demo = tmpdir.join('warnings_demo.py')
