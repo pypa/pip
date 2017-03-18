@@ -1,20 +1,15 @@
 """Generate and work with PEP 425 Compatibility Tags."""
 from __future__ import absolute_import
 
+import distutils.util
 import re
 import sys
+import sysconfig
 import warnings
 import platform
 import logging
 
 from collections import OrderedDict
-
-try:
-    import sysconfig
-except ImportError:  # pragma nocover
-    # Python < 2.7
-    import distutils.sysconfig as sysconfig
-import distutils.util
 
 import pip.utils.glibc
 
@@ -318,6 +313,7 @@ def get_supported(versions=None, noarch=False, platform=None,
             supported.append(('py%s' % (version[0]), 'none', 'any'))
 
     return supported
+
 
 supported_tags = get_supported()
 supported_tags_noarch = get_supported(noarch=True)

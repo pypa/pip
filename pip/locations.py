@@ -5,8 +5,8 @@ import os
 import os.path
 import site
 import sys
+import sysconfig
 
-from distutils import sysconfig
 from distutils.command.install import install, SCHEME_KEYS  # noqa
 
 from pip.compat import WINDOWS, expanduser

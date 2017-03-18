@@ -5,12 +5,12 @@ import os
 import re
 import shutil
 import sys
+import sysconfig
 import tempfile
 import traceback
 import warnings
 import zipfile
 
-from distutils import sysconfig
 from distutils.util import change_root
 from email.parser import FeedParser
 

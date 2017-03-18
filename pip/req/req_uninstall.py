@@ -5,13 +5,13 @@ import functools
 import logging
 import os
 import sys
+import sysconfig
 import tempfile
 import warnings
 
 from pip._vendor import pkg_resources
 
 from pip.compat import uses_pycache, WINDOWS, cache_from_source
-from pip.compat import get_stdlib
 from pip.exceptions import UninstallationError
 from pip.locations import (
     bin_py, bin_user,
@@ -223,7 +223,9 @@ class UninstallPathSet(object):
             )
             return cls(dist)
 
-        if dist_path in get_stdlib():
+        if dist_path in {p for p in {sysconfig.get_path("stdlib"),
+                                     sysconfig.get_path("platstdlib")}
+                         if p}:
             logger.info(
                 "Not uninstalling %s at %s, as it is in the standard library.",
                 dist.key,
