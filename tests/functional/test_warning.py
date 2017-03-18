@@ -1,17 +1,5 @@
 import pytest
 
-PY26_WARNING = "Python 2.6 is no longer supported"
-
-
-@pytest.mark.skipif("sys.version_info >= (2,7)")
-def test_python26_options(script):
-    result = script.run(
-        'python', '-m', 'pip.__main__', 'list', expect_stderr=True,
-    )
-    assert PY26_WARNING in result.stderr
-    result = script.run('python', '-W', 'ignore', '-m', 'pip.__main__', 'list')
-    assert result.stderr == ''
-
 
 @pytest.mark.skipif("sys.version_info < (2,7)")
 def test_environ(script, tmpdir):

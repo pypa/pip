@@ -7,8 +7,6 @@ matrix:
     - env: TOXENV=pep8
     - env: TOXENV=py3pep8
     - env: TOXENV=packaging
-    - python: 2.6 # these are just to make travis's UI a bit prettier
-      env: TOXENV=py26
     - python: 2.7
       env: TOXENV=py27
     - python: 3.3

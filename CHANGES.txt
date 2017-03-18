@@ -1,4 +1,6 @@
-**9.1.0 (UNRELEASED)**
+**10.0.0 (UNRELEASED)**
+
+* **BACKWARD INCOMPATIBLE** Dropped support for Python 2.6.
 
 * **WARNING** pip 9.1 cache format has changed. Old versions of pip cannot
   read cache entries written by 9.1 but will handle this gracefully by
