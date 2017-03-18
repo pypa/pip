@@ -1,6 +1,6 @@
 appdirs==1.4.3
 distlib==0.2.4
-distro==1.0.1
+distro==1.0.2
 html5lib==1.0b10
 six==1.10.0
 colorama==0.3.7

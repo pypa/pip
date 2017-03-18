@@ -40,7 +40,7 @@ import subprocess
 if not sys.platform.startswith('linux'):
     raise ImportError('Unsupported platform: {0}'.format(sys.platform))
 
-_UNIXCONFDIR = '/etc'
+_UNIXCONFDIR = os.environ.get('UNIXCONFDIR', '/etc')
 _OS_RELEASE_BASENAME = 'os-release'
 
 #: Translation table for normalizing the "ID" attribute defined in os-release
