@@ -86,7 +86,7 @@ try:
     from collections import OrderedDict as _OrderedDict
 except ImportError:
     try:
-        from pip._vendor.ordereddict import OrderedDict as _OrderedDict
+        from ordereddict import OrderedDict as _OrderedDict
     except ImportError:
         _OrderedDict = None
 

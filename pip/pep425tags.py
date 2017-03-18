@@ -7,6 +7,8 @@ import warnings
 import platform
 import logging
 
+from collections import OrderedDict
+
 try:
     import sysconfig
 except ImportError:  # pragma nocover
@@ -14,7 +16,6 @@ except ImportError:  # pragma nocover
     import distutils.sysconfig as sysconfig
 import distutils.util
 
-from pip.compat import OrderedDict
 import pip.utils.glibc
 
 logger = logging.getLogger(__name__)
