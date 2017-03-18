@@ -24,10 +24,6 @@ matrix:
     - python: pypy
       env: TOXENV=pypy
     - python: 2.7
-      env: TOXENV=py27 VENDOR=no
-    - python: 3.6
-      env: TOXENV=py36 VENDOR=no
-    - python: 2.7
       env: TOXENV=py27 VENDOR=no WHEELS=yes
     - python: 3.6
       env: TOXENV=py36 VENDOR=no WHEELS=yes
