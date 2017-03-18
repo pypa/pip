@@ -6,6 +6,10 @@ import logging
 import os.path
 import sys
 
+from pip.exceptions import BestVersionAlreadyInstalled, DistributionNotFound
+
+from pip.req import InstallRequirement
+
 from pip._vendor import lockfile
 from pip._vendor.packaging import version as packaging_version
 
@@ -92,7 +96,7 @@ def load_selfcheck_statefile():
         return GlobalSelfCheckState()
 
 
-def pip_version_check(session):
+def pip_version_check(package_finder):
     """Check for an update for pip.
 
     Limit the frequency of checks to once per week. State is stored either in
@@ -104,55 +108,45 @@ def pip_version_check(session):
         return
 
     pip_version = packaging_version.parse(installed_version)
-    pypi_version = None
+    remote_version = None
 
     try:
         state = load_selfcheck_statefile()
 
         current_time = datetime.datetime.utcnow()
         # Determine if we need to refresh the state
-        if "last_check" in state.state and "pypi_version" in state.state:
+        if "last_check" in state.state and "remote_version" in state.state:
             last_check = datetime.datetime.strptime(
                 state.state["last_check"],
                 SELFCHECK_DATE_FMT
             )
             if total_seconds(current_time - last_check) < 7 * 24 * 60 * 60:
-                pypi_version = state.state["pypi_version"]
+                remote_version = state.state["remote_version"]
 
         # Refresh the version if we need to or just see if we need to warn
-        if pypi_version is None:
-            resp = session.get(
-                PyPI.pip_json_url,
-                headers={"Accept": "application/json"},
-            )
-            resp.raise_for_status()
-            pypi_version = [
-                v for v in sorted(
-                    list(resp.json()["releases"]),
-                    key=packaging_version.parse,
-                )
-                if not packaging_version.parse(v).is_prerelease
-            ][-1]
+        if remote_version is None:
+            try:
+                remote_version = package_finder.find_requirement(
+                    InstallRequirement.from_line('pip'), upgrade=True).version
+            except BestVersionAlreadyInstalled:
+                remote_version = pip_version
+
+            remote_version = remote_version.base_version
 
             # save that we've performed a check
-            state.save(pypi_version, current_time)
+            state.save(remote_version, current_time)
 
-        remote_version = packaging_version.parse(pypi_version)
-
-        # Determine if our pypi_version is older
-        if (pip_version < remote_version and
-                pip_version.base_version != remote_version.base_version):
+        if not remote_version == installed_version:
             # Advise "python -m pip" on Windows to avoid issues
             # with overwriting pip.exe.
-            if WINDOWS:
-                pip_cmd = "python -m pip"
+            if WINDOWS: pip_cmd = "python -m pip"
             else:
                 pip_cmd = "pip"
             logger.warning(
                 "You are using pip version %s, however version %s is "
                 "available.\nYou should consider upgrading via the "
                 "'%s install --upgrade pip' command.",
-                pip_version, pypi_version, pip_cmd
+                pip_version, remote_version, pip_cmd
             )
 
     except Exception:

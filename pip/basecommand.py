@@ -249,12 +249,18 @@ class Command(object):
                         options,
                         retries=0,
                         timeout=min(5, options.timeout)) as session:
-                    pip_version_check(session)
+                    pip_check_options = options
+                    # Thoseare hardsetted to make sure an install of an
+                    # unrelated package does not affect pip version check
+                    pip_check_options.find_links = []
+                    pip_check_options.format_control = None
+                    pip_check_options.extra_index_urls = []
+                    pip_check_options.process_dependency_links = False
+                    pip_check_options.pre = False
+                    finder = self._build_package_finder(options, session)
+                    pip_version_check(finder)
 
         return SUCCESS
-
-
-class RequirementCommand(Command):
 
     @staticmethod
     def populate_requirement_set(requirement_set, args, options, finder,

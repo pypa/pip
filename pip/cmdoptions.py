@@ -619,13 +619,13 @@ general_group = {
         cache_dir,
         no_cache,
         disable_pip_version_check,
+        index_url,
     ]
 }
 
 non_deprecated_index_group = {
     'name': 'Package Index Options',
     'options': [
-        index_url,
         extra_index_url,
         no_index,
         find_links,
