@@ -14,7 +14,7 @@ from __future__ import unicode_literals
 import itertools
 import struct
 
-__version__ = '1.0.17'
+__version__ = '1.0.18'
 
 # Compatibility functions
 _compat_int_types = (int,)
@@ -58,6 +58,8 @@ def _compat_to_bytes(intval, length, endianess):
         return struct.pack(b'!QQ', intval >> 64, intval & 0xffffffffffffffff)
     else:
         raise NotImplementedError()
+
+
 if hasattr(int, 'bit_length'):
     # Not int.bit_length , since that won't work in 2.7 where long exists
     def _compat_bit_length(i):
@@ -547,8 +549,7 @@ class _IPAddressBase(_TotalOrderingMixin):
             msg = (
                 '%r (len %d != %d) is not permitted as an IPv%d address. '
                 'Did you pass in a bytes (str in Python 2) instead of'
-                ' a unicode object?'
-            )
+                ' a unicode object?')
             raise AddressValueError(msg % (address, address_len,
                                            expected_len, self._version))
 
@@ -1083,8 +1084,7 @@ class _BaseNetwork(_IPAddressBase):
                 (self.prefixlen, prefixlen_diff))
         return self.__class__((
             int(self.network_address) & (int(self.netmask) << prefixlen_diff),
-            new_prefixlen
-        ))
+            new_prefixlen))
 
     @property
     def is_multicast(self):
