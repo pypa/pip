@@ -126,7 +126,7 @@ def cached_wheel(cache_dir, link, format_control, package_name):
     try:
         wheel_names = os.listdir(root)
     except OSError as e:
-        if e.errno in (errno.ENOENT, errno.ENOTDIR):
+        if e.errno in {errno.ENOENT, errno.ENOTDIR}:
             return link
         raise
     candidates = []

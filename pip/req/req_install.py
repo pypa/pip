@@ -320,7 +320,7 @@ class InstallRequirement(object):
         """
         specifiers = self.specifier
         return (len(specifiers) == 1 and
-                next(iter(specifiers)).operator in ('==', '==='))
+                next(iter(specifiers)).operator in {'==', '==='})
 
     def from_path(self):
         if self.req is None:

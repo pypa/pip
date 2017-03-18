@@ -22,7 +22,7 @@ def get_missing_reqs(dist, installed_dists):
     `installed_dists`.
 
     """
-    installed_names = set(d.project_name.lower() for d in installed_dists)
+    installed_names = {d.project_name.lower() for d in installed_dists}
     missing_requirements = set()
 
     for requirement in dist.requires():

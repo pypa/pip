@@ -833,7 +833,7 @@ class HTMLPage(object):
     def _get_content_type(url, session):
         """Get the Content-Type of the given url, using a HEAD request"""
         scheme, netloc, path, query, fragment = urllib_parse.urlsplit(url)
-        if scheme not in ('http', 'https'):
+        if scheme not in {'http', 'https'}:
             # FIXME: some warning or something?
             # assertion error?
             return ''
@@ -1067,7 +1067,7 @@ def fmt_ctl_handle_mutual_exclude(value, target, other):
 
 
 def fmt_ctl_formats(fmt_ctl, canonical_name):
-    result = set(["binary", "source"])
+    result = {"binary", "source"}
     if canonical_name in fmt_ctl.only_binary:
         result.discard('source')
     elif canonical_name in fmt_ctl.no_binary:
