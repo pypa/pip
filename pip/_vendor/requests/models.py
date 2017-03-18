@@ -9,6 +9,12 @@ This module contains the primary objects that power Requests.
 
 import collections
 import datetime
+import sys
+
+# Import encoding now, to avoid implicit import later.
+# Implicit import within threads may cause LookupError when standard library is in a ZIP,
+# such as in Embedded Python. See https://github.com/kennethreitz/requests/issues/3578.
+import encodings.idna
 
 from io import BytesIO, UnsupportedOperation
 from .hooks import default_hooks
@@ -24,11 +30,11 @@ from .packages.urllib3.exceptions import (
 from .exceptions import (
     HTTPError, MissingSchema, InvalidURL, ChunkedEncodingError,
     ContentDecodingError, ConnectionError, StreamConsumedError)
+from ._internal_utils import to_native_string, unicode_is_ascii
 from .utils import (
     guess_filename, get_auth_from_url, requote_uri,
     stream_decode_response_unicode, to_key_val_list, parse_header_links,
-    iter_slices, guess_json_utf, super_len, to_native_string,
-    check_header_validity)
+    iter_slices, guess_json_utf, super_len, check_header_validity)
 from .compat import (
     cookielib, urlunparse, urlsplit, urlencode, str, bytes, StringIO,
     is_py2, chardet, builtin_str, basestring)
@@ -285,6 +291,8 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
         self.body = None
         #: dictionary of callback hooks, for internal usage.
         self.hooks = default_hooks()
+        #: integer denoting starting position of a readable file-like body.
+        self._body_position = None
 
     def prepare(self, method=None, url=None, headers=None, files=None,
         data=None, params=None, auth=None, cookies=None, hooks=None, json=None):
@@ -314,6 +322,7 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
         p._cookies = _copy_cookie_jar(self._cookies)
         p.body = self.body
         p.hooks = self.hooks
+        p._body_position = self._body_position
         return p
 
     def prepare_method(self, method):
@@ -321,6 +330,22 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
         self.method = method
         if self.method is not None:
             self.method = to_native_string(self.method.upper())
+
+    @staticmethod
+    def _get_idna_encoded_host(host):
+        try:
+            from .packages import idna
+        except ImportError:
+            # tolerate the possibility of downstream repackagers unvendoring `requests`
+            # For more information, read: packages/__init__.py
+            import idna
+            sys.modules['requests.packages.idna'] = idna
+
+        try:
+            host = idna.encode(host, uts46=True).decode('utf-8')
+        except idna.IDNAError:
+            raise UnicodeError
+        return host
 
     def prepare_url(self, url, params):
         """Prepares the given HTTP URL."""
@@ -333,6 +358,9 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
             url = url.decode('utf8')
         else:
             url = unicode(url) if is_py2 else str(url)
+
+        # Remove leading whitespaces from url
+        url = url.lstrip()
 
         # Don't do any URL preparation for non-HTTP schemes like `mailto`,
         # `data` etc to work around exceptions from `url_parse`, which
@@ -356,10 +384,16 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
         if not host:
             raise InvalidURL("Invalid URL %r: No host supplied" % url)
 
-        # Only want to apply IDNA to the hostname
-        try:
-            host = host.encode('idna').decode('utf-8')
-        except UnicodeError:
+        # In general, we want to try IDNA encoding the hostname if the string contains
+        # non-ASCII characters. This allows users to automatically get the correct IDNA
+        # behaviour. For strings containing only ASCII characters, we need to also verify
+        # it doesn't start with a wildcard (*), before allowing the unencoded hostname.
+        if not unicode_is_ascii(host):
+            try:
+                host = self._get_idna_encoded_host(host)
+            except UnicodeError:
+                raise InvalidURL('URL has an invalid label.')
+        elif host.startswith(u'*'):
             raise InvalidURL('URL has an invalid label.')
 
         # Carefully reconstruct the network location
@@ -419,7 +453,6 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
         # Nottin' on you.
         body = None
         content_type = None
-        length = None
 
         if not data and json is not None:
             # urllib3 requires a bytes-like body. Python 2's json.dumps
@@ -431,7 +464,7 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
 
         is_stream = all([
             hasattr(data, '__iter__'),
-            not isinstance(data, (basestring, list, tuple, dict))
+            not isinstance(data, (basestring, list, tuple, collections.Mapping))
         ])
 
         try:
@@ -441,6 +474,17 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
 
         if is_stream:
             body = data
+
+            if getattr(body, 'tell', None) is not None:
+                # Record the current file position before reading.
+                # This will allow us to rewind a file in the event
+                # of a redirect.
+                try:
+                    self._body_position = body.tell()
+                except (IOError, OSError):
+                    # This differentiates from None, allowing us to catch
+                    # a failed `tell()` later when trying to rewind the body
+                    self._body_position = object()
 
             if files:
                 raise NotImplementedError('Streamed bodies and files are mutually exclusive.')
@@ -470,17 +514,16 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
         self.body = body
 
     def prepare_content_length(self, body):
-        if hasattr(body, 'seek') and hasattr(body, 'tell'):
-            curr_pos = body.tell()
-            body.seek(0, 2)
-            end_pos = body.tell()
-            self.headers['Content-Length'] = builtin_str(max(0, end_pos - curr_pos))
-            body.seek(curr_pos, 0)
-        elif body is not None:
-            l = super_len(body)
-            if l:
-                self.headers['Content-Length'] = builtin_str(l)
-        elif (self.method not in ('GET', 'HEAD')) and (self.headers.get('Content-Length') is None):
+        """Prepare Content-Length header based on request method and body"""
+        if body is not None:
+            length = super_len(body)
+            if length:
+                # If length exists, set it. Otherwise, we fallback
+                # to Transfer-Encoding: chunked.
+                self.headers['Content-Length'] = builtin_str(length)
+        elif self.method not in ('GET', 'HEAD') and self.headers.get('Content-Length') is None:
+            # Set Content-Length to 0 for methods that can have a body
+            # but don't provide one. (i.e. not GET or HEAD)
             self.headers['Content-Length'] = '0'
 
     def prepare_auth(self, auth, url=''):
@@ -744,18 +787,14 @@ class Response(object):
 
         if self._content is False:
             # Read the contents.
-            try:
-                if self._content_consumed:
-                    raise RuntimeError(
-                        'The content for this response was already consumed')
+            if self._content_consumed:
+                raise RuntimeError(
+                    'The content for this response was already consumed')
 
-                if self.status_code == 0:
-                    self._content = None
-                else:
-                    self._content = bytes().join(self.iter_content(CONTENT_CHUNK_SIZE)) or bytes()
-
-            except AttributeError:
+            if self.status_code == 0 or self.raw is None:
                 self._content = None
+            else:
+                self._content = bytes().join(self.iter_content(CONTENT_CHUNK_SIZE)) or bytes()
 
         self._content_consumed = True
         # don't need to release the connection; that's been handled by urllib3
@@ -804,6 +843,7 @@ class Response(object):
         """Returns the json-encoded content of a response, if any.
 
         :param \*\*kwargs: Optional arguments that ``json.loads`` takes.
+        :raises ValueError: If the response body does not contain valid json.
         """
 
         if not self.encoding and self.content and len(self.content) > 3:
@@ -848,7 +888,14 @@ class Response(object):
 
         http_error_msg = ''
         if isinstance(self.reason, bytes):
-            reason = self.reason.decode('utf-8', 'ignore')
+            # We attempt to decode utf-8 first because some servers
+            # choose to localize their reason strings. If the string
+            # isn't utf-8, we fall back to iso-8859-1 for all other
+            # encodings. (See PR #3538)
+            try:
+                reason = self.reason.decode('utf-8')
+            except UnicodeDecodeError:
+                reason = self.reason.decode('iso-8859-1')
         else:
             reason = self.reason
 
@@ -870,4 +917,6 @@ class Response(object):
         if not self._content_consumed:
             self.raw.close()
 
-        return self.raw.release_conn()
+        release_conn = getattr(self.raw, 'release_conn', None)
+        if release_conn is not None:
+            release_conn()

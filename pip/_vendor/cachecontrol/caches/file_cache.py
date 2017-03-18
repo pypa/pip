@@ -5,6 +5,12 @@ from textwrap import dedent
 from ..cache import BaseCache
 from ..controller import CacheController
 
+try:
+    FileNotFoundError
+except NameError:
+    # py2.X
+    FileNotFoundError = IOError
+
 
 def _secure_open_write(filename, fmode):
     # We only want to write to this file, so open it in write only mode
