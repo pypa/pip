@@ -67,11 +67,12 @@ try:
 except ImportError:
     importlib_machinery = None
 
-from pip._vendor import packaging.version
-from pip._vendor import packaging.specifiers
-from pip._vendor import packaging.requirements
-from pip._vendor import packaging.markers
 from pip._vendor import appdirs
+from pip._vendor import packaging
+__import__('pip._vendor.packaging.version')
+__import__('pip._vendor.packaging.specifiers')
+__import__('pip._vendor.packaging.requirements')
+__import__('pip._vendor.packaging.markers')
 
 if (3, 0) < sys.version_info < (3, 3):
     raise RuntimeError("Python 3.3 or later is required")
