@@ -20,7 +20,7 @@ except ImportError:
 
 __all__ = [
     "ipaddress", "uses_pycache", "console_to_str", "native_str",
-    "get_path_uid", "stdlib_pkgs", "WINDOWS",
+    "get_path_uid", "stdlib_pkgs", "WINDOWS", "samefile",
 ]
 
 
@@ -111,3 +111,13 @@ stdlib_pkgs = {"python", "wsgiref", "argparse"}
 # windows detection, covers cpython and ironpython
 WINDOWS = (sys.platform.startswith("win") or
            (sys.platform == 'cli' and os.name == 'nt'))
+
+
+def samefile(file1, file2):
+    """Provide an alternative for os.path.samefile on Windows/Python2"""
+    if hasattr(os.path, 'samefile'):
+        return os.path.samefile(file1, file2)
+    else:
+        path1 = os.path.normcase(os.path.abspath(file1))
+        path2 = os.path.normcase(os.path.abspath(file2))
+        return path1 == path2
