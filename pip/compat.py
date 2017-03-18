@@ -8,11 +8,6 @@ import sys
 from pip._vendor.six import text_type
 
 try:
-    from logging.config import dictConfig as logging_dictConfig
-except ImportError:
-    from pip.compat.dictconfig import dictConfig as logging_dictConfig
-
-try:
     import ipaddress
 except ImportError:
     try:
@@ -44,8 +39,8 @@ except ImportError:
 
 
 __all__ = [
-    "logging_dictConfig", "ipaddress", "uses_pycache", "console_to_str",
-    "native_str", "get_path_uid", "stdlib_pkgs", "WINDOWS", "samefile",
+    "ipaddress", "uses_pycache", "console_to_str", "native_str",
+    "get_path_uid", "stdlib_pkgs", "WINDOWS", "samefile",
 ]
 
 

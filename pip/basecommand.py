@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 
 import logging
+import logging.config
 import os
 import sys
 import optparse
@@ -14,7 +15,6 @@ from pip.download import PipSession
 from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
                             CommandError, PreviousBuildDirError)
 
-from pip.compat import logging_dictConfig
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.req import InstallRequirement, parse_requirements
 from pip.status_codes import (
@@ -123,7 +123,7 @@ class Command(object):
         if options.log:
             root_level = "DEBUG"
 
-        logging_dictConfig({
+        logging.config.dictConfig({
             "version": 1,
             "disable_existing_loggers": False,
             "filters": {
