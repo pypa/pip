@@ -9,7 +9,7 @@ import sys
 from pip._vendor import lockfile
 from pip._vendor.packaging import version as packaging_version
 
-from pip.compat import total_seconds, WINDOWS
+from pip.compat import WINDOWS
 from pip.models import PyPI
 from pip.locations import USER_CACHE_DIR, running_under_virtualenv
 from pip.utils import ensure_dir, get_installed_version
@@ -116,7 +116,7 @@ def pip_version_check(session):
                 state.state["last_check"],
                 SELFCHECK_DATE_FMT
             )
-            if total_seconds(current_time - last_check) < 7 * 24 * 60 * 60:
+            if (current_time - last_check).total_seconds() < 7 * 24 * 60 * 60:
                 pypi_version = state.state["pypi_version"]
 
         # Refresh the version if we need to or just see if we need to warn

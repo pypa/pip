@@ -59,14 +59,6 @@ else:
         return s
 
 
-def total_seconds(td):
-    if hasattr(td, "total_seconds"):
-        return td.total_seconds()
-    else:
-        val = td.microseconds + (td.seconds + td.days * 24 * 3600) * 10 ** 6
-        return val / 10 ** 6
-
-
 def get_path_uid(path):
     """
     Return path's uid.
