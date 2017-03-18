@@ -12,7 +12,7 @@ ordereddict==1.1  # Only needed on 2.6
 progress==1.2
 ipaddress==1.0.18  # Only needed on 2.6 and 2.7
 packaging==16.8
-pyparsing==2.1.10
+pyparsing==2.2.0
 retrying==1.3.3
 setuptools==34.3.2
 webencodings==0.5
