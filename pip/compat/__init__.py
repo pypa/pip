@@ -51,7 +51,7 @@ except ImportError:
 __all__ = [
     "logging_dictConfig", "ipaddress", "uses_pycache", "console_to_str",
     "native_str", "get_path_uid", "stdlib_pkgs", "WINDOWS", "samefile",
-    "OrderedDict",
+    "OrderedDict", "LOAD_C_DEPENDENCIES",
 ]
 
 
@@ -152,6 +152,13 @@ if sys.version_info >= (2, 7):
 # windows detection, covers cpython and ironpython
 WINDOWS = (sys.platform.startswith("win") or
            (sys.platform == 'cli' and os.name == 'nt'))
+
+
+# pip should attempt to load C dependencies from packages on all platforms
+# where they do not cause problems when attempting to upgrade/delete said
+# packages; e.g. importing on Windows locks .dll files preventing deletion,
+# so do not load C dependencies if on Windows
+LOAD_C_DEPENDENCIES = not WINDOWS
 
 
 def samefile(file1, file2):
