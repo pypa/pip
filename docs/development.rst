@@ -88,6 +88,28 @@ Later, when you think you're ready, get in touch with one of the maintainers,
 and they will initiate a vote.
 
 
+Adding News
+===========
+
+The pip project manages its changelog/news file using
+`towncrier <https://pypi.org/project/towncrier/>`_. To add a new item to the
+news file, you must create a file inside of the ``news/`` directory.
+
+This file must be named as ``<issue>.<ext>``, where ``<issue>`` is the issue
+number on GitHub (if it's important enough to have a news entry, it should be
+important enough to have a bug describing the desired change) and ``<ext>`` is
+one of ``removal``, ``feature``, ``bugfix``, ``doc``. Thus a file might be named
+something like ``news/1234.bugfix``.
+
+The contents of this file is the news file entry that you wish to add WITHOUT
+referencing the issue number (the reference will be added automatically). These
+contents can include reStructuredText formatting.
+
+If you wish to reference multiple issues with the same news file entry, then
+simply create multiple files with the exact same contents and towncrier will
+deduplicate them and reference all of the specified issues.
+
+
 Release Process
 ===============
 
@@ -96,6 +118,8 @@ Release Process
 #. On the current pip ``master`` branch, make a new commit which bumps the
    version in ``pip/__init__.py`` to the release version and adjust the
    ``CHANGES.txt`` file to reflect the current date.
+#. On the current pip ``master`` branch, generate a new ``NEWS.rst`` by running
+   ``invoke generate.news`` and commit the results.
 #. Create a signed tag of the ``master`` branch of the form ``X.Y.Z`` using the
    command ``git tag -s X.Y.Z``.
 #. Checkout the tag using ``git checkout X.Y.Z`` and create the distribution
