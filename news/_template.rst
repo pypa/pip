@@ -6,7 +6,7 @@
 
 {% endif %}
 {% if sections[section] %}
-{% for category, val in definitions.items() if category in sections[section]%}
+{% for category, val in definitions.items() if category in sections[section] and category != 'trivial' %}
 
 {{ definitions[category]['name'] }}
 {{ underline * definitions[category]['name']|length }}

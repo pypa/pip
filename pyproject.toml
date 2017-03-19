@@ -27,3 +27,8 @@ template = "news/_template.rst"
   directory = "doc"
   name = "Improved Documentation"
   showcontent = true
+
+  [[tool.towncrier.type]]
+  directory = "trivial"
+  name = "Trivial Changes"
+  showcontent = false

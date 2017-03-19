@@ -88,26 +88,42 @@ Later, when you think you're ready, get in touch with one of the maintainers,
 and they will initiate a vote.
 
 
-Adding News
-===========
+Adding a NEWS Entry
+===================
 
-The pip project manages its changelog/news file using
-`towncrier <https://pypi.org/project/towncrier/>`_. To add a new item to the
-news file, you must create a file inside of the ``news/`` directory.
+The ``NEWS.rst`` file is managed using
+`towncrier <https://pypi.org/project/towncrier/>`_ and all non trivial changes
+must be accompanied by a news entry.
 
-This file must be named as ``<issue>.<ext>``, where ``<issue>`` is the issue
-number on GitHub (if it's important enough to have a news entry, it should be
-important enough to have a bug describing the desired change) and ``<ext>`` is
-one of ``removal``, ``feature``, ``bugfix``, ``doc``. Thus a file might be named
-something like ``news/1234.bugfix``.
+To add an entry to the news file, first you need to have created an issue
+describing the change you want to make. A Pull Request itself *may* function as
+such, but it is preferred to have a dedicated issue (for example, in case the
+PR ends up rejected due to code quality reasons).
 
-The contents of this file is the news file entry that you wish to add WITHOUT
-referencing the issue number (the reference will be added automatically). These
-contents can include reStructuredText formatting.
+Once you have an issue or pull request, you take the number and you create a
+file inside of the ``news/`` directory named after that issue number with an
+extension of ``removal``, ``feature``, ``bugfix``, or ``doc``. Thus if your
+issue or PR number is ``1234`` and this change is fixing a bug, then you would
+create a file ``news/1234.bugfix``. PRs can span multiple categories by creating
+multiple files (for instance, if you added a feature and deprecated/removed the
+old feature at the same time, you would create ``news/NNNN.feature`` and
+``news/NNNN.removal``). Likewise if a PR touches multiple issues/PRs you may
+create a file for each of them with the exact same contents and Towncrier will
+deduplicate them.
 
-If you wish to reference multiple issues with the same news file entry, then
-simply create multiple files with the exact same contents and towncrier will
-deduplicate them and reference all of the specified issues.
+The contents of this file are reStructuredText formatted text that will be used
+as the content of the news file entry. You do not need to reference the issue
+or PR numbers here as towncrier will automatically add a reference to all of
+the affected issues when rendering the news file.
+
+A trivial change is anything that does not warrant an entry in the news file.
+Some examples are: Code refactors that don't change anything as far as the
+public is concerned, typo fixes, white space modification, etc. To mark a PR
+as trivial a contributor simply needs to add a randomly named, empty file to the
+``news/`` directory with the extension of ``.trivial``. If you are on a POSIX
+like operating system, one can be added by running
+``touch news/$(uuidgen).trivial``. Core committers may also add a "trivial"
+label to the PR which will accomplish the same thing.
 
 
 Release Process
