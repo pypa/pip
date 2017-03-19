@@ -25,3 +25,5 @@ prune news
 prune contrib
 prune tasks
 prune tests
+include versioneer.py
+include pip/_version.py

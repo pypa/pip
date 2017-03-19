@@ -29,6 +29,7 @@ from pip.vcs import git, mercurial, subversion, bazaar  # noqa
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.commands import get_summaries, get_similar_commands
 from pip.commands import commands_dict
+from pip._version import get_versions
 from pip._vendor.requests.packages.urllib3.exceptions import (
     InsecureRequestWarning,
 )
@@ -43,7 +44,7 @@ import pip.cmdoptions
 cmdoptions = pip.cmdoptions
 
 # The version as used in the setup.py and the docs conf.py
-__version__ = "9.1.0.dev0"
+__version__ = get_versions()["version"]
 
 
 logger = logging.getLogger(__name__)
