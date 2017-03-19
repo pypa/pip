@@ -255,6 +255,16 @@ class InstallCommand(RequirementCommand):
 
         temp_target_dir = None
         if options.target_dir:
+            if options.prefix_path:
+                raise CommandError(
+                    "Can not combine '--target' and '--prefix' as they imply "
+                    "different installation locations"
+                )
+            if options.use_user_site:
+                raise CommandError(
+                    "Can not combine '--target' and '--user' as they imply "
+                    "different installation locations"
+                )
             options.ignore_installed = True
             temp_target_dir = tempfile.mkdtemp()
             options.target_dir = os.path.abspath(options.target_dir)
@@ -265,6 +275,7 @@ class InstallCommand(RequirementCommand):
                     "continue."
                 )
             install_options.append('--home=' + temp_target_dir)
+            install_options.append('--prefix=')
 
         global_options = options.global_options or []
 
