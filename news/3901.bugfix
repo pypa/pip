@@ -1,0 +1,1 @@
+Use pkg_resources to parse the entry points file to allow names with colons.
