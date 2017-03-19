@@ -149,15 +149,6 @@ class InstallCommand(RequirementCommand):
         cmd_opts.add_option(cmdoptions.global_options())
 
         cmd_opts.add_option(
-            '--egg',
-            dest='as_egg',
-            action='store_true',
-            help="Install packages as eggs, not 'flat', like pip normally "
-                 "does. This option is not about installing *from* eggs. "
-                 "(WARNING: Because this option overrides pip's normal install"
-                 " logic, requirements files may not behave as expected.)")
-
-        cmd_opts.add_option(
             "--compile",
             action="store_true",
             dest="compile",
@@ -191,15 +182,6 @@ class InstallCommand(RequirementCommand):
     def run(self, options, args):
         cmdoptions.resolve_wheel_no_use_binary(options)
         cmdoptions.check_install_build_global(options)
-
-        if options.as_egg:
-            warnings.warn(
-                "--egg has been deprecated and will be removed in the future. "
-                "This flag is mutually exclusive with large parts of pip, and "
-                "actually using it invalidates pip's ability to manage the "
-                "installation process.",
-                RemovedInPip10Warning,
-            )
 
         if options.allow_external:
             warnings.warn(
@@ -292,7 +274,6 @@ class InstallCommand(RequirementCommand):
                     download_dir=options.download_dir,
                     upgrade=options.upgrade,
                     upgrade_strategy=options.upgrade_strategy,
-                    as_egg=options.as_egg,
                     ignore_installed=options.ignore_installed,
                     ignore_dependencies=options.ignore_dependencies,
                     ignore_requires_python=options.ignore_requires_python,

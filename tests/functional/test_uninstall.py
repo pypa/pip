@@ -359,29 +359,6 @@ def test_uninstall_from_reqs_file(script, tmpdir):
     )
 
 
-def test_uninstall_as_egg(script, data):
-    """
-    Test uninstall package installed as egg.
-    """
-    to_install = data.packages.join("FSPkg")
-    result = script.pip('install', to_install, '--egg', expect_error=True)
-    fspkg_folder = script.site_packages / 'fspkg'
-    egg_folder = script.site_packages / 'FSPkg-0.1.dev0-py%s.egg' % pyversion
-    assert fspkg_folder not in result.files_created, str(result.stdout)
-    assert egg_folder in result.files_created, str(result)
-
-    result2 = script.pip('uninstall', 'FSPkg', '-y')
-    assert_all_changes(
-        result,
-        result2,
-        [
-            script.venv / 'build',
-            'cache',
-            script.site_packages / 'easy-install.pth',
-        ],
-    )
-
-
 def test_uninstallpathset_no_paths(caplog):
     """
     Test UninstallPathSet logs notification when there are no paths to

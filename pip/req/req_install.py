@@ -70,9 +70,9 @@ def _strip_extras(path):
 class InstallRequirement(object):
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
-                 link=None, as_egg=False, update=True,
-                 pycompile=True, markers=None, isolated=False, options=None,
-                 wheel_cache=None, constraint=False, extras=()):
+                 link=None, update=True, pycompile=True, markers=None,
+                 isolated=False, options=None, wheel_cache=None,
+                 constraint=False, extras=()):
         assert req is None or isinstance(req, Requirement), req
         self.req = req
         self.comes_from = comes_from
@@ -87,7 +87,6 @@ class InstallRequirement(object):
             from pip.index import Link
             self.link = self.original_link = req and req.url and Link(req.url)
 
-        self.as_egg = as_egg
         if extras:
             self.extras = extras
         elif req:
@@ -757,10 +756,6 @@ class InstallRequirement(object):
                 logger.debug('Record file %s not found', record_filename)
                 return
             self.install_succeeded = True
-            if self.as_egg:
-                # there's no --always-unzip option we can pass to install
-                # command so we unable to save the installed-files.txt
-                return
 
             def prepend_root(path):
                 if root is None or not os.path.isabs(path):
@@ -821,9 +816,7 @@ class InstallRequirement(object):
         install_args.append(SETUPTOOLS_SHIM % self.setup_py)
         install_args += list(global_options) + \
             ['install', '--record', record_filename]
-
-        if not self.as_egg:
-            install_args += ['--single-version-externally-managed']
+        install_args += ['--single-version-externally-managed']
 
         if root is not None:
             install_args += ['--root', root]

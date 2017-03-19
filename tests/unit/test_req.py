@@ -277,18 +277,6 @@ class TestRequirementSet(object):
             '3d0a6d4e8bfa6',
             'file', 2)))
 
-    def test_no_egg_on_require_hashes(self, data):
-        """Make sure --egg is illegal with --require-hashes.
-
-        --egg would cause dependencies to always be installed, since it cedes
-        control directly to setuptools.
-
-        """
-        reqset = self.basic_reqset(require_hashes=True, as_egg=True)
-        finder = PackageFinder([data.find_links], [], session=PipSession())
-        with pytest.raises(InstallationError):
-            reqset.prepare_files(finder)
-
 
 @pytest.mark.parametrize(('file_contents', 'expected'), [
     (b'\xf6\x80', b'\xc3\xb6\xe2\x82\xac'),  # cp1252
