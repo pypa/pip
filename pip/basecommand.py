@@ -107,7 +107,7 @@ class Command(object):
         if options.quiet:
             if options.quiet == 1:
                 level = "WARNING"
-            if options.quiet == 2:
+            elif options.quiet == 2:
                 level = "ERROR"
             else:
                 level = "CRITICAL"

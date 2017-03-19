@@ -112,6 +112,8 @@
 
 * Added ``pip completion`` support for the ``fish`` shell.
 
+* ``-q`` specified once correctly sets logging level to WARNING, instead of CRITICAL.
+
 * Fix problems on Windows on Python 2 when username or hostname contains
   non-ASCII characters (:issue:`3463`, :pull:`3970`, :pull:`4000`).
 
