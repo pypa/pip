@@ -394,7 +394,7 @@ def test_editable_install_from_local_directory_with_no_setup_py(script, data):
     assert "is not installable. File 'setup.py' not found." in result.stderr
 
 
-@pytest.mark.skipif("sys.version_info < (2,7) or sys.version_info >= (3,4)")
+@pytest.mark.skipif("sys.version_info >= (3,4)")
 @pytest.mark.xfail
 def test_install_argparse_shadowed(script, data):
     # When argparse is in the stdlib, we support installing it

@@ -334,9 +334,6 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
         if (pyversion_tuple < (2, 7, 9) and
                 args and args[0] in ('search', 'install', 'download')):
             kwargs['expect_stderr'] = True
-        # Python 2.6 is deprecated and we emit a warning on it.
-        if pyversion_tuple[:2] == (2, 6):
-            kwargs['expect_stderr'] = True
 
         return self.run("pip", *args, **kwargs)
 

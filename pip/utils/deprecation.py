@@ -23,10 +23,6 @@ class RemovedInPip11Warning(PipDeprecationWarning, Pending):
     pass
 
 
-class Python26DeprecationWarning(PipDeprecationWarning):
-    pass
-
-
 # Warnings <-> Logging Integration
 
 

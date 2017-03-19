@@ -7,7 +7,6 @@ colorama==0.3.7
 CacheControl==0.12.1
 msgpack-python==0.4.8
 lockfile==0.12.2
-ordereddict==1.1  # Only needed on 2.6
 progress==1.2
 ipaddress==1.0.18  # Only needed on 2.6 and 2.7
 packaging==16.8

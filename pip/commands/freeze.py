@@ -9,7 +9,7 @@ from pip.operations.freeze import freeze
 from pip.wheel import WheelCache
 
 
-DEV_PKGS = ('pip', 'setuptools', 'distribute', 'wheel')
+DEV_PKGS = {'pip', 'setuptools', 'distribute', 'wheel'}
 
 
 class FreezeCommand(Command):

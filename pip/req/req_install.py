@@ -5,12 +5,12 @@ import os
 import re
 import shutil
 import sys
+import sysconfig
 import tempfile
 import traceback
 import warnings
 import zipfile
 
-from distutils import sysconfig
 from distutils.util import change_root
 from email.parser import FeedParser
 
@@ -320,7 +320,7 @@ class InstallRequirement(object):
         """
         specifiers = self.specifier
         return (len(specifiers) == 1 and
-                next(iter(specifiers)).operator in ('==', '==='))
+                next(iter(specifiers)).operator in {'==', '==='})
 
     def from_path(self):
         if self.req is None:

@@ -1,20 +1,16 @@
 """Generate and work with PEP 425 Compatibility Tags."""
 from __future__ import absolute_import
 
+import distutils.util
 import re
 import sys
+import sysconfig
 import warnings
 import platform
 import logging
 
-try:
-    import sysconfig
-except ImportError:  # pragma nocover
-    # Python < 2.7
-    import distutils.sysconfig as sysconfig
-import distutils.util
+from collections import OrderedDict
 
-from pip.compat import OrderedDict
 import pip.utils.glibc
 
 logger = logging.getLogger(__name__)
@@ -26,7 +22,7 @@ def get_config_var(var):
     try:
         return sysconfig.get_config_var(var)
     except IOError as e:  # Issue #1074
-        warnings.warn("{0}".format(e), RuntimeWarning)
+        warnings.warn("{}".format(e), RuntimeWarning)
         return None
 
 
@@ -66,7 +62,7 @@ def get_impl_tag():
     """
     Returns the Tag for this specific implementation.
     """
-    return "{0}{1}".format(get_abbr_impl(), get_impl_ver())
+    return "{}{}".format(get_abbr_impl(), get_impl_ver())
 
 
 def get_flag(var, fallback, expected=True, warn=True):
@@ -86,7 +82,7 @@ def get_abi_tag():
     (CPython 2, PyPy)."""
     soabi = get_config_var('SOABI')
     impl = get_abbr_impl()
-    if not soabi and impl in ('cp', 'pp') and hasattr(sys, 'maxunicode'):
+    if not soabi and impl in {'cp', 'pp'} and hasattr(sys, 'maxunicode'):
         d = ''
         m = ''
         u = ''
@@ -133,7 +129,7 @@ def get_platform():
         elif machine == "ppc64" and _is_running_32bit():
             machine = "ppc"
 
-        return 'macosx_{0}_{1}_{2}'.format(split_ver[0], split_ver[1], machine)
+        return 'macosx_{}_{}_{}'.format(split_ver[0], split_ver[1], machine)
 
     # XXX remove distutils dependency
     result = distutils.util.get_platform().replace('.', '_').replace('-', '_')
@@ -147,7 +143,7 @@ def get_platform():
 
 def is_manylinux1_compatible():
     # Only Linux, and only x86-64 / i686
-    if get_platform() not in ("linux_x86_64", "linux_i686"):
+    if get_platform() not in {"linux_x86_64", "linux_i686"}:
         return False
 
     # Check for presence of _manylinux module
@@ -273,7 +269,7 @@ def get_supported(versions=None, noarch=False, platform=None,
             match = _osx_arch_pat.match(arch)
             if match:
                 name, major, minor, actual_arch = match.groups()
-                tpl = '{0}_{1}_%i_%s'.format(name, major)
+                tpl = '{}_{}_%i_%s'.format(name, major)
                 arches = []
                 for m in reversed(range(int(minor) + 1)):
                     for a in get_darwin_arches(int(major), m, actual_arch):
@@ -294,7 +290,7 @@ def get_supported(versions=None, noarch=False, platform=None,
         # abi3 modules compatible with older version of Python
         for version in versions[1:]:
             # abi3 was introduced in Python 3.2
-            if version in ('31', '30'):
+            if version in {'31', '30'}:
                 break
             for abi in abi3s:   # empty set if not Python 3
                 for arch in arches:
@@ -317,6 +313,7 @@ def get_supported(versions=None, noarch=False, platform=None,
             supported.append(('py%s' % (version[0]), 'none', 'any'))
 
     return supported
+
 
 supported_tags = get_supported()
 supported_tags_noarch = get_supported(noarch=True)

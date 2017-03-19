@@ -135,7 +135,7 @@ class DownloadCommand(RequirementCommand):
             options.abi,
             options.implementation,
         ])
-        binary_only = FormatControl(set(), set([':all:']))
+        binary_only = FormatControl(set(), {':all:'})
         if dist_restriction_set and options.format_control != binary_only:
             raise CommandError(
                 "--only-binary=:all: must be set and --no-binary must not "

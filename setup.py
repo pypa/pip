@@ -39,6 +39,7 @@ def find_version(*file_paths):
         return version_match.group(1)
     raise RuntimeError("Unable to find version string.")
 
+
 long_description = read('README.rst')
 
 tests_require = ['pytest', 'virtualenv>=1.10', 'scripttest>=1.3', 'mock',
@@ -56,7 +57,6 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Topic :: Software Development :: Build Tools",
         "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 2.6",
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.3",
@@ -86,7 +86,7 @@ setup(
     },
     tests_require=tests_require,
     zip_safe=False,
-    python_requires='>=2.6,!=3.0.*,!=3.1.*,!=3.2.*',
+    python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*',
     extras_require={
         'testing': tests_require,
     },
