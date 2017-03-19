@@ -13,7 +13,8 @@
 
 {% if definitions[category]['showcontent'] %}
 {% for text, values in sections[section][category]|dictsort(by='value') %}
-- {{ text }} ({{ values|sort|join(', ') }})
+- {{ text }}{% if category != 'vendor' %} ({{ values|sort|join(', ') }}){% endif %}
+
 {% endfor %}
 {% else %}
 - {{ sections[section][category]['']|sort|join(', ') }}

@@ -24,6 +24,11 @@ template = "news/_template.rst"
   showcontent = true
 
   [[tool.towncrier.type]]
+  directory = "vendor"
+  name = "Vendored Libraries"
+  showcontent = true
+
+  [[tool.towncrier.type]]
   directory = "doc"
   name = "Improved Documentation"
   showcontent = true

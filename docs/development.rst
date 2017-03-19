@@ -125,6 +125,12 @@ like operating system, one can be added by running
 ``touch news/$(uuidgen).trivial``. Core committers may also add a "trivial"
 label to the PR which will accomplish the same thing.
 
+Upgrading, removing, or adding a new vendored library gets a special mention
+using a ``news/<library>.vendor`` file. This is in addition to any features,
+bugfixes, or other kinds of news that pulling in this library may have. This
+uses the library name as the key so that updating the same library twice doesn't
+produce two news file entries.
+
 
 Release Process
 ===============
