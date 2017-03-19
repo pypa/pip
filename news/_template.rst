@@ -6,14 +6,15 @@
 
 {% endif %}
 {% if sections[section] %}
-{% for category, val in definitions.items() if category in sections[section]%}
+{% for category, val in definitions.items() if category in sections[section] and category != 'trivial' %}
 
 {{ definitions[category]['name'] }}
 {{ underline * definitions[category]['name']|length }}
 
 {% if definitions[category]['showcontent'] %}
 {% for text, values in sections[section][category]|dictsort(by='value') %}
-- {{ text }} ({{ values|sort|join(', ') }})
+- {{ text }}{% if category != 'vendor' %} ({{ values|sort|join(', ') }}){% endif %}
+
 {% endfor %}
 {% else %}
 - {{ sections[section][category]['']|sort|join(', ') }}
