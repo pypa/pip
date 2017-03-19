@@ -3,10 +3,12 @@ from __future__ import absolute_import
 
 import os
 import os.path
+import platform
 import site
 import sys
 import sysconfig
 
+from distutils import sysconfig as distutils_sysconfig
 from distutils.command.install import install, SCHEME_KEYS  # noqa
 
 from pip.compat import WINDOWS, expanduser
@@ -81,6 +83,11 @@ src_prefix = os.path.abspath(src_prefix)
 # FIXME doesn't account for venv linked to global site-packages
 
 site_packages = sysconfig.get_path("purelib")
+# This is because of a bug in PyPy's sysconfig module, see
+# https://bitbucket.org/pypy/pypy/issues/2506/sysconfig-returns-incorrect-paths
+# for more information.
+if platform.python_implementation().lower() == "pypy":
+    site_packages = distutils_sysconfig.get_python_lib()
 user_site = site.USER_SITE
 user_dir = expanduser('~')
 if WINDOWS:
