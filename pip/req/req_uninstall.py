@@ -7,7 +7,6 @@ import os
 import sys
 import sysconfig
 import tempfile
-import warnings
 
 from pip._vendor import pkg_resources
 
