@@ -5,7 +5,6 @@ import operator
 import os
 import tempfile
 import shutil
-import warnings
 try:
     import wheel
 except ImportError:
@@ -20,7 +19,6 @@ from pip.exceptions import (
 from pip import cmdoptions
 from pip.utils import ensure_dir, get_installed_version
 from pip.utils.build import BuildDirectory
-from pip.utils.deprecation import RemovedInPip10Warning
 from pip.utils.filesystem import check_path_owner
 from pip.wheel import WheelCache, WheelBuilder
 
@@ -95,14 +93,6 @@ class InstallCommand(RequirementCommand):
             help="Installation prefix where lib, bin and other top-level "
                  "folders are placed")
 
-        cmd_opts.add_option(
-            '-d', '--download', '--download-dir', '--download-directory',
-            dest='download_dir',
-            metavar='dir',
-            default=None,
-            help=("Download packages into <dir> instead of installing them, "
-                  "regardless of what's already installed."),
-        )
         cmd_opts.add_option(cmdoptions.build_dir())
 
         cmd_opts.add_option(cmdoptions.src())
@@ -183,15 +173,6 @@ class InstallCommand(RequirementCommand):
         cmdoptions.resolve_wheel_no_use_binary(options)
         cmdoptions.check_install_build_global(options)
 
-        if options.download_dir:
-            warnings.warn(
-                "pip install --download has been deprecated and will be "
-                "removed in the future. Pip now has a download command that "
-                "should be used instead.",
-                RemovedInPip10Warning,
-            )
-            options.ignore_installed = True
-
         if options.build_dir:
             options.build_dir = os.path.abspath(options.build_dir)
 
@@ -247,7 +228,6 @@ class InstallCommand(RequirementCommand):
                 requirement_set = RequirementSet(
                     build_dir=build_dir,
                     src_dir=options.src_dir,
-                    download_dir=options.download_dir,
                     upgrade=options.upgrade,
                     upgrade_strategy=options.upgrade_strategy,
                     ignore_installed=options.ignore_installed,
@@ -270,8 +250,7 @@ class InstallCommand(RequirementCommand):
                 )
 
                 try:
-                    if (options.download_dir or not wheel or not
-                            options.cache_dir):
+                    if (not wheel or not options.cache_dir):
                         # on -d don't do complex things like building
                         # wheels, and don't try to build wheels when wheel is
                         # not installed.
@@ -288,48 +267,38 @@ class InstallCommand(RequirementCommand):
                         # installed from the sdist/vcs whatever.
                         wb.build(autobuilding=True)
 
-                    if not options.download_dir:
-                        requirement_set.install(
-                            install_options,
-                            global_options,
-                            root=options.root_path,
-                            prefix=options.prefix_path,
-                        )
+                    requirement_set.install(
+                        install_options,
+                        global_options,
+                        root=options.root_path,
+                        prefix=options.prefix_path,
+                    )
 
-                        possible_lib_locations = get_lib_location_guesses(
-                            user=options.use_user_site,
-                            home=temp_target_dir,
-                            root=options.root_path,
-                            prefix=options.prefix_path,
-                            isolated=options.isolated_mode,
-                        )
-                        reqs = sorted(
-                            requirement_set.successfully_installed,
-                            key=operator.attrgetter('name'))
-                        items = []
-                        for req in reqs:
-                            item = req.name
-                            try:
-                                installed_version = get_installed_version(
-                                    req.name, possible_lib_locations
-                                )
-                                if installed_version:
-                                    item += '-' + installed_version
-                            except Exception:
-                                pass
-                            items.append(item)
-                        installed = ' '.join(items)
-                        if installed:
-                            logger.info('Successfully installed %s', installed)
-                    else:
-                        downloaded = ' '.join([
-                            req.name
-                            for req in requirement_set.successfully_downloaded
-                        ])
-                        if downloaded:
-                            logger.info(
-                                'Successfully downloaded %s', downloaded
+                    possible_lib_locations = get_lib_location_guesses(
+                        user=options.use_user_site,
+                        home=temp_target_dir,
+                        root=options.root_path,
+                        prefix=options.prefix_path,
+                        isolated=options.isolated_mode,
+                    )
+                    reqs = sorted(
+                        requirement_set.successfully_installed,
+                        key=operator.attrgetter('name'))
+                    items = []
+                    for req in reqs:
+                        item = req.name
+                        try:
+                            installed_version = get_installed_version(
+                                req.name, possible_lib_locations
                             )
+                            if installed_version:
+                                item += '-' + installed_version
+                        except Exception:
+                            pass
+                        items.append(item)
+                    installed = ' '.join(items)
+                    if installed:
+                        logger.info('Successfully installed %s', installed)
                 except PreviousBuildDirError:
                     options.no_clean = True
                     raise

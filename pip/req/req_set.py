@@ -141,7 +141,7 @@ class Installed(DistAbstraction):
 
 class RequirementSet(object):
 
-    def __init__(self, build_dir, src_dir, download_dir, upgrade=False,
+    def __init__(self, build_dir, src_dir, download_dir=None, upgrade=False,
                  upgrade_strategy=None, ignore_installed=False,
                  target_dir=None, ignore_dependencies=False,
                  force_reinstall=False, use_user_site=False, session=None,

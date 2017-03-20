@@ -143,45 +143,6 @@ def test_install_editable_from_svn(script):
     result.assert_installed('version-pkg', with_files=['.svn'])
 
 
-@pytest.mark.network
-def test_download_editable_to_custom_path(script, tmpdir):
-    """
-    Test downloading an editable using a relative custom src folder.
-    """
-    script.scratch_path.join("customdl").mkdir()
-    result = script.pip(
-        'install',
-        '-e',
-        '%s#egg=initools' %
-        local_checkout(
-            'svn+http://svn.colorstudy.com/INITools/trunk',
-            tmpdir.join("cache")
-        ),
-        '--src',
-        'customsrc',
-        '--download',
-        'customdl',
-        expect_stderr=True
-    )
-    customsrc = Path('scratch') / 'customsrc' / 'initools'
-    assert customsrc in result.files_created, (
-        sorted(result.files_created.keys())
-    )
-    assert customsrc / 'setup.py' in result.files_created, (
-        sorted(result.files_created.keys())
-    )
-
-    customdl = Path('scratch') / 'customdl' / 'initools'
-    customdl_files_created = [
-        filename for filename in result.files_created
-        if filename.startswith(customdl)
-    ]
-    assert customdl_files_created
-    assert ('DEPRECATION: pip install --download has been deprecated and will '
-            'be removed in the future. Pip now has a download command that '
-            'should be used instead.') in result.stderr
-
-
 def _test_install_editable_from_git(script, tmpdir, wheel):
     """Test cloning from Git."""
     if wheel:
