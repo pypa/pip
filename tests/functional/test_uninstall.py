@@ -395,7 +395,7 @@ def test_uninstallpathset_no_paths(caplog):
 
     assert (
         "Can't uninstall 'pip'. No files were found to uninstall."
-        in caplog.text()
+        in caplog.text
     )
 
 
