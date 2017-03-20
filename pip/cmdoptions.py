@@ -270,27 +270,6 @@ def find_links():
              "then look for archives in the directory listing.")
 
 
-def allow_external():
-    return Option(
-        "--allow-external",
-        dest="allow_external",
-        action="append",
-        default=[],
-        metavar="PACKAGE",
-        help=SUPPRESS_HELP,
-    )
-
-
-allow_all_external = partial(
-    Option,
-    "--allow-all-external",
-    dest="allow_all_external",
-    action="store_true",
-    default=False,
-    help=SUPPRESS_HELP,
-)
-
-
 def trusted_host():
     return Option(
         "--trusted-host",
@@ -302,38 +281,6 @@ def trusted_host():
              "or any HTTPS.",
     )
 
-
-# Remove after 7.0
-no_allow_external = partial(
-    Option,
-    "--no-allow-external",
-    dest="allow_all_external",
-    action="store_false",
-    default=False,
-    help=SUPPRESS_HELP,
-)
-
-
-# Remove --allow-insecure after 7.0
-def allow_unsafe():
-    return Option(
-        "--allow-unverified", "--allow-insecure",
-        dest="allow_unverified",
-        action="append",
-        default=[],
-        metavar="PACKAGE",
-        help=SUPPRESS_HELP,
-    )
-
-# Remove after 7.0
-no_allow_unsafe = partial(
-    Option,
-    "--no-allow-insecure",
-    dest="allow_all_insecure",
-    action="store_false",
-    default=False,
-    help=SUPPRESS_HELP
-)
 
 # Remove after 1.5
 process_dependency_links = partial(
@@ -378,6 +325,7 @@ def editable():
         help=('Install a project in editable mode (i.e. setuptools '
               '"develop mode") from a local project path or a VCS url.'),
     )
+
 
 src = partial(
     Option,
@@ -622,7 +570,7 @@ general_group = {
     ]
 }
 
-non_deprecated_index_group = {
+index_group = {
     'name': 'Package Index Options',
     'options': [
         index_url,
@@ -630,16 +578,5 @@ non_deprecated_index_group = {
         no_index,
         find_links,
         process_dependency_links,
-    ]
-}
-
-index_group = {
-    'name': 'Package Index Options (including deprecated options)',
-    'options': non_deprecated_index_group['options'] + [
-        allow_external,
-        allow_all_external,
-        no_allow_external,
-        allow_unsafe,
-        no_allow_unsafe,
     ]
 }

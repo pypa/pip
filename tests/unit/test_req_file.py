@@ -323,10 +323,6 @@ class TestProcessLine(object):
         # noop, but confirm it can be set
         list(process_line("--always-unzip", "file", 1, finder=finder))
 
-    def test_noop_finder_no_allow_unsafe(self, finder):
-        # noop, but confirm it can be set
-        list(process_line("--no-allow-insecure", "file", 1, finder=finder))
-
     def test_set_finder_allow_all_prereleases(self, finder):
         list(process_line("--pre", "file", 1, finder=finder))
         assert finder.allow_all_prereleases
