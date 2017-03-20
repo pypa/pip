@@ -6,6 +6,8 @@ import sys
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
+import versioneer
+
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -31,24 +33,17 @@ def read(*parts):
     return codecs.open(os.path.join(here, *parts), 'r').read()
 
 
-def find_version(*file_paths):
-    version_file = read(*file_paths)
-    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]",
-                              version_file, re.M)
-    if version_match:
-        return version_match.group(1)
-    raise RuntimeError("Unable to find version string.")
-
-
 long_description = read('README.rst')
 
 tests_require = ['pytest', 'virtualenv>=1.10', 'scripttest>=1.3', 'mock',
                  'pretend']
 
+cmdclass = versioneer.get_cmdclass()
+cmdclass.update({'test': PyTest})
 
 setup(
     name="pip",
-    version=find_version("pip", "__init__.py"),
+    version=versioneer.get_version(),
     description="The PyPA recommended tool for installing Python packages.",
     long_description=long_description,
     classifiers=[
@@ -90,5 +85,5 @@ setup(
     extras_require={
         'testing': tests_require,
     },
-    cmdclass={'test': PyTest},
+    cmdclass=cmdclass,
 )
