@@ -289,6 +289,21 @@ class TestRequirementSet(object):
         with pytest.raises(InstallationError):
             reqset.prepare_files(finder)
 
+    def test_no_deps_in_reqs_file(self, data, tmpdir):
+        """--no-deps in a requirements file should make its way to the
+        RequirementSet.
+        """
+        req_set = self.basic_reqset(ignore_dependencies=False)
+        session = PipSession()
+        finder = PackageFinder([data.find_links], [], session=session)
+        command = InstallCommand()
+        with requirements_file('--no-deps', tmpdir) as reqs_file:
+            options, args = command.parse_args(['-r', reqs_file])
+            command.populate_requirement_set(
+                req_set, args, options, finder, session, command.name,
+                wheel_cache=None)
+        assert req_set.ignore_dependencies
+
 
 @pytest.mark.parametrize(('file_contents', 'expected'), [
     (b'\xf6\x80', b'\xc3\xb6\xe2\x82\xac'),  # cp1252
