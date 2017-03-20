@@ -167,15 +167,6 @@ timeout = partial(
     default=15,
     help='Set the socket timeout (default %default seconds).')
 
-default_vcs = partial(
-    Option,
-    # The default version control system for editables, e.g. 'svn'
-    '--default-vcs',
-    dest='default_vcs',
-    type='str',
-    default='',
-    help=SUPPRESS_HELP)
-
 skip_requirements_regex = partial(
     Option,
     # A regex to be used to skip requirements
@@ -531,7 +522,6 @@ general_group = {
         proxy,
         retries,
         timeout,
-        default_vcs,
         skip_requirements_regex,
         exists_action,
         trusted_host,

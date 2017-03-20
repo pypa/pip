@@ -559,23 +559,15 @@ def test_parse_editable_local(
     exists_mock.return_value = isdir_mock.return_value = True
     # mocks needed to support path operations on windows tests
     abspath_mock.return_value = "/some/path"
-    assert parse_editable('.', 'git') == (None, 'file:///some/path', None)
+    assert parse_editable('.') == (None, 'file:///some/path', None)
     abspath_mock.return_value = "/some/path/foo"
-    assert parse_editable('foo', 'git') == (
+    assert parse_editable('foo') == (
         None, 'file:///some/path/foo', None,
     )
 
 
-def test_parse_editable_default_vcs():
-    assert parse_editable('https://foo#egg=foo', 'git') == (
-        'foo',
-        'git+https://foo#egg=foo',
-        None,
-    )
-
-
 def test_parse_editable_explicit_vcs():
-    assert parse_editable('svn+https://foo#egg=foo', 'git') == (
+    assert parse_editable('svn+https://foo#egg=foo') == (
         'foo',
         'svn+https://foo#egg=foo',
         None,
@@ -583,7 +575,7 @@ def test_parse_editable_explicit_vcs():
 
 
 def test_parse_editable_vcs_extras():
-    assert parse_editable('svn+https://foo#egg=foo[extras]', 'git') == (
+    assert parse_editable('svn+https://foo#egg=foo[extras]') == (
         'foo[extras]',
         'svn+https://foo#egg=foo[extras]',
         None,
@@ -597,11 +589,11 @@ def test_parse_editable_local_extras(
         isdir_mock, exists_mock, abspath_mock):
     exists_mock.return_value = isdir_mock.return_value = True
     abspath_mock.return_value = "/some/path"
-    assert parse_editable('.[extras]', 'git') == (
+    assert parse_editable('.[extras]') == (
         None, 'file://' + "/some/path", set(['extras']),
     )
     abspath_mock.return_value = "/some/path/foo"
-    assert parse_editable('foo[bar,baz]', 'git') == (
+    assert parse_editable('foo[bar,baz]') == (
         None, 'file:///some/path/foo', set(['bar', 'baz']),
     )
 

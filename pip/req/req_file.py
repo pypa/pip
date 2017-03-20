@@ -13,7 +13,6 @@ import optparse
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves import filterfalse
 
-import pip
 from pip.download import get_file_content
 from pip.req.req_install import InstallRequirement
 from pip.exceptions import (RequirementsFileParseError)
@@ -152,11 +151,9 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
     # yield an editable requirement
     elif opts.editables:
         isolated = options.isolated_mode if options else False
-        default_vcs = options.default_vcs if options else None
         yield InstallRequirement.from_editable(
             opts.editables[0], comes_from=line_comes_from,
-            constraint=constraint, default_vcs=default_vcs, isolated=isolated,
-            wheel_cache=wheel_cache
+            constraint=constraint, isolated=isolated, wheel_cache=wheel_cache
         )
 
     # parse a nested requirements file

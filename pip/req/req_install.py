@@ -41,7 +41,7 @@ from pip.utils import (
 )
 
 from pip.utils.hashes import Hashes
-from pip.utils.deprecation import RemovedInPip10Warning, RemovedInPip11Warning
+from pip.utils.deprecation import RemovedInPip11Warning
 from pip.utils.logging import indent_log
 from pip.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip.utils.ui import open_spinner
@@ -127,13 +127,11 @@ class InstallRequirement(object):
         self.isolated = isolated
 
     @classmethod
-    def from_editable(cls, editable_req, comes_from=None, default_vcs=None,
-                      isolated=False, options=None, wheel_cache=None,
-                      constraint=False):
+    def from_editable(cls, editable_req, comes_from=None, isolated=False,
+                      options=None, wheel_cache=None, constraint=False):
         from pip.index import Link
 
-        name, url, extras_override = parse_editable(
-            editable_req, default_vcs)
+        name, url, extras_override = parse_editable(editable_req)
         if url.startswith('file:'):
             source_dir = url_to_path(url)
         else:
@@ -991,7 +989,7 @@ def _strip_postfix(req):
     return req
 
 
-def parse_editable(editable_req, default_vcs=None):
+def parse_editable(editable_req):
     """Parses an editable requirement into:
         - a requirement name
         - an URL
@@ -1035,19 +1033,11 @@ def parse_editable(editable_req, default_vcs=None):
             break
 
     if '+' not in url:
-        if default_vcs:
-            warnings.warn(
-                "--default-vcs has been deprecated and will be removed in "
-                "the future.",
-                RemovedInPip10Warning,
-            )
-            url = default_vcs + '+' + url
-        else:
-            raise InstallationError(
-                '%s should either be a path to a local project or a VCS url '
-                'beginning with svn+, git+, hg+, or bzr+' %
-                editable_req
-            )
+        raise InstallationError(
+            '%s should either be a path to a local project or a VCS url '
+            'beginning with svn+, git+, hg+, or bzr+' %
+            editable_req
+        )
 
     vc_type = url.split('+', 1)[0].lower()
 

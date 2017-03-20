@@ -30,7 +30,7 @@ def finder(session):
 @pytest.fixture
 def options(session):
     return stub(
-        isolated_mode=False, default_vcs=None, index_url='default_url',
+        isolated_mode=False, index_url='default_url',
         skip_requirements_regex=False,
         format_control=pip.index.FormatControl(set(), set()))
 
@@ -280,14 +280,6 @@ class TestProcessLine(object):
         options.isolated_mode = True
         result = process_line(line, filename, 1, options=options)
         assert list(result)[0].isolated
-
-    def test_set_default_vcs(self, options):
-        url = 'https://url#egg=SomeProject'
-        line = '-e %s' % url
-        filename = 'filename'
-        options.default_vcs = 'git'
-        result = process_line(line, filename, 1, options=options)
-        assert list(result)[0].link.url == 'git+' + url
 
     def test_set_finder_no_index(self, finder):
         list(process_line("--no-index", "file", 1, finder=finder))
