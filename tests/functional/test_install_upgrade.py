@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 import textwrap
@@ -466,7 +467,9 @@ class TestUpgradeDistributeToSetuptools(object):
             "Found existing installation: distribute 0.6.34" in result.stdout
         )
         result = self.script.run(
-            self.ve_bin / 'pip', 'list', '--format=legacy',
+            self.ve_bin / 'pip', 'list', '--format=json',
         )
-        assert "setuptools (0.9.8)" in result.stdout
-        assert "distribute (0.7.3)" in result.stdout
+        assert {"name": "setuptools", "version": "0.9.8"} \
+            in json.loads(result.stdout)
+        assert {"name": "distribute", "version": "0.7.3"} \
+            in json.loads(result.stdout)
