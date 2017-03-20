@@ -1,5 +1,6 @@
 from __future__ import with_statement
 
+import json
 import textwrap
 import os
 import sys
@@ -8,7 +9,7 @@ import pretend
 
 from os.path import join, normpath
 from tempfile import mkdtemp
-from tests.lib import assert_all_changes, pyversion
+from tests.lib import assert_all_changes
 from tests.lib import create_test_package_with_setup
 from tests.lib.local_repos import local_repo, local_checkout
 
@@ -48,11 +49,13 @@ def test_simple_uninstall_distutils(script):
         )
     """))
     result = script.run('python', pkg_path / 'setup.py', 'install')
-    result = script.pip('list', '--format=legacy')
-    assert "distutils-install (0.1)" in result.stdout
+    result = script.pip('list', '--format=json')
+    assert {"name": "distutils-install", "version": "0.1"} \
+        in json.loads(result.stdout)
     script.pip('uninstall', 'distutils_install', '-y', expect_stderr=True)
-    result2 = script.pip('list', '--format=legacy')
-    assert "distutils-install (0.1)" not in result2.stdout
+    result2 = script.pip('list', '--format=json')
+    assert {"name": "distutils-install", "version": "0.1"} \
+        not in json.loads(result2.stdout)
 
 
 @pytest.mark.network
@@ -177,12 +180,14 @@ def test_uninstall_entry_point(script, console_scripts):
     script_name = script.bin_path.join(console_scripts.split('=')[0].strip())
     result = script.pip('install', pkg_path)
     assert script_name.exists
-    result = script.pip('list', '--format=legacy')
-    assert "ep-install (0.1)" in result.stdout
+    result = script.pip('list', '--format=json')
+    assert {"name": "ep-install", "version": "0.1"} \
+        in json.loads(result.stdout)
     script.pip('uninstall', 'ep_install', '-y')
     assert not script_name.exists
-    result2 = script.pip('list', '--format=legacy')
-    assert "ep-install (0.1)" not in result2.stdout
+    result2 = script.pip('list', '--format=json')
+    assert {"name": "ep-install", "version": "0.1"} \
+        not in json.loads(result2.stdout)
 
 
 def test_uninstall_gui_scripts(script):
@@ -416,8 +421,9 @@ def test_uninstall_setuptools_develop_install(script, data):
                expect_stderr=True, cwd=pkg_path)
     script.run('python', 'setup.py', 'install',
                expect_stderr=True, cwd=pkg_path)
-    list_result = script.pip('list', '--format=legacy')
-    assert "FSPkg (0.1.dev0, " in list_result.stdout
+    list_result = script.pip('list', '--format=json')
+    assert {"name": "FSPkg", "version": "0.1.dev0"} \
+        in json.loads(list_result.stdout)
     # Uninstall both develop and install
     uninstall = script.pip('uninstall', 'FSPkg', '-y')
     assert any(filename.endswith('.egg')
@@ -426,8 +432,8 @@ def test_uninstall_setuptools_develop_install(script, data):
     assert join(
         script.site_packages, 'FSPkg.egg-link'
     ) in uninstall2.files_deleted, list(uninstall2.files_deleted.keys())
-    list_result2 = script.pip('list', '--format=legacy')
-    assert "FSPkg" not in list_result2.stdout
+    list_result2 = script.pip('list', '--format=json')
+    assert "FSPkg" not in {p["name"] for p in json.loads(list_result2.stdout)}
 
 
 def test_uninstall_editable_and_pip_install(script, data):
@@ -443,8 +449,9 @@ def test_uninstall_editable_and_pip_install(script, data):
     # ensure both are installed with --ignore-installed:
     script.pip('install', '--ignore-installed', '.',
                expect_stderr=True, cwd=pkg_path)
-    list_result = script.pip('list', '--format=legacy')
-    assert "FSPkg (0.1.dev0, " in list_result.stdout
+    list_result = script.pip('list', '--format=json')
+    assert {"name": "FSPkg", "version": "0.1.dev0"} \
+        in json.loads(list_result.stdout)
     # Uninstall both develop and install
     uninstall = script.pip('uninstall', 'FSPkg', '-y')
     assert not any(filename.endswith('.egg-link')
@@ -453,5 +460,5 @@ def test_uninstall_editable_and_pip_install(script, data):
     assert join(
         script.site_packages, 'FSPkg.egg-link'
     ) in uninstall2.files_deleted, list(uninstall2.files_deleted.keys())
-    list_result2 = script.pip('list', '--format=legacy')
-    assert "FSPkg" not in list_result2.stdout
+    list_result2 = script.pip('list', '--format=json')
+    assert "FSPkg" not in {p["name"] for p in json.loads(list_result2.stdout)}

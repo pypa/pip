@@ -15,7 +15,7 @@ from pip.exceptions import CommandError
 from pip.index import PackageFinder
 from pip.utils import (
     get_installed_distributions, dist_is_editable)
-from pip.utils.deprecation import RemovedInPip10Warning
+from pip.utils.deprecation import RemovedInPip11Warning
 from pip.cmdoptions import make_option_group, index_group
 
 logger = logging.getLogger(__name__)
@@ -78,9 +78,10 @@ class ListCommand(Command):
             '--format',
             action='store',
             dest='list_format',
+            default="columns",
             choices=('legacy', 'columns', 'freeze', 'json'),
-            help="Select the output format among: legacy (default), columns, "
-                 "freeze or json.",
+            help="Select the output format among: columns (default), freeze, "
+                 "json, or legacy.",
         )
 
         cmd_opts.add_option(
@@ -123,13 +124,11 @@ class ListCommand(Command):
         )
 
     def run(self, options, args):
-        if options.list_format is None:
+        if options.list_format == "legacy":
             warnings.warn(
-                "The default format will switch to columns in the future. "
-                "You can use --format=(legacy|columns) (or define a "
-                "format=(legacy|columns) in your pip.conf under the [list] "
-                "section) to disable this warning.",
-                RemovedInPip10Warning,
+                "The legacy format has been deprecated and will be removed "
+                "in the future.",
+                RemovedInPip11Warning,
             )
 
         if options.outdated and options.uptodate:
@@ -240,7 +239,7 @@ class ListCommand(Command):
                 logger.info("%s==%s", dist.project_name, dist.version)
         elif options.list_format == 'json':
             logger.info(format_for_json(packages, options))
-        else:  # legacy
+        elif options.list_format == "legacy":
             for dist in packages:
                 if options.outdated:
                     logger.info(self.output_legacy_latest(dist))
