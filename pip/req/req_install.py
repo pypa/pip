@@ -41,7 +41,7 @@ from pip.utils import (
 )
 
 from pip.utils.hashes import Hashes
-from pip.utils.deprecation import RemovedInPip10Warning, RemovedInPip11Warning
+from pip.utils.deprecation import RemovedInPip11Warning
 from pip.utils.logging import indent_log
 from pip.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip.utils.ui import open_spinner
@@ -70,9 +70,9 @@ def _strip_extras(path):
 class InstallRequirement(object):
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
-                 link=None, as_egg=False, update=True,
-                 pycompile=True, markers=None, isolated=False, options=None,
-                 wheel_cache=None, constraint=False, extras=()):
+                 link=None, update=True, pycompile=True, markers=None,
+                 isolated=False, options=None, wheel_cache=None,
+                 constraint=False, extras=()):
         assert req is None or isinstance(req, Requirement), req
         self.req = req
         self.comes_from = comes_from
@@ -87,7 +87,6 @@ class InstallRequirement(object):
             from pip.index import Link
             self.link = self.original_link = req and req.url and Link(req.url)
 
-        self.as_egg = as_egg
         if extras:
             self.extras = extras
         elif req:
@@ -128,13 +127,11 @@ class InstallRequirement(object):
         self.isolated = isolated
 
     @classmethod
-    def from_editable(cls, editable_req, comes_from=None, default_vcs=None,
-                      isolated=False, options=None, wheel_cache=None,
-                      constraint=False):
+    def from_editable(cls, editable_req, comes_from=None, isolated=False,
+                      options=None, wheel_cache=None, constraint=False):
         from pip.index import Link
 
-        name, url, extras_override = parse_editable(
-            editable_req, default_vcs)
+        name, url, extras_override = parse_editable(editable_req)
         if url.startswith('file:'):
             source_dir = url_to_path(url)
         else:
@@ -757,10 +754,6 @@ class InstallRequirement(object):
                 logger.debug('Record file %s not found', record_filename)
                 return
             self.install_succeeded = True
-            if self.as_egg:
-                # there's no --always-unzip option we can pass to install
-                # command so we unable to save the installed-files.txt
-                return
 
             def prepend_root(path):
                 if root is None or not os.path.isabs(path):
@@ -821,9 +814,7 @@ class InstallRequirement(object):
         install_args.append(SETUPTOOLS_SHIM % self.setup_py)
         install_args += list(global_options) + \
             ['install', '--record', record_filename]
-
-        if not self.as_egg:
-            install_args += ['--single-version-externally-managed']
+        install_args += ['--single-version-externally-managed']
 
         if root is not None:
             install_args += ['--root', root]
@@ -998,7 +989,7 @@ def _strip_postfix(req):
     return req
 
 
-def parse_editable(editable_req, default_vcs=None):
+def parse_editable(editable_req):
     """Parses an editable requirement into:
         - a requirement name
         - an URL
@@ -1042,19 +1033,11 @@ def parse_editable(editable_req, default_vcs=None):
             break
 
     if '+' not in url:
-        if default_vcs:
-            warnings.warn(
-                "--default-vcs has been deprecated and will be removed in "
-                "the future.",
-                RemovedInPip10Warning,
-            )
-            url = default_vcs + '+' + url
-        else:
-            raise InstallationError(
-                '%s should either be a path to a local project or a VCS url '
-                'beginning with svn+, git+, hg+, or bzr+' %
-                editable_req
-            )
+        raise InstallationError(
+            '%s should either be a path to a local project or a VCS url '
+            'beginning with svn+, git+, hg+, or bzr+' %
+            editable_req
+        )
 
     vc_type = url.split('+', 1)[0].lower()
 

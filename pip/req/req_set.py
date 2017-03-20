@@ -141,8 +141,8 @@ class Installed(DistAbstraction):
 
 class RequirementSet(object):
 
-    def __init__(self, build_dir, src_dir, download_dir, upgrade=False,
-                 upgrade_strategy=None, ignore_installed=False, as_egg=False,
+    def __init__(self, build_dir, src_dir, download_dir=None, upgrade=False,
+                 upgrade_strategy=None, ignore_installed=False,
                  target_dir=None, ignore_dependencies=False,
                  force_reinstall=False, use_user_site=False, session=None,
                  pycompile=True, isolated=False, wheel_download_dir=None,
@@ -186,7 +186,6 @@ class RequirementSet(object):
         self.successfully_downloaded = []
         self.successfully_installed = []
         self.reqs_to_cleanup = []
-        self.as_egg = as_egg
         self.use_user_site = use_user_site
         self.target_dir = target_dir  # set from --target option
         self.session = session
@@ -246,7 +245,6 @@ class RequirementSet(object):
                     wheel.filename
                 )
 
-        install_req.as_egg = self.as_egg
         install_req.use_user_site = self.use_user_site
         install_req.target_dir = self.target_dir
         install_req.pycompile = self.pycompile
@@ -360,11 +358,6 @@ class RequirementSet(object):
         root_reqs = self.unnamed_requirements + self.requirements.values()
         require_hashes = (self.require_hashes or
                           any(req.has_hash_options for req in root_reqs))
-        if require_hashes and self.as_egg:
-            raise InstallationError(
-                '--egg is not allowed with --require-hashes mode, since it '
-                'delegates dependency resolution to setuptools and could thus '
-                'result in installation of unhashed packages.')
 
         # Actually prepare the files, and collect any exceptions. Most hash
         # exceptions cannot be checked ahead of time, because

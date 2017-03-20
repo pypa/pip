@@ -114,7 +114,7 @@ class DownloadCommand(RequirementCommand):
         )
 
         index_opts = cmdoptions.make_option_group(
-            cmdoptions.non_deprecated_index_group,
+            cmdoptions.index_group,
             self.parser,
         )
 

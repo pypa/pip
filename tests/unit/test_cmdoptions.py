@@ -9,20 +9,11 @@ class SimpleCommand(Command):
 
     def __init__(self):
         super(SimpleCommand, self).__init__()
-        self.cmd_opts.add_option(cmdoptions.no_use_wheel())
         self.cmd_opts.add_option(cmdoptions.no_binary())
         self.cmd_opts.add_option(cmdoptions.only_binary())
 
     def run(self, options, args):
-        cmdoptions.resolve_wheel_no_use_binary(options)
         self.options = options
-
-
-def test_no_use_wheel_sets_no_binary_all():
-    cmd = SimpleCommand()
-    cmd.main(['fake', '--no-use-wheel'])
-    expected = pip.index.FormatControl(set([':all:']), set([]))
-    assert cmd.options.format_control == expected
 
 
 def test_no_binary_overrides():

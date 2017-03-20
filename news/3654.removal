@@ -1,0 +1,2 @@
+Switch the default for ``pip list`` to the columns format, and deprecate the
+legacy format.

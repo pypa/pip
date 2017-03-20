@@ -18,7 +18,6 @@ logger = logging.getLogger(__name__)
 def freeze(
         requirement=None,
         find_links=None, local_only=None, user_only=None, skip_regex=None,
-        default_vcs=None,
         isolated=False,
         wheel_cache=None,
         exclude_editable=False,
@@ -94,7 +93,6 @@ def freeze(
                             line = line[len('--editable'):].strip().lstrip('=')
                         line_req = InstallRequirement.from_editable(
                             line,
-                            default_vcs=default_vcs,
                             isolated=isolated,
                             wheel_cache=wheel_cache,
                         )

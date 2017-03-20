@@ -30,7 +30,7 @@ def finder(session):
 @pytest.fixture
 def options(session):
     return stub(
-        isolated_mode=False, default_vcs=None, index_url='default_url',
+        isolated_mode=False, index_url='default_url',
         skip_requirements_regex=False,
         format_control=pip.index.FormatControl(set(), set()))
 
@@ -281,14 +281,6 @@ class TestProcessLine(object):
         result = process_line(line, filename, 1, options=options)
         assert list(result)[0].isolated
 
-    def test_set_default_vcs(self, options):
-        url = 'https://url#egg=SomeProject'
-        line = '-e %s' % url
-        filename = 'filename'
-        options.default_vcs = 'git'
-        result = process_line(line, filename, 1, options=options)
-        assert list(result)[0].link.url == 'git+' + url
-
     def test_set_finder_no_index(self, finder):
         list(process_line("--no-index", "file", 1, finder=finder))
         assert finder.index_urls == []
@@ -305,16 +297,6 @@ class TestProcessLine(object):
         list(process_line("--extra-index-url=url", "file", 1, finder=finder))
         assert finder.index_urls == ['url']
 
-    def test_set_finder_use_wheel(self, finder):
-        list(process_line("--use-wheel", "file", 1, finder=finder))
-        no_use_wheel_fmt = pip.index.FormatControl(set(), set())
-        assert finder.format_control == no_use_wheel_fmt
-
-    def test_set_finder_no_use_wheel(self, finder):
-        list(process_line("--no-use-wheel", "file", 1, finder=finder))
-        no_use_wheel_fmt = pip.index.FormatControl(set([':all:']), set())
-        assert finder.format_control == no_use_wheel_fmt
-
     def test_set_finder_trusted_host(self, finder):
         list(process_line("--trusted-host=url", "file", 1, finder=finder))
         assert finder.secure_origins == [('*', 'url', '*')]
@@ -322,10 +304,6 @@ class TestProcessLine(object):
     def test_noop_always_unzip(self, finder):
         # noop, but confirm it can be set
         list(process_line("--always-unzip", "file", 1, finder=finder))
-
-    def test_noop_finder_no_allow_unsafe(self, finder):
-        # noop, but confirm it can be set
-        list(process_line("--no-allow-insecure", "file", 1, finder=finder))
 
     def test_set_finder_allow_all_prereleases(self, finder):
         list(process_line("--pre", "file", 1, finder=finder))

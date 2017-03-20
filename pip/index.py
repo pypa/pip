@@ -20,7 +20,7 @@ from pip.utils import (
     cached_property, splitext, normalize_path,
     ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS,
 )
-from pip.utils.deprecation import RemovedInPip10Warning
+from pip.utils.deprecation import RemovedInPip11Warning
 from pip.utils.logging import indent_log
 from pip.utils.packaging import check_requires_python
 from pip.exceptions import (
@@ -198,7 +198,7 @@ class PackageFinder(object):
             warnings.warn(
                 "Dependency Links processing has been deprecated and will be "
                 "removed in a future release.",
-                RemovedInPip10Warning,
+                RemovedInPip11Warning,
             )
             self.dependency_links.extend(links)
 
@@ -1082,14 +1082,6 @@ def fmt_ctl_formats(fmt_ctl, canonical_name):
 def fmt_ctl_no_binary(fmt_ctl):
     fmt_ctl_handle_mutual_exclude(
         ':all:', fmt_ctl.no_binary, fmt_ctl.only_binary)
-
-
-def fmt_ctl_no_use_wheel(fmt_ctl):
-    fmt_ctl_no_binary(fmt_ctl)
-    warnings.warn(
-        '--no-use-wheel is deprecated and will be removed in the future. '
-        ' Please use --no-binary :all: instead.', RemovedInPip10Warning,
-        stacklevel=2)
 
 
 Search = namedtuple('Search', 'supplied canonical formats')

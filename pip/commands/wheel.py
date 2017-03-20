@@ -3,14 +3,12 @@ from __future__ import absolute_import
 
 import logging
 import os
-import warnings
 
 from pip.basecommand import RequirementCommand
 from pip.exceptions import CommandError, PreviousBuildDirError
 from pip.req import RequirementSet
 from pip.utils import import_or_raise
 from pip.utils.build import BuildDirectory
-from pip.utils.deprecation import RemovedInPip10Warning
 from pip.wheel import WheelCache, WheelBuilder
 from pip import cmdoptions
 
@@ -56,8 +54,6 @@ class WheelCommand(RequirementCommand):
             help=("Build wheels into <dir>, where the default is the "
                   "current working directory."),
         )
-        cmd_opts.add_option(cmdoptions.use_wheel())
-        cmd_opts.add_option(cmdoptions.no_use_wheel())
         cmd_opts.add_option(cmdoptions.no_binary())
         cmd_opts.add_option(cmdoptions.only_binary())
         cmd_opts.add_option(
@@ -124,32 +120,7 @@ class WheelCommand(RequirementCommand):
 
     def run(self, options, args):
         self.check_required_packages()
-        cmdoptions.resolve_wheel_no_use_binary(options)
         cmdoptions.check_install_build_global(options)
-
-        if options.allow_external:
-            warnings.warn(
-                "--allow-external has been deprecated and will be removed in "
-                "the future. Due to changes in the repository protocol, it no "
-                "longer has any effect.",
-                RemovedInPip10Warning,
-            )
-
-        if options.allow_all_external:
-            warnings.warn(
-                "--allow-all-external has been deprecated and will be removed "
-                "in the future. Due to changes in the repository protocol, it "
-                "no longer has any effect.",
-                RemovedInPip10Warning,
-            )
-
-        if options.allow_unverified:
-            warnings.warn(
-                "--allow-unverified has been deprecated and will be removed "
-                "in the future. Due to changes in the repository protocol, it "
-                "no longer has any effect.",
-                RemovedInPip10Warning,
-            )
 
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:

@@ -272,7 +272,6 @@ class RequirementCommand(Command):
             requirement_set.add_requirement(
                 InstallRequirement.from_editable(
                     req,
-                    default_vcs=options.default_vcs,
                     isolated=options.isolated_mode,
                     wheel_cache=wheel_cache
                 )

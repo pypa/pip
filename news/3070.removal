@@ -1,0 +1,2 @@
+Removed the deprecated ``--allow-external``, ``--allow-all-external``, and
+``--allow-unverified`` options.
