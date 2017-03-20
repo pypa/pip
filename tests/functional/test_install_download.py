@@ -88,9 +88,9 @@ def test_download_should_download_wheel_deps(script, data):
     """
     wheel_filename = 'colander-0.9.9-py2.py3-none-any.whl'
     dep_filename = 'translationstring-1.1.tar.gz'
-    wheel_path = os.path.join(data.find_links, wheel_filename)
+    wheel_file_uri = '/'.join([data.find_links, wheel_filename])
     result = script.pip(
-        'install', wheel_path,
+        'install', wheel_file_uri,
         '-d', '.', '--find-links', data.find_links, '--no-index',
         expect_stderr=True,
     )
