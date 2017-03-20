@@ -131,7 +131,7 @@ class TestWheel:
 
         assert (
             "invalid.whl; invalid wheel filename"
-            in caplog.text()
+            in caplog.text
         )
 
     def test_not_find_wheel_not_supported(self, data, monkeypatch):
