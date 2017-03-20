@@ -54,8 +54,6 @@ class WheelCommand(RequirementCommand):
             help=("Build wheels into <dir>, where the default is the "
                   "current working directory."),
         )
-        cmd_opts.add_option(cmdoptions.use_wheel())
-        cmd_opts.add_option(cmdoptions.no_use_wheel())
         cmd_opts.add_option(cmdoptions.no_binary())
         cmd_opts.add_option(cmdoptions.only_binary())
         cmd_opts.add_option(
@@ -122,7 +120,6 @@ class WheelCommand(RequirementCommand):
 
     def run(self, options, args):
         self.check_required_packages()
-        cmdoptions.resolve_wheel_no_use_binary(options)
         cmdoptions.check_install_build_global(options)
 
         index_urls = [options.index_url] + options.extra_index_urls

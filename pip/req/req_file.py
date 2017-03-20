@@ -32,8 +32,6 @@ SUPPORTED_OPTIONS = [
     cmdoptions.index_url,
     cmdoptions.find_links,
     cmdoptions.extra_index_url,
-    cmdoptions.use_wheel,
-    cmdoptions.no_use_wheel,
     cmdoptions.always_unzip,
     cmdoptions.no_binary,
     cmdoptions.only_binary,
@@ -193,9 +191,6 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
     elif finder:
         if opts.index_url:
             finder.index_urls = [opts.index_url]
-        if opts.use_wheel is False:
-            finder.use_wheel = False
-            pip.index.fmt_ctl_no_use_wheel(finder.format_control)
         if opts.no_index is True:
             finder.index_urls = []
         if opts.extra_index_urls:

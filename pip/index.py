@@ -1084,14 +1084,6 @@ def fmt_ctl_no_binary(fmt_ctl):
         ':all:', fmt_ctl.no_binary, fmt_ctl.only_binary)
 
 
-def fmt_ctl_no_use_wheel(fmt_ctl):
-    fmt_ctl_no_binary(fmt_ctl)
-    warnings.warn(
-        '--no-use-wheel is deprecated and will be removed in the future. '
-        ' Please use --no-binary :all: instead.', RemovedInPip10Warning,
-        stacklevel=2)
-
-
 Search = namedtuple('Search', 'supplied canonical formats')
 """Capture key aspects of a search.
 

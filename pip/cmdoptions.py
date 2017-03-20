@@ -15,7 +15,7 @@ import warnings
 
 from pip.index import (
     FormatControl, fmt_ctl_handle_mutual_exclude, fmt_ctl_no_binary,
-    fmt_ctl_no_use_wheel)
+)
 from pip.models import PyPI
 from pip.locations import USER_CACHE_DIR, src_prefix
 from pip.utils.hashes import STRONG_HASHES
@@ -32,12 +32,6 @@ def make_option_group(group, parser):
     for option in group['options']:
         option_group.add_option(option())
     return option_group
-
-
-def resolve_wheel_no_use_binary(options):
-    if not options.use_wheel:
-        control = options.format_control
-        fmt_ctl_no_use_wheel(control)
 
 
 def check_install_build_global(options, check_options=None):
@@ -336,27 +330,6 @@ src = partial(
     help='Directory to check out editable projects into. '
     'The default in a virtualenv is "<venv path>/src". '
     'The default for global installs is "<current dir>/src".'
-)
-
-# XXX: deprecated, remove in 9.0
-use_wheel = partial(
-    Option,
-    '--use-wheel',
-    dest='use_wheel',
-    action='store_true',
-    default=True,
-    help=SUPPRESS_HELP,
-)
-
-# XXX: deprecated, remove in 9.0
-no_use_wheel = partial(
-    Option,
-    '--no-use-wheel',
-    dest='use_wheel',
-    action='store_false',
-    default=True,
-    help=('Do not Find and prefer wheel archives when searching indexes and '
-          'find-links locations. DEPRECATED in favour of --no-binary.'),
 )
 
 

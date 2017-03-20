@@ -305,16 +305,6 @@ class TestProcessLine(object):
         list(process_line("--extra-index-url=url", "file", 1, finder=finder))
         assert finder.index_urls == ['url']
 
-    def test_set_finder_use_wheel(self, finder):
-        list(process_line("--use-wheel", "file", 1, finder=finder))
-        no_use_wheel_fmt = pip.index.FormatControl(set(), set())
-        assert finder.format_control == no_use_wheel_fmt
-
-    def test_set_finder_no_use_wheel(self, finder):
-        list(process_line("--no-use-wheel", "file", 1, finder=finder))
-        no_use_wheel_fmt = pip.index.FormatControl(set([':all:']), set())
-        assert finder.format_control == no_use_wheel_fmt
-
     def test_set_finder_trusted_host(self, finder):
         list(process_line("--trusted-host=url", "file", 1, finder=finder))
         assert finder.secure_origins == [('*', 'url', '*')]
