@@ -54,11 +54,11 @@ def test_simple_uninstall_distutils(script):
         in json.loads(result.stdout)
     result = script.pip('uninstall', 'distutils_install', '-y',
                         expect_stderr=True, expect_error=True)
-    assert result.stderr.strip() == (
+    assert (
         "Cannot uninstall 'distutils-install'. It is a distutils installed "
         "project and thus we cannot accurately determine which files belong "
         "to it which would lead to only a partial uninstall."
-    )
+    ) in result.stderr
 
 
 @pytest.mark.network
