@@ -382,6 +382,7 @@ Here are the supported forms::
     [-e] hg+http://hg.myproject.org/MyProject#egg=MyProject
     [-e] hg+https://hg.myproject.org/MyProject#egg=MyProject
     [-e] hg+ssh://hg.myproject.org/MyProject#egg=MyProject
+    [-e] hg+file:///home/user/projects/MyProject#egg=MyProject
 
 You can also specify a revision number, a revision hash, a tag name or a local
 branch name like so::
