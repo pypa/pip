@@ -122,6 +122,9 @@ class DownloadCommand(RequirementCommand):
 
     def run(self, options, args):
         options.ignore_installed = True
+        # editable doesn't really make sense for `pip download`, but the bowels
+        # of the RequirementSet code require that property.
+        options.editables = []
 
         if options.python_version:
             python_versions = [options.python_version]
