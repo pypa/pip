@@ -33,8 +33,8 @@ class DownloadCommand(RequirementCommand):
     usage = """
       %prog [options] <requirement specifier> [package-index-options] ...
       %prog [options] -r <requirements file> [package-index-options] ...
-      %prog [options] [-e] <vcs project url> ...
-      %prog [options] [-e] <local project path> ...
+      %prog [options] <vcs project url> ...
+      %prog [options] <local project path> ...
       %prog [options] <archive url/path> ..."""
 
     summary = 'Download packages.'
@@ -45,7 +45,6 @@ class DownloadCommand(RequirementCommand):
         cmd_opts = self.cmd_opts
 
         cmd_opts.add_option(cmdoptions.constraints())
-        cmd_opts.add_option(cmdoptions.editable())
         cmd_opts.add_option(cmdoptions.requirements())
         cmd_opts.add_option(cmdoptions.build_dir())
         cmd_opts.add_option(cmdoptions.no_deps())
@@ -123,6 +122,9 @@ class DownloadCommand(RequirementCommand):
 
     def run(self, options, args):
         options.ignore_installed = True
+        # editable doesn't really make sense for `pip download`, but the bowels
+        # of the RequirementSet code require that property.
+        options.editables = []
 
         if options.python_version:
             python_versions = [options.python_version]
