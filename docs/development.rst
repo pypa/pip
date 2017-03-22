@@ -80,7 +80,7 @@ The pip project welcomes help in the following ways:
 
 - Making Pull Requests for code, tests, or docs.
 - Commenting on open issues and pull requests.
-- Helping to answer questions on the mailing list.
+- Helping to answer questions on the `mailing list`_.
 
 If you want to become an official maintainer, start by helping out.
 
@@ -171,3 +171,6 @@ to create one of these the changes should already be merged into the
    the ``master`` branch and wait for the tests to run.
 #. Once tests run, merge the ``release/X.Y.Z+1`` branch into master, and follow
    the above release process starting with step 4.
+
+
+.. _`mailing list`: https://mail.python.org/mailman/listinfo/distutils-sig
