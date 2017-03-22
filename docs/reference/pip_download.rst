@@ -20,8 +20,6 @@ Description
 
 Overview
 ++++++++
-``pip download`` replaces the ``--download`` option to ``pip install``,
-which is now deprecated and will be removed in pip 10.
 
 ``pip download`` does the same resolution and downloading as ``pip install``,
 but instead of installing the dependencies, it collects the downloaded
