@@ -1,4 +1,3 @@
-import json
 import os
 import sys
 import textwrap
@@ -449,27 +448,3 @@ class TestUpgradeDistributeToSetuptools(object):
             cwd=pip_src,
             expect_stderr=True,
         )
-
-    @pytest.mark.skipif(
-        sys.version_info >= (3, 5),
-        reason="distribute doesn't work on Python 3.5",
-    )
-    def test_from_distribute_6_to_setuptools_7(
-            self, script, data, virtualenv):
-        self.prep_ve(
-            script, '1.9.1', virtualenv.pip_source_dir, distribute=True
-        )
-        result = self.script.run(
-            self.ve_bin / 'pip', 'install', '--no-index',
-            '--find-links=%s' % data.find_links, '-U', 'distribute',
-        )
-        assert (
-            "Found existing installation: distribute 0.6.34" in result.stdout
-        )
-        result = self.script.run(
-            self.ve_bin / 'pip', 'list', '--format=json',
-        )
-        assert {"name": "setuptools", "version": "0.9.8"} \
-            in json.loads(result.stdout)
-        assert {"name": "distribute", "version": "0.7.3"} \
-            in json.loads(result.stdout)
