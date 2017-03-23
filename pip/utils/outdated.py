@@ -10,7 +10,6 @@ from pip._vendor import lockfile
 from pip._vendor.packaging import version as packaging_version
 
 from pip.compat import WINDOWS
-from pip.models import PyPI
 from pip.index import PackageFinder
 from pip.locations import USER_CACHE_DIR, running_under_virtualenv
 from pip.utils import ensure_dir, get_installed_version
