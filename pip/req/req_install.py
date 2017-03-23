@@ -1069,7 +1069,7 @@ def deduce_helpful_msg(req):
         try:
             with open(req, 'r') as fp:
                 # parse first line only
-                parse_requirements(fp.read()).next()
+                next(parse_requirements(fp.read()))
                 msg += " The argument you provided " + \
                     "(%s) appears to be a" % (req) + \
                     " requirements file. If that is the" + \
