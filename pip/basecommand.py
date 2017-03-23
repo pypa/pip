@@ -248,7 +248,7 @@ class Command(object):
                         options,
                         retries=0,
                         timeout=min(5, options.timeout)) as session:
-                    pip_version_check(session)
+                    pip_version_check(session, options)
 
         return SUCCESS
 
