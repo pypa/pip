@@ -13,10 +13,6 @@ try:
 except ImportError:
     supports_fd = set()
 
-if sys.version_info >= (3,):
-    unicode = str
-else:
-    unicode = unicode
 
 _base = os.path.supports_unicode_filenames and unicode or str
 
