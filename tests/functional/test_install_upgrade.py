@@ -4,10 +4,7 @@ import textwrap
 
 import pytest
 
-from tests.lib import (
-    assert_all_changes, pyversion, _create_test_package,
-    _change_test_package_version,
-)
+from tests.lib import assert_all_changes, pyversion
 from tests.lib.local_repos import local_checkout
 
 
