@@ -15,10 +15,8 @@ except ImportError:
 
 if sys.version_info >= (3,):
     unicode = str
-    u = str
 else:
     unicode = unicode
-    u = lambda s: s.decode('utf-8')
 
 _base = os.path.supports_unicode_filenames and unicode or str
 
@@ -111,7 +109,7 @@ class Path(_base):
         return Path(path + _base(self))
 
     def __repr__(self):
-        return u("Path(%s)" % _base.__repr__(self))
+        return u"Path(%s)" % _base.__repr__(self)
 
     def __hash__(self):
         return _base.__hash__(self)
