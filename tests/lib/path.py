@@ -13,8 +13,10 @@ try:
 except ImportError:
     supports_fd = set()
 
+from pip._vendor import six
 
-_base = os.path.supports_unicode_filenames and unicode or str
+
+_base = six.text_type if os.path.supports_unicode_filenames else str
 
 
 class Path(_base):
