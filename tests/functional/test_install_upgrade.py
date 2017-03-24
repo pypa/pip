@@ -314,31 +314,6 @@ def test_uninstall_rollback(script, data):
     )
 
 
-# Issue #530 - temporarily disable flaky test
-@pytest.mark.skipif
-def test_editable_git_upgrade(script):
-    """
-    Test installing an editable git package from a repository, upgrading the
-    repository, installing again, and check it gets the newer version
-    """
-    version_pkg_path = _create_test_package(script)
-    script.pip(
-        'install', '-e',
-        '%s#egg=version_pkg' % ('git+file://' + version_pkg_path),
-    )
-    version = script.run('version_pkg')
-    assert '0.1' in version.stdout
-    _change_test_package_version(script, version_pkg_path)
-    script.pip(
-        'install', '-e',
-        '%s#egg=version_pkg' % ('git+file://' + version_pkg_path),
-    )
-    version2 = script.run('version_pkg')
-    assert 'some different version' in version2.stdout, (
-        "Output: %s" % (version2.stdout)
-    )
-
-
 @pytest.mark.network
 def test_should_not_install_always_from_cache(script):
     """
