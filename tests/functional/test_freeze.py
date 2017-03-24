@@ -398,32 +398,6 @@ def test_freeze_bazaar_clone(script, tmpdir):
     _check_output(result.stdout, expected)
 
 
-def test_freeze_with_local_option(script):
-    """
-    Test that wsgiref (from global site-packages) is reported normally, but not
-    with --local.
-    """
-    result = script.pip_install_local('initools==0.2')
-    result = script.pip('freeze', expect_stderr=True)
-    expected = textwrap.dedent("""\
-        INITools==0.2
-        wsgiref==...
-        <BLANKLINE>""")
-
-    # The following check is broken (see
-    # http://bitbucket.org/ianb/pip/issue/110).  For now we are simply
-    # neutering this test, but if we can't find a way to fix it,
-    # this whole function should be removed.
-
-    # _check_output(result, expected)
-
-    result = script.pip('freeze', '--local', expect_stderr=True)
-    expected = textwrap.dedent("""\
-        INITools==0.2
-        <BLANKLINE>""")
-    _check_output(result.stdout, expected)
-
-
 # used by the test_freeze_with_requirement_* tests below
 _freeze_req_opts = textwrap.dedent("""\
     # Unchanged requirements below this line
