@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 warnings.filterwarnings("ignore", category=InsecureRequestWarning)
 
 
-def autocomplete():
+def autocomplete(stdout):
     """Command and option completion for the main option parser (and options)
     and its subcommands (and options).
 
@@ -75,7 +75,7 @@ def autocomplete():
     except IndexError:
         subcommand_name = None
 
-    parser = create_main_parser()
+    parser = create_main_parser(stdout=stdout)
     # subcommand options
     if subcommand_name:
         # special case: 'help' subcommand has no options
@@ -124,13 +124,14 @@ def autocomplete():
     sys.exit(1)
 
 
-def create_main_parser():
+def create_main_parser(stdout):
     parser_kw = {
         'usage': '\n%prog <command> [options]',
         'add_help_option': False,
         'formatter': UpdatingDefaultsHelpFormatter(),
         'name': 'global',
         'prog': get_prog(),
+        'stdout': stdout,
     }
 
     parser = ConfigOptionParser(**parser_kw)
@@ -154,8 +155,8 @@ def create_main_parser():
     return parser
 
 
-def parseopts(args):
-    parser = create_main_parser()
+def parseopts(args, stdout):
+    parser = create_main_parser(stdout=stdout)
 
     # Note: parser calls disable_interspersed_args(), so the result of this
     # call is to split the initial args into the general options before the
@@ -168,8 +169,8 @@ def parseopts(args):
 
     # --version
     if general_options.version:
-        sys.stdout.write(parser.version)
-        sys.stdout.write(os.linesep)
+        stdout.write(parser.version)
+        stdout.write(os.linesep)
         sys.exit()
 
     # pip || pip help -> print_help()
@@ -205,20 +206,26 @@ def check_isolated(args):
     return isolated
 
 
-def main(args=None):
+def main(args=None, stdin=None, stdout=None, stderr=None):
     if args is None:
         args = sys.argv[1:]
+    if stdin is None:
+        stdin = sys.stdin
+    if stdout is None:
+        stdout = sys.stdout
+    if stderr is None:
+        stderr = sys.stderr
 
     # Configure our deprecation warnings to be sent through loggers
     deprecation.install_warning_logger()
 
-    autocomplete()
+    autocomplete(stdout=stdout)
 
     try:
-        cmd_name, cmd_args = parseopts(args)
+        cmd_name, cmd_args = parseopts(args, stdout=stdout)
     except PipError as exc:
-        sys.stderr.write("ERROR: %s" % exc)
-        sys.stderr.write(os.linesep)
+        stderr.write("ERROR: %s" % exc)
+        stderr.write(os.linesep)
         sys.exit(1)
 
     # Needed for locale.getpreferredencoding(False) to work
@@ -228,7 +235,9 @@ def main(args=None):
     except locale.Error as e:
         # setlocale can apparently crash if locale are uninitialized
         logger.debug("Ignoring error %s when setting locale", e)
-    command = commands_dict[cmd_name](isolated=check_isolated(cmd_args))
+    command = commands_dict[cmd_name](
+        isolated=check_isolated(cmd_args), stdout=stdout
+    )
     return command.main(cmd_args)
 
 

@@ -65,12 +65,30 @@ def test_help_command_should_exit_status_error_when_cmd_does_not_exist(script):
     assert result.returncode == ERROR
 
 
-def test_help_commands_equally_functional(script):
+class InMemoryPipResult(object):
+    def __init__(self, returncode, stdout):
+        self.returncode = returncode
+        self.stdout = stdout
+
+
+def in_memory_pip(*args):
+    import io
+
+    import pip
+    stdout = io.BytesIO()
+    try:
+        returncode = pip.main(list(args), stdout=stdout)
+    except SystemExit as e:
+        returncode = e.code or 0
+    return InMemoryPipResult(returncode, stdout.getvalue())
+
+
+def test_help_commands_equally_functional():
     """
     Test if `pip help` and 'pip --help' behave the same way.
     """
-    results = list(map(script.pip, ('help', '--help')))
-    results.append(script.pip())
+    results = list(map(in_memory_pip, ('help', '--help')))
+    results.append(in_memory_pip())
 
     out = map(lambda x: x.stdout, results)
     ret = map(lambda x: x.returncode, results)
@@ -78,12 +96,13 @@ def test_help_commands_equally_functional(script):
     msg = '"pip --help" != "pip help" != "pip"'
     assert len(set(out)) == 1, 'output of: ' + msg
     assert sum(ret) == 0, 'exit codes of: ' + msg
+    assert all(len(o) > 0 for o in out)
 
     for name, cls in commands.items():
         if cls.hidden:
             continue
 
         assert (
-            script.pip('help', name).stdout ==
-            script.pip(name, '--help').stdout
+            in_memory_pip('help', name).stdout ==
+            in_memory_pip(name, '--help').stdout != ""
         )

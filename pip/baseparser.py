@@ -130,6 +130,7 @@ class ConfigOptionParser(CustomOptionParser):
 
     def __init__(self, *args, **kwargs):
         self.name = kwargs.pop('name')
+        self.stdout = kwargs.pop('stdout')
 
         isolated = kwargs.pop("isolated", False)
         self.config = Configuration(isolated)
@@ -207,6 +208,9 @@ class ConfigOptionParser(CustomOptionParser):
                 opt_str = option.get_opt_string()
                 defaults[option.dest] = option.check_value(opt_str, default)
         return optparse.Values(defaults)
+
+    def print_help(self):
+        return CustomOptionParser.print_help(self, file=self.stdout)
 
     def error(self, msg):
         self.print_usage(sys.stderr)
