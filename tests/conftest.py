@@ -1,8 +1,11 @@
+import io
 import os
 import shutil
+import sys
 
 import pytest
 
+import pip
 from pip.utils import appdirs
 
 from tests.lib import SRC_DIR, TestData
@@ -196,11 +199,6 @@ class InMemoryPipResult(object):
 
 class InMemoryPip(object):
     def pip(self, *args):
-        import io
-        import sys
-
-        import pip
-
         orig_stdout = sys.stdout
         sys.stdout = stdout = io.BytesIO()
         try:
