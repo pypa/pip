@@ -1,17 +1,23 @@
 # -*- coding: utf-8 -*-
 """
-SOCKS support for urllib3
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-This contrib module contains provisional support for SOCKS proxies from within
+This module contains provisional support for SOCKS proxies from within
 urllib3. This module supports SOCKS4 (specifically the SOCKS4A variant) and
 SOCKS5. To enable its functionality, either install PySocks or install this
 module with the ``socks`` extra.
 
+The SOCKS implementation supports the full range of urllib3 features. It also
+supports the following SOCKS features:
+
+- SOCKS4
+- SOCKS4a
+- SOCKS5
+- Usernames and passwords for the SOCKS proxy
+
 Known Limitations:
 
 - Currently PySocks does not support contacting remote websites via literal
-  IPv6 addresses. Any such connection attempt will fail.
+  IPv6 addresses. Any such connection attempt will fail. You must use a domain
+  name.
 - Currently PySocks does not support IPv6 connections to the SOCKS proxy. Any
   such connection attempt will fail.
 """
@@ -77,6 +83,7 @@ class SOCKSConnection(HTTPConnection):
                 proxy_port=self._socks_options['proxy_port'],
                 proxy_username=self._socks_options['username'],
                 proxy_password=self._socks_options['password'],
+                proxy_rdns=self._socks_options['rdns'],
                 timeout=self.timeout,
                 **extra_kw
             )
@@ -147,8 +154,16 @@ class SOCKSProxyManager(PoolManager):
 
         if parsed.scheme == 'socks5':
             socks_version = socks.PROXY_TYPE_SOCKS5
+            rdns = False
+        elif parsed.scheme == 'socks5h':
+            socks_version = socks.PROXY_TYPE_SOCKS5
+            rdns = True
         elif parsed.scheme == 'socks4':
             socks_version = socks.PROXY_TYPE_SOCKS4
+            rdns = False
+        elif parsed.scheme == 'socks4a':
+            socks_version = socks.PROXY_TYPE_SOCKS4
+            rdns = True
         else:
             raise ValueError(
                 "Unable to determine SOCKS version from %s" % proxy_url
@@ -162,6 +177,7 @@ class SOCKSProxyManager(PoolManager):
             'proxy_port': parsed.port,
             'username': username,
             'password': password,
+            'rdns': rdns
         }
         connection_pool_kw['_socks_options'] = socks_options
 

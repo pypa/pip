@@ -6,7 +6,7 @@ import types
 try:
     from collections import OrderedDict
 except ImportError:
-    from pip._vendor.ordereddict import OrderedDict
+    from ordereddict import OrderedDict
 
 from . import _inputstream
 from . import _tokenizer

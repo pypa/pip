@@ -8,16 +8,6 @@ import sys
 from pip._vendor.six import text_type
 
 try:
-    from logging.config import dictConfig as logging_dictConfig
-except ImportError:
-    from pip.compat.dictconfig import dictConfig as logging_dictConfig
-
-try:
-    from collections import OrderedDict
-except ImportError:
-    from pip._vendor.ordereddict import OrderedDict
-
-try:
     import ipaddress
 except ImportError:
     try:
@@ -28,30 +18,9 @@ except ImportError:
         ipaddress.ip_network = ipaddress.IPNetwork
 
 
-try:
-    import sysconfig
-
-    def get_stdlib():
-        paths = [
-            sysconfig.get_path("stdlib"),
-            sysconfig.get_path("platstdlib"),
-        ]
-        return set(filter(bool, paths))
-except ImportError:
-    from distutils import sysconfig
-
-    def get_stdlib():
-        paths = [
-            sysconfig.get_python_lib(standard_lib=True),
-            sysconfig.get_python_lib(standard_lib=True, plat_specific=True),
-        ]
-        return set(filter(bool, paths))
-
-
 __all__ = [
-    "logging_dictConfig", "ipaddress", "uses_pycache", "console_to_str",
-    "native_str", "get_path_uid", "stdlib_pkgs", "WINDOWS", "samefile",
-    "OrderedDict",
+    "ipaddress", "uses_pycache", "console_to_str", "native_str",
+    "get_path_uid", "stdlib_pkgs", "WINDOWS", "samefile",
 ]
 
 
@@ -88,14 +57,6 @@ else:
         if isinstance(s, text_type):
             return s.encode('utf-8')
         return s
-
-
-def total_seconds(td):
-    if hasattr(td, "total_seconds"):
-        return td.total_seconds()
-    else:
-        val = td.microseconds + (td.seconds + td.days * 24 * 3600) * 10 ** 6
-        return val / 10 ** 6
 
 
 def get_path_uid(path):
@@ -144,9 +105,7 @@ def expanduser(path):
 # dist.location (py27:`sysconfig.get_paths()['stdlib']`,
 # py26:sysconfig.get_config_vars('LIBDEST')), but fear platform variation may
 # make this ineffective, so hard-coding
-stdlib_pkgs = ('python', 'wsgiref')
-if sys.version_info >= (2, 7):
-    stdlib_pkgs += ('argparse',)
+stdlib_pkgs = {"python", "wsgiref", "argparse"}
 
 
 # windows detection, covers cpython and ironpython

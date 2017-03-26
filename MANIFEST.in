@@ -1,7 +1,8 @@
 include AUTHORS.txt
 include LICENSE.txt
-include CHANGES.txt
+include NEWS.rst
 include README.rst
+include pyproject.toml
 include pip/_vendor/README.rst
 include pip/_vendor/vendor.txt
 
@@ -20,6 +21,7 @@ recursive-include docs Makefile *.rst *.py *.bat
 prune .github
 prune .travis
 prune docs/_build
+prune news
 prune contrib
 prune tasks
 prune tests

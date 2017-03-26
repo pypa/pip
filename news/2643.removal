@@ -1,0 +1,1 @@
+Removed the deprecated ``--download`` option to ``pip install``.

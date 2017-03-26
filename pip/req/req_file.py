@@ -9,16 +9,13 @@ import re
 import shlex
 import sys
 import optparse
-import warnings
 
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves import filterfalse
 
-import pip
 from pip.download import get_file_content
 from pip.req.req_install import InstallRequirement
 from pip.exceptions import (RequirementsFileParseError)
-from pip.utils.deprecation import RemovedInPip10Warning
 from pip import cmdoptions
 
 __all__ = ['parse_requirements']
@@ -34,13 +31,6 @@ SUPPORTED_OPTIONS = [
     cmdoptions.index_url,
     cmdoptions.find_links,
     cmdoptions.extra_index_url,
-    cmdoptions.allow_external,
-    cmdoptions.allow_all_external,
-    cmdoptions.no_allow_external,
-    cmdoptions.allow_unsafe,
-    cmdoptions.no_allow_unsafe,
-    cmdoptions.use_wheel,
-    cmdoptions.no_use_wheel,
     cmdoptions.always_unzip,
     cmdoptions.no_binary,
     cmdoptions.only_binary,
@@ -161,11 +151,9 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
     # yield an editable requirement
     elif opts.editables:
         isolated = options.isolated_mode if options else False
-        default_vcs = options.default_vcs if options else None
         yield InstallRequirement.from_editable(
             opts.editables[0], comes_from=line_comes_from,
-            constraint=constraint, default_vcs=default_vcs, isolated=isolated,
-            wheel_cache=wheel_cache
+            constraint=constraint, isolated=isolated, wheel_cache=wheel_cache
         )
 
     # parse a nested requirements file
@@ -198,35 +186,8 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
 
     # set finder options
     elif finder:
-        if opts.allow_external:
-            warnings.warn(
-                "--allow-external has been deprecated and will be removed in "
-                "the future. Due to changes in the repository protocol, it no "
-                "longer has any effect.",
-                RemovedInPip10Warning,
-            )
-
-        if opts.allow_all_external:
-            warnings.warn(
-                "--allow-all-external has been deprecated and will be removed "
-                "in the future. Due to changes in the repository protocol, it "
-                "no longer has any effect.",
-                RemovedInPip10Warning,
-            )
-
-        if opts.allow_unverified:
-            warnings.warn(
-                "--allow-unverified has been deprecated and will be removed "
-                "in the future. Due to changes in the repository protocol, it "
-                "no longer has any effect.",
-                RemovedInPip10Warning,
-            )
-
         if opts.index_url:
             finder.index_urls = [opts.index_url]
-        if opts.use_wheel is False:
-            finder.use_wheel = False
-            pip.index.fmt_ctl_no_use_wheel(finder.format_control)
         if opts.no_index is True:
             finder.index_urls = []
         if opts.extra_index_urls:

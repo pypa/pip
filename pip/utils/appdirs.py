@@ -60,7 +60,7 @@ def user_cache_dir(appname):
 
 
 def user_data_dir(appname, roaming=False):
-    """
+    r"""
     Return full path to the user-specific data dir for this application.
 
         "appname" is the name of application.
@@ -74,6 +74,7 @@ def user_data_dir(appname, roaming=False):
 
     Typical user data directories are:
         macOS:                  ~/Library/Application Support/<AppName>
+                                if it exists, else ~/.config/<AppName>
         Unix:                   ~/.local/share/<AppName>    # or in
                                 $XDG_DATA_HOME, if defined
         Win XP (not roaming):   C:\Documents and Settings\<username>\ ...
@@ -92,6 +93,13 @@ def user_data_dir(appname, roaming=False):
     elif sys.platform == "darwin":
         path = os.path.join(
             expanduser('~/Library/Application Support/'),
+            appname,
+        ) if os.path.isdir(os.path.join(
+            expanduser('~/Library/Application Support/'),
+            appname,
+        )
+        ) else os.path.join(
+            expanduser('~/.config/'),
             appname,
         )
     else:
@@ -137,7 +145,7 @@ def user_config_dir(appname, roaming=True):
 # for the discussion regarding site_config_dirs locations
 # see <https://github.com/pypa/pip/issues/1733>
 def site_config_dirs(appname):
-    """Return a list of potential user-shared config dirs for this application.
+    r"""Return a list of potential user-shared config dirs for this application.
 
         "appname" is the name of application.
 

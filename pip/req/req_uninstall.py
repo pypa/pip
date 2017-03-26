@@ -5,13 +5,12 @@ import functools
 import logging
 import os
 import sys
+import sysconfig
 import tempfile
-import warnings
 
 from pip._vendor import pkg_resources
 
 from pip.compat import uses_pycache, WINDOWS, cache_from_source
-from pip.compat import get_stdlib
 from pip.exceptions import UninstallationError
 from pip.locations import (
     bin_py, bin_user,
@@ -21,7 +20,6 @@ from pip.utils import (
     egg_link_path, FakeFile,
     renames, normalize_path, dist_is_local,
 )
-from pip.utils.deprecation import RemovedInPip10Warning
 from pip.utils.logging import indent_log
 
 
@@ -223,7 +221,9 @@ class UninstallPathSet(object):
             )
             return cls(dist)
 
-        if dist_path in get_stdlib():
+        if dist_path in {p for p in {sysconfig.get_path("stdlib"),
+                                     sysconfig.get_path("platstdlib")}
+                         if p}:
             logger.info(
                 "Not uninstalling %s at %s, as it is in the standard library.",
                 dist.key,
@@ -272,15 +272,13 @@ class UninstallPathSet(object):
                     paths_to_remove.add(path + '.pyo')
 
         elif distutils_egg_info:
-            warnings.warn(
-                "Uninstalling a distutils installed project ({0}) has been "
-                "deprecated and will be removed in a future version. This is "
-                "due to the fact that uninstalling a distutils project will "
-                "only partially uninstall the project.".format(
-                    dist.project_name),
-                RemovedInPip10Warning,
+            raise UninstallationError(
+                "Cannot uninstall {!r}. It is a distutils installed project "
+                "and thus we cannot accurately determine which files belong "
+                "to it which would lead to only a partial uninstall.".format(
+                    dist.project_name,
+                )
             )
-            paths_to_remove.add(distutils_egg_info)
 
         elif dist.location.endswith('.egg'):
             # package installed by easy_install

@@ -30,10 +30,12 @@ def parse_uri(uri):
 class CacheController(object):
     """An interface to see if request should cached or not.
     """
-    def __init__(self, cache=None, cache_etags=True, serializer=None):
+    def __init__(self, cache=None, cache_etags=True, serializer=None,
+                 status_codes=None):
         self.cache = cache or DictCache()
         self.cache_etags = cache_etags
         self.serializer = serializer or Serializer()
+        self.cacheable_status_codes = status_codes or (200, 203, 300, 301)
 
     @classmethod
     def _urlnorm(cls, uri):
@@ -220,7 +222,8 @@ class CacheController(object):
 
         return new_headers
 
-    def cache_response(self, request, response, body=None):
+    def cache_response(self, request, response, body=None,
+                       status_codes=None):
         """
         Algorithm for caching requests.
 
@@ -228,7 +231,7 @@ class CacheController(object):
         """
         # From httplib2: Don't cache 206's since we aren't going to
         #                handle byte range requests
-        cacheable_status_codes = [200, 203, 300, 301]
+        cacheable_status_codes = status_codes or self.cacheable_status_codes
         if response.status not in cacheable_status_codes:
             logger.debug(
                 'Status code %s not in %s',
