@@ -280,7 +280,7 @@ def test_install_quiet(script, data):
     #   https://github.com/pypa/pip/issues/3418
     #   https://github.com/docker-library/python/issues/83
     to_install = data.packages.join("FSPkg")
-    result = script.pip('install', '-q', to_install, expect_error=False)
+    result = script.pip('install', '-qqq', to_install, expect_error=False)
     assert result.stdout == ""
     assert result.stderr == ""
 
