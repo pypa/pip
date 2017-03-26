@@ -5,6 +5,8 @@ import sys
 
 import pytest
 
+import six
+
 import pip
 from pip.utils import appdirs
 
@@ -200,7 +202,11 @@ class InMemoryPipResult(object):
 class InMemoryPip(object):
     def pip(self, *args):
         orig_stdout = sys.stdout
-        sys.stdout = stdout = io.BytesIO()
+        if six.PY3:
+            stdout = io.StringIO()
+        else:
+            stdout = io.BytesIO()
+        sys.stdout = stdout
         try:
             returncode = pip.main(list(args))
         except SystemExit as e:
