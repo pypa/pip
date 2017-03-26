@@ -1,0 +1,1 @@
+Fixes destination directory of data_files when ``pip install --target`` is used.

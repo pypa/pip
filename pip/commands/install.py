@@ -313,14 +313,21 @@ class InstallCommand(RequirementCommand):
 
             purelib_dir = distutils_scheme('', home=temp_target_dir)['purelib']
             platlib_dir = distutils_scheme('', home=temp_target_dir)['platlib']
+            data_dir = distutils_scheme('', home=temp_target_dir)['data']
 
             if os.path.exists(purelib_dir):
                 lib_dir_list.append(purelib_dir)
             if os.path.exists(platlib_dir) and platlib_dir != purelib_dir:
                 lib_dir_list.append(platlib_dir)
+            if os.path.exists(data_dir):
+                lib_dir_list.append(data_dir)
 
             for lib_dir in lib_dir_list:
                 for item in os.listdir(lib_dir):
+                    if lib_dir == data_dir:
+                        ddir = os.path.join(data_dir, item)
+                        if any(s.startswith(ddir) for s in lib_dir_list[:-1]):
+                            continue
                     target_item_dir = os.path.join(options.target_dir, item)
                     if os.path.exists(target_item_dir):
                         if not options.upgrade:
