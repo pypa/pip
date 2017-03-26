@@ -10,7 +10,7 @@ import site
 import scripttest
 import virtualenv
 
-from tests.lib.path import Path, curdir, u
+from tests.lib.path import Path, curdir
 
 DATA_DIR = Path(__file__).folder.folder.join("data").abspath
 SRC_DIR = Path(__file__).abspath.folder.folder.folder
@@ -177,7 +177,7 @@ class TestPipResult(object):
             # FIXME: I don't understand why there's a trailing . here
             if not (egg_link_file.bytes.endswith('\n.') and
                     egg_link_file.bytes[:-2].endswith(pkg_dir)):
-                raise TestFailure(textwrap.dedent(u('''\
+                raise TestFailure(textwrap.dedent(u'''\
                     Incorrect egg_link file %r
                     Expected ending: %r
                     ------- Actual contents -------
@@ -186,7 +186,7 @@ class TestPipResult(object):
                     egg_link_file,
                     pkg_dir + '\n.',
                     repr(egg_link_file.bytes))
-                )))
+                ))
 
         if use_user_site:
             pth_file = e.user_site / 'easy-install.pth'
@@ -333,6 +333,9 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
         # that will touch the outside world.
         if (pyversion_tuple < (2, 7, 9) and
                 args and args[0] in ('search', 'install', 'download')):
+            kwargs['expect_stderr'] = True
+        # Python 3.3 is deprecated and we emit a warning on it.
+        if pyversion_tuple[:2] == (3, 3):
             kwargs['expect_stderr'] = True
 
         return self.run("pip", *args, **kwargs)

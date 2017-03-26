@@ -70,7 +70,7 @@ def test_pip_second_command_line_interface_works(script, data):
     # On old versions of Python, urllib3/requests will raise a warning about
     # the lack of an SSLContext.
     kwargs = {}
-    if pyversion_tuple < (2, 7, 9):
+    if pyversion_tuple < (2, 7, 9) or pyversion_tuple[:2] == (3, 3):
         kwargs['expect_stderr'] = True
 
     args = ['pip%s' % pyversion]
