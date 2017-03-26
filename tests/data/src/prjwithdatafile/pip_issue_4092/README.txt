@@ -1,4 +1,0 @@
-README
-======
-
-Test project file

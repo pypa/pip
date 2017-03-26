@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-from setuptools import setup, find_packages
+from setuptools import setup
 
 setup(
-    name='pip_issue_4092',
+    name='prjwithdatafile',
     version="1.0",
-    packages=['pip_issue_4092'],
+    packages=['prjwithdatafile'],
     data_files=[
-        (r'packages1', ['pip_issue_4092/README.txt']),
-        (r'packages2', ['pip_issue_4092/README.txt'])
+        (r'packages1', ['prjwithdatafile/README.txt']),
+        (r'packages2', ['prjwithdatafile/README.txt'])
     ]
 )
