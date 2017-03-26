@@ -186,3 +186,32 @@ def script(tmpdir, virtualenv):
 @pytest.fixture
 def data(tmpdir):
     return TestData.copy(tmpdir.join("data"))
+
+
+class InMemoryPipResult(object):
+    def __init__(self, returncode, stdout):
+        self.returncode = returncode
+        self.stdout = stdout
+
+
+class InMemoryPip(object):
+    def pip(self, *args):
+        import io
+        import sys
+
+        import pip
+
+        orig_stdout = sys.stdout
+        sys.stdout = stdout = io.BytesIO()
+        try:
+            returncode = pip.main(list(args))
+        except SystemExit as e:
+            returncode = e.code or 0
+        finally:
+            sys.stdout = orig_stdout
+        return InMemoryPipResult(returncode, stdout.getvalue())
+
+
+@pytest.fixture
+def in_memory_pip():
+    return InMemoryPip()

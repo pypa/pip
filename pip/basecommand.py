@@ -38,7 +38,7 @@ class Command(object):
     hidden = False
     log_streams = ("ext://sys.stdout", "ext://sys.stderr")
 
-    def __init__(self, isolated=False, stdout=None):
+    def __init__(self, isolated=False):
         parser_kw = {
             'usage': self.usage,
             'prog': '%s %s' % (get_prog(), self.name),
@@ -47,7 +47,6 @@ class Command(object):
             'name': self.name,
             'description': self.__doc__,
             'isolated': isolated,
-            'stdout': stdout,
         }
 
         self.parser = ConfigOptionParser(**parser_kw)
