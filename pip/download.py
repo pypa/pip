@@ -131,13 +131,6 @@ def user_agent():
     )
 
 
-def unquote(s):
-    if six.PY2:
-        return urllib_unquote(s.encode("utf-8")).decode("utf-8")
-    else:
-        return urllib_unquote(s)  # utf-8 decode is built in
-
-
 class MultiDomainBasicAuth(AuthBase):
 
     def __init__(self, prompting=True):
@@ -215,8 +208,9 @@ class MultiDomainBasicAuth(AuthBase):
         if "@" in netloc:
             userinfo = netloc.rsplit("@", 1)[0]
             if ":" in userinfo:
-                return tuple(unquote(part) for part in userinfo.split(":", 1))
-            return unquote(userinfo), None
+                user, pwd = userinfo.split(":", 1)
+                return (urllib_unquote(user), urllib_unquote(pwd))
+            return urllib_unquote(userinfo), None
         return None, None
 
 

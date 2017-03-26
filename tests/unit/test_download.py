@@ -337,14 +337,10 @@ class TestPipSession:
 
 def test_parse_credentials():
     auth = MultiDomainBasicAuth()
-    assert auth.parse_credentials(u"foo:bar@example.com") == (u'foo', u'bar')
-    assert auth.parse_credentials(u"foo@example.com") == (u'foo', None)
-    assert auth.parse_credentials(u"example.com") == (None, None)
+    assert auth.parse_credentials("foo:bar@example.com") == ('foo', 'bar')
+    assert auth.parse_credentials("foo@example.com") == ('foo', None)
+    assert auth.parse_credentials("example.com") == (None, None)
 
     # URL-encoded reserved characters:
-    assert auth.parse_credentials(u"user%3Aname:%23%40%5E@example.com") \
-        == (u"user:name", u"#@^")
-
-    # URL-encoded UTF-8:
-    assert auth.parse_credentials(u"%C2%A3:%C2%A3@example.com") \
-        == (u"\u00a3", u"\u00a3")
+    assert auth.parse_credentials("user%3Aname:%23%40%5E@example.com") \
+        == ("user:name", "#@^")
