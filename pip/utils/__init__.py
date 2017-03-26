@@ -686,6 +686,8 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
                 if spinner is not None:
                     spinner.spin()
     proc.wait()
+    if stdout is not None:
+        proc.stdout.close()
     if spinner is not None:
         if proc.returncode:
             spinner.finish("error")
