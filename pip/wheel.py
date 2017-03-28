@@ -187,7 +187,7 @@ def fix_script(path):
             script.write(rest)
         return True
 
-dist_info_re = re.compile(r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>\d.+?))?)
+dist_info_re = re.compile(r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>.+?))?)
                                 \.dist-info$""", re.VERBOSE)
 
 
@@ -582,7 +582,7 @@ class Wheel(object):
     # TODO: maybe move the install code into this class
 
     wheel_file_re = re.compile(
-        r"""^(?P<namever>(?P<name>.+?)-(?P<ver>\d.*?))
+        r"""^(?P<namever>(?P<name>.+?)-(?P<ver>.*?))
         ((-(?P<build>\d.*?))?-(?P<pyver>.+?)-(?P<abi>.+?)-(?P<plat>.+?)
         \.whl|\.dist-info)$""",
         re.VERBOSE
