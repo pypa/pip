@@ -1,0 +1,3 @@
+Adds a simple check if the local revision is the same as the remote revision, even if the ref is a tag or branch name.
+
+Until now branches or tags would always try to update the repository.
