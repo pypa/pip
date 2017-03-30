@@ -100,7 +100,7 @@ class Git(VersionControl):
         """
         Compare the current sha to the ref. ref may be a branch or tag name,
         but current rev will always point to a sha.
-        This means that if ref is a branch or tag name, 
+        This means that if ref is a branch or tag name,
         we will fetch the ref's sha using ls-remote
         """
 
