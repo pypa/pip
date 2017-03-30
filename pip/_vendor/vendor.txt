@@ -4,7 +4,7 @@ distro==1.0.3
 html5lib==1.0b10
 six==1.10.0
 colorama==0.3.7
-CacheControl==0.12.1
+CacheControl==0.12.2
 msgpack-python==0.4.8
 lockfile==0.12.2
 progress==1.2
