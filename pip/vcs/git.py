@@ -96,14 +96,21 @@ class Git(VersionControl):
             )
             return rev_options
 
-    def check_version(self, dest, rev_options):
+    def check_version(self, dest, rev_options, url=None):
         """
         Compare the current sha to the ref. ref may be a branch or tag name,
-        but current rev will always point to a sha. This means that a branch
-        or tag will never compare as True. So this ultimately only matches
-        against exact shas.
+        but current rev will always point to a sha. 
+        This means that if ref is a branch or tag name, we will fetch the ref's sha using ls-remote
         """
-        return self.get_revision(dest).startswith(rev_options[0])
+
+        local_revision = self.get_revision(dest)
+
+        if url is not None:
+            remote_revision = self.get_remote_revision(url, rev_options[0])
+        else:
+            remote_revision = rev_options[0]
+
+        return local_revision.startswith(remote_revision)
 
     def switch(self, dest, url, rev_options):
         self.run_command(['config', 'remote.origin.url', url], cwd=dest)
@@ -170,6 +177,12 @@ class Git(VersionControl):
         current_rev = self.run_command(
             ['rev-parse', 'HEAD'], show_stdout=False, cwd=location)
         return current_rev.strip()
+
+    def get_remote_revision(self, url, ref):
+        remote_rev = self.run_command(
+            ['ls-remote', url, ref], show_stdout=False)
+
+        return remote_rev.split()[0].strip()
 
     def get_full_refs(self, location):
         """Yields tuples of (commit, ref) for branches and tags"""

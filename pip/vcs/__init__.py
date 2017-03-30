@@ -184,7 +184,7 @@ class VersionControl(object):
         """
         raise NotImplementedError
 
-    def check_version(self, dest, rev_options):
+    def check_version(self, dest, rev_options, url=None):
         """
         Return True if the version is identical to what exists and
         doesn't need to be updated.
@@ -211,7 +211,7 @@ class VersionControl(object):
                         display_path(dest),
                         url,
                     )
-                    if not self.check_version(dest, rev_options):
+                    if not self.check_version(dest, rev_options, url=url):
                         logger.info(
                             'Updating %s %s%s',
                             display_path(dest),

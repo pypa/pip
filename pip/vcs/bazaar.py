@@ -108,7 +108,7 @@ class Bazaar(VersionControl):
         current_rev = self.get_revision(location)
         return '%s@%s#egg=%s' % (repo, current_rev, egg_project_name)
 
-    def check_version(self, dest, rev_options):
+    def check_version(self, dest, rev_options, url=None):
         """Always assume the versions don't match"""
         return False
 
