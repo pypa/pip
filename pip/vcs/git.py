@@ -99,8 +99,9 @@ class Git(VersionControl):
     def check_version(self, dest, rev_options, url=None):
         """
         Compare the current sha to the ref. ref may be a branch or tag name,
-        but current rev will always point to a sha. 
-        This means that if ref is a branch or tag name, we will fetch the ref's sha using ls-remote
+        but current rev will always point to a sha.
+        This means that if ref is a branch or tag name, 
+        we will fetch the ref's sha using ls-remote
         """
 
         local_revision = self.get_revision(dest)
