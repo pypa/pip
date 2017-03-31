@@ -4,6 +4,7 @@ from __future__ import absolute_import, division
 
 import os
 import sys
+import warnings
 
 from pip._vendor.six import text_type
 
@@ -44,6 +45,9 @@ if sys.version_info >= (3,):
             try:
                 return s.decode('utf_8')
             except UnicodeDecodeError:
+                warnings.warn(
+                    'Could not detect stdout encoding - falling back to repr',
+                    category=RuntimeWarning, stacklevel=2)
                 # Decode at least line breaks manually
                 return repr(s)[2:-1].replace('\\r', '\r').replace('\\n', '\n')
 
