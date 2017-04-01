@@ -741,8 +741,8 @@ class WheelBuilder(object):
                                                   isolate=True)
         else:
             # Build in the current environment, with no isolation.
-            # Used for sdists without a pyproject.toml, as well as build systems
-            # that don't require any external dependencies.
+            # Used for sdists without a pyproject.toml, as well as build
+            # systems that don't require any external dependencies.
             return self._build_one_inside_env(req, output_dir,
                                               python_tag=python_tag)
 
