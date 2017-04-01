@@ -21,6 +21,7 @@ except ImportError:
 
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
+from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
 
 import pip
 
@@ -130,6 +131,13 @@ def user_agent():
     )
 
 
+def unquote(s):
+    if six.PY2:
+        return urllib_unquote(s.encode("utf-8")).decode("utf-8")
+    else:
+        return urllib_unquote(s)  # utf-8 decode is built in
+
+
 class MultiDomainBasicAuth(AuthBase):
 
     def __init__(self, prompting=True):
@@ -207,8 +215,8 @@ class MultiDomainBasicAuth(AuthBase):
         if "@" in netloc:
             userinfo = netloc.rsplit("@", 1)[0]
             if ":" in userinfo:
-                return userinfo.split(":", 1)
-            return userinfo, None
+                return tuple(unquote(part) for part in userinfo.split(":", 1))
+            return unquote(userinfo), None
         return None, None
 
 
