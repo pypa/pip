@@ -982,11 +982,29 @@ class LinuxDistribution(object):
                 distro_info['id'] = match.group(1)
             return distro_info
         else:
-            basenames = os.listdir(_UNIXCONFDIR)
-            # We sort for repeatability in cases where there are multiple
-            # distro specific files; e.g. CentOS, Oracle, Enterprise all
-            # containing `redhat-release` on top of their own.
-            basenames.sort()
+            try:
+                basenames = os.listdir(_UNIXCONFDIR)
+                # We sort for repeatability in cases where there are multiple
+                # distro specific files; e.g. CentOS, Oracle, Enterprise all
+                # containing `redhat-release` on top of their own.
+                basenames.sort()
+            except OSError:
+                # This may occur when /etc is not readable but we can't be
+                # sure about the *-release files. Check common entries of
+                # /etc for information. If they turn out to not be there the
+                # error is handled in `_parse_distro_release_file()`.
+                basenames = ['SuSE-release',
+                             'arch-release',
+                             'base-release',
+                             'centos-release',
+                             'fedora-release',
+                             'gentoo-release',
+                             'mageia-release',
+                             'manjaro-release',
+                             'oracle-release',
+                             'redhat-release',
+                             'sl-release',
+                             'slackware-version']
             for basename in basenames:
                 if basename in _DISTRO_RELEASE_IGNORE_BASENAMES:
                     continue
