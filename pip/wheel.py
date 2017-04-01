@@ -40,30 +40,7 @@ from pip._vendor import pkg_resources
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor import pytoml
 
-try:
-    from sysconfig import get_paths
-except ImportError:
-    # This section is for compatibility with Python 2.6, and can be removed
-    # once Python 2.7 is the minimum supported version.
-    sysconfig = None
-
-    def get_paths(install_scheme, vars):
-        prefix = vars['base']
-        if os.name == 'nt':
-            return {
-                'purelib': '{0}/Lib/site-packages'.format(prefix),
-                'platlib': '{0}/Lib/site-packages'.format(prefix),
-                'scripts': '{0}/Scripts'.format(prefix),
-            }
-        else:
-            py_version_short = '{0}.{1}'.format(*sys.version_info[:2])
-            return {
-                'purelib': '{0}/lib/python{1}/site-packages'.format(
-                    prefix, py_version_short),
-                'platlib': '{0}/lib/python{1}/site-packages'.format(
-                    prefix, py_version_short),
-                'scripts': '{0}/bin'.format(prefix),
-            }
+from sysconfig import get_paths
 
 
 wheel_ext = '.whl'
@@ -743,11 +720,7 @@ class WheelBuilder(object):
                                              upgrade=False).url
                 for r in reqs]
 
-        if sys.version_info >= (2, 7):
-            mpip = 'pip'
-        else:
-            mpip = 'pip.__main__'  # Python 2.6 can't execute a package with -m
-        args = [sys.executable, '-m', mpip, 'install', '--prefix', prefix] \
+        args = [sys.executable, '-m', 'pip', 'install', '--prefix', prefix] \
             + list(urls)
         with open_spinner("Installing build dependencies") as spinner:
             call_subprocess(args, show_stdout=False, spinner=spinner)
@@ -767,7 +740,9 @@ class WheelBuilder(object):
                                                   python_tag=python_tag,
                                                   isolate=True)
         else:
-            # Old style build, in the current environment
+            # Build in the current environment, with no isolation.
+            # Used for sdists without a pyproject.toml, as well as build systems
+            # that don't require any external dependencies.
             return self._build_one_inside_env(req, output_dir,
                                               python_tag=python_tag)
 
