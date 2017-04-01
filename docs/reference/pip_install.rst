@@ -325,6 +325,9 @@ the :ref:`--editable <install_--editable>` option) or not.
   already installed, the VCS source will not overwrite it without an `--upgrade`
   flag. VCS requirements pin the package version (specified in the `setup.py`
   file) of the target commit, not necessarily the commit itself.
+* The :ref:`pip freeze` subcomand will record the VCS requirement specifier
+  (referencing a specific commit) if and only if the install is done using the
+  editable option.
 
 The "project name" component of the url suffix "egg=<project name>-<version>"
 is used by pip in its dependency logic to identify the project prior
