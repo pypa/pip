@@ -21,6 +21,7 @@ except ImportError:
 
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
+from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
 
 import pip
 
@@ -207,8 +208,9 @@ class MultiDomainBasicAuth(AuthBase):
         if "@" in netloc:
             userinfo = netloc.rsplit("@", 1)[0]
             if ":" in userinfo:
-                return userinfo.split(":", 1)
-            return userinfo, None
+                user, pwd = userinfo.split(":", 1)
+                return (urllib_unquote(user), urllib_unquote(pwd))
+            return urllib_unquote(userinfo), None
         return None, None
 
 

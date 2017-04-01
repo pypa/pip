@@ -13,7 +13,7 @@ import pip
 from pip.exceptions import HashMismatch
 from pip.download import (
     PipSession, SafeFileCache, path_to_url, unpack_http_url, url_to_path,
-    unpack_file_url,
+    unpack_file_url, MultiDomainBasicAuth
 )
 from pip.index import Link
 from pip.utils.hashes import Hashes
@@ -333,3 +333,14 @@ class TestPipSession:
         )
 
         assert not hasattr(session.adapters["https://example.com/"], "cache")
+
+
+def test_parse_credentials():
+    auth = MultiDomainBasicAuth()
+    assert auth.parse_credentials("foo:bar@example.com") == ('foo', 'bar')
+    assert auth.parse_credentials("foo@example.com") == ('foo', None)
+    assert auth.parse_credentials("example.com") == (None, None)
+
+    # URL-encoded reserved characters:
+    assert auth.parse_credentials("user%3Aname:%23%40%5E@example.com") \
+        == ("user:name", "#@^")
