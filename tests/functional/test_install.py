@@ -70,7 +70,7 @@ def test_pip_second_command_line_interface_works(script, data):
     # On old versions of Python, urllib3/requests will raise a warning about
     # the lack of an SSLContext.
     kwargs = {}
-    if pyversion_tuple < (2, 7, 9):
+    if pyversion_tuple < (2, 7, 9) or pyversion_tuple[:2] == (3, 3):
         kwargs['expect_stderr'] = True
 
     args = ['pip%s' % pyversion]
@@ -141,45 +141,6 @@ def test_install_editable_from_svn(script):
         '-e', 'svn+' + repo_url + '#egg=version-pkg'
     )
     result.assert_installed('version-pkg', with_files=['.svn'])
-
-
-@pytest.mark.network
-def test_download_editable_to_custom_path(script, tmpdir):
-    """
-    Test downloading an editable using a relative custom src folder.
-    """
-    script.scratch_path.join("customdl").mkdir()
-    result = script.pip(
-        'install',
-        '-e',
-        '%s#egg=initools-dev' %
-        local_checkout(
-            'svn+http://svn.colorstudy.com/INITools/trunk',
-            tmpdir.join("cache")
-        ),
-        '--src',
-        'customsrc',
-        '--download',
-        'customdl',
-        expect_stderr=True
-    )
-    customsrc = Path('scratch') / 'customsrc' / 'initools'
-    assert customsrc in result.files_created, (
-        sorted(result.files_created.keys())
-    )
-    assert customsrc / 'setup.py' in result.files_created, (
-        sorted(result.files_created.keys())
-    )
-
-    customdl = Path('scratch') / 'customdl' / 'initools'
-    customdl_files_created = [
-        filename for filename in result.files_created
-        if filename.startswith(customdl)
-    ]
-    assert customdl_files_created
-    assert ('DEPRECATION: pip install --download has been deprecated and will '
-            'be removed in the future. Pip now has a download command that '
-            'should be used instead.') in result.stderr
 
 
 def _test_install_editable_from_git(script, tmpdir, wheel):
@@ -319,7 +280,7 @@ def test_install_quiet(script, data):
     #   https://github.com/pypa/pip/issues/3418
     #   https://github.com/docker-library/python/issues/83
     to_install = data.packages.join("FSPkg")
-    result = script.pip('install', '-q', to_install, expect_error=False)
+    result = script.pip('install', '-qqq', to_install, expect_error=False)
     assert result.stdout == ""
     assert result.stderr == ""
 
@@ -394,7 +355,7 @@ def test_editable_install_from_local_directory_with_no_setup_py(script, data):
     assert "is not installable. File 'setup.py' not found." in result.stderr
 
 
-@pytest.mark.skipif("sys.version_info < (2,7) or sys.version_info >= (3,4)")
+@pytest.mark.skipif("sys.version_info >= (3,4)")
 @pytest.mark.xfail
 def test_install_argparse_shadowed(script, data):
     # When argparse is in the stdlib, we support installing it
@@ -415,19 +376,6 @@ def test_upgrade_argparse_shadowed(script, data):
     script.pip('install', 'argparse==1.3')
     result = script.pip('install', 'argparse>=1.4')
     assert "Not uninstalling argparse" not in result.stdout
-
-
-def test_install_as_egg(script, data):
-    """
-    Test installing as egg, instead of flat install.
-    """
-    to_install = data.packages.join("FSPkg")
-    result = script.pip('install', to_install, '--egg', expect_error=True)
-    fspkg_folder = script.site_packages / 'fspkg'
-    egg_folder = script.site_packages / 'FSPkg-0.1.dev0-py%s.egg' % pyversion
-    assert fspkg_folder not in result.files_created, str(result.stdout)
-    assert egg_folder in result.files_created, str(result)
-    assert join(egg_folder, 'fspkg') in result.files_created, str(result)
 
 
 def test_install_curdir(script, data):

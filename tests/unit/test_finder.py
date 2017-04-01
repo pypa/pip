@@ -131,7 +131,7 @@ class TestWheel:
 
         assert (
             "invalid.whl; invalid wheel filename"
-            in caplog.text()
+            in caplog.text
         )
 
     def test_not_find_wheel_not_supported(self, data, monkeypatch):
@@ -383,9 +383,7 @@ def test_finder_only_installs_data_require(data):
     links = finder.find_all_candidates("fakepackage")
 
     expected = ['1.0.0', '9.9.9']
-    if sys.version_info < (2, 7):
-        expected.append('2.6.0')
-    elif (2, 7) < sys.version_info < (3,):
+    if (2, 7) < sys.version_info < (3,):
         expected.append('2.7.0')
     elif sys.version_info > (3, 3):
         expected.append('3.3.0')

@@ -5,7 +5,7 @@ from . import base
 try:
     from collections import OrderedDict
 except ImportError:
-    from pip._vendor.ordereddict import OrderedDict
+    from ordereddict import OrderedDict
 
 
 class Filter(base.Filter):

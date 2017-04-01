@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 
 import logging
+import logging.config
 import os
 import sys
 import optparse
@@ -14,7 +15,6 @@ from pip.download import PipSession
 from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
                             CommandError, PreviousBuildDirError)
 
-from pip.compat import logging_dictConfig
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.req import InstallRequirement, parse_requirements
 from pip.status_codes import (
@@ -108,7 +108,7 @@ class Command(object):
         if options.quiet:
             if options.quiet == 1:
                 level = "WARNING"
-            if options.quiet == 2:
+            elif options.quiet == 2:
                 level = "ERROR"
             else:
                 level = "CRITICAL"
@@ -123,7 +123,7 @@ class Command(object):
         if options.log:
             root_level = "DEBUG"
 
-        logging_dictConfig({
+        logging.config.dictConfig({
             "version": 1,
             "disable_existing_loggers": False,
             "filters": {
@@ -186,12 +186,11 @@ class Command(object):
             ),
         })
 
-        if sys.version_info[:2] == (2, 6):
+        if sys.version_info[:2] == (3, 3):
             warnings.warn(
-                "Python 2.6 is no longer supported by the Python core team, "
-                "please upgrade your Python. A future version of pip will "
-                "drop support for Python 2.6",
-                deprecation.Python26DeprecationWarning
+                "Python 3.3 supported has been deprecated and support for it "
+                "will be dropped in the future. Please upgrade your Python.",
+                deprecation.RemovedInPip11Warning,
             )
 
         # TODO: try to get these passing down from the command?
@@ -249,7 +248,7 @@ class Command(object):
                         options,
                         retries=0,
                         timeout=min(5, options.timeout)) as session:
-                    pip_version_check(session)
+                    pip_version_check(session, options)
 
         return SUCCESS
 
@@ -281,7 +280,6 @@ class RequirementCommand(Command):
             requirement_set.add_requirement(
                 InstallRequirement.from_editable(
                     req,
-                    default_vcs=options.default_vcs,
                     isolated=options.isolated_mode,
                     wheel_cache=wheel_cache
                 )

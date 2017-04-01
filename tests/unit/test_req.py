@@ -51,7 +51,7 @@ class TestRequirementSet(object):
         finder = PackageFinder([data.find_links], [], session=PipSession())
         assert_raises_regexp(
             PreviousBuildDirError,
-            "pip can't proceed with [\s\S]*%s[\s\S]*%s" %
+            r"pip can't proceed with [\s\S]*%s[\s\S]*%s" %
             (req, build_dir.replace('\\', '\\\\')),
             reqset.prepare_files,
             finder,
@@ -187,7 +187,7 @@ class TestRequirementSet(object):
             r"Can't verify hashes for these file:// requirements because they "
             r"point to directories:\n"
             r"    file://.*{sep}data{sep}packages{sep}FSPkg "
-            "\(from -r file \(line 2\)\)".format(sep=sep),
+            r"\(from -r file \(line 2\)\)".format(sep=sep),
             reqset.prepare_files,
             finder)
 
@@ -276,18 +276,6 @@ class TestRequirementSet(object):
             '--hash=sha256:d6dd1e22e60df512fdcf3640ced3039b3b02a56ab2cee81ebcb'
             '3d0a6d4e8bfa6',
             'file', 2)))
-
-    def test_no_egg_on_require_hashes(self, data):
-        """Make sure --egg is illegal with --require-hashes.
-
-        --egg would cause dependencies to always be installed, since it cedes
-        control directly to setuptools.
-
-        """
-        reqset = self.basic_reqset(require_hashes=True, as_egg=True)
-        finder = PackageFinder([data.find_links], [], session=PipSession())
-        with pytest.raises(InstallationError):
-            reqset.prepare_files(finder)
 
 
 @pytest.mark.parametrize(('file_contents', 'expected'), [
@@ -536,6 +524,18 @@ class TestInstallRequirement(object):
         assert "Invalid requirement" in err_msg
         assert "\nTraceback " in err_msg
 
+    def test_requirement_file(self):
+        req_file_path = os.path.join(self.tempdir, 'test.txt')
+        with open(req_file_path, 'w') as req_file:
+            req_file.write('pip\nsetuptools')
+        with pytest.raises(InstallationError) as e:
+            InstallRequirement.from_line(req_file_path)
+        err_msg = e.value.args[0]
+        assert "Invalid requirement" in err_msg
+        assert "It looks like a path. It does exist." in err_msg
+        assert "appears to be a requirements file." in err_msg
+        assert "If that is the case, use the '-r' flag to install" in err_msg
+
 
 def test_requirements_data_structure_keeps_order():
     requirements = Requirements()
@@ -571,23 +571,15 @@ def test_parse_editable_local(
     exists_mock.return_value = isdir_mock.return_value = True
     # mocks needed to support path operations on windows tests
     abspath_mock.return_value = "/some/path"
-    assert parse_editable('.', 'git') == (None, 'file:///some/path', None)
+    assert parse_editable('.') == (None, 'file:///some/path', None)
     abspath_mock.return_value = "/some/path/foo"
-    assert parse_editable('foo', 'git') == (
+    assert parse_editable('foo') == (
         None, 'file:///some/path/foo', None,
     )
 
 
-def test_parse_editable_default_vcs():
-    assert parse_editable('https://foo#egg=foo', 'git') == (
-        'foo',
-        'git+https://foo#egg=foo',
-        None,
-    )
-
-
 def test_parse_editable_explicit_vcs():
-    assert parse_editable('svn+https://foo#egg=foo', 'git') == (
+    assert parse_editable('svn+https://foo#egg=foo') == (
         'foo',
         'svn+https://foo#egg=foo',
         None,
@@ -595,7 +587,7 @@ def test_parse_editable_explicit_vcs():
 
 
 def test_parse_editable_vcs_extras():
-    assert parse_editable('svn+https://foo#egg=foo[extras]', 'git') == (
+    assert parse_editable('svn+https://foo#egg=foo[extras]') == (
         'foo[extras]',
         'svn+https://foo#egg=foo[extras]',
         None,
@@ -609,11 +601,11 @@ def test_parse_editable_local_extras(
         isdir_mock, exists_mock, abspath_mock):
     exists_mock.return_value = isdir_mock.return_value = True
     abspath_mock.return_value = "/some/path"
-    assert parse_editable('.[extras]', 'git') == (
+    assert parse_editable('.[extras]') == (
         None, 'file://' + "/some/path", set(['extras']),
     )
     abspath_mock.return_value = "/some/path/foo"
-    assert parse_editable('foo[bar,baz]', 'git') == (
+    assert parse_editable('foo[bar,baz]') == (
         None, 'file:///some/path/foo', set(['bar', 'baz']),
     )
 

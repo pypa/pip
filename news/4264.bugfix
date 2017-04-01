@@ -1,0 +1,2 @@
+Avoid importing setuptools in the parent pip process, to avoid a race condition
+when upgrading one of setuptools dependencies.

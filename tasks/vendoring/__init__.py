@@ -60,8 +60,8 @@ def rewrite_file_imports(item, vendored_libs):
     text = re.sub(r'pkg_resources.extern', r'pip._vendor', text)
     for lib in vendored_libs:
         text = re.sub(
-            r'(\n\s*)import %s' % lib,
-            r'\1from pip._vendor import %s' % lib,
+            r'(\n\s*)import %s(\n\s*)' % lib,
+            r'\1from pip._vendor import %s\2' % lib,
             text,
         )
         text = re.sub(
@@ -90,8 +90,6 @@ def vendor(ctx, vendor_dir):
     # Cleanup setuptools unneeded parts
     (vendor_dir / 'easy_install.py').unlink()
     drop_dir(vendor_dir / 'setuptools')
-    drop_dir(vendor_dir / 'pkg_resources' / '_vendor')
-    drop_dir(vendor_dir / 'pkg_resources' / 'extern')
 
     # Drop interpreter and OS specific msgpack libs.
     # Pip will rely on the python-only fallback instead.

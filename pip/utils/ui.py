@@ -16,7 +16,6 @@ from pip._vendor import six
 from pip._vendor.progress.bar import Bar, IncrementalBar
 from pip._vendor.progress.bar import FillingCirclesBar, FillingSquaresBar
 from pip._vendor.progress.bar import ChargingBar, ShadyBar
-from pip._vendor.progress.bar import BlueEmojiBar, SilentBar
 
 from pip._vendor.progress.helpers import (WritelnMixin,
                                           HIDE_CURSOR, SHOW_CURSOR)
@@ -115,6 +114,20 @@ class InterruptibleMixin(object):
         """
         self.finish()
         self.original_handler(signum, frame)
+
+
+class SilentBar(Bar):
+
+    def update(self):
+        pass
+
+
+class BlueEmojiBar(IncrementalBar):
+
+    suffix = "%(percent)d%%"
+    bar_prefix = " "
+    bar_suffix = " "
+    phases = (u"\U0001F539", u"\U0001F537", u"\U0001F535")
 
 
 class DownloadProgressMixin(object):

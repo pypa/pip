@@ -9,8 +9,8 @@ import sys
 from pip._vendor import lockfile
 from pip._vendor.packaging import version as packaging_version
 
-from pip.compat import total_seconds, WINDOWS
-from pip.models import PyPI
+from pip.compat import WINDOWS
+from pip.index import PackageFinder
 from pip.locations import USER_CACHE_DIR, running_under_virtualenv
 from pip.utils import ensure_dir, get_installed_version
 from pip.utils.filesystem import check_path_owner
@@ -92,7 +92,7 @@ def load_selfcheck_statefile():
         return GlobalSelfCheckState()
 
 
-def pip_version_check(session):
+def pip_version_check(session, options):
     """Check for an update for pip.
 
     Limit the frequency of checks to once per week. State is stored either in
@@ -100,7 +100,7 @@ def pip_version_check(session):
     of the pip script path.
     """
     installed_version = get_installed_version("pip")
-    if installed_version is None:
+    if not installed_version:
         return
 
     pip_version = packaging_version.parse(installed_version)
@@ -116,23 +116,26 @@ def pip_version_check(session):
                 state.state["last_check"],
                 SELFCHECK_DATE_FMT
             )
-            if total_seconds(current_time - last_check) < 7 * 24 * 60 * 60:
+            if (current_time - last_check).total_seconds() < 7 * 24 * 60 * 60:
                 pypi_version = state.state["pypi_version"]
 
         # Refresh the version if we need to or just see if we need to warn
         if pypi_version is None:
-            resp = session.get(
-                PyPI.pip_json_url,
-                headers={"Accept": "application/json"},
+            # Lets use PackageFinder to see what the latest pip version is
+            finder = PackageFinder(
+                find_links=options.find_links,
+                index_urls=[options.index_url] + options.extra_index_urls,
+                allow_all_prereleases=False,  # Explicitly set to False
+                trusted_hosts=options.trusted_hosts,
+                process_dependency_links=options.process_dependency_links,
+                session=session,
             )
-            resp.raise_for_status()
-            pypi_version = [
-                v for v in sorted(
-                    list(resp.json()["releases"]),
-                    key=packaging_version.parse,
-                )
-                if not packaging_version.parse(v).is_prerelease
-            ][-1]
+            all_candidates = finder.find_all_candidates("pip")
+            if not all_candidates:
+                return
+            pypi_version = str(
+                max(all_candidates, key=lambda c: c.version).version
+            )
 
             # save that we've performed a check
             state.save(pypi_version, current_time)
@@ -154,7 +157,6 @@ def pip_version_check(session):
                 "'%s install --upgrade pip' command.",
                 pip_version, pypi_version, pip_cmd
             )
-
     except Exception:
         logger.debug(
             "There was an error checking the latest version of pip",

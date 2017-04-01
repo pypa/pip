@@ -26,3 +26,14 @@ def authors(ctx):
     with io.open("AUTHORS.txt", "w", encoding="utf8") as fp:
         fp.write(u"\n".join(authors))
         fp.write(u"\n")
+
+
+@invoke.task
+def news(ctx, draft=False):
+    print("[generate.news] Generating NEWS")
+
+    args = []
+    if draft:
+        args.append("--draft")
+
+    ctx.run("towncrier {}".format(" ".join(args)))
