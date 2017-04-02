@@ -325,7 +325,7 @@ the :ref:`--editable <install_--editable>` option) or not.
   already installed, the VCS source will not overwrite it without an `--upgrade`
   flag. VCS requirements pin the package version (specified in the `setup.py`
   file) of the target commit, not necessarily the commit itself.
-* The :ref:`pip freeze` subcomand will record the VCS requirement specifier
+* The :ref:`pip freeze` subcommand will record the VCS requirement specifier
   (referencing a specific commit) if and only if the install is done using the
   editable option.
 
@@ -512,7 +512,7 @@ building a new wheel. Note that this means when a package has both optional
 C extensions and builds `py` tagged wheels when the C extension can't be built
 that pip will not attempt to build a better wheel for Pythons that would have
 supported it, once any generic wheel is built. To correct this, make sure that
-the wheels are built with Python specific tags - e.g. pp on Pypy.
+the wheels are built with Python specific tags - e.g. pp on PyPy.
 
 When no wheels are found for an sdist, pip will attempt to build a wheel
 automatically and insert it into the wheel cache.
