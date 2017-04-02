@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
-import pip
-from pip.wheel import WheelCache
-from pip.req import InstallRequirement, RequirementSet, parse_requirements
+from pip._vendor.packaging.utils import canonicalize_name
+
+from pip.req import InstallRequirement, parse_requirements
 from pip.basecommand import Command
 from pip.exceptions import InstallationError
 
@@ -44,33 +44,25 @@ class UninstallCommand(Command):
 
     def run(self, options, args):
         with self._build_session(options) as session:
-            format_control = pip.index.FormatControl(set(), set())
-            wheel_cache = WheelCache(options.cache_dir, format_control)
-            requirement_set = RequirementSet(
-                build_dir=None,
-                src_dir=None,
-                download_dir=None,
-                isolated=options.isolated_mode,
-                session=session,
-                wheel_cache=wheel_cache,
-            )
+            reqs_to_uninstall = {}
             for name in args:
-                requirement_set.add_requirement(
-                    InstallRequirement.from_line(
-                        name, isolated=options.isolated_mode,
-                        wheel_cache=wheel_cache
-                    )
+                req = InstallRequirement.from_line(
+                    name, isolated=options.isolated_mode,
                 )
+                if req.name:
+                    reqs_to_uninstall[canonicalize_name(req.name)] = req
             for filename in options.requirements:
                 for req in parse_requirements(
                         filename,
                         options=options,
-                        session=session,
-                        wheel_cache=wheel_cache):
-                    requirement_set.add_requirement(req)
-            if not requirement_set.has_requirements:
+                        session=session):
+                    if req.name:
+                        reqs_to_uninstall[canonicalize_name(req.name)] = req
+            if not reqs_to_uninstall:
                 raise InstallationError(
                     'You must give at least one requirement to %(name)s (see '
                     '"pip help %(name)s")' % dict(name=self.name)
                 )
-            requirement_set.uninstall(auto_confirm=options.yes)
+            for req in reqs_to_uninstall.values():
+                req.uninstall(auto_confirm=options.yes)
+                req.uninstalled_pathset.commit()
