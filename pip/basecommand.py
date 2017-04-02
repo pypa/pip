@@ -210,6 +210,8 @@ class Command(object):
                 )
                 sys.exit(VIRTUALENV_NOT_FOUND)
 
+        original_root_handlers = set(logging.root.handlers)
+
         try:
             status = self.run(options, args)
             # FIXME: all commands should return an exit status
@@ -249,6 +251,10 @@ class Command(object):
                         retries=0,
                         timeout=min(5, options.timeout)) as session:
                     pip_version_check(session, options)
+            # Avoid leaking loggers
+            for handler in set(logging.root.handlers) - original_root_handlers:
+                # this method benefit from the Logger class internal lock
+                logging.root.removeHandler(handler)
 
         return SUCCESS
 
