@@ -338,13 +338,6 @@ class RequirementSet(object):
                 return self.requirements[self.requirement_aliases[name]]
         raise KeyError("No project with the name %r" % project_name)
 
-    def uninstall(self, auto_confirm=False):
-        for req in self.requirements.values():
-            if req.constraint:
-                continue
-            req.uninstall(auto_confirm=auto_confirm)
-            req.uninstalled_pathset.commit()
-
     def prepare_files(self, finder):
         """
         Prepare process. Create temp directories, download and/or unpack files.
