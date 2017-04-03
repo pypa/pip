@@ -7,7 +7,7 @@ colorama==0.3.7
 CacheControl==0.12.2
 msgpack-python==0.4.8
 lockfile==0.12.2
-progress==1.2
+https://github.com/verigak/progress/archive/master.zip
 ipaddress==1.0.18  # Only needed on 2.6 and 2.7
 packaging==16.8
 pyparsing==2.2.0
