@@ -76,7 +76,7 @@ Install to the user site [4]_::
 
 Install behind a proxy::
 
-  python get-pip.py --proxy="[user:passwd@]proxy.server:port"
+  python get-pip.py --proxy="http://[user:passwd@]proxy.server:port"
 
 
 Using Linux Package Managers
