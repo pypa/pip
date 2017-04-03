@@ -253,7 +253,7 @@ def test_nowheel_user_with_prefix_in_pydistutils_cfg(script, data, virtualenv):
             [install]
             prefix=%s""" % script.scratch_path))
 
-    result = script.pip('install', '--no-use-wheel', '--user', '--no-index',
+    result = script.pip('install', '--no-binary=:all:', '--user', '--no-index',
                         '-f', data.find_links, 'requiresupper',
                         expect_stderr=True)
     assert 'installed requiresupper' in result.stdout
