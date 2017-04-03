@@ -210,7 +210,7 @@ class ListCommand(Command):
                 yield dist
 
     def output_legacy(self, dist, options):
-        if options.verbose == 1 or dist_is_editable(dist):
+        if options.verbose >= 1 or dist_is_editable(dist):
             return '%s (%s, %s)' % (
                 dist.project_name,
                 dist.version,
@@ -236,7 +236,7 @@ class ListCommand(Command):
             self.output_package_listing_columns(data, header)
         elif options.list_format == 'freeze':
             for dist in packages:
-                if options.verbose == 1:
+                if options.verbose >= 1:
                     logger.info("%s==%s (%s)", dist.project_name,
                                 dist.version, dist.location)
                 else:
@@ -296,7 +296,7 @@ def format_for_columns(pkgs, options):
         header = ["Package", "Version"]
 
     data = []
-    if options.verbose == 1 or any(dist_is_editable(x) for x in pkgs):
+    if options.verbose >= 1 or any(dist_is_editable(x) for x in pkgs):
         header.append("Location")
 
     for proj in pkgs:
@@ -308,7 +308,7 @@ def format_for_columns(pkgs, options):
             row.append(proj.latest_version)
             row.append(proj.latest_filetype)
 
-        if options.verbose == 1 or dist_is_editable(proj):
+        if options.verbose >= 1 or dist_is_editable(proj):
             row.append(proj.location)
 
         data.append(row)
@@ -323,7 +323,7 @@ def format_for_json(packages, options):
             'name': dist.project_name,
             'version': six.text_type(dist.version),
         }
-        if options.verbose == 1:
+        if options.verbose >= 1:
             info['location'] = dist.location
         if options.outdated:
             info['latest_version'] = six.text_type(dist.latest_version)
