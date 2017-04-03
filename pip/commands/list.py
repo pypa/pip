@@ -209,8 +209,8 @@ class ListCommand(Command):
                 dist.latest_filetype = typ
                 yield dist
 
-    def output_legacy(self, dist):
-        if dist_is_editable(dist):
+    def output_legacy(self, dist, options):
+        if options.verbose >= 1 or dist_is_editable(dist):
             return '%s (%s, %s)' % (
                 dist.project_name,
                 dist.version,
@@ -219,9 +219,9 @@ class ListCommand(Command):
         else:
             return '%s (%s)' % (dist.project_name, dist.version)
 
-    def output_legacy_latest(self, dist):
+    def output_legacy_latest(self, dist, options):
         return '%s - Latest: %s [%s]' % (
-            self.output_legacy(dist),
+            self.output_legacy(dist, options),
             dist.latest_version,
             dist.latest_filetype,
         )
@@ -236,15 +236,19 @@ class ListCommand(Command):
             self.output_package_listing_columns(data, header)
         elif options.list_format == 'freeze':
             for dist in packages:
-                logger.info("%s==%s", dist.project_name, dist.version)
+                if options.verbose >= 1:
+                    logger.info("%s==%s (%s)", dist.project_name,
+                                dist.version, dist.location)
+                else:
+                    logger.info("%s==%s", dist.project_name, dist.version)
         elif options.list_format == 'json':
             logger.info(format_for_json(packages, options))
         elif options.list_format == "legacy":
             for dist in packages:
                 if options.outdated:
-                    logger.info(self.output_legacy_latest(dist))
+                    logger.info(self.output_legacy_latest(dist, options))
                 else:
-                    logger.info(self.output_legacy(dist))
+                    logger.info(self.output_legacy(dist, options))
 
     def output_package_listing_columns(self, data, header):
         # insert the header first: we need to know the size of column names
@@ -292,7 +296,7 @@ def format_for_columns(pkgs, options):
         header = ["Package", "Version"]
 
     data = []
-    if any(dist_is_editable(x) for x in pkgs):
+    if options.verbose >= 1 or any(dist_is_editable(x) for x in pkgs):
         header.append("Location")
 
     for proj in pkgs:
@@ -304,7 +308,7 @@ def format_for_columns(pkgs, options):
             row.append(proj.latest_version)
             row.append(proj.latest_filetype)
 
-        if dist_is_editable(proj):
+        if options.verbose >= 1 or dist_is_editable(proj):
             row.append(proj.location)
 
         data.append(row)
@@ -319,6 +323,8 @@ def format_for_json(packages, options):
             'name': dist.project_name,
             'version': six.text_type(dist.version),
         }
+        if options.verbose >= 1:
+            info['location'] = dist.location
         if options.outdated:
             info['latest_version'] = six.text_type(dist.latest_version)
             info['latest_filetype'] = dist.latest_filetype
