@@ -105,12 +105,6 @@ class Command(object):
     def main(self, args):
         options, args = self.parse_args(args)
 
-        if options.quiet and options.verbose:
-            warnings.warn(
-                "--verbose and --quiet options used simultaneously."
-                "Ignoring --verbose."
-            )
-
         if options.quiet:
             if options.quiet == 1:
                 level = "WARNING"
