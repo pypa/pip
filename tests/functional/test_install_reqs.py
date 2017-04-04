@@ -269,7 +269,8 @@ def test_nowheel_target_with_prefix_in_pydistutils_cfg(script, data,
             prefix=%s""" % script.scratch_path))
 
     target_path = script.scratch_path / 'target'
-    result = script.pip('install', '--no-binary=:all:', '--target', target_path,
+    result = script.pip('install', '--no-binary=:all:',
+                        '--target', target_path,
                         '--no-index', '-f', data.find_links, 'requiresupper',
                         expect_stderr=True)
     assert 'installed requiresupper' in result.stdout
