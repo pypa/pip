@@ -105,17 +105,9 @@ class Command(object):
     def main(self, args):
         options, args = self.parse_args(args)
 
-        if options.quiet:
-            if options.quiet == 1:
-                level = "WARNING"
-            elif options.quiet == 2:
-                level = "ERROR"
-            else:
-                level = "CRITICAL"
-        elif options.verbose:
-            level = "DEBUG"
-        else:
-            level = "INFO"
+        verbosity = options.verbose - options.quiet
+        level_dict = {1: "DEBUG", -1: "WARNING", -2: "ERROR", -3: "CRITICAL"}
+        level = level_dict.get(verbosity, "INFO")
 
         # The root logger should match the "console" level *unless* we
         # specified "--log" to send debug logs to a file.
