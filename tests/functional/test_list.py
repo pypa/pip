@@ -25,10 +25,18 @@ def test_verbose_flag(script, data):
         'install', '-f', data.find_links, '--no-index', 'simple==1.0',
         'simple2==3.0',
     )
-    result = script.pip('list', '-v')
+    result = script.pip('list', '-v', '--format=columns')
     assert 'Package' in result.stdout, str(result)
     assert 'Version' in result.stdout, str(result)
     assert 'Location' in result.stdout, str(result)
+    assert 'simple     1.0' in result.stdout, str(result)
+    assert 'simple2    3.0' in result.stdout, str(result)
+
+    result = script.pip('list', '-vv', '--format=columns')
+    assert 'Package' in result.stdout, str(result)
+    assert 'Version' in result.stdout, str(result)
+    assert 'Location' in result.stdout, str(result)
+    assert 'Installer' in result.stdout, str(result)
     assert 'simple     1.0' in result.stdout, str(result)
     assert 'simple2    3.0' in result.stdout, str(result)
 
