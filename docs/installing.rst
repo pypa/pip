@@ -46,9 +46,7 @@ speed), although neither are required to install pre-built :term:`wheels
 .. note::
 
    The get-pip.py script is supported on the same python version as pip.
-   For the now unsupported Python 3.2, an alternate script is available
-   `here <https://bootstrap.pypa.io/3.2/get-pip.py>`__. For Python 2.6
-   which will be unsupported in pip 10.0, an alternative script is available
+   For the now unsupported Python 2.6, alternate script is available
    `here <https://bootstrap.pypa.io/2.6/get-pip.py>`__.
 
 
@@ -78,7 +76,7 @@ Install to the user site [4]_::
 
 Install behind a proxy::
 
-  python get-pip.py --proxy="[user:passwd@]proxy.server:port"
+  python get-pip.py --proxy="http://[user:passwd@]proxy.server:port"
 
 
 Using Linux Package Managers
@@ -110,11 +108,10 @@ On Windows [5]_:
 Python and OS Compatibility
 ---------------------------
 
-pip works with CPython versions 2.6, 2.7, 3.3, 3.4, 3.5 and also pypy.
+pip works with CPython versions 2.7, 3.3, 3.4, 3.5, 3.6 and also pypy.
 
-This means pip works on the latest patch version of each of these minor versions
-(i.e. 2.6.9 for 2.6, etc).
-Previous patch versions are supported on a best effort approach.
+This means pip works on the latest patch version of each of these minor
+versions. Previous patch versions are supported on a best effort approach.
 
 pip works on Unix/Linux, macOS, and Windows.
 

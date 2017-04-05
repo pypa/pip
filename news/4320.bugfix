@@ -1,0 +1,2 @@
+Handle the case when ``/etc`` is not readable by the current user by using a
+hardcoded list of possible names of release files.

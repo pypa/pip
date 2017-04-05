@@ -1,0 +1,2 @@
+Removed the deprecated --(no-)use-wheel flags to ``pip install`` and
+``pip wheel``.

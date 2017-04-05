@@ -141,13 +141,13 @@ class Installed(DistAbstraction):
 
 class RequirementSet(object):
 
-    def __init__(self, build_dir, src_dir, download_dir, upgrade=False,
-                 upgrade_strategy=None, ignore_installed=False, as_egg=False,
+    def __init__(self, build_dir, src_dir, download_dir=None, upgrade=False,
+                 upgrade_strategy=None, ignore_installed=False,
                  target_dir=None, ignore_dependencies=False,
                  force_reinstall=False, use_user_site=False, session=None,
                  pycompile=True, isolated=False, wheel_download_dir=None,
                  wheel_cache=None, require_hashes=False,
-                 ignore_requires_python=False):
+                 ignore_requires_python=False, progress_bar="on"):
         """Create a RequirementSet.
 
         :param wheel_download_dir: Where still-packed .whl files should be
@@ -182,10 +182,10 @@ class RequirementSet(object):
         self.unnamed_requirements = []
         self.ignore_dependencies = ignore_dependencies
         self.ignore_requires_python = ignore_requires_python
+        self.progress_bar = progress_bar
         self.successfully_downloaded = []
         self.successfully_installed = []
         self.reqs_to_cleanup = []
-        self.as_egg = as_egg
         self.use_user_site = use_user_site
         self.target_dir = target_dir  # set from --target option
         self.session = session
@@ -245,7 +245,6 @@ class RequirementSet(object):
                     wheel.filename
                 )
 
-        install_req.as_egg = self.as_egg
         install_req.use_user_site = self.use_user_site
         install_req.target_dir = self.target_dir
         install_req.pycompile = self.pycompile
@@ -339,13 +338,6 @@ class RequirementSet(object):
                 return self.requirements[self.requirement_aliases[name]]
         raise KeyError("No project with the name %r" % project_name)
 
-    def uninstall(self, auto_confirm=False):
-        for req in self.requirements.values():
-            if req.constraint:
-                continue
-            req.uninstall(auto_confirm=auto_confirm)
-            req.uninstalled_pathset.commit()
-
     def prepare_files(self, finder):
         """
         Prepare process. Create temp directories, download and/or unpack files.
@@ -359,11 +351,6 @@ class RequirementSet(object):
         root_reqs = self.unnamed_requirements + self.requirements.values()
         require_hashes = (self.require_hashes or
                           any(req.has_hash_options for req in root_reqs))
-        if require_hashes and self.as_egg:
-            raise InstallationError(
-                '--egg is not allowed with --require-hashes mode, since it '
-                'delegates dependency resolution to setuptools and could thus '
-                'result in installation of unhashed packages.')
 
         # Actually prepare the files, and collect any exceptions. Most hash
         # exceptions cannot be checked ahead of time, because
@@ -618,7 +605,8 @@ class RequirementSet(object):
                     unpack_url(
                         req_to_install.link, req_to_install.source_dir,
                         download_dir, autodelete_unpacked,
-                        session=self.session, hashes=hashes)
+                        session=self.session, hashes=hashes,
+                        progress_bar=self.progress_bar)
                 except requests.HTTPError as exc:
                     logger.critical(
                         'Could not install requirement %s because '

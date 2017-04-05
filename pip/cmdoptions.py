@@ -15,10 +15,11 @@ import warnings
 
 from pip.index import (
     FormatControl, fmt_ctl_handle_mutual_exclude, fmt_ctl_no_binary,
-    fmt_ctl_no_use_wheel)
+)
 from pip.models import PyPI
 from pip.locations import USER_CACHE_DIR, src_prefix
 from pip.utils.hashes import STRONG_HASHES
+from pip.utils.ui import BAR_TYPES
 
 
 def make_option_group(group, parser):
@@ -31,12 +32,6 @@ def make_option_group(group, parser):
     for option in group['options']:
         option_group.add_option(option())
     return option_group
-
-
-def resolve_wheel_no_use_binary(options):
-    if not options.use_wheel:
-        control = options.format_control
-        fmt_ctl_no_use_wheel(control)
 
 
 def check_install_build_global(options, check_options=None):
@@ -119,6 +114,16 @@ quiet = partial(
           ' levels).')
 )
 
+progress_bar = partial(
+    Option,
+    '--progress-bar',
+    dest='progress_bar',
+    type='choice',
+    choices=list(BAR_TYPES.keys()),
+    default='on',
+    help='Specify type of progress to be displayed [' +
+         '|'.join(BAR_TYPES.keys()) + '] (default: %default)')
+
 log = partial(
     Option,
     "--log", "--log-file", "--local-log",
@@ -161,15 +166,6 @@ timeout = partial(
     type='float',
     default=15,
     help='Set the socket timeout (default %default seconds).')
-
-default_vcs = partial(
-    Option,
-    # The default version control system for editables, e.g. 'svn'
-    '--default-vcs',
-    dest='default_vcs',
-    type='str',
-    default='',
-    help=SUPPRESS_HELP)
 
 skip_requirements_regex = partial(
     Option,
@@ -259,27 +255,6 @@ def find_links():
              "then look for archives in the directory listing.")
 
 
-def allow_external():
-    return Option(
-        "--allow-external",
-        dest="allow_external",
-        action="append",
-        default=[],
-        metavar="PACKAGE",
-        help=SUPPRESS_HELP,
-    )
-
-
-allow_all_external = partial(
-    Option,
-    "--allow-all-external",
-    dest="allow_all_external",
-    action="store_true",
-    default=False,
-    help=SUPPRESS_HELP,
-)
-
-
 def trusted_host():
     return Option(
         "--trusted-host",
@@ -291,38 +266,6 @@ def trusted_host():
              "or any HTTPS.",
     )
 
-
-# Remove after 7.0
-no_allow_external = partial(
-    Option,
-    "--no-allow-external",
-    dest="allow_all_external",
-    action="store_false",
-    default=False,
-    help=SUPPRESS_HELP,
-)
-
-
-# Remove --allow-insecure after 7.0
-def allow_unsafe():
-    return Option(
-        "--allow-unverified", "--allow-insecure",
-        dest="allow_unverified",
-        action="append",
-        default=[],
-        metavar="PACKAGE",
-        help=SUPPRESS_HELP,
-    )
-
-# Remove after 7.0
-no_allow_unsafe = partial(
-    Option,
-    "--no-allow-insecure",
-    dest="allow_all_insecure",
-    action="store_false",
-    default=False,
-    help=SUPPRESS_HELP
-)
 
 # Remove after 1.5
 process_dependency_links = partial(
@@ -368,6 +311,7 @@ def editable():
               '"develop mode") from a local project path or a VCS url.'),
     )
 
+
 src = partial(
     Option,
     '--src', '--source', '--source-dir', '--source-directory',
@@ -377,27 +321,6 @@ src = partial(
     help='Directory to check out editable projects into. '
     'The default in a virtualenv is "<venv path>/src". '
     'The default for global installs is "<current dir>/src".'
-)
-
-# XXX: deprecated, remove in 9.0
-use_wheel = partial(
-    Option,
-    '--use-wheel',
-    dest='use_wheel',
-    action='store_true',
-    default=True,
-    help=SUPPRESS_HELP,
-)
-
-# XXX: deprecated, remove in 9.0
-no_use_wheel = partial(
-    Option,
-    '--no-use-wheel',
-    dest='use_wheel',
-    action='store_false',
-    default=True,
-    help=('Do not Find and prefer wheel archives when searching indexes and '
-          'find-links locations. DEPRECATED in favour of --no-binary.'),
 )
 
 
@@ -529,6 +452,7 @@ disable_pip_version_check = partial(
     help="Don't periodically check PyPI to determine whether a new version "
          "of pip is available for download. Implied with --no-index.")
 
+
 # Deprecated, Remove later
 always_unzip = partial(
     Option,
@@ -598,7 +522,6 @@ general_group = {
         proxy,
         retries,
         timeout,
-        default_vcs,
         skip_requirements_regex,
         exists_action,
         trusted_host,
@@ -610,7 +533,7 @@ general_group = {
     ]
 }
 
-non_deprecated_index_group = {
+index_group = {
     'name': 'Package Index Options',
     'options': [
         index_url,
@@ -618,16 +541,5 @@ non_deprecated_index_group = {
         no_index,
         find_links,
         process_dependency_links,
-    ]
-}
-
-index_group = {
-    'name': 'Package Index Options (including deprecated options)',
-    'options': non_deprecated_index_group['options'] + [
-        allow_external,
-        allow_all_external,
-        no_allow_external,
-        allow_unsafe,
-        no_allow_unsafe,
     ]
 }

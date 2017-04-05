@@ -40,7 +40,7 @@ import subprocess
 if not sys.platform.startswith('linux'):
     raise ImportError('Unsupported platform: {0}'.format(sys.platform))
 
-_UNIXCONFDIR = '/etc'
+_UNIXCONFDIR = os.environ.get('UNIXCONFDIR', '/etc')
 _OS_RELEASE_BASENAME = 'os-release'
 
 #: Translation table for normalizing the "ID" attribute defined in os-release
@@ -61,7 +61,8 @@ NORMALIZED_OS_ID = {}
 #: * Value: Normalized value.
 NORMALIZED_LSB_ID = {
     'enterpriseenterprise': 'oracle',  # Oracle Enterprise Linux
-    'redhatenterpriseworkstation': 'rhel',  # RHEL 6.7
+    'redhatenterpriseworkstation': 'rhel',  # RHEL 6, 7 Workstation
+    'redhatenterpriseserver': 'rhel',  # RHEL 6, 7 Server
 }
 
 #: Translation table for normalizing the distro ID derived from the file name
@@ -981,11 +982,29 @@ class LinuxDistribution(object):
                 distro_info['id'] = match.group(1)
             return distro_info
         else:
-            basenames = os.listdir(_UNIXCONFDIR)
-            # We sort for repeatability in cases where there are multiple
-            # distro specific files; e.g. CentOS, Oracle, Enterprise all
-            # containing `redhat-release` on top of their own.
-            basenames.sort()
+            try:
+                basenames = os.listdir(_UNIXCONFDIR)
+                # We sort for repeatability in cases where there are multiple
+                # distro specific files; e.g. CentOS, Oracle, Enterprise all
+                # containing `redhat-release` on top of their own.
+                basenames.sort()
+            except OSError:
+                # This may occur when /etc is not readable but we can't be
+                # sure about the *-release files. Check common entries of
+                # /etc for information. If they turn out to not be there the
+                # error is handled in `_parse_distro_release_file()`.
+                basenames = ['SuSE-release',
+                             'arch-release',
+                             'base-release',
+                             'centos-release',
+                             'fedora-release',
+                             'gentoo-release',
+                             'mageia-release',
+                             'manjaro-release',
+                             'oracle-release',
+                             'redhat-release',
+                             'sl-release',
+                             'slackware-version']
             for basename in basenames:
                 if basename in _DISTRO_RELEASE_IGNORE_BASENAMES:
                     continue
@@ -1011,12 +1030,16 @@ class LinuxDistribution(object):
         Returns:
             A dictionary containing all information items.
         """
-        if os.path.isfile(filepath):
+        try:
             with open(filepath) as fp:
                 # Only parse the first line. For instance, on SLES there
                 # are multiple lines. We don't want them...
                 return self._parse_distro_release_content(fp.readline())
-        return {}
+        except (OSError, IOError):
+            # Ignore not being able to read a specific, seemingly version
+            # related file.
+            # See https://github.com/nir0s/distro/issues/162
+            return {}
 
     @staticmethod
     def _parse_distro_release_content(line):
@@ -1070,11 +1093,9 @@ def main():
     else:
         logger.info('Name: %s', name(pretty=True))
         distribution_version = version(pretty=True)
-        if distribution_version:
-            logger.info('Version: %s', distribution_version)
+        logger.info('Version: %s', distribution_version)
         distribution_codename = codename()
-        if distribution_codename:
-            logger.info('Codename: %s', distribution_codename)
+        logger.info('Codename: %s', distribution_codename)
 
 
 if __name__ == '__main__':

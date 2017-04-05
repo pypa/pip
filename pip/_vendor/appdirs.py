@@ -13,7 +13,7 @@ See <http://github.com/ActiveState/appdirs> for details and usage.
 # - Mac OS X: http://developer.apple.com/documentation/MacOSX/Conceptual/BPFileSystem/index.html
 # - XDG spec for Un*x: http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html
 
-__version_info__ = (1, 4, 0)
+__version_info__ = (1, 4, 3)
 __version__ = '.'.join(map(str, __version_info__))
 
 
@@ -98,7 +98,7 @@ def user_data_dir(appname=None, appauthor=None, version=None, roaming=False):
 
 
 def site_data_dir(appname=None, appauthor=None, version=None, multipath=False):
-    """Return full path to the user-shared data dir for this application.
+    r"""Return full path to the user-shared data dir for this application.
 
         "appname" is the name of application.
             If None, just the system directory is returned.
@@ -117,7 +117,7 @@ def site_data_dir(appname=None, appauthor=None, version=None, multipath=False):
             returned, or '/usr/local/share/<AppName>',
             if XDG_DATA_DIRS is not set
 
-    Typical user data directories are:
+    Typical site data directories are:
         Mac OS X:   /Library/Application Support/<AppName>
         Unix:       /usr/local/share/<AppName> or /usr/share/<AppName>
         Win XP:     C:\Documents and Settings\All Users\Application Data\<AppAuthor>\<AppName>
@@ -184,13 +184,13 @@ def user_config_dir(appname=None, appauthor=None, version=None, roaming=False):
             <http://technet.microsoft.com/en-us/library/cc766489(WS.10).aspx>
             for a discussion of issues.
 
-    Typical user data directories are:
+    Typical user config directories are:
         Mac OS X:               same as user_data_dir
         Unix:                   ~/.config/<AppName>     # or in $XDG_CONFIG_HOME, if defined
         Win *:                  same as user_data_dir
 
     For Unix, we follow the XDG spec and support $XDG_CONFIG_HOME.
-    That means, by deafult "~/.config/<AppName>".
+    That means, by default "~/.config/<AppName>".
     """
     if system in ["win32", "darwin"]:
         path = user_data_dir(appname, appauthor, None, roaming)
@@ -204,7 +204,7 @@ def user_config_dir(appname=None, appauthor=None, version=None, roaming=False):
 
 
 def site_config_dir(appname=None, appauthor=None, version=None, multipath=False):
-    """Return full path to the user-shared data dir for this application.
+    r"""Return full path to the user-shared data dir for this application.
 
         "appname" is the name of application.
             If None, just the system directory is returned.
@@ -222,7 +222,7 @@ def site_config_dir(appname=None, appauthor=None, version=None, multipath=False)
             returned. By default, the first item from XDG_CONFIG_DIRS is
             returned, or '/etc/xdg/<AppName>', if XDG_CONFIG_DIRS is not set
 
-    Typical user data directories are:
+    Typical site config directories are:
         Mac OS X:   same as site_data_dir
         Unix:       /etc/xdg/<AppName> or $XDG_CONFIG_DIRS[i]/<AppName> for each value in
                     $XDG_CONFIG_DIRS
@@ -311,6 +311,48 @@ def user_cache_dir(appname=None, appauthor=None, version=None, opinion=True):
     return path
 
 
+def user_state_dir(appname=None, appauthor=None, version=None, roaming=False):
+    r"""Return full path to the user-specific state dir for this application.
+
+        "appname" is the name of application.
+            If None, just the system directory is returned.
+        "appauthor" (only used on Windows) is the name of the
+            appauthor or distributing body for this application. Typically
+            it is the owning company name. This falls back to appname. You may
+            pass False to disable it.
+        "version" is an optional version path element to append to the
+            path. You might want to use this if you want multiple versions
+            of your app to be able to run independently. If used, this
+            would typically be "<major>.<minor>".
+            Only applied when appname is present.
+        "roaming" (boolean, default False) can be set True to use the Windows
+            roaming appdata directory. That means that for users on a Windows
+            network setup for roaming profiles, this user data will be
+            sync'd on login. See
+            <http://technet.microsoft.com/en-us/library/cc766489(WS.10).aspx>
+            for a discussion of issues.
+
+    Typical user state directories are:
+        Mac OS X:  same as user_data_dir
+        Unix:      ~/.local/state/<AppName>   # or in $XDG_STATE_HOME, if defined
+        Win *:     same as user_data_dir
+
+    For Unix, we follow this Debian proposal <https://wiki.debian.org/XDGBaseDirectorySpecification#state>
+    to extend the XDG spec and support $XDG_STATE_HOME.
+
+    That means, by default "~/.local/state/<AppName>".
+    """
+    if system in ["win32", "darwin"]:
+        path = user_data_dir(appname, appauthor, None, roaming)
+    else:
+        path = os.getenv('XDG_STATE_HOME', os.path.expanduser("~/.local/state"))
+        if appname:
+            path = os.path.join(path, appname)
+    if appname and version:
+        path = os.path.join(path, version)
+    return path
+
+
 def user_log_dir(appname=None, appauthor=None, version=None, opinion=True):
     r"""Return full path to the user-specific log dir for this application.
 
@@ -329,7 +371,7 @@ def user_log_dir(appname=None, appauthor=None, version=None, opinion=True):
             "Logs" to the base app data dir for Windows, and "log" to the
             base cache dir for Unix. See discussion below.
 
-    Typical user cache directories are:
+    Typical user log directories are:
         Mac OS X:   ~/Library/Logs/<AppName>
         Unix:       ~/.cache/<AppName>/log  # or under $XDG_CACHE_HOME if defined
         Win XP:     C:\Documents and Settings\<username>\Local Settings\Application Data\<AppAuthor>\<AppName>\Logs
@@ -364,8 +406,8 @@ def user_log_dir(appname=None, appauthor=None, version=None, opinion=True):
 
 class AppDirs(object):
     """Convenience wrapper for getting application dirs."""
-    def __init__(self, appname, appauthor=None, version=None, roaming=False,
-                 multipath=False):
+    def __init__(self, appname=None, appauthor=None, version=None,
+            roaming=False, multipath=False):
         self.appname = appname
         self.appauthor = appauthor
         self.version = version
@@ -398,6 +440,11 @@ class AppDirs(object):
                               version=self.version)
 
     @property
+    def user_state_dir(self):
+        return user_state_dir(self.appname, self.appauthor,
+                              version=self.version)
+
+    @property
     def user_log_dir(self):
         return user_log_dir(self.appname, self.appauthor,
                             version=self.version)
@@ -410,7 +457,10 @@ def _get_win_folder_from_registry(csidl_name):
     registry for this guarantees us the correct answer for all CSIDL_*
     names.
     """
-    import _winreg
+    if PY3:
+      import winreg as _winreg
+    else:
+      import _winreg
 
     shell_folder_name = {
         "CSIDL_APPDATA": "AppData",
@@ -500,7 +550,7 @@ def _get_win_folder_with_jna(csidl_name):
     if has_high_char:
         buf = array.zeros('c', buf_size)
         kernel = win32.Kernel32.INSTANCE
-        if kernal.GetShortPathName(dir, buf, buf_size):
+        if kernel.GetShortPathName(dir, buf, buf_size):
             dir = jna.Native.toString(buf.tostring()).rstrip("\0")
 
     return dir
@@ -527,9 +577,15 @@ if __name__ == "__main__":
     appname = "MyApp"
     appauthor = "MyCompany"
 
-    props = ("user_data_dir", "site_data_dir",
-             "user_config_dir", "site_config_dir",
-             "user_cache_dir", "user_log_dir")
+    props = ("user_data_dir",
+             "user_config_dir",
+             "user_cache_dir",
+             "user_state_dir",
+             "user_log_dir",
+             "site_data_dir",
+             "site_config_dir")
+
+    print("-- app dirs %s --" % __version__)
 
     print("-- app dirs (with optional 'version')")
     dirs = AppDirs(appname, appauthor, version="1.0")

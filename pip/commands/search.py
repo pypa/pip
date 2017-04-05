@@ -4,8 +4,9 @@ import logging
 import sys
 import textwrap
 
+from collections import OrderedDict
+
 from pip.basecommand import Command, SUCCESS
-from pip.compat import OrderedDict
 from pip.download import PipXmlrpcTransport
 from pip.models import PyPI
 from pip.utils import get_terminal_size

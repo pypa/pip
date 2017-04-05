@@ -2,4 +2,4 @@
 Release Notes
 =============
 
-.. include:: ../CHANGES.txt
+.. include:: ../NEWS.rst

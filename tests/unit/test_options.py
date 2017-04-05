@@ -235,11 +235,6 @@ class TestGeneralOptions(object):
         options2, args2 = main(['fake', '--timeout', '-1'])
         assert options1.timeout == options2.timeout == -1
 
-    def test_default_vcs(self):
-        options1, args1 = main(['--default-vcs', 'path', 'fake'])
-        options2, args2 = main(['fake', '--default-vcs', 'path'])
-        assert options1.default_vcs == options2.default_vcs == 'path'
-
     def test_skip_requirements_regex(self):
         options1, args1 = main(['--skip-requirements-regex', 'path', 'fake'])
         options2, args2 = main(['fake', '--skip-requirements-regex', 'path'])
@@ -278,5 +273,5 @@ class TestOptionsConfigFiles(object):
             lambda: True,
         )
         monkeypatch.setattr(os.path, 'exists', lambda filename: True)
-        cp = pip.configuration.Configuration()
-        assert len(cp._get_config_files(isolated=False)) == 4
+        cp = pip.configuration.Configuration(isolated=False)
+        assert len(cp._get_config_files()) == 4

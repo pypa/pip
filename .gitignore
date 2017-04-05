@@ -6,6 +6,7 @@ MANIFEST
 .tox
 .cache
 *.egg
+*.eggs
 *.py[cod]
 *~
 .coverage

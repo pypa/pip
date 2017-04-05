@@ -1,6 +1,6 @@
 * Pip version:
 * Python version:
-* Operating System:
+* Operating system:
 
 ### Description:
 

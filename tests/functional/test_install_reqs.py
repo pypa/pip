@@ -83,7 +83,7 @@ def test_multiple_requirements_files(script, tmpdir):
     other_lib_name, other_lib_version = 'anyjson', '0.3'
     script.scratch_path.join("initools-req.txt").write(
         textwrap.dedent("""
-            -e %s@10#egg=INITools-dev
+            -e %s@10#egg=INITools
             -r %s-req.txt
         """) %
         (
@@ -220,24 +220,6 @@ def test_wheel_user_with_prefix_in_pydistutils_cfg(script, data, virtualenv):
     # Check that we are really installing a wheel
     assert 'Running setup.py install for requiresupper' not in result.stdout
     assert 'installed requiresupper' in result.stdout
-
-
-def test_nowheel_user_with_prefix_in_pydistutils_cfg(script, data, virtualenv):
-    virtualenv.system_site_packages = True
-    homedir = script.environ["HOME"]
-    script.scratch_path.join("bin").mkdir()
-    with open(os.path.join(homedir, ".pydistutils.cfg"), "w") as cfg:
-        cfg.write(textwrap.dedent("""
-            [install]
-            prefix=%s""" % script.scratch_path))
-
-    result = script.pip('install', '--no-use-wheel', '--user', '--no-index',
-                        '-f', data.find_links, 'requiresupper',
-                        expect_stderr=True)
-    assert 'installed requiresupper' in result.stdout
-    assert ('DEPRECATION: --no-use-wheel is deprecated and will be removed '
-            'in the future.  Please use --no-binary :all: instead.\n'
-            ) in result.stderr
 
 
 def test_install_option_in_requirements_file(script, data, virtualenv):

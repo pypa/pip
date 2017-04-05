@@ -8,7 +8,7 @@ tool for installing Python packages.
 * `Installation <https://pip.pypa.io/en/stable/installing.html>`_
 * `Documentation <https://pip.pypa.io/>`_
 * `Changelog <https://pip.pypa.io/en/stable/news.html>`_
-* `Github Page <https://github.com/pypa/pip>`_
+* `GitHub Page <https://github.com/pypa/pip>`_
 * `Issue Tracking <https://github.com/pypa/pip/issues>`_
 * `User mailing list <http://groups.google.com/group/python-virtualenv>`_
 * `Dev mailing list <http://groups.google.com/group/pypa-dev>`_

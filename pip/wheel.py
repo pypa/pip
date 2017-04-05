@@ -126,7 +126,7 @@ def cached_wheel(cache_dir, link, format_control, package_name):
     try:
         wheel_names = os.listdir(root)
     except OSError as e:
-        if e.errno in (errno.ENOENT, errno.ENOTDIR):
+        if e.errno in {errno.ENOENT, errno.ENOTDIR}:
             return link
         raise
     candidates = []
@@ -187,7 +187,7 @@ def fix_script(path):
             script.write(rest)
         return True
 
-dist_info_re = re.compile(r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>\d.+?))?)
+dist_info_re = re.compile(r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>.+?))?)
                                 \.dist-info$""", re.VERBOSE)
 
 
@@ -412,7 +412,7 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
         }
 
     maker._get_script_text = _get_script_text
-    maker.script_template = """# -*- coding: utf-8 -*-
+    maker.script_template = r"""# -*- coding: utf-8 -*-
 import re
 import sys
 
@@ -582,7 +582,7 @@ class Wheel(object):
     # TODO: maybe move the install code into this class
 
     wheel_file_re = re.compile(
-        r"""^(?P<namever>(?P<name>.+?)-(?P<ver>\d.*?))
+        r"""^(?P<namever>(?P<name>.+?)-(?P<ver>.*?))
         ((-(?P<build>\d.*?))?-(?P<pyver>.+?)-(?P<abi>.+?)-(?P<plat>.+?)
         \.whl|\.dist-info)$""",
         re.VERBOSE

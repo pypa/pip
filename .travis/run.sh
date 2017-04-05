@@ -44,4 +44,4 @@ fi
 tox -- -m unit
 
 # Run our integration tests
-tox -- -m integration -n 8
+tox -- -m integration -n 8 --duration=5

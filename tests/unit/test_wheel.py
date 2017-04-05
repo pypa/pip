@@ -100,6 +100,10 @@ class TestWheelFile(object):
         w = wheel.Wheel('simple-1-py2-none-any.whl')
         assert w.version == '1'
 
+    def test_non_pep440_version(self):
+        w = wheel.Wheel('simple-_invalid_-py2-none-any.whl')
+        assert w.version == '-invalid-'
+
     def test_missing_version_raises(self):
         with pytest.raises(InvalidWheelFilename):
             wheel.Wheel('Cython-cp27-none-linux_x86_64.whl')
@@ -257,6 +261,10 @@ class TestWheelFile(object):
         packages = [
             ("pure_wheel", data.packages.join("pure_wheel-1.7"), True),
             ("plat_wheel", data.packages.join("plat_wheel-1.7"), False),
+            ("pure_wheel", data.packages.join(
+                "pure_wheel-_invalidversion_"), True),
+            ("plat_wheel", data.packages.join(
+                "plat_wheel-_invalidversion_"), False),
         ]
 
         for name, path, expected in packages:
@@ -356,7 +364,7 @@ class TestWheelBuilder(object):
                           wheel_download_dir='/wheel/dir')
             wb = wheel.WheelBuilder(reqset, Mock())
             wb.build()
-            assert "due to already being wheel" in caplog.text()
+            assert "due to already being wheel" in caplog.text
             assert mock_build_one.mock_calls == []
 
 

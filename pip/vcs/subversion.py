@@ -12,7 +12,7 @@ from pip.utils.logging import indent_log
 from pip.vcs import vcs, VersionControl
 
 _svn_xml_url_re = re.compile('url="([^"]+)"')
-_svn_rev_re = re.compile('committed-rev="(\d+)"')
+_svn_rev_re = re.compile(r'committed-rev="(\d+)"')
 _svn_url_re = re.compile(r'URL: (.+)')
 _svn_revision_re = re.compile(r'Revision: (.+)')
 _svn_info_xml_rev_re = re.compile(r'\s*revision="(\d+)"')

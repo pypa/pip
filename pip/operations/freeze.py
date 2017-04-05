@@ -1,12 +1,13 @@
 from __future__ import absolute_import
 
 import logging
+import os
 import re
 
-import pip
+from pip.exceptions import InstallationError
 from pip.req import InstallRequirement
 from pip.req.req_file import COMMENT_RE
-from pip.utils import get_installed_distributions
+from pip.utils import get_installed_distributions, dist_is_editable
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.pkg_resources import RequirementParseError
@@ -18,9 +19,9 @@ logger = logging.getLogger(__name__)
 def freeze(
         requirement=None,
         find_links=None, local_only=None, user_only=None, skip_regex=None,
-        default_vcs=None,
         isolated=False,
         wheel_cache=None,
+        exclude_editable=False,
         skip=()):
     find_links = find_links or []
     skip_match = None
@@ -45,7 +46,7 @@ def freeze(
                                             skip=(),
                                             user_only=user_only):
         try:
-            req = pip.FrozenRequirement.from_dist(
+            req = FrozenRequirement.from_dist(
                 dist,
                 dependency_links
             )
@@ -54,6 +55,8 @@ def freeze(
                 "Could not parse requirement: %s",
                 dist.project_name
             )
+            continue
+        if exclude_editable and req.editable:
             continue
         installations[req.name] = req
 
@@ -91,7 +94,6 @@ def freeze(
                             line = line[len('--editable'):].strip().lstrip('=')
                         line_req = InstallRequirement.from_editable(
                             line,
-                            default_vcs=default_vcs,
                             isolated=isolated,
                             wheel_cache=wheel_cache,
                         )
@@ -130,3 +132,93 @@ def freeze(
             installations.values(), key=lambda x: x.name.lower()):
         if canonicalize_name(installation.name) not in skip:
             yield str(installation).rstrip()
+
+
+class FrozenRequirement(object):
+    def __init__(self, name, req, editable, comments=()):
+        self.name = name
+        self.req = req
+        self.editable = editable
+        self.comments = comments
+
+    _rev_re = re.compile(r'-r(\d+)$')
+    _date_re = re.compile(r'-(20\d\d\d\d\d\d)$')
+
+    @classmethod
+    def from_dist(cls, dist, dependency_links):
+        location = os.path.normcase(os.path.abspath(dist.location))
+        comments = []
+        from pip.vcs import vcs, get_src_requirement
+        if dist_is_editable(dist) and vcs.get_backend_name(location):
+            editable = True
+            try:
+                req = get_src_requirement(dist, location)
+            except InstallationError as exc:
+                logger.warning(
+                    "Error when trying to get requirement for VCS system %s, "
+                    "falling back to uneditable format", exc
+                )
+                req = None
+            if req is None:
+                logger.warning(
+                    'Could not determine repository location of %s', location
+                )
+                comments.append(
+                    '## !! Could not determine repository location'
+                )
+                req = dist.as_requirement()
+                editable = False
+        else:
+            editable = False
+            req = dist.as_requirement()
+            specs = req.specs
+            assert len(specs) == 1 and specs[0][0] in ["==", "==="], \
+                'Expected 1 spec with == or ===; specs = %r; dist = %r' % \
+                (specs, dist)
+            version = specs[0][1]
+            ver_match = cls._rev_re.search(version)
+            date_match = cls._date_re.search(version)
+            if ver_match or date_match:
+                svn_backend = vcs.get_backend('svn')
+                if svn_backend:
+                    svn_location = svn_backend().get_location(
+                        dist,
+                        dependency_links,
+                    )
+                if not svn_location:
+                    logger.warning(
+                        'Warning: cannot find svn location for %s', req)
+                    comments.append(
+                        '## FIXME: could not find svn URL in dependency_links '
+                        'for this package:'
+                    )
+                else:
+                    comments.append(
+                        '# Installing as editable to satisfy requirement %s:' %
+                        req
+                    )
+                    if ver_match:
+                        rev = ver_match.group(1)
+                    else:
+                        rev = '{%s}' % date_match.group(1)
+                    editable = True
+                    req = '%s@%s#egg=%s' % (
+                        svn_location,
+                        rev,
+                        cls.egg_name(dist)
+                    )
+        return cls(dist.project_name, req, editable, comments)
+
+    @staticmethod
+    def egg_name(dist):
+        name = dist.egg_name()
+        match = re.search(r'-py\d\.\d$', name)
+        if match:
+            name = name[:match.start()]
+        return name
+
+    def __str__(self):
+        req = self.req
+        if self.editable:
+            req = '-e %s' % req
+        return '\n'.join(list(self.comments) + [str(req)]) + '\n'
