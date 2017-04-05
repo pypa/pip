@@ -4,6 +4,7 @@ from __future__ import absolute_import, division
 
 import os
 import sys
+import locale
 
 from pip._vendor.six import text_type
 
@@ -24,11 +25,6 @@ __all__ = [
 ]
 
 
-# windows detection, covers cpython and ironpython
-WINDOWS = (sys.platform.startswith("win") or
-           (sys.platform == 'cli' and os.name == 'nt'))
-
-
 if sys.version_info >= (3, 4):
     uses_pycache = True
     from importlib.util import cache_from_source
@@ -43,14 +39,7 @@ else:
 
 if sys.version_info >= (3,):
     def console_to_str(s):
-        try:
-            return s.decode(sys.__stdout__.encoding)
-        except UnicodeDecodeError:
-            if WINDOWS:
-                from ctypes import cdll
-                return s.decode("cp" + str(cdll.kernel32.GetACP()), 'replace')
-            else:
-                return s.decode("utf-8")
+        return s.decode(locale.getpreferredencoding(), 'replace')
 
     def native_str(s, replace=False):
         if isinstance(s, bytes):
@@ -115,6 +104,11 @@ def expanduser(path):
 # py26:sysconfig.get_config_vars('LIBDEST')), but fear platform variation may
 # make this ineffective, so hard-coding
 stdlib_pkgs = {"python", "wsgiref", "argparse"}
+
+
+# windows detection, covers cpython and ironpython
+WINDOWS = (sys.platform.startswith("win") or
+           (sys.platform == 'cli' and os.name == 'nt'))
 
 
 def samefile(file1, file2):
