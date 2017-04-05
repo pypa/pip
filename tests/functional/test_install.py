@@ -271,6 +271,53 @@ def test_install_from_local_directory(script, data):
     assert egg_info_folder in result.files_created, str(result)
 
 
+def test_install_from_relative_directory(script, data):
+    """
+    Test installing requirements using a relative path.
+    """
+    fspkg_folder = script.site_packages / 'fspkg'
+    egg_info_folder = (
+        script.site_packages / 'FSPkg-0.1.dev0-py%s.egg-info' % pyversion
+    )
+    egg_link_file = (
+        script.site_packages / 'FSPkg.egg-link'
+    )
+
+    # Create directories in scratch of varying depth to test relative path to
+    # requirements.
+    for relative_depth in range(3):
+        # Setup scratch dir with given depth. This is where we call pip from.
+        my_dir = script.scratch_path.join(
+            *[str(i) for i in range(relative_depth)]).mkdir()
+
+        # Compute relative install path to FSPkg.
+        to_install_relative = data.packages.join("FSPkg") - my_dir
+
+        # Install from relative path using direct pip invocation.
+        result = script.pip('install', to_install_relative,
+                            expect_error=False, cwd=my_dir)
+        assert (fspkg_folder in result.files_created or
+                fspkg_folder in str(result))
+        assert (egg_info_folder in result.files_created or
+                egg_info_folder in str(result))
+        script.pip('uninstall', '-y', 'fspkg')
+
+        # Install from relative path using requirements files.
+        for reqs_fmt, assert_path in (('{rel_dir}', egg_info_folder),
+                                      ('file:{rel_dir}', egg_info_folder),
+                                      ('-e file:{rel_dir}', egg_link_file),
+                                      ('-e {rel_dir}', egg_link_file)):
+            with requirements_file(
+                    reqs_fmt.format(rel_dir=to_install_relative),
+                    my_dir) as reqs_file:
+                result = script.pip_install_local('-r', reqs_file.name,
+                                                  expect_error=False,
+                                                  cwd=my_dir)
+                assert (assert_path in result.files_created or
+                        assert_path in str(result))
+                script.pip('uninstall', '-y', 'fspkg')
+
+
 def test_install_quiet(script, data):
     """
     Test that install -q is actually quiet.
