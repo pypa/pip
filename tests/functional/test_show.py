@@ -16,6 +16,7 @@ def test_show(script):
     assert 'Version: %s' % __version__ in lines
     assert any(line.startswith('Location: ') for line in lines)
     assert 'Requires: ' in lines
+    assert 'Dependents: ' in lines
 
 
 def test_show_with_files_not_found(script, data):
