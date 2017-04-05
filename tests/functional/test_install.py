@@ -285,7 +285,7 @@ def test_install_from_relative_directory(script, data):
 
     # Create directories in scratch of varying depth to test relative path to
     # requirements.
-    for relative_depth in range(3):
+    for relative_depth in range(2):
         # Setup scratch dir with given depth. This is where we call pip from.
         my_dir = script.scratch_path.join(
             *[str(i) for i in range(relative_depth)]).mkdir()
@@ -294,12 +294,9 @@ def test_install_from_relative_directory(script, data):
         to_install_relative = data.packages.join("FSPkg") - my_dir
 
         # Install from relative path using direct pip invocation.
-        result = script.pip('install', to_install_relative,
-                            expect_error=False, cwd=my_dir)
-        assert (fspkg_folder in result.files_created or
-                fspkg_folder in str(result))
-        assert (egg_info_folder in result.files_created or
-                egg_info_folder in str(result))
+        result = script.pip('install', to_install_relative, cwd=my_dir)
+        assert fspkg_folder in result.files_created, str(result)
+        assert egg_info_folder in result.files_created, str(result)
         script.pip('uninstall', '-y', 'fspkg')
 
         # Install from relative path using requirements files.
@@ -311,10 +308,8 @@ def test_install_from_relative_directory(script, data):
                     reqs_fmt.format(rel_dir=to_install_relative),
                     my_dir) as reqs_file:
                 result = script.pip_install_local('-r', reqs_file.name,
-                                                  expect_error=False,
                                                   cwd=my_dir)
-                assert (assert_path in result.files_created or
-                        assert_path in str(result))
+                assert assert_path in result.files_created, str(result)
                 script.pip('uninstall', '-y', 'fspkg')
 
 
