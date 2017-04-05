@@ -210,14 +210,14 @@ class ListCommand(Command):
                 yield dist
 
     def output_legacy(self, dist, options):
-        if options.verbose >= 2:
+        if options.verbose >= 1:
             return '%s (%s, %s, %s)' % (
                 dist.project_name,
                 dist.version,
                 dist.location,
-                dist.installer,
+                get_installer(dist),
             )
-        elif options.verbose >= 1 or dist_is_editable(dist):
+        elif dist_is_editable(dist):
             return '%s (%s, %s)' % (
                 dist.project_name,
                 dist.version,
@@ -243,12 +243,10 @@ class ListCommand(Command):
             self.output_package_listing_columns(data, header)
         elif options.list_format == 'freeze':
             for dist in packages:
-                if options.verbose >= 2:
-                    logger.info("%s==%s (%s) (%s)", dist.project_name,
-                                dist.version, dist.location, dist.installer)
                 if options.verbose >= 1:
-                    logger.info("%s==%s (%s)", dist.project_name,
-                                dist.version, dist.location)
+                    logger.info("%s==%s (%s) (%s)", dist.project_name,
+                                dist.version, dist.location,
+                                get_installer(dist))
                 else:
                     logger.info("%s==%s", dist.project_name, dist.version)
         elif options.list_format == 'json':
@@ -308,7 +306,7 @@ def format_for_columns(pkgs, options):
     data = []
     if options.verbose >= 1 or any(dist_is_editable(x) for x in pkgs):
         header.append("Location")
-    if options.verbose >= 2:
+    if options.verbose >= 1:
         header.append("Installer")
 
     for proj in pkgs:
@@ -322,8 +320,8 @@ def format_for_columns(pkgs, options):
 
         if options.verbose >= 1 or dist_is_editable(proj):
             row.append(proj.location)
-        if options.verbose >= 2:
-            row.append(proj.installer)
+        if options.verbose >= 1:
+            row.append(get_installer(proj))
 
         data.append(row)
 
@@ -337,12 +335,19 @@ def format_for_json(packages, options):
             'name': dist.project_name,
             'version': six.text_type(dist.version),
         }
-        if options.verbose >= 2:
-            info['installer'] = dist.installer
         if options.verbose >= 1:
             info['location'] = dist.location
+            info['installer'] = get_installer(dist)
         if options.outdated:
             info['latest_version'] = six.text_type(dist.latest_version)
             info['latest_filetype'] = dist.latest_filetype
         data.append(info)
     return json.dumps(data)
+
+
+def get_installer(dist):
+    if dist.has_metadata('INSTALLER'):
+        for line in dist.get_metadata_lines('INSTALLER'):
+            if line.strip():
+                return line.strip()
+    return ''
