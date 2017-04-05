@@ -123,9 +123,10 @@ def print_results(distributions, list_files=False, verbose=False):
     Print the informations from installed distributions found.
     """
     results_printed = False
-    dependents = get_required_dists(pkg_resources.working_set)
     for i, dist in enumerate(distributions):
         results_printed = True
+        dependents = get_required_dists(pkg_resources.working_set, dist)
+
         if i > 0:
             logger.info("---")
         logger.info("Name: %s", dist.get('name', ''))
