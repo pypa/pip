@@ -271,46 +271,40 @@ def test_install_from_local_directory(script, data):
     assert egg_info_folder in result.files_created, str(result)
 
 
-def test_install_from_relative_directory(script, data):
+def test_install_relative_directory(script, data):
     """
-    Test installing requirements using a relative path.
+    Test installing a requirement using a relative path.
     """
-    fspkg_folder = script.site_packages / 'fspkg'
-    egg_info_folder = (
+    egg_info_file = (
         script.site_packages / 'FSPkg-0.1.dev0-py%s.egg-info' % pyversion
     )
     egg_link_file = (
         script.site_packages / 'FSPkg.egg-link'
     )
+    package_folder = script.site_packages / 'fspkg'
 
-    # Create directories in scratch of varying depth to test relative path to
-    # requirements.
-    for relative_depth in range(2):
-        # Setup scratch dir with given depth. This is where we call pip from.
-        my_dir = script.scratch_path.join(
-            *[str(i) for i in range(relative_depth)]).mkdir()
+    # Compute relative install path to FSPkg from scratch path.
+    full_rel_path = data.packages.join('FSPkg') - script.scratch_path
+    embedded_rel_path = script.scratch_path.join(full_rel_path)
 
-        # Compute relative install path to FSPkg.
-        to_install_relative = data.packages.join("FSPkg") - my_dir
-
-        # Install from relative path using direct pip invocation.
-        result = script.pip('install', to_install_relative, cwd=my_dir)
-        assert fspkg_folder in result.files_created, str(result)
-        assert egg_info_folder in result.files_created, str(result)
+    # For each relative path, install as either editable or not using either
+    # URLs with egg links or not.
+    for req_path in (full_rel_path,
+                     'file:' + full_rel_path + '?egg=FSPkg',
+                     embedded_rel_path,
+                     'file:' + embedded_rel_path + '?egg=FSPkg'):
+        # Regular install.
+        result = script.pip('install', req_path,
+                            cwd=script.scratch_path)
+        assert egg_info_file in result.files_created, str(result)
+        assert package_folder in result.files_created, str(result)
         script.pip('uninstall', '-y', 'fspkg')
 
-        # Install from relative path using requirements files.
-        for reqs_fmt, assert_path in (('{rel_dir}', egg_info_folder),
-                                      ('file:{rel_dir}', egg_info_folder),
-                                      ('-e file:{rel_dir}', egg_link_file),
-                                      ('-e {rel_dir}', egg_link_file)):
-            with requirements_file(
-                    reqs_fmt.format(rel_dir=to_install_relative),
-                    my_dir) as reqs_file:
-                result = script.pip_install_local('-r', reqs_file.name,
-                                                  cwd=my_dir)
-                assert assert_path in result.files_created, str(result)
-                script.pip('uninstall', '-y', 'fspkg')
+        # Editable install.
+        result = script.pip('install', '-e' + req_path,
+                            cwd=script.scratch_path)
+        assert egg_link_file in result.files_created, str(result)
+        script.pip('uninstall', '-y', 'fspkg')
 
 
 def test_install_quiet(script, data):
