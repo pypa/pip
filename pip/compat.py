@@ -47,11 +47,8 @@ if sys.version_info >= (3,):
             return s.decode(sys.__stdout__.encoding)
         except UnicodeDecodeError:
             if WINDOWS:
-                try:
-                    from ctypes import cdll
-                    return s.decode("cp" + str(cdll.kernel32.GetACP()))
-                except ImportError:
-                    return s.decode("utf-8")
+                from ctypes import cdll
+                return s.decode("cp" + str(cdll.kernel32.GetACP()), 'replace')
             else:
                 return s.decode("utf-8")
 
