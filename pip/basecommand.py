@@ -105,15 +105,15 @@ class Command(object):
     def main(self, args):
         options, args = self.parse_args(args)
 
-        if options.quiet:
-            if options.quiet == 1:
-                level = "WARNING"
-            elif options.quiet == 2:
-                level = "ERROR"
-            else:
-                level = "CRITICAL"
-        elif options.verbose:
+        verbosity = options.verbose - options.quiet
+        if verbosity >= 1:
             level = "DEBUG"
+        elif verbosity == -1:
+            level = "WARNING"
+        elif verbosity == -2:
+            level = "ERROR"
+        elif verbosity <= -3:
+            level = "CRITICAL"
         else:
             level = "INFO"
 
