@@ -244,9 +244,8 @@ class ListCommand(Command):
         elif options.list_format == 'freeze':
             for dist in packages:
                 if options.verbose >= 1:
-                    logger.info("%s==%s (%s) (%s)", dist.project_name,
-                                dist.version, dist.location,
-                                get_installer(dist))
+                    logger.info("%s==%s (%s)", dist.project_name,
+                                dist.version, dist.location)
                 else:
                     logger.info("%s==%s", dist.project_name, dist.version)
         elif options.list_format == 'json':
