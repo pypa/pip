@@ -1,5 +1,6 @@
 import pytest
 from pip.commands.search import (highest_version,
+                                 print_results,
                                  transform_hits,
                                  SearchCommand)
 from pip.status_codes import NO_MATCHES_FOUND, SUCCESS
@@ -134,3 +135,25 @@ def test_search_exit_status_code_when_finds_no_package(script):
     """
     result = script.pip('search', 'nonexistentpackage', expect_error=True)
     assert result.returncode == NO_MATCHES_FOUND, result.returncode
+
+
+def test_search_print_results_should_contain_latest_versions(caplog):
+    """
+    Test that printed search results contain the latest package versions
+    """
+    hits = [
+        {
+            'name': 'testlib1',
+            'summary': 'Test library 1.',
+            'versions': ['1.0.5', '1.0.3']
+        },
+        {
+            'name': 'testlib2',
+            'summary': 'Test library 1.',
+            'versions': ['2.0.1', '2.0.3']
+        }
+    ]
+    print_results(hits)
+    log_messages = sorted([r.getMessage() for r in caplog.records()])
+    assert log_messages[0].startswith('testlib1 (1.0.5)')
+    assert log_messages[1].startswith('testlib2 (2.0.3)')
