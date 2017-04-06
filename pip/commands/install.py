@@ -143,14 +143,14 @@ class InstallCommand(RequirementCommand):
             action="store_true",
             dest="compile",
             default=True,
-            help="Compile py files to pyc",
+            help="Compile Python source files to bytecode",
         )
 
         cmd_opts.add_option(
             "--no-compile",
             action="store_false",
             dest="compile",
-            help="Do not compile py files to pyc",
+            help="Do not compile Python source files to bytecode",
         )
 
         cmd_opts.add_option(cmdoptions.no_binary())
