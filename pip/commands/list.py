@@ -16,6 +16,7 @@ from pip.index import PackageFinder
 from pip.utils import (
     get_installed_distributions, dist_is_editable)
 from pip.utils.deprecation import RemovedInPip11Warning
+from pip.utils.packaging import get_installer
 from pip.cmdoptions import make_option_group, index_group
 
 logger = logging.getLogger(__name__)
@@ -342,11 +343,3 @@ def format_for_json(packages, options):
             info['latest_filetype'] = dist.latest_filetype
         data.append(info)
     return json.dumps(data)
-
-
-def get_installer(dist):
-    if dist.has_metadata('INSTALLER'):
-        for line in dist.get_metadata_lines('INSTALLER'):
-            if line.strip():
-                return line.strip()
-    return ''

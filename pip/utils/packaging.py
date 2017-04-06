@@ -61,3 +61,11 @@ def check_dist_requires_python(dist):
             "Package %s has an invalid Requires-Python entry %s - %s" % (
                 dist.project_name, requires_python, e))
         return
+
+
+def get_installer(dist):
+    if dist.has_metadata('INSTALLER'):
+        for line in dist.get_metadata_lines('INSTALLER'):
+            if line.strip():
+                return line.strip()
+    return ''
