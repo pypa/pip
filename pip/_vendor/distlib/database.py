@@ -27,7 +27,7 @@ from .util import (parse_requirement, cached_property, parse_name_and_version,
 
 __all__ = ['Distribution', 'BaseInstalledDistribution',
            'InstalledDistribution', 'EggInfoDistribution',
-           'DistributionPath', 'get_required_dists']
+           'DistributionPath']
 
 
 logger = logging.getLogger(__name__)

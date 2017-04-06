@@ -7,7 +7,6 @@ import os
 from pip.basecommand import Command
 from pip.status_codes import SUCCESS, ERROR
 from pip._vendor import pkg_resources
-from pip._vendor.distlib.database import get_required_dists
 from pip._vendor.packaging.utils import canonicalize_name
 
 
@@ -125,7 +124,8 @@ def print_results(distributions, list_files=False, verbose=False):
     results_printed = False
     for i, dist in enumerate(distributions):
         results_printed = True
-        dependents = get_required_dists(pkg_resources.working_set, dist)
+        dependents = [pkg for pkg in pkg_resources.working_set
+                      if dist in pkg.get('requires', [])]
 
         if i > 0:
             logger.info("---")
