@@ -290,9 +290,8 @@ def test_install_relative_directory(script, data):
     # For each relative path, install as either editable or not using either
     # URLs with egg links or not.
     for req_path in (full_rel_path,
-                     'file:' + full_rel_path + '?egg=FSPkg',
-                     embedded_rel_path,
-                     'file:' + embedded_rel_path + '?egg=FSPkg'):
+                     'file:' + full_rel_path + '#egg=FSPkg',
+                     embedded_rel_path):
         # Regular install.
         result = script.pip('install', req_path,
                             cwd=script.scratch_path)

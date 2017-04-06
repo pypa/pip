@@ -72,9 +72,8 @@ def test_relative_requirements_file(script, data):
     # For each relative path, install as either editable or not using either
     # URLs with egg links or not.
     for req_path in (full_rel_path,
-                     'file:' + full_rel_path + '?egg=FSPkg',
-                     embedded_rel_path,
-                     'file:' + embedded_rel_path + '?egg=FSPkg'):
+                     'file:' + full_rel_path + '#egg=FSPkg',
+                     embedded_rel_path):
         # Regular install.
         with requirements_file(req_path + '\n',
                                script.scratch_path) as reqs_file:
