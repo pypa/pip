@@ -16,6 +16,7 @@ from pip.index import PackageFinder
 from pip.utils import (
     get_installed_distributions, dist_is_editable)
 from pip.utils.deprecation import RemovedInPip11Warning
+from pip.utils.packaging import get_installer
 from pip.cmdoptions import make_option_group, index_group
 
 logger = logging.getLogger(__name__)
@@ -210,7 +211,14 @@ class ListCommand(Command):
                 yield dist
 
     def output_legacy(self, dist, options):
-        if options.verbose >= 1 or dist_is_editable(dist):
+        if options.verbose >= 1:
+            return '%s (%s, %s, %s)' % (
+                dist.project_name,
+                dist.version,
+                dist.location,
+                get_installer(dist),
+            )
+        elif dist_is_editable(dist):
             return '%s (%s, %s)' % (
                 dist.project_name,
                 dist.version,
@@ -298,6 +306,8 @@ def format_for_columns(pkgs, options):
     data = []
     if options.verbose >= 1 or any(dist_is_editable(x) for x in pkgs):
         header.append("Location")
+    if options.verbose >= 1:
+        header.append("Installer")
 
     for proj in pkgs:
         # if we're working on the 'outdated' list, separate out the
@@ -310,6 +320,8 @@ def format_for_columns(pkgs, options):
 
         if options.verbose >= 1 or dist_is_editable(proj):
             row.append(proj.location)
+        if options.verbose >= 1:
+            row.append(get_installer(proj))
 
         data.append(row)
 
@@ -325,6 +337,7 @@ def format_for_json(packages, options):
         }
         if options.verbose >= 1:
             info['location'] = dist.location
+            info['installer'] = get_installer(dist)
         if options.outdated:
             info['latest_version'] = six.text_type(dist.latest_version)
             info['latest_filetype'] = dist.latest_filetype
