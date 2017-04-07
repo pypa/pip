@@ -271,6 +271,41 @@ def test_install_from_local_directory(script, data):
     assert egg_info_folder in result.files_created, str(result)
 
 
+def test_install_relative_directory(script, data):
+    """
+    Test installing a requirement using a relative path.
+    """
+    egg_info_file = (
+        script.site_packages / 'FSPkg-0.1.dev0-py%s.egg-info' % pyversion
+    )
+    egg_link_file = (
+        script.site_packages / 'FSPkg.egg-link'
+    )
+    package_folder = script.site_packages / 'fspkg'
+
+    # Compute relative install path to FSPkg from scratch path.
+    full_rel_path = data.packages.join('FSPkg') - script.scratch_path
+    embedded_rel_path = script.scratch_path.join(full_rel_path)
+
+    # For each relative path, install as either editable or not using either
+    # URLs with egg links or not.
+    for req_path in (full_rel_path,
+                     'file:' + full_rel_path + '#egg=FSPkg',
+                     embedded_rel_path):
+        # Regular install.
+        result = script.pip('install', req_path,
+                            cwd=script.scratch_path)
+        assert egg_info_file in result.files_created, str(result)
+        assert package_folder in result.files_created, str(result)
+        script.pip('uninstall', '-y', 'fspkg')
+
+        # Editable install.
+        result = script.pip('install', '-e' + req_path,
+                            cwd=script.scratch_path)
+        assert egg_link_file in result.files_created, str(result)
+        script.pip('uninstall', '-y', 'fspkg')
+
+
 def test_install_quiet(script, data):
     """
     Test that install -q is actually quiet.
