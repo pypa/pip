@@ -668,8 +668,8 @@ def unpack_http_url(link, location, download_dir=None,
                                                          hashes,
                                                          progress_bar)
 
-        # unpack the archive to the build dir location. even when only downloading
-        # archives, they have to be unpacked to parse dependencies
+        # unpack the archive to the build dir location. even when only
+        # downloading archives, they have to be unpacked to parse dependencies
         unpack_file(from_path, location, content_type, link)
 
         # a download dir is specified; let's copy the archive there
