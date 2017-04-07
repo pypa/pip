@@ -133,3 +133,18 @@ def test_check_submodule_addition(script):
         script.venv / 'src/version-pkg/testpkg/static/testfile2'
         in update_result.files_created
     )
+
+
+def test_install_git_detached(script):
+    version_pkg_path = _create_test_package(script)
+    script.pip(
+        'install', '-e',
+        'git+file://' + version_pkg_path + '@master#egg=version_pkg'
+    )
+    source_dir = script.venv_path / 'src' / 'version-pkg'
+    branch = script.run(
+        'git', 'status', '--porcelain', '--branch',
+        cwd=source_dir
+    ).stdout.strip()
+    # Check we are in detached HEAD
+    assert 'HEAD' in branch
