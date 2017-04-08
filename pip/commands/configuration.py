@@ -4,6 +4,7 @@ import subprocess
 from pip import cmdoptions
 from pip.basecommand import Command
 from pip.configuration import Configuration
+from pip.exceptions import ConfigurationError
 from pip.status_codes import SUCCESS, ERROR
 
 logger = logging.getLogger(__name__)
@@ -203,18 +204,22 @@ class ConfigurationCommand(Command):
 
     def set_name_value(self, options):
         key, value = options.set_name_value.split("=", 1)
-        self.configuration.set_value(key, value)  # Error here is propagated.
 
+        try:
+            self.configuration.set_value(key, value)
+        except ConfigurationError:
+            logger.error("Could not set value in configuration")
+        else:
         return self._save_configuration()
 
     def unset_name(self, options):
         key = options.unset_name
-        val = self.configuration.unset_value(key)  # Error here is propagated.
 
-        if val is False:
-            logger.warn("ERROR: No key %r in configuration", key)
-            return ERROR
-
+        try:
+            self.configuration.unset_value(key)
+        except ConfigurationError:
+            logger.error("Could not unset value in configuration")
+        else:
         return self._save_configuration()
 
     def _save_configuration(self):
