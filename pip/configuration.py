@@ -200,6 +200,11 @@ class Configuration(object):
         """Loads configuration from configuration files
         """
         for variant, files in self._get_config_files():
+            if variant == "environment" and files == [os.devnull]:
+                # If the user sets the environment var as devnull,
+                # we don't load configuration.
+                break
+
             for file in files:
                 # If there's specific variant set in `load_only`, load only
                 # that variant, not the others.
@@ -263,18 +268,19 @@ class Configuration(object):
         This should be treated like items of a dictionary.
         """
 
-        config_file = os.environ.get('PIP_CONFIG_FILE', False)
-        if config_file == os.devnull:
-            return
+        # environment variables have the lowest priority
+        config_file = os.environ.get('PIP_CONFIG_FILE', None)
+        yield "environment", config_file
 
         # at the base we have any site-wide configuration
         yield "site-wide", list(site_config_files)
 
         # per-user configuration next
-        if not self.isolated:
-            if config_file and os.path.exists(config_file):
-                yield "user", [config_file]
-            else:
+        # SMELL: Move this condition out of this function
+        should_load_user_config = not self.isolated and not (
+            config_file and os.path.exists(config_file)
+        )
+        if should_load_user_config:
                 # The legacy config file is overridden by the new config file
                 yield "user", [legacy_config_file, new_config_file]
 
