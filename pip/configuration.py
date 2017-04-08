@@ -1,4 +1,14 @@
 """Configuration management setup
+
+Some terminology:
+- name
+  As written in config files.
+- value
+  Value associated with a name
+- key
+  Name combined with it's section (section.name)
+- variant
+  A single word describing where the configuration key-value pair came from
 """
 
 import os
@@ -21,7 +31,7 @@ _need_file_err_msg = "Needed a specific file to be modifying."
 logger = logging.getLogger(__name__)
 
 
-# NOTE: Maybe use the optionx attribtue to normalize keynames.
+# NOTE: Maybe use the optionx attribute to normalize keynames.
 def _normalize_name(name):
     """Make a name consistent regardless of source (environment or file)
     """
@@ -37,16 +47,6 @@ def _disassemble_key(name):
 
 def _make_key(variant, name):
     return ".".join((variant, name))
-
-# Some terminology:
-# - name
-#   As written in config files.
-# - value
-#   Value associated with a name
-# - key
-#   Name combined with it's section (section.name)
-# - variant
-#   A single word describing where the configuration key-value pair came from
 
 
 class Configuration(object):

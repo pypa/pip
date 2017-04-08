@@ -78,7 +78,7 @@ class ConfigurationCommand(Command):
             dest='global_file',
             action='store_true',
             default=False,
-            help='Use the global configuration file'
+            help='Use the system-wide configuration file only'
         )
 
         self.cmd_opts.add_option(
@@ -86,7 +86,7 @@ class ConfigurationCommand(Command):
             dest='user_file',
             action='store_true',
             default=False,
-            help='Use the local configuration file'
+            help='Use the user configuration file only'
         )
 
         self.cmd_opts.add_option(
@@ -94,7 +94,7 @@ class ConfigurationCommand(Command):
             dest='venv_file',
             action='store_true',
             default=False,
-            help='Use the virtualenv configuration file'
+            help='Use the virtualenv configuration file only'
         )
 
         self.parser.insert_option_group(0, self.cmd_opts)
@@ -121,17 +121,17 @@ class ConfigurationCommand(Command):
                 action = k
 
         if action is None:
-            logger.warn(
-                "ERROR: Need exactly one action (--list, --edit, "
+            logger.error(
+                "Need exactly one action (--list, --edit, "
                 "--get, --set, --unset) to perform."
             )
             return ERROR
 
         # Determine which configuration files are to be loaded
-        if options.user_file and options.global_file:
-            logger.warn(
-                "ERROR: Need at-most one configuration file to use - pass "
-                "only one of --global, --user."
+        if sum([options.user_file, options.global_file, options.venv_file]):
+            logger.error(
+                "Need at-most one configuration file to use - pass "
+                "only one of --global, --user, --venv."
             )
             return ERROR
 
@@ -143,8 +143,8 @@ class ConfigurationCommand(Command):
         elif options.venv_file:
             kwargs["load_only"] = "venv"
         elif action in ["set", "unset", "edit"]:
-            logger.warn(
-                "ERROR: Need one configuration file to modify - pass one of "
+            logger.error(
+                "Need one configuration file to modify - pass one of "
                 "--global, --user, --venv."
             )
             return ERROR
@@ -173,8 +173,8 @@ class ConfigurationCommand(Command):
 
     def open_in_editor(self, options):
         if options.editor is None:
-            logger.warn(
-                "ERROR: --edit requires an editor to be passed, either using "
+            logger.error(
+                "--edit requires an editor to be passed, either using "
                 "--editor or by setting it in a configuration file."
             )
             return ERROR
@@ -184,8 +184,8 @@ class ConfigurationCommand(Command):
         try:
             subprocess.check_call([options.editor, file])
         except subprocess.CalledProcessError as e:
-            logger.warn(
-                "ERROR: Subprocess exited with exit code %d", e.returncode
+            logger.error(
+                "Subprocess exited with exit code %d", e.returncode
             )
             return ERROR
         else:
@@ -195,7 +195,7 @@ class ConfigurationCommand(Command):
         try:
             value = self.configuration.get_value(options.get_name)
         except KeyError:
-            logger.warn("ERROR: No key %r in configuration", options.get_name)
+            logger.error("No key %r in configuration", options.get_name)
             return ERROR
 
         logger.info("%s", value)
@@ -223,7 +223,10 @@ class ConfigurationCommand(Command):
         try:
             self.configuration.save()
         except Exception:
-            logger.error("Houston, we have a problem", exc_info=1)
+            logger.error(
+                "Unable to save configuration. Please report this as a bug.",
+                exc_info=1
+            )
             return ERROR
         else:
             return SUCCESS
