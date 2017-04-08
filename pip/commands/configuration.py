@@ -214,7 +214,7 @@ class ConfigurationCommand(Command):
         except ConfigurationError:
             logger.error("Could not set value in configuration")
         else:
-        return self._save_configuration()
+            return self._save_configuration()
 
     def unset_name(self, options):
         key = options.unset_name
@@ -224,7 +224,7 @@ class ConfigurationCommand(Command):
         except ConfigurationError:
             logger.error("Could not unset value in configuration")
         else:
-        return self._save_configuration()
+            return self._save_configuration()
 
     def _save_configuration(self):
         # We successfully ran a modifying command. Need to save the
