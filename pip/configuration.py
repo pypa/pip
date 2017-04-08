@@ -40,7 +40,7 @@ def _make_key(variant, name):
 
 # Some terminology:
 # - name
-#   Name of options, as written in config files.
+#   As written in config files.
 # - value
 #   Value associated with a name
 # - key
@@ -56,9 +56,11 @@ class Configuration(object):
 
     This class converts provides an API that takes "section.key-name" style
     keys and stores the value associated with it as "key-name" under the
-    section "section". This allows for a clean interface wherein the
+    section "section".
 
-
+    This allows for a clean interface wherein the both the section and the
+    key-name are preserved in an easy to manage form in the configuration files
+    and the data stored is also nice.
     """
 
     def __init__(self, isolated, load_only=None):
@@ -91,10 +93,6 @@ class Configuration(object):
         configuration
         """
         return self._dictionary.items()
-
-    #
-    # Exposed only for config command. Other commands should not touch this.
-    #
 
     def get_value(self, key):
         """Get a value from the configuration.
@@ -250,10 +248,12 @@ class Configuration(object):
             if _environ_prefix_re.search(key):
                 yield (_environ_prefix_re.sub("", key).lower(), val)
 
-    # MARK: Can be made into a dictionary returning function.
     def _get_config_files(self):
-        """Returns configuration files and what variant it is associated with.
+        """Yields variant and configuration files associated with it.
+
+        This should be treated like items of a dictionary.
         """
+
         config_file = os.environ.get('PIP_CONFIG_FILE', False)
         if config_file == os.devnull:
             return
@@ -278,7 +278,7 @@ class Configuration(object):
         parsers = self._parsers[self.load_only]
         if not parsers:
             # This should not happen if we're doing it correctly.
-            raise Exception("What!?")
+            raise Exception("Internal configuration error!?")
 
         # Use the highest priority parser.
         return parsers[-1]
