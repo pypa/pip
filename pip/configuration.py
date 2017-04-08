@@ -89,6 +89,14 @@ class Configuration(object):
         if not self.isolated:
             self._load_environment_vars()
 
+    def get_file(self):
+        """Returns the file with highest priority in configuration
+        """
+        try:
+            return self._get_parser_to_modify()[0]
+        except IndexError:
+            return None
+
     def items(self):
         """Returns key-value pairs like dict.items() representing the loaded
         configuration

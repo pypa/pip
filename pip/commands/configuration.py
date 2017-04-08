@@ -180,6 +180,11 @@ class ConfigurationCommand(Command):
             return ERROR
 
         file = self.configuration.get_file()
+        if file is None:
+            logger.error(
+                "Could not determine appropriate file."
+            )
+            return ERROR
 
         try:
             subprocess.check_call([options.editor, file])
