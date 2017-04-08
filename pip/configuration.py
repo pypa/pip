@@ -19,6 +19,7 @@ import logging
 from pip._vendor.six import next
 from pip._vendor.six.moves import configparser
 
+from pip.exceptions import ConfigurationError
 from pip.locations import (
     new_config_file, legacy_config_file, venv_config_file,
     running_under_virtualenv, site_config_files
@@ -69,7 +70,7 @@ class Configuration(object):
         super(Configuration, self).__init__()
 
         if load_only not in ["user", "site-wide", "venv", None]:
-            raise ValueError(
+            raise ConfigurationError(
                 "Got invalid value for load_only - should be one of 'user', "
                 "'site-wide', 'venv'"
             )
@@ -129,7 +130,7 @@ class Configuration(object):
         assert self.load_only is not None, _need_file_err_msg
 
         if key not in self._config[self.load_only]:
-            raise KeyError(key)
+            raise ConfigurationError(key)
 
         file, parser = self._get_parser_to_modify()
 
@@ -152,9 +153,9 @@ class Configuration(object):
                 if file_parser_tuple not in self._modified_parsers:
                     self._modified_parsers.append(file_parser_tuple)
             else:
-                # If here, something is there in the dictionary but not in the
-                # parser. This should not happen.
-                pass
+                raise ConfigurationError(
+                    "Internal error [id=1]. Please report as a bug."
+                )
 
         del self._config[self.load_only][key]
 
@@ -279,8 +280,10 @@ class Configuration(object):
         # Determine which parser to modify
         parsers = self._parsers[self.load_only]
         if not parsers:
-            # This should not happen if we're doing it correctly.
-            raise Exception("Internal configuration error!?")
+            # This should not happen if everything works correctly.
+            raise ConfigurationError(
+                "Internal error [id=2]. Please report as a bug."
+            )
 
         # Use the highest priority parser.
         return parsers[-1]

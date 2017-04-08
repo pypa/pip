@@ -10,6 +10,10 @@ class PipError(Exception):
     """Base pip exception"""
 
 
+class ConfigurationError(PipError):
+    """General exception in configuration"""
+
+
 class InstallationError(PipError):
     """General exception during installation"""
 
