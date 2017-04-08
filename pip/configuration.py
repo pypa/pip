@@ -13,7 +13,6 @@ Some terminology:
 
 import re
 import os
-import sys
 import logging
 
 from pip._vendor.six import next

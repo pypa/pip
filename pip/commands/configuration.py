@@ -1,7 +1,6 @@
 import logging
 import subprocess
 
-from pip import cmdoptions
 from pip.basecommand import Command
 from pip.configuration import Configuration
 from pip.exceptions import ConfigurationError
