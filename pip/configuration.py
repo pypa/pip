@@ -124,11 +124,7 @@ class Configuration(object):
             parser.set(section, name, value)
 
         self._config[self.load_only][key] = value
-
-        # MARK:: Maybe DRY this.
-        file_parser_tuple = (file, parser)
-        if file_parser_tuple not in self._modified_parsers:
-            self._modified_parsers.append(file_parser_tuple)
+        self._mark_as_modified(file, parser)
 
     def unset_value(self, key):
         """Unset a value in the configuration.
@@ -154,18 +150,13 @@ class Configuration(object):
                 if next(iter(parser.items(section)), None) is None:
                     parser.remove_section(section)
 
-                # MARK:: Maybe DRY this.
-                file_parser_tuple = (file, parser)
-                if file_parser_tuple not in self._modified_parsers:
-                    self._modified_parsers.append(file_parser_tuple)
+                self._mark_as_modified(file, parser)
             else:
                 raise ConfigurationError(
                     "Internal error [id=1]. Please report as a bug."
                 )
 
         del self._config[self.load_only][key]
-
-        return True
 
     def save(self):
         assert self.load_only is not None, _need_file_err_msg
@@ -281,8 +272,8 @@ class Configuration(object):
             config_file and os.path.exists(config_file)
         )
         if should_load_user_config:
-                # The legacy config file is overridden by the new config file
-                yield "user", [legacy_config_file, new_config_file]
+            # The legacy config file is overridden by the new config file
+            yield "user", [legacy_config_file, new_config_file]
 
         # finally virtualenv configuration first trumping others
         if running_under_virtualenv():
@@ -299,3 +290,8 @@ class Configuration(object):
 
         # Use the highest priority parser.
         return parsers[-1]
+
+    def _mark_as_modified(self, file, parser):
+        file_parser_tuple = (file, parser)
+        if file_parser_tuple not in self._modified_parsers:
+            self._modified_parsers.append(file_parser_tuple)
