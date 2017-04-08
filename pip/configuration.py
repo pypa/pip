@@ -191,10 +191,13 @@ class Configuration(object):
         """Loads configuration from configuration files
         """
         for variant, files in self._get_config_files():
-            if variant == "environment" and files == [os.devnull]:
-                # If the user sets the environment var as devnull,
-                # we don't load configuration.
-                break
+            if variant == "environment":
+                if files == [os.devnull]:
+                    # If the user sets the environment var as devnull,
+                    # we don't load configuration.
+                    break
+                elif files == [None]:
+                    continue
 
             for file in files:
                 # If there's specific variant set in `load_only`, load only
@@ -261,7 +264,7 @@ class Configuration(object):
 
         # environment variables have the lowest priority
         config_file = os.environ.get('PIP_CONFIG_FILE', None)
-        yield "environment", config_file
+        yield "environment", [config_file]
 
         # at the base we have any site-wide configuration
         yield "site-wide", list(site_config_files)
