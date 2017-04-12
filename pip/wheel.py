@@ -684,8 +684,6 @@ class BuildEnvironment(object):
         if not self.no_clean:
             rmtree(self.prefix)
 
-        return False  # Do not suppress exceptions
-
 
 class WheelBuilder(object):
     """Build wheels from a RequirementSet."""
