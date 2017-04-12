@@ -699,25 +699,21 @@ class WheelBuilder(object):
         self.no_clean = no_clean
 
     def _find_build_reqs(self, req):
-        """Get a list of the packages required to build the project, if any.
+        """Get a list of the packages required to build the project, if any,
+        and a flag indicating whether pyproject.toml is present, indicating
+        that the build should be isolated.
 
         Build requirements can be specified in a pyproject.toml, as described
-        in PEP 518. If this file exists but doesn't specify any build
-        requirements, pip will default to installing setuptools and wheel. If
-        pyproject.toml is not present, the build will take place in the current
-        environment.
+        in PEP 518. If this file exists but doesn't specify build
+        requirements, pip will default to installing setuptools and wheel.
         """
         if os.path.isfile(req.pyproject_toml):
             with open(req.pyproject_toml) as f:
                 pp_toml = pytoml.load(f)
-            bsr = pp_toml.get('build-system', {}).get('requires', [])
-            if not bsr:
-                # These are required for the most common way to build a wheel,
-                # so we'll install them if no build-system reqs are specified.
-                bsr = ['setuptools', 'wheel']
-            return bsr
+            return pp_toml.get('build-system', {})\
+                .get('requires', ['setuptools', 'wheel']), True
 
-        return []  # No pyproject.toml - will result in a non-isolated build.
+        return ['setuptools', 'wheel'], False
 
     def _install_build_reqs(self, reqs, prefix):
         # Local import to avoid circular import (wheel <-> req_install)
@@ -736,21 +732,13 @@ class WheelBuilder(object):
 
         :return: The filename of the built wheel, or None if the build failed.
         """
-        build_reqs = self._find_build_reqs(req)
-
-        if build_reqs:
-            # Install build deps into temporary prefix (PEP 518)
-            with BuildEnvironment(no_clean=self.no_clean) as prefix:
-                self._install_build_reqs(build_reqs, prefix)
-                return self._build_one_inside_env(req, output_dir,
-                                                  python_tag=python_tag,
-                                                  isolate=True)
-        else:
-            # Build in the current environment, with no isolation.
-            # Used for sdists without a pyproject.toml, as well as build
-            # systems that don't require any external dependencies.
+        build_reqs, isolate = self._find_build_reqs(req)
+        # Install build deps into temporary prefix (PEP 518)
+        with BuildEnvironment(no_clean=self.no_clean) as prefix:
+            self._install_build_reqs(build_reqs, prefix)
             return self._build_one_inside_env(req, output_dir,
-                                              python_tag=python_tag)
+                                              python_tag=python_tag,
+                                              isolate=True)
 
     def _build_one_inside_env(self, req, output_dir, python_tag=None,
                               isolate=False):
@@ -774,10 +762,8 @@ class WheelBuilder(object):
 
     def _base_setup_args(self, req, isolate=False):
         flags = '-u'
-        # The install process needs to be able to import setuptools from where
-        # it's installed as a dependency of pip, so skipping isolation for now.
-        # if isolate:
-        #     flags += 'S'
+        if isolate:
+            flags += 'S'
         return [
             sys.executable, flags, '-c',
             SETUPTOOLS_SHIM % req.setup_py
