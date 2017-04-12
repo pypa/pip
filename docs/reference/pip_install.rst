@@ -801,6 +801,7 @@ Examples
       $ pip install git+https://git.repo/some_pkg.git#egg=SomePackage[PDF]
       $ pip install SomePackage[PDF]==3.0
       $ pip install -e .[PDF]==3.0  # editable project in current directory
+      $ pip install SomePackage[PDF,EPUB]  # multiple extras
 
 
 #. Install a particular source archive file.
