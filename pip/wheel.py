@@ -702,14 +702,22 @@ class WheelBuilder(object):
         """Get a list of the packages required to build the project, if any.
 
         Build requirements can be specified in a pyproject.toml, as described
-        in PEP 518
+        in PEP 518. If this file exists but doesn't specify any build
+        requirements, pip will default to installing setuptools and wheel. If
+        pyproject.toml is not present, the build will take place in the current
+        environment.
         """
         if os.path.isfile(req.pyproject_toml):
             with open(req.pyproject_toml) as f:
                 pp_toml = pytoml.load(f)
-            return pp_toml.get('build-system', {}).get('requires', [])
+            bsr = pp_toml.get('build-system', {}).get('requires', [])
+            if not bsr:
+                # These are required for the most common way to build a wheel,
+                # so we'll install them if no build-system reqs are specified.
+                bsr = ['setuptools', 'wheel']
+            return bsr
 
-        return []  # No pyproject.toml
+        return []  # No pyproject.toml - will result in a non-isolated build.
 
     def _install_build_reqs(self, reqs, prefix):
         # Local import to avoid circular import (wheel <-> req_install)
