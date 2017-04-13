@@ -762,8 +762,11 @@ class WheelBuilder(object):
 
     def _base_setup_args(self, req, isolate=False):
         flags = '-u'
-        if isolate:
-            flags += 'S'
+        # The -S flag currently breaks Python in virtualenvs, because it relies
+        # on site.py to find parts of the standard library outside the env. So
+        # isolation is disabled for now.
+        # if isolate:
+        #     flags += 'S'
         return [
             sys.executable, flags, '-c',
             SETUPTOOLS_SHIM % req.setup_py
