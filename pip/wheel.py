@@ -733,6 +733,11 @@ class WheelBuilder(object):
         :return: The filename of the built wheel, or None if the build failed.
         """
         build_reqs, isolate = self._find_build_reqs(req)
+        if 'setuptools' not in build_reqs:
+            logger.warning(
+                "This version of pip does not implement PEP 516, so "
+                "it cannot build a wheel without setuptools. You may need to "
+                "upgrade to a newer version of pip.")
         # Install build deps into temporary prefix (PEP 518)
         with BuildEnvironment(no_clean=self.no_clean) as prefix:
             self._install_build_reqs(build_reqs, prefix)
