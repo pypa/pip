@@ -103,7 +103,7 @@ def test_pip_wheel_builds_editable(script, data):
     script.pip('install', 'wheel')
     editable_path = os.path.join(data.src, 'simplewheel-1.0')
     result = script.pip(
-        'wheel', '--no-index', '-e', editable_path
+        'wheel', '--no-index', '-f', data.find_links, '-e', editable_path
     )
     wheel_file_name = 'simplewheel-1.0-py%s-none-any.whl' % pyversion[0]
     wheel_file_path = script.scratch / wheel_file_name
