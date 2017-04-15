@@ -109,10 +109,25 @@ class Command(object):
         # factored out for testability
         return self.parser.parse_args(args)
 
-    def print_help(self):
-        # factored out for uniform handling
-        # of 'help <command>' and '<command> --help' cases
-        self.parser.print_help()
+    def print_help(self, verbose=False):
+        """
+        Process 'help <command>' and '<command> --help' to hide global
+        options unless --verbose flag is specified.
+
+        'pip --help' is handled separately by pip.__init__.parseopt()
+        """
+        if verbose:
+            self.parser.print_help()
+        else:
+            # remove General Options group and restore after print
+            saveepy = self.parser.epilog
+            saveogr = self.parser.option_groups  # it is a list
+            self.parser.epilog = "\nAdd '-v' flag to show general "\
+                                 "options.\n"
+            self.parser.option_groups.remove(self.gen_opts)
+            self.parser.print_help()
+            self.parser.epilog = saveepy
+            self.parser.option_groups = saveogr
 
     def main(self, args):
         options, args = self.parse_args(args)
@@ -127,16 +142,7 @@ class Command(object):
         )
 
         if options.help:
-            if not options.verbose:
-                # hide General Options
-                self.parser.epilog = "\nAdd '-v' flag to show general "\
-                                     "options.\n"
-                self.parser.option_groups.remove(self.gen_opts)
-
-                # 'pip --help' is handled by pip.__init__.parseopt(),
-                # so it is not affected by absence of --verbose
-
-            self.print_help()
+            self.print_help(options.verbose)
             sys.exit(0)
 
         # TODO: Try to get these passing down from the command?
