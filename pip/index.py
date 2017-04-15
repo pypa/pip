@@ -218,7 +218,17 @@ class PackageFinder(object):
                 urls.append(url)
             else:
                 files.append(url)
-
+        if 'cache' in locations:
+            # special keyword to include cache dir in --find-links
+            # this resolution could go several places, perhaps should be in
+            # command?
+            try:
+                cache = os.environ['PIP_DOWNLOAD_CACHE']
+            except KeyError:
+                raise ValueError("cache specified as --find-link but no "\
+                        + "download cache specified")
+            logger.debug("adding download cache to find-links locations")
+            locations[locations.index('cache')] = 'file://%s' % cache
         for url in locations:
 
             is_local_path = os.path.exists(url)
@@ -610,6 +620,11 @@ class PackageFinder(object):
             ext = link.ext
         else:
             egg_info, ext = link.splitext()
+            # for some reason filename is double url quoted at this point
+            if (os.path.basename(egg_info).startswith('http')
+                    and '%252F' in egg_info):
+                logger.debug('resolving egg info from cache link: %s' % link)
+                egg_info = egg_info.split('%252F')[-1]
             if not ext:
                 self._log_skipped_link(link, 'not a file')
                 return
