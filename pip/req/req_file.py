@@ -94,6 +94,7 @@ def preprocess(content, options):
     lines_enum = join_lines(lines_enum)
     lines_enum = ignore_comments(lines_enum)
     lines_enum = skip_regex(lines_enum, options)
+    lines_enum = expand_env_vars(lines_enum)
     return lines_enum
 
 
@@ -301,3 +302,12 @@ def skip_regex(lines_enum, options):
             lambda e: pattern.search(e[1]),
             lines_enum)
     return lines_enum
+
+
+def expand_env_vars(lines_enum):
+    """
+    Expands environment variables
+    """
+    for line_number, line in lines_enum:
+        line = os.path.expandvars(line)
+        yield line_number, line
