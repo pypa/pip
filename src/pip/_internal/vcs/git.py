@@ -132,7 +132,7 @@ class Git(VersionControl):
             rev_options = [rev]
             rev_display = ' (to %s)' % rev
         else:
-            rev_options = ['origin/master']
+            rev_options = ['refs/remotes/origin/HEAD']
             rev_display = ''
         if self.check_destination(dest, url, rev_options, rev_display):
             logger.info(
