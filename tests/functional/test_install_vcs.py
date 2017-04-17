@@ -253,3 +253,34 @@ def test_git_works_with_editable_non_origin_repo(script):
     assert "Error when trying to get requirement" in result.stderr
     assert "Could not determine repository location" in result.stdout
     assert "version-pkg==0.1" in result.stdout
+
+
+@pytest.mark.network
+def test_reinstalling_works_with_editible_non_master_branch(script):
+    """
+    Reinstalling an editable installation should not assume that the "master"
+    branch exists. See https://github.com/pypa/pip/issues/4448.
+    """
+    version_pkg_path = _create_test_package(script)
+
+    # Switch the default branch to something other than 'master'
+    script.run('git', 'branch', '-m', 'foobar', cwd=version_pkg_path)
+
+    script.pip(
+        'install', '-e',
+        '%s#egg=version_pkg' %
+        ('git+file://' + version_pkg_path.abspath.replace('\\', '/')),
+        expect_stderr=True,
+    )
+    version = script.run('version_pkg')
+    assert '0.1' in version.stdout
+
+    _change_test_package_version(script, version_pkg_path)
+    script.pip(
+        'install', '-e',
+        '%s#egg=version_pkg' %
+        ('git+file://' + version_pkg_path.abspath.replace('\\', '/')),
+        expect_stderr=True,
+    )
+    version = script.run('version_pkg')
+    assert 'some different version' in version.stdout
