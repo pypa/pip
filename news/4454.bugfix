@@ -1,0 +1,2 @@
+Fallback to using SecureTransport on macOS when the linked OpenSSL is too old to
+support TLSv1.2.
