@@ -4,6 +4,7 @@ Support for installing and building the "wheel" binary package format.
 from __future__ import absolute_import
 
 import compileall
+import copy
 import csv
 import errno
 import hashlib
@@ -718,7 +719,12 @@ class WheelBuilder(object):
     def _install_build_reqs(self, reqs, prefix):
         # Local import to avoid circular import (wheel <-> req_install)
         from pip.req.req_install import InstallRequirement
-        urls = [self.finder.find_requirement(InstallRequirement.from_line(r),
+        from pip.index import FormatControl
+        # Ignore the --no-binary option when installing the build system, so
+        # we don't recurse trying to build a self-hosting build system.
+        finder = copy.copy(self.finder)
+        finder.format_control = FormatControl(set(), set())
+        urls = [finder.find_requirement(InstallRequirement.from_line(r),
                                              upgrade=False).url
                 for r in reqs]
 
