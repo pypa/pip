@@ -722,8 +722,8 @@ class WheelBuilder(object):
                                              upgrade=False).url
                 for r in reqs]
 
-        args = [sys.executable, '-m', 'pip', 'install', '--prefix', prefix] \
-            + list(urls)
+        args = [sys.executable, '-m', 'pip', 'install', '--ignore-installed',
+                '--prefix', prefix] + list(urls)
         with open_spinner("Installing build dependencies") as spinner:
             call_subprocess(args, show_stdout=False, spinner=spinner)
 
@@ -733,6 +733,11 @@ class WheelBuilder(object):
         :return: The filename of the built wheel, or None if the build failed.
         """
         build_reqs, isolate = self._find_build_reqs(req)
+        if 'setuptools' not in build_reqs:
+            logger.warning(
+                "This version of pip does not implement PEP 516, so "
+                "it cannot build a wheel without setuptools. You may need to "
+                "upgrade to a newer version of pip.")
         # Install build deps into temporary prefix (PEP 518)
         with BuildEnvironment(no_clean=self.no_clean) as prefix:
             self._install_build_reqs(build_reqs, prefix)
@@ -762,8 +767,11 @@ class WheelBuilder(object):
 
     def _base_setup_args(self, req, isolate=False):
         flags = '-u'
-        if isolate:
-            flags += 'S'
+        # The -S flag currently breaks Python in virtualenvs, because it relies
+        # on site.py to find parts of the standard library outside the env. So
+        # isolation is disabled for now.
+        # if isolate:
+        #     flags += 'S'
         return [
             sys.executable, flags, '-c',
             SETUPTOOLS_SHIM % req.setup_py
