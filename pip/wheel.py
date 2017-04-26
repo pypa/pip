@@ -725,7 +725,7 @@ class WheelBuilder(object):
         finder = copy.copy(self.finder)
         finder.format_control = FormatControl(set(), set())
         urls = [finder.find_requirement(InstallRequirement.from_line(r),
-                                             upgrade=False).url
+                                        upgrade=False).url
                 for r in reqs]
 
         args = [sys.executable, '-m', 'pip', 'install', '--ignore-installed',
