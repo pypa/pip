@@ -16,6 +16,7 @@ from pip.req.req_file import process_line
 from pip.req.req_install import parse_editable
 from pip.utils import read_text_file
 from pip._vendor import pkg_resources
+from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
 from tests.lib import assert_raises_regexp, requirements_file
 
@@ -50,7 +51,7 @@ class TestRequirementSet(object):
         finder = PackageFinder([data.find_links], [], session=PipSession())
         assert_raises_regexp(
             PreviousBuildDirError,
-            "pip can't proceed with [\s\S]*%s[\s\S]*%s" %
+            r"pip can't proceed with [\s\S]*%s[\s\S]*%s" %
             (req, build_dir.replace('\\', '\\\\')),
             reqset.prepare_files,
             finder,
@@ -149,6 +150,10 @@ class TestRequirementSet(object):
                 wheel_cache=None)
         assert req_set.require_hashes
 
+    # This test doesn't appear to handle URL-encoded Windows paths
+    # correctly. Needs reviewing by someone who understands the logic.
+    @pytest.mark.xfail("sys.platform == 'win32'",
+                       reason="Code doesn't handle url-encoded Windows paths")
     def test_unsupported_hashes(self, data):
         """VCS and dir links should raise errors when --require-hashes is
         on.
@@ -182,7 +187,7 @@ class TestRequirementSet(object):
             r"Can't verify hashes for these file:// requirements because they "
             r"point to directories:\n"
             r"    file://.*{sep}data{sep}packages{sep}FSPkg "
-            "\(from -r file \(line 2\)\)".format(sep=sep),
+            r"\(from -r file \(line 2\)\)".format(sep=sep),
             reqset.prepare_files,
             finder)
 
@@ -271,18 +276,6 @@ class TestRequirementSet(object):
             '--hash=sha256:d6dd1e22e60df512fdcf3640ced3039b3b02a56ab2cee81ebcb'
             '3d0a6d4e8bfa6',
             'file', 2)))
-
-    def test_no_egg_on_require_hashes(self, data):
-        """Make sure --egg is illegal with --require-hashes.
-
-        --egg would cause dependencies to always be installed, since it cedes
-        control directly to setuptools.
-
-        """
-        reqset = self.basic_reqset(require_hashes=True, as_egg=True)
-        finder = PackageFinder([data.find_links], [], session=PipSession())
-        with pytest.raises(InstallationError):
-            reqset.prepare_files(finder)
 
 
 @pytest.mark.parametrize(('file_contents', 'expected'), [
@@ -411,14 +404,14 @@ class TestInstallRequirement(object):
             req = InstallRequirement.from_line(line)
             assert req.req.name == 'mock3'
             assert str(req.req.specifier) == ''
-            assert req.markers == 'python_version >= "3"'
+            assert str(req.markers) == 'python_version >= "3"'
 
     def test_markers_semicolon(self):
         # check that the markers can contain a semicolon
         req = InstallRequirement.from_line('semicolon; os_name == "a; b"')
         assert req.req.name == 'semicolon'
         assert str(req.req.specifier) == ''
-        assert req.markers == 'os_name == "a; b"'
+        assert str(req.markers) == 'os_name == "a; b"'
 
     def test_markers_url(self):
         # test "URL; markers" syntax
@@ -426,7 +419,7 @@ class TestInstallRequirement(object):
         line = '%s; python_version >= "3"' % url
         req = InstallRequirement.from_line(line)
         assert req.link.url == url, req.url
-        assert req.markers == 'python_version >= "3"'
+        assert str(req.markers) == 'python_version >= "3"'
 
         # without space, markers are part of the URL
         url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
@@ -435,7 +428,7 @@ class TestInstallRequirement(object):
         assert req.link.url == line, req.url
         assert req.markers is None
 
-    def test_markers_match(self):
+    def test_markers_match_from_line(self):
         # match
         for markers in (
             'python_version >= "1.0"',
@@ -443,7 +436,7 @@ class TestInstallRequirement(object):
         ):
             line = 'name; ' + markers
             req = InstallRequirement.from_line(line)
-            assert req.markers == markers
+            assert str(req.markers) == str(Marker(markers))
             assert req.match_markers()
 
         # don't match
@@ -453,7 +446,28 @@ class TestInstallRequirement(object):
         ):
             line = 'name; ' + markers
             req = InstallRequirement.from_line(line)
-            assert req.markers == markers
+            assert str(req.markers) == str(Marker(markers))
+            assert not req.match_markers()
+
+    def test_markers_match(self):
+        # match
+        for markers in (
+            'python_version >= "1.0"',
+            'sys_platform == %r' % sys.platform,
+        ):
+            line = 'name; ' + markers
+            req = InstallRequirement.from_line(line, comes_from='')
+            assert str(req.markers) == str(Marker(markers))
+            assert req.match_markers()
+
+        # don't match
+        for markers in (
+            'python_version >= "5.0"',
+            'sys_platform != %r' % sys.platform,
+        ):
+            line = 'name; ' + markers
+            req = InstallRequirement.from_line(line, comes_from='')
+            assert str(req.markers) == str(Marker(markers))
             assert not req.match_markers()
 
     def test_extras_for_line_path_requirement(self):
@@ -494,7 +508,7 @@ class TestInstallRequirement(object):
                 os.path.join('this', 'path', 'does', 'not', 'exist'))
         err_msg = e.value.args[0]
         assert "Invalid requirement" in err_msg
-        assert "It looks like a path. Does it exist ?" in err_msg
+        assert "It looks like a path." in err_msg
 
     def test_single_equal_sign(self):
         with pytest.raises(InstallationError) as e:
@@ -509,6 +523,18 @@ class TestInstallRequirement(object):
         err_msg = e.value.args[0]
         assert "Invalid requirement" in err_msg
         assert "\nTraceback " in err_msg
+
+    def test_requirement_file(self):
+        req_file_path = os.path.join(self.tempdir, 'test.txt')
+        with open(req_file_path, 'w') as req_file:
+            req_file.write('pip\nsetuptools')
+        with pytest.raises(InstallationError) as e:
+            InstallRequirement.from_line(req_file_path)
+        err_msg = e.value.args[0]
+        assert "Invalid requirement" in err_msg
+        assert "It looks like a path. It does exist." in err_msg
+        assert "appears to be a requirements file." in err_msg
+        assert "If that is the case, use the '-r' flag to install" in err_msg
 
 
 def test_requirements_data_structure_keeps_order():
@@ -545,23 +571,15 @@ def test_parse_editable_local(
     exists_mock.return_value = isdir_mock.return_value = True
     # mocks needed to support path operations on windows tests
     abspath_mock.return_value = "/some/path"
-    assert parse_editable('.', 'git') == (None, 'file:///some/path', None)
+    assert parse_editable('.') == (None, 'file:///some/path', None)
     abspath_mock.return_value = "/some/path/foo"
-    assert parse_editable('foo', 'git') == (
+    assert parse_editable('foo') == (
         None, 'file:///some/path/foo', None,
     )
 
 
-def test_parse_editable_default_vcs():
-    assert parse_editable('https://foo#egg=foo', 'git') == (
-        'foo',
-        'git+https://foo#egg=foo',
-        None,
-    )
-
-
 def test_parse_editable_explicit_vcs():
-    assert parse_editable('svn+https://foo#egg=foo', 'git') == (
+    assert parse_editable('svn+https://foo#egg=foo') == (
         'foo',
         'svn+https://foo#egg=foo',
         None,
@@ -569,7 +587,7 @@ def test_parse_editable_explicit_vcs():
 
 
 def test_parse_editable_vcs_extras():
-    assert parse_editable('svn+https://foo#egg=foo[extras]', 'git') == (
+    assert parse_editable('svn+https://foo#egg=foo[extras]') == (
         'foo[extras]',
         'svn+https://foo#egg=foo[extras]',
         None,
@@ -583,11 +601,11 @@ def test_parse_editable_local_extras(
         isdir_mock, exists_mock, abspath_mock):
     exists_mock.return_value = isdir_mock.return_value = True
     abspath_mock.return_value = "/some/path"
-    assert parse_editable('.[extras]', 'git') == (
+    assert parse_editable('.[extras]') == (
         None, 'file://' + "/some/path", set(['extras']),
     )
     abspath_mock.return_value = "/some/path/foo"
-    assert parse_editable('foo[bar,baz]', 'git') == (
+    assert parse_editable('foo[bar,baz]') == (
         None, 'file:///some/path/foo', set(['bar', 'baz']),
     )
 

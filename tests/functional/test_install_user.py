@@ -61,7 +61,7 @@ class Tests_UserSite:
         virtualenv.system_site_packages = True
         result = script.pip(
             'install', '--user', '-e',
-            '%s#egg=initools-dev' %
+            '%s#egg=initools' %
             local_checkout(
                 'svn+http://svn.colorstudy.com/INITools/trunk',
                 tmpdir.join("cache"),

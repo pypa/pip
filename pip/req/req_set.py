@@ -14,12 +14,14 @@ from pip.download import (is_file_url, is_dir_url, is_vcs_url, url_to_path,
 from pip.exceptions import (InstallationError, BestVersionAlreadyInstalled,
                             DistributionNotFound, PreviousBuildDirError,
                             HashError, HashErrors, HashUnpinned,
-                            DirectoryUrlHashUnsupported, VcsHashUnsupported)
+                            DirectoryUrlHashUnsupported, VcsHashUnsupported,
+                            UnsupportedPythonVersion)
 from pip.req.req_install import InstallRequirement
 from pip.utils import (
     display_path, dist_in_usersite, ensure_dir, normalize_path)
 from pip.utils.hashes import MissingHashes
 from pip.utils.logging import indent_log
+from pip.utils.packaging import check_dist_requires_python
 from pip.vcs import vcs
 from pip.wheel import Wheel
 
@@ -139,12 +141,13 @@ class Installed(DistAbstraction):
 
 class RequirementSet(object):
 
-    def __init__(self, build_dir, src_dir, download_dir, upgrade=False,
-                 ignore_installed=False, as_egg=False, target_dir=None,
-                 ignore_dependencies=False, force_reinstall=False,
-                 use_user_site=False, session=None, pycompile=True,
-                 isolated=False, wheel_download_dir=None,
-                 wheel_cache=None, require_hashes=False):
+    def __init__(self, build_dir, src_dir, download_dir=None, upgrade=False,
+                 upgrade_strategy=None, ignore_installed=False,
+                 target_dir=None, ignore_dependencies=False,
+                 force_reinstall=False, use_user_site=False, session=None,
+                 pycompile=True, isolated=False, wheel_download_dir=None,
+                 wheel_cache=None, require_hashes=False,
+                 ignore_requires_python=False, progress_bar="on"):
         """Create a RequirementSet.
 
         :param wheel_download_dir: Where still-packed .whl files should be
@@ -170,6 +173,7 @@ class RequirementSet(object):
         # the wheelhouse output by 'pip wheel'.
         self.download_dir = download_dir
         self.upgrade = upgrade
+        self.upgrade_strategy = upgrade_strategy
         self.ignore_installed = ignore_installed
         self.force_reinstall = force_reinstall
         self.requirements = Requirements()
@@ -177,10 +181,11 @@ class RequirementSet(object):
         self.requirement_aliases = {}
         self.unnamed_requirements = []
         self.ignore_dependencies = ignore_dependencies
+        self.ignore_requires_python = ignore_requires_python
+        self.progress_bar = progress_bar
         self.successfully_downloaded = []
         self.successfully_installed = []
         self.reqs_to_cleanup = []
-        self.as_egg = as_egg
         self.use_user_site = use_user_site
         self.target_dir = target_dir  # set from --target option
         self.session = session
@@ -207,7 +212,8 @@ class RequirementSet(object):
         return ('<%s object; %d requirement(s): %s>'
                 % (self.__class__.__name__, len(reqs), reqs_str))
 
-    def add_requirement(self, install_req, parent_req_name=None):
+    def add_requirement(self, install_req, parent_req_name=None,
+                        extras_requested=None):
         """Add install_req as a requirement to install.
 
         :param parent_req_name: The name of the requirement that needed this
@@ -216,13 +222,15 @@ class RequirementSet(object):
             links that point outside the Requirements set. parent_req must
             already be added. Note that None implies that this is a user
             supplied requirement, vs an inferred one.
+        :param extras_requested: an iterable of extras used to evaluate the
+            environement markers.
         :return: Additional requirements to scan. That is either [] if
             the requirement is not applicable, or [install_req] if the
             requirement is applicable and has just been added.
         """
         name = install_req.name
-        if not install_req.match_markers():
-            logger.warning("Ignoring %s: markers %r don't match your "
+        if not install_req.match_markers(extras_requested):
+            logger.warning("Ignoring %s: markers '%s' don't match your "
                            "environment", install_req.name,
                            install_req.markers)
             return []
@@ -237,10 +245,11 @@ class RequirementSet(object):
                     wheel.filename
                 )
 
-        install_req.as_egg = self.as_egg
         install_req.use_user_site = self.use_user_site
         install_req.target_dir = self.target_dir
         install_req.pycompile = self.pycompile
+        install_req.is_direct = (parent_req_name is None)
+
         if not name:
             # url or path requirement w/o an egg fragment
             self.unnamed_requirements.append(install_req)
@@ -329,13 +338,6 @@ class RequirementSet(object):
                 return self.requirements[self.requirement_aliases[name]]
         raise KeyError("No project with the name %r" % project_name)
 
-    def uninstall(self, auto_confirm=False):
-        for req in self.requirements.values():
-            if req.constraint:
-                continue
-            req.uninstall(auto_confirm=auto_confirm)
-            req.commit_uninstall()
-
     def prepare_files(self, finder):
         """
         Prepare process. Create temp directories, download and/or unpack files.
@@ -349,11 +351,6 @@ class RequirementSet(object):
         root_reqs = self.unnamed_requirements + self.requirements.values()
         require_hashes = (self.require_hashes or
                           any(req.has_hash_options for req in root_reqs))
-        if require_hashes and self.as_egg:
-            raise InstallationError(
-                '--egg is not allowed with --require-hashes mode, since it '
-                'delegates dependency resolution to setuptools and could thus '
-                'result in installation of unhashed packages.')
 
         # Actually prepare the files, and collect any exceptions. Most hash
         # exceptions cannot be checked ahead of time, because
@@ -374,6 +371,13 @@ class RequirementSet(object):
 
         if hash_errors:
             raise hash_errors
+
+    def _is_upgrade_allowed(self, req):
+        return self.upgrade and (
+            self.upgrade_strategy == "eager" or (
+                self.upgrade_strategy == "only-if-needed" and req.is_direct
+            )
+        )
 
     def _check_skip_installed(self, req_to_install, finder):
         """Check if req_to_install should be skipped.
@@ -396,17 +400,20 @@ class RequirementSet(object):
         # Check whether to upgrade/reinstall this req or not.
         req_to_install.check_if_exists()
         if req_to_install.satisfied_by:
-            skip_reason = 'satisfied (use --upgrade to upgrade)'
-            if self.upgrade:
-                best_installed = False
+            upgrade_allowed = self._is_upgrade_allowed(req_to_install)
+
+            # Is the best version is installed.
+            best_installed = False
+
+            if upgrade_allowed:
                 # For link based requirements we have to pull the
                 # tree down and inspect to assess the version #, so
                 # its handled way down.
                 if not (self.force_reinstall or req_to_install.link):
                     try:
-                        finder.find_requirement(req_to_install, self.upgrade)
+                        finder.find_requirement(
+                            req_to_install, upgrade_allowed)
                     except BestVersionAlreadyInstalled:
-                        skip_reason = 'up-to-date'
                         best_installed = True
                     except DistributionNotFound:
                         # No distribution found, so we squash the
@@ -423,6 +430,15 @@ class RequirementSet(object):
                         req_to_install.conflicts_with = \
                             req_to_install.satisfied_by
                     req_to_install.satisfied_by = None
+
+            # Figure out a nice message to say why we're skipping this.
+            if best_installed:
+                skip_reason = 'already up-to-date'
+            elif self.upgrade_strategy == "only-if-needed":
+                skip_reason = 'not upgraded as not directly required'
+            else:
+                skip_reason = 'already satisfied'
+
             return skip_reason
         else:
             return None
@@ -463,8 +479,9 @@ class RequirementSet(object):
                     'req_to_install.satisfied_by is set to %r'
                     % (req_to_install.satisfied_by,))
                 logger.info(
-                    'Requirement already %s: %s', skip_reason,
-                    req_to_install)
+                    'Requirement %s: %s (%s)', skip_reason,
+                    req_to_install,
+                    req_to_install.satisfied_by.version)
             else:
                 if (req_to_install.link and
                         req_to_install.link.scheme == 'file'):
@@ -489,6 +506,7 @@ class RequirementSet(object):
                 abstract_dist.prep_for_dist()
                 if self.is_download:
                     req_to_install.archive(self.download_dir)
+                req_to_install.check_if_exists()
             elif req_to_install.satisfied_by:
                 if require_hashes:
                     logger.debug(
@@ -519,7 +537,10 @@ class RequirementSet(object):
                         % (req_to_install, req_to_install.source_dir)
                     )
                 req_to_install.populate_link(
-                    finder, self.upgrade, require_hashes)
+                    finder,
+                    self._is_upgrade_allowed(req_to_install),
+                    require_hashes
+                )
                 # We can't hit this spot and have populate_link return None.
                 # req_to_install.satisfied_by is None here (because we're
                 # guarded) and upgrade has no impact except when satisfied_by
@@ -584,7 +605,8 @@ class RequirementSet(object):
                     unpack_url(
                         req_to_install.link, req_to_install.source_dir,
                         download_dir, autodelete_unpacked,
-                        session=self.session, hashes=hashes)
+                        session=self.session, hashes=hashes,
+                        progress_bar=self.progress_bar)
                 except requests.HTTPError as exc:
                     logger.critical(
                         'Could not install requirement %s because '
@@ -625,21 +647,33 @@ class RequirementSet(object):
                             req_to_install,
                         )
 
+            # register tmp src for cleanup in case something goes wrong
+            self.reqs_to_cleanup.append(req_to_install)
+
             # ###################### #
             # # parse dependencies # #
             # ###################### #
+
             dist = abstract_dist.dist(finder)
+            try:
+                check_dist_requires_python(dist)
+            except UnsupportedPythonVersion as e:
+                if self.ignore_requires_python:
+                    logger.warning(e.args[0])
+                else:
+                    raise
             more_reqs = []
 
-            def add_req(subreq):
-                sub_install_req = InstallRequirement(
+            def add_req(subreq, extras_requested):
+                sub_install_req = InstallRequirement.from_req(
                     str(subreq),
                     req_to_install,
                     isolated=self.isolated,
                     wheel_cache=self._wheel_cache,
                 )
                 more_reqs.extend(self.add_requirement(
-                    sub_install_req, req_to_install.name))
+                    sub_install_req, req_to_install.name,
+                    extras_requested=extras_requested))
 
             # We add req_to_install before its dependencies, so that we
             # can refer to it when adding dependencies.
@@ -666,10 +700,7 @@ class RequirementSet(object):
                     set(dist.extras) & set(req_to_install.extras)
                 )
                 for subreq in dist.requires(available_requested):
-                    add_req(subreq)
-
-            # cleanup tmp src
-            self.reqs_to_cleanup.append(req_to_install)
+                    add_req(subreq, extras_requested=available_requested)
 
             if not req_to_install.editable and not req_to_install.satisfied_by:
                 # XXX: --no-install leads this to report 'Successfully
@@ -745,12 +776,12 @@ class RequirementSet(object):
                     # if install did not succeed, rollback previous uninstall
                     if (requirement.conflicts_with and not
                             requirement.install_succeeded):
-                        requirement.rollback_uninstall()
+                        requirement.uninstalled_pathset.rollback()
                     raise
                 else:
                     if (requirement.conflicts_with and
                             requirement.install_succeeded):
-                        requirement.commit_uninstall()
+                        requirement.uninstalled_pathset.commit()
                 requirement.remove_temporary_source()
 
         self.successfully_installed = to_install

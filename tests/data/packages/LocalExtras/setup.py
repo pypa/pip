@@ -13,7 +13,7 @@ def path_to_url(path):
     url = '/'.join(filepath)
     if drive:
         return 'file:///' + drive + url
-    return 'file://' +url
+    return 'file://' + url
 
 
 HERE = os.path.dirname(__file__)
@@ -24,6 +24,6 @@ setup(
     name='LocalExtras',
     version='0.0.1',
     packages=find_packages(),
-    extras_require={ 'bar': ['simple'], 'baz': ['singlemodule'] },
+    extras_require={'bar': ['simple'], 'baz': ['singlemodule']},
     dependency_links=[DEP_URL]
 )

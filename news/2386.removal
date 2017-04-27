@@ -1,0 +1,5 @@
+Removed support for uninstalling projects which have been installed using
+distutils. distutils installed projects do not include metadata indicating
+what files belong to that install and thus it is impossible to *actually*
+uninstall them rather than just remove the metadata saying they've been
+installed while leaving all of the actual files behind.

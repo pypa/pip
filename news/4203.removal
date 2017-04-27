@@ -1,0 +1,2 @@
+Removed the ``setup.py test`` support from our sdist as it wasn't being
+maintained as a supported means to run our tests.

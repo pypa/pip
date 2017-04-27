@@ -2,36 +2,35 @@ language: python
 
 
 matrix:
-    include:
-        - env: TOXENV=docs
-        - env: TOXENV=pep8
-        - env: TOXENV=py3pep8
-        - env: TOXENV=packaging
-        - python: 2.6 # these are just to make travis's UI a bit prettier
-          env: TOXENV=py26
-        - python: 2.7
-          env: TOXENV=py27
-        - python: 3.3
-          env: TOXENV=py33
-        - python: 3.4
-          env: TOXENV=py34
-        - python: 3.5
-          env: TOXENV=py35
-        - python: nightly
-          env: TOXENV=py36
-        - python: pypy
-          env: TOXENV=pypy
-        - python: 2.7
-          env: TOXENV=py27 VENDOR=no
-        - python: 3.5
-          env: TOXENV=py35 VENDOR=no
-        - python: 2.7
-          env: TOXENV=py27 VENDOR=no WHEELS=yes
-        - python: 3.5
-          env: TOXENV=py35 VENDOR=no WHEELS=yes
+  include:
+    - env: TOXENV=docs
+    - env: TOXENV=pep8
+    - env: TOXENV=py3pep8
+    - env: TOXENV=packaging
+    - python: 2.7
+      env: TOXENV=py27
+    - python: 3.3
+      env: TOXENV=py33
+    - python: 3.4
+      env: TOXENV=py34
+    - python: 3.5
+      env: TOXENV=py35
+    - python: 3.6
+      env: TOXENV=py36
+    - python: nightly
+      env: TOXENV=py37
+    - python: pypy
+      env: TOXENV=pypy
+    - python: 2.7
+      env: TOXENV=py27 VENDOR=no WHEELS=yes
+    - python: 3.6
+      env: TOXENV=py36 VENDOR=no WHEELS=yes
+
+  allow_failures:
+    - python: nightly
 
 
-install: .travis/install.sh
+install: travis_retry .travis/install.sh
 
 
 script: .travis/run.sh

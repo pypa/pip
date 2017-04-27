@@ -21,6 +21,7 @@ except ImportError:
 
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
+from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
 
 import pip
 
@@ -28,19 +29,21 @@ from pip.exceptions import InstallationError, HashMismatch
 from pip.models import PyPI
 from pip.utils import (splitext, rmtree, format_size, display_path,
                        backup_dir, ask_path_exists, unpack_file,
-                       ARCHIVE_EXTENSIONS, consume, call_subprocess)
+                       ARCHIVE_EXTENSIONS, consume, call_subprocess,
+                       get_installed_version)
 from pip.utils.encoding import auto_decode
 from pip.utils.filesystem import check_path_owner
 from pip.utils.logging import indent_log
 from pip.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip.utils.glibc import libc_ver
-from pip.utils.ui import DownloadProgressBar, DownloadProgressSpinner
+from pip.utils.ui import DownloadProgressProvider
 from pip.locations import write_delete_marker_file
 from pip.vcs import vcs
 from pip._vendor import requests, six
 from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
+from pip._vendor.requests.utils import get_netrc_auth
 from pip._vendor.requests.structures import CaseInsensitiveDict
 from pip._vendor.requests.packages import urllib3
 from pip._vendor.cachecontrol import CacheControlAdapter
@@ -89,21 +92,22 @@ def user_agent():
         data["implementation"]["version"] = platform.python_version()
 
     if sys.platform.startswith("linux"):
-        distro = dict(filter(
+        from pip._vendor import distro
+        distro_infos = dict(filter(
             lambda x: x[1],
-            zip(["name", "version", "id"], platform.linux_distribution()),
+            zip(["name", "version", "id"], distro.linux_distribution()),
         ))
         libc = dict(filter(
             lambda x: x[1],
             zip(["lib", "version"], libc_ver()),
         ))
         if libc:
-            distro["libc"] = libc
-        if distro:
-            data["distro"] = distro
+            distro_infos["libc"] = libc
+        if distro_infos:
+            data["distro"] = distro_infos
 
     if sys.platform.startswith("darwin") and platform.mac_ver()[0]:
-        data["distro"] = {"name": "OS X", "version": platform.mac_ver()[0]}
+        data["distro"] = {"name": "macOS", "version": platform.mac_ver()[0]}
 
     if platform.system():
         data.setdefault("system", {})["name"] = platform.system()
@@ -114,9 +118,12 @@ def user_agent():
     if platform.machine():
         data["cpu"] = platform.machine()
 
-    # Python 2.6 doesn't have ssl.OPENSSL_VERSION.
-    if HAS_TLS and sys.version_info[:2] > (2, 6):
+    if HAS_TLS:
         data["openssl_version"] = ssl.OPENSSL_VERSION
+
+    setuptools_version = get_installed_version("setuptools")
+    if setuptools_version is not None:
+        data["setuptools_version"] = setuptools_version
 
     return "{data[installer][name]}/{data[installer][version]} {json}".format(
         data=data,
@@ -145,6 +152,11 @@ class MultiDomainBasicAuth(AuthBase):
         # Extract credentials embedded in the url if we have none stored
         if username is None:
             username, password = self.parse_credentials(parsed.netloc)
+
+        # Get creds from netrc if we still don't have them
+        if username is None and password is None:
+            netrc_auth = get_netrc_auth(req.url)
+            username, password = netrc_auth if netrc_auth else (None, None)
 
         if username or password:
             # Store the username and password
@@ -196,17 +208,10 @@ class MultiDomainBasicAuth(AuthBase):
         if "@" in netloc:
             userinfo = netloc.rsplit("@", 1)[0]
             if ":" in userinfo:
-                return userinfo.split(":", 1)
-            return userinfo, None
+                user, pwd = userinfo.split(":", 1)
+                return (urllib_unquote(user), urllib_unquote(pwd))
+            return urllib_unquote(userinfo), None
         return None, None
-
-    def __nonzero__(self):
-        # needed in order to evaluate authentication object to False when we
-        # have no credentials, prevents failure to load .netrc files
-        return bool(self.passwords)
-
-    def __bool__(self):
-        return self.__nonzero__()
 
 
 class LocalFSAdapter(BaseAdapter):
@@ -389,7 +394,12 @@ class PipSession(requests.Session):
 
 def get_file_content(url, comes_from=None, session=None):
     """Gets the content of a file; it may be a filename, file: URL, or
-    http: URL.  Returns (location, content).  Content is unicode."""
+    http: URL.  Returns (location, content).  Content is unicode.
+
+    :param url:         File path or url.
+    :param comes_from:  Origin description of requirements.
+    :param session:     Instance of pip.download.PipSession.
+    """
     if session is None:
         raise TypeError(
             "get_file_content() missing 1 required keyword argument: 'session'"
@@ -510,14 +520,13 @@ def _progress_indicator(iterable, *args, **kwargs):
     return iterable
 
 
-def _download_url(resp, link, content_file, hashes):
+def _download_url(resp, link, content_file, hashes, progress_bar):
     try:
         total_length = int(resp.headers['content-length'])
     except (ValueError, KeyError, TypeError):
         total_length = 0
 
     cached_resp = getattr(resp, "from_cache", False)
-
     if logger.getEffectiveLevel() > logging.INFO:
         show_progress = False
     elif cached_resp:
@@ -581,12 +590,12 @@ def _download_url(resp, link, content_file, hashes):
         url = link.url_without_fragment
 
     if show_progress:  # We don't show progress on cached responses
+        progress_indicator = DownloadProgressProvider(progress_bar,
+                                                      max=total_length)
         if total_length:
             logger.info("Downloading %s (%s)", url, format_size(total_length))
-            progress_indicator = DownloadProgressBar(max=total_length).iter
         else:
             logger.info("Downloading %s", url)
-            progress_indicator = DownloadProgressSpinner().iter
     elif cached_resp:
         logger.info("Using cached %s", url)
     else:
@@ -611,8 +620,8 @@ def _copy_file(filename, location, link):
     download_location = os.path.join(location, link.filename)
     if os.path.exists(download_location):
         response = ask_path_exists(
-            'The file %s exists. (i)gnore, (w)ipe, (b)ackup ' %
-            display_path(download_location), ('i', 'w', 'b'))
+            'The file %s exists. (i)gnore, (w)ipe, (b)ackup, (a)abort' %
+            display_path(download_location), ('i', 'w', 'b', 'a'))
         if response == 'i':
             copy = False
         elif response == 'w':
@@ -626,13 +635,15 @@ def _copy_file(filename, location, link):
                 display_path(dest_file),
             )
             shutil.move(download_location, dest_file)
+        elif response == 'a':
+            sys.exit(-1)
     if copy:
         shutil.copy(filename, download_location)
         logger.info('Saved %s', display_path(download_location))
 
 
 def unpack_http_url(link, location, download_dir=None,
-                    session=None, hashes=None):
+                    session=None, hashes=None, progress_bar="on"):
     if session is None:
         raise TypeError(
             "unpack_http_url() missing 1 required keyword argument: 'session'"
@@ -655,7 +666,8 @@ def unpack_http_url(link, location, download_dir=None,
         from_path, content_type = _download_http_url(link,
                                                      session,
                                                      temp_dir,
-                                                     hashes)
+                                                     hashes,
+                                                     progress_bar)
 
     # unpack the archive to the build dir location. even when only downloading
     # archives, they have to be unpacked to parse dependencies
@@ -784,7 +796,8 @@ class PipXmlrpcTransport(xmlrpc_client.Transport):
 
 
 def unpack_url(link, location, download_dir=None,
-               only_download=False, session=None, hashes=None):
+               only_download=False, session=None, hashes=None,
+               progress_bar="on"):
     """Unpack link.
        If link is a VCS link:
          if only_download, export into download_dir and ignore location
@@ -817,13 +830,14 @@ def unpack_url(link, location, download_dir=None,
             location,
             download_dir,
             session,
-            hashes=hashes
+            hashes=hashes,
+            progress_bar=progress_bar
         )
     if only_download:
         write_delete_marker_file(location)
 
 
-def _download_http_url(link, session, temp_dir, hashes):
+def _download_http_url(link, session, temp_dir, hashes, progress_bar):
     """Download link url into temp_dir using provided session"""
     target_url = link.url.split('#', 1)[0]
     try:
@@ -878,7 +892,7 @@ def _download_http_url(link, session, temp_dir, hashes):
             filename += ext
     file_path = os.path.join(temp_dir, filename)
     with open(file_path, 'wb') as content_file:
-        _download_url(resp, link, content_file, hashes)
+        _download_url(resp, link, content_file, hashes, progress_bar)
     return file_path, content_type
 
 

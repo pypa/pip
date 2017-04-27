@@ -1308,5 +1308,5 @@ def make_dist(name, version, **kwargs):
     md = Metadata(**kwargs)
     md.name = name
     md.version = version
-    md.summary = summary or 'Plaeholder for summary'
+    md.summary = summary or 'Placeholder for summary'
     return Distribution(md)

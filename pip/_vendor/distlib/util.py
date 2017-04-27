@@ -15,7 +15,10 @@ import py_compile
 import re
 import shutil
 import socket
-import ssl
+try:
+    import ssl
+except ImportError:  # pragma: no cover
+    ssl = None
 import subprocess
 import sys
 import tarfile
@@ -24,17 +27,16 @@ import textwrap
 
 try:
     import threading
-except ImportError:
+except ImportError:  # pragma: no cover
     import dummy_threading as threading
 import time
 
 from . import DistlibException
 from .compat import (string_types, text_type, shutil, raw_input, StringIO,
                      cache_from_source, urlopen, urljoin, httplib, xmlrpclib,
-                     splittype, HTTPHandler, HTTPSHandler as BaseHTTPSHandler,
-                     BaseConfigurator, valid_ident, Container, configparser,
-                     URLError, match_hostname, CertificateError, ZipFile,
-                     fsdecode)
+                     splittype, HTTPHandler, BaseConfigurator, valid_ident,
+                     Container, configparser, URLError, ZipFile, fsdecode,
+                     unquote)
 
 logger = logging.getLogger(__name__)
 
@@ -540,7 +542,7 @@ class ExportEntry(object):
     def value(self):
         return resolve(self.prefix, self.suffix)
 
-    def __repr__(self):
+    def __repr__(self):  # pragma: no cover
         return '<ExportEntry %s = %s:%s %s>' % (self.name, self.prefix,
                                                 self.suffix, self.flags)
 
@@ -567,8 +569,8 @@ def get_export_entry(specification):
     if not m:
         result = None
         if '[' in specification or ']' in specification:
-            raise DistlibException('Invalid specification '
-                                   '%r' % specification)
+            raise DistlibException("Invalid specification "
+                                   "'%s'" % specification)
     else:
         d = m.groupdict()
         name = d['name']
@@ -578,14 +580,14 @@ def get_export_entry(specification):
             prefix, suffix = path, None
         else:
             if colons != 1:
-                raise DistlibException('Invalid specification '
-                                       '%r' % specification)
+                raise DistlibException("Invalid specification "
+                                       "'%s'" % specification)
             prefix, suffix = path.split(':')
         flags = d['flags']
         if flags is None:
             if '[' in specification or ']' in specification:
-                raise DistlibException('Invalid specification '
-                                       '%r' % specification)
+                raise DistlibException("Invalid specification "
+                                       "'%s'" % specification)
             flags = []
         else:
             flags = [f.strip() for f in flags.split(',')]
@@ -696,6 +698,7 @@ def split_filename(filename, project_name=None):
     """
     result = None
     pyver = None
+    filename = unquote(filename).replace(' ', '-')
     m = PYTHON_VERSION.search(filename)
     if m:
         pyver = m.group(1)
@@ -804,7 +807,7 @@ class Cache(object):
         """
         # we use 'isdir' instead of 'exists', because we want to
         # fail if there's a file with that name
-        if not os.path.isdir(base):
+        if not os.path.isdir(base):  # pragma: no cover
             os.makedirs(base)
         if (os.stat(base).st_mode & 0o77) != 0:
             logger.warning('Directory \'%s\' is not private', base)
@@ -940,12 +943,12 @@ class Sequencer(object):
         try:
             preds = self._preds[succ]
             succs = self._succs[pred]
-        except KeyError:
+        except KeyError:  # pragma: no cover
             raise ValueError('%r not a successor of anything' % succ)
         try:
             preds.remove(pred)
             succs.remove(succ)
-        except KeyError:
+        except KeyError:  # pragma: no cover
             raise ValueError('%r not a successor of %r' % (succ, pred))
 
     def is_step(self, step):
@@ -1071,7 +1074,7 @@ def unarchive(archive_filename, dest_dir, format=None, check=True):
         elif archive_filename.endswith('.tar'):
             format = 'tar'
             mode = 'r'
-        else:
+        else:  # pragma: no cover
             raise ValueError('Unknown format for %r' % archive_filename)
     try:
         if format == 'zip':
@@ -1257,99 +1260,102 @@ def _iglob(path_glob):
                 for fn in _iglob(os.path.join(path, radical)):
                     yield fn
 
+if ssl:
+    from .compat import (HTTPSHandler as BaseHTTPSHandler, match_hostname,
+                         CertificateError)
 
 
 #
 # HTTPSConnection which verifies certificates/matches domains
 #
 
-class HTTPSConnection(httplib.HTTPSConnection):
-    ca_certs = None # set this to the path to the certs file (.pem)
-    check_domain = True # only used if ca_certs is not None
+    class HTTPSConnection(httplib.HTTPSConnection):
+        ca_certs = None # set this to the path to the certs file (.pem)
+        check_domain = True # only used if ca_certs is not None
 
-    # noinspection PyPropertyAccess
-    def connect(self):
-        sock = socket.create_connection((self.host, self.port), self.timeout)
-        if getattr(self, '_tunnel_host', False):
-            self.sock = sock
-            self._tunnel()
+        # noinspection PyPropertyAccess
+        def connect(self):
+            sock = socket.create_connection((self.host, self.port), self.timeout)
+            if getattr(self, '_tunnel_host', False):
+                self.sock = sock
+                self._tunnel()
 
-        if not hasattr(ssl, 'SSLContext'):
-            # For 2.x
+            if not hasattr(ssl, 'SSLContext'):
+                # For 2.x
+                if self.ca_certs:
+                    cert_reqs = ssl.CERT_REQUIRED
+                else:
+                    cert_reqs = ssl.CERT_NONE
+                self.sock = ssl.wrap_socket(sock, self.key_file, self.cert_file,
+                                            cert_reqs=cert_reqs,
+                                            ssl_version=ssl.PROTOCOL_SSLv23,
+                                            ca_certs=self.ca_certs)
+            else:  # pragma: no cover
+                context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+                context.options |= ssl.OP_NO_SSLv2
+                if self.cert_file:
+                    context.load_cert_chain(self.cert_file, self.key_file)
+                kwargs = {}
+                if self.ca_certs:
+                    context.verify_mode = ssl.CERT_REQUIRED
+                    context.load_verify_locations(cafile=self.ca_certs)
+                    if getattr(ssl, 'HAS_SNI', False):
+                        kwargs['server_hostname'] = self.host
+                self.sock = context.wrap_socket(sock, **kwargs)
+            if self.ca_certs and self.check_domain:
+                try:
+                    match_hostname(self.sock.getpeercert(), self.host)
+                    logger.debug('Host verified: %s', self.host)
+                except CertificateError:  # pragma: no cover
+                    self.sock.shutdown(socket.SHUT_RDWR)
+                    self.sock.close()
+                    raise
+
+    class HTTPSHandler(BaseHTTPSHandler):
+        def __init__(self, ca_certs, check_domain=True):
+            BaseHTTPSHandler.__init__(self)
+            self.ca_certs = ca_certs
+            self.check_domain = check_domain
+
+        def _conn_maker(self, *args, **kwargs):
+            """
+            This is called to create a connection instance. Normally you'd
+            pass a connection class to do_open, but it doesn't actually check for
+            a class, and just expects a callable. As long as we behave just as a
+            constructor would have, we should be OK. If it ever changes so that
+            we *must* pass a class, we'll create an UnsafeHTTPSConnection class
+            which just sets check_domain to False in the class definition, and
+            choose which one to pass to do_open.
+            """
+            result = HTTPSConnection(*args, **kwargs)
             if self.ca_certs:
-                cert_reqs = ssl.CERT_REQUIRED
-            else:
-                cert_reqs = ssl.CERT_NONE
-            self.sock = ssl.wrap_socket(sock, self.key_file, self.cert_file,
-                                        cert_reqs=cert_reqs,
-                                        ssl_version=ssl.PROTOCOL_SSLv23,
-                                        ca_certs=self.ca_certs)
-        else:
-            context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-            context.options |= ssl.OP_NO_SSLv2
-            if self.cert_file:
-                context.load_cert_chain(self.cert_file, self.key_file)
-            kwargs = {}
-            if self.ca_certs:
-                context.verify_mode = ssl.CERT_REQUIRED
-                context.load_verify_locations(cafile=self.ca_certs)
-                if getattr(ssl, 'HAS_SNI', False):
-                    kwargs['server_hostname'] = self.host
-            self.sock = context.wrap_socket(sock, **kwargs)
-        if self.ca_certs and self.check_domain:
+                result.ca_certs = self.ca_certs
+                result.check_domain = self.check_domain
+            return result
+
+        def https_open(self, req):
             try:
-                match_hostname(self.sock.getpeercert(), self.host)
-                logger.debug('Host verified: %s', self.host)
-            except CertificateError:
-                self.sock.shutdown(socket.SHUT_RDWR)
-                self.sock.close()
-                raise
+                return self.do_open(self._conn_maker, req)
+            except URLError as e:
+                if 'certificate verify failed' in str(e.reason):
+                    raise CertificateError('Unable to verify server certificate '
+                                           'for %s' % req.host)
+                else:
+                    raise
 
-class HTTPSHandler(BaseHTTPSHandler):
-    def __init__(self, ca_certs, check_domain=True):
-        BaseHTTPSHandler.__init__(self)
-        self.ca_certs = ca_certs
-        self.check_domain = check_domain
-
-    def _conn_maker(self, *args, **kwargs):
-        """
-        This is called to create a connection instance. Normally you'd
-        pass a connection class to do_open, but it doesn't actually check for
-        a class, and just expects a callable. As long as we behave just as a
-        constructor would have, we should be OK. If it ever changes so that
-        we *must* pass a class, we'll create an UnsafeHTTPSConnection class
-        which just sets check_domain to False in the class definition, and
-        choose which one to pass to do_open.
-        """
-        result = HTTPSConnection(*args, **kwargs)
-        if self.ca_certs:
-            result.ca_certs = self.ca_certs
-            result.check_domain = self.check_domain
-        return result
-
-    def https_open(self, req):
-        try:
-            return self.do_open(self._conn_maker, req)
-        except URLError as e:
-            if 'certificate verify failed' in str(e.reason):
-                raise CertificateError('Unable to verify server certificate '
-                                       'for %s' % req.host)
-            else:
-                raise
-
-#
-# To prevent against mixing HTTP traffic with HTTPS (examples: A Man-In-The-
-# Middle proxy using HTTP listens on port 443, or an index mistakenly serves
-# HTML containing a http://xyz link when it should be https://xyz),
-# you can use the following handler class, which does not allow HTTP traffic.
-#
-# It works by inheriting from HTTPHandler - so build_opener won't add a
-# handler for HTTP itself.
-#
-class HTTPSOnlyHandler(HTTPSHandler, HTTPHandler):
-    def http_open(self, req):
-        raise URLError('Unexpected HTTP request on what should be a secure '
-                       'connection: %s' % req)
+    #
+    # To prevent against mixing HTTP traffic with HTTPS (examples: A Man-In-The-
+    # Middle proxy using HTTP listens on port 443, or an index mistakenly serves
+    # HTML containing a http://xyz link when it should be https://xyz),
+    # you can use the following handler class, which does not allow HTTP traffic.
+    #
+    # It works by inheriting from HTTPHandler - so build_opener won't add a
+    # handler for HTTP itself.
+    #
+    class HTTPSOnlyHandler(HTTPSHandler, HTTPHandler):
+        def http_open(self, req):
+            raise URLError('Unexpected HTTP request on what should be a secure '
+                           'connection: %s' % req)
 
 #
 # XML-RPC with timeouts
@@ -1365,11 +1371,12 @@ if _ver_info == (2, 6):
             self._setup(self._connection_class(host, port, **kwargs))
 
 
-    class HTTPS(httplib.HTTPS):
-        def __init__(self, host='', port=None, **kwargs):
-            if port == 0:   # 0 means use port 0, not the default port
-                port = None
-            self._setup(self._connection_class(host, port, **kwargs))
+    if ssl:
+        class HTTPS(httplib.HTTPS):
+            def __init__(self, host='', port=None, **kwargs):
+                if port == 0:   # 0 means use port 0, not the default port
+                    port = None
+                self._setup(self._connection_class(host, port, **kwargs))
 
 
 class Transport(xmlrpclib.Transport):
@@ -1388,25 +1395,26 @@ class Transport(xmlrpclib.Transport):
             result = self._connection[1]
         return result
 
-class SafeTransport(xmlrpclib.SafeTransport):
-    def __init__(self, timeout, use_datetime=0):
-        self.timeout = timeout
-        xmlrpclib.SafeTransport.__init__(self, use_datetime)
+if ssl:
+    class SafeTransport(xmlrpclib.SafeTransport):
+        def __init__(self, timeout, use_datetime=0):
+            self.timeout = timeout
+            xmlrpclib.SafeTransport.__init__(self, use_datetime)
 
-    def make_connection(self, host):
-        h, eh, kwargs = self.get_host_info(host)
-        if not kwargs:
-            kwargs = {}
-        kwargs['timeout'] = self.timeout
-        if _ver_info == (2, 6):
-            result = HTTPS(host, None, **kwargs)
-        else:
-            if not self._connection or host != self._connection[0]:
-                self._extra_headers = eh
-                self._connection = host, httplib.HTTPSConnection(h, None,
-                                                                 **kwargs)
-            result = self._connection[1]
-        return result
+        def make_connection(self, host):
+            h, eh, kwargs = self.get_host_info(host)
+            if not kwargs:
+                kwargs = {}
+            kwargs['timeout'] = self.timeout
+            if _ver_info == (2, 6):
+                result = HTTPS(host, None, **kwargs)
+            else:
+                if not self._connection or host != self._connection[0]:
+                    self._extra_headers = eh
+                    self._connection = host, httplib.HTTPSConnection(h, None,
+                                                                     **kwargs)
+                result = self._connection[1]
+            return result
 
 
 class ServerProxy(xmlrpclib.ServerProxy):
@@ -1595,3 +1603,9 @@ class SubprocessMixin(object):
         elif self.verbose:
             sys.stderr.write('done.\n')
         return p
+
+
+def normalize_name(name):
+    """Normalize a python package name a la PEP 503"""
+    # https://www.python.org/dev/peps/pep-0503/#normalized-names
+    return re.sub('[-_.]+', '-', name).lower()

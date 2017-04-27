@@ -9,8 +9,10 @@ import pytest
 
 from pip import pep425tags
 from pip.utils import appdirs, rmtree
+from pip.status_codes import ERROR
 from tests.lib import (pyversion, pyversion_tuple,
                        _create_test_package, _create_svn_repo, path_to_url,
+                       create_test_package_with_setup,
                        requirements_file)
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
@@ -60,6 +62,7 @@ def test_with_setuptools_and_import_error(script, data):
     assert "ImportError: toto" in result.stderr
 
 
+@pytest.mark.network
 def test_pip_second_command_line_interface_works(script, data):
     """
     Check if ``pip<PYVERSION>`` commands behaves equally
@@ -67,7 +70,7 @@ def test_pip_second_command_line_interface_works(script, data):
     # On old versions of Python, urllib3/requests will raise a warning about
     # the lack of an SSLContext.
     kwargs = {}
-    if pyversion_tuple < (2, 7, 9):
+    if pyversion_tuple < (2, 7, 9) or pyversion_tuple[:2] == (3, 3):
         kwargs['expect_stderr'] = True
 
     args = ['pip%s' % pyversion]
@@ -80,6 +83,23 @@ def test_pip_second_command_line_interface_works(script, data):
     initools_folder = script.site_packages / 'initools'
     assert egg_info_folder in result.files_created, str(result)
     assert initools_folder in result.files_created, str(result)
+
+
+def test_install_exit_status_code_when_no_requirements(script):
+    """
+    Test install exit status code when no requirements specified
+    """
+    result = script.pip('install', expect_error=True)
+    assert "You must give at least one requirement to install" in result.stderr
+    assert result.returncode == ERROR
+
+
+def test_install_exit_status_code_when_blank_requirements_file(script):
+    """
+    Test install exit status code when blank requirements file specified
+    """
+    script.scratch_path.join("blank.txt").write("\n")
+    script.pip('install', '-r', 'blank.txt')
 
 
 @pytest.mark.network
@@ -109,6 +129,7 @@ def test_editable_install(script):
     assert not result.files_updated
 
 
+@pytest.mark.svn
 def test_install_editable_from_svn(script):
     """
     Test checking out from svn.
@@ -120,45 +141,6 @@ def test_install_editable_from_svn(script):
         '-e', 'svn+' + repo_url + '#egg=version-pkg'
     )
     result.assert_installed('version-pkg', with_files=['.svn'])
-
-
-@pytest.mark.network
-def test_download_editable_to_custom_path(script, tmpdir):
-    """
-    Test downloading an editable using a relative custom src folder.
-    """
-    script.scratch_path.join("customdl").mkdir()
-    result = script.pip(
-        'install',
-        '-e',
-        '%s#egg=initools-dev' %
-        local_checkout(
-            'svn+http://svn.colorstudy.com/INITools/trunk',
-            tmpdir.join("cache")
-        ),
-        '--src',
-        'customsrc',
-        '--download',
-        'customdl',
-        expect_stderr=True
-    )
-    customsrc = Path('scratch') / 'customsrc' / 'initools'
-    assert customsrc in result.files_created, (
-        sorted(result.files_created.keys())
-    )
-    assert customsrc / 'setup.py' in result.files_created, (
-        sorted(result.files_created.keys())
-    )
-
-    customdl = Path('scratch') / 'customdl' / 'initools'
-    customdl_files_created = [
-        filename for filename in result.files_created
-        if filename.startswith(customdl)
-    ]
-    assert customdl_files_created
-    assert ('DEPRECATION: pip install --download has been deprecated and will '
-            'be removed in the future. Pip now has a download command that '
-            'should be used instead.') in result.stderr
 
 
 def _test_install_editable_from_git(script, tmpdir, wheel):
@@ -175,8 +157,60 @@ def test_install_editable_from_git(script, tmpdir):
     _test_install_editable_from_git(script, tmpdir, False)
 
 
+@pytest.mark.network
 def test_install_editable_from_git_autobuild_wheel(script, tmpdir):
     _test_install_editable_from_git(script, tmpdir, True)
+
+
+@pytest.mark.network
+def test_install_editable_uninstalls_existing(data, script, tmpdir):
+    """
+    Test that installing an editable uninstalls a previously installed
+    non-editable version.
+    https://github.com/pypa/pip/issues/1548
+    https://github.com/pypa/pip/pull/1552
+    """
+    to_install = data.packages.join("pip-test-package-0.1.tar.gz")
+    result = script.pip_install_local(to_install)
+    assert 'Successfully installed pip-test-package' in result.stdout
+    result.assert_installed('piptestpackage', editable=False)
+
+    result = script.pip(
+        'install', '-e',
+        '%s#egg=pip-test-package' %
+        local_checkout(
+            'git+http://github.com/pypa/pip-test-package.git',
+            tmpdir.join("cache"),
+        ),
+    )
+    result.assert_installed('pip-test-package', with_files=['.git'])
+    assert 'Found existing installation: pip-test-package 0.1' in result.stdout
+    assert 'Uninstalling pip-test-package-' in result.stdout
+    assert 'Successfully uninstalled pip-test-package' in result.stdout
+
+
+def test_install_editable_uninstalls_existing_from_path(script, data):
+    """
+    Test that installing an editable uninstalls a previously installed
+    non-editable version from path
+    """
+    to_install = data.src.join('simplewheel-1.0')
+    result = script.pip_install_local(to_install)
+    assert 'Successfully installed simplewheel' in result.stdout
+    simple_folder = script.site_packages / 'simple'
+    result.assert_installed('simple', editable=False)
+    assert simple_folder in result.files_created, str(result.stdout)
+
+    result = script.pip(
+        'install', '-e',
+        to_install,
+    )
+    install_path = script.site_packages / 'simplewheel.egg-link'
+    assert install_path in result.files_created, str(result)
+    assert 'Found existing installation: simplewheel 1.0' in result.stdout
+    assert 'Uninstalling simplewheel-' in result.stdout
+    assert 'Successfully uninstalled simplewheel' in result.stdout
+    assert simple_folder in result.files_deleted, str(result.stdout)
 
 
 def test_install_editable_from_hg(script, tmpdir):
@@ -197,6 +231,7 @@ def test_vcs_url_final_slash_normalization(script, tmpdir):
     result.assert_installed('testpackage', with_files=['.hg'])
 
 
+@pytest.mark.bzr
 def test_install_editable_from_bazaar(script, tmpdir):
     """Test checking out from Bazaar."""
     pkg_path = _create_test_package(script, name='testpackage', vcs='bazaar')
@@ -206,6 +241,7 @@ def test_install_editable_from_bazaar(script, tmpdir):
 
 
 @pytest.mark.network
+@pytest.mark.bzr
 def test_vcs_url_urlquote_normalization(script, tmpdir):
     """
     Test that urlquoted characters are normalized for repo URL comparison.
@@ -235,6 +271,41 @@ def test_install_from_local_directory(script, data):
     assert egg_info_folder in result.files_created, str(result)
 
 
+def test_install_relative_directory(script, data):
+    """
+    Test installing a requirement using a relative path.
+    """
+    egg_info_file = (
+        script.site_packages / 'FSPkg-0.1.dev0-py%s.egg-info' % pyversion
+    )
+    egg_link_file = (
+        script.site_packages / 'FSPkg.egg-link'
+    )
+    package_folder = script.site_packages / 'fspkg'
+
+    # Compute relative install path to FSPkg from scratch path.
+    full_rel_path = data.packages.join('FSPkg') - script.scratch_path
+    embedded_rel_path = script.scratch_path.join(full_rel_path)
+
+    # For each relative path, install as either editable or not using either
+    # URLs with egg links or not.
+    for req_path in (full_rel_path,
+                     'file:' + full_rel_path + '#egg=FSPkg',
+                     embedded_rel_path):
+        # Regular install.
+        result = script.pip('install', req_path,
+                            cwd=script.scratch_path)
+        assert egg_info_file in result.files_created, str(result)
+        assert package_folder in result.files_created, str(result)
+        script.pip('uninstall', '-y', 'fspkg')
+
+        # Editable install.
+        result = script.pip('install', '-e' + req_path,
+                            cwd=script.scratch_path)
+        assert egg_link_file in result.files_created, str(result)
+        script.pip('uninstall', '-y', 'fspkg')
+
+
 def test_install_quiet(script, data):
     """
     Test that install -q is actually quiet.
@@ -244,7 +315,7 @@ def test_install_quiet(script, data):
     #   https://github.com/pypa/pip/issues/3418
     #   https://github.com/docker-library/python/issues/83
     to_install = data.packages.join("FSPkg")
-    result = script.pip('install', '-q', to_install, expect_error=False)
+    result = script.pip('install', '-qqq', to_install, expect_error=False)
     assert result.stdout == ""
     assert result.stderr == ""
 
@@ -319,7 +390,7 @@ def test_editable_install_from_local_directory_with_no_setup_py(script, data):
     assert "is not installable. File 'setup.py' not found." in result.stderr
 
 
-@pytest.mark.skipif("sys.version_info < (2,7) or sys.version_info >= (3,4)")
+@pytest.mark.skipif("sys.version_info >= (3,4)")
 @pytest.mark.xfail
 def test_install_argparse_shadowed(script, data):
     # When argparse is in the stdlib, we support installing it
@@ -340,19 +411,6 @@ def test_upgrade_argparse_shadowed(script, data):
     script.pip('install', 'argparse==1.3')
     result = script.pip('install', 'argparse>=1.4')
     assert "Not uninstalling argparse" not in result.stdout
-
-
-def test_install_as_egg(script, data):
-    """
-    Test installing as egg, instead of flat install.
-    """
-    to_install = data.packages.join("FSPkg")
-    result = script.pip('install', to_install, '--egg', expect_error=False)
-    fspkg_folder = script.site_packages / 'fspkg'
-    egg_folder = script.site_packages / 'FSPkg-0.1.dev0-py%s.egg' % pyversion
-    assert fspkg_folder not in result.files_created, str(result.stdout)
-    assert egg_folder in result.files_created, str(result)
-    assert join(egg_folder, 'fspkg') in result.files_created, str(result)
 
 
 def test_install_curdir(script, data):
@@ -859,13 +917,14 @@ def test_install_log(script, data, tmpdir):
 
 
 def test_install_topological_sort(script, data):
-    args = ['install', 'TopoRequires4', '-f', data.packages]
+    args = ['install', 'TopoRequires4', '--no-index', '-f', data.packages]
     res = str(script.pip(*args, expect_error=False))
     order1 = 'TopoRequires, TopoRequires2, TopoRequires3, TopoRequires4'
     order2 = 'TopoRequires, TopoRequires3, TopoRequires2, TopoRequires4'
     assert order1 in res or order2 in res, res
 
 
+@pytest.mark.network
 def test_install_wheel_broken(script, data):
     script.pip('install', 'wheel')
     res = script.pip(
@@ -874,6 +933,7 @@ def test_install_wheel_broken(script, data):
     assert "Successfully installed wheelbroken-0.1" in str(res), str(res)
 
 
+@pytest.mark.network
 def test_cleanup_after_failed_wheel(script, data):
     script.pip('install', 'wheel')
     res = script.pip(
@@ -888,6 +948,7 @@ def test_cleanup_after_failed_wheel(script, data):
     assert "Running setup.py clean for wheelbrokenafter" in str(res), str(res)
 
 
+@pytest.mark.network
 def test_install_builds_wheels(script, data):
     # NB This incidentally tests a local tree + tarball inputs
     # see test_install_editable_from_git_autobuild_wheel for editable
@@ -926,6 +987,7 @@ def test_install_builds_wheels(script, data):
     ]
 
 
+@pytest.mark.network
 def test_install_no_binary_disables_building_wheels(script, data):
     script.pip('install', 'wheel')
     to_install = data.packages.join('requires_wheelbroken_upper')
@@ -957,6 +1019,7 @@ def test_install_no_binary_disables_building_wheels(script, data):
     assert "Running setup.py install for upper" in str(res), str(res)
 
 
+@pytest.mark.network
 def test_install_no_binary_disables_cached_wheels(script, data):
     script.pip('install', 'wheel')
     # Seed the cache
@@ -1026,3 +1089,117 @@ def test_double_install_fail(script, data):
     msg = ("Double requirement given: pip==7.1.2 (already in pip==*, "
            "name='pip')")
     assert msg in result.stderr
+
+
+def test_install_incompatible_python_requires(script):
+    script.scratch_path.join("pkga").mkdir()
+    pkga_path = script.scratch_path / 'pkga'
+    pkga_path.join("setup.py").write(textwrap.dedent("""
+        from setuptools import setup
+        setup(name='pkga',
+              python_requires='<1.0',
+              version='0.1')
+    """))
+    script.pip('install', 'setuptools>24.2')  # This should not be needed
+    result = script.pip('install', pkga_path, expect_error=True)
+    assert ("pkga requires Python '<1.0' "
+            "but the running Python is ") in result.stderr
+
+
+def test_install_incompatible_python_requires_editable(script):
+    script.scratch_path.join("pkga").mkdir()
+    pkga_path = script.scratch_path / 'pkga'
+    pkga_path.join("setup.py").write(textwrap.dedent("""
+        from setuptools import setup
+        setup(name='pkga',
+              python_requires='<1.0',
+              version='0.1')
+    """))
+    script.pip('install', 'setuptools>24.2')  # This should not be needed
+    result = script.pip(
+        'install', '--editable=%s' % pkga_path, expect_error=True)
+    assert ("pkga requires Python '<1.0' "
+            "but the running Python is ") in result.stderr
+
+
+@pytest.mark.network
+def test_install_incompatible_python_requires_wheel(script):
+    script.scratch_path.join("pkga").mkdir()
+    pkga_path = script.scratch_path / 'pkga'
+    pkga_path.join("setup.py").write(textwrap.dedent("""
+        from setuptools import setup
+        setup(name='pkga',
+              python_requires='<1.0',
+              version='0.1')
+    """))
+    script.pip('install', 'setuptools>24.2')  # This should not be needed
+    script.pip('install', 'wheel')
+    script.run(
+        'python', 'setup.py', 'bdist_wheel', '--universal', cwd=pkga_path)
+    result = script.pip('install', './pkga/dist/pkga-0.1-py2.py3-none-any.whl',
+                        expect_error=True)
+    assert ("pkga requires Python '<1.0' "
+            "but the running Python is ") in result.stderr
+
+
+def test_install_compatible_python_requires(script):
+    script.scratch_path.join("pkga").mkdir()
+    pkga_path = script.scratch_path / 'pkga'
+    pkga_path.join("setup.py").write(textwrap.dedent("""
+        from setuptools import setup
+        setup(name='pkga',
+              python_requires='>1.0',
+              version='0.1')
+    """))
+    script.pip('install', 'setuptools>24.2')  # This should not be needed
+    res = script.pip('install', pkga_path, expect_error=True)
+    assert "Successfully installed pkga-0.1" in res.stdout, res
+
+
+def test_install_environment_markers(script, data):
+    # make a dummy project
+    pkga_path = script.scratch_path / 'pkga'
+    pkga_path.mkdir()
+    pkga_path.join("setup.py").write(textwrap.dedent("""
+        from setuptools import setup
+        setup(name='pkga',
+              version='0.1',
+              install_requires=[
+                'missing_pkg; python_version=="1.0"',
+              ],
+        )
+    """))
+
+    res = script.pip('install', '--no-index', pkga_path, expect_stderr=True)
+    # missing_pkg should be ignored
+    assert ("Ignoring missing-pkg: markers 'python_version == \"1.0\"' don't "
+            "match your environment") in res.stderr, str(res)
+    assert "Successfully installed pkga-0.1" in res.stdout, str(res)
+
+
+@pytest.mark.network
+def test_install_pep508_with_url(script):
+    res = script.pip(
+        'install', '--no-index',
+        'packaging@https://files.pythonhosted.org/packages/2f/2b/'
+        'c681de3e1dbcd469537aefb15186b800209aa1f299d933d23b48d85c9d56/'
+        'packaging-15.3-py2.py3-none-any.whl#sha256='
+        'ce1a869fe039fbf7e217df36c4653d1dbe657778b2d41709593a0003584405f4'
+    )
+    assert "Successfully installed packaging-15.3" in str(res), str(res)
+
+
+@pytest.mark.network
+def test_install_pep508_with_url_in_install_requires(script):
+    pkga_path = create_test_package_with_setup(
+        script, name='pkga', version='1.0',
+        install_requires=[
+            'packaging@https://files.pythonhosted.org/packages/2f/2b/'
+            'c681de3e1dbcd469537aefb15186b800209aa1f299d933d23b48d85c9d56/'
+            'packaging-15.3-py2.py3-none-any.whl#sha256='
+            'ce1a869fe039fbf7e217df36c4653d1dbe657778b2d41709593a0003584405f4'
+        ],
+    )
+    res = script.pip('install', pkga_path, expect_error=True)
+    assert "Direct url requirement " in res.stderr, str(res)
+    assert "are not allowed for dependencies" in res.stderr, str(res)

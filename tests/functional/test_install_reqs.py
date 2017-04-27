@@ -3,7 +3,7 @@ import textwrap
 
 import pytest
 
-from tests.lib import (pyversion, path_to_url, requirements_file,
+from tests.lib import (pyversion, requirements_file,
                        _create_test_package_with_subdirectory)
 from tests.lib.local_repos import local_checkout
 
@@ -53,25 +53,43 @@ def test_schema_check_in_requirements_file(script):
 
 def test_relative_requirements_file(script, data):
     """
-    Test installing from a requirements file with a relative path with an
-    egg= definition..
+    Test installing from a requirements file with a relative path. For path
+    URLs, use an egg= definition.
 
     """
-    url = path_to_url(
-        os.path.join(data.root, "packages", "..", "packages", "FSPkg")
-    ) + '#egg=FSPkg'
-    script.scratch_path.join("file-egg-req.txt").write(textwrap.dedent("""\
-        %s
-        """ % url))
-    result = script.pip(
-        'install', '-vvv', '-r', script.scratch_path / 'file-egg-req.txt'
-    )
-    assert (
+    egg_info_file = (
         script.site_packages / 'FSPkg-0.1.dev0-py%s.egg-info' % pyversion
-    ) in result.files_created, str(result)
-    assert (script.site_packages / 'fspkg') in result.files_created, (
-        str(result.stdout)
     )
+    egg_link_file = (
+        script.site_packages / 'FSPkg.egg-link'
+    )
+    package_folder = script.site_packages / 'fspkg'
+
+    # Compute relative install path to FSPkg from scratch path.
+    full_rel_path = data.packages.join('FSPkg') - script.scratch_path
+    embedded_rel_path = script.scratch_path.join(full_rel_path)
+
+    # For each relative path, install as either editable or not using either
+    # URLs with egg links or not.
+    for req_path in (full_rel_path,
+                     'file:' + full_rel_path + '#egg=FSPkg',
+                     embedded_rel_path):
+        # Regular install.
+        with requirements_file(req_path + '\n',
+                               script.scratch_path) as reqs_file:
+            result = script.pip('install', '-vvv', '-r', reqs_file.name,
+                                cwd=script.scratch_path)
+            assert egg_info_file in result.files_created, str(result)
+            assert package_folder in result.files_created, str(result)
+            script.pip('uninstall', '-y', 'fspkg')
+
+        # Editable install.
+        with requirements_file('-e ' + req_path + '\n',
+                               script.scratch_path) as reqs_file:
+            result = script.pip('install', '-vvv', '-r', reqs_file.name,
+                                cwd=script.scratch_path)
+            assert egg_link_file in result.files_created, str(result)
+            script.pip('uninstall', '-y', 'fspkg')
 
 
 @pytest.mark.network
@@ -83,7 +101,7 @@ def test_multiple_requirements_files(script, tmpdir):
     other_lib_name, other_lib_version = 'anyjson', '0.3'
     script.scratch_path.join("initools-req.txt").write(
         textwrap.dedent("""
-            -e %s@10#egg=INITools-dev
+            -e %s@10#egg=INITools
             -r %s-req.txt
         """) %
         (
@@ -168,14 +186,13 @@ def test_install_local_editable_with_extras(script, data):
     assert script.site_packages / 'simple' in res.files_created, str(res)
 
 
-@pytest.mark.network
 def test_install_collected_dependencies_first(script):
-    result = script.pip(
-        'install', 'paramiko',
+    result = script.pip_install_local(
+        'toporequires2',
     )
     text = [line for line in result.stdout.split('\n')
             if 'Installing' in line][0]
-    assert text.endswith('paramiko')
+    assert text.endswith('toporequires2')
 
 
 @pytest.mark.network
@@ -221,24 +238,6 @@ def test_wheel_user_with_prefix_in_pydistutils_cfg(script, data, virtualenv):
     # Check that we are really installing a wheel
     assert 'Running setup.py install for requiresupper' not in result.stdout
     assert 'installed requiresupper' in result.stdout
-
-
-def test_nowheel_user_with_prefix_in_pydistutils_cfg(script, data, virtualenv):
-    virtualenv.system_site_packages = True
-    homedir = script.environ["HOME"]
-    script.scratch_path.join("bin").mkdir()
-    with open(os.path.join(homedir, ".pydistutils.cfg"), "w") as cfg:
-        cfg.write(textwrap.dedent("""
-            [install]
-            prefix=%s""" % script.scratch_path))
-
-    result = script.pip('install', '--no-use-wheel', '--user', '--no-index',
-                        '-f', data.find_links, 'requiresupper',
-                        expect_stderr=True)
-    assert 'installed requiresupper' in result.stdout
-    assert ('DEPRECATION: --no-use-wheel is deprecated and will be removed '
-            'in the future.  Please use --no-binary :all: instead.\n'
-            ) in result.stderr
 
 
 def test_install_option_in_requirements_file(script, data, virtualenv):
@@ -475,9 +474,8 @@ def test_install_unsupported_wheel_link_with_marker(script, data):
         expect_stderr=True,
     )
 
-    s = "Ignoring asdf: markers %r don't match your environment" %\
-        u'sys_platform == "xyz"'
-    assert s in result.stderr
+    assert ("Ignoring asdf: markers 'sys_platform == \"xyz\"' don't match "
+            "your environment") in result.stderr
     assert len(result.files_created) == 0
 
 

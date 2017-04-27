@@ -11,44 +11,23 @@ from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip.utils import unpack_file
 
 
-def test_get_entrypoints(tmpdir):
-    with open(str(tmpdir.join("entry_points.txt")), "w") as fp:
+@pytest.mark.parametrize("console_scripts",
+                         ["pip = pip.main:pip", "pip:pip = pip.main:pip"])
+def test_get_entrypoints(tmpdir, console_scripts):
+    entry_points = tmpdir.join("entry_points.txt")
+    with open(str(entry_points), "w") as fp:
         fp.write("""
             [console_scripts]
-            pip = pip.main:pip
-        """)
+            {0}
+            [section]
+            common:one = module:func
+            common:two = module:other_func
+        """.format(console_scripts))
 
-    assert wheel.get_entrypoints(str(tmpdir.join("entry_points.txt"))) == (
-        {"pip": "pip.main:pip"},
+    assert wheel.get_entrypoints(str(entry_points)) == (
+        dict([console_scripts.split(' = ')]),
         {},
     )
-
-
-def test_uninstallation_paths():
-    class dist(object):
-        def get_metadata_lines(self, record):
-            return ['file.py,,',
-                    'file.pyc,,',
-                    'file.so,,',
-                    'nopyc.py']
-        location = ''
-
-    d = dist()
-
-    paths = list(wheel.uninstallation_paths(d))
-
-    expected = ['file.py',
-                'file.pyc',
-                'file.so',
-                'nopyc.py',
-                'nopyc.pyc']
-
-    assert paths == expected
-
-    # Avoid an easy 'unique generator' bug
-    paths2 = list(wheel.uninstallation_paths(d))
-
-    assert paths2 == paths
 
 
 def test_wheel_version(tmpdir, data):
@@ -121,6 +100,10 @@ class TestWheelFile(object):
         w = wheel.Wheel('simple-1-py2-none-any.whl')
         assert w.version == '1'
 
+    def test_non_pep440_version(self):
+        w = wheel.Wheel('simple-_invalid_-py2-none-any.whl')
+        assert w.version == '-invalid-'
+
     def test_missing_version_raises(self):
         with pytest.raises(InvalidWheelFilename):
             wheel.Wheel('Cython-cp27-none-linux_x86_64.whl')
@@ -155,7 +138,7 @@ class TestWheelFile(object):
     @patch('pip.pep425tags.get_platform', lambda: 'macosx_10_9_intel')
     def test_supported_osx_version(self):
         """
-        Wheels built for OS X 10.6 are supported on 10.9
+        Wheels built for macOS 10.6 are supported on 10.9
         """
         tags = pep425tags.get_supported(['27'], False)
         w = wheel.Wheel('simple-0.1-cp27-none-macosx_10_6_intel.whl')
@@ -168,7 +151,7 @@ class TestWheelFile(object):
     @patch('pip.pep425tags.get_platform', lambda: 'macosx_10_6_intel')
     def test_not_supported_osx_version(self):
         """
-        Wheels built for OS X 10.9 are not supported on 10.6
+        Wheels built for macOS 10.9 are not supported on 10.6
         """
         tags = pep425tags.get_supported(['27'], False)
         w = wheel.Wheel('simple-0.1-cp27-none-macosx_10_9_intel.whl')
@@ -278,6 +261,10 @@ class TestWheelFile(object):
         packages = [
             ("pure_wheel", data.packages.join("pure_wheel-1.7"), True),
             ("plat_wheel", data.packages.join("plat_wheel-1.7"), False),
+            ("pure_wheel", data.packages.join(
+                "pure_wheel-_invalidversion_"), True),
+            ("plat_wheel", data.packages.join(
+                "plat_wheel-_invalidversion_"), False),
         ]
 
         for name, path, expected in packages:
@@ -377,7 +364,7 @@ class TestWheelBuilder(object):
                           wheel_download_dir='/wheel/dir')
             wb = wheel.WheelBuilder(reqset, Mock())
             wb.build()
-            assert "due to already being wheel" in caplog.text()
+            assert "due to already being wheel" in caplog.text
             assert mock_build_one.mock_calls == []
 
 

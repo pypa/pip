@@ -20,19 +20,22 @@ from pip.utils import (
     cached_property, splitext, normalize_path,
     ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS,
 )
-from pip.utils.deprecation import RemovedInPip9Warning, RemovedInPip10Warning
+from pip.utils.deprecation import RemovedInPip11Warning
 from pip.utils.logging import indent_log
+from pip.utils.packaging import check_requires_python
 from pip.exceptions import (
     DistributionNotFound, BestVersionAlreadyInstalled, InvalidWheelFilename,
     UnsupportedWheel,
 )
 from pip.download import HAS_TLS, is_url, path_to_url, url_to_path
 from pip.wheel import Wheel, wheel_ext
-from pip.pep425tags import supported_tags
+from pip.pep425tags import get_supported
 from pip._vendor import html5lib, requests, six
 from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.packaging import specifiers
 from pip._vendor.requests.exceptions import SSLError
+from pip._vendor.distlib.compat import unescape
 
 
 __all__ = ['FormatControl', 'fmt_ctl_handle_mutual_exclude', 'PackageFinder']
@@ -104,12 +107,24 @@ class PackageFinder(object):
 
     def __init__(self, find_links, index_urls, allow_all_prereleases=False,
                  trusted_hosts=None, process_dependency_links=False,
-                 session=None, format_control=None):
+                 session=None, format_control=None, platform=None,
+                 versions=None, abi=None, implementation=None):
         """Create a PackageFinder.
 
         :param format_control: A FormatControl object or None. Used to control
             the selection of source packages / binary packages when consulting
             the index and links.
+        :param platform: A string or None. If None, searches for packages
+            that are supported by the current system. Otherwise, will find
+            packages that can be built on the platform passed in. These
+            packages will only be downloaded for distribution: they will
+            not be built locally.
+        :param versions: A list of strings or None. This is passed directly
+            to pep425tags.py in the get_supported() method.
+        :param abi: A string or None. This is passed directly
+            to pep425tags.py in the get_supported() method.
+        :param implementation: A string or None. This is passed directly
+            to pep425tags.py in the get_supported() method.
         """
         if session is None:
             raise TypeError(
@@ -153,6 +168,14 @@ class PackageFinder(object):
         # The Session we'll use to make requests
         self.session = session
 
+        # The valid tags to check potential found wheel candidates against
+        self.valid_tags = get_supported(
+            versions=versions,
+            platform=platform,
+            abi=abi,
+            impl=implementation,
+        )
+
         # If we don't have TLS enabled, then WARN if anyplace we're looking
         # relies on TLS.
         if not HAS_TLS:
@@ -175,7 +198,7 @@ class PackageFinder(object):
             warnings.warn(
                 "Dependency Links processing has been deprecated and will be "
                 "removed in a future release.",
-                RemovedInPip9Warning,
+                RemovedInPip11Warning,
             )
             self.dependency_links.extend(links)
 
@@ -236,22 +259,22 @@ class PackageFinder(object):
         If not finding wheels, then sorted by version only.
         If finding wheels, then the sort order is by version, then:
           1. existing installs
-          2. wheels ordered via Wheel.support_index_min()
+          2. wheels ordered via Wheel.support_index_min(self.valid_tags)
           3. source archives
         Note: it was considered to embed this logic into the Link
               comparison operators, but then different sdist links
               with the same version, would have to be considered equal
         """
-        support_num = len(supported_tags)
+        support_num = len(self.valid_tags)
         if candidate.location.is_wheel:
             # can raise InvalidWheelFilename
             wheel = Wheel(candidate.location.filename)
-            if not wheel.supported():
+            if not wheel.supported(self.valid_tags):
                 raise UnsupportedWheel(
                     "%s is not a supported wheel for this platform. It "
                     "can't be sorted." % wheel.filename
                 )
-            pri = -(wheel.support_index_min())
+            pri = -(wheel.support_index_min(self.valid_tags))
         else:  # sdist
             pri = -(support_num)
         return (candidate.version, pri)
@@ -318,9 +341,9 @@ class PackageFinder(object):
         # log a warning that we are ignoring it.
         logger.warning(
             "The repository located at %s is not a trusted or secure host and "
-            "is being ignored. If this repository is available via HTTPS it "
-            "is recommended to use HTTPS instead, otherwise you may silence "
-            "this warning and allow it anyways with '--trusted-host %s'.",
+            "is being ignored. If this repository is available via HTTPS we "
+            "recommend you use HTTPS instead, otherwise you may silence "
+            "this warning and allow it anyway with '--trusted-host %s'.",
             parsed.hostname,
             parsed.hostname,
         )
@@ -581,7 +604,6 @@ class PackageFinder(object):
 
     def _link_package_versions(self, link, search):
         """Return an InstallationCandidate or None"""
-
         version = None
         if link.egg_fragment:
             egg_info = link.egg_fragment
@@ -612,7 +634,8 @@ class PackageFinder(object):
                     self._log_skipped_link(
                         link, 'wrong project name (not %s)' % search.supplied)
                     return
-                if not wheel.supported():
+
+                if not wheel.supported(self.valid_tags):
                     self._log_skipped_link(
                         link, 'it is not compatible with this Python')
                     return
@@ -640,6 +663,18 @@ class PackageFinder(object):
                 self._log_skipped_link(
                     link, 'Python version is incorrect')
                 return
+        try:
+            support_this_python = check_requires_python(link.requires_python)
+        except specifiers.InvalidSpecifier:
+            logger.debug("Package %s has an invalid Requires-Python entry: %s",
+                         link.filename, link.requires_python)
+            support_this_python = True
+
+        if not support_this_python:
+            logger.debug("The package %s is incompatible with the python"
+                         "version in use. Acceptable python versions are:%s",
+                         link, link.requires_python)
+            return
         logger.debug('Found link %s, version: %s', link, version)
 
         return InstallationCandidate(search.supplied, version, link)
@@ -692,7 +727,7 @@ class HTMLPage(object):
         self.content = content
         self.parsed = html5lib.parse(
             self.content,
-            encoding=encoding,
+            transport_encoding=encoding,
             namespaceHTMLElements=False,
         )
         self.url = url
@@ -798,7 +833,7 @@ class HTMLPage(object):
     def _get_content_type(url, session):
         """Get the Content-Type of the given url, using a HEAD request"""
         scheme, netloc, path, query, fragment = urllib_parse.urlsplit(url)
-        if scheme not in ('http', 'https'):
+        if scheme not in {'http', 'https'}:
             # FIXME: some warning or something?
             # assertion error?
             return ''
@@ -828,7 +863,9 @@ class HTMLPage(object):
                 url = self.clean_link(
                     urllib_parse.urljoin(self.base_url, href)
                 )
-                yield Link(url, self)
+                pyrequire = anchor.get('data-requires-python')
+                pyrequire = unescape(pyrequire) if pyrequire else None
+                yield Link(url, self, requires_python=pyrequire)
 
     _clean_re = re.compile(r'[^a-z0-9$&+,/:;=?@.#%_\\|-]', re.I)
 
@@ -842,7 +879,19 @@ class HTMLPage(object):
 
 class Link(object):
 
-    def __init__(self, url, comes_from=None):
+    def __init__(self, url, comes_from=None, requires_python=None):
+        """
+        Object representing a parsed link from https://pypi.python.org/simple/*
+
+        url:
+            url of the resource pointed to (href of the link)
+        comes_from:
+            instance of HTMLPage where the link was found, or string.
+        requires_python:
+            String containing the `Requires-Python` metadata field, specified
+            in PEP 345. This may be specified by a data-requires-python
+            attribute in the HTML link tag, as described in PEP 503.
+        """
 
         # url can be a UNC windows share
         if url.startswith('\\\\'):
@@ -850,10 +899,15 @@ class Link(object):
 
         self.url = url
         self.comes_from = comes_from
+        self.requires_python = requires_python if requires_python else None
 
     def __str__(self):
+        if self.requires_python:
+            rp = ' (requires-python:%s)' % self.requires_python
+        else:
+            rp = ''
         if self.comes_from:
-            return '%s (from %s)' % (self.url, self.comes_from)
+            return '%s (from %s)%s' % (self.url, self.comes_from, rp)
         else:
             return str(self.url)
 
@@ -1013,7 +1067,7 @@ def fmt_ctl_handle_mutual_exclude(value, target, other):
 
 
 def fmt_ctl_formats(fmt_ctl, canonical_name):
-    result = set(["binary", "source"])
+    result = {"binary", "source"}
     if canonical_name in fmt_ctl.only_binary:
         result.discard('source')
     elif canonical_name in fmt_ctl.no_binary:
@@ -1028,14 +1082,6 @@ def fmt_ctl_formats(fmt_ctl, canonical_name):
 def fmt_ctl_no_binary(fmt_ctl):
     fmt_ctl_handle_mutual_exclude(
         ':all:', fmt_ctl.no_binary, fmt_ctl.only_binary)
-
-
-def fmt_ctl_no_use_wheel(fmt_ctl):
-    fmt_ctl_no_binary(fmt_ctl)
-    warnings.warn(
-        '--no-use-wheel is deprecated and will be removed in the future. '
-        ' Please use --no-binary :all: instead.', RemovedInPip10Warning,
-        stacklevel=2)
 
 
 Search = namedtuple('Search', 'supplied canonical formats')

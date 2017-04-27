@@ -289,9 +289,14 @@ _finder_registry = {
 }
 
 try:
-    import _frozen_importlib
-    _finder_registry[_frozen_importlib.SourceFileLoader] = ResourceFinder
-    _finder_registry[_frozen_importlib.FileFinder] = ResourceFinder
+    # In Python 3.6, _frozen_importlib -> _frozen_importlib_external
+    try:
+        import _frozen_importlib_external as _fi
+    except ImportError:
+        import _frozen_importlib as _fi
+    _finder_registry[_fi.SourceFileLoader] = ResourceFinder
+    _finder_registry[_fi.FileFinder] = ResourceFinder
+    del _fi
 except (ImportError, AttributeError):
     pass
 

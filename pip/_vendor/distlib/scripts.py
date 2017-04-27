@@ -52,7 +52,7 @@ if __name__ == '__main__':
         return result
 
     try:
-        sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
+        sys.argv[0] = re.sub(r'(-script\.pyw?|\.exe)?$', '', sys.argv[0])
 
         func = _resolve('%(module)s', '%(func)s')
         rc = func() # None interpreted as 0

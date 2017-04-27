@@ -21,13 +21,13 @@ import zlib
 from . import DistlibException
 from .compat import (urljoin, urlparse, urlunparse, url2pathname, pathname2url,
                      queue, quote, unescape, string_types, build_opener,
-                     HTTPRedirectHandler as BaseRedirectHandler,
+                     HTTPRedirectHandler as BaseRedirectHandler, text_type,
                      Request, HTTPError, URLError)
 from .database import Distribution, DistributionPath, make_dist
 from .metadata import Metadata
 from .util import (cached_property, parse_credentials, ensure_slash,
                    split_filename, get_project_data, parse_requirement,
-                   parse_name_and_version, ServerProxy)
+                   parse_name_and_version, ServerProxy, normalize_name)
 from .version import get_scheme, UnsupportedVersionError
 from .wheel import Wheel, is_compatible
 
@@ -113,6 +113,28 @@ class Locator(object):
         # is set from the requirement passed to locate(). See issue #18 for
         # why this can be useful to know.
         self.matcher = None
+        self.errors = queue.Queue()
+
+    def get_errors(self):
+        """
+        Return any errors which have occurred.
+        """
+        result = []
+        while not self.errors.empty():  # pragma: no cover
+            try:
+                e = self.errors.get(False)
+                result.append(e)
+            except self.errors.Empty:
+                continue
+            self.errors.task_done()
+        return result
+
+    def clear_errors(self):
+        """
+        Clear any errors which may have been logged.
+        """
+        # Just get the errors and throw them away
+        self.get_errors()
 
     def clear_cache(self):
         self._cache.clear()
@@ -155,6 +177,7 @@ class Locator(object):
         elif name in self._cache:
             result = self._cache[name]
         else:
+            self.clear_errors()
             result = self._get_project(name)
             self._cache[name] = result
         return result
@@ -210,14 +233,7 @@ class Locator(object):
         "filename" and "url"; otherwise, None is returned.
         """
         def same_project(name1, name2):
-            name1, name2 = name1.lower(), name2.lower()
-            if name1 == name2:
-                result = True
-            else:
-                # distribute replaces '-' by '_' in project names, so it
-                # can tell where the version starts in a filename.
-                result = name1.replace('_', '-') == name2.replace('_', '-')
-            return result
+            return normalize_name(name1) == normalize_name(name2)
 
         result = None
         scheme, netloc, path, params, query, frag = urlparse(url)
@@ -250,7 +266,7 @@ class Locator(object):
                             'python-version': ', '.join(
                                 ['.'.join(list(v[2:])) for v in wheel.pyver]),
                         }
-            except Exception as e:
+            except Exception as e:  # pragma: no cover
                 logger.warning('invalid path for wheel: %s', path)
         elif path.endswith(self.downloadable_extensions):
             path = filename = posixpath.basename(path)
@@ -489,6 +505,7 @@ class PyPIJSONLocator(Locator):
 #                    result['urls'].setdefault(md.version, set()).add(url)
 #                    result['digests'][url] = self._get_digest(info)
         except Exception as e:
+            self.errors.put(text_type(e))
             logger.exception('JSON fetch failed: %s', e)
         return result
 
@@ -714,6 +731,8 @@ class SimpleScrapingLocator(Locator):
                                 self._should_queue(link, url, rel)):
                                 logger.debug('Queueing %s from %s', link, url)
                                 self._to_fetch.put(link)
+            except Exception as e:  # pragma: no cover
+                self.errors.put(text_type(e))
             finally:
                 # always do this, to avoid hangs :-)
                 self._to_fetch.task_done()

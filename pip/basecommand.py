@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 
 import logging
+import logging.config
 import os
 import sys
 import optparse
@@ -14,7 +15,6 @@ from pip.download import PipSession
 from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
                             CommandError, PreviousBuildDirError)
 
-from pip.compat import logging_dictConfig
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.req import InstallRequirement, parse_requirements
 from pip.status_codes import (
@@ -105,15 +105,15 @@ class Command(object):
     def main(self, args):
         options, args = self.parse_args(args)
 
-        if options.quiet:
-            if options.quiet == 1:
-                level = "WARNING"
-            if options.quiet == 2:
-                level = "ERROR"
-            else:
-                level = "CRITICAL"
-        elif options.verbose:
+        verbosity = options.verbose - options.quiet
+        if verbosity >= 1:
             level = "DEBUG"
+        elif verbosity == -1:
+            level = "WARNING"
+        elif verbosity == -2:
+            level = "ERROR"
+        elif verbosity <= -3:
+            level = "CRITICAL"
         else:
             level = "INFO"
 
@@ -123,7 +123,7 @@ class Command(object):
         if options.log:
             root_level = "DEBUG"
 
-        logging_dictConfig({
+        logging.config.dictConfig({
             "version": 1,
             "disable_existing_loggers": False,
             "filters": {
@@ -186,12 +186,11 @@ class Command(object):
             ),
         })
 
-        if sys.version_info[:2] == (2, 6):
+        if sys.version_info[:2] == (3, 3):
             warnings.warn(
-                "Python 2.6 is no longer supported by the Python core team, "
-                "please upgrade your Python. A future version of pip will "
-                "drop support for Python 2.6",
-                deprecation.Python26DeprecationWarning
+                "Python 3.3 supported has been deprecated and support for it "
+                "will be dropped in the future. Please upgrade your Python.",
+                deprecation.RemovedInPip11Warning,
             )
 
         # TODO: try to get these passing down from the command?
@@ -210,6 +209,8 @@ class Command(object):
                     'Could not find an activated virtualenv (required).'
                 )
                 sys.exit(VIRTUALENV_NOT_FOUND)
+
+        original_root_handlers = set(logging.root.handlers)
 
         try:
             status = self.run(options, args)
@@ -249,7 +250,11 @@ class Command(object):
                         options,
                         retries=0,
                         timeout=min(5, options.timeout)) as session:
-                    pip_version_check(session)
+                    pip_version_check(session, options)
+            # Avoid leaking loggers
+            for handler in set(logging.root.handlers) - original_root_handlers:
+                # this method benefit from the Logger class internal lock
+                logging.root.removeHandler(handler)
 
         return SUCCESS
 
@@ -281,37 +286,36 @@ class RequirementCommand(Command):
             requirement_set.add_requirement(
                 InstallRequirement.from_editable(
                     req,
-                    default_vcs=options.default_vcs,
                     isolated=options.isolated_mode,
                     wheel_cache=wheel_cache
                 )
             )
 
-        found_req_in_file = False
         for filename in options.requirements:
             for req in parse_requirements(
                     filename,
                     finder=finder, options=options, session=session,
                     wheel_cache=wheel_cache):
-                found_req_in_file = True
                 requirement_set.add_requirement(req)
         # If --require-hashes was a line in a requirements file, tell
         # RequirementSet about it:
         requirement_set.require_hashes = options.require_hashes
 
-        if not (args or options.editables or found_req_in_file):
+        if not (args or options.editables or options.requirements):
             opts = {'name': name}
             if options.find_links:
-                msg = ('You must give at least one requirement to '
-                       '%(name)s (maybe you meant "pip %(name)s '
-                       '%(links)s"?)' %
-                       dict(opts, links=' '.join(options.find_links)))
+                raise CommandError(
+                    'You must give at least one requirement to %(name)s '
+                    '(maybe you meant "pip %(name)s %(links)s"?)' %
+                    dict(opts, links=' '.join(options.find_links)))
             else:
-                msg = ('You must give at least one requirement '
-                       'to %(name)s (see "pip help %(name)s")' % opts)
-            logger.warning(msg)
+                raise CommandError(
+                    'You must give at least one requirement to %(name)s '
+                    '(see "pip help %(name)s")' % opts)
 
-    def _build_package_finder(self, options, session):
+    def _build_package_finder(self, options, session,
+                              platform=None, python_versions=None,
+                              abi=None, implementation=None):
         """
         Create a package finder appropriate to this requirement command.
         """
@@ -328,4 +332,8 @@ class RequirementCommand(Command):
             allow_all_prereleases=options.pre,
             process_dependency_links=options.process_dependency_links,
             session=session,
+            platform=platform,
+            versions=python_versions,
+            abi=abi,
+            implementation=implementation,
         )

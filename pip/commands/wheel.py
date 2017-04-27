@@ -3,14 +3,12 @@ from __future__ import absolute_import
 
 import logging
 import os
-import warnings
 
 from pip.basecommand import RequirementCommand
 from pip.exceptions import CommandError, PreviousBuildDirError
 from pip.req import RequirementSet
 from pip.utils import import_or_raise
 from pip.utils.build import BuildDirectory
-from pip.utils.deprecation import RemovedInPip10Warning
 from pip.wheel import WheelCache, WheelBuilder
 from pip import cmdoptions
 
@@ -56,8 +54,6 @@ class WheelCommand(RequirementCommand):
             help=("Build wheels into <dir>, where the default is the "
                   "current working directory."),
         )
-        cmd_opts.add_option(cmdoptions.use_wheel())
-        cmd_opts.add_option(cmdoptions.no_use_wheel())
         cmd_opts.add_option(cmdoptions.no_binary())
         cmd_opts.add_option(cmdoptions.only_binary())
         cmd_opts.add_option(
@@ -70,8 +66,10 @@ class WheelCommand(RequirementCommand):
         cmd_opts.add_option(cmdoptions.editable())
         cmd_opts.add_option(cmdoptions.requirements())
         cmd_opts.add_option(cmdoptions.src())
+        cmd_opts.add_option(cmdoptions.ignore_requires_python())
         cmd_opts.add_option(cmdoptions.no_deps())
         cmd_opts.add_option(cmdoptions.build_dir())
+        cmd_opts.add_option(cmdoptions.progress_bar())
 
         cmd_opts.add_option(
             '--global-option',
@@ -107,47 +105,22 @@ class WheelCommand(RequirementCommand):
             "'pip wheel' requires the 'wheel' package. To fix this, run: "
             "pip install wheel"
         )
+
+        need_setuptools_message = (
+            "'pip wheel' requires setuptools >= 0.8 for dist-info support. "
+            "To fix this, run: pip install --upgrade setuptools>=0.8"
+        )
         pkg_resources = import_or_raise(
             'pkg_resources',
             CommandError,
-            "'pip wheel' requires setuptools >= 0.8 for dist-info support."
-            " To fix this, run: pip install --upgrade setuptools"
+            need_setuptools_message
         )
         if not hasattr(pkg_resources, 'DistInfoDistribution'):
-            raise CommandError(
-                "'pip wheel' requires setuptools >= 0.8 for dist-info "
-                "support. To fix this, run: pip install --upgrade "
-                "setuptools"
-            )
+            raise CommandError(need_setuptools_message)
 
     def run(self, options, args):
         self.check_required_packages()
-        cmdoptions.resolve_wheel_no_use_binary(options)
         cmdoptions.check_install_build_global(options)
-
-        if options.allow_external:
-            warnings.warn(
-                "--allow-external has been deprecated and will be removed in "
-                "the future. Due to changes in the repository protocol, it no "
-                "longer has any effect.",
-                RemovedInPip10Warning,
-            )
-
-        if options.allow_all_external:
-            warnings.warn(
-                "--allow-all-external has been deprecated and will be removed "
-                "in the future. Due to changes in the repository protocol, it "
-                "no longer has any effect.",
-                RemovedInPip10Warning,
-            )
-
-        if options.allow_unverified:
-            warnings.warn(
-                "--allow-unverified has been deprecated and will be removed "
-                "in the future. Due to changes in the repository protocol, it "
-                "no longer has any effect.",
-                RemovedInPip10Warning,
-            )
 
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:
@@ -171,20 +144,19 @@ class WheelCommand(RequirementCommand):
                     download_dir=None,
                     ignore_dependencies=options.ignore_dependencies,
                     ignore_installed=True,
+                    ignore_requires_python=options.ignore_requires_python,
                     isolated=options.isolated_mode,
                     session=session,
                     wheel_cache=wheel_cache,
                     wheel_download_dir=options.wheel_dir,
-                    require_hashes=options.require_hashes
+                    require_hashes=options.require_hashes,
+                    progress_bar=options.progress_bar
                 )
 
                 self.populate_requirement_set(
                     requirement_set, args, options, finder, session, self.name,
                     wheel_cache
                 )
-
-                if not requirement_set.has_requirements:
-                    return
 
                 try:
                     # build wheels

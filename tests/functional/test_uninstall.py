@@ -1,5 +1,6 @@
 from __future__ import with_statement
 
+import json
 import textwrap
 import os
 import sys
@@ -8,7 +9,8 @@ import pretend
 
 from os.path import join, normpath
 from tempfile import mkdtemp
-from tests.lib import assert_all_changes, pyversion
+from tests.lib import assert_all_changes
+from tests.lib import create_test_package_with_setup
 from tests.lib.local_repos import local_repo, local_checkout
 
 from pip.req import InstallRequirement
@@ -47,11 +49,16 @@ def test_simple_uninstall_distutils(script):
         )
     """))
     result = script.run('python', pkg_path / 'setup.py', 'install')
-    result = script.pip('list', '--format=legacy')
-    assert "distutils-install (0.1)" in result.stdout
-    script.pip('uninstall', 'distutils_install', '-y', expect_stderr=True)
-    result2 = script.pip('list', '--format=legacy')
-    assert "distutils-install (0.1)" not in result2.stdout
+    result = script.pip('list', '--format=json')
+    assert {"name": "distutils-install", "version": "0.1"} \
+        in json.loads(result.stdout)
+    result = script.pip('uninstall', 'distutils_install', '-y',
+                        expect_stderr=True, expect_error=True)
+    assert (
+        "Cannot uninstall 'distutils-install'. It is a distutils installed "
+        "project and thus we cannot accurately determine which files belong "
+        "to it which would lead to only a partial uninstall."
+    ) in result.stderr
 
 
 @pytest.mark.network
@@ -154,30 +161,54 @@ def test_uninstall_overlapping_package(script, data):
     assert_all_changes(result2, result3, [])
 
 
-def test_uninstall_entry_point(script):
+@pytest.mark.parametrize("console_scripts",
+                         ["test_ = distutils_install",
+                          "test_:test_ = distutils_install"])
+def test_uninstall_entry_point(script, console_scripts):
     """
     Test uninstall package with two or more entry points in the same section,
     whose name contain a colon.
     """
-    script.scratch_path.join("ep_install").mkdir()
-    pkg_path = script.scratch_path / 'ep_install'
-    pkg_path.join("setup.py").write(textwrap.dedent("""
-        from setuptools import setup
-        setup(
-            name='ep-install',
-            version='0.1',
-            entry_points={"pip_test.ep":
-                          ["ep:name1 = distutils_install",
-                           "ep:name2 = distutils_install"]
-                          }
-        )
-    """))
+    pkg_name = 'ep_install'
+    pkg_path = create_test_package_with_setup(
+        script,
+        name=pkg_name,
+        version='0.1',
+        entry_points={"console_scripts": [console_scripts, ],
+                      "pip_test.ep":
+                      ["ep:name1 = distutils_install",
+                       "ep:name2 = distutils_install"]
+                      }
+    )
+    script_name = script.bin_path.join(console_scripts.split('=')[0].strip())
     result = script.pip('install', pkg_path)
-    result = script.pip('list', '--format=legacy')
-    assert "ep-install (0.1)" in result.stdout
+    assert script_name.exists
+    result = script.pip('list', '--format=json')
+    assert {"name": "ep-install", "version": "0.1"} \
+        in json.loads(result.stdout)
     script.pip('uninstall', 'ep_install', '-y')
-    result2 = script.pip('list', '--format=legacy')
-    assert "ep-install (0.1)" not in result2.stdout
+    assert not script_name.exists
+    result2 = script.pip('list', '--format=json')
+    assert {"name": "ep-install", "version": "0.1"} \
+        not in json.loads(result2.stdout)
+
+
+def test_uninstall_gui_scripts(script):
+    """
+    Make sure that uninstall removes gui scripts
+    """
+    pkg_name = "gui_pkg"
+    pkg_path = create_test_package_with_setup(
+        script,
+        name=pkg_name,
+        version='0.1',
+        entry_points={"gui_scripts": ["test_ = distutils_install", ], }
+    )
+    script_name = script.bin_path.join('test_')
+    script.pip('install', pkg_path)
+    assert script_name.exists
+    script.pip('uninstall', pkg_name, '-y')
+    assert not script_name.exists
 
 
 @pytest.mark.network
@@ -226,7 +257,7 @@ def test_uninstall_editable_from_svn(script, tmpdir):
     """
     result = script.pip(
         'install', '-e',
-        '%s#egg=initools-dev' % local_checkout(
+        '%s#egg=initools' % local_checkout(
             'svn+http://svn.colorstudy.com/INITools/trunk',
             tmpdir.join("cache"),
         ),
@@ -297,7 +328,7 @@ def test_uninstall_from_reqs_file(script, tmpdir):
     """
     script.scratch_path.join("test-req.txt").write(
         textwrap.dedent("""
-            -e %s#egg=initools-dev
+            -e %s#egg=initools
             # and something else to test out:
             PyLogo<0.4
         """) %
@@ -314,7 +345,7 @@ def test_uninstall_from_reqs_file(script, tmpdir):
             -i http://www.example.com
             --extra-index-url http://www.example.com
 
-            -e %s#egg=initools-dev
+            -e %s#egg=initools
             # and something else to test out:
             PyLogo<0.4
         """) %
@@ -336,29 +367,6 @@ def test_uninstall_from_reqs_file(script, tmpdir):
     )
 
 
-def test_uninstall_as_egg(script, data):
-    """
-    Test uninstall package installed as egg.
-    """
-    to_install = data.packages.join("FSPkg")
-    result = script.pip('install', to_install, '--egg', expect_error=False)
-    fspkg_folder = script.site_packages / 'fspkg'
-    egg_folder = script.site_packages / 'FSPkg-0.1.dev0-py%s.egg' % pyversion
-    assert fspkg_folder not in result.files_created, str(result.stdout)
-    assert egg_folder in result.files_created, str(result)
-
-    result2 = script.pip('uninstall', 'FSPkg', '-y')
-    assert_all_changes(
-        result,
-        result2,
-        [
-            script.venv / 'build',
-            'cache',
-            script.site_packages / 'easy-install.pth',
-        ],
-    )
-
-
 def test_uninstallpathset_no_paths(caplog):
     """
     Test UninstallPathSet logs notification when there are no paths to
@@ -372,7 +380,7 @@ def test_uninstallpathset_no_paths(caplog):
 
     assert (
         "Can't uninstall 'pip'. No files were found to uninstall."
-        in caplog.text()
+        in caplog.text
     )
 
 
@@ -416,8 +424,9 @@ def test_uninstall_setuptools_develop_install(script, data):
                expect_stderr=True, cwd=pkg_path)
     script.run('python', 'setup.py', 'install',
                expect_stderr=True, cwd=pkg_path)
-    list_result = script.pip('list', '--format=legacy')
-    assert "FSPkg (0.1.dev0, " in list_result.stdout
+    list_result = script.pip('list', '--format=json')
+    assert {"name": "FSPkg", "version": "0.1.dev0"} \
+        in json.loads(list_result.stdout)
     # Uninstall both develop and install
     uninstall = script.pip('uninstall', 'FSPkg', '-y')
     assert any(filename.endswith('.egg')
@@ -426,5 +435,33 @@ def test_uninstall_setuptools_develop_install(script, data):
     assert join(
         script.site_packages, 'FSPkg.egg-link'
     ) in uninstall2.files_deleted, list(uninstall2.files_deleted.keys())
-    list_result2 = script.pip('list', '--format=legacy')
-    assert "FSPkg" not in list_result2.stdout
+    list_result2 = script.pip('list', '--format=json')
+    assert "FSPkg" not in {p["name"] for p in json.loads(list_result2.stdout)}
+
+
+def test_uninstall_editable_and_pip_install(script, data):
+    """Try uninstall after pip install -e after pip install"""
+    # SETUPTOOLS_SYS_PATH_TECHNIQUE=raw removes the assumption that `-e`
+    # installs are always higher priority than regular installs.
+    # This becomes the default behavior in setuptools 25.
+    script.environ['SETUPTOOLS_SYS_PATH_TECHNIQUE'] = 'raw'
+
+    pkg_path = data.packages.join("FSPkg")
+    script.pip('install', '-e', '.',
+               expect_stderr=True, cwd=pkg_path)
+    # ensure both are installed with --ignore-installed:
+    script.pip('install', '--ignore-installed', '.',
+               expect_stderr=True, cwd=pkg_path)
+    list_result = script.pip('list', '--format=json')
+    assert {"name": "FSPkg", "version": "0.1.dev0"} \
+        in json.loads(list_result.stdout)
+    # Uninstall both develop and install
+    uninstall = script.pip('uninstall', 'FSPkg', '-y')
+    assert not any(filename.endswith('.egg-link')
+                   for filename in uninstall.files_deleted.keys())
+    uninstall2 = script.pip('uninstall', 'FSPkg', '-y')
+    assert join(
+        script.site_packages, 'FSPkg.egg-link'
+    ) in uninstall2.files_deleted, list(uninstall2.files_deleted.keys())
+    list_result2 = script.pip('list', '--format=json')
+    assert "FSPkg" not in {p["name"] for p in json.loads(list_result2.stdout)}

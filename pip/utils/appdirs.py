@@ -8,6 +8,7 @@ import os
 import sys
 
 from pip.compat import WINDOWS, expanduser
+from pip._vendor.six import PY2, text_type
 
 
 def user_cache_dir(appname):
@@ -17,9 +18,9 @@ def user_cache_dir(appname):
         "appname" is the name of application.
 
     Typical user cache directories are:
-        Mac OS X:   ~/Library/Caches/<AppName>
+        macOS:      ~/Library/Caches/<AppName>
         Unix:       ~/.cache/<AppName> (XDG default)
-        Windows:      C:\Users\<username>\AppData\Local\<AppName>\Cache
+        Windows:    C:\Users\<username>\AppData\Local\<AppName>\Cache
 
     On Windows the only suggestion in the MSDN docs is that local settings go
     in the `CSIDL_LOCAL_APPDATA` directory. This is identical to the
@@ -34,6 +35,11 @@ def user_cache_dir(appname):
     if WINDOWS:
         # Get the base path
         path = os.path.normpath(_get_win_folder("CSIDL_LOCAL_APPDATA"))
+
+        # When using Python 2, return paths as bytes on Windows like we do on
+        # other operating systems. See helper function docs for more details.
+        if PY2 and isinstance(path, text_type):
+            path = _win_path_to_bytes(path)
 
         # Add our app name and Cache directory to it
         path = os.path.join(path, appname, "Cache")
@@ -54,7 +60,7 @@ def user_cache_dir(appname):
 
 
 def user_data_dir(appname, roaming=False):
-    """
+    r"""
     Return full path to the user-specific data dir for this application.
 
         "appname" is the name of application.
@@ -67,7 +73,8 @@ def user_data_dir(appname, roaming=False):
             for a discussion of issues.
 
     Typical user data directories are:
-        Mac OS X:               ~/Library/Application Support/<AppName>
+        macOS:                  ~/Library/Application Support/<AppName>
+                                if it exists, else ~/.config/<AppName>
         Unix:                   ~/.local/share/<AppName>    # or in
                                 $XDG_DATA_HOME, if defined
         Win XP (not roaming):   C:\Documents and Settings\<username>\ ...
@@ -86,6 +93,13 @@ def user_data_dir(appname, roaming=False):
     elif sys.platform == "darwin":
         path = os.path.join(
             expanduser('~/Library/Application Support/'),
+            appname,
+        ) if os.path.isdir(os.path.join(
+            expanduser('~/Library/Application Support/'),
+            appname,
+        )
+        ) else os.path.join(
+            expanduser('~/.config/'),
             appname,
         )
     else:
@@ -110,7 +124,7 @@ def user_config_dir(appname, roaming=True):
             for a discussion of issues.
 
     Typical user data directories are:
-        Mac OS X:               same as user_data_dir
+        macOS:                  same as user_data_dir
         Unix:                   ~/.config/<AppName>
         Win *:                  same as user_data_dir
 
@@ -131,12 +145,12 @@ def user_config_dir(appname, roaming=True):
 # for the discussion regarding site_config_dirs locations
 # see <https://github.com/pypa/pip/issues/1733>
 def site_config_dirs(appname):
-    """Return a list of potential user-shared config dirs for this application.
+    r"""Return a list of potential user-shared config dirs for this application.
 
         "appname" is the name of application.
 
     Typical user config directories are:
-        Mac OS X:   /Library/Application Support/<AppName>/
+        macOS:      /Library/Application Support/<AppName>/
         Unix:       /etc or $XDG_CONFIG_DIRS[i]/<AppName>/ for each value in
                     $XDG_CONFIG_DIRS
         Win XP:     C:\Documents and Settings\All Users\Application ...
@@ -222,3 +236,21 @@ if WINDOWS:
         _get_win_folder = _get_win_folder_with_ctypes
     except ImportError:
         _get_win_folder = _get_win_folder_from_registry
+
+
+def _win_path_to_bytes(path):
+    """Encode Windows paths to bytes. Only used on Python 2.
+
+    Motivation is to be consistent with other operating systems where paths
+    are also returned as bytes. This avoids problems mixing bytes and Unicode
+    elsewhere in the codebase. For more details and discussion see
+    <https://github.com/pypa/pip/issues/3463>.
+
+    If encoding using ASCII and MBCS fails, return the original Unicode path.
+    """
+    for encoding in ('ASCII', 'MBCS'):
+        try:
+            return path.encode(encoding)
+        except (UnicodeEncodeError, LookupError):
+            pass
+    return path

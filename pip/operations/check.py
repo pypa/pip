@@ -1,21 +1,18 @@
-from pip.utils import get_installed_distributions
 
 
-def check_requirements():
-    installed = get_installed_distributions(skip=())
+def check_requirements(installed_dists):
     missing_reqs_dict = {}
     incompatible_reqs_dict = {}
 
-    for dist in installed:
-        key = '%s==%s' % (dist.project_name, dist.version)
-
-        missing_reqs = list(get_missing_reqs(dist, installed))
+    for dist in installed_dists:
+        missing_reqs = list(get_missing_reqs(dist, installed_dists))
         if missing_reqs:
-            missing_reqs_dict[key] = missing_reqs
+            missing_reqs_dict[dist.key] = missing_reqs
 
-        incompatible_reqs = list(get_incompatible_reqs(dist, installed))
+        incompatible_reqs = list(get_incompatible_reqs(
+            dist, installed_dists))
         if incompatible_reqs:
-            incompatible_reqs_dict[key] = incompatible_reqs
+            incompatible_reqs_dict[dist.key] = incompatible_reqs
 
     return (missing_reqs_dict, incompatible_reqs_dict)
 
@@ -25,7 +22,7 @@ def get_missing_reqs(dist, installed_dists):
     `installed_dists`.
 
     """
-    installed_names = set(d.project_name.lower() for d in installed_dists)
+    installed_names = {d.project_name.lower() for d in installed_dists}
     missing_requirements = set()
 
     for requirement in dist.requires():
@@ -43,10 +40,8 @@ def get_incompatible_reqs(dist, installed_dists):
     for installed_dist in installed_dists:
         installed_dists_by_name[installed_dist.project_name] = installed_dist
 
-    incompatible_requirements = set()
     for requirement in dist.requires():
         present_dist = installed_dists_by_name.get(requirement.project_name)
 
         if present_dist and present_dist not in requirement:
-            incompatible_requirements.add((requirement, present_dist))
             yield (requirement, present_dist)

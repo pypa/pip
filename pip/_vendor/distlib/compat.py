@@ -10,6 +10,11 @@ import os
 import re
 import sys
 
+try:
+    import ssl
+except ImportError:
+    ssl = None
+
 if sys.version_info[0] < 3:  # pragma: no cover
     from StringIO import StringIO
     string_types = basestring,
@@ -30,8 +35,10 @@ if sys.version_info[0] < 3:  # pragma: no cover
     import urllib2
     from urllib2 import (Request, urlopen, URLError, HTTPError,
                          HTTPBasicAuthHandler, HTTPPasswordMgr,
-                         HTTPSHandler, HTTPHandler, HTTPRedirectHandler,
+                         HTTPHandler, HTTPRedirectHandler,
                          build_opener)
+    if ssl:
+        from urllib2 import HTTPSHandler
     import httplib
     import xmlrpclib
     import Queue as queue
@@ -66,8 +73,10 @@ else:  # pragma: no cover
     from urllib.request import (urlopen, urlretrieve, Request, url2pathname,
                                 pathname2url,
                                 HTTPBasicAuthHandler, HTTPPasswordMgr,
-                                HTTPSHandler, HTTPHandler, HTTPRedirectHandler,
+                                HTTPHandler, HTTPRedirectHandler,
                                 build_opener)
+    if ssl:
+        from urllib.request import HTTPSHandler
     from urllib.error import HTTPError, URLError, ContentTooShortError
     import http.client as httplib
     import urllib.request as urllib2
@@ -101,7 +110,7 @@ except ImportError: # pragma: no cover
         wildcards = leftmost.count('*')
         if wildcards > max_wildcards:
             # Issue #17980: avoid denials of service by refusing more
-            # than one wildcard per fragment.  A survery of established
+            # than one wildcard per fragment.  A survey of established
             # policy among SSL implementations showed it to be a
             # reasonable choice.
             raise CertificateError(
@@ -366,7 +375,7 @@ except ImportError: # pragma: no cover
     def detect_encoding(readline):
         """
         The detect_encoding() function is used to detect the encoding that should
-        be used to decode a Python source file.  It requires one argment, readline,
+        be used to decode a Python source file.  It requires one argument, readline,
         in the same way as the tokenize() generator.
 
         It will call readline a maximum of twice, and return the encoding used

@@ -7,13 +7,6 @@ import warnings
 from socket import error as SocketError, timeout as SocketTimeout
 import socket
 
-try:  # Python 3
-    from queue import LifoQueue, Empty, Full
-except ImportError:
-    from Queue import LifoQueue, Empty, Full
-    # Queue is imported for side effects on MS Windows
-    import Queue as _unused_module_Queue  # noqa: unused
-
 
 from .exceptions import (
     ClosedPoolError,
@@ -32,6 +25,7 @@ from .exceptions import (
 )
 from .packages.ssl_match_hostname import CertificateError
 from .packages import six
+from .packages.six.moves import queue
 from .connection import (
     port_by_scheme,
     DummyConnection,
@@ -42,11 +36,16 @@ from .request import RequestMethods
 from .response import HTTPResponse
 
 from .util.connection import is_connection_dropped
+from .util.request import set_file_position
 from .util.response import assert_header_parsing
 from .util.retry import Retry
 from .util.timeout import Timeout
 from .util.url import get_host, Url
 
+
+if six.PY2:
+    # Queue is imported for side effects on MS Windows
+    import Queue as _unused_module_Queue  # noqa: F401
 
 xrange = six.moves.xrange
 
@@ -63,19 +62,13 @@ class ConnectionPool(object):
     """
 
     scheme = None
-    QueueCls = LifoQueue
+    QueueCls = queue.LifoQueue
 
     def __init__(self, host, port=None):
         if not host:
             raise LocationValueError("No host specified.")
 
-        # httplib doesn't like it when we include brackets in ipv6 addresses
-        # Specifically, if we include brackets but also pass the port then
-        # httplib crazily doubles up the square brackets on the Host header.
-        # Instead, we need to make sure we never pass ``None`` as the port.
-        # However, for backward compatibility reasons we can't actually
-        # *assert* that.
-        self.host = host.strip('[]')
+        self.host = _ipv6_host(host).lower()
         self.port = port
 
     def __str__(self):
@@ -90,7 +83,7 @@ class ConnectionPool(object):
         # Return False to re-raise any potential exceptions
         return False
 
-    def close():
+    def close(self):
         """
         Close all pooled connections and disable the pool.
         """
@@ -156,13 +149,14 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
         A dictionary with proxy headers, should not be used directly,
         instead, see :class:`urllib3.connectionpool.ProxyManager`"
 
-    :param \**conn_kw:
+    :param \\**conn_kw:
         Additional parameters are used to create fresh :class:`urllib3.connection.HTTPConnection`,
         :class:`urllib3.connection.HTTPSConnection` instances.
     """
 
     scheme = 'http'
     ConnectionCls = HTTPConnection
+    ResponseCls = HTTPResponse
 
     def __init__(self, host, port=None, strict=False,
                  timeout=Timeout.DEFAULT_TIMEOUT, maxsize=1, block=False,
@@ -209,8 +203,8 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
         Return a fresh :class:`HTTPConnection`.
         """
         self.num_connections += 1
-        log.info("Starting new HTTP connection (%d): %s",
-                 self.num_connections, self.host)
+        log.debug("Starting new HTTP connection (%d): %s",
+                  self.num_connections, self.host)
 
         conn = self.ConnectionCls(host=self.host, port=self.port,
                                   timeout=self.timeout.connect_timeout,
@@ -236,7 +230,7 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
         except AttributeError:  # self.pool is None
             raise ClosedPoolError(self, "Pool is closed.")
 
-        except Empty:
+        except queue.Empty:
             if self.block:
                 raise EmptyPoolError(self,
                                      "Pool reached maximum size and no more "
@@ -245,7 +239,7 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
 
         # If this is a persistent connection, check if it got disconnected
         if conn and is_connection_dropped(conn):
-            log.info("Resetting dropped connection: %s", self.host)
+            log.debug("Resetting dropped connection: %s", self.host)
             conn.close()
             if getattr(conn, 'auto_open', 1) == 0:
                 # This is a proxied connection that has been mutated by
@@ -275,7 +269,7 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
         except AttributeError:
             # self.pool is None.
             pass
-        except Full:
+        except queue.Full:
             # This should never happen if self.block == True
             log.warning(
                 "Connection pool is full, discarding connection: %s",
@@ -383,16 +377,22 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
         try:
             try:  # Python 2.7, use buffering of HTTP responses
                 httplib_response = conn.getresponse(buffering=True)
-            except TypeError:  # Python 2.6 and older
-                httplib_response = conn.getresponse()
+            except TypeError:  # Python 2.6 and older, Python 3
+                try:
+                    httplib_response = conn.getresponse()
+                except Exception as e:
+                    # Remove the TypeError from the exception chain in Python 3;
+                    # otherwise it looks like a programming error was the cause.
+                    six.raise_from(e, None)
         except (SocketTimeout, BaseSSLError, SocketError) as e:
             self._raise_timeout(err=e, url=url, timeout_value=read_timeout)
             raise
 
         # AppEngine doesn't have a version attr.
         http_version = getattr(conn, '_http_vsn_str', 'HTTP/?')
-        log.debug("\"%s %s %s\" %s %s", method, url, http_version,
-                  httplib_response.status, httplib_response.length)
+        log.debug("%s://%s:%s \"%s %s %s\" %s %s", self.scheme, self.host, self.port,
+                  method, url, http_version, httplib_response.status,
+                  httplib_response.length)
 
         try:
             assert_header_parsing(httplib_response.msg)
@@ -419,7 +419,7 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
                 if conn:
                     conn.close()
 
-        except Empty:
+        except queue.Empty:
             pass  # Done.
 
     def is_same_host(self, url):
@@ -433,6 +433,8 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
         # TODO: Add optional support for socket.gethostbyname checking.
         scheme, host, port = get_host(url)
 
+        host = _ipv6_host(host).lower()
+
         # Use explicit default port for comparison when none is given
         if self.port and not port:
             port = port_by_scheme.get(scheme)
@@ -444,7 +446,7 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
     def urlopen(self, method, url, body=None, headers=None, retries=None,
                 redirect=True, assert_same_host=True, timeout=_Default,
                 pool_timeout=None, release_conn=None, chunked=False,
-                **response_kw):
+                body_pos=None, **response_kw):
         """
         Get a connection from the pool and perform an HTTP request. This is the
         lowest level call for making a request, so you'll need to specify all
@@ -526,7 +528,12 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
             encoding. Otherwise, urllib3 will send the body using the standard
             content-length form. Defaults to False.
 
-        :param \**response_kw:
+        :param int body_pos:
+            Position to seek to in file-like body in the event of a retry or
+            redirect. Typically this won't need to be set because urllib3 will
+            auto-populate the value when needed.
+
+        :param \\**response_kw:
             Additional parameters are passed to
             :meth:`urllib3.response.HTTPResponse.from_httplib`
         """
@@ -545,6 +552,17 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
 
         conn = None
 
+        # Track whether `conn` needs to be released before
+        # returning/raising/recursing. Update this variable if necessary, and
+        # leave `release_conn` constant throughout the function. That way, if
+        # the function recurses, the original value of `release_conn` will be
+        # passed down into the recursive call, and its value will be respected.
+        #
+        # See issue #651 [1] for details.
+        #
+        # [1] <https://github.com/shazow/urllib3/issues/651>
+        release_this_conn = release_conn
+
         # Merge the proxy headers. Only do this in HTTP. We have to copy the
         # headers dict so we can safely change it without those changes being
         # reflected in anyone else's copy.
@@ -559,6 +577,10 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
         # Keep track of whether we cleanly exited the except block. This
         # ensures we do proper cleanup in finally.
         clean_exit = False
+
+        # Rewind body position, if needed. Record current position
+        # for future rewinds in the event of a redirect/retry.
+        body_pos = set_file_position(body, body_pos)
 
         try:
             # Request a connection from the queue.
@@ -583,16 +605,20 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
             # mess.
             response_conn = conn if not release_conn else None
 
+            # Pass method to Response for length checking
+            response_kw['request_method'] = method
+
             # Import httplib's response into our own wrapper object
-            response = HTTPResponse.from_httplib(httplib_response,
-                                                 pool=self,
-                                                 connection=response_conn,
-                                                 **response_kw)
+            response = self.ResponseCls.from_httplib(httplib_response,
+                                                     pool=self,
+                                                     connection=response_conn,
+                                                     retries=retries,
+                                                     **response_kw)
 
             # Everything went great!
             clean_exit = True
 
-        except Empty:
+        except queue.Empty:
             # Timed out by queue.
             raise EmptyPoolError(self, "No pool connections are available.")
 
@@ -633,9 +659,9 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
                 # Close the connection, set the variable to None, and make sure
                 # we put the None back in the pool to avoid leaking it.
                 conn = conn and conn.close()
-                release_conn = True
+                release_this_conn = True
 
-            if release_conn:
+            if release_this_conn:
                 # Put the connection back to be reused. If the connection is
                 # expired then it will be None, which will get replaced with a
                 # fresh connection during _get_conn.
@@ -648,7 +674,8 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
             return self.urlopen(method, url, body, headers, retries,
                                 redirect, assert_same_host,
                                 timeout=timeout, pool_timeout=pool_timeout,
-                                release_conn=release_conn, **response_kw)
+                                release_conn=release_conn, body_pos=body_pos,
+                                **response_kw)
 
         # Handle redirect?
         redirect_location = redirect and response.get_redirect_location()
@@ -666,16 +693,19 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
                     raise
                 return response
 
-            log.info("Redirecting %s -> %s", url, redirect_location)
+            retries.sleep_for_retry(response)
+            log.debug("Redirecting %s -> %s", url, redirect_location)
             return self.urlopen(
                 method, redirect_location, body, headers,
                 retries=retries, redirect=redirect,
                 assert_same_host=assert_same_host,
                 timeout=timeout, pool_timeout=pool_timeout,
-                release_conn=release_conn, **response_kw)
+                release_conn=release_conn, body_pos=body_pos,
+                **response_kw)
 
         # Check if we should retry the HTTP response.
-        if retries.is_forced_retry(method, status_code=response.status):
+        has_retry_after = bool(response.getheader('Retry-After'))
+        if retries.is_retry(method, response.status, has_retry_after):
             try:
                 retries = retries.increment(method, url, response=response, _pool=self)
             except MaxRetryError:
@@ -685,14 +715,15 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
                     response.release_conn()
                     raise
                 return response
-            retries.sleep()
-            log.info("Forced retry: %s", url)
+            retries.sleep(response)
+            log.debug("Retry: %s", url)
             return self.urlopen(
                 method, url, body, headers,
                 retries=retries, redirect=redirect,
                 assert_same_host=assert_same_host,
                 timeout=timeout, pool_timeout=pool_timeout,
-                release_conn=release_conn, **response_kw)
+                release_conn=release_conn,
+                body_pos=body_pos, **response_kw)
 
         return response
 
@@ -758,7 +789,6 @@ class HTTPSConnectionPool(HTTPConnectionPool):
                           assert_hostname=self.assert_hostname,
                           assert_fingerprint=self.assert_fingerprint)
             conn.ssl_version = self.ssl_version
-
         return conn
 
     def _prepare_proxy(self, conn):
@@ -784,8 +814,8 @@ class HTTPSConnectionPool(HTTPConnectionPool):
         Return a fresh :class:`httplib.HTTPSConnection`.
         """
         self.num_connections += 1
-        log.info("Starting new HTTPS connection (%d): %s",
-                 self.num_connections, self.host)
+        log.debug("Starting new HTTPS connection (%d): %s",
+                  self.num_connections, self.host)
 
         if not self.ConnectionCls or self.ConnectionCls is DummyConnection:
             raise SSLError("Can't connect to HTTPS URL because the SSL "
@@ -817,7 +847,8 @@ class HTTPSConnectionPool(HTTPConnectionPool):
             warnings.warn((
                 'Unverified HTTPS request is being made. '
                 'Adding certificate verification is strongly advised. See: '
-                'https://urllib3.readthedocs.org/en/latest/security.html'),
+                'https://urllib3.readthedocs.io/en/latest/advanced-usage.html'
+                '#ssl-warnings'),
                 InsecureRequestWarning)
 
 
@@ -831,7 +862,7 @@ def connection_from_url(url, **kw):
     :param url:
         Absolute URL string that must include the scheme. Port is optional.
 
-    :param \**kw:
+    :param \\**kw:
         Passes additional parameters to the constructor of the appropriate
         :class:`.ConnectionPool`. Useful for specifying things like
         timeout, maxsize, headers, etc.
@@ -847,3 +878,22 @@ def connection_from_url(url, **kw):
         return HTTPSConnectionPool(host, port=port, **kw)
     else:
         return HTTPConnectionPool(host, port=port, **kw)
+
+
+def _ipv6_host(host):
+    """
+    Process IPv6 address literals
+    """
+
+    # httplib doesn't like it when we include brackets in IPv6 addresses
+    # Specifically, if we include brackets but also pass the port then
+    # httplib crazily doubles up the square brackets on the Host header.
+    # Instead, we need to make sure we never pass ``None`` as the port.
+    # However, for backward compatibility reasons we can't actually
+    # *assert* that.  See http://bugs.python.org/issue28539
+    #
+    # Also if an IPv6 address literal has a zone identifier, the
+    # percent sign might be URIencoded, convert it back into ASCII
+    if host.startswith('[') and host.endswith(']'):
+        host = host.replace('%25', '%').strip('[]')
+    return host

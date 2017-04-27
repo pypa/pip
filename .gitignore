@@ -4,9 +4,12 @@ docs/_build/
 pip.egg-info/
 MANIFEST
 .tox
+.cache
 *.egg
+*.eggs
 *.py[cod]
 *~
 .coverage
 coverage.xml
 .*.sw?
+.idea/

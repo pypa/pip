@@ -129,6 +129,42 @@ def test_install_wheel_with_target(script, data):
     )
 
 
+@pytest.mark.network
+def test_install_wheel_with_target_and_data_files(script, data):
+    """
+    Test for issue #4092. It will be checked that a data_files specification in
+    setup.py is handled correctly when a wheel is installed with the --target
+    option.
+
+    The setup() for the wheel 'prjwithdatafile-1.0-py2.py3-none-any.whl' is as
+    follows ::
+
+        setup(
+            name='prjwithdatafile',
+            version='1.0',
+            packages=['prjwithdatafile'],
+            data_files=[
+                (r'packages1', ['prjwithdatafile/README.txt']),
+                (r'packages2', ['prjwithdatafile/README.txt'])
+            ]
+        )
+    """
+    script.pip('install', 'wheel')
+    target_dir = script.scratch_path / 'prjwithdatafile'
+    package = data.packages.join("prjwithdatafile-1.0-py2.py3-none-any.whl")
+    result = script.pip('install', package,
+                        '-t', target_dir,
+                        '--no-index',
+                        expect_error=False)
+
+    assert (Path('scratch') / 'prjwithdatafile' / 'packages1' / 'README.txt'
+            in result.files_created), str(result)
+    assert (Path('scratch') / 'prjwithdatafile' / 'packages2' / 'README.txt'
+            in result.files_created), str(result)
+    assert (Path('scratch') / 'prjwithdatafile' / 'lib' / 'python'
+            not in result.files_created), str(result)
+
+
 def test_install_wheel_with_root(script, data):
     """
     Test installing a wheel using pip install --root

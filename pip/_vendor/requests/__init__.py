@@ -38,22 +38,23 @@ is at <http://python-requests.org>.
 
 :copyright: (c) 2016 by Kenneth Reitz.
 :license: Apache 2.0, see LICENSE for more details.
-
 """
 
 __title__ = 'requests'
-__version__ = '2.10.0'
-__build__ = 0x021000
+__version__ = '2.13.0'
+__build__ = 0x021300
 __author__ = 'Kenneth Reitz'
 __license__ = 'Apache 2.0'
 __copyright__ = 'Copyright 2016 Kenneth Reitz'
 
 # Attempt to enable urllib3's SNI support, if possible
-try:
-    from .packages.urllib3.contrib import pyopenssl
-    pyopenssl.inject_into_urllib3()
-except ImportError:
-    pass
+# Note: Patched by pip to prevent using the PyOpenSSL module. On Windows this
+#       prevents upgrading cryptography.
+# try:
+#     from .packages.urllib3.contrib import pyopenssl
+#     pyopenssl.inject_into_urllib3()
+# except ImportError:
+#     pass
 
 import warnings
 
@@ -82,8 +83,6 @@ except ImportError:
             pass
 
 logging.getLogger(__name__).addHandler(NullHandler())
-
-import warnings
 
 # FileModeWarnings go off per the default.
 warnings.simplefilter('default', FileModeWarning, append=True)

@@ -6,7 +6,6 @@ from __future__ import absolute_import
 import compileall
 import csv
 import errno
-import functools
 import hashlib
 import logging
 import os
@@ -39,7 +38,6 @@ from pip.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.six.moves import configparser
 
 
 wheel_ext = '.whl'
@@ -128,7 +126,7 @@ def cached_wheel(cache_dir, link, format_control, package_name):
     try:
         wheel_names = os.listdir(root)
     except OSError as e:
-        if e.errno in (errno.ENOENT, errno.ENOTDIR):
+        if e.errno in {errno.ENOENT, errno.ENOTDIR}:
             return link
         raise
     candidates = []
@@ -189,7 +187,7 @@ def fix_script(path):
             script.write(rest)
         return True
 
-dist_info_re = re.compile(r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>\d.+?))?)
+dist_info_re = re.compile(r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>.+?))?)
                                 \.dist-info$""", re.VERBOSE)
 
 
@@ -224,16 +222,19 @@ def get_entrypoints(filename):
             data.write("\n")
         data.seek(0)
 
-    cp = configparser.RawConfigParser()
-    cp.optionxform = lambda option: option
-    cp.readfp(data)
+    # get the entry points and then the script names
+    entry_points = pkg_resources.EntryPoint.parse_map(data)
+    console = entry_points.get('console_scripts', {})
+    gui = entry_points.get('gui_scripts', {})
 
-    console = {}
-    gui = {}
-    if cp.has_section('console_scripts'):
-        console = dict(cp.items('console_scripts'))
-    if cp.has_section('gui_scripts'):
-        gui = dict(cp.items('gui_scripts'))
+    def _split_ep(s):
+        """get the string representation of EntryPoint, remove space and split
+        on '='"""
+        return str(s).replace(" ", "").split("=")
+
+    # convert the EntryPoint objects into strings with module:function
+    console = dict(_split_ep(v) for v in console.values())
+    gui = dict(_split_ep(v) for v in gui.values())
     return console, gui
 
 
@@ -298,9 +299,8 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
                     continue
                 elif (is_base and
                         s.endswith('.dist-info') and
-                        # is self.req.project_name case preserving?
-                        s.lower().startswith(
-                            req.name.replace('-', '_').lower())):
+                        canonicalize_name(s).startswith(
+                            canonicalize_name(req.name))):
                     assert not info_dir, ('Multiple .dist-info directories: ' +
                                           destsubdir + ', ' +
                                           ', '.join(info_dir))
@@ -412,14 +412,14 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
         }
 
     maker._get_script_text = _get_script_text
-    maker.script_template = """# -*- coding: utf-8 -*-
+    maker.script_template = r"""# -*- coding: utf-8 -*-
 import re
 import sys
 
 from %(module)s import %(import_name)s
 
 if __name__ == '__main__':
-    sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
+    sys.argv[0] = re.sub(r'(-script\.pyw?|\.exe)?$', '', sys.argv[0])
     sys.exit(%(func)s())
 """
 
@@ -528,40 +528,6 @@ if __name__ == '__main__':
     shutil.move(temp_record, record)
 
 
-def _unique(fn):
-    @functools.wraps(fn)
-    def unique(*args, **kw):
-        seen = set()
-        for item in fn(*args, **kw):
-            if item not in seen:
-                seen.add(item)
-                yield item
-    return unique
-
-
-# TODO: this goes somewhere besides the wheel module
-@_unique
-def uninstallation_paths(dist):
-    """
-    Yield all the uninstallation paths for dist based on RECORD-without-.pyc
-
-    Yield paths to all the files in RECORD. For each .py file in RECORD, add
-    the .pyc in the same directory.
-
-    UninstallPathSet.add() takes care of the __pycache__ .pyc.
-    """
-    from pip.utils import FakeFile  # circular import
-    r = csv.reader(FakeFile(dist.get_metadata_lines('RECORD')))
-    for row in r:
-        path = os.path.join(dist.location, row[0])
-        yield path
-        if path.endswith('.py'):
-            dn, fn = os.path.split(path)
-            base = fn[:-3]
-            path = os.path.join(dn, base + '.pyc')
-            yield path
-
-
 def wheel_version(source_dir):
     """
     Return the Wheel-Version of an extracted wheel, if possible.
@@ -616,7 +582,7 @@ class Wheel(object):
     # TODO: maybe move the install code into this class
 
     wheel_file_re = re.compile(
-        r"""^(?P<namever>(?P<name>.+?)-(?P<ver>\d.*?))
+        r"""^(?P<namever>(?P<name>.+?)-(?P<ver>.*?))
         ((-(?P<build>\d.*?))?-(?P<pyver>.+?)-(?P<abi>.+?)-(?P<plat>.+?)
         \.whl|\.dist-info)$""",
         re.VERBOSE

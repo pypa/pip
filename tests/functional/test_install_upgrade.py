@@ -4,10 +4,7 @@ import textwrap
 
 import pytest
 
-from tests.lib import (
-    assert_all_changes, pyversion, _create_test_package,
-    _change_test_package_version,
-)
+from tests.lib import assert_all_changes, pyversion
 from tests.lib.local_repos import local_checkout
 
 
@@ -21,6 +18,112 @@ def test_no_upgrade_unless_requested(script):
     assert not result.files_created, (
         'pip install INITools upgraded when it should not have'
     )
+
+
+def test_invalid_upgrade_strategy_causes_error(script):
+    """
+    It errors out when the upgrade-strategy is an invalid/unrecognised one
+
+    """
+    result = script.pip_install_local(
+        '--upgrade', '--upgrade-strategy=bazinga', 'simple',
+        expect_error=True
+    )
+
+    assert result.returncode
+    assert "invalid choice" in result.stderr
+
+
+def test_only_if_needed_does_not_upgrade_deps_when_satisfied(script):
+    """
+    It doesn't upgrade a dependency if it already satisfies the requirements.
+
+    """
+    script.pip_install_local('simple==2.0', expect_error=True)
+    result = script.pip_install_local(
+        '--upgrade', '--upgrade-strategy=only-if-needed', 'require_simple',
+        expect_error=True
+    )
+
+    assert (
+        (script.site_packages / 'require_simple-1.0-py%s.egg-info' % pyversion)
+        not in result.files_deleted
+    ), "should have installed require_simple==1.0"
+    assert (
+        (script.site_packages / 'simple-2.0-py%s.egg-info' % pyversion)
+        not in result.files_deleted
+    ), "should not have uninstalled simple==2.0"
+
+
+def test_only_if_needed_does_upgrade_deps_when_no_longer_satisfied(script):
+    """
+    It does upgrade a dependency if it no longer satisfies the requirements.
+
+    """
+    script.pip_install_local('simple==1.0', expect_error=True)
+    result = script.pip_install_local(
+        '--upgrade', '--upgrade-strategy=only-if-needed', 'require_simple',
+        expect_error=True
+    )
+
+    assert (
+        (script.site_packages / 'require_simple-1.0-py%s.egg-info' % pyversion)
+        not in result.files_deleted
+    ), "should have installed require_simple==1.0"
+    assert (
+        script.site_packages / 'simple-3.0-py%s.egg-info' %
+        pyversion in result.files_created
+    ), "should have installed simple==3.0"
+    assert (
+        script.site_packages / 'simple-1.0-py%s.egg-info' %
+        pyversion in result.files_deleted
+    ), "should have uninstalled simple==1.0"
+
+
+def test_eager_does_upgrade_dependecies_when_currently_satisfied(script):
+    """
+    It does upgrade a dependency even if it already satisfies the requirements.
+
+    """
+    script.pip_install_local('simple==2.0', expect_error=True)
+    result = script.pip_install_local(
+        '--upgrade', '--upgrade-strategy=eager', 'require_simple',
+        expect_error=True
+    )
+
+    assert (
+        (script.site_packages / 'require_simple-1.0-py%s.egg-info' % pyversion)
+        not in result.files_deleted
+    ), "should have installed require_simple==1.0"
+    assert (
+        (script.site_packages / 'simple-2.0-py%s.egg-info' % pyversion)
+        in result.files_deleted
+    ), "should have uninstalled simple==2.0"
+
+
+def test_eager_does_upgrade_dependecies_when_no_longer_satisfied(script):
+    """
+    It does upgrade a dependency if it no longer satisfies the requirements.
+
+    """
+    script.pip_install_local('simple==1.0', expect_error=True)
+    result = script.pip_install_local(
+        '--upgrade', '--upgrade-strategy=eager', 'require_simple',
+        expect_error=True
+    )
+
+    assert (
+        (script.site_packages / 'require_simple-1.0-py%s.egg-info' % pyversion)
+        not in result.files_deleted
+    ), "should have installed require_simple==1.0"
+    assert (
+        script.site_packages / 'simple-3.0-py%s.egg-info' %
+        pyversion in result.files_created
+    ), "should have installed simple==3.0"
+    assert (
+        script.site_packages / 'simple-1.0-py%s.egg-info' %
+        pyversion in result.files_deleted
+    ), "should have uninstalled simple==1.0"
 
 
 @pytest.mark.network
@@ -208,31 +311,6 @@ def test_uninstall_rollback(script, data):
     )
 
 
-# Issue #530 - temporarily disable flaky test
-@pytest.mark.skipif
-def test_editable_git_upgrade(script):
-    """
-    Test installing an editable git package from a repository, upgrading the
-    repository, installing again, and check it gets the newer version
-    """
-    version_pkg_path = _create_test_package(script)
-    script.pip(
-        'install', '-e',
-        '%s#egg=version_pkg' % ('git+file://' + version_pkg_path),
-    )
-    version = script.run('version_pkg')
-    assert '0.1' in version.stdout
-    _change_test_package_version(script, version_pkg_path)
-    script.pip(
-        'install', '-e',
-        '%s#egg=version_pkg' % ('git+file://' + version_pkg_path),
-    )
-    version2 = script.run('version_pkg')
-    assert 'some different version' in version2.stdout, (
-        "Output: %s" % (version2.stdout)
-    )
-
-
 @pytest.mark.network
 def test_should_not_install_always_from_cache(script):
     """
@@ -342,27 +420,3 @@ class TestUpgradeDistributeToSetuptools(object):
             cwd=pip_src,
             expect_stderr=True,
         )
-
-    @pytest.mark.skipif(
-        sys.version_info >= (3, 5),
-        reason="distribute doesn't work on Python 3.5",
-    )
-    def test_from_distribute_6_to_setuptools_7(
-            self, script, data, virtualenv):
-        self.prep_ve(
-            script, '1.9.1', virtualenv.pip_source_dir, distribute=True
-        )
-        result = self.script.run(
-            self.ve_bin / 'pip', 'install', '--no-index',
-            '--find-links=%s' % data.find_links, '-U', 'distribute',
-            expect_stderr=True if sys.version_info[:2] == (2, 6) else False,
-        )
-        assert (
-            "Found existing installation: distribute 0.6.34" in result.stdout
-        )
-        result = self.script.run(
-            self.ve_bin / 'pip', 'list', '--format=legacy',
-            expect_stderr=True if sys.version_info[:2] == (2, 6) else False,
-        )
-        assert "setuptools (0.9.8)" in result.stdout
-        assert "distribute (0.7.3)" in result.stdout

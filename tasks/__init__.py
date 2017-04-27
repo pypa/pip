@@ -1,5 +1,6 @@
 import invoke
 
 from . import generate
+from . import vendoring
 
-ns = invoke.Collection(generate)
+ns = invoke.Collection(generate, vendoring)

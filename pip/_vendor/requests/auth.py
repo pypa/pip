@@ -12,12 +12,14 @@ import re
 import time
 import hashlib
 import threading
+import warnings
 
 from base64 import b64encode
 
-from .compat import urlparse, str
+from .compat import urlparse, str, basestring
 from .cookies import extract_cookies_to_jar
-from .utils import parse_dict_header, to_native_string
+from ._internal_utils import to_native_string
+from .utils import parse_dict_header
 from .status_codes import codes
 
 CONTENT_TYPE_FORM_URLENCODED = 'application/x-www-form-urlencoded'
@@ -27,8 +29,42 @@ CONTENT_TYPE_MULTI_PART = 'multipart/form-data'
 def _basic_auth_str(username, password):
     """Returns a Basic Auth string."""
 
+    # "I want us to put a big-ol' comment on top of it that
+    # says that this behaviour is dumb but we need to preserve
+    # it because people are relying on it."
+    #    - Lukasa
+    #
+    # These are here solely to maintain backwards compatibility
+    # for things like ints. This will be removed in 3.0.0.
+    if not isinstance(username, basestring):
+        warnings.warn(
+            "Non-string usernames will no longer be supported in Requests "
+            "3.0.0. Please convert the object you've passed in ({0!r}) to "
+            "a string or bytes object in the near future to avoid "
+            "problems.".format(username),
+            category=DeprecationWarning,
+        )
+        username = str(username)
+
+    if not isinstance(password, basestring):
+        warnings.warn(
+            "Non-string passwords will no longer be supported in Requests "
+            "3.0.0. Please convert the object you've passed in ({0!r}) to "
+            "a string or bytes object in the near future to avoid "
+            "problems.".format(password),
+            category=DeprecationWarning,
+        )
+        password = str(password)
+    # -- End Removal --
+
+    if isinstance(username, str):
+        username = username.encode('latin1')
+
+    if isinstance(password, str):
+        password = password.encode('latin1')
+
     authstr = 'Basic ' + to_native_string(
-        b64encode(('%s:%s' % (username, password)).encode('latin1')).strip()
+        b64encode(b':'.join((username, password))).strip()
     )
 
     return authstr
@@ -43,6 +79,7 @@ class AuthBase(object):
 
 class HTTPBasicAuth(AuthBase):
     """Attaches HTTP Basic Authentication to the given Request object."""
+
     def __init__(self, username, password):
         self.username = username
         self.password = password
@@ -63,6 +100,7 @@ class HTTPBasicAuth(AuthBase):
 
 class HTTPProxyAuth(HTTPBasicAuth):
     """Attaches HTTP Proxy Authentication to a given Request object."""
+
     def __call__(self, r):
         r.headers['Proxy-Authorization'] = _basic_auth_str(self.username, self.password)
         return r
@@ -70,6 +108,7 @@ class HTTPProxyAuth(HTTPBasicAuth):
 
 class HTTPDigestAuth(AuthBase):
     """Attaches HTTP Digest Authentication to the given Request object."""
+
     def __init__(self, username, password):
         self.username = username
         self.password = password
@@ -87,6 +126,9 @@ class HTTPDigestAuth(AuthBase):
             self._thread_local.num_401_calls = None
 
     def build_digest_header(self, method, url):
+        """
+        :rtype: str
+        """
 
         realm = self._thread_local.chal['realm']
         nonce = self._thread_local.chal['nonce']
@@ -179,7 +221,11 @@ class HTTPDigestAuth(AuthBase):
             self._thread_local.num_401_calls = 1
 
     def handle_401(self, r, **kwargs):
-        """Takes the given response and tries digest-auth, if needed."""
+        """
+        Takes the given response and tries digest-auth, if needed.
+
+        :rtype: requests.Response
+        """
 
         if self._thread_local.pos is not None:
             # Rewind the file position indicator of the body to where

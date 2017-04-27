@@ -38,10 +38,9 @@ def main(args=None):
         print('Downloading pending list')
         projects = all_projects()
         print('Found %s projects' % len(projects))
-        f = open(pending_fn, 'w')
-        for name in projects:
-            f.write(name + '\n')
-        f.close()
+        with open(pending_fn, 'w') as f:
+            for name in projects:
+                f.write(name + '\n')
     print('Starting testing...')
     while os.stat(pending_fn).st_size:
         _test_packages(output, pending_fn)

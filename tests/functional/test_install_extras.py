@@ -1,3 +1,4 @@
+import textwrap
 import pytest
 from os.path import join
 
@@ -103,3 +104,24 @@ def test_nonexistent_options_listed_in_order(script, data):
         "  simplewheel 2.0 does not provide the extra 'nope'"
     )
     assert msg in result.stderr
+
+
+def test_install_special_extra(script, data):
+    # Check that uppercase letters and '-' are dealt with
+    # make a dummy project
+    pkga_path = script.scratch_path / 'pkga'
+    pkga_path.mkdir()
+    pkga_path.join("setup.py").write(textwrap.dedent("""
+        from setuptools import setup
+        setup(name='pkga',
+              version='0.1',
+              extras_require={'Hop_hOp-hoP': ['missing_pkg']},
+        )
+    """))
+
+    result = script.pip(
+        'install', '--no-index', '%s[Hop_hOp-hoP]' % pkga_path,
+        expect_error=True)
+    assert (
+        "Could not find a version that satisfies the requirement missing_pkg"
+    ) in result.stderr, str(result)

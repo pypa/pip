@@ -4,25 +4,9 @@ import re
 import sys
 
 from setuptools import setup, find_packages
-from setuptools.command.test import test as TestCommand
 
 
 here = os.path.abspath(os.path.dirname(__file__))
-
-
-class PyTest(TestCommand):
-
-    def finalize_options(self):
-        TestCommand.finalize_options(self)
-
-        self.test_args = []
-        self.test_suite = True
-
-    def run_tests(self):
-        # import here, cause outside the eggs aren't loaded
-        import pytest
-
-        sys.exit(pytest.main(self.test_args))
 
 
 def read(*parts):
@@ -39,10 +23,17 @@ def find_version(*file_paths):
         return version_match.group(1)
     raise RuntimeError("Unable to find version string.")
 
+
 long_description = read('README.rst')
 
-tests_require = ['pytest', 'virtualenv>=1.10', 'scripttest>=1.3', 'mock',
-                 'pretend']
+tests_require = [
+    'pytest',
+    'mock',
+    'pretend'
+    'scripttest>=1.3',
+    'virtualenv>=1.10',
+    'freezegun',
+]
 
 
 setup(
@@ -56,12 +47,12 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Topic :: Software Development :: Build Tools",
         "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 2.6",
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.3",
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: Implementation :: PyPy"
     ],
     keywords='easy_install distutils setuptools egg virtualenv',
@@ -85,9 +76,8 @@ setup(
     },
     tests_require=tests_require,
     zip_safe=False,
-    python_requires='>=2.6,!=3.0.*,!=3.1.*,!=3.2.*',
+    python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*',
     extras_require={
         'testing': tests_require,
     },
-    cmdclass={'test': PyTest},
 )

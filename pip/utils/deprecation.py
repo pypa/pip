@@ -15,15 +15,11 @@ class Pending(object):
     pass
 
 
-class RemovedInPip9Warning(PipDeprecationWarning):
+class RemovedInPip11Warning(PipDeprecationWarning):
     pass
 
 
-class RemovedInPip10Warning(PipDeprecationWarning, Pending):
-    pass
-
-
-class Python26DeprecationWarning(PipDeprecationWarning, Pending):
+class RemovedInPip12Warning(PipDeprecationWarning, Pending):
     pass
 
 

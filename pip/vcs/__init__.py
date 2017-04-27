@@ -5,6 +5,7 @@ import errno
 import logging
 import os
 import shutil
+import sys
 
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
@@ -271,6 +272,8 @@ class VersionControl(object):
                 )
                 shutil.move(dest, dest_dir)
                 checkout = True
+            elif response == 'a':
+                sys.exit(-1)
         return checkout
 
     def unpack(self, location):
@@ -307,7 +310,7 @@ class VersionControl(object):
 
     def run_command(self, cmd, show_stdout=True, cwd=None,
                     on_returncode='raise',
-                    command_level=logging.DEBUG, command_desc=None,
+                    command_desc=None,
                     extra_environ=None, spinner=None):
         """
         Run a VCS subcommand
@@ -317,7 +320,7 @@ class VersionControl(object):
         cmd = [self.name] + cmd
         try:
             return call_subprocess(cmd, show_stdout, cwd,
-                                   on_returncode, command_level,
+                                   on_returncode,
                                    command_desc, extra_environ,
                                    spinner)
         except OSError as e:
