@@ -324,27 +324,14 @@ class VersionControl(object):
                                    command_desc, extra_environ,
                                    spinner)
         except OSError as e:
-            # on windows inform the user that self.name is not
-            # in the path environment variable.
-            if sys.platform == "win32":
-                if e.errno == errno.ENOENT:
-                    logger.error(
-                        "'{0}' is not in the path environment "
-                        "variable. Be sure to add manually or "
-                        "by using pthmgr program which is open"
-                        " source. The pre-built version can be"
-                        " found at https://github.com/Decorate"
-                        "rBot-devs/ffmpus/blob/master/pthmgr.e"
-                        "xe and the source code can be found h"
-                        "ere as well https://github.com/Decora"
-                        "terBot-devs/pthmgr.".format(self.name))
+            # errno.ENOENT = no such file or directory
+            # In other words, the VCS executable isn't available
+            if e.errno == errno.ENOENT:
+                raise BadCommand(
+                    'Cannot find command %r - do you have '
+                    '%r in your PATH?' % self.name)
             else:
-                # errno.ENOENT = no such file or directory
-                # In other words, the VCS executable isn't available
-                if e.errno == errno.ENOENT:
-                    raise BadCommand('Cannot find command %r' % self.name)
-                else:
-                    raise  # re-raise exception if a different error occurred
+                raise  # re-raise exception if a different error occurred
 
     @classmethod
     def controls_location(cls, location):
