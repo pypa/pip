@@ -329,7 +329,7 @@ class VersionControl(object):
             if e.errno == errno.ENOENT:
                 raise BadCommand(
                     'Cannot find command %r - do you have '
-                    '%r in your PATH?' % self.name)
+                    '%r installed and in your PATH?' % self.name)
             else:
                 raise  # re-raise exception if a different error occurred
 
