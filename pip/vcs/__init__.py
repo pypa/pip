@@ -330,7 +330,7 @@ class VersionControl(object):
                 raise BadCommand(
                     'Cannot find command %r - do you have '
                     '%r installed and in your '
-                    'PATH?' % self.name % self.name)
+                    'PATH?' % (self.name, self.name))
             else:
                 raise  # re-raise exception if a different error occurred
 
