@@ -373,7 +373,8 @@ cache_dir = partial(
     dest="cache_dir",
     default=USER_CACHE_DIR,
     metavar="dir",
-    help="Store the cache data in <dir>."
+    help="Store the cache data in <dir>. Current cache directory is set to %s"%\
+            repr(USER_CACHE_DIR)
 )
 
 no_cache = partial(
