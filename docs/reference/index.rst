@@ -15,4 +15,5 @@ Reference Guide
    pip_search
    pip_check
    pip_wheel
+   pip_cache
    pip_hash
