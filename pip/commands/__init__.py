@@ -3,16 +3,18 @@ Package containing all pip commands
 """
 from __future__ import absolute_import
 
+from pip._vendor import pkg_resources
+from pip.basecommand import Command
+from pip.commands.check import CheckCommand
 from pip.commands.completion import CompletionCommand
 from pip.commands.download import DownloadCommand
 from pip.commands.freeze import FreezeCommand
 from pip.commands.hash import HashCommand
 from pip.commands.help import HelpCommand
+from pip.commands.install import InstallCommand
 from pip.commands.list import ListCommand
-from pip.commands.check import CheckCommand
 from pip.commands.search import SearchCommand
 from pip.commands.show import ShowCommand
-from pip.commands.install import InstallCommand
 from pip.commands.uninstall import UninstallCommand
 from pip.commands.wheel import WheelCommand
 
@@ -47,6 +49,14 @@ commands_order = [
     CompletionCommand,
     HelpCommand,
 ]
+
+# Add plugin commands if there are any
+for entry_point in pkg_resources.working_set.iter_entry_points('pip.commands'):
+    plugin_command = entry_point.load()
+    # Ignore invalid entry points and don't let people override builtin commands
+    if issubclass(plugin_command, Command) and entry_point.name not in commands_dict:
+        commands_dict[entry_point.name] = plugin_command
+        commands_order.append(plugin_command)
 
 
 def get_summaries(ordered=True):
