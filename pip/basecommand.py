@@ -70,6 +70,7 @@ class Command(object):
             ),
             retries=retries if retries is not None else options.retries,
             insecure_hosts=options.trusted_hosts,
+            retry_status=options.retry_status,
         )
 
         # Handle custom ca-bundles from the user

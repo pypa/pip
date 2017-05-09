@@ -158,6 +158,16 @@ retries = partial(
     help="Maximum number of retries each connection should attempt "
          "(default %default times).")
 
+retry_status = partial(
+    Option,
+    '--retry-status',
+    dest='retry_status',
+    type='int',
+    action='append',
+    help="HTTP status on which to attempt retry "
+         "(default 503). "
+         "Can be used multiple times for multiple statuses")
+
 timeout = partial(
     Option,
     '--timeout', '--default-timeout',
@@ -521,6 +531,7 @@ general_group = {
         no_input,
         proxy,
         retries,
+        retry_status,
         timeout,
         skip_requirements_regex,
         exists_action,
