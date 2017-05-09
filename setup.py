@@ -29,7 +29,7 @@ long_description = read('README.rst')
 tests_require = [
     'pytest',
     'mock',
-    'pretend'
+    'pretend',
     'scripttest>=1.3',
     'virtualenv>=1.10',
     'freezegun',
