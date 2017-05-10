@@ -9,6 +9,8 @@ import warnings
 
 import sys
 
+# A CHANGE!
+
 # 2016-06-17 barry@debian.org: urllib3 1.14 added optional support for socks,
 # but if invoked (i.e. imported), it will issue a warning to stderr if socks
 # isn't available.  requests unconditionally imports urllib3's socks contrib
