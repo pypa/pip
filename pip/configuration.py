@@ -109,7 +109,7 @@ class Configuration(object):
     def set_value(self, key, value):
         """Modify a value in the configuration.
         """
-        assert self.load_only is not None, _need_file_err_msg
+        self._ensure_have_load_only()
 
         file, parser = self._get_parser_to_modify()
 
@@ -127,7 +127,7 @@ class Configuration(object):
     def unset_value(self, key):
         """Unset a value in the configuration.
         """
-        assert self.load_only is not None, _need_file_err_msg
+        self._ensure_have_load_only()
 
         if key not in self._config[self.load_only]:
             raise ConfigurationError(key)
@@ -157,7 +157,7 @@ class Configuration(object):
         del self._config[self.load_only][key]
 
     def save(self):
-        assert self.load_only is not None, _need_file_err_msg
+        self._ensure_have_load_only()
 
         for file, parser in self._modified_parsers:
             logger.info("Writing to %s", file)
@@ -171,6 +171,10 @@ class Configuration(object):
     #
     # Private routines
     #
+
+    def _ensure_have_load_only(self):
+        if self.load_only is None:
+            raise ConfigurationError("Needed a specific file to be modifying.")
 
     @property
     def _dictionary(self):
