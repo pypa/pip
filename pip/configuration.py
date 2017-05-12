@@ -190,15 +190,15 @@ class Configuration(object):
     def _load_config_files(self):
         """Loads configuration from configuration files
         """
-        for variant, files in self._get_config_files():
-            if variant == "environment":
-                if files == [os.devnull]:
-                    # If the user sets the environment var as devnull,
-                    # we don't load configuration.
-                    break
-                elif files == [None]:
-                    continue
+        config_files = dict(self._get_config_files())
+        if config_files["environment"][0:1] == [os.devnull]:
+            logger.debug(
+                "Skipping loading configuration files due to "
+                "environment's PIP_CONFIG_FILE being os.devnull"
+            )
+            return
 
+        for variant, files in config_files.items():
             for file in files:
                 # If there's specific variant set in `load_only`, load only
                 # that variant, not the others.
@@ -261,16 +261,19 @@ class Configuration(object):
 
         This should be treated like items of a dictionary.
         """
+        # SMELL: Move the conditions out of this function
 
         # environment variables have the lowest priority
         config_file = os.environ.get('PIP_CONFIG_FILE', None)
-        yield "environment", [config_file]
+        if config_file is not None:
+            yield "environment", [config_file]
+        else:
+            yield "environment", []
 
         # at the base we have any site-wide configuration
         yield "site-wide", list(site_config_files)
 
         # per-user configuration next
-        # SMELL: Move this condition out of this function
         should_load_user_config = not self.isolated and not (
             config_file and os.path.exists(config_file)
         )
