@@ -209,14 +209,16 @@ class Configuration(object):
                 self._parsers[variant].append((file, parser))
 
     def _load_file(self, variant, file):
+        logger.debug("For variant '%s', will try loading '%s'", variant, file)
         parser = self._construct_parser(file)
 
         for section in parser.sections():
-            self._config[variant].update(
-                self._normalized_keys(section, parser.items(section))
-            )
+            items = parser.items(section)
+            self._config[variant].update(self._normalized_keys(section, items))
+
         return parser
 
+    # XXX: This is patched in the tests.
     def _construct_parser(self, file):
         parser = configparser.RawConfigParser()
         # If there is no such file, don't bother reading it but create the
