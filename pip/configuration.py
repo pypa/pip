@@ -12,7 +12,6 @@ Some terminology:
 """
 
 import os
-import re
 import logging
 
 from pip._vendor.six import next
@@ -25,7 +24,6 @@ from pip.locations import (
 )
 from pip.utils import ensure_dir
 
-_environ_prefix_re = re.compile(r"^PIP_", re.I)
 _need_file_err_msg = "Needed a specific file to be modifying."
 
 
@@ -253,8 +251,8 @@ class Configuration(object):
     def _get_environ_vars(self):
         """Returns a generator with all environmental vars with prefix PIP_"""
         for key, val in os.environ.items():
-            if _environ_prefix_re.search(key):
-                yield (_environ_prefix_re.sub("", key).lower(), val)
+            if key.startswith("PIP_"):
+                yield key[4:].lower(), val
 
     def _get_config_files(self):
         """Yields variant and configuration files associated with it.
