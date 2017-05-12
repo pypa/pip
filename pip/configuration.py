@@ -151,7 +151,7 @@ class Configuration(object):
                 self._mark_as_modified(file, parser)
             else:
                 raise ConfigurationError(
-                    "Internal error [id=1]. Please report as a bug."
+                    "Fatal Internal error [id=1]. Please report as a bug."
                 )
 
         del self._config[self.load_only][key]
@@ -291,7 +291,7 @@ class Configuration(object):
         if not parsers:
             # This should not happen if everything works correctly.
             raise ConfigurationError(
-                "Internal error [id=2]. Please report as a bug."
+                "Fatal Internal error [id=2]. Please report as a bug."
             )
 
         # Use the highest priority parser.
