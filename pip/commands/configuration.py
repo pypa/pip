@@ -125,6 +125,7 @@ class ConfigurationCommand(Command):
                 "Need exactly one action (--list, --edit, "
                 "--get, --set, --unset) to perform."
             )
+            self.parser.print_help()
             return ERROR
 
         # Determine which configuration files are to be loaded
