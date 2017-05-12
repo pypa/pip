@@ -212,6 +212,7 @@ class Configuration(object):
                 # Keeping track of the parsers used
                 self._parsers[variant].append((file, parser))
 
+    # XXX: This is patched in the tests.
     def _load_file(self, variant, file):
         logger.debug("For variant '%s', will try loading '%s'", variant, file)
         parser = self._construct_parser(file)
@@ -222,7 +223,6 @@ class Configuration(object):
 
         return parser
 
-    # XXX: This is patched in the tests.
     def _construct_parser(self, file):
         parser = configparser.RawConfigParser()
         # If there is no such file, don't bother reading it but create the
@@ -301,6 +301,7 @@ class Configuration(object):
         # Use the highest priority parser.
         return parsers[-1]
 
+    # XXX: This is patched in the tests.
     def _mark_as_modified(self, file, parser):
         file_parser_tuple = (file, parser)
         if file_parser_tuple not in self._modified_parsers:
