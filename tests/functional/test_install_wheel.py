@@ -114,11 +114,11 @@ def test_install_from_wheel_with_headers(script, data):
 
 
 @pytest.mark.network
-def test_install_wheel_with_target(script, data):
+def test_install_wheel_with_target(script, data, common_wheels_dir):
     """
     Test installing a wheel using pip install --target
     """
-    script.pip('install', 'wheel')
+    script.pip('install', 'wheel', '--no-index', '-f', common_wheels_dir)
     target_dir = script.scratch_path / 'target'
     result = script.pip(
         'install', 'simple.dist==0.1', '-t', target_dir,
@@ -130,7 +130,8 @@ def test_install_wheel_with_target(script, data):
 
 
 @pytest.mark.network
-def test_install_wheel_with_target_and_data_files(script, data):
+def test_install_wheel_with_target_and_data_files(
+        script, data, common_wheels_dir):
     """
     Test for issue #4092. It will be checked that a data_files specification in
     setup.py is handled correctly when a wheel is installed with the --target
@@ -149,7 +150,7 @@ def test_install_wheel_with_target_and_data_files(script, data):
             ]
         )
     """
-    script.pip('install', 'wheel')
+    script.pip('install', 'wheel', '--no-index', '-f', common_wheels_dir)
     target_dir = script.scratch_path / 'prjwithdatafile'
     package = data.packages.join("prjwithdatafile-1.0-py2.py3-none-any.whl")
     result = script.pip('install', package,
@@ -220,12 +221,12 @@ def test_install_from_wheel_no_deps(script, data):
 
 
 @pytest.mark.network
-def test_install_user_wheel(script, virtualenv, data):
+def test_install_user_wheel(script, virtualenv, data, common_wheels_dir):
     """
     Test user install from wheel (that has a script)
     """
     virtualenv.system_site_packages = True
-    script.pip('install', 'wheel')
+    script.pip('install', 'wheel', '--no-index', '-f', common_wheels_dir)
     result = script.pip(
         'install', 'has.script==1.0', '--user', '--no-index',
         '--find-links=' + data.find_links,
