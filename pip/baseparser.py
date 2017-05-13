@@ -161,7 +161,7 @@ class ConfigOptionParser(CustomOptionParser):
             if not val:
                 continue
             section, key = key.split(".", 1)
-            if section not in [self.name, "global", ":env:"]:
+            if section not in {self.name, "global", ":env:"}:
                 continue
 
             # '--' because configuration supports only long names

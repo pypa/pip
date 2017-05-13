@@ -11,8 +11,8 @@ Some terminology:
   A single word describing where the configuration key-value pair came from
 """
 
-import os
 import logging
+import os
 
 from pip._vendor.six import next
 from pip._vendor.six.moves import configparser
