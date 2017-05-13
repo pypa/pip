@@ -892,7 +892,7 @@ def test_install_topological_sort(script, data):
 @pytest.mark.network
 def test_install_wheel_broken(script, data):
     script.pip('install', 'wheel')
-    script.pip('download', 'setuptools', 'wheel', '-d', data.find_links)
+    script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
     res = script.pip(
         'install', '--no-index', '-f', data.find_links, 'wheelbroken',
         expect_stderr=True)
@@ -902,7 +902,7 @@ def test_install_wheel_broken(script, data):
 @pytest.mark.network
 def test_cleanup_after_failed_wheel(script, data):
     script.pip('install', 'wheel')
-    script.pip('download', 'setuptools', 'wheel', '-d', data.find_links)
+    script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
     res = script.pip(
         'install', '--no-index', '-f', data.find_links, 'wheelbrokenafter',
         expect_stderr=True)
@@ -921,7 +921,7 @@ def test_install_builds_wheels(script, data):
     # see test_install_editable_from_git_autobuild_wheel for editable
     # vcs coverage.
     script.pip('install', 'wheel')
-    script.pip('download', 'setuptools', 'wheel', '-d', data.find_links)
+    script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
     to_install = data.packages.join('requires_wheelbroken_upper')
     res = script.pip(
         'install', '--no-index', '-f', data.find_links,
@@ -958,7 +958,7 @@ def test_install_builds_wheels(script, data):
 @pytest.mark.network
 def test_install_no_binary_disables_building_wheels(script, data):
     script.pip('install', 'wheel')
-    script.pip('download', 'setuptools', 'wheel', '-d', data.find_links)
+    script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
     to_install = data.packages.join('requires_wheelbroken_upper')
     res = script.pip(
         'install', '--no-index', '--no-binary=upper', '-f', data.find_links,
@@ -991,7 +991,7 @@ def test_install_no_binary_disables_building_wheels(script, data):
 @pytest.mark.network
 def test_install_no_binary_disables_cached_wheels(script, data):
     script.pip('install', 'wheel')
-    script.pip('download', 'setuptools', 'wheel', '-d', data.find_links)
+    script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
     # Seed the cache
     script.pip(
         'install', '--no-index', '-f', data.find_links,

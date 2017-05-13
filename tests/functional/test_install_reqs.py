@@ -207,7 +207,7 @@ def test_install_local_with_subdirectory(script):
 def test_wheel_user_with_prefix_in_pydistutils_cfg(script, data, virtualenv):
     # Make sure wheel is available in the virtualenv
     script.pip('install', 'wheel')
-    script.pip('download', 'setuptools', 'wheel', '-d', data.find_links)
+    script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
     virtualenv.system_site_packages = True
     homedir = script.environ["HOME"]
     script.scratch_path.join("bin").mkdir()
@@ -331,7 +331,7 @@ def test_double_install_spurious_hash_mismatch(script, tmpdir, data):
 
     """
     script.pip('install', 'wheel')  # Otherwise, it won't try to build wheels.
-    script.pip('download', 'setuptools', 'wheel', '-d', data.find_links)
+    script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
     with requirements_file('simple==1.0 --hash=sha256:393043e672415891885c9a2a'
                            '0929b1af95fb866d6ca016b42d2e6ce53619b653',
                            tmpdir) as reqs_file:
