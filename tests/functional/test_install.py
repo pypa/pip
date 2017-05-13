@@ -143,23 +143,24 @@ def test_install_editable_from_svn(script):
     result.assert_installed('version-pkg', with_files=['.svn'])
 
 
-def _test_install_editable_from_git(script, tmpdir, wheel):
+def _test_install_editable_from_git(script, tmpdir, common_wheels_dir, wheel):
     """Test cloning from Git."""
     if wheel:
-        script.pip('install', 'wheel')
+        script.pip('install', 'wheel', '--no-index', '-f', common_wheels_dir)
     pkg_path = _create_test_package(script, name='testpackage', vcs='git')
     args = ['install', '-e', 'git+%s#egg=testpackage' % path_to_url(pkg_path)]
     result = script.pip(*args, **{"expect_error": True})
     result.assert_installed('testpackage', with_files=['.git'])
 
 
-def test_install_editable_from_git(script, tmpdir):
-    _test_install_editable_from_git(script, tmpdir, False)
+def test_install_editable_from_git(script, tmpdir, common_wheels_dir):
+    _test_install_editable_from_git(script, tmpdir, common_wheels_dir, False)
 
 
 @pytest.mark.network
-def test_install_editable_from_git_autobuild_wheel(script, tmpdir):
-    _test_install_editable_from_git(script, tmpdir, True)
+def test_install_editable_from_git_autobuild_wheel(
+        script, tmpdir, common_wheels_dir):
+    _test_install_editable_from_git(script, tmpdir, common_wheels_dir, True)
 
 
 @pytest.mark.network
