@@ -104,7 +104,10 @@ class Configuration(object):
     def get_value(self, key):
         """Get a value from the configuration.
         """
-        return self._dictionary[key]
+        try:
+            return self._dictionary[key]
+        except KeyError:
+            raise ConfigurationError("No such key - {}".format(key))
 
     def set_value(self, key, value):
         """Modify a value in the configuration.
@@ -130,7 +133,7 @@ class Configuration(object):
         self._ensure_have_load_only()
 
         if key not in self._config[self.load_only]:
-            raise ConfigurationError(key)
+            raise ConfigurationError("No such key - {}".format(key))
 
         file, parser = self._get_parser_to_modify()
 
