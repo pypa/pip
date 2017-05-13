@@ -7,7 +7,7 @@ else:
     _chr = chr
 
 def load(fin, translate=lambda t, x, v: v):
-    return loads(fin.read(), translate=translate, filename=fin.name)
+    return loads(fin.read(), translate=translate, filename=getattr(fin, 'name', repr(fin)))
 
 def loads(s, filename='<string>', translate=lambda t, x, v: v):
     if isinstance(s, bytes):
