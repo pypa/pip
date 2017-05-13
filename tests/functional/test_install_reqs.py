@@ -336,7 +336,8 @@ def test_double_install_spurious_hash_mismatch(script, tmpdir, data):
                            '0929b1af95fb866d6ca016b42d2e6ce53619b653',
                            tmpdir) as reqs_file:
         # Install a package (and build its wheel):
-        result = script.pip_install_local('--find-links', data.find_links,
+        result = script.pip_install_local(
+            '--find-links', data.find_links,
             '-r', reqs_file.abspath, expect_error=False)
         assert 'Successfully installed simple-1.0' in str(result)
 
@@ -345,7 +346,8 @@ def test_double_install_spurious_hash_mismatch(script, tmpdir, data):
 
         # Then install it again. We should not hit a hash mismatch, and the
         # package should install happily.
-        result = script.pip_install_local('--find-links', data.find_links,
+        result = script.pip_install_local(
+            '--find-links', data.find_links,
             '-r', reqs_file.abspath, expect_error=False)
         assert 'Successfully installed simple-1.0' in str(result)
 
