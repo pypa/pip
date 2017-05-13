@@ -16,23 +16,6 @@ from pip.commands.install import InstallCommand
 from pip.commands.uninstall import UninstallCommand
 from pip.commands.wheel import WheelCommand
 
-
-commands_dict = {
-    CompletionCommand.name: CompletionCommand,
-    FreezeCommand.name: FreezeCommand,
-    HashCommand.name: HashCommand,
-    HelpCommand.name: HelpCommand,
-    SearchCommand.name: SearchCommand,
-    ShowCommand.name: ShowCommand,
-    InstallCommand.name: InstallCommand,
-    UninstallCommand.name: UninstallCommand,
-    DownloadCommand.name: DownloadCommand,
-    ListCommand.name: ListCommand,
-    CheckCommand.name: CheckCommand,
-    WheelCommand.name: WheelCommand,
-}
-
-
 commands_order = [
     InstallCommand,
     DownloadCommand,
@@ -47,6 +30,8 @@ commands_order = [
     CompletionCommand,
     HelpCommand,
 ]
+
+commands_dict = {c.name: c for c in commands_order}
 
 
 def get_summaries(ordered=True):
