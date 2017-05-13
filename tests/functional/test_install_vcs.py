@@ -104,6 +104,27 @@ def test_git_with_tag_name_as_revision(script):
 
 
 @pytest.mark.network
+def test_git_with_ref_as_revision(script):
+    """
+    Git backend should be able to install from a ref
+    """
+    version_pkg_path = _create_test_package(script)
+    script.run(
+        'git', 'update-ref', 'refs/foo/bar', 'HEAD',
+        expect_stderr=True,
+        cwd=version_pkg_path,
+    )
+    _change_test_package_version(script, version_pkg_path)
+    script.pip(
+        'install', '-e', '%s@refs/foo/bar#egg=version_pkg' %
+        ('git+file://' + version_pkg_path.abspath.replace('\\', '/')),
+        expect_stderr=True
+    )
+    version = script.run('version_pkg')
+    assert '0.1' in version.stdout
+
+
+@pytest.mark.network
 def test_git_with_tag_name_and_update(script, tmpdir):
     """
     Test cloning a git repository and updating to a different version.

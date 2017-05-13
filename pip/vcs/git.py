@@ -92,7 +92,8 @@ class Git(VersionControl):
             return [revisions[rev]]
         else:
             logger.warning(
-                "Could not find a tag or branch '%s', assuming commit.", rev,
+                "Could not find a tag or branch '%s', assuming commit or ref",
+                rev,
             )
             return rev_options
 
@@ -146,9 +147,14 @@ class Git(VersionControl):
                 # Only do a checkout if rev_options differs from HEAD
                 if not self.check_version(dest, rev_options):
                     self.run_command(
-                        ['checkout', '-q'] + rev_options,
+                        ['fetch', '-q', url] + rev_options,
                         cwd=dest,
                     )
+                    self.run_command(
+                        ['checkout', '-q', 'FETCH_HEAD'],
+                        cwd=dest,
+                    )
+
             #: repo may contain submodules
             self.update_submodules(dest)
 

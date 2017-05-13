@@ -341,9 +341,9 @@ class PackageFinder(object):
         # log a warning that we are ignoring it.
         logger.warning(
             "The repository located at %s is not a trusted or secure host and "
-            "is being ignored. If this repository is available via HTTPS it "
-            "is recommended to use HTTPS instead, otherwise you may silence "
-            "this warning and allow it anyways with '--trusted-host %s'.",
+            "is being ignored. If this repository is available via HTTPS we "
+            "recommend you use HTTPS instead, otherwise you may silence "
+            "this warning and allow it anyway with '--trusted-host %s'.",
             parsed.hostname,
             parsed.hostname,
         )
