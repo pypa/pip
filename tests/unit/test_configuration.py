@@ -2,30 +2,12 @@
 """
 
 import os
-import functools
 from mock import MagicMock
 
-from pip import configuration
 from pip.locations import venv_config_file, new_config_file, site_config_files
 from pip.exceptions import ConfigurationError
 
-
-class ConfigurationPatchingMixin(object):
-
-    def patch_configuration(self, variant, di):
-        old = self.configuration._load_file
-
-        @functools.wraps(old)
-        def overidden(v, file):
-            if variant == v:
-                self.configuration._config[v].update(di)
-                return object()
-            else:
-                return old(v, file)
-        self.configuration._load_file = overidden
-
-    def setup(self):
-        self.configuration = configuration.Configuration(isolated=False)
+from tests.lib.configuration_helpers import ConfigurationPatchingMixin
 
 
 class TestConfigurationLoading(ConfigurationPatchingMixin):
