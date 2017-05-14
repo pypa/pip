@@ -65,16 +65,17 @@ class Configuration(object):
     def __init__(self, isolated, load_only=None):
         super(Configuration, self).__init__()
 
-        if load_only not in ["user", "site-wide", "venv", None]:
+        if load_only not in ["user", "global", "venv", None]:
             raise ConfigurationError(
                 "Got invalid value for load_only - should be one of 'user', "
-                "'site-wide', 'venv'"
+                "'global', 'venv'"
             )
         self.isolated = isolated
         self.load_only = load_only
 
         # The order here determines the override order.
-        self._override_order = ["site-wide", "user", "venv", "environment"]
+        self._override_order = ["global", "user", "venv", "environment"]
+
         # Because we keep track of where we got the data from
         self._parsers = {variant: [] for variant in self._override_order}
         self._config = {variant: {} for variant in self._override_order}
@@ -277,8 +278,8 @@ class Configuration(object):
         else:
             yield "environment", []
 
-        # at the base we have any site-wide configuration
-        yield "site-wide", list(site_config_files)
+        # at the base we have any global configuration
+        yield "global", list(site_config_files)
 
         # per-user configuration next
         should_load_user_config = not self.isolated and not (
