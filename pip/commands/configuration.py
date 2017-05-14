@@ -13,65 +13,30 @@ class ConfigurationCommand(Command):
     """Manage local and global configuration."""
     name = 'config'
     usage = """
-        %prog [<file-option>] --list
-        %prog [<file-option>] --edit --editor
+        %prog [<file-option>] list
+        %prog [<file-option>] [--editor <editor-path>] edit
 
-        %prog [<file-option>] --get name
-        %prog [<file-option>] --set name=value
-        %prog [<file-option>] --unset name"""
+        %prog [<file-option>] get name
+        %prog [<file-option>] set name value
+        %prog [<file-option>] unset name
+    """
 
-    summary = 'Manage local and global configuration.'
+    summary = """
+        Manage local and global configuration.
+
+        Subcommands:
+
+        list: List the active configuration (or from the file specified)
+        edit: Edit the configuration file in an editor
+        get: Get the value associated with name
+        set: Set the name=value
+        unset: Unset the value associated with name
+    """
 
     def __init__(self, *args, **kwargs):
         super(ConfigurationCommand, self).__init__(*args, **kwargs)
 
         self.configuration = None
-        self.cmd_opts.add_option(
-            '-l', '--list',
-            dest='list',
-            action='store_true',
-            default=False,
-            help='List the active configuration (or from the file specified)'
-        )
-
-        self.cmd_opts.add_option(
-            '-e', '--edit',
-            dest='edit',
-            action='store_true',
-            default=False,
-            help='Edit the configuration file'
-        )
-
-        self.cmd_opts.add_option(
-            '--get',
-            dest='get_name',
-            action='store',
-            metavar='name',
-            default=None,
-            help='Get the value associated with name in the configuration file'
-        )
-
-        self.cmd_opts.add_option(
-            '--set',
-            dest='set_name_value',
-            action='store',
-            metavar='name=value',
-            type="string",  # this is validated elsewhere
-            default=None,
-            help='Set name=value in the configuration file'
-        )
-
-        self.cmd_opts.add_option(
-            '--unset',
-            dest='unset_name',
-            action='store',
-            metavar='name',
-            default=None,
-            help=(
-                'Unset the value associated with name in the configuration '
-                'file'
-            )
-        )
 
         self.cmd_opts.add_option(
             '--global',
@@ -100,33 +65,22 @@ class ConfigurationCommand(Command):
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
-
-        # Determine what action is to be taken
-        action_options = {
-            "list": options.list,
-            "edit": options.edit,
-            "get": options.get_name,
-            "set": options.set_name_value,
-            "unset": options.unset_name,
+        handlers = {
+            "list": self.list_values,
+            "edit": self.open_in_editor,
+            "get": self.get_name,
+            "set": self.set_name_value,
+            "unset": self.unset_name
         }
 
-        action = None
-        for k, v in action_options.items():
-            if v:
-                if action is not None:
-                    # this works because of the conditional immediately after
-                    # the loop.
-                    action = None
-                    break
-                action = k
-
-        if action is None:
-            logger.error(
-                "Need exactly one action (--list, --edit, "
-                "--get, --set, --unset) to perform."
+        # Determine action
+        if not args or args[0] not in handlers:
+            logger.error("Need an action ({}) to perform.".format(
+                ", ".join(sorted(handlers)))
             )
-            self.parser.print_help()
             return ERROR
+
+        action = args[0]
 
         # Determine which configuration files are to be loaded
         if sum([options.user_file, options.global_file, options.venv_file]):
