@@ -1,9 +1,11 @@
 import logging
+import os
 import subprocess
 
 from pip.basecommand import Command
 from pip.configuration import Configuration
-from pip.exceptions import ConfigurationError
+from pip.exceptions import ConfigurationError, PipError
+from pip.locations import venv_config_file
 from pip.status_codes import SUCCESS, ERROR
 
 logger = logging.getLogger(__name__)
@@ -31,6 +33,11 @@ class ConfigurationCommand(Command):
         get: Get the value associated with name
         set: Set the name=value
         unset: Unset the value associated with name
+
+        If none of --user, --global and --venv are passed, a virtual
+        environment configuration file is used if one is active and the file
+        exists. Otherwise, all modifications happen on the to the user file by
+        default.
     """
 
     def __init__(self, *args, **kwargs):
@@ -83,30 +90,19 @@ class ConfigurationCommand(Command):
         action = args[0]
 
         # Determine which configuration files are to be loaded
-        if sum([options.user_file, options.global_file, options.venv_file]):
-            logger.error(
-                "Need at-most one configuration file to use - pass "
-                "only one of --global, --user, --venv."
+        #    Depends on whether the command is modifying.
+        try:
+            load_only = self._determine_file(
+                options, need_value=(action in ["get", "set", "unset"])
             )
-            return ERROR
-
-        kwargs = {}
-        if options.user_file:
-            kwargs["load_only"] = "user"
-        elif options.global_file:
-            kwargs["load_only"] = "site-wide"
-        elif options.venv_file:
-            kwargs["load_only"] = "venv"
-        elif action in ["set", "unset", "edit"]:
-            logger.error(
-                "Need one configuration file to modify - pass one of "
-                "--global, --user, --venv."
-            )
+        except PipError as e:
+            logger.error(e.args[0])
             return ERROR
 
         # Load a new configuration
+        isolated = options.isolated_mode
         self.configuration = Configuration(
-            isolated=options.isolated_mode, **kwargs
+            isolated=isolated, load_only=load_only
         )
         self.configuration.load()
 
@@ -120,6 +116,31 @@ class ConfigurationCommand(Command):
         }
 
         return handlers[action](options)
+
+    def _determine_file(self, options, need_value):
+        file_options = {
+            "user": options.user_file,
+            "site-wide": options.global_file,
+            "venv": options.venv_file
+        }
+
+        if sum(file_options.values()) == 0:
+            if not need_value:
+                return None
+            # Default to user, unless there's a virtualenv file.
+            elif os.path.exists(venv_config_file):
+                return "venv"
+            else:
+                return "user"
+        elif sum(file_options.values()) == 1:
+            # There's probably a better expression for this.
+            return [key for key in file_options if file_options[key]][0]
+
+        raise PipError(
+            "Need exactly one file to operate upon "
+            "(--user, --venv, --global) to perform."
+        )
+
 
     def list_values(self, options):
         for key, value in sorted(self.configuration.items()):
