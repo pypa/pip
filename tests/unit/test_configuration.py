@@ -7,23 +7,23 @@ from mock import MagicMock
 from pip.locations import venv_config_file, new_config_file, site_config_files
 from pip.exceptions import ConfigurationError
 
-from tests.lib.configuration_helpers import ConfigurationPatchingMixin
+from tests.lib.configuration_helpers import kinds, ConfigurationPatchingMixin
 
 
 class TestConfigurationLoading(ConfigurationPatchingMixin):
 
     def test_global_loading(self):
-        self.patch_configuration("global", {"test.hello": 1})
+        self.patch_configuration(kinds.GLOBAL, {"test.hello": 1})
         self.configuration.load()
         assert self.configuration.get_value("test.hello") == 1
 
     def test_user_loading(self):
-        self.patch_configuration("user", {"test.hello": 2})
+        self.patch_configuration(kinds.USER, {"test.hello": 2})
         self.configuration.load()
         assert self.configuration.get_value("test.hello") == 2
 
     def test_venv_loading(self):
-        self.patch_configuration("venv", {"test.hello": 3})
+        self.patch_configuration(kinds.VENV, {"test.hello": 3})
         self.configuration.load()
         assert self.configuration.get_value("test.hello") == 3
 
@@ -33,28 +33,28 @@ class TestConfigurationPrecedence(ConfigurationPatchingMixin):
     # configuration options
 
     def test_global_overriden_by_user(self):
-        self.patch_configuration("global", {"test.hello": 1})
-        self.patch_configuration("user", {"test.hello": 2})
+        self.patch_configuration(kinds.GLOBAL, {"test.hello": 1})
+        self.patch_configuration(kinds.USER, {"test.hello": 2})
         self.configuration.load()
 
         assert self.configuration.get_value("test.hello") == 2
 
     def test_global_overriden_by_venv(self):
-        self.patch_configuration("global", {"test.hello": 1})
-        self.patch_configuration("venv", {"test.hello": 3})
+        self.patch_configuration(kinds.GLOBAL, {"test.hello": 1})
+        self.patch_configuration(kinds.VENV, {"test.hello": 3})
         self.configuration.load()
 
         assert self.configuration.get_value("test.hello") == 3
 
     def test_user_overriden_by_venv(self):
-        self.patch_configuration("user", {"test.hello": 2})
-        self.patch_configuration("venv", {"test.hello": 3})
+        self.patch_configuration(kinds.USER, {"test.hello": 2})
+        self.patch_configuration(kinds.VENV, {"test.hello": 3})
         self.configuration.load()
 
         assert self.configuration.get_value("test.hello") == 3
 
     def test_global_not_overriden_by_environment(self):
-        self.patch_configuration("global", {"test.hello": 1})
+        self.patch_configuration(kinds.GLOBAL, {"test.hello": 1})
         os.environ["PIP_HELLO"] = "4"
         self.configuration.load()
 
@@ -62,7 +62,7 @@ class TestConfigurationPrecedence(ConfigurationPatchingMixin):
         assert self.configuration.get_value(":env:.hello") == "4"
 
     def test_user_not_overriden_by_environment(self):
-        self.patch_configuration("user", {"test.hello": 2})
+        self.patch_configuration(kinds.USER, {"test.hello": 2})
         os.environ["PIP_HELLO"] = "4"
         self.configuration.load()
 
@@ -70,7 +70,7 @@ class TestConfigurationPrecedence(ConfigurationPatchingMixin):
         assert self.configuration.get_value(":env:.hello") == "4"
 
     def test_venv_not_overriden_by_environment(self):
-        self.patch_configuration("venv", {"test.hello": 3})
+        self.patch_configuration(kinds.VENV, {"test.hello": 3})
         os.environ["PIP_HELLO"] = "4"
         self.configuration.load()
 
@@ -92,7 +92,7 @@ class TestConfigurationModification(ConfigurationPatchingMixin):
             assert False, "Should have raised an error."
 
     def test_venv_modification(self):
-        self.configuration.load_only = "venv"
+        self.configuration.load_only = kinds.VENV
         self.configuration.load()
 
         # Mock out the method
@@ -107,7 +107,7 @@ class TestConfigurationModification(ConfigurationPatchingMixin):
 
     def test_user_modification(self):
         # get the path to local config file
-        self.configuration.load_only = "user"
+        self.configuration.load_only = kinds.USER
         self.configuration.load()
 
         # Mock out the method
@@ -122,7 +122,7 @@ class TestConfigurationModification(ConfigurationPatchingMixin):
 
     def test_global_modification(self):
         # get the path to local config file
-        self.configuration.load_only = "global"
+        self.configuration.load_only = kinds.GLOBAL
         self.configuration.load()
 
         # Mock out the method

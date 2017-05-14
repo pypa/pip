@@ -2,7 +2,7 @@
 """
 
 from pip.status_codes import ERROR
-from tests.lib.configuration_helpers import ConfigurationFileIOMixin
+from tests.lib.configuration_helpers import kinds, ConfigurationFileIOMixin
 
 
 def test_no_options_passed_should_error(script):
@@ -18,7 +18,7 @@ class TestBasicLoading(ConfigurationFileIOMixin):
             hello = 1
         """
 
-        with self.patched_file("user", contents):
+        with self.patched_file(kinds.USER, contents):
             result = script.pip("config", "--list")
 
         assert "test.hello = 1" in result.stdout

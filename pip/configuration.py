@@ -22,7 +22,7 @@ from pip.locations import (
     legacy_config_file, new_config_file, running_under_virtualenv,
     site_config_files, venv_config_file
 )
-from pip.utils import ensure_dir
+from pip.utils import ensure_dir, enum
 
 _need_file_err_msg = "Needed a specific file to be modifying."
 
@@ -48,6 +48,10 @@ def _make_key(variant, name):
     return ".".join((variant, name))
 
 
+# The kinds of configurations there are.
+kinds = enum(USER="user", GLOBAL="global", VENV="venv", ENV="environement")
+
+
 class Configuration(object):
     """Handles management of configuration.
 
@@ -65,16 +69,20 @@ class Configuration(object):
     def __init__(self, isolated, load_only=None):
         super(Configuration, self).__init__()
 
-        if load_only not in ["user", "global", "venv", None]:
+        _valid_load_only = [kinds.USER, kinds.GLOBAL, kinds.VENV, None]
+        if load_only not in _valid_load_only:
             raise ConfigurationError(
-                "Got invalid value for load_only - should be one of 'user', "
-                "'global', 'venv'"
+                "Got invalid value for load_only - should be one of {}".format(
+                    ", ".join(map(repr, _valid_load_only[:-1]))
+                )
             )
         self.isolated = isolated
         self.load_only = load_only
 
         # The order here determines the override order.
-        self._override_order = ["global", "user", "venv", "environment"]
+        self._override_order = [
+            kinds.GLOBAL, kinds.USER, kinds.VENV, kinds.ENV
+        ]
 
         # Because we keep track of where we got the data from
         self._parsers = {variant: [] for variant in self._override_order}
@@ -197,10 +205,10 @@ class Configuration(object):
         """Loads configuration from configuration files
         """
         config_files = dict(self._get_config_files())
-        if config_files["environment"][0:1] == [os.devnull]:
+        if config_files[kinds.ENV][0:1] == [os.devnull]:
             logger.debug(
                 "Skipping loading configuration files due to "
-                "environment's PIP_CONFIG_FILE being os.devnull"
+                "environment's kinds.PIP_CONFIG being os.devnull"
             )
             return
 
@@ -241,7 +249,7 @@ class Configuration(object):
     def _load_environment_vars(self):
         """Loads configuration from environment variables
         """
-        self._config["environment"].update(
+        self._config[kinds.ENV].update(
             self._normalized_keys(":env:", self._get_environ_vars())
         )
 
@@ -272,26 +280,26 @@ class Configuration(object):
         # SMELL: Move the conditions out of this function
 
         # environment variables have the lowest priority
-        config_file = os.environ.get('PIP_CONFIG_FILE', None)
+        config_file = os.environ.get('kinds.PIP_CONFIG', None)
         if config_file is not None:
-            yield "environment", [config_file]
+            yield kinds.ENV, [config_file]
         else:
-            yield "environment", []
+            yield kinds.ENV, []
 
-        # at the base we have any global configuration
-        yield "global", list(site_config_files)
+        # at the base we have any kinds.global configuration
+        yield kinds.GLOBAL, list(site_config_files)
 
-        # per-user configuration next
-        should_load_user_config = not self.isolated and not (
+        # per-kinds.user configuration next
+        kinds.should_load_user_config = not self.isolated and not (
             config_file and os.path.exists(config_file)
         )
-        if should_load_user_config:
+        if kinds.should_load_user_config:
             # The legacy config file is overridden by the new config file
-            yield "user", [legacy_config_file, new_config_file]
+            yield kinds.USER, [legacy_config_file, new_config_file]
 
         # finally virtualenv configuration first trumping others
         if running_under_virtualenv():
-            yield "venv", [venv_config_file]
+            yield kinds.VENV, [venv_config_file]
 
     def _get_parser_to_modify(self):
         # Determine which parser to modify

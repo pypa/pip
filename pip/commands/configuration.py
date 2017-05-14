@@ -3,7 +3,7 @@ import os
 import subprocess
 
 from pip.basecommand import Command
-from pip.configuration import Configuration
+from pip.configuration import Configuration, kinds
 from pip.exceptions import PipError
 from pip.locations import venv_config_file
 from pip.status_codes import SUCCESS, ERROR
@@ -128,9 +128,9 @@ class ConfigurationCommand(Command):
 
     def _determine_file(self, options, need_value):
         file_options = {
-            "user": options.user_file,
-            "global": options.global_file,
-            "venv": options.venv_file
+            kinds.USER: options.user_file,
+            kinds.GLOBAL: options.global_file,
+            kinds.VENV: options.venv_file
         }
 
         if sum(file_options.values()) == 0:
@@ -138,9 +138,9 @@ class ConfigurationCommand(Command):
                 return None
             # Default to user, unless there's a virtualenv file.
             elif os.path.exists(venv_config_file):
-                return "venv"
+                return kinds.VENV
             else:
-                return "user"
+                return kinds.USER
         elif sum(file_options.values()) == 1:
             # There's probably a better expression for this.
             return [key for key in file_options if file_options[key]][0]
