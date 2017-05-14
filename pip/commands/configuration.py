@@ -117,16 +117,14 @@ class ConfigurationCommand(Command):
         )
         self.configuration.load()
 
-        # Call the handler for the action with the options
-        handlers = {
-            "list": self.list_values,
-            "edit": self.open_in_editor,
-            "get": self.get_name,
-            "set": self.set_name_value,
-            "unset": self.unset_name
-        }
+        # Error handling happens here, not in the action-handlers.
+        try:
+            handlers[action](options, args)
+        except PipError as e:
+            logger.error(e.args[0])
+            return ERROR
 
-        return handlers[action](options)
+        return SUCCESS
 
     def _determine_file(self, options, need_value):
         file_options = {
@@ -152,66 +150,55 @@ class ConfigurationCommand(Command):
             "(--user, --venv, --global) to perform."
         )
 
+    def list_values(self, options, args):
+        self._get_n_args(args, n=0)
 
-    def list_values(self, options):
         for key, value in sorted(self.configuration.items()):
             logger.info("%s=%r", key, value)
-        return SUCCESS
 
-    def open_in_editor(self, options):
-        if options.editor is None:
-            logger.error(
-                "--edit requires an editor to be passed, either using "
-                "--editor or by setting it in a configuration file."
-            )
-            return ERROR
-
-        file = self.configuration.get_file()
-        if file is None:
-            logger.error(
-                "Could not determine appropriate file."
-            )
-            return ERROR
-
-        try:
-            subprocess.check_call([options.editor, file])
-        except subprocess.CalledProcessError as e:
-            logger.error(
-                "Subprocess exited with exit code %d", e.returncode
-            )
-            return ERROR
-        else:
-            return SUCCESS
-
-    def get_name(self, options):
-        try:
-            value = self.configuration.get_value(options.get_name)
-        except KeyError:
-            logger.error("No key %r in configuration", options.get_name)
-            return ERROR
+    def get_name(self, options, args):
+        key = self._get_n_args(args, n=1)
+        value = self.configuration.get_value(key)
 
         logger.info("%s", value)
-        return SUCCESS
 
-    def set_name_value(self, options):
-        key, value = options.set_name_value.split("=", 1)
+    def set_name_value(self, options, args):
+        key, value = self._get_n_args(args, n=2)
+        self.configuration.set_value(key, value)
+
+        self._save_configuration()
+
+    def unset_name(self, options, args):
+        key = self._get_n_args(args, n=1)
+        self.configuration.unset_value(key)
+
+        self._save_configuration()
+
+    def open_in_editor(self, options, args):
+        editor = self._determine_editor(options)
+
+        file_ = self.configuration.get_file()
+        if file_ is None:
+            raise PipError("Could not determine appropriate file.")
 
         try:
-            self.configuration.set_value(key, value)
-        except ConfigurationError:
-            logger.error("Could not set value in configuration")
-        else:
-            return self._save_configuration()
+            subprocess.check_call([editor, file_])
+        except subprocess.CalledProcessError as e:
+            raise PipError(
+                "Editor Subprocess exited with exit code {}"
+                .format(e.returncode)
+            )
 
-    def unset_name(self, options):
-        key = options.unset_name
+    def _get_n_args(self, args, n):
+        if len(args[1:]) != n:
+            raise PipError(
+                "Got unexpected number of arguments, expected {}.".format(n)
+            )
 
-        try:
-            self.configuration.unset_value(key)
-        except ConfigurationError:
-            logger.error("Could not unset value in configuration")
+        if n == 1:
+            return args[1]
         else:
-            return self._save_configuration()
+            return args[1:]
 
     def _save_configuration(self):
         # We successfully ran a modifying command. Need to save the
@@ -223,6 +210,12 @@ class ConfigurationCommand(Command):
                 "Unable to save configuration. Please report this as a bug.",
                 exc_info=1
             )
-            return ERROR
+            raise PipError("Internal Error.")
+
+    def _determine_editor(self, options):
+        if options.editor is not None:
+            return options.editor
+        elif "EDITOR" in os.environ:
+            return os.environ["EDITOR"]
         else:
-            return SUCCESS
+            raise PipError("Could not determine editor to use.")
