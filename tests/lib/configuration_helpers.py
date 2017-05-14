@@ -11,6 +11,9 @@ from mock import patch
 import pip.configuration
 from pip.utils import ensure_dir
 
+# This is so that tests don't need to import pip.configuration
+kinds = pip.configuration.kinds
+
 
 class ConfigurationFileIOMixin(object):
 
@@ -35,9 +38,9 @@ class ConfigurationFileIOMixin(object):
 
         # Convert kind to attribute
         kind_to_attribute_mapping = {
-            "venv": "pip.configuration.venv_config_file",
-            "user": "pip.configuration.new_config_file",
-            "global": "pip.configuration.site_config_files",
+            kinds.VENV: "pip.configuration.venv_config_file",
+            kinds.USER: "pip.configuration.new_config_file",
+            kinds.GLOBAL: "pip.configuration.site_config_files",
         }
 
         # Patch the attribute

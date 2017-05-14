@@ -854,3 +854,11 @@ def get_installed_version(dist_name, lookup_dirs=None):
 def consume(iterator):
     """Consume an iterable at C speed."""
     deque(iterator, maxlen=0)
+
+
+# Simulates an enum
+def enum(*sequential, **named):
+    enums = dict(zip(sequential, range(len(sequential))), **named)
+    reverse = dict((value, key) for key, value in enums.items())
+    enums['reverse_mapping'] = reverse
+    return type('Enum', (), enums)
