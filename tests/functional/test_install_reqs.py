@@ -341,7 +341,8 @@ def test_constrained_to_url_install_same_url(script, data):
 
 
 @pytest.mark.network
-def test_double_install_spurious_hash_mismatch(script, tmpdir, common_wheels):
+def test_double_install_spurious_hash_mismatch(
+        script, tmpdir, data, common_wheels):
     """Make sure installing the same hashed sdist twice doesn't throw hash
     mismatch errors.
 
@@ -368,7 +369,7 @@ def test_double_install_spurious_hash_mismatch(script, tmpdir, common_wheels):
         # Then install it again. We should not hit a hash mismatch, and the
         # package should install happily.
         result = script.pip_install_local(
-            '--find-links', data.find_links,
+            '--find-links', data.find_links, '-f', common_wheels,
             '-r', reqs_file.abspath, expect_error=False)
         assert 'Successfully installed simple-1.0' in str(result)
 
