@@ -4,7 +4,7 @@ import subprocess
 
 from pip.basecommand import Command
 from pip.configuration import Configuration
-from pip.exceptions import ConfigurationError, PipError
+from pip.exceptions import PipError
 from pip.locations import venv_config_file
 from pip.status_codes import SUCCESS, ERROR
 
@@ -44,6 +44,17 @@ class ConfigurationCommand(Command):
         super(ConfigurationCommand, self).__init__(*args, **kwargs)
 
         self.configuration = None
+
+        self.cmd_opts.add_option(
+            '--editor',
+            dest='editor',
+            action='store',
+            default=None,
+            help=(
+                'Editor to use to edit the file. Uses '
+                '$EDITOR if not passed.'
+            )
+        )
 
         self.cmd_opts.add_option(
             '--global',
