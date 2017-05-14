@@ -129,7 +129,7 @@ class ConfigurationCommand(Command):
     def _determine_file(self, options, need_value):
         file_options = {
             "user": options.user_file,
-            "site-wide": options.global_file,
+            "global": options.global_file,
             "venv": options.venv_file
         }
 
