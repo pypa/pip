@@ -111,15 +111,14 @@ class ConfigurationCommand(Command):
             return ERROR
 
         # Load a new configuration
-        isolated = options.isolated_mode
         self.configuration = Configuration(
-            isolated=isolated, load_only=load_only
+            isolated=options.isolated_mode, load_only=load_only
         )
         self.configuration.load()
 
         # Error handling happens here, not in the action-handlers.
         try:
-            handlers[action](options, args)
+            handlers[action](options, args[1:])
         except PipError as e:
             logger.error(e.args[0])
             return ERROR
@@ -190,15 +189,15 @@ class ConfigurationCommand(Command):
             )
 
     def _get_n_args(self, args, n):
-        if len(args[1:]) != n:
+        if len(args) != n:
             raise PipError(
                 "Got unexpected number of arguments, expected {}.".format(n)
             )
 
         if n == 1:
-            return args[1]
+            return args[0]
         else:
-            return args[1:]
+            return args
 
     def _save_configuration(self):
         # We successfully ran a modifying command. Need to save the

@@ -1,11 +1,11 @@
 """Helpers for tests that check configuration
 """
 
-import os
-import textwrap
-import tempfile
-import functools
 import contextlib
+import functools
+import os
+import tempfile
+import textwrap
 from mock import patch
 
 import pip.configuration

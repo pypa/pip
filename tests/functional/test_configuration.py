@@ -1,8 +1,8 @@
 """Tests for the config command
 """
 
-import pytest
 import textwrap
+import pytest
 
 from pip.status_codes import ERROR
 from tests.lib.configuration_helpers import kinds, ConfigurationFileIOMixin
