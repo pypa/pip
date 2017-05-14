@@ -62,12 +62,12 @@ class ConfigurationPatchingMixin(object):
         old = self.configuration._load_file
 
         @functools.wraps(old)
-        def overidden(v, file):
+        def overidden(v, file_):
             if variant == v:
                 self.configuration._config[v].update(di)
                 return object()
             else:
-                return old(v, file)
+                return old(v, file_)
         self.configuration._load_file = overidden
 
     def setup(self):
