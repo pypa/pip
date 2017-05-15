@@ -2,6 +2,8 @@
 """
 
 import os
+import tempfile
+import textwrap
 from mock import MagicMock
 
 from pip.locations import venv_config_file, new_config_file, site_config_files
@@ -26,6 +28,20 @@ class TestConfigurationLoading(ConfigurationPatchingMixin):
         self.patch_configuration(kinds.VENV, {"test.hello": "3"})
         self.configuration.load()
         assert self.configuration.get_value("test.hello") == "3"
+
+    def test_environment_config_loading(self):
+        contents = textwrap.dedent("""\
+            [test]
+            hello = 4
+        """)
+
+        _, config_file = tempfile.mkstemp('-pip.cfg', 'test-')
+        os.environ["PIP_CONFIG_FILE"] = config_file
+        with open(config_file, "w") as f:
+            f.write(contents)
+
+        self.configuration.load()
+        assert self.configuration.get_value("test.hello") == "4"
 
 
 class TestConfigurationPrecedence(ConfigurationPatchingMixin):
