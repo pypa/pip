@@ -39,7 +39,7 @@ else:
 
 if sys.version_info >= (3,):
     def console_to_str(s):
-        return s.decode(locale.getpreferredencoding(), 'replace')
+        return s.decode(locale.getpreferredencoding() or "utf-8", 'replace')
 
     def native_str(s, replace=False):
         if isinstance(s, bytes):
