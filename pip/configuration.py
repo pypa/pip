@@ -204,7 +204,7 @@ class Configuration(object):
         if config_files[kinds.ENV][0:1] == [os.devnull]:
             logger.debug(
                 "Skipping loading configuration files due to "
-                "environment's PIP_CONFIG being os.devnull"
+                "environment's PIP_CONFIG_FILE being os.devnull"
             )
             return
 
@@ -275,7 +275,7 @@ class Configuration(object):
         # SMELL: Move the conditions out of this function
 
         # environment variables have the lowest priority
-        config_file = os.environ.get('PIP_CONFIG', None)
+        config_file = os.environ.get('PIP_CONFIG_FILE', None)
         if config_file is not None:
             yield kinds.ENV, [config_file]
         else:
