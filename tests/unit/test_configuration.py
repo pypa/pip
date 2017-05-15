@@ -2,99 +2,138 @@
 """
 
 import os
-import tempfile
-import textwrap
 from mock import MagicMock
 
 from pip.locations import venv_config_file, new_config_file, site_config_files
 from pip.exceptions import ConfigurationError
 
-from tests.lib.configuration_helpers import kinds, ConfigurationPatchingMixin
+from tests.lib.configuration_helpers import kinds, ConfigurationMixin
 
 
-class TestConfigurationLoading(ConfigurationPatchingMixin):
+class TestConfigurationLoading(ConfigurationMixin):
 
     def test_global_loading(self):
         self.patch_configuration(kinds.GLOBAL, {"test.hello": "1"})
+
         self.configuration.load()
         assert self.configuration.get_value("test.hello") == "1"
 
     def test_user_loading(self):
         self.patch_configuration(kinds.USER, {"test.hello": "2"})
+
         self.configuration.load()
         assert self.configuration.get_value("test.hello") == "2"
 
     def test_venv_loading(self):
         self.patch_configuration(kinds.VENV, {"test.hello": "3"})
+
         self.configuration.load()
         assert self.configuration.get_value("test.hello") == "3"
 
     def test_environment_config_loading(self):
-        contents = textwrap.dedent("""\
+        contents = """
             [test]
             hello = 4
-        """)
+        """
 
-        _, config_file = tempfile.mkstemp('-pip.cfg', 'test-')
-        os.environ["PIP_CONFIG_FILE"] = config_file
-        with open(config_file, "w") as f:
-            f.write(contents)
+        with self.tmpfile(contents) as config_file:
+            os.environ["PIP_CONFIG_FILE"] = config_file
+
+            self.configuration.load()
+            assert self.configuration.get_value("test.hello") == "4", \
+                self.configuration._config
+
+    def test_environment_var_loading(self):
+        os.environ["PIP_HELLO"] = "5"
 
         self.configuration.load()
-        assert self.configuration.get_value("test.hello") == "4"
+        assert self.configuration.get_value(":env:.hello") == "5"
 
 
-class TestConfigurationPrecedence(ConfigurationPatchingMixin):
+class TestConfigurationPrecedence(ConfigurationMixin):
     # Tests for methods to that determine the order of precedence of
     # configuration options
 
-    def test_global_overriden_by_user(self):
-        self.patch_configuration(kinds.GLOBAL, {"test.hello": "1"})
+    def test_env_overides_venv(self):
+        self.patch_configuration(kinds.VENV, {"test.hello": "1"})
+        self.patch_configuration(kinds.ENV, {"test.hello": "0"})
+        self.configuration.load()
+
+        assert self.configuration.get_value("test.hello") == "0"
+
+    def test_env_overides_user(self):
         self.patch_configuration(kinds.USER, {"test.hello": "2"})
+        self.patch_configuration(kinds.ENV, {"test.hello": "0"})
         self.configuration.load()
 
-        assert self.configuration.get_value("test.hello") == "2"
+        assert self.configuration.get_value("test.hello") == "0"
 
-    def test_global_overriden_by_venv(self):
-        self.patch_configuration(kinds.GLOBAL, {"test.hello": "1"})
-        self.patch_configuration(kinds.VENV, {"test.hello": "3"})
+    def test_env_overides_global(self):
+        self.patch_configuration(kinds.GLOBAL, {"test.hello": "3"})
+        self.patch_configuration(kinds.ENV, {"test.hello": "0"})
         self.configuration.load()
 
-        assert self.configuration.get_value("test.hello") == "3"
+        assert self.configuration.get_value("test.hello") == "0"
 
-    def test_user_overriden_by_venv(self):
+    def test_venv_overides_user(self):
         self.patch_configuration(kinds.USER, {"test.hello": "2"})
-        self.patch_configuration(kinds.VENV, {"test.hello": "3"})
-        self.configuration.load()
-
-        assert self.configuration.get_value("test.hello") == "3"
-
-    def test_global_not_overriden_by_environment_var(self):
-        self.patch_configuration(kinds.GLOBAL, {"test.hello": "1"})
-        os.environ["PIP_HELLO"] = "4"
+        self.patch_configuration(kinds.VENV, {"test.hello": "1"})
         self.configuration.load()
 
         assert self.configuration.get_value("test.hello") == "1"
-        assert self.configuration.get_value(":env:.hello") == "4"
 
-    def test_user_not_overriden_by_environment_var(self):
+    def test_venv_overides_global(self):
+        self.patch_configuration(kinds.GLOBAL, {"test.hello": "3"})
+        self.patch_configuration(kinds.VENV, {"test.hello": "1"})
+        self.configuration.load()
+
+        assert self.configuration.get_value("test.hello") == "1"
+
+    def test_user_overides_global(self):
+        self.patch_configuration(kinds.GLOBAL, {"test.hello": "3"})
         self.patch_configuration(kinds.USER, {"test.hello": "2"})
-        os.environ["PIP_HELLO"] = "4"
         self.configuration.load()
 
         assert self.configuration.get_value("test.hello") == "2"
-        assert self.configuration.get_value(":env:.hello") == "4"
+
+    def test_env_not_overriden_by_environment_var(self):
+        self.patch_configuration(kinds.ENV, {"test.hello": "1"})
+        os.environ["PIP_HELLO"] = "5"
+
+        self.configuration.load()
+
+        assert self.configuration.get_value("test.hello") == "1"
+        assert self.configuration.get_value(":env:.hello") == "5"
 
     def test_venv_not_overriden_by_environment_var(self):
-        self.patch_configuration(kinds.VENV, {"test.hello": "3"})
-        os.environ["PIP_HELLO"] = "4"
+        self.patch_configuration(kinds.VENV, {"test.hello": "2"})
+        os.environ["PIP_HELLO"] = "5"
+
+        self.configuration.load()
+
+        assert self.configuration.get_value("test.hello") == "2"
+        assert self.configuration.get_value(":env:.hello") == "5"
+
+    def test_user_not_overriden_by_environment_var(self):
+        self.patch_configuration(kinds.USER, {"test.hello": "3"})
+        os.environ["PIP_HELLO"] = "5"
+
         self.configuration.load()
 
         assert self.configuration.get_value("test.hello") == "3"
-        assert self.configuration.get_value(":env:.hello") == "4"
+        assert self.configuration.get_value(":env:.hello") == "5"
+
+    def test_global_not_overriden_by_environment_var(self):
+        self.patch_configuration(kinds.GLOBAL, {"test.hello": "4"})
+        os.environ["PIP_HELLO"] = "5"
+
+        self.configuration.load()
+
+        assert self.configuration.get_value("test.hello") == "4"
+        assert self.configuration.get_value(":env:.hello") == "5"
 
 
-class TestConfigurationModification(ConfigurationPatchingMixin):
+class TestConfigurationModification(ConfigurationMixin):
     # Tests for methods to that modify the state of a Configuration
 
     def test_no_specific_given_modification(self):

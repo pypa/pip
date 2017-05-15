@@ -222,7 +222,6 @@ class Configuration(object):
                 # Keeping track of the parsers used
                 self._parsers[variant].append((file_, parser))
 
-    # XXX: This is patched in the tests.
     def _load_file(self, variant, file_):
         logger.debug("For variant '%s', will try loading '%s'", variant, file_)
         parser = self._construct_parser(file_)
@@ -269,6 +268,7 @@ class Configuration(object):
             if key.startswith("PIP_"):
                 yield key[4:].lower(), val
 
+    # XXX: This is patched in the tests.
     def _get_config_files(self):
         """Yields variant and configuration files associated with it.
 

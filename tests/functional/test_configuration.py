@@ -5,7 +5,7 @@ import textwrap
 import pytest
 
 from pip.status_codes import ERROR
-from tests.lib.configuration_helpers import kinds, ConfigurationFileIOMixin
+from tests.lib.configuration_helpers import kinds, ConfigurationMixin
 
 
 def test_no_options_passed_should_error(script):
@@ -13,7 +13,7 @@ def test_no_options_passed_should_error(script):
     assert result.returncode == ERROR
 
 
-class TestBasicLoading(ConfigurationFileIOMixin):
+class TestBasicLoading(ConfigurationMixin):
 
     @pytest.mark.skip("Can't modify underlying file for any mode")
     def test_reads_file_appropriately(self, script):
