@@ -13,19 +13,19 @@ from tests.lib.configuration_helpers import kinds, ConfigurationPatchingMixin
 class TestConfigurationLoading(ConfigurationPatchingMixin):
 
     def test_global_loading(self):
-        self.patch_configuration(kinds.GLOBAL, {"test.hello": 1})
+        self.patch_configuration(kinds.GLOBAL, {"test.hello": "1"})
         self.configuration.load()
-        assert self.configuration.get_value("test.hello") == 1
+        assert self.configuration.get_value("test.hello") == "1"
 
     def test_user_loading(self):
-        self.patch_configuration(kinds.USER, {"test.hello": 2})
+        self.patch_configuration(kinds.USER, {"test.hello": "2"})
         self.configuration.load()
-        assert self.configuration.get_value("test.hello") == 2
+        assert self.configuration.get_value("test.hello") == "2"
 
     def test_venv_loading(self):
-        self.patch_configuration(kinds.VENV, {"test.hello": 3})
+        self.patch_configuration(kinds.VENV, {"test.hello": "3"})
         self.configuration.load()
-        assert self.configuration.get_value("test.hello") == 3
+        assert self.configuration.get_value("test.hello") == "3"
 
 
 class TestConfigurationPrecedence(ConfigurationPatchingMixin):
@@ -33,48 +33,48 @@ class TestConfigurationPrecedence(ConfigurationPatchingMixin):
     # configuration options
 
     def test_global_overriden_by_user(self):
-        self.patch_configuration(kinds.GLOBAL, {"test.hello": 1})
-        self.patch_configuration(kinds.USER, {"test.hello": 2})
+        self.patch_configuration(kinds.GLOBAL, {"test.hello": "1"})
+        self.patch_configuration(kinds.USER, {"test.hello": "2"})
         self.configuration.load()
 
-        assert self.configuration.get_value("test.hello") == 2
+        assert self.configuration.get_value("test.hello") == "2"
 
     def test_global_overriden_by_venv(self):
-        self.patch_configuration(kinds.GLOBAL, {"test.hello": 1})
-        self.patch_configuration(kinds.VENV, {"test.hello": 3})
+        self.patch_configuration(kinds.GLOBAL, {"test.hello": "1"})
+        self.patch_configuration(kinds.VENV, {"test.hello": "3"})
         self.configuration.load()
 
-        assert self.configuration.get_value("test.hello") == 3
+        assert self.configuration.get_value("test.hello") == "3"
 
     def test_user_overriden_by_venv(self):
-        self.patch_configuration(kinds.USER, {"test.hello": 2})
-        self.patch_configuration(kinds.VENV, {"test.hello": 3})
+        self.patch_configuration(kinds.USER, {"test.hello": "2"})
+        self.patch_configuration(kinds.VENV, {"test.hello": "3"})
         self.configuration.load()
 
-        assert self.configuration.get_value("test.hello") == 3
+        assert self.configuration.get_value("test.hello") == "3"
 
-    def test_global_not_overriden_by_environment(self):
-        self.patch_configuration(kinds.GLOBAL, {"test.hello": 1})
+    def test_global_not_overriden_by_environment_var(self):
+        self.patch_configuration(kinds.GLOBAL, {"test.hello": "1"})
         os.environ["PIP_HELLO"] = "4"
         self.configuration.load()
 
-        assert self.configuration.get_value("test.hello") == 1
+        assert self.configuration.get_value("test.hello") == "1"
         assert self.configuration.get_value(":env:.hello") == "4"
 
-    def test_user_not_overriden_by_environment(self):
-        self.patch_configuration(kinds.USER, {"test.hello": 2})
+    def test_user_not_overriden_by_environment_var(self):
+        self.patch_configuration(kinds.USER, {"test.hello": "2"})
         os.environ["PIP_HELLO"] = "4"
         self.configuration.load()
 
-        assert self.configuration.get_value("test.hello") == 2
+        assert self.configuration.get_value("test.hello") == "2"
         assert self.configuration.get_value(":env:.hello") == "4"
 
-    def test_venv_not_overriden_by_environment(self):
-        self.patch_configuration(kinds.VENV, {"test.hello": 3})
+    def test_venv_not_overriden_by_environment_var(self):
+        self.patch_configuration(kinds.VENV, {"test.hello": "3"})
         os.environ["PIP_HELLO"] = "4"
         self.configuration.load()
 
-        assert self.configuration.get_value("test.hello") == 3
+        assert self.configuration.get_value("test.hello") == "3"
         assert self.configuration.get_value(":env:.hello") == "4"
 
 
@@ -85,7 +85,7 @@ class TestConfigurationModification(ConfigurationPatchingMixin):
         self.configuration.load()
 
         try:
-            self.configuration.set_value("test.hello", 10)
+            self.configuration.set_value("test.hello", "10")
         except ConfigurationError:
             pass
         else:
@@ -99,7 +99,7 @@ class TestConfigurationModification(ConfigurationPatchingMixin):
         mymock = MagicMock(spec=self.configuration._mark_as_modified)
         self.configuration._mark_as_modified = mymock
 
-        self.configuration.set_value("test.hello", 10)
+        self.configuration.set_value("test.hello", "10")
 
         # get the path to venv config file
         assert mymock.call_count == 1
@@ -114,7 +114,7 @@ class TestConfigurationModification(ConfigurationPatchingMixin):
         mymock = MagicMock(spec=self.configuration._mark_as_modified)
         self.configuration._mark_as_modified = mymock
 
-        self.configuration.set_value("test.hello", 10)
+        self.configuration.set_value("test.hello", "10")
 
         # get the path to user config file
         assert mymock.call_count == 1
@@ -129,7 +129,7 @@ class TestConfigurationModification(ConfigurationPatchingMixin):
         mymock = MagicMock(spec=self.configuration._mark_as_modified)
         self.configuration._mark_as_modified = mymock
 
-        self.configuration.set_value("test.hello", 10)
+        self.configuration.set_value("test.hello", "10")
 
         # get the path to user config file
         assert mymock.call_count == 1
