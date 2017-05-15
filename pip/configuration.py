@@ -208,7 +208,7 @@ class Configuration(object):
         if config_files[kinds.ENV][0:1] == [os.devnull]:
             logger.debug(
                 "Skipping loading configuration files due to "
-                "environment's kinds.PIP_CONFIG being os.devnull"
+                "environment's PIP_CONFIG being os.devnull"
             )
             return
 
@@ -280,20 +280,20 @@ class Configuration(object):
         # SMELL: Move the conditions out of this function
 
         # environment variables have the lowest priority
-        config_file = os.environ.get('kinds.PIP_CONFIG', None)
+        config_file = os.environ.get('PIP_CONFIG', None)
         if config_file is not None:
             yield kinds.ENV, [config_file]
         else:
             yield kinds.ENV, []
 
-        # at the base we have any kinds.global configuration
+        # at the base we have any global configuration
         yield kinds.GLOBAL, list(site_config_files)
 
-        # per-kinds.user configuration next
-        kinds.should_load_user_config = not self.isolated and not (
+        # per-user configuration next
+        should_load_user_config = not self.isolated and not (
             config_file and os.path.exists(config_file)
         )
-        if kinds.should_load_user_config:
+        if should_load_user_config:
             # The legacy config file is overridden by the new config file
             yield kinds.USER, [legacy_config_file, new_config_file]
 
