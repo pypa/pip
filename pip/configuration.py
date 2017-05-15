@@ -44,10 +44,6 @@ def _disassemble_key(name):
     return name.split(".", 1)
 
 
-def _make_key(variant, name):
-    return ".".join((variant, name))
-
-
 # The kinds of configurations there are.
 kinds = enum(USER="user", GLOBAL="global", VENV="venv", ENV="environement")
 
@@ -261,8 +257,7 @@ class Configuration(object):
         """
         normalized = {}
         for name, val in items:
-            key = _make_key(section, _normalize_name(name))
-
+            key = section + "." + _normalize_name(name)
             normalized[key] = val
         return normalized
 
