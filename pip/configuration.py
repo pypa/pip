@@ -45,7 +45,9 @@ def _disassemble_key(name):
 
 
 # The kinds of configurations there are.
-kinds = enum(USER="user", GLOBAL="global", VENV="venv", ENV="environement")
+kinds = enum(
+    USER="user", GLOBAL="global", VENV="venv", ENV="env", ENV_VAR="env-var"
+)
 
 
 class Configuration(object):
@@ -77,7 +79,7 @@ class Configuration(object):
 
         # The order here determines the override order.
         self._override_order = [
-            kinds.GLOBAL, kinds.USER, kinds.VENV, kinds.ENV
+            kinds.GLOBAL, kinds.USER, kinds.VENV, kinds.ENV, kinds.ENV_VAR
         ]
 
         # Because we keep track of where we got the data from
@@ -245,7 +247,7 @@ class Configuration(object):
     def _load_environment_vars(self):
         """Loads configuration from environment variables
         """
-        self._config[kinds.ENV].update(
+        self._config[kinds.ENV_VAR].update(
             self._normalized_keys(":env:", self._get_environ_vars())
         )
 
