@@ -188,7 +188,7 @@ def fix_script(path):
         return True
 
 
-dist_info_re = re.compile(r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>\d.+?))?)
+dist_info_re = re.compile(r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>.+?))?)
                                 \.dist-info$""", re.VERBOSE)
 
 
