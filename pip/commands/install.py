@@ -3,24 +3,25 @@ from __future__ import absolute_import
 import logging
 import operator
 import os
-import tempfile
 import shutil
+import tempfile
+
+from pip import cmdoptions
+from pip.basecommand import RequirementCommand
+from pip.exceptions import (
+    CommandError, InstallationError, PreviousBuildDirError
+)
+from pip.locations import distutils_scheme, virtualenv_no_global
+from pip.req import RequirementSet
+from pip.utils import ensure_dir, get_installed_version
+from pip.utils.build import BuildDirectory
+from pip.utils.filesystem import check_path_owner
+from pip.wheel import WheelBuilder, WheelCache
+
 try:
     import wheel
 except ImportError:
     wheel = None
-
-from pip.req import RequirementSet
-from pip.basecommand import RequirementCommand
-from pip.locations import virtualenv_no_global, distutils_scheme
-from pip.exceptions import (
-    InstallationError, CommandError, PreviousBuildDirError,
-)
-from pip import cmdoptions
-from pip.utils import ensure_dir, get_installed_version
-from pip.utils.build import BuildDirectory
-from pip.utils.filesystem import check_path_owner
-from pip.wheel import WheelCache, WheelBuilder
 
 
 logger = logging.getLogger(__name__)

@@ -1,13 +1,11 @@
 from __future__ import absolute_import
 
-from email.parser import FeedParser
-
 import logging
 import sys
+from email.parser import FeedParser
 
-from pip._vendor.packaging import specifiers
-from pip._vendor.packaging import version
 from pip._vendor import pkg_resources
+from pip._vendor.packaging import specifiers, version
 
 from pip import exceptions
 

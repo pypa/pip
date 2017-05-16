@@ -1,12 +1,13 @@
 """Base option parser setup"""
 from __future__ import absolute_import
 
-import sys
 import optparse
+import sys
 import textwrap
 from distutils.util import strtobool
 
 from pip._vendor.six import string_types
+
 from pip.configuration import Configuration
 from pip.utils import get_terminal_size
 

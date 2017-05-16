@@ -3,28 +3,28 @@ from __future__ import absolute_import
 
 import logging
 import logging.config
+import optparse
 import os
 import sys
-import optparse
 import warnings
 
 from pip import cmdoptions
+from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
+from pip.download import PipSession
+from pip.exceptions import (
+    BadCommand, CommandError, InstallationError, PreviousBuildDirError,
+    UninstallationError
+)
 from pip.index import PackageFinder
 from pip.locations import running_under_virtualenv
-from pip.download import PipSession
-from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
-                            CommandError, PreviousBuildDirError)
-
-from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.req import InstallRequirement, parse_requirements
 from pip.status_codes import (
-    SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND,
-    PREVIOUS_BUILD_DIR_ERROR,
+    ERROR, PREVIOUS_BUILD_DIR_ERROR, SUCCESS, UNKNOWN_ERROR,
+    VIRTUALENV_NOT_FOUND
 )
 from pip.utils import deprecation, get_prog, normalize_path
 from pip.utils.logging import IndentingFormatter
 from pip.utils.outdated import pip_version_check
-
 
 __all__ = ['Command']
 

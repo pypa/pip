@@ -1,13 +1,12 @@
 from __future__ import absolute_import
 
 import os
-import sys
 import subprocess
+import sys
 
 import virtualenv as _virtualenv
 
 from .path import Path
-
 
 # On Python < 3.3 we don't have subprocess.DEVNULL
 try:

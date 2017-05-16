@@ -7,9 +7,9 @@ import re
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip.index import Link
-from pip.utils import rmtree, display_path
+from pip.utils import display_path, rmtree
 from pip.utils.logging import indent_log
-from pip.vcs import vcs, VersionControl
+from pip.vcs import VersionControl, vcs
 
 _svn_xml_url_re = re.compile('url="([^"]+)"')
 _svn_rev_re = re.compile(r'committed-rev="(\d+)"')

@@ -1,20 +1,19 @@
 import hashlib
 import os
 from io import BytesIO
-from shutil import rmtree, copy
+from shutil import copy, rmtree
 from tempfile import mkdtemp
 
 from pip._vendor.six.moves.urllib import request as urllib_request
 
-from mock import Mock, patch
-import pytest
-
 import pip
-from pip.exceptions import HashMismatch
+import pytest
+from mock import Mock, patch
 from pip.download import (
-    PipSession, SafeFileCache, path_to_url, unpack_http_url, url_to_path,
-    unpack_file_url, MultiDomainBasicAuth
+    MultiDomainBasicAuth, PipSession, SafeFileCache, path_to_url,
+    unpack_file_url, unpack_http_url, url_to_path
 )
+from pip.exceptions import HashMismatch
 from pip.index import Link
 from pip.utils.hashes import Hashes
 

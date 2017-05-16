@@ -2,9 +2,9 @@ import os.path
 import textwrap
 
 import pytest
-
-from tests.lib import (pyversion, requirements_file,
-                       _create_test_package_with_subdirectory)
+from tests.lib import (
+    _create_test_package_with_subdirectory, pyversion, requirements_file
+)
 from tests.lib.local_repos import local_checkout
 
 

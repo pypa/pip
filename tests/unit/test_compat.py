@@ -1,6 +1,7 @@
 import os
-from pip.compat import expanduser, get_path_uid, native_str
+
 import pytest
+from pip.compat import expanduser, get_path_uid, native_str
 
 
 def test_get_path_uid():

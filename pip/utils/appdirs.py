@@ -7,8 +7,9 @@ from __future__ import absolute_import
 import os
 import sys
 
-from pip.compat import WINDOWS, expanduser
 from pip._vendor.six import PY2, text_type
+
+from pip.compat import WINDOWS, expanduser
 
 
 def user_cache_dir(appname):
