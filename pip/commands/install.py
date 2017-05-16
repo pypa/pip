@@ -1,11 +1,15 @@
 from __future__ import absolute_import
 
+import errno
 import logging
 import operator
-import errno
 import os
 import shutil
 import tempfile
+try:
+    import wheel
+except ImportError:
+    wheel = None
 
 from pip import cmdoptions
 from pip.basecommand import RequirementCommand
