@@ -14,6 +14,7 @@ from pip.exceptions import (
 )
 from pip.locations import distutils_scheme, virtualenv_no_global
 from pip.req import RequirementSet
+from pip.status_codes import ERROR
 from pip.utils import ensure_dir, get_installed_version
 from pip.utils.build import BuildDirectory
 from pip.utils.filesystem import check_path_owner
@@ -299,23 +300,23 @@ class InstallCommand(RequirementCommand):
                     if installed:
                         logger.info('Successfully installed %s', installed)
                 except EnvironmentError as e:
-                    base_msg = (
-                        "Unable to install in installation directory."
-                    )
-                    no_user_msg = (
-                        "Consider using the `--user` option"
-                    )
-                    check_perms_msg = (
-                        "Check the permissions in the installation "
-                        "directory"
-                    )
+                    message_parts = []
+
+                    user_option_part = "Consider using the `--user` option"
+                    permissions_part = "Check the permissions"
+
                     if e.errno == errno.EPERM:
-                        parts = [check_perms_msg]
                         if not options.use_user_site:
-                            parts.insert(0, no_user_msg)
-                        logger.error("%s %s", base_msg, " or ".join(parts))
-                    else:
-                        logger.error("%s", base_msg)
+                            message_parts.extend([
+                                user_option_part, " or ",
+                                permissions_part.lower(),
+                            ])
+                        else:
+                            message_parts.append(permissions_part)
+                        message_parts.append("\n")
+
+                    logger.error("".join(message_parts))
+                    return ERROR
                 except PreviousBuildDirError:
                     options.no_clean = True
                     raise
