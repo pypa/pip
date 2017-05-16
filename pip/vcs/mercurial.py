@@ -25,8 +25,7 @@ class Mercurial(VersionControl):
             self.unpack(temp_dir.path)
 
             self.run_command(
-                ['archive', location],
-                show_stdout=False, cwd=temp_dir.path
+                ['archive', location], show_stdout=False, cwd=temp_dir.path
             )
 
     def switch(self, dest, url, rev_options):
