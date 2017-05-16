@@ -90,6 +90,28 @@ before invoking ``setup.py``. The injection should be transparent to
 ``setup.py`` emulating the commands pip requires may need to be aware that it
 takes place.
 
+Build System Output
+~~~~~~~~~~~~~~~~~~~
+
+Any output produced by the build system will be read by pip (for display to
+the user if requested). In order to correctly read the build system output,
+pip requires that the output is written in a well-defined encoding:
+
+* On Windows, the build system must produce all output in the "OEM"
+  encoding.
+* On non-Windows systems, the build system should use the encoding
+  returned by python's ``locale.getpreferredencoding`` function, or
+  "utf8" if ``getpreferredencoding`` does not return a value.
+
+Build systems should ensure that any tools they invoke (compilers, etc)
+produce output in the correct encoding. In practice - and in particular
+on Windows, where tools are inconsistent in their use of the "OEM" and
+"ANSI" codepages - this may not always be possible, so pip will attempt to
+recover cleanly if presented with incorrectly encoded build tool output.
+However, pip cannot guarantee in that case that the displayed output will
+not be corrupted (mojibake, or characters replaced with the standard
+replacement character, often a question mark).
+
 Future Developments
 ~~~~~~~~~~~~~~~~~~~
 

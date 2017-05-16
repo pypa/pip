@@ -37,11 +37,31 @@ else:
 
 
 if sys.version_info >= (3,):
+    def subprocess_encoding():
+        if WINDOWS:
+            if sys.version_info >= (3, 6):
+                return "oem"
+            # Prior to Python 3.6, the "oem" encoding is not available.
+            # However, as long as the user hasn't redirected the stream,
+            # standard IO streams are opened using the OEM encoding.
+            # We take the stderr encoding, as that's presumed to be the
+            # least likely for the user to have redirected.
+            return sys.__stderr__.encoding
+        else:
+            import locale
+            # Note that the use of getpreferredencoding here calls
+            # setlocale, which isn't thread safe. This is OK, as we
+            # never call this code in a multi-threaded context.
+            # If thread safety was important, we could call
+            # getpreferredencoding(False), but there are apparently
+            # some systems where that will not give the correct answer.
+            #
+            # We fall back to UTF8 if locale can't provide an answer,
+            # as UTF8 is the most common encoding used nowadays.
+            return locale.getpreferredencoding() or "utf-8"
+
     def console_to_str(s):
-        try:
-            return s.decode(sys.__stdout__.encoding)
-        except UnicodeDecodeError:
-            return s.decode('utf_8')
+        return s.decode(subprocess_encoding(), errors="replace")
 
     def native_str(s, replace=False):
         if isinstance(s, bytes):
