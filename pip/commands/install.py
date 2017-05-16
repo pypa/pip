@@ -221,7 +221,7 @@ class InstallCommand(RequirementCommand):
                 options.cache_dir = None
 
             with TempDirectory(
-                options.build_dir, delete=build_delete, type="build"
+                options.build_dir, delete=build_delete, kind="build"
             ) as directory:
                 requirement_set = RequirementSet(
                     build_dir=directory.path,

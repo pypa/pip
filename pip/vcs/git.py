@@ -68,7 +68,7 @@ class Git(VersionControl):
         if not location.endswith('/'):
             location = location + '/'
 
-        with TempDirectory(type="export") as temp_dir:
+        with TempDirectory(kind="export") as temp_dir:
             self.unpack(temp_dir.path)
             self.run_command(
                 ['checkout-index', '-a', '-f', '--prefix', location],

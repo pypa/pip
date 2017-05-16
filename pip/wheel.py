@@ -649,7 +649,7 @@ class WheelBuilder(object):
 
         :return: The filename of the built wheel, or None if the build failed.
         """
-        with TempDirectory(type="wheel") as temp_dir:
+        with TempDirectory(kind="wheel") as temp_dir:
             if self.__build_one(req, temp_dir.path, python_tag=python_tag):
                 try:
                     wheel_name = os.listdir(temp_dir.path)[0]

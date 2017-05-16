@@ -10,11 +10,12 @@ class TempDirectory(object):
     """A Helper class that owns and cleans up a temporary directory.
     """
 
-    def __init__(self, path=None, delete=None, type="temp"):
+    def __init__(self, path=None, delete=None, kind="temp"):
         super(TempDirectory, self).__init__()
 
         self.path = path
         self.delete = delete
+        self.kind = kind
 
     def __repr__(self):
         return "<{} {!r}>".format(self.__class__.__name__, self.path)
@@ -26,7 +27,7 @@ class TempDirectory(object):
             # scripts, so we canonicalize the path by traversing potential
             # symlinks here.
             self.path = os.path.realpath(
-                tempfile.mkdtemp(prefix="pip-", suffix="-" + type)
+                tempfile.mkdtemp(prefix="pip-", suffix="-" + self.kind)
             )
             # If we were not given an explicit directory, and we were not given
             # an explicit delete option, then we'll default to deleting.

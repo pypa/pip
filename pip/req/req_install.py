@@ -740,7 +740,7 @@ class InstallRequirement(object):
         if self.isolated:
             global_options = list(global_options) + ["--no-user-cfg"]
 
-        with TempDirectory(type="record") as temp_dir:
+        with TempDirectory(kind="record") as temp_dir:
             record_filename = os.path.join(temp_dir.path, 'install-record.txt')
             try:
                 install_args = self.get_install_args(

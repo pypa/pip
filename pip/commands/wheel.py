@@ -138,7 +138,7 @@ class WheelCommand(RequirementCommand):
             wheel_cache = WheelCache(options.cache_dir, options.format_control)
 
             with TempDirectory(
-                options.build_dir, delete=build_delete, type="build"
+                options.build_dir, delete=build_delete, kind="build"
             ) as directory:
                 requirement_set = RequirementSet(
                     build_dir=directory.path,

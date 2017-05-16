@@ -649,7 +649,7 @@ def unpack_http_url(link, location, download_dir=None,
             "unpack_http_url() missing 1 required keyword argument: 'session'"
         )
 
-    with TempDirectory(type="unpack") as temp_dir:
+    with TempDirectory(kind="unpack") as temp_dir:
         # If a download dir is specified, is the file already downloaded there?
         already_downloaded_path = None
         if download_dir:
