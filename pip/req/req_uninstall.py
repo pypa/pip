@@ -178,12 +178,11 @@ class UninstallPathSet(object):
         )
 
         with indent_log():
-            paths = sorted(self.compact(self.paths))
 
             if auto_confirm:
                 response = 'y'
             else:
-                self._display_neatly(paths, verbose)
+                self._display_neatly(self.paths, verbose)
                 response = ask('Proceed (y/n)? ', ('y', 'n'))
             if self._refuse:
                 logger.info('Not removing or modifying (outside of prefix):')
@@ -191,7 +190,7 @@ class UninstallPathSet(object):
             if response == 'y':
                 self.save_dir = tempfile.mkdtemp(suffix='-uninstall',
                                                  prefix='pip-')
-                for path in paths:
+                for path in sorted(self.compact(self.paths)):
                     new_path = self._stash(path)
                     logger.debug('Removing file or directory %s', path)
                     self._moved_paths.append(path)
