@@ -220,7 +220,7 @@ class InstallCommand(RequirementCommand):
                 logger.warning(
                     "The directory '%s' or its parent directory is not owned "
                     "by the current user and caching wheels has been "
-                    "disabled. check the permissions and owner of that "
+                    "disabled. Check the permissions and owner of that "
                     "directory. If executing pip with sudo, you may want "
                     "sudo's -H flag.",
                     options.cache_dir,
