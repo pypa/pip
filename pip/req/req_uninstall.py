@@ -166,30 +166,34 @@ class UninstallPathSet(object):
     def remove(self, auto_confirm=False, verbose=False):
         """Remove paths in ``self.paths`` with confirmation (unless
         ``auto_confirm`` is True)."""
+
         if not self.paths:
             logger.info(
                 "Can't uninstall '%s'. No files were found to uninstall.",
                 self.dist.project_name,
             )
             return
-        logger.info(
-            'Uninstalling %s-%s:',
-            self.dist.project_name, self.dist.version
+
+        dist_name_version = (
+            self.dist.project_name + "-" + self.dist.version
         )
+        logger.info('Uninstalling %s:', dist_name_version)
 
         with indent_log():
-
             if auto_confirm:
                 response = 'y'
             else:
                 self._display_neatly(self.paths, verbose)
                 response = ask('Proceed (y/n)? ', ('y', 'n'))
+
             if self._refuse:
                 logger.info('Not removing or modifying (outside of prefix):')
                 self._display_neatly(self._refuse, verbose)
+
             if response == 'y':
                 self.save_dir = tempfile.mkdtemp(suffix='-uninstall',
                                                  prefix='pip-')
+
                 for path in sorted(self.compact(self.paths)):
                     new_path = self._stash(path)
                     logger.debug('Removing file or directory %s', path)
@@ -197,10 +201,8 @@ class UninstallPathSet(object):
                     renames(path, new_path)
                 for pth in self.pth.values():
                     pth.remove()
-                logger.info(
-                    'Successfully uninstalled %s-%s',
-                    self.dist.project_name, self.dist.version
-                )
+
+                logger.info('Successfully uninstalled %s', dist_name_version)
 
     def rollback(self):
         """Rollback the changes previously made by remove()."""
