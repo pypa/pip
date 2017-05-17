@@ -254,12 +254,7 @@ class InstallCommand(RequirementCommand):
                 )
 
                 try:
-                    if (not wheel or not options.cache_dir):
-                        # on -d don't do complex things like building
-                        # wheels, and don't try to build wheels when wheel is
-                        # not installed.
-                        requirement_set.prepare_files(finder)
-                    else:
+                    if wheel and options.cache_dir:
                         # build wheels before install.
                         wb = WheelBuilder(
                             requirement_set,
@@ -270,6 +265,11 @@ class InstallCommand(RequirementCommand):
                         # Ignore the result: a failed wheel will be
                         # installed from the sdist/vcs whatever.
                         wb.build(autobuilding=True)
+                    else:
+                        # on -d don't do complex things like building
+                        # wheels, and don't try to build wheels when wheel is
+                        # not installed.
+                        requirement_set.prepare_files(finder)
 
                     requirement_set.install(
                         install_options,
