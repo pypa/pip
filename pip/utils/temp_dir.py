@@ -7,7 +7,7 @@ from pip.utils import rmtree
 
 
 class TempDirectory(object):
-    """A Helper class that owns and cleans up a temporary directory.
+    """Helper class that owns and cleans up a temporary directory.
     """
 
     def __init__(self, path=None, delete=None, kind="temp"):
