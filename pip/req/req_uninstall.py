@@ -131,12 +131,16 @@ class UninstallPathSet(object):
         necessary to contain all paths in the set. If /a/path/ and
         /a/path/to/a/file.txt are both in the set, leave only the
         shorter path."""
+
+        sep = os.path.sep
         short_paths = set()
         for path in sorted(paths, key=len):
-            if not any([
-                    (path.startswith(shortpath) and
-                     path[len(shortpath.rstrip(os.path.sep))] == os.path.sep)
-                    for shortpath in short_paths]):
+            should_add = any(
+                path.startswith(shortpath.rstrip("*")) and
+                path[len(shortpath.rstrip("*").rstrip(sep))] == sep
+                for shortpath in short_paths
+            )
+            if not should_add:
                 short_paths.add(path)
         return short_paths
 
@@ -144,7 +148,22 @@ class UninstallPathSet(object):
         return os.path.join(
             self.save_dir, os.path.splitdrive(path)[1].lstrip(os.path.sep))
 
-    def remove(self, auto_confirm=False):
+    def _display_neatly(self, paths, verbose):
+        if not verbose:
+            new_paths = []
+            for path in paths:
+                if path.endswith("__init__.py"):
+                    new_paths.append(path[:-12] + os.path.sep + "*")
+                elif ".dist-info" in path:
+                    new_paths.append(os.path.dirname(path) + os.path.sep + "*")
+                else:
+                    new_paths.append(path)
+            paths = new_paths
+
+        for path in sorted(self.compact(paths)):
+            logger.info(path)
+
+    def remove(self, auto_confirm=False, verbose=False):
         """Remove paths in ``self.paths`` with confirmation (unless
         ``auto_confirm`` is True)."""
         if not self.paths:
@@ -164,13 +183,11 @@ class UninstallPathSet(object):
             if auto_confirm:
                 response = 'y'
             else:
-                for path in paths:
-                    logger.info(path)
+                self._display_neatly(paths, verbose)
                 response = ask('Proceed (y/n)? ', ('y', 'n'))
             if self._refuse:
                 logger.info('Not removing or modifying (outside of prefix):')
-                for path in self.compact(self._refuse):
-                    logger.info(path)
+                self._display_neatly(self._refuse, verbose)
             if response == 'y':
                 self.save_dir = tempfile.mkdtemp(suffix='-uninstall',
                                                  prefix='pip-')

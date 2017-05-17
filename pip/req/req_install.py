@@ -623,7 +623,7 @@ class InstallRequirement(object):
                 'Unexpected version control type (in %s): %s'
                 % (self.link, vc_type))
 
-    def uninstall(self, auto_confirm=False):
+    def uninstall(self, auto_confirm=False, verbose=False):
         """
         Uninstall the distribution currently satisfying this requirement.
 
@@ -643,7 +643,7 @@ class InstallRequirement(object):
         dist = self.satisfied_by or self.conflicts_with
 
         self.uninstalled_pathset = UninstallPathSet.from_dist(dist)
-        self.uninstalled_pathset.remove(auto_confirm)
+        self.uninstalled_pathset.remove(auto_confirm, verbose)
 
     def archive(self, build_dir):
         assert self.source_dir

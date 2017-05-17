@@ -64,5 +64,7 @@ class UninstallCommand(Command):
                     '"pip help %(name)s")' % dict(name=self.name)
                 )
             for req in reqs_to_uninstall.values():
-                req.uninstall(auto_confirm=options.yes)
+                req.uninstall(
+                    auto_confirm=options.yes, verbose=options.verbose != 0
+                )
                 req.uninstalled_pathset.commit()
