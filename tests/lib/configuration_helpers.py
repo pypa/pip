@@ -43,9 +43,10 @@ class ConfigurationMixin(object):
     @contextlib.contextmanager
     def tmpfile(self, contents):
         # Create a temporary file
-        _, path = tempfile.mkstemp(
+        fd, path = tempfile.mkstemp(
             prefix="pip_", suffix="_config.ini", text=True
         )
+        os.close(fd)
 
         contents = textwrap.dedent(contents).lstrip()
         ensure_dir(os.path.dirname(path))
