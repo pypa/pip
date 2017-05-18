@@ -2,18 +2,18 @@ import os
 import subprocess
 import textwrap
 
-from mock import patch, Mock
-import pytest
-from pretend import stub
-
 import pip
-from pip.exceptions import (InstallationError, RequirementsFileParseError)
+import pytest
+from mock import Mock, patch
 from pip.download import PipSession
+from pip.exceptions import InstallationError, RequirementsFileParseError
 from pip.index import PackageFinder
+from pip.req.req_file import (
+    break_args_options, ignore_comments, join_lines, parse_requirements,
+    preprocess, process_line, skip_regex
+)
 from pip.req.req_install import InstallRequirement
-from pip.req.req_file import (parse_requirements, process_line, join_lines,
-                              ignore_comments, break_args_options, skip_regex,
-                              preprocess)
+from pretend import stub
 from tests.lib import requirements_file
 
 

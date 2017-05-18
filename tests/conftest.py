@@ -3,13 +3,11 @@ import os
 import shutil
 import sys
 
-import pytest
-
 import six
 
 import pip
+import pytest
 from pip.utils import appdirs
-
 from tests.lib import SRC_DIR, TestData
 from tests.lib.path import Path
 from tests.lib.scripttest import PipTestEnvironment

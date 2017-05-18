@@ -10,7 +10,6 @@ import tempfile
 import traceback
 import warnings
 import zipfile
-
 from distutils.util import change_root
 from email.parser import FeedParser
 
@@ -19,36 +18,28 @@ from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.packaging.version import Version, parse as parse_version
-from pip._vendor.pkg_resources import parse_requirements, RequirementParseError
-
+from pip._vendor.packaging.version import parse as parse_version
+from pip._vendor.packaging.version import Version
+from pip._vendor.pkg_resources import RequirementParseError, parse_requirements
 
 import pip.wheel
-
 from pip.compat import native_str
-from pip.download import is_url, url_to_path, path_to_url, is_archive_file
-from pip.exceptions import (
-    InstallationError, UninstallationError,
-)
-from pip.locations import (
-    running_under_virtualenv, PIP_DELETE_MARKER_FILENAME,
-)
+from pip.download import is_archive_file, is_url, path_to_url, url_to_path
+from pip.exceptions import InstallationError, UninstallationError
+from pip.locations import PIP_DELETE_MARKER_FILENAME, running_under_virtualenv
+from pip.req.req_uninstall import UninstallPathSet
 from pip.utils import (
-    display_path, rmtree, ask_path_exists, backup_dir, is_installable_dir,
-    dist_in_usersite, dist_in_site_packages,
-    call_subprocess, read_text_file, _make_build_dir, ensure_dir,
-    get_installed_version,
+    _make_build_dir, ask_path_exists, backup_dir, call_subprocess,
+    display_path, dist_in_site_packages, dist_in_usersite, ensure_dir,
+    get_installed_version, is_installable_dir, read_text_file, rmtree
 )
-
-from pip.utils.hashes import Hashes
 from pip.utils.deprecation import RemovedInPip11Warning
+from pip.utils.hashes import Hashes
 from pip.utils.logging import indent_log
 from pip.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip.utils.ui import open_spinner
-from pip.req.req_uninstall import UninstallPathSet
 from pip.vcs import vcs
-from pip.wheel import move_wheel_files, Wheel
-
+from pip.wheel import Wheel, move_wheel_files
 
 logger = logging.getLogger(__name__)
 

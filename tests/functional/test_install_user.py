@@ -3,14 +3,12 @@ tests specific to "pip install --user"
 """
 import os
 import textwrap
-import pytest
-
 from os.path import curdir, isdir, isfile
 
-from pip.compat import uses_pycache, cache_from_source
-
-from tests.lib.local_repos import local_checkout
+import pytest
+from pip.compat import cache_from_source, uses_pycache
 from tests.lib import pyversion
+from tests.lib.local_repos import local_checkout
 
 
 def _patch_dist_in_site_packages(script):

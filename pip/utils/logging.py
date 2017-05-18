@@ -5,13 +5,14 @@ import logging
 import logging.handlers
 import os
 
+from pip.compat import WINDOWS
+from pip.utils import ensure_dir
+
 try:
     import threading
 except ImportError:
     import dummy_threading as threading
 
-from pip.compat import WINDOWS
-from pip.utils import ensure_dir
 
 try:
     from pip._vendor import colorama

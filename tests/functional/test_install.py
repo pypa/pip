@@ -1,19 +1,17 @@
+import glob
 import os
 import sys
 import textwrap
-import glob
-
-from os.path import join, curdir, pardir
+from os.path import curdir, join, pardir
 
 import pytest
-
 from pip import pep425tags
-from pip.utils import appdirs, rmtree
 from pip.status_codes import ERROR
-from tests.lib import (pyversion, pyversion_tuple,
-                       _create_test_package, _create_svn_repo, path_to_url,
-                       create_test_package_with_setup,
-                       requirements_file)
+from pip.utils import appdirs, rmtree
+from tests.lib import (
+    _create_svn_repo, _create_test_package, create_test_package_with_setup,
+    path_to_url, pyversion, pyversion_tuple, requirements_file
+)
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
 

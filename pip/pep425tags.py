@@ -2,13 +2,12 @@
 from __future__ import absolute_import
 
 import distutils.util
+import logging
+import platform
 import re
 import sys
 import sysconfig
 import warnings
-import platform
-import logging
-
 from collections import OrderedDict
 
 import pip.utils.glibc

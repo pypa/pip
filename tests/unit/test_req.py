@@ -3,21 +3,22 @@ import shutil
 import sys
 import tempfile
 
-import pytest
-
-from mock import Mock, patch, mock_open
-from pip.commands.install import InstallCommand
-from pip.exceptions import (PreviousBuildDirError, InvalidWheelFilename,
-                            InstallationError, HashErrors)
-from pip.download import path_to_url, PipSession
-from pip.index import PackageFinder
-from pip.req import (InstallRequirement, RequirementSet, Requirements)
-from pip.req.req_file import process_line
-from pip.req.req_install import parse_editable
-from pip.utils import read_text_file
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
+
+import pytest
+from mock import Mock, mock_open, patch
+from pip.commands.install import InstallCommand
+from pip.download import PipSession, path_to_url
+from pip.exceptions import (
+    HashErrors, InstallationError, InvalidWheelFilename, PreviousBuildDirError
+)
+from pip.index import PackageFinder
+from pip.req import InstallRequirement, Requirements, RequirementSet
+from pip.req.req_file import process_line
+from pip.req.req_install import parse_editable
+from pip.utils import read_text_file
 from tests.lib import assert_raises_regexp, requirements_file
 
 

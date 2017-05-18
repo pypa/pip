@@ -10,18 +10,14 @@ import tempfile
 
 from pip._vendor import pkg_resources
 
-from pip.compat import uses_pycache, WINDOWS, cache_from_source
+from pip.compat import WINDOWS, cache_from_source, uses_pycache
 from pip.exceptions import UninstallationError
-from pip.locations import (
-    bin_py, bin_user,
-)
+from pip.locations import bin_py, bin_user
 from pip.utils import (
-    rmtree, ask, dist_in_usersite, is_local,
-    egg_link_path, FakeFile,
-    renames, normalize_path, dist_is_local,
+    FakeFile, ask, dist_in_usersite, dist_is_local, egg_link_path, is_local,
+    normalize_path, renames, rmtree
 )
 from pip.utils.logging import indent_log
-
 
 logger = logging.getLogger(__name__)
 

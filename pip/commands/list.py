@@ -3,21 +3,22 @@ from __future__ import absolute_import
 import json
 import logging
 import warnings
+
+from pip._vendor import six
+
+from pip.basecommand import Command
+from pip.cmdoptions import index_group, make_option_group
+from pip.exceptions import CommandError
+from pip.index import PackageFinder
+from pip.utils import dist_is_editable, get_installed_distributions
+from pip.utils.deprecation import RemovedInPip11Warning
+from pip.utils.packaging import get_installer
+
 try:
     from itertools import zip_longest
 except ImportError:
     from itertools import izip_longest as zip_longest
 
-from pip._vendor import six
-
-from pip.basecommand import Command
-from pip.exceptions import CommandError
-from pip.index import PackageFinder
-from pip.utils import (
-    get_installed_distributions, dist_is_editable)
-from pip.utils.deprecation import RemovedInPip11Warning
-from pip.utils.packaging import get_installer
-from pip.cmdoptions import make_option_group, index_group
 
 logger = logging.getLogger(__name__)
 

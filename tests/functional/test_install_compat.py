@@ -3,8 +3,9 @@ Tests for compatibility workarounds.
 
 """
 import os
+
 import pytest
-from tests.lib import pyversion, assert_all_changes
+from tests.lib import assert_all_changes, pyversion
 
 
 @pytest.mark.network

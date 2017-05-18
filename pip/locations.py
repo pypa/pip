@@ -7,13 +7,11 @@ import platform
 import site
 import sys
 import sysconfig
-
 from distutils import sysconfig as distutils_sysconfig
-from distutils.command.install import install, SCHEME_KEYS  # noqa
+from distutils.command.install import SCHEME_KEYS, install  # noqa
 
 from pip.compat import WINDOWS, expanduser
 from pip.utils import appdirs
-
 
 # Application Directories
 USER_CACHE_DIR = appdirs.user_cache_dir("pip")
