@@ -1,0 +1,1 @@
+Allow commands to opt out of --require-venv. This allows pip help to work even when the environment variable PIP_REQUIRE_VIRTUALENV is set.
