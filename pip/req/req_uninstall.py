@@ -148,21 +148,6 @@ class UninstallPathSet(object):
         return os.path.join(
             self.save_dir, os.path.splitdrive(path)[1].lstrip(os.path.sep))
 
-    def _display_neatly(self, paths, verbose):
-        if not verbose:
-            new_paths = []
-            for path in paths:
-                if path.endswith("__init__.py"):
-                    new_paths.append(path[:-12] + os.path.sep + "*")
-                elif ".dist-info" in path:
-                    new_paths.append(os.path.dirname(path) + os.path.sep + "*")
-                else:
-                    new_paths.append(path)
-            paths = new_paths
-
-        for path in sorted(self.compact(paths)):
-            logger.info(path)
-
     def remove(self, auto_confirm=False, verbose=False):
         """Remove paths in ``self.paths`` with confirmation (unless
         ``auto_confirm`` is True)."""
@@ -180,17 +165,7 @@ class UninstallPathSet(object):
         logger.info('Uninstalling %s:', dist_name_version)
 
         with indent_log():
-            if auto_confirm:
-                response = 'y'
-            else:
-                self._display_neatly(self.paths, verbose)
-                response = ask('Proceed (y/n)? ', ('y', 'n'))
-
-            if self._refuse:
-                logger.info('Not removing or modifying (outside of prefix):')
-                self._display_neatly(self._refuse, verbose)
-
-            if response == 'y':
+            if auto_confirm or self._allowed_to_proceed(verbose):
                 self.save_dir = tempfile.mkdtemp(suffix='-uninstall',
                                                  prefix='pip-')
 
@@ -203,6 +178,64 @@ class UninstallPathSet(object):
                     pth.remove()
 
                 logger.info('Successfully uninstalled %s', dist_name_version)
+
+    def _allowed_to_proceed(self, verbose):
+        """Display which files would be deleted and prompt for confirmation
+        """
+
+        def _display(msg, paths):
+            if not paths:
+                return
+
+            logger.info(msg)
+            with indent_log():
+                for path in sorted(self.compact(paths)):
+                    logger.info(path)
+
+        # In verbose mode, display all the files that are going to be deleted.
+        will_remove = list(self.paths)
+        will_skip = set()
+
+        if not verbose:
+            # In non-verbose mode...
+            # Display only the folders that have packages inside them and files
+            # that are not within those folders. Any files in above folders
+            # that would not be deleted would be displayed in a separate
+            # skipped list.
+
+            folders = set()
+            files = set()
+            for path in will_remove:
+                if path.endswith(".pyc"):
+                    continue
+                if path.endswith("__init__.py") or ".dist-info" in path:
+                    folders.add(os.path.dirname(path))
+                files.add(path)
+
+            folders = self.compact(folders)
+
+            # This walks the tree using os.walk to not miss extra folders
+            # that might get added.
+            for folder in folders:
+                for dirpath, _, dirfiles in os.walk(folder):
+                    for fname in dirfiles:
+                        if fname.endswith(".pyc"):
+                            continue
+
+                        file = os.path.join(dirpath, fname)
+                        if os.path.isfile(file) and file not in files:
+                            # We are skipping this file. Add it to the set.
+                            will_skip.add(file)
+
+            will_remove = files | {
+                os.path.join(folder, "*") for folder in folders
+            }
+
+        _display('Would remove:', will_remove)
+        _display('Would not remove (might be manually added):', will_skip)
+        _display('Would not remove (outside of prefix):', self._refuse)
+
+        return ask('Proceed (y/n)? ', ('y', 'n')) == 'y'
 
     def rollback(self):
         """Rollback the changes previously made by remove()."""
