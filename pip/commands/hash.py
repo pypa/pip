@@ -24,6 +24,7 @@ class HashCommand(Command):
     name = 'hash'
     usage = '%prog [options] <file> ...'
     summary = 'Compute hashes of package archives.'
+    ignore_require_venv = True
 
     def __init__(self, *args, **kw):
         super(HashCommand, self).__init__(*args, **kw)

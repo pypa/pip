@@ -27,6 +27,7 @@ class SearchCommand(Command):
     usage = """
       %prog [options] <query>"""
     summary = 'Search PyPI for packages.'
+    ignore_require_venv = True
 
     def __init__(self, *args, **kw):
         super(SearchCommand, self).__init__(*args, **kw)

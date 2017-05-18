@@ -36,6 +36,7 @@ class Command(object):
     name = None
     usage = None
     hidden = False
+    ignore_require_venv = False
     log_streams = ("ext://sys.stdout", "ext://sys.stderr")
 
     def __init__(self, isolated=False):
@@ -202,7 +203,7 @@ class Command(object):
         if options.exists_action:
             os.environ['PIP_EXISTS_ACTION'] = ' '.join(options.exists_action)
 
-        if options.require_venv:
+        if options.require_venv and not self.ignore_require_venv:
             # If a venv is required check if it can really be found
             if not running_under_virtualenv():
                 logger.critical(

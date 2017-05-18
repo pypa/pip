@@ -19,6 +19,7 @@ class ShowCommand(Command):
     usage = """
       %prog [options] <package> ..."""
     summary = 'Show information about installed packages.'
+    ignore_require_venv = True
 
     def __init__(self, *args, **kw):
         super(ShowCommand, self).__init__(*args, **kw)
