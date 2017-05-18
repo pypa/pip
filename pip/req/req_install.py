@@ -786,9 +786,9 @@ class InstallRequirement(object):
                     if os.path.isdir(filename):
                         filename += os.path.sep
                     new_lines.append(
-                        os.path.relpath(
-                            prepend_root(filename), egg_info_dir)
+                        os.path.relpath(prepend_root(filename), egg_info_dir)
                     )
+            ensure_dir(egg_info_dir)
             inst_files_path = os.path.join(egg_info_dir, 'installed-files.txt')
             with open(inst_files_path, 'w') as f:
                 f.write('\n'.join(new_lines) + '\n')
