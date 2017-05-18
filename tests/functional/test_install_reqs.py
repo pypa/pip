@@ -51,7 +51,8 @@ def test_schema_check_in_requirements_file(script):
         )
 
 
-def test_relative_requirements_file(script, data):
+@pytest.mark.parametrize(['kind'], [['full'], ['embedded'], ['file']])
+def test_relative_requirements_file(script, data, kind):
     """
     Test installing from a requirements file with a relative path. For path
     URLs, use an egg= definition.
@@ -66,30 +67,31 @@ def test_relative_requirements_file(script, data):
     package_folder = script.site_packages / 'fspkg'
 
     # Compute relative install path to FSPkg from scratch path.
-    full_rel_path = data.packages.join('FSPkg') - script.scratch_path
-    embedded_rel_path = script.scratch_path.join(full_rel_path)
+    req_path_di = {}
+    req_path_di['full'] = data.packages.join('FSPkg') - script.scratch_path
+    req_path_di['embedded'] = script.scratch_path.join(req_path_di['full'])
+    req_path_di['file'] = 'file:' + req_path_di['full'] + '#egg=FSPkg'
+    req_path = req_path_di[kind]
 
-    # For each relative path, install as either editable or not using either
-    # URLs with egg links or not.
-    for req_path in (full_rel_path,
-                     'file:' + full_rel_path + '#egg=FSPkg',
-                     embedded_rel_path):
-        # Regular install.
-        with requirements_file(req_path + '\n',
-                               script.scratch_path) as reqs_file:
-            result = script.pip('install', '-vvv', '-r', reqs_file.name,
-                                cwd=script.scratch_path)
-            assert egg_info_file in result.files_created, str(result)
-            assert package_folder in result.files_created, str(result)
-            script.pip('uninstall', '-y', 'fspkg')
+    # Install as either editable or not using either URLs with egg links or
+    # not.
 
-        # Editable install.
-        with requirements_file('-e ' + req_path + '\n',
-                               script.scratch_path) as reqs_file:
-            result = script.pip('install', '-vvv', '-r', reqs_file.name,
-                                cwd=script.scratch_path)
-            assert egg_link_file in result.files_created, str(result)
-            script.pip('uninstall', '-y', 'fspkg')
+    # Regular install.
+    with requirements_file(req_path + '\n',
+                           script.scratch_path) as reqs_file:
+        result = script.pip('install', '-vvv', '-r', reqs_file.name,
+                            cwd=script.scratch_path)
+        assert egg_info_file in result.files_created, str(result)
+        assert package_folder in result.files_created, str(result)
+        script.pip('uninstall', '-y', 'fspkg')
+
+    # Editable install.
+    with requirements_file('-e ' + req_path + '\n',
+                           script.scratch_path) as reqs_file:
+        result = script.pip('install', '-vvv', '-r', reqs_file.name,
+                            cwd=script.scratch_path)
+        assert egg_link_file in result.files_created, str(result)
+        script.pip('uninstall', '-y', 'fspkg')
 
 
 @pytest.mark.network
