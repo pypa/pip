@@ -319,7 +319,9 @@ class InstallCommand(RequirementCommand):
                             message_parts.append(permissions_part)
                         message_parts.append("\n")
 
-                    logger.error("".join(message_parts))
+                    logger.error(
+                        "".join(message_parts), exc_info=(options.verbose > 1)
+                    )
                     return ERROR
                 except PreviousBuildDirError:
                     options.no_clean = True
