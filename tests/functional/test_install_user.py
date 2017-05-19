@@ -80,7 +80,7 @@ class Tests_UserSite:
         )
         fspkg_folder = script.user_site / 'fspkg'
         dist_info_folder = (
-            script.user_site / 'FSPkg-0.1.dev0.dist-info' % pyversion
+            script.user_site / 'FSPkg-0.1.dev0.dist-info'
         )
         assert fspkg_folder in result.files_created, result.stdout
 
