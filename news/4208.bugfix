@@ -1,0 +1,3 @@
+Fix a bug where `SETUPTOOLS_SHIM` got called incorrectly for relative path
+requirements by converting relative paths to absolute paths prior to calling
+the shim.

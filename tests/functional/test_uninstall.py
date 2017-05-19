@@ -1,20 +1,18 @@
 from __future__ import with_statement
 
 import json
-import textwrap
 import os
 import sys
-import pytest
-import pretend
-
+import textwrap
 from os.path import join, normpath
 from tempfile import mkdtemp
-from tests.lib import assert_all_changes
-from tests.lib import create_test_package_with_setup
-from tests.lib.local_repos import local_repo, local_checkout
 
+import pretend
+import pytest
 from pip.req import InstallRequirement
 from pip.utils import rmtree
+from tests.lib import assert_all_changes, create_test_package_with_setup
+from tests.lib.local_repos import local_checkout, local_repo
 
 
 @pytest.mark.network

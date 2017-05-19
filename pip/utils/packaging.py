@@ -1,13 +1,11 @@
 from __future__ import absolute_import
 
-from email.parser import FeedParser
-
 import logging
 import sys
+from email.parser import FeedParser
 
-from pip._vendor.packaging import specifiers
-from pip._vendor.packaging import version
 from pip._vendor import pkg_resources
+from pip._vendor.packaging import specifiers, version
 
 from pip import exceptions
 
@@ -61,3 +59,11 @@ def check_dist_requires_python(dist):
             "Package %s has an invalid Requires-Python entry %s - %s" % (
                 dist.project_name, requires_python, e))
         return
+
+
+def get_installer(dist):
+    if dist.has_metadata('INSTALLER'):
+        for line in dist.get_metadata_lines('INSTALLER'):
+            if line.strip():
+                return line.strip()
+    return ''

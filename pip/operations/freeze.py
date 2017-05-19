@@ -3,15 +3,17 @@ from __future__ import absolute_import
 import logging
 import os
 import re
+import warnings
 
-from pip.exceptions import InstallationError
-from pip.req import InstallRequirement
-from pip.req.req_file import COMMENT_RE
-from pip.utils import get_installed_distributions, dist_is_editable
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.pkg_resources import RequirementParseError
 
+from pip.exceptions import InstallationError
+from pip.req import InstallRequirement
+from pip.req.req_file import COMMENT_RE
+from pip.utils import dist_is_editable, get_installed_distributions
+from pip.utils.deprecation import RemovedInPip11Warning
 
 logger = logging.getLogger(__name__)
 
@@ -193,6 +195,11 @@ class FrozenRequirement(object):
                         'for this package:'
                     )
                 else:
+                    warnings.warn(
+                        "SVN editable detection based on dependency links "
+                        "will be dropped in the future.",
+                        RemovedInPip11Warning,
+                    )
                     comments.append(
                         '# Installing as editable to satisfy requirement %s:' %
                         req

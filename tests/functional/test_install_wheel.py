@@ -1,8 +1,8 @@
+import glob
 import os
 import sys
-import pytest
-import glob
 
+import pytest
 from tests.lib.path import Path
 
 

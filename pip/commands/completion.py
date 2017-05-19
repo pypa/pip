@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import sys
+
 from pip.basecommand import Command
 
 BASE_COMPLETION = """
@@ -41,6 +42,7 @@ class CompletionCommand(Command):
     """A helper command to be used for command completion."""
     name = 'completion'
     summary = 'A helper command used for command completion.'
+    ignore_require_venv = True
 
     def __init__(self, *args, **kw):
         super(CompletionCommand, self).__init__(*args, **kw)

@@ -1,5 +1,6 @@
 import json
 import os
+
 import pytest
 
 
@@ -13,6 +14,23 @@ def test_list_command(script, data):
         'simple2==3.0',
     )
     result = script.pip('list')
+    assert 'simple     1.0' in result.stdout, str(result)
+    assert 'simple2    3.0' in result.stdout, str(result)
+
+
+def test_verbose_flag(script, data):
+    """
+    Test the list command with the '-v' option
+    """
+    script.pip(
+        'install', '-f', data.find_links, '--no-index', 'simple==1.0',
+        'simple2==3.0',
+    )
+    result = script.pip('list', '-v', '--format=columns')
+    assert 'Package' in result.stdout, str(result)
+    assert 'Version' in result.stdout, str(result)
+    assert 'Location' in result.stdout, str(result)
+    assert 'Installer' in result.stdout, str(result)
     assert 'simple     1.0' in result.stdout, str(result)
     assert 'simple2    3.0' in result.stdout, str(result)
 

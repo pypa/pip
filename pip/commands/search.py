@@ -3,20 +3,19 @@ from __future__ import absolute_import
 import logging
 import sys
 import textwrap
-
 from collections import OrderedDict
 
-from pip.basecommand import Command, SUCCESS
-from pip.download import PipXmlrpcTransport
-from pip.models import PyPI
-from pip.utils import get_terminal_size
-from pip.utils.logging import indent_log
-from pip.exceptions import CommandError
-from pip.status_codes import NO_MATCHES_FOUND
-from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor import pkg_resources
+from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.six.moves import xmlrpc_client
 
+from pip.basecommand import SUCCESS, Command
+from pip.download import PipXmlrpcTransport
+from pip.exceptions import CommandError
+from pip.models import PyPI
+from pip.status_codes import NO_MATCHES_FOUND
+from pip.utils import get_terminal_size
+from pip.utils.logging import indent_log
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +26,7 @@ class SearchCommand(Command):
     usage = """
       %prog [options] <query>"""
     summary = 'Search PyPI for packages.'
+    ignore_require_venv = True
 
     def __init__(self, *args, **kw):
         super(SearchCommand, self).__init__(*args, **kw)
@@ -97,7 +97,7 @@ def print_results(hits, name_column_width=None, terminal_width=None):
         return
     if name_column_width is None:
         name_column_width = max([
-            len(hit['name']) + len(hit.get('versions', ['-'])[-1])
+            len(hit['name']) + len(highest_version(hit.get('versions', ['-'])))
             for hit in hits
         ]) + 4
 
@@ -105,7 +105,7 @@ def print_results(hits, name_column_width=None, terminal_width=None):
     for hit in hits:
         name = hit['name']
         summary = hit['summary'] or ''
-        version = hit.get('versions', ['-'])[-1]
+        latest = highest_version(hit.get('versions', ['-']))
         if terminal_width is not None:
             target_width = terminal_width - name_column_width - 5
             if target_width > 10:
@@ -114,13 +114,12 @@ def print_results(hits, name_column_width=None, terminal_width=None):
                 summary = ('\n' + ' ' * (name_column_width + 3)).join(summary)
 
         line = '%-*s - %s' % (name_column_width,
-                              '%s (%s)' % (name, version), summary)
+                              '%s (%s)' % (name, latest), summary)
         try:
             logger.info(line)
             if name in installed_packages:
                 dist = pkg_resources.get_distribution(name)
                 with indent_log():
-                    latest = highest_version(hit['versions'])
                     if dist.version == latest:
                         logger.info('INSTALLED: %s (latest)', dist.version)
                     else:

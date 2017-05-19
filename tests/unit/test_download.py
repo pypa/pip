@@ -1,20 +1,19 @@
 import hashlib
 import os
 from io import BytesIO
-from shutil import rmtree, copy
+from shutil import copy, rmtree
 from tempfile import mkdtemp
 
 from pip._vendor.six.moves.urllib import request as urllib_request
 
-from mock import Mock, patch
-import pytest
-
 import pip
-from pip.exceptions import HashMismatch
+import pytest
+from mock import Mock, patch
 from pip.download import (
-    PipSession, SafeFileCache, path_to_url, unpack_http_url, url_to_path,
-    unpack_file_url,
+    MultiDomainBasicAuth, PipSession, SafeFileCache, path_to_url,
+    unpack_file_url, unpack_http_url, url_to_path
 )
+from pip.exceptions import HashMismatch
 from pip.index import Link
 from pip.utils.hashes import Hashes
 
@@ -333,3 +332,14 @@ class TestPipSession:
         )
 
         assert not hasattr(session.adapters["https://example.com/"], "cache")
+
+
+def test_parse_credentials():
+    auth = MultiDomainBasicAuth()
+    assert auth.parse_credentials("foo:bar@example.com") == ('foo', 'bar')
+    assert auth.parse_credentials("foo@example.com") == ('foo', None)
+    assert auth.parse_credentials("example.com") == (None, None)
+
+    # URL-encoded reserved characters:
+    assert auth.parse_credentials("user%3Aname:%23%40%5E@example.com") \
+        == ("user:name", "#@^")

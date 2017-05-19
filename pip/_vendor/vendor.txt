@@ -7,7 +7,7 @@ colorama==0.3.7
 CacheControl==0.12.2
 msgpack-python==0.4.8
 lockfile==0.12.2
-progress==1.2
+progress==1.3
 ipaddress==1.0.18  # Only needed on 2.6 and 2.7
 packaging==16.8
 pyparsing==2.2.0
@@ -15,4 +15,4 @@ pytoml==0.1.12
 retrying==1.3.3
 requests==2.13.0
 setuptools==34.3.3
-webencodings==0.5
+webencodings==0.5.1

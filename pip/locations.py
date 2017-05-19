@@ -7,13 +7,11 @@ import platform
 import site
 import sys
 import sysconfig
-
 from distutils import sysconfig as distutils_sysconfig
-from distutils.command.install import install, SCHEME_KEYS  # noqa
+from distutils.command.install import SCHEME_KEYS, install  # noqa
 
 from pip.compat import WINDOWS, expanduser
 from pip.utils import appdirs
-
 
 # Application Directories
 USER_CACHE_DIR = appdirs.user_cache_dir("pip")
@@ -88,7 +86,12 @@ site_packages = sysconfig.get_path("purelib")
 # for more information.
 if platform.python_implementation().lower() == "pypy":
     site_packages = distutils_sysconfig.get_python_lib()
-user_site = site.USER_SITE
+try:
+    # Use getusersitepackages if this is present, as it ensures that the
+    # value is initialised properly.
+    user_site = site.getusersitepackages()
+except AttributeError:
+    user_site = site.USER_SITE
 user_dir = expanduser('~')
 if WINDOWS:
     bin_py = os.path.join(sys.prefix, 'Scripts')

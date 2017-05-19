@@ -1,18 +1,17 @@
 from __future__ import absolute_import
 
 import logging
-import tempfile
 import os.path
+import tempfile
+
+from pip._vendor.packaging.version import parse as parse_version
+from pip._vendor.six.moves.urllib import parse as urllib_parse
+from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip.compat import samefile
 from pip.exceptions import BadCommand
-from pip._vendor.six.moves.urllib import parse as urllib_parse
-from pip._vendor.six.moves.urllib import request as urllib_request
-from pip._vendor.packaging.version import parse as parse_version
-
 from pip.utils import display_path, rmtree
-from pip.vcs import vcs, VersionControl
-
+from pip.vcs import VersionControl, vcs
 
 urlsplit = urllib_parse.urlsplit
 urlunsplit = urllib_parse.urlunsplit
@@ -92,7 +91,8 @@ class Git(VersionControl):
             return [revisions[rev]]
         else:
             logger.warning(
-                "Could not find a tag or branch '%s', assuming commit.", rev,
+                "Could not find a tag or branch '%s', assuming commit or ref",
+                rev,
             )
             return rev_options
 
@@ -146,9 +146,14 @@ class Git(VersionControl):
                 # Only do a checkout if rev_options differs from HEAD
                 if not self.check_version(dest, rev_options):
                     self.run_command(
-                        ['checkout', '-q'] + rev_options,
+                        ['fetch', '-q', url] + rev_options,
                         cwd=dest,
                     )
+                    self.run_command(
+                        ['checkout', '-q', 'FETCH_HEAD'],
+                        cwd=dest,
+                    )
+
             #: repo may contain submodules
             self.update_submodules(dest)
 

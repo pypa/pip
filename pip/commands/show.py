@@ -1,14 +1,14 @@
 from __future__ import absolute_import
 
-from email.parser import FeedParser
 import logging
 import os
+from email.parser import FeedParser
 
-from pip.basecommand import Command
-from pip.status_codes import SUCCESS, ERROR
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.utils import canonicalize_name
 
+from pip.basecommand import Command
+from pip.status_codes import ERROR, SUCCESS
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +19,7 @@ class ShowCommand(Command):
     usage = """
       %prog [options] <package> ..."""
     summary = 'Show information about installed packages.'
+    ignore_require_venv = True
 
     def __init__(self, *args, **kw):
         super(ShowCommand, self).__init__(*args, **kw)

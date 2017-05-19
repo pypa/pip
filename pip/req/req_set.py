@@ -1,24 +1,26 @@
 from __future__ import absolute_import
 
-from collections import defaultdict
-from itertools import chain
 import logging
 import os
+from collections import defaultdict
+from itertools import chain
 
-from pip._vendor import pkg_resources
-from pip._vendor import requests
+from pip._vendor import pkg_resources, requests
 
 from pip.compat import expanduser
-from pip.download import (is_file_url, is_dir_url, is_vcs_url, url_to_path,
-                          unpack_url)
-from pip.exceptions import (InstallationError, BestVersionAlreadyInstalled,
-                            DistributionNotFound, PreviousBuildDirError,
-                            HashError, HashErrors, HashUnpinned,
-                            DirectoryUrlHashUnsupported, VcsHashUnsupported,
-                            UnsupportedPythonVersion)
+from pip.download import (
+    is_dir_url, is_file_url, is_vcs_url, unpack_url, url_to_path
+)
+from pip.exceptions import (
+    BestVersionAlreadyInstalled, DirectoryUrlHashUnsupported,
+    DistributionNotFound, HashError, HashErrors, HashUnpinned,
+    InstallationError, PreviousBuildDirError, UnsupportedPythonVersion,
+    VcsHashUnsupported
+)
 from pip.req.req_install import InstallRequirement
 from pip.utils import (
-    display_path, dist_in_usersite, ensure_dir, normalize_path)
+    display_path, dist_in_usersite, ensure_dir, normalize_path
+)
 from pip.utils.hashes import MissingHashes
 from pip.utils.logging import indent_log
 from pip.utils.packaging import check_dist_requires_python
@@ -337,13 +339,6 @@ class RequirementSet(object):
             if name in self.requirement_aliases:
                 return self.requirements[self.requirement_aliases[name]]
         raise KeyError("No project with the name %r" % project_name)
-
-    def uninstall(self, auto_confirm=False):
-        for req in self.requirements.values():
-            if req.constraint:
-                continue
-            req.uninstall(auto_confirm=auto_confirm)
-            req.uninstalled_pathset.commit()
 
     def prepare_files(self, finder):
         """

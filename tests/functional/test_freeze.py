@@ -1,12 +1,11 @@
-import sys
 import os
 import re
+import sys
 import textwrap
+from doctest import ELLIPSIS, OutputChecker
+
 import pytest
-from doctest import OutputChecker, ELLIPSIS
-
 from tests.lib import _create_test_package, _create_test_package_with_srcdir
-
 
 distribute_re = re.compile('^distribute==[0-9.]+\n', re.MULTILINE)
 

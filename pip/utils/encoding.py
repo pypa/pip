@@ -2,7 +2,6 @@ import codecs
 import locale
 import re
 
-
 BOMS = [
     (codecs.BOM_UTF8, 'utf8'),
     (codecs.BOM_UTF16, 'utf16'),
