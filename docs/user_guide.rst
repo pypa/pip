@@ -486,9 +486,9 @@ strategies supported:
   the new parent requirements
 - ``only-if-needed``: upgrades a dependency only if it does not satisfy the new
   parent requirements
- 
-Currently, the default strategy is ``eager``, which was the strategy prior to 
-the ``--upgrade-strategy`` option being added.
+
+The default strategy is ``only-if-needed``. This was changed in pip 10.0 due to
+the breaking nature of ``eager`` when upgrading conflicting dependencies.
 
 As an historic note, an earlier "fix" for getting the ``only-if-needed``
 behaviour was::

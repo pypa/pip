@@ -116,7 +116,7 @@ class InstallCommand(RequirementCommand):
         cmd_opts.add_option(
             '--upgrade-strategy',
             dest='upgrade_strategy',
-            default='eager',
+            default='only-if-needed',
             choices=['only-if-needed', 'eager'],
             help='Determines how dependency upgrading should be handled '
                  '(default: %(default)s). '
