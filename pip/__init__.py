@@ -21,6 +21,25 @@ import re
 from pip._vendor.requests.packages.urllib3.exceptions import DependencyWarning
 warnings.filterwarnings("ignore", category=DependencyWarning)  # noqa
 
+# We want to inject the use of SecureTransport as early as possible so that any
+# references or sessions or what have you are ensured to have it, however we
+# only want to do this in the case that we're running on macOS and the linked
+# OpenSSL is too old to handle TLSv1.2
+try:
+    import ssl
+except ImportError:
+    pass
+else:
+    if (sys.platform == "darwin" and
+            ssl.OPENSSL_VERSION_NUMBER < 0x1000100f):  # OpenSSL 1.0.1
+        try:
+            from pip._vendor.requests.packages.urllib3.contrib import (
+                securetransport,
+            )
+        except (ImportError, OSError):
+            pass
+        else:
+            securetransport.inject_into_urllib3()
 
 from pip.exceptions import InstallationError, CommandError, PipError
 from pip.utils import get_installed_distributions, get_prog
