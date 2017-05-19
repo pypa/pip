@@ -314,6 +314,23 @@ class RequirementCommand(Command):
                     'You must give at least one requirement to %(name)s '
                     '(see "pip help %(name)s")' % opts)
 
+        # On Windows, any operation modifying pip should be run as:
+        #     python -m pip ...
+        # See https://github.com/pypa/pip/issues/1299 for more discussion
+        should_show_use_python_msg = (
+            sys.platform == 'win32' and
+            requirement_set.has_requirement('pip') and
+            "pip" in os.path.basename(sys.argv[0])
+        )
+        if should_show_use_python_msg:
+            new_command = [
+                sys.executable, "-m", "pip"
+            ] + sys.argv[1:]
+            raise CommandError(
+                'To modify pip, please run the following command:\n{}'
+                .format(" ".join(new_command))
+            )
+
     def _build_package_finder(self, options, session,
                               platform=None, python_versions=None,
                               abi=None, implementation=None):
