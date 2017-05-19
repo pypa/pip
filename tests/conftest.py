@@ -1,16 +1,12 @@
-import io
 import os
 import shutil
-import sys
 
 import pytest
 
-import six
-
-import pip
 from pip.utils import appdirs
 
 from tests.lib import SRC_DIR, TestData
+from tests.lib.in_memory import InMemoryPip
 from tests.lib.path import Path
 from tests.lib.scripttest import PipTestEnvironment
 from tests.lib.venv import VirtualEnvironment
@@ -193,29 +189,6 @@ def data(tmpdir):
     return TestData.copy(tmpdir.join("data"))
 
 
-class InMemoryPipResult(object):
-    def __init__(self, returncode, stdout):
-        self.returncode = returncode
-        self.stdout = stdout
-
-
-class InMemoryPip(object):
-    def pip(self, *args):
-        orig_stdout = sys.stdout
-        if six.PY3:
-            stdout = io.StringIO()
-        else:
-            stdout = io.BytesIO()
-        sys.stdout = stdout
-        try:
-            returncode = pip.main(list(args))
-        except SystemExit as e:
-            returncode = e.code or 0
-        finally:
-            sys.stdout = orig_stdout
-        return InMemoryPipResult(returncode, stdout.getvalue())
-
-
 @pytest.fixture
-def in_memory_pip():
+def in_memory():
     return InMemoryPip()

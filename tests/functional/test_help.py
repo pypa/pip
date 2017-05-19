@@ -65,12 +65,12 @@ def test_help_command_should_exit_status_error_when_cmd_does_not_exist(script):
     assert result.returncode == ERROR
 
 
-def test_help_commands_equally_functional(in_memory_pip):
+def test_help_commands_equally_functional(in_memory):
     """
     Test if `pip help` and 'pip --help' behave the same way.
     """
-    results = list(map(in_memory_pip.pip, ('help', '--help')))
-    results.append(in_memory_pip.pip())
+    results = list(map(in_memory.pip, ('help', '--help')))
+    results.append(in_memory.pip())
 
     out = map(lambda x: x.stdout, results)
     ret = map(lambda x: x.returncode, results)
@@ -85,6 +85,6 @@ def test_help_commands_equally_functional(in_memory_pip):
             continue
 
         assert (
-            in_memory_pip.pip('help', name).stdout ==
-            in_memory_pip.pip(name, '--help').stdout != ""
+            in_memory.pip('help', name).stdout ==
+            in_memory.pip(name, '--help').stdout != ""
         )
