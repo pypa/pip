@@ -18,6 +18,11 @@ def pytest_collection_modifyitems(items):
     for item in items:
         if not hasattr(item, 'module'):  # e.g.: DoctestTextfile
             continue
+
+        # Mark network tests as flaky
+        if item.get_marker('network') is not None:
+            item.add_marker(pytest.mark.flaky(reruns=3))
+
         module_path = os.path.relpath(
             item.module.__file__,
             os.path.commonprefix([__file__, item.module.__file__]),
