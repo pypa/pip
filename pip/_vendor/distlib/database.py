@@ -257,7 +257,7 @@ class DistributionPath(object):
         :type version: string
         """
         matcher = None
-        if not version is None:
+        if version is not None:
             try:
                 matcher = self._scheme.matcher('%s (%s)' % (name, version))
             except ValueError:
