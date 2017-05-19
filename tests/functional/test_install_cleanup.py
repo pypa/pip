@@ -29,7 +29,7 @@ def test_no_clean_option_blocks_cleaning_after_install(script, data):
     build = script.base_path / 'pip-build'
     script.pip(
         'install', '--no-clean', '--no-index', '--build', build,
-        '--find-links=%s' % data.find_links, 'simple',
+        '--find-links=%s' % data.find_links, 'simple', expect_temp=True,
     )
     assert exists(build)
 
