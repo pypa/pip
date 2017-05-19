@@ -20,11 +20,6 @@ import warnings
 from base64 import urlsafe_b64encode
 from email.parser import Parser
 
-from pip._vendor import pkg_resources
-from pip._vendor.distlib.scripts import ScriptMaker
-from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.six import StringIO
-
 import pip
 from pip import pep425tags
 from pip.compat import expanduser
@@ -43,6 +38,7 @@ from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor import pytoml
+from pip._vendor.six import StringIO
 
 from sysconfig import get_paths
 
@@ -192,6 +188,7 @@ def fix_script(path):
             script.write(firstline)
             script.write(rest)
         return True
+
 
 dist_info_re = re.compile(r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>.+?))?)
                                 \.dist-info$""", re.VERBOSE)
