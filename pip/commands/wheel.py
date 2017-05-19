@@ -146,35 +146,35 @@ class WheelCommand(RequirementCommand):
                     require_hashes=options.require_hashes,
                 )
 
-                self.populate_requirement_set(
-                    requirement_set, args, options, finder, session, self.name,
-                    wheel_cache
-                )
-
-                preparer = RequirementPreparer(
-                    build_dir=directory.path,
-                    src_dir=options.src_dir,
-                    download_dir=None,
-                    wheel_download_dir=options.wheel_dir,
-                    progress_bar=options.progress_bar,
-                )
-
-                resolver = Resolver(
-                    preparer=preparer,
-                    finder=finder,
-                    session=session,
-                    wheel_cache=wheel_cache,
-                    use_user_site=False,
-                    upgrade_strategy="to-satisfy-only",
-                    force_reinstall=False,
-                    ignore_dependencies=options.ignore_dependencies,
-                    ignore_requires_python=options.ignore_requires_python,
-                    ignore_installed=True,
-                    isolated=options.isolated_mode,
-                )
-                resolver.resolve(requirement_set)
-
                 try:
+                    self.populate_requirement_set(
+                        requirement_set, args, options, finder, session,
+                        self.name, wheel_cache
+                    )
+
+                    preparer = RequirementPreparer(
+                        build_dir=directory.path,
+                        src_dir=options.src_dir,
+                        download_dir=None,
+                        wheel_download_dir=options.wheel_dir,
+                        progress_bar=options.progress_bar,
+                    )
+
+                    resolver = Resolver(
+                        preparer=preparer,
+                        finder=finder,
+                        session=session,
+                        wheel_cache=wheel_cache,
+                        use_user_site=False,
+                        upgrade_strategy="to-satisfy-only",
+                        force_reinstall=False,
+                        ignore_dependencies=options.ignore_dependencies,
+                        ignore_requires_python=options.ignore_requires_python,
+                        ignore_installed=True,
+                        isolated=options.isolated_mode,
+                    )
+                    resolver.resolve(requirement_set)
+
                     # build wheels
                     wb = WheelBuilder(
                         requirement_set,
