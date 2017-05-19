@@ -4,14 +4,13 @@ from __future__ import absolute_import
 import logging
 import os
 
+from pip import cmdoptions
 from pip.basecommand import RequirementCommand
 from pip.exceptions import CommandError, PreviousBuildDirError
 from pip.req import RequirementSet
 from pip.utils import import_or_raise
 from pip.utils.temp_dir import TempDirectory
-from pip.wheel import WheelCache, WheelBuilder
-from pip import cmdoptions
-
+from pip.wheel import WheelBuilder, WheelCache
 
 logger = logging.getLogger(__name__)
 

@@ -1,11 +1,10 @@
 import os
-import pytest
-
 from os.path import exists
 
-from tests.lib.local_repos import local_checkout
+import pytest
 from pip.locations import write_delete_marker_file
 from pip.status_codes import PREVIOUS_BUILD_DIR_ERROR
+from tests.lib.local_repos import local_checkout
 
 
 def test_cleanup_after_install(script, data):

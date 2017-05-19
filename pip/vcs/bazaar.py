@@ -9,10 +9,10 @@ try:
 except ImportError:
     import urlparse as urllib_parse
 
-from pip.utils import rmtree, display_path
-from pip.utils.temp_dir import TempDirectory
-from pip.vcs import vcs, VersionControl
 from pip.download import path_to_url
+from pip.utils import display_path, rmtree
+from pip.utils.temp_dir import TempDirectory
+from pip.vcs import VersionControl, vcs
 
 
 logger = logging.getLogger(__name__)

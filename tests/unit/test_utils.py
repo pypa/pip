@@ -5,26 +5,29 @@ util tests
 
 """
 import os
+import shutil
 import stat
 import sys
-import time
-import shutil
 import tempfile
+import time
 import warnings
 
-import pytest
+from pip._vendor.six import BytesIO
 
+import pytest
 from mock import Mock, patch
-from pip.exceptions import (HashMismatch, HashMissing, InstallationError,
-                            UnsupportedPythonVersion)
-from pip.utils import (egg_link_path, get_installed_distributions,
-                       untar_file, unzip_file, rmtree, normalize_path)
+from pip.exceptions import (
+    HashMismatch, HashMissing, InstallationError, UnsupportedPythonVersion
+)
+from pip.utils import (
+    egg_link_path, get_installed_distributions, normalize_path, rmtree,
+    untar_file, unzip_file
+)
 from pip.utils.temp_dir import TempDirectory
 from pip.utils.encoding import auto_decode
-from pip.utils.hashes import Hashes, MissingHashes
 from pip.utils.glibc import check_glibc_version
+from pip.utils.hashes import Hashes, MissingHashes
 from pip.utils.packaging import check_dist_requires_python
-from pip._vendor.six import BytesIO
 
 
 class Tests_EgglinkPath:

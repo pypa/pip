@@ -5,15 +5,16 @@ from __future__ import absolute_import
 
 import glob
 import os
-import sys
 import shutil
+import sys
+
+from pip._vendor import six
 
 try:
     from os import supports_fd
 except ImportError:
     supports_fd = set()
 
-from pip._vendor import six
 
 
 _base = six.text_type if os.path.supports_unicode_filenames else str

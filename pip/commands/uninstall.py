@@ -2,9 +2,9 @@ from __future__ import absolute_import
 
 from pip._vendor.packaging.utils import canonicalize_name
 
-from pip.req import InstallRequirement, parse_requirements
 from pip.basecommand import Command
 from pip.exceptions import InstallationError
+from pip.req import InstallRequirement, parse_requirements
 
 
 class UninstallCommand(Command):

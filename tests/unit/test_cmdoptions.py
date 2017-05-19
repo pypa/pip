@@ -1,6 +1,6 @@
 import pip
-from pip.basecommand import Command
 from pip import cmdoptions
+from pip.basecommand import Command
 
 
 class SimpleCommand(Command):

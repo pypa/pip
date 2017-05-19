@@ -1,18 +1,17 @@
-import pytest
 import sys
 
-import pip.wheel
+from pkg_resources import Distribution, parse_version
+
 import pip.pep425tags
-
-from pkg_resources import parse_version, Distribution
-from pip.req import InstallRequirement
-from pip.index import (
-    InstallationCandidate, PackageFinder, Link, FormatControl,
-    fmt_ctl_formats)
-from pip.exceptions import BestVersionAlreadyInstalled, DistributionNotFound
-from pip.download import PipSession
-
+import pip.wheel
+import pytest
 from mock import Mock, patch
+from pip.download import PipSession
+from pip.exceptions import BestVersionAlreadyInstalled, DistributionNotFound
+from pip.index import (
+    FormatControl, InstallationCandidate, Link, PackageFinder, fmt_ctl_formats
+)
+from pip.req import InstallRequirement
 
 
 def test_no_mpkg(data):

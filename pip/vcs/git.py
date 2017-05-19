@@ -3,16 +3,15 @@ from __future__ import absolute_import
 import logging
 import os.path
 
-from pip.compat import samefile
-from pip.exceptions import BadCommand
+from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
-from pip._vendor.packaging.version import parse as parse_version
 
+from pip.compat import samefile
+from pip.exceptions import BadCommand
 from pip.utils import display_path
 from pip.utils.temp_dir import TempDirectory
-from pip.vcs import vcs, VersionControl
-
+from pip.vcs import VersionControl, vcs
 
 urlsplit = urllib_parse.urlsplit
 urlunsplit = urllib_parse.urlunsplit

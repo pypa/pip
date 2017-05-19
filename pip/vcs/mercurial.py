@@ -3,12 +3,12 @@ from __future__ import absolute_import
 import logging
 import os
 
+from pip._vendor.six.moves import configparser
+
+from pip.download import path_to_url
 from pip.utils import display_path
 from pip.utils.temp_dir import TempDirectory
 from pip.vcs import vcs, VersionControl
-from pip.download import path_to_url
-from pip._vendor.six.moves import configparser
-
 
 logger = logging.getLogger(__name__)
 

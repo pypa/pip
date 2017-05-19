@@ -3,7 +3,6 @@ Tests for the proxy support in pip.
 """
 
 import pip
-
 from tests.lib import SRC_DIR
 from tests.lib.path import Path
 

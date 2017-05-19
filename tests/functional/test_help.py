@@ -1,10 +1,9 @@
 import pytest
-
-from pip.exceptions import CommandError
-from pip.basecommand import ERROR, SUCCESS
-from pip.commands.help import HelpCommand
-from pip.commands import commands_dict as commands
 from mock import Mock
+from pip.basecommand import ERROR, SUCCESS
+from pip.commands import commands_dict as commands
+from pip.commands.help import HelpCommand
+from pip.exceptions import CommandError
 
 
 def test_run_method_should_return_success_when_finds_command_name():

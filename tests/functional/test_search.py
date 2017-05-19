@@ -1,11 +1,9 @@
 import pytest
-from pip.commands.search import (highest_version,
-                                 print_results,
-                                 transform_hits,
-                                 SearchCommand)
+from pip.commands.search import (
+    SearchCommand, highest_version, print_results, transform_hits
+)
 from pip.status_codes import NO_MATCHES_FOUND, SUCCESS
 from tests.lib import pyversion
-
 
 if pyversion >= '3':
     VERBOSE_FALSE = False

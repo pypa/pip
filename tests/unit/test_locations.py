@@ -2,14 +2,13 @@
 locations.py tests
 
 """
-import os
-import sys
-import shutil
-import tempfile
 import getpass
+import os
+import shutil
+import sys
+import tempfile
 
 from mock import Mock
-
 from pip.locations import distutils_scheme
 
 if sys.platform == 'win32':

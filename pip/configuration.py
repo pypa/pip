@@ -1,17 +1,17 @@
 """Configuration management setup
 """
 
-import re
 import os
+import re
 import sys
 
 from pip._vendor.six.moves import configparser
+
 from pip.locations import (
-    legacy_config_file, config_basename, running_under_virtualenv,
+    config_basename, legacy_config_file, running_under_virtualenv,
     site_config_files
 )
 from pip.utils import appdirs
-
 
 _environ_prefix_re = re.compile(r"^PIP_", re.I)
 

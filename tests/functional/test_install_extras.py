@@ -1,6 +1,7 @@
 import textwrap
-import pytest
 from os.path import join
+
+import pytest
 
 
 @pytest.mark.network

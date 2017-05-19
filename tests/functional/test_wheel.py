@@ -1,9 +1,8 @@
 """'pip wheel' tests"""
 import os
-import pytest
-
 from os.path import exists
 
+import pytest
 from pip.locations import write_delete_marker_file
 from pip.status_codes import ERROR, PREVIOUS_BUILD_DIR_ERROR
 from tests.lib import pyversion

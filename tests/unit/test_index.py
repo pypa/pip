@@ -1,9 +1,8 @@
 import os.path
-import pytest
 
+import pytest
 from pip.download import PipSession
-from pip.index import HTMLPage
-from pip.index import PackageFinder, Link
+from pip.index import HTMLPage, Link, PackageFinder
 
 
 def test_sort_locations_file_expand_dir(data):
