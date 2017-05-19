@@ -486,8 +486,8 @@ class TestTempDirectory(object):
                     os.path.dirname(tmp_dir.path) ==
                     os.path.dirname(alt_tmp_dir)
                 )
-            os.rmdir(alt_tmp_dir)
-            assert not os.path.exists(alt_tmp_dir)
+            os.rmdir(tmp_dir.path)
+            assert not os.path.exists(tmp_dir.path)
 
 
 class TestGlibc(object):

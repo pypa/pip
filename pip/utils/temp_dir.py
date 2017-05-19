@@ -41,4 +41,5 @@ class TempDirectory(object):
             self.cleanup()
 
     def cleanup(self):
-        rmtree(self.path)
+        if os.path.exists(self.path):
+            rmtree(self.path)
