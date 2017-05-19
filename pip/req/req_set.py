@@ -719,6 +719,9 @@ class RequirementSet(object):
             for req in self.reqs_to_cleanup:
                 req.remove_temporary_source()
 
+            if self._wheel_cache:
+                self._wheel_cache.cleanup()
+
     def _to_install(self):
         """Create the installation order.
 
