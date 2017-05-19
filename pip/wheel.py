@@ -62,7 +62,7 @@ class WheelCache(object):
         """
         self._cache_dir = expanduser(cache_dir) if cache_dir else None
         # Ephemeral cache: store wheels just for this run
-        self._ephem_cache_dir = tempfile.mkdtemp()
+        self._ephem_cache_dir = tempfile.mkdtemp(suffix='-pip-ephem-cache')
         self._format_control = format_control
 
     def cached_wheel(self, link, package_name):
