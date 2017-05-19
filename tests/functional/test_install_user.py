@@ -79,12 +79,12 @@ class Tests_UserSite:
             expect_error=False,
         )
         fspkg_folder = script.user_site / 'fspkg'
-        egg_info_folder = (
-            script.user_site / 'FSPkg-0.1.dev0-py%s.egg-info' % pyversion
+        dist_info_folder = (
+            script.user_site / 'FSPkg-0.1.dev0.dist-info' % pyversion
         )
         assert fspkg_folder in result.files_created, result.stdout
 
-        assert egg_info_folder in result.files_created
+        assert dist_info_folder in result.files_created
 
     def test_install_user_venv_nositepkgs_fails(self, script, data):
         """
