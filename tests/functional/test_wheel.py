@@ -189,7 +189,7 @@ def test_pip_wheel_fail_cause_of_previous_build_dir(script, data):
     result = script.pip(
         'wheel', '--no-index', '--find-links=%s' % data.find_links,
         '--build', script.venv_path / 'build',
-        'simple==3.0', expect_error=True,
+        'simple==3.0', expect_error=True, expect_temp=True,
     )
 
     # Then I see that the error code is the right one
