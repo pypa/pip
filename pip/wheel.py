@@ -4,6 +4,7 @@ Support for installing and building the "wheel" binary package format.
 from __future__ import absolute_import
 
 import compileall
+import copy
 import csv
 import errno
 import hashlib
@@ -19,11 +20,6 @@ import warnings
 from base64 import urlsafe_b64encode
 from email.parser import Parser
 
-from pip._vendor import pkg_resources
-from pip._vendor.distlib.scripts import ScriptMaker
-from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.six import StringIO
-
 import pip
 from pip import pep425tags
 from pip.compat import expanduser
@@ -38,6 +34,13 @@ from pip.utils import (
 from pip.utils.logging import indent_log
 from pip.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip.utils.ui import open_spinner
+from pip._vendor.distlib.scripts import ScriptMaker
+from pip._vendor import pkg_resources
+from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor import pytoml
+from pip._vendor.six import StringIO
+
+from sysconfig import get_paths
 
 wheel_ext = '.whl'
 
@@ -185,6 +188,7 @@ def fix_script(path):
             script.write(firstline)
             script.write(rest)
         return True
+
 
 dist_info_re = re.compile(r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>.+?))?)
                                 \.dist-info$""", re.VERBOSE)
@@ -630,26 +634,128 @@ class Wheel(object):
         return bool(set(tags).intersection(self.file_tags))
 
 
+class BuildEnvironment(object):
+    """Context manager to install build deps in a simple temporary environment
+    """
+    def __init__(self, no_clean=False):
+        self.prefix = tempfile.mkdtemp('pip-build-env-')
+        self.no_clean = no_clean
+
+    def __enter__(self):
+        self.save_path = os.environ.get('PATH', None)
+        self.save_pythonpath = os.environ.get('PYTHONPATH', None)
+
+        install_scheme = 'nt' if (os.name == 'nt') else 'posix_prefix'
+        install_dirs = get_paths(install_scheme, vars={
+            'base': self.prefix,
+            'platbase': self.prefix,
+        })
+
+        scripts = install_dirs['scripts']
+        if self.save_path:
+            os.environ['PATH'] = scripts + os.pathsep + self.save_path
+        else:
+            os.environ['PATH'] = scripts + os.pathsep + os.defpath
+
+        if install_dirs['purelib'] == install_dirs['platlib']:
+            lib_dirs = install_dirs['purelib']
+        else:
+            lib_dirs = install_dirs['purelib'] + os.pathsep + \
+                install_dirs['platlib']
+        if self.save_pythonpath:
+            os.environ['PYTHONPATH'] = lib_dirs + os.pathsep + \
+                self.save_pythonpath
+        else:
+            os.environ['PYTHONPATH'] = lib_dirs
+
+        return self.prefix
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.save_path is None:
+            os.environ.pop('PATH', None)
+        else:
+            os.environ['PATH'] = self.save_path
+
+        if self.save_pythonpath is None:
+            os.environ.pop('PYTHONPATH', None)
+        else:
+            os.environ['PYTHONPATH'] = self.save_pythonpath
+
+        if not self.no_clean:
+            rmtree(self.prefix)
+
+
 class WheelBuilder(object):
     """Build wheels from a RequirementSet."""
 
     def __init__(self, requirement_set, finder, build_options=None,
-                 global_options=None):
+                 global_options=None, no_clean=False):
         self.requirement_set = requirement_set
         self.finder = finder
         self._cache_root = requirement_set._wheel_cache._cache_dir
         self._wheel_dir = requirement_set.wheel_download_dir
         self.build_options = build_options or []
         self.global_options = global_options or []
+        self.no_clean = no_clean
+
+    def _find_build_reqs(self, req):
+        """Get a list of the packages required to build the project, if any,
+        and a flag indicating whether pyproject.toml is present, indicating
+        that the build should be isolated.
+
+        Build requirements can be specified in a pyproject.toml, as described
+        in PEP 518. If this file exists but doesn't specify build
+        requirements, pip will default to installing setuptools and wheel.
+        """
+        if os.path.isfile(req.pyproject_toml):
+            with open(req.pyproject_toml) as f:
+                pp_toml = pytoml.load(f)
+            return pp_toml.get('build-system', {})\
+                .get('requires', ['setuptools', 'wheel']), True
+
+        return ['setuptools', 'wheel'], False
+
+    def _install_build_reqs(self, reqs, prefix):
+        # Local import to avoid circular import (wheel <-> req_install)
+        from pip.req.req_install import InstallRequirement
+        from pip.index import FormatControl
+        # Ignore the --no-binary option when installing the build system, so
+        # we don't recurse trying to build a self-hosting build system.
+        finder = copy.copy(self.finder)
+        finder.format_control = FormatControl(set(), set())
+        urls = [finder.find_requirement(InstallRequirement.from_line(r),
+                                        upgrade=False).url
+                for r in reqs]
+
+        args = [sys.executable, '-m', 'pip', 'install', '--ignore-installed',
+                '--prefix', prefix] + list(urls)
+        with open_spinner("Installing build dependencies") as spinner:
+            call_subprocess(args, show_stdout=False, spinner=spinner)
 
     def _build_one(self, req, output_dir, python_tag=None):
         """Build one wheel.
 
         :return: The filename of the built wheel, or None if the build failed.
         """
+        build_reqs, isolate = self._find_build_reqs(req)
+        if 'setuptools' not in build_reqs:
+            logger.warning(
+                "This version of pip does not implement PEP 516, so "
+                "it cannot build a wheel without setuptools. You may need to "
+                "upgrade to a newer version of pip.")
+        # Install build deps into temporary prefix (PEP 518)
+        with BuildEnvironment(no_clean=self.no_clean) as prefix:
+            self._install_build_reqs(build_reqs, prefix)
+            return self._build_one_inside_env(req, output_dir,
+                                              python_tag=python_tag,
+                                              isolate=True)
+
+    def _build_one_inside_env(self, req, output_dir, python_tag=None,
+                              isolate=False):
         tempd = tempfile.mkdtemp('pip-wheel-')
         try:
-            if self.__build_one(req, tempd, python_tag=python_tag):
+            if self.__build_one(req, tempd, python_tag=python_tag,
+                                isolate=isolate):
                 try:
                     wheel_name = os.listdir(tempd)[0]
                     wheel_path = os.path.join(output_dir, wheel_name)
@@ -664,14 +770,20 @@ class WheelBuilder(object):
         finally:
             rmtree(tempd)
 
-    def _base_setup_args(self, req):
+    def _base_setup_args(self, req, isolate=False):
+        flags = '-u'
+        # The -S flag currently breaks Python in virtualenvs, because it relies
+        # on site.py to find parts of the standard library outside the env. So
+        # isolation is disabled for now.
+        # if isolate:
+        #     flags += 'S'
         return [
-            sys.executable, "-u", '-c',
+            sys.executable, flags, '-c',
             SETUPTOOLS_SHIM % req.setup_py
         ] + list(self.global_options)
 
-    def __build_one(self, req, tempd, python_tag=None):
-        base_args = self._base_setup_args(req)
+    def __build_one(self, req, tempd, python_tag=None, isolate=False):
+        base_args = self._base_setup_args(req, isolate=isolate)
 
         spin_message = 'Running setup.py bdist_wheel for %s' % (req.name,)
         with open_spinner(spin_message) as spinner:
@@ -682,8 +794,13 @@ class WheelBuilder(object):
             if python_tag is not None:
                 wheel_args += ["--python-tag", python_tag]
 
+            env = {}
+            if isolate:
+                env['PYTHONNOUSERSITE'] = '1'
+
             try:
                 call_subprocess(wheel_args, cwd=req.setup_py_dir,
+                                extra_environ=env,
                                 show_stdout=False, spinner=spinner)
                 return True
             except:

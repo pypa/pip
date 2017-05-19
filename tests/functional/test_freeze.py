@@ -494,13 +494,17 @@ def test_freeze_with_requirement_option_multiple(script):
     assert result.stdout.count("--index-url http://ignore") == 1
 
 
-def test_freeze_user(script, virtualenv):
+@pytest.mark.network
+def test_freeze_user(script, virtualenv, data):
     """
     Testing freeze with --user, first we have to install some stuff.
     """
+    script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
     virtualenv.system_site_packages = True
-    script.pip_install_local('--user', 'simple==2.0')
-    script.pip_install_local('simple2==3.0')
+    script.pip_install_local('--find-links', data.find_links,
+                             '--user', 'simple==2.0')
+    script.pip_install_local('--find-links', data.find_links,
+                             'simple2==3.0')
     result = script.pip('freeze', '--user', expect_stderr=True)
     expected = textwrap.dedent("""\
         simple==2.0

@@ -427,6 +427,18 @@ class InstallRequirement(object):
 
         return setup_py
 
+    @property
+    def pyproject_toml(self):
+        assert self.source_dir, "No source dir for %s" % self
+
+        pp_toml = os.path.join(self.setup_py_dir, 'pyproject.toml')
+
+        # Python2 __file__ should not be unicode
+        if six.PY2 and isinstance(pp_toml, six.text_type):
+            pp_toml = pp_toml.encode(sys.getfilesystemencoding())
+
+        return pp_toml
+
     def run_egg_info(self):
         assert self.source_dir
         if self.name:
