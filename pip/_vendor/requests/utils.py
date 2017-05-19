@@ -11,8 +11,10 @@ that are also useful for external consumption.
 import cgi
 import codecs
 import collections
+import contextlib
 import io
 import os
+import platform
 import re
 import socket
 import struct
@@ -25,17 +27,64 @@ from ._internal_utils import to_native_string
 from .compat import parse_http_list as _parse_list_header
 from .compat import (
     quote, urlparse, bytes, str, OrderedDict, unquote, getproxies,
-    proxy_bypass, urlunparse, basestring, integer_types)
-from .cookies import RequestsCookieJar, cookiejar_from_dict
+    proxy_bypass, urlunparse, basestring, integer_types, is_py3,
+    proxy_bypass_environment, getproxies_environment)
+from .cookies import cookiejar_from_dict
 from .structures import CaseInsensitiveDict
 from .exceptions import (
     InvalidURL, InvalidHeader, FileModeWarning, UnrewindableBodyError)
 
-_hush_pyflakes = (RequestsCookieJar,)
-
 NETRC_FILES = ('.netrc', '_netrc')
 
 DEFAULT_CA_BUNDLE_PATH = certs.where()
+
+
+if platform.system() == 'Windows':
+    # provide a proxy_bypass version on Windows without DNS lookups
+
+    def proxy_bypass_registry(host):
+        if is_py3:
+            import winreg
+        else:
+            import _winreg as winreg
+        try:
+            internetSettings = winreg.OpenKey(winreg.HKEY_CURRENT_USER,
+                r'Software\Microsoft\Windows\CurrentVersion\Internet Settings')
+            proxyEnable = winreg.QueryValueEx(internetSettings,
+                                              'ProxyEnable')[0]
+            proxyOverride = winreg.QueryValueEx(internetSettings,
+                                                'ProxyOverride')[0]
+        except OSError:
+            return False
+        if not proxyEnable or not proxyOverride:
+            return False
+
+        # make a check value list from the registry entry: replace the
+        # '<local>' string by the localhost entry and the corresponding
+        # canonical entry.
+        proxyOverride = proxyOverride.split(';')
+        # now check if we match one of the registry values.
+        for test in proxyOverride:
+            if test == '<local>':
+                if '.' not in host:
+                    return True
+            test = test.replace(".", r"\.")     # mask dots
+            test = test.replace("*", r".*")     # change glob sequence
+            test = test.replace("?", r".")      # change glob char
+            if re.match(test, host, re.I):
+                return True
+        return False
+
+    def proxy_bypass(host):  # noqa
+        """Return True, if the host should be bypassed.
+
+        Checks proxy settings gathered from the environment, if specified,
+        or the registry.
+        """
+        if getproxies_environment():
+            return proxy_bypass_environment(host)
+        else:
+            return proxy_bypass_registry(host)
 
 
 def dict_to_sequence(d):
@@ -91,14 +140,16 @@ def super_len(o):
         else:
             if hasattr(o, 'seek') and total_length is None:
                 # StringIO and BytesIO have seek but no useable fileno
+                try:
+                    # seek to end of file
+                    o.seek(0, 2)
+                    total_length = o.tell()
 
-                # seek to end of file
-                o.seek(0, 2)
-                total_length = o.tell()
-
-                # seek back to current position to support
-                # partially read file-like objects
-                o.seek(current_position or 0)
+                    # seek back to current position to support
+                    # partially read file-like objects
+                    o.seek(current_position or 0)
+                except (OSError, IOError):
+                    total_length = 0
 
     if total_length is None:
         total_length = 0
@@ -494,7 +545,7 @@ def requote_uri(uri):
 
 
 def address_in_network(ip, net):
-    """This function allows you to check if on IP belongs to a network subnet
+    """This function allows you to check if an IP belongs to a network subnet
 
     Example: returns True if ip = 192.168.1.1 and net = 192.168.1.0/24
              returns False if ip = 192.168.1.1 and net = 192.168.100.0/24
@@ -554,7 +605,29 @@ def is_valid_cidr(string_network):
     return True
 
 
-def should_bypass_proxies(url):
+@contextlib.contextmanager
+def set_environ(env_name, value):
+    """Set the environment variable 'env_name' to 'value'
+
+    Save previous value, yield, and then restore the previous value stored in
+    the environment variable 'env_name'.
+
+    If 'value' is None, do nothing"""
+    if value is not None:
+        old_value = os.environ.get(env_name)
+        os.environ[env_name] = value
+    try:
+        yield
+    finally:
+        if value is None:
+            return
+        if old_value is None:
+            del os.environ[env_name]
+        else:
+            os.environ[env_name] = old_value
+
+
+def should_bypass_proxies(url, no_proxy):
     """
     Returns whether we should bypass proxies or not.
 
@@ -564,7 +637,9 @@ def should_bypass_proxies(url):
 
     # First check whether no_proxy is defined. If it is, check that the URL
     # we're getting isn't in the no_proxy list.
-    no_proxy = get_proxy('no_proxy')
+    no_proxy_arg = no_proxy
+    if no_proxy is None:
+        no_proxy = get_proxy('no_proxy')
     netloc = urlparse(url).netloc
 
     if no_proxy:
@@ -597,10 +672,11 @@ def should_bypass_proxies(url):
     # of Python 2.6, so allow this call to fail. Only catch the specific
     # exceptions we've seen, though: this call failing in other ways can reveal
     # legitimate problems.
-    try:
-        bypass = proxy_bypass(netloc)
-    except (TypeError, socket.gaierror):
-        bypass = False
+    with set_environ('no_proxy', no_proxy_arg):
+        try:
+            bypass = proxy_bypass(netloc)
+        except (TypeError, socket.gaierror):
+            bypass = False
 
     if bypass:
         return True
@@ -608,13 +684,13 @@ def should_bypass_proxies(url):
     return False
 
 
-def get_environ_proxies(url):
+def get_environ_proxies(url, no_proxy):
     """
     Return a dict of environment proxies.
 
     :rtype: dict
     """
-    if should_bypass_proxies(url):
+    if should_bypass_proxies(url, no_proxy=no_proxy):
         return {}
     else:
         return getproxies()
@@ -821,7 +897,7 @@ def rewind_body(prepared_request):
         try:
             body_seek(prepared_request._body_position)
         except (IOError, OSError):
-            raise UnrewindableBodyError("An error occured when rewinding request "
+            raise UnrewindableBodyError("An error occurred when rewinding request "
                                         "body for redirect.")
     else:
         raise UnrewindableBodyError("Unable to rewind request body for redirect.")
