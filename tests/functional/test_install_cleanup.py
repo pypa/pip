@@ -131,7 +131,7 @@ def test_cleanup_prevented_upon_build_dir_exception(script, data):
     result = script.pip(
         'install', '-f', data.find_links, '--no-index', 'simple',
         '--build', build,
-        expect_error=True,
+        expect_error=True, expect_temp=True,
     )
 
     assert result.returncode == PREVIOUS_BUILD_DIR_ERROR
