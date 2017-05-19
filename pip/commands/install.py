@@ -1,10 +1,15 @@
 from __future__ import absolute_import
 
+import errno
 import logging
 import operator
 import os
 import shutil
 import tempfile
+try:
+    import wheel
+except ImportError:
+    wheel = None
 
 from pip import cmdoptions
 from pip.basecommand import RequirementCommand
@@ -13,6 +18,7 @@ from pip.exceptions import (
 )
 from pip.locations import distutils_scheme, virtualenv_no_global
 from pip.req import RequirementSet
+from pip.status_codes import ERROR
 from pip.utils import ensure_dir, get_installed_version
 from pip.utils.build import BuildDirectory
 from pip.utils.filesystem import check_path_owner
@@ -297,6 +303,26 @@ class InstallCommand(RequirementCommand):
                     installed = ' '.join(items)
                     if installed:
                         logger.info('Successfully installed %s', installed)
+                except EnvironmentError as e:
+                    message_parts = []
+
+                    user_option_part = "Consider using the `--user` option"
+                    permissions_part = "Check the permissions"
+
+                    if e.errno == errno.EPERM:
+                        if not options.use_user_site:
+                            message_parts.extend([
+                                user_option_part, " or ",
+                                permissions_part.lower(),
+                            ])
+                        else:
+                            message_parts.append(permissions_part)
+                        message_parts.append("\n")
+
+                    logger.error(
+                        "".join(message_parts), exc_info=(options.verbose > 1)
+                    )
+                    return ERROR
                 except PreviousBuildDirError:
                     options.no_clean = True
                     raise
