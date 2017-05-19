@@ -247,17 +247,6 @@ class InstallCommand(RequirementCommand):
                     use_user_site=options.use_user_site,
                 )
 
-                self.populate_requirement_set(
-                    requirement_set, args, options, finder, session, self.name,
-                    wheel_cache
-                )
-                preparer = RequirementPreparer(
-                    build_dir=directory.path,
-                    src_dir=options.src_dir,
-                    download_dir=None,
-                    wheel_download_dir=None,
-                    progress_bar=options.progress_bar,
-                )
                 try:
                     resolver = Resolver(
                         preparer=preparer,
@@ -274,10 +263,24 @@ class InstallCommand(RequirementCommand):
                     )
                     resolver.resolve(requirement_set)
 
-                    # on -d don't do complex things like building
-                    # wheels, and don't try to build wheels when wheel is
-                    # not installed.
-                    if wheel and options.cache_dir:
+                    self.populate_requirement_set(
+                        requirement_set, args, options, finder, session, self.name,
+                        wheel_cache
+                    )
+                    preparer = RequirementPreparer(
+                        build_dir=directory.path,
+                        src_dir=options.src_dir,
+                        download_dir=None,
+                        wheel_download_dir=None,
+                        progress_bar=options.progress_bar,
+                    )
+
+                    if (not wheel or not options.cache_dir):
+                        # on -d don't do complex things like building
+                        # wheels, and don't try to build wheels when wheel is
+                        # not installed.
+                        requirement_set.prepare_files(finder)
+                    else:
                         # build wheels before install.
                         wb = WheelBuilder(
                             requirement_set,
