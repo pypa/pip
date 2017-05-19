@@ -248,12 +248,12 @@ class InstallCommand(RequirementCommand):
                     progress_bar=options.progress_bar,
                 )
 
-                self.populate_requirement_set(
-                    requirement_set, args, options, finder, session, self.name,
-                    wheel_cache
-                )
-
                 try:
+                    self.populate_requirement_set(
+                        requirement_set, args, options, finder, session,
+                        self.name, wheel_cache
+                    )
+
                     if (not wheel or not options.cache_dir):
                         # on -d don't do complex things like building
                         # wheels, and don't try to build wheels when wheel is
