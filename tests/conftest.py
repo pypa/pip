@@ -31,10 +31,12 @@ def pytest_collection_modifyitems(items):
 
             # We don't want to allow using the script resource if this is a
             # unit test, as unit tests should not need all that heavy lifting
-            if set(getattr(item, "funcargnames", [])) & set(["script"]):
+            arguments = set(getattr(item, "funcargnames", []))
+            if arguments & {"script", "in_memory"}:
                 raise RuntimeError(
-                    "Cannot use the ``script`` funcarg in a unit test: "
-                    "(filename = {0}, item = {1})".format(module_path, item)
+                    "Cannot use the `script` or `in_memory` argument in "
+                    "an unit test: (filename = {0}, item = {1})"
+                    .format(module_path, item)
                 )
         else:
             raise RuntimeError(
