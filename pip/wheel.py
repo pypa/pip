@@ -32,7 +32,7 @@ from pip.exceptions import (
 )
 from pip.locations import PIP_DELETE_MARKER_FILENAME, distutils_scheme
 from pip.utils import (
-    call_subprocess, captured_stdout, ensure_dir, read_chunks, rmtree
+    call_subprocess, captured_stdout, ensure_dir, read_chunks
 )
 from pip.utils.logging import indent_log
 from pip.utils.temp_dir import TempDirectory
