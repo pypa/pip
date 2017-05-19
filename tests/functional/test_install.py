@@ -1005,16 +1005,15 @@ def test_install_no_binary_disables_building_wheels(script, data):
         wheels.extend(files)
     # and built wheels for wheelbroken only
     assert "Running setup.py bdist_wheel for wheelb" in str(res), str(res)
-    # But not requires_wheel... which is a local dir and thus uncachable.
-    assert "Running setup.py bdist_wheel for requir" not in str(res), str(res)
+    # Wheels are built for local directories, but not cached
+    assert "Running setup.py bdist_wheel for requir" in str(res), str(res)
     # Nor upper, which was blacklisted
     assert "Running setup.py bdist_wheel for upper" not in str(res), str(res)
     # wheelbroken has to run install
     # into the cache
     assert wheels != [], str(res)
-    # the local tree can't build a wheel (because we can't assume that every
-    # build will have a suitable unique key to cache on).
-    assert "Running setup.py install for requires-wheel" in str(res), str(res)
+    # Wheels are built for local directories, but not cached
+    assert "Running setup.py install for requir" not in str(res), str(res)
     # And these two fell back to sdist based installed.
     assert "Running setup.py install for wheelb" in str(res), str(res)
     assert "Running setup.py install for upper" in str(res), str(res)
