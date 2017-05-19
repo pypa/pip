@@ -781,14 +781,9 @@ class WheelBuilder(object):
                 if autobuilding:
                     python_tag = pep425tags.implementation_tag
                     # NOTE: Should move out a method on the cache directly.
-                    if ephem:
-                        output_dir = get_cache_path_for_link(
-                            self.wheel_cache._cache_dir, req.link
-                        )
-                    else:
-                        output_dir = get_cache_path_for_link(
-                            self.wheel_cache._ephem_cache_dir, req.link
-                        )
+                    cache_root = (self.wheel_cache._ephem_cache_dir if ephem
+                                  else self.wheel_cache._cache_dir)
+                    output_dir = get_cache_path_for_link(cache_root, req.link)
                     try:
                         ensure_dir(output_dir)
                     except OSError as e:
