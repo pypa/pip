@@ -71,7 +71,8 @@ class WheelCache(object):
             self._cache_dir, link, self._format_control, package_name)
         if link is orig_link:
             link = cached_wheel(
-                self._ephem_cache_dir, link, self._format_control, package_name)
+                self._ephem_cache_dir, link, self._format_control,
+                package_name)
         return link
 
     def cleanup(self):
@@ -890,11 +891,9 @@ class WheelBuilder(object):
                 python_tag = None
                 if autobuilding:
                     python_tag = pep425tags.implementation_tag
-                    if ephem:
-                        output_dir = _cache_for_link(self._ephem_cache_root,
-                                                     req.link)
-                    else:
-                        output_dir = _cache_for_link(self._cache_root, req.link)
+                    cache_root = (self._ephem_cache_root if ephem
+                                  else self._cache_root)
+                    output_dir = _cache_for_link(cache_root, req.link)
                     try:
                         ensure_dir(output_dir)
                     except OSError as e:
