@@ -428,6 +428,18 @@ class InstallRequirement(object):
 
         return setup_py
 
+    @property
+    def pyproject_toml(self):
+        assert self.source_dir, "No source dir for %s" % self
+
+        pp_toml = os.path.join(self.setup_py_dir, 'pyproject.toml')
+
+        # Python2 __file__ should not be unicode
+        if six.PY2 and isinstance(pp_toml, six.text_type):
+            pp_toml = pp_toml.encode(sys.getfilesystemencoding())
+
+        return pp_toml
+
     def run_egg_info(self):
         assert self.source_dir
         if self.name:
@@ -615,7 +627,7 @@ class InstallRequirement(object):
                 'Unexpected version control type (in %s): %s'
                 % (self.link, vc_type))
 
-    def uninstall(self, auto_confirm=False):
+    def uninstall(self, auto_confirm=False, verbose=False):
         """
         Uninstall the distribution currently satisfying this requirement.
 
@@ -635,7 +647,7 @@ class InstallRequirement(object):
         dist = self.satisfied_by or self.conflicts_with
 
         self.uninstalled_pathset = UninstallPathSet.from_dist(dist)
-        self.uninstalled_pathset.remove(auto_confirm)
+        self.uninstalled_pathset.remove(auto_confirm, verbose)
 
     def archive(self, build_dir):
         assert self.source_dir

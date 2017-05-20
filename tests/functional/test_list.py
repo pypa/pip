@@ -122,12 +122,14 @@ def test_local_legacy_flag(script, data):
     assert 'simple (1.0)' in result.stdout
 
 
+@pytest.mark.network
 def test_user_flag(script, data, virtualenv):
     """
     Test the behavior of --user flag in the list command
 
     """
     virtualenv.system_site_packages = True
+    script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
     script.pip('install', '-f', data.find_links, '--no-index',
                '--user', 'simple2==2.0')
@@ -137,12 +139,14 @@ def test_user_flag(script, data, virtualenv):
     assert {"name": "simple2", "version": "2.0"} in json.loads(result.stdout)
 
 
+@pytest.mark.network
 def test_user_columns_flag(script, data, virtualenv):
     """
     Test the behavior of --user --format=columns flags in the list command
 
     """
     virtualenv.system_site_packages = True
+    script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
     script.pip('install', '-f', data.find_links, '--no-index',
                '--user', 'simple2==2.0')
@@ -153,12 +157,14 @@ def test_user_columns_flag(script, data, virtualenv):
     assert 'simple2 2.0' in result.stdout, str(result)
 
 
+@pytest.mark.network
 def test_user_legacy(script, data, virtualenv):
     """
     Test the behavior of --user flag in the list command
 
     """
     virtualenv.system_site_packages = True
+    script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
     script.pip('install', '-f', data.find_links, '--no-index',
                '--user', 'simple2==2.0')

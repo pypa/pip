@@ -127,12 +127,16 @@ class UninstallPathSet(object):
         necessary to contain all paths in the set. If /a/path/ and
         /a/path/to/a/file.txt are both in the set, leave only the
         shorter path."""
+
+        sep = os.path.sep
         short_paths = set()
         for path in sorted(paths, key=len):
-            if not any([
-                    (path.startswith(shortpath) and
-                     path[len(shortpath.rstrip(os.path.sep))] == os.path.sep)
-                    for shortpath in short_paths]):
+            should_add = any(
+                path.startswith(shortpath.rstrip("*")) and
+                path[len(shortpath.rstrip("*").rstrip(sep))] == sep
+                for shortpath in short_paths
+            )
+            if not should_add:
                 short_paths.add(path)
         return short_paths
 
@@ -140,47 +144,94 @@ class UninstallPathSet(object):
         return os.path.join(
             self.save_dir, os.path.splitdrive(path)[1].lstrip(os.path.sep))
 
-    def remove(self, auto_confirm=False):
+    def remove(self, auto_confirm=False, verbose=False):
         """Remove paths in ``self.paths`` with confirmation (unless
         ``auto_confirm`` is True)."""
+
         if not self.paths:
             logger.info(
                 "Can't uninstall '%s'. No files were found to uninstall.",
                 self.dist.project_name,
             )
             return
-        logger.info(
-            'Uninstalling %s-%s:',
-            self.dist.project_name, self.dist.version
+
+        dist_name_version = (
+            self.dist.project_name + "-" + self.dist.version
         )
+        logger.info('Uninstalling %s:', dist_name_version)
 
         with indent_log():
-            paths = sorted(self.compact(self.paths))
-
-            if auto_confirm:
-                response = 'y'
-            else:
-                for path in paths:
-                    logger.info(path)
-                response = ask('Proceed (y/n)? ', ('y', 'n'))
-            if self._refuse:
-                logger.info('Not removing or modifying (outside of prefix):')
-                for path in self.compact(self._refuse):
-                    logger.info(path)
-            if response == 'y':
+            if auto_confirm or self._allowed_to_proceed(verbose):
                 self.save_dir = tempfile.mkdtemp(suffix='-uninstall',
                                                  prefix='pip-')
-                for path in paths:
+
+                for path in sorted(self.compact(self.paths)):
                     new_path = self._stash(path)
                     logger.debug('Removing file or directory %s', path)
                     self._moved_paths.append(path)
                     renames(path, new_path)
                 for pth in self.pth.values():
                     pth.remove()
-                logger.info(
-                    'Successfully uninstalled %s-%s',
-                    self.dist.project_name, self.dist.version
-                )
+
+                logger.info('Successfully uninstalled %s', dist_name_version)
+
+    def _allowed_to_proceed(self, verbose):
+        """Display which files would be deleted and prompt for confirmation
+        """
+
+        def _display(msg, paths):
+            if not paths:
+                return
+
+            logger.info(msg)
+            with indent_log():
+                for path in sorted(self.compact(paths)):
+                    logger.info(path)
+
+        # In verbose mode, display all the files that are going to be deleted.
+        will_remove = list(self.paths)
+        will_skip = set()
+
+        if not verbose:
+            # In non-verbose mode...
+            # Display only the folders that have packages inside them and files
+            # that are not within those folders. Any files in above folders
+            # that would not be deleted would be displayed in a separate
+            # skipped list.
+
+            folders = set()
+            files = set()
+            for path in will_remove:
+                if path.endswith(".pyc"):
+                    continue
+                if path.endswith("__init__.py") or ".dist-info" in path:
+                    folders.add(os.path.dirname(path))
+                files.add(path)
+
+            folders = self.compact(folders)
+
+            # This walks the tree using os.walk to not miss extra folders
+            # that might get added.
+            for folder in folders:
+                for dirpath, _, dirfiles in os.walk(folder):
+                    for fname in dirfiles:
+                        if fname.endswith(".pyc"):
+                            continue
+
+                        file_ = os.path.join(dirpath, fname)
+                        if os.path.isfile(file_) and file_ not in files:
+                            # We are skipping this file. Add it to the set.
+                            will_skip.add(file_)
+
+            will_remove = files | {
+                os.path.join(folder, "*") for folder in folders
+            }
+
+        _display('Would remove:', will_remove)
+        _display('Would not remove (might be manually added):', will_skip)
+        _display('Would not remove (outside of prefix):', self._refuse)
+
+        return ask('Proceed (y/n)? ', ('y', 'n')) == 'y'
 
     def rollback(self):
         """Rollback the changes previously made by remove()."""
