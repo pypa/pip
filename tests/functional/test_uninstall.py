@@ -119,6 +119,43 @@ def test_uninstall_namespace_package(script):
     )
 
 
+def test_uninstall_pkgutil_namespace_packages(script, data):
+    """
+    Uninstalling a distribution within a namespace package that uses pkgutil
+    -style namespace package without removing the __init__.py file needed
+    by the other packages in the namespace
+    """
+    pkg_a = data.src.join('pkgutil-namespace-pkgs', 'pkg_a')
+    pkg_b = data.src.join('pkgutil-namespace-pkgs', 'pkg_b')
+
+    # First package should create the namespace folder as well as the
+    # namespace's __init__.py.
+    result = script.pip('install', pkg_a)
+    created_files = sorted(result.files_created.keys())
+    assert str(script.site_packages.join('example_pkg')) in created_files
+    assert (
+        str(script.site_packages.join('example_pkg', '__init__.py'))
+        in created_files)
+
+    # Second package has no need to create these files, as they already exist.
+    # However, current pip behavior is that it does overwrite the existing
+    # files.
+    result = script.pip('install', pkg_b)
+    assert str(script.site_packages.join('example_pkg')) in created_files
+    assert (
+        str(script.site_packages.join('example_pkg', '__init__.py'))
+        in created_files)
+
+    # Uninstalling one of the packages should not remove the __init__.py
+    # file for the namespace and break it.
+    result = script.pip('uninstall', '-y', 'example_pkg_a')
+    deleted_files = sorted(result.files_deleted.keys())
+    assert str(script.site_packages.join('example_pkg')) not in deleted_files
+    assert (
+        str(script.site_packages.join('example_pkg', '__init__.py'))
+        not in deleted_files)
+
+
 def test_uninstall_overlapping_package(script, data):
     """
     Uninstalling a distribution that adds modules to a pre-existing package
