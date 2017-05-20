@@ -68,11 +68,13 @@ class Tests_UserSite:
         )
         result.assert_installed('INITools', use_user_site=True)
 
+    @pytest.mark.network
     def test_install_curdir_usersite(self, script, virtualenv, data):
         """
         Test installing current directory ('.') into usersite
         """
         virtualenv.system_site_packages = True
+        script.pip("install", "wheel")
         run_from = data.packages.join("FSPkg")
         result = script.pip(
             'install', '-vvv', '--user', curdir,
