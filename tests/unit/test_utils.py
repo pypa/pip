@@ -512,7 +512,7 @@ class TestTempDirectory(object):
             create_file(tmp_dir.path, "subfolder", "readonly-file")
             readonly_file(tmp_dir.path, "subfolder", "readonly-file")
 
-        assert not os.path.exists(tmp_dir.path)
+        assert tmp_dir.path is None
 
     def test_create_and_cleanup_work(self):
         tmp_dir = TempDirectory()
