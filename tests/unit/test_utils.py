@@ -20,8 +20,8 @@ from pip.exceptions import (
     HashMismatch, HashMissing, InstallationError, UnsupportedPythonVersion
 )
 from pip.utils import (
-    egg_link_path, get_installed_distributions, normalize_path, rmtree,
-    untar_file, unzip_file
+    egg_link_path, ensure_dir, get_installed_distributions, normalize_path,
+    rmtree, untar_file, unzip_file
 )
 from pip.utils.temp_dir import TempDirectory
 from pip.utils.encoding import auto_decode
@@ -491,6 +491,29 @@ class TestTempDirectory(object):
                 )
             os.rmdir(tmp_dir.path)
             assert not os.path.exists(tmp_dir.path)
+
+    def test_deletes_readonly_files(self):
+        def create_file(*args):
+            fpath = os.path.join(*args)
+            ensure_dir(os.path.dirname(fpath))
+            with open(fpath, "w") as f:
+                f.write("Holla!")
+
+        def readonly_file(*args):
+            fpath = os.path.join(*args)
+            os.chmod(fpath, stat.S_IREAD)
+
+        with TempDirectory() as tmp_dir:
+            create_file(tmp_dir.path, "normal-file")
+            create_file(tmp_dir.path, "readonly-file")
+            readonly_file(tmp_dir.path, "readonly-file")
+
+            create_file(tmp_dir.path, "subfolder", "normal-file")
+            create_file(tmp_dir.path, "subfolder", "readonly-file")
+            readonly_file(tmp_dir.path, "subfolder", "readonly-file")
+
+        assert not os.path.exists(tmp_dir.path)
+
 
 
 class TestGlibc(object):
