@@ -6,7 +6,6 @@ import logging
 import os
 import sys
 import sysconfig
-import tempfile
 
 from pip._vendor import pkg_resources
 
@@ -18,6 +17,7 @@ from pip.utils import (
     normalize_path, renames, rmtree
 )
 from pip.utils.logging import indent_log
+from pip.utils.temp_dir import TempDirectory
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +83,7 @@ class UninstallPathSet(object):
         self._refuse = set()
         self.pth = {}
         self.dist = dist
-        self.save_dir = None
+        self.save_dir = TempDirectory(kind="uninstall")
         self._moved_paths = []
 
     def _permitted(self, path):
@@ -142,7 +142,7 @@ class UninstallPathSet(object):
 
     def _stash(self, path):
         return os.path.join(
-            self.save_dir, os.path.splitdrive(path)[1].lstrip(os.path.sep))
+            self.save_dir.path, os.path.splitdrive(path)[1].lstrip(os.path.sep))
 
     def remove(self, auto_confirm=False, verbose=False):
         """Remove paths in ``self.paths`` with confirmation (unless
@@ -162,8 +162,7 @@ class UninstallPathSet(object):
 
         with indent_log():
             if auto_confirm or self._allowed_to_proceed(verbose):
-                self.save_dir = tempfile.mkdtemp(suffix='-uninstall',
-                                                 prefix='pip-')
+                self.save_dir.create()
 
                 for path in sorted(self.compact(self.paths)):
                     new_path = self._stash(path)
@@ -235,7 +234,7 @@ class UninstallPathSet(object):
 
     def rollback(self):
         """Rollback the changes previously made by remove()."""
-        if self.save_dir is None:
+        if self.save_dir.path is None:
             logger.error(
                 "Can't roll back %s; was not uninstalled",
                 self.dist.project_name,
@@ -251,10 +250,8 @@ class UninstallPathSet(object):
 
     def commit(self):
         """Remove temporary save dir: rollback will no longer be possible."""
-        if self.save_dir is not None:
-            rmtree(self.save_dir)
-            self.save_dir = None
-            self._moved_paths = []
+        self.save_dir.cleanup()
+        self._moved_paths = []
 
     @classmethod
     def from_dist(cls, dist):

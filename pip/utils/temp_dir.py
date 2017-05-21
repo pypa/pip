@@ -1,9 +1,13 @@
 from __future__ import absolute_import
 
+import logging
 import os.path
 import tempfile
 
 from pip.utils import rmtree
+
+
+logger = logging.getLogger(__name__)
 
 
 class TempDirectory(object):
@@ -26,20 +30,28 @@ class TempDirectory(object):
         return "<{} {!r}>".format(self.__class__.__name__, self.path)
 
     def __enter__(self):
-        if self.path is None:
-            # We realpath here because some systems have their default tmpdir
-            # symlinked to another directory.  This tends to confuse build
-            # scripts, so we canonicalize the path by traversing potential
-            # symlinks here.
-            self.path = os.path.realpath(
-                tempfile.mkdtemp(prefix="pip-{}-".format(self.kind))
-            )
+        self.create()
         return self
 
     def __exit__(self, exc, value, tb):
         if self.delete:
             self.cleanup()
 
+    def create(self):
+        if self.path is not None:
+            logger.debug(
+                "Skipped creation of temporary directory: {}".format(self.path)
+            )
+            return
+        # We realpath here because some systems have their default tmpdir
+        # symlinked to another directory.  This tends to confuse build
+        # scripts, so we canonicalize the path by traversing potential
+        # symlinks here.
+        self.path = os.path.realpath(
+            tempfile.mkdtemp(prefix="pip-{}-".format(self.kind))
+        )
+        logger.debug("Created temporary directory: {}".format(self.path))
+
     def cleanup(self):
-        if os.path.exists(self.path):
+        if self.path is not None and os.path.exists(self.path):
             rmtree(self.path)

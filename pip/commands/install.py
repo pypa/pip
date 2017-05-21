@@ -5,7 +5,6 @@ import logging
 import operator
 import os
 import shutil
-import tempfile
 try:
     import wheel
 except ImportError:
@@ -196,10 +195,9 @@ class InstallCommand(RequirementCommand):
             install_options.append('--user')
             install_options.append('--prefix=')
 
-        temp_target_dir = None
+        target_temp_dir = TempDirectory(kind="target")
         if options.target_dir:
             options.ignore_installed = True
-            temp_target_dir = tempfile.mkdtemp()
             options.target_dir = os.path.abspath(options.target_dir)
             if (os.path.exists(options.target_dir) and not
                     os.path.isdir(options.target_dir)):
@@ -207,7 +205,10 @@ class InstallCommand(RequirementCommand):
                     "Target path exists but is not a directory, will not "
                     "continue."
                 )
-            install_options.append('--home=' + temp_target_dir)
+
+            # Create a target directory for using with the target option
+            target_temp_dir.create()
+            install_options.append('--home=' + target_temp_dir.path)
 
         global_options = options.global_options or []
 
@@ -240,7 +241,7 @@ class InstallCommand(RequirementCommand):
                     ignore_requires_python=options.ignore_requires_python,
                     force_reinstall=options.force_reinstall,
                     use_user_site=options.use_user_site,
-                    target_dir=temp_target_dir,
+                    target_dir=target_temp_dir.path,
                     session=session,
                     pycompile=options.compile,
                     isolated=options.isolated_mode,
@@ -281,7 +282,7 @@ class InstallCommand(RequirementCommand):
 
                     possible_lib_locations = get_lib_location_guesses(
                         user=options.use_user_site,
-                        home=temp_target_dir,
+                        home=target_temp_dir.path,
                         root=options.root_path,
                         prefix=options.prefix_path,
                         isolated=options.isolated_mode,
@@ -333,15 +334,22 @@ class InstallCommand(RequirementCommand):
                         requirement_set.cleanup_files()
 
         if options.target_dir:
-            ensure_dir(options.target_dir)
+            self._target_option_handling(
+                options.target_dir, target_temp_dir, options.upgrade
+            )
+        return requirement_set
 
+    def _target_option_handling(self, target_dir, target_temp_dir, upgrade):
+        ensure_dir(target_dir)
+        lib_dir_list = []
+
+        with target_temp_dir:
             # Checking both purelib and platlib directories for installed
             # packages to be moved to target directory
-            lib_dir_list = []
-
-            purelib_dir = distutils_scheme('', home=temp_target_dir)['purelib']
-            platlib_dir = distutils_scheme('', home=temp_target_dir)['platlib']
-            data_dir = distutils_scheme('', home=temp_target_dir)['data']
+            scheme = distutils_scheme('', home=target_temp_dir.path)
+            purelib_dir = scheme['purelib']
+            platlib_dir = scheme['platlib']
+            data_dir = scheme['data']
 
             if os.path.exists(purelib_dir):
                 lib_dir_list.append(purelib_dir)
@@ -356,9 +364,9 @@ class InstallCommand(RequirementCommand):
                         ddir = os.path.join(data_dir, item)
                         if any(s.startswith(ddir) for s in lib_dir_list[:-1]):
                             continue
-                    target_item_dir = os.path.join(options.target_dir, item)
+                    target_item_dir = os.path.join(target_dir, item)
                     if os.path.exists(target_item_dir):
-                        if not options.upgrade:
+                        if not upgrade:
                             logger.warning(
                                 'Target directory %s already exists. Specify '
                                 '--upgrade to force replacement.',
@@ -383,8 +391,6 @@ class InstallCommand(RequirementCommand):
                         os.path.join(lib_dir, item),
                         target_item_dir
                     )
-            shutil.rmtree(temp_target_dir)
-        return requirement_set
 
 
 def get_lib_location_guesses(*args, **kwargs):

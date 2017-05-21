@@ -637,11 +637,11 @@ class Wheel(object):
 class BuildEnvironment(object):
     """Context manager to install build deps in a simple temporary environment
     """
-    def __init__(self, temp_dir):
-        self.temp_dir = temp_dir
+    def __init__(self):
+        self.temp_dir = TempDirectory(kind="build")
 
     def __enter__(self):
-        self.temp_dir.__enter__()
+        self.temp_dir.create()
 
         self.save_path = os.environ.get('PATH', None)
         self.save_pythonpath = os.environ.get('PYTHONPATH', None)
@@ -681,7 +681,6 @@ class BuildEnvironment(object):
             os.environ.pop('PYTHONPATH', None)
         else:
             os.environ['PYTHONPATH'] = self.save_pythonpath
-        self.temp_dir.__exit__(exc_type, exc_val, exc_tb)
 
 
 class WheelBuilder(object):
@@ -743,8 +742,7 @@ class WheelBuilder(object):
                 "it cannot build a wheel without setuptools. You may need to "
                 "upgrade to a newer version of pip.")
         # Install build deps into temporary directory (PEP 518)
-        tempdir = TempDirectory(kind="build", delete=not self.no_clean)
-        with BuildEnvironment(tempdir) as prefix:
+        with BuildEnvironment() as prefix:
             self._install_build_reqs(build_reqs, prefix)
             return self._build_one_inside_env(req, output_dir,
                                               python_tag=python_tag,
