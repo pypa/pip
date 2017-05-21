@@ -10,6 +10,7 @@ import warnings
 
 from pip import cmdoptions
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
+from pip.compat import WINDOWS
 from pip.download import PipSession
 from pip.exceptions import (
     BadCommand, CommandError, InstallationError, PreviousBuildDirError,
@@ -318,7 +319,7 @@ class RequirementCommand(Command):
         #     python -m pip ...
         # See https://github.com/pypa/pip/issues/1299 for more discussion
         should_show_use_python_msg = (
-            sys.platform == 'win32' and
+            WINDOWS and
             requirement_set.has_requirement('pip') and
             "pip" in os.path.basename(sys.argv[0])
         )
