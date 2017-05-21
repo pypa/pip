@@ -637,18 +637,19 @@ class Wheel(object):
 class BuildEnvironment(object):
     """Context manager to install build deps in a simple temporary environment
     """
-    def __init__(self, no_clean=False):
-        self.prefix = tempfile.mkdtemp('pip-build-env-')
-        self.no_clean = no_clean
+    def __init__(self, temp_dir):
+        self.temp_dir = temp_dir
 
     def __enter__(self):
+        self.temp_dir.__enter__()
+
         self.save_path = os.environ.get('PATH', None)
         self.save_pythonpath = os.environ.get('PYTHONPATH', None)
 
         install_scheme = 'nt' if (os.name == 'nt') else 'posix_prefix'
         install_dirs = get_paths(install_scheme, vars={
-            'base': self.prefix,
-            'platbase': self.prefix,
+            'base': self.temp_dir.path,
+            'platbase': self.temp_dir.path,
         })
 
         scripts = install_dirs['scripts']
@@ -668,7 +669,7 @@ class BuildEnvironment(object):
         else:
             os.environ['PYTHONPATH'] = lib_dirs
 
-        return self.prefix
+        return self.temp_dir.path
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.save_path is None:
@@ -680,9 +681,7 @@ class BuildEnvironment(object):
             os.environ.pop('PYTHONPATH', None)
         else:
             os.environ['PYTHONPATH'] = self.save_pythonpath
-
-        if not self.no_clean:
-            rmtree(self.prefix)
+        self.temp_dir.__exit__(exc_type, exc_val, exc_tb)
 
 
 class WheelBuilder(object):
@@ -743,8 +742,9 @@ class WheelBuilder(object):
                 "This version of pip does not implement PEP 516, so "
                 "it cannot build a wheel without setuptools. You may need to "
                 "upgrade to a newer version of pip.")
-        # Install build deps into temporary prefix (PEP 518)
-        with BuildEnvironment(no_clean=self.no_clean) as prefix:
+        # Install build deps into temporary directory (PEP 518)
+        tempdir = TempDirectory(kind="build", delete=not self.no_clean)
+        with BuildEnvironment(tempdir) as prefix:
             self._install_build_reqs(build_reqs, prefix)
             return self._build_one_inside_env(req, output_dir,
                                               python_tag=python_tag,
@@ -753,7 +753,7 @@ class WheelBuilder(object):
     def _build_one_inside_env(self, req, output_dir, python_tag=None,
                               isolate=False):
         with TempDirectory(kind="wheel") as temp_dir:
-            if self.__build_one(req, tempd, python_tag=python_tag,
+            if self.__build_one(req, temp_dir.path, python_tag=python_tag,
                                 isolate=isolate):
                 try:
                     wheel_name = os.listdir(temp_dir.path)[0]
