@@ -719,7 +719,6 @@ class InstallRequirement(object):
 
     def install(self, install_options, global_options=[], root=None,
                 prefix=None):
-        # TODO:: Maybe simplify?
         if self.editable:
             self.install_editable(
                 install_options, global_options, prefix=prefix)
