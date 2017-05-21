@@ -16,7 +16,7 @@ class TempDirectory(object):
         if path is None and delete is None:
             # If we were not given an explicit directory, and we were not given
             # an explicit delete option, then we'll default to deleting.
-            self.delete = True
+            delete = True
 
         self.path = path
         self.delete = delete
