@@ -14,7 +14,7 @@ from pip.exceptions import UninstallationError
 from pip.locations import bin_py, bin_user
 from pip.utils import (
     FakeFile, ask, dist_in_usersite, dist_is_local, egg_link_path, is_local,
-    normalize_path, renames, rmtree
+    normalize_path, renames
 )
 from pip.utils.logging import indent_log
 from pip.utils.temp_dir import TempDirectory
