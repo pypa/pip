@@ -4,6 +4,9 @@ from __future__ import absolute_import, division
 
 import os
 import sys
+import codecs
+import locale
+import logging
 
 from pip._vendor.six import text_type
 
@@ -24,6 +27,8 @@ __all__ = [
 ]
 
 
+logger = logging.getLogger(__name__)
+
 if sys.version_info >= (3, 4):
     uses_pycache = True
     from importlib.util import cache_from_source
@@ -36,42 +41,56 @@ else:
         cache_from_source = None
 
 
+def console_to_str(data):
+    """Return a string, safe for output, of subprocess output.
+
+    We assume the data is in the locale preferred encoding.
+    If it won't decode properly, we warn the user but decode as
+    best we can.
+
+    We also ensure that the output can be safely written to
+    standard output without encoding errors.
+    """
+
+    # First, get the encoding we assume. This is the preferred
+    # encoding for the locale, unless that is not found, or
+    # it is ASCII, in which case assume UTF-8
+    encoding = locale.getpreferredencoding()
+    if (not encoding) or codecs.lookup(encoding).name == "ascii":
+        encoding = "utf-8"
+
+    # Now try to decode the data - if we fail, warn the user and
+    # decode with replacement.
+    try:
+        s = data.decode(encoding)
+    except UnicodeError:
+        logger.warning(
+            "Subprocess output does not appear to be encoded as %s" %
+            encoding)
+        s = data.decode(encoding, errors="replace")
+
+    # Make sure we can print the output, by encoding it to the output
+    # encoding with replacement of unencodable characters, and then
+    # decoding again.
+    # We use stderr's encoding because it's less likely to be
+    # redirected and if we don't find an encoding we skip this
+    # step (on the assumption that output is wrapped by something
+    # that won't fail).
+    output_encoding = sys.__stderr__.encoding
+    if output_encoding:
+        s = s.encode(output_encoding, errors="replace")
+        s = s.decode(output_encoding)
+
+    return s
+
+
 if sys.version_info >= (3,):
-    def subprocess_encoding():
-        if WINDOWS:
-            if sys.version_info >= (3, 6):
-                return "oem"
-            # Prior to Python 3.6, the "oem" encoding is not available.
-            # However, as long as the user hasn't redirected the stream,
-            # standard IO streams are opened using the OEM encoding.
-            # We take the stderr encoding, as that's presumed to be the
-            # least likely for the user to have redirected.
-            return sys.__stderr__.encoding
-        else:
-            import locale
-            # Note that the use of getpreferredencoding here calls
-            # setlocale, which isn't thread safe. This is OK, as we
-            # never call this code in a multi-threaded context.
-            # If thread safety was important, we could call
-            # getpreferredencoding(False), but there are apparently
-            # some systems where that will not give the correct answer.
-            #
-            # We fall back to UTF8 if locale can't provide an answer,
-            # as UTF8 is the most common encoding used nowadays.
-            return locale.getpreferredencoding() or "utf-8"
-
-    def console_to_str(s):
-        return s.decode(subprocess_encoding(), errors="replace")
-
     def native_str(s, replace=False):
         if isinstance(s, bytes):
             return s.decode('utf-8', 'replace' if replace else 'strict')
         return s
 
 else:
-    def console_to_str(s):
-        return s
-
     def native_str(s, replace=False):
         # Replace is ignored -- unicode to UTF-8 can't fail
         if isinstance(s, text_type):
