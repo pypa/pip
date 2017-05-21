@@ -515,7 +515,6 @@ class TestTempDirectory(object):
         assert not os.path.exists(tmp_dir.path)
 
 
-
 class TestGlibc(object):
     def test_manylinux1_check_glibc_version(self):
         """
