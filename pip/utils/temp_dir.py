@@ -27,7 +27,7 @@ class TempDirectory(object):
             # scripts, so we canonicalize the path by traversing potential
             # symlinks here.
             self.path = os.path.realpath(
-                tempfile.mkdtemp(prefix="pip-", suffix="-" + self.kind)
+                tempfile.mkdtemp(prefix="pip-{}-".format(self.kind))
             )
             # If we were not given an explicit directory, and we were not given
             # an explicit delete option, then we'll default to deleting.
