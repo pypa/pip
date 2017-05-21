@@ -4,15 +4,11 @@ import logging
 import os
 import tempfile
 
+from pip._vendor.six.moves.urllib import parse as urllib_parse
+
 from pip.download import path_to_url
 from pip.utils import display_path, rmtree
 from pip.vcs import VersionControl, vcs
-
-# TODO: Get this into six.moves.urllib.parse
-try:
-    from urllib import parse as urllib_parse
-except ImportError:
-    import urlparse as urllib_parse
 
 
 logger = logging.getLogger(__name__)
@@ -29,11 +25,10 @@ class Bazaar(VersionControl):
 
     def __init__(self, url=None, *args, **kwargs):
         super(Bazaar, self).__init__(url, *args, **kwargs)
-        # Python >= 2.7.4, 3.3 doesn't have uses_fragment or non_hierarchical
+        # This is only needed for python <2.7.5
         # Register lp but do not expose as a scheme to support bzr+lp.
         if getattr(urllib_parse, 'uses_fragment', None):
             urllib_parse.uses_fragment.extend(['lp'])
-            urllib_parse.non_hierarchical.extend(['lp'])
 
     def export(self, location):
         """
