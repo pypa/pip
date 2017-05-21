@@ -528,7 +528,6 @@ class TestTempDirectory(object):
         assert not os.path.exists(created_path)
 
 
-
 class TestGlibc(object):
     def test_manylinux1_check_glibc_version(self):
         """

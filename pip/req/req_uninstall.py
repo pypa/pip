@@ -142,7 +142,8 @@ class UninstallPathSet(object):
 
     def _stash(self, path):
         return os.path.join(
-            self.save_dir.path, os.path.splitdrive(path)[1].lstrip(os.path.sep))
+            self.save_dir.path, os.path.splitdrive(path)[1].lstrip(os.path.sep)
+        )
 
     def remove(self, auto_confirm=False, verbose=False):
         """Remove paths in ``self.paths`` with confirmation (unless
