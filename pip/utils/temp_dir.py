@@ -55,3 +55,4 @@ class TempDirectory(object):
     def cleanup(self):
         if self.path is not None and os.path.exists(self.path):
             rmtree(self.path)
+        self.path = None

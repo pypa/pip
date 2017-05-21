@@ -514,6 +514,20 @@ class TestTempDirectory(object):
 
         assert not os.path.exists(tmp_dir.path)
 
+    def test_create_and_cleanup_work(self):
+        tmp_dir = TempDirectory()
+        assert tmp_dir.path is None
+
+        tmp_dir.create()
+        created_path = tmp_dir.path
+        assert tmp_dir.path is not None
+        assert os.path.exists(created_path)
+
+        tmp_dir.cleanup()
+        assert tmp_dir.path is None
+        assert not os.path.exists(created_path)
+
+
 
 class TestGlibc(object):
     def test_manylinux1_check_glibc_version(self):
