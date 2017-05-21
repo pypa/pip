@@ -638,18 +638,18 @@ class BuildEnvironment(object):
     """Context manager to install build deps in a simple temporary environment
     """
     def __init__(self, delete):
-        self.temp_dir = TempDirectory(kind="build", delete=delete)
+        self._temp_dir = TempDirectory(kind="build", delete=delete)
 
     def __enter__(self):
-        self.temp_dir.create()
+        self._temp_dir.create()
 
         self.save_path = os.environ.get('PATH', None)
         self.save_pythonpath = os.environ.get('PYTHONPATH', None)
 
         install_scheme = 'nt' if (os.name == 'nt') else 'posix_prefix'
         install_dirs = get_paths(install_scheme, vars={
-            'base': self.temp_dir.path,
-            'platbase': self.temp_dir.path,
+            'base': self._temp_dir.path,
+            'platbase': self._temp_dir.path,
         })
 
         scripts = install_dirs['scripts']
@@ -669,7 +669,7 @@ class BuildEnvironment(object):
         else:
             os.environ['PYTHONPATH'] = lib_dirs
 
-        return self.temp_dir.path
+        return self._temp_dir.path
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.save_path is None:
