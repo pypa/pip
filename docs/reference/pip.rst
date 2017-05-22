@@ -93,15 +93,12 @@ takes place.
 Build System Output
 ~~~~~~~~~~~~~~~~~~~
 
-Any output produced by the build system will be read by pip (for display to
-the user if requested). In order to correctly read the build system output,
-pip requires that the output is written in a well-defined encoding:
-
-* On Windows, the build system must produce all output in the "OEM"
-  encoding.
-* On non-Windows systems, the build system should use the encoding
-  returned by python's ``locale.getpreferredencoding`` function, or
-  "utf8" if ``getpreferredencoding`` does not return a value.
+Any output produced by the build system will be read by pip (for display to the
+user if requested). In order to correctly read the build system output, pip
+requires that the output is written in a well-defined encoding, specifically
+the encoding returned by python's ``locale.getpreferredencoding`` function, or
+"utf8" if ``getpreferredencoding`` does not return a value (or returns "ASCII",
+which ).
 
 Build systems should ensure that any tools they invoke (compilers, etc)
 produce output in the correct encoding. In practice - and in particular
