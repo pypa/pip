@@ -172,7 +172,7 @@ class DownloadCommand(RequirementCommand):
                 options.cache_dir = None
 
             with TempDirectory(
-                options.build_dir, delete=build_delete, kind="build"
+                options.build_dir, delete=build_delete, kind="download"
             ) as directory:
 
                 requirement_set = RequirementSet(

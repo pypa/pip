@@ -638,7 +638,7 @@ class BuildEnvironment(object):
     """Context manager to install build deps in a simple temporary environment
     """
     def __init__(self, no_clean):
-        self._temp_dir = TempDirectory(kind="build")
+        self._temp_dir = TempDirectory(kind="build-env")
         self._no_clean = no_clean
 
     def __enter__(self):

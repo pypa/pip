@@ -101,7 +101,7 @@ class InstallRequirement(object):
         # conflicts with another installed distribution:
         self.conflicts_with = None
         # Temporary build location
-        self._temp_build_dir = TempDirectory(kind="build")
+        self._temp_build_dir = TempDirectory(kind="req-build")
         # Used to store the global directory where the _temp_build_dir should
         # have been created. Cf _correct_build_location method.
         self._ideal_build_dir = None
