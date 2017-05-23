@@ -41,6 +41,15 @@ else:
         cache_from_source = None
 
 
+if sys.version_info > (3, 4):
+    backslashreplace_decode = "backslashreplace"
+else:
+    def backslashreplace_decode_fn(err):
+        raw_bytes = (ord(err.object[i]) for i in range(err.start, err.end))
+        return u"".join(u"\\x%x" % c for c in raw_bytes), err.endP
+    codecs.register_error("backslashreplace_decode", backslashreplace_decode_fn)
+    backslashreplace_decode = "backslashreplace_decode"
+
 def console_to_str(data):
     """Return a string, safe for output, of subprocess output.
 
@@ -67,7 +76,7 @@ def console_to_str(data):
         logger.warning(
             "Subprocess output does not appear to be encoded as %s" %
             encoding)
-        s = data.decode(encoding, errors="replace")
+        s = data.decode(encoding, errors=backslashreplace_decode)
 
     # Make sure we can print the output, by encoding it to the output
     # encoding with replacement of unencodable characters, and then
@@ -78,7 +87,7 @@ def console_to_str(data):
     # that won't fail).
     output_encoding = sys.__stderr__.encoding
     if output_encoding:
-        s = s.encode(output_encoding, errors="replace")
+        s = s.encode(output_encoding, errors="backslashreplace")
         s = s.decode(output_encoding)
 
     return s
