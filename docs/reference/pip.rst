@@ -96,18 +96,18 @@ Build System Output
 Any output produced by the build system will be read by pip (for display to the
 user if requested). In order to correctly read the build system output, pip
 requires that the output is written in a well-defined encoding, specifically
-the encoding returned by python's ``locale.getpreferredencoding`` function, or
-"utf8" if ``getpreferredencoding`` does not return a value (or returns "ASCII",
-which ).
+the encoding the user has configured for text output (which can be obtained in
+Python using ``locale.getpreferredencoding``). If the configured encoding is
+ASCII, pip assumes UTF-8 (to match the behaviour of some Unix systems).
 
-Build systems should ensure that any tools they invoke (compilers, etc)
-produce output in the correct encoding. In practice - and in particular
-on Windows, where tools are inconsistent in their use of the "OEM" and
-"ANSI" codepages - this may not always be possible, so pip will attempt to
-recover cleanly if presented with incorrectly encoded build tool output.
-However, pip cannot guarantee in that case that the displayed output will
-not be corrupted (mojibake, or characters replaced with the standard
-replacement character, often a question mark).
+Build systems should ensure that any tools they invoke (compilers, etc) produce
+output in the correct encoding. In practice - and in particular on Windows,
+where tools are inconsistent in their use of the "OEM" and "ANSI" codepages -
+this may not always be possible. Pip will therefore attempt to recover cleanly
+if presented with incorrectly encoded build tool output, by translating
+unexpected byte sequences to Python-style hexadecimal escape sequences
+(\x80\xff, etc). However, it is still possible for output to be displayed
+using an incorrect encoding (mojibake).
 
 Future Developments
 ~~~~~~~~~~~~~~~~~~~
