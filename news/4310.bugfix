@@ -1,0 +1,2 @@
+Works around UnicodeDecodeError using ``repr()`` in decoding console output on
+Python 3.
