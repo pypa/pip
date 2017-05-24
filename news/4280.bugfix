@@ -1,0 +1,1 @@
+Fixed a ``UnicodeDecodeError`` when try install some package on some non-english systems.
