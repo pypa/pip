@@ -98,7 +98,7 @@ user if requested). In order to correctly read the build system output, pip
 requires that the output is written in a well-defined encoding, specifically
 the encoding the user has configured for text output (which can be obtained in
 Python using ``locale.getpreferredencoding``). If the configured encoding is
-ASCII, pip assumes UTF-8 (to match the behaviour of some Unix systems).
+ASCII, pip assumes UTF-8 (to account for the behaviour of some Unix systems).
 
 Build systems should ensure that any tools they invoke (compilers, etc) produce
 output in the correct encoding. In practice - and in particular on Windows,
@@ -106,7 +106,7 @@ where tools are inconsistent in their use of the "OEM" and "ANSI" codepages -
 this may not always be possible. Pip will therefore attempt to recover cleanly
 if presented with incorrectly encoded build tool output, by translating
 unexpected byte sequences to Python-style hexadecimal escape sequences
-(\x80\xff, etc). However, it is still possible for output to be displayed
+(``"\x80\xff"``, etc). However, it is still possible for output to be displayed
 using an incorrect encoding (mojibake).
 
 Future Developments
