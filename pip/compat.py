@@ -50,7 +50,7 @@ else:
     # situation, so that we can consistently use
     # backslash replacement for all versions.
     def backslashreplace_decode_fn(err):
-        raw_bytes = (ord(err.object[i]) for i in range(err.start, err.end))
+        raw_bytes = (err.object[i] for i in range(err.start, err.end))
         return u"".join(u"\\x%x" % c for c in raw_bytes), err.end
     codecs.register_error(
         "backslashreplace_decode",
@@ -80,7 +80,7 @@ def console_to_str(data):
     # decode with replacement.
     try:
         s = data.decode(encoding)
-    except UnicodeError:
+    except UnicodeDecodeError:
         logger.warning(
             "Subprocess output does not appear to be encoded as %s" %
             encoding)
