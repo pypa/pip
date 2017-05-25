@@ -51,6 +51,9 @@ else:
     # backslash replacement for all versions.
     def backslashreplace_decode_fn(err):
         raw_bytes = (err.object[i] for i in range(err.start, err.end))
+        if sys.version_info[0] == 2:
+            # Python 2 gave us characters - convert to numeric bytes
+            raw_bytes = (ord(b) for b in raw_bytes)
         return u"".join(u"\\x%x" % c for c in raw_bytes), err.end
     codecs.register_error(
         "backslashreplace_decode",
