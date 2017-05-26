@@ -108,13 +108,13 @@ def match_hostname(cert, hostname):
     try:
         # Divergence from upstream: ipaddress can't handle byte str
         host_ip = ipaddress.ip_address(_to_unicode(hostname))
-    except ValueError:
-        # Not an IP address (common case)
-        host_ip = None
     except UnicodeError:
         # Divergence from upstream: Have to deal with ipaddress not taking
         # byte strings.  addresses should be all ascii, so we consider it not
         # an ipaddress in this case
+        host_ip = None
+    except ValueError:
+        # Not an IP address (common case)
         host_ip = None
     except AttributeError:
         # Divergence from upstream: Make ipaddress library optional
