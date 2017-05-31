@@ -18,6 +18,7 @@ from pip.index import PackageFinder
 from pip.req import InstallRequirement, Requirements, RequirementSet
 from pip.req.req_file import process_line
 from pip.req.req_install import parse_editable
+from pip.resolve import Resolver
 from pip.utils import read_text_file
 from tests.lib import assert_raises_regexp, requirements_file
 
@@ -40,6 +41,9 @@ class TestRequirementSet(object):
             **kwargs
         )
 
+    def _basic_resolver(self, finder):
+        return Resolver("not-allowed", finder)
+
     def test_no_reuse_existing_build_dir(self, data):
         """Test prepare_files raise exception with previous build dir"""
 
@@ -50,12 +54,13 @@ class TestRequirementSet(object):
         req = InstallRequirement.from_line('simple')
         reqset.add_requirement(req)
         finder = PackageFinder([data.find_links], [], session=PipSession())
+        resolver = self._basic_resolver(finder)
         assert_raises_regexp(
             PreviousBuildDirError,
             r"pip can't proceed with [\s\S]*%s[\s\S]*%s" %
             (req, build_dir.replace('\\', '\\\\')),
-            reqset.prepare_files,
-            finder,
+            resolver.resolve,
+            reqset,
         )
 
     def test_environment_marker_extras(self, data):
@@ -68,7 +73,8 @@ class TestRequirementSet(object):
             data.packages.join("LocalEnvironMarker"))
         reqset.add_requirement(req)
         finder = PackageFinder([data.find_links], [], session=PipSession())
-        reqset.prepare_files(finder)
+        resolver = self._basic_resolver(finder)
+        resolver.resolve(reqset)
         # This is hacky but does test both case in py2 and py3
         if sys.version_info[:2] in ((2, 7), (3, 4)):
             assert reqset.has_requirement('simple')
@@ -105,6 +111,7 @@ class TestRequirementSet(object):
         finder = PackageFinder([],
                                ['https://pypi.python.org/simple'],
                                session=PipSession())
+        resolver = self._basic_resolver(finder)
         assert_raises_regexp(
             HashErrors,
             r'Hashes are required in --require-hashes mode, but they are '
@@ -116,8 +123,8 @@ class TestRequirementSet(object):
             r'    tracefront==0.1 .*:\n'
             r'        Expected sha256 somehash\n'
             r'             Got        [0-9a-f]+$',
-            reqset.prepare_files,
-            finder)
+            resolver.resolve,
+            reqset)
 
     def test_missing_hash_with_require_hashes(self, data):
         """Setting --require-hashes explicitly should raise errors if hashes
@@ -127,14 +134,15 @@ class TestRequirementSet(object):
         reqset.add_requirement(
             list(process_line('simple==1.0', 'file', 1))[0])
         finder = PackageFinder([data.find_links], [], session=PipSession())
+        resolver = self._basic_resolver(finder)
         assert_raises_regexp(
             HashErrors,
             r'Hashes are required in --require-hashes mode, but they are '
             r'missing .*\n'
             r'    simple==1.0 --hash=sha256:393043e672415891885c9a2a0929b1af95'
             r'fb866d6ca016b42d2e6ce53619b653$',
-            reqset.prepare_files,
-            finder)
+            resolver.resolve,
+            reqset)
 
     def test_missing_hash_with_require_hashes_in_reqs_file(self, data, tmpdir):
         """--require-hashes in a requirements file should make its way to the
@@ -176,6 +184,7 @@ class TestRequirementSet(object):
                 'file',
                 2))[0])
         finder = PackageFinder([data.find_links], [], session=PipSession())
+        resolver = self._basic_resolver(finder)
         sep = os.path.sep
         if sep == '\\':
             sep = '\\\\'  # This needs to be escaped for the regex
@@ -189,8 +198,8 @@ class TestRequirementSet(object):
             r"point to directories:\n"
             r"    file://.*{sep}data{sep}packages{sep}FSPkg "
             r"\(from -r file \(line 2\)\)".format(sep=sep),
-            reqset.prepare_files,
-            finder)
+            resolver.resolve,
+            reqset)
 
     def test_unpinned_hash_checking(self, data):
         """Make sure prepare_files() raises an error when a requirement is not
@@ -210,14 +219,15 @@ class TestRequirementSet(object):
             'file',
             2))[0])
         finder = PackageFinder([data.find_links], [], session=PipSession())
+        resolver = self._basic_resolver(finder)
         assert_raises_regexp(
             HashErrors,
             # Make sure all failing requirements are listed:
             r'versions pinned with ==. These do not:\n'
             r'    simple .* \(from -r file \(line 1\)\)\n'
             r'    simple2>1.0 .* \(from -r file \(line 2\)\)',
-            reqset.prepare_files,
-            finder)
+            resolver.resolve,
+            reqset)
 
     def test_hash_mismatch(self, data):
         """A hash mismatch should raise an error."""
@@ -229,6 +239,7 @@ class TestRequirementSet(object):
                               'file',
                               1))[0])
         finder = PackageFinder([data.find_links], [], session=PipSession())
+        resolver = self._basic_resolver(finder)
         assert_raises_regexp(
             HashErrors,
             r'THESE PACKAGES DO NOT MATCH THE HASHES.*\n'
@@ -236,14 +247,15 @@ class TestRequirementSet(object):
             r'        Expected sha256 badbad\n'
             r'             Got        393043e672415891885c9a2a0929b1af95fb866d'
             r'6ca016b42d2e6ce53619b653$',
-            reqset.prepare_files,
-            finder)
+            resolver.resolve,
+            reqset)
 
     def test_unhashed_deps_on_require_hashes(self, data):
         """Make sure unhashed, unpinned, or otherwise unrepeatable
         dependencies get complained about when --require-hashes is on."""
         reqset = self.basic_reqset()
         finder = PackageFinder([data.find_links], [], session=PipSession())
+        resolver = self._basic_resolver(finder)
         reqset.add_requirement(next(process_line(
             'TopoRequires2==0.0.1 '  # requires TopoRequires
             '--hash=sha256:eaf9a01242c9f2f42cf2bd82a6a848cd'
@@ -254,8 +266,8 @@ class TestRequirementSet(object):
             r'In --require-hashes mode, all requirements must have their '
             r'versions pinned.*\n'
             r'    TopoRequires from .*$',
-            reqset.prepare_files,
-            finder)
+            resolver.resolve,
+            reqset)
 
     def test_hashed_deps_on_require_hashes(self, data):
         """Make sure hashed dependencies get installed when --require-hashes
