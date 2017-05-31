@@ -135,14 +135,19 @@ class Resolver(object):
         are downloaded, unpacked and prepared for installation.
         """
         # make the wheelhouse
-        if self.wheel_download_dir:
-            ensure_dir(self.wheel_download_dir)
+        if requirement_set.wheel_download_dir:
+            ensure_dir(requirement_set.wheel_download_dir)
 
         # If any top-level requirement has a hash specified, enter
         # hash-checking mode, which requires hashes from all.
-        root_reqs = self.unnamed_requirements + self.requirements.values()
-        require_hashes = (self.require_hashes or
-                          any(req.has_hash_options for req in root_reqs))
+        root_reqs = (
+            requirement_set.unnamed_requirements +
+            requirement_set.requirements.values()
+        )
+        require_hashes = (
+            requirement_set.require_hashes or
+            any(req.has_hash_options for req in root_reqs)
+        )
 
         # Actually prepare the files, and collect any exceptions. Most hash
         # exceptions cannot be checked ahead of time, because
@@ -153,10 +158,11 @@ class Resolver(object):
         for req in chain(root_reqs, discovered_reqs):
             try:
                 discovered_reqs.extend(self._resolve_one(
+                    requirement_set,
                     finder,
                     req,
                     require_hashes=require_hashes,
-                    ignore_dependencies=self.ignore_dependencies))
+                    ignore_dependencies=requirement_set.ignore_dependencies))
             except HashError as exc:
                 exc.req = req
                 hash_errors.append(exc)
@@ -203,7 +209,7 @@ class Resolver(object):
                 # For link based requirements we have to pull the
                 # tree down and inspect to assess the version #, so
                 # its handled way down.
-                if not (self.force_reinstall or req_to_install.link):
+                if not (requirement_set.force_reinstall or req_to_install.link):
                     try:
                         finder.find_requirement(
                             req_to_install, upgrade_allowed)
@@ -219,7 +225,7 @@ class Resolver(object):
                 if not best_installed:
                     # don't uninstall conflict if user install and
                     # conflict is not user install
-                    if not (self.use_user_site and not
+                    if not (requirement_set.use_user_site and not
                             dist_in_usersite(req_to_install.satisfied_by)):
                         req_to_install.conflicts_with = \
                             req_to_install.satisfied_by
@@ -237,11 +243,8 @@ class Resolver(object):
         else:
             return None
 
-    def _resolve_one(self,
-                     finder,
-                     req_to_install,
-                     require_hashes=False,
-                     ignore_dependencies=False):
+    def _resolve_one(self, requirement_set, finder, req_to_install,
+                     require_hashes=False, ignore_dependencies=False):
         """Prepare a single requirements file.
 
         :return: A list of additional InstallRequirements to also install.
@@ -263,7 +266,7 @@ class Resolver(object):
             # satisfied_by is only evaluated by calling _check_skip_installed,
             # so it must be None here.
             assert req_to_install.satisfied_by is None
-            if not self.ignore_installed:
+            if not requirement_set.ignore_installed:
                 skip_reason = self._check_skip_installed(
                     req_to_install, finder)
 
@@ -294,12 +297,12 @@ class Resolver(object):
                         'The editable requirement %s cannot be installed when '
                         'requiring hashes, because there is no single file to '
                         'hash.' % req_to_install)
-                req_to_install.ensure_has_source_dir(self.src_dir)
-                req_to_install.update_editable(not self.is_download)
+                req_to_install.ensure_has_source_dir(requirement_set.src_dir)
+                req_to_install.update_editable(not requirement_set.is_download)
                 abstract_dist = make_abstract_dist(req_to_install)
                 abstract_dist.prep_for_dist()
-                if self.is_download:
-                    req_to_install.archive(self.download_dir)
+                if requirement_set.is_download:
+                    req_to_install.archive(requirement_set.download_dir)
                 req_to_install.check_if_exists()
             elif req_to_install.satisfied_by:
                 if require_hashes:
@@ -314,7 +317,7 @@ class Resolver(object):
                 # editable in a req, a non deterministic error
                 # occurs when the script attempts to unpack the
                 # build directory
-                req_to_install.ensure_has_source_dir(self.build_dir)
+                req_to_install.ensure_has_source_dir(requirement_set.build_dir)
                 # If a checkout exists, it's unwise to keep going.  version
                 # inconsistencies are logged later, but do not fail the
                 # installation.
@@ -380,14 +383,14 @@ class Resolver(object):
                     hashes = MissingHashes()
 
                 try:
-                    download_dir = self.download_dir
+                    download_dir = requirement_set.download_dir
                     # We always delete unpacked sdists after pip ran.
                     autodelete_unpacked = True
                     if req_to_install.link.is_wheel \
-                            and self.wheel_download_dir:
+                            and requirement_set.wheel_download_dir:
                         # when doing 'pip wheel` we download wheels to a
                         # dedicated dir.
-                        download_dir = self.wheel_download_dir
+                        download_dir = requirement_set.wheel_download_dir
                     if req_to_install.link.is_wheel:
                         if download_dir:
                             # When downloading, we only unpack wheels to get
@@ -400,8 +403,8 @@ class Resolver(object):
                     unpack_url(
                         req_to_install.link, req_to_install.source_dir,
                         download_dir, autodelete_unpacked,
-                        session=self.session, hashes=hashes,
-                        progress_bar=self.progress_bar)
+                        session=requirement_set.session, hashes=hashes,
+                        progress_bar=requirement_set.progress_bar)
                 except requests.HTTPError as exc:
                     logger.critical(
                         'Could not install requirement %s because '
@@ -416,24 +419,24 @@ class Resolver(object):
                     )
                 abstract_dist = make_abstract_dist(req_to_install)
                 abstract_dist.prep_for_dist()
-                if self.is_download:
+                if requirement_set.is_download:
                     # Make a .zip of the source_dir we already created.
                     if req_to_install.link.scheme in vcs.all_schemes:
-                        req_to_install.archive(self.download_dir)
+                        req_to_install.archive(requirement_set.download_dir)
                 # req_to_install.req is only avail after unpack for URL
                 # pkgs repeat check_if_exists to uninstall-on-upgrade
                 # (#14)
-                if not self.ignore_installed:
+                if not requirement_set.ignore_installed:
                     req_to_install.check_if_exists()
                 if req_to_install.satisfied_by:
                     should_modify = (
                         self.upgrade_strategy == "not-allowed" and
-                        self.ignore_installed
+                        requirement_set.ignore_installed
                     )
                     if should_modify:
                         # don't uninstall conflict if user install and
                         # conflict is not user install
-                        if not (self.use_user_site and not
+                        if not (requirement_set.use_user_site and not
                                 dist_in_usersite(
                                     req_to_install.satisfied_by)):
                             req_to_install.conflicts_with = \
@@ -447,7 +450,7 @@ class Resolver(object):
                         )
 
             # register tmp src for cleanup in case something goes wrong
-            self.reqs_to_cleanup.append(req_to_install)
+            requirement_set.reqs_to_cleanup.append(req_to_install)
 
             # ###################### #
             # # parse dependencies # #
@@ -456,9 +459,9 @@ class Resolver(object):
             dist = abstract_dist.dist(finder)
             try:
                 check_dist_requires_python(dist)
-            except UnsupportedPythonVersion as e:
-                if self.ignore_requires_python:
-                    logger.warning(e.args[0])
+            except UnsupportedPythonVersion as err:
+                if requirement_set.ignore_requires_python:
+                    logger.warning(err.args[0])
                 else:
                     raise
             more_reqs = []
@@ -467,18 +470,21 @@ class Resolver(object):
                 sub_install_req = InstallRequirement.from_req(
                     str(subreq),
                     req_to_install,
-                    isolated=self.isolated,
-                    wheel_cache=self._wheel_cache,
+                    isolated=requirement_set.isolated,
+                    wheel_cache=requirement_set._wheel_cache,
                 )
-                more_reqs.extend(self.add_requirement(
-                    sub_install_req, req_to_install.name,
-                    extras_requested=extras_requested))
+                more_reqs.extend(
+                    requirement_set.add_requirement(
+                        sub_install_req, req_to_install.name,
+                        extras_requested=extras_requested
+                    )
+                )
 
             # We add req_to_install before its dependencies, so that we
             # can refer to it when adding dependencies.
-            if not self.has_requirement(req_to_install.name):
+            if not requirement_set.has_requirement(req_to_install.name):
                 # 'unnamed' requirements will get added here
-                self.add_requirement(req_to_install, None)
+                requirement_set.add_requirement(req_to_install, None)
 
             if not ignore_dependencies:
                 if req_to_install.extras:
@@ -505,6 +511,6 @@ class Resolver(object):
                 # XXX: --no-install leads this to report 'Successfully
                 # downloaded' for only non-editable reqs, even though we took
                 # action on them.
-                self.successfully_downloaded.append(req_to_install)
+                requirement_set.successfully_downloaded.append(req_to_install)
 
         return more_reqs
