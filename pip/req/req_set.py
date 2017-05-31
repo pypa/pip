@@ -401,49 +401,48 @@ class RequirementSet(object):
         """
         # Check whether to upgrade/reinstall this req or not.
         req_to_install.check_if_exists()
-        if req_to_install.satisfied_by:
-            upgrade_allowed = self._is_upgrade_allowed(req_to_install)
-
-            # Is the best version is installed.
-            best_installed = False
-
-            if upgrade_allowed:
-                # For link based requirements we have to pull the
-                # tree down and inspect to assess the version #, so
-                # its handled way down.
-                if not (self.force_reinstall or req_to_install.link):
-                    try:
-                        finder.find_requirement(
-                            req_to_install, upgrade_allowed)
-                    except BestVersionAlreadyInstalled:
-                        best_installed = True
-                    except DistributionNotFound:
-                        # No distribution found, so we squash the
-                        # error - it will be raised later when we
-                        # re-try later to do the install.
-                        # Why don't we just raise here?
-                        pass
-
-                if not best_installed:
-                    # don't uninstall conflict if user install and
-                    # conflict is not user install
-                    if not (self.use_user_site and not
-                            dist_in_usersite(req_to_install.satisfied_by)):
-                        req_to_install.conflicts_with = \
-                            req_to_install.satisfied_by
-                    req_to_install.satisfied_by = None
-
-            # Figure out a nice message to say why we're skipping this.
-            if best_installed:
-                skip_reason = 'already up-to-date'
-            elif self.upgrade_strategy == "only-if-needed":
-                skip_reason = 'not upgraded as not directly required'
-            else:
-                skip_reason = 'already satisfied'
-
-            return skip_reason
-        else:
+        if not req_to_install.satisfied_by:
             return None
+        upgrade_allowed = self._is_upgrade_allowed(req_to_install)
+
+        # Is the best version is installed.
+        best_installed = False
+
+        if upgrade_allowed:
+            # For link based requirements we have to pull the
+            # tree down and inspect to assess the version #, so
+            # its handled way down.
+            if not (self.force_reinstall or req_to_install.link):
+                try:
+                    finder.find_requirement(
+                        req_to_install, upgrade_allowed)
+                except BestVersionAlreadyInstalled:
+                    best_installed = True
+                except DistributionNotFound:
+                    # No distribution found, so we squash the
+                    # error - it will be raised later when we
+                    # re-try later to do the install.
+                    # Why don't we just raise here?
+                    pass
+
+            if not best_installed:
+                # don't uninstall conflict if user install and
+                # conflict is not user install
+                if not (self.use_user_site and not
+                        dist_in_usersite(req_to_install.satisfied_by)):
+                    req_to_install.conflicts_with = \
+                        req_to_install.satisfied_by
+                req_to_install.satisfied_by = None
+
+        # Figure out a nice message to say why we're skipping this.
+        if best_installed:
+            skip_reason = 'already up-to-date'
+        elif self.upgrade_strategy == "only-if-needed":
+            skip_reason = 'not upgraded as not directly required'
+        else:
+            skip_reason = 'already satisfied'
+
+        return skip_reason
 
     def _prepare_file(self,
                       finder,
@@ -684,7 +683,7 @@ class RequirementSet(object):
                 self.add_requirement(req_to_install, None)
 
             if not ignore_dependencies:
-                if (req_to_install.extras):
+                if req_to_install.extras:
                     logger.debug(
                         "Installing extra requirements: %r",
                         ','.join(req_to_install.extras),
@@ -741,6 +740,7 @@ class RequirementSet(object):
             for dep in self._dependencies[req]:
                 schedule(dep)
             order.append(req)
+
         for install_req in self.requirements.values():
             schedule(install_req)
         return order
@@ -775,14 +775,20 @@ class RequirementSet(object):
                         **kwargs
                     )
                 except:
+                    should_rollback = (
+                        requirement.conflicts_with and
+                        not requirement.install_succeeded
+                    )
                     # if install did not succeed, rollback previous uninstall
-                    if (requirement.conflicts_with and not
-                            requirement.install_succeeded):
+                    if should_rollback:
                         requirement.uninstalled_pathset.rollback()
                     raise
                 else:
-                    if (requirement.conflicts_with and
-                            requirement.install_succeeded):
+                    should_commit = (
+                        requirement.conflicts_with and
+                        requirement.install_succeeded
+                    )
+                    if should_commit:
                         requirement.uninstalled_pathset.commit()
                 requirement.remove_temporary_source()
 
