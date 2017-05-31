@@ -8,6 +8,7 @@ from pip.basecommand import RequirementCommand
 from pip.exceptions import CommandError
 from pip.index import FormatControl
 from pip.req import RequirementSet
+from pip.resolve import Resolver
 from pip.utils import ensure_dir, normalize_path
 from pip.utils.build import BuildDirectory
 from pip.utils.filesystem import check_path_owner
@@ -195,7 +196,8 @@ class DownloadCommand(RequirementCommand):
                     None
                 )
 
-                requirement_set.prepare_files(finder)
+                resolver = Resolver()
+                resolver.resolve(requirement_set, finder)
 
                 downloaded = ' '.join([
                     req.name for req in requirement_set.successfully_downloaded

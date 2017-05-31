@@ -18,6 +18,7 @@ from pip.exceptions import (
 )
 from pip.locations import distutils_scheme, virtualenv_no_global
 from pip.req import RequirementSet
+from pip.resolve import Resolver
 from pip.status_codes import ERROR
 from pip.utils import ensure_dir, get_installed_version
 from pip.utils.build import BuildDirectory
@@ -258,7 +259,8 @@ class InstallCommand(RequirementCommand):
                         # on -d don't do complex things like building
                         # wheels, and don't try to build wheels when wheel is
                         # not installed.
-                        requirement_set.prepare_files(finder)
+                        resolver = Resolver()
+                        resolver.resolve(requirement_set, finder)
                     else:
                         # build wheels before install.
                         wb = WheelBuilder(
