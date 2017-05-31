@@ -183,7 +183,8 @@ class Resolver(object):
             assert self.upgrade_strategy == "only-if-needed"
             return req.is_direct
 
-    def _check_skip_installed(self, req_to_install, finder):
+    # XXX: Stop passing requirement_set for options
+    def _check_skip_installed(self, req_to_install, requirement_set):
         """Check if req_to_install should be skipped.
 
         This will check if the req is installed, and whether we should upgrade
@@ -213,7 +214,10 @@ class Resolver(object):
                 # For link based requirements we have to pull the
                 # tree down and inspect to assess the version #, so
                 # its handled way down.
-                if not (requirement_set.force_reinstall or req_to_install.link):
+                should_check_possibility_for_upgrade = not (
+                    requirement_set.force_reinstall or req_to_install.link
+                )
+                if should_check_possibility_for_upgrade:
                     try:
                         self.finder.find_requirement(
                             req_to_install, upgrade_allowed)
@@ -272,7 +276,8 @@ class Resolver(object):
             assert req_to_install.satisfied_by is None
             if not requirement_set.ignore_installed:
                 skip_reason = self._check_skip_installed(
-                    req_to_install, finder)
+                    req_to_install, requirement_set
+                )
 
             if req_to_install.satisfied_by:
                 assert skip_reason is not None, (
