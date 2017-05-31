@@ -123,12 +123,13 @@ class Resolver(object):
     the requested operation without breaking the requirements of any package.
     """
 
-    def __init__(self, upgrade_strategy):
+    def __init__(self, upgrade_strategy, finder):
         super(Resolver, self).__init__()
         assert upgrade_strategy in ["eager", "only-if-needed", "not-allowed"]
         self.upgrade_strategy = upgrade_strategy
+        self.finder = finder
 
-    def resolve(self, requirement_set, finder):
+    def resolve(self, requirement_set):
         """Resolve what operations need to be done
 
         As a side-effect of this method, the packages (and their dependencies)
@@ -163,7 +164,6 @@ class Resolver(object):
             try:
                 discovered_reqs.extend(self._resolve_one(
                     requirement_set,
-                    finder,
                     req,
                     require_hashes=require_hashes,
                     ignore_dependencies=requirement_set.ignore_dependencies))
@@ -215,7 +215,7 @@ class Resolver(object):
                 # its handled way down.
                 if not (requirement_set.force_reinstall or req_to_install.link):
                     try:
-                        finder.find_requirement(
+                        self.finder.find_requirement(
                             req_to_install, upgrade_allowed)
                     except BestVersionAlreadyInstalled:
                         best_installed = True
@@ -247,7 +247,7 @@ class Resolver(object):
         else:
             return None
 
-    def _resolve_one(self, requirement_set, finder, req_to_install,
+    def _resolve_one(self, requirement_set, req_to_install,
                      require_hashes=False, ignore_dependencies=False):
         """Prepare a single requirements file.
 
@@ -339,7 +339,7 @@ class Resolver(object):
                         % (req_to_install, req_to_install.source_dir)
                     )
                 req_to_install.populate_link(
-                    finder,
+                    self.finder,
                     self._is_upgrade_allowed(req_to_install),
                     require_hashes
                 )
@@ -460,7 +460,7 @@ class Resolver(object):
             # # parse dependencies # #
             # ###################### #
 
-            dist = abstract_dist.dist(finder)
+            dist = abstract_dist.dist(self.finder)
             try:
                 check_dist_requires_python(dist)
             except UnsupportedPythonVersion as err:
