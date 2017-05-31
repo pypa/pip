@@ -828,9 +828,6 @@ class WheelBuilder(object):
         :return: True if all the wheels built correctly.
         """
         assert self._wheel_dir or (autobuilding and self._cache_root)
-        # unpack sdists and constructs req set
-        self.requirement_set.prepare_files(self.finder)
-
         reqset = self.requirement_set.requirements.values()
 
         buildset = []
