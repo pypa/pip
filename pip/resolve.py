@@ -133,6 +133,10 @@ class Resolver(object):
 
         As a side-effect of this method, the packages (and their dependencies)
         are downloaded, unpacked and prepared for installation.
+
+        Once PyPI has static dependency metadata available, it would be
+        possible to move this side-effect to become a step separated from
+        dependency resolution.
         """
         # make the wheelhouse
         if requirement_set.wheel_download_dir:
