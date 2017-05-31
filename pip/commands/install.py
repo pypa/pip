@@ -259,8 +259,8 @@ class InstallCommand(RequirementCommand):
                         # on -d don't do complex things like building
                         # wheels, and don't try to build wheels when wheel is
                         # not installed.
-                        resolver = Resolver()
-                        resolver.resolve(requirement_set, finder)
+                        resolver = self._build_resolver(options, finder)
+                        resolver.resolve(requirement_set)
                     else:
                         # build wheels before install.
                         wb = WheelBuilder(
