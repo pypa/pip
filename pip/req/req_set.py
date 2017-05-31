@@ -307,12 +307,12 @@ class RequirementSet(object):
 
     def has_requirement(self, project_name):
         name = project_name.lower()
-        if (name in self.requirements and
-           not self.requirements[name].constraint or
-           name in self.requirement_aliases and
-           not self.requirements[self.requirement_aliases[name]].constraint):
-            return True
-        return False
+        return (
+            name in self.requirements and
+            not self.requirements[name].constraint or
+            name in self.requirement_aliases and
+            not self.requirements[self.requirement_aliases[name]].constraint
+        )
 
     @property
     def has_requirements(self):
@@ -527,6 +527,7 @@ class RequirementSet(object):
                 # inconsistencies are logged later, but do not fail the
                 # installation.
                 # FIXME: this won't upgrade when there's an existing
+                # package unpacked in `req_to_install.source_dir`
                 # package unpacked in `req_to_install.source_dir`
                 if os.path.exists(
                         os.path.join(req_to_install.source_dir, 'setup.py')):
