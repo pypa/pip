@@ -52,7 +52,7 @@ def make_abstract_dist(req_to_install):
 
 
 class DistAbstraction(object):
-    """Abstracts out the wheel vs non-wheel prepare_files logic.
+    """Abstracts out the wheel vs non-wheel Resolver.resolve() logic.
 
     The requirements for anything installable are as follows:
      - we must be able to determine the requirement name
