@@ -123,8 +123,10 @@ class Resolver(object):
     the requested operation without breaking the requirements of any package.
     """
 
-    def __init__(self):
+    def __init__(self, upgrade_strategy):
         super(Resolver, self).__init__()
+        assert upgrade_strategy in ["eager", "only-if-needed", "not-allowed"]
+        self.upgrade_strategy = upgrade_strategy
 
     def resolve(self, requirement_set, finder):
         """Resolve what operations need to be done
@@ -163,11 +165,13 @@ class Resolver(object):
             raise hash_errors
 
     def _is_upgrade_allowed(self, req):
-        return self.upgrade and (
-            self.upgrade_strategy == "eager" or (
-                self.upgrade_strategy == "only-if-needed" and req.is_direct
-            )
-        )
+        if self.upgrade_strategy == "not-allowed":
+            return False
+        elif self.upgrade_strategy == "eager":
+            return True
+        else:
+            assert self.upgrade_strategy == "only-if-needed"
+            return req.is_direct
 
     def _check_skip_installed(self, req_to_install, finder):
         """Check if req_to_install should be skipped.
@@ -422,7 +426,11 @@ class Resolver(object):
                 if not self.ignore_installed:
                     req_to_install.check_if_exists()
                 if req_to_install.satisfied_by:
-                    if self.upgrade or self.ignore_installed:
+                    should_modify = (
+                        self.upgrade_strategy == "not-allowed" and
+                        self.ignore_installed
+                    )
+                    if should_modify:
                         # don't uninstall conflict if user install and
                         # conflict is not user install
                         if not (self.use_user_site and not
