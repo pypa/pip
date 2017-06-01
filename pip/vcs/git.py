@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import logging
 import os.path
-import tempfile
 
 from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.six.moves.urllib import parse as urllib_parse
@@ -10,7 +9,8 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip.compat import samefile
 from pip.exceptions import BadCommand
-from pip.utils import display_path, rmtree
+from pip.utils import display_path
+from pip.utils.temp_dir import TempDirectory
 from pip.vcs import VersionControl, vcs
 
 urlsplit = urllib_parse.urlsplit
@@ -64,16 +64,15 @@ class Git(VersionControl):
 
     def export(self, location):
         """Export the Git repository at the url to the destination location"""
-        temp_dir = tempfile.mkdtemp('-export', 'pip-')
-        self.unpack(temp_dir)
-        try:
-            if not location.endswith('/'):
-                location = location + '/'
+        if not location.endswith('/'):
+            location = location + '/'
+
+        with TempDirectory(kind="export") as temp_dir:
+            self.unpack(temp_dir.path)
             self.run_command(
                 ['checkout-index', '-a', '-f', '--prefix', location],
-                show_stdout=False, cwd=temp_dir)
-        finally:
-            rmtree(temp_dir)
+                show_stdout=False, cwd=temp_dir.path
+            )
 
     def check_rev_options(self, rev, dest, rev_options):
         """Check the revision options before checkout to compensate that tags

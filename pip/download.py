@@ -11,7 +11,6 @@ import platform
 import re
 import shutil
 import sys
-import tempfile
 
 from pip._vendor import requests, six
 from pip._vendor.cachecontrol import CacheControlAdapter
@@ -42,6 +41,7 @@ from pip.utils.filesystem import check_path_owner
 from pip.utils.glibc import libc_ver
 from pip.utils.logging import indent_log
 from pip.utils.setuptools_build import SETUPTOOLS_SHIM
+from pip.utils.temp_dir import TempDirectory
 from pip.utils.ui import DownloadProgressProvider
 from pip.vcs import vcs
 
@@ -648,37 +648,35 @@ def unpack_http_url(link, location, download_dir=None,
             "unpack_http_url() missing 1 required keyword argument: 'session'"
         )
 
-    temp_dir = tempfile.mkdtemp('-unpack', 'pip-')
+    with TempDirectory(kind="unpack") as temp_dir:
+        # If a download dir is specified, is the file already downloaded there?
+        already_downloaded_path = None
+        if download_dir:
+            already_downloaded_path = _check_download_dir(link,
+                                                          download_dir,
+                                                          hashes)
 
-    # If a download dir is specified, is the file already downloaded there?
-    already_downloaded_path = None
-    if download_dir:
-        already_downloaded_path = _check_download_dir(link,
-                                                      download_dir,
-                                                      hashes)
+        if already_downloaded_path:
+            from_path = already_downloaded_path
+            content_type = mimetypes.guess_type(from_path)[0]
+        else:
+            # let's download to a tmp dir
+            from_path, content_type = _download_http_url(link,
+                                                         session,
+                                                         temp_dir.path,
+                                                         hashes,
+                                                         progress_bar)
 
-    if already_downloaded_path:
-        from_path = already_downloaded_path
-        content_type = mimetypes.guess_type(from_path)[0]
-    else:
-        # let's download to a tmp dir
-        from_path, content_type = _download_http_url(link,
-                                                     session,
-                                                     temp_dir,
-                                                     hashes,
-                                                     progress_bar)
+        # unpack the archive to the build dir location. even when only
+        # downloading archives, they have to be unpacked to parse dependencies
+        unpack_file(from_path, location, content_type, link)
 
-    # unpack the archive to the build dir location. even when only downloading
-    # archives, they have to be unpacked to parse dependencies
-    unpack_file(from_path, location, content_type, link)
+        # a download dir is specified; let's copy the archive there
+        if download_dir and not already_downloaded_path:
+            _copy_file(from_path, download_dir, link)
 
-    # a download dir is specified; let's copy the archive there
-    if download_dir and not already_downloaded_path:
-        _copy_file(from_path, download_dir, link)
-
-    if not already_downloaded_path:
-        os.unlink(from_path)
-    rmtree(temp_dir)
+        if not already_downloaded_path:
+            os.unlink(from_path)
 
 
 def unpack_file_url(link, location, download_dir=None, hashes=None):
