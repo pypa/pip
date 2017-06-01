@@ -5,7 +5,6 @@ import logging
 import operator
 import os
 import shutil
-import tempfile
 try:
     import wheel
 except ImportError:
@@ -21,7 +20,7 @@ from pip.req import RequirementSet
 from pip.resolve import Resolver
 from pip.status_codes import ERROR
 from pip.utils import ensure_dir, get_installed_version
-from pip.utils.build import BuildDirectory
+from pip.utils.temp_dir import TempDirectory
 from pip.utils.filesystem import check_path_owner
 from pip.wheel import WheelBuilder, WheelCache
 
@@ -197,10 +196,9 @@ class InstallCommand(RequirementCommand):
             install_options.append('--user')
             install_options.append('--prefix=')
 
-        temp_target_dir = None
+        target_temp_dir = TempDirectory(kind="target")
         if options.target_dir:
             options.ignore_installed = True
-            temp_target_dir = tempfile.mkdtemp()
             options.target_dir = os.path.abspath(options.target_dir)
             if (os.path.exists(options.target_dir) and not
                     os.path.isdir(options.target_dir)):
@@ -208,7 +206,10 @@ class InstallCommand(RequirementCommand):
                     "Target path exists but is not a directory, will not "
                     "continue."
                 )
-            install_options.append('--home=' + temp_target_dir)
+
+            # Create a target directory for using with the target option
+            target_temp_dir.create()
+            install_options.append('--home=' + target_temp_dir.path)
 
         global_options = options.global_options or []
 
@@ -221,17 +222,18 @@ class InstallCommand(RequirementCommand):
                 logger.warning(
                     "The directory '%s' or its parent directory is not owned "
                     "by the current user and caching wheels has been "
-                    "disabled. Check the permissions and owner of that "
+                    "disabled. check the permissions and owner of that "
                     "directory. If executing pip with sudo, you may want "
                     "sudo's -H flag.",
                     options.cache_dir,
                 )
                 options.cache_dir = None
 
-            with BuildDirectory(options.build_dir,
-                                delete=build_delete) as build_dir:
+            with TempDirectory(
+                options.build_dir, delete=build_delete, kind="install"
+            ) as directory:
                 requirement_set = RequirementSet(
-                    build_dir=build_dir,
+                    build_dir=directory.path,
                     src_dir=options.src_dir,
                     upgrade=options.upgrade,
                     upgrade_strategy=options.upgrade_strategy,
@@ -240,7 +242,7 @@ class InstallCommand(RequirementCommand):
                     ignore_requires_python=options.ignore_requires_python,
                     force_reinstall=options.force_reinstall,
                     use_user_site=options.use_user_site,
-                    target_dir=temp_target_dir,
+                    target_dir=target_temp_dir.path,
                     session=session,
                     pycompile=options.compile,
                     isolated=options.isolated_mode,
@@ -282,7 +284,7 @@ class InstallCommand(RequirementCommand):
 
                     possible_lib_locations = get_lib_location_guesses(
                         user=options.use_user_site,
-                        home=temp_target_dir,
+                        home=target_temp_dir.path,
                         root=options.root_path,
                         prefix=options.prefix_path,
                         isolated=options.isolated_mode,
@@ -335,63 +337,65 @@ class InstallCommand(RequirementCommand):
 
         if options.target_dir:
             self._handle_target_dir(
-                options.target_dir, temp_target_dir, options.upgrade
+                options.target_dir, target_temp_dir, options.upgrade
             )
-
         return requirement_set
 
-    def _handle_target_dir(self, target_dir, temp_target_dir, upgrade):
+    def _handle_target_dir(self, target_dir, target_temp_dir, upgrade):
         ensure_dir(target_dir)
 
         # Checking both purelib and platlib directories for installed
         # packages to be moved to target directory
         lib_dir_list = []
 
-        purelib_dir = distutils_scheme('', home=temp_target_dir)['purelib']
-        platlib_dir = distutils_scheme('', home=temp_target_dir)['platlib']
-        data_dir = distutils_scheme('', home=temp_target_dir)['data']
+        with target_temp_dir:
+            # Checking both purelib and platlib directories for installed
+            # packages to be moved to target directory
+            scheme = distutils_scheme('', home=target_temp_dir.path)
+            purelib_dir = scheme['purelib']
+            platlib_dir = scheme['platlib']
+            data_dir = scheme['data']
 
-        if os.path.exists(purelib_dir):
-            lib_dir_list.append(purelib_dir)
-        if os.path.exists(platlib_dir) and platlib_dir != purelib_dir:
-            lib_dir_list.append(platlib_dir)
-        if os.path.exists(data_dir):
-            lib_dir_list.append(data_dir)
+            if os.path.exists(purelib_dir):
+                lib_dir_list.append(purelib_dir)
+            if os.path.exists(platlib_dir) and platlib_dir != purelib_dir:
+                lib_dir_list.append(platlib_dir)
+            if os.path.exists(data_dir):
+                lib_dir_list.append(data_dir)
 
-        for lib_dir in lib_dir_list:
-            for item in os.listdir(lib_dir):
-                if lib_dir == data_dir:
-                    ddir = os.path.join(data_dir, item)
-                    if any(s.startswith(ddir) for s in lib_dir_list[:-1]):
-                        continue
-                target_item_dir = os.path.join(target_dir, item)
-                if os.path.exists(target_item_dir):
-                    if not upgrade:
-                        logger.warning(
-                            'Target directory %s already exists. Specify '
-                            '--upgrade to force replacement.',
-                            target_item_dir
-                        )
-                        continue
-                    if os.path.islink(target_item_dir):
-                        logger.warning(
-                            'Target directory %s already exists and is '
-                            'a link. Pip will not automatically replace '
-                            'links, please remove if replacement is '
-                            'desired.',
-                            target_item_dir
-                        )
-                        continue
-                    if os.path.isdir(target_item_dir):
-                        shutil.rmtree(target_item_dir)
-                    else:
-                        os.remove(target_item_dir)
+            for lib_dir in lib_dir_list:
+                for item in os.listdir(lib_dir):
+                    if lib_dir == data_dir:
+                        ddir = os.path.join(data_dir, item)
+                        if any(s.startswith(ddir) for s in lib_dir_list[:-1]):
+                            continue
+                    target_item_dir = os.path.join(target_dir, item)
+                    if os.path.exists(target_item_dir):
+                        if not upgrade:
+                            logger.warning(
+                                'Target directory %s already exists. Specify '
+                                '--upgrade to force replacement.',
+                                target_item_dir
+                            )
+                            continue
+                        if os.path.islink(target_item_dir):
+                            logger.warning(
+                                'Target directory %s already exists and is '
+                                'a link. Pip will not automatically replace '
+                                'links, please remove if replacement is '
+                                'desired.',
+                                target_item_dir
+                            )
+                            continue
+                        if os.path.isdir(target_item_dir):
+                            shutil.rmtree(target_item_dir)
+                        else:
+                            os.remove(target_item_dir)
 
-                shutil.move(
-                    os.path.join(lib_dir, item),
-                    target_item_dir
-                )
-        shutil.rmtree(temp_target_dir)
+                    shutil.move(
+                        os.path.join(lib_dir, item),
+                        target_item_dir
+                    )
 
 
 def get_lib_location_guesses(*args, **kwargs):
