@@ -269,6 +269,7 @@ class RequirementSet(object):
             for dep in self._dependencies[req]:
                 schedule(dep)
             order.append(req)
+
         for install_req in self.requirements.values():
             schedule(install_req)
         return order
@@ -303,14 +304,20 @@ class RequirementSet(object):
                         **kwargs
                     )
                 except:
+                    should_rollback = (
+                        requirement.conflicts_with and
+                        not requirement.install_succeeded
+                    )
                     # if install did not succeed, rollback previous uninstall
-                    if (requirement.conflicts_with and not
-                            requirement.install_succeeded):
+                    if should_rollback:
                         requirement.uninstalled_pathset.rollback()
                     raise
                 else:
-                    if (requirement.conflicts_with and
-                            requirement.install_succeeded):
+                    should_commit = (
+                        requirement.conflicts_with and
+                        requirement.install_succeeded
+                    )
+                    if should_commit:
                         requirement.uninstalled_pathset.commit()
                 requirement.remove_temporary_source()
 

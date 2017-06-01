@@ -175,17 +175,13 @@ class Command(object):
             # logging enabled. These use both pip._vendor and the bare names
             # for the case where someone unbundles our libraries.
             "loggers": dict(
-                (
-                    name,
-                    {
-                        "level": (
-                            "WARNING"
-                            if level in ["INFO", "ERROR"]
-                            else "DEBUG"
-                        ),
-                    },
-                )
-                for name in ["pip._vendor", "distlib", "requests", "urllib3"]
+                (name, {
+                    "level": (
+                        "WARNING" if level in ["INFO", "ERROR"] else "DEBUG"
+                    )
+                }) for name in [
+                    "pip._vendor", "distlib", "requests", "urllib3"
+                ]
             ),
         })
 
