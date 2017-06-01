@@ -75,6 +75,68 @@ def uninstallation_paths(dist):
             yield path
 
 
+def _compact(paths):
+    """Compact a path set to contain the minimal number of paths
+    necessary to contain all paths in the set. If /a/path/ and
+    /a/path/to/a/file.txt are both in the set, leave only the
+    shorter path."""
+
+    sep = os.path.sep
+    short_paths = set()
+    for path in sorted(paths, key=len):
+        should_add = any(
+            path.startswith(shortpath.rstrip("*")) and
+            path[len(shortpath.rstrip("*").rstrip(sep))] == sep
+            for shortpath in short_paths
+        )
+        if not should_add:
+            short_paths.add(path)
+    return short_paths
+
+
+def compress_for_output_listing(self, paths):
+    """Returns a tuple of 2 sets of which paths to display to user
+
+    Only the folders that have packages inside them and files that are not
+    within those folders. Any files in above folders that would not be
+    deleted would be displayed in a separate skipped list.
+    """
+
+    will_remove = list(paths)
+    will_skip = set()
+
+    # Determine folders and files
+    folders = set()
+    files = set()
+    for path in will_remove:
+        if path.endswith(".pyc"):
+            continue
+        if path.endswith("__init__.py") or ".dist-info" in path:
+            folders.add(os.path.dirname(path))
+        files.add(path)
+
+    folders = _compact(folders)
+
+    # This walks the tree using os.walk to not miss extra folders
+    # that might get added.
+    for folder in folders:
+        for dirpath, _, dirfiles in os.walk(folder):
+            for fname in dirfiles:
+                if fname.endswith(".pyc"):
+                    continue
+
+                file_ = os.path.join(dirpath, fname)
+                if os.path.isfile(file_) and file_ not in files:
+                    # We are skipping this file. Add it to the set.
+                    will_skip.add(file_)
+
+    will_remove = files | {
+        os.path.join(folder, "*") for folder in folders
+    }
+
+    return will_remove, will_skip
+
+
 class UninstallPathSet(object):
     """A set of file paths to be removed in the uninstallation of a
     requirement."""
@@ -122,24 +184,6 @@ class UninstallPathSet(object):
         else:
             self._refuse.add(pth_file)
 
-    def compact(self, paths):
-        """Compact a path set to contain the minimal number of paths
-        necessary to contain all paths in the set. If /a/path/ and
-        /a/path/to/a/file.txt are both in the set, leave only the
-        shorter path."""
-
-        sep = os.path.sep
-        short_paths = set()
-        for path in sorted(paths, key=len):
-            should_add = any(
-                path.startswith(shortpath.rstrip("*")) and
-                path[len(shortpath.rstrip("*").rstrip(sep))] == sep
-                for shortpath in short_paths
-            )
-            if not should_add:
-                short_paths.add(path)
-        return short_paths
-
     def _stash(self, path):
         return os.path.join(
             self.save_dir.path, os.path.splitdrive(path)[1].lstrip(os.path.sep)
@@ -165,7 +209,7 @@ class UninstallPathSet(object):
             if auto_confirm or self._allowed_to_proceed(verbose):
                 self.save_dir.create()
 
-                for path in sorted(self.compact(self.paths)):
+                for path in sorted(_compact(self.paths)):
                     new_path = self._stash(path)
                     logger.debug('Removing file or directory %s', path)
                     self._moved_paths.append(path)
@@ -174,48 +218,6 @@ class UninstallPathSet(object):
                     pth.remove()
 
                 logger.info('Successfully uninstalled %s', dist_name_version)
-
-    def compressed_output_listing(self, paths):
-        """Returns a tuple of 2 sets of which paths to display to user
-
-        Only the folders that have packages inside them and files that are not
-        within those folders. Any files in above folders that would not be
-        deleted would be displayed in a separate skipped list.
-        """
-
-        will_remove = list(paths)
-        will_skip = set()
-
-        # Determine folders and files
-        folders = set()
-        files = set()
-        for path in will_remove:
-            if path.endswith(".pyc"):
-                continue
-            if path.endswith("__init__.py") or ".dist-info" in path:
-                folders.add(os.path.dirname(path))
-            files.add(path)
-
-        folders = self.compact(folders)
-
-        # This walks the tree using os.walk to not miss extra folders
-        # that might get added.
-        for folder in folders:
-            for dirpath, _, dirfiles in os.walk(folder):
-                for fname in dirfiles:
-                    if fname.endswith(".pyc"):
-                        continue
-
-                    file_ = os.path.join(dirpath, fname)
-                    if os.path.isfile(file_) and file_ not in files:
-                        # We are skipping this file. Add it to the set.
-                        will_skip.add(file_)
-
-        will_remove = files | {
-            os.path.join(folder, "*") for folder in folders
-        }
-
-        return will_remove, will_skip
 
     def _allowed_to_proceed(self, verbose):
         """Display which files would be deleted and prompt for confirmation
@@ -227,11 +229,11 @@ class UninstallPathSet(object):
 
             logger.info(msg)
             with indent_log():
-                for path in sorted(self.compact(paths)):
+                for path in sorted(_compact(paths)):
                     logger.info(path)
 
         if not verbose:
-            will_remove, will_skip = self.compressed_output_listing(self.paths)
+            will_remove, will_skip = compress_for_output_listing(self.paths)
         else:
             # In verbose mode, display all the files that are going to be
             # deleted.
