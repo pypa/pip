@@ -4,6 +4,9 @@ from __future__ import absolute_import, division
 
 import os
 import sys
+import codecs
+import locale
+import logging
 
 from pip._vendor.six import text_type
 
@@ -24,6 +27,8 @@ __all__ = [
 ]
 
 
+logger = logging.getLogger(__name__)
+
 if sys.version_info >= (3, 4):
     uses_pycache = True
     from importlib.util import cache_from_source
@@ -36,22 +41,76 @@ else:
         cache_from_source = None
 
 
-if sys.version_info >= (3,):
-    def console_to_str(s):
-        try:
-            return s.decode(sys.__stdout__.encoding)
-        except UnicodeDecodeError:
-            return s.decode('utf_8')
+if sys.version_info >= (3, 5):
+    backslashreplace_decode = "backslashreplace"
+else:
+    # In version 3.4 and older, backslashreplace exists
+    # but does not support use for decoding.
+    # We implement our own replace handler for this
+    # situation, so that we can consistently use
+    # backslash replacement for all versions.
+    def backslashreplace_decode_fn(err):
+        raw_bytes = (err.object[i] for i in range(err.start, err.end))
+        if sys.version_info[0] == 2:
+            # Python 2 gave us characters - convert to numeric bytes
+            raw_bytes = (ord(b) for b in raw_bytes)
+        return u"".join(u"\\x%x" % c for c in raw_bytes), err.end
+    codecs.register_error(
+        "backslashreplace_decode",
+        backslashreplace_decode_fn)
+    backslashreplace_decode = "backslashreplace_decode"
 
+
+def console_to_str(data):
+    """Return a string, safe for output, of subprocess output.
+
+    We assume the data is in the locale preferred encoding.
+    If it won't decode properly, we warn the user but decode as
+    best we can.
+
+    We also ensure that the output can be safely written to
+    standard output without encoding errors.
+    """
+
+    # First, get the encoding we assume. This is the preferred
+    # encoding for the locale, unless that is not found, or
+    # it is ASCII, in which case assume UTF-8
+    encoding = locale.getpreferredencoding()
+    if (not encoding) or codecs.lookup(encoding).name == "ascii":
+        encoding = "utf-8"
+
+    # Now try to decode the data - if we fail, warn the user and
+    # decode with replacement.
+    try:
+        s = data.decode(encoding)
+    except UnicodeDecodeError:
+        logger.warning(
+            "Subprocess output does not appear to be encoded as %s" %
+            encoding)
+        s = data.decode(encoding, errors=backslashreplace_decode)
+
+    # Make sure we can print the output, by encoding it to the output
+    # encoding with replacement of unencodable characters, and then
+    # decoding again.
+    # We use stderr's encoding because it's less likely to be
+    # redirected and if we don't find an encoding we skip this
+    # step (on the assumption that output is wrapped by something
+    # that won't fail).
+    output_encoding = sys.__stderr__.encoding
+    if output_encoding:
+        s = s.encode(output_encoding, errors="backslashreplace")
+        s = s.decode(output_encoding)
+
+    return s
+
+
+if sys.version_info >= (3,):
     def native_str(s, replace=False):
         if isinstance(s, bytes):
             return s.decode('utf-8', 'replace' if replace else 'strict')
         return s
 
 else:
-    def console_to_str(s):
-        return s
-
     def native_str(s, replace=False):
         # Replace is ignored -- unicode to UTF-8 can't fail
         if isinstance(s, text_type):

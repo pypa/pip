@@ -334,13 +334,16 @@ class InstallCommand(RequirementCommand):
                         requirement_set.cleanup_files()
 
         if options.target_dir:
-            self._target_option_handling(
+            self._handle_target_dir(
                 options.target_dir, target_temp_dir, options.upgrade
             )
         return requirement_set
 
-    def _target_option_handling(self, target_dir, target_temp_dir, upgrade):
+    def _handle_target_dir(self, target_dir, target_temp_dir, upgrade):
         ensure_dir(target_dir)
+
+        # Checking both purelib and platlib directories for installed
+        # packages to be moved to target directory
         lib_dir_list = []
 
         with target_temp_dir:
