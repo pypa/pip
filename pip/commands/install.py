@@ -18,7 +18,6 @@ from pip.exceptions import (
 )
 from pip.locations import distutils_scheme, virtualenv_no_global
 from pip.req import RequirementSet
-from pip.resolve import Resolver
 from pip.status_codes import ERROR
 from pip.utils import ensure_dir, get_installed_version
 from pip.utils.build import BuildDirectory
