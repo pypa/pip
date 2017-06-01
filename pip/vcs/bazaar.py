@@ -2,12 +2,12 @@ from __future__ import absolute_import
 
 import logging
 import os
-import tempfile
 
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip.download import path_to_url
 from pip.utils import display_path, rmtree
+from pip.utils.temp_dir import TempDirectory
 from pip.vcs import VersionControl, vcs
 
 
@@ -34,16 +34,17 @@ class Bazaar(VersionControl):
         """
         Export the Bazaar repository at the url to the destination location
         """
-        temp_dir = tempfile.mkdtemp('-export', 'pip-')
-        self.unpack(temp_dir)
+        # Remove the location to make sure Bazaar can export it correctly
         if os.path.exists(location):
-            # Remove the location to make sure Bazaar can export it correctly
             rmtree(location)
-        try:
-            self.run_command(['export', location], cwd=temp_dir,
-                             show_stdout=False)
-        finally:
-            rmtree(temp_dir)
+
+        with TempDirectory(kind="export") as temp_dir:
+            self.unpack(temp_dir.path)
+
+            self.run_command(
+                ['export', location],
+                cwd=temp_dir.path, show_stdout=False,
+            )
 
     def switch(self, dest, url, rev_options):
         self.run_command(['switch', url], cwd=dest)

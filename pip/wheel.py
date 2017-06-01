@@ -15,7 +15,6 @@ import re
 import shutil
 import stat
 import sys
-import tempfile
 import warnings
 from base64 import urlsafe_b64encode
 from email.parser import Parser
@@ -29,9 +28,10 @@ from pip.exceptions import (
 )
 from pip.locations import PIP_DELETE_MARKER_FILENAME, distutils_scheme
 from pip.utils import (
-    call_subprocess, captured_stdout, ensure_dir, read_chunks, rmtree
+    call_subprocess, captured_stdout, ensure_dir, read_chunks
 )
 from pip.utils.logging import indent_log
+from pip.utils.temp_dir import TempDirectory
 from pip.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip.utils.ui import open_spinner
 from pip._vendor.distlib.scripts import ScriptMaker
@@ -637,18 +637,20 @@ class Wheel(object):
 class BuildEnvironment(object):
     """Context manager to install build deps in a simple temporary environment
     """
-    def __init__(self, no_clean=False):
-        self.prefix = tempfile.mkdtemp('pip-build-env-')
-        self.no_clean = no_clean
+    def __init__(self, no_clean):
+        self._temp_dir = TempDirectory(kind="build-env")
+        self._no_clean = no_clean
 
     def __enter__(self):
+        self._temp_dir.create()
+
         self.save_path = os.environ.get('PATH', None)
         self.save_pythonpath = os.environ.get('PYTHONPATH', None)
 
         install_scheme = 'nt' if (os.name == 'nt') else 'posix_prefix'
         install_dirs = get_paths(install_scheme, vars={
-            'base': self.prefix,
-            'platbase': self.prefix,
+            'base': self._temp_dir.path,
+            'platbase': self._temp_dir.path,
         })
 
         scripts = install_dirs['scripts']
@@ -668,9 +670,11 @@ class BuildEnvironment(object):
         else:
             os.environ['PYTHONPATH'] = lib_dirs
 
-        return self.prefix
+        return self._temp_dir.path
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        if not self._no_clean:
+            self._temp_dir.cleanup()
         if self.save_path is None:
             os.environ.pop('PATH', None)
         else:
@@ -680,9 +684,6 @@ class BuildEnvironment(object):
             os.environ.pop('PYTHONPATH', None)
         else:
             os.environ['PYTHONPATH'] = self.save_pythonpath
-
-        if not self.no_clean:
-            rmtree(self.prefix)
 
 
 class WheelBuilder(object):
@@ -743,8 +744,8 @@ class WheelBuilder(object):
                 "This version of pip does not implement PEP 516, so "
                 "it cannot build a wheel without setuptools. You may need to "
                 "upgrade to a newer version of pip.")
-        # Install build deps into temporary prefix (PEP 518)
-        with BuildEnvironment(no_clean=self.no_clean) as prefix:
+        # Install build deps into temporary directory (PEP 518)
+        with BuildEnvironment(self.no_clean) as prefix:
             self._install_build_reqs(build_reqs, prefix)
             return self._build_one_inside_env(req, output_dir,
                                               python_tag=python_tag,
@@ -752,14 +753,15 @@ class WheelBuilder(object):
 
     def _build_one_inside_env(self, req, output_dir, python_tag=None,
                               isolate=False):
-        tempd = tempfile.mkdtemp('pip-wheel-')
-        try:
-            if self.__build_one(req, tempd, python_tag=python_tag,
+        with TempDirectory(kind="wheel") as temp_dir:
+            if self.__build_one(req, temp_dir.path, python_tag=python_tag,
                                 isolate=isolate):
                 try:
-                    wheel_name = os.listdir(tempd)[0]
+                    wheel_name = os.listdir(temp_dir.path)[0]
                     wheel_path = os.path.join(output_dir, wheel_name)
-                    shutil.move(os.path.join(tempd, wheel_name), wheel_path)
+                    shutil.move(
+                        os.path.join(temp_dir.path, wheel_name), wheel_path
+                    )
                     logger.info('Stored in directory: %s', output_dir)
                     return wheel_path
                 except:
@@ -767,8 +769,6 @@ class WheelBuilder(object):
             # Ignore return, we can't do anything else useful.
             self._clean_one(req)
             return None
-        finally:
-            rmtree(tempd)
 
     def _base_setup_args(self, req, isolate=False):
         flags = '-u'
