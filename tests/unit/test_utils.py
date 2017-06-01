@@ -464,6 +464,16 @@ class TestEncoding(object):
         latin1_req = u'# coding=latin1\n# Pas trop de café'
         assert auto_decode(latin1_req.encode('latin1')) == latin1_req
 
+    def test_auto_decode_no_preferred_encoding(self):
+        om, em = Mock(), Mock()
+        om.return_value = 'ascii'
+        em.return_value = None
+        data = u'data'
+        with patch('sys.getdefaultencoding', om):
+            with patch('locale.getpreferredencoding', em):
+                ret = auto_decode(data.encode(sys.getdefaultencoding()))
+        assert ret == data
+
 
 class TestTempDirectory(object):
 
