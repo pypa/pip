@@ -1,6 +1,7 @@
 """Base option parser setup"""
 from __future__ import absolute_import
 
+import logging
 import optparse
 import sys
 import textwrap
@@ -10,6 +11,8 @@ from pip._vendor.six import string_types
 
 from pip.configuration import Configuration
 from pip.utils import get_terminal_size
+
+logger = logging.getLogger(__name__)
 
 
 class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
@@ -151,12 +154,16 @@ class ConfigOptionParser(CustomOptionParser):
 
         # Pool the options into different groups
         section_items = {name: [] for name in override_order}
-        for key, val in self.config.items():
+        for section_key, val in self.config.items():
             # ignore empty values
             if not val:
+                logger.debug(
+                    "Ignoring configuration key '%s' as it's value is empty.",
+                    section_key
+                )
                 continue
 
-            section, key = key.split(".", 1)
+            section, key = section_key.split(".", 1)
             if section in override_order:
                 section_items[section].append((key, val))
 

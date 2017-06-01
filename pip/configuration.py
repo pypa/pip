@@ -24,8 +24,6 @@ from pip.locations import (
 )
 from pip.utils import ensure_dir, enum
 
-_need_file_err_msg = "Needed a specific file to be modifying."
-
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +44,11 @@ def _disassemble_key(name):
 
 # The kinds of configurations there are.
 kinds = enum(
-    USER="user", GLOBAL="global", VENV="venv", ENV="env", ENV_VAR="env-var"
+    USER="user",        # User Specific
+    GLOBAL="global",    # System Wide
+    VENV="venv",        # Virtual Environment Specific
+    ENV="env",          # from PIP_CONFIG_FILE
+    ENV_VAR="env-var",  # from Environment Variables
 )
 
 
@@ -94,7 +96,7 @@ class Configuration(object):
         if not self.isolated:
             self._load_environment_vars()
 
-    def get_file(self):
+    def get_file_to_edit(self):
         """Returns the file with highest priority in configuration
         """
         try:
@@ -167,6 +169,8 @@ class Configuration(object):
         del self._config[self.load_only][key]
 
     def save(self):
+        """Save the currentin-memory state.
+        """
         self._ensure_have_load_only()
 
         for file_, parser in self._modified_parsers:
@@ -185,6 +189,7 @@ class Configuration(object):
     def _ensure_have_load_only(self):
         if self.load_only is None:
             raise ConfigurationError("Needed a specific file to be modifying.")
+        logger.debug("Will be working with %s variant only", self.load_only)
 
     @property
     def _dictionary(self):
@@ -202,7 +207,7 @@ class Configuration(object):
     def _load_config_files(self):
         """Loads configuration from configuration files
         """
-        config_files = dict(self._get_config_files())
+        config_files = dict(self._iter_config_files())
         if config_files[kinds.ENV][0:1] == [os.devnull]:
             logger.debug(
                 "Skipping loading configuration files due to "
@@ -215,6 +220,9 @@ class Configuration(object):
                 # If there's specific variant set in `load_only`, load only
                 # that variant, not the others.
                 if self.load_only is not None and variant != self.load_only:
+                    logger.debug(
+                        "Skipping file '%s' (variant: %s)", file_, variant
+                    )
                     continue
 
                 parser = self._load_file(variant, file_)
@@ -269,7 +277,7 @@ class Configuration(object):
                 yield key[4:].lower(), val
 
     # XXX: This is patched in the tests.
-    def _get_config_files(self):
+    def _iter_config_files(self):
         """Yields variant and configuration files associated with it.
 
         This should be treated like items of a dictionary.

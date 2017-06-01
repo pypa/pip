@@ -7,6 +7,7 @@ from pip.configuration import Configuration, kinds
 from pip.exceptions import PipError
 from pip.locations import venv_config_file
 from pip.status_codes import SUCCESS, ERROR
+from pip.utils import get_prog
 
 logger = logging.getLogger(__name__)
 
@@ -176,7 +177,7 @@ class ConfigurationCommand(Command):
     def open_in_editor(self, options, args):
         editor = self._determine_editor(options)
 
-        file_ = self.configuration.get_file()
+        file_ = self.configuration.get_file_to_edit()
         if file_ is None:
             raise PipError("Could not determine appropriate file.")
 
@@ -188,11 +189,15 @@ class ConfigurationCommand(Command):
                 .format(e.returncode)
             )
 
-    def _get_n_args(self, args, n):
+    def _get_n_args(self, args, n, example):
+        """Helper to make sure the command got the right number of arguments
+        """
         if len(args) != n:
-            raise PipError(
-                "Got unexpected number of arguments, expected {}.".format(n)
-            )
+            msg = (
+                'Got unexpected number of arguments, expected {}. '
+                '(example: "{} {}")'
+            ).format(n, get_prog(), example)
+            raise PipError(msg)
 
         if n == 1:
             return args[0]
@@ -214,6 +219,8 @@ class ConfigurationCommand(Command):
     def _determine_editor(self, options):
         if options.editor is not None:
             return options.editor
+        elif "VISUAL" in os.environ:
+            return os.environ["VISUAL"]
         elif "EDITOR" in os.environ:
             return os.environ["EDITOR"]
         else:
