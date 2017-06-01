@@ -123,7 +123,7 @@ class Configuration(object):
         """
         self._ensure_have_load_only()
 
-        file_, parser = self._get_parser_to_modify()
+        fname, parser = self._get_parser_to_modify()
 
         if parser is not None:
             section, name = _disassemble_key(key)
@@ -134,7 +134,7 @@ class Configuration(object):
             parser.set(section, name, value)
 
         self._config[self.load_only][key] = value
-        self._mark_as_modified(file_, parser)
+        self._mark_as_modified(fname, parser)
 
     def unset_value(self, key):
         """Unset a value in the configuration.
@@ -144,7 +144,7 @@ class Configuration(object):
         if key not in self._config[self.load_only]:
             raise ConfigurationError("No such key - {}".format(key))
 
-        file_, parser = self._get_parser_to_modify()
+        fname, parser = self._get_parser_to_modify()
 
         if parser is not None:
             section, name = _disassemble_key(key)
@@ -160,7 +160,7 @@ class Configuration(object):
                 if next(iter(parser.items(section)), None) is None:
                     parser.remove_section(section)
 
-                self._mark_as_modified(file_, parser)
+                self._mark_as_modified(fname, parser)
             else:
                 raise ConfigurationError(
                     "Fatal Internal error [id=1]. Please report as a bug."
@@ -173,13 +173,13 @@ class Configuration(object):
         """
         self._ensure_have_load_only()
 
-        for file_, parser in self._modified_parsers:
-            logger.info("Writing to %s", file_)
+        for fname, parser in self._modified_parsers:
+            logger.info("Writing to %s", fname)
 
             # Ensure directory exists.
-            ensure_dir(os.path.dirname(file_))
+            ensure_dir(os.path.dirname(fname))
 
-            with open(file_, "w") as f:
+            with open(fname, "w") as f:
                 parser.write(f)
 
     #
@@ -216,23 +216,23 @@ class Configuration(object):
             return
 
         for variant, files in config_files.items():
-            for file_ in files:
+            for fname in files:
                 # If there's specific variant set in `load_only`, load only
                 # that variant, not the others.
                 if self.load_only is not None and variant != self.load_only:
                     logger.debug(
-                        "Skipping file '%s' (variant: %s)", file_, variant
+                        "Skipping file '%s' (variant: %s)", fname, variant
                     )
                     continue
 
-                parser = self._load_file(variant, file_)
+                parser = self._load_file(variant, fname)
 
                 # Keeping track of the parsers used
-                self._parsers[variant].append((file_, parser))
+                self._parsers[variant].append((fname, parser))
 
-    def _load_file(self, variant, file_):
-        logger.debug("For variant '%s', will try loading '%s'", variant, file_)
-        parser = self._construct_parser(file_)
+    def _load_file(self, variant, fname):
+        logger.debug("For variant '%s', will try loading '%s'", variant, fname)
+        parser = self._construct_parser(fname)
 
         for section in parser.sections():
             items = parser.items(section)
@@ -240,14 +240,14 @@ class Configuration(object):
 
         return parser
 
-    def _construct_parser(self, file_):
+    def _construct_parser(self, fname):
         parser = configparser.RawConfigParser()
         # If there is no such file, don't bother reading it but create the
         # parser anyway, to hold the data.
         # Doing this is useful when modifying and saving files, where we don't
         # need to construct a parser.
-        if os.path.exists(file_):
-            parser.read(file_)
+        if os.path.exists(fname):
+            parser.read(fname)
 
         return parser
 
@@ -319,7 +319,7 @@ class Configuration(object):
         return parsers[-1]
 
     # XXX: This is patched in the tests.
-    def _mark_as_modified(self, file_, parser):
-        file_parser_tuple = (file_, parser)
+    def _mark_as_modified(self, fname, parser):
+        file_parser_tuple = (fname, parser)
         if file_parser_tuple not in self._modified_parsers:
             self._modified_parsers.append(file_parser_tuple)

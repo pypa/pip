@@ -23,8 +23,8 @@ class ConfigurationMixin(object):
         self._old_environ = os.environ.copy()
 
     def teardown(self):
-        for file_ in self._files_to_clear:
-            file_.stop()
+        for fname in self._files_to_clear:
+            fname.stop()
 
         os.environ = self._old_environ
 

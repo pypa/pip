@@ -177,12 +177,12 @@ class ConfigurationCommand(Command):
     def open_in_editor(self, options, args):
         editor = self._determine_editor(options)
 
-        file_ = self.configuration.get_file_to_edit()
-        if file_ is None:
+        fname = self.configuration.get_file_to_edit()
+        if fname is None:
             raise PipError("Could not determine appropriate file.")
 
         try:
-            subprocess.check_call([editor, file_])
+            subprocess.check_call([editor, fname])
         except subprocess.CalledProcessError as e:
             raise PipError(
                 "Editor Subprocess exited with exit code {}"
