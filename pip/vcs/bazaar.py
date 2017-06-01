@@ -43,7 +43,7 @@ class Bazaar(VersionControl):
 
             self.run_command(
                 ['export', location],
-                cwd=temp_dir.path, show_stdout=False
+                cwd=temp_dir.path, show_stdout=False,
             )
 
     def switch(self, dest, url, rev_options):
