@@ -365,5 +365,5 @@ class RequirementCommand(Command):
 
         return Resolver(
             upgrade_strategy=strategy,
-            finder=finder
+            finder=finder,
         )
