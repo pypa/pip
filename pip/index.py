@@ -658,7 +658,7 @@ class PackageFinder(object):
         if match:
             version = version[:match.start()]
             py_version = match.group(1)
-            if py_version != sys.version[:3]:
+            if not sys.version.startswith(py_version):
                 self._log_skipped_link(
                     link, 'Python version is incorrect')
                 return
