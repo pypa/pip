@@ -197,15 +197,6 @@ def test_download_specify_platform_only_binary(script, data):
 
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
-        '--dest', '.',
-        '--platform', 'linux_x86_64',
-        'fake',
-        expect_error=True,
-    )
-    assert '--only-binary=:all:' in result.stderr
-
-    result = script.pip(
-        'download', '--no-index', '--find-links', data.find_links,
         '--only-binary=:all:',
         '--no-binary=fake',
         '--dest', '.',
