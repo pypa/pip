@@ -10,7 +10,13 @@ environment:
     - PYTHON: "C:\\Python35-x64"
 
 install:
-    cmd: "%PYTHON%\\python.exe -m pip install tox"
+    - "%PYTHON%\\python.exe -m pip install tox wheel"
 build: off
 test_script:
     - "%PYTHON%\\Scripts\\tox.exe -e py -- -m unit -n 8"
+
+after_test:
+    # This creates archives in dist/
+    - "%PYTHON%\\python.exe setup.py sdist bdist_wheel"
+artifacts:
+    - path: dist\*
