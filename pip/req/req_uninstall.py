@@ -75,7 +75,7 @@ def uninstallation_paths(dist):
             yield path
 
 
-def _compact(paths):
+def compact(paths):
     """Compact a path set to contain the minimal number of paths
     necessary to contain all paths in the set. If /a/path/ and
     /a/path/to/a/file.txt are both in the set, leave only the
@@ -94,7 +94,7 @@ def _compact(paths):
     return short_paths
 
 
-def compress_for_output_listing(self, paths):
+def compress_for_output_listing(paths):
     """Returns a tuple of 2 sets of which paths to display to user
 
     Only the folders that have packages inside them and files that are not
@@ -115,7 +115,7 @@ def compress_for_output_listing(self, paths):
             folders.add(os.path.dirname(path))
         files.add(path)
 
-    folders = _compact(folders)
+    folders = compact(folders)
 
     # This walks the tree using os.walk to not miss extra folders
     # that might get added.
@@ -209,7 +209,7 @@ class UninstallPathSet(object):
             if auto_confirm or self._allowed_to_proceed(verbose):
                 self.save_dir.create()
 
-                for path in sorted(_compact(self.paths)):
+                for path in sorted(compact(self.paths)):
                     new_path = self._stash(path)
                     logger.debug('Removing file or directory %s', path)
                     self._moved_paths.append(path)
@@ -229,7 +229,7 @@ class UninstallPathSet(object):
 
             logger.info(msg)
             with indent_log():
-                for path in sorted(_compact(paths)):
+                for path in sorted(compact(paths)):
                     logger.info(path)
 
         if not verbose:
