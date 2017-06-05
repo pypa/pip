@@ -356,7 +356,8 @@ class RequirementCommand(Command):
 
     def _build_resolver(self, options, finder):
         strategy = getattr(options, "upgrade_strategy", "not-allowed")
-        if not options.upgrade:
+        upgrade = getattr(options, "upgrade", False)
+        if not upgrade:
             strategy = "not-allowed"
 
         return Resolver(
