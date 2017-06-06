@@ -1,0 +1,1 @@
+Re-order except blocks so that the `UnicodeError` block can be reached.
