@@ -570,7 +570,7 @@ class PackageFinder(object):
 
             yield page
 
-    _py_version_re = re.compile(r'-py([123]\.?[0-9]?)$')
+    _py_version_re = re.compile(r'-py([123](?:\.\d+)?)$')
 
     def _sort_links(self, links):
         """
@@ -657,8 +657,8 @@ class PackageFinder(object):
         match = self._py_version_re.search(version)
         if match:
             version = version[:match.start()]
-            py_version = match.group(1)
-            if py_version != sys.version[:3]:
+            py_version = tuple(int(i) for i in match.group(1).split('.'))
+            if py_version != sys.version_info[:len(py_version)]:
                 self._log_skipped_link(
                     link, 'Python version is incorrect')
                 return
