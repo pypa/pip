@@ -1,7 +1,5 @@
 language: python
 
-# Cache pip packages. Explicitly name the pip-cache directory since we
-# use a custom `install` step which annuls `cache: pip`.
 cache:
   directories:
     - $HOME/.cache/pip
