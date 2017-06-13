@@ -105,7 +105,7 @@ class ConfigurationCommand(Command):
         #    Depends on whether the command is modifying.
         try:
             load_only = self._determine_file(
-                options, need_value=(action in ["get", "set", "unset"])
+                options, need_value=(action in ["get", "set", "unset", "edit"])
             )
         except PipError as e:
             logger.error(e.args[0])
