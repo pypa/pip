@@ -19,6 +19,7 @@ from pip.exceptions import (
 from pip.index import PackageFinder
 from pip.locations import running_under_virtualenv
 from pip.req import InstallRequirement, parse_requirements
+from pip.resolve import Resolver
 from pip.status_codes import (
     ERROR, PREVIOUS_BUILD_DIR_ERROR, SUCCESS, UNKNOWN_ERROR,
     VIRTUALENV_NOT_FOUND
@@ -351,4 +352,15 @@ class RequirementCommand(Command):
             versions=python_versions,
             abi=abi,
             implementation=implementation,
+        )
+
+    def _build_resolver(self, options, finder):
+        strategy = getattr(options, "upgrade_strategy", "not-allowed")
+        upgrade = getattr(options, "upgrade", False)
+        if not upgrade:
+            strategy = "not-allowed"
+
+        return Resolver(
+            upgrade_strategy=strategy,
+            finder=finder,
         )

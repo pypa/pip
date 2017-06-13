@@ -196,7 +196,8 @@ class DownloadCommand(RequirementCommand):
                     None
                 )
 
-                requirement_set.prepare_files(finder)
+                resolver = self._build_resolver(options, finder)
+                resolver.resolve(requirement_set)
 
                 downloaded = ' '.join([
                     req.name for req in requirement_set.successfully_downloaded
