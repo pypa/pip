@@ -1,40 +1,34 @@
 language: python
-
-
 matrix:
   include:
     - env: TOXENV=docs
     - env: TOXENV=pep8
     - env: TOXENV=py3pep8
+    - env: TOXENV=isort
     - env: TOXENV=packaging
-    - python: 2.7
-      env: TOXENV=py27
-    - python: 3.3
-      env: TOXENV=py33
-    - python: 3.4
-      env: TOXENV=py34
-    - python: 3.5
-      env: TOXENV=py35
-    - python: 3.6
-      env: TOXENV=py36
-    - python: nightly
-      env: TOXENV=py37
-    - python: pypy
-      env: TOXENV=pypy
-    - python: 2.7
-      env: TOXENV=py27 VENDOR=no WHEELS=yes
-    - python: 3.6
-      env: TOXENV=py36 VENDOR=no WHEELS=yes
-
+    - env: TOXENV=py27
+      python: 2.7
+    - env: TOXENV=py33
+      python: 3.3
+    - env: TOXENV=py34
+      python: 3.4
+    - env: TOXENV=py35
+      python: 3.5
+    - env: TOXENV=py36
+      python: 3.6
+    - env: TOXENV=py37
+      python: nightly
+    - env: TOXENV=pypy
+      python: pypy
+    - env: "TOXENV=py27 VENDOR=no WHEELS=yes"
+      python: 2.7
+    - env: "TOXENV=py36 VENDOR=no WHEELS=yes"
+      python: 3.6
   allow_failures:
     - python: nightly
 
-
 install: travis_retry .travis/install.sh
-
-
 script: .travis/run.sh
-
 
 notifications:
   irc:
@@ -43,6 +37,6 @@ notifications:
       # IRC channel whenever they fail a build. This can be removed when travis
       # implements https://github.com/travis-ci/travis-ci/issues/1094.
       # The actual value here is: irc.freenode.org#pypa-dev
-      - secure: "zAlwcmrDThlRsZz7CPDGpj4ABTzf7bc/zQXYtvIuqmSj0yJMAwsO5Vx/+qdTGYBvmW/oHw2s/uUgtkZzntSQiVQToKMag2fs0d3wV5bLJQUE2Si2jnH2JOQo3JZWSo9HOqL6WYmlKGI8lH9FVTdVLgpeJmIpLy1bN4zx4/TiJjc="
-    use_notice: true
+      - secure: zAlwcmrDThlRsZz7CPDGpj4ABTzf7bc/zQXYtvIuqmSj0yJMAwsO5Vx/+qdTGYBvmW/oHw2s/uUgtkZzntSQiVQToKMag2fs0d3wV5bLJQUE2Si2jnH2JOQo3JZWSo9HOqL6WYmlKGI8lH9FVTdVLgpeJmIpLy1bN4zx4/TiJjc=
     skip_join: true
+    use_notice: true

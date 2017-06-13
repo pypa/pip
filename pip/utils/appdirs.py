@@ -231,6 +231,7 @@ def _get_win_folder_with_ctypes(csidl_name):
 
     return buf.value
 
+
 if WINDOWS:
     try:
         import ctypes

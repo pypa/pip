@@ -99,4 +99,5 @@ class Mercurial(VersionControl):
         """Always assume the versions don't match"""
         return False
 
+
 vcs.register(Mercurial)
