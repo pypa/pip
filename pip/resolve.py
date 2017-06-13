@@ -439,7 +439,7 @@ class Resolver(object):
                     req_to_install.check_if_exists()
                 if req_to_install.satisfied_by:
                     should_modify = (
-                        self.upgrade_strategy == "not-allowed" and
+                        self.upgrade_strategy != "not-allowed" or
                         requirement_set.ignore_installed
                     )
                     if should_modify:
