@@ -15,6 +15,7 @@ cache:
   # Cache downloaded pip packages and built wheels.
   - '%LOCALAPPDATA%\pip\Cache\http'
   - '%LOCALAPPDATA%\pip\Cache\wheels'
+  - '%APPVEYOR_BUILD_FOLDER%\.tox'
 
 install:
     cmd: "%PYTHON%\\python.exe -m pip install tox"
