@@ -153,10 +153,10 @@ class Configuration(object):
             section, name = _disassemble_key(key)
 
             # Remove the key in the parser
-            modified_something = (
-                parser.has_section(section) and
-                parser.remove_option(section, name)
-            )
+            modified_something = False
+            if parser.has_section(section):
+                # Returns whether the option was removed or not
+                modified_something = parser.remove_option(section, name)
 
             if modified_something:
                 # name removed from parser, section may now be empty
