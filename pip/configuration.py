@@ -99,6 +99,9 @@ class Configuration(object):
     def get_file_to_edit(self):
         """Returns the file with highest priority in configuration
         """
+        assert self.load_only is not None, \
+               "Need to be specified a file to be editing"
+
         try:
             return self._get_parser_to_modify()[0]
         except IndexError:
