@@ -9,6 +9,7 @@ from tempfile import mkdtemp
 
 import pretend
 import pytest
+
 from pip.req import InstallRequirement
 from pip.utils import rmtree
 from tests.lib import assert_all_changes, create_test_package_with_setup

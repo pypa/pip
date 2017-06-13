@@ -1,8 +1,9 @@
 import os
 
-import pip.req.req_uninstall
 import pytest
 from mock import Mock
+
+import pip.req.req_uninstall
 from pip.req.req_uninstall import UninstallPathSet, uninstallation_paths
 
 

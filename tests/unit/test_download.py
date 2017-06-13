@@ -4,11 +4,11 @@ from io import BytesIO
 from shutil import copy, rmtree
 from tempfile import mkdtemp
 
+import pytest
+from mock import Mock, patch
 from pip._vendor.six.moves.urllib import request as urllib_request
 
 import pip
-import pytest
-from mock import Mock, patch
 from pip.download import (
     MultiDomainBasicAuth, PipSession, SafeFileCache, path_to_url,
     unpack_file_url, unpack_http_url, url_to_path

@@ -1,8 +1,10 @@
 import locale
 import os
-import pip.compat
+
 import pytest
-from pip.compat import expanduser, get_path_uid, native_str, console_to_str
+
+import pip.compat
+from pip.compat import console_to_str, expanduser, get_path_uid, native_str
 
 
 def test_get_path_uid():

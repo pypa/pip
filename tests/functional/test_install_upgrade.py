@@ -3,6 +3,7 @@ import sys
 import textwrap
 
 import pytest
+
 from tests.lib import assert_all_changes, pyversion
 from tests.lib.local_repos import local_checkout
 

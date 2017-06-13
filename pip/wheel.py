@@ -18,6 +18,12 @@ import sys
 import warnings
 from base64 import urlsafe_b64encode
 from email.parser import Parser
+from sysconfig import get_paths
+
+from pip._vendor import pkg_resources, pytoml
+from pip._vendor.distlib.scripts import ScriptMaker
+from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.six import StringIO
 
 import pip
 from pip import pep425tags
@@ -27,20 +33,11 @@ from pip.exceptions import (
     InstallationError, InvalidWheelFilename, UnsupportedWheel
 )
 from pip.locations import PIP_DELETE_MARKER_FILENAME, distutils_scheme
-from pip.utils import (
-    call_subprocess, captured_stdout, ensure_dir, read_chunks
-)
+from pip.utils import call_subprocess, captured_stdout, ensure_dir, read_chunks
 from pip.utils.logging import indent_log
-from pip.utils.temp_dir import TempDirectory
 from pip.utils.setuptools_build import SETUPTOOLS_SHIM
+from pip.utils.temp_dir import TempDirectory
 from pip.utils.ui import open_spinner
-from pip._vendor.distlib.scripts import ScriptMaker
-from pip._vendor import pkg_resources
-from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor import pytoml
-from pip._vendor.six import StringIO
-
-from sysconfig import get_paths
 
 wheel_ext = '.whl'
 

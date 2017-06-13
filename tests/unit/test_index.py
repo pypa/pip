@@ -1,6 +1,7 @@
 import os.path
 
 import pytest
+
 from pip.download import PipSession
 from pip.index import HTMLPage, Link, PackageFinder
 

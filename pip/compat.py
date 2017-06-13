@@ -2,11 +2,11 @@
 distributions."""
 from __future__ import absolute_import, division
 
-import os
-import sys
 import codecs
 import locale
 import logging
+import os
+import sys
 
 from pip._vendor.six import text_type
 

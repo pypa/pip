@@ -6,6 +6,7 @@ import textwrap
 from os.path import curdir, isdir, isfile
 
 import pytest
+
 from pip.compat import cache_from_source, uses_pycache
 from tests.lib import pyversion
 from tests.lib.local_repos import local_checkout

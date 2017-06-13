@@ -5,6 +5,7 @@ import textwrap
 from os.path import curdir, join, pardir
 
 import pytest
+
 from pip import pep425tags
 from pip.status_codes import ERROR
 from pip.utils import appdirs, rmtree
