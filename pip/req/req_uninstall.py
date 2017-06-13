@@ -97,9 +97,12 @@ def compact(paths):
 def compress_for_output_listing(paths):
     """Returns a tuple of 2 sets of which paths to display to user
 
-    Only the folders that have packages inside them and files that are not
-    within those folders. Any files in above folders that would not be
-    deleted would be displayed in a separate skipped list.
+    The first set contains paths that would be deleted. Files of a package
+    are not added and the top-level directory of the package has a '*' added
+    at the end - to signify that all it's contents are removed.
+
+    The second set contains files that would have been skipped in the above
+    folders.
     """
 
     will_remove = list(paths)

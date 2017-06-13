@@ -74,9 +74,7 @@ def test_compressed_listing(tmpdir):
         create_file(fname, "random blub")
 
     # Remove the files to be skipped from the paths
-    for path in sample[:]:
-        if ".skip." in path:
-            sample.remove(path)
+    sample = [path for path in sample if ".skip." not in path]
 
     expected_remove = in_tmpdir([
         "bin/mybin",
