@@ -188,6 +188,12 @@ class PackageFinder(object):
                     )
                     break
 
+    def __str__(self):
+        sources = list(self.index_urls)
+        if self.find_links:
+            sources += self.find_links
+        return str(sources)
+
     def add_dependency_links(self, links):
         # # FIXME: this shouldn't be global list this, it should only
         # # apply to requirements of the package that specifies the
@@ -510,7 +516,8 @@ class PackageFinder(object):
             )
 
             raise DistributionNotFound(
-                'No matching distribution found for %s' % req
+                'No matching distribution found for %s from %s'
+                % (req, self)
             )
 
         best_installed = False

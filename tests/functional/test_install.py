@@ -453,7 +453,7 @@ def test_install_global_option(script):
     result = script.pip(
         'install', '--global-option=--version', "INITools==0.1",
         expect_stderr=True)
-    assert '0.1\n' in result.stdout
+    assert 'Collecting INITools==0.1' in result.stdout
 
 
 def test_install_with_pax_header(script, data):
