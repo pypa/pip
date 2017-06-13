@@ -68,11 +68,13 @@ class Tests_UserSite:
         )
         result.assert_installed('INITools', use_user_site=True)
 
+    @pytest.mark.network
     def test_install_curdir_usersite(self, script, virtualenv, data):
         """
         Test installing current directory ('.') into usersite
         """
         virtualenv.system_site_packages = True
+        script.pip("install", "wheel")
         run_from = data.packages.join("FSPkg")
         result = script.pip(
             'install', '-vvv', '--user', curdir,
@@ -80,12 +82,12 @@ class Tests_UserSite:
             expect_error=False,
         )
         fspkg_folder = script.user_site / 'fspkg'
-        egg_info_folder = (
-            script.user_site / 'FSPkg-0.1.dev0-py%s.egg-info' % pyversion
+        dist_info_folder = (
+            script.user_site / 'FSPkg-0.1.dev0.dist-info'
         )
         assert fspkg_folder in result.files_created, result.stdout
 
-        assert egg_info_folder in result.files_created
+        assert dist_info_folder in result.files_created
 
     def test_install_user_venv_nositepkgs_fails(self, script, data):
         """

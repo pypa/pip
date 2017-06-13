@@ -58,11 +58,22 @@ class WheelCache(object):
             binaries being read from the cache.
         """
         self._cache_dir = expanduser(cache_dir) if cache_dir else None
+        # Ephemeral cache: store wheels just for this run
+        self._ephem_cache_dir = tempfile.mkdtemp(suffix='-pip-ephem-cache')
         self._format_control = format_control
 
     def cached_wheel(self, link, package_name):
-        return cached_wheel(
+        orig_link = link
+        link = cached_wheel(
             self._cache_dir, link, self._format_control, package_name)
+        if link is orig_link:
+            link = cached_wheel(
+                self._ephem_cache_dir, link, self._format_control,
+                package_name)
+        return link
+
+    def cleanup(self):
+        rmtree(self._ephem_cache_dir)
 
 
 def _cache_for_link(cache_dir, link):
@@ -691,6 +702,7 @@ class WheelBuilder(object):
         self.requirement_set = requirement_set
         self.finder = finder
         self._cache_root = requirement_set._wheel_cache._cache_dir
+        self._ephem_cache_root = requirement_set._wheel_cache._ephem_cache_dir
         self._wheel_dir = requirement_set.wheel_download_dir
         self.build_options = build_options or []
         self.global_options = global_options or []
@@ -832,6 +844,7 @@ class WheelBuilder(object):
 
         buildset = []
         for req in reqset:
+            ephem_cache = False
             if req.constraint:
                 continue
             if req.is_wheel:
@@ -841,7 +854,8 @@ class WheelBuilder(object):
             elif autobuilding and req.editable:
                 pass
             elif autobuilding and req.link and not req.link.is_artifact:
-                pass
+                # VCS checkout. Build wheel just for this run.
+                ephem_cache = True
             elif autobuilding and not req.source_dir:
                 pass
             else:
@@ -849,17 +863,16 @@ class WheelBuilder(object):
                     link = req.link
                     base, ext = link.splitext()
                     if pip.index.egg_info_matches(base, None, link) is None:
-                        # Doesn't look like a package - don't autobuild a wheel
-                        # because we'll have no way to lookup the result sanely
-                        continue
-                    if "binary" not in pip.index.fmt_ctl_formats(
+                        # E.g. local directory. Build wheel just for this run.
+                        ephem_cache = True
+                    elif "binary" not in pip.index.fmt_ctl_formats(
                             self.finder.format_control,
                             canonicalize_name(req.name)):
                         logger.info(
                             "Skipping bdist_wheel for %s, due to binaries "
                             "being disabled for it.", req.name)
                         continue
-                buildset.append(req)
+                buildset.append((req, ephem_cache))
 
         if not buildset:
             return True
@@ -867,15 +880,17 @@ class WheelBuilder(object):
         # Build the wheels.
         logger.info(
             'Building wheels for collected packages: %s',
-            ', '.join([req.name for req in buildset]),
+            ', '.join([req.name for (req, _) in buildset]),
         )
         with indent_log():
             build_success, build_failure = [], []
-            for req in buildset:
+            for req, ephem in buildset:
                 python_tag = None
                 if autobuilding:
                     python_tag = pep425tags.implementation_tag
-                    output_dir = _cache_for_link(self._cache_root, req.link)
+                    cache_root = (self._ephem_cache_root if ephem
+                                  else self._cache_root)
+                    output_dir = _cache_for_link(cache_root, req.link)
                     try:
                         ensure_dir(output_dir)
                     except OSError as e:

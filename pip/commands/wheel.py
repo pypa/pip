@@ -154,12 +154,12 @@ class WheelCommand(RequirementCommand):
                     progress_bar=options.progress_bar
                 )
 
-                self.populate_requirement_set(
-                    requirement_set, args, options, finder, session, self.name,
-                    wheel_cache
-                )
-
                 try:
+                    self.populate_requirement_set(
+                        requirement_set, args, options, finder, session,
+                        self.name, wheel_cache
+                    )
+
                     # build wheels
                     wb = WheelBuilder(
                         requirement_set,
