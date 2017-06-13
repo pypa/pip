@@ -4,7 +4,6 @@ import pytest
 
 import pip.configuration
 from pip import main
-
 from tests.lib.options_helpers import AddFakeCommandMixin
 
 

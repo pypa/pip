@@ -2,12 +2,12 @@
 """
 
 import os
+
 from mock import MagicMock
 
-from pip.locations import venv_config_file, new_config_file, site_config_files
 from pip.exceptions import ConfigurationError
-
-from tests.lib.configuration_helpers import kinds, ConfigurationMixin
+from pip.locations import new_config_file, site_config_files, venv_config_file
+from tests.lib.configuration_helpers import ConfigurationMixin, kinds
 
 
 class TestConfigurationLoading(ConfigurationMixin):

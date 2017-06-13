@@ -6,7 +6,7 @@ from pip.basecommand import Command
 from pip.configuration import Configuration, kinds
 from pip.exceptions import PipError
 from pip.locations import venv_config_file
-from pip.status_codes import SUCCESS, ERROR
+from pip.status_codes import ERROR, SUCCESS
 from pip.utils import get_prog
 
 logger = logging.getLogger(__name__)

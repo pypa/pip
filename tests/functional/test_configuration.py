@@ -2,10 +2,11 @@
 """
 
 import textwrap
+
 import pytest
 
 from pip.status_codes import ERROR
-from tests.lib.configuration_helpers import kinds, ConfigurationMixin
+from tests.lib.configuration_helpers import ConfigurationMixin, kinds
 
 
 def test_no_options_passed_should_error(script):

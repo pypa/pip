@@ -4,8 +4,8 @@
 import os
 
 from pip import cmdoptions
-from pip.commands import commands_dict
 from pip.basecommand import Command
+from pip.commands import commands_dict
 
 
 class FakeCommand(Command):
