@@ -159,6 +159,9 @@ class WheelCommand(RequirementCommand):
                     wheel_cache
                 )
 
+                resolver = self._build_resolver(options, finder)
+                resolver.resolve(requirement_set)
+
                 try:
                     # build wheels
                     wb = WheelBuilder(
