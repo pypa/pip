@@ -32,6 +32,8 @@
 - **DEPRECATION** ``--default-vcs`` option. (#4052)
 - **WARNING** pip 9 cache can break forward compatibility with previous pip
   versions if your package repository allows chunked responses. (#4078)
+- Add an ``--upgrade-strategy`` option to ``pip install``, to control how
+  dependency upgrades are managed. (#3972)
 - Add a ``pip check`` command to check installed packages dependencies. (#3750)
 - Add option allowing user to abort pip operation if file/directory exists
 - Add Appveyor CI
