@@ -5,10 +5,6 @@ import logging
 import operator
 import os
 import shutil
-try:
-    import wheel
-except ImportError:
-    wheel = None
 
 from pip import cmdoptions
 from pip.basecommand import RequirementCommand
@@ -19,9 +15,15 @@ from pip.locations import distutils_scheme, virtualenv_no_global
 from pip.req import RequirementSet
 from pip.status_codes import ERROR
 from pip.utils import ensure_dir, get_installed_version
-from pip.utils.temp_dir import TempDirectory
 from pip.utils.filesystem import check_path_owner
+from pip.utils.temp_dir import TempDirectory
 from pip.wheel import WheelBuilder, WheelCache
+
+try:
+    import wheel
+except ImportError:
+    wheel = None
+
 
 try:
     import wheel

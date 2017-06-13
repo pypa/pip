@@ -1,7 +1,8 @@
 import os
 
-import pip.configuration
 import pytest
+
+import pip.configuration
 from pip import cmdoptions, main
 from pip.basecommand import Command
 from pip.commands import commands_dict as commands

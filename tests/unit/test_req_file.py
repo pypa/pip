@@ -2,9 +2,11 @@ import os
 import subprocess
 import textwrap
 
-import pip
 import pytest
 from mock import Mock, patch
+from pretend import stub
+
+import pip
 from pip.download import PipSession
 from pip.exceptions import InstallationError, RequirementsFileParseError
 from pip.index import PackageFinder
@@ -13,7 +15,6 @@ from pip.req.req_file import (
     preprocess, process_line, skip_regex
 )
 from pip.req.req_install import InstallRequirement
-from pretend import stub
 from tests.lib import requirements_file
 
 

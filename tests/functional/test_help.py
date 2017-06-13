@@ -1,5 +1,6 @@
 import pytest
 from mock import Mock
+
 from pip.basecommand import ERROR, SUCCESS
 from pip.commands import commands_dict as commands
 from pip.commands.help import HelpCommand

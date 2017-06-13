@@ -10,7 +10,6 @@ from pip.utils import display_path, rmtree
 from pip.utils.temp_dir import TempDirectory
 from pip.vcs import VersionControl, vcs
 
-
 logger = logging.getLogger(__name__)
 
 

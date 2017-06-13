@@ -2,6 +2,7 @@ import os
 import tempfile
 
 import pytest
+
 from pip.req.req_install import InstallRequirement
 
 

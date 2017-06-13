@@ -1,11 +1,11 @@
 import sys
 
+import pytest
+from mock import Mock, patch
 from pkg_resources import Distribution, parse_version
 
 import pip.pep425tags
 import pip.wheel
-import pytest
-from mock import Mock, patch
 from pip.download import PipSession
 from pip.exceptions import BestVersionAlreadyInstalled, DistributionNotFound
 from pip.index import (

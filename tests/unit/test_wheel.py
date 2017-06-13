@@ -1,10 +1,10 @@
 """Tests for wheel binary packages and .dist-info."""
 import os
 
-from pip._vendor.packaging.requirements import Requirement
-
 import pytest
 from mock import Mock, patch
+from pip._vendor.packaging.requirements import Requirement
+
 from pip import pep425tags, wheel
 from pip.compat import WINDOWS, expanduser
 from pip.exceptions import InvalidWheelFilename, UnsupportedWheel

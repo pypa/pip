@@ -1,4 +1,5 @@
 import pytest
+
 from pip.commands.search import (
     SearchCommand, highest_version, print_results, transform_hits
 )

@@ -1,5 +1,6 @@
 import pytest
 from mock import patch
+
 from pip.vcs.git import Git
 from tests.lib import _create_test_package
 from tests.lib.git_submodule_helpers import (

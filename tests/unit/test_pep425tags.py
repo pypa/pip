@@ -1,6 +1,7 @@
 import sys
 
 from mock import patch
+
 from pip import pep425tags
 
 

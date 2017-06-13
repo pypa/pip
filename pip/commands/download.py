@@ -9,8 +9,8 @@ from pip.exceptions import CommandError
 from pip.index import FormatControl
 from pip.req import RequirementSet
 from pip.utils import ensure_dir, normalize_path
-from pip.utils.temp_dir import TempDirectory
 from pip.utils.filesystem import check_path_owner
+from pip.utils.temp_dir import TempDirectory
 
 logger = logging.getLogger(__name__)
 

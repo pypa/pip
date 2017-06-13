@@ -4,6 +4,7 @@ import posixpath
 import sys
 
 import pretend
+
 from pip.utils import appdirs
 
 

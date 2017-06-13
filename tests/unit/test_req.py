@@ -3,12 +3,12 @@ import shutil
 import sys
 import tempfile
 
+import pytest
+from mock import Mock, mock_open, patch
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
 
-import pytest
-from mock import Mock, mock_open, patch
 from pip.commands.install import InstallCommand
 from pip.download import PipSession, path_to_url
 from pip.exceptions import (

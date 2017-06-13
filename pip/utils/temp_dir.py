@@ -6,7 +6,6 @@ import tempfile
 
 from pip.utils import rmtree
 
-
 logger = logging.getLogger(__name__)
 
 
