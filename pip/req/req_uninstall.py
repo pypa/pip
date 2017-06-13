@@ -218,10 +218,10 @@ class UninstallPathSet(object):
                         if fname.endswith(".pyc"):
                             continue
 
-                        file_ = os.path.join(dirpath, fname)
-                        if os.path.isfile(file_) and file_ not in files:
+                        fname = os.path.join(dirpath, fname)
+                        if os.path.isfile(fname) and fname not in files:
                             # We are skipping this file. Add it to the set.
-                            will_skip.add(file_)
+                            will_skip.add(fname)
 
             will_remove = files | {
                 os.path.join(folder, "*") for folder in folders

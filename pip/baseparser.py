@@ -1,6 +1,7 @@
 """Base option parser setup"""
 from __future__ import absolute_import
 
+import logging
 import optparse
 import sys
 import textwrap
@@ -10,6 +11,8 @@ from pip._vendor.six import string_types
 
 from pip.configuration import Configuration
 from pip.utils import get_terminal_size
+
+logger = logging.getLogger(__name__)
 
 
 class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
@@ -145,23 +148,43 @@ class ConfigOptionParser(CustomOptionParser):
             print("An error occurred during configuration: %s" % exc)
             sys.exit(3)
 
+    def _get_ordered_configuration_items(self):
+        # Configuration gives keys in an unordered manner. Order them.
+        override_order = ["global", self.name, ":env:"]
+
+        # Pool the options into different groups
+        section_items = {name: [] for name in override_order}
+        for section_key, val in self.config.items():
+            # ignore empty values
+            if not val:
+                logger.debug(
+                    "Ignoring configuration key '%s' as it's value is empty.",
+                    section_key
+                )
+                continue
+
+            section, key = section_key.split(".", 1)
+            if section in override_order:
+                section_items[section].append((key, val))
+
+        # Yield each group in their override order
+        for section in override_order:
+            for key, val in section_items[section]:
+                yield key, val
+
     def _update_defaults(self, defaults):
         """Updates the given defaults with values from the config files and
         the environ. Does a little special handling for certain types of
         options (lists)."""
 
         # Load the configuration
-        self.config.load(self.name)
+        self.config.load()
 
         # Accumulate complex default state.
         self.values = optparse.Values(self.defaults)
         late_eval = set()
         # Then set the options with those values
-        for key, val in self.config.items():
-            # ignore empty values
-            if not val:
-                continue
-
+        for key, val in self._get_ordered_configuration_items():
             # '--' because configuration supports only long names
             option = self.get_option('--' + key)
 
