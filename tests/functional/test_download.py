@@ -2,6 +2,7 @@ import os
 import textwrap
 
 import pytest
+
 from pip.status_codes import ERROR
 from tests.lib.path import Path
 

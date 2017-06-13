@@ -3,11 +3,11 @@ import os
 import sys
 from contextlib import contextmanager
 
-from pip._vendor import lockfile
-
 import freezegun
 import pretend
 import pytest
+from pip._vendor import lockfile
+
 from pip.index import InstallationCandidate
 from pip.utils import outdated
 

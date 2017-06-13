@@ -2,6 +2,7 @@ import os.path
 import textwrap
 
 import pytest
+
 from tests.lib import (
     _create_test_package_with_subdirectory, pyversion, requirements_file
 )

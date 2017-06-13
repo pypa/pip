@@ -9,8 +9,8 @@ from pip.exceptions import CommandError
 from pip.index import FormatControl
 from pip.req import RequirementSet
 from pip.utils import ensure_dir, normalize_path
-from pip.utils.build import BuildDirectory
 from pip.utils.filesystem import check_path_owner
+from pip.utils.temp_dir import TempDirectory
 
 logger = logging.getLogger(__name__)
 
@@ -171,11 +171,12 @@ class DownloadCommand(RequirementCommand):
                 )
                 options.cache_dir = None
 
-            with BuildDirectory(options.build_dir,
-                                delete=build_delete) as build_dir:
+            with TempDirectory(
+                options.build_dir, delete=build_delete, kind="download"
+            ) as directory:
 
                 requirement_set = RequirementSet(
-                    build_dir=build_dir,
+                    build_dir=directory.path,
                     src_dir=options.src_dir,
                     download_dir=options.download_dir,
                     ignore_installed=True,

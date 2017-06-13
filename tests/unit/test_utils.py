@@ -12,22 +12,22 @@ import tempfile
 import time
 import warnings
 
-from pip._vendor.six import BytesIO
-
 import pytest
 from mock import Mock, patch
+from pip._vendor.six import BytesIO
+
 from pip.exceptions import (
     HashMismatch, HashMissing, InstallationError, UnsupportedPythonVersion
 )
 from pip.utils import (
-    egg_link_path, get_installed_distributions, normalize_path, rmtree,
-    untar_file, unzip_file
+    egg_link_path, ensure_dir, get_installed_distributions, normalize_path,
+    rmtree, untar_file, unzip_file
 )
-from pip.utils.build import BuildDirectory
 from pip.utils.encoding import auto_decode
 from pip.utils.glibc import check_glibc_version
 from pip.utils.hashes import Hashes, MissingHashes
 from pip.utils.packaging import check_dist_requires_python
+from pip.utils.temp_dir import TempDirectory
 
 
 class Tests_EgglinkPath:
@@ -464,24 +464,78 @@ class TestEncoding(object):
         latin1_req = u'# coding=latin1\n# Pas trop de café'
         assert auto_decode(latin1_req.encode('latin1')) == latin1_req
 
+    def test_auto_decode_no_preferred_encoding(self):
+        om, em = Mock(), Mock()
+        om.return_value = 'ascii'
+        em.return_value = None
+        data = u'data'
+        with patch('sys.getdefaultencoding', om):
+            with patch('locale.getpreferredencoding', em):
+                ret = auto_decode(data.encode(sys.getdefaultencoding()))
+        assert ret == data
 
-class TestBuildDirectory(object):
+
+class TestTempDirectory(object):
+
     # No need to test symlinked directories on Windows
     @pytest.mark.skipif("sys.platform == 'win32'")
-    def test_build_directory(self):
-        with BuildDirectory() as build_dir:
-            tmp_dir = tempfile.mkdtemp(prefix="pip-build-test")
+    def test_symlinked_path(self):
+        with TempDirectory() as tmp_dir:
+            assert os.path.exists(tmp_dir.path)
+
+            alt_tmp_dir = tempfile.mkdtemp(prefix="pip-test-")
             assert (
-                os.path.dirname(build_dir) ==
-                os.path.dirname(os.path.realpath(tmp_dir))
+                os.path.dirname(tmp_dir.path) ==
+                os.path.dirname(os.path.realpath(alt_tmp_dir))
             )
             # are we on a system where /tmp is a symlink
-            if os.path.realpath(tmp_dir) != os.path.abspath(tmp_dir):
-                assert os.path.dirname(build_dir) != os.path.dirname(tmp_dir)
+            if os.path.realpath(alt_tmp_dir) != os.path.abspath(alt_tmp_dir):
+                assert (
+                    os.path.dirname(tmp_dir.path) !=
+                    os.path.dirname(alt_tmp_dir)
+                )
             else:
-                assert os.path.dirname(build_dir) == os.path.dirname(tmp_dir)
-            os.rmdir(tmp_dir)
-            assert not os.path.exists(tmp_dir)
+                assert (
+                    os.path.dirname(tmp_dir.path) ==
+                    os.path.dirname(alt_tmp_dir)
+                )
+            os.rmdir(tmp_dir.path)
+            assert not os.path.exists(tmp_dir.path)
+
+    def test_deletes_readonly_files(self):
+        def create_file(*args):
+            fpath = os.path.join(*args)
+            ensure_dir(os.path.dirname(fpath))
+            with open(fpath, "w") as f:
+                f.write("Holla!")
+
+        def readonly_file(*args):
+            fpath = os.path.join(*args)
+            os.chmod(fpath, stat.S_IREAD)
+
+        with TempDirectory() as tmp_dir:
+            create_file(tmp_dir.path, "normal-file")
+            create_file(tmp_dir.path, "readonly-file")
+            readonly_file(tmp_dir.path, "readonly-file")
+
+            create_file(tmp_dir.path, "subfolder", "normal-file")
+            create_file(tmp_dir.path, "subfolder", "readonly-file")
+            readonly_file(tmp_dir.path, "subfolder", "readonly-file")
+
+        assert tmp_dir.path is None
+
+    def test_create_and_cleanup_work(self):
+        tmp_dir = TempDirectory()
+        assert tmp_dir.path is None
+
+        tmp_dir.create()
+        created_path = tmp_dir.path
+        assert tmp_dir.path is not None
+        assert os.path.exists(created_path)
+
+        tmp_dir.cleanup()
+        assert tmp_dir.path is None
+        assert not os.path.exists(created_path)
 
 
 class TestGlibc(object):

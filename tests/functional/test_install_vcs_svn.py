@@ -1,5 +1,6 @@
 import pytest
 from mock import patch
+
 from pip.vcs.subversion import Subversion
 
 
