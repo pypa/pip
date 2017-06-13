@@ -1,1 +1,1 @@
-Add a configuration command for managing configuration files.
+Add a pip config command for managing configuration files.
