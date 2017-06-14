@@ -6,6 +6,7 @@ matrix:
     - env: TOXENV=docs
     - env: TOXENV=lint-py2
     - env: TOXENV=lint-py3
+    - env: TOXENV=mypy
     - env: TOXENV=packaging
 
     - env: TOXENV=py27
