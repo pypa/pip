@@ -6,6 +6,7 @@ import logging
 import optparse
 import os
 import sys
+import time
 import warnings
 
 # 2016-06-17 barry@debian.org: urllib3 1.14 added optional support for socks,
