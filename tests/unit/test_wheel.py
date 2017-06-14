@@ -363,6 +363,6 @@ class TestWheelBuilder(object):
             reqset = Mock(requirements=Mock(values=lambda: [wheel_req]),
                           wheel_download_dir='/wheel/dir')
             wb = wheel.WheelBuilder(reqset, Mock())
-            wb.build()
+            wb.build(Mock(), Mock())
             assert "due to already being wheel" in caplog.text
             assert mock_build_one.mock_calls == []

@@ -43,61 +43,36 @@ class Requirements(object):
 
 class RequirementSet(object):
 
-    def __init__(self, build_dir, src_dir, download_dir=None, upgrade=False,
-                 upgrade_strategy=None, ignore_installed=False,
-                 target_dir=None, ignore_dependencies=False,
-                 force_reinstall=False, use_user_site=False, session=None,
-                 pycompile=True, isolated=False, wheel_download_dir=None,
-                 wheel_cache=None, require_hashes=False,
-                 ignore_requires_python=False, progress_bar="on"):
+    def __init__(self, download_dir=None,
+                 target_dir=None, use_user_site=False,
+                 pycompile=True, wheel_download_dir=None,
+                 wheel_cache=None):
         """Create a RequirementSet.
 
-        :param wheel_download_dir: Where still-packed .whl files should be
-            written to. If None they are written to the download_dir parameter.
-            Separate to download_dir to permit only keeping wheel archives for
-            pip wheel.
         :param download_dir: Where still packed archives should be written to.
             If None they are not saved, and are deleted immediately after
             unpacking.
         :param wheel_cache: The pip wheel cache, for passing to
             InstallRequirement.
         """
-        if session is None:
-            raise TypeError(
-                "RequirementSet() missing 1 required keyword argument: "
-                "'session'"
-            )
-
-        self.build_dir = build_dir
-        self.src_dir = src_dir
         # XXX: download_dir and wheel_download_dir overlap semantically and may
         # be combined if we're willing to have non-wheel archives present in
         # the wheelhouse output by 'pip wheel'.
         self.download_dir = download_dir
-        self.upgrade = upgrade
-        self.upgrade_strategy = upgrade_strategy
-        self.ignore_installed = ignore_installed
-        self.force_reinstall = force_reinstall
         self.requirements = Requirements()
         # Mapping of alias: real_name
         self.requirement_aliases = {}
         self.unnamed_requirements = []
-        self.ignore_dependencies = ignore_dependencies
-        self.ignore_requires_python = ignore_requires_python
-        self.progress_bar = progress_bar
         self.successfully_downloaded = []
         self.successfully_installed = []
         self.reqs_to_cleanup = []
         self.use_user_site = use_user_site
         self.target_dir = target_dir  # set from --target option
-        self.session = session
         self.pycompile = pycompile
-        self.isolated = isolated
         if wheel_download_dir:
             wheel_download_dir = normalize_path(wheel_download_dir)
         self.wheel_download_dir = wheel_download_dir
         self._wheel_cache = wheel_cache
-        self.require_hashes = require_hashes
         # Maps from install_req -> dependencies_of_install_req
         self._dependencies = defaultdict(list)
 

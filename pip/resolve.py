@@ -123,11 +123,29 @@ class Resolver(object):
     the requested operation without breaking the requirements of any package.
     """
 
-    def __init__(self, upgrade_strategy, finder):
+    def __init__(self, session, finder, progress_bar,
+                 build_dir, src_dir, use_user_site,
+                 ignore_dependencies, ignore_installed, ignore_requires_python,
+                 require_hashes, force_reinstall, isolated, upgrade_strategy):
         super(Resolver, self).__init__()
         assert upgrade_strategy in ["eager", "only-if-needed", "not-allowed"]
-        self.upgrade_strategy = upgrade_strategy
+
+        self.src_dir = src_dir
+        self.build_dir = build_dir
+
         self.finder = finder
+        self.session = session
+        self.progress_bar = progress_bar
+
+        self.require_hashes = require_hashes
+
+        self.upgrade_strategy = upgrade_strategy
+        self.force_reinstall = force_reinstall
+        self.isolated = isolated
+        self.ignore_dependencies = ignore_dependencies
+        self.ignore_installed = ignore_installed
+        self.ignore_requires_python = ignore_requires_python
+        self.use_user_site = use_user_site
 
     def resolve(self, requirement_set):
         """Resolve what operations need to be done
@@ -149,8 +167,8 @@ class Resolver(object):
             requirement_set.unnamed_requirements +
             requirement_set.requirements.values()
         )
-        require_hashes = (
-            requirement_set.require_hashes or
+        self.require_hashes = (
+            self.require_hashes or
             any(req.has_hash_options for req in root_reqs)
         )
 
@@ -162,11 +180,9 @@ class Resolver(object):
         hash_errors = HashErrors()
         for req in chain(root_reqs, discovered_reqs):
             try:
-                discovered_reqs.extend(self._resolve_one(
-                    requirement_set,
-                    req,
-                    require_hashes=require_hashes,
-                    ignore_dependencies=requirement_set.ignore_dependencies))
+                discovered_reqs.extend(
+                    self._resolve_one(requirement_set, req)
+                )
             except HashError as exc:
                 exc.req = req
                 hash_errors.append(exc)
@@ -215,7 +231,7 @@ class Resolver(object):
                 # tree down and inspect to assess the version #, so
                 # its handled way down.
                 should_check_possibility_for_upgrade = not (
-                    requirement_set.force_reinstall or req_to_install.link
+                    self.force_reinstall or req_to_install.link
                 )
                 if should_check_possibility_for_upgrade:
                     try:
@@ -233,7 +249,7 @@ class Resolver(object):
                 if not best_installed:
                     # don't uninstall conflict if user install and
                     # conflict is not user install
-                    if not (requirement_set.use_user_site and not
+                    if not (self.use_user_site and not
                             dist_in_usersite(req_to_install.satisfied_by)):
                         req_to_install.conflicts_with = \
                             req_to_install.satisfied_by
@@ -251,8 +267,7 @@ class Resolver(object):
         else:
             return None
 
-    def _resolve_one(self, requirement_set, req_to_install,
-                     require_hashes=False, ignore_dependencies=False):
+    def _resolve_one(self, requirement_set, req_to_install):
         """Prepare a single requirements file.
 
         :return: A list of additional InstallRequirements to also install.
@@ -274,7 +289,7 @@ class Resolver(object):
             # satisfied_by is only evaluated by calling _check_skip_installed,
             # so it must be None here.
             assert req_to_install.satisfied_by is None
-            if not requirement_set.ignore_installed:
+            if not self.ignore_installed:
                 skip_reason = self._check_skip_installed(
                     req_to_install, requirement_set
                 )
@@ -301,12 +316,12 @@ class Resolver(object):
             # # vcs update or unpack archive # #
             # ################################ #
             if req_to_install.editable:
-                if require_hashes:
+                if self.require_hashes:
                     raise InstallationError(
                         'The editable requirement %s cannot be installed when '
                         'requiring hashes, because there is no single file to '
                         'hash.' % req_to_install)
-                req_to_install.ensure_has_source_dir(requirement_set.src_dir)
+                req_to_install.ensure_has_source_dir(self.src_dir)
                 req_to_install.update_editable(not requirement_set.is_download)
                 abstract_dist = make_abstract_dist(req_to_install)
                 abstract_dist.prep_for_dist()
@@ -314,7 +329,7 @@ class Resolver(object):
                     req_to_install.archive(requirement_set.download_dir)
                 req_to_install.check_if_exists()
             elif req_to_install.satisfied_by:
-                if require_hashes:
+                if self.require_hashes:
                     logger.debug(
                         'Since it is already installed, we are trusting this '
                         'package without checking its hash. To ensure a '
@@ -326,7 +341,7 @@ class Resolver(object):
                 # editable in a req, a non deterministic error
                 # occurs when the script attempts to unpack the
                 # build directory
-                req_to_install.ensure_has_source_dir(requirement_set.build_dir)
+                req_to_install.ensure_has_source_dir(self.build_dir)
                 # If a checkout exists, it's unwise to keep going.  version
                 # inconsistencies are logged later, but do not fail the
                 # installation.
@@ -346,7 +361,7 @@ class Resolver(object):
                 req_to_install.populate_link(
                     self.finder,
                     self._is_upgrade_allowed(req_to_install),
-                    require_hashes
+                    self.require_hashes
                 )
                 # We can't hit this spot and have populate_link return None.
                 # req_to_install.satisfied_by is None here (because we're
@@ -362,7 +377,7 @@ class Resolver(object):
                 # requirements we have and raise some more informative errors
                 # than otherwise. (For example, we can raise VcsHashUnsupported
                 # for a VCS URL rather than HashMissing.)
-                if require_hashes:
+                if self.require_hashes:
                     # We could check these first 2 conditions inside
                     # unpack_url and save repetition of conditions, but then
                     # we would report less-useful error messages for
@@ -383,8 +398,8 @@ class Resolver(object):
                         # about them not being pinned.
                         raise HashUnpinned()
                 hashes = req_to_install.hashes(
-                    trust_internet=not require_hashes)
-                if require_hashes and not hashes:
+                    trust_internet=not self.require_hashes)
+                if self.require_hashes and not hashes:
                     # Known-good hashes are missing for this requirement, so
                     # shim it with a facade object that will provoke hash
                     # computation and then raise a HashMissing exception
@@ -412,8 +427,8 @@ class Resolver(object):
                     unpack_url(
                         req_to_install.link, req_to_install.source_dir,
                         download_dir, autodelete_unpacked,
-                        session=requirement_set.session, hashes=hashes,
-                        progress_bar=requirement_set.progress_bar)
+                        session=self.session, hashes=hashes,
+                        progress_bar=self.progress_bar)
                 except requests.HTTPError as exc:
                     logger.critical(
                         'Could not install requirement %s because '
@@ -435,19 +450,18 @@ class Resolver(object):
                 # req_to_install.req is only avail after unpack for URL
                 # pkgs repeat check_if_exists to uninstall-on-upgrade
                 # (#14)
-                if not requirement_set.ignore_installed:
+                if not self.ignore_installed:
                     req_to_install.check_if_exists()
                 if req_to_install.satisfied_by:
                     should_modify = (
                         self.upgrade_strategy != "not-allowed" or
-                        requirement_set.ignore_installed
+                        self.ignore_installed
                     )
                     if should_modify:
                         # don't uninstall conflict if user install and
                         # conflict is not user install
-                        if not (requirement_set.use_user_site and not
-                                dist_in_usersite(
-                                    req_to_install.satisfied_by)):
+                        if not (self.use_user_site and not
+                                dist_in_usersite(req_to_install.satisfied_by)):
                             req_to_install.conflicts_with = \
                                 req_to_install.satisfied_by
                         req_to_install.satisfied_by = None
@@ -469,7 +483,7 @@ class Resolver(object):
             try:
                 check_dist_requires_python(dist)
             except UnsupportedPythonVersion as err:
-                if requirement_set.ignore_requires_python:
+                if self.ignore_requires_python:
                     logger.warning(err.args[0])
                 else:
                     raise
@@ -479,7 +493,7 @@ class Resolver(object):
                 sub_install_req = InstallRequirement.from_req(
                     str(subreq),
                     req_to_install,
-                    isolated=requirement_set.isolated,
+                    isolated=self.isolated,
                     wheel_cache=requirement_set._wheel_cache,
                 )
                 more_reqs.extend(
@@ -495,7 +509,7 @@ class Resolver(object):
                 # 'unnamed' requirements will get added here
                 requirement_set.add_requirement(req_to_install, None)
 
-            if not ignore_dependencies:
+            if not self.ignore_dependencies:
                 if req_to_install.extras:
                     logger.debug(
                         "Installing extra requirements: %r",

@@ -14,6 +14,7 @@ from pip.exceptions import (
 )
 from pip.locations import distutils_scheme, virtualenv_no_global
 from pip.req import RequirementSet
+from pip.resolve import Resolver
 from pip.status_codes import ERROR
 from pip.utils import ensure_dir, get_installed_version
 from pip.utils.filesystem import check_path_owner
@@ -179,6 +180,10 @@ class InstallCommand(RequirementCommand):
     def run(self, options, args):
         cmdoptions.check_install_build_global(options)
 
+        upgrade_strategy = "not-allowed"
+        if options.upgrade:
+            upgrade_strategy = options.upgrade_strategy
+
         if options.build_dir:
             options.build_dir = os.path.abspath(options.build_dir)
 
@@ -235,22 +240,9 @@ class InstallCommand(RequirementCommand):
                 options.build_dir, delete=build_delete, kind="install"
             ) as directory:
                 requirement_set = RequirementSet(
-                    build_dir=directory.path,
-                    src_dir=options.src_dir,
-                    upgrade=options.upgrade,
-                    upgrade_strategy=options.upgrade_strategy,
-                    ignore_installed=options.ignore_installed,
-                    ignore_dependencies=options.ignore_dependencies,
-                    ignore_requires_python=options.ignore_requires_python,
-                    force_reinstall=options.force_reinstall,
-                    use_user_site=options.use_user_site,
                     target_dir=target_temp_dir.path,
-                    session=session,
                     pycompile=options.compile,
-                    isolated=options.isolated_mode,
                     wheel_cache=wheel_cache,
-                    require_hashes=options.require_hashes,
-                    progress_bar=options.progress_bar,
                 )
 
                 self.populate_requirement_set(
@@ -259,7 +251,21 @@ class InstallCommand(RequirementCommand):
                 )
 
                 try:
-                    resolver = self._build_resolver(options, finder)
+                    resolver = Resolver(
+                        build_dir=directory.path,
+                        src_dir=options.src_dir,
+                        finder=finder,
+                        session=session,
+                        use_user_site=options.use_user_site,
+                        upgrade_strategy=upgrade_strategy,
+                        force_reinstall=options.force_reinstall,
+                        ignore_dependencies=options.ignore_dependencies,
+                        ignore_requires_python=options.ignore_requires_python,
+                        ignore_installed=options.ignore_installed,
+                        isolated=options.isolated_mode,
+                        require_hashes=options.require_hashes,
+                        progress_bar=options.progress_bar,
+                    )
                     resolver.resolve(requirement_set)
 
                     # on -d don't do complex things like building
@@ -275,7 +281,9 @@ class InstallCommand(RequirementCommand):
                         )
                         # Ignore the result: a failed wheel will be
                         # installed from the sdist/vcs whatever.
-                        wb.build(autobuilding=True)
+                        wb.build(
+                            session, src_dir=directory.path, autobuilding=True
+                        )
 
                     requirement_set.install(
                         install_options,

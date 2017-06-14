@@ -172,7 +172,11 @@ class WheelCommand(RequirementCommand):
                         global_options=options.global_options or [],
                         no_clean=options.no_clean,
                     )
-                    if not wb.build():
+                    wheels_built_successfully = wb.build(
+                        # Names are a little messed up
+                        session=session, src_dir=resolver.build_dir
+                    )
+                    if not wheels_built_successfully:
                         raise CommandError(
                             "Failed to build one or more wheels"
                         )
