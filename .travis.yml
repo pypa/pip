@@ -1,4 +1,10 @@
 language: python
+
+cache:
+  directories:
+    - $HOME/.cache/pip
+    - $TRAVIS_BUILD_DIR/.tox
+
 matrix:
   include:
     - env: TOXENV=docs

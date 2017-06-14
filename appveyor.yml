@@ -1,3 +1,5 @@
+clone_depth: 50
+
 environment:
   matrix:
     - PYTHON: "C:\\Python27"
@@ -8,6 +10,12 @@ environment:
     - PYTHON: "C:\\Python33-x64"
     - PYTHON: "C:\\Python34-x64"
     - PYTHON: "C:\\Python35-x64"
+
+cache:
+  # Cache downloaded pip packages and built wheels.
+  - '%LOCALAPPDATA%\pip\Cache\http'
+  - '%LOCALAPPDATA%\pip\Cache\wheels'
+  - '%APPVEYOR_BUILD_FOLDER%\.tox'
 
 install:
     cmd: "%PYTHON%\\python.exe -m pip install tox"
