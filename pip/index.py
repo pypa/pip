@@ -27,6 +27,7 @@ from pip.exceptions import (
     BestVersionAlreadyInstalled, DistributionNotFound, InvalidWheelFilename,
     UnsupportedWheel
 )
+from pip.models import PyPI
 from pip.pep425tags import get_supported
 from pip.utils import (
     ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, cached_property, normalize_path,
@@ -187,6 +188,14 @@ class PackageFinder(object):
                         "available."
                     )
                     break
+
+    def get_formatted_locations(self):
+        lines = []
+        if self.index_urls != [PyPI.simple_url]:
+            lines.append("looking in indexes: {}".format(self.index_urls))
+        if self.find_links:
+            lines.append("looking in links: {}".format(self.find_links))
+        return "\n".join(lines)
 
     def add_dependency_links(self, links):
         # # FIXME: this shouldn't be global list this, it should only
