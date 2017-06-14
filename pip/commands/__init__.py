@@ -64,9 +64,9 @@ def _sort_commands(cmddict, order):
 def _get_closest_match(word, possibilities):
     """Get the closest match of word in possibilities.
 
-    Returns a tuple of (similarity, possibility) where possibility has the
-    highest similarity.
-    Returns (0, None) if there is no such possibility in possibilities.
+    Returns a tuple of (name, similarity) where possibility has the
+    highest similarity, where 0 <= similarity <= 1.
+    Returns (None, 0) as a fallback, if no possibility matches.
 
     If more than one possibilities have the highest similarity, the first
     matched is returned.
@@ -98,9 +98,9 @@ def get_closest_command(name):
     """Command name auto-correction
 
     If there are any commands with a similarity greater than cutoff, returns
-    (similarity, name) of the command with highest similarity.
+    (command_name, similarity) of the command_name with highest similarity.
 
-    If there is no such command, returns (0, None).
+    If there is no such command, returns (None, 0).
 
     If more than one commands have the highest similarity, the alphabetically
     first is returned.
