@@ -215,6 +215,13 @@ def parseopts(args):
         except ConfigurationError:
             autocorrect_delay = None
 
+        try:
+            autocorrect_delay = float(autocorrect_delay)
+        except ValueError:
+            raise ConfigurationError(
+                "autocorrect needs to be a numerical value"
+            )
+
         guess, score = get_closest_command(cmd_name)
 
         # Decide what message has to be shown to user
