@@ -3,11 +3,11 @@ from __future__ import absolute_import
 
 import locale
 import logging
-import optparse
 import os
-import sys
-import time
+import optparse
 import warnings
+
+import sys
 
 # 2016-06-17 barry@debian.org: urllib3 1.14 added optional support for socks,
 # but if invoked (i.e. imported), it will issue a warning to stderr if socks
@@ -17,24 +17,7 @@ import warnings
 # to add socks as yet another dependency for pip, nor do I want to allow-stder
 # in the DEP-8 tests, so just suppress the warning.  pdb tells me this has to
 # be done before the import of pip.vcs.
-from pip._vendor.requests.packages.urllib3.exceptions import (
-    DependencyWarning, InsecureRequestWarning
-)
-
-# This fixes a peculiarity when importing via __import__ - as we are
-# initialising the pip module, "from pip import cmdoptions" is recursive
-# and appears not to work properly in that situation.
-import pip.cmdoptions
-import pip.status_codes
-from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
-from pip.commands import commands_dict, get_closest_command, get_summaries
-from pip.exceptions import CommandError, ConfigurationError, PipError
-from pip.utils import deprecation, get_installed_distributions, get_prog
-from pip.vcs import bazaar, git, mercurial, subversion  # noqa
-
-# The version as used in the setup.py and the docs conf.py
-__version__ = "10.0.0.dev0"
-
+from pip._vendor.requests.packages.urllib3.exceptions import DependencyWarning
 warnings.filterwarnings("ignore", category=DependencyWarning)  # noqa
 
 # We want to inject the use of SecureTransport as early as possible so that any
@@ -57,8 +40,29 @@ else:
         else:
             securetransport.inject_into_urllib3()
 
+from pip.exceptions import CommandError, ConfigurationError, PipError
+from pip.utils import get_installed_distributions, get_prog
+from pip.utils import deprecation
+from pip.vcs import git, mercurial, subversion, bazaar  # noqa
+from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
+from pip.commands import get_summaries, get_closest_command
+from pip.commands import commands_dict
+from pip._vendor.requests.packages.urllib3.exceptions import (
+    InsecureRequestWarning,
+)
+
+
 # assignment for flake8 to be happy
+
+# This fixes a peculiarity when importing via __import__ - as we are
+# initialising the pip module, "from pip import cmdoptions" is recursive
+# and appears not to work properly in that situation.
+import pip.cmdoptions
 cmdoptions = pip.cmdoptions
+
+# The version as used in the setup.py and the docs conf.py
+__version__ = "10.0.0.dev0"
+
 
 logger = logging.getLogger(__name__)
 
