@@ -13,7 +13,7 @@ class HelpCommand(Command):
     ignore_require_venv = True
 
     def run(self, options, args):
-        from pip.commands import commands_dict, get_similar_commands
+        from pip.commands import commands_dict, get_closest_command
 
         try:
             # 'pip help' with no args is handled by pip.__init__.parseopt()
@@ -22,10 +22,11 @@ class HelpCommand(Command):
             return SUCCESS
 
         if cmd_name not in commands_dict:
-            guess = get_similar_commands(cmd_name)
+            guess, score = get_closest_command(cmd_name)
+            suggest_cut_off = 0.6
 
             msg = ['unknown command "%s"' % cmd_name]
-            if guess:
+            if guess and score > suggest_cut_off:
                 msg.append('maybe you meant "%s"' % guess)
 
             raise CommandError(' - '.join(msg))
