@@ -157,7 +157,7 @@ class Resolver(object):
         # Display where finder is looking for packages
         locations = self.finder.get_formatted_locations()
         if locations:
-            logger.debug(locations)
+            logger.info(locations)
 
         # Actually prepare the files, and collect any exceptions. Most hash
         # exceptions cannot be checked ahead of time, because
