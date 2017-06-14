@@ -40,16 +40,16 @@ else:
         else:
             securetransport.inject_into_urllib3()
 
+from pip.exceptions import CommandError, ConfigurationError, PipError
+from pip.utils import get_installed_distributions, get_prog
+from pip.utils import deprecation
+from pip.vcs import git, mercurial, subversion, bazaar  # noqa
+from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
+from pip.commands import get_summaries, get_closest_command
+from pip.commands import commands_dict
 from pip._vendor.requests.packages.urllib3.exceptions import (
     InsecureRequestWarning,
 )
-
-from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
-from pip.commands import commands_dict, get_closest_command, get_summaries
-from pip.exceptions import CommandError, ConfigurationError, PipError
-from pip.utils import deprecation
-from pip.utils import get_installed_distributions, get_prog
-from pip.vcs import bazaar, git, mercurial, subversion  # noqa
 
 
 # assignment for flake8 to be happy
