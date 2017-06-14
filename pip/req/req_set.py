@@ -43,10 +43,9 @@ class Requirements(object):
 
 class RequirementSet(object):
 
-    def __init__(self, download_dir=None,
-                 target_dir=None, use_user_site=False,
-                 pycompile=True, wheel_download_dir=None,
-                 wheel_cache=None):
+    def __init__(self, build_dir, src_dir, download_dir=None,
+                 require_hashes=False, target_dir=None, use_user_site=False,
+                 pycompile=True, wheel_download_dir=None, wheel_cache=None):
         """Create a RequirementSet.
 
         :param download_dir: Where still packed archives should be written to.
@@ -55,11 +54,18 @@ class RequirementSet(object):
         :param wheel_cache: The pip wheel cache, for passing to
             InstallRequirement.
         """
+
+        self.build_dir = build_dir
+        self.src_dir = src_dir
+
         # XXX: download_dir and wheel_download_dir overlap semantically and may
         # be combined if we're willing to have non-wheel archives present in
         # the wheelhouse output by 'pip wheel'.
         self.download_dir = download_dir
         self.requirements = Requirements()
+
+        self.require_hashes = require_hashes
+
         # Mapping of alias: real_name
         self.requirement_aliases = {}
         self.unnamed_requirements = []

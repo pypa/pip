@@ -240,9 +240,12 @@ class InstallCommand(RequirementCommand):
                 options.build_dir, delete=build_delete, kind="install"
             ) as directory:
                 requirement_set = RequirementSet(
+                    build_dir=directory.path,
+                    src_dir=options.src_dir,
                     target_dir=target_temp_dir.path,
                     pycompile=options.compile,
                     wheel_cache=wheel_cache,
+                    require_hashes=options.require_hashes,
                 )
 
                 self.populate_requirement_set(
@@ -252,8 +255,6 @@ class InstallCommand(RequirementCommand):
 
                 try:
                     resolver = Resolver(
-                        build_dir=directory.path,
-                        src_dir=options.src_dir,
                         finder=finder,
                         session=session,
                         use_user_site=options.use_user_site,
@@ -263,7 +264,6 @@ class InstallCommand(RequirementCommand):
                         ignore_requires_python=options.ignore_requires_python,
                         ignore_installed=options.ignore_installed,
                         isolated=options.isolated_mode,
-                        require_hashes=options.require_hashes,
                         progress_bar=options.progress_bar,
                     )
                     resolver.resolve(requirement_set)
@@ -282,7 +282,7 @@ class InstallCommand(RequirementCommand):
                         # Ignore the result: a failed wheel will be
                         # installed from the sdist/vcs whatever.
                         wb.build(
-                            session, src_dir=directory.path, autobuilding=True
+                            session, autobuilding=True
                         )
 
                     requirement_set.install(

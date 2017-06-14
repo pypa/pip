@@ -717,7 +717,7 @@ class WheelBuilder(object):
             logger.error('Failed cleaning build dir for %s', req.name)
             return False
 
-    def build(self, session, src_dir, autobuilding=False):
+    def build(self, session, autobuilding=False):
         """Build wheels.
 
         :param unpack: If True, replace the sdist we built from with the
@@ -804,7 +804,9 @@ class WheelBuilder(object):
                         req.remove_temporary_source()
                         # set the build directory again - name is known from
                         # the work prepare_files did.
-                        req.source_dir = req.build_location(src_dir)
+                        req.source_dir = req.build_location(
+                            self.requirement_set.build_dir
+                        )
                         # Update the link for this.
                         req.link = pip.index.Link(
                             path_to_url(wheel_file))

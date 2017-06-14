@@ -297,6 +297,9 @@ class RequirementCommand(Command):
                     finder=finder, options=options, session=session,
                     wheel_cache=wheel_cache):
                 requirement_set.add_requirement(req)
+        # If --require-hashes was a line in a requirements file, tell
+        # RequirementSet about it:
+        requirement_set.require_hashes = options.require_hashes
 
         if not (args or options.editables or options.requirements):
             opts = {'name': name}

@@ -123,21 +123,17 @@ class Resolver(object):
     the requested operation without breaking the requirements of any package.
     """
 
-    def __init__(self, session, finder, progress_bar,
-                 build_dir, src_dir, use_user_site,
+    def __init__(self, session, finder, progress_bar, use_user_site,
                  ignore_dependencies, ignore_installed, ignore_requires_python,
-                 require_hashes, force_reinstall, isolated, upgrade_strategy):
+                 force_reinstall, isolated, upgrade_strategy):
         super(Resolver, self).__init__()
         assert upgrade_strategy in ["eager", "only-if-needed", "not-allowed"]
-
-        self.src_dir = src_dir
-        self.build_dir = build_dir
 
         self.finder = finder
         self.session = session
         self.progress_bar = progress_bar
 
-        self.require_hashes = require_hashes
+        self.require_hashes = None  # This is set in resolve
 
         self.upgrade_strategy = upgrade_strategy
         self.force_reinstall = force_reinstall
@@ -168,7 +164,7 @@ class Resolver(object):
             requirement_set.requirements.values()
         )
         self.require_hashes = (
-            self.require_hashes or
+            requirement_set.require_hashes or
             any(req.has_hash_options for req in root_reqs)
         )
 
@@ -311,6 +307,8 @@ class Resolver(object):
                 else:
                     logger.info('Collecting %s', req_to_install)
 
+        assert self.require_hashes is not None
+
         with indent_log():
             # ################################ #
             # # vcs update or unpack archive # #
@@ -321,7 +319,7 @@ class Resolver(object):
                         'The editable requirement %s cannot be installed when '
                         'requiring hashes, because there is no single file to '
                         'hash.' % req_to_install)
-                req_to_install.ensure_has_source_dir(self.src_dir)
+                req_to_install.ensure_has_source_dir(requirement_set.src_dir)
                 req_to_install.update_editable(not requirement_set.is_download)
                 abstract_dist = make_abstract_dist(req_to_install)
                 abstract_dist.prep_for_dist()
@@ -341,7 +339,7 @@ class Resolver(object):
                 # editable in a req, a non deterministic error
                 # occurs when the script attempts to unpack the
                 # build directory
-                req_to_install.ensure_has_source_dir(self.build_dir)
+                req_to_install.ensure_has_source_dir(requirement_set.build_dir)
                 # If a checkout exists, it's unwise to keep going.  version
                 # inconsistencies are logged later, but do not fail the
                 # installation.

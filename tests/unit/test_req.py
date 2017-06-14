@@ -37,12 +37,17 @@ class TestRequirementSet(object):
             build_dir=os.path.join(self.tempdir, 'build'),
             src_dir=os.path.join(self.tempdir, 'src'),
             download_dir=None,
-            session=PipSession(),
             **kwargs
         )
 
     def _basic_resolver(self, finder):
-        return Resolver("not-allowed", finder)
+        return Resolver(
+            session=PipSession(), finder=finder,
+            progress_bar="on", use_user_site=False,
+            ignore_dependencies=False, ignore_installed=False,
+            ignore_requires_python=False, force_reinstall=False,
+            isolated=False, upgrade_strategy="not-allowed"
+        )
 
     def test_no_reuse_existing_build_dir(self, data):
         """Test prepare_files raise exception with previous build dir"""
@@ -318,7 +323,6 @@ class TestInstallRequirement(object):
             build_dir=os.path.join(self.tempdir, 'build'),
             src_dir=os.path.join(self.tempdir, 'src'),
             download_dir=None,
-            session=PipSession(),
             **kwargs
         )
 
@@ -630,7 +634,7 @@ def test_exclusive_environment_markers():
     ne26 = InstallRequirement.from_line(
         "Django>=1.6.10,<1.8 ; python_version != '2.6'")
 
-    req_set = RequirementSet('', '', '', session=PipSession())
+    req_set = RequirementSet('', '', '')
     req_set.add_requirement(eq26)
     req_set.add_requirement(ne26)
     assert req_set.has_requirement('Django')
