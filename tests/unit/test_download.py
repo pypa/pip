@@ -16,6 +16,7 @@ from pip.download import (
 from pip.exceptions import HashMismatch
 from pip.index import Link
 from pip.utils.hashes import Hashes
+from tests.lib import create_file
 
 
 def test_unpack_http_url_with_urllib_response_without_content_type(data):
@@ -51,11 +52,6 @@ def test_unpack_http_url_with_urllib_response_without_content_type(data):
 
 def test_user_agent():
     PipSession().headers["User-Agent"].startswith("pip/%s" % pip.__version__)
-
-
-def _write_file(fn, contents):
-    with open(fn, 'w') as fh:
-        fh.write(contents)
 
 
 class FakeStream(object):
@@ -98,7 +94,7 @@ def test_unpack_http_url_bad_downloaded_checksum(mock_unpack_file):
     download_dir = mkdtemp()
     try:
         downloaded_file = os.path.join(download_dir, 'somepackage.tgz')
-        _write_file(downloaded_file, 'some contents')
+        create_file(downloaded_file, 'some contents')
 
         unpack_http_url(
             link,
