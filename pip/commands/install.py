@@ -246,6 +246,7 @@ class InstallCommand(RequirementCommand):
                     pycompile=options.compile,
                     wheel_cache=wheel_cache,
                     require_hashes=options.require_hashes,
+                    use_user_site=options.use_user_site,
                 )
 
                 self.populate_requirement_set(
