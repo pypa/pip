@@ -27,17 +27,19 @@ from pip.utils import deprecation, get_prog, normalize_path
 from pip.utils.logging import IndentingFormatter
 from pip.utils.outdated import pip_version_check
 
-__all__ = ['Command']
+if False:
+    from typing import Optional
 
+__all__ = ['Command']
 
 logger = logging.getLogger(__name__)
 
 
 class Command(object):
-    name = None
-    usage = None
-    hidden = False
-    ignore_require_venv = False
+    name = None  # type: Optional[str]
+    usage = None  # type: Optional[str]
+    hidden = False  # type: bool
+    ignore_require_venv = False  # type: bool
     log_streams = ("ext://sys.stdout", "ext://sys.stderr")
 
     def __init__(self, isolated=False):

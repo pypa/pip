@@ -19,6 +19,9 @@ from pip.compat import WINDOWS
 from pip.utils import format_size
 from pip.utils.logging import get_indentation
 
+if False:
+    from typing import Any
+
 try:
     from pip._vendor import colorama
 # Lots of different errors can come from this, including SystemError and
@@ -56,7 +59,7 @@ def _select_progress_class(preferred, fallback):
         return preferred
 
 
-_BaseBar = _select_progress_class(IncrementalBar, Bar)
+_BaseBar = _select_progress_class(IncrementalBar, Bar)  # type: Any
 
 
 class InterruptibleMixin(object):
@@ -125,7 +128,7 @@ class BlueEmojiBar(IncrementalBar):
     suffix = "%(percent)d%%"
     bar_prefix = " "
     bar_suffix = " "
-    phases = (u"\U0001F539", u"\U0001F537", u"\U0001F535")
+    phases = (u"\U0001F539", u"\U0001F537", u"\U0001F535")  # type: Any
 
 
 class DownloadProgressMixin(object):

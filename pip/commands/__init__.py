@@ -17,6 +17,10 @@ from pip.commands.install import InstallCommand
 from pip.commands.uninstall import UninstallCommand
 from pip.commands.wheel import WheelCommand
 
+if False:
+    from typing import List, Type
+    from pip.basecommand import Command
+
 commands_order = [
     InstallCommand,
     DownloadCommand,
@@ -31,7 +35,7 @@ commands_order = [
     HashCommand,
     CompletionCommand,
     HelpCommand,
-]
+]  # type: List[Type[Command]]
 
 commands_dict = {c.name: c for c in commands_order}
 

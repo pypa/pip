@@ -14,9 +14,9 @@ try:
     import ipaddress
 except ImportError:
     try:
-        from pip._vendor import ipaddress
+        from pip._vendor import ipaddress  # type: ignore
     except ImportError:
-        import ipaddr as ipaddress
+        import ipaddr as ipaddress  # type: ignore
         ipaddress.ip_address = ipaddress.IPAddress
         ipaddress.ip_network = ipaddress.IPNetwork
 

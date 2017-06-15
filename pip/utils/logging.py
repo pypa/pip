@@ -11,7 +11,7 @@ from pip.utils import ensure_dir
 try:
     import threading
 except ImportError:
-    import dummy_threading as threading
+    import dummy_threading as threading  # type: ignore
 
 
 try:

@@ -14,6 +14,11 @@ from pip.utils import (display_path, backup_dir, call_subprocess,
                        rmtree, ask_path_exists)
 
 
+if False:
+    from typing import Dict, Tuple
+    from pip.basecommand import Command
+
+
 __all__ = ['vcs', 'get_src_requirement']
 
 
@@ -21,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 class VcsSupport(object):
-    _registry = {}
+    _registry = {}  # type: Dict[str, Command]
     schemes = ['ssh', 'git', 'hg', 'bzr', 'sftp', 'svn']
 
     def __init__(self):
@@ -98,7 +103,7 @@ class VersionControl(object):
     name = ''
     dirname = ''
     # List of supported schemes for this Version Control
-    schemes = ()
+    schemes = ()  # type: Tuple[str, ...]
 
     def __init__(self, url=None, *args, **kwargs):
         self.url = url

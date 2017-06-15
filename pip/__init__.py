@@ -52,13 +52,16 @@ from pip._vendor.requests.packages.urllib3.exceptions import (
 )
 
 
+if False:
+    from typing import Any
+
 # assignment for flake8 to be happy
 
 # This fixes a peculiarity when importing via __import__ - as we are
 # initialising the pip module, "from pip import cmdoptions" is recursive
 # and appears not to work properly in that situation.
-import pip.cmdoptions
-cmdoptions = pip.cmdoptions
+import pip.cmdoptions  # noqa
+cmdoptions = pip.cmdoptions  # type: Any
 
 # The version as used in the setup.py and the docs conf.py
 __version__ = "10.0.0.dev0"
