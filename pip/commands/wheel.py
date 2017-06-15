@@ -155,7 +155,6 @@ class WheelCommand(RequirementCommand):
                     wheel_cache
                 )
 
-
                 resolver = Resolver(
                     finder=finder,
                     session=session,
