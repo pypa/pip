@@ -24,11 +24,18 @@ from pip.locations import (
 )
 from pip.utils import ensure_dir, enum
 
+if False:
+    from typing import Any, Dict, Iterable, List, NewType, Optional, Tuple
+
+    ConfigParser = configparser.ConfigParser  # Shorthand
+    Kind = NewType("Kind", str)
+
 logger = logging.getLogger(__name__)
 
 
 # NOTE: Maybe use the optionx attribute to normalize keynames.
 def _normalize_name(name):
+    # type: (str) -> str
     """Make a name consistent regardless of source (environment or file)
     """
     name = name.lower().replace('_', '-')
@@ -38,6 +45,7 @@ def _normalize_name(name):
 
 
 def _disassemble_key(name):
+    # type: (str) -> List[str]
     return name.split(".", 1)
 
 
@@ -66,6 +74,7 @@ class Configuration(object):
     """
 
     def __init__(self, isolated, load_only=None):
+        # type: (bool, Kind) -> None
         super(Configuration, self).__init__()
 
         _valid_load_only = [kinds.USER, kinds.GLOBAL, kinds.VENV, None]
@@ -75,8 +84,8 @@ class Configuration(object):
                     ", ".join(map(repr, _valid_load_only[:-1]))
                 )
             )
-        self.isolated = isolated
-        self.load_only = load_only
+        self.isolated = isolated  # type: bool
+        self.load_only = load_only  # type: Optional[Kind]
 
         # The order here determines the override order.
         self._override_order = [
@@ -86,11 +95,16 @@ class Configuration(object):
         self._ignore_env_names = ["version", "help"]
 
         # Because we keep track of where we got the data from
-        self._parsers = {variant: [] for variant in self._override_order}
-        self._config = {variant: {} for variant in self._override_order}
-        self._modified_parsers = []
+        self._parsers = {
+            variant: [] for variant in self._override_order
+        }  # type: Dict[Kind, List[Tuple[str, ConfigParser]]]
+        self._config = {
+            variant: {} for variant in self._override_order
+        }  # type: Dict[Kind, Dict[str, Any]]
+        self._modified_parsers = []  # type: List[Tuple[str, ConfigParser]]
 
     def load(self):
+        # type: () -> None
         """Loads configuration from configuration files and environment
         """
         self._load_config_files()
@@ -98,6 +112,7 @@ class Configuration(object):
             self._load_environment_vars()
 
     def get_file_to_edit(self):
+        # type: () -> Optional[str]
         """Returns the file with highest priority in configuration
         """
         assert self.load_only is not None, \
@@ -109,12 +124,14 @@ class Configuration(object):
             return None
 
     def items(self):
+        # type: () -> Iterable[Tuple[str, Any]]
         """Returns key-value pairs like dict.items() representing the loaded
         configuration
         """
         return self._dictionary.items()
 
     def get_value(self, key):
+        # type: (str) -> Any
         """Get a value from the configuration.
         """
         try:
@@ -123,6 +140,7 @@ class Configuration(object):
             raise ConfigurationError("No such key - {}".format(key))
 
     def set_value(self, key, value):
+        # type: (str, Any) -> None
         """Modify a value in the configuration.
         """
         self._ensure_have_load_only()
@@ -141,6 +159,7 @@ class Configuration(object):
         self._mark_as_modified(fname, parser)
 
     def unset_value(self, key):
+        # type: (str) -> None
         """Unset a value in the configuration.
         """
         self._ensure_have_load_only()
@@ -173,6 +192,7 @@ class Configuration(object):
         del self._config[self.load_only][key]
 
     def save(self):
+        # type: () -> None
         """Save the currentin-memory state.
         """
         self._ensure_have_load_only()
@@ -191,12 +211,14 @@ class Configuration(object):
     #
 
     def _ensure_have_load_only(self):
+        # type: () -> None
         if self.load_only is None:
             raise ConfigurationError("Needed a specific file to be modifying.")
         logger.debug("Will be working with %s variant only", self.load_only)
 
     @property
     def _dictionary(self):
+        # type: () -> Dict[str, Any]
         """A dictionary representing the loaded configuration.
         """
         # NOTE: Dictionaries are not populated if not loaded. So, conditionals
@@ -209,6 +231,7 @@ class Configuration(object):
         return retval
 
     def _load_config_files(self):
+        # type: () -> None
         """Loads configuration from configuration files
         """
         config_files = dict(self._iter_config_files())
@@ -235,6 +258,7 @@ class Configuration(object):
                 self._parsers[variant].append((fname, parser))
 
     def _load_file(self, variant, fname):
+        # type: (Kind, str) -> ConfigParser
         logger.debug("For variant '%s', will try loading '%s'", variant, fname)
         parser = self._construct_parser(fname)
 
@@ -245,6 +269,7 @@ class Configuration(object):
         return parser
 
     def _construct_parser(self, fname):
+        # type: (str) -> ConfigParser
         parser = configparser.RawConfigParser()
         # If there is no such file, don't bother reading it but create the
         # parser anyway, to hold the data.
@@ -256,6 +281,7 @@ class Configuration(object):
         return parser
 
     def _load_environment_vars(self):
+        # type: () -> None
         """Loads configuration from environment variables
         """
         self._config[kinds.ENV_VAR].update(
@@ -263,6 +289,7 @@ class Configuration(object):
         )
 
     def _normalized_keys(self, section, items):
+        # type: (str, Iterable[Tuple[str, Any]]) -> Dict[str, Any]
         """Normalizes items to construct a dictionary with normalized keys.
 
         This routine is where the names become keys and are made the same
@@ -275,6 +302,7 @@ class Configuration(object):
         return normalized
 
     def _get_environ_vars(self):
+        # type: () -> Iterable[Tuple[str, str]]
         """Returns a generator with all environmental vars with prefix PIP_"""
         for key, val in os.environ.items():
             should_be_yielded = (
@@ -286,6 +314,7 @@ class Configuration(object):
 
     # XXX: This is patched in the tests.
     def _iter_config_files(self):
+        # type: () -> Iterable[Tuple[Kind, List[str]]]
         """Yields variant and configuration files associated with it.
 
         This should be treated like items of a dictionary.
@@ -315,6 +344,7 @@ class Configuration(object):
             yield kinds.VENV, [venv_config_file]
 
     def _get_parser_to_modify(self):
+        # type: () -> Tuple[str, ConfigParser]
         # Determine which parser to modify
         parsers = self._parsers[self.load_only]
         if not parsers:
@@ -328,6 +358,7 @@ class Configuration(object):
 
     # XXX: This is patched in the tests.
     def _mark_as_modified(self, fname, parser):
+        # type: (str, ConfigParser) -> None
         file_parser_tuple = (fname, parser)
         if file_parser_tuple not in self._modified_parsers:
             self._modified_parsers.append(file_parser_tuple)
