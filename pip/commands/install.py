@@ -281,9 +281,7 @@ class InstallCommand(RequirementCommand):
                         )
                         # Ignore the result: a failed wheel will be
                         # installed from the sdist/vcs whatever.
-                        wb.build(
-                            session, autobuilding=True
-                        )
+                        wb.build(session=session, autobuilding=True)
 
                     requirement_set.install(
                         install_options,

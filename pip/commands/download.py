@@ -180,7 +180,7 @@ class DownloadCommand(RequirementCommand):
                     build_dir=directory.path,
                     src_dir=options.src_dir,
                     download_dir=options.download_dir,
-                    require_hashes=options.require_hashes
+                    require_hashes=options.require_hashes,
                 )
                 self.populate_requirement_set(
                     requirement_set,
