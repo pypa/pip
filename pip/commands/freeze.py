@@ -4,9 +4,9 @@ import sys
 
 import pip
 from pip.basecommand import Command
+from pip.cache import WheelCache
 from pip.compat import stdlib_pkgs
 from pip.operations.freeze import freeze
-from pip.wheel import WheelCache
 
 DEV_PKGS = {'pip', 'setuptools', 'distribute', 'wheel'}
 

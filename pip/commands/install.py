@@ -8,6 +8,7 @@ import shutil
 
 from pip import cmdoptions
 from pip.basecommand import RequirementCommand
+from pip.cache import WheelCache
 from pip.exceptions import (
     CommandError, InstallationError, PreviousBuildDirError
 )
@@ -17,7 +18,7 @@ from pip.status_codes import ERROR
 from pip.utils import ensure_dir, get_installed_version
 from pip.utils.filesystem import check_path_owner
 from pip.utils.temp_dir import TempDirectory
-from pip.wheel import WheelBuilder, WheelCache
+from pip.wheel import WheelBuilder
 
 try:
     import wheel

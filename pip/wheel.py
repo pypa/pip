@@ -6,10 +6,8 @@ from __future__ import absolute_import
 import compileall
 import copy
 import csv
-import errno
 import hashlib
 import logging
-import os
 import os.path
 import re
 import shutil
@@ -25,15 +23,15 @@ from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.six import StringIO
 
-import pip
+import pip.index
 from pip import pep425tags
-from pip.compat import expanduser
 from pip.download import path_to_url, unpack_url
 from pip.exceptions import (
     InstallationError, InvalidWheelFilename, UnsupportedWheel
 )
 from pip.locations import PIP_DELETE_MARKER_FILENAME, distutils_scheme
 from pip.utils import call_subprocess, captured_stdout, ensure_dir, read_chunks
+from pip.utils.cache import get_cache_path_for_link
 from pip.utils.logging import indent_log
 from pip.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip.utils.temp_dir import TempDirectory
@@ -45,104 +43,6 @@ VERSION_COMPATIBLE = (1, 0)
 
 
 logger = logging.getLogger(__name__)
-
-
-class WheelCache(object):
-    """A cache of wheels for future installs."""
-
-    def __init__(self, cache_dir, format_control):
-        """Create a wheel cache.
-
-        :param cache_dir: The root of the cache.
-        :param format_control: A pip.index.FormatControl object to limit
-            binaries being read from the cache.
-        """
-        self._cache_dir = expanduser(cache_dir) if cache_dir else None
-        self._format_control = format_control
-
-    def cached_wheel(self, link, package_name):
-        return cached_wheel(
-            self._cache_dir, link, self._format_control, package_name)
-
-
-def _cache_for_link(cache_dir, link):
-    """
-    Return a directory to store cached wheels in for link.
-
-    Because there are M wheels for any one sdist, we provide a directory
-    to cache them in, and then consult that directory when looking up
-    cache hits.
-
-    We only insert things into the cache if they have plausible version
-    numbers, so that we don't contaminate the cache with things that were not
-    unique. E.g. ./package might have dozens of installs done for it and build
-    a version of 0.0...and if we built and cached a wheel, we'd end up using
-    the same wheel even if the source has been edited.
-
-    :param cache_dir: The cache_dir being used by pip.
-    :param link: The link of the sdist for which this will cache wheels.
-    """
-
-    # We want to generate an url to use as our cache key, we don't want to just
-    # re-use the URL because it might have other items in the fragment and we
-    # don't care about those.
-    key_parts = [link.url_without_fragment]
-    if link.hash_name is not None and link.hash is not None:
-        key_parts.append("=".join([link.hash_name, link.hash]))
-    key_url = "#".join(key_parts)
-
-    # Encode our key url with sha224, we'll use this because it has similar
-    # security properties to sha256, but with a shorter total output (and thus
-    # less secure). However the differences don't make a lot of difference for
-    # our use case here.
-    hashed = hashlib.sha224(key_url.encode()).hexdigest()
-
-    # We want to nest the directories some to prevent having a ton of top level
-    # directories where we might run out of sub directories on some FS.
-    parts = [hashed[:2], hashed[2:4], hashed[4:6], hashed[6:]]
-
-    # Inside of the base location for cached wheels, expand our parts and join
-    # them all together.
-    return os.path.join(cache_dir, "wheels", *parts)
-
-
-def cached_wheel(cache_dir, link, format_control, package_name):
-    if not cache_dir:
-        return link
-    if not link:
-        return link
-    if link.is_wheel:
-        return link
-    if not link.is_artifact:
-        return link
-    if not package_name:
-        return link
-    canonical_name = canonicalize_name(package_name)
-    formats = pip.index.fmt_ctl_formats(format_control, canonical_name)
-    if "binary" not in formats:
-        return link
-    root = _cache_for_link(cache_dir, link)
-    try:
-        wheel_names = os.listdir(root)
-    except OSError as e:
-        if e.errno in {errno.ENOENT, errno.ENOTDIR}:
-            return link
-        raise
-    candidates = []
-    for wheel_name in wheel_names:
-        try:
-            wheel = Wheel(wheel_name)
-        except InvalidWheelFilename:
-            continue
-        if not wheel.supported():
-            # Built for a different python/arch/etc
-            continue
-        candidates.append((wheel.support_index_min(), wheel_name))
-    if not candidates:
-        return link
-    candidates.sort()
-    path = os.path.join(root, candidates[0][1])
-    return pip.index.Link(path_to_url(path))
 
 
 def rehash(path, algo='sha256', blocksize=1 << 20):
@@ -872,7 +772,9 @@ class WheelBuilder(object):
                 python_tag = None
                 if autobuilding:
                     python_tag = pep425tags.implementation_tag
-                    output_dir = _cache_for_link(self._cache_root, req.link)
+                    output_dir = get_cache_path_for_link(
+                        self._cache_root, req.link
+                    )
                     try:
                         ensure_dir(output_dir)
                     except OSError as e:
