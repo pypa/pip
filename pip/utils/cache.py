@@ -1,8 +1,8 @@
 """Helpers for caches
 """
 
-import os.path
 import hashlib
+import os.path
 
 
 def get_cache_path_for_link(cache_dir, link):

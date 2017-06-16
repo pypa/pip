@@ -1,17 +1,17 @@
 """Cache Management
 """
 
-import os
 import errno
 import logging
+import os
 
 from pip._vendor.packaging.utils import canonicalize_name
 
 import pip.index
 from pip.compat import expanduser
 from pip.download import path_to_url
-from pip.wheel import Wheel, InvalidWheelFilename
 from pip.utils.cache import get_cache_path_for_link
+from pip.wheel import InvalidWheelFilename, Wheel
 
 logger = logging.getLogger(__name__)
 
