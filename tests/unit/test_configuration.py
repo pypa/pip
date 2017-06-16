@@ -3,6 +3,7 @@
 
 import os
 
+import pytest
 from mock import MagicMock
 
 from pip.exceptions import ConfigurationError
@@ -54,6 +55,14 @@ class TestConfigurationLoading(ConfigurationMixin):
 
         self.configuration.load()
         assert self.configuration.get_value(":env:.hello") == "5"
+
+    def test_environment_var_does_not_load_version(self):
+        os.environ["PIP_VERSION"] = "True"
+
+        self.configuration.load()
+
+        with pytest.raises(ConfigurationError):
+            self.configuration.get_value(":env:.version")
 
 
 class TestConfigurationPrecedence(ConfigurationMixin):
