@@ -84,6 +84,8 @@ class Configuration(object):
             kinds.GLOBAL, kinds.USER, kinds.VENV, kinds.ENV, kinds.ENV_VAR
         ]
 
+        self._ignore_env_names = ["version", "help"]
+
         # Because we keep track of where we got the data from
         self._parsers = {variant: [] for variant in self._override_order}
         self._config = {variant: {} for variant in self._override_order}
@@ -276,7 +278,11 @@ class Configuration(object):
     def _get_environ_vars(self):
         """Returns a generator with all environmental vars with prefix PIP_"""
         for key, val in os.environ.items():
-            if key.startswith("PIP_"):
+            should_be_yielded = (
+                key.upper().startswith("PIP_") and
+                key[4:].lower() not in self._ignore_env_names
+            )
+            if should_be_yielded:
                 yield key[4:].lower(), val
 
     # XXX: This is patched in the tests.
