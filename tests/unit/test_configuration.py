@@ -52,13 +52,11 @@ class TestConfigurationLoading(ConfigurationMixin):
         self.configuration.load()
         assert self.configuration.get_value(":env:.hello") == "5"
 
-    @pytest.mark.skipif("sys.platform == 'win32'")
-    def test_environment_var_does_not_load_lowercase(self):
+    def test_environment_var_does_load_lowercase(self):
         os.environ["pip_hello"] = "5"
 
         self.configuration.load()
-        with pytest.raises(ConfigurationError):
-            self.configuration.get_value(":env:.hello")
+        assert self.configuration.get_value(":env:.hello") == "5"
 
     def test_environment_var_does_not_load_version(self):
         os.environ["PIP_VERSION"] = "True"

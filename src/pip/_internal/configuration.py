@@ -313,7 +313,7 @@ class Configuration(object):
         """Returns a generator with all environmental vars with prefix PIP_"""
         for key, val in os.environ.items():
             should_be_yielded = (
-                key.startswith("PIP_") and
+                key.upper().startswith("PIP_") and
                 key[4:].lower() not in self._ignore_env_names
             )
             if should_be_yielded:
