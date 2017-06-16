@@ -18,8 +18,9 @@ from pip._vendor.progress.spinner import Spinner
 from pip.compat import WINDOWS
 from pip.utils import format_size
 from pip.utils.logging import get_indentation
+from pip.utils.typing import MYPY_CHECK_RUNNING
 
-if False:
+if MYPY_CHECK_RUNNING:
     from typing import Any
 
 try:

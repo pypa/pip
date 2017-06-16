@@ -26,8 +26,9 @@ from pip.status_codes import (
 from pip.utils import deprecation, get_prog, normalize_path
 from pip.utils.logging import IndentingFormatter
 from pip.utils.outdated import pip_version_check
+from pip.utils.typing import MYPY_CHECK_RUNNING
 
-if False:
+if MYPY_CHECK_RUNNING:
     from typing import Optional
 
 __all__ = ['Command']

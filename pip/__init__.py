@@ -50,9 +50,10 @@ from pip.commands import commands_dict
 from pip._vendor.requests.packages.urllib3.exceptions import (
     InsecureRequestWarning,
 )
+from pip.utils.typing import MYPY_CHECK_RUNNING
 
 
-if False:
+if MYPY_CHECK_RUNNING:
     from typing import Any
 
 # assignment for flake8 to be happy

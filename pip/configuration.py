@@ -23,8 +23,9 @@ from pip.locations import (
     site_config_files, venv_config_file
 )
 from pip.utils import ensure_dir, enum
+from pip.utils.typing import MYPY_CHECK_RUNNING
 
-if False:
+if MYPY_CHECK_RUNNING:
     from typing import Any, Dict, Iterable, List, NewType, Optional, Tuple
 
     ConfigParser = configparser.ConfigParser  # Shorthand
