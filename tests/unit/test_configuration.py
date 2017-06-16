@@ -49,6 +49,12 @@ class TestConfigurationLoading(ConfigurationMixin):
         self.configuration.load()
         assert self.configuration.get_value(":env:.hello") == "5"
 
+    def test_environment_var_loading_lowercase(self):
+        os.environ["pip_hello"] = "5"
+
+        self.configuration.load()
+        assert self.configuration.get_value(":env:.hello") == "5"
+
 
 class TestConfigurationPrecedence(ConfigurationMixin):
     # Tests for methods to that determine the order of precedence of

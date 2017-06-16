@@ -276,7 +276,7 @@ class Configuration(object):
     def _get_environ_vars(self):
         """Returns a generator with all environmental vars with prefix PIP_"""
         for key, val in os.environ.items():
-            if key.startswith("PIP_"):
+            if key.upper().startswith("PIP_"):
                 yield key[4:].lower(), val
 
     # XXX: This is patched in the tests.
