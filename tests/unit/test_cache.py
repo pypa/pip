@@ -1,5 +1,5 @@
 from pip.cache import WheelCache
-
+from pip.compat import expanduser
 
 class TestWheelCache:
 

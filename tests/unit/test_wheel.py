@@ -6,7 +6,7 @@ from mock import Mock, patch
 from pip._vendor.packaging.requirements import Requirement
 
 from pip import pep425tags, wheel
-from pip.compat import WINDOWS, expanduser
+from pip.compat import WINDOWS
 from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip.utils import unpack_file
 
