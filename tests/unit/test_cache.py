@@ -1,6 +1,7 @@
 from pip.cache import WheelCache
 from pip.compat import expanduser
 
+
 class TestWheelCache:
 
     def test_expands_path(self):
