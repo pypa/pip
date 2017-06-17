@@ -6,11 +6,12 @@ import os
 
 from pip import cmdoptions
 from pip.basecommand import RequirementCommand
+from pip.cache import WheelCache
 from pip.exceptions import CommandError, PreviousBuildDirError
 from pip.req import RequirementSet
 from pip.utils import import_or_raise
 from pip.utils.temp_dir import TempDirectory
-from pip.wheel import WheelBuilder, WheelCache
+from pip.wheel import WheelBuilder
 
 logger = logging.getLogger(__name__)
 

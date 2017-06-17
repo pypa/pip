@@ -24,7 +24,6 @@ from pip.locations import (
 )
 from pip.utils import ensure_dir, enum
 
-
 logger = logging.getLogger(__name__)
 
 
