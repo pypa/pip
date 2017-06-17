@@ -20,7 +20,7 @@ def pytest_collection_modifyitems(items):
             continue
 
         # Mark network tests as flaky
-        if item.get_marker('network') is not None:
+        if item.get_marker('network') is not None and "CI" in os.environ:
             item.add_marker(pytest.mark.flaky(reruns=3))
 
         module_path = os.path.relpath(
