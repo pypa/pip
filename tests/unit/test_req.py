@@ -46,7 +46,7 @@ class TestRequirementSet(object):
             progress_bar="on", use_user_site=False,
             ignore_dependencies=False, ignore_installed=False,
             ignore_requires_python=False, force_reinstall=False,
-            isolated=False, upgrade_strategy="not-allowed"
+            isolated=False, upgrade_strategy="to-satisfy-only"
         )
 
     def test_no_reuse_existing_build_dir(self, data):

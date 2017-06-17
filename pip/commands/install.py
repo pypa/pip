@@ -180,7 +180,7 @@ class InstallCommand(RequirementCommand):
     def run(self, options, args):
         cmdoptions.check_install_build_global(options)
 
-        upgrade_strategy = "not-allowed"
+        upgrade_strategy = "to-satisfy-only"
         if options.upgrade:
             upgrade_strategy = options.upgrade_strategy
 

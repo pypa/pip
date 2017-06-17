@@ -196,7 +196,7 @@ class DownloadCommand(RequirementCommand):
                     finder=finder,
                     session=session,
                     use_user_site=False,
-                    upgrade_strategy="not-allowed",
+                    upgrade_strategy="to-satisfy-only",
                     force_reinstall=False,
                     ignore_dependencies=options.ignore_dependencies,
                     ignore_requires_python=False,

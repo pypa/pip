@@ -127,7 +127,7 @@ class Resolver(object):
                  ignore_dependencies, ignore_installed, ignore_requires_python,
                  force_reinstall, isolated, upgrade_strategy):
         super(Resolver, self).__init__()
-        assert upgrade_strategy in ["eager", "only-if-needed", "not-allowed"]
+        assert upgrade_strategy in ["eager", "only-if-needed", "to-satisfy-only"]
 
         self.finder = finder
         self.session = session
@@ -187,7 +187,7 @@ class Resolver(object):
             raise hash_errors
 
     def _is_upgrade_allowed(self, req):
-        if self.upgrade_strategy == "not-allowed":
+        if self.upgrade_strategy == "to-satisfy-only":
             return False
         elif self.upgrade_strategy == "eager":
             return True
@@ -452,7 +452,7 @@ class Resolver(object):
                     req_to_install.check_if_exists()
                 if req_to_install.satisfied_by:
                     should_modify = (
-                        self.upgrade_strategy != "not-allowed" or
+                        self.upgrade_strategy != "to-satisfy-only" or
                         self.ignore_installed
                     )
                     if should_modify:
