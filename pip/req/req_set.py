@@ -48,6 +48,11 @@ class RequirementSet(object):
                  pycompile=True, wheel_download_dir=None, wheel_cache=None):
         """Create a RequirementSet.
 
+
+        :param wheel_download_dir: Where still-packed .whl files should be
+            written to. If None they are written to the download_dir parameter.
+            Separate to download_dir to permit only keeping wheel archives for
+            pip wheel.
         :param download_dir: Where still packed archives should be written to.
             If None they are not saved, and are deleted immediately after
             unpacking.
