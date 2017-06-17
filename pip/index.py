@@ -192,9 +192,13 @@ class PackageFinder(object):
     def get_formatted_locations(self):
         lines = []
         if self.index_urls != [PyPI.simple_url]:
-            lines.append("looking in indexes: {}".format(self.index_urls))
+            lines.append(
+                "Looking in indexes: {}".format(", ".join(self.index_urls))
+            )
         if self.find_links:
-            lines.append("looking in links: {}".format(self.find_links))
+            lines.append(
+                "Looking in links: {}".format(", ".join(self.find_links))
+            )
         return "\n".join(lines)
 
     def add_dependency_links(self, links):
