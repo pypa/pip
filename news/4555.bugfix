@@ -1,0 +1,1 @@
+Fail requirements parsing without `session` only if it is needed
