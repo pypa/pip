@@ -123,11 +123,13 @@ class Resolver(object):
     the requested operation without breaking the requirements of any package.
     """
 
+    _allowed_strategies = ["eager", "only-if-needed", "to-satisfy-only"]
+
     def __init__(self, session, finder, progress_bar, use_user_site,
                  ignore_dependencies, ignore_installed, ignore_requires_python,
                  force_reinstall, isolated, upgrade_strategy):
         super(Resolver, self).__init__()
-        assert upgrade_strategy in ["eager", "only-if-needed", "to-satisfy-only"]
+        assert upgrade_strategy in self._allowed_strategies
 
         self.finder = finder
         self.session = session
