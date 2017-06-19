@@ -115,7 +115,8 @@ def test_install_from_pypi(script):
     assert initools_folder in result.files_created, str(result)
 
     # Should not display where it's looking for files
-    assert "Looking in: " not in result.stdout
+    assert "Looking in indexes: " not in result.stdout
+    assert "Looking in links: " not in result.stdout
 
 def test_editable_install(script):
     """
@@ -636,7 +637,8 @@ def test_install_package_with_root(script, data):
     assert root_path in result.files_created, str(result)
 
     # Should show find-links location in output
-    assert "Looking in: " in result.stdout
+    assert "Looking in indexes: " not in result.stdout
+    assert "Looking in links: " in result.stdout
 
 
 def test_install_package_with_prefix(script, data):
@@ -815,7 +817,8 @@ def test_url_incorrect_case_file_index(script, data):
     assert egg_folder in result.files_created, str(result)
 
     # Should show index-url location in output
-    assert "Looking in: " in result.stdout
+    assert "Looking in indexes: " in result.stdout
+    assert "Looking in links: " not in result.stdout
 
 
 @pytest.mark.network
