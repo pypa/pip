@@ -191,7 +191,7 @@ class PackageFinder(object):
 
     def get_formatted_locations(self):
         lines = []
-        if self.index_urls != [PyPI.simple_url]:
+        if self.index_urls and self.index_urls != [PyPI.simple_url]:
             lines.append(
                 "Looking in indexes: {}".format(", ".join(self.index_urls))
             )
