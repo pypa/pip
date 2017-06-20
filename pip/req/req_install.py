@@ -239,6 +239,7 @@ class InstallRequirement(object):
             try:
                 req = Requirement(req)
             except InvalidRequirement:
+                print("ERROR")
                 if os.path.sep in req:
                     add_msg = "It looks like a path."
                     add_msg += deduce_helpful_msg(req)
