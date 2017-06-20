@@ -195,7 +195,7 @@ class InstallRequirement(object):
         else:
             p, extras = _strip_extras(path)
             if (os.path.isdir(p) and
-                    (os.path.sep in name or name.startswith('.'))):
+                    (os.path.sep in name or os.path.altsep in name or name.startswith('.'))):
 
                 if not is_installable_dir(p):
                     raise InstallationError(
