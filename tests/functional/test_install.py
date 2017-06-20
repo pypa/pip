@@ -118,6 +118,7 @@ def test_install_from_pypi(script):
     assert "Looking in indexes: " not in result.stdout
     assert "Looking in links: " not in result.stdout
 
+
 def test_editable_install(script):
     """
     Test editable installation.
