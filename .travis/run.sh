@@ -40,8 +40,12 @@ if [[ $VENDOR = "no" ]]; then
     fi
 fi
 
-# Run the unit tests
-tox -- -m unit
-
-# Run our integration tests
-tox -- -m integration -n 8 --duration=5
+if [[ $TOXENV == py* ]]; then
+    # Run unit tests
+    tox -- -m unit
+    # Run integration tests
+    tox -- -m integration -n 8 --duration=5
+else
+    # Run once
+    tox
+fi
