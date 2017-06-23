@@ -3,6 +3,7 @@ pretend
 pytest
 pytest-catchlog
 pytest-rerunfailures
+pytest-spec
 pytest-timeout
 pytest-xdist
 mock<1.1
