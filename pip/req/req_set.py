@@ -45,7 +45,8 @@ class RequirementSet(object):
 
     def __init__(self, build_dir, src_dir, download_dir=None,
                  require_hashes=False, target_dir=None, use_user_site=False,
-                 pycompile=True, wheel_download_dir=None, wheel_cache=None):
+                 pycompile=True, wheel_download_dir=None, wheel_cache=None,
+                 progress_bar="on"):
         """Create a RequirementSet.
 
 
@@ -70,6 +71,8 @@ class RequirementSet(object):
         self.requirements = Requirements()
 
         self.require_hashes = require_hashes
+
+        self.progress_bar = progress_bar
 
         # Mapping of alias: real_name
         self.requirement_aliases = {}

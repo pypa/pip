@@ -147,7 +147,8 @@ class WheelCommand(RequirementCommand):
                     download_dir=None,
                     wheel_cache=wheel_cache,
                     wheel_download_dir=options.wheel_dir,
-                    require_hashes=options.require_hashes
+                    require_hashes=options.require_hashes,
+                    progress_bar=options.progress_bar,
                 )
 
                 self.populate_requirement_set(
@@ -165,7 +166,6 @@ class WheelCommand(RequirementCommand):
                     ignore_requires_python=options.ignore_requires_python,
                     ignore_installed=True,
                     isolated=options.isolated_mode,
-                    progress_bar=options.progress_bar,
                 )
                 resolver.resolve(requirement_set)
 

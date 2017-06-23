@@ -125,7 +125,7 @@ class Resolver(object):
 
     _allowed_strategies = ["eager", "only-if-needed", "to-satisfy-only"]
 
-    def __init__(self, session, finder, progress_bar, use_user_site,
+    def __init__(self, session, finder, use_user_site,
                  ignore_dependencies, ignore_installed, ignore_requires_python,
                  force_reinstall, isolated, upgrade_strategy):
         super(Resolver, self).__init__()
@@ -133,7 +133,6 @@ class Resolver(object):
 
         self.finder = finder
         self.session = session
-        self.progress_bar = progress_bar
 
         self.require_hashes = None  # This is set in resolve
 
@@ -428,7 +427,7 @@ class Resolver(object):
                         req_to_install.link, req_to_install.source_dir,
                         download_dir, autodelete_unpacked,
                         session=self.session, hashes=hashes,
-                        progress_bar=self.progress_bar)
+                        progress_bar=requirement_set.progress_bar)
                 except requests.HTTPError as exc:
                     logger.critical(
                         'Could not install requirement %s because '

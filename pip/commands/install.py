@@ -247,6 +247,7 @@ class InstallCommand(RequirementCommand):
                     wheel_cache=wheel_cache,
                     require_hashes=options.require_hashes,
                     use_user_site=options.use_user_site,
+                    progress_bar=options.progress_bar,
                 )
 
                 self.populate_requirement_set(
@@ -265,7 +266,6 @@ class InstallCommand(RequirementCommand):
                         ignore_requires_python=options.ignore_requires_python,
                         ignore_installed=options.ignore_installed,
                         isolated=options.isolated_mode,
-                        progress_bar=options.progress_bar,
                     )
                     resolver.resolve(requirement_set)
 

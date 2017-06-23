@@ -181,6 +181,7 @@ class DownloadCommand(RequirementCommand):
                     src_dir=options.src_dir,
                     download_dir=options.download_dir,
                     require_hashes=options.require_hashes,
+                    progress_bar=options.progress_bar,
                 )
                 self.populate_requirement_set(
                     requirement_set,
@@ -202,7 +203,6 @@ class DownloadCommand(RequirementCommand):
                     ignore_requires_python=False,
                     ignore_installed=True,
                     isolated=options.isolated_mode,
-                    progress_bar=options.progress_bar,
                 )
                 resolver.resolve(requirement_set)
 
