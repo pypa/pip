@@ -127,7 +127,14 @@ def print_results(distributions, list_files=False, verbose=False):
         results_printed = True
         if i > 0:
             logger.info("---")
-        logger.info("Name: %s", dist.get('name', ''))
+
+        name = dist.get('name', '')
+        required_by = [
+            pkg.project_name for pkg in pkg_resources.working_set
+            if name in [required.name for required in pkg.requires()]
+        ]
+
+        logger.info("Name: %s", name)
         logger.info("Version: %s", dist.get('version', ''))
         logger.info("Summary: %s", dist.get('summary', ''))
         logger.info("Home-page: %s", dist.get('home-page', ''))
@@ -136,6 +143,8 @@ def print_results(distributions, list_files=False, verbose=False):
         logger.info("License: %s", dist.get('license', ''))
         logger.info("Location: %s", dist.get('location', ''))
         logger.info("Requires: %s", ', '.join(dist.get('requires', [])))
+        logger.info("Required-by: %s", ', '.join(required_by))
+
         if verbose:
             logger.info("Metadata-Version: %s",
                         dist.get('metadata-version', ''))
