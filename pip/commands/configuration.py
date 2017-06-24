@@ -52,8 +52,8 @@ class ConfigurationCommand(Command):
             action='store',
             default=None,
             help=(
-                'Editor to use to edit the file. Uses '
-                '$EDITOR if not passed.'
+                'Editor to use to edit the file. Uses VISUAL or EDITOR '
+                'environment variables if not provided.'
             )
         )
 

@@ -424,7 +424,7 @@ Examples:
 
 
 Command Completion
-------------------
+******************
 
 pip comes with support for command line completion in bash, zsh and fish.
 
