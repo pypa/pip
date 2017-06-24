@@ -43,10 +43,10 @@ class TestRequirementSet(object):
     def _basic_resolver(self, finder):
         return Resolver(
             session=PipSession(), finder=finder,
-            progress_bar="on", use_user_site=False,
+            use_user_site=False, upgrade_strategy="to-satisfy-only",
             ignore_dependencies=False, ignore_installed=False,
             ignore_requires_python=False, force_reinstall=False,
-            isolated=False, upgrade_strategy="to-satisfy-only"
+            isolated=False,
         )
 
     def test_no_reuse_existing_build_dir(self, data):
