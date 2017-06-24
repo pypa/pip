@@ -123,7 +123,7 @@ class Resolver(object):
     the requested operation without breaking the requirements of any package.
     """
 
-    _allowed_strategies = ["eager", "only-if-needed", "to-satisfy-only"]
+    _allowed_strategies = {"eager", "only-if-needed", "to-satisfy-only"}
 
     def __init__(self, session, finder, use_user_site,
                  ignore_dependencies, ignore_installed, ignore_requires_python,
@@ -308,7 +308,8 @@ class Resolver(object):
                 else:
                     logger.info('Collecting %s', req_to_install)
 
-        assert self.require_hashes is not None
+        assert self.require_hashes is not None, \
+            "This should have been set in resolve()"
 
         with indent_log():
             # ################################ #
