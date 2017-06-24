@@ -125,6 +125,9 @@ def print_results(distributions, list_files=False, verbose=False):
     results_printed = False
     for i, dist in enumerate(distributions):
         results_printed = True
+        dependents = [pkg for pkg in pkg_resources.working_set
+                      if dist in pkg.get('requires', [])]
+
         if i > 0:
             logger.info("---")
         logger.info("Name: %s", dist.get('name', ''))
@@ -136,6 +139,7 @@ def print_results(distributions, list_files=False, verbose=False):
         logger.info("License: %s", dist.get('license', ''))
         logger.info("Location: %s", dist.get('location', ''))
         logger.info("Requires: %s", ', '.join(dist.get('requires', [])))
+        logger.info("Dependents: %s", ', '.join(dependents))
         if verbose:
             logger.info("Metadata-Version: %s",
                         dist.get('metadata-version', ''))
