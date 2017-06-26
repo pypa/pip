@@ -515,6 +515,12 @@ class TestInstallRequirement(object):
         assert len(req.extras) == 2
         assert req.extras == set(['ex1', 'ex2'])
 
+    def test_path_with_forward_slashes(self):
+        # Don't normalize this to test that Windows recognizes that this is a directory.
+        req = InstallRequirement.from_line('tests/data/src/sample')
+        assert req.link.url.startswith('file://')
+        assert req.link.url.endswith('sample')
+
     def test_unexisting_path(self):
         with pytest.raises(InstallationError) as e:
             InstallRequirement.from_line(
