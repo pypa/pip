@@ -1,3 +1,4 @@
+import os
 import re
 
 import pytest
@@ -12,7 +13,7 @@ def test_show(script):
     """
     result = script.pip('show', 'pip')
     lines = result.stdout.splitlines()
-    assert len(lines) == 9
+    assert len(lines) == 10
     assert 'Name: pip' in lines
     assert 'Version: %s' % __version__ in lines
     assert any(line.startswith('Location: ') for line in lines)
@@ -28,7 +29,7 @@ def test_show_with_files_not_found(script, data):
     script.pip('install', '-e', editable)
     result = script.pip('show', '-f', 'SetupPyUTF8')
     lines = result.stdout.splitlines()
-    assert len(lines) == 11
+    assert len(lines) == 12
     assert 'Name: SetupPyUTF8' in lines
     assert 'Version: 0.0.0' in lines
     assert any(line.startswith('Location: ') for line in lines)
@@ -139,7 +140,8 @@ def test_all_fields(script):
     result = script.pip('show', 'pip')
     lines = result.stdout.splitlines()
     expected = set(['Name', 'Version', 'Summary', 'Home-page', 'Author',
-                    'Author-email', 'License', 'Location', 'Requires'])
+                    'Author-email', 'License', 'Location', 'Requires',
+                    'Required-by'])
     actual = set(re.sub(':.*$', '', line) for line in lines)
     assert actual == expected
 
@@ -173,3 +175,19 @@ def test_package_name_is_canonicalized(script, data):
 
     assert underscore_upper_show_result.returncode == 0
     assert underscore_upper_show_result.stdout == dash_show_result.stdout
+
+
+def test_show_required_by_packages(script, data):
+    """
+    Test that installed packages that depend on this package are shown
+    """
+    editable_path = os.path.join(data.src, 'requires_simple')
+    script.pip(
+        'install', '--no-index', '-f', data.find_links, editable_path
+    )
+
+    result = script.pip('show', 'simple')
+    lines = result.stdout.splitlines()
+
+    assert 'Name: simple' in lines
+    assert 'Required-by: requires-simple' in lines
