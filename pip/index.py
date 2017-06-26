@@ -108,7 +108,8 @@ class PackageFinder(object):
     def __init__(self, find_links, index_urls, allow_all_prereleases=False,
                  trusted_hosts=None, process_dependency_links=False,
                  session=None, format_control=None, platform=None,
-                 versions=None, abi=None, implementation=None):
+                 versions=None, abi=None, implementation=None,
+                 all_wheels=False):
         """Create a PackageFinder.
 
         :param format_control: A FormatControl object or None. Used to control
@@ -169,12 +170,15 @@ class PackageFinder(object):
         self.session = session
 
         # The valid tags to check potential found wheel candidates against
-        self.valid_tags = get_supported(
-            versions=versions,
-            platform=platform,
-            abi=abi,
-            impl=implementation,
-        )
+        self._all_wheels = all_wheels
+        self.valid_tags = []
+        if not self._all_wheels:
+            self.valid_tags = get_supported(
+                versions=versions,
+                platform=platform,
+                abi=abi,
+                impl=implementation,
+            )
 
         # If we don't have TLS enabled, then WARN if anyplace we're looking
         # relies on TLS.
@@ -264,6 +268,9 @@ class PackageFinder(object):
 
         return files, urls
 
+    def _supported(self, wheel):
+        return self._all_wheels or wheel.supported(self.valid_tags)
+
     def _candidate_sort_key(self, candidate):
         """
         Function used to generate link sort key for link tuples.
@@ -281,7 +288,7 @@ class PackageFinder(object):
         if candidate.location.is_wheel:
             # can raise InvalidWheelFilename
             wheel = Wheel(candidate.location.filename)
-            if not wheel.supported(self.valid_tags):
+            if not self._supported(wheel):
                 raise UnsupportedWheel(
                     "%s is not a supported wheel for this platform. It "
                     "can't be sorted." % wheel.filename
@@ -647,7 +654,7 @@ class PackageFinder(object):
                         link, 'wrong project name (not %s)' % search.supplied)
                     return
 
-                if not wheel.supported(self.valid_tags):
+                if not self._supported(wheel):
                     self._log_skipped_link(
                         link, 'it is not compatible with this Python')
                     return

@@ -331,7 +331,7 @@ class RequirementCommand(Command):
 
     def _build_package_finder(self, options, session,
                               platform=None, python_versions=None,
-                              abi=None, implementation=None):
+                              abi=None, implementation=None, all_wheels=False):
         """
         Create a package finder appropriate to this requirement command.
         """
@@ -352,6 +352,7 @@ class RequirementCommand(Command):
             versions=python_versions,
             abi=abi,
             implementation=implementation,
+            all_wheels=all_wheels,
         )
 
     def _build_resolver(self, options, finder):

@@ -111,6 +111,15 @@ class DownloadCommand(RequirementCommand):
                   "this option."),
         )
 
+        cmd_opts.add_option(
+            '--all-wheels',
+            dest='all_wheels',
+            action='store_true',
+            default=False,
+            help=("Download all wheels available, ignores --platform, "
+                  "--python-version, --implementation and --abi"),
+        )
+
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
             self.parser,
