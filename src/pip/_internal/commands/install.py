@@ -248,11 +248,6 @@ class InstallCommand(RequirementCommand):
                 )
 
                 try:
-                    self.populate_requirement_set(
-                        requirement_set, args, options, finder, session,
-                        self.name, wheel_cache
-                    )
-
                     resolver = Resolver(
                         preparer=preparer,
                         finder=finder,
