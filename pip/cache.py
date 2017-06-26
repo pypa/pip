@@ -4,14 +4,13 @@
 import errno
 import logging
 import os
-import tempfile
 
 from pip._vendor.packaging.utils import canonicalize_name
 
 import pip.index
 from pip.compat import expanduser
 from pip.download import path_to_url
-from pip.utils import rmtree
+from pip.utils import temp_dir
 from pip.utils.cache import get_cache_path_for_link
 from pip.wheel import InvalidWheelFilename, Wheel
 
@@ -30,7 +29,8 @@ class WheelCache(object):
         """
         self._cache_dir = expanduser(cache_dir) if cache_dir else None
         # Ephemeral cache: store wheels just for this run
-        self._ephem_cache_dir = tempfile.mkdtemp(suffix='-pip-ephem-cache')
+        self._ephem_cache_dir = temp_dir.TempDirectory(kind="ephem-cache")
+        self._ephem_cache_dir.create()
         self._format_control = format_control
 
     def cached_wheel(self, link, package_name):
@@ -39,12 +39,12 @@ class WheelCache(object):
             self._cache_dir, link, self._format_control, package_name)
         if link is orig_link:
             link = cached_wheel(
-                self._ephem_cache_dir, link, self._format_control,
+                self._ephem_cache_dir.path, link, self._format_control,
                 package_name)
         return link
 
     def cleanup(self):
-        rmtree(self._ephem_cache_dir)
+        self._ephem_cache_dir.cleanup()
 
 
 def cached_wheel(cache_dir, link, format_control, package_name):
