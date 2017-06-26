@@ -194,9 +194,12 @@ class InstallRequirement(object):
             link = Link(name)
         else:
             p, extras = _strip_extras(path)
-            if (os.path.isdir(p) and
-                    (os.path.sep in name or name.startswith('.'))):
-
+            looks_like_dir = os.path.isdir(p) and (
+                os.path.sep in name or
+                (os.path.altsep is not None and os.path.altsep in name) or
+                name.startswith('.')
+            )
+            if looks_like_dir:
                 if not is_installable_dir(p):
                     raise InstallationError(
                         "Directory %r is not installable. File 'setup.py' "
