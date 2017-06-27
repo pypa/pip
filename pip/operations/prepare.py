@@ -109,8 +109,8 @@ class RequirementPreparer(object):
             # satisfied_by is only evaluated by calling _check_skip_installed,
             # so it must be None here.
             assert req_to_install.satisfied_by is None
-            if not self.ignore_installed:
-                skip_reason = self._check_skip_installed(
+            if not resolver.ignore_installed:
+                skip_reason = resolver._check_skip_installed(
                     req_to_install, requirement_set
                 )
 
@@ -131,7 +131,7 @@ class RequirementPreparer(object):
                 else:
                     logger.info('Collecting %s', req_to_install)
 
-        assert self.require_hashes is not None, \
+        assert resolver.require_hashes is not None, \
             "This should have been set in resolve()"
 
         with indent_log():
@@ -139,7 +139,7 @@ class RequirementPreparer(object):
             # # vcs update or unpack archive # #
             # ################################ #
             if req_to_install.editable:
-                if self.require_hashes:
+                if resolver.require_hashes:
                     raise InstallationError(
                         'The editable requirement %s cannot be installed when '
                         'requiring hashes, because there is no single file to '
@@ -152,7 +152,7 @@ class RequirementPreparer(object):
                     req_to_install.archive(requirement_set.download_dir)
                 req_to_install.check_if_exists()
             elif req_to_install.satisfied_by:
-                if self.require_hashes:
+                if resolver.require_hashes:
                     logger.debug(
                         'Since it is already installed, we are trusting this '
                         'package without checking its hash. To ensure a '
@@ -182,9 +182,9 @@ class RequirementPreparer(object):
                         % (req_to_install, req_to_install.source_dir)
                     )
                 req_to_install.populate_link(
-                    self.finder,
-                    self._is_upgrade_allowed(req_to_install),
-                    self.require_hashes
+                    resolver.finder,
+                    resolver._is_upgrade_allowed(req_to_install),
+                    resolver.require_hashes
                 )
                 # We can't hit this spot and have populate_link return None.
                 # req_to_install.satisfied_by is None here (because we're
@@ -200,7 +200,7 @@ class RequirementPreparer(object):
                 # requirements we have and raise some more informative errors
                 # than otherwise. (For example, we can raise VcsHashUnsupported
                 # for a VCS URL rather than HashMissing.)
-                if self.require_hashes:
+                if resolver.require_hashes:
                     # We could check these first 2 conditions inside
                     # unpack_url and save repetition of conditions, but then
                     # we would report less-useful error messages for
@@ -221,8 +221,8 @@ class RequirementPreparer(object):
                         # about them not being pinned.
                         raise HashUnpinned()
                 hashes = req_to_install.hashes(
-                    trust_internet=not self.require_hashes)
-                if self.require_hashes and not hashes:
+                    trust_internet=not resolver.require_hashes)
+                if resolver.require_hashes and not hashes:
                     # Known-good hashes are missing for this requirement, so
                     # shim it with a facade object that will provoke hash
                     # computation and then raise a HashMissing exception
@@ -250,7 +250,7 @@ class RequirementPreparer(object):
                     unpack_url(
                         req_to_install.link, req_to_install.source_dir,
                         download_dir, autodelete_unpacked,
-                        session=self.session, hashes=hashes,
+                        session=resolver.session, hashes=hashes,
                         progress_bar=requirement_set.progress_bar)
                 except requests.HTTPError as exc:
                     logger.critical(
@@ -273,17 +273,17 @@ class RequirementPreparer(object):
                 # req_to_install.req is only avail after unpack for URL
                 # pkgs repeat check_if_exists to uninstall-on-upgrade
                 # (#14)
-                if not self.ignore_installed:
+                if not resolver.ignore_installed:
                     req_to_install.check_if_exists()
                 if req_to_install.satisfied_by:
                     should_modify = (
-                        self.upgrade_strategy != "to-satisfy-only" or
-                        self.ignore_installed
+                        resolver.upgrade_strategy != "to-satisfy-only" or
+                        resolver.ignore_installed
                     )
                     if should_modify:
                         # don't uninstall conflict if user install and
                         # conflict is not user install
-                        if not (self.use_user_site and not
+                        if not (resolver.use_user_site and not
                                 dist_in_usersite(req_to_install.satisfied_by)):
                             req_to_install.conflicts_with = \
                                 req_to_install.satisfied_by
