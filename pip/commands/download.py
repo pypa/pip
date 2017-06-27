@@ -8,6 +8,7 @@ from pip.basecommand import RequirementCommand
 from pip.exceptions import CommandError
 from pip.index import FormatControl
 from pip.req import RequirementSet
+from pip.resolve import Resolver
 from pip.utils import ensure_dir, normalize_path
 from pip.utils.filesystem import check_path_owner
 from pip.utils.temp_dir import TempDirectory
@@ -179,12 +180,8 @@ class DownloadCommand(RequirementCommand):
                     build_dir=directory.path,
                     src_dir=options.src_dir,
                     download_dir=options.download_dir,
-                    ignore_installed=True,
-                    ignore_dependencies=options.ignore_dependencies,
-                    session=session,
-                    isolated=options.isolated_mode,
                     require_hashes=options.require_hashes,
-                    progress_bar=options.progress_bar
+                    progress_bar=options.progress_bar,
                 )
                 self.populate_requirement_set(
                     requirement_set,
@@ -196,7 +193,17 @@ class DownloadCommand(RequirementCommand):
                     None
                 )
 
-                resolver = self._build_resolver(options, finder)
+                resolver = Resolver(
+                    finder=finder,
+                    session=session,
+                    use_user_site=False,
+                    upgrade_strategy="to-satisfy-only",
+                    force_reinstall=False,
+                    ignore_dependencies=options.ignore_dependencies,
+                    ignore_requires_python=False,
+                    ignore_installed=True,
+                    isolated=options.isolated_mode,
+                )
                 resolver.resolve(requirement_set)
 
                 downloaded = ' '.join([

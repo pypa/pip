@@ -9,6 +9,7 @@ from pip.basecommand import RequirementCommand
 from pip.cache import WheelCache
 from pip.exceptions import CommandError, PreviousBuildDirError
 from pip.req import RequirementSet
+from pip.resolve import Resolver
 from pip.utils import import_or_raise
 from pip.utils.temp_dir import TempDirectory
 from pip.wheel import WheelBuilder
@@ -144,15 +145,10 @@ class WheelCommand(RequirementCommand):
                     build_dir=directory.path,
                     src_dir=options.src_dir,
                     download_dir=None,
-                    ignore_dependencies=options.ignore_dependencies,
-                    ignore_installed=True,
-                    ignore_requires_python=options.ignore_requires_python,
-                    isolated=options.isolated_mode,
-                    session=session,
                     wheel_cache=wheel_cache,
                     wheel_download_dir=options.wheel_dir,
                     require_hashes=options.require_hashes,
-                    progress_bar=options.progress_bar
+                    progress_bar=options.progress_bar,
                 )
 
                 self.populate_requirement_set(
@@ -160,7 +156,17 @@ class WheelCommand(RequirementCommand):
                     wheel_cache
                 )
 
-                resolver = self._build_resolver(options, finder)
+                resolver = Resolver(
+                    finder=finder,
+                    session=session,
+                    use_user_site=False,
+                    upgrade_strategy="to-satisfy-only",
+                    force_reinstall=False,
+                    ignore_dependencies=options.ignore_dependencies,
+                    ignore_requires_python=options.ignore_requires_python,
+                    ignore_installed=True,
+                    isolated=options.isolated_mode,
+                )
                 resolver.resolve(requirement_set)
 
                 try:
@@ -172,7 +178,8 @@ class WheelCommand(RequirementCommand):
                         global_options=options.global_options or [],
                         no_clean=options.no_clean,
                     )
-                    if not wb.build():
+                    wheels_built_successfully = wb.build(session=session)
+                    if not wheels_built_successfully:
                         raise CommandError(
                             "Failed to build one or more wheels"
                         )
