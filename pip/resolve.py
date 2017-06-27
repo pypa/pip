@@ -12,26 +12,16 @@ for sub-dependencies
 """
 
 import logging
-import os
 from itertools import chain
 
-from pip._vendor import pkg_resources, requests
-
-from pip.download import (
-    is_dir_url, is_file_url, is_vcs_url, unpack_url, url_to_path
-)
 from pip.exceptions import (
-    BestVersionAlreadyInstalled, DirectoryUrlHashUnsupported,
-    DistributionNotFound, HashError, HashErrors, HashUnpinned,
-    InstallationError, PreviousBuildDirError, UnsupportedPythonVersion,
-    VcsHashUnsupported
+    BestVersionAlreadyInstalled,
+    DistributionNotFound, HashError, HashErrors, UnsupportedPythonVersion
 )
 from pip.req.req_install import InstallRequirement
-from pip.utils import display_path, dist_in_usersite, ensure_dir
-from pip.utils.hashes import MissingHashes
+from pip.utils import dist_in_usersite, ensure_dir
 from pip.utils.logging import indent_log
 from pip.utils.packaging import check_dist_requires_python
-from pip.vcs import vcs
 
 logger = logging.getLogger(__name__)
 
@@ -199,7 +189,7 @@ class Resolver(object):
             return []
 
         req_to_install.prepared = True
-        self.preparer.prepare_requirement(
+        abstract_dist = self.preparer.prepare_requirement(
             req_to_install, self, requirement_set
         )
 
@@ -234,32 +224,33 @@ class Resolver(object):
                 )
             )
 
-        # We add req_to_install before its dependencies, so that we
-        # can refer to it when adding dependencies.
-        if not requirement_set.has_requirement(req_to_install.name):
-            # 'unnamed' requirements will get added here
-            requirement_set.add_requirement(req_to_install, None)
+        with indent_log():
+            # We add req_to_install before its dependencies, so that we
+            # can refer to it when adding dependencies.
+            if not requirement_set.has_requirement(req_to_install.name):
+                # 'unnamed' requirements will get added here
+                requirement_set.add_requirement(req_to_install, None)
 
-            if not self.ignore_dependencies:
-                if req_to_install.extras:
-                    logger.debug(
-                        "Installing extra requirements: %r",
-                        ','.join(req_to_install.extras),
+                if not self.ignore_dependencies:
+                    if req_to_install.extras:
+                        logger.debug(
+                            "Installing extra requirements: %r",
+                            ','.join(req_to_install.extras),
+                        )
+                    missing_requested = sorted(
+                        set(req_to_install.extras) - set(dist.extras)
                     )
-                missing_requested = sorted(
-                    set(req_to_install.extras) - set(dist.extras)
-                )
-                for missing in missing_requested:
-                    logger.warning(
-                        '%s does not provide the extra \'%s\'',
-                        dist, missing
-                    )
+                    for missing in missing_requested:
+                        logger.warning(
+                            '%s does not provide the extra \'%s\'',
+                            dist, missing
+                        )
 
-                available_requested = sorted(
-                    set(dist.extras) & set(req_to_install.extras)
-                )
-                for subreq in dist.requires(available_requested):
-                    add_req(subreq, extras_requested=available_requested)
+                    available_requested = sorted(
+                        set(dist.extras) & set(req_to_install.extras)
+                    )
+                    for subreq in dist.requires(available_requested):
+                        add_req(subreq, extras_requested=available_requested)
 
             if not req_to_install.editable and not req_to_install.satisfied_by:
                 # XXX: --no-install leads this to report 'Successfully
