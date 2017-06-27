@@ -199,7 +199,9 @@ class Resolver(object):
             return []
 
         req_to_install.prepared = True
-        self.preparer.prepare_requirement(req_to_install, self)
+        self.preparer.prepare_requirement(
+            req_to_install, self, requirement_set
+        )
 
         # register tmp src for cleanup in case something goes wrong
         requirement_set.reqs_to_cleanup.append(req_to_install)

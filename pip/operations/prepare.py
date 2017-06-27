@@ -99,7 +99,7 @@ class RequirementPreparer(object):
     def __init__(self):
         super(RequirementPreparer, self).__init__()
 
-    def prepare_requirement(self, req_to_install, resolver):
+    def prepare_requirement(self, req_to_install, resolver, requirement_set):
         # ###################### #
         # # print log messages # #
         # ###################### #
