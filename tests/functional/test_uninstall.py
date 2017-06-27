@@ -120,6 +120,42 @@ def test_uninstall_namespace_package(script):
     )
 
 
+@pytest.mark.network
+@pytest.mark.skipif("sys.version_info < (3,3)")
+def test_uninstall_editable_namespace_package(script, data):
+    """
+    Uninstalls an editable namespace package properly
+
+    See: Github issue #4176
+    """
+    # We need setuptools > 31 installed for this to work.
+    script.pip("install", "setuptools > 31")
+
+    to_install_a = data.src.join("namespace_pkg_a")
+    result_ia = script.run('python', 'setup.py', 'develop', cwd=to_install_a)
+    nspkg_created_count = sum(
+        path.endswith('-nspkg.pth') for path in result_ia.files_created
+    )
+    assert nspkg_created_count == 1, "nspkg.pth has not been created"
+
+    to_install_b = data.src.join("namespace_pkg_b")
+    result_ib = script.run('python', 'setup.py', 'develop', cwd=to_install_b)
+    nspkg_created_count = sum(
+        path.endswith('-nspkg.pth') for path in result_ib.files_created
+    )
+    assert nspkg_created_count == 1, "nspkg.pth has not been created"
+
+    result_ua = script.pip('uninstall', '--yes', 'namespace_pkg_a')
+    assert sum(
+        path.endswith('-nspkg.pth') for path in result_ua.files_deleted
+    ) == 1, "nspkg.pth has not been deleted"
+
+    result_ub = script.pip('uninstall', '--yes', 'namespace_pkg_b')
+    assert sum(
+        path.endswith('-nspkg.pth') for path in result_ub.files_deleted
+    ) == 1, "nspkg.pth has not been deleted"
+
+
 def test_uninstall_overlapping_package(script, data):
     """
     Uninstalling a distribution that adds modules to a pre-existing package
