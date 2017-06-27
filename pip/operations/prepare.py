@@ -110,9 +110,7 @@ class RequirementPreparer(object):
             # so it must be None here.
             assert req_to_install.satisfied_by is None
             if not resolver.ignore_installed:
-                skip_reason = resolver._check_skip_installed(
-                    req_to_install, requirement_set
-                )
+                skip_reason = resolver._check_skip_installed(req_to_install)
 
             if req_to_install.satisfied_by:
                 assert skip_reason is not None, (

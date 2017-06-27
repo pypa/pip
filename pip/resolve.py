@@ -120,7 +120,7 @@ class Resolver(object):
             return req.is_direct
 
     # XXX: Stop passing requirement_set for options
-    def _check_skip_installed(self, req_to_install, requirement_set):
+    def _check_skip_installed(self, req_to_install):
         """Check if req_to_install should be skipped.
 
         This will check if the req is installed, and whether we should upgrade
