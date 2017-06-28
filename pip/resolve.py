@@ -1,4 +1,3 @@
-
 """Dependency Resolution
 
 The dependency resolution in pip is performed as follows:
@@ -197,10 +196,7 @@ class Resolver(object):
         # register tmp src for cleanup in case something goes wrong
         requirement_set.reqs_to_cleanup.append(req_to_install)
 
-        # ###################### #
-        # # parse dependencies # #
-        # ###################### #
-
+        # Parse and return dependencies
         dist = abstract_dist.dist(self.finder)
         try:
             check_dist_requires_python(dist)
@@ -209,6 +205,7 @@ class Resolver(object):
                 logger.warning(err.args[0])
             else:
                 raise
+
         more_reqs = []
 
         def add_req(subreq, extras_requested):
