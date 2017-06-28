@@ -1,24 +1,22 @@
 """Prepares a distribution for installation
 """
 
-import os
 import logging
+import os
 
+from pip._vendor import pkg_resources, requests
 
 from pip.download import (
     is_dir_url, is_file_url, is_vcs_url, unpack_url, url_to_path
 )
 from pip.exceptions import (
-    HashUnpinned, InstallationError, PreviousBuildDirError, VcsHashUnsupported,
-    DirectoryUrlHashUnsupported
+    DirectoryUrlHashUnsupported, HashUnpinned, InstallationError,
+    PreviousBuildDirError, VcsHashUnsupported
 )
 from pip.utils import display_path, dist_in_usersite
 from pip.utils.hashes import MissingHashes
 from pip.utils.logging import indent_log
 from pip.vcs import vcs
-
-from pip._vendor import pkg_resources, requests
-
 
 logger = logging.getLogger(__name__)
 
