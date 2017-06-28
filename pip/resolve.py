@@ -231,26 +231,26 @@ class Resolver(object):
                 # 'unnamed' requirements will get added here
                 requirement_set.add_requirement(req_to_install, None)
 
-                if not self.ignore_dependencies:
-                    if req_to_install.extras:
-                        logger.debug(
-                            "Installing extra requirements: %r",
-                            ','.join(req_to_install.extras),
-                        )
-                    missing_requested = sorted(
-                        set(req_to_install.extras) - set(dist.extras)
+            if not self.ignore_dependencies:
+                if req_to_install.extras:
+                    logger.debug(
+                        "Installing extra requirements: %r",
+                        ','.join(req_to_install.extras),
                     )
-                    for missing in missing_requested:
-                        logger.warning(
-                            '%s does not provide the extra \'%s\'',
-                            dist, missing
-                        )
+                missing_requested = sorted(
+                    set(req_to_install.extras) - set(dist.extras)
+                )
+                for missing in missing_requested:
+                    logger.warning(
+                        '%s does not provide the extra \'%s\'',
+                        dist, missing
+                    )
 
-                    available_requested = sorted(
-                        set(dist.extras) & set(req_to_install.extras)
-                    )
-                    for subreq in dist.requires(available_requested):
-                        add_req(subreq, extras_requested=available_requested)
+                available_requested = sorted(
+                    set(dist.extras) & set(req_to_install.extras)
+                )
+                for subreq in dist.requires(available_requested):
+                    add_req(subreq, extras_requested=available_requested)
 
             if not req_to_install.editable and not req_to_install.satisfied_by:
                 # XXX: --no-install leads this to report 'Successfully
