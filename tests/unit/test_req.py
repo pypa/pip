@@ -15,6 +15,7 @@ from pip.exceptions import (
     HashErrors, InstallationError, InvalidWheelFilename, PreviousBuildDirError
 )
 from pip.index import PackageFinder
+from pip.operations.prepare import RequirementPreparer
 from pip.req import InstallRequirement, Requirements, RequirementSet
 from pip.req.req_file import process_line
 from pip.req.req_install import parse_editable
@@ -42,6 +43,7 @@ class TestRequirementSet(object):
 
     def _basic_resolver(self, finder):
         return Resolver(
+            preparer=RequirementPreparer(),
             session=PipSession(), finder=finder,
             use_user_site=False, upgrade_strategy="to-satisfy-only",
             ignore_dependencies=False, ignore_installed=False,
