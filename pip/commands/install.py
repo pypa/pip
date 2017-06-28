@@ -13,6 +13,7 @@ from pip.exceptions import (
     CommandError, InstallationError, PreviousBuildDirError
 )
 from pip.locations import distutils_scheme, virtualenv_no_global
+from pip.operations.prepare import RequirementPreparer
 from pip.req import RequirementSet
 from pip.resolve import Resolver
 from pip.status_codes import ERROR
@@ -257,6 +258,7 @@ class InstallCommand(RequirementCommand):
 
                 try:
                     resolver = Resolver(
+                        preparer=RequirementPreparer(),
                         finder=finder,
                         session=session,
                         use_user_site=options.use_user_site,

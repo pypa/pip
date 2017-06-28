@@ -8,6 +8,7 @@ from pip import cmdoptions
 from pip.basecommand import RequirementCommand
 from pip.cache import WheelCache
 from pip.exceptions import CommandError, PreviousBuildDirError
+from pip.operations.prepare import RequirementPreparer
 from pip.req import RequirementSet
 from pip.resolve import Resolver
 from pip.utils import import_or_raise
@@ -157,6 +158,7 @@ class WheelCommand(RequirementCommand):
                 )
 
                 resolver = Resolver(
+                    preparer=RequirementPreparer(),
                     finder=finder,
                     session=session,
                     use_user_site=False,

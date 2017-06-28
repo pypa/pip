@@ -33,12 +33,13 @@ class Resolver(object):
 
     _allowed_strategies = {"eager", "only-if-needed", "to-satisfy-only"}
 
-    def __init__(self, session, finder, use_user_site,
+    def __init__(self, preparer, session, finder, use_user_site,
                  ignore_dependencies, ignore_installed, ignore_requires_python,
                  force_reinstall, isolated, upgrade_strategy):
         super(Resolver, self).__init__()
         assert upgrade_strategy in self._allowed_strategies
 
+        self.preparer = preparer
         self.finder = finder
         self.session = session
 

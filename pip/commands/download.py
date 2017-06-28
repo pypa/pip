@@ -7,6 +7,7 @@ from pip import cmdoptions
 from pip.basecommand import RequirementCommand
 from pip.exceptions import CommandError
 from pip.index import FormatControl
+from pip.operations.prepare import RequirementPreparer
 from pip.req import RequirementSet
 from pip.resolve import Resolver
 from pip.utils import ensure_dir, normalize_path
@@ -194,6 +195,7 @@ class DownloadCommand(RequirementCommand):
                 )
 
                 resolver = Resolver(
+                    preparer=RequirementPreparer(),
                     finder=finder,
                     session=session,
                     use_user_site=False,
