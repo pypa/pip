@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import logging
-import os
 from collections import defaultdict
 
 from pip.exceptions import InstallationError
