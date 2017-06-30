@@ -586,12 +586,15 @@ class BuildEnvironment(object):
 class WheelBuilder(object):
     """Build wheels from a RequirementSet."""
 
-    def __init__(self, requirement_set, finder, build_options=None,
+    def __init__(self, requirement_set, finder, preparer, build_options=None,
                  global_options=None, no_clean=False):
         self.requirement_set = requirement_set
         self.finder = finder
+        self.preparer = preparer
+
         self._cache_root = requirement_set._wheel_cache._cache_dir
-        self._wheel_dir = requirement_set.wheel_download_dir
+        self._wheel_dir = preparer.wheel_download_dir
+
         self.build_options = build_options or []
         self.global_options = global_options or []
         self.no_clean = no_clean
@@ -805,7 +808,7 @@ class WheelBuilder(object):
                         # set the build directory again - name is known from
                         # the work prepare_files did.
                         req.source_dir = req.build_location(
-                            self.requirement_set.build_dir
+                            self.preparer.build_dir
                         )
                         # Update the link for this.
                         req.link = pip.index.Link(

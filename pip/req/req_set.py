@@ -4,9 +4,7 @@ import logging
 import os
 from collections import defaultdict
 
-from pip.compat import expanduser
 from pip.exceptions import InstallationError
-from pip.utils import display_path, normalize_path
 from pip.utils.logging import indent_log
 from pip.wheel import Wheel
 
@@ -43,36 +41,18 @@ class Requirements(object):
 
 class RequirementSet(object):
 
-    def __init__(self, build_dir, src_dir, download_dir=None,
+    def __init__(self,
                  require_hashes=False, target_dir=None, use_user_site=False,
-                 pycompile=True, wheel_download_dir=None, wheel_cache=None,
-                 progress_bar="on"):
+                 pycompile=True, wheel_cache=None):
         """Create a RequirementSet.
 
-
-        :param wheel_download_dir: Where still-packed .whl files should be
-            written to. If None they are written to the download_dir parameter.
-            Separate to download_dir to permit only keeping wheel archives for
-            pip wheel.
-        :param download_dir: Where still packed archives should be written to.
-            If None they are not saved, and are deleted immediately after
-            unpacking.
         :param wheel_cache: The pip wheel cache, for passing to
             InstallRequirement.
         """
 
-        self.build_dir = build_dir
-        self.src_dir = src_dir
-
-        # XXX: download_dir and wheel_download_dir overlap semantically and may
-        # be combined if we're willing to have non-wheel archives present in
-        # the wheelhouse output by 'pip wheel'.
-        self.download_dir = download_dir
         self.requirements = Requirements()
 
         self.require_hashes = require_hashes
-
-        self.progress_bar = progress_bar
 
         # Mapping of alias: real_name
         self.requirement_aliases = {}
@@ -83,9 +63,6 @@ class RequirementSet(object):
         self.use_user_site = use_user_site
         self.target_dir = target_dir  # set from --target option
         self.pycompile = pycompile
-        if wheel_download_dir:
-            wheel_download_dir = normalize_path(wheel_download_dir)
-        self.wheel_download_dir = wheel_download_dir
         self._wheel_cache = wheel_cache
         # Maps from install_req -> dependencies_of_install_req
         self._dependencies = defaultdict(list)
@@ -207,19 +184,6 @@ class RequirementSet(object):
     def has_requirements(self):
         return list(req for req in self.requirements.values() if not
                     req.constraint) or self.unnamed_requirements
-
-    @property
-    def is_download(self):
-        if self.download_dir:
-            self.download_dir = expanduser(self.download_dir)
-            if os.path.exists(self.download_dir):
-                return True
-            else:
-                logger.critical('Could not find download directory')
-                raise InstallationError(
-                    "Could not find or access download directory '%s'"
-                    % display_path(self.download_dir))
-        return False
 
     def get_requirement(self, project_name):
         for name in project_name, project_name.lower():

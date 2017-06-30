@@ -33,17 +33,16 @@ class TestRequirementSet(object):
     def teardown(self):
         shutil.rmtree(self.tempdir, ignore_errors=True)
 
-    def basic_reqset(self, **kwargs):
-        return RequirementSet(
+    def _basic_resolver(self, finder):
+        preparer = RequirementPreparer(
             build_dir=os.path.join(self.tempdir, 'build'),
             src_dir=os.path.join(self.tempdir, 'src'),
             download_dir=None,
-            **kwargs
+            wheel_download_dir=None,
+            progress_bar="on"
         )
-
-    def _basic_resolver(self, finder):
         return Resolver(
-            preparer=RequirementPreparer(),
+            preparer=preparer,
             session=PipSession(), finder=finder,
             use_user_site=False, upgrade_strategy="to-satisfy-only",
             ignore_dependencies=False, ignore_installed=False,
@@ -57,7 +56,7 @@ class TestRequirementSet(object):
         build_dir = os.path.join(self.tempdir, 'build', 'simple')
         os.makedirs(build_dir)
         open(os.path.join(build_dir, "setup.py"), 'w')
-        reqset = self.basic_reqset()
+        reqset = RequirementSet()
         req = InstallRequirement.from_line('simple')
         reqset.add_requirement(req)
         finder = PackageFinder([data.find_links], [], session=PipSession())
@@ -75,7 +74,7 @@ class TestRequirementSet(object):
         Test that the environment marker extras are used with
         non-wheel installs.
         """
-        reqset = self.basic_reqset()
+        reqset = RequirementSet()
         req = InstallRequirement.from_editable(
             data.packages.join("LocalEnvironMarker"))
         reqset.add_requirement(req)
@@ -93,7 +92,7 @@ class TestRequirementSet(object):
         """Make sure prepare_files() raises an error when a requirement has no
         hash in implicit hash-checking mode.
         """
-        reqset = self.basic_reqset()
+        reqset = RequirementSet()
         # No flags here. This tests that detection of later flags nonetheless
         # requires earlier packages to have hashes:
         reqset.add_requirement(
@@ -137,7 +136,7 @@ class TestRequirementSet(object):
         """Setting --require-hashes explicitly should raise errors if hashes
         are missing.
         """
-        reqset = self.basic_reqset(require_hashes=True)
+        reqset = RequirementSet(require_hashes=True)
         reqset.add_requirement(
             list(process_line('simple==1.0', 'file', 1))[0])
         finder = PackageFinder([data.find_links], [], session=PipSession())
@@ -155,7 +154,7 @@ class TestRequirementSet(object):
         """--require-hashes in a requirements file should make its way to the
         RequirementSet.
         """
-        req_set = self.basic_reqset(require_hashes=False)
+        req_set = RequirementSet(require_hashes=False)
         session = PipSession()
         finder = PackageFinder([data.find_links], [], session=session)
         command = InstallCommand()
@@ -178,7 +177,7 @@ class TestRequirementSet(object):
         should trump the presence or absence of a hash.
 
         """
-        reqset = self.basic_reqset(require_hashes=True)
+        reqset = RequirementSet(require_hashes=True)
         reqset.add_requirement(
             list(process_line(
                 'git+git://github.com/pypa/pip-test-package --hash=sha256:123',
@@ -212,7 +211,7 @@ class TestRequirementSet(object):
         """Make sure prepare_files() raises an error when a requirement is not
         version-pinned in hash-checking mode.
         """
-        reqset = self.basic_reqset()
+        reqset = RequirementSet()
         # Test that there must be exactly 1 specifier:
         reqset.add_requirement(
             list(process_line('simple --hash=sha256:a90427ae31f5d1d0d7ec06ee97'
@@ -240,7 +239,7 @@ class TestRequirementSet(object):
         """A hash mismatch should raise an error."""
         file_url = path_to_url(
             (data.packages / 'simple-1.0.tar.gz').abspath)
-        reqset = self.basic_reqset(require_hashes=True)
+        reqset = RequirementSet(require_hashes=True)
         reqset.add_requirement(
             list(process_line('%s --hash=sha256:badbad' % file_url,
                               'file',
@@ -260,7 +259,7 @@ class TestRequirementSet(object):
     def test_unhashed_deps_on_require_hashes(self, data):
         """Make sure unhashed, unpinned, or otherwise unrepeatable
         dependencies get complained about when --require-hashes is on."""
-        reqset = self.basic_reqset()
+        reqset = RequirementSet()
         finder = PackageFinder([data.find_links], [], session=PipSession())
         resolver = self._basic_resolver(finder)
         reqset.add_requirement(next(process_line(
@@ -285,7 +284,7 @@ class TestRequirementSet(object):
         installation to then fail, as the code paths are the same as ever.)
 
         """
-        reqset = self.basic_reqset()
+        reqset = RequirementSet()
         reqset.add_requirement(next(process_line(
             'TopoRequires2==0.0.1 '  # requires TopoRequires
             '--hash=sha256:eaf9a01242c9f2f42cf2bd82a6a848cd'
@@ -320,14 +319,6 @@ class TestInstallRequirement(object):
     def teardown(self):
         shutil.rmtree(self.tempdir, ignore_errors=True)
 
-    def basic_reqset(self, **kwargs):
-        return RequirementSet(
-            build_dir=os.path.join(self.tempdir, 'build'),
-            src_dir=os.path.join(self.tempdir, 'src'),
-            download_dir=None,
-            **kwargs
-        )
-
     def test_url_with_query(self):
         """InstallRequirement should strip the fragment, but not the query."""
         url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
@@ -336,7 +327,7 @@ class TestInstallRequirement(object):
         assert req.link.url == url + fragment, req.link
 
     def test_unsupported_wheel_link_requirement_raises(self):
-        reqset = self.basic_reqset()
+        reqset = RequirementSet()
         req = InstallRequirement.from_line(
             'https://whatever.com/peppercorn-0.4-py2.py3-bogus-any.whl',
         )
@@ -348,7 +339,7 @@ class TestInstallRequirement(object):
             reqset.add_requirement(req)
 
     def test_unsupported_wheel_local_file_requirement_raises(self, data):
-        reqset = self.basic_reqset()
+        reqset = RequirementSet()
         req = InstallRequirement.from_line(
             data.packages.join('simple.dist-0.1-py1-none-invalid.whl'),
         )

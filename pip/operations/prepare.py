@@ -6,6 +6,7 @@ import os
 
 from pip._vendor import pkg_resources, requests
 
+from pip.compat import expanduser
 from pip.download import (
     is_dir_url, is_file_url, is_vcs_url, unpack_url, url_to_path
 )
@@ -13,7 +14,7 @@ from pip.exceptions import (
     DirectoryUrlHashUnsupported, HashUnpinned, InstallationError,
     PreviousBuildDirError, VcsHashUnsupported
 )
-from pip.utils import display_path, dist_in_usersite
+from pip.utils import display_path, dist_in_usersite, normalize_path
 from pip.utils.hashes import MissingHashes
 from pip.utils.logging import indent_log
 from pip.vcs import vcs
@@ -108,13 +109,48 @@ class RequirementPreparer(object):
     """Prepares a Requirement
     """
 
-    def __init__(self):
+    def __init__(self, build_dir, download_dir, src_dir, wheel_download_dir,
+                 progress_bar):
         super(RequirementPreparer, self).__init__()
 
-    def prepare_requirement(self, req_to_install, resolver, requirement_set):
-        # ###################### #
-        # # print log messages # #
-        # ###################### #
+        self.src_dir = src_dir
+        self.build_dir = build_dir
+
+        # Where still packed archives should be written to. If None, they are
+        # not saved, and are deleted immediately after unpacking.
+        self.download_dir = download_dir
+
+        # Where still-packed .whl files should be written to. If None, they are
+        # written to the download_dir parameter. Separate to download_dir to
+        # permit only keeping wheel archives for pip wheel.
+        if wheel_download_dir:
+            wheel_download_dir = normalize_path(wheel_download_dir)
+        self.wheel_download_dir = wheel_download_dir
+
+        # NOTE
+        # download_dir and wheel_download_dir overlap semantically and may
+        # be combined if we're willing to have non-wheel archives present in
+        # the wheelhouse output by 'pip wheel'.
+
+        self.progress_bar = progress_bar
+
+    @property
+    def _download_should_save(self):
+        # TODO: Modify to reduce indentation needed
+        if self.download_dir:
+            self.download_dir = expanduser(self.download_dir)
+            if os.path.exists(self.download_dir):
+                return True
+            else:
+                logger.critical('Could not find download directory')
+                raise InstallationError(
+                    "Could not find or access download directory '%s'"
+                    % display_path(self.download_dir))
+        return False
+
+    def prepare_requirement(self, req_to_install, resolver):
+        # TODO: Breakup into smaller functions
+        # TODO: Add a nice docstring
         if req_to_install.editable:
             logger.info('Obtaining %s', req_to_install)
         else:
@@ -154,12 +190,12 @@ class RequirementPreparer(object):
                         'The editable requirement %s cannot be installed when '
                         'requiring hashes, because there is no single file to '
                         'hash.' % req_to_install)
-                req_to_install.ensure_has_source_dir(requirement_set.src_dir)
-                req_to_install.update_editable(not requirement_set.is_download)
+                req_to_install.ensure_has_source_dir(self.src_dir)
+                req_to_install.update_editable(not self._download_should_save)
                 abstract_dist = make_abstract_dist(req_to_install)
                 abstract_dist.prep_for_dist()
-                if requirement_set.is_download:
-                    req_to_install.archive(requirement_set.download_dir)
+                if self._download_should_save:
+                    req_to_install.archive(self.download_dir)
                 req_to_install.check_if_exists()
             elif req_to_install.satisfied_by:
                 if resolver.require_hashes:
@@ -174,7 +210,7 @@ class RequirementPreparer(object):
                 # editable in a req, a non deterministic error
                 # occurs when the script attempts to unpack the
                 # build directory
-                req_to_install.ensure_has_source_dir(requirement_set.build_dir)
+                req_to_install.ensure_has_source_dir(self.build_dir)
                 # If a checkout exists, it's unwise to keep going.  version
                 # inconsistencies are logged later, but do not fail the
                 # installation.
@@ -240,14 +276,14 @@ class RequirementPreparer(object):
                     hashes = MissingHashes()
 
                 try:
-                    download_dir = requirement_set.download_dir
+                    download_dir = self.download_dir
                     # We always delete unpacked sdists after pip ran.
                     autodelete_unpacked = True
                     if req_to_install.link.is_wheel \
-                            and requirement_set.wheel_download_dir:
+                            and self.wheel_download_dir:
                         # when doing 'pip wheel` we download wheels to a
                         # dedicated dir.
-                        download_dir = requirement_set.wheel_download_dir
+                        download_dir = self.wheel_download_dir
                     if req_to_install.link.is_wheel:
                         if download_dir:
                             # When downloading, we only unpack wheels to get
@@ -261,7 +297,7 @@ class RequirementPreparer(object):
                         req_to_install.link, req_to_install.source_dir,
                         download_dir, autodelete_unpacked,
                         session=resolver.session, hashes=hashes,
-                        progress_bar=requirement_set.progress_bar)
+                        progress_bar=self.progress_bar)
                 except requests.HTTPError as exc:
                     logger.critical(
                         'Could not install requirement %s because '
@@ -276,10 +312,10 @@ class RequirementPreparer(object):
                     )
                 abstract_dist = make_abstract_dist(req_to_install)
                 abstract_dist.prep_for_dist()
-                if requirement_set.is_download:
+                if self._download_should_save:
                     # Make a .zip of the source_dir we already created.
                     if req_to_install.link.scheme in vcs.all_schemes:
-                        req_to_install.archive(requirement_set.download_dir)
+                        req_to_install.archive(self.download_dir)
                 # req_to_install.req is only avail after unpack for URL
                 # pkgs repeat check_if_exists to uninstall-on-upgrade
                 # (#14)

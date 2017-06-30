@@ -56,15 +56,16 @@ class Resolver(object):
         """Resolve what operations need to be done
 
         As a side-effect of this method, the packages (and their dependencies)
-        are downloaded, unpacked and prepared for installation.
+        are downloaded, unpacked and prepared for installation. This
+        preparation is done by ``pip.operations.prepare``.
 
         Once PyPI has static dependency metadata available, it would be
-        possible to move this side-effect to become a step separated from
+        possible to move the preparation to become a step separated from
         dependency resolution.
         """
         # make the wheelhouse
-        if requirement_set.wheel_download_dir:
-            ensure_dir(requirement_set.wheel_download_dir)
+        if self.preparer.wheel_download_dir:
+            ensure_dir(self.preparer.wheel_download_dir)
 
         # If any top-level requirement has a hash specified, enter
         # hash-checking mode, which requires hashes from all.
@@ -189,9 +190,7 @@ class Resolver(object):
             return []
 
         req_to_install.prepared = True
-        abstract_dist = self.preparer.prepare_requirement(
-            req_to_install, self, requirement_set
-        )
+        abstract_dist = self.preparer.prepare_requirement(req_to_install, self)
 
         # register tmp src for cleanup in case something goes wrong
         requirement_set.reqs_to_cleanup.append(req_to_install)

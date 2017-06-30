@@ -241,24 +241,27 @@ class InstallCommand(RequirementCommand):
                 options.build_dir, delete=build_delete, kind="install"
             ) as directory:
                 requirement_set = RequirementSet(
-                    build_dir=directory.path,
-                    src_dir=options.src_dir,
                     target_dir=target_temp_dir.path,
                     pycompile=options.compile,
                     wheel_cache=wheel_cache,
                     require_hashes=options.require_hashes,
                     use_user_site=options.use_user_site,
-                    progress_bar=options.progress_bar,
                 )
 
                 self.populate_requirement_set(
                     requirement_set, args, options, finder, session, self.name,
                     wheel_cache
                 )
-
+                preparer = RequirementPreparer(
+                    build_dir=directory.path,
+                    src_dir=options.src_dir,
+                    download_dir=None,
+                    wheel_download_dir=None,
+                    progress_bar=options.progress_bar,
+                )
                 try:
                     resolver = Resolver(
-                        preparer=RequirementPreparer(),
+                        preparer=preparer,
                         finder=finder,
                         session=session,
                         use_user_site=options.use_user_site,
@@ -279,6 +282,7 @@ class InstallCommand(RequirementCommand):
                         wb = WheelBuilder(
                             requirement_set,
                             finder,
+                            preparer,
                             build_options=[],
                             global_options=[],
                         )
