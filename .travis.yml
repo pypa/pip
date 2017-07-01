@@ -1,4 +1,6 @@
 language: python
+sudo: false
+
 matrix:
   include:
     - env: TOXENV=docs
@@ -20,6 +22,7 @@ matrix:
       python: nightly
     - env: TOXENV=pypy
       python: pypy
+      sudo: true
     - env: "TOXENV=py27 VENDOR=no WHEELS=yes"
       python: 2.7
     - env: "TOXENV=py36 VENDOR=no WHEELS=yes"
