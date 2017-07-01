@@ -6,7 +6,7 @@ import os
 import re
 import warnings
 
-from pip._vendor import pkg_resources
+from pip._vendor import pkg_resources, six
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.pkg_resources import RequirementParseError
 
@@ -141,11 +141,7 @@ def freeze(
 
         # Warn about requirements that were included multiple times (in a
         # single requirements file or in different requirements files).
-        try:
-            itr = req_files.iteritems()  # python2
-        except AttributeError:
-            itr = req_files.items()  # python3
-        for name, files in itr:
+        for name, files in six.iteritems(req_files):
             if len(files) > 1:
                 logger.warning("Requirement %s included multiple times [%s]",
                                name, ', '.join(sorted(set(files))))
