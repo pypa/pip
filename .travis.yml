@@ -28,8 +28,6 @@ matrix:
       python: 3.6
   allow_failures:
     - python: nightly
-    - env: TOXENV=pypy
-      python: pypy-dev
 
 install: travis_retry .travis/install.sh
 script: .travis/run.sh
