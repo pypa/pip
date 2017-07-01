@@ -19,29 +19,17 @@ matrix:
     - env: TOXENV=py37
       python: nightly
     - env: TOXENV=pypy
-      python: pypy2.7-5.3
+      python: pypy-5.3
     - env: TOXENV=pypy
-      python: pypy3.5-5.3
+      python: pypy-5.4
     - env: TOXENV=pypy
-      python: pypy2.7-5.4
+      python: pypy-5.5
     - env: TOXENV=pypy
-      python: pypy3.5-5.4
+      python: pypy-5.6
     - env: TOXENV=pypy
-      python: pypy2.7-5.5
+      python: pypy-5.7
     - env: TOXENV=pypy
-      python: pypy3.5-5.5
-    - env: TOXENV=pypy
-      python: pypy2.7-5.6
-    - env: TOXENV=pypy
-      python: pypy3.5-5.6
-    - env: TOXENV=pypy
-      python: pypy2.7-5.7
-    - env: TOXENV=pypy
-      python: pypy3.5-5.7
-    - env: TOXENV=pypy
-      python: pypy2.7-5.8
-    - env: TOXENV=pypy
-      python: pypy3.5-5.8
+      python: pypy-5.8
     - env: "TOXENV=py27 VENDOR=no WHEELS=yes"
       python: 2.7
     - env: "TOXENV=py36 VENDOR=no WHEELS=yes"
