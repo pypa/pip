@@ -19,13 +19,17 @@ matrix:
     - env: TOXENV=py37
       python: nightly
     - env: TOXENV=pypy
-      python: pypy
+      python: pypy2.7-5.8.0
+    - env: TOXENV=pypy
+      python: pypy3.5-5.8.0
     - env: "TOXENV=py27 VENDOR=no WHEELS=yes"
       python: 2.7
     - env: "TOXENV=py36 VENDOR=no WHEELS=yes"
       python: 3.6
   allow_failures:
     - python: nightly
+    - env: TOXENV=pypy
+      python: pypy-dev
 
 install: travis_retry .travis/install.sh
 script: .travis/run.sh
