@@ -9,7 +9,7 @@ environment:
     - PYTHON: "C:\\Python34-x64"
     - PYTHON: "C:\\Python35-x64"
 
-init:
+init: 
   # If there is a newer build queued for the same PR, cancel this one.
   # The AppVeyor 'rollout builds' option is supposed to serve the same
   # purpose but it is problematic because it tends to cancel builds pushed
