@@ -92,7 +92,7 @@
   wheel is supported. (#3254)
 - Make glibc parsing for `manylinux1` support more robust for the variety of
   glibc versions found in the wild. (#3588)
-- Update environment marker support to fully support PEP 508 and legacy
+- Update environment marker support to fully support legacy and PEP 508 style
   environment markers. (#3624)
 - Always use debug logging to the ``--log`` file. (#3351)
 - Don't attempt to wrap search results for extremely narrow terminal windows.
