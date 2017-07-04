@@ -1,6 +1,7 @@
 """"Vendoring script, python 3.5 needed"""
 
 from pathlib import Path
+import os
 import re
 import shutil
 
@@ -32,6 +33,11 @@ def log(msg):
     print('[vendoring.%s] %s' % (TASK_NAME, msg))
 
 
+def _get_vendor_dir(ctx):
+    git_root = ctx.run('git rev-parse --show-toplevel', hide=True).stdout
+    return Path(git_root.strip()) / 'pip' / '_vendor'
+
+
 def clean_vendor(ctx, vendor_dir):
     # Old _vendor cleanup
     remove_all(vendor_dir.glob('*.pyc'))
@@ -43,6 +49,18 @@ def clean_vendor(ctx, vendor_dir):
             item.unlink()
         else:
             log('Skipping %s' % item)
+
+
+def detect_vendored_libs(vendor_dir):
+    retval = []
+    for item in vendor_dir.iterdir():
+        if item.is_dir():
+            retval.append(item.name)
+        elif item.name.endswith(".pyi"):
+            continue
+        elif item.name not in FILE_WHITE_LIST:
+            retval.append(item.name[:-3])
+    return retval
 
 
 def rewrite_imports(package_dir, vendored_libs):
@@ -96,12 +114,7 @@ def vendor(ctx, vendor_dir):
     remove_all(vendor_dir.glob('msgpack/*.so'))
 
     # Detect the vendored packages/modules
-    vendored_libs = []
-    for item in vendor_dir.iterdir():
-        if item.is_dir():
-            vendored_libs.append(item.name)
-        elif item.name not in FILE_WHITE_LIST:
-            vendored_libs.append(item.name[:-3])
+    vendored_libs = detect_vendored_libs(vendor_dir)
     log("Detected vendored libraries: %s" % ", ".join(vendored_libs))
 
     # Global import rewrites
@@ -119,12 +132,37 @@ def vendor(ctx, vendor_dir):
         apply_patch(ctx, patch)
 
 
-@invoke.task(name=TASK_NAME)
+@invoke.task
+def update_stubs(ctx):
+    vendor_dir = _get_vendor_dir(ctx)
+    vendored_libs = detect_vendored_libs(vendor_dir)
+
+    print("[vendoring.update_stubs] Add mypy stubs")
+
+    # Some projects need stubs other than a simple <name>.pyi
+    extra_stubs_needed = {
+        "six": ["six.__init__", "six.moves"]
+    }
+
+    for lib in vendored_libs:
+        if lib not in extra_stubs_needed:
+            (vendor_dir / (lib + ".pyi")).write_text("from %s import *" % lib)
+            continue
+
+        for selector in extra_stubs_needed[lib]:
+            fname = selector.replace(".", os.sep) + ".pyi"
+            if selector.endswith(".__init__"):
+                selector = selector[:-9]
+
+            f_path = vendor_dir / fname
+            if not f_path.parent.exists():
+                f_path.parent.mkdir()
+            f_path.write_text("from %s import *" % selector)
+
+
+@invoke.task(name=TASK_NAME, post=[update_stubs])
 def main(ctx):
-    git_root = Path(
-        ctx.run('git rev-parse --show-toplevel', hide=True).stdout.strip()
-    )
-    vendor_dir = git_root / 'pip' / '_vendor'
+    vendor_dir = _get_vendor_dir(ctx)
     log('Using vendor dir: %s' % vendor_dir)
     clean_vendor(ctx, vendor_dir)
     vendor(ctx, vendor_dir)
