@@ -152,6 +152,10 @@ class RequirementPreparer(object):
         # TODO: Remove circular dependency on resolver
         # TODO: Breakup into smaller functions
         # TODO: Add a nice docstring
+        assert resolver.require_hashes is not None, (
+            "require_hashes should have been set in Resolver.resolve()"
+        )
+
         if req.editable:
             abstract_dist = self._prepare_editable_requirement(req)
         else:
@@ -172,9 +176,6 @@ class RequirementPreparer(object):
                     logger.info('Processing %s', display_path(path))
                 else:
                     logger.info('Collecting %s', req)
-
-        assert resolver.require_hashes is not None, \
-            "This should have been set in resolve()"
 
         with indent_log():
             # ################################ #
