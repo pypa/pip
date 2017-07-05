@@ -22,7 +22,7 @@ from pip.vcs import vcs
 logger = logging.getLogger(__name__)
 
 
-def make_abstract_dist(req_to_install):
+def make_abstract_dist(req):
     """Factory to make an abstract dist object.
 
     Preconditions: Either an editable req with a source_dir, or satisfied_by or
@@ -30,12 +30,12 @@ def make_abstract_dist(req_to_install):
 
     :return: A concrete DistAbstraction.
     """
-    if req_to_install.editable:
-        return IsSDist(req_to_install)
-    elif req_to_install.link and req_to_install.link.is_wheel:
-        return IsWheel(req_to_install)
+    if req.editable:
+        return IsSDist(req)
+    elif req.link and req.link.is_wheel:
+        return IsWheel(req)
     else:
-        return IsSDist(req_to_install)
+        return IsSDist(req)
 
 
 class DistAbstraction(object):
@@ -57,8 +57,8 @@ class DistAbstraction(object):
        above metadata.
     """
 
-    def __init__(self, req_to_install):
-        self.req_to_install = req_to_install
+    def __init__(self, req):
+        self.req = req
 
     def dist(self, finder):
         """Return a setuptools Dist object."""
@@ -73,7 +73,7 @@ class IsWheel(DistAbstraction):
 
     def dist(self, finder):
         return list(pkg_resources.find_distributions(
-            self.req_to_install.source_dir))[0]
+            self.req.source_dir))[0]
 
     def prep_for_dist(self):
         # FIXME:https://github.com/pypa/pip/issues/1112
@@ -83,7 +83,7 @@ class IsWheel(DistAbstraction):
 class IsSDist(DistAbstraction):
 
     def dist(self, finder):
-        dist = self.req_to_install.get_dist()
+        dist = self.req.get_dist()
         # FIXME: shouldn't be globally added.
         if dist.has_metadata('dependency_links.txt'):
             finder.add_dependency_links(
@@ -92,14 +92,14 @@ class IsSDist(DistAbstraction):
         return dist
 
     def prep_for_dist(self):
-        self.req_to_install.run_egg_info()
-        self.req_to_install.assert_source_matches_version()
+        self.req.run_egg_info()
+        self.req.assert_source_matches_version()
 
 
 class Installed(DistAbstraction):
 
     def dist(self, finder):
-        return self.req_to_install.satisfied_by
+        return self.req.satisfied_by
 
     def prep_for_dist(self):
         pass
@@ -148,34 +148,34 @@ class RequirementPreparer(object):
                     % display_path(self.download_dir))
         return False
 
-    def prepare_requirement(self, req_to_install, resolver):
+    def prepare_requirement(self, req, resolver):
         # TODO: Breakup into smaller functions
         # TODO: Add a nice docstring
-        if req_to_install.editable:
-            logger.info('Obtaining %s', req_to_install)
+        if req.editable:
+            logger.info('Obtaining %s', req)
         else:
             # satisfied_by is only evaluated by calling _check_skip_installed,
             # so it must be None here.
-            assert req_to_install.satisfied_by is None
+            assert req.satisfied_by is None
             if not resolver.ignore_installed:
-                skip_reason = resolver._check_skip_installed(req_to_install)
+                skip_reason = resolver._check_skip_installed(req)
 
-            if req_to_install.satisfied_by:
+            if req.satisfied_by:
                 assert skip_reason is not None, (
                     '_check_skip_installed returned None but '
-                    'req_to_install.satisfied_by is set to %r'
-                    % (req_to_install.satisfied_by,))
+                    'req.satisfied_by is set to %r'
+                    % (req.satisfied_by,))
                 logger.info(
                     'Requirement %s: %s (%s)', skip_reason,
-                    req_to_install,
-                    req_to_install.satisfied_by.version)
+                    req,
+                    req.satisfied_by.version)
             else:
-                if (req_to_install.link and
-                        req_to_install.link.scheme == 'file'):
-                    path = url_to_path(req_to_install.link.url)
+                if (req.link and
+                        req.link.scheme == 'file'):
+                    path = url_to_path(req.link.url)
                     logger.info('Processing %s', display_path(path))
                 else:
-                    logger.info('Collecting %s', req_to_install)
+                    logger.info('Collecting %s', req)
 
         assert resolver.require_hashes is not None, \
             "This should have been set in resolve()"
@@ -184,63 +184,63 @@ class RequirementPreparer(object):
             # ################################ #
             # # vcs update or unpack archive # #
             # ################################ #
-            if req_to_install.editable:
+            if req.editable:
                 if resolver.require_hashes:
                     raise InstallationError(
                         'The editable requirement %s cannot be installed when '
                         'requiring hashes, because there is no single file to '
-                        'hash.' % req_to_install)
-                req_to_install.ensure_has_source_dir(self.src_dir)
-                req_to_install.update_editable(not self._download_should_save)
-                abstract_dist = make_abstract_dist(req_to_install)
+                        'hash.' % req)
+                req.ensure_has_source_dir(self.src_dir)
+                req.update_editable(not self._download_should_save)
+                abstract_dist = make_abstract_dist(req)
                 abstract_dist.prep_for_dist()
                 if self._download_should_save:
-                    req_to_install.archive(self.download_dir)
-                req_to_install.check_if_exists()
-            elif req_to_install.satisfied_by:
+                    req.archive(self.download_dir)
+                req.check_if_exists()
+            elif req.satisfied_by:
                 if resolver.require_hashes:
                     logger.debug(
                         'Since it is already installed, we are trusting this '
                         'package without checking its hash. To ensure a '
                         'completely repeatable environment, install into an '
                         'empty virtualenv.')
-                abstract_dist = Installed(req_to_install)
+                abstract_dist = Installed(req)
             else:
                 # @@ if filesystem packages are not marked
                 # editable in a req, a non deterministic error
                 # occurs when the script attempts to unpack the
                 # build directory
-                req_to_install.ensure_has_source_dir(self.build_dir)
+                req.ensure_has_source_dir(self.build_dir)
                 # If a checkout exists, it's unwise to keep going.  version
                 # inconsistencies are logged later, but do not fail the
                 # installation.
                 # FIXME: this won't upgrade when there's an existing
-                # package unpacked in `req_to_install.source_dir`
-                # package unpacked in `req_to_install.source_dir`
+                # package unpacked in `req.source_dir`
+                # package unpacked in `req.source_dir`
                 if os.path.exists(
-                        os.path.join(req_to_install.source_dir, 'setup.py')):
+                        os.path.join(req.source_dir, 'setup.py')):
                     raise PreviousBuildDirError(
                         "pip can't proceed with requirements '%s' due to a"
                         " pre-existing build directory (%s). This is "
                         "likely due to a previous installation that failed"
                         ". pip is being responsible and not assuming it "
                         "can delete this. Please delete it and try again."
-                        % (req_to_install, req_to_install.source_dir)
+                        % (req, req.source_dir)
                     )
-                req_to_install.populate_link(
+                req.populate_link(
                     resolver.finder,
-                    resolver._is_upgrade_allowed(req_to_install),
+                    resolver._is_upgrade_allowed(req),
                     resolver.require_hashes
                 )
                 # We can't hit this spot and have populate_link return None.
-                # req_to_install.satisfied_by is None here (because we're
+                # req.satisfied_by is None here (because we're
                 # guarded) and upgrade has no impact except when satisfied_by
                 # is not None.
                 # Then inside find_requirement existing_applicable -> False
                 # If no new versions are found, DistributionNotFound is raised,
                 # otherwise a result is guaranteed.
-                assert req_to_install.link
-                link = req_to_install.link
+                assert req.link
+                link = req.link
 
                 # Now that we have the real link, we can tell what kind of
                 # requirements we have and raise some more informative errors
@@ -256,8 +256,8 @@ class RequirementPreparer(object):
                         raise VcsHashUnsupported()
                     elif is_file_url(link) and is_dir_url(link):
                         raise DirectoryUrlHashUnsupported()
-                    if (not req_to_install.original_link and
-                            not req_to_install.is_pinned):
+                    if (not req.original_link and
+                            not req.is_pinned):
                         # Unpinned packages are asking for trouble when a new
                         # version is uploaded. This isn't a security check, but
                         # it saves users a surprising hash mismatch in the
@@ -266,7 +266,7 @@ class RequirementPreparer(object):
                         # file:/// URLs aren't pinnable, so don't complain
                         # about them not being pinned.
                         raise HashUnpinned()
-                hashes = req_to_install.hashes(
+                hashes = req.hashes(
                     trust_internet=not resolver.require_hashes)
                 if resolver.require_hashes and not hashes:
                     # Known-good hashes are missing for this requirement, so
@@ -279,12 +279,12 @@ class RequirementPreparer(object):
                     download_dir = self.download_dir
                     # We always delete unpacked sdists after pip ran.
                     autodelete_unpacked = True
-                    if req_to_install.link.is_wheel \
+                    if req.link.is_wheel \
                             and self.wheel_download_dir:
                         # when doing 'pip wheel` we download wheels to a
                         # dedicated dir.
                         download_dir = self.wheel_download_dir
-                    if req_to_install.link.is_wheel:
+                    if req.link.is_wheel:
                         if download_dir:
                             # When downloading, we only unpack wheels to get
                             # metadata.
@@ -294,7 +294,7 @@ class RequirementPreparer(object):
                             # wheel.
                             autodelete_unpacked = False
                     unpack_url(
-                        req_to_install.link, req_to_install.source_dir,
+                        req.link, req.source_dir,
                         download_dir, autodelete_unpacked,
                         session=resolver.session, hashes=hashes,
                         progress_bar=self.progress_bar)
@@ -302,26 +302,26 @@ class RequirementPreparer(object):
                     logger.critical(
                         'Could not install requirement %s because '
                         'of error %s',
-                        req_to_install,
+                        req,
                         exc,
                     )
                     raise InstallationError(
                         'Could not install requirement %s because '
                         'of HTTP error %s for URL %s' %
-                        (req_to_install, exc, req_to_install.link)
+                        (req, exc, req.link)
                     )
-                abstract_dist = make_abstract_dist(req_to_install)
+                abstract_dist = make_abstract_dist(req)
                 abstract_dist.prep_for_dist()
                 if self._download_should_save:
                     # Make a .zip of the source_dir we already created.
-                    if req_to_install.link.scheme in vcs.all_schemes:
-                        req_to_install.archive(self.download_dir)
-                # req_to_install.req is only avail after unpack for URL
+                    if req.link.scheme in vcs.all_schemes:
+                        req.archive(self.download_dir)
+                # req.req is only avail after unpack for URL
                 # pkgs repeat check_if_exists to uninstall-on-upgrade
                 # (#14)
                 if not resolver.ignore_installed:
-                    req_to_install.check_if_exists()
-                if req_to_install.satisfied_by:
+                    req.check_if_exists()
+                if req.satisfied_by:
                     should_modify = (
                         resolver.upgrade_strategy != "to-satisfy-only" or
                         resolver.ignore_installed
@@ -330,14 +330,14 @@ class RequirementPreparer(object):
                         # don't uninstall conflict if user install and
                         # conflict is not user install
                         if not (resolver.use_user_site and not
-                                dist_in_usersite(req_to_install.satisfied_by)):
-                            req_to_install.conflicts_with = \
-                                req_to_install.satisfied_by
-                        req_to_install.satisfied_by = None
+                                dist_in_usersite(req.satisfied_by)):
+                            req.conflicts_with = \
+                                req.satisfied_by
+                        req.satisfied_by = None
                     else:
                         logger.info(
                             'Requirement already satisfied (use '
                             '--upgrade to upgrade): %s',
-                            req_to_install,
+                            req,
                         )
         return abstract_dist
