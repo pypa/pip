@@ -153,7 +153,7 @@ class RequirementPreparer(object):
         # TODO: Breakup into smaller functions
         # TODO: Add a nice docstring
         if req.editable:
-            logger.info('Obtaining %s', req)
+            abstract_dist = self._prepare_editable_requirement(req)
         else:
             # satisfied_by is only evaluated by calling _check_skip_installed,
             # so it must be None here.
@@ -186,18 +186,7 @@ class RequirementPreparer(object):
             # # vcs update or unpack archive # #
             # ################################ #
             if req.editable:
-                if resolver.require_hashes:
-                    raise InstallationError(
-                        'The editable requirement %s cannot be installed when '
-                        'requiring hashes, because there is no single file to '
-                        'hash.' % req)
-                req.ensure_has_source_dir(self.src_dir)
-                req.update_editable(not self._download_should_save)
-                abstract_dist = make_abstract_dist(req)
-                abstract_dist.prep_for_dist()
-                if self._download_should_save:
-                    req.archive(self.download_dir)
-                req.check_if_exists()
+                pass
             elif req.satisfied_by:
                 if resolver.require_hashes:
                     logger.debug(
@@ -341,4 +330,27 @@ class RequirementPreparer(object):
                             '--upgrade to upgrade): %s',
                             req,
                         )
+        return abstract_dist
+
+    def _prepare_editable_requirement(self, req):
+        assert req.editable, "cannot prepare a non-editable req as editable"
+
+        logger.info('Obtaining %s', req)
+
+        with indent_log():
+            if resolver.require_hashes:
+                raise InstallationError(
+                    'The editable requirement %s cannot be installed when '
+                    'requiring hashes, because there is no single file to '
+                    'hash.' % req)
+            req.ensure_has_source_dir(self.src_dir)
+            req.update_editable(not self._download_should_save)
+
+            abstract_dist = make_abstract_dist(req)
+            abstract_dist.prep_for_dist()
+
+            if self._download_should_save:
+                req.archive(self.download_dir)
+            req.check_if_exists()
+
         return abstract_dist
