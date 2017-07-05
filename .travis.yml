@@ -4,10 +4,10 @@ sudo: false
 matrix:
   include:
     - env: TOXENV=docs
-    - env: TOXENV=pep8
-    - env: TOXENV=py3pep8
-    - env: TOXENV=isort
+    - env: TOXENV=lint-py2
+    - env: TOXENV=lint-py3
     - env: TOXENV=packaging
+
     - env: TOXENV=py27
       python: 2.7
     - env: TOXENV=py33
