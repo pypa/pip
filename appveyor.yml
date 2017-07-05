@@ -14,12 +14,7 @@ install:
 build: off
 test_script:
     # Run for 300 seconds max
-    - ps: |
-        $p = Start-Process "cmd.exe" '/c %PYTHON%\\Scripts\\tox.exe -e py -- -m unit -n 8' -PassThru  -NoNewWindow
-        Wait-Process -id $p.ID -timeout 300
-
-        # Kill the process if it didn't exit after a Wait-Process
-        if(!$p.hasExited) {
-            echo "Killing the process"
-            taskkill /T /F /PID $p.ID
-        }
+    - cmd: |
+        start %PYTHON%\\Scripts\\tox.exe -e py -- -m unit -n 8
+        timeout /nobreak /t 300
+        taskkill /im %PYTHON%\\Scripts\\tox.exe /f
