@@ -96,7 +96,13 @@ def console_to_str(data):
     # redirected and if we don't find an encoding we skip this
     # step (on the assumption that output is wrapped by something
     # that won't fail).
-    output_encoding = sys.__stderr__.encoding
+    # The double getattr is to deal with the possibility that we're
+    # being called in a situation where sys.__stderr__ doesn't exist,
+    # or doesn't have an encoding attribute. Neither of these cases
+    # should occur in normal pip use, but there's no harm in checking
+    # in case people use pip in (unsupported) unusual situations.
+    output_encoding = getattr(getattr(sys, "__stderr__"), "encoding")
+
     if output_encoding:
         s = s.encode(output_encoding, errors="backslashreplace")
         s = s.decode(output_encoding)
