@@ -3,11 +3,11 @@ from __future__ import absolute_import
 
 import locale
 import logging
-import os
 import optparse
-import warnings
-
+import os
 import sys
+import time
+import warnings
 
 # 2016-06-17 barry@debian.org: urllib3 1.14 added optional support for socks,
 # but if invoked (i.e. imported), it will issue a warning to stderr if socks
@@ -40,12 +40,12 @@ else:
         else:
             securetransport.inject_into_urllib3()
 
-from pip.exceptions import CommandError, PipError
+from pip.exceptions import CommandError, ConfigurationError, PipError
 from pip.utils import get_installed_distributions, get_prog
 from pip.utils import deprecation
 from pip.vcs import git, mercurial, subversion, bazaar  # noqa
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
-from pip.commands import get_summaries, get_similar_commands
+from pip.commands import get_summaries, get_closest_command
 from pip.commands import commands_dict
 from pip._vendor.requests.packages.urllib3.exceptions import (
     InsecureRequestWarning,
@@ -199,18 +199,57 @@ def parseopts(args):
     # the subcommand name
     cmd_name = args_else[0]
 
-    if cmd_name not in commands_dict:
-        guess = get_similar_commands(cmd_name)
-
-        msg = ['unknown command "%s"' % cmd_name]
-        if guess:
-            msg.append('maybe you meant "%s"' % guess)
-
-        raise CommandError(' - '.join(msg))
-
     # all the args without the subcommand
     cmd_args = args[:]
     cmd_args.remove(cmd_name)
+
+    # Perform diagnosis of what the user typed
+    if cmd_name not in commands_dict:
+        # these were manually chosen
+        suggest_cutoff = 0.6
+        autocorrect_cutoff = 0.8
+
+        # Determine if user wants autocorrect.
+        try:
+            autocorrect_delay = parser.config.get_value("global.autocorrect")
+        except ConfigurationError:
+            autocorrect_delay = None
+
+        try:
+            autocorrect_delay = float(autocorrect_delay)
+        except ValueError:
+            raise ConfigurationError(
+                "autocorrect needs to be a numerical value"
+            )
+
+        guess, score = get_closest_command(cmd_name)
+
+        # Decide what message has to be shown to user
+        msg = 'pip does not have a command "%s"' % cmd_name
+        if score > suggest_cutoff:
+            msg += ' - did you mean "%s"?' % guess
+
+        allowed_to_autocorrect = (
+            autocorrect_delay is not None and score > autocorrect_cutoff
+        )
+        if not allowed_to_autocorrect:
+            raise CommandError(msg)
+
+        # Show a message to the user that pip is assuming.
+        msg = (
+            'You called a pip command named "%s" which does not exist.\n'
+            'Assuming you meant "%s", pip will continue in %.1f seconds...'
+        )
+
+        logger.warning(msg, cmd_name, guess, autocorrect_delay)
+        try:
+            time.sleep(autocorrect_delay)
+        except KeyboardInterrupt:
+            logger.critical('Operation cancelled by user')
+            sys.exit(pip.status_codes.ERROR)
+
+        # Assume and proceed.
+        cmd_name = guess
 
     return cmd_name, cmd_args
 

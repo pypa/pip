@@ -3,6 +3,8 @@ Package containing all pip commands
 """
 from __future__ import absolute_import
 
+from difflib import SequenceMatcher
+
 from pip.commands.completion import CompletionCommand
 from pip.commands.configuration import ConfigurationCommand
 from pip.commands.download import DownloadCommand
@@ -48,20 +50,6 @@ def get_summaries(ordered=True):
         yield (name, command_class.summary)
 
 
-def get_similar_commands(name):
-    """Command name auto-correct."""
-    from difflib import get_close_matches
-
-    name = name.lower()
-
-    close_commands = get_close_matches(name, commands_dict.keys())
-
-    if close_commands:
-        return close_commands[0]
-    else:
-        return False
-
-
 def _sort_commands(cmddict, order):
     def keyfn(key):
         try:
@@ -71,3 +59,50 @@ def _sort_commands(cmddict, order):
             return 0xff
 
     return sorted(cmddict.items(), key=keyfn)
+
+
+def _get_closest_match(word, possibilities):
+    """Get the closest match of word in possibilities.
+
+    Returns a tuple of (name, similarity) where possibility has the
+    highest similarity, where 0 <= similarity <= 1.
+    Returns (None, 0) as a fallback, if no possibility matches.
+
+    If more than one possibilities have the highest similarity, the first
+    matched is returned.
+    """
+    guess, best_score = None, 0
+
+    matcher = SequenceMatcher()
+    matcher.set_seq2(word)
+
+    for trial in possibilities:
+        matcher.set_seq1(trial)
+
+        # These are upper limits.
+        if matcher.real_quick_ratio() < best_score:
+            continue
+        if matcher.quick_ratio() < best_score:
+            continue
+
+        # Select the first best match
+        score = matcher.ratio()
+        if score > best_score:
+            guess = trial
+            best_score = score
+
+    return guess, best_score
+
+
+def get_closest_command(name):
+    """Command name auto-correction
+
+    If there are any commands with a similarity greater than cutoff, returns
+    (command_name, similarity) of the command_name with highest similarity.
+
+    If there is no such command, returns (None, 0).
+
+    If more than one commands have the highest similarity, the alphabetically
+    first is returned.
+    """
+    return _get_closest_match(name.lower(), sorted(commands_dict.keys()))
