@@ -42,7 +42,7 @@ class TestRequirementSet(object):
             progress_bar="on"
         )
         return Resolver(
-            preparer=preparer,
+            preparer=preparer, wheel_cache=None,
             session=PipSession(), finder=finder,
             use_user_site=False, upgrade_strategy="to-satisfy-only",
             ignore_dependencies=False, ignore_installed=False,

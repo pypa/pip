@@ -586,13 +586,13 @@ class BuildEnvironment(object):
 class WheelBuilder(object):
     """Build wheels from a RequirementSet."""
 
-    def __init__(self, requirement_set, finder, preparer, build_options=None,
-                 global_options=None, no_clean=False):
+    def __init__(self, requirement_set, finder, preparer, wheel_cache,
+                 build_options=None, global_options=None, no_clean=False):
         self.requirement_set = requirement_set
         self.finder = finder
         self.preparer = preparer
+        self.wheel_cache = wheel_cache
 
-        self._cache_root = requirement_set._wheel_cache._cache_dir
         self._wheel_dir = preparer.wheel_download_dir
 
         self.build_options = build_options or []
@@ -727,7 +727,11 @@ class WheelBuilder(object):
             newly built wheel, in preparation for installation.
         :return: True if all the wheels built correctly.
         """
-        assert self._wheel_dir or (autobuilding and self._cache_root)
+        building_is_possible = self._wheel_dir or (
+            autobuilding and self.wheel_cache._cache_dir
+        )
+        assert building_is_possible
+
         reqset = self.requirement_set.requirements.values()
 
         buildset = []
@@ -775,8 +779,9 @@ class WheelBuilder(object):
                 python_tag = None
                 if autobuilding:
                     python_tag = pep425tags.implementation_tag
+                    # NOTE: Should move out a method on the cache directly.
                     output_dir = get_cache_path_for_link(
-                        self._cache_root, req.link
+                        self.wheel_cache._cache_dir, req.link
                     )
                     try:
                         ensure_dir(output_dir)

@@ -42,7 +42,7 @@ class RequirementSet(object):
 
     def __init__(self,
                  require_hashes=False, target_dir=None, use_user_site=False,
-                 pycompile=True, wheel_cache=None):
+                 pycompile=True):
         """Create a RequirementSet.
 
         :param wheel_cache: The pip wheel cache, for passing to
@@ -62,7 +62,6 @@ class RequirementSet(object):
         self.use_user_site = use_user_site
         self.target_dir = target_dir  # set from --target option
         self.pycompile = pycompile
-        self._wheel_cache = wheel_cache
         # Maps from install_req -> dependencies_of_install_req
         self._dependencies = defaultdict(list)
 

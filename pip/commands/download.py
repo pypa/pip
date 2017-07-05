@@ -202,6 +202,7 @@ class DownloadCommand(RequirementCommand):
                     preparer=preparer,
                     finder=finder,
                     session=session,
+                    wheel_cache=None,
                     use_user_site=False,
                     upgrade_strategy="to-satisfy-only",
                     force_reinstall=False,
