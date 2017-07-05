@@ -162,14 +162,9 @@ class RequirementPreparer(object):
                 skip_reason = resolver._check_skip_installed(req)
 
             if req.satisfied_by:
-                assert skip_reason is not None, (
-                    '_check_skip_installed returned None but '
-                    'req.satisfied_by is set to %r'
-                    % (req.satisfied_by,))
-                logger.info(
-                    'Requirement %s: %s (%s)', skip_reason,
-                    req,
-                    req.satisfied_by.version)
+                abstract_dist = self._prepare_installed_requirement(
+                    req, resolver, skip_reason
+                )
             else:
                 if (req.link and
                         req.link.scheme == 'file'):
@@ -188,13 +183,7 @@ class RequirementPreparer(object):
             if req.editable:
                 pass
             elif req.satisfied_by:
-                if resolver.require_hashes:
-                    logger.debug(
-                        'Since it is already installed, we are trusting this '
-                        'package without checking its hash. To ensure a '
-                        'completely repeatable environment, install into an '
-                        'empty virtualenv.')
-                abstract_dist = Installed(req)
+                pass
             else:
                 # @@ if filesystem packages are not marked
                 # editable in a req, a non deterministic error
@@ -352,5 +341,27 @@ class RequirementPreparer(object):
             if self._download_should_save:
                 req.archive(self.download_dir)
             req.check_if_exists()
+
+        return abstract_dist
+
+    def _prepare_installed_requirement(self, req, resolver, skip_reason):
+        assert req.satisfied_by, "req should have been satisfied but isn't"
+        assert skip_reason is not None, (
+            "did not get skip reason skipped but req.satisfied_by "
+            "is set to %r" % (req.satisfied_by,)
+        )
+        logger.info(
+            'Requirement %s: %s (%s)',
+            skip_reason, req, req.satisfied_by.version
+        )
+        with indent_log():
+            if resolver.require_hashes:
+                logger.debug(
+                    'Since it is already installed, we are trusting this '
+                    'package without checking its hash. To ensure a '
+                    'completely repeatable environment, install into an '
+                    'empty virtualenv.'
+                )
+            abstract_dist = Installed(req)
 
         return abstract_dist
