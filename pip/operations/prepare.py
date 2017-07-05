@@ -149,6 +149,7 @@ class RequirementPreparer(object):
         return False
 
     def prepare_requirement(self, req, resolver):
+        # TODO: Remove circular dependency on resolver
         # TODO: Breakup into smaller functions
         # TODO: Add a nice docstring
         if req.editable:
