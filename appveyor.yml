@@ -14,7 +14,4 @@ install:
 build: off
 test_script:
     # Run for 300 seconds max
-    - cmd: |
-        start %PYTHON%\\Scripts\\tox.exe -e py -- -m unit -n 8
-        timeout /nobreak /t 300
-        taskkill /im %PYTHON%\\Scripts\\tox.exe /f
+    - cmd: ./.appveyor/run.cmd
