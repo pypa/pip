@@ -178,11 +178,7 @@ class DownloadCommand(RequirementCommand):
             ) as directory:
 
                 requirement_set = RequirementSet(
-                    build_dir=directory.path,
-                    src_dir=options.src_dir,
-                    download_dir=options.download_dir,
                     require_hashes=options.require_hashes,
-                    progress_bar=options.progress_bar,
                 )
                 self.populate_requirement_set(
                     requirement_set,
@@ -194,8 +190,16 @@ class DownloadCommand(RequirementCommand):
                     None
                 )
 
+                preparer = RequirementPreparer(
+                    build_dir=directory.path,
+                    src_dir=options.src_dir,
+                    download_dir=options.download_dir,
+                    wheel_download_dir=None,
+                    progress_bar=options.progress_bar,
+                )
+
                 resolver = Resolver(
-                    preparer=RequirementPreparer(),
+                    preparer=preparer,
                     finder=finder,
                     session=session,
                     use_user_site=False,

@@ -143,13 +143,8 @@ class WheelCommand(RequirementCommand):
                 options.build_dir, delete=build_delete, kind="wheel"
             ) as directory:
                 requirement_set = RequirementSet(
-                    build_dir=directory.path,
-                    src_dir=options.src_dir,
-                    download_dir=None,
                     wheel_cache=wheel_cache,
-                    wheel_download_dir=options.wheel_dir,
                     require_hashes=options.require_hashes,
-                    progress_bar=options.progress_bar,
                 )
 
                 self.populate_requirement_set(
@@ -157,8 +152,16 @@ class WheelCommand(RequirementCommand):
                     wheel_cache
                 )
 
+                preparer = RequirementPreparer(
+                    build_dir=directory.path,
+                    src_dir=options.src_dir,
+                    download_dir=None,
+                    wheel_download_dir=options.wheel_dir,
+                    progress_bar=options.progress_bar,
+                )
+
                 resolver = Resolver(
-                    preparer=RequirementPreparer(),
+                    preparer=preparer,
                     finder=finder,
                     session=session,
                     use_user_site=False,
@@ -176,6 +179,7 @@ class WheelCommand(RequirementCommand):
                     wb = WheelBuilder(
                         requirement_set,
                         finder,
+                        preparer,
                         build_options=options.build_options or [],
                         global_options=options.global_options or [],
                         no_clean=options.no_clean,

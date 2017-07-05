@@ -265,7 +265,8 @@ class RequirementCommand(Command):
         """
         Marshal cmd line args into a requirement set.
         """
-        # NOTE: As a side-effect, options.require_hashes may be updated
+        # NOTE: As a side-effect, options.require_hashes and
+        #       requirement_set.require_hashes may be updated
 
         for filename in options.constraints:
             for req in parse_requirements(
