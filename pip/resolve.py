@@ -32,7 +32,7 @@ class Resolver(object):
 
     _allowed_strategies = {"eager", "only-if-needed", "to-satisfy-only"}
 
-    def __init__(self, preparer, session, finder, use_user_site,
+    def __init__(self, preparer, session, finder, wheel_cache, use_user_site,
                  ignore_dependencies, ignore_installed, ignore_requires_python,
                  force_reinstall, isolated, upgrade_strategy):
         super(Resolver, self).__init__()
@@ -41,6 +41,10 @@ class Resolver(object):
         self.preparer = preparer
         self.finder = finder
         self.session = session
+
+        # NOTE: This would eventually be replaced with a cache that can give
+        #       information about both sdist and wheels transparently.
+        self.wheel_cache = wheel_cache
 
         self.require_hashes = None  # This is set in resolve
 
@@ -212,7 +216,7 @@ class Resolver(object):
                 str(subreq),
                 req_to_install,
                 isolated=self.isolated,
-                wheel_cache=requirement_set._wheel_cache,
+                wheel_cache=self.wheel_cache,
             )
             more_reqs.extend(
                 requirement_set.add_requirement(

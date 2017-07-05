@@ -243,7 +243,6 @@ class InstallCommand(RequirementCommand):
                 requirement_set = RequirementSet(
                     target_dir=target_temp_dir.path,
                     pycompile=options.compile,
-                    wheel_cache=wheel_cache,
                     require_hashes=options.require_hashes,
                     use_user_site=options.use_user_site,
                 )
@@ -264,6 +263,7 @@ class InstallCommand(RequirementCommand):
                         preparer=preparer,
                         finder=finder,
                         session=session,
+                        wheel_cache=wheel_cache,
                         use_user_site=options.use_user_site,
                         upgrade_strategy=upgrade_strategy,
                         force_reinstall=options.force_reinstall,
@@ -283,6 +283,7 @@ class InstallCommand(RequirementCommand):
                             requirement_set,
                             finder,
                             preparer,
+                            wheel_cache,
                             build_options=[],
                             global_options=[],
                         )
