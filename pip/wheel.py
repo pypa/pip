@@ -736,6 +736,7 @@ class WheelBuilder(object):
 
         buildset = []
         for req in reqset:
+            ephem_cache = False
             if req.constraint:
                 continue
             if req.is_wheel:
@@ -745,7 +746,8 @@ class WheelBuilder(object):
             elif autobuilding and req.editable:
                 pass
             elif autobuilding and req.link and not req.link.is_artifact:
-                pass
+                # VCS checkout. Build wheel just for this run.
+                ephem_cache = True
             elif autobuilding and not req.source_dir:
                 pass
             else:
@@ -753,17 +755,16 @@ class WheelBuilder(object):
                     link = req.link
                     base, ext = link.splitext()
                     if pip.index.egg_info_matches(base, None, link) is None:
-                        # Doesn't look like a package - don't autobuild a wheel
-                        # because we'll have no way to lookup the result sanely
-                        continue
-                    if "binary" not in pip.index.fmt_ctl_formats(
+                        # E.g. local directory. Build wheel just for this run.
+                        ephem_cache = True
+                    elif "binary" not in pip.index.fmt_ctl_formats(
                             self.finder.format_control,
                             canonicalize_name(req.name)):
                         logger.info(
                             "Skipping bdist_wheel for %s, due to binaries "
                             "being disabled for it.", req.name)
                         continue
-                buildset.append(req)
+                buildset.append((req, ephem_cache))
 
         if not buildset:
             return True
@@ -771,18 +772,20 @@ class WheelBuilder(object):
         # Build the wheels.
         logger.info(
             'Building wheels for collected packages: %s',
-            ', '.join([req.name for req in buildset]),
+            ', '.join([req.name for (req, _) in buildset]),
         )
         with indent_log():
             build_success, build_failure = [], []
-            for req in buildset:
+            for req, ephem in buildset:
                 python_tag = None
                 if autobuilding:
                     python_tag = pep425tags.implementation_tag
                     # NOTE: Should move out a method on the cache directly.
-                    output_dir = get_cache_path_for_link(
-                        self.wheel_cache._cache_dir, req.link
+                    cache_root = (
+                        self.wheel_cache._ephem_cache_dir.path if ephem
+                        else self.wheel_cache._cache_dir
                     )
+                    output_dir = get_cache_path_for_link(cache_root, req.link)
                     try:
                         ensure_dir(output_dir)
                     except OSError as e:
