@@ -249,8 +249,8 @@ class InstallCommand(RequirementCommand):
 
                 try:
                     self.populate_requirement_set(
-                        requirement_set, args, options, finder, session, self.name,
-                        wheel_cache
+                        requirement_set, args, options, finder, session,
+                        self.name, wheel_cache
                     )
                     preparer = RequirementPreparer(
                         build_dir=directory.path,
