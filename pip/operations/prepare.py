@@ -149,8 +149,11 @@ class RequirementPreparer(object):
         return False
 
     def prepare_requirement(self, req, resolver):
+        """Prepare a requirement for installation
+
+        Returns an AbstractDist that can be used to install the package
+        """
         # TODO: Remove circular dependency on resolver
-        # TODO: Add a nice docstring
         assert resolver.require_hashes is not None, (
             "require_hashes should have been set in Resolver.resolve()"
         )
@@ -172,6 +175,8 @@ class RequirementPreparer(object):
         return self._prepare_linked_requirement(req, resolver)
 
     def _prepare_linked_requirement(self, req, resolver):
+        """Prepare a requirement that would be obtained from req.link
+        """
         # TODO: Breakup into smaller functions
         if req.link and req.link.scheme == 'file':
             path = url_to_path(req.link.url)
@@ -312,6 +317,8 @@ class RequirementPreparer(object):
         return abstract_dist
 
     def _prepare_editable_requirement(self, req, resolver):
+        """Prepare an editable requirement
+        """
         assert req.editable, "cannot prepare a non-editable req as editable"
 
         logger.info('Obtaining %s', req)
@@ -336,6 +343,8 @@ class RequirementPreparer(object):
         return abstract_dist
 
     def _prepare_installed_requirement(self, req, resolver, skip_reason):
+        """Prepare an already-installed requirement
+        """
         assert req.satisfied_by, "req should have been satisfied but isn't"
         assert skip_reason is not None, (
             "did not get skip reason skipped but req.satisfied_by "
