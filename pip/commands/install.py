@@ -248,6 +248,18 @@ class InstallCommand(RequirementCommand):
                 )
 
                 try:
+                    self.populate_requirement_set(
+                        requirement_set, args, options, finder, session, self.name,
+                        wheel_cache
+                    )
+                    preparer = RequirementPreparer(
+                        build_dir=directory.path,
+                        src_dir=options.src_dir,
+                        download_dir=None,
+                        wheel_download_dir=None,
+                        progress_bar=options.progress_bar,
+                    )
+
                     resolver = Resolver(
                         preparer=preparer,
                         finder=finder,
@@ -262,18 +274,6 @@ class InstallCommand(RequirementCommand):
                         isolated=options.isolated_mode,
                     )
                     resolver.resolve(requirement_set)
-
-                    self.populate_requirement_set(
-                        requirement_set, args, options, finder, session, self.name,
-                        wheel_cache
-                    )
-                    preparer = RequirementPreparer(
-                        build_dir=directory.path,
-                        src_dir=options.src_dir,
-                        download_dir=None,
-                        wheel_download_dir=None,
-                        progress_bar=options.progress_bar,
-                    )
 
                     # on -d don't do complex things like building
                     # wheels, and don't try to build wheels when wheel is
