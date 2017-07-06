@@ -150,7 +150,6 @@ class RequirementPreparer(object):
 
     def prepare_requirement(self, req, resolver):
         # TODO: Remove circular dependency on resolver
-        # TODO: Breakup into smaller functions
         # TODO: Add a nice docstring
         assert resolver.require_hashes is not None, (
             "require_hashes should have been set in Resolver.resolve()"
@@ -170,6 +169,10 @@ class RequirementPreparer(object):
                 req, resolver, skip_reason
             )
 
+        return self._prepare_linked_requirement(req, resolver)
+
+    def _prepare_linked_requirement(self, req, resolver):
+        # TODO: Breakup into smaller functions
         if req.link and req.link.scheme == 'file':
             path = url_to_path(req.link.url)
             logger.info('Processing %s', display_path(path))
