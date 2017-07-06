@@ -778,7 +778,6 @@ class WheelBuilder(object):
                 python_tag = None
                 if autobuilding:
                     python_tag = pep425tags.implementation_tag
-                    # NOTE: Should move out a method on the cache directly.
                     output_dir = self.wheel_cache.get_cache_path_for_link(
                         req.link
                     )
