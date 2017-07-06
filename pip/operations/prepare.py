@@ -188,8 +188,7 @@ class RequirementPreparer(object):
             # FIXME: this won't upgrade when there's an existing
             # package unpacked in `req.source_dir`
             # package unpacked in `req.source_dir`
-            if os.path.exists(
-                    os.path.join(req.source_dir, 'setup.py')):
+            if os.path.exists(os.path.join(req.source_dir, 'setup.py')):
                 raise PreviousBuildDirError(
                     "pip can't proceed with requirements '%s' due to a"
                     " pre-existing build directory (%s). This is "
@@ -227,8 +226,7 @@ class RequirementPreparer(object):
                     raise VcsHashUnsupported()
                 elif is_file_url(link) and is_dir_url(link):
                     raise DirectoryUrlHashUnsupported()
-                if (not req.original_link and
-                        not req.is_pinned):
+                if not req.original_link and not req.is_pinned:
                     # Unpinned packages are asking for trouble when a new
                     # version is uploaded. This isn't a security check, but
                     # it saves users a surprising hash mismatch in the
@@ -237,8 +235,7 @@ class RequirementPreparer(object):
                     # file:/// URLs aren't pinnable, so don't complain
                     # about them not being pinned.
                     raise HashUnpinned()
-            hashes = req.hashes(
-                trust_internet=not resolver.require_hashes)
+            hashes = req.hashes(trust_internet=not resolver.require_hashes)
             if resolver.require_hashes and not hashes:
                 # Known-good hashes are missing for this requirement, so
                 # shim it with a facade object that will provoke hash
@@ -250,8 +247,7 @@ class RequirementPreparer(object):
                 download_dir = self.download_dir
                 # We always delete unpacked sdists after pip ran.
                 autodelete_unpacked = True
-                if req.link.is_wheel \
-                        and self.wheel_download_dir:
+                if req.link.is_wheel and self.wheel_download_dir:
                     # when doing 'pip wheel` we download wheels to a
                     # dedicated dir.
                     download_dir = self.wheel_download_dir
@@ -268,17 +264,17 @@ class RequirementPreparer(object):
                     req.link, req.source_dir,
                     download_dir, autodelete_unpacked,
                     session=resolver.session, hashes=hashes,
-                    progress_bar=self.progress_bar)
+                    progress_bar=self.progress_bar
+                )
             except requests.HTTPError as exc:
                 logger.critical(
-                    'Could not install requirement %s because '
-                    'of error %s',
+                    'Could not install requirement %s because of error %s',
                     req,
                     exc,
                 )
                 raise InstallationError(
-                    'Could not install requirement %s because '
-                    'of HTTP error %s for URL %s' %
+                    'Could not install requirement %s because of HTTP '
+                    'error %s for URL %s' %
                     (req, exc, req.link)
                 )
             abstract_dist = make_abstract_dist(req)
@@ -300,10 +296,9 @@ class RequirementPreparer(object):
                 if should_modify:
                     # don't uninstall conflict if user install and
                     # conflict is not user install
-                    if not (resolver.use_user_site and not
-                            dist_in_usersite(req.satisfied_by)):
-                        req.conflicts_with = \
-                            req.satisfied_by
+                    if not (resolver.use_user_site and
+                            not dist_in_usersite(req.satisfied_by)):
+                        req.conflicts_with = req.satisfied_by
                     req.satisfied_by = None
                 else:
                     logger.info(
@@ -323,7 +318,8 @@ class RequirementPreparer(object):
                 raise InstallationError(
                     'The editable requirement %s cannot be installed when '
                     'requiring hashes, because there is no single file to '
-                    'hash.' % req)
+                    'hash.' % req
+                )
             req.ensure_has_source_dir(self.src_dir)
             req.update_editable(not self._download_should_save)
 
