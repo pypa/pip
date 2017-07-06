@@ -196,3 +196,4 @@ class WheelCommand(RequirementCommand):
                 finally:
                     if not options.no_clean:
                         requirement_set.cleanup_files()
+                        wheel_cache.cleanup()
