@@ -157,7 +157,7 @@ class RequirementPreparer(object):
         )
 
         if req.editable:
-            abstract_dist = self._prepare_editable_requirement(req)
+            abstract_dist = self._prepare_editable_requirement(req, resolver)
         else:
             # satisfied_by is only evaluated by calling _check_skip_installed,
             # so it must be None here.
@@ -322,7 +322,7 @@ class RequirementPreparer(object):
                         )
         return abstract_dist
 
-    def _prepare_editable_requirement(self, req):
+    def _prepare_editable_requirement(self, req, resolver):
         assert req.editable, "cannot prepare a non-editable req as editable"
 
         logger.info('Obtaining %s', req)
