@@ -31,7 +31,6 @@ from pip.exceptions import (
 )
 from pip.locations import PIP_DELETE_MARKER_FILENAME, distutils_scheme
 from pip.utils import call_subprocess, captured_stdout, ensure_dir, read_chunks
-from pip.utils.cache import get_cache_path_for_link
 from pip.utils.logging import indent_log
 from pip.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip.utils.temp_dir import TempDirectory
@@ -780,8 +779,8 @@ class WheelBuilder(object):
                 if autobuilding:
                     python_tag = pep425tags.implementation_tag
                     # NOTE: Should move out a method on the cache directly.
-                    output_dir = get_cache_path_for_link(
-                        self.wheel_cache._cache_dir, req.link
+                    output_dir = self.wheel_cache.get_cache_path_for_link(
+                        req.link
                     )
                     try:
                         ensure_dir(output_dir)
