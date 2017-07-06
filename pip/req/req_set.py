@@ -44,9 +44,6 @@ class RequirementSet(object):
                  require_hashes=False, target_dir=None, use_user_site=False,
                  pycompile=True):
         """Create a RequirementSet.
-
-        :param wheel_cache: The pip wheel cache, for passing to
-            InstallRequirement.
         """
 
         self.requirements = Requirements()
@@ -197,9 +194,6 @@ class RequirementSet(object):
         with indent_log():
             for req in self.reqs_to_cleanup:
                 req.remove_temporary_source()
-
-            if self._wheel_cache:
-                self._wheel_cache.cleanup()
 
     def _to_install(self):
         """Create the installation order.
