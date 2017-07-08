@@ -1,24 +1,30 @@
 diff --git a/pip/_vendor/requests/__init__.py b/pip/_vendor/requests/__init__.py
-index 9c3b769..44f6836 100644
+index 9c3b769..36a4ef40 100644
 --- a/pip/_vendor/requests/__init__.py
 +++ b/pip/_vendor/requests/__init__.py
-@@ -48,11 +48,13 @@ __license__ = 'Apache 2.0'
+@@ -47,12 +47,19 @@ __author__ = 'Kenneth Reitz'
+ __license__ = 'Apache 2.0'
  __copyright__ = 'Copyright 2016 Kenneth Reitz'
- 
+
++
++from pip.compat import WINDOWS
++
++
  # Attempt to enable urllib3's SNI support, if possible
 -try:
 -    from .packages.urllib3.contrib import pyopenssl
 -    pyopenssl.inject_into_urllib3()
 -except ImportError:
 -    pass
-+# Note: Patched by pip to prevent using the PyOpenSSL module. On Windows this
-+#       prevents upgrading cryptography.
-+# try:
-+#     from .packages.urllib3.contrib import pyopenssl
-+#     pyopenssl.inject_into_urllib3()
-+# except ImportError:
-+#     pass
- 
++# Note: Patched by pip to prevent using the PyOpenSSL module when OS is Windows.
++#       Otherwise on Windows this would prevent upgrading cryptography.
++if not WINDOWS:
++    try:
++        from .packages.urllib3.contrib import pyopenssl
++        pyopenssl.inject_into_urllib3()
++    except ImportError:
++        pass
+
  import warnings
  
 diff --git a/pip/_vendor/requests/compat.py b/pip/_vendor/requests/compat.py

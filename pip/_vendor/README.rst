@@ -97,7 +97,7 @@ Modifications
 * ``pkg_resources`` has been modified to import its dependencies from ``pip._vendor``
 * ``CacheControl`` has been modified to import its dependencies from ``pip._vendor``
 * ``packaging`` has been modified to import its dependencies from ``pip._vendor``
-* ``requests`` has been modified *not* to optionally load any C dependencies
+* ``requests`` has been modified to *not* load C dependencies: ``simplejson`` (all platforms) and ``pyopenssl`` (Windows)
 * Modified distro to delay importing ``argparse`` to avoid errors on 2.6
 
 
