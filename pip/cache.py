@@ -5,6 +5,7 @@ import errno
 import hashlib
 import logging
 import os
+import sys
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -19,21 +20,22 @@ logger = logging.getLogger(__name__)
 class Cache(object):
     """An abstract class - provides cache directories for data from links
 
-        ``allowed_format`` attribute is needs to be set on sub-classes, to
-        select the format of files the cache should store.
-        (one of 'binary' and 'source')
 
         :param cache_dir: The root of the cache.
         :param format_control: A pip.index.FormatControl object to limit
             binaries being read from the cache.
+        :param allowed_formats: which formats of files the cache should store.
+            ('binary' and 'source' are the only allowed values)
     """
 
-    def __init__(self, cache_dir, format_control):
+    def __init__(self, cache_dir, format_control, allowed_formats):
         super(Cache, self).__init__()
         self.cache_dir = expanduser(cache_dir) if cache_dir else None
         self.format_control = format_control
+        self.allowed_formats = allowed_formats
 
-        assert getattr(self, "allowed_format", None) in {"source", "binary"}
+        _valid_formats = {"source", "binary"}
+        assert self.allowed_formats.union(_valid_formats) == _valid_formats
 
     def _get_cache_path_parts(self, link):
         """Get parts of part that must be os.path.joined with cache_dir
@@ -73,7 +75,7 @@ class Cache(object):
         formats = pip.index.fmt_ctl_formats(
             self.format_control, canonical_name
         )
-        if self.allowed_format not in formats:  # noqa
+        if self.allowed_formats.intersection(formats):
             return []
 
         root = self.get_path_for_link(link)
@@ -100,7 +102,8 @@ class WheelCache(Cache):
     """A cache of wheels for future installs.
     """
 
-    allowed_format = "binary"
+    def __init__(self, cache_dir, format_control):
+        super(WheelCache, self).__init__(cache_dir, format_control, {"binary"})
 
     def get_path_for_link(self, link):
         """Return a directory to store cached wheels for link
