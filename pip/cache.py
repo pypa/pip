@@ -5,7 +5,6 @@ import errno
 import hashlib
 import logging
 import os
-import sys
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -75,7 +74,7 @@ class Cache(object):
         formats = pip.index.fmt_ctl_formats(
             self.format_control, canonical_name
         )
-        if self.allowed_formats.intersection(formats):
+        if not self.allowed_formats.intersection(formats):
             return []
 
         root = self.get_path_for_link(link)
