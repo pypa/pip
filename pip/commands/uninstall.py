@@ -65,8 +65,7 @@ class UninstallCommand(Command):
                     '"pip help %(name)s")' % dict(name=self.name)
                 )
             for req in reqs_to_uninstall.values():
-                if not (options.yes or
-                        confirm_dependencies(req, installed_packages)):
+                if not (options.yes or confirm_dependencies(req)):
                     continue
                 req.uninstall(
                     auto_confirm=options.yes, verbose=options.verbose != 0
