@@ -864,15 +864,16 @@ def enum(*sequential, **named):
     return type('Enum', (), enums)
 
 
-def confirm_dependencies(req, installed_packages):
-        dep_keys = set()
-        for dist in installed_packages:
-            dep_keys.update(
-                [dist for d in dist.requires() if d.key == req.req.name])
-        if not dep_keys:
-            return True
-        logger.info("%s is depended from:" % req.req)
-        for dep in dep_keys:
-            logger.info(dep)
-        response = ask('Proceed (y/n)? ', ('y', 'n'))
-        return response == 'y'
+def confirm_dependencies(req):
+    installed_distributions = get_installed_distributions()
+    dep_keys = set()
+    for dist in installed_distributions:
+        dep_keys.update(
+            [dist for d in dist.requires() if d.key == req.req.name])
+    if not dep_keys:
+        return True
+    logger.info("%s is depended from:" % req.req)
+    for dep in dep_keys:
+        logger.info(dep)
+    response = ask('Proceed (y/n)? ', ('y', 'n'))
+    return response == 'y'

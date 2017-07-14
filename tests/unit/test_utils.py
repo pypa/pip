@@ -607,23 +607,25 @@ class TestCheckRequiresPython(object):
 )
 def test_confirm_dependencies(installed_requires, confirm_answer):
     from pip.commands.uninstall import confirm_dependencies
-    with patch('pip.utils.ask') as mock_ask:
-        mock_ask.return_value = confirm_answer
+    with patch('pip.utils.get_installed_distributions') as mock_get_installed_distributions:
+        with patch('pip.utils.ask') as mock_ask:
+            mock_ask.return_value = confirm_answer
 
-        class req(Requirement):
-            def __init__(self, key):
-                self.key = key
+            class req(Requirement):
+                def __init__(self, key):
+                    self.key = key
 
-        class installed(object):
+            class installed(object):
 
-            def __init__(self, requires):
-                self._requires = [req(r) for r in requires]
+                def __init__(self, requires):
+                    self._requires = [req(r) for r in requires]
 
-            def requires(self):
-                return self._requires
+                def requires(self):
+                    return self._requires
 
-        requirement = InstallRequirement(Requirement("dummy"), None)
-        installed_packages = [installed(installed_requires)]
-        assert confirm_dependencies(requirement, installed_packages)
-        if confirm_answer:
-            mock_ask.assert_called_with('Proceed (y/n)? ', ('y', 'n'))
+            requirement = InstallRequirement(Requirement("dummy"), None)
+            installed_packages = [installed(installed_requires)]
+            mock_get_installed_distributions.return_value = installed_packages
+            assert confirm_dependencies(requirement)
+            if confirm_answer:
+                mock_ask.assert_called_with('Proceed (y/n)? ', ('y', 'n'))
