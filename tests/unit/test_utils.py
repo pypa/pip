@@ -28,6 +28,9 @@ from pip.utils.glibc import check_glibc_version
 from pip.utils.hashes import Hashes, MissingHashes
 from pip.utils.packaging import check_dist_requires_python
 from pip.utils.temp_dir import TempDirectory
+from pip._vendor.six import BytesIO
+from pip._vendor.packaging.requirements import Requirement
+from pip.req.req_install import InstallRequirement
 
 
 class Tests_EgglinkPath:
@@ -592,3 +595,35 @@ class TestCheckRequiresPython(object):
                 check_dist_requires_python(fake_dist)
         else:
             check_dist_requires_python(fake_dist)
+
+
+@pytest.mark.parametrize(
+    "installed_requires,confirm_answer",
+    [
+        ((), None),
+        (("dummy",), 'y'),
+        pytest.mark.xfail((("dummy",), 'n')),
+    ],
+)
+def test_confirm_dependencies(installed_requires, confirm_answer):
+    from pip.commands.uninstall import confirm_dependencies
+    with patch('pip.utils.ask') as mock_ask:
+        mock_ask.return_value = confirm_answer
+
+        class req(Requirement):
+            def __init__(self, key):
+                self.key = key
+
+        class installed(object):
+
+            def __init__(self, requires):
+                self._requires = [req(r) for r in requires]
+
+            def requires(self):
+                return self._requires
+
+        requirement = InstallRequirement(Requirement("dummy"), None)
+        installed_packages = [installed(installed_requires)]
+        assert confirm_dependencies(requirement, installed_packages)
+        if confirm_answer:
+            mock_ask.assert_called_with('Proceed (y/n)? ', ('y', 'n'))

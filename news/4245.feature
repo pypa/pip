@@ -1,0 +1,1 @@
+added confirming dependencies to ``uninstall`` command.
