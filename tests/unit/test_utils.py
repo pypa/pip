@@ -14,11 +14,13 @@ import warnings
 
 import pytest
 from mock import Mock, patch
+from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.six import BytesIO
 
 from pip.exceptions import (
     HashMismatch, HashMissing, InstallationError, UnsupportedPythonVersion
 )
+from pip.req.req_install import InstallRequirement
 from pip.utils import (
     egg_link_path, ensure_dir, get_installed_distributions, normalize_path,
     rmtree, untar_file, unzip_file
@@ -28,8 +30,6 @@ from pip.utils.glibc import check_glibc_version
 from pip.utils.hashes import Hashes, MissingHashes
 from pip.utils.packaging import check_dist_requires_python
 from pip.utils.temp_dir import TempDirectory
-from pip._vendor.packaging.requirements import Requirement
-from pip.req.req_install import InstallRequirement
 
 
 class Tests_EgglinkPath:
