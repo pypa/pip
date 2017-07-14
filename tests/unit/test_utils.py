@@ -28,7 +28,6 @@ from pip.utils.glibc import check_glibc_version
 from pip.utils.hashes import Hashes, MissingHashes
 from pip.utils.packaging import check_dist_requires_python
 from pip.utils.temp_dir import TempDirectory
-from pip._vendor.six import BytesIO
 from pip._vendor.packaging.requirements import Requirement
 from pip.req.req_install import InstallRequirement
 
@@ -607,7 +606,7 @@ class TestCheckRequiresPython(object):
 )
 def test_confirm_dependencies(installed_requires, confirm_answer):
     from pip.commands.uninstall import confirm_dependencies
-    with patch('pip.utils.get_installed_distributions') as mock_get_installed_distributions:
+    with patch('pip.utils.get_installed_distributions') as mock_gid:
         with patch('pip.utils.ask') as mock_ask:
             mock_ask.return_value = confirm_answer
 
@@ -625,7 +624,7 @@ def test_confirm_dependencies(installed_requires, confirm_answer):
 
             requirement = InstallRequirement(Requirement("dummy"), None)
             installed_packages = [installed(installed_requires)]
-            mock_get_installed_distributions.return_value = installed_packages
+            mock_gid.return_value = installed_packages
             assert confirm_dependencies(requirement)
             if confirm_answer:
                 mock_ask.assert_called_with('Proceed (y/n)? ', ('y', 'n'))
