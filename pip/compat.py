@@ -34,11 +34,14 @@ if sys.version_info >= (3, 4):
     from importlib.util import cache_from_source
 else:
     import imp
-    uses_pycache = hasattr(imp, 'cache_from_source')
-    if uses_pycache:
-        cache_from_source = imp.cache_from_source
-    else:
+
+    try:
+        cache_from_source = imp.cache_from_source  # type: ignore
+    except AttributeError:
+        # does not use __pycache__
         cache_from_source = None
+
+    uses_pycache = cache_from_source is not None
 
 
 if sys.version_info >= (3, 5):
