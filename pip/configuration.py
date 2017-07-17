@@ -28,7 +28,7 @@ from pip.utils.typing import MYPY_CHECK_RUNNING
 if MYPY_CHECK_RUNNING:
     from typing import Any, Dict, Iterable, List, NewType, Optional, Tuple
 
-    ConfigParser = configparser.ConfigParser  # Shorthand
+    RawConfigParser = configparser.RawConfigParser  # Shorthand
     Kind = NewType("Kind", str)
 
 logger = logging.getLogger(__name__)
@@ -98,11 +98,11 @@ class Configuration(object):
         # Because we keep track of where we got the data from
         self._parsers = {
             variant: [] for variant in self._override_order
-        }  # type: Dict[Kind, List[Tuple[str, ConfigParser]]]
+        }  # type: Dict[Kind, List[Tuple[str, RawConfigParser]]]
         self._config = {
             variant: {} for variant in self._override_order
         }  # type: Dict[Kind, Dict[str, Any]]
-        self._modified_parsers = []  # type: List[Tuple[str, ConfigParser]]
+        self._modified_parsers = []  # type: List[Tuple[str, RawConfigParser]]
 
     def load(self):
         # type: () -> None
@@ -259,7 +259,7 @@ class Configuration(object):
                 self._parsers[variant].append((fname, parser))
 
     def _load_file(self, variant, fname):
-        # type: (Kind, str) -> ConfigParser
+        # type: (Kind, str) -> RawConfigParser
         logger.debug("For variant '%s', will try loading '%s'", variant, fname)
         parser = self._construct_parser(fname)
 
@@ -270,7 +270,7 @@ class Configuration(object):
         return parser
 
     def _construct_parser(self, fname):
-        # type: (str) -> ConfigParser
+        # type: (str) -> RawConfigParser
         parser = configparser.RawConfigParser()
         # If there is no such file, don't bother reading it but create the
         # parser anyway, to hold the data.
@@ -345,7 +345,7 @@ class Configuration(object):
             yield kinds.VENV, [venv_config_file]
 
     def _get_parser_to_modify(self):
-        # type: () -> Tuple[str, ConfigParser]
+        # type: () -> Tuple[str, RawConfigParser]
         # Determine which parser to modify
         parsers = self._parsers[self.load_only]
         if not parsers:
@@ -359,7 +359,7 @@ class Configuration(object):
 
     # XXX: This is patched in the tests.
     def _mark_as_modified(self, fname, parser):
-        # type: (str, ConfigParser) -> None
+        # type: (str, RawConfigParser) -> None
         file_parser_tuple = (fname, parser)
         if file_parser_tuple not in self._modified_parsers:
             self._modified_parsers.append(file_parser_tuple)

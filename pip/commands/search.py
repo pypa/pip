@@ -7,7 +7,9 @@ from collections import OrderedDict
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.version import parse as parse_version
-from pip._vendor.six.moves import xmlrpc_client
+# NOTE: XMLRPC Client is not annotated in typeshed as on 2017-07-17, which is
+#       why we ignore the type on this import
+from pip._vendor.six.moves import xmlrpc_client  # type: ignore
 
 from pip.basecommand import SUCCESS, Command
 from pip.download import PipXmlrpcTransport

@@ -22,7 +22,9 @@ from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
 from pip._vendor.requests.packages import urllib3
 from pip._vendor.requests.structures import CaseInsensitiveDict
 from pip._vendor.requests.utils import get_netrc_auth
-from pip._vendor.six.moves import xmlrpc_client
+# NOTE: XMLRPC Client is not annotated in typeshed as on 2017-07-17, which is
+#       why we ignore the type on this import
+from pip._vendor.six.moves import xmlrpc_client  # type: ignore
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
