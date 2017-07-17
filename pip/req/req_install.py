@@ -720,8 +720,9 @@ class InstallRequirement(object):
         else:
             return True
 
-    def install(self, install_options, global_options=[], root=None,
+    def install(self, install_options, global_options=None, root=None,
                 prefix=None):
+        global_options = global_options if global_options is not None else []
         if self.editable:
             self.install_editable(
                 install_options, global_options, prefix=prefix)
