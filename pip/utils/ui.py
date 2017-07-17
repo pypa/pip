@@ -198,9 +198,12 @@ class BaseDownloadProgressBar(WindowsMixin, InterruptibleMixin,
     message = "%(percent)d%%"
     suffix = "%(downloaded)s %(download_speed)s %(pretty_eta)s"
 
-# NOTE: The "type: ignore" comments are there to work around
-#       https://github.com/python/typing/issues/241
-class DefaultDownloadProgressBar(BaseDownloadProgressBar, _BaseBar):  # type: ignore
+# NOTE: The "type: ignore" comments on the following classes are there to
+#       work around https://github.com/python/typing/issues/241
+
+
+class DefaultDownloadProgressBar(BaseDownloadProgressBar,
+                                 _BaseBar):  # type: ignore
     pass
 
 
@@ -208,11 +211,13 @@ class DownloadSilentBar(BaseDownloadProgressBar, SilentBar):  # type: ignore
     pass
 
 
-class DownloadIncrementalBar(BaseDownloadProgressBar, IncrementalBar):  # type: ignore
+class DownloadIncrementalBar(BaseDownloadProgressBar,
+                             IncrementalBar):  # type: ignore
     pass
 
 
-class DownloadChargingBar(BaseDownloadProgressBar, ChargingBar):  # type: ignore
+class DownloadChargingBar(BaseDownloadProgressBar,
+                          ChargingBar):  # type: ignore
     pass
 
 
@@ -220,15 +225,18 @@ class DownloadShadyBar(BaseDownloadProgressBar, ShadyBar):  # type: ignore
     pass
 
 
-class DownloadFillingSquaresBar(BaseDownloadProgressBar, FillingSquaresBar):  # type: ignore
+class DownloadFillingSquaresBar(BaseDownloadProgressBar,
+                                FillingSquaresBar):  # type: ignore
     pass
 
 
-class DownloadFillingCirclesBar(BaseDownloadProgressBar, FillingCirclesBar):  # type: ignore
+class DownloadFillingCirclesBar(BaseDownloadProgressBar,
+                                FillingCirclesBar):  # type: ignore
     pass
 
 
-class DownloadBlueEmojiProgressBar(BaseDownloadProgressBar, BlueEmojiBar):  # type: ignore
+class DownloadBlueEmojiProgressBar(BaseDownloadProgressBar,
+                                   BlueEmojiBar):  # type: ignore
     pass
 
 
