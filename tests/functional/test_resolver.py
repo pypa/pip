@@ -1,0 +1,161 @@
+"""Tests for the resolver
+"""
+
+import os
+import re
+
+import pytest
+
+from tests.lib import DATA_DIR, create_test_package_with_setup, path_to_url
+from tests.lib.resolver_fixtures import fixture_id_func, generate_fixture_cases
+
+_conflict_finder_re = re.compile(
+    # Conflicting Requirements: \
+    # A 1.0.0 requires B == 2.0.0, C 1.0.0 requires B == 1.0.0.
+    """
+        (?P<package>[\w\-_]+?)
+        [ ]
+        (?P<version>\S+?)
+        [ ]requires[ ]
+        (?P<selector>.+?)
+        (?=,|\.$)
+    """,
+    re.X
+)
+
+
+
+def _convert_to_dict(string):
+
+    def stripping_split(my_str, splitwith, count=None):
+        if count is None:
+            return [x.strip() for x in my_str.strip().split(splitwith)]
+        else:
+            return [x.strip() for x in my_str.strip().split(splitwith, count)]
+
+    parts = stripping_split(string, ";")
+
+    retval = {}
+    retval["name"], retval["version"] = stripping_split(parts[0], " ")
+
+    for part in parts[1:]:
+        verb, args_str = stripping_split(part, " ", 1)
+        assert verb in ["depends"], "Unknown verb {!r}".format(verb)
+
+        retval[verb] = stripping_split(args_str, ",")
+
+    return retval
+
+
+def _convert_to_setup_args(package):
+    retval = {}
+    assert "name" in package, "name needs to be provided"
+    assert "version" in package, "name needs to be provided"
+
+    retval["name"] = package["name"]
+    retval["version"] = package["version"]
+
+    if package.get("depends", None):
+        retval["install_requires"] = package["depends"]
+
+    if package.get("extra_depends", None):
+        # NOTE: Maybe we could add a check about the contents of this
+        #       dictionary
+        retval["extras_require"] = package["extra_depends"]
+
+    return retval
+
+
+def handle_install_request(script, requirement):
+    assert isinstance(requirement, str), (
+        "Need install requirement to be a string only"
+    )
+    result = script.pip(
+        "install",
+        "--no-index", "--find-links", path_to_url(script.scratch_path),
+        "--verbose",
+        requirement
+    )
+
+    retval = {}
+    if result.returncode == 0:
+        # Check which packages got installed
+        retval["install"] = []
+
+        for path in result.files_created:
+            if path.endswith(".dist-info"):
+                name, version = (
+                    os.path.basename(path)[:-len(".dist-info")]
+                ).rsplit("-", 1)
+
+                # TODO: information about extras.
+
+                retval["install"].append(name, version)
+
+        # TODO: Support checking uninstallations
+        # retval["uninstall"] = []
+
+    elif "conflicting" in result.stderr.lower():
+        retval["conflicting"] = []
+
+        message = result.stderr.rsplit("\n", 1)[-1]
+
+        # XXX: There might be a better way than parsing the message
+        for match in re.finditer(message, _conflict_finder_re):
+            di = match.groupdict()
+            retval["conflicting"].append(
+                {
+                    "required_by": "{} {}".format(di["name"], di["version"]),
+                    "selector": di["selector"]
+                }
+            )
+
+    return retval
+
+REQUEST_ACTIONS = {
+    "install": handle_install_request
+}
+
+@pytest.mark.parametrize(
+    "fixture_case", generate_fixture_cases(DATA_DIR / "resolver"),
+    ids=fixture_id_func
+)
+def test_resolver(script, fixture_case):
+    available = fixture_case.get("available", [])
+    requests = fixture_case.get("request", [])
+    transaction = fixture_case.get("transaction", [])
+
+    assert len(requests) == len(transaction), (
+        "Expected requests and transaction counts to be same"
+    )
+
+    # Create a custom index of all the packages that are supposed to be
+    # available
+    # XXX: This doesn't work because this isn't making an index of files.
+    for package in available:
+        if isinstance(package, str):
+            package = _convert_to_dict(package)
+
+        assert isinstance(package, dict), "Needs to be a dictionary"
+
+        create_test_package_with_setup(
+            script, **_convert_to_setup_args(package)
+        )
+
+
+    # use scratch path for index
+    for request, expected in zip(requests, transaction):
+        # The name of the key is what action has to be taken
+        assert len(request.keys()) == 1, "Expected only one action"
+
+        # Get the only key
+        action = list(request.keys())[0]
+
+        assert action in REQUEST_ACTIONS.keys(), (
+            "Unsupported action {!r}".format(action)
+        )
+
+        # Perform the requested action
+        effect = REQUEST_ACTIONS[action](script, request[action])
+
+        assert effect == expected, "Fixture did not succeed."
