@@ -5,6 +5,7 @@ import logging
 import warnings
 
 from pip._vendor import six
+from pip._vendor.six.moves import zip_longest
 
 from pip.basecommand import Command
 from pip.cmdoptions import index_group, make_option_group
@@ -13,12 +14,6 @@ from pip.index import PackageFinder
 from pip.utils import dist_is_editable, get_installed_distributions
 from pip.utils.deprecation import RemovedInPip11Warning
 from pip.utils.packaging import get_installer
-
-try:
-    from itertools import zip_longest
-except ImportError:
-    from itertools import izip_longest as zip_longest  # type: ignore
-
 
 logger = logging.getLogger(__name__)
 
