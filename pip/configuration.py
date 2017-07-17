@@ -14,7 +14,7 @@ Some terminology:
 import logging
 import os
 
-from pip._vendor.six import next
+from pip._vendor import six
 from pip._vendor.six.moves import configparser
 
 from pip.exceptions import ConfigurationError
@@ -181,7 +181,13 @@ class Configuration(object):
 
             if modified_something:
                 # name removed from parser, section may now be empty
-                if next(iter(parser.items(section)), None) is None:
+                section_iter = iter(parser.items(section))
+                try:
+                    val = six.next(section_iter)
+                except StopIteration:
+                    val = None
+
+                if val is None:
                     parser.remove_section(section)
 
                 self._mark_as_modified(fname, parser)
@@ -205,7 +211,7 @@ class Configuration(object):
             ensure_dir(os.path.dirname(fname))
 
             with open(fname, "w") as f:
-                parser.write(f)
+                parser.write(f)  # type: ignore
 
     #
     # Private routines
