@@ -211,13 +211,13 @@ class DownloadSilentBar(BaseDownloadProgressBar, SilentBar):  # type: ignore
     pass
 
 
-class DownloadIncrementalBar(BaseDownloadProgressBar,
-                             IncrementalBar):  # type: ignore
+class DownloadIncrementalBar(BaseDownloadProgressBar,  # type: ignore
+                             IncrementalBar):
     pass
 
 
-class DownloadChargingBar(BaseDownloadProgressBar,
-                          ChargingBar):  # type: ignore
+class DownloadChargingBar(BaseDownloadProgressBar,  # type: ignore
+                          ChargingBar):
     pass
 
 
@@ -225,18 +225,18 @@ class DownloadShadyBar(BaseDownloadProgressBar, ShadyBar):  # type: ignore
     pass
 
 
-class DownloadFillingSquaresBar(BaseDownloadProgressBar,
-                                FillingSquaresBar):  # type: ignore
+class DownloadFillingSquaresBar(BaseDownloadProgressBar,  # type: ignore
+                                FillingSquaresBar):
     pass
 
 
-class DownloadFillingCirclesBar(BaseDownloadProgressBar,
-                                FillingCirclesBar):  # type: ignore
+class DownloadFillingCirclesBar(BaseDownloadProgressBar,  # type: ignore
+                                FillingCirclesBar):
     pass
 
 
-class DownloadBlueEmojiProgressBar(BaseDownloadProgressBar,
-                                   BlueEmojiBar):  # type: ignore
+class DownloadBlueEmojiProgressBar(BaseDownloadProgressBar,  # type: ignore
+                                   BlueEmojiBar):
     pass
 
 
