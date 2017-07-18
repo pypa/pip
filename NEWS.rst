@@ -32,6 +32,8 @@
 - **DEPRECATION** ``--default-vcs`` option. (#4052)
 - **WARNING** pip 9 cache can break forward compatibility with previous pip
   versions if your package repository allows chunked responses. (#4078)
+- Add an ``--upgrade-strategy`` option to ``pip install``, to control how
+  dependency upgrades are managed. (#3972)
 - Add a ``pip check`` command to check installed packages dependencies. (#3750)
 - Add option allowing user to abort pip operation if file/directory exists
 - Add Appveyor CI
@@ -90,7 +92,7 @@
   wheel is supported. (#3254)
 - Make glibc parsing for `manylinux1` support more robust for the variety of
   glibc versions found in the wild. (#3588)
-- Update environment marker support to fully support PEP 508 and legacy
+- Update environment marker support to fully support legacy and PEP 508 style
   environment markers. (#3624)
 - Always use debug logging to the ``--log`` file. (#3351)
 - Don't attempt to wrap search results for extremely narrow terminal windows.

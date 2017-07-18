@@ -3,28 +3,29 @@ from __future__ import absolute_import
 
 import logging
 import logging.config
+import optparse
 import os
 import sys
-import optparse
 import warnings
 
 from pip import cmdoptions
+from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
+from pip.compat import WINDOWS
+from pip.download import PipSession
+from pip.exceptions import (
+    BadCommand, CommandError, InstallationError, PreviousBuildDirError,
+    UninstallationError
+)
 from pip.index import PackageFinder
 from pip.locations import running_under_virtualenv
-from pip.download import PipSession
-from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
-                            CommandError, PreviousBuildDirError)
-
-from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.req import InstallRequirement, parse_requirements
 from pip.status_codes import (
-    SUCCESS, ERROR, UNKNOWN_ERROR, VIRTUALENV_NOT_FOUND,
-    PREVIOUS_BUILD_DIR_ERROR,
+    ERROR, PREVIOUS_BUILD_DIR_ERROR, SUCCESS, UNKNOWN_ERROR,
+    VIRTUALENV_NOT_FOUND
 )
 from pip.utils import deprecation, get_prog, normalize_path
 from pip.utils.logging import IndentingFormatter
 from pip.utils.outdated import pip_version_check
-
 
 __all__ = ['Command']
 
@@ -36,6 +37,7 @@ class Command(object):
     name = None
     usage = None
     hidden = False
+    ignore_require_venv = False
     log_streams = ("ext://sys.stdout", "ext://sys.stderr")
 
     def __init__(self, isolated=False):
@@ -172,17 +174,13 @@ class Command(object):
             # logging enabled. These use both pip._vendor and the bare names
             # for the case where someone unbundles our libraries.
             "loggers": dict(
-                (
-                    name,
-                    {
-                        "level": (
-                            "WARNING"
-                            if level in ["INFO", "ERROR"]
-                            else "DEBUG"
-                        ),
-                    },
-                )
-                for name in ["pip._vendor", "distlib", "requests", "urllib3"]
+                (name, {
+                    "level": (
+                        "WARNING" if level in ["INFO", "ERROR"] else "DEBUG"
+                    )
+                }) for name in [
+                    "pip._vendor", "distlib", "requests", "urllib3"
+                ]
             ),
         })
 
@@ -202,7 +200,7 @@ class Command(object):
         if options.exists_action:
             os.environ['PIP_EXISTS_ACTION'] = ' '.join(options.exists_action)
 
-        if options.require_venv:
+        if options.require_venv and not self.ignore_require_venv:
             # If a venv is required check if it can really be found
             if not running_under_virtualenv():
                 logger.critical(
@@ -267,6 +265,9 @@ class RequirementCommand(Command):
         """
         Marshal cmd line args into a requirement set.
         """
+        # NOTE: As a side-effect, options.require_hashes and
+        #       requirement_set.require_hashes may be updated
+
         for filename in options.constraints:
             for req in parse_requirements(
                     filename,
@@ -312,6 +313,23 @@ class RequirementCommand(Command):
                 raise CommandError(
                     'You must give at least one requirement to %(name)s '
                     '(see "pip help %(name)s")' % opts)
+
+        # On Windows, any operation modifying pip should be run as:
+        #     python -m pip ...
+        # See https://github.com/pypa/pip/issues/1299 for more discussion
+        should_show_use_python_msg = (
+            WINDOWS and
+            requirement_set.has_requirement('pip') and
+            "pip" in os.path.basename(sys.argv[0])
+        )
+        if should_show_use_python_msg:
+            new_command = [
+                sys.executable, "-m", "pip"
+            ] + sys.argv[1:]
+            raise CommandError(
+                'To modify pip, please run the following command:\n{}'
+                .format(" ".join(new_command))
+            )
 
     def _build_package_finder(self, options, session,
                               platform=None, python_versions=None,

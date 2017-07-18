@@ -1,13 +1,11 @@
 import pytest
-
 from mock import patch
 
 from pip.vcs.git import Git
 from tests.lib import _create_test_package
 from tests.lib.git_submodule_helpers import (
-    _change_test_package_submodule,
-    _pull_in_submodule_changes_to_module,
-    _create_test_package_with_submodule,
+    _change_test_package_submodule, _create_test_package_with_submodule,
+    _pull_in_submodule_changes_to_module
 )
 
 

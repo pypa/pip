@@ -1,13 +1,13 @@
-import sys
 import datetime
 import os
+import sys
 from contextlib import contextmanager
 
 import freezegun
-import pytest
 import pretend
-
+import pytest
 from pip._vendor import lockfile
+
 from pip.index import InstallationCandidate
 from pip.utils import outdated
 

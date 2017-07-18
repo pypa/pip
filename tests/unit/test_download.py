@@ -1,22 +1,22 @@
 import hashlib
 import os
 from io import BytesIO
-from shutil import rmtree, copy
+from shutil import copy, rmtree
 from tempfile import mkdtemp
 
+import pytest
+from mock import Mock, patch
 from pip._vendor.six.moves.urllib import request as urllib_request
 
-from mock import Mock, patch
-import pytest
-
 import pip
-from pip.exceptions import HashMismatch
 from pip.download import (
-    PipSession, SafeFileCache, path_to_url, unpack_http_url, url_to_path,
-    unpack_file_url, MultiDomainBasicAuth
+    MultiDomainBasicAuth, PipSession, SafeFileCache, path_to_url,
+    unpack_file_url, unpack_http_url, url_to_path
 )
+from pip.exceptions import HashMismatch
 from pip.index import Link
 from pip.utils.hashes import Hashes
+from tests.lib import create_file
 
 
 def test_unpack_http_url_with_urllib_response_without_content_type(data):
@@ -52,11 +52,6 @@ def test_unpack_http_url_with_urllib_response_without_content_type(data):
 
 def test_user_agent():
     PipSession().headers["User-Agent"].startswith("pip/%s" % pip.__version__)
-
-
-def _write_file(fn, contents):
-    with open(fn, 'w') as fh:
-        fh.write(contents)
 
 
 class FakeStream(object):
@@ -99,7 +94,7 @@ def test_unpack_http_url_bad_downloaded_checksum(mock_unpack_file):
     download_dir = mkdtemp()
     try:
         downloaded_file = os.path.join(download_dir, 'somepackage.tgz')
-        _write_file(downloaded_file, 'some contents')
+        create_file(downloaded_file, 'some contents')
 
         unpack_http_url(
             link,
@@ -194,14 +189,14 @@ class Test_unpack_file_url(object):
         # so we can tell it didn't get overwritten
         dest_file = os.path.join(self.download_dir, self.dist_file)
         copy(self.dist_path2, dest_file)
-        dist_path2_md5 = hashlib.md5(
-            open(self.dist_path2, 'rb').read()).hexdigest()
+        with open(self.dist_path2, 'rb') as f:
+            dist_path2_md5 = hashlib.md5(f.read()).hexdigest()
 
         unpack_file_url(self.dist_url, self.build_dir,
                         download_dir=self.download_dir)
         # our hash should be the same, i.e. not overwritten by simple-1.0 hash
-        assert dist_path2_md5 == hashlib.md5(
-            open(dest_file, 'rb').read()).hexdigest()
+        with open(dest_file, 'rb') as f:
+            assert dist_path2_md5 == hashlib.md5(f.read()).hexdigest()
 
     def test_unpack_file_url_bad_hash(self, tmpdir, data,
                                       monkeypatch):
@@ -228,9 +223,10 @@ class Test_unpack_file_url(object):
         dest_file = os.path.join(self.download_dir, self.dist_file)
         copy(self.dist_path2, dest_file)
 
-        dist_path_md5 = hashlib.md5(
-            open(self.dist_path, 'rb').read()).hexdigest()
-        dist_path2_md5 = hashlib.md5(open(dest_file, 'rb').read()).hexdigest()
+        with open(self.dist_path, 'rb') as f:
+            dist_path_md5 = hashlib.md5(f.read()).hexdigest()
+        with open(dest_file, 'rb') as f:
+            dist_path2_md5 = hashlib.md5(f.read()).hexdigest()
 
         assert dist_path_md5 != dist_path2_md5
 
@@ -244,9 +240,8 @@ class Test_unpack_file_url(object):
 
         # confirm hash is for simple1-1.0
         # the previous bad download has been removed
-        assert (hashlib.md5(open(dest_file, 'rb').read()).hexdigest() ==
-                dist_path_md5
-                ), hashlib.md5(open(dest_file, 'rb').read()).hexdigest()
+        with open(dest_file, 'rb') as f:
+            assert hashlib.md5(f.read()).hexdigest() == dist_path_md5
 
     def test_unpack_file_url_thats_a_dir(self, tmpdir, data):
         self.prep(tmpdir, data)

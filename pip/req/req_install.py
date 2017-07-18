@@ -6,11 +6,9 @@ import re
 import shutil
 import sys
 import sysconfig
-import tempfile
 import traceback
 import warnings
 import zipfile
-
 from distutils.util import change_root
 from email.parser import FeedParser
 
@@ -19,36 +17,29 @@ from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.packaging.version import Version, parse as parse_version
-from pip._vendor.pkg_resources import parse_requirements, RequirementParseError
-
+from pip._vendor.packaging.version import parse as parse_version
+from pip._vendor.packaging.version import Version
+from pip._vendor.pkg_resources import RequirementParseError, parse_requirements
 
 import pip.wheel
-
 from pip.compat import native_str
-from pip.download import is_url, url_to_path, path_to_url, is_archive_file
-from pip.exceptions import (
-    InstallationError, UninstallationError,
-)
-from pip.locations import (
-    running_under_virtualenv, PIP_DELETE_MARKER_FILENAME,
-)
+from pip.download import is_archive_file, is_url, path_to_url, url_to_path
+from pip.exceptions import InstallationError, UninstallationError
+from pip.locations import PIP_DELETE_MARKER_FILENAME, running_under_virtualenv
+from pip.req.req_uninstall import UninstallPathSet
 from pip.utils import (
-    display_path, rmtree, ask_path_exists, backup_dir, is_installable_dir,
-    dist_in_usersite, dist_in_site_packages,
-    call_subprocess, read_text_file, _make_build_dir, ensure_dir,
-    get_installed_version,
+    _make_build_dir, ask_path_exists, backup_dir, call_subprocess,
+    display_path, dist_in_site_packages, dist_in_usersite, ensure_dir,
+    get_installed_version, is_installable_dir, read_text_file, rmtree
 )
-
-from pip.utils.hashes import Hashes
 from pip.utils.deprecation import RemovedInPip11Warning
+from pip.utils.hashes import Hashes
 from pip.utils.logging import indent_log
 from pip.utils.setuptools_build import SETUPTOOLS_SHIM
+from pip.utils.temp_dir import TempDirectory
 from pip.utils.ui import open_spinner
-from pip.req.req_uninstall import UninstallPathSet
 from pip.vcs import vcs
-from pip.wheel import move_wheel_files, Wheel
-
+from pip.wheel import Wheel, move_wheel_files
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +101,7 @@ class InstallRequirement(object):
         # conflicts with another installed distribution:
         self.conflicts_with = None
         # Temporary build location
-        self._temp_build_dir = None
+        self._temp_build_dir = TempDirectory(kind="req-build")
         # Used to store the global directory where the _temp_build_dir should
         # have been created. Cf _correct_build_location method.
         self._ideal_build_dir = None
@@ -203,9 +194,12 @@ class InstallRequirement(object):
             link = Link(name)
         else:
             p, extras = _strip_extras(path)
-            if (os.path.isdir(p) and
-                    (os.path.sep in name or name.startswith('.'))):
-
+            looks_like_dir = os.path.isdir(p) and (
+                os.path.sep in name or
+                (os.path.altsep is not None and os.path.altsep in name) or
+                name.startswith('.')
+            )
+            if looks_like_dir:
                 if not is_installable_dir(p):
                     raise InstallationError(
                         "Directory %r is not installable. File 'setup.py' "
@@ -336,8 +330,9 @@ class InstallRequirement(object):
         return s
 
     def build_location(self, build_dir):
-        if self._temp_build_dir is not None:
-            return self._temp_build_dir
+        assert build_dir is not None
+        if self._temp_build_dir.path is not None:
+            return self._temp_build_dir.path
         if self.req is None:
             # for requirement via a path to a directory: the name of the
             # package is not available yet so we create a temp directory
@@ -346,11 +341,10 @@ class InstallRequirement(object):
             # Some systems have /tmp as a symlink which confuses custom
             # builds (such as numpy). Thus, we ensure that the real path
             # is returned.
-            self._temp_build_dir = os.path.realpath(
-                tempfile.mkdtemp('-build', 'pip-')
-            )
+            self._temp_build_dir.create()
             self._ideal_build_dir = build_dir
-            return self._temp_build_dir
+
+            return self._temp_build_dir.path
         if self.editable:
             name = self.name.lower()
         else:
@@ -375,10 +369,11 @@ class InstallRequirement(object):
         if self.source_dir is not None:
             return
         assert self.req is not None
-        assert self._temp_build_dir
-        assert self._ideal_build_dir
-        old_location = self._temp_build_dir
-        self._temp_build_dir = None
+        assert self._temp_build_dir.path
+        assert self._ideal_build_dir.path
+        old_location = self._temp_build_dir.path
+        self._temp_build_dir.path = None
+
         new_location = self.build_location(self._ideal_build_dir)
         if os.path.exists(new_location):
             raise InstallationError(
@@ -389,7 +384,7 @@ class InstallRequirement(object):
             self, display_path(old_location), display_path(new_location),
         )
         shutil.move(old_location, new_location)
-        self._temp_build_dir = new_location
+        self._temp_build_dir.path = new_location
         self._ideal_build_dir = None
         self.source_dir = os.path.normpath(os.path.abspath(new_location))
         self._egg_info_path = None
@@ -435,6 +430,18 @@ class InstallRequirement(object):
             setup_py = setup_py.encode(sys.getfilesystemencoding())
 
         return setup_py
+
+    @property
+    def pyproject_toml(self):
+        assert self.source_dir, "No source dir for %s" % self
+
+        pp_toml = os.path.join(self.setup_py_dir, 'pyproject.toml')
+
+        # Python2 __file__ should not be unicode
+        if six.PY2 and isinstance(pp_toml, six.text_type):
+            pp_toml = pp_toml.encode(sys.getfilesystemencoding())
+
+        return pp_toml
 
     def run_egg_info(self):
         assert self.source_dir
@@ -539,7 +546,7 @@ class InstallRequirement(object):
                         elif dir == 'test' or dir == 'tests':
                             dirs.remove(dir)
                     filenames.extend([os.path.join(root, dir)
-                                     for dir in dirs])
+                                      for dir in dirs])
                 filenames = [f for f in filenames if f.endswith('.egg-info')]
 
             if not filenames:
@@ -623,7 +630,7 @@ class InstallRequirement(object):
                 'Unexpected version control type (in %s): %s'
                 % (self.link, vc_type))
 
-    def uninstall(self, auto_confirm=False):
+    def uninstall(self, auto_confirm=False, verbose=False):
         """
         Uninstall the distribution currently satisfying this requirement.
 
@@ -643,7 +650,7 @@ class InstallRequirement(object):
         dist = self.satisfied_by or self.conflicts_with
 
         self.uninstalled_pathset = UninstallPathSet.from_dist(dist)
-        self.uninstalled_pathset.remove(auto_confirm)
+        self.uninstalled_pathset.remove(auto_confirm, verbose)
 
     def archive(self, build_dir):
         assert self.source_dir
@@ -738,9 +745,8 @@ class InstallRequirement(object):
         if self.isolated:
             global_options = list(global_options) + ["--no-user-cfg"]
 
-        temp_location = tempfile.mkdtemp('-record', 'pip-')
-        record_filename = os.path.join(temp_location, 'install-record.txt')
-        try:
+        with TempDirectory(kind="record") as temp_dir:
+            record_filename = os.path.join(temp_dir.path, 'install-record.txt')
             install_args = self.get_install_args(
                 global_options, record_filename, root, prefix)
             msg = 'Running setup.py install for %s' % (self.name,)
@@ -786,16 +792,12 @@ class InstallRequirement(object):
                     if os.path.isdir(filename):
                         filename += os.path.sep
                     new_lines.append(
-                        os.path.relpath(
-                            prepend_root(filename), egg_info_dir)
+                        os.path.relpath(prepend_root(filename), egg_info_dir)
                     )
+            ensure_dir(egg_info_dir)
             inst_files_path = os.path.join(egg_info_dir, 'installed-files.txt')
             with open(inst_files_path, 'w') as f:
                 f.write('\n'.join(new_lines) + '\n')
-        finally:
-            if os.path.exists(record_filename):
-                os.remove(record_filename)
-            rmtree(temp_location)
 
     def ensure_has_source_dir(self, parent_dir):
         """Ensure that a source_dir is set.
@@ -845,9 +847,7 @@ class InstallRequirement(object):
             logger.debug('Removing source in %s', self.source_dir)
             rmtree(self.source_dir)
         self.source_dir = None
-        if self._temp_build_dir and os.path.exists(self._temp_build_dir):
-            rmtree(self._temp_build_dir)
-        self._temp_build_dir = None
+        self._temp_build_dir.cleanup()
 
     def install_editable(self, install_options,
                          global_options=(), prefix=None):

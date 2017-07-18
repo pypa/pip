@@ -7,13 +7,11 @@ import platform
 import site
 import sys
 import sysconfig
-
 from distutils import sysconfig as distutils_sysconfig
-from distutils.command.install import install, SCHEME_KEYS  # noqa
+from distutils.command.install import SCHEME_KEYS, install  # noqa
 
 from pip.compat import WINDOWS, expanduser
 from pip.utils import appdirs
-
 
 # Application Directories
 USER_CACHE_DIR = appdirs.user_cache_dir("pip")
@@ -88,7 +86,12 @@ site_packages = sysconfig.get_path("purelib")
 # for more information.
 if platform.python_implementation().lower() == "pypy":
     site_packages = distutils_sysconfig.get_python_lib()
-user_site = site.USER_SITE
+try:
+    # Use getusersitepackages if this is present, as it ensures that the
+    # value is initialised properly.
+    user_site = site.getusersitepackages()
+except AttributeError:
+    user_site = site.USER_SITE
 user_dir = expanduser('~')
 if WINDOWS:
     bin_py = os.path.join(sys.prefix, 'Scripts')
@@ -116,7 +119,6 @@ else:
         legacy_storage_dir,
         config_basename,
     )
-
     # Forcing to use /usr/local/bin for standard macOS framework installs
     # Also log to ~/Library/Logs/ for use with the Console.app log viewer
     if sys.platform[:6] == 'darwin' and sys.prefix[:16] == '/System/Library/':
@@ -126,6 +128,9 @@ site_config_files = [
     os.path.join(path, config_basename)
     for path in appdirs.site_config_dirs('pip')
 ]
+
+venv_config_file = os.path.join(sys.prefix, config_basename)
+new_config_file = os.path.join(appdirs.user_config_dir("pip"), config_basename)
 
 
 def distutils_scheme(dist_name, user=False, home=None, root=None,

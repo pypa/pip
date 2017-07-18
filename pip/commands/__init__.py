@@ -4,6 +4,7 @@ Package containing all pip commands
 from __future__ import absolute_import
 
 from pip.commands.completion import CompletionCommand
+from pip.commands.configuration import ConfigurationCommand
 from pip.commands.download import DownloadCommand
 from pip.commands.freeze import FreezeCommand
 from pip.commands.hash import HashCommand
@@ -16,23 +17,6 @@ from pip.commands.install import InstallCommand
 from pip.commands.uninstall import UninstallCommand
 from pip.commands.wheel import WheelCommand
 
-
-commands_dict = {
-    CompletionCommand.name: CompletionCommand,
-    FreezeCommand.name: FreezeCommand,
-    HashCommand.name: HashCommand,
-    HelpCommand.name: HelpCommand,
-    SearchCommand.name: SearchCommand,
-    ShowCommand.name: ShowCommand,
-    InstallCommand.name: InstallCommand,
-    UninstallCommand.name: UninstallCommand,
-    DownloadCommand.name: DownloadCommand,
-    ListCommand.name: ListCommand,
-    CheckCommand.name: CheckCommand,
-    WheelCommand.name: WheelCommand,
-}
-
-
 commands_order = [
     InstallCommand,
     DownloadCommand,
@@ -41,12 +25,15 @@ commands_order = [
     ListCommand,
     ShowCommand,
     CheckCommand,
+    ConfigurationCommand,
     SearchCommand,
     WheelCommand,
     HashCommand,
     CompletionCommand,
     HelpCommand,
 ]
+
+commands_dict = {c.name: c for c in commands_order}
 
 
 def get_summaries(ordered=True):

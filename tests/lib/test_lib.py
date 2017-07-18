@@ -3,7 +3,7 @@ from __future__ import absolute_import
 
 import filecmp
 import re
-from os.path import join, isdir
+from os.path import isdir, join
 
 from tests.lib import SRC_DIR
 

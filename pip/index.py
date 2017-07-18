@@ -1,42 +1,42 @@
 """Routines related to PyPI, indexes"""
 from __future__ import absolute_import
 
-import logging
 import cgi
-from collections import namedtuple
 import itertools
-import sys
-import os
-import re
+import logging
 import mimetypes
+import os
 import posixpath
+import re
+import sys
 import warnings
+from collections import namedtuple
 
+from pip._vendor import html5lib, requests, six
+from pip._vendor.distlib.compat import unescape
+from pip._vendor.packaging import specifiers
+from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.packaging.version import parse as parse_version
+from pip._vendor.requests.exceptions import SSLError
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip.compat import ipaddress
+from pip.download import HAS_TLS, is_url, path_to_url, url_to_path
+from pip.exceptions import (
+    BestVersionAlreadyInstalled, DistributionNotFound, InvalidWheelFilename,
+    UnsupportedWheel
+)
+from pip.models import PyPI
+from pip.pep425tags import get_supported
 from pip.utils import (
-    cached_property, splitext, normalize_path,
-    ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS,
+    ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, cached_property, normalize_path,
+    splitext
 )
 from pip.utils.deprecation import RemovedInPip11Warning
 from pip.utils.logging import indent_log
 from pip.utils.packaging import check_requires_python
-from pip.exceptions import (
-    DistributionNotFound, BestVersionAlreadyInstalled, InvalidWheelFilename,
-    UnsupportedWheel,
-)
-from pip.download import HAS_TLS, is_url, path_to_url, url_to_path
 from pip.wheel import Wheel, wheel_ext
-from pip.pep425tags import get_supported
-from pip._vendor import html5lib, requests, six
-from pip._vendor.packaging.version import parse as parse_version
-from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.packaging import specifiers
-from pip._vendor.requests.exceptions import SSLError
-from pip._vendor.distlib.compat import unescape
-
 
 __all__ = ['FormatControl', 'fmt_ctl_handle_mutual_exclude', 'PackageFinder']
 
@@ -188,6 +188,18 @@ class PackageFinder(object):
                         "available."
                     )
                     break
+
+    def get_formatted_locations(self):
+        lines = []
+        if self.index_urls and self.index_urls != [PyPI.simple_url]:
+            lines.append(
+                "Looking in indexes: {}".format(", ".join(self.index_urls))
+            )
+        if self.find_links:
+            lines.append(
+                "Looking in links: {}".format(", ".join(self.find_links))
+            )
+        return "\n".join(lines)
 
     def add_dependency_links(self, links):
         # # FIXME: this shouldn't be global list this, it should only

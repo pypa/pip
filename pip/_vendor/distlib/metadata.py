@@ -50,7 +50,7 @@ PKG_INFO_ENCODING = 'utf-8'
 # to 1.2 once PEP 345 is supported everywhere
 PKG_INFO_PREFERRED_VERSION = '1.1'
 
-_LINE_PREFIX_1_2 = re.compile('\n       \|')
+_LINE_PREFIX_1_2 = re.compile('\n       \\|')
 _LINE_PREFIX_PRE_1_2 = re.compile('\n        ')
 _241_FIELDS = ('Metadata-Version', 'Name', 'Version', 'Platform',
                'Summary', 'Description',
@@ -634,7 +634,7 @@ class Metadata(object):
     instance which handles the key-value metadata format.
     """
 
-    METADATA_VERSION_MATCHER = re.compile('^\d+(\.\d+)*$')
+    METADATA_VERSION_MATCHER = re.compile(r'^\d+(\.\d+)*$')
 
     NAME_MATCHER = re.compile('^[0-9A-Z]([0-9A-Z_.-]*[0-9A-Z])?$', re.I)
 

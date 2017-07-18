@@ -3,15 +3,16 @@ from __future__ import absolute_import
 import logging
 import os
 
+from pip import cmdoptions
+from pip.basecommand import RequirementCommand
 from pip.exceptions import CommandError
 from pip.index import FormatControl
+from pip.operations.prepare import RequirementPreparer
 from pip.req import RequirementSet
-from pip.basecommand import RequirementCommand
-from pip import cmdoptions
+from pip.resolve import Resolver
 from pip.utils import ensure_dir, normalize_path
-from pip.utils.build import BuildDirectory
 from pip.utils.filesystem import check_path_owner
-
+from pip.utils.temp_dir import TempDirectory
 
 logger = logging.getLogger(__name__)
 
@@ -172,19 +173,12 @@ class DownloadCommand(RequirementCommand):
                 )
                 options.cache_dir = None
 
-            with BuildDirectory(options.build_dir,
-                                delete=build_delete) as build_dir:
+            with TempDirectory(
+                options.build_dir, delete=build_delete, kind="download"
+            ) as directory:
 
                 requirement_set = RequirementSet(
-                    build_dir=build_dir,
-                    src_dir=options.src_dir,
-                    download_dir=options.download_dir,
-                    ignore_installed=True,
-                    ignore_dependencies=options.ignore_dependencies,
-                    session=session,
-                    isolated=options.isolated_mode,
                     require_hashes=options.require_hashes,
-                    progress_bar=options.progress_bar
                 )
                 self.populate_requirement_set(
                     requirement_set,
@@ -196,7 +190,28 @@ class DownloadCommand(RequirementCommand):
                     None
                 )
 
-                requirement_set.prepare_files(finder)
+                preparer = RequirementPreparer(
+                    build_dir=directory.path,
+                    src_dir=options.src_dir,
+                    download_dir=options.download_dir,
+                    wheel_download_dir=None,
+                    progress_bar=options.progress_bar,
+                )
+
+                resolver = Resolver(
+                    preparer=preparer,
+                    finder=finder,
+                    session=session,
+                    wheel_cache=None,
+                    use_user_site=False,
+                    upgrade_strategy="to-satisfy-only",
+                    force_reinstall=False,
+                    ignore_dependencies=options.ignore_dependencies,
+                    ignore_requires_python=False,
+                    ignore_installed=True,
+                    isolated=options.isolated_mode,
+                )
+                resolver.resolve(requirement_set)
 
                 downloaded = ' '.join([
                     req.name for req in requirement_set.successfully_downloaded

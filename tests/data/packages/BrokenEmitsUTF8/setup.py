@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from distutils.core import setup
 import sys
+from distutils.core import setup
+
 
 class FakeError(Exception):
     pass

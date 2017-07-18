@@ -9,15 +9,15 @@ pass on state. To be consistent, all options will follow this design.
 """
 from __future__ import absolute_import
 
-from functools import partial
-from optparse import OptionGroup, SUPPRESS_HELP, Option
 import warnings
+from functools import partial
+from optparse import SUPPRESS_HELP, Option, OptionGroup
 
 from pip.index import (
-    FormatControl, fmt_ctl_handle_mutual_exclude, fmt_ctl_no_binary,
+    FormatControl, fmt_ctl_handle_mutual_exclude, fmt_ctl_no_binary
 )
-from pip.models import PyPI
 from pip.locations import USER_CACHE_DIR, src_prefix
+from pip.models import PyPI
 from pip.utils.hashes import STRONG_HASHES
 from pip.utils.ui import BAR_TYPES
 

@@ -19,9 +19,7 @@ Installing with get-pip.py
 --------------------------
 
 To install pip, securely download `get-pip.py
-<https://bootstrap.pypa.io/get-pip.py>`_. [2]_ i.e. 
-
-::
+<https://bootstrap.pypa.io/get-pip.py>`_. [1]_
 
  curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
  
@@ -38,8 +36,9 @@ Inspect ``get-pip.py`` for any malevolence. Then run the following:
    system or another package manager. ``get-pip.py`` does not coordinate with
    those tools, and may leave your system in an inconsistent state.
 
-``get-pip.py`` also installs :ref:`pypug:setuptools` [3]_ and :ref:`pypug:wheel` 
+``get-pip.py`` also installs :ref:`pypug:setuptools` [2]_ and :ref:`pypug:wheel` 
 if they are not already. :ref:`pypug:setuptools` is required to install
+
 :term:`source distributions <pypug:Source Distribution (or "sdist")>`.  Both are
 required in order to build a :ref:`Wheel cache` (which improves installation
 speed), although neither are required to install pre-built :term:`wheels
@@ -72,7 +71,7 @@ Install from local copies of pip and setuptools::
 
   python get-pip.py --no-index --find-links=/local/copies
 
-Install to the user site [4]_::
+Install to the user site [3]_::
 
   python get-pip.py --user
 
@@ -100,7 +99,7 @@ On Linux or macOS:
  pip install -U pip
 
 
-On Windows [5]_:
+On Windows [4]_:
 
 ::
 
@@ -121,20 +120,17 @@ pip works on Unix/Linux, macOS, and Windows.
 
 ----
 
-.. [1] For Python 2, see https://docs.python.org/2/installing, and for Python3,
-       see https://docs.python.org/3/installing.
-
-.. [2] "Secure" in this context means using a modern browser or a
+.. [1] "Secure" in this context means using a modern browser or a
        tool like `curl` that verifies SSL certificates when downloading from
        https URLs.
 
-.. [3] Beginning with pip v1.5.1, ``get-pip.py`` stopped requiring setuptools to
+.. [2] Beginning with pip v1.5.1, ``get-pip.py`` stopped requiring setuptools to
        be installed first.
 
-.. [4] The pip developers are considering making ``--user`` the default for all
+.. [3] The pip developers are considering making ``--user`` the default for all
        installs, including ``get-pip.py`` installs of pip, but at this time,
        ``--user`` installs for pip itself, should not be considered to be fully
        tested or endorsed. For discussion, see `Issue 1668
        <https://github.com/pypa/pip/issues/1668>`_.
 
-.. [5] https://github.com/pypa/pip/issues/1299
+.. [4] https://github.com/pypa/pip/issues/1299

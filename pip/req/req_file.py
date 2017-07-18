@@ -4,19 +4,19 @@ Requirements file parsing
 
 from __future__ import absolute_import
 
+import optparse
 import os
 import re
 import shlex
 import sys
-import optparse
 
-from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves import filterfalse
+from pip._vendor.six.moves.urllib import parse as urllib_parse
 
-from pip.download import get_file_content
-from pip.req.req_install import InstallRequirement
-from pip.exceptions import (RequirementsFileParseError)
 from pip import cmdoptions
+from pip.download import get_file_content
+from pip.exceptions import RequirementsFileParseError
+from pip.req.req_install import InstallRequirement
 
 __all__ = ['parse_requirements']
 

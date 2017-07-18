@@ -33,7 +33,7 @@ from .wheel import Wheel, is_compatible
 
 logger = logging.getLogger(__name__)
 
-HASHER_HASH = re.compile('^(\w+)=([a-f0-9]+)')
+HASHER_HASH = re.compile(r'^(\w+)=([a-f0-9]+)')
 CHARSET = re.compile(r';\s*charset\s*=\s*(.*)\s*$', re.I)
 HTML_CONTENT_TYPE = re.compile('text/html|application/x(ht)?ml')
 DEFAULT_INDEX = 'https://pypi.python.org/pypi'
@@ -47,7 +47,10 @@ def get_all_distribution_names(url=None):
     if url is None:
         url = DEFAULT_INDEX
     client = ServerProxy(url, timeout=3.0)
-    return client.list_packages()
+    try:
+        return client.list_packages()
+    finally:
+        client('close')()
 
 class RedirectHandler(BaseRedirectHandler):
     """
@@ -191,10 +194,11 @@ class Locator(object):
         basename = posixpath.basename(t.path)
         compatible = True
         is_wheel = basename.endswith('.whl')
+        is_downloadable = basename.endswith(self.downloadable_extensions)
         if is_wheel:
             compatible = is_compatible(Wheel(basename), self.wheel_tags)
         return (t.scheme != 'https', 'pypi.python.org' in t.netloc,
-                is_wheel, compatible, basename)
+                is_downloadable, is_wheel, compatible, basename)
 
     def prefer_url(self, url1, url2):
         """
@@ -520,9 +524,9 @@ class Page(object):
     # declared with double quotes, single quotes or no quotes - which leads to
     # the length of the expression.
     _href = re.compile("""
-(rel\s*=\s*(?:"(?P<rel1>[^"]*)"|'(?P<rel2>[^']*)'|(?P<rel3>[^>\s\n]*))\s+)?
-href\s*=\s*(?:"(?P<url1>[^"]*)"|'(?P<url2>[^']*)'|(?P<url3>[^>\s\n]*))
-(\s+rel\s*=\s*(?:"(?P<rel4>[^"]*)"|'(?P<rel5>[^']*)'|(?P<rel6>[^>\s\n]*)))?
+(rel\\s*=\\s*(?:"(?P<rel1>[^"]*)"|'(?P<rel2>[^']*)'|(?P<rel3>[^>\\s\n]*))\\s+)?
+href\\s*=\\s*(?:"(?P<url1>[^"]*)"|'(?P<url2>[^']*)'|(?P<url3>[^>\\s\n]*))
+(\\s+rel\\s*=\\s*(?:"(?P<rel4>[^"]*)"|'(?P<rel5>[^']*)'|(?P<rel6>[^>\\s\n]*)))?
 """, re.I | re.S | re.X)
     _base = re.compile(r"""<base\s+href\s*=\s*['"]?([^'">]+)""", re.I | re.S)
 
@@ -1236,7 +1240,7 @@ class DependencyFinder(object):
             ireqts = dist.run_requires | dist.meta_requires
             sreqts = dist.build_requires
             ereqts = set()
-            if dist in install_dists:
+            if meta_extras and dist in install_dists:
                 for key in ('test', 'build', 'dev'):
                     e = ':%s:' % key
                     if e in meta_extras:

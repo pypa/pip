@@ -2,11 +2,11 @@
 import os
 
 import pytest
-from mock import patch, Mock
-
+from mock import Mock, patch
 from pip._vendor.packaging.requirements import Requirement
+
 from pip import pep425tags, wheel
-from pip.compat import expanduser, WINDOWS
+from pip.compat import WINDOWS
 from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip.utils import unpack_file
 
@@ -362,18 +362,7 @@ class TestWheelBuilder(object):
             wheel_req = Mock(is_wheel=True, editable=False, constraint=False)
             reqset = Mock(requirements=Mock(values=lambda: [wheel_req]),
                           wheel_download_dir='/wheel/dir')
-            wb = wheel.WheelBuilder(reqset, Mock())
-            wb.build()
+            wb = wheel.WheelBuilder(reqset, Mock(), Mock(), wheel_cache=None)
+            wb.build(Mock())
             assert "due to already being wheel" in caplog.text
             assert mock_build_one.mock_calls == []
-
-
-class TestWheelCache:
-
-    def test_expands_path(self):
-        wc = wheel.WheelCache("~/.foo/", None)
-        assert wc._cache_dir == expanduser("~/.foo/")
-
-    def test_falsey_path_none(self):
-        wc = wheel.WheelCache(False, None)
-        assert wc._cache_dir is None
