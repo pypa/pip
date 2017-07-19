@@ -96,6 +96,12 @@ class Cache(object):
         """
         raise NotImplementedError()
 
+    def _link_for_candidate(self, link, candidate):
+        root = self.get_path_for_link(link)
+        path = os.path.join(root, candidate)
+
+        return pip.index.Link(path_to_url(path))
+
 
 class WheelCache(Cache):
     """A cache of wheels for future installs.
@@ -141,7 +147,4 @@ class WheelCache(Cache):
         if not candidates:
             return link
 
-        root = self.get_path_for_link(link)
-        path = os.path.join(root, min(candidates)[1])
-
-        return pip.index.Link(path_to_url(path))
+        return self._link_for_candidate(link, min(candidates)[1])
