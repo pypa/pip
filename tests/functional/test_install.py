@@ -889,29 +889,37 @@ def test_install_upgrade_editable_depending_on_other_editable(script):
     assert "pkgb==0.1" in result.stdout
 
 
-def test_install_subprocess_output_handling(script, data):
-    args = ['install', data.src.join('chattymodule')]
-
+def test_install_subprocess_output_hidden_by_default(script, data):
     # Regular install should not show output from the chatty setup.py
-    result = script.pip(*args)
+    result = script.pip('install', data.src.join('chattymodule'))
     assert 0 == result.stdout.count("HELLO FROM CHATTYMODULE")
-    script.pip("uninstall", "-y", "chattymodule")
 
+
+def test_install_subprocess_output_visible_on_verbose(script, data):
     # With --verbose we should show the output.
     # Only count examples with sys.argv[1] == egg_info, because we call
     # setup.py multiple times, which should not count as duplicate output.
-    result = script.pip(*(args + ["--verbose"]))
+    result = script.pip('install', data.src.join('chattymodule'), "--verbose")
     assert 1 == result.stdout.count("HELLO FROM CHATTYMODULE egg_info")
-    script.pip("uninstall", "-y", "chattymodule")
 
-    # If the install fails, then we *should* show the output... but only once,
+
+def test_install_subprocess_output_visible_on_fail(script, data):
+    # If the install fails, then we *should* show the output, only once.
     # even if --verbose is given.
-    result = script.pip(*(args + ["--global-option=--fail"]),
-                        expect_error=True)
+    result = script.pip(
+        'install', data.src.join('chattymodule'), "--global-option=--fail",
+        expect_error=True
+    )
     assert 1 == result.stdout.count("I DIE, I DIE")
 
-    result = script.pip(*(args + ["--global-option=--fail", "--verbose"]),
-                        expect_error=True)
+
+def test_install_subprocess_output_visible_on_verbose_and_fail(script, data):
+    # If the install fails, then we *should* show the output only once,
+    # even if --verbose is given.
+    result = script.pip(
+        'install', data.src.join('chattymodule'), "--global-option=--fail",
+        expect_error=True
+    )
     assert 1 == result.stdout.count("I DIE, I DIE")
 
 
