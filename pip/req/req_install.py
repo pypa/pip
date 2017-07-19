@@ -443,10 +443,36 @@ class InstallRequirement(object):
 
         return pp_toml
 
-    def run_egg_info(self):
+    # NOTE: The sdist cache is passed here because it is the minimum
+    # distruption change needed to introduce egg-info caching. Eventually,
+    # this would be changed and this method would likely stop being called
+    # if the data already exists in the cache.
+    def run_egg_info(self, sdist_cache):
         assert self.source_dir
 
-        self._generate_egg_info()
+        should_cache_egg_info = (
+            not self.editable and sdist_cache is not None and self.link and (
+                self.link.scheme != 'file' or not self.link.is_artifact
+            )
+        )
+        have_cached_egg_info = False
+
+        if should_cache_egg_info:
+            cached_egg_info_dir = os.path.join(
+                sdist_cache.get_path_for_link(self.link), "egg-info"
+            )
+            egg_info_dest_dir = os.path.join(self.setup_py_dir, 'pip-egg-info')
+
+            have_cached_egg_info = os.path.exists(cached_egg_info_dir)
+
+        if should_cache_egg_info and have_cached_egg_info:
+            # we have the egg-info cached, copy it into the right place
+            logger.info("Using cached egg-info for package %s", self.name)
+            shutil.copytree(cached_egg_info_dir, egg_info_dest_dir)
+        else:
+            self._generate_egg_info()
+            if should_cache_egg_info:
+                shutil.copytree(egg_info_dest_dir, cached_egg_info_dir)
 
         if not self.req:
             if isinstance(parse_version(self.pkg_info()["Version"]), Version):

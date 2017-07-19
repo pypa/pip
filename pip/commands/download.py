@@ -196,6 +196,7 @@ class DownloadCommand(RequirementCommand):
                     download_dir=options.download_dir,
                     wheel_download_dir=None,
                     progress_bar=options.progress_bar,
+                    sdist_cache=None,
                 )
 
                 resolver = Resolver(

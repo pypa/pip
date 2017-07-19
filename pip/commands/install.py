@@ -8,7 +8,7 @@ import shutil
 
 from pip import cmdoptions
 from pip.basecommand import RequirementCommand
-from pip.cache import WheelCache
+from pip.cache import SDistCache, WheelCache
 from pip.exceptions import (
     CommandError, InstallationError, PreviousBuildDirError
 )
@@ -226,6 +226,7 @@ class InstallCommand(RequirementCommand):
             finder = self._build_package_finder(options, session)
             build_delete = (not (options.no_clean or options.build_dir))
             wheel_cache = WheelCache(options.cache_dir, options.format_control)
+            sdist_cache = SDistCache(options.cache_dir, options.format_control)
             if options.cache_dir and not check_path_owner(options.cache_dir):
                 logger.warning(
                     "The directory '%s' or its parent directory is not owned "
@@ -257,6 +258,7 @@ class InstallCommand(RequirementCommand):
                     download_dir=None,
                     wheel_download_dir=None,
                     progress_bar=options.progress_bar,
+                    sdist_cache=sdist_cache,
                 )
                 try:
                     resolver = Resolver(
