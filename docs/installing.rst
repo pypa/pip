@@ -19,13 +19,11 @@ Installing with get-pip.py
 --------------------------
 
 To install pip, securely download `get-pip.py
-<https://bootstrap.pypa.io/get-pip.py>`_. [1]_
+<https://bootstrap.pypa.io/get-pip.py>`_. [1]_::
 
  curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
- 
-Inspect ``get-pip.py`` for any malevolence. Then run the following:
 
-::
+Inspect ``get-pip.py`` for any malevolence. Then run the following::
 
  python get-pip.py
 
@@ -38,7 +36,6 @@ Inspect ``get-pip.py`` for any malevolence. Then run the following:
 
 ``get-pip.py`` also installs :ref:`pypug:setuptools` [2]_ and :ref:`pypug:wheel` 
 if they are not already. :ref:`pypug:setuptools` is required to install
-
 :term:`source distributions <pypug:Source Distribution (or "sdist")>`.  Both are
 required in order to build a :ref:`Wheel cache` (which improves installation
 speed), although neither are required to install pre-built :term:`wheels
@@ -92,23 +89,18 @@ the `Python Packaging User Guide
 Upgrading pip
 -------------
 
-On Linux or macOS:
-
-::
+On Linux or macOS::
 
  pip install -U pip
 
 
-On Windows [4]_:
-
-::
+On Windows [4]_::
 
  python -m pip install -U pip
 
 
 Python and OS Compatibility
 ---------------------------
-
 
 pip works with CPython versions 2.7, 3.3, 3.4, 3.5, 3.6 and also pypy.
 
