@@ -156,6 +156,9 @@ class SDistCache(Cache):
     """A cache of sdists and metadata generated from them
     """
 
+    def __init__(self, cache_dir, format_control):
+        super(SDistCache, self).__init__(cache_dir, format_control, {"source"})
+
     def get_path_for_link(self, link):
         """Returns a directory to store cached sdist and metadata for link
         """
