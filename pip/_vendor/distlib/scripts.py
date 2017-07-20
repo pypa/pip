@@ -370,6 +370,16 @@ class ScriptMaker(object):
             self._copy_script(specification, filenames)
         else:
             self._make_script(entry, filenames, options=options)
+        if filenames:
+            # warn if installed scripts are not on PATH
+            path = os.environ.get('PATH', os.defpath)
+            path_dirs = set(p.rstrip(os.path.sep) for p in path.split(os.pathsep))
+            for filename in filenames:
+                bin_dir = os.path.dirname(filename)
+                if bin_dir not in path_dirs:
+                    logger.warning("Installed script %s not on PATH: %s."
+                                   "  You may want to add %s to your PATH.",
+                                   filename, path, bin_dir)
         return filenames
 
     def make_multiple(self, specifications, options=None):
