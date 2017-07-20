@@ -16,34 +16,28 @@ from pip.wheel import InvalidWheelFilename, Wheel
 logger = logging.getLogger(__name__)
 
 
-class WheelCache(object):
-    """A cache of wheels for future installs."""
+class Cache(object):
+    """An abstract class - provides cache directories for data from links
 
-    def __init__(self, cache_dir, format_control):
-        """Create a wheel cache.
 
         :param cache_dir: The root of the cache.
         :param format_control: A pip.index.FormatControl object to limit
             binaries being read from the cache.
-        """
-        self._cache_dir = expanduser(cache_dir) if cache_dir else None
-        self._format_control = format_control
+        :param allowed_formats: which formats of files the cache should store.
+            ('binary' and 'source' are the only allowed values)
+    """
 
-    def get_cache_path_for_link(self, link):
-        """
-        Return a directory to store cached wheels in for link.
+    def __init__(self, cache_dir, format_control, allowed_formats):
+        super(Cache, self).__init__()
+        self.cache_dir = expanduser(cache_dir) if cache_dir else None
+        self.format_control = format_control
+        self.allowed_formats = allowed_formats
 
-        Because there are M wheels for any one sdist, we provide a directory
-        to cache them in, and then consult that directory when looking up
-        cache hits.
+        _valid_formats = {"source", "binary"}
+        assert self.allowed_formats.union(_valid_formats) == _valid_formats
 
-        We only insert things into the cache if they have plausible version
-        numbers, so that we don't contaminate the cache with things that were
-        not unique. E.g. ./package might have dozens of installs done for it
-        and build a version of 0.0...and if we built and cached a wheel, we'd
-        end up using the same wheel even if the source has been edited.
-
-        :param link: The link of the sdist for which this will cache wheels.
+    def _get_cache_path_parts(self, link):
+        """Get parts of part that must be os.path.joined with cache_dir
         """
 
         # We want to generate an url to use as our cache key, we don't want to
@@ -65,37 +59,82 @@ class WheelCache(object):
         # FS.
         parts = [hashed[:2], hashed[2:4], hashed[4:6], hashed[6:]]
 
-        # Inside of the base location for cached wheels, expand our parts and
-        # join them all together.
-        return os.path.join(self._cache_dir, "wheels", *parts)
+        return parts
 
-    def cached_wheel(self, link, package_name):
-        not_cached = (
-            not self._cache_dir or
-            not link or
-            link.is_wheel or
-            not link.is_artifact or
-            not package_name
+    def _get_candidates(self, link, package_name):
+        can_not_cache = (
+            not self.cache_dir or
+            not package_name or
+            not link
         )
-
-        if not_cached:
-            return link
+        if can_not_cache:
+            return []
 
         canonical_name = canonicalize_name(package_name)
         formats = pip.index.fmt_ctl_formats(
-            self._format_control, canonical_name
+            self.format_control, canonical_name
         )
-        if "binary" not in formats:
-            return link
-        root = self.get_cache_path_for_link(link)
+        if not self.allowed_formats.intersection(formats):
+            return []
+
+        root = self.get_path_for_link(link)
         try:
-            wheel_names = os.listdir(root)
+            return os.listdir(root)
         except OSError as err:
             if err.errno in {errno.ENOENT, errno.ENOTDIR}:
-                return link
+                return []
             raise
+
+    def get_path_for_link(self, link):
+        """Return a directory to store cached items in for link.
+        """
+        raise NotImplementedError()
+
+    def get(self, link, package_name):
+        """Returns a link to a cached item if it exists, otherwise returns the
+        passed link.
+        """
+        raise NotImplementedError()
+
+    def _link_for_candidate(self, link, candidate):
+        root = self.get_path_for_link(link)
+        path = os.path.join(root, candidate)
+
+        return pip.index.Link(path_to_url(path))
+
+
+class WheelCache(Cache):
+    """A cache of wheels for future installs.
+    """
+
+    def __init__(self, cache_dir, format_control):
+        super(WheelCache, self).__init__(cache_dir, format_control, {"binary"})
+
+    def get_path_for_link(self, link):
+        """Return a directory to store cached wheels for link
+
+        Because there are M wheels for any one sdist, we provide a directory
+        to cache them in, and then consult that directory when looking up
+        cache hits.
+
+        We only insert things into the cache if they have plausible version
+        numbers, so that we don't contaminate the cache with things that were
+        not unique. E.g. ./package might have dozens of installs done for it
+        and build a version of 0.0...and if we built and cached a wheel, we'd
+        end up using the same wheel even if the source has been edited.
+
+        :param link: The link of the sdist for which this will cache wheels.
+        """
+        parts = self._get_cache_path_parts(link)
+
+        # Inside of the base location for cached wheels, expand our parts and
+        # join them all together.
+        return os.path.join(self.cache_dir, "wheels", *parts)
+
+    def get(self, link, package_name):
         candidates = []
-        for wheel_name in wheel_names:
+
+        for wheel_name in self._get_candidates(link, package_name):
             try:
                 wheel = Wheel(wheel_name)
             except InvalidWheelFilename:
@@ -104,8 +143,8 @@ class WheelCache(object):
                 # Built for a different python/arch/etc
                 continue
             candidates.append((wheel.support_index_min(), wheel_name))
+
         if not candidates:
             return link
-        candidates.sort()
-        path = os.path.join(root, candidates[0][1])
-        return pip.index.Link(path_to_url(path))
+
+        return self._link_for_candidate(link, min(candidates)[1])
