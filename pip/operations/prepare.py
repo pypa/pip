@@ -96,7 +96,6 @@ class IsSDist(DistAbstraction):
         return dist
 
     def prep_for_dist(self):
-        # TODO: Actually Look in cache
         self.req.run_egg_info(self._cache)
         self.req.assert_source_matches_version()
 

@@ -895,29 +895,26 @@ def test_install_subprocess_output_hidden_by_default(script, data):
     assert 0 == result.stdout.count("HELLO FROM CHATTYMODULE")
 
 
-def test_install_subprocess_output_visible_on_verbose(script, data):
-    # With --verbose we should show the output.
+def test_install_shows_subprocess_output_on_verbose(script, data):
     # Only count examples with sys.argv[1] == egg_info, because we call
     # setup.py multiple times, which should not count as duplicate output.
     result = script.pip('install', data.src.join('chattymodule'), "--verbose")
     assert 1 == result.stdout.count("HELLO FROM CHATTYMODULE egg_info")
 
 
-def test_install_subprocess_output_visible_on_fail(script, data):
-    # If the install fails, then we *should* show the output, only once.
-    # even if --verbose is given.
+def test_install_shows_subprocess_output_on_fail(script, data):
     result = script.pip(
-        'install', data.src.join('chattymodule'), "--global-option=--fail",
+        'install', data.src.join('chattymodule'),
+        "--global-option=--fail",
         expect_error=True
     )
     assert 1 == result.stdout.count("I DIE, I DIE")
 
 
-def test_install_subprocess_output_visible_on_verbose_and_fail(script, data):
-    # If the install fails, then we *should* show the output only once,
-    # even if --verbose is given.
+def test_install_shows_subprocess_output_on_verbose_and_fail(script, data):
     result = script.pip(
-        'install', data.src.join('chattymodule'), "--global-option=--fail",
+        'install', data.src.join('chattymodule'),
+        "--global-option=--fail", "--verbose",
         expect_error=True
     )
     assert 1 == result.stdout.count("I DIE, I DIE")

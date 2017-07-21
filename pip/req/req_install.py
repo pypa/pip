@@ -443,10 +443,11 @@ class InstallRequirement(object):
 
         return pp_toml
 
-    # NOTE: The sdist cache is passed here because it is the minimum
-    # distruption change needed to introduce egg-info caching. Eventually,
-    # this would be changed and this method would likely stop being called
-    # if the data already exists in the cache.
+    # NOTE
+    # The sdist cache is passed here because it is the minimum disruption
+    # change needed to introduce egg-info caching. Eventually, this method
+    # would be changed and would likely stop being called if the information
+    # already exists in the cache.
     def run_egg_info(self, sdist_cache):
         assert self.source_dir
 
