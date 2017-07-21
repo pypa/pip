@@ -923,6 +923,26 @@ def test_install_subprocess_output_visible_on_verbose_and_fail(script, data):
     assert 1 == result.stdout.count("I DIE, I DIE")
 
 
+def test_install_caches_sdist_egg_info(script, tmpdir):
+    result = script.pip_install_local(
+        '--cache-dir', tmpdir, '--verbose', 'chattymodule'
+    )
+    assert 1 == result.stdout.count("HELLO FROM CHATTYMODULE egg_info")
+
+    result = script.pip_install_local(
+        '--cache-dir', tmpdir, '--verbose', 'chattymodule'
+    )
+    assert 0 == result.stdout.count("HELLO FROM CHATTYMODULE egg_info")
+
+
+def test_install_does_not_cache_local_dir_egg_info(script, data):
+    result = script.pip('install', data.src.join('chattymodule'), '--verbose')
+    assert 1 == result.stdout.count("HELLO FROM CHATTYMODULE egg_info")
+
+    result = script.pip('install', data.src.join('chattymodule'), '--verbose')
+    assert 1 == result.stdout.count("HELLO FROM CHATTYMODULE egg_info")
+
+
 def test_install_log(script, data, tmpdir):
     # test that verbose logs go to "--log" file
     f = tmpdir.join("log.txt")
