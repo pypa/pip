@@ -4,14 +4,16 @@ from __future__ import absolute_import
 import logging
 import os
 
-from pip.basecommand import RequirementCommand
-from pip.exceptions import CommandError, PreviousBuildDirError
-from pip.req import RequirementSet
-from pip.utils import import_or_raise
-from pip.utils.build import BuildDirectory
-from pip.wheel import WheelCache, WheelBuilder
 from pip import cmdoptions
-
+from pip.basecommand import RequirementCommand
+from pip.cache import WheelCache
+from pip.exceptions import CommandError, PreviousBuildDirError
+from pip.operations.prepare import RequirementPreparer
+from pip.req import RequirementSet
+from pip.resolve import Resolver
+from pip.utils import import_or_raise
+from pip.utils.temp_dir import TempDirectory
+from pip.wheel import WheelBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -136,21 +138,12 @@ class WheelCommand(RequirementCommand):
             finder = self._build_package_finder(options, session)
             build_delete = (not (options.no_clean or options.build_dir))
             wheel_cache = WheelCache(options.cache_dir, options.format_control)
-            with BuildDirectory(options.build_dir,
-                                delete=build_delete) as build_dir:
+
+            with TempDirectory(
+                options.build_dir, delete=build_delete, kind="wheel"
+            ) as directory:
                 requirement_set = RequirementSet(
-                    build_dir=build_dir,
-                    src_dir=options.src_dir,
-                    download_dir=None,
-                    ignore_dependencies=options.ignore_dependencies,
-                    ignore_installed=True,
-                    ignore_requires_python=options.ignore_requires_python,
-                    isolated=options.isolated_mode,
-                    session=session,
-                    wheel_cache=wheel_cache,
-                    wheel_download_dir=options.wheel_dir,
                     require_hashes=options.require_hashes,
-                    progress_bar=options.progress_bar
                 )
 
                 self.populate_requirement_set(
@@ -158,15 +151,42 @@ class WheelCommand(RequirementCommand):
                     wheel_cache
                 )
 
+                preparer = RequirementPreparer(
+                    build_dir=directory.path,
+                    src_dir=options.src_dir,
+                    download_dir=None,
+                    wheel_download_dir=options.wheel_dir,
+                    progress_bar=options.progress_bar,
+                )
+
+                resolver = Resolver(
+                    preparer=preparer,
+                    finder=finder,
+                    session=session,
+                    wheel_cache=wheel_cache,
+                    use_user_site=False,
+                    upgrade_strategy="to-satisfy-only",
+                    force_reinstall=False,
+                    ignore_dependencies=options.ignore_dependencies,
+                    ignore_requires_python=options.ignore_requires_python,
+                    ignore_installed=True,
+                    isolated=options.isolated_mode,
+                )
+                resolver.resolve(requirement_set)
+
                 try:
                     # build wheels
                     wb = WheelBuilder(
                         requirement_set,
                         finder,
+                        preparer,
+                        wheel_cache,
                         build_options=options.build_options or [],
                         global_options=options.global_options or [],
+                        no_clean=options.no_clean,
                     )
-                    if not wb.build():
+                    wheels_built_successfully = wb.build(session=session)
+                    if not wheels_built_successfully:
                         raise CommandError(
                             "Failed to build one or more wheels"
                         )

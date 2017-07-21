@@ -1,5 +1,6 @@
 import os
 import textwrap
+
 import pytest
 
 from pip.status_codes import ERROR

@@ -2,13 +2,13 @@ from __future__ import absolute_import
 
 import logging
 import os
-import tempfile
 
-from pip.utils import display_path, rmtree
-from pip.vcs import vcs, VersionControl
-from pip.download import path_to_url
 from pip._vendor.six.moves import configparser
 
+from pip.download import path_to_url
+from pip.utils import display_path
+from pip.utils.temp_dir import TempDirectory
+from pip.vcs import VersionControl, vcs
 
 logger = logging.getLogger(__name__)
 
@@ -21,13 +21,12 @@ class Mercurial(VersionControl):
 
     def export(self, location):
         """Export the Hg repository at the url to the destination location"""
-        temp_dir = tempfile.mkdtemp('-export', 'pip-')
-        self.unpack(temp_dir)
-        try:
+        with TempDirectory(kind="export") as temp_dir:
+            self.unpack(temp_dir.path)
+
             self.run_command(
-                ['archive', location], show_stdout=False, cwd=temp_dir)
-        finally:
-            rmtree(temp_dir)
+                ['archive', location], show_stdout=False, cwd=temp_dir.path
+            )
 
     def switch(self, dest, url, rev_options):
         repo_config = os.path.join(dest, self.dirname, 'hgrc')
@@ -99,5 +98,6 @@ class Mercurial(VersionControl):
     def check_version(self, dest, rev_options):
         """Always assume the versions don't match"""
         return False
+
 
 vcs.register(Mercurial)

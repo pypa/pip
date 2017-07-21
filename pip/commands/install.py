@@ -1,26 +1,37 @@
 from __future__ import absolute_import
 
+import errno
 import logging
 import operator
 import os
-import tempfile
 import shutil
+
+from pip import cmdoptions
+from pip.basecommand import RequirementCommand
+from pip.cache import WheelCache
+from pip.exceptions import (
+    CommandError, InstallationError, PreviousBuildDirError
+)
+from pip.locations import distutils_scheme, virtualenv_no_global
+from pip.operations.prepare import RequirementPreparer
+from pip.req import RequirementSet
+from pip.resolve import Resolver
+from pip.status_codes import ERROR
+from pip.utils import ensure_dir, get_installed_version
+from pip.utils.filesystem import check_path_owner
+from pip.utils.temp_dir import TempDirectory
+from pip.wheel import WheelBuilder
+
 try:
     import wheel
 except ImportError:
     wheel = None
 
-from pip.req import RequirementSet
-from pip.basecommand import RequirementCommand
-from pip.locations import virtualenv_no_global, distutils_scheme
-from pip.exceptions import (
-    InstallationError, CommandError, PreviousBuildDirError,
-)
-from pip import cmdoptions
-from pip.utils import ensure_dir, get_installed_version
-from pip.utils.build import BuildDirectory
-from pip.utils.filesystem import check_path_owner
-from pip.wheel import WheelCache, WheelBuilder
+
+try:
+    import wheel
+except ImportError:
+    wheel = None
 
 
 logger = logging.getLogger(__name__)
@@ -109,7 +120,7 @@ class InstallCommand(RequirementCommand):
         cmd_opts.add_option(
             '--upgrade-strategy',
             dest='upgrade_strategy',
-            default='eager',
+            default='only-if-needed',
             choices=['only-if-needed', 'eager'],
             help='Determines how dependency upgrading should be handled '
                  '(default: %(default)s). '
@@ -170,6 +181,10 @@ class InstallCommand(RequirementCommand):
     def run(self, options, args):
         cmdoptions.check_install_build_global(options)
 
+        upgrade_strategy = "to-satisfy-only"
+        if options.upgrade:
+            upgrade_strategy = options.upgrade_strategy
+
         if options.build_dir:
             options.build_dir = os.path.abspath(options.build_dir)
 
@@ -189,10 +204,9 @@ class InstallCommand(RequirementCommand):
             install_options.append('--user')
             install_options.append('--prefix=')
 
-        temp_target_dir = None
+        target_temp_dir = TempDirectory(kind="target")
         if options.target_dir:
             options.ignore_installed = True
-            temp_target_dir = tempfile.mkdtemp()
             options.target_dir = os.path.abspath(options.target_dir)
             if (os.path.exists(options.target_dir) and not
                     os.path.isdir(options.target_dir)):
@@ -200,7 +214,10 @@ class InstallCommand(RequirementCommand):
                     "Target path exists but is not a directory, will not "
                     "continue."
                 )
-            install_options.append('--home=' + temp_target_dir)
+
+            # Create a target directory for using with the target option
+            target_temp_dir.create()
+            install_options.append('--home=' + target_temp_dir.path)
 
         global_options = options.global_options or []
 
@@ -220,49 +237,59 @@ class InstallCommand(RequirementCommand):
                 )
                 options.cache_dir = None
 
-            with BuildDirectory(options.build_dir,
-                                delete=build_delete) as build_dir:
+            with TempDirectory(
+                options.build_dir, delete=build_delete, kind="install"
+            ) as directory:
                 requirement_set = RequirementSet(
-                    build_dir=build_dir,
-                    src_dir=options.src_dir,
-                    upgrade=options.upgrade,
-                    upgrade_strategy=options.upgrade_strategy,
-                    ignore_installed=options.ignore_installed,
-                    ignore_dependencies=options.ignore_dependencies,
-                    ignore_requires_python=options.ignore_requires_python,
-                    force_reinstall=options.force_reinstall,
-                    use_user_site=options.use_user_site,
-                    target_dir=temp_target_dir,
-                    session=session,
+                    target_dir=target_temp_dir.path,
                     pycompile=options.compile,
-                    isolated=options.isolated_mode,
-                    wheel_cache=wheel_cache,
                     require_hashes=options.require_hashes,
-                    progress_bar=options.progress_bar,
+                    use_user_site=options.use_user_site,
                 )
 
                 self.populate_requirement_set(
                     requirement_set, args, options, finder, session, self.name,
                     wheel_cache
                 )
-
+                preparer = RequirementPreparer(
+                    build_dir=directory.path,
+                    src_dir=options.src_dir,
+                    download_dir=None,
+                    wheel_download_dir=None,
+                    progress_bar=options.progress_bar,
+                )
                 try:
-                    if (not wheel or not options.cache_dir):
-                        # on -d don't do complex things like building
-                        # wheels, and don't try to build wheels when wheel is
-                        # not installed.
-                        requirement_set.prepare_files(finder)
-                    else:
+                    resolver = Resolver(
+                        preparer=preparer,
+                        finder=finder,
+                        session=session,
+                        wheel_cache=wheel_cache,
+                        use_user_site=options.use_user_site,
+                        upgrade_strategy=upgrade_strategy,
+                        force_reinstall=options.force_reinstall,
+                        ignore_dependencies=options.ignore_dependencies,
+                        ignore_requires_python=options.ignore_requires_python,
+                        ignore_installed=options.ignore_installed,
+                        isolated=options.isolated_mode,
+                    )
+                    resolver.resolve(requirement_set)
+
+                    # on -d don't do complex things like building
+                    # wheels, and don't try to build wheels when wheel is
+                    # not installed.
+                    if wheel and options.cache_dir:
                         # build wheels before install.
                         wb = WheelBuilder(
                             requirement_set,
                             finder,
+                            preparer,
+                            wheel_cache,
                             build_options=[],
                             global_options=[],
                         )
                         # Ignore the result: a failed wheel will be
                         # installed from the sdist/vcs whatever.
-                        wb.build(autobuilding=True)
+                        wb.build(session=session, autobuilding=True)
 
                     requirement_set.install(
                         install_options,
@@ -273,7 +300,7 @@ class InstallCommand(RequirementCommand):
 
                     possible_lib_locations = get_lib_location_guesses(
                         user=options.use_user_site,
-                        home=temp_target_dir,
+                        home=target_temp_dir.path,
                         root=options.root_path,
                         prefix=options.prefix_path,
                         isolated=options.isolated_mode,
@@ -296,6 +323,26 @@ class InstallCommand(RequirementCommand):
                     installed = ' '.join(items)
                     if installed:
                         logger.info('Successfully installed %s', installed)
+                except EnvironmentError as e:
+                    message_parts = []
+
+                    user_option_part = "Consider using the `--user` option"
+                    permissions_part = "Check the permissions"
+
+                    if e.errno == errno.EPERM:
+                        if not options.use_user_site:
+                            message_parts.extend([
+                                user_option_part, " or ",
+                                permissions_part.lower(),
+                            ])
+                        else:
+                            message_parts.append(permissions_part)
+                        message_parts.append("\n")
+
+                    logger.error(
+                        "".join(message_parts), exc_info=(options.verbose > 1)
+                    )
+                    return ERROR
                 except PreviousBuildDirError:
                     options.no_clean = True
                     raise
@@ -305,15 +352,25 @@ class InstallCommand(RequirementCommand):
                         requirement_set.cleanup_files()
 
         if options.target_dir:
-            ensure_dir(options.target_dir)
+            self._handle_target_dir(
+                options.target_dir, target_temp_dir, options.upgrade
+            )
+        return requirement_set
 
+    def _handle_target_dir(self, target_dir, target_temp_dir, upgrade):
+        ensure_dir(target_dir)
+
+        # Checking both purelib and platlib directories for installed
+        # packages to be moved to target directory
+        lib_dir_list = []
+
+        with target_temp_dir:
             # Checking both purelib and platlib directories for installed
             # packages to be moved to target directory
-            lib_dir_list = []
-
-            purelib_dir = distutils_scheme('', home=temp_target_dir)['purelib']
-            platlib_dir = distutils_scheme('', home=temp_target_dir)['platlib']
-            data_dir = distutils_scheme('', home=temp_target_dir)['data']
+            scheme = distutils_scheme('', home=target_temp_dir.path)
+            purelib_dir = scheme['purelib']
+            platlib_dir = scheme['platlib']
+            data_dir = scheme['data']
 
             if os.path.exists(purelib_dir):
                 lib_dir_list.append(purelib_dir)
@@ -328,9 +385,9 @@ class InstallCommand(RequirementCommand):
                         ddir = os.path.join(data_dir, item)
                         if any(s.startswith(ddir) for s in lib_dir_list[:-1]):
                             continue
-                    target_item_dir = os.path.join(options.target_dir, item)
+                    target_item_dir = os.path.join(target_dir, item)
                     if os.path.exists(target_item_dir):
-                        if not options.upgrade:
+                        if not upgrade:
                             logger.warning(
                                 'Target directory %s already exists. Specify '
                                 '--upgrade to force replacement.',
@@ -355,8 +412,6 @@ class InstallCommand(RequirementCommand):
                         os.path.join(lib_dir, item),
                         target_item_dir
                     )
-            shutil.rmtree(temp_target_dir)
-        return requirement_set
 
 
 def get_lib_location_guesses(*args, **kwargs):

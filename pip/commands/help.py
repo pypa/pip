@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from pip.basecommand import Command, SUCCESS
+from pip.basecommand import SUCCESS, Command
 from pip.exceptions import CommandError
 
 
@@ -10,6 +10,7 @@ class HelpCommand(Command):
     usage = """
       %prog <command>"""
     summary = 'Show help for commands.'
+    ignore_require_venv = True
 
     def run(self, options, args):
         from pip.commands import commands_dict, get_similar_commands

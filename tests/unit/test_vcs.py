@@ -1,11 +1,12 @@
 import pytest
-from tests.lib import pyversion
+from mock import Mock
+from pip._vendor.packaging.version import parse as parse_version
+
 from pip.vcs import VersionControl
 from pip.vcs.bazaar import Bazaar
 from pip.vcs.git import Git
 from pip.vcs.subversion import Subversion
-from mock import Mock
-from pip._vendor.packaging.version import parse as parse_version
+from tests.lib import pyversion
 
 if pyversion >= '3':
     VERBOSE_FALSE = False

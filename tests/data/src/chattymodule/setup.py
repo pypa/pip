@@ -1,8 +1,9 @@
 # A chatty setup.py for testing pip subprocess output handling
 
-from setuptools import setup
 import os
 import sys
+
+from setuptools import setup
 
 print("HELLO FROM CHATTYMODULE %s" % (sys.argv[1],))
 print(os.environ)

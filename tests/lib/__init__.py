@@ -34,6 +34,19 @@ def path_to_url(path):
     return 'file://' + url
 
 
+def create_file(path, contents=None):
+    """Create a file on the path, with the given contents
+    """
+    from pip.utils import ensure_dir
+
+    ensure_dir(os.path.dirname(path))
+    with open(path, "w") as f:
+        if contents is not None:
+            f.write(contents)
+        else:
+            f.write("\n")
+
+
 class TestData(object):
     """
     Represents a bundle of pre-created test data.

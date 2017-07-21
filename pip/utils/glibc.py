@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
-import re
 import ctypes
 import platform
+import re
 import warnings
 
 

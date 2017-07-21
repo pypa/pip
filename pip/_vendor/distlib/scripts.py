@@ -38,7 +38,7 @@ _DEFAULT_MANIFEST = '''
 
 # check if Python is called on the first line with this expression
 FIRST_LINE_RE = re.compile(b'^#!.*pythonw?[0-9.]*([ \t].*)?$')
-SCRIPT_TEMPLATE = '''# -*- coding: utf-8 -*-
+SCRIPT_TEMPLATE = r'''# -*- coding: utf-8 -*-
 if __name__ == '__main__':
     import sys, re
 
@@ -57,7 +57,7 @@ if __name__ == '__main__':
         func = _resolve('%(module)s', '%(func)s')
         rc = func() # None interpreted as 0
     except Exception as e:  # only supporting Python >= 2.6
-        sys.stderr.write('%%s\\n' %% e)
+        sys.stderr.write('%%s\n' %% e)
         rc = 1
     sys.exit(rc)
 '''

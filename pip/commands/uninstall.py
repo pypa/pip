@@ -2,9 +2,9 @@ from __future__ import absolute_import
 
 from pip._vendor.packaging.utils import canonicalize_name
 
-from pip.req import InstallRequirement, parse_requirements
 from pip.basecommand import Command
 from pip.exceptions import InstallationError
+from pip.req import InstallRequirement, parse_requirements
 
 
 class UninstallCommand(Command):
@@ -64,5 +64,7 @@ class UninstallCommand(Command):
                     '"pip help %(name)s")' % dict(name=self.name)
                 )
             for req in reqs_to_uninstall.values():
-                req.uninstall(auto_confirm=options.yes)
+                req.uninstall(
+                    auto_confirm=options.yes, verbose=options.verbose != 0
+                )
                 req.uninstalled_pathset.commit()

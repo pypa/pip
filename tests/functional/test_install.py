@@ -1,19 +1,18 @@
+import glob
 import os
 import sys
 import textwrap
-import glob
-
-from os.path import join, curdir, pardir
+from os.path import curdir, join, pardir
 
 import pytest
 
 from pip import pep425tags
-from pip.utils import appdirs, rmtree
 from pip.status_codes import ERROR
-from tests.lib import (pyversion, pyversion_tuple,
-                       _create_test_package, _create_svn_repo, path_to_url,
-                       create_test_package_with_setup,
-                       requirements_file)
+from pip.utils import appdirs, rmtree
+from tests.lib import (
+    _create_svn_repo, _create_test_package, create_test_package_with_setup,
+    path_to_url, pyversion, pyversion_tuple, requirements_file
+)
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
 
@@ -114,6 +113,10 @@ def test_install_from_pypi(script):
     initools_folder = script.site_packages / 'initools'
     assert egg_info_folder in result.files_created, str(result)
     assert initools_folder in result.files_created, str(result)
+
+    # Should not display where it's looking for files
+    assert "Looking in indexes: " not in result.stdout
+    assert "Looking in links: " not in result.stdout
 
 
 def test_editable_install(script):
@@ -634,6 +637,10 @@ def test_install_package_with_root(script, data):
     )
     assert root_path in result.files_created, str(result)
 
+    # Should show find-links location in output
+    assert "Looking in indexes: " not in result.stdout
+    assert "Looking in links: " in result.stdout
+
 
 def test_install_package_with_prefix(script, data):
     """
@@ -810,6 +817,10 @@ def test_url_incorrect_case_file_index(script, data):
     egg_folder = script.site_packages / 'Dinner-2.0-py%s.egg-info' % pyversion
     assert egg_folder in result.files_created, str(result)
 
+    # Should show index-url location in output
+    assert "Looking in indexes: " in result.stdout
+    assert "Looking in links: " not in result.stdout
+
 
 @pytest.mark.network
 def test_compiles_pyc(script):
@@ -927,6 +938,7 @@ def test_install_topological_sort(script, data):
 @pytest.mark.network
 def test_install_wheel_broken(script, data):
     script.pip('install', 'wheel')
+    script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
     res = script.pip(
         'install', '--no-index', '-f', data.find_links, 'wheelbroken',
         expect_stderr=True)
@@ -936,6 +948,7 @@ def test_install_wheel_broken(script, data):
 @pytest.mark.network
 def test_cleanup_after_failed_wheel(script, data):
     script.pip('install', 'wheel')
+    script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
     res = script.pip(
         'install', '--no-index', '-f', data.find_links, 'wheelbrokenafter',
         expect_stderr=True)
@@ -954,6 +967,7 @@ def test_install_builds_wheels(script, data):
     # see test_install_editable_from_git_autobuild_wheel for editable
     # vcs coverage.
     script.pip('install', 'wheel')
+    script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
     to_install = data.packages.join('requires_wheelbroken_upper')
     res = script.pip(
         'install', '--no-index', '-f', data.find_links,
@@ -990,6 +1004,7 @@ def test_install_builds_wheels(script, data):
 @pytest.mark.network
 def test_install_no_binary_disables_building_wheels(script, data):
     script.pip('install', 'wheel')
+    script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
     to_install = data.packages.join('requires_wheelbroken_upper')
     res = script.pip(
         'install', '--no-index', '--no-binary=upper', '-f', data.find_links,
@@ -1022,6 +1037,7 @@ def test_install_no_binary_disables_building_wheels(script, data):
 @pytest.mark.network
 def test_install_no_binary_disables_cached_wheels(script, data):
     script.pip('install', 'wheel')
+    script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
     # Seed the cache
     script.pip(
         'install', '--no-index', '-f', data.find_links,

@@ -4,41 +4,37 @@ Support for installing and building the "wheel" binary package format.
 from __future__ import absolute_import
 
 import compileall
+import copy
 import csv
-import errno
 import hashlib
 import logging
-import os
 import os.path
 import re
 import shutil
 import stat
 import sys
-import tempfile
 import warnings
-
 from base64 import urlsafe_b64encode
 from email.parser import Parser
+from sysconfig import get_paths
 
+from pip._vendor import pkg_resources, pytoml
+from pip._vendor.distlib.scripts import ScriptMaker
+from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.six import StringIO
 
-import pip
-from pip.compat import expanduser
+import pip.index
+from pip import pep425tags
 from pip.download import path_to_url, unpack_url
 from pip.exceptions import (
-    InstallationError, InvalidWheelFilename, UnsupportedWheel)
-from pip.locations import distutils_scheme, PIP_DELETE_MARKER_FILENAME
-from pip import pep425tags
-from pip.utils import (
-    call_subprocess, ensure_dir, captured_stdout, rmtree, read_chunks,
+    InstallationError, InvalidWheelFilename, UnsupportedWheel
 )
-from pip.utils.ui import open_spinner
+from pip.locations import PIP_DELETE_MARKER_FILENAME, distutils_scheme
+from pip.utils import call_subprocess, captured_stdout, ensure_dir, read_chunks
 from pip.utils.logging import indent_log
 from pip.utils.setuptools_build import SETUPTOOLS_SHIM
-from pip._vendor.distlib.scripts import ScriptMaker
-from pip._vendor import pkg_resources
-from pip._vendor.packaging.utils import canonicalize_name
-
+from pip.utils.temp_dir import TempDirectory
+from pip.utils.ui import open_spinner
 
 wheel_ext = '.whl'
 
@@ -46,104 +42,6 @@ VERSION_COMPATIBLE = (1, 0)
 
 
 logger = logging.getLogger(__name__)
-
-
-class WheelCache(object):
-    """A cache of wheels for future installs."""
-
-    def __init__(self, cache_dir, format_control):
-        """Create a wheel cache.
-
-        :param cache_dir: The root of the cache.
-        :param format_control: A pip.index.FormatControl object to limit
-            binaries being read from the cache.
-        """
-        self._cache_dir = expanduser(cache_dir) if cache_dir else None
-        self._format_control = format_control
-
-    def cached_wheel(self, link, package_name):
-        return cached_wheel(
-            self._cache_dir, link, self._format_control, package_name)
-
-
-def _cache_for_link(cache_dir, link):
-    """
-    Return a directory to store cached wheels in for link.
-
-    Because there are M wheels for any one sdist, we provide a directory
-    to cache them in, and then consult that directory when looking up
-    cache hits.
-
-    We only insert things into the cache if they have plausible version
-    numbers, so that we don't contaminate the cache with things that were not
-    unique. E.g. ./package might have dozens of installs done for it and build
-    a version of 0.0...and if we built and cached a wheel, we'd end up using
-    the same wheel even if the source has been edited.
-
-    :param cache_dir: The cache_dir being used by pip.
-    :param link: The link of the sdist for which this will cache wheels.
-    """
-
-    # We want to generate an url to use as our cache key, we don't want to just
-    # re-use the URL because it might have other items in the fragment and we
-    # don't care about those.
-    key_parts = [link.url_without_fragment]
-    if link.hash_name is not None and link.hash is not None:
-        key_parts.append("=".join([link.hash_name, link.hash]))
-    key_url = "#".join(key_parts)
-
-    # Encode our key url with sha224, we'll use this because it has similar
-    # security properties to sha256, but with a shorter total output (and thus
-    # less secure). However the differences don't make a lot of difference for
-    # our use case here.
-    hashed = hashlib.sha224(key_url.encode()).hexdigest()
-
-    # We want to nest the directories some to prevent having a ton of top level
-    # directories where we might run out of sub directories on some FS.
-    parts = [hashed[:2], hashed[2:4], hashed[4:6], hashed[6:]]
-
-    # Inside of the base location for cached wheels, expand our parts and join
-    # them all together.
-    return os.path.join(cache_dir, "wheels", *parts)
-
-
-def cached_wheel(cache_dir, link, format_control, package_name):
-    if not cache_dir:
-        return link
-    if not link:
-        return link
-    if link.is_wheel:
-        return link
-    if not link.is_artifact:
-        return link
-    if not package_name:
-        return link
-    canonical_name = canonicalize_name(package_name)
-    formats = pip.index.fmt_ctl_formats(format_control, canonical_name)
-    if "binary" not in formats:
-        return link
-    root = _cache_for_link(cache_dir, link)
-    try:
-        wheel_names = os.listdir(root)
-    except OSError as e:
-        if e.errno in {errno.ENOENT, errno.ENOTDIR}:
-            return link
-        raise
-    candidates = []
-    for wheel_name in wheel_names:
-        try:
-            wheel = Wheel(wheel_name)
-        except InvalidWheelFilename:
-            continue
-        if not wheel.supported():
-            # Built for a different python/arch/etc
-            continue
-        candidates.append((wheel.support_index_min(), wheel_name))
-    if not candidates:
-        return link
-    candidates.sort()
-    path = os.path.join(root, candidates[0][1])
-    return pip.index.Link(path_to_url(path))
 
 
 def rehash(path, algo='sha256', blocksize=1 << 20):
@@ -186,6 +84,7 @@ def fix_script(path):
             script.write(firstline)
             script.write(rest)
         return True
+
 
 dist_info_re = re.compile(r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>.+?))?)
                                 \.dist-info$""", re.VERBOSE)
@@ -631,30 +530,137 @@ class Wheel(object):
         return bool(set(tags).intersection(self.file_tags))
 
 
+class BuildEnvironment(object):
+    """Context manager to install build deps in a simple temporary environment
+    """
+    def __init__(self, no_clean):
+        self._temp_dir = TempDirectory(kind="build-env")
+        self._no_clean = no_clean
+
+    def __enter__(self):
+        self._temp_dir.create()
+
+        self.save_path = os.environ.get('PATH', None)
+        self.save_pythonpath = os.environ.get('PYTHONPATH', None)
+
+        install_scheme = 'nt' if (os.name == 'nt') else 'posix_prefix'
+        install_dirs = get_paths(install_scheme, vars={
+            'base': self._temp_dir.path,
+            'platbase': self._temp_dir.path,
+        })
+
+        scripts = install_dirs['scripts']
+        if self.save_path:
+            os.environ['PATH'] = scripts + os.pathsep + self.save_path
+        else:
+            os.environ['PATH'] = scripts + os.pathsep + os.defpath
+
+        if install_dirs['purelib'] == install_dirs['platlib']:
+            lib_dirs = install_dirs['purelib']
+        else:
+            lib_dirs = install_dirs['purelib'] + os.pathsep + \
+                install_dirs['platlib']
+        if self.save_pythonpath:
+            os.environ['PYTHONPATH'] = lib_dirs + os.pathsep + \
+                self.save_pythonpath
+        else:
+            os.environ['PYTHONPATH'] = lib_dirs
+
+        return self._temp_dir.path
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if not self._no_clean:
+            self._temp_dir.cleanup()
+        if self.save_path is None:
+            os.environ.pop('PATH', None)
+        else:
+            os.environ['PATH'] = self.save_path
+
+        if self.save_pythonpath is None:
+            os.environ.pop('PYTHONPATH', None)
+        else:
+            os.environ['PYTHONPATH'] = self.save_pythonpath
+
+
 class WheelBuilder(object):
     """Build wheels from a RequirementSet."""
 
-    def __init__(self, requirement_set, finder, build_options=None,
-                 global_options=None):
+    def __init__(self, requirement_set, finder, preparer, wheel_cache,
+                 build_options=None, global_options=None, no_clean=False):
         self.requirement_set = requirement_set
         self.finder = finder
-        self._cache_root = requirement_set._wheel_cache._cache_dir
-        self._wheel_dir = requirement_set.wheel_download_dir
+        self.preparer = preparer
+        self.wheel_cache = wheel_cache
+
+        self._wheel_dir = preparer.wheel_download_dir
+
         self.build_options = build_options or []
         self.global_options = global_options or []
+        self.no_clean = no_clean
+
+    def _find_build_reqs(self, req):
+        """Get a list of the packages required to build the project, if any,
+        and a flag indicating whether pyproject.toml is present, indicating
+        that the build should be isolated.
+
+        Build requirements can be specified in a pyproject.toml, as described
+        in PEP 518. If this file exists but doesn't specify build
+        requirements, pip will default to installing setuptools and wheel.
+        """
+        if os.path.isfile(req.pyproject_toml):
+            with open(req.pyproject_toml) as f:
+                pp_toml = pytoml.load(f)
+            return pp_toml.get('build-system', {})\
+                .get('requires', ['setuptools', 'wheel']), True
+
+        return ['setuptools', 'wheel'], False
+
+    def _install_build_reqs(self, reqs, prefix):
+        # Local import to avoid circular import (wheel <-> req_install)
+        from pip.req.req_install import InstallRequirement
+        from pip.index import FormatControl
+        # Ignore the --no-binary option when installing the build system, so
+        # we don't recurse trying to build a self-hosting build system.
+        finder = copy.copy(self.finder)
+        finder.format_control = FormatControl(set(), set())
+        urls = [finder.find_requirement(InstallRequirement.from_line(r),
+                                        upgrade=False).url
+                for r in reqs]
+
+        args = [sys.executable, '-m', 'pip', 'install', '--ignore-installed',
+                '--prefix', prefix] + list(urls)
+        with open_spinner("Installing build dependencies") as spinner:
+            call_subprocess(args, show_stdout=False, spinner=spinner)
 
     def _build_one(self, req, output_dir, python_tag=None):
         """Build one wheel.
 
         :return: The filename of the built wheel, or None if the build failed.
         """
-        tempd = tempfile.mkdtemp('pip-wheel-')
-        try:
-            if self.__build_one(req, tempd, python_tag=python_tag):
+        build_reqs, isolate = self._find_build_reqs(req)
+        if 'setuptools' not in build_reqs:
+            logger.warning(
+                "This version of pip does not implement PEP 516, so "
+                "it cannot build a wheel without setuptools. You may need to "
+                "upgrade to a newer version of pip.")
+        # Install build deps into temporary directory (PEP 518)
+        with BuildEnvironment(self.no_clean) as prefix:
+            self._install_build_reqs(build_reqs, prefix)
+            return self._build_one_inside_env(req, output_dir,
+                                              python_tag=python_tag,
+                                              isolate=True)
+
+    def _build_one_inside_env(self, req, output_dir, python_tag=None,
+                              isolate=False):
+        with TempDirectory(kind="wheel") as temp_dir:
+            if self.__build_one(req, temp_dir.path, python_tag=python_tag,
+                                isolate=isolate):
                 try:
-                    wheel_name = os.listdir(tempd)[0]
+                    wheel_name = os.listdir(temp_dir.path)[0]
                     wheel_path = os.path.join(output_dir, wheel_name)
-                    shutil.move(os.path.join(tempd, wheel_name), wheel_path)
+                    shutil.move(
+                        os.path.join(temp_dir.path, wheel_name), wheel_path
+                    )
                     logger.info('Stored in directory: %s', output_dir)
                     return wheel_path
                 except:
@@ -662,17 +668,21 @@ class WheelBuilder(object):
             # Ignore return, we can't do anything else useful.
             self._clean_one(req)
             return None
-        finally:
-            rmtree(tempd)
 
-    def _base_setup_args(self, req):
+    def _base_setup_args(self, req, isolate=False):
+        flags = '-u'
+        # The -S flag currently breaks Python in virtualenvs, because it relies
+        # on site.py to find parts of the standard library outside the env. So
+        # isolation is disabled for now.
+        # if isolate:
+        #     flags += 'S'
         return [
-            sys.executable, "-u", '-c',
+            sys.executable, flags, '-c',
             SETUPTOOLS_SHIM % req.setup_py
         ] + list(self.global_options)
 
-    def __build_one(self, req, tempd, python_tag=None):
-        base_args = self._base_setup_args(req)
+    def __build_one(self, req, tempd, python_tag=None, isolate=False):
+        base_args = self._base_setup_args(req, isolate=isolate)
 
         spin_message = 'Running setup.py bdist_wheel for %s' % (req.name,)
         with open_spinner(spin_message) as spinner:
@@ -683,8 +693,13 @@ class WheelBuilder(object):
             if python_tag is not None:
                 wheel_args += ["--python-tag", python_tag]
 
+            env = {}
+            if isolate:
+                env['PYTHONNOUSERSITE'] = '1'
+
             try:
                 call_subprocess(wheel_args, cwd=req.setup_py_dir,
+                                extra_environ=env,
                                 show_stdout=False, spinner=spinner)
                 return True
             except:
@@ -704,16 +719,17 @@ class WheelBuilder(object):
             logger.error('Failed cleaning build dir for %s', req.name)
             return False
 
-    def build(self, autobuilding=False):
+    def build(self, session, autobuilding=False):
         """Build wheels.
 
         :param unpack: If True, replace the sdist we built from with the
             newly built wheel, in preparation for installation.
         :return: True if all the wheels built correctly.
         """
-        assert self._wheel_dir or (autobuilding and self._cache_root)
-        # unpack sdists and constructs req set
-        self.requirement_set.prepare_files(self.finder)
+        building_is_possible = self._wheel_dir or (
+            autobuilding and self.wheel_cache.cache_dir
+        )
+        assert building_is_possible
 
         reqset = self.requirement_set.requirements.values()
 
@@ -762,7 +778,7 @@ class WheelBuilder(object):
                 python_tag = None
                 if autobuilding:
                     python_tag = pep425tags.implementation_tag
-                    output_dir = _cache_for_link(self._cache_root, req.link)
+                    output_dir = self.wheel_cache.get_path_for_link(req.link)
                     try:
                         ensure_dir(output_dir)
                     except OSError as e:
@@ -793,7 +809,8 @@ class WheelBuilder(object):
                         # set the build directory again - name is known from
                         # the work prepare_files did.
                         req.source_dir = req.build_location(
-                            self.requirement_set.build_dir)
+                            self.preparer.build_dir
+                        )
                         # Update the link for this.
                         req.link = pip.index.Link(
                             path_to_url(wheel_file))
@@ -801,7 +818,7 @@ class WheelBuilder(object):
                         # extract the wheel into the dir
                         unpack_url(
                             req.link, req.source_dir, None, False,
-                            session=self.requirement_set.session)
+                            session=session)
                 else:
                     build_failure.append(req)
 
