@@ -159,7 +159,7 @@ class RequirementPreparer(object):
         )
 
         if req.editable:
-            return self._prepare_editable_requirement(
+            return self.prepare_editable_requirement(
                 req, resolver.require_hashes
             )
 
@@ -170,13 +170,13 @@ class RequirementPreparer(object):
             skip_reason = resolver._check_skip_installed(req)
 
         if req.satisfied_by:
-            return self._prepare_installed_requirement(
+            return self.prepare_installed_requirement(
                 req, resolver.require_hashes, skip_reason
             )
 
-        return self._prepare_linked_requirement(req, resolver)
+        return self.prepare_linked_requirement(req, resolver)
 
-    def _prepare_linked_requirement(self, req, resolver):
+    def prepare_linked_requirement(self, req, resolver):
         """Prepare a requirement that would be obtained from req.link
         """
         # TODO: Breakup into smaller functions
@@ -318,7 +318,7 @@ class RequirementPreparer(object):
                     )
         return abstract_dist
 
-    def _prepare_editable_requirement(self, req, require_hashes):
+    def prepare_editable_requirement(self, req, require_hashes):
         """Prepare an editable requirement
         """
         assert req.editable, "cannot prepare a non-editable req as editable"
@@ -344,7 +344,7 @@ class RequirementPreparer(object):
 
         return abstract_dist
 
-    def _prepare_installed_requirement(self, req, require_hashes, skip_reason):
+    def prepare_installed_requirement(self, req, require_hashes, skip_reason):
         """Prepare an already-installed requirement
         """
         assert req.satisfied_by, "req should have been satisfied but isn't"
