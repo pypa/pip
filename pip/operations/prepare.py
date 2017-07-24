@@ -148,34 +148,6 @@ class RequirementPreparer(object):
                     % display_path(self.download_dir))
         return False
 
-    def prepare_requirement(self, req, resolver):
-        """Prepare a requirement for installation
-
-        Returns an AbstractDist that can be used to install the package
-        """
-        # TODO: Remove circular dependency on resolver
-        assert resolver.require_hashes is not None, (
-            "require_hashes should have been set in Resolver.resolve()"
-        )
-
-        if req.editable:
-            return self.prepare_editable_requirement(
-                req, resolver.require_hashes
-            )
-
-        # satisfied_by is only evaluated by calling _check_skip_installed,
-        # so it must be None here.
-        assert req.satisfied_by is None
-        if not resolver.ignore_installed:
-            skip_reason = resolver._check_skip_installed(req)
-
-        if req.satisfied_by:
-            return self.prepare_installed_requirement(
-                req, resolver.require_hashes, skip_reason
-            )
-
-        return self.prepare_linked_requirement(req, resolver)
-
     def prepare_linked_requirement(self, req, resolver):
         """Prepare a requirement that would be obtained from req.link
         """

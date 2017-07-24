@@ -182,6 +182,29 @@ class Resolver(object):
         else:
             return None
 
+    def _get_abstract_dist_for(self, req):
+        assert self.require_hashes is not None, (
+            "require_hashes should have been set in Resolver.resolve()"
+        )
+
+        if req.editable:
+            return self.preparer.prepare_editable_requirement(
+                req, self.require_hashes
+            )
+
+        # satisfied_by is only evaluated by calling _check_skip_installed,
+        # so it must be None here.
+        assert req.satisfied_by is None
+        if not self.ignore_installed:
+            skip_reason = self._check_skip_installed(req)
+
+        if req.satisfied_by:
+            return self.preparer.prepare_installed_requirement(
+                req, self.require_hashes, skip_reason
+            )
+
+        return self.preparer.prepare_linked_requirement(req, self)
+
     def _resolve_one(self, requirement_set, req_to_install):
         """Prepare a single requirements file.
 
@@ -194,7 +217,7 @@ class Resolver(object):
             return []
 
         req_to_install.prepared = True
-        abstract_dist = self.preparer.prepare_requirement(req_to_install, self)
+        abstract_dist = self._get_abstract_dist_for(req_to_install)
 
         # register tmp src for cleanup in case something goes wrong
         requirement_set.reqs_to_cleanup.append(req_to_install)
