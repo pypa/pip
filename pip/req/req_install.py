@@ -298,7 +298,7 @@ class InstallRequirement(object):
             self.link = finder.find_requirement(self, upgrade)
         if self._wheel_cache is not None and not require_hashes:
             old_link = self.link
-            self.link = self._wheel_cache.cached_wheel(self.link, self.name)
+            self.link = self._wheel_cache.get(self.link, self.name)
             if old_link != self.link:
                 logger.debug('Using cached wheel link: %s', self.link)
 

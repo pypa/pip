@@ -200,8 +200,9 @@ def test_options_from_venv_config(script, virtualenv):
 
 
 @pytest.mark.network
-def test_install_no_binary_via_config_disables_cached_wheels(script, data):
-    script.pip('install', 'wheel')
+def test_install_no_binary_via_config_disables_cached_wheels(
+        script, data, common_wheels):
+    script.pip('install', 'wheel', '--no-index', '-f', common_wheels)
     config_file = tempfile.NamedTemporaryFile(mode='wt')
     script.environ['PIP_CONFIG_FILE'] = config_file.name
     config_file.write(textwrap.dedent("""\
