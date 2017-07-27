@@ -579,3 +579,40 @@ class TestParseRequirements(object):
             )
         assert options.format_control.no_binary == set([':all:'])
         assert options.format_control.only_binary == set([])
+
+    def test_global_options(self, tmpdir, finder, session, options):
+        global_options = [
+            '--dry-run',
+            '--without-libyaml',
+            ''
+        ]
+
+        content = '''
+        INITools==2.0 --global-option="{global_options[0]}"
+        requests==2.12.4 --global-option="{global_options[1]}"
+        jsonschema==2.5.1
+        '''.format(global_options=global_options)
+
+        with requirements_file(content, tmpdir) as reqs_file:
+            install_requirements = list(parse_requirements(reqs_file.abspath,
+                                        finder=finder,
+                                        options=options,
+                                        session=session))
+
+        for req_num, req in enumerate(install_requirements):
+            req.source_dir = os.curdir
+            with patch.object(subprocess, 'Popen') as popen:
+                popen.return_value.stdout.readline.return_value = ""
+                try:
+                    req.install([])
+                except:
+                    pass
+
+                call = popen.call_args_list[0][0][0]
+                for opt_num, opt in enumerate(global_options):
+                    if not opt:
+                        continue
+                    if opt_num == req_num:
+                        assert opt in call
+                    else:
+                        assert opt not in call
