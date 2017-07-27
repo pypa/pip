@@ -72,8 +72,7 @@ class DistAbstraction(object):
 class IsWheel(DistAbstraction):
 
     def dist(self, finder):
-        return list(pkg_resources.find_distributions(
-            self.req.source_dir))[0]
+        return list(pkg_resources.find_distributions(self.req.source_dir))[0]
 
     def prep_for_dist(self):
         # FIXME:https://github.com/pypa/pip/issues/1112
