@@ -6,7 +6,7 @@ import re
 
 import pytest
 
-from tests.lib import DATA_DIR, create_test_package_with_setup, path_to_url
+from tests.lib import DATA_DIR, create_basic_wheel_for_package, path_to_url
 from tests.lib.resolver_fixtures import fixture_id_func, generate_fixture_cases
 
 _conflict_finder_re = re.compile(
@@ -36,6 +36,9 @@ def _convert_to_dict(string):
     parts = stripping_split(string, ";")
 
     retval = {}
+    retval["depends"] = []
+    retval["extras"] = {}
+
     retval["name"], retval["version"] = stripping_split(parts[0], " ")
 
     for part in parts[1:]:
@@ -47,25 +50,6 @@ def _convert_to_dict(string):
     return retval
 
 
-def _convert_to_setup_args(package):
-    retval = {}
-    assert "name" in package, "name needs to be provided"
-    assert "version" in package, "name needs to be provided"
-
-    retval["name"] = package["name"]
-    retval["version"] = package["version"]
-
-    if package.get("depends", None):
-        retval["install_requires"] = package["depends"]
-
-    if package.get("extra_depends", None):
-        # NOTE: Maybe we could add a check about the contents of this
-        #       dictionary
-        retval["extras_require"] = package["extra_depends"]
-
-    return retval
-
-
 def handle_install_request(script, requirement):
     assert isinstance(requirement, str), (
         "Need install requirement to be a string only"
@@ -73,7 +57,6 @@ def handle_install_request(script, requirement):
     result = script.pip(
         "install",
         "--no-index", "--find-links", path_to_url(script.scratch_path),
-        "--verbose",
         requirement
     )
 
@@ -116,6 +99,7 @@ REQUEST_ACTIONS = {
     "install": handle_install_request
 }
 
+@pytest.mark.fixture
 @pytest.mark.parametrize(
     "fixture_case", generate_fixture_cases(DATA_DIR / "resolver"),
     ids=fixture_id_func
@@ -138,9 +122,7 @@ def test_resolver(script, fixture_case):
 
         assert isinstance(package, dict), "Needs to be a dictionary"
 
-        create_test_package_with_setup(
-            script, **_convert_to_setup_args(package)
-        )
+        create_basic_wheel_for_package(script, **package)
 
 
     # use scratch path for index

@@ -6,6 +6,8 @@ import sys
 import re
 import textwrap
 import site
+import shutil
+import zipfile
 
 import scripttest
 import virtualenv
@@ -643,3 +645,73 @@ def create_test_package_with_setup(script, **setup_kwargs):
         setup(**kwargs)
     """) % setup_kwargs)
     return pkg_path
+
+
+def create_basic_wheel_for_package(script, name, version, depends, extras):
+    files = {
+        "{name}/__init__.py": """
+            def hello():
+                return "Hello From {name}"
+        """,
+        "{dist_info}/DESCRIPTION": """
+            UNKNOWN
+        """,
+        "{dist_info}/WHEEL": """
+            Wheel-Version: 1.0
+            Generator: pip-test-suite
+            Root-Is-Purelib: true
+            Tag: py2-none-any
+            Tag: py3-none-any
+        """,
+        "{dist_info}/METADATA": """
+            Metadata-Version: 1.2
+            Name: {name}
+            Version: {version}
+            Summary: UNKNOWN
+            Home-page: UNKNOWN
+            Author: UNKNOWN
+            Author-email: UNKNOWN
+            License: UNKNOWN
+            Platform: UNKNOWN
+            {provides_extra}
+            {requires_dist}
+
+            UNKNOWN
+        """,
+    }
+
+    # Some useful shorthands
+    archive_name = "{name}-{version}-py2.py3-none-any.whl".format(
+        name=name, version=version
+    )
+    dist_info = "{name}-{version}.dist-info".format(
+        name=name, version=version
+    )
+
+    requires_dist = "\n".join("Requires-Dist: {}".format(p) for p in depends)
+    provides_extra = "Provides-Extra: " + (", ".join(extras.keys()))
+
+    # Replace key-values with formatted values
+    for key, value in list(files.items()):
+        del files[key]
+        key = key.format(name=name, dist_info=dist_info)
+        value = value.format(
+            name=name, version=version, requires_dist=requires_dist,
+            provides_extra=provides_extra
+        )
+        files[key] = value
+
+    for fname in files:
+        path = script.temp_path / fname
+        path.folder.mkdir()
+        path.write(files[fname])
+
+    retval = script.scratch_path / archive_name
+    generated = shutil.make_archive(retval, 'zip', script.temp_path, script.temp_path)
+    shutil.move(generated, retval)
+    print(generated, retval)
+
+    script.temp_path.rmtree()
+    script.temp_path.mkdir()
+
+    return retval

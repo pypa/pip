@@ -5,7 +5,7 @@ base:
     - C 1.0.0; depends D[extra2] == 1.0.0
     - name: D
       version: 1.0.0
-      extra_depends:
+      extras:
         extra_1: [E == 1.0.0]
         extra_2: [F == 1.0.0]
     - E 1.0.0
