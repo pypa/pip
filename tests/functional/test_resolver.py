@@ -73,7 +73,7 @@ def handle_install_request(script, requirement):
 
                 # TODO: information about extras.
 
-                retval["install"].append(name, version)
+                retval["install"].append(" ".join((name, version)))
 
         # TODO: Support checking uninstallations
         # retval["uninstall"] = []

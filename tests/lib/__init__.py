@@ -662,9 +662,11 @@ def create_basic_wheel_for_package(script, name, version, depends, extras):
             Root-Is-Purelib: true
             Tag: py2-none-any
             Tag: py3-none-any
+
+
         """,
         "{dist_info}/METADATA": """
-            Metadata-Version: 1.2
+            Metadata-Version: 2.0
             Name: {name}
             Version: {version}
             Summary: UNKNOWN
@@ -678,6 +680,11 @@ def create_basic_wheel_for_package(script, name, version, depends, extras):
 
             UNKNOWN
         """,
+        "{dist_info}/top_level.txt": """
+            {name}
+        """,
+        # Have an empty RECORD becuase we don't want to be checking hashes.
+        "{dist_info}/RECORD": ""
     }
 
     # Some useful shorthands
@@ -704,12 +711,11 @@ def create_basic_wheel_for_package(script, name, version, depends, extras):
     for fname in files:
         path = script.temp_path / fname
         path.folder.mkdir()
-        path.write(files[fname])
+        path.write(textwrap.dedent(files[fname]).strip())
 
     retval = script.scratch_path / archive_name
-    generated = shutil.make_archive(retval, 'zip', script.temp_path, script.temp_path)
+    generated = shutil.make_archive(retval, 'zip', script.temp_path)
     shutil.move(generated, retval)
-    print(generated, retval)
 
     script.temp_path.rmtree()
     script.temp_path.mkdir()
