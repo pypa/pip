@@ -169,7 +169,7 @@ class TestProcessLine(object):
         with pytest.raises(RequirementsFileParseError):
             list(process_line("--bogus", "file", 1))
 
-    def test_parser_offening_line(self):
+    def test_parser_offending_line(self):
         line = 'pkg==1.0.0 --hash=somehash'
         with pytest.raises(RequirementsFileParseError) as err:
             list(process_line(line, 'file', 1))

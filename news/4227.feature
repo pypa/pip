@@ -1,1 +1,1 @@
-Added description of an offending line in requirements file (--hash syntax error)
+Report the line which caused the hash error when using requirement files.
