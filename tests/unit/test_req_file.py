@@ -180,7 +180,7 @@ class TestProcessLine(object):
             list(process_line('pkg==1.0.0 --hash=sha256:somehash', 'file', 1))
         except RequirementsFileParseError:
             pytest.fail('Reported offending line where it should not.')
-   
+
     def test_only_one_req_per_line(self):
         # pkg_resources raises the ValueError
         with pytest.raises(InstallationError):
