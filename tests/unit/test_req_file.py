@@ -170,15 +170,17 @@ class TestProcessLine(object):
             list(process_line("--bogus", "file", 1))
 
     def test_parser_offening_line(self):
-        with pytest.raises(RequirementsFileParseError):
-            list(process_line('pkg==1.0.0 --hash=somehash', 'file', 1))
+        line = 'pkg==1.0.0 --hash=somehash'
+        with pytest.raises(RequirementsFileParseError) as err:
+            list(process_line(line, 'file', 1))
+        assert line in str(err.value)
 
     def test_parser_non_offending_line(self):
         try:
             list(process_line('pkg==1.0.0 --hash=sha256:somehash', 'file', 1))
         except RequirementsFileParseError:
             pytest.fail('Reported offending line where it should not.')
-        
+   
     def test_only_one_req_per_line(self):
         # pkg_resources raises the ValueError
         with pytest.raises(InstallationError):
