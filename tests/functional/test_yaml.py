@@ -74,6 +74,8 @@ def handle_install_request(script, requirement):
 
                 retval["install"].append(" ".join((name, version)))
 
+        retval["install"].sort()
+
         # TODO: Support checking uninstallations
         # retval["uninstall"] = []
 
