@@ -97,7 +97,7 @@ def handle_install_request(script, requirement):
 
 @pytest.mark.fixture
 @pytest.mark.parametrize(
-    "fixture_case", generate_fixture_cases(DATA_DIR / "resolver"),
+    "fixture_case", generate_fixture_cases(DATA_DIR.folder / "yaml"),
     ids=fixture_id_func
 )
 def test_resolver(script, fixture_case):
