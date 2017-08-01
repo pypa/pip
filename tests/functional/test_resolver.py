@@ -105,6 +105,9 @@ REQUEST_ACTIONS = {
     ids=fixture_id_func
 )
 def test_resolver(script, fixture_case):
+    if fixture_case.pop("skip", False):
+        pytest.skip("Skipping testcase.")
+
     available = fixture_case.get("available", [])
     requests = fixture_case.get("request", [])
     transaction = fixture_case.get("transaction", [])
