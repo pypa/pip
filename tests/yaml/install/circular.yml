@@ -21,25 +21,25 @@ cases:
     - install: B
   transaction:
     - install:
+      - A 1.0.0
       - B 1.0.0
       - C 1.0.0
       - D 1.0.0
-      - A 1.0.0
 -
   request:
     - install: C
   transaction:
     - install:
-      - C 1.0.0
-      - D 1.0.0
       - A 1.0.0
       - B 1.0.0
+      - C 1.0.0
+      - D 1.0.0
 -
   request:
     - install: D
   transaction:
     - install:
-      - D 1.0.0
       - A 1.0.0
       - B 1.0.0
       - C 1.0.0
+      - D 1.0.0

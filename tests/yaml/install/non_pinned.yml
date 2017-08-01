@@ -17,7 +17,7 @@ cases:
       - B 2.1.0
 -
   request:
-    - install: A <= 2.0.0
+    - install: A < 2.0.0
   transaction:
     - install:
       - A 1.0.0

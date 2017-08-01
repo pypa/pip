@@ -17,3 +17,4 @@ cases:
         selector: C == 1.0.0
       - required_by: [B 1.0.0]
         selector: C == 2.0.0
+  skip: true
