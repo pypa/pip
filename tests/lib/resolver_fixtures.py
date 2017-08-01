@@ -1,8 +1,6 @@
 """
 """
 
-import itertools
-
 import yaml
 
 
@@ -11,8 +9,8 @@ def generate_fixture_cases(fixture_dir):
         data = yaml.safe_load(fixture_file.read_text())
         assert "cases" in data, "A fixture needs cases to be used in testing"
 
-        # Strip the parts of the fixture_dir to only get a name without extension
-        # and resolver directory
+        # Strip the parts of the fixture_dir to only get a name without
+        # extension and resolver directory
         base_name = str(fixture_file)[len(str(fixture_dir)) + 1:-4]
 
         base = data.get("base", {})

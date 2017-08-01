@@ -24,7 +24,6 @@ _conflict_finder_re = re.compile(
 )
 
 
-
 def _convert_to_dict(string):
 
     def stripping_split(my_str, splitwith, count=None):

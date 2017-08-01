@@ -7,7 +7,6 @@ import re
 import textwrap
 import site
 import shutil
-import zipfile
 
 import scripttest
 import virtualenv
