@@ -203,7 +203,39 @@ class Resolver(object):
                 req, self.require_hashes, skip_reason
             )
 
-        return self.preparer.prepare_linked_requirement(req, self)
+        upgrade_allowed = self._is_upgrade_allowed(req)
+
+        abstract_dist = self.preparer.prepare_linked_requirement(
+            req, self.session, self.finder, upgrade_allowed,
+            self.require_hashes
+        )
+
+        # XXX: Not too sure about this. :P
+
+        # req.req is only available after unpack for URL pkgs repeat
+        # check_if_exists to uninstall-on-upgrade (#14)
+        if not self.ignore_installed:
+            req.check_if_exists()
+
+        if req.satisfied_by:
+            should_modify = (
+                self.upgrade_strategy != "to-satisfy-only" or
+                self.ignore_installed
+            )
+            if should_modify:
+                # don't uninstall conflict if user install and
+                # conflict is not user install
+                if not (self.use_user_site and
+                        not dist_in_usersite(req.satisfied_by)):
+                    req.conflicts_with = req.satisfied_by
+                req.satisfied_by = None
+            else:
+                logger.info(
+                    'Requirement already satisfied (use --upgrade to upgrade):'
+                    ' %s', req,
+                )
+
+        return abstract_dist
 
     def _resolve_one(self, requirement_set, req_to_install):
         """Prepare a single requirements file.
