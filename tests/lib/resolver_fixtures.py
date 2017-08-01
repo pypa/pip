@@ -1,6 +1,7 @@
 """
 """
 
+import pytest
 import yaml
 
 
@@ -23,6 +24,9 @@ def generate_fixture_cases(fixture_dir):
             case[":name:"] = base_name
             if len(cases) > 1:
                 case[":name:"] += "-" + str(i)
+
+            if case.pop("skip", False):
+                case = pytest.param(case, marks=pytest.mark.xfail)
 
             yield case
 
