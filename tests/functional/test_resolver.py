@@ -95,9 +95,6 @@ def handle_install_request(script, requirement):
 
     return retval
 
-REQUEST_ACTIONS = {
-    "install": handle_install_request
-}
 
 @pytest.mark.fixture
 @pytest.mark.parametrize(
@@ -127,6 +124,9 @@ def test_resolver(script, fixture_case):
 
         create_basic_wheel_for_package(script, **package)
 
+    available_actions = {
+        "install": handle_install_request
+    }
 
     # use scratch path for index
     for request, expected in zip(requests, transaction):
@@ -136,11 +136,11 @@ def test_resolver(script, fixture_case):
         # Get the only key
         action = list(request.keys())[0]
 
-        assert action in REQUEST_ACTIONS.keys(), (
+        assert action in available_actions.keys(), (
             "Unsupported action {!r}".format(action)
         )
 
         # Perform the requested action
-        effect = REQUEST_ACTIONS[action](script, request[action])
+        effect = available_actions[action](script, request[action])
 
         assert effect == expected, "Fixture did not succeed."
