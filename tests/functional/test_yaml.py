@@ -7,7 +7,7 @@ import re
 import pytest
 
 from tests.lib import DATA_DIR, create_basic_wheel_for_package, path_to_url
-from tests.lib.resolver_fixtures import fixture_id_func, generate_fixture_cases
+from tests.lib.yaml_helpers import test_id_func, generate_yaml_tests
 
 _conflict_finder_re = re.compile(
     # Conflicting Requirements: \
@@ -95,15 +95,14 @@ def handle_install_request(script, requirement):
     return retval
 
 
-@pytest.mark.fixture
+@pytest.mark.yaml
 @pytest.mark.parametrize(
-    "fixture_case", generate_fixture_cases(DATA_DIR.folder / "yaml"),
-    ids=fixture_id_func
+    "case", generate_yaml_tests(DATA_DIR.folder / "yaml"), ids=test_id_func
 )
-def test_resolver(script, fixture_case):
-    available = fixture_case.get("available", [])
-    requests = fixture_case.get("request", [])
-    transaction = fixture_case.get("transaction", [])
+def test_yaml_based(script, case):
+    available = case.get("available", [])
+    requests = case.get("request", [])
+    transaction = case.get("transaction", [])
 
     assert len(requests) == len(transaction), (
         "Expected requests and transaction counts to be same"

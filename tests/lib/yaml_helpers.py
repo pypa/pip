@@ -5,14 +5,14 @@ import pytest
 import yaml
 
 
-def generate_fixture_cases(fixture_dir):
-    for fixture_file in fixture_dir.glob("*/*.yml"):
-        data = yaml.safe_load(fixture_file.read_text())
+def generate_yaml_tests(directory):
+    for yml_file in directory.glob("*/*.yml"):
+        data = yaml.safe_load(yml_file.read_text())
         assert "cases" in data, "A fixture needs cases to be used in testing"
 
-        # Strip the parts of the fixture_dir to only get a name without
+        # Strip the parts of the directory to only get a name without
         # extension and resolver directory
-        base_name = str(fixture_file)[len(str(fixture_dir)) + 1:-4]
+        base_name = str(yml_file)[len(str(directory)) + 1:-4]
 
         base = data.get("base", {})
         cases = data["cases"]
@@ -31,8 +31,8 @@ def generate_fixture_cases(fixture_dir):
             yield case
 
 
-def fixture_id_func(param):
-    """Give a nice parameter name to the fixtured function
+def test_id_func(param):
+    """Give a nice parameter name to the generated function parameters
     """
     if isinstance(param, dict) and ":name:" in param:
         return param[":name:"]
