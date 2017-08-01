@@ -7,7 +7,7 @@ import re
 import pytest
 
 from tests.lib import DATA_DIR, create_basic_wheel_for_package, path_to_url
-from tests.lib.yaml_helpers import id_func, generate_yaml_tests
+from tests.lib.yaml_helpers import generate_yaml_tests, id_func
 
 _conflict_finder_re = re.compile(
     # Conflicting Requirements: \
