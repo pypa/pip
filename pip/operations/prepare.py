@@ -14,7 +14,7 @@ from pip.exceptions import (
     DirectoryUrlHashUnsupported, HashUnpinned, InstallationError,
     PreviousBuildDirError, VcsHashUnsupported
 )
-from pip.utils import display_path, dist_in_usersite, normalize_path
+from pip.utils import display_path, normalize_path
 from pip.utils.hashes import MissingHashes
 from pip.utils.logging import indent_log
 from pip.vcs import vcs
