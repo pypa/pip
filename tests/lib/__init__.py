@@ -674,7 +674,6 @@ def create_basic_wheel_for_package(script, name, version, depends, extras):
             Author-email: UNKNOWN
             License: UNKNOWN
             Platform: UNKNOWN
-            {provides_extra}
             {requires_dist}
 
             UNKNOWN
@@ -694,23 +693,27 @@ def create_basic_wheel_for_package(script, name, version, depends, extras):
         name=name, version=version
     )
 
-    requires_dist = "\n".join("Requires-Dist: {}".format(p) for p in depends)
-    provides_extra = "Provides-Extra: " + (", ".join(extras.keys()))
+    requires_dist = "\n".join([
+        "Requires-Dist: {}".format(pkg) for pkg in depends
+    ] + [
+        "Provides-Extra: {}".format(pkg) for pkg in extras.keys()
+    ] + [
+        "Requires-Dist: {}; extra == \"{}\"".format(pkg, extra)
+        for extra in extras for pkg in extras[extra]
+    ])
 
     # Replace key-values with formatted values
     for key, value in list(files.items()):
         del files[key]
         key = key.format(name=name, dist_info=dist_info)
-        value = value.format(
-            name=name, version=version, requires_dist=requires_dist,
-            provides_extra=provides_extra
-        )
-        files[key] = value
+        files[key] = textwrap.dedent(value).format(
+            name=name, version=version, requires_dist=requires_dist
+        ).strip()
 
     for fname in files:
         path = script.temp_path / fname
         path.folder.mkdir()
-        path.write(textwrap.dedent(files[fname]).strip())
+        path.write(files[fname])
 
     retval = script.scratch_path / archive_name
     generated = shutil.make_archive(retval, 'zip', script.temp_path)
