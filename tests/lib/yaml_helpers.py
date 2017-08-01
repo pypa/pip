@@ -31,7 +31,7 @@ def generate_yaml_tests(directory):
             yield case
 
 
-def test_id_func(param):
+def id_func(param):
     """Give a nice parameter name to the generated function parameters
     """
     if isinstance(param, dict) and ":name:" in param:

@@ -7,7 +7,7 @@ import re
 import pytest
 
 from tests.lib import DATA_DIR, create_basic_wheel_for_package, path_to_url
-from tests.lib.yaml_helpers import test_id_func, generate_yaml_tests
+from tests.lib.yaml_helpers import id_func, generate_yaml_tests
 
 _conflict_finder_re = re.compile(
     # Conflicting Requirements: \
@@ -97,7 +97,7 @@ def handle_install_request(script, requirement):
 
 @pytest.mark.yaml
 @pytest.mark.parametrize(
-    "case", generate_yaml_tests(DATA_DIR.folder / "yaml"), ids=test_id_func
+    "case", generate_yaml_tests(DATA_DIR.folder / "yaml"), ids=id_func
 )
 def test_yaml_based(script, case):
     available = case.get("available", [])
