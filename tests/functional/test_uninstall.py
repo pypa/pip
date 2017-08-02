@@ -468,3 +468,25 @@ def test_uninstall_editable_and_pip_install(script, data):
     ) in uninstall2.files_deleted, list(uninstall2.files_deleted.keys())
     list_result2 = script.pip('list', '--format=json')
     assert "FSPkg" not in {p["name"] for p in json.loads(list_result2.stdout)}
+
+
+def test_uninstall_ignores_missing_packages(script, data):
+    """Uninstall of a non existent package prints a warning and exits cleanly
+    """
+    result = script.pip(
+        'uninstall', '-y', 'non-existent-pkg', expect_stderr=True,
+    )
+
+    assert "Skipping non-existent-pkg as it is not installed." in result.stderr
+    assert result.returncode == 0, "Expected clean exit"
+
+
+def test_uninstall_ignores_missing_packages_and_uninstalls_rest(script, data):
+    script.pip_install_local('simple')
+    result = script.pip(
+        'uninstall', '-y', 'non-existent-pkg', 'simple', expect_stderr=True,
+    )
+
+    assert "Skipping non-existent-pkg as it is not installed." in result.stderr
+    assert "Successfully uninstalled simple" in result.stdout
+    assert result.returncode == 0, "Expected clean exit"
