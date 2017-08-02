@@ -37,6 +37,7 @@ import email.parser
 import tempfile
 import textwrap
 import itertools
+import inspect
 from pkgutil import get_importer
 
 try:
@@ -67,12 +68,14 @@ try:
 except ImportError:
     importlib_machinery = None
 
+from . import py31compat
 from pip._vendor import appdirs
 from pip._vendor import packaging
 __import__('pip._vendor.packaging.version')
 __import__('pip._vendor.packaging.specifiers')
 __import__('pip._vendor.packaging.requirements')
 __import__('pip._vendor.packaging.markers')
+
 
 if (3, 0) < sys.version_info < (3, 3):
     raise RuntimeError("Python 3.3 or later is required")
@@ -1550,7 +1553,7 @@ class EggProvider(NullProvider):
         path = self.module_path
         old = None
         while path != old:
-            if _is_unpacked_egg(path):
+            if _is_egg_path(path):
                 self.egg_name = os.path.basename(path)
                 self.egg_info = os.path.join(path, 'EGG-INFO')
                 self.egg_root = path
@@ -1953,7 +1956,7 @@ def find_eggs_in_zip(importer, path_item, only=False):
         # don't yield nested distros
         return
     for subitem in metadata.resource_listdir('/'):
-        if _is_unpacked_egg(subitem):
+        if _is_egg_path(subitem):
             subpath = os.path.join(path_item, subitem)
             for dist in find_eggs_in_zip(zipimport.zipimporter(subpath), subpath):
                 yield dist
@@ -2030,7 +2033,7 @@ def find_on_path(importer, path_item, only=False):
                     yield Distribution.from_location(
                         path_item, entry, metadata, precedence=DEVELOP_DIST
                     )
-                elif not only and _is_unpacked_egg(entry):
+                elif not only and _is_egg_path(entry):
                     dists = find_distributions(os.path.join(path_item, entry))
                     for dist in dists:
                         yield dist
@@ -2218,12 +2221,22 @@ def _normalize_cached(filename, _cache={}):
         return result
 
 
+def _is_egg_path(path):
+    """
+    Determine if given path appears to be an egg.
+    """
+    return (
+        path.lower().endswith('.egg')
+    )
+
+
 def _is_unpacked_egg(path):
     """
     Determine if given path appears to be an unpacked egg.
     """
     return (
-        path.lower().endswith('.egg')
+        _is_egg_path(path) and
+        os.path.isfile(os.path.join(path, 'EGG-INFO', 'PKG-INFO'))
     )
 
 
@@ -2937,20 +2950,20 @@ class Requirement(packaging.requirements.Requirement):
         return req
 
 
-def _get_mro(cls):
-    """Get an mro for a type or classic class"""
-    if not isinstance(cls, type):
-
-        class cls(cls, object):
-            pass
-
-        return cls.__mro__[1:]
-    return cls.__mro__
+def _always_object(classes):
+    """
+    Ensure object appears in the mro even
+    for old-style classes.
+    """
+    if object not in classes:
+        return classes + (object,)
+    return classes
 
 
 def _find_adapter(registry, ob):
     """Return an adapter factory for `ob` from `registry`"""
-    for t in _get_mro(getattr(ob, '__class__', type(ob))):
+    types = _always_object(inspect.getmro(getattr(ob, '__class__', type(ob))))
+    for t in types:
         if t in registry:
             return registry[t]
 
@@ -2958,8 +2971,7 @@ def _find_adapter(registry, ob):
 def ensure_directory(path):
     """Ensure that the parent directory of `path` exists"""
     dirname = os.path.dirname(path)
-    if not os.path.isdir(dirname):
-        os.makedirs(dirname)
+    py31compat.makedirs(dirname, exist_ok=True)
 
 
 def _bypass_ensure_directory(path):
