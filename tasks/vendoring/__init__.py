@@ -92,7 +92,7 @@ def rewrite_file_imports(item, vendored_libs):
 
 def apply_patch(ctx, patch_file_path):
     log('Applying patch %s' % patch_file_path.name)
-    ctx.run('git apply %s' % patch_file_path)
+    ctx.run('git apply --verbose %s' % patch_file_path)
 
 
 def vendor(ctx, vendor_dir):
@@ -108,6 +108,8 @@ def vendor(ctx, vendor_dir):
     # Cleanup setuptools unneeded parts
     (vendor_dir / 'easy_install.py').unlink()
     drop_dir(vendor_dir / 'setuptools')
+    drop_dir(vendor_dir / 'pkg_resources' / '_vendor')
+    drop_dir(vendor_dir / 'pkg_resources' / 'extern')
 
     # Drop interpreter and OS specific msgpack libs.
     # Pip will rely on the python-only fallback instead.
