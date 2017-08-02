@@ -2950,27 +2950,6 @@ class Requirement(packaging.requirements.Requirement):
         return req
 
 
-<<<<<<< HEAD
-def _get_mro(cls):
-    """Get an mro for a type or classic class"""
-    if not isinstance(cls, type):
-
-        class new_cls(cls, object):
-            pass
-
-        return new_cls.__mro__[1:]
-    return cls.__mro__
-||||||| merged common ancestors
-def _get_mro(cls):
-    """Get an mro for a type or classic class"""
-    if not isinstance(cls, type):
-
-        class cls(cls, object):
-            pass
-
-        return cls.__mro__[1:]
-    return cls.__mro__
-=======
 def _always_object(classes):
     """
     Ensure object appears in the mro even
@@ -2979,7 +2958,6 @@ def _always_object(classes):
     if object not in classes:
         return classes + (object,)
     return classes
->>>>>>> master
 
 
 def _find_adapter(registry, ob):
