@@ -1,0 +1,1 @@
+Requirement Files not longer pass global options from one package to later packages in the same file.
