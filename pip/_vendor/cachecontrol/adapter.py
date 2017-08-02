@@ -1,5 +1,6 @@
 import types
 import functools
+import zlib
 
 from pip._vendor.requests.adapters import HTTPAdapter
 
@@ -37,7 +38,10 @@ class CacheControlAdapter(HTTPAdapter):
         """
         cacheable = cacheable_methods or self.cacheable_methods
         if request.method in cacheable:
-            cached_response = self.controller.cached_request(request)
+            try:
+                cached_response = self.controller.cached_request(request)
+            except zlib.error:
+                cached_response = None
             if cached_response:
                 return self.build_response(request, cached_response,
                                            from_cache=True)
