@@ -149,9 +149,6 @@ class Resolver(object):
         if not req_to_install.satisfied_by:
             return None
 
-        # Is the best version is installed.
-        best_installed = False
-
         if self._is_upgrade_allowed(req_to_install):
             # For link based requirements we have to pull the
             # tree down and inspect to assess the version #, so
@@ -163,7 +160,8 @@ class Resolver(object):
                 try:
                     self.finder.find_requirement(req_to_install, upgrade=True)
                 except BestVersionAlreadyInstalled:
-                    best_installed = True
+                    # Then the best version is installed.
+                    return 'already up-to-date'
                 except DistributionNotFound:
                     # No distribution found, so we squash the
                     # error - it will be raised later when we
@@ -171,11 +169,9 @@ class Resolver(object):
                     # Why don't we just raise here?
                     pass
 
-            if not best_installed:
-                self._set_req_to_reinstall(req_to_install)
-                return None
+            self._set_req_to_reinstall(req_to_install)
+            return None
 
-            return 'already up-to-date'
 
         if self.upgrade_strategy == "only-if-needed":
             skip_reason = 'not upgraded as not directly required'
