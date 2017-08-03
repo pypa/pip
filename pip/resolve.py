@@ -146,46 +146,46 @@ class Resolver(object):
         """
         # Check whether to upgrade/reinstall this req or not.
         req_to_install.check_if_exists()
-        if req_to_install.satisfied_by:
-            upgrade_allowed = self._is_upgrade_allowed(req_to_install)
-
-            # Is the best version is installed.
-            best_installed = False
-
-            if upgrade_allowed:
-                # For link based requirements we have to pull the
-                # tree down and inspect to assess the version #, so
-                # its handled way down.
-                should_check_possibility_for_upgrade = not (
-                    self.force_reinstall or req_to_install.link
-                )
-                if should_check_possibility_for_upgrade:
-                    try:
-                        self.finder.find_requirement(
-                            req_to_install, upgrade_allowed)
-                    except BestVersionAlreadyInstalled:
-                        best_installed = True
-                    except DistributionNotFound:
-                        # No distribution found, so we squash the
-                        # error - it will be raised later when we
-                        # re-try later to do the install.
-                        # Why don't we just raise here?
-                        pass
-
-                if not best_installed:
-                    self._set_req_to_reinstall(req_to_install)
-
-            # Figure out a nice message to say why we're skipping this.
-            if best_installed:
-                skip_reason = 'already up-to-date'
-            elif self.upgrade_strategy == "only-if-needed":
-                skip_reason = 'not upgraded as not directly required'
-            else:
-                skip_reason = 'already satisfied'
-
-            return skip_reason
-        else:
+        if not req_to_install.satisfied_by:
             return None
+
+        upgrade_allowed = self._is_upgrade_allowed(req_to_install)
+
+        # Is the best version is installed.
+        best_installed = False
+
+        if upgrade_allowed:
+            # For link based requirements we have to pull the
+            # tree down and inspect to assess the version #, so
+            # its handled way down.
+            should_check_possibility_for_upgrade = not (
+                self.force_reinstall or req_to_install.link
+            )
+            if should_check_possibility_for_upgrade:
+                try:
+                    self.finder.find_requirement(
+                        req_to_install, upgrade_allowed)
+                except BestVersionAlreadyInstalled:
+                    best_installed = True
+                except DistributionNotFound:
+                    # No distribution found, so we squash the
+                    # error - it will be raised later when we
+                    # re-try later to do the install.
+                    # Why don't we just raise here?
+                    pass
+
+            if not best_installed:
+                self._set_req_to_reinstall(req_to_install)
+
+        # Figure out a nice message to say why we're skipping this.
+        if best_installed:
+            skip_reason = 'already up-to-date'
+        elif self.upgrade_strategy == "only-if-needed":
+            skip_reason = 'not upgraded as not directly required'
+        else:
+            skip_reason = 'already satisfied'
+
+        return skip_reason
 
     def _resolve_one(self, requirement_set, req_to_install):
         """Prepare a single requirements file.
