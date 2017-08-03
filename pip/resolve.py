@@ -204,13 +204,15 @@ class Resolver(object):
             )
 
         upgrade_allowed = self._is_upgrade_allowed(req)
-
         abstract_dist = self.preparer.prepare_linked_requirement(
             req, self.session, self.finder, upgrade_allowed,
             self.require_hashes
         )
 
-        # XXX: Not too sure about this. :P
+        # NOTE
+        # The following portion is for determining if a certain package is
+        # going to be re-installed/upgraded or not and reporting to the user.
+        # This should probably get cleaned up in a future refactor.
 
         # req.req is only available after unpack for URL pkgs repeat
         # check_if_exists to uninstall-on-upgrade (#14)
