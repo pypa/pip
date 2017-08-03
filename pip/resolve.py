@@ -149,12 +149,10 @@ class Resolver(object):
         if not req_to_install.satisfied_by:
             return None
 
-        upgrade_allowed = self._is_upgrade_allowed(req_to_install)
-
         # Is the best version is installed.
         best_installed = False
 
-        if upgrade_allowed:
+        if self._is_upgrade_allowed(req_to_install):
             # For link based requirements we have to pull the
             # tree down and inspect to assess the version #, so
             # its handled way down.
@@ -163,8 +161,7 @@ class Resolver(object):
             )
             if should_check_possibility_for_upgrade:
                 try:
-                    self.finder.find_requirement(
-                        req_to_install, upgrade_allowed)
+                    self.finder.find_requirement(req_to_install, upgrade=True)
                 except BestVersionAlreadyInstalled:
                     best_installed = True
                 except DistributionNotFound:
