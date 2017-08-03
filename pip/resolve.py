@@ -114,6 +114,17 @@ class Resolver(object):
             assert self.upgrade_strategy == "only-if-needed"
             return req.is_direct
 
+    def _set_req_to_reinstall(self, req):
+        """
+        Set a requirement to be installed.
+        """
+        # Don't uninstall the conflict if doing a user install and the
+        # conflict is not a user install.
+        if not (self.use_user_site and
+                not dist_in_usersite(req.satisfied_by)):
+            req.conflicts_with = req.satisfied_by
+        req.satisfied_by = None
+
     # XXX: Stop passing requirement_set for options
     def _check_skip_installed(self, req_to_install):
         """Check if req_to_install should be skipped.
@@ -162,13 +173,7 @@ class Resolver(object):
                         pass
 
                 if not best_installed:
-                    # don't uninstall conflict if user install and
-                    # conflict is not user install
-                    if not (self.use_user_site and not
-                            dist_in_usersite(req_to_install.satisfied_by)):
-                        req_to_install.conflicts_with = \
-                            req_to_install.satisfied_by
-                    req_to_install.satisfied_by = None
+                    self._set_req_to_reinstall(req_to_install)
 
             # Figure out a nice message to say why we're skipping this.
             if best_installed:

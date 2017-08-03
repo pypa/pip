@@ -14,7 +14,7 @@ from pip.exceptions import (
     DirectoryUrlHashUnsupported, HashUnpinned, InstallationError,
     PreviousBuildDirError, VcsHashUnsupported
 )
-from pip.utils import display_path, dist_in_usersite, normalize_path
+from pip.utils import display_path, normalize_path
 from pip.utils.hashes import MissingHashes
 from pip.utils.logging import indent_log
 from pip.vcs import vcs
@@ -302,12 +302,7 @@ class RequirementPreparer(object):
                     resolver.ignore_installed
                 )
                 if should_modify:
-                    # don't uninstall conflict if user install and
-                    # conflict is not user install
-                    if not (resolver.use_user_site and
-                            not dist_in_usersite(req.satisfied_by)):
-                        req.conflicts_with = req.satisfied_by
-                    req.satisfied_by = None
+                    resolver._set_req_to_reinstall(req)
                 else:
                     logger.info(
                         'Requirement already satisfied (use '
