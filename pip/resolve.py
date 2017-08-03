@@ -178,12 +178,9 @@ class Resolver(object):
                 self._set_req_to_reinstall(req_to_install)
                 return None
 
-            # If we got here, best_installed is true.
+            return 'already up-to-date'
 
-        # Figure out a nice message to say why we're skipping this.
-        if best_installed:
-            skip_reason = 'already up-to-date'
-        elif self.upgrade_strategy == "only-if-needed":
+        if self.upgrade_strategy == "only-if-needed":
             skip_reason = 'not upgraded as not directly required'
         else:
             skip_reason = 'already satisfied'
