@@ -164,8 +164,7 @@ class RequirementPreparer(object):
         # satisfied_by is only evaluated by calling _check_skip_installed,
         # so it must be None here.
         assert req.satisfied_by is None
-        if not resolver.ignore_installed:
-            skip_reason = resolver._check_skip_installed(req)
+        skip_reason = resolver._check_skip_installed(req)
 
         if req.satisfied_by:
             return self._prepare_installed_requirement(

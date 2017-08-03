@@ -144,7 +144,9 @@ class Resolver(object):
 
         :return: A text reason for why it was skipped, or None.
         """
-        # Check whether to upgrade/reinstall this req or not.
+        if self.ignore_installed:
+            return None
+
         req_to_install.check_if_exists()
         if not req_to_install.satisfied_by:
             return None
