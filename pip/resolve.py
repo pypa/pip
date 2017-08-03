@@ -176,6 +176,9 @@ class Resolver(object):
 
             if not best_installed:
                 self._set_req_to_reinstall(req_to_install)
+                return None
+
+            # If we got here, best_installed is true.
 
         # Figure out a nice message to say why we're skipping this.
         if best_installed:
