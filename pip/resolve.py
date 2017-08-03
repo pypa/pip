@@ -149,36 +149,30 @@ class Resolver(object):
         if not req_to_install.satisfied_by:
             return None
 
-        if self._is_upgrade_allowed(req_to_install):
-            # For link based requirements we have to pull the
-            # tree down and inspect to assess the version #, so
-            # its handled way down.
-            should_check_possibility_for_upgrade = not (
-                self.force_reinstall or req_to_install.link
-            )
-            if should_check_possibility_for_upgrade:
-                try:
-                    self.finder.find_requirement(req_to_install, upgrade=True)
-                except BestVersionAlreadyInstalled:
-                    # Then the best version is installed.
-                    return 'already up-to-date'
-                except DistributionNotFound:
-                    # No distribution found, so we squash the
-                    # error - it will be raised later when we
-                    # re-try later to do the install.
-                    # Why don't we just raise here?
-                    pass
+        if not self._is_upgrade_allowed(req_to_install):
+            if self.upgrade_strategy == "only-if-needed":
+                return 'not upgraded as not directly required'
+            return 'already satisfied'
 
-            self._set_req_to_reinstall(req_to_install)
-            return None
+        # For link-based requirements we have to pull the tree down and
+        # inspect to assess the version #, so it's handled way down.
+        should_check_possibility_for_upgrade = not (
+            self.force_reinstall or req_to_install.link
+        )
+        if should_check_possibility_for_upgrade:
+            try:
+                self.finder.find_requirement(req_to_install, upgrade=True)
+            except BestVersionAlreadyInstalled:
+                # Then the best version is installed.
+                return 'already up-to-date'
+            except DistributionNotFound:
+                # No distribution found, so we squash the error.  It will
+                # be raised later when we re-try later to do the install.
+                # Why don't we just raise here?
+                pass
 
-
-        if self.upgrade_strategy == "only-if-needed":
-            skip_reason = 'not upgraded as not directly required'
-        else:
-            skip_reason = 'already satisfied'
-
-        return skip_reason
+        self._set_req_to_reinstall(req_to_install)
+        return None
 
     def _resolve_one(self, requirement_set, req_to_install):
         """Prepare a single requirements file.
