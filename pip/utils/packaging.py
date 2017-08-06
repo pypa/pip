@@ -48,11 +48,10 @@ def check_dist_requires_python(dist):
     requires_python = pkg_info_dict.get('Requires-Python')
     try:
         if not check_requires_python(requires_python):
+            version_str = '.'.join(map(str, sys.version_info[:3]))
             raise exceptions.UnsupportedPythonVersion(
-                "%s requires Python '%s' but the running Python is %s" % (
-                    dist.project_name,
-                    requires_python,
-                    '.'.join(map(str, sys.version_info[:3])),)
+                "%s requires Python '%s' but the running Python is %s"
+                % (dist.project_name, requires_python, version_str)
             )
     except specifiers.InvalidSpecifier as e:
         logger.warning(

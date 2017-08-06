@@ -40,9 +40,8 @@ class Requirements(object):
 
 class RequirementSet(object):
 
-    def __init__(self,
-                 require_hashes=False, target_dir=None, use_user_site=False,
-                 pycompile=True):
+    def __init__(self, require_hashes=False, target_dir=None,
+                 use_user_site=False, pycompile=True):
         """Create a RequirementSet.
 
         :param wheel_cache: The pip wheel cache, for passing to
@@ -96,9 +95,10 @@ class RequirementSet(object):
         """
         name = install_req.name
         if not install_req.match_markers(extras_requested):
-            logger.warning("Ignoring %s: markers '%s' don't match your "
-                           "environment", install_req.name,
-                           install_req.markers)
+            logger.warning(
+                "Ignoring %s: markers '%s' don't match your environment",
+                install_req.name, install_req.markers
+            )
             return []
 
         # This check has to come after we filter requirements with the
@@ -166,8 +166,10 @@ class RequirementSet(object):
                     existing_req.extras = tuple(
                         sorted(set(existing_req.extras).union(
                                set(install_req.extras))))
-                    logger.debug("Setting %s extras to: %s",
-                                 existing_req, existing_req.extras)
+                    logger.debug(
+                        "Setting %s extras to: %s",
+                        existing_req, existing_req.extras
+                    )
                     # And now we need to scan this.
                     result = [existing_req]
                 # Canonicalise to the already-added object for the backref
@@ -189,8 +191,9 @@ class RequirementSet(object):
 
     @property
     def has_requirements(self):
-        return list(req for req in self.requirements.values() if not
-                    req.constraint) or self.unnamed_requirements
+        return list(
+            req for req in self.requirements.values() if not req.constraint
+        ) or self.unnamed_requirements
 
     def get_requirement(self, project_name):
         for name in project_name, project_name.lower():
@@ -236,8 +239,8 @@ class RequirementSet(object):
 
     def install(self, install_options, global_options=(), *args, **kwargs):
         """
-        Install everything in this set (after having downloaded and unpacked
-        the packages)
+        Install everything in this set \
+        (after having downloaded and unpacked the packages)
         """
         to_install = self._to_install()
 

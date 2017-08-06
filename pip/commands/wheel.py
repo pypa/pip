@@ -113,9 +113,7 @@ class WheelCommand(RequirementCommand):
             "To fix this, run: pip install --upgrade setuptools>=0.8"
         )
         pkg_resources = import_or_raise(
-            'pkg_resources',
-            CommandError,
-            need_setuptools_message
+            'pkg_resources', CommandError, need_setuptools_message
         )
         if not hasattr(pkg_resources, 'DistInfoDistribution'):
             raise CommandError(need_setuptools_message)

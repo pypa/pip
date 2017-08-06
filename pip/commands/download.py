@@ -114,8 +114,7 @@ class DownloadCommand(RequirementCommand):
         )
 
         index_opts = cmdoptions.make_option_group(
-            cmdoptions.index_group,
-            self.parser,
+            cmdoptions.index_group, self.parser,
         )
 
         self.parser.insert_option_group(0, index_opts)
@@ -217,9 +216,7 @@ class DownloadCommand(RequirementCommand):
                     req.name for req in requirement_set.successfully_downloaded
                 ])
                 if downloaded:
-                    logger.info(
-                        'Successfully downloaded %s', downloaded
-                    )
+                    logger.info('Successfully downloaded %s', downloaded)
 
                 # Clean up
                 if not options.no_clean:

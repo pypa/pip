@@ -97,9 +97,10 @@ def get_prog():
 
 # Retry every half second for up to 3 seconds
 @retry(stop_max_delay=3000, wait_fixed=500)
-def rmtree(dir, ignore_errors=False):
-    shutil.rmtree(dir, ignore_errors=ignore_errors,
-                  onerror=rmtree_errorhandler)
+def rmtree(dir_, ignore_errors=False):
+    shutil.rmtree(
+        dir_, ignore_errors=ignore_errors, onerror=rmtree_errorhandler
+    )
 
 
 def rmtree_errorhandler(func, path, exc_info):
@@ -312,9 +313,9 @@ def dist_in_site_packages(dist):
     Return True if given Distribution is installed in
     sysconfig.get_python_lib().
     """
-    return normalize_path(
-        dist_location(dist)
-    ).startswith(normalize_path(site_packages))
+    return normalize_path(dist_location(dist)).startswith(
+        normalize_path(site_packages)
+    )
 
 
 def dist_is_editable(dist):

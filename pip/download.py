@@ -589,8 +589,9 @@ def _download_url(resp, link, content_file, hashes, progress_bar):
         url = link.url_without_fragment
 
     if show_progress:  # We don't show progress on cached responses
-        progress_indicator = DownloadProgressProvider(progress_bar,
-                                                      max=total_length)
+        progress_indicator = DownloadProgressProvider(
+            progress_bar, max=total_length
+        )
         if total_length:
             logger.info("Downloading %s (%s)", url, format_size(total_length))
         else:
@@ -652,20 +653,18 @@ def unpack_http_url(link, location, download_dir=None,
         # If a download dir is specified, is the file already downloaded there?
         already_downloaded_path = None
         if download_dir:
-            already_downloaded_path = _check_download_dir(link,
-                                                          download_dir,
-                                                          hashes)
+            already_downloaded_path = _check_download_dir(
+                link, download_dir, hashes
+            )
 
         if already_downloaded_path:
             from_path = already_downloaded_path
             content_type = mimetypes.guess_type(from_path)[0]
         else:
             # let's download to a tmp dir
-            from_path, content_type = _download_http_url(link,
-                                                         session,
-                                                         temp_dir.path,
-                                                         hashes,
-                                                         progress_bar)
+            from_path, content_type = _download_http_url(
+                link, session, temp_dir.path, hashes, progress_bar
+            )
 
         # unpack the archive to the build dir location. even when only
         # downloading archives, they have to be unpacked to parse dependencies
@@ -707,9 +706,9 @@ def unpack_file_url(link, location, download_dir=None, hashes=None):
     # If a download dir is specified, is the file already there and valid?
     already_downloaded_path = None
     if download_dir:
-        already_downloaded_path = _check_download_dir(link,
-                                                      download_dir,
-                                                      hashes)
+        already_downloaded_path = _check_download_dir(
+            link, download_dir, hashes
+        )
 
     if already_downloaded_path:
         from_path = already_downloaded_path
@@ -779,8 +778,9 @@ class PipXmlrpcTransport(xmlrpc_client.Transport):
         url = urllib_parse.urlunparse(parts)
         try:
             headers = {'Content-Type': 'text/xml'}
-            response = self._session.post(url, data=request_body,
-                                          headers=headers, stream=True)
+            response = self._session.post(
+                url, data=request_body, headers=headers, stream=True
+            )
             response.raise_for_status()
             self.verbose = verbose
             return self.parse_response(response.raw)

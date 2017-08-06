@@ -52,9 +52,8 @@ def rehash(path, algo='sha256', blocksize=1 << 20):
         for block in read_chunks(f, size=blocksize):
             length += len(block)
             h.update(block)
-    digest = 'sha256=' + urlsafe_b64encode(
-        h.digest()
-    ).decode('latin1').rstrip('=')
+    digest = 'sha256='
+    digest += urlsafe_b64encode(h.digest()).decode('latin1').rstrip('=')
     return (digest, length)
 
 
@@ -86,8 +85,9 @@ def fix_script(path):
         return True
 
 
-dist_info_re = re.compile(r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>.+?))?)
-                                \.dist-info$""", re.VERBOSE)
+dist_info_re = re.compile(
+    r"^(?P<namever>(?P<name>.+?)(-(?P<ver>.+?))?)\.dist-info$", re.VERBOSE
+)
 
 
 def root_is_purelib(name, wheeldir):
@@ -623,12 +623,17 @@ class WheelBuilder(object):
         # we don't recurse trying to build a self-hosting build system.
         finder = copy.copy(self.finder)
         finder.format_control = FormatControl(set(), set())
-        urls = [finder.find_requirement(InstallRequirement.from_line(r),
-                                        upgrade=False).url
-                for r in reqs]
+        urls = [
+            finder.find_requirement(
+                InstallRequirement.from_line(r), upgrade=False
+            ).url
+            for r in reqs
+        ]
 
-        args = [sys.executable, '-m', 'pip', 'install', '--ignore-installed',
-                '--prefix', prefix] + list(urls)
+        args = [
+            sys.executable, '-m', 'pip', 'install', '--ignore-installed',
+            '--prefix', prefix
+        ] + list(urls)
         with open_spinner("Installing build dependencies") as spinner:
             call_subprocess(args, show_stdout=False, spinner=spinner)
 
@@ -646,9 +651,9 @@ class WheelBuilder(object):
         # Install build deps into temporary directory (PEP 518)
         with BuildEnvironment(self.no_clean) as prefix:
             self._install_build_reqs(build_reqs, prefix)
-            return self._build_one_inside_env(req, output_dir,
-                                              python_tag=python_tag,
-                                              isolate=True)
+            return self._build_one_inside_env(
+                req, output_dir, python_tag=python_tag, isolate=True
+            )
 
     def _build_one_inside_env(self, req, output_dir, python_tag=None,
                               isolate=False):

@@ -193,8 +193,9 @@ class UninstallPathSet(object):
         )
 
     def remove(self, auto_confirm=False, verbose=False):
-        """Remove paths in ``self.paths`` with confirmation (unless
-        ``auto_confirm`` is True)."""
+        """Remove paths in ``self.paths`` with confirmation \
+        (unless ``auto_confirm`` is True).
+        """
 
         if not self.paths:
             logger.info(
@@ -347,8 +348,9 @@ class UninstallPathSet(object):
             # i.e. setuptools-0.6c11-py2.6.egg vs setuptools-0.6rc11-py2.6.egg
             paths_to_remove.add(dist.location)
             easy_install_egg = os.path.split(dist.location)[1]
-            easy_install_pth = os.path.join(os.path.dirname(dist.location),
-                                            'easy-install.pth')
+            easy_install_pth = os.path.join(
+                os.path.dirname(dist.location), 'easy-install.pth'
+            )
             paths_to_remove.add_pth(easy_install_pth, './' + easy_install_egg)
 
         elif egg_info_exists and dist.egg_info.endswith('.dist-info'):
@@ -364,8 +366,9 @@ class UninstallPathSet(object):
                 '(at %s)' % (link_pointer, dist.project_name, dist.location)
             )
             paths_to_remove.add(develop_egg_link)
-            easy_install_pth = os.path.join(os.path.dirname(develop_egg_link),
-                                            'easy-install.pth')
+            easy_install_pth = os.path.join(
+                os.path.dirname(develop_egg_link), 'easy-install.pth'
+            )
             paths_to_remove.add_pth(easy_install_pth, dist.location)
 
         else:

@@ -68,7 +68,8 @@ class Mercurial(VersionControl):
     def get_url(self, location):
         url = self.run_command(
             ['showconfig', 'paths.default'],
-            show_stdout=False, cwd=location).strip()
+            show_stdout=False, cwd=location
+        ).strip()
         if self._is_local_repository(url):
             url = path_to_url(url)
         return url.strip()
@@ -76,13 +77,15 @@ class Mercurial(VersionControl):
     def get_revision(self, location):
         current_revision = self.run_command(
             ['parents', '--template={rev}'],
-            show_stdout=False, cwd=location).strip()
+            show_stdout=False, cwd=location
+        ).strip()
         return current_revision
 
     def get_revision_hash(self, location):
         current_rev_hash = self.run_command(
             ['parents', '--template={node}'],
-            show_stdout=False, cwd=location).strip()
+            show_stdout=False, cwd=location
+        ).strip()
         return current_rev_hash
 
     def get_src_requirement(self, dist, location):

@@ -72,8 +72,7 @@ class DistAbstraction(object):
 class IsWheel(DistAbstraction):
 
     def dist(self, finder):
-        return list(pkg_resources.find_distributions(
-            self.req.source_dir))[0]
+        return list(pkg_resources.find_distributions(self.req.source_dir))[0]
 
     def prep_for_dist(self):
         # FIXME:https://github.com/pypa/pip/issues/1112
@@ -277,13 +276,11 @@ class RequirementPreparer(object):
             except requests.HTTPError as exc:
                 logger.critical(
                     'Could not install requirement %s because of error %s',
-                    req,
-                    exc,
+                    req, exc,
                 )
                 raise InstallationError(
                     'Could not install requirement %s because of HTTP '
-                    'error %s for URL %s' %
-                    (req, exc, req.link)
+                    'error %s for URL %s' % (req, exc, req.link)
                 )
             abstract_dist = make_abstract_dist(req)
             abstract_dist.prep_for_dist()
@@ -310,8 +307,8 @@ class RequirementPreparer(object):
                     req.satisfied_by = None
                 else:
                     logger.info(
-                        'Requirement already satisfied (use '
-                        '--upgrade to upgrade): %s',
+                        'Requirement already satisfied '
+                        '(use --upgrade to upgrade): %s',
                         req,
                     )
         return abstract_dist
@@ -347,8 +344,8 @@ class RequirementPreparer(object):
         """
         assert req.satisfied_by, "req should have been satisfied but isn't"
         assert skip_reason is not None, (
-            "did not get skip reason skipped but req.satisfied_by "
-            "is set to %r" % (req.satisfied_by,)
+            "did not get skip reason skipped but req.satisfied_by is set to %r"
+            % (req.satisfied_by,)
         )
         logger.info(
             'Requirement %s: %s (%s)',

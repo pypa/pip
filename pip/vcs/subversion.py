@@ -33,9 +33,7 @@ class Subversion(VersionControl):
         assert not location.rstrip('/').endswith(self.dirname), \
             'Bad directory: %s' % location
         output = self.run_command(
-            ['info', location],
-            show_stdout=False,
-            extra_environ={'LANG': 'C'},
+            ['info', location], show_stdout=False, extra_environ={'LANG': 'C'}
         )
         match = _svn_url_re.search(output)
         if not match:
