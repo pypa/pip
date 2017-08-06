@@ -16,7 +16,7 @@ from pip.exceptions import (
 )
 from pip.index import PackageFinder
 from pip.operations.prepare import RequirementPreparer
-from pip.req import InstallRequirement, Requirements, RequirementSet
+from pip.req import InstallRequirement, RequirementSet
 from pip.req.req_file import process_line
 from pip.req.req_install import parse_editable
 from pip.resolve import Resolver
