@@ -51,8 +51,11 @@ def get_impl_version_info():
     version."""
     if get_abbr_impl() == 'pp':
         # as per https://github.com/pypa/pip/issues/2882
-        return (sys.version_info[0], sys.pypy_version_info.major,
-                sys.pypy_version_info.minor)
+        return (
+            sys.version_info[0],
+            sys.pypy_version_info.major,
+            sys.pypy_version_info.minor
+        )
     else:
         return sys.version_info[0], sys.version_info[1]
 
@@ -70,8 +73,11 @@ def get_flag(var, fallback, expected=True, warn=True):
     val = get_config_var(var)
     if val is None:
         if warn:
-            logger.debug("Config variable '%s' is unset, Python ABI tag may "
-                         "be incorrect", var)
+            logger.debug(
+                "Config variable '%s' is unset, "
+                "Python ABI tag may be incorrect",
+                var
+            )
         return fallback()
     return val == expected
 
