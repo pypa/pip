@@ -816,7 +816,7 @@ class WheelBuilder(object):
                             req.source_dir and
                             not os.path.exists(os.path.join(
                                 req.source_dir, PIP_DELETE_MARKER_FILENAME
-                            )
+                            ))
                         )
                         if bad_src_dir:
                             raise AssertionError(
