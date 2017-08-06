@@ -835,9 +835,10 @@ class InstallRequirement(object):
 
         if running_under_virtualenv():
             py_ver_str = 'python' + sysconfig.get_python_version()
-            install_args += ['--install-headers',
-                             os.path.join(sys.prefix, 'include', 'site',
-                                          py_ver_str, self.name)]
+            header_location = os.path.join(
+                sys.prefix, 'include', 'site', py_ver_str, self.name
+            )
+            install_args += ['--install-headers', header_location]
 
         return install_args
 
@@ -863,19 +864,14 @@ class InstallRequirement(object):
             install_options = list(install_options) + prefix_param
 
         with indent_log():
-            # FIXME: should we do --install-headers here too?
-            call_subprocess(
-                [
-                    sys.executable,
-                    '-c',
-                    SETUPTOOLS_SHIM % self.setup_py
-                ] +
+            command = (
+                [sys.executable, '-c', SETUPTOOLS_SHIM % self.setup_py] +
                 list(global_options) +
                 ['develop', '--no-deps'] +
-                list(install_options),
-
-                cwd=self.setup_py_dir,
-                show_stdout=False)
+                list(install_options)
+            )
+            # FIXME: should we do --install-headers here too?
+            call_subprocess(command, cwd=self.setup_py_dir, show_stdout=False)
 
         self.install_succeeded = True
 
