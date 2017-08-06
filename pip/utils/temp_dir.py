@@ -30,7 +30,7 @@ class TempDirectory(object):
             Deletes the temporary directory and sets path attribute to None
 
     When used as a context manager, a temporary directory is created on
-    entering the context and, if the delete attribute is True, on exiting the
+    entering the context and if the delete attribute is True, on exiting the
     context the created directory is deleted.
     """
 

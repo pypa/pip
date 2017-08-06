@@ -210,9 +210,8 @@ class RequirementPreparer(object):
                 resolver.require_hashes
             )
             # We can't hit this spot and have populate_link return None.
-            # req.satisfied_by is None here (because we're
-            # guarded) and upgrade has no impact except when satisfied_by
-            # is not None.
+            # req.satisfied_by is None here (because we're guarded) and upgrade
+            # has no impact except when satisfied_by is not None.
             # Then inside find_requirement existing_applicable -> False
             # If no new versions are found, DistributionNotFound is raised,
             # otherwise a result is guaranteed.
@@ -224,11 +223,10 @@ class RequirementPreparer(object):
             # than otherwise. (For example, we can raise VcsHashUnsupported
             # for a VCS URL rather than HashMissing.)
             if resolver.require_hashes:
-                # We could check these first 2 conditions inside
-                # unpack_url and save repetition of conditions, but then
-                # we would report less-useful error messages for
-                # unhashable requirements, complaining that there's no
-                # hash provided.
+                # We could check these first 2 conditions inside unpack_url
+                # and save repetition of conditions, but then we would report
+                # less-useful error messages for unhashable requirements,
+                # complaining that there's no hash provided.
                 if is_vcs_url(link):
                     raise VcsHashUnsupported()
                 elif is_file_url(link) and is_dir_url(link):

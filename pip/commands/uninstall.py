@@ -46,6 +46,8 @@ class UninstallCommand(Command):
     def run(self, options, args):
         with self._build_session(options) as session:
             reqs_to_uninstall = {}
+
+            # Determine which requirements have been given
             for name in args:
                 req = InstallRequirement.from_line(
                     name, isolated=options.isolated_mode,

@@ -191,8 +191,8 @@ class Command(object):
                 deprecation.RemovedInPip11Warning,
             )
 
-        # TODO: try to get these passing down from the command?
-        #      without resorting to os.environ to hold these.
+        # TODO: Try to get these passing down from the command without
+        #       resorting to os.environ to hold these?
 
         if options.no_input:
             os.environ['PIP_NO_INPUT'] = '1'
@@ -212,8 +212,8 @@ class Command(object):
 
         try:
             status = self.run(options, args)
-            # FIXME: all commands should return an exit status
-            # and when it is done, isinstance is not needed anymore
+            # FIXME: All commands should return an exit status
+            #        and when it is done, isinstance is not needed anymore
             if isinstance(status, int):
                 return status
         except PreviousBuildDirError as exc:

@@ -806,7 +806,7 @@ class WheelBuilder(object):
                 if wheel_file:
                     build_success.append(req)
                     if autobuilding:
-                        # XXX: This is mildly duplicative with prepare_files,
+                        # XXX: This is mildly duplicative with Resolver,
                         # but not close enough to pull out to a single common
                         # method.
                         # The code below assumes temporary source dirs -
@@ -824,7 +824,7 @@ class WheelBuilder(object):
                         # Delete the source we built the wheel from
                         req.remove_temporary_source()
                         # set the build directory again - name is known from
-                        # the work prepare_files did.
+                        # the work Resolver did.
                         req.source_dir = req.build_location(
                             self.preparer.build_dir
                         )
