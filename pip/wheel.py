@@ -705,9 +705,10 @@ class WheelBuilder(object):
                 env['PYTHONNOUSERSITE'] = '1'
 
             try:
-                call_subprocess(wheel_args, cwd=req.setup_py_dir,
-                                extra_environ=env,
-                                show_stdout=False, spinner=spinner)
+                call_subprocess(
+                    wheel_args, cwd=req.setup_py_dir, extra_environ=env,
+                    show_stdout=False, spinner=spinner
+                )
                 return True
             except:
                 spinner.finish("error")
@@ -791,8 +792,9 @@ class WheelBuilder(object):
                     try:
                         ensure_dir(output_dir)
                     except OSError as e:
-                        logger.warning("Building wheel for %s failed: %s",
-                                       req.name, e)
+                        logger.warning(
+                            "Building wheel for %s failed: %s", req.name, e
+                        )
                         build_failure.append(req)
                         continue
                 else:
@@ -827,8 +829,7 @@ class WheelBuilder(object):
                             self.preparer.build_dir
                         )
                         # Update the link for this.
-                        req.link = pip.index.Link(
-                            path_to_url(wheel_file))
+                        req.link = pip.index.Link(path_to_url(wheel_file))
                         assert req.link.is_wheel
                         # extract the wheel into the dir
                         unpack_url(

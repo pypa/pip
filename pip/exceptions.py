@@ -173,9 +173,9 @@ class HashMissing(HashError):
                        # In case someone feeds something downright stupid
                        # to InstallRequirement's constructor.
                        else getattr(self.req, 'req', None))
-        return '    %s --hash=%s:%s' % (package or 'unknown package',
-                                        FAVORITE_HASH,
-                                        self.gotten_hash)
+        return '    %s --hash=%s:%s' % (
+            package or 'unknown package', FAVORITE_HASH, self.gotten_hash
+        )
 
 
 class HashUnpinned(HashError):
