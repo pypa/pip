@@ -129,8 +129,8 @@ class VcsHashUnsupported(HashError):
     we don't have a method for hashing those."""
 
     order = 0
-    head = "Can't verify hashes for these requirements because we don't "
-           "have a way to hash version control repositories:"
+    head = ("Can't verify hashes for these requirements because we don't "
+            "have a way to hash version control repositories:")
 
 
 class DirectoryUrlHashUnsupported(HashError):
@@ -138,21 +138,21 @@ class DirectoryUrlHashUnsupported(HashError):
     we don't have a method for hashing those."""
 
     order = 1
-    head = "Can't verify hashes for these file:// requirements because they "
-           "point to directories:"
+    head = ("Can't verify hashes for these file:// requirements because they "
+            "point to directories:")
 
 
 class HashMissing(HashError):
     """A hash was needed for a requirement but is absent."""
 
     order = 2
-    head = 'Hashes are required in --require-hashes mode, but they are '
-           'missing from some requirements. Here is a list of those '
-           'requirements along with the hashes their downloaded archives '
-           'actually had. Add lines like these to your requirements files to '
-           'prevent tampering. (If you did not enable --require-hashes '
-           'manually, note that it turns on automatically when any package '
-           'has a hash.)'
+    head = ('Hashes are required in --require-hashes mode, but they are '
+            'missing from some requirements. Here is a list of those '
+            'requirements along with the hashes their downloaded archives '
+            'actually had. Add lines like these to your requirements files to '
+            'prevent tampering. (If you did not enable --require-hashes '
+            'manually, note that it turns on automatically when any package '
+            'has a hash.)')
 
     def __init__(self, gotten_hash):
         """
@@ -183,8 +183,8 @@ class HashUnpinned(HashError):
     version."""
 
     order = 3
-    head = 'In --require-hashes mode, all requirements must have their '
-           'versions pinned with ==. These do not:'
+    head = ('In --require-hashes mode, all requirements must have their '
+            'versions pinned with ==. These do not:')
 
 
 class HashMismatch(HashError):
@@ -197,10 +197,10 @@ class HashMismatch(HashError):
 
     """
     order = 4
-    head = 'THESE PACKAGES DO NOT MATCH THE HASHES FROM THE REQUIREMENTS '
-           'FILE. If you have updated the package versions, please update '
-           'the hashes. Otherwise, examine the package contents carefully; '
-           'someone may have tampered with them.'
+    head = ('THESE PACKAGES DO NOT MATCH THE HASHES FROM THE REQUIREMENTS '
+            'FILE. If you have updated the package versions, please update '
+            'the hashes. Otherwise, examine the package contents carefully; '
+            'someone may have tampered with them.')
 
     def __init__(self, allowed, gots):
         """
