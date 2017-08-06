@@ -253,14 +253,16 @@ class PackageFinder(object):
                 else:
                     logger.warning(
                         "Url '%s' is ignored: it is neither a file "
-                        "nor a directory.", url)
+                        "nor a directory.", url
+                    )
             elif is_url(url):
                 # Only add url with clear scheme
                 urls.append(url)
             else:
                 logger.warning(
                     "Url '%s' is ignored. It is either a non-existing "
-                    "path or lacks a specific scheme.", url)
+                    "path or lacks a specific scheme.", url
+                )
 
         return files, urls
 

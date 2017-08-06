@@ -374,7 +374,8 @@ class UninstallPathSet(object):
         else:
             logger.debug(
                 'Not sure how to uninstall: %s - Check: %s',
-                dist, dist.location)
+                dist, dist.location
+            )
 
         # find distutils scripts= scripts
         if dist.has_metadata('scripts') and dist.metadata_isdir('scripts'):

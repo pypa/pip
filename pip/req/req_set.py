@@ -135,7 +135,9 @@ class RequirementSet(object):
             if already_given:
                 raise InstallationError(
                     'Double requirement given: %s (already in %s, name=%r)'
-                    % (install_req, existing_req, name))
+                    % (install_req, existing_req, name)
+                )
+
             if not existing_req:
                 # Add requirement
                 self.requirements[name] = install_req
@@ -159,7 +161,9 @@ class RequirementSet(object):
                         raise InstallationError(
                             "Could not satisfy constraints for '%s': "
                             "installation from path or url cannot be "
-                            "constrained to a version" % name)
+                            "constrained to a version" % name
+                        )
+
                     # If we're now installing a constraint, mark the existing
                     # object for real installation.
                     existing_req.constraint = False
@@ -184,8 +188,8 @@ class RequirementSet(object):
         name = project_name.lower()
         return (
             name in self.requirements and
-           not self.requirements[name].constraint or
-           name in self.requirement_aliases and
+            not self.requirements[name].constraint or
+            name in self.requirement_aliases and
             not self.requirements[self.requirement_aliases[name]].constraint
         )
 

@@ -399,7 +399,8 @@ class InstallRequirement(object):
     def setup_py_dir(self):
         return os.path.join(
             self.source_dir,
-            self.link and self.link.subdirectory_fragment or '')
+            self.link and self.link.subdirectory_fragment or ''
+        )
 
     @property
     def setup_py(self):
@@ -475,7 +476,8 @@ class InstallRequirement(object):
                 egg_info_cmd + egg_base_option,
                 cwd=self.setup_py_dir,
                 show_stdout=False,
-                command_desc='python setup.py egg_info')
+                command_desc='python setup.py egg_info'
+            )
 
         if not self.req:
             if isinstance(parse_version(self.pkg_info()["Version"]), Version):
@@ -539,7 +541,7 @@ class InstallRequirement(object):
                             os.path.exists(os.path.join(
                                 root, dir_, 'Scripts', 'Python.exe'
                             ))
-                                    )
+                        )
                         if should_remove:
                             dirs.remove(dir_)
                         # Also don't search through tests
@@ -717,7 +719,8 @@ class InstallRequirement(object):
         if self.markers is not None:
             return any(
                 self.markers.evaluate({'extra': extra})
-                for extra in extras_requested)
+                for extra in extras_requested
+            )
         else:
             return True
 
@@ -726,7 +729,8 @@ class InstallRequirement(object):
         global_options = global_options if global_options is not None else []
         if self.editable:
             self.install_editable(
-                install_options, global_options, prefix=prefix)
+                install_options, global_options, prefix=prefix
+            )
             return
         if self.is_wheel:
             version = pip.wheel.wheel_version(self.source_dir)
@@ -750,7 +754,8 @@ class InstallRequirement(object):
         with TempDirectory(kind="record") as temp_dir:
             record_filename = os.path.join(temp_dir.path, 'install-record.txt')
             install_args = self.get_install_args(
-                global_options, record_filename, root, prefix)
+                global_options, record_filename, root, prefix
+            )
             msg = 'Running setup.py install for %s' % (self.name,)
             with open_spinner(msg) as spinner:
                 with indent_log():
@@ -939,8 +944,8 @@ class InstallRequirement(object):
         dist_name = os.path.splitext(os.path.basename(egg_info))[0]
         return pkg_resources.Distribution(
             os.path.dirname(egg_info),
-            project_name=dist_name,
-            metadata=metadata)
+            project_name=dist_name, metadata=metadata
+        )
 
     @property
     def has_hash_options(self):

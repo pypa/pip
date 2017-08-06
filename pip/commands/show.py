@@ -28,7 +28,8 @@ class ShowCommand(Command):
             dest='files',
             action='store_true',
             default=False,
-            help='Show the full list of installed files for each package.')
+            help='Show the full list of installed files for each package.'
+        )
 
         self.parser.insert_option_group(0, self.cmd_opts)
 

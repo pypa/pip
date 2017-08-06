@@ -74,16 +74,16 @@ def freeze(
                 for line in req_file:
                     line_is_ignorable = (
                         not line.strip() or
-                            line.strip().startswith('#') or
-                            (skip_match and skip_match(line)) or
-                            line.startswith((
-                                '-r', '--requirement',
-                                '-Z', '--always-unzip',
-                                '-f', '--find-links',
-                                '-i', '--index-url',
-                                '--pre',
-                                '--trusted-host',
-                                '--process-dependency-links',
+                        line.strip().startswith('#') or
+                        (skip_match and skip_match(line)) or
+                        line.startswith((
+                            '-r', '--requirement',
+                            '-Z', '--always-unzip',
+                            '-f', '--find-links',
+                            '-i', '--index-url',
+                            '--pre',
+                            '--trusted-host',
+                            '--process-dependency-links',
                             '--extra-index-url'
                         ))
                     )
@@ -194,7 +194,8 @@ class FrozenRequirement(object):
                     )
                 if not svn_location:
                     logger.warning(
-                        'Warning: cannot find svn location for %s', req)
+                        'Warning: cannot find svn location for %s', req
+                    )
                     comments.append(
                         '## FIXME: could not find svn URL in dependency_links '
                         'for this package:'

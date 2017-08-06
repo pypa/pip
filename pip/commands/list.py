@@ -43,37 +43,41 @@ class ListCommand(Command):
             '-o', '--outdated',
             action='store_true',
             default=False,
-            help='List outdated packages')
+            help='List outdated packages'
+        )
         cmd_opts.add_option(
             '-u', '--uptodate',
             action='store_true',
             default=False,
-            help='List uptodate packages')
+            help='List uptodate packages'
+        )
         cmd_opts.add_option(
             '-e', '--editable',
             action='store_true',
             default=False,
-            help='List editable projects.')
+            help='List editable projects.'
+        )
         cmd_opts.add_option(
             '-l', '--local',
             action='store_true',
             default=False,
-            help=('If in a virtualenv that has global access, do not list '
-                  'globally-installed packages.'),
+            help='If in a virtualenv that has global access, do not list '
+                 'globally-installed packages.'
         )
         self.cmd_opts.add_option(
             '--user',
             dest='user',
             action='store_true',
             default=False,
-            help='Only output packages installed in user-site.')
+            help='Only output packages installed in user-site.'
+        )
 
         cmd_opts.add_option(
             '--pre',
             action='store_true',
             default=False,
-            help=("Include pre-release and development versions. By default, "
-                  "pip only finds stable versions."),
+            help="Include pre-release and development versions. By default, "
+                 "pip only finds stable versions."
         )
 
         cmd_opts.add_option(
@@ -83,7 +87,7 @@ class ListCommand(Command):
             default="columns",
             choices=('legacy', 'columns', 'freeze', 'json'),
             help="Select the output format among: columns (default), freeze, "
-                 "json, or legacy.",
+                 "json or legacy.",
         )
 
         cmd_opts.add_option(

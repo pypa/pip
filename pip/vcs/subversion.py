@@ -67,7 +67,8 @@ class Subversion(VersionControl):
                 rmtree(location)
             self.run_command(
                 ['export'] + rev_options + [url, location],
-                show_stdout=False)
+                show_stdout=False
+            )
 
     def switch(self, dest, url, rev_options):
         self.run_command(['switch'] + rev_options + [url, dest])

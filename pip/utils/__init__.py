@@ -54,7 +54,8 @@ XZ_EXTENSIONS = ('.tar.xz', '.txz', '.tlz', '.tar.lz', '.tar.lzma')
 ZIP_EXTENSIONS = ('.zip', '.whl')
 TAR_EXTENSIONS = ('.tar.gz', '.tgz', '.tar')
 ARCHIVE_EXTENSIONS = (
-    ZIP_EXTENSIONS + BZ2_EXTENSIONS + TAR_EXTENSIONS + XZ_EXTENSIONS)
+    ZIP_EXTENSIONS + BZ2_EXTENSIONS + TAR_EXTENSIONS + XZ_EXTENSIONS
+)
 SUPPORTED_EXTENSIONS = ZIP_EXTENSIONS + TAR_EXTENSIONS
 try:
     import bz2  # noqa
@@ -596,17 +597,17 @@ def unpack_file(filename, location, content_type, link):
 
     is_zip_file = (
         content_type == 'application/zip' or
-            filename.lower().endswith(ZIP_EXTENSIONS) or
+        filename.lower().endswith(ZIP_EXTENSIONS) or
         zipfile.is_zipfile(filename)
-        )
+    )
     if is_zip_file:
         unzip_file(filename, location, flatten=not filename.endswith('.whl'))
         return
 
     is_tarball = (
         content_type == 'application/x-gzip' or
-            tarfile.is_tarfile(filename) or
-            filename.lower().endswith(
+        tarfile.is_tarfile(filename) or
+        filename.lower().endswith(
             TAR_EXTENSIONS + BZ2_EXTENSIONS + XZ_EXTENSIONS
         )
     )
@@ -625,16 +626,16 @@ def unpack_file(filename, location, content_type, link):
         Subversion('svn+' + link.url).unpack(location)
         return
 
-        # FIXME: handle?
-        # FIXME: magic signatures?
-        logger.critical(
-            'Cannot unpack file %s (downloaded from %s, content-type: %s); '
-            'cannot detect archive format',
-            filename, location, content_type,
-        )
-        raise InstallationError(
-            'Cannot determine archive format of %s' % location
-        )
+    # FIXME: handle?
+    # FIXME: magic signatures?
+    logger.critical(
+        'Cannot unpack file %s (downloaded from %s, content-type: %s); '
+        'cannot detect archive format',
+        filename, location, content_type,
+    )
+    raise InstallationError(
+        'Cannot determine archive format of %s' % location
+    )
 
 
 def call_subprocess(cmd, show_stdout=True, cwd=None,
@@ -680,7 +681,8 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
     try:
         proc = subprocess.Popen(
             cmd, stderr=subprocess.STDOUT, stdin=None, stdout=stdout,
-            cwd=cwd, env=env)
+            cwd=cwd, env=env
+        )
     except Exception as exc:
         logger.critical(
             "Error %s while executing command %s", exc, command_desc,

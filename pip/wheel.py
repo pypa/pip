@@ -747,7 +747,8 @@ class WheelBuilder(object):
             if req.is_wheel:
                 if not autobuilding:
                     logger.info(
-                        'Skipping %s, due to already being wheel.', req.name)
+                        'Skipping %s, due to already being wheel.', req.name
+                    )
             elif autobuilding and req.editable:
                 pass
             elif autobuilding and req.link and not req.link.is_artifact:
@@ -767,7 +768,8 @@ class WheelBuilder(object):
                             canonicalize_name(req.name)):
                         logger.info(
                             "Skipping bdist_wheel for %s, due to binaries "
-                            "being disabled for it.", req.name)
+                            "being disabled for it.", req.name
+                        )
                         continue
                 buildset.append(req)
 
@@ -815,7 +817,8 @@ class WheelBuilder(object):
                         )
                         if bad_src_dir:
                             raise AssertionError(
-                                "bad source dir - missing marker")
+                                "bad source dir - missing marker"
+                            )
                         # Delete the source we built the wheel from
                         req.remove_temporary_source()
                         # set the build directory again - name is known from
@@ -830,7 +833,8 @@ class WheelBuilder(object):
                         # extract the wheel into the dir
                         unpack_url(
                             req.link, req.source_dir, None, False,
-                            session=session)
+                            session=session
+                        )
                 else:
                     build_failure.append(req)
 

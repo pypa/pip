@@ -57,7 +57,8 @@ else:
         return u"".join(u"\\x%x" % c for c in raw_bytes), err.end
     codecs.register_error(
         "backslashreplace_decode",
-        backslashreplace_decode_fn)
+        backslashreplace_decode_fn
+    )
     backslashreplace_decode = "backslashreplace_decode"
 
 
@@ -86,7 +87,8 @@ def console_to_str(data):
     except UnicodeDecodeError:
         logger.warning(
             "Subprocess output does not appear to be encoded as %s" %
-            encoding)
+            encoding
+        )
         s = data.decode(encoding, errors=backslashreplace_decode)
 
     # Make sure we can print the output, by encoding it to the output

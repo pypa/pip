@@ -226,8 +226,10 @@ class VersionControl(object):
                         self.name, self.repo_name, display_path(dest),
                         existing_url,
                     )
-                    prompt = ('(s)witch, (i)gnore, (w)ipe, (b)ackup ',
-                              ('s', 'i', 'w', 'b'))
+                    prompt = (
+                        '(s)witch, (i)gnore, (w)ipe, (b)ackup ',
+                        ('s', 'i', 'w', 'b')
+                    )
             else:
                 logger.warning(
                     'Directory %s already exists, and is not a %s %s.',
@@ -320,8 +322,9 @@ class VersionControl(object):
             if e.errno == errno.ENOENT:
                 raise BadCommand(
                     'Cannot find command %r - do you have '
-                    '%r installed and in your '
-                    'PATH?' % (self.name, self.name))
+                    '%r installed and in your PATH?'
+                    % (self.name, self.name)
+                )
             else:
                 raise  # re-raise exception if a different error occurred
 

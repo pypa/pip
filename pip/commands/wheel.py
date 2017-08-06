@@ -53,8 +53,8 @@ class WheelCommand(RequirementCommand):
             dest='wheel_dir',
             metavar='dir',
             default=os.curdir,
-            help=("Build wheels into <dir>, where the default is the "
-                  "current working directory."),
+            help="Build wheels into <dir>, where the default is the "
+                 "current working directory."
         )
         cmd_opts.add_option(cmdoptions.no_binary())
         cmd_opts.add_option(cmdoptions.only_binary())
@@ -63,7 +63,8 @@ class WheelCommand(RequirementCommand):
             dest='build_options',
             metavar='options',
             action='append',
-            help="Extra arguments to be supplied to 'setup.py bdist_wheel'.")
+            help="Extra arguments to be supplied to 'setup.py bdist_wheel'."
+        )
         cmd_opts.add_option(cmdoptions.constraints())
         cmd_opts.add_option(cmdoptions.editable())
         cmd_opts.add_option(cmdoptions.requirements())
@@ -79,14 +80,15 @@ class WheelCommand(RequirementCommand):
             action='append',
             metavar='options',
             help="Extra global options to be supplied to the setup.py "
-            "call before the 'bdist_wheel' command.")
+            "call before the 'bdist_wheel' command."
+        )
 
         cmd_opts.add_option(
             '--pre',
             action='store_true',
             default=False,
-            help=("Include pre-release and development versions. By default, "
-                  "pip only finds stable versions."),
+            help="Include pre-release and development versions. By default, "
+                 "pip only finds stable versions.",
         )
 
         cmd_opts.add_option(cmdoptions.no_clean())

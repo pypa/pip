@@ -151,7 +151,8 @@ class Resolver(object):
                 if should_check_possibility_for_upgrade:
                     try:
                         self.finder.find_requirement(
-                            req_to_install, upgrade_allowed)
+                            req_to_install, upgrade_allowed
+                        )
                     except BestVersionAlreadyInstalled:
                         best_installed = True
                     except DistributionNotFound:

@@ -132,7 +132,8 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
 
     # preserve for the nested code path
     line_comes_from = '%s %s (line %s)' % (
-        '-c' if constraint else '-r', filename, line_number)
+        '-c' if constraint else '-r', filename, line_number
+    )
 
     # yield a line requirement
     if args_str:

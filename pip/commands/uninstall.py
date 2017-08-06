@@ -38,7 +38,8 @@ class UninstallCommand(Command):
             '-y', '--yes',
             dest='yes',
             action='store_true',
-            help="Don't ask for confirmation of uninstall deletions.")
+            help="Don't ask for confirmation of uninstall deletions."
+        )
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
