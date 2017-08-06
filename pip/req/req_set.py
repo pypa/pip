@@ -180,12 +180,12 @@ class RequirementSet(object):
 
     def has_requirement(self, project_name):
         name = project_name.lower()
-        if (name in self.requirements and
+        return (
+            name in self.requirements and
            not self.requirements[name].constraint or
            name in self.requirement_aliases and
-           not self.requirements[self.requirement_aliases[name]].constraint):
-            return True
-        return False
+            not self.requirements[self.requirement_aliases[name]].constraint
+        )
 
     @property
     def has_requirements(self):
