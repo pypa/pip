@@ -63,7 +63,7 @@ class DownloadCommand(RequirementCommand):
             dest='download_dir',
             metavar='dir',
             default=os.curdir,
-            help=("Download packages into <dir>."),
+            help="Download packages into <dir>."
         )
 
         cmd_opts.add_option(
@@ -71,8 +71,8 @@ class DownloadCommand(RequirementCommand):
             dest='platform',
             metavar='platform',
             default=None,
-            help=("Only download wheels compatible with <platform>. "
-                  "Defaults to the platform of the running system."),
+            help="Only download wheels compatible with <platform>. "
+                 "Defaults to the platform of the running system.",
         )
 
         cmd_opts.add_option(
@@ -80,12 +80,12 @@ class DownloadCommand(RequirementCommand):
             dest='python_version',
             metavar='python_version',
             default=None,
-            help=("Only download wheels compatible with Python "
-                  "interpreter version <version>. If not specified, then the "
-                  "current system interpreter minor version is used. A major "
-                  "version (e.g. '2') can be specified to match all "
-                  "minor revs of that major version.  A minor version "
-                  "(e.g. '34') can also be specified."),
+            help="Only download wheels compatible with Python interpreter "
+                 "version <version>. If not specified, then the current "
+                 "system interpreter minor version is used. "
+                 "A major version (e.g. '2') can be specified to match all "
+                 "minor revs of that major version. "
+                 "A minor version (e.g. '34') can also be specified."
         )
 
         cmd_opts.add_option(
@@ -93,11 +93,11 @@ class DownloadCommand(RequirementCommand):
             dest='implementation',
             metavar='implementation',
             default=None,
-            help=("Only download wheels compatible with Python "
-                  "implementation <implementation>, e.g. 'pp', 'jy', 'cp', "
-                  " or 'ip'. If not specified, then the current "
-                  "interpreter implementation is used.  Use 'py' to force "
-                  "implementation-agnostic wheels."),
+            help="Only download wheels compatible with Python "
+                 "implementation <implementation>, e.g. 'pp', 'jy', 'cp', "
+                 " or 'ip'. If not specified, then the current interpreter "
+                 "implementation is used.  Use 'py' to force "
+                 "implementation-agnostic wheels."
         )
 
         cmd_opts.add_option(
@@ -105,12 +105,11 @@ class DownloadCommand(RequirementCommand):
             dest='abi',
             metavar='abi',
             default=None,
-            help=("Only download wheels compatible with Python "
-                  "abi <abi>, e.g. 'pypy_41'.  If not specified, then the "
-                  "current interpreter abi tag is used.  Generally "
-                  "you will need to specify --implementation, "
-                  "--platform, and --python-version when using "
-                  "this option."),
+            help="Only download wheels compatible with Python "
+                 "abi <abi>, e.g. 'pypy_41'.  If not specified, then the "
+                 "current interpreter abi tag is used.  Generally "
+                 "you will need to specify --implementation, --platform and "
+                 "--python-version when using this option."
         )
 
         index_opts = cmdoptions.make_option_group(
@@ -143,7 +142,7 @@ class DownloadCommand(RequirementCommand):
                 "--only-binary=:all: must be set and --no-binary must not "
                 "be set (or must be set to :none:) when restricting platform "
                 "and interpreter constraints using --python-version, "
-                "--platform, --abi, or --implementation."
+                "--platform, --abi or --implementation."
             )
 
         options.src_dir = os.path.abspath(options.src_dir)
