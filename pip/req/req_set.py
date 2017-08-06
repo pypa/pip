@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import logging
-from collections import defaultdict, OrderedDict
+from collections import OrderedDict, defaultdict
 
 from pip.exceptions import InstallationError
 from pip.utils.logging import indent_log
