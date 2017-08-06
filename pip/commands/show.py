@@ -40,10 +40,10 @@ class ShowCommand(Command):
         query = args
 
         results = search_packages_info(query)
-        if not print_results(
-                results, list_files=options.files, verbose=options.verbose):
-            return ERROR
-        return SUCCESS
+        successful = print_results(
+            results, list_files=options.files, verbose=options.verbose
+        )
+        return SUCCESS if successful else ERROR
 
 
 def search_packages_info(query):
