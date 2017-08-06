@@ -75,7 +75,7 @@ class Resolver(object):
         # hash-checking mode, which requires hashes from all.
         root_reqs = (
             requirement_set.unnamed_requirements +
-            requirement_set.requirements.values()
+            list(requirement_set.requirements.values())
         )
         self.require_hashes = (
             requirement_set.require_hashes or
