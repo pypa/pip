@@ -236,10 +236,10 @@ class InstallCommand(RequirementCommand):
                     options.cache_dir,
                 )
                 options.cache_dir = None
-
-            with TempDirectory(
+            directory = TempDirectory(
                 options.build_dir, delete=build_delete, kind="install"
-            ) as directory:
+            )
+            with directory:
                 requirement_set = RequirementSet(
                     target_dir=target_temp_dir.path,
                     pycompile=options.compile,

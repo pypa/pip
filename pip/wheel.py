@@ -653,8 +653,10 @@ class WheelBuilder(object):
     def _build_one_inside_env(self, req, output_dir, python_tag=None,
                               isolate=False):
         with TempDirectory(kind="wheel") as temp_dir:
-            if self.__build_one(req, temp_dir.path, python_tag=python_tag,
-                                isolate=isolate):
+            built_it = self.__build_one(
+                req, temp_dir.path, python_tag=python_tag, isolate=isolate
+            )
+            if built_it:
                 try:
                     wheel_name = os.listdir(temp_dir.path)[0]
                     wheel_path = os.path.join(output_dir, wheel_name)
@@ -800,8 +802,13 @@ class WheelBuilder(object):
                         # method.
                         # The code below assumes temporary source dirs -
                         # prevent it doing bad things.
-                        if req.source_dir and not os.path.exists(os.path.join(
-                                req.source_dir, PIP_DELETE_MARKER_FILENAME)):
+                        bad_src_dir = (
+                            req.source_dir and
+                            not os.path.exists(os.path.join(
+                                req.source_dir, PIP_DELETE_MARKER_FILENAME
+                            )
+                        )
+                        if bad_src_dir:
                             raise AssertionError(
                                 "bad source dir - missing marker")
                         # Delete the source we built the wheel from

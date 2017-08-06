@@ -242,12 +242,12 @@ class Command(object):
             return UNKNOWN_ERROR
         finally:
             # Check if we're using the latest version of pip available
-            if (not options.disable_pip_version_check and not
-                    getattr(options, "no_index", False)):
-                with self._build_session(
-                        options,
-                        retries=0,
-                        timeout=min(5, options.timeout)) as session:
+            _no_index = getattr(options, "no_index", False)
+            if not options.disable_pip_version_check and not _no_index:
+                session = self._build_session(
+                    options, retries=0, timeout=min(5, options.timeout)
+                )
+                with session:
                     pip_version_check(session, options)
             # Avoid leaking loggers
             for handler in set(logging.root.handlers) - original_root_handlers:
@@ -269,10 +269,12 @@ class RequirementCommand(Command):
         #       requirement_set.require_hashes may be updated
 
         for filename in options.constraints:
-            for req in parse_requirements(
+            parsed_constraints = parse_requirements(
                     filename,
                     constraint=True, finder=finder, options=options,
-                    session=session, wheel_cache=wheel_cache):
+                session=session, wheel_cache=wheel_cache
+            )
+            for req in parsed_constraints:
                 requirement_set.add_requirement(req)
 
         for req in args:
@@ -293,10 +295,11 @@ class RequirementCommand(Command):
             )
 
         for filename in options.requirements:
-            for req in parse_requirements(
-                    filename,
-                    finder=finder, options=options, session=session,
-                    wheel_cache=wheel_cache):
+            parsed_reqs = parse_requirements(
+                filename, finder=finder, options=options, session=session,
+                wheel_cache=wheel_cache
+            )
+            for req in parsed_reqs:
                 requirement_set.add_requirement(req)
         # If --require-hashes was a line in a requirements file, tell
         # RequirementSet about it:

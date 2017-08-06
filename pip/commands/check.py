@@ -24,8 +24,8 @@ class CheckCommand(Command):
                     "%s %s requires %s, which is not installed.",
                     dist.project_name, dist.version, requirement.project_name)
 
-            for requirement, actual in incompatible_reqs_dict.get(
-                    dist.key, []):
+            incompatible = incompatible_reqs_dict.get(dist.key, [])
+            for requirement, actual in incompatible:
                 logger.info(
                     "%s %s has requirement %s, but you have %s %s.",
                     dist.project_name, dist.version, requirement,

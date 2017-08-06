@@ -139,9 +139,10 @@ class WheelCommand(RequirementCommand):
             build_delete = (not (options.no_clean or options.build_dir))
             wheel_cache = WheelCache(options.cache_dir, options.format_control)
 
-            with TempDirectory(
+            directory = TempDirectory(
                 options.build_dir, delete=build_delete, kind="wheel"
-            ) as directory:
+            )
+            with directory:
                 requirement_set = RequirementSet(
                     require_hashes=options.require_hashes,
                 )

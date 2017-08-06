@@ -77,9 +77,10 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
     lines_enum = preprocess(content, options)
 
     for line_number, line in lines_enum:
-        req_iter = process_line(line, filename, line_number, finder,
-                                comes_from, options, session, wheel_cache,
-                                constraint=constraint)
+        req_iter = process_line(
+            line, filename, line_number, finder, comes_from, options, session,
+            wheel_cache, constraint=constraint
+        )
         for req in req_iter:
             yield req
 

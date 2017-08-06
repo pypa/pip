@@ -102,8 +102,11 @@ def search_packages_info(query):
         feed_parser = FeedParser()
         feed_parser.feed(metadata)
         pkg_info_dict = feed_parser.close()
-        for key in ('metadata-version', 'summary',
-                    'home-page', 'author', 'author-email', 'license'):
+        _keys = (
+            'metadata-version', 'summary', 'home-page', 'author',
+            'author-email', 'license'
+        )
+        for key in _keys:
             package[key] = pkg_info_dict.get(key)
 
         # It looks like FeedParser cannot deal with repeated headers

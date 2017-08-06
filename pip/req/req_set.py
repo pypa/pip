@@ -125,10 +125,14 @@ class RequirementSet(object):
                 existing_req = self.get_requirement(name)
             except KeyError:
                 existing_req = None
-            if (parent_req_name is None and existing_req and not
-                    existing_req.constraint and
-                    existing_req.extras == install_req.extras and not
-                    existing_req.req.specifier == install_req.req.specifier):
+            already_given = (
+                parent_req_name is None and
+                existing_req and
+                not existing_req.constraint and
+                existing_req.extras == install_req.extras and
+                not existing_req.req.specifier == install_req.req.specifier
+            )
+            if already_given:
                 raise InstallationError(
                     'Double requirement given: %s (already in %s, name=%r)'
                     % (install_req, existing_req, name))
@@ -144,8 +148,13 @@ class RequirementSet(object):
                 # encountered this for scanning.
                 result = []
                 if not install_req.constraint and existing_req.constraint:
-                    if (install_req.link and not (existing_req.link and
-                       install_req.link.path == existing_req.link.path)):
+                    cannot_have_constraint = (
+                        install_req.link and not (
+                            existing_req.link and
+                            install_req.link.path == existing_req.link.path
+                        )
+                    )
+                    if cannot_have_constraint:
                         self.reqs_to_cleanup.append(install_req)
                         raise InstallationError(
                             "Could not satisfy constraints for '%s': "

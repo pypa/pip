@@ -308,8 +308,8 @@ class UninstallPathSet(object):
             # are in fact in the develop_egg_link case
             paths_to_remove.add(dist.egg_info)
             if dist.has_metadata('installed-files.txt'):
-                for installed_file in dist.get_metadata(
-                        'installed-files.txt').splitlines():
+                lines = dist.get_metadata('installed-files.txt').splitlines()
+                for installed_file in lines:
                     path = os.path.normpath(
                         os.path.join(dist.egg_info, installed_file)
                     )

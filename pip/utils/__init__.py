@@ -211,8 +211,10 @@ def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):
 
 def split_leading_dir(path):
     path = path.lstrip('/').lstrip('\\')
-    if '/' in path and (('\\' in path and path.find('/') < path.find('\\')) or
-                        '\\' not in path):
+    split_by_forward_slash = (
+        ('\\' in path and path.find('/') < path.find('\\')) or '\\' not in path
+    )
+    if '/' in path and split_by_forward_slash:
         return path.split('/', 1)
     elif '\\' in path:
         return path.split('\\', 1)
@@ -590,25 +592,38 @@ def untar_file(filename, location):
 
 def unpack_file(filename, location, content_type, link):
     filename = os.path.realpath(filename)
-    if (content_type == 'application/zip' or
+
+    is_zip_file = (
+        content_type == 'application/zip' or
             filename.lower().endswith(ZIP_EXTENSIONS) or
-            zipfile.is_zipfile(filename)):
-        unzip_file(
-            filename,
-            location,
-            flatten=not filename.endswith('.whl')
+        zipfile.is_zipfile(filename)
         )
-    elif (content_type == 'application/x-gzip' or
+    if is_zip_file:
+        unzip_file(filename, location, flatten=not filename.endswith('.whl'))
+        return
+
+    is_tarball = (
+        content_type == 'application/x-gzip' or
             tarfile.is_tarfile(filename) or
             filename.lower().endswith(
-                TAR_EXTENSIONS + BZ2_EXTENSIONS + XZ_EXTENSIONS)):
+            TAR_EXTENSIONS + BZ2_EXTENSIONS + XZ_EXTENSIONS
+        )
+    )
+    if is_tarball:
         untar_file(filename, location)
-    elif (content_type and content_type.startswith('text/html') and
-            is_svn_page(file_contents(filename))):
+        return
+
+    is_svn_html_page = (
+        content_type and
+        content_type.startswith('text/html') and
+        is_svn_page(file_contents(filename))
+    )
+    if is_svn_html_page:
         # We don't really care about this
         from pip.vcs.subversion import Subversion
         Subversion('svn+' + link.url).unpack(location)
-    else:
+        return
+
         # FIXME: handle?
         # FIXME: magic signatures?
         logger.critical(
@@ -697,8 +712,11 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
             spinner.finish("done")
     if proc.returncode:
         if on_returncode == 'raise':
-            if (logger.getEffectiveLevel() > std_logging.DEBUG and
-                    not show_stdout):
+            should_show_output = (
+                logger.getEffectiveLevel() > std_logging.DEBUG and
+                not show_stdout
+            )
+            if should_show_output:
                 logger.info(
                     'Complete output from command %s:', command_desc,
                 )
