@@ -1,41 +1,13 @@
 from __future__ import absolute_import
 
 import logging
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 
 from pip.exceptions import InstallationError
 from pip.utils.logging import indent_log
 from pip.wheel import Wheel
 
 logger = logging.getLogger(__name__)
-
-
-class Requirements(object):
-
-    def __init__(self):
-        self._keys = []
-        self._dict = {}
-
-    def keys(self):
-        return self._keys
-
-    def values(self):
-        return [self._dict[key] for key in self._keys]
-
-    def __contains__(self, item):
-        return item in self._keys
-
-    def __setitem__(self, key, value):
-        if key not in self._keys:
-            self._keys.append(key)
-        self._dict[key] = value
-
-    def __getitem__(self, key):
-        return self._dict[key]
-
-    def __repr__(self):
-        values = ['%s: %s' % (repr(k), repr(self[k])) for k in self.keys()]
-        return 'Requirements({%s})' % ', '.join(values)
 
 
 class RequirementSet(object):
@@ -49,8 +21,7 @@ class RequirementSet(object):
             InstallRequirement.
         """
 
-        self.requirements = Requirements()
-
+        self.requirements = OrderedDict()
         self.require_hashes = require_hashes
 
         # Mapping of alias: real_name
