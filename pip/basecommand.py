@@ -249,6 +249,7 @@ class Command(object):
                 )
                 with session:
                     pip_version_check(session, options)
+
             # Avoid leaking loggers
             for handler in set(logging.root.handlers) - original_root_handlers:
                 # this method benefit from the Logger class internal lock
@@ -270,8 +271,8 @@ class RequirementCommand(Command):
 
         for filename in options.constraints:
             parsed_constraints = parse_requirements(
-                    filename,
-                    constraint=True, finder=finder, options=options,
+                filename,
+                constraint=True, finder=finder, options=options,
                 session=session, wheel_cache=wheel_cache
             )
             for req in parsed_constraints:

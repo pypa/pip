@@ -189,11 +189,11 @@ class RequirementPreparer(object):
             # occurs when the script attempts to unpack the
             # build directory
             req.ensure_has_source_dir(self.build_dir)
+
             # If a checkout exists, it's unwise to keep going.  version
             # inconsistencies are logged later, but do not fail the
             # installation.
             # FIXME: this won't upgrade when there's an existing
-            # package unpacked in `req.source_dir`
             # package unpacked in `req.source_dir`
             if os.path.exists(os.path.join(req.source_dir, 'setup.py')):
                 raise PreviousBuildDirError(

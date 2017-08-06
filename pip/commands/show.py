@@ -165,4 +165,5 @@ def print_results(distributions, list_files=False, verbose=False):
                 logger.info("  %s", line.strip())
             if "files" not in dist:
                 logger.info("Cannot locate installed-files.txt")
+
     return results_printed

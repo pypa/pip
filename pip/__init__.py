@@ -51,7 +51,6 @@ from pip._vendor.requests.packages.urllib3.exceptions import (
     InsecureRequestWarning,
 )
 
-
 # assignment for flake8 to be happy
 
 # This fixes a peculiarity when importing via __import__ - as we are

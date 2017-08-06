@@ -61,11 +61,13 @@ class UninstallCommand(Command):
                 for req in parsed_reqs:
                     if req.name:
                         reqs_to_uninstall[canonicalize_name(req.name)] = req
+
             if not reqs_to_uninstall:
                 raise InstallationError(
                     'You must give at least one requirement to %(name)s (see '
                     '"pip help %(name)s")' % dict(name=self.name)
                 )
+
             for req in reqs_to_uninstall.values():
                 verbose = options.verbose != 0
                 req.uninstall(auto_confirm=options.yes, verbose=verbose)
