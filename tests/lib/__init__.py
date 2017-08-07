@@ -6,6 +6,7 @@ import sys
 import re
 import textwrap
 import site
+import shutil
 
 import scripttest
 import virtualenv
@@ -643,3 +644,82 @@ def create_test_package_with_setup(script, **setup_kwargs):
         setup(**kwargs)
     """) % setup_kwargs)
     return pkg_path
+
+
+def create_basic_wheel_for_package(script, name, version, depends, extras):
+    files = {
+        "{name}/__init__.py": """
+            def hello():
+                return "Hello From {name}"
+        """,
+        "{dist_info}/DESCRIPTION": """
+            UNKNOWN
+        """,
+        "{dist_info}/WHEEL": """
+            Wheel-Version: 1.0
+            Generator: pip-test-suite
+            Root-Is-Purelib: true
+            Tag: py2-none-any
+            Tag: py3-none-any
+
+
+        """,
+        "{dist_info}/METADATA": """
+            Metadata-Version: 2.0
+            Name: {name}
+            Version: {version}
+            Summary: UNKNOWN
+            Home-page: UNKNOWN
+            Author: UNKNOWN
+            Author-email: UNKNOWN
+            License: UNKNOWN
+            Platform: UNKNOWN
+            {requires_dist}
+
+            UNKNOWN
+        """,
+        "{dist_info}/top_level.txt": """
+            {name}
+        """,
+        # Have an empty RECORD becuase we don't want to be checking hashes.
+        "{dist_info}/RECORD": ""
+    }
+
+    # Some useful shorthands
+    archive_name = "{name}-{version}-py2.py3-none-any.whl".format(
+        name=name, version=version
+    )
+    dist_info = "{name}-{version}.dist-info".format(
+        name=name, version=version
+    )
+
+    requires_dist = "\n".join([
+        "Requires-Dist: {}".format(pkg) for pkg in depends
+    ] + [
+        "Provides-Extra: {}".format(pkg) for pkg in extras.keys()
+    ] + [
+        "Requires-Dist: {}; extra == \"{}\"".format(pkg, extra)
+        for extra in extras for pkg in extras[extra]
+    ])
+
+    # Replace key-values with formatted values
+    for key, value in list(files.items()):
+        del files[key]
+        key = key.format(name=name, dist_info=dist_info)
+        files[key] = textwrap.dedent(value).format(
+            name=name, version=version, requires_dist=requires_dist
+        ).strip()
+
+    for fname in files:
+        path = script.temp_path / fname
+        path.folder.mkdir()
+        path.write(files[fname])
+
+    retval = script.scratch_path / archive_name
+    generated = shutil.make_archive(retval, 'zip', script.temp_path)
+    shutil.move(generated, retval)
+
+    script.temp_path.rmtree()
+    script.temp_path.mkdir()
+
+    return retval
