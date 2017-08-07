@@ -31,6 +31,7 @@ matrix:
       python: 3.6
   allow_failures:
     - python: nightly
+    - python: pypy3
 
 install: travis_retry .travis/install.sh
 script: .travis/run.sh
