@@ -4,7 +4,6 @@ pytest
 pytest-catchlog
 pytest-rerunfailures
 pytest-timeout
-pytest-instafail
 pytest-xdist
 mock<1.1
 scripttest>=1.3
