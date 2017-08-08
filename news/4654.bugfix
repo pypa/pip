@@ -1,0 +1,1 @@
+Made `pip.utils.logging.indent_log` work with multiple threads.
