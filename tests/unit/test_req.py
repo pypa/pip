@@ -21,7 +21,7 @@ from pip._internal.req.req_file import process_line
 from pip._internal.req.req_install import parse_editable
 from pip._internal.resolve import Resolver
 from pip._internal.utils.misc import read_text_file
-from tests.lib import assert_raises_regexp, requirements_file
+from tests.lib import DATA_DIR, assert_raises_regexp, requirements_file
 
 
 class TestRequirementSet(object):
@@ -601,3 +601,17 @@ def test_exclusive_environment_markers():
     req_set.add_requirement(eq26)
     req_set.add_requirement(ne26)
     assert req_set.has_requirement('Django')
+
+
+def test_mismatched_versions(caplog, tmpdir):
+    original_source = os.path.join(DATA_DIR, 'src', 'simplewheel-1.0')
+    source_dir = os.path.join(tmpdir, 'simplewheel')
+    shutil.copytree(original_source, source_dir)
+    req = InstallRequirement(req=Requirement('simplewheel==2.0'),
+                             comes_from=None, source_dir=source_dir)
+    req.run_egg_info()
+    req.assert_source_matches_version()
+    assert caplog.records[-1].message == (
+        'Requested simplewheel==2.0, '
+        'but installing version 1.0'
+    )

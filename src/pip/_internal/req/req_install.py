@@ -595,7 +595,7 @@ class InstallRequirement(object):
             logger.warning(
                 'Requested %s, but installing version %s',
                 self,
-                self.installed_version,
+                version,
             )
         else:
             logger.debug(
