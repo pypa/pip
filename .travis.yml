@@ -1,5 +1,6 @@
 language: python
 sudo: false
+dist: trusty
 
 matrix:
   include:
@@ -21,13 +22,16 @@ matrix:
     - env: TOXENV=py37
       python: nightly
     - env: TOXENV=pypy
-      python: pypy-5.4
+      python: pypy
+    - env: TOXENV=pypy3
+      python: pypy3
     - env: "TOXENV=py27 VENDOR=no WHEELS=yes"
       python: 2.7
     - env: "TOXENV=py36 VENDOR=no WHEELS=yes"
       python: 3.6
   allow_failures:
     - python: nightly
+    - python: pypy3
 
 install: travis_retry .travis/install.sh
 script: .travis/run.sh
