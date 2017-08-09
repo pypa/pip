@@ -13,4 +13,5 @@ install:
     cmd: "%PYTHON%\\python.exe -m pip install tox"
 build: off
 test_script:
-    - "%PYTHON%\\Scripts\\tox.exe -e py -- -m unit -n 8"
+    # Run for 300 seconds max
+    - cmd: ./.appveyor/run.cmd
