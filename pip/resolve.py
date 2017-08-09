@@ -114,6 +114,16 @@ class Resolver(object):
             assert self.upgrade_strategy == "only-if-needed"
             return req.is_direct
 
+    def _set_req_to_reinstall(self, req):
+        """
+        Set a requirement to be installed.
+        """
+        # Don't uninstall the conflict if doing a user install and the
+        # conflict is not a user install.
+        if not self.use_user_site or dist_in_usersite(req.satisfied_by):
+            req.conflicts_with = req.satisfied_by
+        req.satisfied_by = None
+
     # XXX: Stop passing requirement_set for options
     def _check_skip_installed(self, req_to_install):
         """Check if req_to_install should be skipped.
@@ -133,54 +143,35 @@ class Resolver(object):
 
         :return: A text reason for why it was skipped, or None.
         """
-        # Check whether to upgrade/reinstall this req or not.
-        req_to_install.check_if_exists()
-        if req_to_install.satisfied_by:
-            upgrade_allowed = self._is_upgrade_allowed(req_to_install)
-
-            # Is the best version is installed.
-            best_installed = False
-
-            if upgrade_allowed:
-                # For link based requirements we have to pull the
-                # tree down and inspect to assess the version #, so
-                # its handled way down.
-                should_check_possibility_for_upgrade = not (
-                    self.force_reinstall or req_to_install.link
-                )
-                if should_check_possibility_for_upgrade:
-                    try:
-                        self.finder.find_requirement(
-                            req_to_install, upgrade_allowed)
-                    except BestVersionAlreadyInstalled:
-                        best_installed = True
-                    except DistributionNotFound:
-                        # No distribution found, so we squash the
-                        # error - it will be raised later when we
-                        # re-try later to do the install.
-                        # Why don't we just raise here?
-                        pass
-
-                if not best_installed:
-                    # don't uninstall conflict if user install and
-                    # conflict is not user install
-                    if not (self.use_user_site and not
-                            dist_in_usersite(req_to_install.satisfied_by)):
-                        req_to_install.conflicts_with = \
-                            req_to_install.satisfied_by
-                    req_to_install.satisfied_by = None
-
-            # Figure out a nice message to say why we're skipping this.
-            if best_installed:
-                skip_reason = 'already up-to-date'
-            elif self.upgrade_strategy == "only-if-needed":
-                skip_reason = 'not upgraded as not directly required'
-            else:
-                skip_reason = 'already satisfied'
-
-            return skip_reason
-        else:
+        if self.ignore_installed:
             return None
+
+        req_to_install.check_if_exists()
+        if not req_to_install.satisfied_by:
+            return None
+
+        if not self._is_upgrade_allowed(req_to_install):
+            if self.upgrade_strategy == "only-if-needed":
+                return 'not upgraded as not directly required'
+            return 'already satisfied'
+
+        # Check for the possibility of an upgrade.  For link-based
+        # requirements we have to pull the tree down and inspect to assess
+        # the version #, so it's handled way down.
+        if not (self.force_reinstall or req_to_install.link):
+            try:
+                self.finder.find_requirement(req_to_install, upgrade=True)
+            except BestVersionAlreadyInstalled:
+                # Then the best version is installed.
+                return 'already up-to-date'
+            except DistributionNotFound:
+                # No distribution found, so we squash the error.  It will
+                # be raised later when we re-try later to do the install.
+                # Why don't we just raise here?
+                pass
+
+        self._set_req_to_reinstall(req_to_install)
+        return None
 
     def _get_abstract_dist_for(self, req):
         assert self.require_hashes is not None, (
@@ -225,12 +216,8 @@ class Resolver(object):
                 self.ignore_installed
             )
             if should_modify:
-                # don't uninstall conflict if user install and
-                # conflict is not user install
-                if not (self.use_user_site and
-                        not dist_in_usersite(req.satisfied_by)):
-                    req.conflicts_with = req.satisfied_by
-                req.satisfied_by = None
+
+                self._set_req_to_reinstall(req)
             else:
                 logger.info(
                     'Requirement already satisfied (use --upgrade to upgrade):'
