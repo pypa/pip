@@ -9,6 +9,7 @@ import site
 import shutil
 
 import scripttest
+import six
 import virtualenv
 
 from tests.lib.path import Path, curdir
@@ -33,6 +34,15 @@ def path_to_url(path):
     if drive:
         return 'file:///' + drive + url
     return 'file://' + url
+
+
+# workaround for https://github.com/pypa/virtualenv/issues/306
+def virtualenv_lib_path(venv_home, venv_lib):
+    if not hasattr(sys, "pypy_version_info"):
+        return venv_lib
+    version_fmt = '{0}' if six.PY3 else '{0}.{1}'
+    version_dir = version_fmt.format(*sys.version_info)
+    return os.path.join(venv_home, 'lib-python', version_dir)
 
 
 def create_file(path, contents=None):
@@ -262,11 +272,8 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
         path_locations = virtualenv.path_locations(_virtualenv)
         # Make sure we have test.lib.path.Path objects
         venv, lib, include, bin = map(Path, path_locations)
-        # workaround for https://github.com/pypa/virtualenv/issues/306
-        if hasattr(sys, "pypy_version_info"):
-            lib = os.path.join(venv, 'lib-python', pyversion)
         self.venv_path = venv
-        self.lib_path = lib
+        self.lib_path = virtualenv_lib_path(venv, lib)
         self.include_path = include
         self.bin_path = bin
 
