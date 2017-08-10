@@ -14,7 +14,7 @@ from pip.exceptions import (
     DirectoryUrlHashUnsupported, HashUnpinned, InstallationError,
     PreviousBuildDirError, VcsHashUnsupported
 )
-from pip.utils import display_path, dist_in_usersite, normalize_path
+from pip.utils import display_path, normalize_path
 from pip.utils.hashes import MissingHashes
 from pip.utils.logging import indent_log
 from pip.vcs import vcs
@@ -163,8 +163,7 @@ class RequirementPreparer(object):
         # satisfied_by is only evaluated by calling _check_skip_installed,
         # so it must be None here.
         assert req.satisfied_by is None
-        if not resolver.ignore_installed:
-            skip_reason = resolver._check_skip_installed(req)
+        skip_reason = resolver._check_skip_installed(req)
 
         if req.satisfied_by:
             return self._prepare_installed_requirement(
@@ -297,12 +296,7 @@ class RequirementPreparer(object):
                     resolver.ignore_installed
                 )
                 if should_modify:
-                    # don't uninstall conflict if user install and
-                    # conflict is not user install
-                    if not (resolver.use_user_site and
-                            not dist_in_usersite(req.satisfied_by)):
-                        req.conflicts_with = req.satisfied_by
-                    req.satisfied_by = None
+                    resolver._set_req_to_reinstall(req)
                 else:
                     logger.info(
                         'Requirement already satisfied '
