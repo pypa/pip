@@ -2,10 +2,10 @@ from __future__ import absolute_import
 
 import os
 import subprocess
-import sys
 
 import virtualenv as _virtualenv
 
+from . import virtualenv_lib_path
 from .path import Path
 
 # On Python < 3.3 we don't have subprocess.DEVNULL
@@ -27,10 +27,7 @@ class VirtualEnvironment(object):
         self._system_site_packages = kwargs.pop("system_site_packages", False)
 
         home, lib, inc, bin = _virtualenv.path_locations(self.location)
-        # workaround for https://github.com/pypa/virtualenv/issues/306
-        if hasattr(sys, "pypy_version_info"):
-            lib = os.path.join(home, 'lib-python', sys.version[:3])
-        self.lib = Path(lib)
+        self.lib = Path(virtualenv_lib_path(home, lib))
         self.bin = Path(bin)
 
         super(VirtualEnvironment, self).__init__(*args, **kwargs)
