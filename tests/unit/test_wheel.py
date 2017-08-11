@@ -10,6 +10,8 @@ from pip.compat import WINDOWS
 from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip.utils import unpack_file
 
+from tests.lib import DATA_DIR
+
 
 @pytest.mark.parametrize("console_scripts",
                          ["pip = pip.main:pip", "pip:pip = pip.main:pip"])
@@ -243,9 +245,8 @@ class TestWheelFile(object):
         from tempfile import mkdtemp
         from shutil import rmtree
 
-        filepath = '../data/packages/meta-1.0-py2.py3-none-any.whl'
-        if not os.path.exists(filepath):
-            pytest.skip("%s does not exist" % filepath)
+        filepath = os.path.join(DATA_DIR, 'packages',
+                                'meta-1.0-py2.py3-none-any.whl')
         try:
             tmpdir = mkdtemp()
             utils.unpack_file(filepath, tmpdir, 'application/zip', None)
