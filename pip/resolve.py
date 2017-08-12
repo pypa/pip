@@ -207,8 +207,9 @@ class Resolver(object):
         # going to be re-installed/upgraded or not and reporting to the user.
         # This should probably get cleaned up in a future refactor.
 
-        # req.req is only available after unpack for URL pkgs repeat
-        # check_if_exists to uninstall-on-upgrade (#14)
+        # req.req is only avail after unpack for URL
+        # pkgs repeat check_if_exists to uninstall-on-upgrade
+        # (#14)
         if not self.ignore_installed:
             req.check_if_exists()
 
