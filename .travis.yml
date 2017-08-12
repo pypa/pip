@@ -9,6 +9,11 @@ matrix:
     - env: TOXENV=lint-py3
     - env: TOXENV=packaging
 
+    - env: TOXENV=pypy
+      python: pypy
+    - env: TOXENV=pypy3
+      python: pypy3
+
     - env: TOXENV=py27
       python: 2.7
     - env: TOXENV=py33
@@ -21,10 +26,6 @@ matrix:
       python: 3.6
     - env: TOXENV=py37
       python: nightly
-    - env: TOXENV=pypy
-      python: pypy
-    - env: TOXENV=pypy3
-      python: pypy3
     - env: "TOXENV=py27 VENDOR=no WHEELS=yes"
       python: 2.7
     - env: "TOXENV=py36 VENDOR=no WHEELS=yes"
