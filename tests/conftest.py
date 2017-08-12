@@ -125,16 +125,13 @@ def isolate(tmpdir):
 
 
 @pytest.fixture
-def virtualenv(tmpdir, monkeypatch, isolate):
+def virtualenv(tmpdir, isolate):
     """
     Return a virtual environment which is unique to each test function
     invocation created inside of a sub directory of the test function's
     temporary directory. The returned object is a
     ``tests.lib.venv.VirtualEnvironment`` object.
     """
-    # Force shutil to use the older method of rmtree that didn't use the fd
-    # functions. These seem to fail on Travis (and only on Travis).
-    monkeypatch.setattr(shutil, "_use_fd_functions", False, raising=False)
 
     # Copy over our source tree so that each virtual environment is self
     # contained
@@ -157,9 +154,6 @@ def virtualenv(tmpdir, monkeypatch, isolate):
     # Clean out our cache: creating the venv injects wheels into it.
     if os.path.exists(appdirs.user_cache_dir("pip")):
         shutil.rmtree(appdirs.user_cache_dir("pip"))
-
-    # Undo our monkeypatching of shutil
-    monkeypatch.undo()
 
     return venv
 
