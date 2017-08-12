@@ -174,6 +174,9 @@ class Resolver(object):
         return None
 
     def _get_abstract_dist_for(self, req):
+        """Takes a InstallRequirement and returns a single AbstractDist \
+        representing a prepared variant of the same.
+        """
         assert self.require_hashes is not None, (
             "require_hashes should have been set in Resolver.resolve()"
         )
@@ -186,8 +189,7 @@ class Resolver(object):
         # satisfied_by is only evaluated by calling _check_skip_installed,
         # so it must be None here.
         assert req.satisfied_by is None
-        if not self.ignore_installed:
-            skip_reason = self._check_skip_installed(req)
+        skip_reason = self._check_skip_installed(req)
 
         if req.satisfied_by:
             return self.preparer.prepare_installed_requirement(
@@ -216,7 +218,6 @@ class Resolver(object):
                 self.ignore_installed
             )
             if should_modify:
-
                 self._set_req_to_reinstall(req)
             else:
                 logger.info(
