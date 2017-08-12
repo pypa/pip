@@ -19,6 +19,7 @@ recursive-include pip/_vendor *.pem
 recursive-include docs Makefile *.rst *.py *.bat
 
 prune .github
+prune .tox_helpers
 prune .travis
 prune docs/_build
 prune news
