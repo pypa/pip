@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import logging
 import os.path
+import re
 
 from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.six.moves.urllib import parse as urllib_parse
@@ -18,6 +19,13 @@ urlunsplit = urllib_parse.urlunsplit
 
 
 logger = logging.getLogger(__name__)
+
+
+HASH_REGEX = re.compile('[a-fA-F0-9]{40}')
+
+
+def looks_like_hash(sha):
+    return bool(HASH_REGEX.match(sha))
 
 
 class Git(VersionControl):

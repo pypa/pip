@@ -4,7 +4,7 @@ from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.vcs import RevOptions, VersionControl
 from pip._internal.vcs.bazaar import Bazaar
-from pip._internal.vcs.git import Git
+from pip._internal.vcs.git import Git, looks_like_hash
 from pip._internal.vcs.mercurial import Mercurial
 from pip._internal.vcs.subversion import Subversion
 from tests.lib import pyversion
@@ -97,6 +97,15 @@ def dist():
     dist = Mock()
     dist.egg_name = Mock(return_value='pip_test_package')
     return dist
+
+
+def test_looks_like_hash():
+    assert looks_like_hash(40 * 'a')
+    assert looks_like_hash(40 * 'A')
+    # Test a string containing all valid characters.
+    assert looks_like_hash(18 * 'a' + '0123456789abcdefABCDEF')
+    assert not looks_like_hash(40 * 'g')
+    assert not looks_like_hash(39 * 'a')
 
 
 def test_git_get_src_requirements(git, dist):
