@@ -215,14 +215,6 @@ class Git(VersionControl):
     def is_ref_tag(self, ref):
         return ref.startswith('refs/tags/')
 
-    def is_ref_commit(self, ref):
-        """A ref is a commit sha if it is not anything else"""
-        return not any((
-            self.is_ref_remote(ref),
-            self.is_ref_branch(ref),
-            self.is_ref_tag(ref),
-        ))
-
     def get_short_refs(self, location):
         """Return map of named refs (branches or tags) to commit hashes."""
         rv = {}
