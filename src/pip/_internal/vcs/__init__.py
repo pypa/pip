@@ -279,7 +279,7 @@ class VersionControl(object):
         """
         raise NotImplementedError
 
-    def check_version(self, dest, rev_options):
+    def check_version(self, dest, commit_id):
         """
         Return True if the version is identical to what exists and
         doesn't need to be updated.
@@ -313,7 +313,8 @@ class VersionControl(object):
                         display_path(dest),
                         url,
                     )
-                    if not self.check_version(dest, rev_options):
+                    commit_id = rev_options[0]
+                    if not self.check_version(dest, commit_id):
                         logger.info(
                             'Updating %s %s%s',
                             display_path(dest),

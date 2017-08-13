@@ -119,7 +119,7 @@ class Git(VersionControl):
 
         return rev_options
 
-    def check_version(self, dest, rev_options):
+    def check_version(self, dest, commit_id):
         """
         Compare the current sha to the ref. ref may be a branch or tag name,
         but current rev will always point to a sha. This means that a branch
@@ -129,7 +129,7 @@ class Git(VersionControl):
         Args:
           rev_options: a RevOptions object.
         """
-        return self.get_revision(dest) == rev_options.arg_rev
+        return self.get_revision(dest) == commit_id
 
     def switch(self, dest, url, rev_options):
         self.run_command(['config', 'remote.origin.url', url], cwd=dest)
@@ -164,10 +164,11 @@ class Git(VersionControl):
 
             if rev:
                 rev_options = self.check_rev_options(dest, rev_options)
-                # Only do a checkout if rev_options differs from HEAD
-                if not self.check_version(dest, rev_options):
+                commit_hash = rev_options.rev
+                # Only do a checkout if HEAD differs from commit_hash.
+                if not self.check_version(dest, commit_hash):
                     cmd_args = ['fetch', '-q', url] + rev_options.to_args()
-                    self.run_command(cmd_args, cwd=dest,)
+                    self.run_command(cmd_args, cwd=dest)
                     self.run_command(
                         ['checkout', '-q', 'FETCH_HEAD'],
                         cwd=dest,
