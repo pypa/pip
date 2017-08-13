@@ -97,7 +97,7 @@ class Mercurial(VersionControl):
         current_rev_hash = self.get_revision_hash(location)
         return '%s@%s#egg=%s' % (repo, current_rev_hash, egg_project_name)
 
-    def check_version(self, dest, commit_id):
+    def does_commit_id_equal(self, dest, name):
         """Always assume the versions don't match"""
         return False
 

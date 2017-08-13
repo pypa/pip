@@ -119,17 +119,19 @@ class Git(VersionControl):
 
         return rev_options
 
-    def check_version(self, dest, commit_id):
+    def does_commit_id_equal(self, dest, name):
         """
-        Compare the current sha to the ref. ref may be a branch or tag name,
-        but current rev will always point to a sha. This means that a branch
-        or tag will never compare as True. So this ultimately only matches
-        against exact shas.
+        Return whether the current commit hash equals the given name.
 
         Args:
-          rev_options: a RevOptions object.
+          dest: the repository directory.
+          name: a string name.
         """
-        return self.get_revision(dest) == commit_id
+        if not name:
+            # Then avoid an unnecessary subprocess call.
+            return False
+
+        return self.get_revision(dest) == name
 
     def switch(self, dest, url, rev_options):
         self.run_command(['config', 'remote.origin.url', url], cwd=dest)
@@ -164,9 +166,9 @@ class Git(VersionControl):
 
             if rev:
                 rev_options = self.check_rev_options(dest, rev_options)
-                commit_hash = rev_options.rev
-                # Only do a checkout if HEAD differs from commit_hash.
-                if not self.check_version(dest, commit_hash):
+                # Only do a checkout if the current commit id doesn't match
+                # the requested revision.
+                if not self.does_commit_id_equal(dest, rev_options.rev):
                     cmd_args = ['fetch', '-q', url] + rev_options.to_args()
                     self.run_command(cmd_args, cwd=dest)
                     self.run_command(

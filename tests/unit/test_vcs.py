@@ -118,15 +118,19 @@ def test_git_get_src_requirements(git, dist):
     ])
 
 
-@pytest.mark.parametrize('commit,result', (
+@pytest.mark.parametrize('rev_name,result', (
     ('5547fa909e83df8bd743d3978d6667497983a4b7', True),
     ('5547fa909', False),
     ('5678', False),
     ('abc123', False),
     ('foo', False),
+    (None, False),
 ))
-def test_git_check_version(git, commit, result):
-    assert git.check_version('/path', commit) is result
+def test_git_does_commit_id_equal(git, rev_name, result):
+    """
+    Test Git.does_commit_id_equal().
+    """
+    assert git.does_commit_id_equal('/path', rev_name) is result
 
 
 def test_translate_egg_surname():
