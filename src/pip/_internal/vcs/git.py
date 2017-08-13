@@ -223,10 +223,6 @@ class Git(VersionControl):
             self.is_ref_tag(ref),
         ))
 
-    # Should deprecate `get_refs` since it's ambiguous
-    def get_refs(self, location):
-        return self.get_short_refs(location)
-
     def get_short_refs(self, location):
         """Return map of named refs (branches or tags) to commit hashes."""
         rv = {}
