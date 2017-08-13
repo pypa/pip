@@ -129,7 +129,7 @@ class Git(VersionControl):
         Args:
           rev_options: a RevOptions object.
         """
-        return self.get_revision(dest).startswith(rev_options.arg_rev)
+        return self.get_revision(dest) == rev_options.arg_rev
 
     def switch(self, dest, url, rev_options):
         self.run_command(['config', 'remote.origin.url', url], cwd=dest)
