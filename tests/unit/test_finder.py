@@ -34,7 +34,7 @@ def test_no_partial_name_match(data):
     assert found.url.endswith("gmpy-1.15.tar.gz"), found
 
 
-def test_tilde(data):
+def test_tilde():
     """Finder can accept a path with ~ in it and will normalize it."""
     session = PipSession()
     with patch('pip._internal.index.os.path.exists', return_value=True):
@@ -551,7 +551,7 @@ def test_get_index_urls_locations():
                          'file://index2/complex-name/']
 
 
-def test_find_all_candidates_nothing(data):
+def test_find_all_candidates_nothing():
     """Find nothing without anything"""
     finder = PackageFinder([], [], session=PipSession())
     assert not finder.find_all_candidates('pip')

@@ -88,7 +88,7 @@ class TestRequirementSet(object):
             assert not reqset.has_requirement('simple')
 
     @pytest.mark.network
-    def test_missing_hash_checking(self, data):
+    def test_missing_hash_checking(self):
         """Make sure prepare_files() raises an error when a requirement has no
         hash in implicit hash-checking mode.
         """
@@ -275,7 +275,7 @@ class TestRequirementSet(object):
             resolver.resolve,
             reqset)
 
-    def test_hashed_deps_on_require_hashes(self, data):
+    def test_hashed_deps_on_require_hashes(self):
         """Make sure hashed dependencies get installed when --require-hashes
         is on.
 

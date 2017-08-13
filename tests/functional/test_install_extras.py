@@ -107,7 +107,7 @@ def test_nonexistent_options_listed_in_order(script, data):
     assert msg in result.stderr
 
 
-def test_install_special_extra(script, data):
+def test_install_special_extra(script):
     # Check that uppercase letters and '-' are dealt with
     # make a dummy project
     pkga_path = script.scratch_path / 'pkga'

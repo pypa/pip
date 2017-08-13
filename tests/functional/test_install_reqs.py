@@ -466,7 +466,7 @@ def test_install_distribution_union_conflicting_extras(script, data):
     assert "Conflict" in result.stderr
 
 
-def test_install_unsupported_wheel_link_with_marker(script, data):
+def test_install_unsupported_wheel_link_with_marker(script):
     script.scratch_path.join("with-marker.txt").write(
         textwrap.dedent("""\
             %s; %s
