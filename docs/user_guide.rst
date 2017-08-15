@@ -398,8 +398,8 @@ This is the same as passing the option to pip directly::
 
     pip --default-timeout=60 [...]
 
-For command line options which can be repeated line use a space to
-separate values. For example::
+For command line options which can be repeated, use a space to separate 
+values to specify multiple values. For example::
 
     export PIP_FIND_LINKS="http://mirror1.example.com http://mirror2.example.com"
 
