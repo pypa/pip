@@ -3,6 +3,7 @@ Package containing all pip commands
 """
 from __future__ import absolute_import
 
+from pip.commands.cache import CacheCommand
 from pip.commands.completion import CompletionCommand
 from pip.commands.configuration import ConfigurationCommand
 from pip.commands.download import DownloadCommand
@@ -17,6 +18,7 @@ from pip.commands.install import InstallCommand
 from pip.commands.uninstall import UninstallCommand
 from pip.commands.wheel import WheelCommand
 
+
 commands_order = [
     InstallCommand,
     DownloadCommand,
@@ -29,6 +31,7 @@ commands_order = [
     SearchCommand,
     WheelCommand,
     HashCommand,
+    CacheCommand,
     CompletionCommand,
     HelpCommand,
 ]
