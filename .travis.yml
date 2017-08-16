@@ -25,9 +25,9 @@ matrix:
       python: pypy
     - env: TOXENV=pypy3
       python: pypy3
-    - env: "TOXENV=py27 VENDOR=no WHEELS=yes"
+    - env: "TOXENV=py27-novendor"
       python: 2.7
-    - env: "TOXENV=py36 VENDOR=no WHEELS=yes"
+    - env: "TOXENV=py36-novendor"
       python: 3.6
   allow_failures:
     - python: nightly
