@@ -16,7 +16,7 @@ from pip.exceptions import (
 )
 from pip.index import PackageFinder
 from pip.operations.prepare import RequirementPreparer
-from pip.req import InstallRequirement, Requirements, RequirementSet
+from pip.req import InstallRequirement, RequirementSet
 from pip.req.req_file import process_line
 from pip.req.req_install import parse_editable
 from pip.resolve import Resolver
@@ -545,32 +545,6 @@ class TestInstallRequirement(object):
         assert "It looks like a path. It does exist." in err_msg
         assert "appears to be a requirements file." in err_msg
         assert "If that is the case, use the '-r' flag to install" in err_msg
-
-
-def test_requirements_data_structure_keeps_order():
-    requirements = Requirements()
-    requirements['pip'] = 'pip'
-    requirements['nose'] = 'nose'
-    requirements['coverage'] = 'coverage'
-
-    assert ['pip', 'nose', 'coverage'] == list(requirements.values())
-    assert ['pip', 'nose', 'coverage'] == list(requirements.keys())
-
-
-def test_requirements_data_structure_implements__repr__():
-    requirements = Requirements()
-    requirements['pip'] = 'pip'
-    requirements['nose'] = 'nose'
-
-    assert "Requirements({'pip': 'pip', 'nose': 'nose'})" == repr(requirements)
-
-
-def test_requirements_data_structure_implements__contains__():
-    requirements = Requirements()
-    requirements['pip'] = 'pip'
-
-    assert 'pip' in requirements
-    assert 'nose' not in requirements
 
 
 @patch('pip.req.req_install.os.path.abspath')
