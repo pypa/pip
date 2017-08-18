@@ -721,7 +721,7 @@ class InstallRequirement(object):
             return True
 
     def install(self, install_options, global_options=None, root=None,
-                prefix=None):
+                prefix=None, warn_script_location=True):
         global_options = global_options if global_options is not None else []
         if self.editable:
             self.install_editable(
@@ -731,7 +731,10 @@ class InstallRequirement(object):
             version = pip.wheel.wheel_version(self.source_dir)
             pip.wheel.check_compatibility(version, self.name)
 
-            self.move_wheel_files(self.source_dir, root=root, prefix=prefix)
+            self.move_wheel_files(
+                self.source_dir, root=root, prefix=prefix,
+                warn_script_location=warn_script_location
+            )
             self.install_succeeded = True
             return
 
@@ -923,7 +926,8 @@ class InstallRequirement(object):
     def is_wheel(self):
         return self.link and self.link.is_wheel
 
-    def move_wheel_files(self, wheeldir, root=None, prefix=None):
+    def move_wheel_files(self, wheeldir, root=None, prefix=None,
+                         warn_script_location=True):
         move_wheel_files(
             self.name, self.req, wheeldir,
             user=self.use_user_site,
@@ -932,6 +936,7 @@ class InstallRequirement(object):
             prefix=prefix,
             pycompile=self.pycompile,
             isolated=self.isolated,
+            warn_script_location=warn_script_location
         )
 
     def get_dist(self):

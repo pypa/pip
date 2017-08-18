@@ -39,7 +39,8 @@ from pip.utils.ui import open_spinner
 wheel_ext = '.whl'
 
 VERSION_COMPATIBLE = (1, 0)
-
+# used for checking that scripts were installed on PATH
+_ENV_PATH_PARTS = os.environ["PATH"].split(os.pathsep)
 
 logger = logging.getLogger(__name__)
 
@@ -138,7 +139,8 @@ def get_entrypoints(filename):
 
 
 def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
-                     pycompile=True, scheme=None, isolated=False, prefix=None):
+                     pycompile=True, scheme=None, isolated=False, prefix=None,
+                     warn_script_location=True):
     """Install a wheel"""
 
     if not scheme:
@@ -388,9 +390,18 @@ if __name__ == '__main__':
 
     # Generate the console and GUI entry points specified in the wheel
     if len(console) > 0:
-        generated.extend(
-            maker.make_multiple(['%s = %s' % kv for kv in console.items()])
+        generated_console_scripts = maker.make_multiple(
+            ['%s = %s' % kv for kv in console.items()]
         )
+        generated.extend(generated_console_scripts)
+        for destfile in generated_console_scripts:
+            is_on_PATH = os.path.dirname(destfile) in _ENV_PATH_PARTS
+            print(destfile, _ENV_PATH_PARTS)
+            if not is_on_PATH and warn_script_location:
+                logger.warn(
+                    "Installed script %r is not in PATH..."
+                    "<insert instructions here>"
+                )
     if len(gui) > 0:
         generated.extend(
             maker.make_multiple(
