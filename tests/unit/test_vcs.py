@@ -73,17 +73,17 @@ def test_rev_options_make_new():
 @pytest.fixture
 def git():
     git_url = 'http://github.com/pypa/pip-test-package'
+    sha = '5547fa909e83df8bd743d3978d6667497983a4b7'
     refs = {
         '0.1': 'a8992fc7ee17e5b9ece022417b64594423caca7c',
         '0.1.1': '7d654e66c8fa7149c165ddeffa5b56bc06619458',
         '0.1.2': 'f1c1020ebac81f9aeb5c766ff7a772f709e696ee',
-        'foo': '5547fa909e83df8bd743d3978d6667497983a4b7',
-        'bar': '5547fa909e83df8bd743d3978d6667497983a4b7',
-        'master': '5547fa909e83df8bd743d3978d6667497983a4b7',
-        'origin/master': '5547fa909e83df8bd743d3978d6667497983a4b7',
-        'origin/HEAD': '5547fa909e83df8bd743d3978d6667497983a4b7',
+        'foo': sha,
+        'bar': sha,
+        'master': sha,
+        'origin/master': sha,
+        'origin/HEAD': sha,
     }
-    sha = refs['foo']
 
     git = Git()
     git.get_url = Mock(return_value=git_url)
