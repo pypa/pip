@@ -74,21 +74,9 @@ def test_rev_options_make_new():
 def git():
     git_url = 'http://github.com/pypa/pip-test-package'
     sha = '5547fa909e83df8bd743d3978d6667497983a4b7'
-    refs = {
-        '0.1': 'a8992fc7ee17e5b9ece022417b64594423caca7c',
-        '0.1.1': '7d654e66c8fa7149c165ddeffa5b56bc06619458',
-        '0.1.2': 'f1c1020ebac81f9aeb5c766ff7a772f709e696ee',
-        'foo': sha,
-        'bar': sha,
-        'master': sha,
-        'origin/master': sha,
-        'origin/HEAD': sha,
-    }
-
     git = Git()
     git.get_url = Mock(return_value=git_url)
     git.get_revision = Mock(return_value=sha)
-    git.get_short_refs = Mock(return_value=refs)
     return git
 
 

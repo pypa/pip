@@ -113,34 +113,28 @@ class Git(VersionControl):
         return refs.get('refs/tags/{}'.format(rev))
 
     def check_rev_options(self, dest, rev_options):
-        """Check the revision options before checkout to compensate that tags
-        and branches may need origin/ as a prefix.
+        """Check the revision options before checkout.
+
         Returns a new RevOptions object for the SHA1 of the branch or tag
         if found.
 
         Args:
           rev_options: a RevOptions object.
         """
-        revisions = self.get_short_refs(dest)
-
         rev = rev_options.arg_rev
-        origin_rev = 'origin/%s' % rev
-        if origin_rev in revisions:
-            # remote branch
-            return rev_options.make_new(revisions[origin_rev])
-        elif rev in revisions:
-            # a local tag or branch name
-            return rev_options.make_new(revisions[rev])
+        sha = self.get_revision_sha(dest, rev)
 
         # Do not show a warning for the common case of something that has
         # the form of a Git commit hash.
-        if not looks_like_hash(rev):
-            logger.warning(
-                "Did not find branch or tag '%s', assuming ref or revision.",
-                rev,
-            )
+        if sha is None:
+            if not looks_like_hash(rev):
+                logger.warning(
+                    "Did not find branch or tag '%s', assuming revision or ref",
+                    rev,
+                )
+            return rev_options
 
-        return rev_options
+        return rev_options.make_new(sha)
 
     def is_commit_id_equal(self, dest, name):
         """
@@ -220,38 +214,6 @@ class Git(VersionControl):
         current_rev = self.run_command(
             ['rev-parse', 'HEAD'], show_stdout=False, cwd=location)
         return current_rev.strip()
-
-    def get_full_refs(self, location):
-        """Yields tuples of (commit, ref) for branches and tags"""
-        output = self.run_command(['show-ref'],
-                                  show_stdout=False, cwd=location)
-        for line in output.strip().splitlines():
-            commit, ref = line.split(' ', 1)
-            yield commit.strip(), ref.strip()
-
-    def is_ref_remote(self, ref):
-        return ref.startswith('refs/remotes/')
-
-    def is_ref_branch(self, ref):
-        return ref.startswith('refs/heads/')
-
-    def is_ref_tag(self, ref):
-        return ref.startswith('refs/tags/')
-
-    def get_short_refs(self, location):
-        """Return map of named refs (branches or tags) to commit hashes."""
-        rv = {}
-        for commit, ref in self.get_full_refs(location):
-            ref_name = None
-            if self.is_ref_remote(ref):
-                ref_name = ref[len('refs/remotes/'):]
-            elif self.is_ref_branch(ref):
-                ref_name = ref[len('refs/heads/'):]
-            elif self.is_ref_tag(ref):
-                ref_name = ref[len('refs/tags/'):]
-            if ref_name is not None:
-                rv[ref_name] = commit
-        return rv
 
     def _get_subdirectory(self, location):
         """Return the relative path of setup.py to the git repo root."""
