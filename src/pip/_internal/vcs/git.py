@@ -89,6 +89,29 @@ class Git(VersionControl):
                 show_stdout=False, cwd=temp_dir.path
             )
 
+    def get_revision_sha(self, dest, rev):
+        """
+        Return a commit hash for the given revision if it names a remote
+        branch or tag.  Otherwise, return None.
+
+        Args:
+          dest: the repository directory.
+          rev: the revision name.
+        """
+        # Pass rev to pre-filter the list.
+        output = self.run_command(['show-ref', rev], cwd=dest,
+                                  show_stdout=False, on_returncode='ignore')
+        refs = {}
+        for line in output.strip().splitlines():
+            sha, ref = line.split(None, 1)
+            refs[ref] = sha
+
+        sha = refs.get('refs/remotes/origin/{}'.format(rev))
+        if sha is not None:
+            return sha
+
+        return refs.get('refs/tags/{}'.format(rev))
+
     def check_rev_options(self, dest, rev_options):
         """Check the revision options before checkout to compensate that tags
         and branches may need origin/ as a prefix.
