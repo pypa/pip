@@ -119,9 +119,9 @@ def test_check_rev_options_not_found_warning(get_refs_mock, caplog):
 
     # Check that a warning got logged only for the abbreviated hash.
     messages = [r.getMessage() for r in caplog.records]
-    messages = [msg for msg in messages if 'assuming commit' in msg]
+    messages = [msg for msg in messages if msg.startswith('Did not find ')]
     assert messages == [
-        "Did not find branch or tag 'aaaaaa', assuming commit or ref."
+        "Did not find branch or tag 'aaaaaa', assuming ref or revision."
     ]
 
 
