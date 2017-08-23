@@ -105,12 +105,16 @@ class Git(VersionControl):
         elif rev in revisions:
             # a local tag or branch name
             return rev_options.make_new(revisions[rev])
-        else:
+
+        # Do not show a warning for the common case of something that has
+        # the form of a Git commit hash.
+        if not looks_like_hash(rev):
             logger.warning(
-                "Could not find a tag or branch '%s', assuming commit or ref",
+                "Did not find branch or tag '%s', assuming commit or ref.",
                 rev,
             )
-            return rev_options
+
+        return rev_options
 
     def check_version(self, dest, rev_options):
         """
