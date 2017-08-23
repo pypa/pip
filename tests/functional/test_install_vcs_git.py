@@ -74,6 +74,16 @@ def test_check_version(script):
     assert not git.check_version(version_pkg_path, ['branch0.1'])
     assert not git.check_version(version_pkg_path, ['abc123'])
 
+    # Make sure check_version compares remote urls correctly
+    assert git.check_version(version_pkg_path, ['master'], url='file://%s' % version_pkg_path)
+
+    script.run(
+        'git', 'commit', '--allow-empty', '-m ""',
+        cwd=version_pkg_path
+    )
+
+    assert not git.check_version(version_pkg_path, ['branch0.1'], url='file://%s' % version_pkg_path)
+
 
 @patch('pip.vcs.git.Git.get_short_refs')
 def test_check_rev_options_should_handle_branch_name(get_refs_mock):

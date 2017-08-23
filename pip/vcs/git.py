@@ -107,7 +107,7 @@ class Git(VersionControl):
         local_revision = self.get_revision(dest)
 
         if url is not None:
-            remote_revision = self.get_remote_revision(url, rev_options[0])
+            remote_revision = self._get_remote_revision(url, rev_options[0])
         else:
             remote_revision = rev_options[0]
 
@@ -179,7 +179,7 @@ class Git(VersionControl):
             ['rev-parse', 'HEAD'], show_stdout=False, cwd=location)
         return current_rev.strip()
 
-    def get_remote_revision(self, url, ref):
+    def _get_remote_revision(self, url, ref):
         remote_rev = self.run_command(
             ['ls-remote', url, ref], show_stdout=False)
 
