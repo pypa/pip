@@ -262,6 +262,9 @@ def test_nowheel_user_with_prefix_in_pydistutils_cfg(script, data, virtualenv):
 @pytest.mark.network
 def test_wheel_target_with_prefix_in_pydistutils_cfg(
         script, data, virtualenv, common_wheels):
+    # pip needs `wheel` to build `requiresupper` wheel before installing
+    # (or to install it?)
+    script.pip('install', 'wheel', '--no-index', '-f', common_wheels)
     homedir = script.environ["HOME"]
     script.scratch_path.join("bin").mkdir()
     with open(os.path.join(homedir, ".pydistutils.cfg"), "w") as cfg:
