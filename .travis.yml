@@ -3,6 +3,7 @@ sudo: false
 dist: trusty
 
 matrix:
+  fast_finish: true
   include:
     - env: TOXENV=docs
     - env: TOXENV=lint-py2
