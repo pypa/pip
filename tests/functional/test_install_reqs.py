@@ -260,10 +260,10 @@ def test_nowheel_user_with_prefix_in_pydistutils_cfg(script, data, virtualenv):
 
 
 @pytest.mark.network
-def test_wheel_target_with_prefix_in_pydistutils_cfg(script, data,
-                                                     virtualenv):
+def test_wheel_target_with_prefix_in_pydistutils_cfg(
+        script, data, virtualenv, common_wheels):
     # Make sure wheel is available in the virtualenv
-    script.pip('install', 'wheel')
+    script.pip('install', 'wheel', '--no-index', '-f', common_wheels)
     virtualenv.system_site_packages = True
     homedir = script.environ["HOME"]
     script.scratch_path.join("bin").mkdir()
