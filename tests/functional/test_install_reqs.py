@@ -229,7 +229,6 @@ def test_wheel_user_with_prefix_in_pydistutils_cfg(
     script.pip('install', 'wheel', '--no-index', '-f', common_wheels)
     virtualenv.system_site_packages = True
     homedir = script.environ["HOME"]
-    script.scratch_path.join("bin").mkdir()
     with open(os.path.join(homedir, ".pydistutils.cfg"), "w") as cfg:
         cfg.write(textwrap.dedent("""
             [install]
@@ -245,9 +244,7 @@ def test_wheel_user_with_prefix_in_pydistutils_cfg(
 
 
 def test_nowheel_user_with_prefix_in_pydistutils_cfg(script, data, virtualenv):
-    virtualenv.system_site_packages = True
     homedir = script.environ["HOME"]
-    script.scratch_path.join("bin").mkdir()
     with open(os.path.join(homedir, ".pydistutils.cfg"), "w") as cfg:
         cfg.write(textwrap.dedent("""
             [install]
@@ -282,7 +279,6 @@ def test_wheel_target_with_prefix_in_pydistutils_cfg(
 def test_nowheel_target_with_prefix_in_pydistutils_cfg(script, data,
                                                        virtualenv):
     homedir = script.environ["HOME"]
-    script.scratch_path.join("bin").mkdir()
     with open(os.path.join(homedir, ".pydistutils.cfg"), "w") as cfg:
         cfg.write(textwrap.dedent("""
             [install]
