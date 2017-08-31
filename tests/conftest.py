@@ -7,8 +7,8 @@ import sys
 import pytest
 import six
 
-import pip
-from pip.utils import appdirs
+import pip._internal
+from pip._internal.utils import appdirs
 from tests.lib import SRC_DIR, TestData
 from tests.lib.path import Path
 from tests.lib.scripttest import PipTestEnvironment
@@ -224,7 +224,7 @@ class InMemoryPip(object):
             stdout = io.BytesIO()
         sys.stdout = stdout
         try:
-            returncode = pip.main(list(args))
+            returncode = pip._internal.main(list(args))
         except SystemExit as e:
             returncode = e.code or 0
         finally:

@@ -1,7 +1,7 @@
-diff --git a/pip/_vendor/cachecontrol/compat.py b/pip/_vendor/cachecontrol/compat.py
+diff --git a/src/pip/_vendor/cachecontrol/compat.py b/src/pip/_vendor/cachecontrol/compat.py
 index 54ec211..018e6ac 100644
---- a/pip/_vendor/cachecontrol/compat.py
-+++ b/pip/_vendor/cachecontrol/compat.py
+--- a/src/pip/_vendor/cachecontrol/compat.py
++++ b/src/pip/_vendor/cachecontrol/compat.py
 @@ -10,17 +10,8 @@ except ImportError:
      import pickle
  

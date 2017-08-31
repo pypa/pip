@@ -38,7 +38,7 @@ def path_to_url(path):
 def create_file(path, contents=None):
     """Create a file on the path, with the given contents
     """
-    from pip.utils import ensure_dir
+    from pip._internal.utils.misc import ensure_dir
 
     ensure_dir(os.path.dirname(path))
     with open(path, "w") as f:

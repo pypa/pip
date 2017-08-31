@@ -4,14 +4,16 @@ import pytest
 from mock import Mock, patch
 from pkg_resources import Distribution, parse_version
 
-import pip.pep425tags
-import pip.wheel
-from pip.download import PipSession
-from pip.exceptions import BestVersionAlreadyInstalled, DistributionNotFound
-from pip.index import (
+import pip._internal.pep425tags
+import pip._internal.wheel
+from pip._internal.download import PipSession
+from pip._internal.exceptions import (
+    BestVersionAlreadyInstalled, DistributionNotFound
+)
+from pip._internal.index import (
     FormatControl, InstallationCandidate, Link, PackageFinder, fmt_ctl_formats
 )
-from pip.req import InstallRequirement
+from pip._internal.req import InstallRequirement
 
 
 def test_no_mpkg(data):
@@ -35,7 +37,7 @@ def test_no_partial_name_match(data):
 def test_tilde(data):
     """Finder can accept a path with ~ in it and will normalize it."""
     session = PipSession()
-    with patch('pip.index.os.path.exists', return_value=True):
+    with patch('pip._internal.index.os.path.exists', return_value=True):
         finder = PackageFinder(['~/python-pkgs'], [], session=session)
     req = InstallRequirement.from_line("gmpy")
     with pytest.raises(DistributionNotFound):
@@ -138,9 +140,9 @@ class TestWheel:
         Test not finding an unsupported wheel.
         """
         monkeypatch.setattr(
-            pip.pep425tags,
-            "supported_tags",
-            [('py1', 'none', 'any')],
+            pip._internal.pep425tags,
+            "get_supported",
+            lambda **kw: [("py1", "none", "any")],
         )
 
         req = InstallRequirement.from_line("simple.dist")
@@ -149,7 +151,7 @@ class TestWheel:
             [],
             session=PipSession(),
         )
-        finder.valid_tags = pip.pep425tags.supported_tags
+        finder.valid_tags = pip._internal.pep425tags.get_supported()
 
         with pytest.raises(DistributionNotFound):
             finder.find_requirement(req, True)
@@ -159,9 +161,9 @@ class TestWheel:
         Test finding supported wheel.
         """
         monkeypatch.setattr(
-            pip.pep425tags,
-            "supported_tags",
-            [('py2', 'none', 'any')],
+            pip._internal.pep425tags,
+            "get_supported",
+            lambda **kw: [('py2', 'none', 'any')],
         )
 
         req = InstallRequirement.from_line("simple.dist")
@@ -497,7 +499,7 @@ class test_link_package_versions(object):
 
     # patch this for travis which has distribute in its base env for now
     @patch(
-        'pip.wheel.pkg_resources.get_distribution',
+        'pip._internal.wheel.pkg_resources.get_distribution',
         lambda x: Distribution(project_name='setuptools', version='0.9')
     )
     def setup(self):

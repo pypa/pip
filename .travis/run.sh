@@ -11,13 +11,13 @@ tox --notest
 if [[ $VENDOR = "no" ]]; then
     # Install our dependencies if we're not installing from wheels
     if [[ $WHEELS != "yes" ]]; then
-        .tox/$TOXENV/bin/pip install -r pip/_vendor/vendor.txt --no-deps
+        .tox/$TOXENV/bin/pip install -r src/pip/_vendor/vendor.txt --no-deps
     fi
 
     # Install our dependencies if we're installing from wheels
     if [[ $WHEELS = "yes" ]]; then
         mkdir -p /tmp/wheels
-        pip wheel --wheel-dir /tmp/wheels --no-deps -r pip/_vendor/vendor.txt
+        pip wheel --wheel-dir /tmp/wheels --no-deps -r src/pip/_vendor/vendor.txt
         cp /tmp/wheels/* `echo .tox/$TOXENV/lib/python*/site-packages/pip/_vendor/`
     fi
 
