@@ -39,7 +39,8 @@ class TestRequirementSet(object):
             src_dir=os.path.join(self.tempdir, 'src'),
             download_dir=None,
             wheel_download_dir=None,
-            progress_bar="on"
+            progress_bar="on",
+            sdist_cache=None,
         )
         return Resolver(
             preparer=preparer, wheel_cache=None,

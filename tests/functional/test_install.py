@@ -889,30 +889,55 @@ def test_install_upgrade_editable_depending_on_other_editable(script):
     assert "pkgb==0.1" in result.stdout
 
 
-def test_install_subprocess_output_handling(script, data):
-    args = ['install', data.src.join('chattymodule')]
-
+def test_install_subprocess_output_hidden_by_default(script, data):
     # Regular install should not show output from the chatty setup.py
-    result = script.pip(*args)
+    result = script.pip('install', data.src.join('chattymodule'))
     assert 0 == result.stdout.count("HELLO FROM CHATTYMODULE")
-    script.pip("uninstall", "-y", "chattymodule")
 
-    # With --verbose we should show the output.
+
+def test_install_shows_subprocess_output_on_verbose(script, data):
     # Only count examples with sys.argv[1] == egg_info, because we call
     # setup.py multiple times, which should not count as duplicate output.
-    result = script.pip(*(args + ["--verbose"]))
+    result = script.pip('install', data.src.join('chattymodule'), "--verbose")
     assert 1 == result.stdout.count("HELLO FROM CHATTYMODULE egg_info")
-    script.pip("uninstall", "-y", "chattymodule")
 
-    # If the install fails, then we *should* show the output... but only once,
-    # even if --verbose is given.
-    result = script.pip(*(args + ["--global-option=--fail"]),
-                        expect_error=True)
+
+def test_install_shows_subprocess_output_on_fail(script, data):
+    result = script.pip(
+        'install', data.src.join('chattymodule'),
+        "--global-option=--fail",
+        expect_error=True
+    )
     assert 1 == result.stdout.count("I DIE, I DIE")
 
-    result = script.pip(*(args + ["--global-option=--fail", "--verbose"]),
-                        expect_error=True)
+
+def test_install_shows_subprocess_output_on_verbose_and_fail(script, data):
+    result = script.pip(
+        'install', data.src.join('chattymodule'),
+        "--global-option=--fail", "--verbose",
+        expect_error=True
+    )
     assert 1 == result.stdout.count("I DIE, I DIE")
+
+
+def test_install_caches_sdist_egg_info(script, tmpdir):
+    result = script.pip_install_local(
+        '--cache-dir', tmpdir, '--verbose', 'chattymodule'
+    )
+    assert 1 == result.stdout.count("HELLO FROM CHATTYMODULE egg_info")
+
+    result = script.pip_install_local(
+        '--cache-dir', tmpdir, '--verbose', 'chattymodule'
+    )
+    assert 0 == result.stdout.count("HELLO FROM CHATTYMODULE egg_info")
+
+
+def test_install_does_not_cache_local_dir_egg_info(script, data):
+    result = script.pip('install', data.src.join('chattymodule'), '--verbose')
+    assert 1 == result.stdout.count("HELLO FROM CHATTYMODULE egg_info")
+
+    result = script.pip('install', data.src.join('chattymodule'), '--verbose')
+    assert 1 == result.stdout.count("HELLO FROM CHATTYMODULE egg_info")
 
 
 def test_install_log(script, data, tmpdir):

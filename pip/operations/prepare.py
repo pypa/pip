@@ -22,7 +22,7 @@ from pip.vcs import vcs
 logger = logging.getLogger(__name__)
 
 
-def make_abstract_dist(req):
+def make_abstract_dist(req, sdist_cache):
     """Factory to make an abstract dist object.
 
     Preconditions: Either an editable req with a source_dir, or satisfied_by or
@@ -31,11 +31,11 @@ def make_abstract_dist(req):
     :return: A concrete DistAbstraction.
     """
     if req.editable:
-        return IsSDist(req)
+        return IsSDist(req, sdist_cache)
     elif req.link and req.link.is_wheel:
         return IsWheel(req)
     else:
-        return IsSDist(req)
+        return IsSDist(req, sdist_cache)
 
 
 class DistAbstraction(object):
@@ -82,6 +82,10 @@ class IsWheel(DistAbstraction):
 
 class IsSDist(DistAbstraction):
 
+    def __init__(self, req, sdist_cache):
+        self.req = req
+        self._cache = sdist_cache
+
     def dist(self, finder):
         dist = self.req.get_dist()
         # FIXME: shouldn't be globally added.
@@ -92,7 +96,7 @@ class IsSDist(DistAbstraction):
         return dist
 
     def prep_for_dist(self):
-        self.req.run_egg_info()
+        self.req.run_egg_info(self._cache)
         self.req.assert_source_matches_version()
 
 
@@ -110,7 +114,7 @@ class RequirementPreparer(object):
     """
 
     def __init__(self, build_dir, download_dir, src_dir, wheel_download_dir,
-                 progress_bar):
+                 sdist_cache, progress_bar):
         super(RequirementPreparer, self).__init__()
 
         self.src_dir = src_dir
@@ -133,6 +137,13 @@ class RequirementPreparer(object):
         # the wheelhouse output by 'pip wheel'.
 
         self.progress_bar = progress_bar
+
+        # NOTE
+        # This should eventually move out of this class because sdist-related
+        # caching should be caching the actual sdists along with the generated
+        # egg-info; this is just the easiest path to have taken for introducing
+        # egg-info caching for the resolver.
+        self._sdist_cache = sdist_cache
 
     @property
     def _download_should_save(self):
@@ -284,7 +295,7 @@ class RequirementPreparer(object):
                     'error %s for URL %s' %
                     (req, exc, req.link)
                 )
-            abstract_dist = make_abstract_dist(req)
+            abstract_dist = make_abstract_dist(req, self._sdist_cache)
             abstract_dist.prep_for_dist()
             if self._download_should_save:
                 # Make a .zip of the source_dir we already created.
@@ -327,7 +338,7 @@ class RequirementPreparer(object):
             req.ensure_has_source_dir(self.src_dir)
             req.update_editable(not self._download_should_save)
 
-            abstract_dist = make_abstract_dist(req)
+            abstract_dist = make_abstract_dist(req, self._sdist_cache)
             abstract_dist.prep_for_dist()
 
             if self._download_should_save:

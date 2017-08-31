@@ -443,8 +443,63 @@ class InstallRequirement(object):
 
         return pp_toml
 
-    def run_egg_info(self):
+    # NOTE
+    # The sdist cache is passed here because it is the minimum disruption
+    # change needed to introduce egg-info caching. Eventually, this method
+    # would be changed and would likely stop being called if the information
+    # already exists in the cache.
+    def run_egg_info(self, sdist_cache):
         assert self.source_dir
+
+        should_cache_egg_info = (
+            not self.editable and sdist_cache is not None and self.link and (
+                self.link.scheme != 'file' or not self.link.is_artifact
+            )
+        )
+        have_cached_egg_info = False
+
+        if should_cache_egg_info:
+            cached_egg_info_dir = os.path.join(
+                sdist_cache.get_path_for_link(self.link), "egg-info"
+            )
+            egg_info_dest_dir = os.path.join(self.setup_py_dir, 'pip-egg-info')
+
+            have_cached_egg_info = os.path.exists(cached_egg_info_dir)
+
+        if should_cache_egg_info and have_cached_egg_info:
+            # we have the egg-info cached, copy it into the right place
+            logger.info("Using cached egg-info for package %s", self.name)
+            shutil.copytree(cached_egg_info_dir, egg_info_dest_dir)
+        else:
+            self._generate_egg_info()
+            if should_cache_egg_info:
+                shutil.copytree(egg_info_dest_dir, cached_egg_info_dir)
+
+        if not self.req:
+            if isinstance(parse_version(self.pkg_info()["Version"]), Version):
+                op = "=="
+            else:
+                op = "==="
+            self.req = Requirement(
+                "".join([
+                    self.pkg_info()["Name"],
+                    op,
+                    self.pkg_info()["Version"],
+                ])
+            )
+            self._correct_build_location()
+        else:
+            metadata_name = canonicalize_name(self.pkg_info()["Name"])
+            if canonicalize_name(self.req.name) != metadata_name:
+                logger.warning(
+                    'Running setup.py (path:%s) egg_info for package %s '
+                    'produced metadata for project name %s. Fix your '
+                    '#egg=%s fragments.',
+                    self.setup_py, self.name, metadata_name, self.name
+                )
+                self.req = Requirement(metadata_name)
+
+    def _generate_egg_info(self):
         if self.name:
             logger.debug(
                 'Running setup.py (path:%s) egg_info for package %s',
@@ -471,35 +526,13 @@ class InstallRequirement(object):
                 egg_info_dir = os.path.join(self.setup_py_dir, 'pip-egg-info')
                 ensure_dir(egg_info_dir)
                 egg_base_option = ['--egg-base', 'pip-egg-info']
+
             call_subprocess(
                 egg_info_cmd + egg_base_option,
                 cwd=self.setup_py_dir,
                 show_stdout=False,
-                command_desc='python setup.py egg_info')
-
-        if not self.req:
-            if isinstance(parse_version(self.pkg_info()["Version"]), Version):
-                op = "=="
-            else:
-                op = "==="
-            self.req = Requirement(
-                "".join([
-                    self.pkg_info()["Name"],
-                    op,
-                    self.pkg_info()["Version"],
-                ])
+                command_desc='python setup.py egg_info'
             )
-            self._correct_build_location()
-        else:
-            metadata_name = canonicalize_name(self.pkg_info()["Name"])
-            if canonicalize_name(self.req.name) != metadata_name:
-                logger.warning(
-                    'Running setup.py (path:%s) egg_info for package %s '
-                    'produced metadata for project name %s. Fix your '
-                    '#egg=%s fragments.',
-                    self.setup_py, self.name, metadata_name, self.name
-                )
-                self.req = Requirement(metadata_name)
 
     def egg_info_data(self, filename):
         if self.satisfied_by is not None:

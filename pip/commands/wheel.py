@@ -6,7 +6,7 @@ import os
 
 from pip import cmdoptions
 from pip.basecommand import RequirementCommand
-from pip.cache import WheelCache
+from pip.cache import SDistCache, WheelCache
 from pip.exceptions import CommandError, PreviousBuildDirError
 from pip.operations.prepare import RequirementPreparer
 from pip.req import RequirementSet
@@ -138,6 +138,7 @@ class WheelCommand(RequirementCommand):
             finder = self._build_package_finder(options, session)
             build_delete = (not (options.no_clean or options.build_dir))
             wheel_cache = WheelCache(options.cache_dir, options.format_control)
+            sdist_cache = SDistCache(options.cache_dir, options.format_control)
 
             with TempDirectory(
                 options.build_dir, delete=build_delete, kind="wheel"
@@ -157,6 +158,7 @@ class WheelCommand(RequirementCommand):
                     download_dir=None,
                     wheel_download_dir=options.wheel_dir,
                     progress_bar=options.progress_bar,
+                    sdist_cache=sdist_cache,
                 )
 
                 resolver = Resolver(

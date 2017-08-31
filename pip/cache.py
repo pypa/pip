@@ -5,6 +5,8 @@ import errno
 import hashlib
 import logging
 import os
+import platform
+import sys
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -148,3 +150,44 @@ class WheelCache(Cache):
             return link
 
         return self._link_for_candidate(link, min(candidates)[1])
+
+
+class SDistCache(Cache):
+    """A cache of sdists and metadata generated from them
+    """
+
+    def __init__(self, cache_dir, format_control):
+        super(SDistCache, self).__init__(cache_dir, format_control, {"source"})
+
+    def get_path_for_link(self, link):
+        """Returns a directory to store cached sdist and metadata for link
+        """
+        parts = self._get_cache_path_parts(link)
+
+        # Since people might do things that make setup.py files behave
+        # differently for various implementations, we use a tag in an attempt
+        # to not break their world until we have a good declarative metadata
+        # specification.
+        try:
+            tag = sys.implementation.cache_tag
+        except AttributeError:
+            tag = None
+
+        # if sys.implementation is not available or cache_tag is not available
+        if tag is None:
+            # Include as much information about this python as seems reasonabe
+            # to.
+            tag = "{implementation}-{version}-{api_version}".format(
+                implementation=platform.python_implementation().lower(),
+                api_version=sys.api_version,
+                version="".join(map(str, sys.version_info[:2]))
+            )
+
+        return os.path.join(self.cache_dir, "sdist", tag, *parts)
+
+    def get(self, link, package_name):
+        candidates = self._get_candidates(link, package_name)
+
+        if not candidates:
+            return link
+        return self._link_for_candidate(link, candidates[0])
