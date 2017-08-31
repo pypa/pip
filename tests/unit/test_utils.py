@@ -17,17 +17,19 @@ from mock import Mock, patch
 from pip._vendor.six import BytesIO
 
 from pip.exceptions import (
-    HashMismatch, HashMissing, InstallationError, UnsupportedPythonVersion
+    CircularSymlinkException, HashMismatch, HashMissing, InstallationError,
+    UnsupportedPythonVersion
 )
 from pip.utils import (
     egg_link_path, ensure_dir, get_installed_distributions, normalize_path,
-    rmtree, untar_file, unzip_file
+    rmtree, untar_file, unzip_file, validate_path
 )
 from pip.utils.encoding import auto_decode
 from pip.utils.glibc import check_glibc_version
 from pip.utils.hashes import Hashes, MissingHashes
 from pip.utils.packaging import check_dist_requires_python
 from pip.utils.temp_dir import TempDirectory
+from tests.lib import DATA_DIR, Path
 
 
 class Tests_EgglinkPath:
@@ -592,3 +594,74 @@ class TestCheckRequiresPython(object):
                 check_dist_requires_python(fake_dist)
         else:
             check_dist_requires_python(fake_dist)
+
+
+class TestValidatePath(object):
+    def setup(self):
+        self.tempdir = tempfile.mkdtemp()
+        self.old_mask = os.umask(0o022)
+        self.dir = DATA_DIR.join('util').join('bar')
+        self.file = self.dir.join('foo')
+        self.symlinksDir = Path(self.tempdir)
+
+    def teardown(self):
+        os.umask(self.old_mask)
+        shutil.rmtree(self.tempdir, ignore_errors=True)
+
+    def testRegularFile(self):
+        foo_file = self.file.join('foo')
+        validate_path(foo_file)
+
+    @pytest.mark.skipif(
+        not hasattr(os, 'symlink'),
+        reason="requires os.symlink",
+    )
+    def testRegularSymlinkToFile(self):
+        foo_file = self.file
+        symfoo_link = self.symlinksDir.join('symfoo')
+        try:
+            os.symlink(foo_file, symfoo_link)
+            validate_path(symfoo_link)
+        except OSError:
+            return
+        finally:
+            os.unlink(symfoo_link)
+
+    @pytest.mark.skipif(
+        not hasattr(os, 'symlink'),
+        reason="requires os.symlink",
+    )
+    def testRegularSymlinkToDirectory(self):
+        bar_dir = self.dir
+        symbar_link = self.symlinksDir.join('symbar')
+        try:
+            os.symlink(bar_dir, symbar_link)
+            validate_path(symbar_link)
+        except OSError:
+            return
+        finally:
+            os.unlink(symbar_link)
+
+    @pytest.mark.skipif(
+        not hasattr(os, 'symlink'),
+        reason="requires os.symlink",
+    )
+    def testCircularSymlink(self):
+        foo_file = self.file.join('foo')
+        symfoo_link = self.symlinksDir.join('symfoo')
+        to_symfoo_link = self.symlinksDir.join('to_symfoo')
+        to_to_symfoo_link = self.symlinksDir.join('to_to_symfoo')
+        try:
+            os.symlink(foo_file, symfoo_link)
+            os.symlink(symfoo_link, to_symfoo_link)
+            os.symlink(to_symfoo_link, to_to_symfoo_link)
+            os.unlink(symfoo_link)
+            os.symlink(to_to_symfoo_link, symfoo_link)
+            with pytest.raises(CircularSymlinkException):
+                validate_path(symfoo_link)
+        except OSError:
+            return
+        finally:
+            os.unlink(symfoo_link)
+            os.unlink(to_symfoo_link)
+            os.unlink(to_to_symfoo_link)

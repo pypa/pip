@@ -246,3 +246,13 @@ class HashMismatch(HashError):
 class UnsupportedPythonVersion(InstallationError):
     """Unsupported python version according to Requires-Python package
     metadata."""
+
+
+class CircularSymlinkException(PipError):
+    """When a circular symbolic link is detected."""
+    def __init__(self, resources):
+        message = (
+            'Circular reference detected in "%s" ("%s" > "%s").'
+            '' % (resources[0], '" > "'.join(resources), resources[0]),
+        )
+        PipError.__init__(self, message)
