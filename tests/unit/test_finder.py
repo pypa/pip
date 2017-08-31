@@ -251,6 +251,31 @@ class TestWheel:
 
         assert links == results == results2, results2
 
+    def test_link_sorting_wheels_with_build_tags(self):
+        """Verify build tags affect sorting."""
+        links = [
+            InstallationCandidate(
+                "simplewheel",
+                "2.0",
+                Link("simplewheel-2.0-1-py2.py3-none-any.whl"),
+            ),
+            InstallationCandidate(
+                "simplewheel",
+                "2.0",
+                Link("simplewheel-2.0-py2.py3-none-any.whl"),
+            ),
+            InstallationCandidate(
+                "simplewheel",
+                "1.0",
+                Link("simplewheel-1.0-py2.py3-none-any.whl"),
+            ),
+        ]
+        finder = PackageFinder([], [], session=PipSession())
+        results = sorted(links, key=finder._candidate_sort_key, reverse=True)
+        results2 = sorted(reversed(links), key=finder._candidate_sort_key,
+                          reverse=True)
+        assert links == results == results2, results2
+
 
 def test_finder_priority_file_over_page(data):
     """Test PackageFinder prefers file links over equivalent page links"""
