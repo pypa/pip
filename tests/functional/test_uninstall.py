@@ -464,3 +464,20 @@ def test_uninstall_editable_and_pip_install(script, data):
     ) in uninstall2.files_deleted, list(uninstall2.files_deleted.keys())
     list_result2 = script.pip('list', '--format=json')
     assert "FSPkg" not in {p["name"] for p in json.loads(list_result2.stdout)}
+
+
+def test_uninstall_ignore_missing_and_succeed(script, data):
+    """
+    Test that uninstalling a package with --ignore-missing succeeds.
+
+    """
+    result = script.pip('install', 'INITools==0.2')
+    assert join(script.site_packages, 'initools') in result.files_created, (
+        sorted(result.files_created.keys())
+    )
+    # the import forces the generation of __pycache__ if the version of python
+    # supports it
+    script.run('python', '-c', "import initools")
+    result2 = script.pip('uninstall', 'not-a-real-lib', 'INITools', '-y', '-i',
+                         expect_error=True)
+    assert_all_changes(result, result2, [script.venv / 'build', 'cache'])
