@@ -58,19 +58,22 @@ class CompletionCommand(Command):
             action='store_const',
             const='bash',
             dest='shell',
-            help='Emit completion code for bash')
+            help='Emit completion code for bash'
+        )
         cmd_opts.add_option(
             '--zsh', '-z',
             action='store_const',
             const='zsh',
             dest='shell',
-            help='Emit completion code for zsh')
+            help='Emit completion code for zsh'
+        )
         cmd_opts.add_option(
             '--fish', '-f',
             action='store_const',
             const='fish',
             dest='shell',
-            help='Emit completion code for fish')
+            help='Emit completion code for fish'
+        )
 
         self.parser.insert_option_group(0, cmd_opts)
 

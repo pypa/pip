@@ -191,8 +191,8 @@ class Command(object):
                 deprecation.RemovedInPip11Warning,
             )
 
-        # TODO: try to get these passing down from the command?
-        #      without resorting to os.environ to hold these.
+        # TODO: Try to get these passing down from the command without
+        #       resorting to os.environ to hold these?
 
         if options.no_input:
             os.environ['PIP_NO_INPUT'] = '1'
@@ -212,8 +212,8 @@ class Command(object):
 
         try:
             status = self.run(options, args)
-            # FIXME: all commands should return an exit status
-            # and when it is done, isinstance is not needed anymore
+            # FIXME: All commands should return an exit status
+            #        and when it is done, isinstance is not needed anymore
             if isinstance(status, int):
                 return status
         except PreviousBuildDirError as exc:
@@ -242,13 +242,14 @@ class Command(object):
             return UNKNOWN_ERROR
         finally:
             # Check if we're using the latest version of pip available
-            if (not options.disable_pip_version_check and not
-                    getattr(options, "no_index", False)):
-                with self._build_session(
-                        options,
-                        retries=0,
-                        timeout=min(5, options.timeout)) as session:
+            _no_index = getattr(options, "no_index", False)
+            if not options.disable_pip_version_check and not _no_index:
+                session = self._build_session(
+                    options, retries=0, timeout=min(5, options.timeout)
+                )
+                with session:
                     pip_version_check(session, options)
+
             # Avoid leaking loggers
             for handler in set(logging.root.handlers) - original_root_handlers:
                 # this method benefit from the Logger class internal lock
@@ -269,10 +270,12 @@ class RequirementCommand(Command):
         #       requirement_set.require_hashes may be updated
 
         for filename in options.constraints:
-            for req in parse_requirements(
-                    filename,
-                    constraint=True, finder=finder, options=options,
-                    session=session, wheel_cache=wheel_cache):
+            parsed_constraints = parse_requirements(
+                filename,
+                constraint=True, finder=finder, options=options,
+                session=session, wheel_cache=wheel_cache
+            )
+            for req in parsed_constraints:
                 requirement_set.add_requirement(req)
 
         for req in args:
@@ -293,10 +296,11 @@ class RequirementCommand(Command):
             )
 
         for filename in options.requirements:
-            for req in parse_requirements(
-                    filename,
-                    finder=finder, options=options, session=session,
-                    wheel_cache=wheel_cache):
+            parsed_reqs = parse_requirements(
+                filename, finder=finder, options=options, session=session,
+                wheel_cache=wheel_cache
+            )
+            for req in parsed_reqs:
                 requirement_set.add_requirement(req)
         # If --require-hashes was a line in a requirements file, tell
         # RequirementSet about it:

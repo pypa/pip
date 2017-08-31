@@ -399,7 +399,8 @@ class InstallRequirement(object):
     def setup_py_dir(self):
         return os.path.join(
             self.source_dir,
-            self.link and self.link.subdirectory_fragment or '')
+            self.link and self.link.subdirectory_fragment or ''
+        )
 
     @property
     def setup_py(self):
@@ -475,7 +476,8 @@ class InstallRequirement(object):
                 egg_info_cmd + egg_base_option,
                 cwd=self.setup_py_dir,
                 show_stdout=False,
-                command_desc='python setup.py egg_info')
+                command_desc='python setup.py egg_info'
+            )
 
         if not self.req:
             if isinstance(parse_version(self.pkg_info()["Version"]), Version):
@@ -529,24 +531,25 @@ class InstallRequirement(object):
                     # Iterate over a copy of ``dirs``, since mutating
                     # a list while iterating over it can cause trouble.
                     # (See https://github.com/pypa/pip/pull/462.)
-                    for dir in list(dirs):
+                    for dir_ in list(dirs):
                         # Don't search in anything that looks like a virtualenv
                         # environment
-                        if (
-                                os.path.lexists(
-                                    os.path.join(root, dir, 'bin', 'python')
-                                ) or
-                                os.path.exists(
-                                    os.path.join(
-                                        root, dir, 'Scripts', 'Python.exe'
-                                    )
-                                )):
-                            dirs.remove(dir)
+                        should_remove = (
+                            os.path.lexists(os.path.join(
+                                root, dir_, 'bin', 'python'
+                            )) or
+                            os.path.exists(os.path.join(
+                                root, dir_, 'Scripts', 'Python.exe'
+                            ))
+                        )
+                        if should_remove:
+                            dirs.remove(dir_)
                         # Also don't search through tests
-                        elif dir == 'test' or dir == 'tests':
-                            dirs.remove(dir)
-                    filenames.extend([os.path.join(root, dir)
-                                      for dir in dirs])
+                        elif dir_ == 'test' or dir_ == 'tests':
+                            dirs.remove(dir_)
+                    filenames.extend(
+                        [os.path.join(root, dir_) for dir_ in dirs]
+                    )
                 filenames = [f for f in filenames if f.endswith('.egg-info')]
 
             if not filenames:
@@ -716,7 +719,8 @@ class InstallRequirement(object):
         if self.markers is not None:
             return any(
                 self.markers.evaluate({'extra': extra})
-                for extra in extras_requested)
+                for extra in extras_requested
+            )
         else:
             return True
 
@@ -725,7 +729,8 @@ class InstallRequirement(object):
         global_options = global_options if global_options is not None else []
         if self.editable:
             self.install_editable(
-                install_options, global_options, prefix=prefix)
+                install_options, global_options, prefix=prefix
+            )
             return
         if self.is_wheel:
             version = pip.wheel.wheel_version(self.source_dir)
@@ -749,7 +754,8 @@ class InstallRequirement(object):
         with TempDirectory(kind="record") as temp_dir:
             record_filename = os.path.join(temp_dir.path, 'install-record.txt')
             install_args = self.get_install_args(
-                global_options, record_filename, root, prefix)
+                global_options, record_filename, root, prefix
+            )
             msg = 'Running setup.py install for %s' % (self.name,)
             with open_spinner(msg) as spinner:
                 with indent_log():
@@ -834,9 +840,10 @@ class InstallRequirement(object):
 
         if running_under_virtualenv():
             py_ver_str = 'python' + sysconfig.get_python_version()
-            install_args += ['--install-headers',
-                             os.path.join(sys.prefix, 'include', 'site',
-                                          py_ver_str, self.name)]
+            header_location = os.path.join(
+                sys.prefix, 'include', 'site', py_ver_str, self.name
+            )
+            install_args += ['--install-headers', header_location]
 
         return install_args
 
@@ -862,19 +869,14 @@ class InstallRequirement(object):
             install_options = list(install_options) + prefix_param
 
         with indent_log():
-            # FIXME: should we do --install-headers here too?
-            call_subprocess(
-                [
-                    sys.executable,
-                    '-c',
-                    SETUPTOOLS_SHIM % self.setup_py
-                ] +
+            command = (
+                [sys.executable, '-c', SETUPTOOLS_SHIM % self.setup_py] +
                 list(global_options) +
                 ['develop', '--no-deps'] +
-                list(install_options),
-
-                cwd=self.setup_py_dir,
-                show_stdout=False)
+                list(install_options)
+            )
+            # FIXME: should we do --install-headers here too?
+            call_subprocess(command, cwd=self.setup_py_dir, show_stdout=False)
 
         self.install_succeeded = True
 
@@ -942,8 +944,8 @@ class InstallRequirement(object):
         dist_name = os.path.splitext(os.path.basename(egg_info))[0]
         return pkg_resources.Distribution(
             os.path.dirname(egg_info),
-            project_name=dist_name,
-            metadata=metadata)
+            project_name=dist_name, metadata=metadata
+        )
 
     @property
     def has_hash_options(self):

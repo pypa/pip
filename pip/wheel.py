@@ -52,9 +52,8 @@ def rehash(path, algo='sha256', blocksize=1 << 20):
         for block in read_chunks(f, size=blocksize):
             length += len(block)
             h.update(block)
-    digest = 'sha256=' + urlsafe_b64encode(
-        h.digest()
-    ).decode('latin1').rstrip('=')
+    digest = 'sha256='
+    digest += urlsafe_b64encode(h.digest()).decode('latin1').rstrip('=')
     return (digest, length)
 
 
@@ -86,8 +85,9 @@ def fix_script(path):
         return True
 
 
-dist_info_re = re.compile(r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>.+?))?)
-                                \.dist-info$""", re.VERBOSE)
+dist_info_re = re.compile(
+    r"^(?P<namever>(?P<name>.+?)(-(?P<ver>.+?))?)\.dist-info$", re.VERBOSE
+)
 
 
 def root_is_purelib(name, wheeldir):
@@ -624,12 +624,17 @@ class WheelBuilder(object):
         # we don't recurse trying to build a self-hosting build system.
         finder = copy.copy(self.finder)
         finder.format_control = FormatControl(set(), set())
-        urls = [finder.find_requirement(InstallRequirement.from_line(r),
-                                        upgrade=False).url
-                for r in reqs]
+        urls = [
+            finder.find_requirement(
+                InstallRequirement.from_line(r), upgrade=False
+            ).url
+            for r in reqs
+        ]
 
-        args = [sys.executable, '-m', 'pip', 'install', '--ignore-installed',
-                '--prefix', prefix] + list(urls)
+        args = [
+            sys.executable, '-m', 'pip', 'install', '--ignore-installed',
+            '--prefix', prefix
+        ] + list(urls)
         with open_spinner("Installing build dependencies") as spinner:
             call_subprocess(args, show_stdout=False, spinner=spinner)
 
@@ -643,19 +648,22 @@ class WheelBuilder(object):
             logger.warning(
                 "This version of pip does not implement PEP 516, so "
                 "it cannot build a wheel without setuptools. You may need to "
-                "upgrade to a newer version of pip.")
+                "upgrade to a newer version of pip."
+            )
         # Install build deps into temporary directory (PEP 518)
         with BuildEnvironment(self.no_clean) as prefix:
             self._install_build_reqs(build_reqs, prefix)
-            return self._build_one_inside_env(req, output_dir,
-                                              python_tag=python_tag,
-                                              isolate=True)
+            return self._build_one_inside_env(
+                req, output_dir, python_tag=python_tag, isolate=True
+            )
 
     def _build_one_inside_env(self, req, output_dir, python_tag=None,
                               isolate=False):
         with TempDirectory(kind="wheel") as temp_dir:
-            if self.__build_one(req, temp_dir.path, python_tag=python_tag,
-                                isolate=isolate):
+            built_it = self.__build_one(
+                req, temp_dir.path, python_tag=python_tag, isolate=isolate
+            )
+            if built_it:
                 try:
                     wheel_name = os.listdir(temp_dir.path)[0]
                     wheel_path = os.path.join(output_dir, wheel_name)
@@ -699,9 +707,10 @@ class WheelBuilder(object):
                 env['PYTHONNOUSERSITE'] = '1'
 
             try:
-                call_subprocess(wheel_args, cwd=req.setup_py_dir,
-                                extra_environ=env,
-                                show_stdout=False, spinner=spinner)
+                call_subprocess(
+                    wheel_args, cwd=req.setup_py_dir, extra_environ=env,
+                    show_stdout=False, spinner=spinner
+                )
                 return True
             except:
                 spinner.finish("error")
@@ -741,7 +750,8 @@ class WheelBuilder(object):
             if req.is_wheel:
                 if not autobuilding:
                     logger.info(
-                        'Skipping %s, due to already being wheel.', req.name)
+                        'Skipping %s, due to already being wheel.', req.name
+                    )
             elif autobuilding and req.editable:
                 pass
             elif autobuilding and req.link and not req.link.is_artifact:
@@ -761,7 +771,8 @@ class WheelBuilder(object):
                             canonicalize_name(req.name)):
                         logger.info(
                             "Skipping bdist_wheel for %s, due to binaries "
-                            "being disabled for it.", req.name)
+                            "being disabled for it.", req.name
+                        )
                         continue
                 buildset.append(req)
 
@@ -783,8 +794,9 @@ class WheelBuilder(object):
                     try:
                         ensure_dir(output_dir)
                     except OSError as e:
-                        logger.warning("Building wheel for %s failed: %s",
-                                       req.name, e)
+                        logger.warning(
+                            "Building wheel for %s failed: %s", req.name, e
+                        )
                         build_failure.append(req)
                         continue
                 else:
@@ -796,30 +808,36 @@ class WheelBuilder(object):
                 if wheel_file:
                     build_success.append(req)
                     if autobuilding:
-                        # XXX: This is mildly duplicative with prepare_files,
+                        # XXX: This is mildly duplicative with Resolver,
                         # but not close enough to pull out to a single common
                         # method.
                         # The code below assumes temporary source dirs -
                         # prevent it doing bad things.
-                        if req.source_dir and not os.path.exists(os.path.join(
-                                req.source_dir, PIP_DELETE_MARKER_FILENAME)):
+                        bad_src_dir = (
+                            req.source_dir and
+                            not os.path.exists(os.path.join(
+                                req.source_dir, PIP_DELETE_MARKER_FILENAME
+                            ))
+                        )
+                        if bad_src_dir:
                             raise AssertionError(
-                                "bad source dir - missing marker")
+                                "bad source dir - missing marker"
+                            )
                         # Delete the source we built the wheel from
                         req.remove_temporary_source()
                         # set the build directory again - name is known from
-                        # the work prepare_files did.
+                        # the work Resolver did.
                         req.source_dir = req.build_location(
                             self.preparer.build_dir
                         )
                         # Update the link for this.
-                        req.link = pip.index.Link(
-                            path_to_url(wheel_file))
+                        req.link = pip.index.Link(path_to_url(wheel_file))
                         assert req.link.is_wheel
                         # extract the wheel into the dir
                         unpack_url(
                             req.link, req.source_dir, None, False,
-                            session=session)
+                            session=session
+                        )
                 else:
                     build_failure.append(req)
 

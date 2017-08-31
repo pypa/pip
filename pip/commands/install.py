@@ -88,21 +88,24 @@ class InstallCommand(RequirementCommand):
             help="Install to the Python user install directory for your "
                  "platform. Typically ~/.local/, or %APPDATA%\\Python on "
                  "Windows. (See the Python documentation for site.USER_BASE "
-                 "for full details.)")
+                 "for full details.)"
+        )
         cmd_opts.add_option(
             '--root',
             dest='root_path',
             metavar='dir',
             default=None,
             help="Install everything relative to this alternate root "
-                 "directory.")
+                 "directory."
+        )
         cmd_opts.add_option(
             '--prefix',
             dest='prefix_path',
             metavar='dir',
             default=None,
             help="Installation prefix where lib, bin and other top-level "
-                 "folders are placed")
+                 "folders are placed"
+        )
 
         cmd_opts.add_option(cmdoptions.build_dir())
 
@@ -136,13 +139,15 @@ class InstallCommand(RequirementCommand):
             dest='force_reinstall',
             action='store_true',
             help='When upgrading, reinstall all packages even if they are '
-                 'already up-to-date.')
+                 'already up-to-date.'
+        )
 
         cmd_opts.add_option(
             '-I', '--ignore-installed',
             dest='ignore_installed',
             action='store_true',
-            help='Ignore the installed packages (reinstalling instead).')
+            help='Ignore the installed packages (reinstalling instead).'
+        )
 
         cmd_opts.add_option(cmdoptions.ignore_requires_python())
 
@@ -236,10 +241,10 @@ class InstallCommand(RequirementCommand):
                     options.cache_dir,
                 )
                 options.cache_dir = None
-
-            with TempDirectory(
+            directory = TempDirectory(
                 options.build_dir, delete=build_delete, kind="install"
-            ) as directory:
+            )
+            with directory:
                 requirement_set = RequirementSet(
                     target_dir=target_temp_dir.path,
                     pycompile=options.compile,

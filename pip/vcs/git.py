@@ -145,12 +145,10 @@ class Git(VersionControl):
                 # Only do a checkout if rev_options differs from HEAD
                 if not self.check_version(dest, rev_options):
                     self.run_command(
-                        ['fetch', '-q', url] + rev_options,
-                        cwd=dest,
+                        ['fetch', '-q', url] + rev_options, cwd=dest,
                     )
                     self.run_command(
-                        ['checkout', '-q', 'FETCH_HEAD'],
-                        cwd=dest,
+                        ['checkout', '-q', 'FETCH_HEAD'], cwd=dest,
                     )
 
             #: repo may contain submodules
@@ -160,7 +158,8 @@ class Git(VersionControl):
         """Return URL of the first remote encountered."""
         remotes = self.run_command(
             ['config', '--get-regexp', r'remote\..*\.url'],
-            show_stdout=False, cwd=location)
+            show_stdout=False, cwd=location
+        )
         remotes = remotes.splitlines()
         found_remote = remotes[0]
         for remote in remotes:
@@ -172,13 +171,15 @@ class Git(VersionControl):
 
     def get_revision(self, location):
         current_rev = self.run_command(
-            ['rev-parse', 'HEAD'], show_stdout=False, cwd=location)
+            ['rev-parse', 'HEAD'], show_stdout=False, cwd=location
+        )
         return current_rev.strip()
 
     def get_full_refs(self, location):
         """Yields tuples of (commit, ref) for branches and tags"""
-        output = self.run_command(['show-ref'],
-                                  show_stdout=False, cwd=location)
+        output = self.run_command(
+            ['show-ref'], show_stdout=False, cwd=location
+        )
         for line in output.strip().splitlines():
             commit, ref = line.split(' ', 1)
             yield commit.strip(), ref.strip()
@@ -222,8 +223,9 @@ class Git(VersionControl):
     def _get_subdirectory(self, location):
         """Return the relative path of setup.py to the git repo root."""
         # find the repo root
-        git_dir = self.run_command(['rev-parse', '--git-dir'],
-                                   show_stdout=False, cwd=location).strip()
+        git_dir = self.run_command(
+            ['rev-parse', '--git-dir'], show_stdout=False, cwd=location
+        ).strip()
         if not os.path.isabs(git_dir):
             git_dir = os.path.join(location, git_dir)
         root_dir = os.path.join(git_dir, '..')
@@ -290,14 +292,16 @@ class Git(VersionControl):
         if super(Git, cls).controls_location(location):
             return True
         try:
-            r = cls().run_command(['rev-parse'],
-                                  cwd=location,
-                                  show_stdout=False,
-                                  on_returncode='ignore')
+            r = cls().run_command(
+                ['rev-parse'], cwd=location, show_stdout=False,
+                on_returncode='ignore'
+            )
             return not r
         except BadCommand:
-            logger.debug("could not determine if %s is under git control "
-                         "because git is not available", location)
+            logger.debug(
+                "Could not determine if %s is under git control "
+                "because git is not available", location
+            )
             return False
 
 

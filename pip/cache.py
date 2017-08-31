@@ -19,12 +19,11 @@ logger = logging.getLogger(__name__)
 class Cache(object):
     """An abstract class - provides cache directories for data from links
 
-
-        :param cache_dir: The root of the cache.
-        :param format_control: A pip.index.FormatControl object to limit
-            binaries being read from the cache.
-        :param allowed_formats: which formats of files the cache should store.
-            ('binary' and 'source' are the only allowed values)
+    :param cache_dir: The root of the cache.
+    :param format_control: A pip.index.FormatControl object to limit
+                           binaries being read from the cache.
+    :param allowed_formats: Which formats of files the cache should store.
+                            ('binary' and 'source' are the only allowed values)
     """
 
     def __init__(self, cache_dir, format_control, allowed_formats):
@@ -70,6 +69,7 @@ class Cache(object):
         if can_not_cache:
             return []
 
+        # Check if the format of this cache is allowed to be used
         canonical_name = canonicalize_name(package_name)
         formats = pip.index.fmt_ctl_formats(
             self.format_control, canonical_name

@@ -79,8 +79,7 @@ class Bazaar(VersionControl):
         urls = self.run_command(['info'], show_stdout=False, cwd=location)
         for line in urls.splitlines():
             line = line.strip()
-            for x in ('checkout of branch: ',
-                      'parent branch: '):
+            for x in ('checkout of branch: ', 'parent branch: '):
                 if line.startswith(x):
                     repo = line.split(x)[1]
                     if self._is_local_repository(repo):
@@ -89,8 +88,7 @@ class Bazaar(VersionControl):
         return None
 
     def get_revision(self, location):
-        revision = self.run_command(
-            ['revno'], show_stdout=False, cwd=location)
+        revision = self.run_command(['revno'], show_stdout=False, cwd=location)
         return revision.splitlines()[-1]
 
     def get_src_requirement(self, dist, location):

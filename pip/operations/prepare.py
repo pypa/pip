@@ -72,8 +72,7 @@ class DistAbstraction(object):
 class IsWheel(DistAbstraction):
 
     def dist(self, finder):
-        return list(pkg_resources.find_distributions(
-            self.req.source_dir))[0]
+        return list(pkg_resources.find_distributions(self.req.source_dir))[0]
 
     def prep_for_dist(self):
         # FIXME:https://github.com/pypa/pip/issues/1112
@@ -189,11 +188,11 @@ class RequirementPreparer(object):
             # occurs when the script attempts to unpack the
             # build directory
             req.ensure_has_source_dir(self.build_dir)
+
             # If a checkout exists, it's unwise to keep going.  version
             # inconsistencies are logged later, but do not fail the
             # installation.
             # FIXME: this won't upgrade when there's an existing
-            # package unpacked in `req.source_dir`
             # package unpacked in `req.source_dir`
             if os.path.exists(os.path.join(req.source_dir, 'setup.py')):
                 raise PreviousBuildDirError(
@@ -210,9 +209,8 @@ class RequirementPreparer(object):
                 resolver.require_hashes
             )
             # We can't hit this spot and have populate_link return None.
-            # req.satisfied_by is None here (because we're
-            # guarded) and upgrade has no impact except when satisfied_by
-            # is not None.
+            # req.satisfied_by is None here (because we're guarded) and upgrade
+            # has no impact except when satisfied_by is not None.
             # Then inside find_requirement existing_applicable -> False
             # If no new versions are found, DistributionNotFound is raised,
             # otherwise a result is guaranteed.
@@ -224,11 +222,10 @@ class RequirementPreparer(object):
             # than otherwise. (For example, we can raise VcsHashUnsupported
             # for a VCS URL rather than HashMissing.)
             if resolver.require_hashes:
-                # We could check these first 2 conditions inside
-                # unpack_url and save repetition of conditions, but then
-                # we would report less-useful error messages for
-                # unhashable requirements, complaining that there's no
-                # hash provided.
+                # We could check these first 2 conditions inside unpack_url
+                # and save repetition of conditions, but then we would report
+                # less-useful error messages for unhashable requirements,
+                # complaining that there's no hash provided.
                 if is_vcs_url(link):
                     raise VcsHashUnsupported()
                 elif is_file_url(link) and is_dir_url(link):
@@ -276,13 +273,11 @@ class RequirementPreparer(object):
             except requests.HTTPError as exc:
                 logger.critical(
                     'Could not install requirement %s because of error %s',
-                    req,
-                    exc,
+                    req, exc,
                 )
                 raise InstallationError(
                     'Could not install requirement %s because of HTTP '
-                    'error %s for URL %s' %
-                    (req, exc, req.link)
+                    'error %s for URL %s' % (req, exc, req.link)
                 )
             abstract_dist = make_abstract_dist(req)
             abstract_dist.prep_for_dist()
@@ -304,8 +299,8 @@ class RequirementPreparer(object):
                     resolver._set_req_to_reinstall(req)
                 else:
                     logger.info(
-                        'Requirement already satisfied (use '
-                        '--upgrade to upgrade): %s',
+                        'Requirement already satisfied '
+                        '(use --upgrade to upgrade): %s',
                         req,
                     )
         return abstract_dist
@@ -341,8 +336,8 @@ class RequirementPreparer(object):
         """
         assert req.satisfied_by, "req should have been satisfied but isn't"
         assert skip_reason is not None, (
-            "did not get skip reason skipped but req.satisfied_by "
-            "is set to %r" % (req.satisfied_by,)
+            "did not get skip reason skipped but req.satisfied_by is set to %r"
+            % (req.satisfied_by,)
         )
         logger.info(
             'Requirement %s: %s (%s)',

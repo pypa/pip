@@ -33,9 +33,7 @@ class Subversion(VersionControl):
         assert not location.rstrip('/').endswith(self.dirname), \
             'Bad directory: %s' % location
         output = self.run_command(
-            ['info', location],
-            show_stdout=False,
-            extra_environ={'LANG': 'C'},
+            ['info', location], show_stdout=False, extra_environ={'LANG': 'C'}
         )
         match = _svn_url_re.search(output)
         if not match:
@@ -69,7 +67,8 @@ class Subversion(VersionControl):
                 rmtree(location)
             self.run_command(
                 ['export'] + rev_options + [url, location],
-                show_stdout=False)
+                show_stdout=False
+            )
 
     def switch(self, dest, url, rev_options):
         self.run_command(['switch'] + rev_options + [url, dest])
@@ -172,9 +171,7 @@ class Subversion(VersionControl):
         else:  # subversion >= 1.7 does not have the 'entries' file
             data = ''
 
-        if (data.startswith('8') or
-                data.startswith('9') or
-                data.startswith('10')):
+        if data.startswith(('8', '9', '10')):
             data = list(map(str.splitlines, data.split('\n\x0c\n')))
             del data[0][0]  # get rid of the '8'
             url = data[0][3]

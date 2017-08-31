@@ -54,7 +54,8 @@ XZ_EXTENSIONS = ('.tar.xz', '.txz', '.tlz', '.tar.lz', '.tar.lzma')
 ZIP_EXTENSIONS = ('.zip', '.whl')
 TAR_EXTENSIONS = ('.tar.gz', '.tgz', '.tar')
 ARCHIVE_EXTENSIONS = (
-    ZIP_EXTENSIONS + BZ2_EXTENSIONS + TAR_EXTENSIONS + XZ_EXTENSIONS)
+    ZIP_EXTENSIONS + BZ2_EXTENSIONS + TAR_EXTENSIONS + XZ_EXTENSIONS
+)
 SUPPORTED_EXTENSIONS = ZIP_EXTENSIONS + TAR_EXTENSIONS
 try:
     import bz2  # noqa
@@ -97,9 +98,10 @@ def get_prog():
 
 # Retry every half second for up to 3 seconds
 @retry(stop_max_delay=3000, wait_fixed=500)
-def rmtree(dir, ignore_errors=False):
-    shutil.rmtree(dir, ignore_errors=ignore_errors,
-                  onerror=rmtree_errorhandler)
+def rmtree(dir_, ignore_errors=False):
+    shutil.rmtree(
+        dir_, ignore_errors=ignore_errors, onerror=rmtree_errorhandler
+    )
 
 
 def rmtree_errorhandler(func, path, exc_info):
@@ -211,8 +213,10 @@ def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):
 
 def split_leading_dir(path):
     path = path.lstrip('/').lstrip('\\')
-    if '/' in path and (('\\' in path and path.find('/') < path.find('\\')) or
-                        '\\' not in path):
+    split_by_forward_slash = (
+        ('\\' in path and path.find('/') < path.find('\\')) or '\\' not in path
+    )
+    if '/' in path and split_by_forward_slash:
         return path.split('/', 1)
     elif '\\' in path:
         return path.split('\\', 1)
@@ -310,9 +314,9 @@ def dist_in_site_packages(dist):
     Return True if given Distribution is installed in
     sysconfig.get_python_lib().
     """
-    return normalize_path(
-        dist_location(dist)
-    ).startswith(normalize_path(site_packages))
+    return normalize_path(dist_location(dist)).startswith(
+        normalize_path(site_packages)
+    )
 
 
 def dist_is_editable(dist):
@@ -590,35 +594,48 @@ def untar_file(filename, location):
 
 def unpack_file(filename, location, content_type, link):
     filename = os.path.realpath(filename)
-    if (content_type == 'application/zip' or
-            filename.lower().endswith(ZIP_EXTENSIONS) or
-            zipfile.is_zipfile(filename)):
-        unzip_file(
-            filename,
-            location,
-            flatten=not filename.endswith('.whl')
+
+    is_zip_file = (
+        content_type == 'application/zip' or
+        filename.lower().endswith(ZIP_EXTENSIONS) or
+        zipfile.is_zipfile(filename)
+    )
+    if is_zip_file:
+        unzip_file(filename, location, flatten=not filename.endswith('.whl'))
+        return
+
+    is_tarball = (
+        content_type == 'application/x-gzip' or
+        tarfile.is_tarfile(filename) or
+        filename.lower().endswith(
+            TAR_EXTENSIONS + BZ2_EXTENSIONS + XZ_EXTENSIONS
         )
-    elif (content_type == 'application/x-gzip' or
-            tarfile.is_tarfile(filename) or
-            filename.lower().endswith(
-                TAR_EXTENSIONS + BZ2_EXTENSIONS + XZ_EXTENSIONS)):
+    )
+    if is_tarball:
         untar_file(filename, location)
-    elif (content_type and content_type.startswith('text/html') and
-            is_svn_page(file_contents(filename))):
+        return
+
+    is_svn_html_page = (
+        content_type and
+        content_type.startswith('text/html') and
+        is_svn_page(file_contents(filename))
+    )
+    if is_svn_html_page:
         # We don't really care about this
         from pip.vcs.subversion import Subversion
         Subversion('svn+' + link.url).unpack(location)
-    else:
-        # FIXME: handle?
-        # FIXME: magic signatures?
-        logger.critical(
-            'Cannot unpack file %s (downloaded from %s, content-type: %s); '
-            'cannot detect archive format',
-            filename, location, content_type,
-        )
-        raise InstallationError(
-            'Cannot determine archive format of %s' % location
-        )
+        return
+
+    # FIXME: handle?
+    # FIXME: magic signatures?
+    logger.critical(
+        'Cannot unpack file %s (downloaded from %s, content-type: %s); '
+        'cannot detect archive format',
+        filename, location, content_type,
+    )
+    raise InstallationError(
+        'Cannot determine archive format of %s' % location
+    )
 
 
 def call_subprocess(cmd, show_stdout=True, cwd=None,
@@ -664,7 +681,8 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
     try:
         proc = subprocess.Popen(
             cmd, stderr=subprocess.STDOUT, stdin=None, stdout=stdout,
-            cwd=cwd, env=env)
+            cwd=cwd, env=env
+        )
     except Exception as exc:
         logger.critical(
             "Error %s while executing command %s", exc, command_desc,
@@ -697,8 +715,11 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
             spinner.finish("done")
     if proc.returncode:
         if on_returncode == 'raise':
-            if (logger.getEffectiveLevel() > std_logging.DEBUG and
-                    not show_stdout):
+            should_show_output = (
+                logger.getEffectiveLevel() > std_logging.DEBUG and
+                not show_stdout
+            )
+            if should_show_output:
                 logger.info(
                     'Complete output from command %s:', command_desc,
                 )

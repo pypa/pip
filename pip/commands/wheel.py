@@ -53,8 +53,8 @@ class WheelCommand(RequirementCommand):
             dest='wheel_dir',
             metavar='dir',
             default=os.curdir,
-            help=("Build wheels into <dir>, where the default is the "
-                  "current working directory."),
+            help="Build wheels into <dir>, where the default is the "
+                 "current working directory."
         )
         cmd_opts.add_option(cmdoptions.no_binary())
         cmd_opts.add_option(cmdoptions.only_binary())
@@ -63,7 +63,8 @@ class WheelCommand(RequirementCommand):
             dest='build_options',
             metavar='options',
             action='append',
-            help="Extra arguments to be supplied to 'setup.py bdist_wheel'.")
+            help="Extra arguments to be supplied to 'setup.py bdist_wheel'."
+        )
         cmd_opts.add_option(cmdoptions.constraints())
         cmd_opts.add_option(cmdoptions.editable())
         cmd_opts.add_option(cmdoptions.requirements())
@@ -79,14 +80,15 @@ class WheelCommand(RequirementCommand):
             action='append',
             metavar='options',
             help="Extra global options to be supplied to the setup.py "
-            "call before the 'bdist_wheel' command.")
+            "call before the 'bdist_wheel' command."
+        )
 
         cmd_opts.add_option(
             '--pre',
             action='store_true',
             default=False,
-            help=("Include pre-release and development versions. By default, "
-                  "pip only finds stable versions."),
+            help="Include pre-release and development versions. By default, "
+                 "pip only finds stable versions.",
         )
 
         cmd_opts.add_option(cmdoptions.no_clean())
@@ -113,9 +115,7 @@ class WheelCommand(RequirementCommand):
             "To fix this, run: pip install --upgrade setuptools>=0.8"
         )
         pkg_resources = import_or_raise(
-            'pkg_resources',
-            CommandError,
-            need_setuptools_message
+            'pkg_resources', CommandError, need_setuptools_message
         )
         if not hasattr(pkg_resources, 'DistInfoDistribution'):
             raise CommandError(need_setuptools_message)
@@ -139,9 +139,10 @@ class WheelCommand(RequirementCommand):
             build_delete = (not (options.no_clean or options.build_dir))
             wheel_cache = WheelCache(options.cache_dir, options.format_control)
 
-            with TempDirectory(
+            directory = TempDirectory(
                 options.build_dir, delete=build_delete, kind="wheel"
-            ) as directory:
+            )
+            with directory:
                 requirement_set = RequirementSet(
                     require_hashes=options.require_hashes,
                 )

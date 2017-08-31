@@ -14,8 +14,8 @@ import logging
 from itertools import chain
 
 from pip.exceptions import (
-    BestVersionAlreadyInstalled,
-    DistributionNotFound, HashError, HashErrors, UnsupportedPythonVersion
+    BestVersionAlreadyInstalled, DistributionNotFound, HashError, HashErrors,
+    UnsupportedPythonVersion
 )
 from pip.req.req_install import InstallRequirement
 from pip.utils import dist_in_usersite, ensure_dir

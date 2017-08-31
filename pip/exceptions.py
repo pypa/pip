@@ -173,9 +173,9 @@ class HashMissing(HashError):
                        # In case someone feeds something downright stupid
                        # to InstallRequirement's constructor.
                        else getattr(self.req, 'req', None))
-        return '    %s --hash=%s:%s' % (package or 'unknown package',
-                                        FAVORITE_HASH,
-                                        self.gotten_hash)
+        return '    %s --hash=%s:%s' % (
+            package or 'unknown package', FAVORITE_HASH, self.gotten_hash
+        )
 
 
 class HashUnpinned(HashError):
@@ -233,12 +233,15 @@ class HashMismatch(HashError):
             return chain([hash_name], repeat('    or'))
 
         lines = []
-        for hash_name, expecteds in iteritems(self.allowed):
+        for hash_name, expect in iteritems(self.allowed):
             prefix = hash_then_or(hash_name)
-            lines.extend(('        Expected %s %s' % (next(prefix), e))
-                         for e in expecteds)
-            lines.append('             Got        %s\n' %
-                         self.gots[hash_name].hexdigest())
+            lines.extend(
+                ('        Expected %s %s' % (next(prefix), e)) for e in expect
+            )
+            lines.append(
+                '             Got        %s\n'
+                % self.gots[hash_name].hexdigest()
+            )
             prefix = '    or'
         return '\n'.join(lines)
 

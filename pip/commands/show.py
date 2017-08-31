@@ -28,7 +28,8 @@ class ShowCommand(Command):
             dest='files',
             action='store_true',
             default=False,
-            help='Show the full list of installed files for each package.')
+            help='Show the full list of installed files for each package.'
+        )
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
@@ -39,10 +40,10 @@ class ShowCommand(Command):
         query = args
 
         results = search_packages_info(query)
-        if not print_results(
-                results, list_files=options.files, verbose=options.verbose):
-            return ERROR
-        return SUCCESS
+        successful = print_results(
+            results, list_files=options.files, verbose=options.verbose
+        )
+        return SUCCESS if successful else ERROR
 
 
 def search_packages_info(query):
@@ -102,8 +103,11 @@ def search_packages_info(query):
         feed_parser = FeedParser()
         feed_parser.feed(metadata)
         pkg_info_dict = feed_parser.close()
-        for key in ('metadata-version', 'summary',
-                    'home-page', 'author', 'author-email', 'license'):
+        _keys = (
+            'metadata-version', 'summary', 'home-page', 'author',
+            'author-email', 'license'
+        )
+        for key in _keys:
             package[key] = pkg_info_dict.get(key)
 
         # It looks like FeedParser cannot deal with repeated headers
@@ -161,4 +165,5 @@ def print_results(distributions, list_files=False, verbose=False):
                 logger.info("  %s", line.strip())
             if "files" not in dist:
                 logger.info("Cannot locate installed-files.txt")
+
     return results_printed

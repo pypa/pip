@@ -74,8 +74,9 @@ class VcsSupport(object):
         """
         for vc_type in self._registry.values():
             if vc_type.controls_location(location):
-                logger.debug('Determine that %s uses VCS: %s',
-                             location, vc_type.name)
+                logger.debug(
+                    'Determine that %s uses VCS: %s', location, vc_type.name
+                )
                 return vc_type.name
         return None
 
@@ -207,55 +208,47 @@ class VersionControl(object):
                 if self.compare_urls(existing_url, url):
                     logger.debug(
                         '%s in %s exists, and has correct URL (%s)',
-                        self.repo_name.title(),
-                        display_path(dest),
-                        url,
+                        self.repo_name.title(), display_path(dest), url,
                     )
                     if not self.check_version(dest, rev_options):
                         logger.info(
                             'Updating %s %s%s',
-                            display_path(dest),
-                            self.repo_name,
-                            rev_display,
+                            display_path(dest), self.repo_name, rev_display,
                         )
                         self.update(dest, rev_options)
                     else:
                         logger.info(
-                            'Skipping because already up-to-date.')
+                            'Skipping because already up-to-date.'
+                        )
                 else:
                     logger.warning(
                         '%s %s in %s exists with URL %s',
-                        self.name,
-                        self.repo_name,
-                        display_path(dest),
+                        self.name, self.repo_name, display_path(dest),
                         existing_url,
                     )
-                    prompt = ('(s)witch, (i)gnore, (w)ipe, (b)ackup ',
-                              ('s', 'i', 'w', 'b'))
+                    prompt = (
+                        '(s)witch, (i)gnore, (w)ipe, (b)ackup ',
+                        ('s', 'i', 'w', 'b')
+                    )
             else:
                 logger.warning(
                     'Directory %s already exists, and is not a %s %s.',
-                    dest,
-                    self.name,
-                    self.repo_name,
+                    dest, self.name, self.repo_name,
                 )
                 prompt = ('(i)gnore, (w)ipe, (b)ackup ', ('i', 'w', 'b'))
         if prompt:
             logger.warning(
                 'The plan is to install the %s repository %s',
-                self.name,
-                url,
+                self.name, url,
             )
-            response = ask_path_exists('What to do?  %s' % prompt[0],
-                                       prompt[1])
 
+            response = ask_path_exists(
+                'What to do?  %s' % prompt[0], prompt[1]
+            )
             if response == 's':
                 logger.info(
                     'Switching %s %s to %s%s',
-                    self.repo_name,
-                    display_path(dest),
-                    url,
-                    rev_display,
+                    self.repo_name, display_path(dest), url, rev_display,
                 )
                 self.switch(dest, url, rev_options)
             elif response == 'i':
@@ -319,18 +312,19 @@ class VersionControl(object):
         """
         cmd = [self.name] + cmd
         try:
-            return call_subprocess(cmd, show_stdout, cwd,
-                                   on_returncode,
-                                   command_desc, extra_environ,
-                                   spinner)
+            return call_subprocess(
+                cmd, show_stdout, cwd, on_returncode, command_desc,
+                extra_environ, spinner
+            )
         except OSError as e:
             # errno.ENOENT = no such file or directory
             # In other words, the VCS executable isn't available
             if e.errno == errno.ENOENT:
                 raise BadCommand(
                     'Cannot find command %r - do you have '
-                    '%r installed and in your '
-                    'PATH?' % (self.name, self.name))
+                    '%r installed and in your PATH?'
+                    % (self.name, self.name)
+                )
             else:
                 raise  # re-raise exception if a different error occurred
 
@@ -341,8 +335,9 @@ class VersionControl(object):
         It is meant to be overridden to implement smarter detection
         mechanisms for specific vcs.
         """
-        logger.debug('Checking in %s for %s (%s)...',
-                     location, cls.dirname, cls.name)
+        logger.debug(
+            'Checking in %s for %s (%s)...', location, cls.dirname, cls.name
+        )
         path = os.path.join(location, cls.dirname)
         return os.path.exists(path)
 
@@ -351,14 +346,12 @@ def get_src_requirement(dist, location):
     version_control = vcs.get_backend_from_location(location)
     if version_control:
         try:
-            return version_control().get_src_requirement(dist,
-                                                         location)
+            return version_control().get_src_requirement(dist, location)
         except BadCommand:
             logger.warning(
                 'cannot determine version of editable source in %s '
                 '(%s command not found in path)',
-                location,
-                version_control.name,
+                location, version_control.name,
             )
             return dist.as_requirement()
     logger.warning(

@@ -38,13 +38,16 @@ class UninstallCommand(Command):
             '-y', '--yes',
             dest='yes',
             action='store_true',
-            help="Don't ask for confirmation of uninstall deletions.")
+            help="Don't ask for confirmation of uninstall deletions."
+        )
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
         with self._build_session(options) as session:
             reqs_to_uninstall = {}
+
+            # Determine which requirements have been given
             for name in args:
                 req = InstallRequirement.from_line(
                     name, isolated=options.isolated_mode,
@@ -52,19 +55,20 @@ class UninstallCommand(Command):
                 if req.name:
                     reqs_to_uninstall[canonicalize_name(req.name)] = req
             for filename in options.requirements:
-                for req in parse_requirements(
-                        filename,
-                        options=options,
-                        session=session):
+                parsed_reqs = parse_requirements(
+                    filename, options=options, session=session
+                )
+                for req in parsed_reqs:
                     if req.name:
                         reqs_to_uninstall[canonicalize_name(req.name)] = req
+
             if not reqs_to_uninstall:
                 raise InstallationError(
                     'You must give at least one requirement to %(name)s (see '
                     '"pip help %(name)s")' % dict(name=self.name)
                 )
+
             for req in reqs_to_uninstall.values():
-                req.uninstall(
-                    auto_confirm=options.yes, verbose=options.verbose != 0
-                )
+                verbose = options.verbose != 0
+                req.uninstall(auto_confirm=options.yes, verbose=verbose)
                 req.uninstalled_pathset.commit()

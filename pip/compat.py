@@ -57,7 +57,8 @@ else:
         return u"".join(u"\\x%x" % c for c in raw_bytes), err.end
     codecs.register_error(
         "backslashreplace_decode",
-        backslashreplace_decode_fn)
+        backslashreplace_decode_fn
+    )
     backslashreplace_decode = "backslashreplace_decode"
 
 
@@ -86,7 +87,8 @@ def console_to_str(data):
     except UnicodeDecodeError:
         logger.warning(
             "Subprocess output does not appear to be encoded as %s" %
-            encoding)
+            encoding
+        )
         s = data.decode(encoding, errors=backslashreplace_decode)
 
     # Make sure we can print the output, by encoding it to the output
@@ -101,8 +103,9 @@ def console_to_str(data):
     # or doesn't have an encoding attribute. Neither of these cases
     # should occur in normal pip use, but there's no harm in checking
     # in case people use pip in (unsupported) unusual situations.
-    output_encoding = getattr(getattr(sys, "__stderr__", None),
-                              "encoding", None)
+    output_encoding = getattr(
+        getattr(sys, "__stderr__", None), "encoding", None
+    )
 
     if output_encoding:
         s = s.encode(output_encoding, errors="backslashreplace")

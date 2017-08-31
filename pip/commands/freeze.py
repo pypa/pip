@@ -34,7 +34,8 @@ class FreezeCommand(Command):
             metavar='file',
             help="Use the order in the given requirements file and its "
                  "comments when generating output. This option can be "
-                 "used multiple times.")
+                 "used multiple times."
+        )
         self.cmd_opts.add_option(
             '-f', '--find-links',
             dest='find_links',
@@ -42,31 +43,36 @@ class FreezeCommand(Command):
             default=[],
             metavar='URL',
             help='URL for finding packages, which will be added to the '
-                 'output.')
+                 'output.'
+        )
         self.cmd_opts.add_option(
             '-l', '--local',
             dest='local',
             action='store_true',
             default=False,
             help='If in a virtualenv that has global access, do not output '
-                 'globally-installed packages.')
+                 'globally-installed packages.'
+        )
         self.cmd_opts.add_option(
             '--user',
             dest='user',
             action='store_true',
             default=False,
-            help='Only output packages installed in user-site.')
+            help='Only output packages installed in user-site.'
+        )
         self.cmd_opts.add_option(
             '--all',
             dest='freeze_all',
             action='store_true',
-            help='Do not skip these packages in the output:'
-                 ' %s' % ', '.join(DEV_PKGS))
+            help='Do not skip these packages in the output: %s'
+                 % ', '.join(DEV_PKGS)
+        )
         self.cmd_opts.add_option(
             '--exclude-editable',
             dest='exclude_editable',
             action='store_true',
-            help='Exclude editable package from output.')
+            help='Exclude editable package from output.'
+        )
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
@@ -86,7 +92,8 @@ class FreezeCommand(Command):
             isolated=options.isolated_mode,
             wheel_cache=wheel_cache,
             skip=skip,
-            exclude_editable=options.exclude_editable)
+            exclude_editable=options.exclude_editable
+        )
 
         for line in freeze(**freeze_kwargs):
             sys.stdout.write(line + '\n')

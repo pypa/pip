@@ -203,6 +203,7 @@ class ConfigOptionParser(CustomOptionParser):
                 late_eval.add(option.dest)
                 opt_str = option.get_opt_string()
                 val = option.convert_value(opt_str, val)
+
                 # From take_action
                 args = option.callback_args or ()
                 kwargs = option.callback_kwargs or {}
@@ -214,6 +215,7 @@ class ConfigOptionParser(CustomOptionParser):
 
         for key in late_eval:
             defaults[key] = getattr(self.values, key)
+
         self.values = None
         return defaults
 
@@ -230,6 +232,7 @@ class ConfigOptionParser(CustomOptionParser):
             if isinstance(default, string_types):
                 opt_str = option.get_opt_string()
                 defaults[option.dest] = option.check_value(opt_str, default)
+
         return optparse.Values(defaults)
 
     def error(self, msg):

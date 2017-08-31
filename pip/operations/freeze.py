@@ -44,9 +44,10 @@ def freeze(
     for link in find_links:
         yield '-f %s' % link
     installations = {}
-    for dist in get_installed_distributions(local_only=local_only,
-                                            skip=(),
-                                            user_only=user_only):
+    installed_dists = get_installed_distributions(
+        local_only=local_only, skip=(), user_only=user_only
+    )
+    for dist in installed_dists:
         try:
             req = FrozenRequirement.from_dist(
                 dist,
@@ -71,18 +72,22 @@ def freeze(
         for req_file_path in requirement:
             with open(req_file_path) as req_file:
                 for line in req_file:
-                    if (not line.strip() or
-                            line.strip().startswith('#') or
-                            (skip_match and skip_match(line)) or
-                            line.startswith((
-                                '-r', '--requirement',
-                                '-Z', '--always-unzip',
-                                '-f', '--find-links',
-                                '-i', '--index-url',
-                                '--pre',
-                                '--trusted-host',
-                                '--process-dependency-links',
-                                '--extra-index-url'))):
+                    line_is_ignorable = (
+                        not line.strip() or
+                        line.strip().startswith('#') or
+                        (skip_match and skip_match(line)) or
+                        line.startswith((
+                            '-r', '--requirement',
+                            '-Z', '--always-unzip',
+                            '-f', '--find-links',
+                            '-i', '--index-url',
+                            '--pre',
+                            '--trusted-host',
+                            '--process-dependency-links',
+                            '--extra-index-url'
+                        ))
+                    )
+                    if line_is_ignorable:
                         line = line.rstrip()
                         if line not in emitted_options:
                             emitted_options.add(line)
@@ -189,7 +194,8 @@ class FrozenRequirement(object):
                     )
                 if not svn_location:
                     logger.warning(
-                        'Warning: cannot find svn location for %s', req)
+                        'Warning: cannot find svn location for %s', req
+                    )
                     comments.append(
                         '## FIXME: could not find svn URL in dependency_links '
                         'for this package:'
