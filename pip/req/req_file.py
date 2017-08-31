@@ -117,7 +117,7 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
     :param constraint: If True, parsing a constraints file.
     :param options: OptionParser options that we may update
     """
-    parser = build_parser()
+    parser = build_parser(line)
     defaults = parser.get_default_values()
     defaults.index_url = None
     if finder:
@@ -228,7 +228,7 @@ def break_args_options(line):
     return ' '.join(args), ' '.join(options)
 
 
-def build_parser():
+def build_parser(line):
     """
     Return a parser for parsing requirement lines
     """
@@ -242,6 +242,8 @@ def build_parser():
     # By default optparse sys.exits on parsing errors. We want to wrap
     # that in our own exception.
     def parser_exit(self, msg):
+        # add offending line
+        msg = 'Invalid requirement: %s\n%s' % (line, msg)
         raise RequirementsFileParseError(msg)
     parser.exit = parser_exit
 
