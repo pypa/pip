@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import os
 import sys
 import textwrap
 
@@ -17,7 +18,7 @@ COMPLETION_SCRIPTS = {
                            COMP_CWORD=$COMP_CWORD \\
                            PIP_AUTO_COMPLETE=1 $1 ) )
         }
-        complete -o default -F _pip_completion pip
+        complete -o default -F _pip_completion %(pip_entry_point)s
     """,
     'zsh': """
         function _pip_completion {
@@ -28,7 +29,7 @@ COMPLETION_SCRIPTS = {
                      COMP_CWORD=$(( cword-1 )) \\
                      PIP_AUTO_COMPLETE=1 $words[1] ) )
         }
-        compctl -K _pip_completion pip
+        compctl -K _pip_completion %(pip_entry_point)s
     """,
     'fish': """
         function __fish_complete_pip
@@ -37,7 +38,7 @@ COMPLETION_SCRIPTS = {
             set -lx PIP_AUTO_COMPLETE 1
             string split \\  -- (eval $COMP_WORDS[1])
         end
-        complete -fa "(__fish_complete_pip)" -c pip
+        complete -fa "(__fish_complete_pip)" -c %(pip_entry_point)s
     """.format(cword="(math (contains -i -- (commandline -t) $COMP_WORDS)-1)")
 }
 
@@ -80,8 +81,9 @@ class CompletionCommand(Command):
         shell_options = ['--' + shell for shell in sorted(shells)]
         if options.shell in shells:
             script = textwrap.dedent(
-                COMPLETION_SCRIPTS.get(options.shell, '')
-            )
+                COMPLETION_SCRIPTS.get(options.shell, '')) % {
+                    'pip_entry_point': os.path.basename(sys.argv[0])
+            }
             print(BASE_COMPLETION % {'script': script, 'shell': options.shell})
         else:
             sys.stderr.write(
