@@ -58,11 +58,11 @@ class Command(object):
         self.cmd_opts = optparse.OptionGroup(self.parser, optgroup_name)
 
         # Add the general options
-        gen_opts = cmdoptions.make_option_group(
+        self.gen_opts = cmdoptions.make_option_group(
             cmdoptions.general_group,
             self.parser,
         )
-        self.parser.add_option_group(gen_opts)
+        self.parser.add_option_group(self.gen_opts)
 
     def _build_session(self, options, retries=None, timeout=None):
         session = PipSession(
@@ -104,6 +104,26 @@ class Command(object):
         # factored out for testability
         return self.parser.parse_args(args)
 
+    def print_help(self, verbose=False):
+        """
+        Process 'help <command>' and '<command> --help' to hide global
+        options unless --verbose flag is specified.
+
+        'pip --help' is handled separately by pip.__init__.parseopt()
+        """
+        if verbose:
+            self.parser.print_help()
+        else:
+            # remove General Options group and restore after print
+            saveepy = self.parser.epilog
+            saveogr = self.parser.option_groups  # it is a list
+            self.parser.epilog = "\nAdd '-v' flag to show general "\
+                                 "options.\n"
+            self.parser.option_groups.remove(self.gen_opts)
+            self.parser.print_help()
+            self.parser.epilog = saveepy
+            self.parser.option_groups = saveogr
+
     def main(self, args):
         options, args = self.parse_args(args)
 
@@ -124,6 +144,10 @@ class Command(object):
         root_level = level
         if options.log:
             root_level = "DEBUG"
+
+        if options.help:
+            self.print_help(options.verbose)
+            sys.exit(0)
 
         logging.config.dictConfig({
             "version": 1,
