@@ -38,7 +38,7 @@ class Git(VersionControl):
     # Prevent the user's environment variables from interfering with pip:
     # https://github.com/pypa/pip/issues/1130
     unset_environ = ('GIT_DIR', 'GIT_WORK_TREE')
-    default_arg_rev = 'origin/HEAD'
+    default_arg_rev = 'HEAD'
 
     def __init__(self, url=None, *args, **kwargs):
 
