@@ -2,8 +2,8 @@
 Contains functional tests of the Git class.
 """
 
-from pip.utils.temp_dir import TempDirectory
-from pip.vcs.git import Git
+from pip._internal.utils.temp_dir import TempDirectory
+from pip._internal.vcs.git import Git
 
 
 def get_head_sha(script, dest):
