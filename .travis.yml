@@ -18,11 +18,6 @@ matrix:
       python: 2.7
     - env: TOXENV=py36
       python: 3.6
-    # Unvendored
-    - env: "TOXENV=py27 VENDOR=no WHEELS=yes"
-      python: 2.7
-    - env: "TOXENV=py36 VENDOR=no WHEELS=yes"
-      python: 3.6
     # All the other Py3 versions
     - env: TOXENV=py33
       python: 3.3
