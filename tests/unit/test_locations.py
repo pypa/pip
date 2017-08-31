@@ -10,7 +10,7 @@ import tempfile
 
 from mock import Mock
 
-from pip.locations import distutils_scheme
+from pip._internal.locations import distutils_scheme
 
 if sys.platform == 'win32':
     pwd = Mock()

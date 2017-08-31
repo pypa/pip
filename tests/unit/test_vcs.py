@@ -2,10 +2,10 @@ import pytest
 from mock import Mock
 from pip._vendor.packaging.version import parse as parse_version
 
-from pip.vcs import VersionControl
-from pip.vcs.bazaar import Bazaar
-from pip.vcs.git import Git
-from pip.vcs.subversion import Subversion
+from pip._internal.vcs import VersionControl
+from pip._internal.vcs.bazaar import Bazaar
+from pip._internal.vcs.git import Git
+from pip._internal.vcs.subversion import Subversion
 from tests.lib import pyversion
 
 if pyversion >= '3':

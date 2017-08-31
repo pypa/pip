@@ -8,8 +8,8 @@ import pretend
 import pytest
 from pip._vendor import lockfile
 
-from pip.index import InstallationCandidate
-from pip.utils import outdated
+from pip._internal.index import InstallationCandidate
+from pip._internal.utils import outdated
 
 
 class MockPackageFinder(object):

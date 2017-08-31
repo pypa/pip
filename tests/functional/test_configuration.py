@@ -5,7 +5,7 @@ import textwrap
 
 import pytest
 
-from pip.status_codes import ERROR
+from pip._internal.status_codes import ERROR
 from tests.lib.configuration_helpers import ConfigurationMixin, kinds
 
 

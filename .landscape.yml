@@ -1,2 +1,2 @@
 ignore-paths:
-    - pip/_vendor/
+    - src/pip/_vendor/

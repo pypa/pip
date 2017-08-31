@@ -126,7 +126,7 @@ def main(ctx):
     git_root = Path(
         ctx.run('git rev-parse --show-toplevel', hide=True).stdout.strip()
     )
-    vendor_dir = git_root / 'pip' / '_vendor'
+    vendor_dir = git_root / 'src' / 'pip' / '_vendor'
     log('Using vendor dir: %s' % vendor_dir)
     clean_vendor(ctx, vendor_dir)
     vendor(ctx, vendor_dir)

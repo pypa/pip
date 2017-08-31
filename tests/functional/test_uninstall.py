@@ -10,8 +10,8 @@ from tempfile import mkdtemp
 import pretend
 import pytest
 
-from pip.req import InstallRequirement
-from pip.utils import rmtree
+from pip._internal.req import InstallRequirement
+from pip._internal.utils.misc import rmtree
 from tests.lib import assert_all_changes, create_test_package_with_setup
 from tests.lib.local_repos import local_checkout, local_repo
 
@@ -371,7 +371,7 @@ def test_uninstallpathset_no_paths(caplog):
     Test UninstallPathSet logs notification when there are no paths to
     uninstall
     """
-    from pip.req.req_uninstall import UninstallPathSet
+    from pip._internal.req.req_uninstall import UninstallPathSet
     from pkg_resources import get_distribution
     test_dist = get_distribution('pip')
     uninstall_set = UninstallPathSet(test_dist)
