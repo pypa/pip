@@ -1,6 +1,8 @@
+
 from __future__ import absolute_import
 
 import logging
+import re
 import sys
 import textwrap
 from collections import OrderedDict
@@ -45,6 +47,7 @@ class SearchCommand(Command):
         query = args
         pypi_hits = self.search(query, options)
         hits = transform_hits(pypi_hits)
+        hits = sort_hits(query, hits)
 
         terminal_width = None
         if sys.stdout.isatty():
@@ -131,3 +134,38 @@ def print_results(hits, name_column_width=None, terminal_width=None):
 
 def highest_version(versions):
     return max(versions, key=parse_version)
+
+
+def sort_hits(query, hits):
+    if len(query) != 1:
+        # Now only handle the easiest condition,
+        # which is possibly the most frequent condition
+        return hits
+    query = query[0]
+    p = re.compile(query)
+    p_ignorecase = re.compile(query, re.IGNORECASE)
+    for item in hits:
+        item['match_score'] = 0
+        name = item['name']
+        summary = item['summary'] or ''
+        m1 = p.match(name)
+        m2 = p_ignorecase.match(name)
+        m3 = p_ignorecase.findall(name)
+        m4 = p_ignorecase.findall(summary)
+
+        # Ordering strategy
+        if name == query:
+            item['match_score'] += 10000
+        elif name.lower() == query.lower():
+            item['match_score'] += 9000
+        if m1 is not None:
+            item['match_score'] += 1000
+        elif m2 is not None:
+            item['match_score'] += 900
+        elif m3 is not None:
+            item['match_score'] += 800
+        if m4 is not None:
+            item['match_score'] += len(m3) + len(m4)
+
+    hits.sort(key=lambda i: i['match_score'], reverse=True)
+    return hits
