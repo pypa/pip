@@ -270,7 +270,6 @@ def test_reinstalling_works_with_editible_non_master_branch(script):
         'install', '-e',
         '%s#egg=version_pkg' %
         ('git+file://' + version_pkg_path.abspath.replace('\\', '/')),
-        expect_stderr=True,
     )
     version = script.run('version_pkg')
     assert '0.1' in version.stdout
@@ -280,7 +279,6 @@ def test_reinstalling_works_with_editible_non_master_branch(script):
         'install', '-e',
         '%s#egg=version_pkg' %
         ('git+file://' + version_pkg_path.abspath.replace('\\', '/')),
-        expect_stderr=True,
     )
     version = script.run('version_pkg')
     assert 'some different version' in version.stdout
