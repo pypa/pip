@@ -54,19 +54,6 @@ from pip._internal.commands import commands_dict
 from pip._vendor.requests.packages.urllib3.exceptions import (
     InsecureRequestWarning,
 )
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-
-if MYPY_CHECK_RUNNING:
-    from typing import Any
-
-# assignment for flake8 to be happy
-
-# This fixes a peculiarity when importing via __import__ - as we are
-# initialising the pip module, "from pip import cmdoptions" is recursive
-# and appears not to work properly in that situation.
-# import pip._internal.cmdoptions
-# cmdoptions = pip._internal.cmdoptions
 
 logger = logging.getLogger(__name__)
 
