@@ -20,6 +20,10 @@ from pip._internal.locations import USER_CACHE_DIR, src_prefix
 from pip._internal.models import PyPI
 from pip._internal.utils.hashes import STRONG_HASHES
 from pip._internal.utils.ui import BAR_TYPES
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from typing import Any
 
 
 def make_option_group(group, parser):
@@ -64,7 +68,8 @@ help_ = partial(
     '-h', '--help',
     dest='help',
     action='help',
-    help='Show help.')
+    help='Show help.',
+)  # type: Any
 
 isolated_mode = partial(
     Option,
@@ -85,7 +90,8 @@ require_virtualenv = partial(
     dest='require_venv',
     action='store_true',
     default=False,
-    help=SUPPRESS_HELP)
+    help=SUPPRESS_HELP
+)  # type: Any
 
 verbose = partial(
     Option,
@@ -101,7 +107,8 @@ version = partial(
     '-V', '--version',
     dest='version',
     action='store_true',
-    help='Show version and exit.')
+    help='Show version and exit.',
+)  # type: Any
 
 quiet = partial(
     Option,
@@ -109,10 +116,12 @@ quiet = partial(
     dest='quiet',
     action='count',
     default=0,
-    help=('Give less output. Option is additive, and can be used up to 3'
-          ' times (corresponding to WARNING, ERROR, and CRITICAL logging'
-          ' levels).')
-)
+    help=(
+        'Give less output. Option is additive, and can be used up to 3'
+        ' times (corresponding to WARNING, ERROR, and CRITICAL logging'
+        ' levels).'
+    ),
+)  # type: Any
 
 progress_bar = partial(
     Option,
@@ -121,8 +130,11 @@ progress_bar = partial(
     type='choice',
     choices=list(BAR_TYPES.keys()),
     default='on',
-    help='Specify type of progress to be displayed [' +
-         '|'.join(BAR_TYPES.keys()) + '] (default: %default)')
+    help=(
+        'Specify type of progress to be displayed [' +
+        '|'.join(BAR_TYPES.keys()) + '] (default: %default)'
+    ),
+)  # type: Any
 
 log = partial(
     Option,
@@ -130,7 +142,7 @@ log = partial(
     dest="log",
     metavar="path",
     help="Path to a verbose appending log."
-)
+)  # type: Any
 
 no_input = partial(
     Option,
@@ -139,7 +151,8 @@ no_input = partial(
     dest='no_input',
     action='store_true',
     default=False,
-    help=SUPPRESS_HELP)
+    help=SUPPRESS_HELP
+)  # type: Any
 
 proxy = partial(
     Option,
@@ -147,7 +160,8 @@ proxy = partial(
     dest='proxy',
     type='str',
     default='',
-    help="Specify a proxy in the form [user:passwd@]proxy.server:port.")
+    help="Specify a proxy in the form [user:passwd@]proxy.server:port."
+)  # type: Any
 
 retries = partial(
     Option,
@@ -156,7 +170,8 @@ retries = partial(
     type='int',
     default=5,
     help="Maximum number of retries each connection should attempt "
-         "(default %default times).")
+         "(default %default times).",
+)  # type: Any
 
 timeout = partial(
     Option,
@@ -165,7 +180,8 @@ timeout = partial(
     dest='timeout',
     type='float',
     default=15,
-    help='Set the socket timeout (default %default seconds).')
+    help='Set the socket timeout (default %default seconds).',
+)  # type: Any
 
 skip_requirements_regex = partial(
     Option,
@@ -174,7 +190,8 @@ skip_requirements_regex = partial(
     dest='skip_requirements_regex',
     type='str',
     default='',
-    help=SUPPRESS_HELP)
+    help=SUPPRESS_HELP,
+)  # type: Any
 
 
 def exists_action():
@@ -188,7 +205,8 @@ def exists_action():
         action='append',
         metavar='action',
         help="Default action when a path already exists: "
-        "(s)witch, (i)gnore, (w)ipe, (b)ackup, (a)bort.")
+             "(s)witch, (i)gnore, (w)ipe, (b)ackup, (a)bort).",
+    )
 
 
 cert = partial(
@@ -197,7 +215,8 @@ cert = partial(
     dest='cert',
     type='str',
     metavar='path',
-    help="Path to alternate CA bundle.")
+    help="Path to alternate CA bundle.",
+)  # type: Any
 
 client_cert = partial(
     Option,
@@ -207,7 +226,8 @@ client_cert = partial(
     default=None,
     metavar='path',
     help="Path to SSL client certificate, a single file containing the "
-         "private key and the certificate in PEM format.")
+         "private key and the certificate in PEM format.",
+)  # type: Any
 
 index_url = partial(
     Option,
@@ -218,7 +238,8 @@ index_url = partial(
     help="Base URL of Python Package Index (default %default). "
          "This should point to a repository compliant with PEP 503 "
          "(the simple repository API) or a local directory laid out "
-         "in the same format.")
+         "in the same format.",
+)  # type: Any
 
 
 def extra_index_url():
@@ -230,7 +251,7 @@ def extra_index_url():
         default=[],
         help="Extra URLs of package indexes to use in addition to "
              "--index-url. Should follow the same rules as "
-             "--index-url."
+             "--index-url.",
     )
 
 
@@ -240,7 +261,8 @@ no_index = partial(
     dest='no_index',
     action='store_true',
     default=False,
-    help='Ignore package index (only looking at --find-links URLs instead).')
+    help='Ignore package index (only looking at --find-links URLs instead).',
+)  # type: Any
 
 
 def find_links():
@@ -252,7 +274,8 @@ def find_links():
         metavar='url',
         help="If a url or path to an html file, then parse for links to "
              "archives. If a local path or file:// url that's a directory, "
-             "then look for archives in the directory listing.")
+             "then look for archives in the directory listing.",
+    )
 
 
 def trusted_host():
@@ -275,7 +298,7 @@ process_dependency_links = partial(
     action="store_true",
     default=False,
     help="Enable the processing of dependency links.",
-)
+)  # type: Any
 
 
 def constraints():
@@ -286,7 +309,8 @@ def constraints():
         default=[],
         metavar='file',
         help='Constrain versions using the given constraints file. '
-        'This option can be used multiple times.')
+        'This option can be used multiple times.'
+    )
 
 
 def requirements():
@@ -297,7 +321,8 @@ def requirements():
         default=[],
         metavar='file',
         help='Install from the given requirements file. '
-        'This option can be used multiple times.')
+        'This option can be used multiple times.'
+    )
 
 
 def editable():
@@ -321,7 +346,7 @@ src = partial(
     help='Directory to check out editable projects into. '
     'The default in a virtualenv is "<venv path>/src". '
     'The default for global installs is "<current dir>/src".'
-)
+)  # type: Any
 
 
 def _get_format_control(values, option):
@@ -351,7 +376,8 @@ def no_binary():
              "disable all binary packages, :none: to empty the set, or one or "
              "more package names with commas between them. Note that some "
              "packages are tricky to compile and may fail to install when "
-             "this option is used on them.")
+             "this option is used on them.",
+    )
 
 
 def only_binary():
@@ -364,7 +390,8 @@ def only_binary():
              "disable all source packages, :none: to empty the set, or one or "
              "more package names with commas between them. Packages without "
              "binary distributions will fail to install when this option is "
-             "used on them.")
+             "used on them.",
+    )
 
 
 cache_dir = partial(
@@ -390,7 +417,8 @@ no_deps = partial(
     dest='ignore_dependencies',
     action='store_true',
     default=False,
-    help="Don't install package dependencies.")
+    help="Don't install package dependencies)."
+)  # type: Any
 
 build_dir = partial(
     Option,
@@ -398,14 +426,15 @@ build_dir = partial(
     dest='build_dir',
     metavar='dir',
     help='Directory to unpack packages into and build in.'
-)
+)  # type: Any
 
 ignore_requires_python = partial(
     Option,
     '--ignore-requires-python',
     dest='ignore_requires_python',
     action='store_true',
-    help='Ignore the Requires-Python information.')
+    help='Ignore the Requires-Python information.'
+)  # type: Any
 
 install_options = partial(
     Option,
@@ -417,7 +446,8 @@ install_options = partial(
          "command (use like --install-option=\"--install-scripts=/usr/local/"
          "bin\"). Use multiple --install-option options to pass multiple "
          "options to setup.py install. If you are using an option with a "
-         "directory path, be sure to use absolute path.")
+         "directory path, be sure to use absolute path.",
+)  # type: Any
 
 global_options = partial(
     Option,
@@ -426,14 +456,16 @@ global_options = partial(
     action='append',
     metavar='options',
     help="Extra global options to be supplied to the setup.py "
-         "call before the install command.")
+         "call before the install command.",
+)  # type: Any
 
 no_clean = partial(
     Option,
     '--no-clean',
     action='store_true',
     default=False,
-    help="Don't clean up build directories.")
+    help="Don't clean up build directories)."
+)  # type: Any
 
 pre = partial(
     Option,
@@ -441,7 +473,8 @@ pre = partial(
     action='store_true',
     default=False,
     help="Include pre-release and development versions. By default, "
-         "pip only finds stable versions.")
+         "pip only finds stable versions.",
+)  # type: Any
 
 disable_pip_version_check = partial(
     Option,
@@ -450,7 +483,8 @@ disable_pip_version_check = partial(
     action="store_true",
     default=False,
     help="Don't periodically check PyPI to determine whether a new version "
-         "of pip is available for download. Implied with --no-index.")
+         "of pip is available for download. Implied with --no-index.",
+)  # type: Any
 
 
 # Deprecated, Remove later
@@ -460,7 +494,7 @@ always_unzip = partial(
     dest='always_unzip',
     action='store_true',
     help=SUPPRESS_HELP,
-)
+)  # type: Any
 
 
 def _merge_hash(option, opt_str, value, parser):
@@ -490,7 +524,8 @@ hash = partial(
     callback=_merge_hash,
     type='string',
     help="Verify that the package's archive matches this "
-         'hash before installing. Example: --hash=sha256:abcdef...')
+         'hash before installing. Example: --hash=sha256:abcdef...',
+)  # type: Any
 
 
 require_hashes = partial(
@@ -501,7 +536,8 @@ require_hashes = partial(
     default=False,
     help='Require a hash to check each requirement against, for '
          'repeatable installs. This option is implied when any package in a '
-         'requirements file has a --hash option.')
+         'requirements file has a --hash option.',
+)  # type: Any
 
 
 ##########
