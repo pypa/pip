@@ -3,6 +3,9 @@
 
 import logging
 import os
+import sys
+
+from copy import copy
 
 from pip._vendor import pkg_resources, requests
 
@@ -22,7 +25,7 @@ from pip._internal.vcs import vcs
 logger = logging.getLogger(__name__)
 
 
-def make_abstract_dist(req):
+def make_abstract_dist(req_to_install):
     """Factory to make an abstract dist object.
 
     Preconditions: Either an editable req with a source_dir, or satisfied_by or
@@ -30,12 +33,12 @@ def make_abstract_dist(req):
 
     :return: A concrete DistAbstraction.
     """
-    if req.editable:
-        return IsSDist(req)
-    elif req.link and req.link.is_wheel:
-        return IsWheel(req)
+    if req_to_install.editable:
+        return IsSDist(req_to_install)
+    elif req_to_install.link and req_to_install.link.is_wheel:
+        return IsWheel(req_to_install)
     else:
-        return IsSDist(req)
+        return IsSDist(req_to_install)
 
 
 class DistAbstraction(object):
@@ -57,14 +60,14 @@ class DistAbstraction(object):
        above metadata.
     """
 
-    def __init__(self, req):
-        self.req = req
+    def __init__(self, req_to_install):
+        self.req_to_install = req_to_install
 
     def dist(self, finder):
         """Return a setuptools Dist object."""
         raise NotImplementedError(self.dist)
 
-    def prep_for_dist(self):
+    def prep_for_dist(self, finder):
         """Ensure that we can get a Dist for this requirement."""
         raise NotImplementedError(self.dist)
 
@@ -73,17 +76,16 @@ class IsWheel(DistAbstraction):
 
     def dist(self, finder):
         return list(pkg_resources.find_distributions(
-            self.req.source_dir))[0]
+            self.req_to_install.source_dir))[0]
 
-    def prep_for_dist(self):
+    def prep_for_dist(self, finder):
         # FIXME:https://github.com/pypa/pip/issues/1112
         pass
 
 
 class IsSDist(DistAbstraction):
-
     def dist(self, finder):
-        dist = self.req.get_dist()
+        dist = self.req_to_install.get_dist()
         # FIXME: shouldn't be globally added.
         if dist.has_metadata('dependency_links.txt'):
             finder.add_dependency_links(
@@ -91,17 +93,32 @@ class IsSDist(DistAbstraction):
             )
         return dist
 
-    def prep_for_dist(self):
-        self.req.run_egg_info()
-        self.req.assert_source_matches_version()
+    def prep_for_dist(self, finder):
+        build_requirements = self.req_to_install.build_backend.get_requires()
+        logger.info("Installing build dependencies")
+        # Install the build requirements
+        # with self.req.build_backend.build_envirionment as prefix:
+        #    finder = copy(finder)
+        #    finder.format_control = FormatControl(set(), set())
+        #        urls = [finder.find_requirement(InstallRequirement.from_line(r),
+        #                upgrade=False).url for r in build_requirements]
+        #
+        #        # TODO: Use single process with recursion handling
+        #        args = [sys.executable, '-m', 'pip', 'install', '--ignore-installed',
+        #                '--prefix', prefix] + list(urls)
+        #        with open_spinner("Installing build dependencies") as spinner:
+        #            call_subprocess(args, show_stdout=False, spinner=spinner)
+
+        self.req_to_install.run_egg_info()
+        self.req_to_install.assert_source_matches_version()
 
 
 class Installed(DistAbstraction):
 
     def dist(self, finder):
-        return self.req.satisfied_by
+        return self.req_to_install.satisfied_by
 
-    def prep_for_dist(self):
+    def prep_for_dist(self, finder):
         pass
 
 
@@ -285,7 +302,7 @@ class RequirementPreparer(object):
                     (req, exc, req.link)
                 )
             abstract_dist = make_abstract_dist(req)
-            abstract_dist.prep_for_dist()
+            abstract_dist.prep_for_dist(resolver.finder)
             if self._download_should_save:
                 # Make a .zip of the source_dir we already created.
                 if req.link.scheme in vcs.all_schemes:
@@ -328,7 +345,7 @@ class RequirementPreparer(object):
             req.update_editable(not self._download_should_save)
 
             abstract_dist = make_abstract_dist(req)
-            abstract_dist.prep_for_dist()
+            abstract_dist.prep_for_dist(resolver.finder)
 
             if self._download_should_save:
                 req.archive(self.download_dir)

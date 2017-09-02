@@ -44,6 +44,7 @@ from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.ui import open_spinner
 from pip._internal.vcs import vcs
 from pip._internal.wheel import Wheel, move_wheel_files
+from pip._internal.backend import BuildBackend
 
 logger = logging.getLogger(__name__)
 
@@ -123,6 +124,8 @@ class InstallRequirement(object):
         self.prepared = False
 
         self.isolated = isolated
+        # See note about circular references in BuildBackend
+        self.build_backend = BuildBackend(self)
 
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, isolated=False,
@@ -461,25 +464,7 @@ class InstallRequirement(object):
             )
 
         with indent_log():
-            script = SETUPTOOLS_SHIM % self.setup_py
-            base_cmd = [sys.executable, '-c', script]
-            if self.isolated:
-                base_cmd += ["--no-user-cfg"]
-            egg_info_cmd = base_cmd + ['egg_info']
-            # We can't put the .egg-info files at the root, because then the
-            # source code will be mistaken for an installed egg, causing
-            # problems
-            if self.editable:
-                egg_base_option = []
-            else:
-                egg_info_dir = os.path.join(self.setup_py_dir, 'pip-egg-info')
-                ensure_dir(egg_info_dir)
-                egg_base_option = ['--egg-base', 'pip-egg-info']
-            call_subprocess(
-                egg_info_cmd + egg_base_option,
-                cwd=self.setup_py_dir,
-                show_stdout=False,
-                command_desc='python setup.py egg_info')
+            self.build_backend.prepare_metadata_for_build_wheel()
 
         if not self.req:
             if isinstance(parse_version(self.pkg_info()["Version"]), Version):
@@ -856,6 +841,7 @@ class InstallRequirement(object):
             rmtree(self.source_dir)
         self.source_dir = None
         self._temp_build_dir.cleanup()
+        self.build_backend.build_environment.cleanup()
 
     def install_editable(self, install_options,
                          global_options=(), prefix=None):
