@@ -19,6 +19,9 @@ class Mercurial(VersionControl):
     repo_name = 'clone'
     schemes = ('hg', 'hg+http', 'hg+https', 'hg+ssh', 'hg+static-http')
 
+    def get_base_rev_args(self, rev):
+        return [rev]
+
     def export(self, location):
         """Export the Hg repository at the url to the destination location"""
         with TempDirectory(kind="export") as temp_dir:

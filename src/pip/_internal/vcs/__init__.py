@@ -1,6 +1,7 @@
 """Handles all VCS (version control) support"""
 from __future__ import absolute_import
 
+import copy
 import errno
 import logging
 import os
@@ -23,6 +24,68 @@ __all__ = ['vcs', 'get_src_requirement']
 
 
 logger = logging.getLogger(__name__)
+
+
+class RevOptions(object):
+
+    """
+    Encapsulates a VCS-specific revision to install, along with any VCS
+    install options.
+
+    Instances of this class should be treated as if immutable.
+    """
+
+    def __init__(self, vcs, rev=None, extra_args=None):
+        """
+        Args:
+          vcs: a VersionControl object.
+          rev: the name of the revision to install.
+          extra_args: a list of extra options.
+        """
+        if extra_args is None:
+            extra_args = []
+
+        self.extra_args = extra_args
+        self.rev = rev
+        self.vcs = vcs
+
+    @property
+    def arg_rev(self):
+        if self.rev is None:
+            return self.vcs.default_arg_rev
+
+        return self.rev
+
+    def to_args(self, start_args, end_args=None):
+        """
+        Return VCS-specific command arguments.
+        """
+        if end_args is None:
+            end_args = []
+
+        args = copy.copy(start_args)
+        rev = self.arg_rev
+        if rev is not None:
+            args += self.vcs.get_base_rev_args(rev)
+        args += self.extra_args
+        args += end_args
+
+        return args
+
+    def to_display(self):
+        if not self.rev:
+            return ''
+
+        return ' (to revision {})'.format(self.rev)
+
+    def make_new(self, rev):
+        """
+        Make a copy of the current instance, but with a new rev.
+
+        Args:
+          rev: the name of the revision for the new object.
+        """
+        return self.vcs.make_rev_options(rev, extra_args=self.extra_args)
 
 
 class VcsSupport(object):
@@ -104,10 +167,30 @@ class VersionControl(object):
     dirname = ''
     # List of supported schemes for this Version Control
     schemes = ()  # type: Tuple[str, ...]
+    default_arg_rev = None
 
     def __init__(self, url=None, *args, **kwargs):
         self.url = url
         super(VersionControl, self).__init__(*args, **kwargs)
+
+    def get_base_rev_args(self, rev):
+        """
+        Return the base revision arguments for a vcs command.
+
+        Args:
+          rev: the name of a revision to install.  Cannot be None.
+        """
+        raise NotImplementedError
+
+    def make_rev_options(self, rev=None, extra_args=None):
+        """
+        Return a RevOptions object.
+
+        Args:
+          rev: the name of a revision to install.
+          extra_args: a list of extra options.
+        """
+        return RevOptions(self, rev, extra_args=extra_args)
 
     def _is_local_repository(self, repo):
         """

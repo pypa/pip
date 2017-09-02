@@ -2,9 +2,10 @@ import pytest
 from mock import Mock
 from pip._vendor.packaging.version import parse as parse_version
 
-from pip._internal.vcs import VersionControl
+from pip._internal.vcs import RevOptions, VersionControl
 from pip._internal.vcs.bazaar import Bazaar
 from pip._internal.vcs.git import Git
+from pip._internal.vcs.mercurial import Mercurial
 from pip._internal.vcs.subversion import Subversion
 from tests.lib import pyversion
 
@@ -12,6 +13,85 @@ if pyversion >= '3':
     VERBOSE_FALSE = False
 else:
     VERBOSE_FALSE = 0
+
+
+def check_to_args(vcs, expected1, expected2):
+    """
+    Check RevOptions.to_args(), with and without passing a rev to RevOptions.
+    """
+    assert RevOptions(vcs).to_args(['cmd']) == expected1
+    assert RevOptions(vcs, '123').to_args(['cmd']) == expected2
+
+
+def test_rev_options_to_args():
+    """
+    Test RevOptions.to_args().
+    """
+    # Check VCS-specific RevOptions behavior.
+    check_to_args(Bazaar(), ['cmd'], ['cmd', '-r', '123'])
+    check_to_args(Git(), ['cmd', 'origin/master'], ['cmd', '123'])
+    check_to_args(Mercurial(), ['cmd'], ['cmd', '123'])
+    check_to_args(Subversion(), ['cmd'], ['cmd', '-r', '123'])
+
+    # Check RevOptions behavior that is the same across all VersionControl
+    # classes.  For these, use a single VersionControl class to test.
+    vcs = Git()
+
+    # Test start_args.
+    rev_options = RevOptions(vcs, 'master')
+    assert (
+        rev_options.to_args(['cmd', 'option1']) ==
+        ['cmd', 'option1', 'master']
+    )
+    # Test end_args.
+    rev_options = RevOptions(vcs, 'master')
+    assert (
+        rev_options.to_args(['cmd', 'option1'], ['option2']) ==
+        ['cmd', 'option1', 'master', 'option2']
+    )
+    # Test extra_args.
+    rev_options = RevOptions(vcs, 'master', extra_args=['option1', 'option2'])
+    assert (
+        rev_options.to_args(['cmd']) ==
+        ['cmd', 'master', 'option1', 'option2']
+    )
+    # Test extra_args with end_args.
+    assert (
+        rev_options.to_args(['cmd'], ['option3']) ==
+        ['cmd', 'master', 'option1', 'option2', 'option3']
+    )
+
+
+def test_rev_options_to_display():
+    """
+    Test RevOptions.to_display().
+    """
+    # The choice of VersionControl class doesn't matter here since
+    # the implementation is the same for all of them.
+    vcs = Git()
+
+    rev_options = RevOptions(vcs)
+    assert rev_options.to_display() == ''
+
+    rev_options = RevOptions(vcs, 'master')
+    assert rev_options.to_display() == ' (to revision master)'
+
+
+def test_rev_options_make_new():
+    """
+    Test RevOptions.make_new().
+    """
+    # The choice of VersionControl class doesn't matter here since
+    # the implementation is the same for all of them.
+    vcs = Git()
+
+    rev_options = RevOptions(vcs, 'master', extra_args=['foo', 'bar'])
+    new_options = rev_options.make_new('develop')
+
+    assert new_options is not rev_options
+    assert new_options.extra_args == ['foo', 'bar']
+    assert new_options.rev == 'develop'
+    assert new_options.vcs is vcs
 
 
 @pytest.fixture

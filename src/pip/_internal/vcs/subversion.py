@@ -28,6 +28,9 @@ class Subversion(VersionControl):
     repo_name = 'checkout'
     schemes = ('svn', 'svn+ssh', 'svn+http', 'svn+https', 'svn+svn')
 
+    def get_base_rev_args(self, rev):
+        return ['-r', rev]
+
     def get_info(self, location):
         """Returns (url, revision), where both are strings"""
         assert not location.rstrip('/').endswith(self.dirname), \

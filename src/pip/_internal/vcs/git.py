@@ -27,6 +27,7 @@ class Git(VersionControl):
     schemes = (
         'git', 'git+http', 'git+https', 'git+ssh', 'git+git', 'git+file',
     )
+    default_arg_rev = 'origin/master'
 
     def __init__(self, url=None, *args, **kwargs):
 
@@ -48,6 +49,9 @@ class Git(VersionControl):
                 )
 
         super(Git, self).__init__(url, *args, **kwargs)
+
+    def get_base_rev_args(self, rev):
+        return [rev]
 
     def get_git_version(self):
         VERSION_PFX = 'git version '
