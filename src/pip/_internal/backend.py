@@ -99,10 +99,6 @@ class BuildBackend(object):
         return self.req_install.setup_py_dir
 
     @property
-    def isolated(self):
-        return self.req_install.isolated
-
-    @property
     def editable(self):
         return self.req_install.editable
 
@@ -140,10 +136,7 @@ class BuildBackend(object):
 
     def prepare_metadata_for_build_wheel(self):
         """Run the setup.py egg_info command"""
-        if self.isolated:
-            base_cmd = ["--no-user-cfg"]
-        else:
-            base_cmd = []
+        base_cmd = ["--no-user-cfg"]
         egg_info_cmd = base_cmd + ['egg_info']
         # We can't put the .egg-info files at the root, because then the
         # source code will be mistaken for an installed egg, causing
