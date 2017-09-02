@@ -3,7 +3,7 @@ def test_environ(script, tmpdir):
     """$PYTHONWARNINGS was added in python2.7"""
     demo = tmpdir.join('warnings_demo.py')
     demo.write('''
-from pip.utils import deprecation
+from pip._internal.utils import deprecation
 deprecation.install_warning_logger()
 
 from logging import basicConfig
@@ -14,7 +14,8 @@ warn("deprecated!", deprecation.PipDeprecationWarning)
 ''')
 
     result = script.run('python', demo, expect_stderr=True)
-    assert result.stderr == 'ERROR:pip.deprecations:DEPRECATION: deprecated!\n'
+    assert result.stderr == \
+        'ERROR:pip._internal.deprecations:DEPRECATION: deprecated!\n'
 
     script.environ['PYTHONWARNINGS'] = 'ignore'
     result = script.run('python', demo)

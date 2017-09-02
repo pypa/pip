@@ -5,6 +5,7 @@ pytest-catchlog
 pytest-rerunfailures
 pytest-timeout
 pytest-xdist
+pyyaml
 mock<1.1
 scripttest>=1.3
 https://github.com/pypa/virtualenv/archive/master.zip#egg=virtualenv

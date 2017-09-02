@@ -38,7 +38,7 @@ tests_require = [
 
 setup(
     name="pip",
-    version=find_version("pip", "__init__.py"),
+    version=find_version("src", "pip", "__init__.py"),
     description="The PyPA recommended tool for installing Python packages.",
     long_description=long_description,
     classifiers=[
@@ -60,7 +60,11 @@ setup(
     author_email='python-virtualenv@groups.google.com',
     url='https://pip.pypa.io/',
     license='MIT',
-    packages=find_packages(exclude=["contrib", "docs", "tests*", "tasks"]),
+    package_dir={"": "src"},
+    packages=find_packages(
+        where="src",
+        exclude=["contrib", "docs", "tests*", "tasks"],
+    ),
     package_data={
         "pip._vendor.certifi": ["*.pem"],
         "pip._vendor.requests": ["*.pem"],
@@ -69,9 +73,9 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "pip=pip:main",
-            "pip%s=pip:main" % sys.version[:1],
-            "pip%s=pip:main" % sys.version[:3],
+            "pip=pip._internal:main",
+            "pip%s=pip._internal:main" % sys.version[:1],
+            "pip%s=pip._internal:main" % sys.version[:3],
         ],
     },
     tests_require=tests_require,

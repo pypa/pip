@@ -2,8 +2,8 @@ import os
 
 import pytest
 
-import pip.configuration
-from pip import main
+import pip._internal.configuration
+from pip._internal import main
 from tests.lib.options_helpers import AddFakeCommandMixin
 
 
@@ -188,18 +188,18 @@ class TestOptionsConfigFiles(object):
     def test_venv_config_file_found(self, monkeypatch):
         # strict limit on the site_config_files list
         monkeypatch.setattr(
-            pip.configuration, 'site_config_files', ['/a/place']
+            pip._internal.configuration, 'site_config_files', ['/a/place']
         )
 
         # If we are running in a virtualenv and all files appear to exist,
         # we should see two config files.
         monkeypatch.setattr(
-            pip.configuration,
+            pip._internal.configuration,
             'running_under_virtualenv',
             lambda: True,
         )
         monkeypatch.setattr(os.path, 'exists', lambda filename: True)
-        cp = pip.configuration.Configuration(isolated=False)
+        cp = pip._internal.configuration.Configuration(isolated=False)
 
         files = []
         for _, val in cp._iter_config_files():
