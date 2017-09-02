@@ -20,8 +20,8 @@ from pip._internal.exceptions import (
 )
 from pip._internal.index import PackageFinder
 from pip._internal.locations import running_under_virtualenv
-from pip._internal.req.req_install import InstallRequirement
 from pip._internal.req.req_file import parse_requirements
+from pip._internal.req.req_install import InstallRequirement
 from pip._internal.status_codes import (
     ERROR, PREVIOUS_BUILD_DIR_ERROR, SUCCESS, UNKNOWN_ERROR,
     VIRTUALENV_NOT_FOUND

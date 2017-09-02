@@ -19,8 +19,8 @@ from pip._internal.index import (
 from pip._internal.locations import USER_CACHE_DIR, src_prefix
 from pip._internal.models import PyPI
 from pip._internal.utils.hashes import STRONG_HASHES
-from pip._internal.utils.ui import BAR_TYPES
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.ui import BAR_TYPES
 
 if MYPY_CHECK_RUNNING:
     from typing import Any

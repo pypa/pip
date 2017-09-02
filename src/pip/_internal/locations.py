@@ -13,7 +13,6 @@ from distutils.command.install import SCHEME_KEYS, install  # type: ignore
 from pip._internal.compat import WINDOWS, expanduser
 from pip._internal.utils import appdirs
 
-
 # Application Directories
 USER_CACHE_DIR = appdirs.user_cache_dir("pip")
 
