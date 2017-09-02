@@ -136,8 +136,7 @@ class BuildBackend(object):
 
     def prepare_metadata_for_build_wheel(self):
         """Run the setup.py egg_info command"""
-        base_cmd = ["--no-user-cfg"]
-        egg_info_cmd = base_cmd + ['egg_info']
+        egg_info_cmd = ['egg_info']
         # We can't put the .egg-info files at the root, because then the
         # source code will be mistaken for an installed egg, causing
         # problems
