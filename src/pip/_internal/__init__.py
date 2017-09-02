@@ -54,7 +54,7 @@ from pip._internal.commands import commands_dict
 from pip._vendor.requests.packages.urllib3.exceptions import (
     InsecureRequestWarning,
 )
-from pip.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 
 if MYPY_CHECK_RUNNING:
@@ -245,7 +245,7 @@ def main(args=None):
         sys.exit(1)
 
     # Needed for locale.getpreferredencoding(False) to work
-    # in pip.utils.encoding.auto_decode
+    # in pip._internal.utils.encoding.auto_decode
     try:
         locale.setlocale(locale.LC_ALL, '')
     except locale.Error as e:
