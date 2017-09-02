@@ -103,14 +103,19 @@ class Git(VersionControl):
                                   show_stdout=False, on_returncode='ignore')
         refs = {}
         for line in output.strip().splitlines():
-            sha, ref = line.split(None, 1)
+            try:
+                sha, ref = line.split()
+            except ValueError:
+                # Include the offending line to simplify troubleshooting if
+                # this error ever occurs.
+                raise ValueError('unexpected show-ref line: {!r}'.format(line))
+
             refs[ref] = sha
 
-        sha = refs.get('refs/remotes/origin/{}'.format(rev))
-        if sha is not None:
-            return sha
+        branch_ref = 'refs/remotes/origin/{}'.format(rev)
+        tag_ref = 'refs/tags/{}'.format(rev)
 
-        return refs.get('refs/tags/{}'.format(rev))
+        return refs.get(branch_ref) or refs.get(tag_ref)
 
     def check_rev_options(self, dest, rev_options):
         """Check the revision options before checkout.
