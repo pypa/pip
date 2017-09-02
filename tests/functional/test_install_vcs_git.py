@@ -58,6 +58,11 @@ def test_get_short_refs_should_ignore_no_branch(script):
     assert result['branch0.1'] == commit, result
 
 
+def call_check_version(vcs, path, rev):
+    rev_options = vcs.make_rev_options(rev)
+    return vcs.check_version(path, rev_options)
+
+
 @pytest.mark.network
 def test_check_version(script):
     version_pkg_path = _create_test_package(script)
@@ -67,37 +72,40 @@ def test_check_version(script):
         cwd=version_pkg_path
     ).stdout.strip()
     git = Git()
-    assert git.check_version(version_pkg_path, [commit])
-    assert git.check_version(version_pkg_path, [commit[:7]])
-    assert not git.check_version(version_pkg_path, ['branch0.1'])
-    assert not git.check_version(version_pkg_path, ['abc123'])
+    assert call_check_version(git, version_pkg_path, commit)
+    assert call_check_version(git, version_pkg_path, commit[:7])
+    assert not call_check_version(git, version_pkg_path, 'branch0.1')
+    assert not call_check_version(git, version_pkg_path, 'abc123')
 
 
 @patch('pip._internal.vcs.git.Git.get_short_refs')
 def test_check_rev_options_should_handle_branch_name(get_refs_mock):
-    get_refs_mock.return_value = {'master': '123456', '0.1': '123456'}
+    get_refs_mock.return_value = {'master': '123456', '0.1': 'abc123'}
     git = Git()
+    rev_options = git.make_rev_options('master')
 
-    result = git.check_rev_options('master', '.', [])
-    assert result == ['123456']
+    new_options = git.check_rev_options('.', rev_options)
+    assert new_options.rev == '123456'
 
 
 @patch('pip._internal.vcs.git.Git.get_short_refs')
 def test_check_rev_options_should_handle_tag_name(get_refs_mock):
-    get_refs_mock.return_value = {'master': '123456', '0.1': '123456'}
+    get_refs_mock.return_value = {'master': '123456', '0.1': 'abc123'}
     git = Git()
+    rev_options = git.make_rev_options('0.1')
 
-    result = git.check_rev_options('0.1', '.', [])
-    assert result == ['123456']
+    new_options = git.check_rev_options('.', rev_options)
+    assert new_options.rev == 'abc123'
 
 
 @patch('pip._internal.vcs.git.Git.get_short_refs')
 def test_check_rev_options_should_handle_ambiguous_commit(get_refs_mock):
     get_refs_mock.return_value = {'master': '123456', '0.1': '123456'}
     git = Git()
+    rev_options = git.make_rev_options('0.1')
 
-    result = git.check_rev_options('0.1', '.', [])
-    assert result == ['123456'], result
+    new_options = git.check_rev_options('.', rev_options)
+    assert new_options.rev == '123456'
 
 
 # TODO(pnasrat) fix all helpers to do right things with paths on windows.

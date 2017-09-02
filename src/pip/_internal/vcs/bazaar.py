@@ -52,24 +52,22 @@ class Bazaar(VersionControl):
         self.run_command(['switch', url], cwd=dest)
 
     def update(self, dest, rev_options):
-        self.run_command(['pull', '-q'] + rev_options, cwd=dest)
+        cmd_args = rev_options.to_args(['pull', '-q'])
+        self.run_command(cmd_args, cwd=dest)
 
     def obtain(self, dest):
         url, rev = self.get_url_rev()
-        if rev:
-            rev_options = ['-r', rev]
-            rev_display = ' (to revision %s)' % rev
-        else:
-            rev_options = []
-            rev_display = ''
-        if self.check_destination(dest, url, rev_options, rev_display):
+        rev_options = self.make_rev_options(rev)
+        if self.check_destination(dest, url, rev_options):
+            rev_display = rev_options.to_display()
             logger.info(
                 'Checking out %s%s to %s',
                 url,
                 rev_display,
                 display_path(dest),
             )
-            self.run_command(['branch', '-q'] + rev_options + [url, dest])
+            cmd_args = rev_options.to_args(['branch', '-q'], [url, dest])
+            self.run_command(cmd_args)
 
     def get_url_rev(self):
         # hotfix the URL scheme after removing bzr+ from bzr+ssh:// readd it

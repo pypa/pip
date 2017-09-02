@@ -263,12 +263,18 @@ class VersionControl(object):
     def switch(self, dest, url, rev_options):
         """
         Switch the repo at ``dest`` to point to ``URL``.
+
+        Args:
+          rev_options: a RevOptions object.
         """
         raise NotImplementedError
 
     def update(self, dest, rev_options):
         """
         Update an already-existing repo to the given ``rev_options``.
+
+        Args:
+          rev_options: a RevOptions object.
         """
         raise NotImplementedError
 
@@ -279,15 +285,19 @@ class VersionControl(object):
         """
         raise NotImplementedError
 
-    def check_destination(self, dest, url, rev_options, rev_display):
+    def check_destination(self, dest, url, rev_options):
         """
         Prepare a location to receive a checkout/clone.
 
         Return True if the location is ready for (and requires) a
         checkout/clone, False otherwise.
+
+        Args:
+          rev_options: a RevOptions object.
         """
         checkout = True
         prompt = False
+        rev_display = rev_options.to_display()
         if os.path.exists(dest):
             checkout = False
             if os.path.exists(os.path.join(dest, self.dirname)):

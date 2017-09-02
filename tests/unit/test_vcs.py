@@ -140,7 +140,8 @@ def test_git_get_src_requirements(git, dist):
     ('foo', False),
 ))
 def test_git_check_version(git, ref, result):
-    assert git.check_version('foo', ref) is result
+    rev_options = git.make_rev_options(ref)
+    assert git.check_version('foo', rev_options) is result
 
 
 def test_translate_egg_surname():

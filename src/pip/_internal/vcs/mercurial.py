@@ -44,21 +44,19 @@ class Mercurial(VersionControl):
                 'Could not switch Mercurial repository to %s: %s', url, exc,
             )
         else:
-            self.run_command(['update', '-q'] + rev_options, cwd=dest)
+            cmd_args = rev_options.to_args(['update', '-q'])
+            self.run_command(cmd_args, cwd=dest)
 
     def update(self, dest, rev_options):
         self.run_command(['pull', '-q'], cwd=dest)
-        self.run_command(['update', '-q'] + rev_options, cwd=dest)
+        cmd_args = rev_options.to_args(['update', '-q'])
+        self.run_command(cmd_args, cwd=dest)
 
     def obtain(self, dest):
         url, rev = self.get_url_rev()
-        if rev:
-            rev_options = [rev]
-            rev_display = ' (to revision %s)' % rev
-        else:
-            rev_options = []
-            rev_display = ''
-        if self.check_destination(dest, url, rev_options, rev_display):
+        rev_options = self.make_rev_options(rev)
+        if self.check_destination(dest, url, rev_options):
+            rev_display = rev_options.to_display()
             logger.info(
                 'Cloning hg %s%s to %s',
                 url,
@@ -66,7 +64,8 @@ class Mercurial(VersionControl):
                 display_path(dest),
             )
             self.run_command(['clone', '--noupdate', '-q', url, dest])
-            self.run_command(['update', '-q'] + rev_options, cwd=dest)
+            cmd_args = rev_options.to_args(['update', '-q'])
+            self.run_command(cmd_args, cwd=dest)
 
     def get_url(self, location):
         url = self.run_command(
