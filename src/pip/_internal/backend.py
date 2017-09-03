@@ -80,27 +80,13 @@ class BuildBackend(object):
     Controls all setup.py interactions
     """
 
-    def __init__(self, req_install):
-        # The 'pure' OOP way would  be to hold the ONLY reference to
-        # self.setup_py_dir and self.setup_py and to implement a method
-        # that controls tree changes. I'm not sure how I feel about that
-        # now, but we're going to avoid purity in favor of practicality
-        # for now, and in fairness, I'm not the only one who created
-        # circular dependencies in pip. -xoviat
-        self.req_install = req_install
-        self.build_environment = BuildEnvironment(no_clean=True)
+    def __init__(self, setup_py_dir, editable=False):
+        self.setup_py_dir = setup_py_dir
+        self.editable = editable
 
     @property
     def setup_py(self):
-        return self.req_install.setup_py
-
-    @property
-    def setup_py_dir(self):
-        return self.req_install.setup_py_dir
-
-    @property
-    def editable(self):
-        return self.req_install.editable
+        return os.path.join(self.setup_py_dir, 'setup.py')
 
     @property
     def pyproject_toml(self):

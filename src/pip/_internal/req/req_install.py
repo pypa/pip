@@ -44,7 +44,7 @@ from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.ui import open_spinner
 from pip._internal.vcs import vcs
 from pip._internal.wheel import Wheel, move_wheel_files
-from pip._internal.backend import BuildBackend
+from pip._internal.backend import BuildBackend, BuildEnvironment
 
 logger = logging.getLogger(__name__)
 
@@ -124,8 +124,7 @@ class InstallRequirement(object):
         self.prepared = False
 
         self.isolated = isolated
-        # See note about circular references in BuildBackend
-        self.build_backend = BuildBackend(self)
+        self.build_environment = BuildEnvironment(no_clean=True)
 
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, isolated=False,
@@ -437,6 +436,10 @@ class InstallRequirement(object):
             setup_py = setup_py.encode(sys.getfilesystemencoding())
 
         return setup_py
+
+    @property
+    def build_backend(self):
+        return BuildBackend(self.setup_py_dir, self.editable)
 
     @property
     def pyproject_toml(self):
