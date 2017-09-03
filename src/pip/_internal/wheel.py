@@ -643,7 +643,7 @@ class WheelBuilder(object):
                 "This version of pip does not implement PEP 516, so "
                 "it cannot build a wheel without setuptools. You may need to "
                 "upgrade to a newer version of pip.")
-        with req.build_backend.build_environment:
+        with req.build_environment:
             return self._build_one_inside_env(req, output_dir,
                                               python_tag=python_tag,
                                               isolate=True)
