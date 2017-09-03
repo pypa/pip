@@ -112,14 +112,11 @@ class BuildBackend(object):
             egg_info_cmd + egg_base_option,
             command_desc='python setup.py egg_info')
 
+        # TODO: move PKG-INFO to METADATA
+
         # bw = bdist_wheel.bdist_wheel(distutils.dist.Distribution())
         # bw.egg2dist(os.path.join(dir, 'EGG-INFO'),
         #        dist_info_dir)
-
-    def clean(self, global_options=[]):
-        self._call_setup_py(list(global_options) + ['clean', '--all'],
-                            cwd=self.req_install.source_dir,
-                            command_desc='python setup.py clean')
 
     def build_wheel(self, wheel_directory):
         wheel_args = ['bdist_wheel', '-d', wheel_directory]

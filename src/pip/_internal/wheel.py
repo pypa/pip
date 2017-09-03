@@ -31,7 +31,10 @@ from pip._internal.locations import (
     PIP_DELETE_MARKER_FILENAME, distutils_scheme
 )
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import captured_stdout, ensure_dir, read_chunks
+from pip._internal.utils.misc import (
+    call_subprocess, captured_stdout, ensure_dir, read_chunks
+)
+from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import open_spinner
@@ -683,9 +686,18 @@ class WheelBuilder(object):
             return False
 
     def _clean_one(self, req):
+        """DEPRECATED"""
+        # TODO: Remove this as it is not defined in PEP 517
+        flags = '-u'
+        base_args = [
+            sys.executable, flags, '-c',
+            SETUPTOOLS_SHIM % req.setup_py
+        ]
+
         logger.info('Running setup.py clean for %s', req.name)
+        clean_args = base_args + ['clean', '--all']
         try:
-            req.build_backend.clean(self.global_options)
+            call_subprocess(clean_args, cwd=req.source_dir, show_stdout=False)
             return True
         except:
             logger.error('Failed cleaning build dir for %s', req.name)
