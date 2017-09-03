@@ -844,7 +844,7 @@ class InstallRequirement(object):
             rmtree(self.source_dir)
         self.source_dir = None
         self._temp_build_dir.cleanup()
-        self.build_backend.build_environment.cleanup()
+        self.build_environment.cleanup()
 
     def install_editable(self, install_options,
                          global_options=(), prefix=None):
