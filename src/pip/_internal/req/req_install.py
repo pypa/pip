@@ -439,7 +439,7 @@ class InstallRequirement(object):
 
     @property
     def build_backend(self):
-        return BuildBackend(self.setup_py_dir, self.editable)
+        return BuildBackend(self.setup_py_dir)
 
     @property
     def pyproject_toml(self):
@@ -484,8 +484,14 @@ class InstallRequirement(object):
                 self.setup_py, self.link,
             )
 
+        if self.editable:
+            metadata_directory = ''
+        else:
+            metadata_directory = 'pip-egg-info'
+
         with indent_log():
-            self.build_backend.prepare_metadata_for_build_wheel()
+            self.build_backend.prepare_metadata_for_build_wheel(
+                metadata_directory)
 
         if not self.req:
             if isinstance(parse_version(self.pkg_info()["Version"]), Version):

@@ -81,9 +81,8 @@ class BuildBackend(object):
     Controls all setup.py interactions
     """
 
-    def __init__(self, setup_py_dir, editable=False):
+    def __init__(self, setup_py_dir):
         self.setup_py_dir = setup_py_dir
-        self.editable = editable
 
     @property
     def setup_py(self):
@@ -93,19 +92,20 @@ class BuildBackend(object):
         """Obtain the PEP 517 build requirements"""
         raise NotImplementedError()
 
-    def prepare_metadata_for_build_wheel(self):
+    def prepare_metadata_for_build_wheel(self, metadata_directory,
+                                         config_settings=None):
         """Run the setup.py egg_info command"""
         egg_info_cmd = ['egg_info']
         # We can't put the .egg-info files at the root, because then the
         # source code will be mistaken for an installed egg, causing
         # problems
-        if self.editable:
+        if metadata_directory == '':
             egg_base_option = []
             logger.debug("Preparing metadata for editable distribution")
         else:
             egg_info_dir = os.path.join(self.setup_py_dir, 'pip-egg-info')
             ensure_dir(egg_info_dir)
-            egg_base_option = ['--egg-base', 'pip-egg-info']
+            egg_base_option = ['--egg-base', metadata_directory]
             logger.debug("Preparing metadata for distribution")
 
         self._call_setup_py(
@@ -118,7 +118,8 @@ class BuildBackend(object):
         # bw.egg2dist(os.path.join(dir, 'EGG-INFO'),
         #        dist_info_dir)
 
-    def build_wheel(self, wheel_directory):
+    def build_wheel(self, wheel_directory, metadata_directory=None,
+                    config_settings=None):
         wheel_args = ['bdist_wheel', '-d', wheel_directory]
         env = {'PYTHONNOUSERSITE': '1'}
 
