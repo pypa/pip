@@ -91,10 +91,10 @@ class IsSDist(DistAbstraction):
         return dist
 
     def prep_for_dist(self, finder):
-        # build_requirements = self.req_to_install.build_backend.get_requires()
+        # build_requirements = self.req_to_install.get_requires()
         logger.info("Installing build dependencies")
         # Install the build requirements
-        # with self.req.build_backend.build_envirionment as prefix:
+        # with self.req.build_envirionment as prefix:
         #    finder = copy(finder)
         #    finder.format_control = FormatControl(set(), set())
         #    urls = [finder.find_requirement(InstallRequirement.from_line(r),

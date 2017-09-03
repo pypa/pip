@@ -31,9 +31,7 @@ from pip._internal.locations import (
     PIP_DELETE_MARKER_FILENAME, distutils_scheme
 )
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import (
-    captured_stdout, ensure_dir, read_chunks
-)
+from pip._internal.utils.misc import captured_stdout, ensure_dir, read_chunks
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import open_spinner

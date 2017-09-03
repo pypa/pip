@@ -12,7 +12,7 @@ import zipfile
 from distutils.util import change_root
 from email.parser import FeedParser
 
-from pip._vendor import pkg_resources, six
+from pip._vendor import pkg_resources, pytoml, six
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
@@ -22,6 +22,7 @@ from pip._vendor.packaging.version import Version
 from pip._vendor.pkg_resources import RequirementParseError, parse_requirements
 
 from pip._internal import wheel
+from pip._internal.backend import BuildBackend, BuildEnvironment
 from pip._internal.compat import native_str
 from pip._internal.download import (
     is_archive_file, is_url, path_to_url, url_to_path
@@ -44,7 +45,6 @@ from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.ui import open_spinner
 from pip._internal.vcs import vcs
 from pip._internal.wheel import Wheel, move_wheel_files
-from pip._internal.backend import BuildBackend, BuildEnvironment
 
 logger = logging.getLogger(__name__)
 
@@ -452,6 +452,24 @@ class InstallRequirement(object):
             pp_toml = pp_toml.encode(sys.getfilesystemencoding())
 
         return pp_toml
+
+    def get_requires(self):
+        """Obtain the PEP 518 build requirements
+
+        Get a list of the packages required to build the project, if any,
+        and a flag indicating whether pyproject.toml is present, indicating
+        that the build should be isolated.
+        Build requirements can be specified in a pyproject.toml, as described
+        in PEP 518. If this file exists but doesn't specify build
+        requirements, pip will default to installing setuptools and wheel.
+        """
+        if os.path.isfile(self.pyproject_toml):
+            with open(self.pyproject_toml) as f:
+                pp_toml = pytoml.load(f)
+            return pp_toml.get('build-system', {})\
+                .get('requires', ['setuptools', 'wheel'])
+
+        return ['setuptools', 'wheel']
 
     def run_egg_info(self):
         assert self.source_dir

@@ -2,10 +2,8 @@ import logging
 import os
 import sys
 
-from importlib import import_module
 from sysconfig import get_paths
 
-from pip._vendor import pytoml, six
 from pip._internal.utils.misc import call_subprocess, ensure_dir
 from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._internal.utils.temp_dir import TempDirectory
@@ -87,34 +85,6 @@ class BuildBackend(object):
     @property
     def setup_py(self):
         return os.path.join(self.setup_py_dir, 'setup.py')
-
-    @property
-    def pyproject_toml(self):
-        pp_toml = os.path.join(self.setup_py_dir, 'pyproject.toml')
-
-        # Python2 __file__ should not be unicode
-        if six.PY2 and isinstance(pp_toml, six.text_type):
-            pp_toml = pp_toml.encode(sys.getfilesystemencoding())
-
-        return pp_toml
-
-    def get_requires(self):
-        """Obtain the PEP 518 build requirements
-
-        Get a list of the packages required to build the project, if any,
-        and a flag indicating whether pyproject.toml is present, indicating
-        that the build should be isolated.
-        Build requirements can be specified in a pyproject.toml, as described
-        in PEP 518. If this file exists but doesn't specify build
-        requirements, pip will default to installing setuptools and wheel.
-        """
-        if os.path.isfile(self.pyproject_toml):
-            with open(self.pyproject_toml) as f:
-                pp_toml = pytoml.load(f)
-            return pp_toml.get('build-system', {})\
-                .get('requires', ['setuptools', 'wheel'])
-
-        return ['setuptools', 'wheel']
 
     def get_requires_for_build_wheel(self):
         """Obtain the PEP 517 build requirements"""
