@@ -8,6 +8,9 @@ from pip._internal.utils.misc import call_subprocess, ensure_dir
 from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._internal.utils.temp_dir import TempDirectory
 
+# from wheel import bdist_wheel
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -108,6 +111,10 @@ class BuildBackend(object):
         self._call_setup_py(
             egg_info_cmd + egg_base_option,
             command_desc='python setup.py egg_info')
+
+        # bw = bdist_wheel.bdist_wheel(distutils.dist.Distribution())
+        # bw.egg2dist(os.path.join(dir, 'EGG-INFO'),
+        #        dist_info_dir)
 
     def clean(self, global_options=[]):
         self._call_setup_py(list(global_options) + ['clean', '--all'],
