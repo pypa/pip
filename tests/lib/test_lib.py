@@ -30,13 +30,12 @@ def test_correct_pip_version(script):
 
     # compare the directory tree of the invoked pip with that of this source
     # distribution
-    dir = re.match(
+    pip_folder_outputed = re.match(
         r'pip \d+(\.[\d]+)+(\.?(rc|dev|pre|post)\d+)? from (.*) '
         r'\(python \d(.[\d])+\)$',
         result.stdout
     ).group(4)
-    pip_folder = join(SRC_DIR, 'pip')
-    pip_folder_outputed = join(dir, 'pip')
+    pip_folder = join(SRC_DIR, 'src', 'pip')
 
     diffs = filecmp.dircmp(pip_folder, pip_folder_outputed)
 
@@ -58,5 +57,5 @@ def test_as_import(script):
     """ test that pip.__init__.py does not shadow
     the command submodule with a dictionary
     """
-    import pip.commands.install as inst
+    import pip._internal.commands.install as inst
     assert inst is not None

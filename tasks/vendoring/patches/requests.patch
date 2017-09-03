@@ -1,7 +1,7 @@
-diff --git a/pip/_vendor/requests/__init__.py b/pip/_vendor/requests/__init__.py
+diff --git a/src/pip/_vendor/requests/__init__.py b/src/pip/_vendor/requests/__init__.py
 index 9c3b769..44f6836 100644
---- a/pip/_vendor/requests/__init__.py
-+++ b/pip/_vendor/requests/__init__.py
+--- a/src/pip/_vendor/requests/__init__.py
++++ b/src/pip/_vendor/requests/__init__.py
 @@ -48,11 +48,13 @@ __license__ = 'Apache 2.0'
  __copyright__ = 'Copyright 2016 Kenneth Reitz'
  
@@ -21,10 +21,10 @@ index 9c3b769..44f6836 100644
  
  import warnings
  
-diff --git a/pip/_vendor/requests/compat.py b/pip/_vendor/requests/compat.py
+diff --git a/src/pip/_vendor/requests/compat.py b/src/pip/_vendor/requests/compat.py
 index eb6530d..353ec29 100644
---- a/pip/_vendor/requests/compat.py
-+++ b/pip/_vendor/requests/compat.py
+--- a/src/pip/_vendor/requests/compat.py
++++ b/src/pip/_vendor/requests/compat.py
 @@ -25,12 +25,14 @@ is_py2 = (_ver[0] == 2)
  #: Python 3.x?
  is_py3 = (_ver[0] == 3)

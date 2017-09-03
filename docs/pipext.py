@@ -6,9 +6,9 @@ from docutils import nodes
 from docutils.parsers import rst
 from docutils.statemachine import ViewList
 from textwrap import dedent
-from pip.commands import commands_dict as commands
-from pip import cmdoptions
-from pip.utils import get_prog
+from pip._internal import cmdoptions
+from pip._internal.commands import commands_dict as commands
+from pip._internal.utils.misc import get_prog
 
 
 class PipCommandUsage(rst.Directive):

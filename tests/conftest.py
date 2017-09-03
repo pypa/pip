@@ -1,13 +1,14 @@
 import io
 import os
 import shutil
+import subprocess
 import sys
 
 import pytest
 import six
 
-import pip
-from pip.utils import appdirs
+import pip._internal
+from pip._internal.utils import appdirs
 from tests.lib import SRC_DIR, TestData
 from tests.lib.path import Path
 from tests.lib.scripttest import PipTestEnvironment
@@ -191,6 +192,18 @@ def script(tmpdir, virtualenv):
     )
 
 
+@pytest.fixture(scope="session")
+def common_wheels(tmpdir_factory):
+    """Provide a directory with latest setuptools and wheel wheels"""
+    wheels_dir = tmpdir_factory.mktemp('common_wheels')
+    subprocess.check_call([
+        'pip', 'download', 'wheel', 'setuptools',
+        '-d', str(wheels_dir),
+    ])
+    yield wheels_dir
+    wheels_dir.remove(ignore_errors=True)
+
+
 @pytest.fixture
 def data(tmpdir):
     return TestData.copy(tmpdir.join("data"))
@@ -211,7 +224,7 @@ class InMemoryPip(object):
             stdout = io.BytesIO()
         sys.stdout = stdout
         try:
-            returncode = pip.main(list(args))
+            returncode = pip._internal.main(list(args))
         except SystemExit as e:
             returncode = e.code or 0
         finally:

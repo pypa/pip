@@ -7,7 +7,7 @@ from os.path import curdir, isdir, isfile
 
 import pytest
 
-from pip.compat import cache_from_source, uses_pycache
+from pip._internal.compat import cache_from_source, uses_pycache
 from tests.lib import pyversion
 from tests.lib.local_repos import local_checkout
 
@@ -18,7 +18,7 @@ def _patch_dist_in_site_packages(script):
         def dist_in_site_packages(dist):
             return False
 
-        from pip.req import req_install
+        from pip._internal.req import req_install
         req_install.dist_in_site_packages = dist_in_site_packages
     """))
 
