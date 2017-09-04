@@ -745,6 +745,7 @@ def read_text_file(filename):
         break
 
     assert type(data) != bytes  # Latin1 should have worked.
+    fp.close()
     return data
 
 

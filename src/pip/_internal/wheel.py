@@ -58,6 +58,7 @@ def rehash(path, algo='sha256', blocksize=1 << 20):
     digest = 'sha256=' + urlsafe_b64encode(
         h.digest()
     ).decode('latin1').rstrip('=')
+    f.close()
     return (digest, length)
 
 
