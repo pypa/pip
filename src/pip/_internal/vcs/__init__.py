@@ -17,7 +17,7 @@ from pip._internal.utils.misc import (
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Dict, Tuple
+    from typing import Dict, Optional, Tuple
     from pip._internal.basecommand import Command
 
 __all__ = ['vcs', 'get_src_requirement']
@@ -167,7 +167,7 @@ class VersionControl(object):
     dirname = ''
     # List of supported schemes for this Version Control
     schemes = ()  # type: Tuple[str, ...]
-    default_arg_rev = None
+    default_arg_rev = None  # type: Optional[str]
 
     def __init__(self, url=None, *args, **kwargs):
         self.url = url
