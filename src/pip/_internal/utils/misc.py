@@ -19,7 +19,9 @@ import zipfile
 from collections import deque
 
 from pip._vendor import pkg_resources
-from pip._vendor.retrying import retry
+# NOTE: retrying is not annotated in typeshed as on 2017-07-17, which is
+#       why we ignore the type on this import.
+from pip._vendor.retrying import retry  # type: ignore
 from pip._vendor.six import PY2
 from pip._vendor.six.moves import input
 

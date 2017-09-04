@@ -20,7 +20,8 @@ from pip._internal.exceptions import (
 )
 from pip._internal.index import PackageFinder
 from pip._internal.locations import running_under_virtualenv
-from pip._internal.req import InstallRequirement, parse_requirements
+from pip._internal.req.req_file import parse_requirements
+from pip._internal.req.req_install import InstallRequirement
 from pip._internal.status_codes import (
     ERROR, PREVIOUS_BUILD_DIR_ERROR, SUCCESS, UNKNOWN_ERROR,
     VIRTUALENV_NOT_FOUND
@@ -29,18 +30,21 @@ from pip._internal.utils import deprecation
 from pip._internal.utils.logging import IndentingFormatter
 from pip._internal.utils.misc import get_prog, normalize_path
 from pip._internal.utils.outdated import pip_version_check
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from typing import Optional
 
 __all__ = ['Command']
-
 
 logger = logging.getLogger(__name__)
 
 
 class Command(object):
-    name = None
-    usage = None
-    hidden = False
-    ignore_require_venv = False
+    name = None  # type: Optional[str]
+    usage = None  # type: Optional[str]
+    hidden = False  # type: bool
+    ignore_require_venv = False  # type: bool
     log_streams = ("ext://sys.stdout", "ext://sys.stderr")
 
     def __init__(self, isolated=False):

@@ -13,7 +13,11 @@ from pip._internal.exceptions import BadCommand
 from pip._internal.utils.misc import (
     display_path, backup_dir, call_subprocess, rmtree, ask_path_exists,
 )
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
+if MYPY_CHECK_RUNNING:
+    from typing import Dict, Tuple
+    from pip._internal.basecommand import Command
 
 __all__ = ['vcs', 'get_src_requirement']
 
@@ -22,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 class VcsSupport(object):
-    _registry = {}
+    _registry = {}  # type: Dict[str, Command]
     schemes = ['ssh', 'git', 'hg', 'bzr', 'sftp', 'svn']
 
     def __init__(self):
@@ -99,7 +103,7 @@ class VersionControl(object):
     name = ''
     dirname = ''
     # List of supported schemes for this Version Control
-    schemes = ()
+    schemes = ()  # type: Tuple[str, ...]
 
     def __init__(self, url=None, *args, **kwargs):
         self.url = url

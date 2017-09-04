@@ -55,15 +55,6 @@ from pip._vendor.requests.packages.urllib3.exceptions import (
     InsecureRequestWarning,
 )
 
-
-# assignment for flake8 to be happy
-
-# This fixes a peculiarity when importing via __import__ - as we are
-# initialising the pip module, "from pip import cmdoptions" is recursive
-# and appears not to work properly in that situation.
-# import pip._internal.cmdoptions
-# cmdoptions = pip._internal.cmdoptions
-
 logger = logging.getLogger(__name__)
 
 # Hide the InsecureRequestWarning from urllib3
@@ -241,7 +232,7 @@ def main(args=None):
         sys.exit(1)
 
     # Needed for locale.getpreferredencoding(False) to work
-    # in pip.utils.encoding.auto_decode
+    # in pip._internal.utils.encoding.auto_decode
     try:
         locale.setlocale(locale.LC_ALL, '')
     except locale.Error as e:

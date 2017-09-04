@@ -18,6 +18,10 @@ from pip._vendor.progress.spinner import Spinner
 from pip._internal.compat import WINDOWS
 from pip._internal.utils.logging import get_indentation
 from pip._internal.utils.misc import format_size
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from typing import Any
 
 try:
     from pip._vendor import colorama
@@ -56,7 +60,7 @@ def _select_progress_class(preferred, fallback):
         return preferred
 
 
-_BaseBar = _select_progress_class(IncrementalBar, Bar)
+_BaseBar = _select_progress_class(IncrementalBar, Bar)  # type: Any
 
 
 class InterruptibleMixin(object):
@@ -125,7 +129,7 @@ class BlueEmojiBar(IncrementalBar):
     suffix = "%(percent)d%%"
     bar_prefix = " "
     bar_suffix = " "
-    phases = (u"\U0001F539", u"\U0001F537", u"\U0001F535")
+    phases = (u"\U0001F539", u"\U0001F537", u"\U0001F535")  # type: Any
 
 
 class DownloadProgressMixin(object):
@@ -194,36 +198,45 @@ class BaseDownloadProgressBar(WindowsMixin, InterruptibleMixin,
     message = "%(percent)d%%"
     suffix = "%(downloaded)s %(download_speed)s %(pretty_eta)s"
 
+# NOTE: The "type: ignore" comments on the following classes are there to
+#       work around https://github.com/python/typing/issues/241
 
-class DefaultDownloadProgressBar(BaseDownloadProgressBar, _BaseBar):
+
+class DefaultDownloadProgressBar(BaseDownloadProgressBar,
+                                 _BaseBar):  # type: ignore
     pass
 
 
-class DownloadSilentBar(BaseDownloadProgressBar, SilentBar):
+class DownloadSilentBar(BaseDownloadProgressBar, SilentBar):  # type: ignore
     pass
 
 
-class DownloadIncrementalBar(BaseDownloadProgressBar, IncrementalBar):
+class DownloadIncrementalBar(BaseDownloadProgressBar,  # type: ignore
+                             IncrementalBar):
     pass
 
 
-class DownloadChargingBar(BaseDownloadProgressBar, ChargingBar):
+class DownloadChargingBar(BaseDownloadProgressBar,  # type: ignore
+                          ChargingBar):
     pass
 
 
-class DownloadShadyBar(BaseDownloadProgressBar, ShadyBar):
+class DownloadShadyBar(BaseDownloadProgressBar, ShadyBar):  # type: ignore
     pass
 
 
-class DownloadFillingSquaresBar(BaseDownloadProgressBar, FillingSquaresBar):
+class DownloadFillingSquaresBar(BaseDownloadProgressBar,  # type: ignore
+                                FillingSquaresBar):
     pass
 
 
-class DownloadFillingCirclesBar(BaseDownloadProgressBar, FillingCirclesBar):
+class DownloadFillingCirclesBar(BaseDownloadProgressBar,  # type: ignore
+                                FillingCirclesBar):
     pass
 
 
-class DownloadBlueEmojiProgressBar(BaseDownloadProgressBar, BlueEmojiBar):
+class DownloadBlueEmojiProgressBar(BaseDownloadProgressBar,  # type: ignore
+                                   BlueEmojiBar):
     pass
 
 
