@@ -167,7 +167,7 @@ class VersionControl(object):
     # List of supported schemes for this Version Control
     schemes = ()  # type: Tuple[str, ...]
     # Iterable of environment variable names to pass to call_subprocess().
-    unset_environ = ()
+    unset_environ = ()  # type: Tuple[str, ...]
     default_arg_rev = None  # type: Optional[str]
 
     def __init__(self, url=None, *args, **kwargs):
