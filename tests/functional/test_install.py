@@ -6,9 +6,10 @@ from os.path import curdir, join, pardir
 
 import pytest
 
-from pip import pep425tags
-from pip.status_codes import ERROR
-from pip.utils import appdirs, rmtree
+from pip._internal import pep425tags
+from pip._internal.status_codes import ERROR
+from pip._internal.utils import appdirs
+from pip._internal.utils.misc import rmtree
 from tests.lib import (
     _create_svn_repo, _create_test_package, create_test_package_with_setup,
     path_to_url, pyversion, pyversion_tuple, requirements_file
@@ -21,7 +22,7 @@ def test_without_setuptools(script, data):
     script.pip("uninstall", "setuptools", "-y")
     result = script.run(
         "python", "-c",
-        "import pip; pip.main(["
+        "import pip._internal; pip._internal.main(["
         "'install', "
         "'INITools==0.2', "
         "'-f', '%s', "
@@ -45,7 +46,7 @@ def test_with_setuptools_and_import_error(script, data):
 
     result = script.run(
         "python", "-c",
-        "import pip; pip.main(["
+        "import pip._internal; pip._internal.main(["
         "'install', "
         "'INITools==0.2', "
         "'-f', '%s', "

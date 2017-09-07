@@ -6,8 +6,10 @@ import os
 import pytest
 from mock import MagicMock
 
-from pip.exceptions import ConfigurationError
-from pip.locations import new_config_file, site_config_files, venv_config_file
+from pip._internal.exceptions import ConfigurationError
+from pip._internal.locations import (
+    new_config_file, site_config_files, venv_config_file
+)
 from tests.lib.configuration_helpers import ConfigurationMixin, kinds
 
 

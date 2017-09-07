@@ -4,7 +4,7 @@ import re
 import pytest
 
 from pip import __version__
-from pip.commands.show import search_packages_info
+from pip._internal.commands.show import search_packages_info
 
 
 def test_show(script):

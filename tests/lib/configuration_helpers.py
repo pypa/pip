@@ -7,17 +7,19 @@ import os
 import tempfile
 import textwrap
 
-import pip.configuration
-from pip.utils import ensure_dir
+import pip._internal.configuration
+from pip._internal.utils.misc import ensure_dir
 
 # This is so that tests don't need to import pip.configuration
-kinds = pip.configuration.kinds
+kinds = pip._internal.configuration.kinds
 
 
 class ConfigurationMixin(object):
 
     def setup(self):
-        self.configuration = pip.configuration.Configuration(isolated=False)
+        self.configuration = pip._internal.configuration.Configuration(
+            isolated=False,
+        )
         self._files_to_clear = []
 
         self._old_environ = os.environ.copy()
