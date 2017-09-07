@@ -11,8 +11,8 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._internal import index
 from pip._internal.compat import expanduser
 from pip._internal.download import path_to_url
-from pip._internal.wheel import InvalidWheelFilename, Wheel
 from pip._internal.utils import temp_dir
+from pip._internal.wheel import InvalidWheelFilename, Wheel
 
 logger = logging.getLogger(__name__)
 
