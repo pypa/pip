@@ -12,6 +12,7 @@ from pip._internal import index
 from pip._internal.compat import expanduser
 from pip._internal.download import path_to_url
 from pip._internal.wheel import InvalidWheelFilename, Wheel
+from pip._internal.utils import temp_dir
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +33,9 @@ class Cache(object):
         self.cache_dir = expanduser(cache_dir) if cache_dir else None
         self.format_control = format_control
         self.allowed_formats = allowed_formats
+        # Ephemeral cache: store wheels just for this run
+        self._ephem_cache_dir = temp_dir.TempDirectory(kind="ephem-cache")
+        self._ephem_cache_dir.create()
 
         _valid_formats = {"source", "binary"}
         assert self.allowed_formats.union(_valid_formats) == _valid_formats
@@ -102,6 +106,9 @@ class Cache(object):
 
         return index.Link(path_to_url(path))
 
+    def cleanup(self):
+        """Remove the ephermal caches created temporarily to build wheels"""
+        self._ephem_cache_dir.cleanup()
 
 class WheelCache(Cache):
     """A cache of wheels for future installs.
