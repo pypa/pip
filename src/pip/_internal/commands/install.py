@@ -248,6 +248,11 @@ class InstallCommand(RequirementCommand):
                 )
 
                 try:
+                    self.populate_requirement_set(
+                        requirement_set, args, options, finder, session,
+                        self.name, wheel_cache
+                    )
+
                     resolver = Resolver(
                         preparer=preparer,
                         finder=finder,
@@ -275,12 +280,10 @@ class InstallCommand(RequirementCommand):
                         progress_bar=options.progress_bar,
                     )
 
-                    if (not wheel or not options.cache_dir):
-                        # on -d don't do complex things like building
-                        # wheels, and don't try to build wheels when wheel is
-                        # not installed.
-                        requirement_set.prepare_files(finder)
-                    else:
+                    # on -d don't do complex things like building
+                    # wheels, and don't try to build wheels when wheel is
+                    # not installed.
+                    if wheel and options.cache_dir:
                         # build wheels before install.
                         wb = WheelBuilder(
                             requirement_set,
