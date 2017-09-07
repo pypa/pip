@@ -987,7 +987,6 @@ def test_install_builds_wheels(script, data, common_wheels):
     assert "Running setup.py bdist_wheel for requir" in str(res), str(res)
     # wheelbroken has to run install
     # into the cache
-    assert wheels != [], str(res)
     # and installed from the wheel
     assert "Running setup.py install for upper" not in str(res), str(res)
     # Wheels are built for local directories, but not cached.
