@@ -209,6 +209,14 @@ def _p_key(s):
         r = _p_basicstr_content(s, _basicstr_re)
         s.expect('"')
         return r
+    if s.consume('\''):
+        if s.consume('\'\''):
+            r = s.expect_re(_litstr_ml_re).group(0)
+            s.expect('\'\'\'')
+        else:
+            r = s.expect_re(_litstr_re).group(0)
+            s.expect('\'')
+        return r
     return s.expect_re(_key_re).group(0)
 
 _float_re = re.compile(r'[+-]?(?:0|[1-9](?:_?\d)*)(?:\.\d(?:_?\d)*)?(?:[eE][+-]?(?:\d(?:_?\d)*))?')
