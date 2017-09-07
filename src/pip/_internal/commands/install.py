@@ -291,7 +291,7 @@ class InstallCommand(RequirementCommand):
                         # installed from the sdist/vcs whatever.
                         wb.build(session=session, autobuilding=True)
 
-                    requirement_set.install(
+                    installed = requirement_set.install(
                         install_options,
                         global_options,
                         root=options.root_path,
@@ -305,9 +305,7 @@ class InstallCommand(RequirementCommand):
                         prefix=options.prefix_path,
                         isolated=options.isolated_mode,
                     )
-                    reqs = sorted(
-                        requirement_set.successfully_installed,
-                        key=operator.attrgetter('name'))
+                    reqs = sorted(installed, key=operator.attrgetter('name'))
                     items = []
                     for req in reqs:
                         item = req.name
