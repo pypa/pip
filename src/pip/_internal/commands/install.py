@@ -304,7 +304,7 @@ class InstallCommand(RequirementCommand):
                         global_options,
                         root=options.root_path,
                         prefix=options.prefix_path,
-                        warn_script_location=options.warn_script_location
+                        warn_script_location=options.warn_script_location,
                     )
 
                     possible_lib_locations = get_lib_location_guesses(

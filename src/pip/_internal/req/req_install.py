@@ -737,7 +737,7 @@ class InstallRequirement(object):
 
             self.move_wheel_files(
                 self.source_dir, root=root, prefix=prefix,
-                warn_script_location=warn_script_location
+                warn_script_location=warn_script_location,
             )
             self.install_succeeded = True
             return
@@ -940,7 +940,7 @@ class InstallRequirement(object):
             prefix=prefix,
             pycompile=self.pycompile,
             isolated=self.isolated,
-            warn_script_location=warn_script_location
+            warn_script_location=warn_script_location,
         )
 
     def get_dist(self):
