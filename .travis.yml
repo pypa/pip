@@ -7,6 +7,7 @@ matrix:
     - env: TOXENV=docs
     - env: TOXENV=lint-py2
     - env: TOXENV=lint-py3
+    - env: TOXENV=mypy
     - env: TOXENV=packaging
     # PyPy jobs start first -- they are the slowest
     - env: TOXENV=pypy
@@ -17,11 +18,6 @@ matrix:
     - env: TOXENV=py27
       python: 2.7
     - env: TOXENV=py36
-      python: 3.6
-    # Unvendored
-    - env: "TOXENV=py27 VENDOR=no WHEELS=yes"
-      python: 2.7
-    - env: "TOXENV=py36 VENDOR=no WHEELS=yes"
       python: 3.6
     # All the other Py3 versions
     - env: TOXENV=py33
@@ -35,7 +31,6 @@ matrix:
       python: nightly
   allow_failures:
     - python: nightly
-    - python: pypy3
 
 install: travis_retry .travis/install.sh
 script: .travis/run.sh

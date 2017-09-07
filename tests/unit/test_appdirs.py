@@ -5,7 +5,7 @@ import sys
 
 import pretend
 
-from pip.utils import appdirs
+from pip._internal.utils import appdirs
 
 
 class TestUserCacheDir:
@@ -80,7 +80,7 @@ class TestUserCacheDir:
         assert result_is_str, "user_cache_dir did not return a str"
 
         # Test against regression #3463
-        from pip import create_main_parser
+        from pip._internal import create_main_parser
         create_main_parser().print_help()  # This should not crash
 
 

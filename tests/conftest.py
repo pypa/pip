@@ -7,8 +7,7 @@ import sys
 import pytest
 import six
 
-import pip
-from pip.utils import appdirs
+import pip._internal
 from tests.lib import SRC_DIR, TestData
 from tests.lib.path import Path
 from tests.lib.scripttest import PipTestEnvironment
@@ -124,18 +123,9 @@ def isolate(tmpdir):
         )
 
 
-@pytest.fixture
-def virtualenv(tmpdir, monkeypatch, isolate):
-    """
-    Return a virtual environment which is unique to each test function
-    invocation created inside of a sub directory of the test function's
-    temporary directory. The returned object is a
-    ``tests.lib.venv.VirtualEnvironment`` object.
-    """
-    # Force shutil to use the older method of rmtree that didn't use the fd
-    # functions. These seem to fail on Travis (and only on Travis).
-    monkeypatch.setattr(shutil, "_use_fd_functions", False, raising=False)
-
+@pytest.yield_fixture(scope='session')
+def virtualenv_template(tmpdir_factory):
+    tmpdir = Path(str(tmpdir_factory.mktemp('virtualenv')))
     # Copy over our source tree so that each virtual environment is self
     # contained
     pip_src = tmpdir.join("pip_src").abspath
@@ -147,21 +137,33 @@ def virtualenv(tmpdir, monkeypatch, isolate):
             "tests", "pip.egg-info", "build", "dist", ".tox", ".git",
         ),
     )
-
     # Create the virtual environment
     venv = VirtualEnvironment.create(
-        tmpdir.join("workspace", "venv"),
+        tmpdir.join("venv_orig"),
         pip_source_dir=pip_src,
+        relocatable=True,
     )
+    # Rename original virtualenv directory to make sure
+    # it's not reused by mistake from one of the copies.
+    venv_template = tmpdir / "venv_template"
+    os.rename(venv.location, venv_template)
+    yield venv_template
+    tmpdir.rmtree(noerrors=True)
 
-    # Clean out our cache: creating the venv injects wheels into it.
-    if os.path.exists(appdirs.user_cache_dir("pip")):
-        shutil.rmtree(appdirs.user_cache_dir("pip"))
 
-    # Undo our monkeypatching of shutil
-    monkeypatch.undo()
-
-    return venv
+@pytest.yield_fixture
+def virtualenv(virtualenv_template, tmpdir, isolate):
+    """
+    Return a virtual environment which is unique to each test function
+    invocation created inside of a sub directory of the test function's
+    temporary directory. The returned object is a
+    ``tests.lib.venv.VirtualEnvironment`` object.
+    """
+    venv_location = tmpdir.join("workspace", "venv")
+    shutil.copytree(virtualenv_template, venv_location, symlinks=True)
+    venv = VirtualEnvironment(venv_location)
+    yield venv
+    venv_location.rmtree(noerrors=True)
 
 
 @pytest.fixture
@@ -224,7 +226,7 @@ class InMemoryPip(object):
             stdout = io.BytesIO()
         sys.stdout = stdout
         try:
-            returncode = pip.main(list(args))
+            returncode = pip._internal.main(list(args))
         except SystemExit as e:
             returncode = e.code or 0
         finally:
