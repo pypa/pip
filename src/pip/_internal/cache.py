@@ -110,6 +110,7 @@ class Cache(object):
         """Remove the ephermal caches created temporarily to build wheels"""
         self._ephem_cache_dir.cleanup()
 
+
 class WheelCache(Cache):
     """A cache of wheels for future installs.
     """

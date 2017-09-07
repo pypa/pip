@@ -785,8 +785,8 @@ class WheelBuilder(object):
                 python_tag = None
                 if autobuilding:
                     python_tag = pep425tags.implementation_tag
-                    output_dir = self.wheel_cache.get_path_for_link(req.link,
-                                                                    ephem=ephem)
+                    output_dir = self.wheel_cache.get_path_for_link(
+                        req.link, ephem=ephem)
                     try:
                         ensure_dir(output_dir)
                     except OSError as e:
