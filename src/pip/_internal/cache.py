@@ -117,7 +117,7 @@ class WheelCache(Cache):
     def __init__(self, cache_dir, format_control):
         super(WheelCache, self).__init__(cache_dir, format_control, {"binary"})
 
-    def get_path_for_link(self, link):
+    def get_path_for_link(self, link, ephem=False):
         """Return a directory to store cached wheels for link
 
         Because there are M wheels for any one sdist, we provide a directory
@@ -134,9 +134,14 @@ class WheelCache(Cache):
         """
         parts = self._get_cache_path_parts(link)
 
+        if not ephem:
+            cache_dir = self.cache_dir
+        else:
+            cache_dir = self._ephem_cache_dir.path
+
         # Inside of the base location for cached wheels, expand our parts and
         # join them all together.
-        return os.path.join(self.cache_dir, "wheels", *parts)
+        return os.path.join(cache_dir, "wheels", *parts)
 
     def get(self, link, package_name):
         candidates = []
