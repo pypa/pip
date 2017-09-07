@@ -28,12 +28,6 @@ except ImportError:
     wheel = None
 
 
-try:
-    import wheel
-except ImportError:
-    wheel = None
-
-
 logger = logging.getLogger(__name__)
 
 
