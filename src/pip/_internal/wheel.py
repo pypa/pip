@@ -741,7 +741,7 @@ class WheelBuilder(object):
 
         buildset = []
         for req in reqset:
-            ephem_cache = False
+            use_ephem_cache = False
             if req.constraint:
                 continue
             if req.is_wheel:
@@ -752,7 +752,7 @@ class WheelBuilder(object):
                 pass
             elif autobuilding and req.link and not req.link.is_artifact:
                 # VCS checkout. Build wheel just for this run.
-                ephem_cache = True
+                use_ephem_cache = True
             elif autobuilding and not req.source_dir:
                 pass
             else:
@@ -761,7 +761,7 @@ class WheelBuilder(object):
                     base, ext = link.splitext()
                     if index.egg_info_matches(base, None, link) is None:
                         # E.g. local directory. Build wheel just for this run.
-                        ephem_cache = True
+                        use_ephem_cache = True
                     elif "binary" not in index.fmt_ctl_formats(
                             self.finder.format_control,
                             canonicalize_name(req.name)):
@@ -769,7 +769,7 @@ class WheelBuilder(object):
                             "Skipping bdist_wheel for %s, due to binaries "
                             "being disabled for it.", req.name)
                         continue
-                buildset.append((req, ephem_cache))
+                buildset.append((req, use_ephem_cache))
 
         if not buildset:
             return True
