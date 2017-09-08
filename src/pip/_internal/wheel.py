@@ -781,12 +781,16 @@ class WheelBuilder(object):
         )
         with indent_log():
             build_success, build_failure = [], []
-            for req, ephem in buildset:
+            for req, use_ephem_cache in buildset:
                 python_tag = None
                 if autobuilding:
                     python_tag = pep425tags.implementation_tag
-                    output_dir = self.wheel_cache.get_path_for_link(
-                        req.link, ephem=ephem)
+                    if use_ephem_cache:
+                        output_dir = self.wheel_cache.get_ephem_path_for_link(
+                            req.link)
+                    else:
+                        output_dir = self.wheel_cache.get_path_for_link(
+                            req.link)
                     try:
                         ensure_dir(output_dir)
                     except OSError as e:
