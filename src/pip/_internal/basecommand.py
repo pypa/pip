@@ -1,4 +1,4 @@
-"""Base Command class, and related routines"""
+"""Base Command class, and related routines."""
 from __future__ import absolute_import
 
 import logging
@@ -247,7 +247,7 @@ class Command(object):
             logger.debug('Exception information:', exc_info=True)
 
             return ERROR
-        except:
+        except Exception:
             logger.critical('Exception:', exc_info=True)
 
             return UNKNOWN_ERROR
@@ -255,10 +255,10 @@ class Command(object):
             # Check if we're using the latest version of pip available
             if (not options.disable_pip_version_check and not
                     getattr(options, "no_index", False)):
-                with self._build_session(
-                        options,
-                        retries=0,
-                        timeout=min(5, options.timeout)) as session:
+                minimun = min(5, options.timeout)
+                with self._build_session(options,
+                                         retries=0,
+                                         timeout=minimun) as session:
                     pip_version_check(session, options)
             # Avoid leaking loggers
             for handler in set(logging.root.handlers) - original_root_handlers:
