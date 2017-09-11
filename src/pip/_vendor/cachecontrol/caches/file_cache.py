@@ -9,7 +9,7 @@ try:
     FileNotFoundError
 except NameError:
     # py2.X
-    FileNotFoundError = OSError
+    FileNotFoundError = IOError
 
 
 def _secure_open_write(filename, fmode):
