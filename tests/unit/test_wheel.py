@@ -2,17 +2,20 @@
 import os
 
 import pytest
-from mock import patch, Mock
-
+from mock import Mock, patch
 from pip._vendor.packaging.requirements import Requirement
-from pip import pep425tags, wheel
-from pip.compat import expanduser, WINDOWS
-from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
-from pip.utils import unpack_file
+
+from pip._internal import pep425tags, wheel
+from pip._internal.compat import WINDOWS
+from pip._internal.exceptions import InvalidWheelFilename, UnsupportedWheel
+from pip._internal.utils.misc import unpack_file
+
+from tests.lib import DATA_DIR
 
 
 @pytest.mark.parametrize("console_scripts",
-                         ["pip = pip.main:pip", "pip:pip = pip.main:pip"])
+                         ["pip = pip._internal.main:pip",
+                          "pip:pip = pip._internal.main:pip"])
 def test_get_entrypoints(tmpdir, console_scripts):
     entry_points = tmpdir.join("entry_points.txt")
     with open(str(entry_points), "w") as fp:
@@ -100,6 +103,10 @@ class TestWheelFile(object):
         w = wheel.Wheel('simple-1-py2-none-any.whl')
         assert w.version == '1'
 
+    def test_non_pep440_version(self):
+        w = wheel.Wheel('simple-_invalid_-py2-none-any.whl')
+        assert w.version == '-invalid-'
+
     def test_missing_version_raises(self):
         with pytest.raises(InvalidWheelFilename):
             wheel.Wheel('Cython-cp27-none-linux_x86_64.whl')
@@ -130,8 +137,9 @@ class TestWheelFile(object):
         assert not w.supported(tags=[('py1', 'none', 'any')])
 
     @patch('sys.platform', 'darwin')
-    @patch('pip.pep425tags.get_abbr_impl', lambda: 'cp')
-    @patch('pip.pep425tags.get_platform', lambda: 'macosx_10_9_intel')
+    @patch('pip._internal.pep425tags.get_abbr_impl', lambda: 'cp')
+    @patch('pip._internal.pep425tags.get_platform',
+           lambda: 'macosx_10_9_intel')
     def test_supported_osx_version(self):
         """
         Wheels built for macOS 10.6 are supported on 10.9
@@ -143,8 +151,9 @@ class TestWheelFile(object):
         assert w.supported(tags=tags)
 
     @patch('sys.platform', 'darwin')
-    @patch('pip.pep425tags.get_abbr_impl', lambda: 'cp')
-    @patch('pip.pep425tags.get_platform', lambda: 'macosx_10_6_intel')
+    @patch('pip._internal.pep425tags.get_abbr_impl', lambda: 'cp')
+    @patch('pip._internal.pep425tags.get_platform',
+           lambda: 'macosx_10_6_intel')
     def test_not_supported_osx_version(self):
         """
         Wheels built for macOS 10.9 are not supported on 10.6
@@ -154,27 +163,27 @@ class TestWheelFile(object):
         assert not w.supported(tags=tags)
 
     @patch('sys.platform', 'darwin')
-    @patch('pip.pep425tags.get_abbr_impl', lambda: 'cp')
+    @patch('pip._internal.pep425tags.get_abbr_impl', lambda: 'cp')
     def test_supported_multiarch_darwin(self):
         """
         Multi-arch wheels (intel) are supported on components (i386, x86_64)
         """
-        with patch('pip.pep425tags.get_platform',
+        with patch('pip._internal.pep425tags.get_platform',
                    lambda: 'macosx_10_5_universal'):
             universal = pep425tags.get_supported(['27'], False)
-        with patch('pip.pep425tags.get_platform',
+        with patch('pip._internal.pep425tags.get_platform',
                    lambda: 'macosx_10_5_intel'):
             intel = pep425tags.get_supported(['27'], False)
-        with patch('pip.pep425tags.get_platform',
+        with patch('pip._internal.pep425tags.get_platform',
                    lambda: 'macosx_10_5_x86_64'):
             x64 = pep425tags.get_supported(['27'], False)
-        with patch('pip.pep425tags.get_platform',
+        with patch('pip._internal.pep425tags.get_platform',
                    lambda: 'macosx_10_5_i386'):
             i386 = pep425tags.get_supported(['27'], False)
-        with patch('pip.pep425tags.get_platform',
+        with patch('pip._internal.pep425tags.get_platform',
                    lambda: 'macosx_10_5_ppc'):
             ppc = pep425tags.get_supported(['27'], False)
-        with patch('pip.pep425tags.get_platform',
+        with patch('pip._internal.pep425tags.get_platform',
                    lambda: 'macosx_10_5_ppc64'):
             ppc64 = pep425tags.get_supported(['27'], False)
 
@@ -194,15 +203,15 @@ class TestWheelFile(object):
         assert w.supported(tags=ppc64)
 
     @patch('sys.platform', 'darwin')
-    @patch('pip.pep425tags.get_abbr_impl', lambda: 'cp')
+    @patch('pip._internal.pep425tags.get_abbr_impl', lambda: 'cp')
     def test_not_supported_multiarch_darwin(self):
         """
         Single-arch wheels (x86_64) are not supported on multi-arch (intel)
         """
-        with patch('pip.pep425tags.get_platform',
+        with patch('pip._internal.pep425tags.get_platform',
                    lambda: 'macosx_10_5_universal'):
             universal = pep425tags.get_supported(['27'], False)
-        with patch('pip.pep425tags.get_platform',
+        with patch('pip._internal.pep425tags.get_platform',
                    lambda: 'macosx_10_5_intel'):
             intel = pep425tags.get_supported(['27'], False)
 
@@ -235,13 +244,12 @@ class TestWheelFile(object):
         assert w.support_index_min(tags=[]) is None
 
     def test_unpack_wheel_no_flatten(self):
-        from pip import utils
+        from pip._internal.utils import misc as utils
         from tempfile import mkdtemp
         from shutil import rmtree
 
-        filepath = '../data/packages/meta-1.0-py2.py3-none-any.whl'
-        if not os.path.exists(filepath):
-            pytest.skip("%s does not exist" % filepath)
+        filepath = os.path.join(DATA_DIR, 'packages',
+                                'meta-1.0-py2.py3-none-any.whl')
         try:
             tmpdir = mkdtemp()
             utils.unpack_file(filepath, tmpdir, 'application/zip', None)
@@ -257,6 +265,10 @@ class TestWheelFile(object):
         packages = [
             ("pure_wheel", data.packages.join("pure_wheel-1.7"), True),
             ("plat_wheel", data.packages.join("plat_wheel-1.7"), False),
+            ("pure_wheel", data.packages.join(
+                "pure_wheel-_invalidversion_"), True),
+            ("plat_wheel", data.packages.join(
+                "plat_wheel-_invalidversion_"), False),
         ]
 
         for name, path, expected in packages:
@@ -350,22 +362,12 @@ class TestMoveWheelFiles(object):
 class TestWheelBuilder(object):
 
     def test_skip_building_wheels(self, caplog):
-        with patch('pip.wheel.WheelBuilder._build_one') as mock_build_one:
+        with patch('pip._internal.wheel.WheelBuilder._build_one') \
+                as mock_build_one:
             wheel_req = Mock(is_wheel=True, editable=False, constraint=False)
             reqset = Mock(requirements=Mock(values=lambda: [wheel_req]),
                           wheel_download_dir='/wheel/dir')
-            wb = wheel.WheelBuilder(reqset, Mock())
-            wb.build()
-            assert "due to already being wheel" in caplog.text()
+            wb = wheel.WheelBuilder(reqset, Mock(), Mock(), wheel_cache=None)
+            wb.build(Mock())
+            assert "due to already being wheel" in caplog.text
             assert mock_build_one.mock_calls == []
-
-
-class TestWheelCache:
-
-    def test_expands_path(self):
-        wc = wheel.WheelCache("~/.foo/", None)
-        assert wc._cache_dir == expanduser("~/.foo/")
-
-    def test_falsey_path_none(self):
-        wc = wheel.WheelCache(False, None)
-        assert wc._cache_dir is None

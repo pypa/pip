@@ -5,26 +5,29 @@ util tests
 
 """
 import os
+import shutil
 import stat
 import sys
-import time
-import shutil
 import tempfile
+import time
 import warnings
 
 import pytest
-
 from mock import Mock, patch
-from pip.exceptions import (HashMismatch, HashMissing, InstallationError,
-                            UnsupportedPythonVersion)
-from pip.utils import (egg_link_path, get_installed_distributions,
-                       untar_file, unzip_file, rmtree, normalize_path)
-from pip.utils.build import BuildDirectory
-from pip.utils.encoding import auto_decode
-from pip.utils.hashes import Hashes, MissingHashes
-from pip.utils.glibc import check_glibc_version
-from pip.utils.packaging import check_dist_requires_python
 from pip._vendor.six import BytesIO
+
+from pip._internal.exceptions import (
+    HashMismatch, HashMissing, InstallationError, UnsupportedPythonVersion
+)
+from pip._internal.utils.encoding import auto_decode
+from pip._internal.utils.glibc import check_glibc_version
+from pip._internal.utils.hashes import Hashes, MissingHashes
+from pip._internal.utils.misc import (
+    egg_link_path, ensure_dir, get_installed_distributions, normalize_path,
+    rmtree, untar_file, unzip_file
+)
+from pip._internal.utils.packaging import check_dist_requires_python
+from pip._internal.utils.temp_dir import TempDirectory
 
 
 class Tests_EgglinkPath:
@@ -47,7 +50,7 @@ class Tests_EgglinkPath:
         )
 
         # patches
-        from pip import utils
+        from pip._internal.utils import misc as utils
         self.old_site_packages = utils.site_packages
         self.mock_site_packages = utils.site_packages = 'SITE_PACKAGES'
         self.old_running_under_virtualenv = utils.running_under_virtualenv
@@ -62,7 +65,7 @@ class Tests_EgglinkPath:
         self.mock_isfile = path.isfile = Mock()
 
     def teardown(self):
-        from pip import utils
+        from pip._internal.utils import misc as utils
         utils.site_packages = self.old_site_packages
         utils.running_under_virtualenv = self.old_running_under_virtualenv
         utils.virtualenv_no_global = self.old_virtualenv_no_global
@@ -161,9 +164,9 @@ class Tests_EgglinkPath:
         assert egg_link_path(self.mock_dist) is None
 
 
-@patch('pip.utils.dist_in_usersite')
-@patch('pip.utils.dist_is_local')
-@patch('pip.utils.dist_is_editable')
+@patch('pip._internal.utils.misc.dist_in_usersite')
+@patch('pip._internal.utils.misc.dist_is_local')
+@patch('pip._internal.utils.misc.dist_is_editable')
 class Tests_get_installed_distributions:
     """test util.get_installed_distributions"""
 
@@ -238,19 +241,6 @@ class Tests_get_installed_distributions:
         assert len(dists) == 1
         assert dists[0].test_name == "user"
 
-    @pytest.mark.skipif("sys.version_info >= (2,7)")
-    @patch('pip._vendor.pkg_resources.working_set', workingset_stdlib)
-    def test_py26_excludes(self, mock_dist_is_editable,
-                           mock_dist_is_local,
-                           mock_dist_in_usersite):
-        mock_dist_is_editable.side_effect = self.dist_is_editable
-        mock_dist_is_local.side_effect = self.dist_is_local
-        mock_dist_in_usersite.side_effect = self.dist_in_usersite
-        dists = get_installed_distributions()
-        assert len(dists) == 1
-        assert dists[0].key == 'argparse'
-
-    @pytest.mark.skipif("sys.version_info < (2,7)")
     @patch('pip._vendor.pkg_resources.working_set', workingset_stdlib)
     def test_gte_py27_excludes(self, mock_dist_is_editable,
                                mock_dist_is_local,
@@ -361,7 +351,7 @@ class Failer:
 
 def test_rmtree_retries(tmpdir, monkeypatch):
     """
-    Test pip.utils.rmtree will retry failures
+    Test pip._internal.utils.rmtree will retry failures
     """
     monkeypatch.setattr(shutil, 'rmtree', Failer(duration=1).call)
     rmtree('foo')
@@ -369,7 +359,7 @@ def test_rmtree_retries(tmpdir, monkeypatch):
 
 def test_rmtree_retries_for_3sec(tmpdir, monkeypatch):
     """
-    Test pip.utils.rmtree will retry failures for no more than 3 sec
+    Test pip._internal.utils.rmtree will retry failures for no more than 3 sec
     """
     monkeypatch.setattr(shutil, 'rmtree', Failer(duration=5).call)
     with pytest.raises(OSError):
@@ -414,7 +404,7 @@ class Test_normalize_path(object):
 
 
 class TestHashes(object):
-    """Tests for pip.utils.hashes"""
+    """Tests for pip._internal.utils.hashes"""
 
     def test_success(self, tmpdir):
         """Make sure no error is raised when at least one hash matches.
@@ -458,7 +448,7 @@ class TestHashes(object):
 
 
 class TestEncoding(object):
-    """Tests for pip.utils.encoding"""
+    """Tests for pip._internal.utils.encoding"""
 
     def test_auto_decode_utf16_le(self):
         data = (
@@ -474,24 +464,78 @@ class TestEncoding(object):
         latin1_req = u'# coding=latin1\n# Pas trop de café'
         assert auto_decode(latin1_req.encode('latin1')) == latin1_req
 
+    def test_auto_decode_no_preferred_encoding(self):
+        om, em = Mock(), Mock()
+        om.return_value = 'ascii'
+        em.return_value = None
+        data = u'data'
+        with patch('sys.getdefaultencoding', om):
+            with patch('locale.getpreferredencoding', em):
+                ret = auto_decode(data.encode(sys.getdefaultencoding()))
+        assert ret == data
 
-class TestBuildDirectory(object):
+
+class TestTempDirectory(object):
+
     # No need to test symlinked directories on Windows
     @pytest.mark.skipif("sys.platform == 'win32'")
-    def test_build_directory(self):
-        with BuildDirectory() as build_dir:
-            tmp_dir = tempfile.mkdtemp(prefix="pip-build-test")
+    def test_symlinked_path(self):
+        with TempDirectory() as tmp_dir:
+            assert os.path.exists(tmp_dir.path)
+
+            alt_tmp_dir = tempfile.mkdtemp(prefix="pip-test-")
             assert (
-                os.path.dirname(build_dir) ==
-                os.path.dirname(os.path.realpath(tmp_dir))
+                os.path.dirname(tmp_dir.path) ==
+                os.path.dirname(os.path.realpath(alt_tmp_dir))
             )
             # are we on a system where /tmp is a symlink
-            if os.path.realpath(tmp_dir) != os.path.abspath(tmp_dir):
-                assert os.path.dirname(build_dir) != os.path.dirname(tmp_dir)
+            if os.path.realpath(alt_tmp_dir) != os.path.abspath(alt_tmp_dir):
+                assert (
+                    os.path.dirname(tmp_dir.path) !=
+                    os.path.dirname(alt_tmp_dir)
+                )
             else:
-                assert os.path.dirname(build_dir) == os.path.dirname(tmp_dir)
-            os.rmdir(tmp_dir)
-            assert not os.path.exists(tmp_dir)
+                assert (
+                    os.path.dirname(tmp_dir.path) ==
+                    os.path.dirname(alt_tmp_dir)
+                )
+            os.rmdir(tmp_dir.path)
+            assert not os.path.exists(tmp_dir.path)
+
+    def test_deletes_readonly_files(self):
+        def create_file(*args):
+            fpath = os.path.join(*args)
+            ensure_dir(os.path.dirname(fpath))
+            with open(fpath, "w") as f:
+                f.write("Holla!")
+
+        def readonly_file(*args):
+            fpath = os.path.join(*args)
+            os.chmod(fpath, stat.S_IREAD)
+
+        with TempDirectory() as tmp_dir:
+            create_file(tmp_dir.path, "normal-file")
+            create_file(tmp_dir.path, "readonly-file")
+            readonly_file(tmp_dir.path, "readonly-file")
+
+            create_file(tmp_dir.path, "subfolder", "normal-file")
+            create_file(tmp_dir.path, "subfolder", "readonly-file")
+            readonly_file(tmp_dir.path, "subfolder", "readonly-file")
+
+        assert tmp_dir.path is None
+
+    def test_create_and_cleanup_work(self):
+        tmp_dir = TempDirectory()
+        assert tmp_dir.path is None
+
+        tmp_dir.create()
+        created_path = tmp_dir.path
+        assert tmp_dir.path is not None
+        assert os.path.exists(created_path)
+
+        tmp_dir.cleanup()
+        assert tmp_dir.path is None
+        assert not os.path.exists(created_path)
 
 
 class TestGlibc(object):

@@ -1,12 +1,12 @@
-import sys
 import os
 import re
+import sys
 import textwrap
+from doctest import ELLIPSIS, OutputChecker
+
 import pytest
-from doctest import OutputChecker, ELLIPSIS
 
 from tests.lib import _create_test_package, _create_test_package_with_srcdir
-
 
 distribute_re = re.compile('^distribute==[0-9.]+\n', re.MULTILINE)
 
@@ -128,6 +128,35 @@ def test_freeze_svn(script, tmpdir):
     expected = textwrap.dedent("""\
         ...-e svn+...#egg=version_pkg
         ...""")
+    _check_output(result.stdout, expected)
+
+
+@pytest.mark.git
+@pytest.mark.xfail
+def test_freeze_exclude_editable(script, tmpdir):
+    """
+    Test excluding editable from freezing list.
+    """
+    # Returns path to a generated package called "version_pkg"
+    pkg_version = _create_test_package(script)
+
+    result = script.run(
+        'git', 'clone', pkg_version, 'pip-test-package',
+        expect_stderr=True,
+    )
+    repo_dir = script.scratch_path / 'pip-test-package'
+    result = script.run(
+        'python', 'setup.py', 'develop',
+        cwd=repo_dir,
+        expect_stderr=True,
+    )
+    result = script.pip('freeze', '--exclude-editable', expect_stderr=True)
+    expected = textwrap.dedent(
+        """
+            ...-e git+...#egg=version_pkg
+            ...
+        """
+    ).strip()
     _check_output(result.stdout, expected)
 
 
@@ -369,32 +398,6 @@ def test_freeze_bazaar_clone(script, tmpdir):
     _check_output(result.stdout, expected)
 
 
-def test_freeze_with_local_option(script):
-    """
-    Test that wsgiref (from global site-packages) is reported normally, but not
-    with --local.
-    """
-    result = script.pip_install_local('initools==0.2')
-    result = script.pip('freeze', expect_stderr=True)
-    expected = textwrap.dedent("""\
-        INITools==0.2
-        wsgiref==...
-        <BLANKLINE>""")
-
-    # The following check is broken (see
-    # http://bitbucket.org/ianb/pip/issue/110).  For now we are simply
-    # neutering this test, but if we can't find a way to fix it,
-    # this whole function should be removed.
-
-    # _check_output(result, expected)
-
-    result = script.pip('freeze', '--local', expect_stderr=True)
-    expected = textwrap.dedent("""\
-        INITools==0.2
-        <BLANKLINE>""")
-    _check_output(result.stdout, expected)
-
-
 # used by the test_freeze_with_requirement_* tests below
 _freeze_req_opts = textwrap.dedent("""\
     # Unchanged requirements below this line
@@ -492,13 +495,17 @@ def test_freeze_with_requirement_option_multiple(script):
     assert result.stdout.count("--index-url http://ignore") == 1
 
 
-def test_freeze_user(script, virtualenv):
+@pytest.mark.network
+def test_freeze_user(script, virtualenv, data):
     """
     Testing freeze with --user, first we have to install some stuff.
     """
+    script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
     virtualenv.system_site_packages = True
-    script.pip_install_local('--user', 'simple==2.0')
-    script.pip_install_local('simple2==3.0')
+    script.pip_install_local('--find-links', data.find_links,
+                             '--user', 'simple==2.0')
+    script.pip_install_local('--find-links', data.find_links,
+                             'simple2==3.0')
     result = script.pip('freeze', '--user', expect_stderr=True)
     expected = textwrap.dedent("""\
         simple==2.0

@@ -1,0 +1,1 @@
+Fall back to sys.getdefaultencoding() if locale.getpreferredencoding() returns None in `pip.utils.encoding.auto_decode`.

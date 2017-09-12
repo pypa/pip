@@ -172,6 +172,7 @@ Lincoln de Sousa <lincoln@comum.org>
 Lipis <lipiridis@gmail.com>
 Ludovic Gasc <gmludo@gmail.com>
 Luke Macken <lmacken@redhat.com>
+Luo Jiebin <luo.jiebin@foxmail.com>
 Marc Abramowitz <marc@marc-abramowitz.com>
 Marc Tamlyn <marc.tamlyn@gmail.com>
 Marcus Smith <qwcode@gmail.com>

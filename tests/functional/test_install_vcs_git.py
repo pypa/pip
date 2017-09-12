@@ -1,13 +1,11 @@
 import pytest
-
 from mock import patch
 
-from pip.vcs.git import Git
+from pip._internal.vcs.git import Git
 from tests.lib import _create_test_package
 from tests.lib.git_submodule_helpers import (
-    _change_test_package_submodule,
-    _pull_in_submodule_changes_to_module,
-    _create_test_package_with_submodule,
+    _change_test_package_submodule, _create_test_package_with_submodule,
+    _pull_in_submodule_changes_to_module
 )
 
 
@@ -75,7 +73,7 @@ def test_check_version(script):
     assert not git.check_version(version_pkg_path, ['abc123'])
 
 
-@patch('pip.vcs.git.Git.get_short_refs')
+@patch('pip._internal.vcs.git.Git.get_short_refs')
 def test_check_rev_options_should_handle_branch_name(get_refs_mock):
     get_refs_mock.return_value = {'master': '123456', '0.1': '123456'}
     git = Git()
@@ -84,7 +82,7 @@ def test_check_rev_options_should_handle_branch_name(get_refs_mock):
     assert result == ['123456']
 
 
-@patch('pip.vcs.git.Git.get_short_refs')
+@patch('pip._internal.vcs.git.Git.get_short_refs')
 def test_check_rev_options_should_handle_tag_name(get_refs_mock):
     get_refs_mock.return_value = {'master': '123456', '0.1': '123456'}
     git = Git()
@@ -93,7 +91,7 @@ def test_check_rev_options_should_handle_tag_name(get_refs_mock):
     assert result == ['123456']
 
 
-@patch('pip.vcs.git.Git.get_short_refs')
+@patch('pip._internal.vcs.git.Git.get_short_refs')
 def test_check_rev_options_should_handle_ambiguous_commit(get_refs_mock):
     get_refs_mock.return_value = {'master': '123456', '0.1': '123456'}
     git = Git()

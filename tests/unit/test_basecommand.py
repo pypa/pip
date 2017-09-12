@@ -1,6 +1,6 @@
 import logging
 
-from pip.basecommand import Command
+from pip._internal.basecommand import Command
 
 
 class FakeCommand(Command):
@@ -45,7 +45,8 @@ class Test_basecommand_logging(object):
         cmd = FakeCommand()
         log_path = tmpdir.join('log')
         cmd.main(['fake', '--log', log_path])
-        assert 'fake' == open(log_path).read().strip()[:4]
+        with open(log_path) as f:
+            assert 'fake' == f.read().strip()[:4]
 
     def test_log_command_error(self, tmpdir):
         """
@@ -54,7 +55,8 @@ class Test_basecommand_logging(object):
         cmd = FakeCommand(error=True)
         log_path = tmpdir.join('log')
         cmd.main(['fake', '--log', log_path])
-        assert 'fake' == open(log_path).read().strip()[:4]
+        with open(log_path) as f:
+            assert 'fake' == f.read().strip()[:4]
 
     def test_log_file_command_error(self, tmpdir):
         """
@@ -63,7 +65,8 @@ class Test_basecommand_logging(object):
         cmd = FakeCommand(error=True)
         log_file_path = tmpdir.join('log_file')
         cmd.main(['fake', '--log-file', log_file_path])
-        assert 'fake' == open(log_file_path).read().strip()[:4]
+        with open(log_file_path) as f:
+            assert 'fake' == f.read().strip()[:4]
 
     def test_unicode_messages(self, tmpdir):
         """

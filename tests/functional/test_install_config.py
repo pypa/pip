@@ -1,6 +1,7 @@
 import os
 import tempfile
 import textwrap
+
 import pytest
 
 
@@ -185,7 +186,7 @@ def test_options_from_venv_config(script, virtualenv):
     Test if ConfigOptionParser reads a virtualenv-local config file
 
     """
-    from pip.locations import config_basename
+    from pip._internal.locations import config_basename
     conf = "[global]\nno-index = true"
     ini = virtualenv.location / config_basename
     with open(ini, 'w') as f:
@@ -198,8 +199,10 @@ def test_options_from_venv_config(script, virtualenv):
     )
 
 
-def test_install_no_binary_via_config_disables_cached_wheels(script, data):
-    script.pip('install', 'wheel')
+@pytest.mark.network
+def test_install_no_binary_via_config_disables_cached_wheels(
+        script, data, common_wheels):
+    script.pip('install', 'wheel', '--no-index', '-f', common_wheels)
     config_file = tempfile.NamedTemporaryFile(mode='wt')
     script.environ['PIP_CONFIG_FILE'] = config_file.name
     config_file.write(textwrap.dedent("""\

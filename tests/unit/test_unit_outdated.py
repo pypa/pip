@@ -1,49 +1,79 @@
-import sys
 import datetime
 import os
+import sys
 from contextlib import contextmanager
 
 import freezegun
-import pytest
 import pretend
-
+import pytest
 from pip._vendor import lockfile
-from pip.utils import outdated
+
+from pip._internal.index import InstallationCandidate
+from pip._internal.utils import outdated
+
+
+class MockPackageFinder(object):
+
+    BASE_URL = 'https://pypi.python.org/simple/pip-{0}.tar.gz'
+    PIP_PROJECT_NAME = 'pip'
+    INSTALLATION_CANDIDATES = [
+        InstallationCandidate(PIP_PROJECT_NAME, '6.9.0',
+                              BASE_URL.format('6.9.0')),
+        InstallationCandidate(PIP_PROJECT_NAME, '3.3.1',
+                              BASE_URL.format('3.3.1')),
+        InstallationCandidate(PIP_PROJECT_NAME, '1.0',
+                              BASE_URL.format('1.0')),
+    ]
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def find_all_candidates(self, project_name):
+        return self.INSTALLATION_CANDIDATES
+
+
+def _options():
+    ''' Some default options that we pass to outdated.pip_version_check '''
+    return pretend.stub(
+        find_links=False, extra_index_urls=[], index_url='default_url',
+        pre=False, trusted_hosts=False, process_dependency_links=False,
+    )
 
 
 @pytest.mark.parametrize(
-    ['stored_time', 'newver', 'check', 'warn'],
     [
-        ('1970-01-01T10:00:00Z', '2.0', True, True),
-        ('1970-01-01T10:00:00Z', '1.0', True, False),
-        ('1970-01-06T10:00:00Z', '1.0', False, False),
-        ('1970-01-06T10:00:00Z', '2.0', False, True),
+        'stored_time',
+        'installed_ver',
+        'new_ver',
+        'check_if_upgrade_required',
+        'check_warn_logs',
+    ],
+    [
+        # Test we return None when installed version is None
+        ('1970-01-01T10:00:00Z', None, '1.0', False, False),
+        # Need an upgrade - upgrade warning should print
+        ('1970-01-01T10:00:00Z', '1.0', '6.9.0', True, True),
+        # No upgrade - upgrade warning should not print
+        ('1970-01-9T10:00:00Z', '6.9.0', '6.9.0', False, False),
     ]
 )
-def test_pip_version_check(monkeypatch, stored_time, newver, check, warn):
-    monkeypatch.setattr(outdated, 'get_installed_version', lambda name: '1.0')
-
-    resp = pretend.stub(
-        raise_for_status=pretend.call_recorder(lambda: None),
-        json=pretend.call_recorder(lambda: {"releases": {newver: {}}}),
-    )
-    session = pretend.stub(
-        get=pretend.call_recorder(lambda u, headers=None: resp),
-    )
-
-    fake_state = pretend.stub(
-        state={"last_check": stored_time, 'pypi_version': '1.0'},
-        save=pretend.call_recorder(lambda v, t: None),
-    )
-
-    monkeypatch.setattr(
-        outdated, 'load_selfcheck_statefile', lambda: fake_state
-    )
-
+def test_pip_version_check(monkeypatch, stored_time, installed_ver, new_ver,
+                           check_if_upgrade_required, check_warn_logs):
+    monkeypatch.setattr(outdated, 'get_installed_version',
+                        lambda name: installed_ver)
+    monkeypatch.setattr(outdated, 'PackageFinder', MockPackageFinder)
     monkeypatch.setattr(outdated.logger, 'warning',
                         pretend.call_recorder(lambda *a, **kw: None))
     monkeypatch.setattr(outdated.logger, 'debug',
                         pretend.call_recorder(lambda s, exc_info=None: None))
+
+    fake_state = pretend.stub(
+        state={"last_check": stored_time, 'pypi_version': installed_ver},
+        save=pretend.call_recorder(lambda v, t: None),
+    )
+    monkeypatch.setattr(
+        outdated, 'load_selfcheck_statefile', lambda: fake_state
+    )
 
     with freezegun.freeze_time(
             "1970-01-09 10:00:00",
@@ -52,25 +82,27 @@ def test_pip_version_check(monkeypatch, stored_time, newver, check, warn):
                 "pip._vendor.six.moves",
                 "pip._vendor.requests.packages.urllib3.packages.six.moves",
             ]):
-        outdated.pip_version_check(session)
+        latest_pypi_version = outdated.pip_version_check(None, _options())
 
-    assert not outdated.logger.debug.calls
-
-    if check:
-        assert session.get.calls == [pretend.call(
-            "https://pypi.python.org/pypi/pip/json",
-            headers={"Accept": "application/json"}
-        )]
+    # See we return None if not installed_version
+    if not installed_ver:
+        assert not latest_pypi_version
+    # See that we saved the correct version
+    elif check_if_upgrade_required:
         assert fake_state.save.calls == [
-            pretend.call(newver, datetime.datetime(1970, 1, 9, 10, 00, 00)),
+            pretend.call(new_ver, datetime.datetime(1970, 1, 9, 10, 00, 00)),
         ]
-        if warn:
-            assert len(outdated.logger.warning.calls) == 1
-        else:
-            assert len(outdated.logger.warning.calls) == 0
     else:
-        assert session.get.calls == []
+        # Make sure no Exceptions
+        assert not outdated.logger.debug.calls
+        # See that save was not called
         assert fake_state.save.calls == []
+
+    # Ensure we warn the user or not
+    if check_warn_logs:
+        assert len(outdated.logger.warning.calls) == 1
+    else:
+        assert len(outdated.logger.warning.calls) == 0
 
 
 def test_virtualenv_state(monkeypatch):

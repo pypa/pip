@@ -4,7 +4,10 @@ docs/_build/
 pip.egg-info/
 MANIFEST
 .tox
+.cache
+.mypy_cache
 *.egg
+*.eggs
 *.py[cod]
 *~
 .coverage

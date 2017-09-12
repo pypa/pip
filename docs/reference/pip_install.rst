@@ -325,6 +325,9 @@ the :ref:`--editable <install_--editable>` option) or not.
   already installed, the VCS source will not overwrite it without an `--upgrade`
   flag. VCS requirements pin the package version (specified in the `setup.py`
   file) of the target commit, not necessarily the commit itself.
+* The :ref:`pip freeze` subcommand will record the VCS requirement specifier
+  (referencing a specific commit) if and only if the install is done using the
+  editable option.
 
 The "project name" component of the url suffix "egg=<project name>-<version>"
 is used by pip in its dependency logic to identify the project prior
@@ -357,19 +360,19 @@ pip currently supports cloning over ``git``, ``git+http``, ``git+https``,
 
 Here are the supported forms::
 
-    [-e] git://git.myproject.org/MyProject#egg=MyProject
-    [-e] git+http://git.myproject.org/MyProject#egg=MyProject
-    [-e] git+https://git.myproject.org/MyProject#egg=MyProject
-    [-e] git+ssh://git.myproject.org/MyProject#egg=MyProject
-    [-e] git+git://git.myproject.org/MyProject#egg=MyProject
-    [-e] git+file://git.myproject.org/MyProject#egg=MyProject
-    -e git+git@git.myproject.org:MyProject#egg=MyProject
+    [-e] git://git.example.com/MyProject#egg=MyProject
+    [-e] git+http://git.example.com/MyProject#egg=MyProject
+    [-e] git+https://git.example.com/MyProject#egg=MyProject
+    [-e] git+ssh://git.example.com/MyProject#egg=MyProject
+    [-e] git+git://git.example.com/MyProject#egg=MyProject
+    [-e] git+file://git.example.com/MyProject#egg=MyProject
+    -e git+git@git.example.com:MyProject#egg=MyProject
 
 Passing branch names, a commit hash or a tag name is possible like so::
 
-    [-e] git://git.myproject.org/MyProject.git@master#egg=MyProject
-    [-e] git://git.myproject.org/MyProject.git@v1.0#egg=MyProject
-    [-e] git://git.myproject.org/MyProject.git@da39a3ee5e6b4b0d3255bfef95601890afd80709#egg=MyProject
+    [-e] git://git.example.com/MyProject.git@master#egg=MyProject
+    [-e] git://git.example.com/MyProject.git@v1.0#egg=MyProject
+    [-e] git://git.example.com/MyProject.git@da39a3ee5e6b4b0d3255bfef95601890afd80709#egg=MyProject
 
 Mercurial
 ~~~~~~~~~
@@ -379,17 +382,17 @@ The supported schemes are: ``hg+http``, ``hg+https``,
 
 Here are the supported forms::
 
-    [-e] hg+http://hg.myproject.org/MyProject#egg=MyProject
-    [-e] hg+https://hg.myproject.org/MyProject#egg=MyProject
-    [-e] hg+ssh://hg.myproject.org/MyProject#egg=MyProject
+    [-e] hg+http://hg.example.com/MyProject#egg=MyProject
+    [-e] hg+https://hg.example.com/MyProject#egg=MyProject
+    [-e] hg+ssh://hg.example.com/MyProject#egg=MyProject
 
 You can also specify a revision number, a revision hash, a tag name or a local
 branch name like so::
 
-    [-e] hg+http://hg.myproject.org/MyProject@da39a3ee5e6b#egg=MyProject
-    [-e] hg+http://hg.myproject.org/MyProject@2019#egg=MyProject
-    [-e] hg+http://hg.myproject.org/MyProject@v1.0#egg=MyProject
-    [-e] hg+http://hg.myproject.org/MyProject@special_feature#egg=MyProject
+    [-e] hg+http://hg.example.com/MyProject@da39a3ee5e6b#egg=MyProject
+    [-e] hg+http://hg.example.com/MyProject@2019#egg=MyProject
+    [-e] hg+http://hg.example.com/MyProject@v1.0#egg=MyProject
+    [-e] hg+http://hg.example.com/MyProject@special_feature#egg=MyProject
 
 Subversion
 ~~~~~~~~~~
@@ -398,8 +401,8 @@ pip supports the URL schemes ``svn``, ``svn+svn``, ``svn+http``, ``svn+https``, 
 
 You can also give specific revisions to an SVN URL, like so::
 
-    [-e] svn+svn://svn.myproject.org/svn/MyProject#egg=MyProject
-    [-e] svn+http://svn.myproject.org/svn/MyProject/trunk@2019#egg=MyProject
+    [-e] svn+svn://svn.example.com/svn/MyProject#egg=MyProject
+    [-e] svn+http://svn.example.com/svn/MyProject/trunk@2019#egg=MyProject
 
 which will check out revision 2019.  ``@{20080101}`` would also check
 out the revision from 2008-01-01. You can only check out specific
@@ -413,16 +416,16 @@ pip supports Bazaar using the ``bzr+http``, ``bzr+https``, ``bzr+ssh``,
 
 Here are the supported forms::
 
-    [-e] bzr+http://bzr.myproject.org/MyProject/trunk#egg=MyProject
-    [-e] bzr+sftp://user@myproject.org/MyProject/trunk#egg=MyProject
-    [-e] bzr+ssh://user@myproject.org/MyProject/trunk#egg=MyProject
-    [-e] bzr+ftp://user@myproject.org/MyProject/trunk#egg=MyProject
+    [-e] bzr+http://bzr.example.com/MyProject/trunk#egg=MyProject
+    [-e] bzr+sftp://user@example.com/MyProject/trunk#egg=MyProject
+    [-e] bzr+ssh://user@example.com/MyProject/trunk#egg=MyProject
+    [-e] bzr+ftp://user@example.com/MyProject/trunk#egg=MyProject
     [-e] bzr+lp:MyProject#egg=MyProject
 
 Tags or revisions can be installed like so::
 
-    [-e] bzr+https://bzr.myproject.org/MyProject/trunk@2019#egg=MyProject
-    [-e] bzr+http://bzr.myproject.org/MyProject/trunk@v1.0#egg=MyProject
+    [-e] bzr+https://bzr.example.com/MyProject/trunk@2019#egg=MyProject
+    [-e] bzr+http://bzr.example.com/MyProject/trunk@v1.0#egg=MyProject
 
 
 Finding Packages
@@ -509,7 +512,7 @@ building a new wheel. Note that this means when a package has both optional
 C extensions and builds `py` tagged wheels when the C extension can't be built
 that pip will not attempt to build a better wheel for Pythons that would have
 supported it, once any generic wheel is built. To correct this, make sure that
-the wheels are built with Python specific tags - e.g. pp on Pypy.
+the wheels are built with Python specific tags - e.g. pp on PyPy.
 
 When no wheels are found for an sdist, pip will attempt to build a wheel
 automatically and insert it into the wheel cache.
@@ -798,6 +801,7 @@ Examples
       $ pip install git+https://git.repo/some_pkg.git#egg=SomePackage[PDF]
       $ pip install SomePackage[PDF]==3.0
       $ pip install -e .[PDF]==3.0  # editable project in current directory
+      $ pip install SomePackage[PDF,EPUB]  # multiple extras
 
 
 #. Install a particular source archive file.

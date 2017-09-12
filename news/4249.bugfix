@@ -1,0 +1,2 @@
+Fail gracefully when ``/etc/image_version`` (or another distro version file)
+appears to exists but is not readable.

@@ -1,7 +1,9 @@
 import os
 import textwrap
+
 import pytest
 
+from pip._internal.status_codes import ERROR
 from tests.lib.path import Path
 
 
@@ -554,3 +556,22 @@ def test_download_specify_implementation(script, data):
         'fake',
         expect_error=True,
     )
+
+
+def test_download_exit_status_code_when_no_requirements(script):
+    """
+    Test download exit status code when no requirements specified
+    """
+    result = script.pip('download', expect_error=True)
+    assert (
+        "You must give at least one requirement to download" in result.stderr
+    )
+    assert result.returncode == ERROR
+
+
+def test_download_exit_status_code_when_blank_requirements_file(script):
+    """
+    Test download exit status code when blank requirements file specified
+    """
+    script.scratch_path.join("blank.txt").write("\n")
+    script.pip('download', '-r', 'blank.txt')

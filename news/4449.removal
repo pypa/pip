@@ -1,0 +1,1 @@
+Deprecate SVN detection based on dependency links in ``pip freeze``.

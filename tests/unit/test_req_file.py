@@ -2,18 +2,21 @@ import os
 import subprocess
 import textwrap
 
-from mock import patch, Mock
 import pytest
+from mock import Mock, patch
 from pretend import stub
 
-import pip
-from pip.exceptions import (InstallationError, RequirementsFileParseError)
-from pip.download import PipSession
-from pip.index import PackageFinder
-from pip.req.req_install import InstallRequirement
-from pip.req.req_file import (parse_requirements, process_line, join_lines,
-                              ignore_comments, break_args_options, skip_regex,
-                              preprocess)
+import pip._internal.index
+from pip._internal.download import PipSession
+from pip._internal.exceptions import (
+    InstallationError, RequirementsFileParseError
+)
+from pip._internal.index import PackageFinder
+from pip._internal.req.req_file import (
+    break_args_options, ignore_comments, join_lines, parse_requirements,
+    preprocess, process_line, skip_regex
+)
+from pip._internal.req.req_install import InstallRequirement
 from tests.lib import requirements_file
 
 
@@ -30,9 +33,9 @@ def finder(session):
 @pytest.fixture
 def options(session):
     return stub(
-        isolated_mode=False, default_vcs=None, index_url='default_url',
+        isolated_mode=False, index_url='default_url',
         skip_requirements_regex=False,
-        format_control=pip.index.FormatControl(set(), set()))
+        format_control=pip._internal.index.FormatControl(set(), set()))
 
 
 class TestPreprocess(object):
@@ -168,6 +171,18 @@ class TestProcessLine(object):
         with pytest.raises(RequirementsFileParseError):
             list(process_line("--bogus", "file", 1))
 
+    def test_parser_offending_line(self):
+        line = 'pkg==1.0.0 --hash=somehash'
+        with pytest.raises(RequirementsFileParseError) as err:
+            list(process_line(line, 'file', 1))
+        assert line in str(err.value)
+
+    def test_parser_non_offending_line(self):
+        try:
+            list(process_line('pkg==1.0.0 --hash=sha256:somehash', 'file', 1))
+        except RequirementsFileParseError:
+            pytest.fail('Reported offending line where it should not.')
+
     def test_only_one_req_per_line(self):
         # pkg_resources raises the ValueError
         with pytest.raises(InstallationError):
@@ -220,26 +235,26 @@ class TestProcessLine(object):
     def test_nested_requirements_file(self, monkeypatch):
         line = '-r another_file'
         req = InstallRequirement.from_line('SomeProject')
-        import pip.req.req_file
+        import pip._internal.req.req_file
 
         def stub_parse_requirements(req_url, finder, comes_from, options,
                                     session, wheel_cache, constraint):
             return [(req, constraint)]
         parse_requirements_stub = stub(call=stub_parse_requirements)
-        monkeypatch.setattr(pip.req.req_file, 'parse_requirements',
+        monkeypatch.setattr(pip._internal.req.req_file, 'parse_requirements',
                             parse_requirements_stub.call)
         assert list(process_line(line, 'filename', 1)) == [(req, False)]
 
     def test_nested_constraints_file(self, monkeypatch):
         line = '-c another_file'
         req = InstallRequirement.from_line('SomeProject')
-        import pip.req.req_file
+        import pip._internal.req.req_file
 
         def stub_parse_requirements(req_url, finder, comes_from, options,
                                     session, wheel_cache, constraint):
             return [(req, constraint)]
         parse_requirements_stub = stub(call=stub_parse_requirements)
-        monkeypatch.setattr(pip.req.req_file, 'parse_requirements',
+        monkeypatch.setattr(pip._internal.req.req_file, 'parse_requirements',
                             parse_requirements_stub.call)
         assert list(process_line(line, 'filename', 1)) == [(req, True)]
 
@@ -281,14 +296,6 @@ class TestProcessLine(object):
         result = process_line(line, filename, 1, options=options)
         assert list(result)[0].isolated
 
-    def test_set_default_vcs(self, options):
-        url = 'https://url#egg=SomeProject'
-        line = '-e %s' % url
-        filename = 'filename'
-        options.default_vcs = 'git'
-        result = process_line(line, filename, 1, options=options)
-        assert list(result)[0].link.url == 'git+' + url
-
     def test_set_finder_no_index(self, finder):
         list(process_line("--no-index", "file", 1, finder=finder))
         assert finder.index_urls == []
@@ -305,16 +312,6 @@ class TestProcessLine(object):
         list(process_line("--extra-index-url=url", "file", 1, finder=finder))
         assert finder.index_urls == ['url']
 
-    def test_set_finder_use_wheel(self, finder):
-        list(process_line("--use-wheel", "file", 1, finder=finder))
-        no_use_wheel_fmt = pip.index.FormatControl(set(), set())
-        assert finder.format_control == no_use_wheel_fmt
-
-    def test_set_finder_no_use_wheel(self, finder):
-        list(process_line("--no-use-wheel", "file", 1, finder=finder))
-        no_use_wheel_fmt = pip.index.FormatControl(set([':all:']), set())
-        assert finder.format_control == no_use_wheel_fmt
-
     def test_set_finder_trusted_host(self, finder):
         list(process_line("--trusted-host=url", "file", 1, finder=finder))
         assert finder.secure_origins == [('*', 'url', '*')]
@@ -322,10 +319,6 @@ class TestProcessLine(object):
     def test_noop_always_unzip(self, finder):
         # noop, but confirm it can be set
         list(process_line("--always-unzip", "file", 1, finder=finder))
-
-    def test_noop_finder_no_allow_unsafe(self, finder):
-        # noop, but confirm it can be set
-        list(process_line("--no-allow-insecure", "file", 1, finder=finder))
 
     def test_set_finder_allow_all_prereleases(self, finder):
         list(process_line("--pre", "file", 1, finder=finder))
@@ -362,7 +355,8 @@ class TestProcessLine(object):
             return iter([])
         mock_parse = Mock()
         mock_parse.side_effect = parse
-        monkeypatch.setattr(pip.req.req_file, 'parse_requirements', mock_parse)
+        monkeypatch.setattr(pip._internal.req.req_file, 'parse_requirements',
+                            mock_parse)
         list(process_line("-r reqs.txt", req_file, 1, finder=finder))
         call = mock_parse.mock_calls[0]
         assert call[1][0] == 'http://me.com/me/reqs.txt'
@@ -377,7 +371,8 @@ class TestProcessLine(object):
             return iter([])
         mock_parse = Mock()
         mock_parse.side_effect = parse
-        monkeypatch.setattr(pip.req.req_file, 'parse_requirements', mock_parse)
+        monkeypatch.setattr(pip._internal.req.req_file, 'parse_requirements',
+                            mock_parse)
         list(process_line("-r reqs.txt", req_file, 1, finder=finder))
         call = mock_parse.mock_calls[0]
         assert call[1][0] == os.path.normpath('/path/reqs.txt')
@@ -392,7 +387,8 @@ class TestProcessLine(object):
             return iter([])
         mock_parse = Mock()
         mock_parse.side_effect = parse
-        monkeypatch.setattr(pip.req.req_file, 'parse_requirements', mock_parse)
+        monkeypatch.setattr(pip._internal.req.req_file, 'parse_requirements',
+                            mock_parse)
         list(process_line("-r /other/reqs.txt", req_file, 1, finder=finder))
         call = mock_parse.mock_calls[0]
         assert call[1][0] == '/other/reqs.txt'
@@ -407,7 +403,8 @@ class TestProcessLine(object):
             return iter([])
         mock_parse = Mock()
         mock_parse.side_effect = parse
-        monkeypatch.setattr(pip.req.req_file, 'parse_requirements', mock_parse)
+        monkeypatch.setattr(pip._internal.req.req_file, 'parse_requirements',
+                            mock_parse)
         list(process_line("-r http://me.com/me/reqs.txt", req_file, 1,
                           finder=finder))
         call = mock_parse.mock_calls[0]
@@ -511,7 +508,8 @@ class TestParseRequirements(object):
         list(parse_requirements(
             data.reqfiles.join("supported_options2.txt"), finder,
             session=PipSession()))
-        expected = pip.index.FormatControl(set(['fred']), set(['wilma']))
+        expected = pip._internal.index.FormatControl(
+            set(['fred']), set(['wilma']))
         assert finder.format_control == expected
 
     def test_req_file_parse_comment_start_of_line(self, tmpdir, finder):
@@ -586,15 +584,17 @@ class TestParseRequirements(object):
 
         req.source_dir = os.curdir
         with patch.object(subprocess, 'Popen') as popen:
-            popen.return_value.stdout.readline.return_value = ""
+            popen.return_value.stdout.readline.return_value = b""
             try:
                 req.install([])
             except:
                 pass
 
-            call = popen.call_args_list[0][0][0]
-            assert call.index(install_option) > \
-                call.index('install') > \
-                call.index(global_option) > 0
+            last_call = popen.call_args_list[-1]
+            args = last_call[0][0]
+            assert (
+                0 < args.index(global_option) < args.index('install') <
+                args.index(install_option)
+            )
         assert options.format_control.no_binary == set([':all:'])
         assert options.format_control.only_binary == set([])

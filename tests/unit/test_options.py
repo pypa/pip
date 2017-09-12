@@ -1,39 +1,18 @@
 import os
+
 import pytest
-import pip.baseparser
-from pip import main
-from pip import cmdoptions
-from pip.basecommand import Command
-from pip.commands import commands_dict as commands
+
+import pip._internal.configuration
+from pip._internal import main
+from tests.lib.options_helpers import AddFakeCommandMixin
 
 
-class FakeCommand(Command):
-    name = 'fake'
-    summary = name
-
-    def main(self, args):
-        index_opts = cmdoptions.make_option_group(
-            cmdoptions.index_group,
-            self.parser,
-        )
-        self.parser.add_option_group(index_opts)
-        return self.parse_args(args)
-
-
-class TestOptionPrecedence(object):
+class TestOptionPrecedence(AddFakeCommandMixin):
     """
     Tests for confirming our option precedence:
-         cli -> environment -> subcommand config -> global config -> option
-         defaults
+        cli -> environment -> subcommand config -> global config -> option
+        defaults
     """
-
-    def setup(self):
-        self.environ_before = os.environ.copy()
-        commands[FakeCommand.name] = FakeCommand
-
-    def teardown(self):
-        os.environ = self.environ_before
-        commands.pop(FakeCommand.name)
 
     def get_config_section(self, section):
         config = {
@@ -102,53 +81,8 @@ class TestOptionPrecedence(object):
         options, args = main(['fake', '--timeout', '-2'])
         assert options.timeout == -2
 
-    def test_environment_override_config(self, monkeypatch):
-        """
-        Test an environment variable overrides the config file
-        """
-        monkeypatch.setattr(
-            pip.baseparser.ConfigOptionParser,
-            "get_config_section",
-            self.get_config_section,
-        )
-        os.environ['PIP_TIMEOUT'] = '-1'
-        options, args = main(['fake'])
-        assert options.timeout == -1
 
-    def test_commmand_config_override_global_config(self, monkeypatch):
-        """
-        Test that command config overrides global config
-        """
-        monkeypatch.setattr(
-            pip.baseparser.ConfigOptionParser,
-            "get_config_section",
-            self.get_config_section,
-        )
-        options, args = main(['fake'])
-        assert options.timeout == -2
-
-    def test_global_config_is_used(self, monkeypatch):
-        """
-        Test that global config is used
-        """
-        monkeypatch.setattr(
-            pip.baseparser.ConfigOptionParser,
-            "get_config_section",
-            self.get_config_section_global,
-        )
-        options, args = main(['fake'])
-        assert options.timeout == -3
-
-
-class TestOptionsInterspersed(object):
-
-    def setup(self):
-        self.environ_before = os.environ.copy()
-        commands[FakeCommand.name] = FakeCommand
-
-    def teardown(self):
-        os.environ = self.environ_before
-        commands.pop(FakeCommand.name)
+class TestOptionsInterspersed(AddFakeCommandMixin):
 
     def test_general_option_after_subcommand(self):
         options, args = main(['fake', '--timeout', '-1'])
@@ -167,18 +101,10 @@ class TestOptionsInterspersed(object):
             main(['--find-links', 'F1', 'fake'])
 
 
-class TestGeneralOptions(object):
+class TestGeneralOptions(AddFakeCommandMixin):
 
     # the reason to specifically test general options is due to the
     # extra processing they receive, and the number of bugs we've had
-
-    def setup(self):
-        self.environ_before = os.environ.copy()
-        commands[FakeCommand.name] = FakeCommand
-
-    def teardown(self):
-        os.environ = self.environ_before
-        commands.pop(FakeCommand.name)
 
     def test_require_virtualenv(self):
         options1, args1 = main(['--require-virtualenv', 'fake'])
@@ -235,11 +161,6 @@ class TestGeneralOptions(object):
         options2, args2 = main(['fake', '--timeout', '-1'])
         assert options1.timeout == options2.timeout == -1
 
-    def test_default_vcs(self):
-        options1, args1 = main(['--default-vcs', 'path', 'fake'])
-        options2, args2 = main(['fake', '--default-vcs', 'path'])
-        assert options1.default_vcs == options2.default_vcs == 'path'
-
     def test_skip_requirements_regex(self):
         options1, args1 = main(['--skip-requirements-regex', 'path', 'fake'])
         options2, args2 = main(['fake', '--skip-requirements-regex', 'path'])
@@ -265,23 +186,23 @@ class TestGeneralOptions(object):
 class TestOptionsConfigFiles(object):
 
     def test_venv_config_file_found(self, monkeypatch):
-        # We only want a dummy object to call the get_config_files method
-        monkeypatch.setattr(
-            pip.baseparser.ConfigOptionParser,
-            '__init__',
-            lambda self: None,
-        )
-
         # strict limit on the site_config_files list
-        monkeypatch.setattr(pip.baseparser, 'site_config_files', ['/a/place'])
+        monkeypatch.setattr(
+            pip._internal.configuration, 'site_config_files', ['/a/place']
+        )
 
         # If we are running in a virtualenv and all files appear to exist,
         # we should see two config files.
         monkeypatch.setattr(
-            pip.baseparser,
+            pip._internal.configuration,
             'running_under_virtualenv',
             lambda: True,
         )
         monkeypatch.setattr(os.path, 'exists', lambda filename: True)
-        cp = pip.baseparser.ConfigOptionParser()
-        assert len(cp.get_config_files()) == 4
+        cp = pip._internal.configuration.Configuration(isolated=False)
+
+        files = []
+        for _, val in cp._iter_config_files():
+            files.extend(val)
+
+        assert len(files) == 4

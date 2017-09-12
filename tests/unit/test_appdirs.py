@@ -5,7 +5,7 @@ import sys
 
 import pretend
 
-from pip.utils import appdirs
+from pip._internal.utils import appdirs
 
 
 class TestUserCacheDir:
@@ -80,7 +80,7 @@ class TestUserCacheDir:
         assert result_is_str, "user_cache_dir did not return a str"
 
         # Test against regression #3463
-        from pip import create_main_parser
+        from pip._internal import create_main_parser
         create_main_parser().print_help()  # This should not crash
 
 
@@ -184,8 +184,12 @@ class TestUserDataDir:
         monkeypatch.setenv("HOME", "/home/test")
         monkeypatch.setattr(sys, "platform", "darwin")
 
-        assert (appdirs.user_data_dir("pip") ==
-                "/home/test/Library/Application Support/pip")
+        if os.path.isdir('/home/test/Library/Application Support/'):
+                assert (appdirs.user_data_dir("pip") ==
+                        "/home/test/Library/Application Support/pip")
+        else:
+                assert (appdirs.user_data_dir("pip") ==
+                        "/home/test/.config/pip")
 
     def test_user_data_dir_linux(self, monkeypatch):
         monkeypatch.setattr(appdirs, "WINDOWS", False)
@@ -262,8 +266,12 @@ class TestUserConfigDir:
         monkeypatch.setenv("HOME", "/home/test")
         monkeypatch.setattr(sys, "platform", "darwin")
 
-        assert (appdirs.user_config_dir("pip") ==
-                "/home/test/Library/Application Support/pip")
+        if os.path.isdir('/home/test/Library/Application Support/'):
+                assert (appdirs.user_data_dir("pip") ==
+                        "/home/test/Library/Application Support/pip")
+        else:
+                assert (appdirs.user_data_dir("pip") ==
+                        "/home/test/.config/pip")
 
     def test_user_config_dir_linux(self, monkeypatch):
         monkeypatch.setattr(appdirs, "WINDOWS", False)

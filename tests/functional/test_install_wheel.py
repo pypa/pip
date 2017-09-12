@@ -1,7 +1,8 @@
+import glob
 import os
 import sys
+
 import pytest
-import glob
 
 from tests.lib.path import Path
 
@@ -114,11 +115,11 @@ def test_install_from_wheel_with_headers(script, data):
 
 
 @pytest.mark.network
-def test_install_wheel_with_target(script, data):
+def test_install_wheel_with_target(script, data, common_wheels):
     """
     Test installing a wheel using pip install --target
     """
-    script.pip('install', 'wheel')
+    script.pip('install', 'wheel', '--no-index', '-f', common_wheels)
     target_dir = script.scratch_path / 'target'
     result = script.pip(
         'install', 'simple.dist==0.1', '-t', target_dir,
@@ -127,6 +128,42 @@ def test_install_wheel_with_target(script, data):
     assert Path('scratch') / 'target' / 'simpledist' in result.files_created, (
         str(result)
     )
+
+
+@pytest.mark.network
+def test_install_wheel_with_target_and_data_files(script, data, common_wheels):
+    """
+    Test for issue #4092. It will be checked that a data_files specification in
+    setup.py is handled correctly when a wheel is installed with the --target
+    option.
+
+    The setup() for the wheel 'prjwithdatafile-1.0-py2.py3-none-any.whl' is as
+    follows ::
+
+        setup(
+            name='prjwithdatafile',
+            version='1.0',
+            packages=['prjwithdatafile'],
+            data_files=[
+                (r'packages1', ['prjwithdatafile/README.txt']),
+                (r'packages2', ['prjwithdatafile/README.txt'])
+            ]
+        )
+    """
+    script.pip('install', 'wheel', '--no-index', '-f', common_wheels)
+    target_dir = script.scratch_path / 'prjwithdatafile'
+    package = data.packages.join("prjwithdatafile-1.0-py2.py3-none-any.whl")
+    result = script.pip('install', package,
+                        '-t', target_dir,
+                        '--no-index',
+                        expect_error=False)
+
+    assert (Path('scratch') / 'prjwithdatafile' / 'packages1' / 'README.txt'
+            in result.files_created), str(result)
+    assert (Path('scratch') / 'prjwithdatafile' / 'packages2' / 'README.txt'
+            in result.files_created), str(result)
+    assert (Path('scratch') / 'prjwithdatafile' / 'lib' / 'python'
+            not in result.files_created), str(result)
 
 
 def test_install_wheel_with_root(script, data):
@@ -184,12 +221,12 @@ def test_install_from_wheel_no_deps(script, data):
 
 
 @pytest.mark.network
-def test_install_user_wheel(script, virtualenv, data):
+def test_install_user_wheel(script, virtualenv, data, common_wheels):
     """
     Test user install from wheel (that has a script)
     """
     virtualenv.system_site_packages = True
-    script.pip('install', 'wheel')
+    script.pip('install', 'wheel', '--no-index', '-f', common_wheels)
     result = script.pip(
         'install', 'has.script==1.0', '--user', '--no-index',
         '--find-links=' + data.find_links,

@@ -1,0 +1,2 @@
+``-q`` specified once correctly sets logging level to WARNING, instead of CRITICAL.
+Use `-qqq` to have the previous behavior back.

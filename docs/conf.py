@@ -13,6 +13,7 @@
 
 import os
 import sys
+import glob
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
@@ -82,7 +83,7 @@ today_fmt = '%B %d, %Y'
 
 # List of directories, relative to source directory, that shouldn't be searched
 # for source files.
-exclude_trees = ['build']
+exclude_patterns = ['_build/', 'man/']
 
 # The reST default role (used for this markup: `text`) to use for all documents
 # default_role = None
@@ -156,7 +157,7 @@ html_last_updated_fmt = '%b %d, %Y'
 
 # If true, SmartyPants will be used to convert quotes and dashes to
 # typographically correct entities.
-html_use_smartypants = False
+# html_use_smartypants = False
 
 # Custom sidebar templates, maps document names to template names.
 # html_sidebars = {}
@@ -204,7 +205,7 @@ latex_documents = [
         'index',
         'pip.tex',
         u'pip Documentation',
-        u'The pip developers',
+        u'pip developers',
         'manual',
     ),
 ]
@@ -225,3 +226,27 @@ latex_documents = [
 
 # If false, no module index is generated.
 # latex_use_modindex = True
+
+# -- Options for Manual Pages -------------------------------------------------
+
+# List of manual pages generated
+man_pages = [
+    (
+        'man/pip',
+        'pip',
+        u'package manager for Python packages',
+        u'pip developers',
+        1
+    )
+]
+
+# Here, we crawl the entire man/commands/ directory and list every file with
+# appropriate name and details
+for fname in glob.glob('man/commands/*.rst'):
+    fname_base = fname[:-4]
+    outname = 'pip-' + fname_base[13:]
+    description = u'description of {} command'.format(
+        outname.replace('-', ' ')
+    )
+
+    man_pages.append((fname_base, outname, description, u'pip developers', 1))

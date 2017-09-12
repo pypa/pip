@@ -1,13 +1,12 @@
 import os
 import re
-import sys
 import subprocess
-from os.path import dirname, abspath
+import sys
+from os.path import abspath, dirname
 
 from pip._vendor.six.moves.urllib import request as urllib_request
 
-from pip.utils import rmtree
-
+from pip._internal.utils.misc import rmtree
 
 src_folder = dirname(dirname(abspath(__file__)))
 

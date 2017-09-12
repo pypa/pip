@@ -5,22 +5,19 @@ from __future__ import absolute_import
 
 import glob
 import os
-import sys
 import shutil
+import sys
+
+from pip._vendor import six
 
 try:
     from os import supports_fd
 except ImportError:
     supports_fd = set()
 
-if sys.version_info >= (3,):
-    unicode = str
-    u = str
-else:
-    unicode = unicode
-    u = lambda s: s.decode('utf-8')
 
-_base = os.path.supports_unicode_filenames and unicode or str
+
+_base = six.text_type if os.path.supports_unicode_filenames else str
 
 
 class Path(_base):
@@ -111,7 +108,7 @@ class Path(_base):
         return Path(path + _base(self))
 
     def __repr__(self):
-        return u("Path(%s)" % _base.__repr__(self))
+        return u"Path(%s)" % _base.__repr__(self)
 
     def __hash__(self):
         return _base.__hash__(self)
@@ -287,6 +284,10 @@ class Path(_base):
 
     def join(self, *parts):
         return Path(self, *parts)
+
+    def read_text(self):
+        with open(self, "r") as fp:
+            return fp.read()
 
     def write(self, content):
         with open(self, "w") as fp:

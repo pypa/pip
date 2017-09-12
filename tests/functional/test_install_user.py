@@ -3,14 +3,13 @@ tests specific to "pip install --user"
 """
 import os
 import textwrap
-import pytest
-
 from os.path import curdir, isdir, isfile
 
-from pip.compat import uses_pycache, cache_from_source
+import pytest
 
-from tests.lib.local_repos import local_checkout
+from pip._internal.compat import cache_from_source, uses_pycache
 from tests.lib import pyversion
+from tests.lib.local_repos import local_checkout
 
 
 def _patch_dist_in_site_packages(script):
@@ -19,7 +18,7 @@ def _patch_dist_in_site_packages(script):
         def dist_in_site_packages(dist):
             return False
 
-        from pip.req import req_install
+        from pip._internal.req import req_install
         req_install.dist_in_site_packages = dist_in_site_packages
     """))
 
@@ -61,7 +60,7 @@ class Tests_UserSite:
         virtualenv.system_site_packages = True
         result = script.pip(
             'install', '--user', '-e',
-            '%s#egg=initools-dev' %
+            '%s#egg=initools' %
             local_checkout(
                 'svn+http://svn.colorstudy.com/INITools/trunk',
                 tmpdir.join("cache"),

@@ -1,0 +1,2 @@
+Fixed a ``NameError`` when attempting to catch ``FileNotFoundError`` on
+Python 2.7.
