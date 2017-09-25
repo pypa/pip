@@ -140,7 +140,7 @@ class WheelCache(Cache):
         return os.path.join(self.cache_dir, "wheels", *parts)
 
     def get_ephem_path_for_link(self, link):
-        """Return a driectory to store cached wheels for link
+        """Return a directory to store cached wheels for link
 
         Unlike get_path_for_link, the directory will be removed
         before pip exits.
