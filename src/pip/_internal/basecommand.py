@@ -151,7 +151,9 @@ class Command(object):
                 "console": {
                     "level": level,
                     "class":
-                        "pip._internal.utils.logging.ColorizedStreamHandler",
+                    "logging.StreamHandler"
+                        if options.no_color
+                        else "pip._internal.utils.logging.ColorizedStreamHandler",
                     "stream": self.log_streams[0],
                     "filters": ["exclude_warnings"],
                     "formatter": "indent",
@@ -159,7 +161,9 @@ class Command(object):
                 "console_errors": {
                     "level": "WARNING",
                     "class":
-                        "pip._internal.utils.logging.ColorizedStreamHandler",
+                    "logging.StreamHandler"
+                        if options.no_color
+                        else "pip._internal.utils.logging.ColorizedStreamHandler",
                     "stream": self.log_streams[1],
                     "formatter": "indent",
                 },
