@@ -606,7 +606,8 @@ class TestCheckRequiresPython(object):
 )
 def test_confirm_dependencies(installed_requires, confirm_answer):
     from pip._internal.utils.misc import confirm_dependencies
-    with patch('pip._internal.utils.misc.get_installed_distributions') as mock_gid:
+    patch_target = 'pip._internal.utils.misc.get_installed_distributions'
+    with patch(patch_target) as mock_gid:
         with patch('pip._internal.utils.misc.ask') as mock_ask:
             mock_ask.return_value = confirm_answer
 
