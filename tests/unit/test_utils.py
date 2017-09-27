@@ -5,6 +5,7 @@ util tests
 
 """
 import os
+import random
 import shutil
 import stat
 import sys
@@ -14,6 +15,7 @@ import warnings
 
 import pytest
 from mock import Mock, patch
+from threading import Thread
 from pip._vendor.six import BytesIO
 
 from pip._internal.exceptions import (
@@ -22,6 +24,7 @@ from pip._internal.exceptions import (
 from pip._internal.utils.encoding import auto_decode
 from pip._internal.utils.glibc import check_glibc_version
 from pip._internal.utils.hashes import Hashes, MissingHashes
+from pip._internal.utils.logging import get_indentation, indent_log
 from pip._internal.utils.misc import (
     egg_link_path, ensure_dir, get_installed_distributions, normalize_path,
     rmtree, untar_file, unzip_file
@@ -592,3 +595,25 @@ class TestCheckRequiresPython(object):
                 check_dist_requires_python(fake_dist)
         else:
             check_dist_requires_python(fake_dist)
+
+
+def test_indent_log_does_not_fail_in_multithread():
+    def worker():
+        with indent_log(1):
+            time.sleep(random.random())
+            assert get_indentation() == 1
+
+            with indent_log(1):
+                time.sleep(random.random())
+                assert get_indentation() == 2
+
+        assert get_indentation() == 0
+
+    threads = [Thread(target=worker) for _ in range(50)]
+
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    assert get_indentation() == 0
