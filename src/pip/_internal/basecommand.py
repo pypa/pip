@@ -153,7 +153,8 @@ class Command(object):
                     "class":
                     "logging.StreamHandler"
                         if options.no_color
-                        else "pip._internal.utils.logging.ColorizedStreamHandler",
+                        else ("pip._internal.utils.logging."
+                              "ColorizedStreamHandler"),
                     "stream": self.log_streams[0],
                     "filters": ["exclude_warnings"],
                     "formatter": "indent",
@@ -163,7 +164,8 @@ class Command(object):
                     "class":
                     "logging.StreamHandler"
                         if options.no_color
-                        else "pip._internal.utils.logging.ColorizedStreamHandler",
+                        else ("pip._internal.utils.logging"
+                              ".ColorizedStreamHandler"),
                     "stream": self.log_streams[1],
                     "formatter": "indent",
                 },
