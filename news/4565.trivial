@@ -1,0 +1,3 @@
+Improve sentence in docs describing how to put multiple values into a
+single environment variable in those cases where a command line option
+may be repeated.
