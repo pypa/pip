@@ -29,7 +29,7 @@ def test_rev_options_to_args():
     """
     # Check VCS-specific RevOptions behavior.
     check_to_args(Bazaar(), ['cmd'], ['cmd', '-r', '123'])
-    check_to_args(Git(), ['cmd', 'origin/master'], ['cmd', '123'])
+    check_to_args(Git(), ['cmd', 'origin/HEAD'], ['cmd', '123'])
     check_to_args(Mercurial(), ['cmd'], ['cmd', '123'])
     check_to_args(Subversion(), ['cmd'], ['cmd', '-r', '123'])
 
