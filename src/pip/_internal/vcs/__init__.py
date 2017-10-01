@@ -49,6 +49,9 @@ class RevOptions(object):
         self.rev = rev
         self.vcs = vcs
 
+    def __repr__(self):
+        return '<RevOptions {}: rev={!r}>'.format(self.vcs.name, self.rev)
+
     @property
     def arg_rev(self):
         if self.rev is None:
@@ -56,19 +59,15 @@ class RevOptions(object):
 
         return self.rev
 
-    def to_args(self, start_args, end_args=None):
+    def to_args(self):
         """
-        Return VCS-specific command arguments.
+        Return the VCS-specific command arguments.
         """
-        if end_args is None:
-            end_args = []
-
-        args = copy.copy(start_args)
+        args = []
         rev = self.arg_rev
         if rev is not None:
             args += self.vcs.get_base_rev_args(rev)
         args += self.extra_args
-        args += end_args
 
         return args
 
@@ -282,6 +281,9 @@ class VersionControl(object):
         """
         Return True if the version is identical to what exists and
         doesn't need to be updated.
+
+        Args:
+          rev_options: a RevOptions object.
         """
         raise NotImplementedError
 

@@ -118,7 +118,7 @@ class Git(VersionControl):
 
     def switch(self, dest, url, rev_options):
         self.run_command(['config', 'remote.origin.url', url], cwd=dest)
-        cmd_args = rev_options.to_args(['checkout', '-q'])
+        cmd_args = ['checkout', '-q'] + rev_options.to_args()
         self.run_command(cmd_args, cwd=dest)
 
         self.update_submodules(dest)
@@ -132,7 +132,7 @@ class Git(VersionControl):
             self.run_command(['fetch', '-q'], cwd=dest)
         # Then reset to wanted revision (maybe even origin/master)
         rev_options = self.check_rev_options(dest, rev_options)
-        cmd_args = rev_options.to_args(['reset', '--hard', '-q'])
+        cmd_args = ['reset', '--hard', '-q'] + rev_options.to_args()
         self.run_command(cmd_args, cwd=dest)
         #: update submodules
         self.update_submodules(dest)
@@ -151,7 +151,7 @@ class Git(VersionControl):
                 rev_options = self.check_rev_options(dest, rev_options)
                 # Only do a checkout if rev_options differs from HEAD
                 if not self.check_version(dest, rev_options):
-                    cmd_args = rev_options.to_args(['fetch', '-q', url])
+                    cmd_args = ['fetch', '-q', url] + rev_options.to_args()
                     self.run_command(cmd_args, cwd=dest,)
                     self.run_command(
                         ['checkout', '-q', 'FETCH_HEAD'],

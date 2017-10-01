@@ -15,51 +15,27 @@ else:
     VERBOSE_FALSE = 0
 
 
-def check_to_args(vcs, expected1, expected2):
-    """
-    Check RevOptions.to_args(), with and without passing a rev to RevOptions.
-    """
-    assert RevOptions(vcs).to_args(['cmd']) == expected1
-    assert RevOptions(vcs, '123').to_args(['cmd']) == expected2
+def test_rev_options_repr():
+    rev_options = RevOptions(Git(), 'develop')
+    assert repr(rev_options) == "<RevOptions git: rev='develop'>"
 
 
-def test_rev_options_to_args():
+@pytest.mark.parametrize(('vcs', 'expected1', 'expected2', 'kwargs'), [
+    # First check VCS-specific RevOptions behavior.
+    (Bazaar(), [], ['-r', '123'], {}),
+    (Git(), ['origin/HEAD'], ['123'], {}),
+    (Mercurial(), [], ['123'], {}),
+    (Subversion(), [], ['-r', '123'], {}),
+    # Test extra_args.  For this, test using a single VersionControl class.
+    (Git(), ['origin/HEAD', 'opt1', 'opt2'], ['123', 'opt1', 'opt2'],
+        dict(extra_args=['opt1', 'opt2'])),
+])
+def test_rev_options_to_args(vcs, expected1, expected2, kwargs):
     """
     Test RevOptions.to_args().
     """
-    # Check VCS-specific RevOptions behavior.
-    check_to_args(Bazaar(), ['cmd'], ['cmd', '-r', '123'])
-    check_to_args(Git(), ['cmd', 'origin/HEAD'], ['cmd', '123'])
-    check_to_args(Mercurial(), ['cmd'], ['cmd', '123'])
-    check_to_args(Subversion(), ['cmd'], ['cmd', '-r', '123'])
-
-    # Check RevOptions behavior that is the same across all VersionControl
-    # classes.  For these, use a single VersionControl class to test.
-    vcs = Git()
-
-    # Test start_args.
-    rev_options = RevOptions(vcs, 'master')
-    assert (
-        rev_options.to_args(['cmd', 'option1']) ==
-        ['cmd', 'option1', 'master']
-    )
-    # Test end_args.
-    rev_options = RevOptions(vcs, 'master')
-    assert (
-        rev_options.to_args(['cmd', 'option1'], ['option2']) ==
-        ['cmd', 'option1', 'master', 'option2']
-    )
-    # Test extra_args.
-    rev_options = RevOptions(vcs, 'master', extra_args=['option1', 'option2'])
-    assert (
-        rev_options.to_args(['cmd']) ==
-        ['cmd', 'master', 'option1', 'option2']
-    )
-    # Test extra_args with end_args.
-    assert (
-        rev_options.to_args(['cmd'], ['option3']) ==
-        ['cmd', 'master', 'option1', 'option2', 'option3']
-    )
+    assert RevOptions(vcs, **kwargs).to_args() == expected1
+    assert RevOptions(vcs, '123', **kwargs).to_args() == expected2
 
 
 def test_rev_options_to_display():

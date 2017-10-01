@@ -70,15 +70,15 @@ class Subversion(VersionControl):
                 # Subversion doesn't like to check out over an existing
                 # directory --force fixes this, but was only added in svn 1.5
                 rmtree(location)
-            cmd_args = rev_options.to_args(['export'], [url, location])
+            cmd_args = ['export'] + rev_options.to_args() + [url, location]
             self.run_command(cmd_args, show_stdout=False)
 
     def switch(self, dest, url, rev_options):
-        cmd_args = rev_options.to_args(['switch'], [url, dest])
+        cmd_args = ['switch'] + rev_options.to_args() + [url, dest]
         self.run_command(cmd_args)
 
     def update(self, dest, rev_options):
-        cmd_args = rev_options.to_args(['update'], [dest])
+        cmd_args = ['update'] + rev_options.to_args() + [dest]
         self.run_command(cmd_args)
 
     def obtain(self, dest):
@@ -93,7 +93,7 @@ class Subversion(VersionControl):
                 rev_display,
                 display_path(dest),
             )
-            cmd_args = rev_options.to_args(['checkout', '-q'], [url, dest])
+            cmd_args = ['checkout', '-q'] + rev_options.to_args() + [url, dest]
             self.run_command(cmd_args)
 
     def get_location(self, dist, dependency_links):
