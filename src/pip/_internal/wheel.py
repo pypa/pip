@@ -38,8 +38,8 @@ from pip._internal.utils.misc import (
 )
 from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._internal.utils.temp_dir import TempDirectory
-from pip._internal.utils.ui import open_spinner
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.ui import open_spinner
 
 if MYPY_CHECK_RUNNING:
     from typing import Dict, List, Optional
