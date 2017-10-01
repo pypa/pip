@@ -28,6 +28,9 @@ class Subversion(VersionControl):
     repo_name = 'checkout'
     schemes = ('svn', 'svn+ssh', 'svn+http', 'svn+https', 'svn+svn')
 
+    def get_base_rev_args(self, rev):
+        return ['-r', rev]
+
     def get_info(self, location):
         """Returns (url, revision), where both are strings"""
         assert not location.rstrip('/').endswith(self.dirname), \
@@ -59,7 +62,7 @@ class Subversion(VersionControl):
     def export(self, location):
         """Export the svn repository at the url to the destination location"""
         url, rev = self.get_url_rev()
-        rev_options = get_rev_options(url, rev)
+        rev_options = get_rev_options(self, url, rev)
         url = self.remove_auth_from_url(url)
         logger.info('Exporting svn repository %s to %s', url, location)
         with indent_log():
@@ -67,32 +70,31 @@ class Subversion(VersionControl):
                 # Subversion doesn't like to check out over an existing
                 # directory --force fixes this, but was only added in svn 1.5
                 rmtree(location)
-            self.run_command(
-                ['export'] + rev_options + [url, location],
-                show_stdout=False)
+            cmd_args = ['export'] + rev_options.to_args() + [url, location]
+            self.run_command(cmd_args, show_stdout=False)
 
     def switch(self, dest, url, rev_options):
-        self.run_command(['switch'] + rev_options + [url, dest])
+        cmd_args = ['switch'] + rev_options.to_args() + [url, dest]
+        self.run_command(cmd_args)
 
     def update(self, dest, rev_options):
-        self.run_command(['update'] + rev_options + [dest])
+        cmd_args = ['update'] + rev_options.to_args() + [dest]
+        self.run_command(cmd_args)
 
     def obtain(self, dest):
         url, rev = self.get_url_rev()
-        rev_options = get_rev_options(url, rev)
+        rev_options = get_rev_options(self, url, rev)
         url = self.remove_auth_from_url(url)
-        if rev:
-            rev_display = ' (to revision %s)' % rev
-        else:
-            rev_display = ''
-        if self.check_destination(dest, url, rev_options, rev_display):
+        if self.check_destination(dest, url, rev_options):
+            rev_display = rev_options.to_display()
             logger.info(
                 'Checking out %s%s to %s',
                 url,
                 rev_display,
                 display_path(dest),
             )
-            self.run_command(['checkout', '-q'] + rev_options + [url, dest])
+            cmd_args = ['checkout', '-q'] + rev_options.to_args() + [url, dest]
+            self.run_command(cmd_args)
 
     def get_location(self, dist, dependency_links):
         for url in dependency_links:
@@ -238,12 +240,10 @@ class Subversion(VersionControl):
         return surl
 
 
-def get_rev_options(url, rev):
-    if rev:
-        rev_options = ['-r', rev]
-    else:
-        rev_options = []
-
+def get_rev_options(vcs, url, rev):
+    """
+    Return a RevOptions object.
+    """
     r = urllib_parse.urlsplit(url)
     if hasattr(r, 'username'):
         # >= Python-2.5
@@ -259,11 +259,13 @@ def get_rev_options(url, rev):
         else:
             username, password = None, None
 
+    extra_args = []
     if username:
-        rev_options += ['--username', username]
+        extra_args += ['--username', username]
     if password:
-        rev_options += ['--password', password]
-    return rev_options
+        extra_args += ['--password', password]
+
+    return vcs.make_rev_options(rev, extra_args=extra_args)
 
 
 vcs.register(Subversion)

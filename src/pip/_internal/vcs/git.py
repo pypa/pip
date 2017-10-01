@@ -27,6 +27,7 @@ class Git(VersionControl):
     schemes = (
         'git', 'git+http', 'git+https', 'git+ssh', 'git+git', 'git+file',
     )
+    default_arg_rev = 'origin/HEAD'
 
     def __init__(self, url=None, *args, **kwargs):
 
@@ -48,6 +49,9 @@ class Git(VersionControl):
                 )
 
         super(Git, self).__init__(url, *args, **kwargs)
+
+    def get_base_rev_args(self, rev):
+        return [rev]
 
     def get_git_version(self):
         VERSION_PFX = 'git version '
@@ -74,20 +78,25 @@ class Git(VersionControl):
                 show_stdout=False, cwd=temp_dir.path
             )
 
-    def check_rev_options(self, rev, dest, rev_options):
+    def check_rev_options(self, dest, rev_options):
         """Check the revision options before checkout to compensate that tags
         and branches may need origin/ as a prefix.
-        Returns the SHA1 of the branch or tag if found.
+        Returns a new RevOptions object for the SHA1 of the branch or tag
+        if found.
+
+        Args:
+          rev_options: a RevOptions object.
         """
         revisions = self.get_short_refs(dest)
 
+        rev = rev_options.arg_rev
         origin_rev = 'origin/%s' % rev
         if origin_rev in revisions:
             # remote branch
-            return [revisions[origin_rev]]
+            return rev_options.make_new(revisions[origin_rev])
         elif rev in revisions:
             # a local tag or branch name
-            return [revisions[rev]]
+            return rev_options.make_new(revisions[rev])
         else:
             logger.warning(
                 "Could not find a tag or branch '%s', assuming commit or ref",
@@ -101,12 +110,16 @@ class Git(VersionControl):
         but current rev will always point to a sha. This means that a branch
         or tag will never compare as True. So this ultimately only matches
         against exact shas.
+
+        Args:
+          rev_options: a RevOptions object.
         """
-        return self.get_revision(dest).startswith(rev_options[0])
+        return self.get_revision(dest).startswith(rev_options.arg_rev)
 
     def switch(self, dest, url, rev_options):
         self.run_command(['config', 'remote.origin.url', url], cwd=dest)
-        self.run_command(['checkout', '-q'] + rev_options, cwd=dest)
+        cmd_args = ['checkout', '-q'] + rev_options.to_args()
+        self.run_command(cmd_args, cwd=dest)
 
         self.update_submodules(dest)
 
@@ -118,36 +131,28 @@ class Git(VersionControl):
         else:
             self.run_command(['fetch', '-q'], cwd=dest)
         # Then reset to wanted revision (maybe even origin/master)
-        if rev_options:
-            rev_options = self.check_rev_options(
-                rev_options[0], dest, rev_options,
-            )
-        self.run_command(['reset', '--hard', '-q'] + rev_options, cwd=dest)
+        rev_options = self.check_rev_options(dest, rev_options)
+        cmd_args = ['reset', '--hard', '-q'] + rev_options.to_args()
+        self.run_command(cmd_args, cwd=dest)
         #: update submodules
         self.update_submodules(dest)
 
     def obtain(self, dest):
         url, rev = self.get_url_rev()
-        if rev:
-            rev_options = [rev]
-            rev_display = ' (to %s)' % rev
-        else:
-            rev_options = ['origin/HEAD']
-            rev_display = ''
-        if self.check_destination(dest, url, rev_options, rev_display):
+        rev_options = self.make_rev_options(rev)
+        if self.check_destination(dest, url, rev_options):
+            rev_display = rev_options.to_display()
             logger.info(
                 'Cloning %s%s to %s', url, rev_display, display_path(dest),
             )
             self.run_command(['clone', '-q', url, dest])
 
             if rev:
-                rev_options = self.check_rev_options(rev, dest, rev_options)
+                rev_options = self.check_rev_options(dest, rev_options)
                 # Only do a checkout if rev_options differs from HEAD
                 if not self.check_version(dest, rev_options):
-                    self.run_command(
-                        ['fetch', '-q', url] + rev_options,
-                        cwd=dest,
-                    )
+                    cmd_args = ['fetch', '-q', url] + rev_options.to_args()
+                    self.run_command(cmd_args, cwd=dest,)
                     self.run_command(
                         ['checkout', '-q', 'FETCH_HEAD'],
                         cwd=dest,
