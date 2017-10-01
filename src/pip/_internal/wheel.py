@@ -39,6 +39,10 @@ from pip._internal.utils.misc import (
 from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.ui import open_spinner
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from typing import Dict, List, Optional
 
 wheel_ext = '.whl'
 
@@ -141,6 +145,7 @@ def get_entrypoints(filename):
 
 
 def message_about_scripts_not_on_PATH(scripts):
+    # type: (List[str]) -> Optional[str]
     """Determine if any scripts are not on PATH and format a warning.
 
     Returns a warning message if one or more scripts are not on PATH,
@@ -150,7 +155,7 @@ def message_about_scripts_not_on_PATH(scripts):
         return None
 
     # Group scripts by the path they were installed in
-    grouped_by_dir = collections.defaultdict(set)
+    grouped_by_dir = collections.defaultdict(set)  # type: Dict[str, set]
     for destfile in scripts:
         parent_dir = os.path.dirname(destfile)
         script_name = os.path.basename(destfile)
