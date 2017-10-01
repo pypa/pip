@@ -23,11 +23,11 @@ def test_rev_options_repr():
 @pytest.mark.parametrize(('vcs', 'expected1', 'expected2', 'kwargs'), [
     # First check VCS-specific RevOptions behavior.
     (Bazaar(), [], ['-r', '123'], {}),
-    (Git(), ['origin/HEAD'], ['123'], {}),
+    (Git(), ['HEAD'], ['123'], {}),
     (Mercurial(), [], ['123'], {}),
     (Subversion(), [], ['-r', '123'], {}),
     # Test extra_args.  For this, test using a single VersionControl class.
-    (Git(), ['origin/HEAD', 'opt1', 'opt2'], ['123', 'opt1', 'opt2'],
+    (Git(), ['HEAD', 'opt1', 'opt2'], ['123', 'opt1', 'opt2'],
         dict(extra_args=['opt1', 'opt2'])),
 ])
 def test_rev_options_to_args(vcs, expected1, expected2, kwargs):
