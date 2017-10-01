@@ -399,7 +399,6 @@ if __name__ == '__main__':
         generated.extend(generated_console_scripts)
         for destfile in generated_console_scripts:
             is_on_PATH = os.path.dirname(destfile) in _ENV_PATH_PARTS
-            print(destfile, _ENV_PATH_PARTS)
             if not is_on_PATH and warn_script_location:
                 logger.warn(
                     "Installed script %r is not in PATH..."
