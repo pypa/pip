@@ -3,6 +3,7 @@ Support for installing and building the "wheel" binary package format.
 """
 from __future__ import absolute_import
 
+import collections
 import compileall
 import copy
 import csv
@@ -42,8 +43,6 @@ from pip._internal.utils.ui import open_spinner
 wheel_ext = '.whl'
 
 VERSION_COMPATIBLE = (1, 0)
-# used for checking that scripts were installed on PATH
-_ENV_PATH_PARTS = os.environ["PATH"].split(os.pathsep)
 
 logger = logging.getLogger(__name__)
 
@@ -139,6 +138,59 @@ def get_entrypoints(filename):
     console = dict(_split_ep(v) for v in console.values())
     gui = dict(_split_ep(v) for v in gui.values())
     return console, gui
+
+
+def message_about_scripts_not_on_PATH(scripts):
+    """Determine if any scripts are not on PATH and format a warning.
+
+    Returns a warning message if one or more scripts are not on PATH,
+    otherwise None.
+    """
+    if not scripts:
+        return None
+
+    # Group scripts by the path they were installed in
+    grouped_by_dir = collections.defaultdict(set)
+    for destfile in scripts:
+        parent_dir = os.path.dirname(destfile)
+        script_name = os.path.basename(destfile)
+        grouped_by_dir[parent_dir].add(script_name)
+
+    # Warn only for directories that are not on PATH
+    warn_for = {
+        parent_dir: scripts for parent_dir, scripts in grouped_by_dir.items()
+        if parent_dir not in os.environ["PATH"].split(os.pathsep)
+    }
+    if not warn_for:
+        return None
+
+    # Format a message
+    msg_lines = []
+    for parent_dir, scripts in warn_for.items():
+        if len(scripts) == 1:
+            start_text = "Script {} is".format(scripts.pop())
+        else:
+            scripts = sorted(scripts)
+            start_text = "The scripts {} are".format(
+                ", ".join(scripts[:-1]) + " and " + scripts[-1]
+            )
+
+        msg_lines.append(
+            "{} installed in '{}' which is not on PATH."
+            .format(start_text, parent_dir)
+        )
+
+    last_line_fmt = (
+        "Consider adding {} to PATH or, if you prefer "
+        "to suppress this warning, use --no-warn-script-location."
+    )
+    if len(msg_lines) == 1:
+        msg_lines.append(last_line_fmt.format("this directory"))
+    else:
+        msg_lines.append(last_line_fmt.format("these directories"))
+
+    # Returns the formatted multiline message
+    return "\n".join(msg_lines)
 
 
 def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
@@ -397,15 +449,11 @@ if __name__ == '__main__':
             ['%s = %s' % kv for kv in console.items()]
         )
         generated.extend(generated_console_scripts)
-        for destfile in generated_console_scripts:
-            parent_dir = os.path.dirname(destfile)
-            if parent_dir not in _ENV_PATH_PARTS and warn_script_location:
-                msg = (
-                    "Script '%s' is not installed in a directory on PATH. "
-                    "Consider adding %s to PATH. "
-                    "Use --no-warn-script-location to suppress this message."
-                )
-                logger.warn(msg, os.path.basename(destfile), parent_dir)
+
+        if warn_script_location:
+            msg = message_about_scripts_not_on_PATH(generated_console_scripts)
+            if msg is not None:
+                logger.warn(msg)
 
     if len(gui) > 0:
         generated.extend(

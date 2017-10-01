@@ -1230,20 +1230,20 @@ def test_installing_scripts_outside_path_prints_warning(script):
     result = script.pip_install_local(
         "--prefix", script.scratch_path, "script_wheel1", expect_error=True
     )
-    assert "not installed in a directory on PATH." in result.stderr
     assert "Successfully installed script-wheel1" in result.stdout, str(result)
+    assert "--no-warn-script-location" in result.stderr
 
 
-def test_installing_scripts_outside_path_can_supress_warning(script):
+def test_installing_scripts_outside_path_can_suppress_warning(script):
     result = script.pip_install_local(
         "--prefix", script.scratch_path, "--no-warn-script-location",
         "script_wheel1"
     )
-    assert "not installed in a directory on PATH." not in result.stderr
     assert "Successfully installed script-wheel1" in result.stdout, str(result)
+    assert "--no-warn-script-location" not in result.stderr
 
 
 def test_installing_scripts_on_path_does_not_print_warning(script):
     result = script.pip_install_local("script_wheel1")
-    assert "not installed in a directory on PATH." not in result.stderr
     assert "Successfully installed script-wheel1" in result.stdout, str(result)
+    assert "--no-warn-script-location" not in result.stderr
