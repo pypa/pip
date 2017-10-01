@@ -398,12 +398,15 @@ if __name__ == '__main__':
         )
         generated.extend(generated_console_scripts)
         for destfile in generated_console_scripts:
-            is_on_PATH = os.path.dirname(destfile) in _ENV_PATH_PARTS
-            if not is_on_PATH and warn_script_location:
-                logger.warn(
-                    "Installed script %r is not in PATH..."
-                    "<insert instructions here>"
+            parent_dir = os.path.dirname(destfile)
+            if parent_dir not in _ENV_PATH_PARTS and warn_script_location:
+                msg = (
+                    "Script '%s' is not installed in a directory on PATH. "
+                    "Consider adding %s to PATH. "
+                    "Use --no-warn-script-location to suppress this message."
                 )
+                logger.warn(msg, os.path.basename(destfile), parent_dir)
+
     if len(gui) > 0:
         generated.extend(
             maker.make_multiple(
