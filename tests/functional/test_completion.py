@@ -1,4 +1,7 @@
 import os
+import sys
+
+import pytest
 
 
 def test_completion_for_bash(script):
@@ -114,3 +117,13 @@ def test_completion_option_for_command(script):
     res, env = setup_completion(script, 'pip search --', '2')
     assert '--help' in res.stdout,\
            "autocomplete function could not complete ``--``"
+
+
+@pytest.mark.parametrize('flag', ['--bash', '--zsh', '--fish'])
+def test_completion_uses_same_executable_name(script, flag):
+    expect_stderr = sys.version_info[:2] == (3, 3)
+    executable_name = 'pip{}'.format(sys.version_info[0])
+    result = script.run(
+        executable_name, 'completion', flag, expect_stderr=expect_stderr
+    )
+    assert executable_name in result.stdout
