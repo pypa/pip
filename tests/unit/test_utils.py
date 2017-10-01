@@ -602,6 +602,7 @@ class TestGetProg(object):
             ('/usr/bin/pip', '', 'pip'),
             ('-c', '/usr/bin/python', '/usr/bin/python -m pip'),
             ('__main__.py', '/usr/bin/python', '/usr/bin/python -m pip'),
+            ('/usr/bin/pip3', '', 'pip3'),
         ]
     )
     def test_get_prog(self, monkeypatch, argv, executable, expected):
