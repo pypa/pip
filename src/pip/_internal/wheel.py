@@ -48,6 +48,7 @@ wheel_ext = '.whl'
 
 VERSION_COMPATIBLE = (1, 0)
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -175,14 +176,14 @@ def message_about_scripts_not_on_PATH(scripts):
     for parent_dir, scripts in warn_for.items():
         scripts = sorted(scripts)
         if len(scripts) == 1:
-            start_text = "Script {} is".format(scripts[0])
+            start_text = "script {} is".format(scripts[0])
         else:
-            start_text = "The scripts {} are".format(
+            start_text = "scripts {} are".format(
                 ", ".join(scripts[:-1]) + " and " + scripts[-1]
             )
 
         msg_lines.append(
-            "{} installed in '{}' which is not on PATH."
+            "The {} installed in '{}' which is not on PATH."
             .format(start_text, parent_dir)
         )
 
