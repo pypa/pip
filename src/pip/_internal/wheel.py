@@ -161,10 +161,11 @@ def message_about_scripts_not_on_PATH(scripts):
         script_name = os.path.basename(destfile)
         grouped_by_dir[parent_dir].add(script_name)
 
+    path_env_var_parts = os.environ["PATH"].split(os.pathsep)
     # Warn only for directories that are not on PATH
     warn_for = {
         parent_dir: scripts for parent_dir, scripts in grouped_by_dir.items()
-        if parent_dir not in os.environ["PATH"].split(os.pathsep)
+        if parent_dir not in path_env_var_parts
     }
     if not warn_for:
         return None
