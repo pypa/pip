@@ -167,10 +167,10 @@ def message_about_scripts_not_on_PATH(scripts):
     # Format a message
     msg_lines = []
     for parent_dir, scripts in warn_for.items():
+        scripts = sorted(scripts)
         if len(scripts) == 1:
-            start_text = "Script {} is".format(scripts.pop())
+            start_text = "Script {} is".format(scripts[0])
         else:
-            scripts = sorted(scripts)
             start_text = "The scripts {} are".format(
                 ", ".join(scripts[:-1]) + " and " + scripts[-1]
             )
