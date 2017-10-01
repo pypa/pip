@@ -97,8 +97,11 @@ def apply_patch(ctx, patch_file_path):
 
 def vendor(ctx, vendor_dir):
     log('Reinstalling vendored libraries')
+    # We use --no-deps because we want to ensure that all of our dependencies
+    # are added to vendor.txt, this includes all dependencies recursively up
+    # the chain.
     ctx.run(
-        'pip install -t {0} -r {0}/vendor.txt --no-compile'.format(
+        'pip install -t {0} -r {0}/vendor.txt --no-compile --no-deps'.format(
             str(vendor_dir),
         )
     )
