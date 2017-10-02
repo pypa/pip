@@ -344,7 +344,7 @@ def test_hashed_install_success(script, data, tmpdir):
         script.pip_install_local('-r', reqs_file.abspath, expect_error=False)
 
 
-def test_hashed_install_failure(script, data, tmpdir):
+def test_hashed_install_failure(script, tmpdir):
     """Test that wrong hashes stop installation.
 
     This makes sure prepare_files() is called in the course of installation
@@ -396,7 +396,7 @@ def test_editable_install_from_local_directory_with_no_setup_py(script, data):
 
 @pytest.mark.skipif("sys.version_info >= (3,4)")
 @pytest.mark.xfail
-def test_install_argparse_shadowed(script, data):
+def test_install_argparse_shadowed(script):
     # When argparse is in the stdlib, we support installing it
     # even though that's pretty useless because older packages did need to
     # depend on it, and not having its metadata will cause pkg_resources
@@ -409,7 +409,7 @@ def test_install_argparse_shadowed(script, data):
 
 
 @pytest.mark.skipif("sys.version_info < (3,4)")
-def test_upgrade_argparse_shadowed(script, data):
+def test_upgrade_argparse_shadowed(script):
     # If argparse is installed - even if shadowed for imported - we support
     # upgrading it and properly remove the older versions files.
     script.pip('install', 'argparse==1.3')
@@ -845,7 +845,7 @@ def test_compiles_pyc(script):
 
 
 @pytest.mark.network
-def test_no_compiles_pyc(script, data):
+def test_no_compiles_pyc(script):
     """
     Test installing from wheel with --compile on
     """
@@ -1081,7 +1081,7 @@ def test_install_tar_lzma(script, data):
     assert "Successfully installed singlemodule-0.0.1" in res.stdout, res
 
 
-def test_double_install(script, data):
+def test_double_install(script):
     """
     Test double install passing with two same version requirements
     """
@@ -1090,7 +1090,7 @@ def test_double_install(script, data):
     assert msg not in result.stderr
 
 
-def test_double_install_fail(script, data):
+def test_double_install_fail(script):
     """
     Test double install failing with two different version requirements
     """
@@ -1177,7 +1177,7 @@ def test_install_compatible_python_requires(script, common_wheels):
     assert "Successfully installed pkga-0.1" in res.stdout, res
 
 
-def test_install_environment_markers(script, data):
+def test_install_environment_markers(script):
     # make a dummy project
     pkga_path = script.scratch_path / 'pkga'
     pkga_path.mkdir()
