@@ -1224,3 +1224,26 @@ def test_install_pep508_with_url_in_install_requires(script):
     res = script.pip('install', pkga_path, expect_error=True)
     assert "Direct url requirement " in res.stderr, str(res)
     assert "are not allowed for dependencies" in res.stderr, str(res)
+
+
+def test_installing_scripts_outside_path_prints_warning(script):
+    result = script.pip_install_local(
+        "--prefix", script.scratch_path, "script_wheel1", expect_error=True
+    )
+    assert "Successfully installed script-wheel1" in result.stdout, str(result)
+    assert "--no-warn-script-location" in result.stderr
+
+
+def test_installing_scripts_outside_path_can_suppress_warning(script):
+    result = script.pip_install_local(
+        "--prefix", script.scratch_path, "--no-warn-script-location",
+        "script_wheel1"
+    )
+    assert "Successfully installed script-wheel1" in result.stdout, str(result)
+    assert "--no-warn-script-location" not in result.stderr
+
+
+def test_installing_scripts_on_path_does_not_print_warning(script):
+    result = script.pip_install_local("script_wheel1")
+    assert "Successfully installed script-wheel1" in result.stdout, str(result)
+    assert "--no-warn-script-location" not in result.stderr

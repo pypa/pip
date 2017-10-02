@@ -9,7 +9,6 @@ from pip._internal import pep425tags, wheel
 from pip._internal.compat import WINDOWS
 from pip._internal.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip._internal.utils.misc import unpack_file
-
 from tests.lib import DATA_DIR
 
 
@@ -371,3 +370,86 @@ class TestWheelBuilder(object):
             wb.build(Mock())
             assert "due to already being wheel" in caplog.text
             assert mock_build_one.mock_calls == []
+
+
+class TestMessageAboutScriptsNotOnPATH(object):
+
+    def _template(self, paths, scripts):
+        with patch.dict('os.environ', {'PATH': os.pathsep.join(paths)}):
+            return wheel.message_about_scripts_not_on_PATH(scripts)
+
+    def test_no_script(self):
+        retval = self._template(
+            paths=['/a/b', '/c/d/bin'],
+            scripts=[]
+        )
+        assert retval is None
+
+    def test_single_script__single_dir_not_on_PATH(self):
+        retval = self._template(
+            paths=['/a/b', '/c/d/bin'],
+            scripts=['/c/d/foo']
+        )
+        assert retval is not None
+        assert "--no-warn-script-location" in retval
+        assert "foo is installed in '/c/d'" in retval
+
+    def test_two_script__single_dir_not_on_PATH(self):
+        retval = self._template(
+            paths=['/a/b', '/c/d/bin'],
+            scripts=['/c/d/foo', '/c/d/baz']
+        )
+        assert retval is not None
+        assert "--no-warn-script-location" in retval
+        assert "baz and foo are installed in '/c/d'" in retval
+
+    def test_multi_script__multi_dir_not_on_PATH(self):
+        retval = self._template(
+            paths=['/a/b', '/c/d/bin'],
+            scripts=['/c/d/foo', '/c/d/bar', '/c/d/baz', '/a/b/c/spam']
+        )
+        assert retval is not None
+        assert "--no-warn-script-location" in retval
+        assert "bar, baz and foo are installed in '/c/d'" in retval
+        assert "spam is installed in '/a/b/c'" in retval
+
+    def test_multi_script_all__multi_dir_not_on_PATH(self):
+        retval = self._template(
+            paths=['/a/b', '/c/d/bin'],
+            scripts=[
+                '/c/d/foo', '/c/d/bar', '/c/d/baz',
+                '/a/b/c/spam', '/a/b/c/eggs'
+            ]
+        )
+        assert retval is not None
+        assert "--no-warn-script-location" in retval
+        assert "bar, baz and foo are installed in '/c/d'" in retval
+        assert "eggs and spam are installed in '/a/b/c'" in retval
+
+    def test_two_script__single_dir_on_PATH(self):
+        retval = self._template(
+            paths=['/a/b', '/c/d/bin'],
+            scripts=['/a/b/foo', '/a/b/baz']
+        )
+        assert retval is None
+
+    def test_multi_script__multi_dir_on_PATH(self):
+        retval = self._template(
+            paths=['/a/b', '/c/d/bin'],
+            scripts=['/a/b/foo', '/a/b/bar', '/a/b/baz', '/c/d/bin/spam']
+        )
+        assert retval is None
+
+    def test_multi_script__single_dir_on_PATH(self):
+        retval = self._template(
+            paths=['/a/b', '/c/d/bin'],
+            scripts=['/a/b/foo', '/a/b/bar', '/a/b/baz']
+        )
+        assert retval is None
+
+    def test_single_script__single_dir_on_PATH(self):
+        retval = self._template(
+            paths=['/a/b', '/c/d/bin'],
+            scripts=['/a/b/foo']
+        )
+        assert retval is None
