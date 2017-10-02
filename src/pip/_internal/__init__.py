@@ -88,8 +88,11 @@ def autocomplete():
         if subcommand_name == 'help':
             sys.exit(1)
         # special case: list locally installed dists for show and uninstall
-        if (subcommand_name in ['show', 'uninstall']
-                and not current.startswith('-')):
+        should_list_installed = (
+            subcommand_name in ['show', 'uninstall'] and
+            not current.startswith('-')
+        )
+        if should_list_installed:
             installed = []
             lc = current.lower()
             for dist in get_installed_distributions(local_only=True):
