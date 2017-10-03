@@ -114,7 +114,6 @@ def test_check_rev_options_not_found_warning(get_refs_mock, caplog):
     git = Git()
 
     sha = 40 * 'a'
-
     rev_options = git.make_rev_options(sha)
     new_options = git.check_rev_options('.', rev_options)
     assert new_options.rev == sha
