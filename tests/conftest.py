@@ -157,6 +157,15 @@ def virtualenv_template(tmpdir_factory):
         pip_source_dir=pip_src,
         relocatable=True,
     )
+    if sys.platform == 'win32':
+        # Work around setuptools' easy_install.exe
+        # not working properly after relocation.
+        for exe in os.listdir(venv.bin):
+            if exe.startswith('easy_install'):
+                (venv.bin / exe).remove()
+        with open(venv.bin / 'easy_install.bat', 'w') as fp:
+            fp.write('python.exe -m easy_install %*\n')
+
     # Rename original virtualenv directory to make sure
     # it's not reused by mistake from one of the copies.
     venv_template = tmpdir / "venv_template"
