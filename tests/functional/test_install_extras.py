@@ -70,7 +70,7 @@ def test_nonexistent_extra_warns_user_no_wheel(script, data):
     assert (
         "simple 3.0 does not provide the extra 'nonexistent'"
         in result.stderr
-    )
+    ), str(result)
 
 
 def test_nonexistent_extra_warns_user_with_wheel(script, data):

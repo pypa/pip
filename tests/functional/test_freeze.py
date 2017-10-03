@@ -481,7 +481,7 @@ def test_freeze_with_requirement_option_multiple(script):
         simple2==1.0
     """)
     expected += "## The following requirements were added by pip freeze:"
-    expected += os.linesep + textwrap.dedent("""\
+    expected += '\n' + textwrap.dedent("""\
         ...meta==1.0...
     """)
     _check_output(result.stdout, expected)
