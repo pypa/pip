@@ -288,13 +288,20 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
             self.site_packages_path = self.lib_path.join("site-packages")
 
         self.user_base_path = self.venv_path.join("user")
-        self.user_bin_path = self.user_base_path.join(
-            self.bin_path - self.venv_path
-        )
         self.user_site_path = self.venv_path.join(
             "user",
             site.USER_SITE[len(site.USER_BASE) + 1:],
         )
+        if sys.platform == 'win32':
+            if sys.version_info >= (3, 5):
+                scripts_base = self.user_site_path.join('..').normpath
+            else:
+                scripts_base = self.user_base_path
+            self.user_bin_path = scripts_base.join('Scripts')
+        else:
+            self.user_bin_path = self.user_base_path.join(
+                self.bin_path - self.venv_path
+            )
 
         # Create a Directory to use as a scratch pad
         self.scratch_path = base_path.join("scratch").mkdir()
@@ -313,6 +320,8 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
         environ["PYTHONUSERBASE"] = self.user_base_path
         # Writing bytecode can mess up updated file detection
         environ["PYTHONDONTWRITEBYTECODE"] = "1"
+        # Make sure we get UTF-8 on output, even on Windows...
+        environ["PYTHONIOENCODING"] = "UTF-8"
         kwargs["environ"] = environ
 
         # Call the TestFileEnvironment __init__
@@ -348,6 +357,9 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
         run_from = kw.pop('run_from', None)
         assert not cwd or not run_from, "Don't use run_from; it's going away"
         cwd = cwd or run_from or self.cwd
+        if sys.platform == 'win32':
+            # Partial fix for ScriptTest.run using `shell=True` on Windows.
+            args = [str(a).replace('^', '^^').replace('&', '^&') for a in args]
         return TestPipResult(
             super(PipTestEnvironment, self).run(cwd=cwd, *args, **kw),
             verbose=self.verbose,
@@ -363,8 +375,12 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
         # Python 3.3 is deprecated and we emit a warning on it.
         if pyversion_tuple[:2] == (3, 3):
             kwargs['expect_stderr'] = True
-
-        return self.run("pip", *args, **kwargs)
+        if kwargs.pop('use_module', False):
+            exe = 'python'
+            args = ('-m', 'pip') + args
+        else:
+            exe = 'pip'
+        return self.run(exe, *args, **kwargs)
 
     def pip_install_local(self, *args, **kwargs):
         return self.pip(
