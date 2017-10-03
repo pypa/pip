@@ -7,7 +7,9 @@ import re
 import textwrap
 import site
 import shutil
+import subprocess
 
+import pytest
 import scripttest
 import six
 import virtualenv
@@ -730,3 +732,19 @@ def create_basic_wheel_for_package(script, name, version, depends, extras):
     script.temp_path.mkdir()
 
     return retval
+
+
+def need_executable(name, check_cmd):
+    def wrapper(fn):
+        try:
+            subprocess.check_output(check_cmd)
+        except OSError:
+            return pytest.mark.skip(reason='%s is not available' % name)(fn)
+        return fn
+    return wrapper
+
+
+def need_bzr(fn):
+    return pytest.mark.bzr(need_executable(
+        'Bazaar', ('bzr', 'version', '--short')
+    )(fn))

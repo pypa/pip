@@ -6,7 +6,9 @@ from doctest import ELLIPSIS, OutputChecker
 
 import pytest
 
-from tests.lib import _create_test_package, _create_test_package_with_srcdir
+from tests.lib import (
+    _create_test_package, _create_test_package_with_srcdir, need_bzr
+)
 
 distribute_re = re.compile('^distribute==[0-9.]+\n', re.MULTILINE)
 
@@ -361,7 +363,7 @@ def test_freeze_mercurial_clone(script, tmpdir):
     _check_output(result.stdout, expected)
 
 
-@pytest.mark.bzr
+@need_bzr
 def test_freeze_bazaar_clone(script, tmpdir):
     """
     Test freezing a Bazaar clone.

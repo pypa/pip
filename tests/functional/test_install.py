@@ -12,7 +12,7 @@ from pip._internal.utils import appdirs
 from pip._internal.utils.misc import rmtree
 from tests.lib import (
     _create_svn_repo, _create_test_package, create_test_package_with_setup,
-    path_to_url, pyversion, pyversion_tuple, requirements_file
+    need_bzr, path_to_url, pyversion, pyversion_tuple, requirements_file
 )
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
@@ -235,7 +235,7 @@ def test_vcs_url_final_slash_normalization(script, tmpdir):
     result.assert_installed('testpackage', with_files=['.hg'])
 
 
-@pytest.mark.bzr
+@need_bzr
 def test_install_editable_from_bazaar(script, tmpdir):
     """Test checking out from Bazaar."""
     pkg_path = _create_test_package(script, name='testpackage', vcs='bazaar')
@@ -245,7 +245,7 @@ def test_install_editable_from_bazaar(script, tmpdir):
 
 
 @pytest.mark.network
-@pytest.mark.bzr
+@need_bzr
 def test_vcs_url_urlquote_normalization(script, tmpdir):
     """
     Test that urlquoted characters are normalized for repo URL comparison.
