@@ -320,6 +320,18 @@ def test_freeze_git_remote(script, tmpdir):
         """
     ).format(remote=origin_remote).strip()
     _check_output(result.stdout, expected)
+    # check when there are no remotes. Should report local file path.
+    script.run('git', 'remote', 'remove', 'origin', cwd=repo_dir)
+    script.run('git', 'remote', 'remove', 'other', cwd=repo_dir)
+    result = script.pip('freeze', expect_stderr=True)
+    expected = textwrap.dedent(
+        """
+            ...-e git+{remote}@...#egg=version_pkg
+            ...
+        """
+    ).format(remote='file://' + repo_dir).strip()
+    _check_output(result.stdout, expected)
+    # check when there are no remotes. Should report local file path.
 
 
 @need_mercurial

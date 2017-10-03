@@ -9,7 +9,7 @@ from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip._internal.compat import samefile
-from pip._internal.exceptions import BadCommand
+from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.utils.misc import display_path
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.vcs import VersionControl, vcs
@@ -203,17 +203,22 @@ class Git(VersionControl):
 
     def get_url(self, location):
         """Return URL of the first remote encountered."""
-        remotes = self.run_command(
-            ['config', '--get-regexp', r'remote\..*\.url'],
-            show_stdout=False, cwd=location,
-        )
-        remotes = remotes.splitlines()
-        found_remote = remotes[0]
-        for remote in remotes:
-            if remote.startswith('remote.origin.url '):
-                found_remote = remote
-                break
-        url = found_remote.split(' ')[1]
+        try:
+            remotes = self.run_command(
+                ['config', '--get-regexp', r'remote\..*\.url'],
+                show_stdout=False, cwd=location,
+            )
+            remotes = remotes.splitlines()
+            found_remote = remotes[0]
+            for remote in remotes:
+                if remote.startswith('remote.origin.url '):
+                    found_remote = remote
+                    break
+            url = found_remote.split(' ')[1]
+        except InstallationError:
+            # If the above command fails we have no git remotes. Just use the
+            # local repo path in that case instead.
+            url = 'file://' + location
         return url.strip()
 
     def get_revision(self, location):
