@@ -249,18 +249,19 @@ class InstallCommand(RequirementCommand):
                     use_user_site=options.use_user_site,
                 )
 
-                self.populate_requirement_set(
-                    requirement_set, args, options, finder, session, self.name,
-                    wheel_cache
-                )
-                preparer = RequirementPreparer(
-                    build_dir=directory.path,
-                    src_dir=options.src_dir,
-                    download_dir=None,
-                    wheel_download_dir=None,
-                    progress_bar=options.progress_bar,
-                )
                 try:
+                    self.populate_requirement_set(
+                        requirement_set, args, options, finder, session,
+                        self.name, wheel_cache
+                    )
+                    preparer = RequirementPreparer(
+                        build_dir=directory.path,
+                        src_dir=options.src_dir,
+                        download_dir=None,
+                        wheel_download_dir=None,
+                        progress_bar=options.progress_bar,
+                    )
+
                     resolver = Resolver(
                         preparer=preparer,
                         finder=finder,
@@ -351,6 +352,7 @@ class InstallCommand(RequirementCommand):
                     # Clean up
                     if not options.no_clean:
                         requirement_set.cleanup_files()
+                        wheel_cache.cleanup()
 
         if options.target_dir:
             self._handle_target_dir(

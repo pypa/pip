@@ -30,7 +30,7 @@ def test_no_clean_option_blocks_cleaning_after_install(script, data):
     build = script.base_path / 'pip-build'
     script.pip(
         'install', '--no-clean', '--no-index', '--build', build,
-        '--find-links=%s' % data.find_links, 'simple',
+        '--find-links=%s' % data.find_links, 'simple', expect_temp=True,
     )
     assert exists(build)
 
@@ -132,7 +132,7 @@ def test_cleanup_prevented_upon_build_dir_exception(script, data):
     result = script.pip(
         'install', '-f', data.find_links, '--no-index', 'simple',
         '--build', build,
-        expect_error=True,
+        expect_error=True, expect_temp=True,
     )
 
     assert result.returncode == PREVIOUS_BUILD_DIR_ERROR
