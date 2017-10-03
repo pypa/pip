@@ -114,8 +114,14 @@ def test_check_rev_options_not_found_warning(get_refs_mock, caplog):
     git = Git()
 
     sha = 40 * 'a'
-    assert git.check_rev_options(sha, '.', [sha]) == [sha]
-    assert git.check_rev_options(sha[:6], '.', [sha]) == [sha]
+
+    rev_options = git.make_rev_options(sha)
+    new_options = git.check_rev_options('.', rev_options)
+    assert new_options.rev == sha
+
+    rev_options = git.make_rev_options(sha[:6])
+    new_options = git.check_rev_options('.', rev_options)
+    assert new_options.rev == 'aaaaaa'
 
     # Check that a warning got logged only for the abbreviated hash.
     messages = [r.getMessage() for r in caplog.records]
