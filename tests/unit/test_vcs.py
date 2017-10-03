@@ -126,11 +126,11 @@ def test_git_get_src_requirements(git, dist):
     ('foo', False),
     (None, False),
 ))
-def test_git_does_commit_id_equal(git, rev_name, result):
+def test_git_is_commit_id_equal(git, rev_name, result):
     """
-    Test Git.does_commit_id_equal().
+    Test Git.is_commit_id_equal().
     """
-    assert git.does_commit_id_equal('/path', rev_name) is result
+    assert git.is_commit_id_equal('/path', rev_name) is result
 
 
 def test_translate_egg_surname():

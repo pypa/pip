@@ -217,7 +217,7 @@ class Subversion(VersionControl):
         rev = self.get_revision(location)
         return 'svn+%s@%s#egg=%s' % (repo, rev, egg_project_name)
 
-    def does_commit_id_equal(self, dest, name):
+    def is_commit_id_equal(self, dest, name):
         """Always assume the versions don't match"""
         return False
 

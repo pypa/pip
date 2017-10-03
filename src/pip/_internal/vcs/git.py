@@ -119,7 +119,7 @@ class Git(VersionControl):
 
         return rev_options
 
-    def does_commit_id_equal(self, dest, name):
+    def is_commit_id_equal(self, dest, name):
         """
         Return whether the current commit hash equals the given name.
 
@@ -168,7 +168,7 @@ class Git(VersionControl):
                 rev_options = self.check_rev_options(dest, rev_options)
                 # Only do a checkout if the current commit id doesn't match
                 # the requested revision.
-                if not self.does_commit_id_equal(dest, rev_options.rev):
+                if not self.is_commit_id_equal(dest, rev_options.rev):
                     cmd_args = ['fetch', '-q', url] + rev_options.to_args()
                     self.run_command(cmd_args, cwd=dest)
                     self.run_command(

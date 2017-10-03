@@ -279,7 +279,7 @@ class VersionControl(object):
         """
         raise NotImplementedError
 
-    def does_commit_id_equal(self, dest, name):
+    def is_commit_id_equal(self, dest, name):
         """
         Return whether the id of the current commit equals the given name.
 
@@ -313,7 +313,7 @@ class VersionControl(object):
                         display_path(dest),
                         url,
                     )
-                    if not self.does_commit_id_equal(dest, rev_options.rev):
+                    if not self.is_commit_id_equal(dest, rev_options.rev):
                         logger.info(
                             'Updating %s %s%s',
                             display_path(dest),

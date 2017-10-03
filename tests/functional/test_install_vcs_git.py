@@ -59,9 +59,9 @@ def test_get_short_refs_should_ignore_no_branch(script):
 
 
 @pytest.mark.network
-def test_does_commit_id_equal(script):
+def test_is_commit_id_equal(script):
     """
-    Test Git.does_commit_id_equal().
+    Test Git.is_commit_id_equal().
     """
     version_pkg_path = _create_test_package(script)
     script.run('git', 'branch', 'branch0.1', cwd=version_pkg_path)
@@ -70,12 +70,12 @@ def test_does_commit_id_equal(script):
         cwd=version_pkg_path
     ).stdout.strip()
     git = Git()
-    assert git.does_commit_id_equal(version_pkg_path, commit)
-    assert not git.does_commit_id_equal(version_pkg_path, commit[:7])
-    assert not git.does_commit_id_equal(version_pkg_path, 'branch0.1')
-    assert not git.does_commit_id_equal(version_pkg_path, 'abc123')
+    assert git.is_commit_id_equal(version_pkg_path, commit)
+    assert not git.is_commit_id_equal(version_pkg_path, commit[:7])
+    assert not git.is_commit_id_equal(version_pkg_path, 'branch0.1')
+    assert not git.is_commit_id_equal(version_pkg_path, 'abc123')
     # Also check passing a None value.
-    assert not git.does_commit_id_equal(version_pkg_path, None)
+    assert not git.is_commit_id_equal(version_pkg_path, None)
 
 
 @patch('pip._internal.vcs.git.Git.get_short_refs')
