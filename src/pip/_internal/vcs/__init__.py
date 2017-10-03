@@ -166,6 +166,8 @@ class VersionControl(object):
     dirname = ''
     # List of supported schemes for this Version Control
     schemes = ()  # type: Tuple[str, ...]
+    # Iterable of environment variable names to pass to call_subprocess().
+    unset_environ = ()  # type: Tuple[str, ...]
     default_arg_rev = None  # type: Optional[str]
 
     def __init__(self, url=None, *args, **kwargs):
@@ -422,7 +424,8 @@ class VersionControl(object):
             return call_subprocess(cmd, show_stdout, cwd,
                                    on_returncode,
                                    command_desc, extra_environ,
-                                   spinner)
+                                   unset_environ=self.unset_environ,
+                                   spinner=spinner)
         except OSError as e:
             # errno.ENOENT = no such file or directory
             # In other words, the VCS executable isn't available
