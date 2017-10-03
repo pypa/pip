@@ -12,7 +12,8 @@ from pip._internal.utils import appdirs
 from pip._internal.utils.misc import rmtree
 from tests.lib import (
     _create_svn_repo, _create_test_package, create_test_package_with_setup,
-    need_bzr, path_to_url, pyversion, pyversion_tuple, requirements_file
+    need_bzr, need_mercurial, path_to_url, pyversion, pyversion_tuple,
+    requirements_file
 )
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
@@ -217,6 +218,7 @@ def test_install_editable_uninstalls_existing_from_path(script, data):
     assert simple_folder in result.files_deleted, str(result.stdout)
 
 
+@need_mercurial
 def test_install_editable_from_hg(script, tmpdir):
     """Test cloning from Mercurial."""
     pkg_path = _create_test_package(script, name='testpackage', vcs='hg')
@@ -225,6 +227,7 @@ def test_install_editable_from_hg(script, tmpdir):
     result.assert_installed('testpackage', with_files=['.hg'])
 
 
+@need_mercurial
 def test_vcs_url_final_slash_normalization(script, tmpdir):
     """
     Test that presence or absence of final slash in VCS URL is normalized.
@@ -498,6 +501,7 @@ def test_install_using_install_option_and_editable(script, tmpdir):
 
 
 @pytest.mark.network
+@need_mercurial
 def test_install_global_option_using_editable(script, tmpdir):
     """
     Test using global distutils options, but in an editable installation

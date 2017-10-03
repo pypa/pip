@@ -7,7 +7,8 @@ from doctest import ELLIPSIS, OutputChecker
 import pytest
 
 from tests.lib import (
-    _create_test_package, _create_test_package_with_srcdir, need_bzr
+    _create_test_package, _create_test_package_with_srcdir, need_bzr,
+    need_mercurial
 )
 
 distribute_re = re.compile('^distribute==[0-9.]+\n', re.MULTILINE)
@@ -321,7 +322,7 @@ def test_freeze_git_remote(script, tmpdir):
     _check_output(result.stdout, expected)
 
 
-@pytest.mark.mercurial
+@need_mercurial
 def test_freeze_mercurial_clone(script, tmpdir):
     """
     Test freezing a Mercurial clone.

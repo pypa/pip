@@ -748,3 +748,9 @@ def need_bzr(fn):
     return pytest.mark.bzr(need_executable(
         'Bazaar', ('bzr', 'version', '--short')
     )(fn))
+
+
+def need_mercurial(fn):
+    return pytest.mark.mercurial(need_executable(
+        'Mercurial', ('hg', 'version')
+    )(fn))
