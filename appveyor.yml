@@ -1,16 +1,36 @@
 environment:
   matrix:
+    # Unit and integration tests. 
     - PYTHON: "C:\\Python27"
-    - PYTHON: "C:\\Python33"
-    - PYTHON: "C:\\Python34"
-    - PYTHON: "C:\\Python35"
+      RUN_INTEGRATION_TESTS: "True"
+    - PYTHON: "C:\\Python36-x64"
+      RUN_INTEGRATION_TESTS: "True"
+    # Unit tests only.
     - PYTHON: "C:\\Python27-x64"
+    - PYTHON: "C:\\Python33"
     - PYTHON: "C:\\Python33-x64"
+    - PYTHON: "C:\\Python34"
     - PYTHON: "C:\\Python34-x64"
+    - PYTHON: "C:\\Python35"
     - PYTHON: "C:\\Python35-x64"
+    - PYTHON: "C:\\Python36"
 
 install:
-    cmd: "%PYTHON%\\python.exe -m pip install tox"
+  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+  - "python --version"
+  - "pip install certifi tox"
+  # Fix git SSL errors.
+  - "python -m certifi >cacert.txt"
+  - "set /p GIT_SSL_CAINFO=<cacert.txt"
+  - "set GIT_SSL_CAINFO"
+
 build: off
+
 test_script:
-    - "%PYTHON%\\Scripts\\tox.exe -e py -- -m unit -n 8"
+  # Shorten paths, workaround https://bugs.python.org/issue18199
+  - "subst T: %TEMP%"
+  - "set TEMP=T:\\"
+  - "set TMP=T:\\"
+  - "tox -e py -- -m unit -n 3"
+  - "if \"%RUN_INTEGRATION_TESTS%\" == \"True\" (
+    tox -e py -- -m integration -n 3 --duration=5 )"
