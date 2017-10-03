@@ -34,7 +34,9 @@ def path_to_url(path):
     filepath = path.split(os.path.sep)
     url = '/'.join(filepath)
     if drive:
-        return 'file:///' + drive + url
+        # Note: match urllib.request.pathname2url's
+        # behavior: uppercase the drive letter.
+        return 'file:///' + drive.upper() + url
     return 'file://' + url
 
 
