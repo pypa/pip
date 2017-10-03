@@ -4,8 +4,6 @@
 pip config
 ------------
 
-.. contents::
-
 Usage
 *****
 

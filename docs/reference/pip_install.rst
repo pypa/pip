@@ -3,8 +3,6 @@
 pip install
 -----------
 
-.. contents::
-
 Usage
 *****
 
