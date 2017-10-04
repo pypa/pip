@@ -1015,14 +1015,11 @@ def test_install_no_binary_disables_building_wheels(
     assert expected in str(res), str(res)
     # and built wheels for wheelbroken only
     assert "Running setup.py bdist_wheel for wheelb" in str(res), str(res)
-    # Wheels are built for local directories, but not cached
+    # Wheels are built for local directories, but not cached across runs
     assert "Running setup.py bdist_wheel for requir" in str(res), str(res)
-    # Nor upper, which was blacklisted
+    # Don't build wheel for upper which was blacklisted
     assert "Running setup.py bdist_wheel for upper" not in str(res), str(res)
-    # wheelbroken has to run install
-    # into the cache
-    assert wheels != [], str(res)
-    # Wheels are built for local directories, but not cached
+    # Wheels are built for local directories, but not cached across runs
     assert "Running setup.py install for requires-wheel" not in str(res), str(res)
     # And these two fell back to sdist based installed.
     assert "Running setup.py install for wheelb" in str(res), str(res)
