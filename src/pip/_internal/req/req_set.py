@@ -16,6 +16,9 @@ class RequirementSet(object):
                  require_hashes=False, target_dir=None, use_user_site=False,
                  pycompile=True):
         """Create a RequirementSet.
+
+        :param wheel_cache: The pip wheel cache, for passing to
+            InstallRequirement.
         """
 
         self.requirements = OrderedDict()
