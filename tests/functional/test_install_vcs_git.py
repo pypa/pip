@@ -108,6 +108,28 @@ def test_check_rev_options_should_handle_ambiguous_commit(get_refs_mock):
     assert new_options.rev == '123456'
 
 
+@patch('pip._internal.vcs.git.Git.get_short_refs')
+def test_check_rev_options_not_found_warning(get_refs_mock, caplog):
+    get_refs_mock.return_value = {}
+    git = Git()
+
+    sha = 40 * 'a'
+    rev_options = git.make_rev_options(sha)
+    new_options = git.check_rev_options('.', rev_options)
+    assert new_options.rev == sha
+
+    rev_options = git.make_rev_options(sha[:6])
+    new_options = git.check_rev_options('.', rev_options)
+    assert new_options.rev == 'aaaaaa'
+
+    # Check that a warning got logged only for the abbreviated hash.
+    messages = [r.getMessage() for r in caplog.records]
+    messages = [msg for msg in messages if msg.startswith('Did not find ')]
+    assert messages == [
+        "Did not find branch or tag 'aaaaaa', assuming ref or revision."
+    ]
+
+
 # TODO(pnasrat) fix all helpers to do right things with paths on windows.
 @pytest.mark.skipif("sys.platform == 'win32'")
 @pytest.mark.network

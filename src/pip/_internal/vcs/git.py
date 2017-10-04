@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import logging
 import os.path
+import re
 
 from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.six.moves.urllib import parse as urllib_parse
@@ -18,6 +19,13 @@ urlunsplit = urllib_parse.urlunsplit
 
 
 logger = logging.getLogger(__name__)
+
+
+HASH_REGEX = re.compile('[a-fA-F0-9]{40}')
+
+
+def looks_like_hash(sha):
+    return bool(HASH_REGEX.match(sha))
 
 
 class Git(VersionControl):
@@ -100,12 +108,16 @@ class Git(VersionControl):
         elif rev in revisions:
             # a local tag or branch name
             return rev_options.make_new(revisions[rev])
-        else:
+
+        # Do not show a warning for the common case of something that has
+        # the form of a Git commit hash.
+        if not looks_like_hash(rev):
             logger.warning(
-                "Could not find a tag or branch '%s', assuming commit or ref",
+                "Did not find branch or tag '%s', assuming ref or revision.",
                 rev,
             )
-            return rev_options
+
+        return rev_options
 
     def check_version(self, dest, rev_options):
         """
