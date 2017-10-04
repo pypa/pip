@@ -224,10 +224,10 @@ class InstallCommand(RequirementCommand):
         global_options = options.global_options or []
 
         with self._build_session(options) as session:
-
             finder = self._build_package_finder(options, session)
             build_delete = (not (options.no_clean or options.build_dir))
             wheel_cache = WheelCache(options.cache_dir, options.format_control)
+
             if options.cache_dir and not check_path_owner(options.cache_dir):
                 logger.warning(
                     "The directory '%s' or its parent directory is not owned "

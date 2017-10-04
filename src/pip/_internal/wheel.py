@@ -847,14 +847,17 @@ class WheelBuilder(object):
             'Building wheels for collected packages: %s',
             ', '.join([req.name for (req, _) in buildset]),
         )
+        _cache = self.wheel_cache  # shorter name
         with indent_log():
             build_success, build_failure = [], []
             for req, ephem in buildset:
                 python_tag = None
                 if autobuilding:
                     python_tag = pep425tags.implementation_tag
-                    # TODO: Incorporate ephem_cache
-                    output_dir = self.wheel_cache.get_path_for_link(req.link)
+                    if ephem:
+                        output_dir = _cache.get_ephem_path_for_link(req.link)
+                    else:
+                        output_dir = _cache.get_path_for_link(req.link)
                     try:
                         ensure_dir(output_dir)
                     except OSError as e:
