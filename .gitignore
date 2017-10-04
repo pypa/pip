@@ -1,6 +1,6 @@
 build/
 dist/
-docs/_build/
+docs/build/
 pip.egg-info/
 MANIFEST
 .tox
