@@ -2,16 +2,72 @@ import pytest
 from mock import Mock
 from pip._vendor.packaging.version import parse as parse_version
 
-from pip.vcs import VersionControl
-from pip.vcs.bazaar import Bazaar
-from pip.vcs.git import Git
-from pip.vcs.subversion import Subversion
+from pip._internal.vcs import RevOptions, VersionControl
+from pip._internal.vcs.bazaar import Bazaar
+from pip._internal.vcs.git import Git
+from pip._internal.vcs.mercurial import Mercurial
+from pip._internal.vcs.subversion import Subversion
 from tests.lib import pyversion
 
 if pyversion >= '3':
     VERBOSE_FALSE = False
 else:
     VERBOSE_FALSE = 0
+
+
+def test_rev_options_repr():
+    rev_options = RevOptions(Git(), 'develop')
+    assert repr(rev_options) == "<RevOptions git: rev='develop'>"
+
+
+@pytest.mark.parametrize(('vcs', 'expected1', 'expected2', 'kwargs'), [
+    # First check VCS-specific RevOptions behavior.
+    (Bazaar(), [], ['-r', '123'], {}),
+    (Git(), ['origin/HEAD'], ['123'], {}),
+    (Mercurial(), [], ['123'], {}),
+    (Subversion(), [], ['-r', '123'], {}),
+    # Test extra_args.  For this, test using a single VersionControl class.
+    (Git(), ['origin/HEAD', 'opt1', 'opt2'], ['123', 'opt1', 'opt2'],
+        dict(extra_args=['opt1', 'opt2'])),
+])
+def test_rev_options_to_args(vcs, expected1, expected2, kwargs):
+    """
+    Test RevOptions.to_args().
+    """
+    assert RevOptions(vcs, **kwargs).to_args() == expected1
+    assert RevOptions(vcs, '123', **kwargs).to_args() == expected2
+
+
+def test_rev_options_to_display():
+    """
+    Test RevOptions.to_display().
+    """
+    # The choice of VersionControl class doesn't matter here since
+    # the implementation is the same for all of them.
+    vcs = Git()
+
+    rev_options = RevOptions(vcs)
+    assert rev_options.to_display() == ''
+
+    rev_options = RevOptions(vcs, 'master')
+    assert rev_options.to_display() == ' (to revision master)'
+
+
+def test_rev_options_make_new():
+    """
+    Test RevOptions.make_new().
+    """
+    # The choice of VersionControl class doesn't matter here since
+    # the implementation is the same for all of them.
+    vcs = Git()
+
+    rev_options = RevOptions(vcs, 'master', extra_args=['foo', 'bar'])
+    new_options = rev_options.make_new('develop')
+
+    assert new_options is not rev_options
+    assert new_options.extra_args == ['foo', 'bar']
+    assert new_options.rev == 'develop'
+    assert new_options.vcs is vcs
 
 
 @pytest.fixture
@@ -60,7 +116,8 @@ def test_git_get_src_requirements(git, dist):
     ('foo', False),
 ))
 def test_git_check_version(git, ref, result):
-    assert git.check_version('foo', ref) is result
+    rev_options = git.make_rev_options(ref)
+    assert git.check_version('foo', rev_options) is result
 
 
 def test_translate_egg_surname():

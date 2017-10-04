@@ -6,8 +6,10 @@ import sys
 import re
 import textwrap
 import site
+import shutil
 
 import scripttest
+import six
 import virtualenv
 
 from tests.lib.path import Path, curdir
@@ -34,10 +36,19 @@ def path_to_url(path):
     return 'file://' + url
 
 
+# workaround for https://github.com/pypa/virtualenv/issues/306
+def virtualenv_lib_path(venv_home, venv_lib):
+    if not hasattr(sys, "pypy_version_info"):
+        return venv_lib
+    version_fmt = '{0}' if six.PY3 else '{0}.{1}'
+    version_dir = version_fmt.format(*sys.version_info)
+    return os.path.join(venv_home, 'lib-python', version_dir)
+
+
 def create_file(path, contents=None):
     """Create a file on the path, with the given contents
     """
-    from pip.utils import ensure_dir
+    from pip._internal.utils.misc import ensure_dir
 
     ensure_dir(os.path.dirname(path))
     with open(path, "w") as f:
@@ -261,11 +272,8 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
         path_locations = virtualenv.path_locations(_virtualenv)
         # Make sure we have test.lib.path.Path objects
         venv, lib, include, bin = map(Path, path_locations)
-        # workaround for https://github.com/pypa/virtualenv/issues/306
-        if hasattr(sys, "pypy_version_info"):
-            lib = os.path.join(venv, 'lib-python', pyversion)
         self.venv_path = venv
-        self.lib_path = lib
+        self.lib_path = virtualenv_lib_path(venv, lib)
         self.include_path = include
         self.bin_path = bin
 
@@ -643,3 +651,82 @@ def create_test_package_with_setup(script, **setup_kwargs):
         setup(**kwargs)
     """) % setup_kwargs)
     return pkg_path
+
+
+def create_basic_wheel_for_package(script, name, version, depends, extras):
+    files = {
+        "{name}/__init__.py": """
+            def hello():
+                return "Hello From {name}"
+        """,
+        "{dist_info}/DESCRIPTION": """
+            UNKNOWN
+        """,
+        "{dist_info}/WHEEL": """
+            Wheel-Version: 1.0
+            Generator: pip-test-suite
+            Root-Is-Purelib: true
+            Tag: py2-none-any
+            Tag: py3-none-any
+
+
+        """,
+        "{dist_info}/METADATA": """
+            Metadata-Version: 2.0
+            Name: {name}
+            Version: {version}
+            Summary: UNKNOWN
+            Home-page: UNKNOWN
+            Author: UNKNOWN
+            Author-email: UNKNOWN
+            License: UNKNOWN
+            Platform: UNKNOWN
+            {requires_dist}
+
+            UNKNOWN
+        """,
+        "{dist_info}/top_level.txt": """
+            {name}
+        """,
+        # Have an empty RECORD becuase we don't want to be checking hashes.
+        "{dist_info}/RECORD": ""
+    }
+
+    # Some useful shorthands
+    archive_name = "{name}-{version}-py2.py3-none-any.whl".format(
+        name=name, version=version
+    )
+    dist_info = "{name}-{version}.dist-info".format(
+        name=name, version=version
+    )
+
+    requires_dist = "\n".join([
+        "Requires-Dist: {}".format(pkg) for pkg in depends
+    ] + [
+        "Provides-Extra: {}".format(pkg) for pkg in extras.keys()
+    ] + [
+        "Requires-Dist: {}; extra == \"{}\"".format(pkg, extra)
+        for extra in extras for pkg in extras[extra]
+    ])
+
+    # Replace key-values with formatted values
+    for key, value in list(files.items()):
+        del files[key]
+        key = key.format(name=name, dist_info=dist_info)
+        files[key] = textwrap.dedent(value).format(
+            name=name, version=version, requires_dist=requires_dist
+        ).strip()
+
+    for fname in files:
+        path = script.temp_path / fname
+        path.folder.mkdir()
+        path.write(files[fname])
+
+    retval = script.scratch_path / archive_name
+    generated = shutil.make_archive(retval, 'zip', script.temp_path)
+    shutil.move(generated, retval)
+
+    script.temp_path.rmtree()
+    script.temp_path.mkdir()
+
+    return retval

@@ -3,7 +3,7 @@ import tempfile
 
 import pytest
 
-from pip.req.req_install import InstallRequirement
+from pip._internal.req.req_install import InstallRequirement
 
 
 class TestInstallRequirementBuildDirectory(object):

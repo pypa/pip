@@ -4,14 +4,16 @@ import pytest
 from mock import Mock, patch
 from pkg_resources import Distribution, parse_version
 
-import pip.pep425tags
-import pip.wheel
-from pip.download import PipSession
-from pip.exceptions import BestVersionAlreadyInstalled, DistributionNotFound
-from pip.index import (
+import pip._internal.pep425tags
+import pip._internal.wheel
+from pip._internal.download import PipSession
+from pip._internal.exceptions import (
+    BestVersionAlreadyInstalled, DistributionNotFound
+)
+from pip._internal.index import (
     FormatControl, InstallationCandidate, Link, PackageFinder, fmt_ctl_formats
 )
-from pip.req import InstallRequirement
+from pip._internal.req import InstallRequirement
 
 
 def test_no_mpkg(data):
@@ -32,10 +34,10 @@ def test_no_partial_name_match(data):
     assert found.url.endswith("gmpy-1.15.tar.gz"), found
 
 
-def test_tilde(data):
+def test_tilde():
     """Finder can accept a path with ~ in it and will normalize it."""
     session = PipSession()
-    with patch('pip.index.os.path.exists', return_value=True):
+    with patch('pip._internal.index.os.path.exists', return_value=True):
         finder = PackageFinder(['~/python-pkgs'], [], session=session)
     req = InstallRequirement.from_line("gmpy")
     with pytest.raises(DistributionNotFound):
@@ -138,9 +140,9 @@ class TestWheel:
         Test not finding an unsupported wheel.
         """
         monkeypatch.setattr(
-            pip.pep425tags,
-            "supported_tags",
-            [('py1', 'none', 'any')],
+            pip._internal.pep425tags,
+            "get_supported",
+            lambda **kw: [("py1", "none", "any")],
         )
 
         req = InstallRequirement.from_line("simple.dist")
@@ -149,7 +151,7 @@ class TestWheel:
             [],
             session=PipSession(),
         )
-        finder.valid_tags = pip.pep425tags.supported_tags
+        finder.valid_tags = pip._internal.pep425tags.get_supported()
 
         with pytest.raises(DistributionNotFound):
             finder.find_requirement(req, True)
@@ -159,9 +161,9 @@ class TestWheel:
         Test finding supported wheel.
         """
         monkeypatch.setattr(
-            pip.pep425tags,
-            "supported_tags",
-            [('py2', 'none', 'any')],
+            pip._internal.pep425tags,
+            "get_supported",
+            lambda **kw: [('py2', 'none', 'any')],
         )
 
         req = InstallRequirement.from_line("simple.dist")
@@ -249,6 +251,31 @@ class TestWheel:
         results2 = sorted(reversed(links),
                           key=finder._candidate_sort_key, reverse=True)
 
+        assert links == results == results2, results2
+
+    def test_link_sorting_wheels_with_build_tags(self):
+        """Verify build tags affect sorting."""
+        links = [
+            InstallationCandidate(
+                "simplewheel",
+                "2.0",
+                Link("simplewheel-2.0-1-py2.py3-none-any.whl"),
+            ),
+            InstallationCandidate(
+                "simplewheel",
+                "2.0",
+                Link("simplewheel-2.0-py2.py3-none-any.whl"),
+            ),
+            InstallationCandidate(
+                "simplewheel",
+                "1.0",
+                Link("simplewheel-1.0-py2.py3-none-any.whl"),
+            ),
+        ]
+        finder = PackageFinder([], [], session=PipSession())
+        results = sorted(links, key=finder._candidate_sort_key, reverse=True)
+        results2 = sorted(reversed(links), key=finder._candidate_sort_key,
+                          reverse=True)
         assert links == results == results2, results2
 
 
@@ -472,7 +499,7 @@ class test_link_package_versions(object):
 
     # patch this for travis which has distribute in its base env for now
     @patch(
-        'pip.wheel.pkg_resources.get_distribution',
+        'pip._internal.wheel.pkg_resources.get_distribution',
         lambda x: Distribution(project_name='setuptools', version='0.9')
     )
     def setup(self):
@@ -524,7 +551,7 @@ def test_get_index_urls_locations():
                          'file://index2/complex-name/']
 
 
-def test_find_all_candidates_nothing(data):
+def test_find_all_candidates_nothing():
     """Find nothing without anything"""
     finder = PackageFinder([], [], session=PipSession())
     assert not finder.find_all_candidates('pip')

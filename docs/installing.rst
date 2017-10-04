@@ -6,13 +6,11 @@ Installation
 Do I need to install pip?
 -------------------------
 
-pip is already installed if you're using Python 2 >=2.7.9 or Python 3 >=3.4
-binaries downloaded from `python.org <https://www.python.org>`_, but you'll
-need to :ref:`upgrade pip <Upgrading pip>`.
-
-Additionally, pip will already be installed if you're working in a :ref:`Virtual
-Environment <pypug:Creating and using Virtual Environments>` created by
-:ref:`pypug:virtualenv` or :ref:`pyvenv <pypug:venv>`.
+pip is already installed if you are using Python 2 >=2.7.9 or Python 3 >=3.4 
+downloaded from `python.org <https://www.python.org>`_ or if you are working 
+in a :ref:`Virtual Environment <pypug:Creating and using Virtual Environments>` 
+created by :ref:`pypug:virtualenv` or :ref:`pyvenv <pypug:venv>`. 
+Just make sure to :ref:`upgrade pip <Upgrading pip>`.
 
 
 .. _`get-pip`:
@@ -21,25 +19,25 @@ Installing with get-pip.py
 --------------------------
 
 To install pip, securely download `get-pip.py
-<https://bootstrap.pypa.io/get-pip.py>`_. [1]_
+<https://bootstrap.pypa.io/get-pip.py>`_. [1]_::
 
-Then run the following:
+ curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
 
-::
+Inspect ``get-pip.py`` for any malevolence. Then run the following::
 
  python get-pip.py
 
 
 .. warning::
 
-   Be cautious if you're using a Python install that's managed by your operating
-   system or another package manager. get-pip.py does not coordinate with
+   Be cautious if you are using a Python install that is managed by your operating
+   system or another package manager. ``get-pip.py`` does not coordinate with
    those tools, and may leave your system in an inconsistent state.
 
-get-pip.py will also install :ref:`pypug:setuptools` [2]_ and :ref:`pypug:wheel`,
-if they're not already. :ref:`pypug:setuptools` is required to install
+``get-pip.py`` also installs :ref:`pypug:setuptools` [2]_ and :ref:`pypug:wheel` 
+if they are not already. :ref:`pypug:setuptools` is required to install
 :term:`source distributions <pypug:Source Distribution (or "sdist")>`.  Both are
-required to be able to build a :ref:`Wheel cache` (which improves installation
+required in order to build a :ref:`Wheel cache` (which improves installation
 speed), although neither are required to install pre-built :term:`wheels
 <pypug:Wheel>`.
 
@@ -55,14 +53,14 @@ get-pip.py options
 
 .. option:: --no-setuptools
 
-    If set, don't attempt to install :ref:`pypug:setuptools`
+    If set, do not attempt to install :ref:`pypug:setuptools`
 
 .. option:: --no-wheel
 
-    If set, don't attempt to install :ref:`pypug:wheel`
+    If set, do not attempt to install :ref:`pypug:wheel`
 
 
-Additionally, ``get-pip.py`` supports using the :ref:`pip install options <pip
+``get-pip.py`` allows :ref:`pip install options <pip
 install Options>` and the :ref:`general options <General Options>`. Below are
 some examples:
 
@@ -91,16 +89,12 @@ the `Python Packaging User Guide
 Upgrading pip
 -------------
 
-On Linux or macOS:
-
-::
+On Linux or macOS::
 
  pip install -U pip
 
 
-On Windows [4]_:
-
-::
+On Windows [4]_::
 
  python -m pip install -U pip
 

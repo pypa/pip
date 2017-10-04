@@ -85,24 +85,24 @@ def test_command_line_append_flags(script, virtualenv, data):
     variables.
 
     """
-    script.environ['PIP_FIND_LINKS'] = 'http://pypi.pinaxproject.com'
+    script.environ['PIP_FIND_LINKS'] = 'https://testpypi.python.org'
     result = script.pip(
         'install', '-vvv', 'INITools', '--trusted-host',
-        'pypi.pinaxproject.com',
+        'testpypi.python.org',
         expect_error=True,
     )
     assert (
-        "Analyzing links from page http://pypi.pinaxproject.com"
+        "Analyzing links from page https://testpypi.python.org"
         in result.stdout
-    )
+    ), str(result)
     virtualenv.clear()
     result = script.pip(
         'install', '-vvv', '--find-links', data.find_links, 'INITools',
-        '--trusted-host', 'pypi.pinaxproject.com',
+        '--trusted-host', 'testpypi.python.org',
         expect_error=True,
     )
     assert (
-        "Analyzing links from page http://pypi.pinaxproject.com"
+        "Analyzing links from page https://testpypi.python.org"
         in result.stdout
     )
     assert "Skipping link %s" % data.find_links in result.stdout
@@ -115,16 +115,16 @@ def test_command_line_appends_correctly(script, data):
 
     """
     script.environ['PIP_FIND_LINKS'] = (
-        'http://pypi.pinaxproject.com %s' % data.find_links
+        'https://testpypi.python.org %s' % data.find_links
     )
     result = script.pip(
         'install', '-vvv', 'INITools', '--trusted-host',
-        'pypi.pinaxproject.com',
+        'testpypi.python.org',
         expect_error=True,
     )
 
     assert (
-        "Analyzing links from page http://pypi.pinaxproject.com"
+        "Analyzing links from page https://testpypi.python.org"
         in result.stdout
     ), result.stdout
     assert "Skipping link %s" % data.find_links in result.stdout
@@ -186,7 +186,7 @@ def test_options_from_venv_config(script, virtualenv):
     Test if ConfigOptionParser reads a virtualenv-local config file
 
     """
-    from pip.locations import config_basename
+    from pip._internal.locations import config_basename
     conf = "[global]\nno-index = true"
     ini = virtualenv.location / config_basename
     with open(ini, 'w') as f:
@@ -200,8 +200,9 @@ def test_options_from_venv_config(script, virtualenv):
 
 
 @pytest.mark.network
-def test_install_no_binary_via_config_disables_cached_wheels(script, data):
-    script.pip('install', 'wheel')
+def test_install_no_binary_via_config_disables_cached_wheels(
+        script, data, common_wheels):
+    script.pip('install', 'wheel', '--no-index', '-f', common_wheels)
     config_file = tempfile.NamedTemporaryFile(mode='wt')
     script.environ['PIP_CONFIG_FILE'] = config_file.name
     config_file.write(textwrap.dedent("""\

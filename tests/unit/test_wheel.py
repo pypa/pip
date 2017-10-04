@@ -5,14 +5,16 @@ import pytest
 from mock import Mock, patch
 from pip._vendor.packaging.requirements import Requirement
 
-from pip import pep425tags, wheel
-from pip.compat import WINDOWS
-from pip.exceptions import InvalidWheelFilename, UnsupportedWheel
-from pip.utils import unpack_file
+from pip._internal import pep425tags, wheel
+from pip._internal.compat import WINDOWS
+from pip._internal.exceptions import InvalidWheelFilename, UnsupportedWheel
+from pip._internal.utils.misc import unpack_file
+from tests.lib import DATA_DIR
 
 
 @pytest.mark.parametrize("console_scripts",
-                         ["pip = pip.main:pip", "pip:pip = pip.main:pip"])
+                         ["pip = pip._internal.main:pip",
+                          "pip:pip = pip._internal.main:pip"])
 def test_get_entrypoints(tmpdir, console_scripts):
     entry_points = tmpdir.join("entry_points.txt")
     with open(str(entry_points), "w") as fp:
@@ -134,8 +136,9 @@ class TestWheelFile(object):
         assert not w.supported(tags=[('py1', 'none', 'any')])
 
     @patch('sys.platform', 'darwin')
-    @patch('pip.pep425tags.get_abbr_impl', lambda: 'cp')
-    @patch('pip.pep425tags.get_platform', lambda: 'macosx_10_9_intel')
+    @patch('pip._internal.pep425tags.get_abbr_impl', lambda: 'cp')
+    @patch('pip._internal.pep425tags.get_platform',
+           lambda: 'macosx_10_9_intel')
     def test_supported_osx_version(self):
         """
         Wheels built for macOS 10.6 are supported on 10.9
@@ -147,8 +150,9 @@ class TestWheelFile(object):
         assert w.supported(tags=tags)
 
     @patch('sys.platform', 'darwin')
-    @patch('pip.pep425tags.get_abbr_impl', lambda: 'cp')
-    @patch('pip.pep425tags.get_platform', lambda: 'macosx_10_6_intel')
+    @patch('pip._internal.pep425tags.get_abbr_impl', lambda: 'cp')
+    @patch('pip._internal.pep425tags.get_platform',
+           lambda: 'macosx_10_6_intel')
     def test_not_supported_osx_version(self):
         """
         Wheels built for macOS 10.9 are not supported on 10.6
@@ -158,27 +162,27 @@ class TestWheelFile(object):
         assert not w.supported(tags=tags)
 
     @patch('sys.platform', 'darwin')
-    @patch('pip.pep425tags.get_abbr_impl', lambda: 'cp')
+    @patch('pip._internal.pep425tags.get_abbr_impl', lambda: 'cp')
     def test_supported_multiarch_darwin(self):
         """
         Multi-arch wheels (intel) are supported on components (i386, x86_64)
         """
-        with patch('pip.pep425tags.get_platform',
+        with patch('pip._internal.pep425tags.get_platform',
                    lambda: 'macosx_10_5_universal'):
             universal = pep425tags.get_supported(['27'], False)
-        with patch('pip.pep425tags.get_platform',
+        with patch('pip._internal.pep425tags.get_platform',
                    lambda: 'macosx_10_5_intel'):
             intel = pep425tags.get_supported(['27'], False)
-        with patch('pip.pep425tags.get_platform',
+        with patch('pip._internal.pep425tags.get_platform',
                    lambda: 'macosx_10_5_x86_64'):
             x64 = pep425tags.get_supported(['27'], False)
-        with patch('pip.pep425tags.get_platform',
+        with patch('pip._internal.pep425tags.get_platform',
                    lambda: 'macosx_10_5_i386'):
             i386 = pep425tags.get_supported(['27'], False)
-        with patch('pip.pep425tags.get_platform',
+        with patch('pip._internal.pep425tags.get_platform',
                    lambda: 'macosx_10_5_ppc'):
             ppc = pep425tags.get_supported(['27'], False)
-        with patch('pip.pep425tags.get_platform',
+        with patch('pip._internal.pep425tags.get_platform',
                    lambda: 'macosx_10_5_ppc64'):
             ppc64 = pep425tags.get_supported(['27'], False)
 
@@ -198,15 +202,15 @@ class TestWheelFile(object):
         assert w.supported(tags=ppc64)
 
     @patch('sys.platform', 'darwin')
-    @patch('pip.pep425tags.get_abbr_impl', lambda: 'cp')
+    @patch('pip._internal.pep425tags.get_abbr_impl', lambda: 'cp')
     def test_not_supported_multiarch_darwin(self):
         """
         Single-arch wheels (x86_64) are not supported on multi-arch (intel)
         """
-        with patch('pip.pep425tags.get_platform',
+        with patch('pip._internal.pep425tags.get_platform',
                    lambda: 'macosx_10_5_universal'):
             universal = pep425tags.get_supported(['27'], False)
-        with patch('pip.pep425tags.get_platform',
+        with patch('pip._internal.pep425tags.get_platform',
                    lambda: 'macosx_10_5_intel'):
             intel = pep425tags.get_supported(['27'], False)
 
@@ -239,13 +243,12 @@ class TestWheelFile(object):
         assert w.support_index_min(tags=[]) is None
 
     def test_unpack_wheel_no_flatten(self):
-        from pip import utils
+        from pip._internal.utils import misc as utils
         from tempfile import mkdtemp
         from shutil import rmtree
 
-        filepath = '../data/packages/meta-1.0-py2.py3-none-any.whl'
-        if not os.path.exists(filepath):
-            pytest.skip("%s does not exist" % filepath)
+        filepath = os.path.join(DATA_DIR, 'packages',
+                                'meta-1.0-py2.py3-none-any.whl')
         try:
             tmpdir = mkdtemp()
             utils.unpack_file(filepath, tmpdir, 'application/zip', None)
@@ -358,7 +361,8 @@ class TestMoveWheelFiles(object):
 class TestWheelBuilder(object):
 
     def test_skip_building_wheels(self, caplog):
-        with patch('pip.wheel.WheelBuilder._build_one') as mock_build_one:
+        with patch('pip._internal.wheel.WheelBuilder._build_one') \
+                as mock_build_one:
             wheel_req = Mock(is_wheel=True, editable=False, constraint=False)
             reqset = Mock(requirements=Mock(values=lambda: [wheel_req]),
                           wheel_download_dir='/wheel/dir')
@@ -366,3 +370,86 @@ class TestWheelBuilder(object):
             wb.build(Mock())
             assert "due to already being wheel" in caplog.text
             assert mock_build_one.mock_calls == []
+
+
+class TestMessageAboutScriptsNotOnPATH(object):
+
+    def _template(self, paths, scripts):
+        with patch.dict('os.environ', {'PATH': os.pathsep.join(paths)}):
+            return wheel.message_about_scripts_not_on_PATH(scripts)
+
+    def test_no_script(self):
+        retval = self._template(
+            paths=['/a/b', '/c/d/bin'],
+            scripts=[]
+        )
+        assert retval is None
+
+    def test_single_script__single_dir_not_on_PATH(self):
+        retval = self._template(
+            paths=['/a/b', '/c/d/bin'],
+            scripts=['/c/d/foo']
+        )
+        assert retval is not None
+        assert "--no-warn-script-location" in retval
+        assert "foo is installed in '/c/d'" in retval
+
+    def test_two_script__single_dir_not_on_PATH(self):
+        retval = self._template(
+            paths=['/a/b', '/c/d/bin'],
+            scripts=['/c/d/foo', '/c/d/baz']
+        )
+        assert retval is not None
+        assert "--no-warn-script-location" in retval
+        assert "baz and foo are installed in '/c/d'" in retval
+
+    def test_multi_script__multi_dir_not_on_PATH(self):
+        retval = self._template(
+            paths=['/a/b', '/c/d/bin'],
+            scripts=['/c/d/foo', '/c/d/bar', '/c/d/baz', '/a/b/c/spam']
+        )
+        assert retval is not None
+        assert "--no-warn-script-location" in retval
+        assert "bar, baz and foo are installed in '/c/d'" in retval
+        assert "spam is installed in '/a/b/c'" in retval
+
+    def test_multi_script_all__multi_dir_not_on_PATH(self):
+        retval = self._template(
+            paths=['/a/b', '/c/d/bin'],
+            scripts=[
+                '/c/d/foo', '/c/d/bar', '/c/d/baz',
+                '/a/b/c/spam', '/a/b/c/eggs'
+            ]
+        )
+        assert retval is not None
+        assert "--no-warn-script-location" in retval
+        assert "bar, baz and foo are installed in '/c/d'" in retval
+        assert "eggs and spam are installed in '/a/b/c'" in retval
+
+    def test_two_script__single_dir_on_PATH(self):
+        retval = self._template(
+            paths=['/a/b', '/c/d/bin'],
+            scripts=['/a/b/foo', '/a/b/baz']
+        )
+        assert retval is None
+
+    def test_multi_script__multi_dir_on_PATH(self):
+        retval = self._template(
+            paths=['/a/b', '/c/d/bin'],
+            scripts=['/a/b/foo', '/a/b/bar', '/a/b/baz', '/c/d/bin/spam']
+        )
+        assert retval is None
+
+    def test_multi_script__single_dir_on_PATH(self):
+        retval = self._template(
+            paths=['/a/b', '/c/d/bin'],
+            scripts=['/a/b/foo', '/a/b/bar', '/a/b/baz']
+        )
+        assert retval is None
+
+    def test_single_script__single_dir_on_PATH(self):
+        retval = self._template(
+            paths=['/a/b', '/c/d/bin'],
+            scripts=['/a/b/foo']
+        )
+        assert retval is None
