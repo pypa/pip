@@ -129,17 +129,17 @@ class Git(VersionControl):
         rev = rev_options.arg_rev
         sha = self.get_revision_sha(dest, rev)
 
+        if sha is not None:
+            return rev_options.make_new(sha)
+
         # Do not show a warning for the common case of something that has
         # the form of a Git commit hash.
-        if sha is None:
-            if not looks_like_hash(rev):
-                logger.warning(
-                    "Did not find branch or tag '%s', assuming revision or ref",
-                    rev,
-                )
-            return rev_options
-
-        return rev_options.make_new(sha)
+        if not looks_like_hash(rev):
+            logger.warning(
+                "Did not find branch or tag '%s', assuming revision or ref",
+                rev,
+            )
+        return rev_options
 
     def is_commit_id_equal(self, dest, name):
         """
