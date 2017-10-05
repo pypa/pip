@@ -136,7 +136,7 @@ class Git(VersionControl):
         # the form of a Git commit hash.
         if not looks_like_hash(rev):
             logger.warning(
-                "Did not find branch or tag '%s', assuming revision or ref",
+                "Did not find branch or tag '%s', assuming revision or ref.",
                 rev,
             )
         return rev_options

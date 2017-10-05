@@ -49,9 +49,9 @@ def test_check_rev_options_ref_not_found(get_sha_mock):
     assert new_options.rev == 'develop'
 
 
-@patch('pip._internal.vcs.git.Git.get_short_refs')
-def test_check_rev_options_not_found_warning(get_refs_mock, caplog):
-    get_refs_mock.return_value = {}
+@patch('pip._internal.vcs.git.Git.get_revision_sha')
+def test_check_rev_options_not_found_warning(get_sha_mock, caplog):
+    get_sha_mock.return_value = None
     git = Git()
 
     sha = 40 * 'a'
@@ -67,7 +67,7 @@ def test_check_rev_options_not_found_warning(get_refs_mock, caplog):
     messages = [r.getMessage() for r in caplog.records]
     messages = [msg for msg in messages if msg.startswith('Did not find ')]
     assert messages == [
-        "Did not find branch or tag 'aaaaaa', assuming ref or revision."
+        "Did not find branch or tag 'aaaaaa', assuming revision or ref."
     ]
 
 
