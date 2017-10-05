@@ -1,0 +1,3 @@
+Fix an issue where ``pip install -e`` on a Git url would fail to update if
+a branch or tag name is specified that happens to match the prefix of the
+current ``HEAD`` commit hash.
