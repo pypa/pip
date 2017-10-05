@@ -20,30 +20,28 @@ def check_force_reinstall(script, specifier, expected):
       specifier: the requirement specifier to force-reinstall.
       expected: the expected version after force-reinstalling.
     """
-    result = script.pip('install', 'INITools==0.2')
-    check_installed_version(script, 'initools', '0.2')
+    result = script.pip_install_local('simplewheel==1.0')
+    check_installed_version(script, 'simplewheel', '1.0')
 
-    result2 = script.pip('install', '--force-reinstall', specifier)
+    result2 = script.pip_install_local('--force-reinstall', specifier)
     assert result2.files_updated, 'force-reinstall failed'
-    check_installed_version(script, 'initools', expected)
+    check_installed_version(script, 'simplewheel', expected)
 
-    result3 = script.pip('uninstall', 'initools', '-y', expect_error=True)
+    result3 = script.pip('uninstall', 'simplewheel', '-y', expect_error=True)
     assert_all_changes(result, result3, [script.venv / 'build', 'cache'])
 
 
-@pytest.mark.network
 def test_force_reinstall_with_no_version_specifier(script):
     """
     Check --force-reinstall when there is no version specifier and the
     installed version is not the newest version.
     """
-    check_force_reinstall(script, 'INITools', '0.3.1')
+    check_force_reinstall(script, 'simplewheel', '2.0')
 
 
-@pytest.mark.network
 def test_force_reinstall_with_same_version_specifier(script):
     """
     Check --force-reinstall when the version specifier equals the installed
     version and the installed version is not the newest version.
     """
-    check_force_reinstall(script, 'INITools==0.2', '0.2')
+    check_force_reinstall(script, 'simplewheel==1.0', '1.0')
