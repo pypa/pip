@@ -385,22 +385,18 @@ class TestInstallRequirement(object):
         req = InstallRequirement.from_editable(url)
         assert req.link.url == url
 
-    def test_get_dist(self):
-        req = InstallRequirement.from_line('foo')
-        req.egg_info_path = Mock(return_value='/path/to/foo.egg-info')
-        dist = req.get_dist()
-        assert isinstance(dist, pkg_resources.Distribution)
-        assert dist.project_name == 'foo'
-        assert dist.location == '/path/to'
-
-    def test_get_dist_trailing_slash(self):
+    @pytest.mark.parametrize('path', (
+        '/path/to/foo.egg-info'.replace('/', os.path.sep),
         # Tests issue fixed by https://github.com/pypa/pip/pull/2530
+        '/path/to/foo.egg-info/'.replace('/', os.path.sep),
+    ))
+    def test_get_dist(self, path):
         req = InstallRequirement.from_line('foo')
-        req.egg_info_path = Mock(return_value='/path/to/foo.egg-info/')
+        req.egg_info_path = Mock(return_value=path)
         dist = req.get_dist()
         assert isinstance(dist, pkg_resources.Distribution)
         assert dist.project_name == 'foo'
-        assert dist.location == '/path/to'
+        assert dist.location == '/path/to'.replace('/', os.path.sep)
 
     def test_markers(self):
         for line in (

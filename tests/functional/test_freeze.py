@@ -6,7 +6,10 @@ from doctest import ELLIPSIS, OutputChecker
 
 import pytest
 
-from tests.lib import _create_test_package, _create_test_package_with_srcdir
+from tests.lib import (
+    _create_test_package, _create_test_package_with_srcdir, need_bzr,
+    need_mercurial
+)
 
 distribute_re = re.compile('^distribute==[0-9.]+\n', re.MULTILINE)
 
@@ -319,7 +322,7 @@ def test_freeze_git_remote(script, tmpdir):
     _check_output(result.stdout, expected)
 
 
-@pytest.mark.mercurial
+@need_mercurial
 def test_freeze_mercurial_clone(script, tmpdir):
     """
     Test freezing a Mercurial clone.
@@ -361,7 +364,7 @@ def test_freeze_mercurial_clone(script, tmpdir):
     _check_output(result.stdout, expected)
 
 
-@pytest.mark.bzr
+@need_bzr
 def test_freeze_bazaar_clone(script, tmpdir):
     """
     Test freezing a Bazaar clone.
@@ -478,7 +481,7 @@ def test_freeze_with_requirement_option_multiple(script):
         simple2==1.0
     """)
     expected += "## The following requirements were added by pip freeze:"
-    expected += os.linesep + textwrap.dedent("""\
+    expected += '\n' + textwrap.dedent("""\
         ...meta==1.0...
     """)
     _check_output(result.stdout, expected)

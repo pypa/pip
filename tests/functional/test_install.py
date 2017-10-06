@@ -1,3 +1,4 @@
+import distutils
 import glob
 import os
 import sys
@@ -8,11 +9,11 @@ import pytest
 
 from pip._internal import pep425tags
 from pip._internal.status_codes import ERROR
-from pip._internal.utils import appdirs
 from pip._internal.utils.misc import rmtree
 from tests.lib import (
     _create_svn_repo, _create_test_package, create_test_package_with_setup,
-    path_to_url, pyversion, pyversion_tuple, requirements_file
+    need_bzr, need_mercurial, path_to_url, pyversion, pyversion_tuple,
+    requirements_file
 )
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
@@ -217,6 +218,7 @@ def test_install_editable_uninstalls_existing_from_path(script, data):
     assert simple_folder in result.files_deleted, str(result.stdout)
 
 
+@need_mercurial
 def test_install_editable_from_hg(script, tmpdir):
     """Test cloning from Mercurial."""
     pkg_path = _create_test_package(script, name='testpackage', vcs='hg')
@@ -225,6 +227,7 @@ def test_install_editable_from_hg(script, tmpdir):
     result.assert_installed('testpackage', with_files=['.hg'])
 
 
+@need_mercurial
 def test_vcs_url_final_slash_normalization(script, tmpdir):
     """
     Test that presence or absence of final slash in VCS URL is normalized.
@@ -235,7 +238,7 @@ def test_vcs_url_final_slash_normalization(script, tmpdir):
     result.assert_installed('testpackage', with_files=['.hg'])
 
 
-@pytest.mark.bzr
+@need_bzr
 def test_install_editable_from_bazaar(script, tmpdir):
     """Test checking out from Bazaar."""
     pkg_path = _create_test_package(script, name='testpackage', vcs='bazaar')
@@ -245,7 +248,7 @@ def test_install_editable_from_bazaar(script, tmpdir):
 
 
 @pytest.mark.network
-@pytest.mark.bzr
+@need_bzr
 def test_vcs_url_urlquote_normalization(script, tmpdir):
     """
     Test that urlquoted characters are normalized for repo URL comparison.
@@ -289,13 +292,14 @@ def test_install_relative_directory(script, data):
 
     # Compute relative install path to FSPkg from scratch path.
     full_rel_path = data.packages.join('FSPkg') - script.scratch_path
+    full_rel_url = (
+        'file:' + full_rel_path.replace(os.path.sep, '/') + '#egg=FSPkg'
+    )
     embedded_rel_path = script.scratch_path.join(full_rel_path)
 
     # For each relative path, install as either editable or not using either
     # URLs with egg links or not.
-    for req_path in (full_rel_path,
-                     'file:' + full_rel_path + '#egg=FSPkg',
-                     embedded_rel_path):
+    for req_path in (full_rel_path, full_rel_url, embedded_rel_path):
         # Regular install.
         result = script.pip('install', req_path,
                             cwd=script.scratch_path)
@@ -498,6 +502,7 @@ def test_install_using_install_option_and_editable(script, tmpdir):
 
 
 @pytest.mark.network
+@need_mercurial
 def test_install_global_option_using_editable(script, tmpdir):
     """
     Test using global distutils options, but in an editable installation
@@ -653,12 +658,10 @@ def test_install_package_with_prefix(script, data):
         '--no-binary', 'simple', '--no-index', 'simple==1.0',
     )
 
-    if hasattr(sys, "pypy_version_info"):
-        path = script.scratch / 'prefix'
-    else:
-        path = script.scratch / 'prefix' / 'lib' / 'python{0}'.format(pyversion)  # noqa
+    rel_prefix_path = script.scratch / 'prefix'
     install_path = (
-        path / 'site-packages' / 'simple-1.0-py{0}.egg-info'.format(pyversion)
+        distutils.sysconfig.get_python_lib(prefix=rel_prefix_path) /
+        'simple-1.0-py{0}.egg-info'.format(pyversion)
     )
     assert install_path in result.files_created, str(result)
 
@@ -673,8 +676,11 @@ def test_install_editable_with_prefix(script):
               version='0.1')
     """))
 
-    site_packages = os.path.join(
-        'prefix', 'lib', 'python{0}'.format(pyversion), 'site-packages')
+    if hasattr(sys, "pypy_version_info"):
+        site_packages = os.path.join(
+            'prefix', 'lib', 'python{0}'.format(pyversion), 'site-packages')
+    else:
+        site_packages = distutils.sysconfig.get_python_lib(prefix='prefix')
 
     # make sure target path is in PYTHONPATH
     pythonpath = script.scratch_path / site_packages
@@ -745,7 +751,7 @@ def test_url_req_case_mismatch_no_index(script, data):
     tests/data/packages contains Upper-1.0.tar.gz and Upper-2.0.tar.gz
     'requiresupper' has install_requires = ['upper']
     """
-    Upper = os.path.join(data.find_links, 'Upper-1.0.tar.gz')
+    Upper = '/'.join((data.find_links, 'Upper-1.0.tar.gz'))
     result = script.pip(
         'install', '--no-index', '-f', data.find_links, Upper, 'requiresupper'
     )
@@ -772,7 +778,7 @@ def test_url_req_case_mismatch_file_index(script, data):
     set of packages as it requires a prepared index.html file and
     subdirectory-per-package structure.
     """
-    Dinner = os.path.join(data.find_links3, 'dinner', 'Dinner-1.0.tar.gz')
+    Dinner = '/'.join((data.find_links3, 'dinner', 'Dinner-1.0.tar.gz'))
     result = script.pip(
         'install', '--index-url', data.find_links3, Dinner, 'requiredinner'
     )
@@ -964,6 +970,12 @@ def test_cleanup_after_failed_wheel(script, data, common_wheels):
 
 @pytest.mark.network
 def test_install_builds_wheels(script, data, common_wheels):
+    # We need to use a subprocess to get the right value on Windows.
+    res = script.run('python', '-c', (
+        'from pip._internal.utils import appdirs; '
+        'print(appdirs.user_cache_dir("pip"))'
+    ))
+    wheels_cache = os.path.join(res.stdout.rstrip('\n'), 'wheels')
     # NB This incidentally tests a local tree + tarball inputs
     # see test_install_editable_from_git_autobuild_wheel for editable
     # vcs coverage.
@@ -976,9 +988,8 @@ def test_install_builds_wheels(script, data, common_wheels):
                 " upper-2.0 wheelbroken-0.1")
     # Must have installed it all
     assert expected in str(res), str(res)
-    root = appdirs.user_cache_dir('pip')
     wheels = []
-    for top, dirs, files in os.walk(os.path.join(root, "wheels")):
+    for top, dirs, files in os.walk(wheels_cache):
         wheels.extend(files)
     # and built wheels for upper and wheelbroken
     assert "Running setup.py bdist_wheel for upper" in str(res), str(res)
@@ -1085,7 +1096,9 @@ def test_double_install(script):
     """
     Test double install passing with two same version requirements
     """
-    result = script.pip('install', 'pip', 'pip', expect_error=False)
+    result = script.pip('install', 'pip', 'pip',
+                        use_module=True,
+                        expect_error=False)
     msg = "Double requirement given: pip (already in pip, name='pip')"
     assert msg not in result.stderr
 
@@ -1115,7 +1128,7 @@ def test_install_incompatible_python_requires(script, common_wheels):
     )
     result = script.pip('install', pkga_path, expect_error=True)
     assert ("pkga requires Python '<1.0' "
-            "but the running Python is ") in result.stderr
+            "but the running Python is ") in result.stderr, str(result)
 
 
 def test_install_incompatible_python_requires_editable(script, common_wheels):
@@ -1134,7 +1147,7 @@ def test_install_incompatible_python_requires_editable(script, common_wheels):
     result = script.pip(
         'install', '--editable=%s' % pkga_path, expect_error=True)
     assert ("pkga requires Python '<1.0' "
-            "but the running Python is ") in result.stderr
+            "but the running Python is ") in result.stderr, str(result)
 
 
 @pytest.mark.network
