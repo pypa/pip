@@ -10,55 +10,6 @@ from tests.lib.git_submodule_helpers import (
 
 
 @pytest.mark.network
-def test_get_short_refs_should_return_tag_name_and_commit_pair(script):
-    version_pkg_path = _create_test_package(script)
-    script.run('git', 'tag', '0.1', cwd=version_pkg_path)
-    script.run('git', 'tag', '0.2', cwd=version_pkg_path)
-    commit = script.run(
-        'git', 'rev-parse', 'HEAD',
-        cwd=version_pkg_path
-    ).stdout.strip()
-    git = Git()
-    result = git.get_short_refs(version_pkg_path)
-    assert result['0.1'] == commit, result
-    assert result['0.2'] == commit, result
-
-
-@pytest.mark.network
-def test_get_short_refs_should_return_branch_name_and_commit_pair(script):
-    version_pkg_path = _create_test_package(script)
-    script.run('git', 'branch', 'branch0.1', cwd=version_pkg_path)
-    commit = script.run(
-        'git', 'rev-parse', 'HEAD',
-        cwd=version_pkg_path
-    ).stdout.strip()
-    git = Git()
-    result = git.get_short_refs(version_pkg_path)
-    assert result['master'] == commit, result
-    assert result['branch0.1'] == commit, result
-
-
-@pytest.mark.network
-def test_get_short_refs_should_ignore_no_branch(script):
-    version_pkg_path = _create_test_package(script)
-    script.run('git', 'branch', 'branch0.1', cwd=version_pkg_path)
-    commit = script.run(
-        'git', 'rev-parse', 'HEAD',
-        cwd=version_pkg_path
-    ).stdout.strip()
-    # current branch here is "* (nobranch)"
-    script.run(
-        'git', 'checkout', commit,
-        cwd=version_pkg_path,
-        expect_stderr=True,
-    )
-    git = Git()
-    result = git.get_short_refs(version_pkg_path)
-    assert result['master'] == commit, result
-    assert result['branch0.1'] == commit, result
-
-
-@pytest.mark.network
 def test_is_commit_id_equal(script):
     """
     Test Git.is_commit_id_equal().
@@ -78,39 +29,29 @@ def test_is_commit_id_equal(script):
     assert not git.is_commit_id_equal(version_pkg_path, None)
 
 
-@patch('pip._internal.vcs.git.Git.get_short_refs')
-def test_check_rev_options_should_handle_branch_name(get_refs_mock):
-    get_refs_mock.return_value = {'master': '123456', '0.1': 'abc123'}
+@patch('pip._internal.vcs.git.Git.get_revision_sha')
+def test_check_rev_options_ref_exists(get_sha_mock):
+    get_sha_mock.return_value = '123456'
     git = Git()
-    rev_options = git.make_rev_options('master')
+    rev_options = git.make_rev_options('develop')
 
     new_options = git.check_rev_options('.', rev_options)
     assert new_options.rev == '123456'
 
 
-@patch('pip._internal.vcs.git.Git.get_short_refs')
-def test_check_rev_options_should_handle_tag_name(get_refs_mock):
-    get_refs_mock.return_value = {'master': '123456', '0.1': 'abc123'}
+@patch('pip._internal.vcs.git.Git.get_revision_sha')
+def test_check_rev_options_ref_not_found(get_sha_mock):
+    get_sha_mock.return_value = None
     git = Git()
-    rev_options = git.make_rev_options('0.1')
+    rev_options = git.make_rev_options('develop')
 
     new_options = git.check_rev_options('.', rev_options)
-    assert new_options.rev == 'abc123'
+    assert new_options.rev == 'develop'
 
 
-@patch('pip._internal.vcs.git.Git.get_short_refs')
-def test_check_rev_options_should_handle_ambiguous_commit(get_refs_mock):
-    get_refs_mock.return_value = {'master': '123456', '0.1': '123456'}
-    git = Git()
-    rev_options = git.make_rev_options('0.1')
-
-    new_options = git.check_rev_options('.', rev_options)
-    assert new_options.rev == '123456'
-
-
-@patch('pip._internal.vcs.git.Git.get_short_refs')
-def test_check_rev_options_not_found_warning(get_refs_mock, caplog):
-    get_refs_mock.return_value = {}
+@patch('pip._internal.vcs.git.Git.get_revision_sha')
+def test_check_rev_options_not_found_warning(get_sha_mock, caplog):
+    get_sha_mock.return_value = None
     git = Git()
 
     sha = 40 * 'a'
@@ -126,7 +67,7 @@ def test_check_rev_options_not_found_warning(get_refs_mock, caplog):
     messages = [r.getMessage() for r in caplog.records]
     messages = [msg for msg in messages if msg.startswith('Did not find ')]
     assert messages == [
-        "Did not find branch or tag 'aaaaaa', assuming ref or revision."
+        "Did not find branch or tag 'aaaaaa', assuming revision or ref."
     ]
 
 

@@ -23,11 +23,11 @@ def test_rev_options_repr():
 @pytest.mark.parametrize(('vcs', 'expected1', 'expected2', 'kwargs'), [
     # First check VCS-specific RevOptions behavior.
     (Bazaar(), [], ['-r', '123'], {}),
-    (Git(), ['origin/HEAD'], ['123'], {}),
+    (Git(), ['HEAD'], ['123'], {}),
     (Mercurial(), [], ['123'], {}),
     (Subversion(), [], ['-r', '123'], {}),
     # Test extra_args.  For this, test using a single VersionControl class.
-    (Git(), ['origin/HEAD', 'opt1', 'opt2'], ['123', 'opt1', 'opt2'],
+    (Git(), ['HEAD', 'opt1', 'opt2'], ['123', 'opt1', 'opt2'],
         dict(extra_args=['opt1', 'opt2'])),
 ])
 def test_rev_options_to_args(vcs, expected1, expected2, kwargs):
@@ -73,22 +73,10 @@ def test_rev_options_make_new():
 @pytest.fixture
 def git():
     git_url = 'http://github.com/pypa/pip-test-package'
-    refs = {
-        '0.1': 'a8992fc7ee17e5b9ece022417b64594423caca7c',
-        '0.1.1': '7d654e66c8fa7149c165ddeffa5b56bc06619458',
-        '0.1.2': 'f1c1020ebac81f9aeb5c766ff7a772f709e696ee',
-        'foo': '5547fa909e83df8bd743d3978d6667497983a4b7',
-        'bar': '5547fa909e83df8bd743d3978d6667497983a4b7',
-        'master': '5547fa909e83df8bd743d3978d6667497983a4b7',
-        'origin/master': '5547fa909e83df8bd743d3978d6667497983a4b7',
-        'origin/HEAD': '5547fa909e83df8bd743d3978d6667497983a4b7',
-    }
-    sha = refs['foo']
-
+    sha = '5547fa909e83df8bd743d3978d6667497983a4b7'
     git = Git()
     git.get_url = Mock(return_value=git_url)
     git.get_revision = Mock(return_value=sha)
-    git.get_short_refs = Mock(return_value=refs)
     return git
 
 
