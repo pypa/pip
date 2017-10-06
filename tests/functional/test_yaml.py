@@ -12,7 +12,7 @@ from tests.lib.yaml_helpers import generate_yaml_tests, id_func
 _conflict_finder_re = re.compile(
     # Conflicting Requirements: \
     # A 1.0.0 requires B == 2.0.0, C 1.0.0 requires B == 1.0.0.
-    """
+    r"""
         (?P<package>[\w\-_]+?)
         [ ]
         (?P<version>\S+?)
