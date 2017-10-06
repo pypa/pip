@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import logging
 import os.path
+import re
 
 from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.six.moves.urllib import parse as urllib_parse
@@ -20,6 +21,13 @@ urlunsplit = urllib_parse.urlunsplit
 logger = logging.getLogger(__name__)
 
 
+HASH_REGEX = re.compile('[a-fA-F0-9]{40}')
+
+
+def looks_like_hash(sha):
+    return bool(HASH_REGEX.match(sha))
+
+
 class Git(VersionControl):
     name = 'git'
     dirname = '.git'
@@ -27,7 +35,10 @@ class Git(VersionControl):
     schemes = (
         'git', 'git+http', 'git+https', 'git+ssh', 'git+git', 'git+file',
     )
-    default_arg_rev = 'origin/HEAD'
+    # Prevent the user's environment variables from interfering with pip:
+    # https://github.com/pypa/pip/issues/1130
+    unset_environ = ('GIT_DIR', 'GIT_WORK_TREE')
+    default_arg_rev = 'HEAD'
 
     def __init__(self, url=None, *args, **kwargs):
 
@@ -78,43 +89,71 @@ class Git(VersionControl):
                 show_stdout=False, cwd=temp_dir.path
             )
 
+    def get_revision_sha(self, dest, rev):
+        """
+        Return a commit hash for the given revision if it names a remote
+        branch or tag.  Otherwise, return None.
+
+        Args:
+          dest: the repository directory.
+          rev: the revision name.
+        """
+        # Pass rev to pre-filter the list.
+        output = self.run_command(['show-ref', rev], cwd=dest,
+                                  show_stdout=False, on_returncode='ignore')
+        refs = {}
+        for line in output.strip().splitlines():
+            try:
+                sha, ref = line.split()
+            except ValueError:
+                # Include the offending line to simplify troubleshooting if
+                # this error ever occurs.
+                raise ValueError('unexpected show-ref line: {!r}'.format(line))
+
+            refs[ref] = sha
+
+        branch_ref = 'refs/remotes/origin/{}'.format(rev)
+        tag_ref = 'refs/tags/{}'.format(rev)
+
+        return refs.get(branch_ref) or refs.get(tag_ref)
+
     def check_rev_options(self, dest, rev_options):
-        """Check the revision options before checkout to compensate that tags
-        and branches may need origin/ as a prefix.
+        """Check the revision options before checkout.
+
         Returns a new RevOptions object for the SHA1 of the branch or tag
         if found.
 
         Args:
           rev_options: a RevOptions object.
         """
-        revisions = self.get_short_refs(dest)
-
         rev = rev_options.arg_rev
-        origin_rev = 'origin/%s' % rev
-        if origin_rev in revisions:
-            # remote branch
-            return rev_options.make_new(revisions[origin_rev])
-        elif rev in revisions:
-            # a local tag or branch name
-            return rev_options.make_new(revisions[rev])
-        else:
+        sha = self.get_revision_sha(dest, rev)
+
+        if sha is not None:
+            return rev_options.make_new(sha)
+
+        # Do not show a warning for the common case of something that has
+        # the form of a Git commit hash.
+        if not looks_like_hash(rev):
             logger.warning(
-                "Could not find a tag or branch '%s', assuming commit or ref",
+                "Did not find branch or tag '%s', assuming revision or ref.",
                 rev,
             )
-            return rev_options
+        return rev_options
 
-    def check_version(self, dest, rev_options):
+    def is_commit_id_equal(self, dest, name):
         """
-        Compare the current sha to the ref. ref may be a branch or tag name,
-        but current rev will always point to a sha. This means that a branch
-        or tag will never compare as True. So this ultimately only matches
-        against exact shas.
+        Return whether the current commit hash equals the given name.
 
         Args:
-          rev_options: a RevOptions object.
+          dest: the repository directory.
+          name: a string name.
         """
-        return self.get_revision(dest).startswith(rev_options.arg_rev)
+        if not name:
+            # Then avoid an unnecessary subprocess call.
+            return False
+
+        return self.get_revision(dest) == name
 
     def switch(self, dest, url, rev_options):
         self.run_command(['config', 'remote.origin.url', url], cwd=dest)
@@ -149,10 +188,11 @@ class Git(VersionControl):
 
             if rev:
                 rev_options = self.check_rev_options(dest, rev_options)
-                # Only do a checkout if rev_options differs from HEAD
-                if not self.check_version(dest, rev_options):
+                # Only do a checkout if the current commit id doesn't match
+                # the requested revision.
+                if not self.is_commit_id_equal(dest, rev_options.rev):
                     cmd_args = ['fetch', '-q', url] + rev_options.to_args()
-                    self.run_command(cmd_args, cwd=dest,)
+                    self.run_command(cmd_args, cwd=dest)
                     self.run_command(
                         ['checkout', '-q', 'FETCH_HEAD'],
                         cwd=dest,
@@ -179,50 +219,6 @@ class Git(VersionControl):
         current_rev = self.run_command(
             ['rev-parse', 'HEAD'], show_stdout=False, cwd=location)
         return current_rev.strip()
-
-    def get_full_refs(self, location):
-        """Yields tuples of (commit, ref) for branches and tags"""
-        output = self.run_command(['show-ref'],
-                                  show_stdout=False, cwd=location)
-        for line in output.strip().splitlines():
-            commit, ref = line.split(' ', 1)
-            yield commit.strip(), ref.strip()
-
-    def is_ref_remote(self, ref):
-        return ref.startswith('refs/remotes/')
-
-    def is_ref_branch(self, ref):
-        return ref.startswith('refs/heads/')
-
-    def is_ref_tag(self, ref):
-        return ref.startswith('refs/tags/')
-
-    def is_ref_commit(self, ref):
-        """A ref is a commit sha if it is not anything else"""
-        return not any((
-            self.is_ref_remote(ref),
-            self.is_ref_branch(ref),
-            self.is_ref_tag(ref),
-        ))
-
-    # Should deprecate `get_refs` since it's ambiguous
-    def get_refs(self, location):
-        return self.get_short_refs(location)
-
-    def get_short_refs(self, location):
-        """Return map of named refs (branches or tags) to commit hashes."""
-        rv = {}
-        for commit, ref in self.get_full_refs(location):
-            ref_name = None
-            if self.is_ref_remote(ref):
-                ref_name = ref[len('refs/remotes/'):]
-            elif self.is_ref_branch(ref):
-                ref_name = ref[len('refs/heads/'):]
-            elif self.is_ref_tag(ref):
-                ref_name = ref[len('refs/tags/'):]
-            if ref_name is not None:
-                rv[ref_name] = commit
-        return rv
 
     def _get_subdirectory(self, location):
         """Return the relative path of setup.py to the git repo root."""

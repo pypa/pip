@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import ctypes
-import platform
 import re
 import warnings
 
@@ -73,9 +72,13 @@ def have_compatible_glibc(required_major, minimum_minor):
 # misleading. Solution: instead of using platform, use our code that actually
 # works.
 def libc_ver():
+    """Try to determine the glibc version
+
+    Returns a tuple of strings (lib, version) which default to empty strings
+    in case the lookup fails.
+    """
     glibc_version = glibc_version_string()
     if glibc_version is None:
-        # For non-glibc platforms, fall back on platform.libc_ver
-        return platform.libc_ver()
+        return ("", "")
     else:
         return ("glibc", glibc_version)

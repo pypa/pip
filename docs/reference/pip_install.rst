@@ -372,6 +372,10 @@ Passing branch names, a commit hash or a tag name is possible like so::
     [-e] git://git.example.com/MyProject.git@v1.0#egg=MyProject
     [-e] git://git.example.com/MyProject.git@da39a3ee5e6b4b0d3255bfef95601890afd80709#egg=MyProject
 
+When passing a commit hash, specifying a full hash is preferable to a partial
+hash because a full hash allows pip to operate more efficiently (e.g. by
+making fewer network calls).
+
 Mercurial
 ~~~~~~~~~
 
