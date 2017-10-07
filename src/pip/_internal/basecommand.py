@@ -132,6 +132,11 @@ class Command(object):
         if options.log:
             root_level = "DEBUG"
 
+        if options.no_color:
+            logger_class = "logging.StreamHandler"
+        else:
+            logger_class = "pip._internal.utils.logging.ColorizedStreamHandler"
+
         logging.config.dictConfig({
             "version": 1,
             "disable_existing_loggers": False,
@@ -150,22 +155,14 @@ class Command(object):
             "handlers": {
                 "console": {
                     "level": level,
-                    "class":
-                    "logging.StreamHandler"
-                        if options.no_color
-                        else ("pip._internal.utils.logging."
-                              "ColorizedStreamHandler"),
+                    "class": logger_class,
                     "stream": self.log_streams[0],
                     "filters": ["exclude_warnings"],
                     "formatter": "indent",
                 },
                 "console_errors": {
                     "level": "WARNING",
-                    "class":
-                    "logging.StreamHandler"
-                        if options.no_color
-                        else ("pip._internal.utils.logging"
-                              ".ColorizedStreamHandler"),
+                    "class": logger_class,
                     "stream": self.log_streams[1],
                     "formatter": "indent",
                 },
