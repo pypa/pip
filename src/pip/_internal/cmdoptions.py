@@ -108,7 +108,7 @@ no_color = partial(
     dest='no_color',
     action='store_true',
     default=False,
-    help="Suppress colored output"
+    help="Suppress colored output",
 )
 
 version = partial(
@@ -575,7 +575,7 @@ general_group = {
         cache_dir,
         no_cache,
         disable_pip_version_check,
-        no_color
+        no_color,
     ]
 }
 
