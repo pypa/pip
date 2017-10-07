@@ -12,7 +12,7 @@ dist/
 MANIFEST
 
 # Documentation
-docs/_build/
+docs/build/
 
 # mypy
 .mypy_cache/
