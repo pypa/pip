@@ -1,0 +1,3 @@
+sphinx == 1.6.1
+git+https://github.com/python/python-docs-theme.git#egg=python-docs-theme
+git+https://github.com/pypa/pypa-docs-theme.git#egg=pypa-docs-theme
