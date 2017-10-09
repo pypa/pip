@@ -10,6 +10,9 @@ from tests.lib import (
 from tests.lib.local_repos import local_checkout
 
 
+def get_home():
+    return os.path.expanduser('~')
+
 @pytest.mark.network
 def test_requirements_file(script):
     """
@@ -233,7 +236,7 @@ def test_wheel_user_with_prefix_in_pydistutils_cfg(
         user_filename = ".pydistutils.cfg"
     else:
         user_filename = "pydistutils.cfg"
-    user_cfg = os.path.join(os.path.expanduser('~'), user_filename)
+    user_cfg = os.path.join(get_home(), user_filename)
     script.scratch_path.join("bin").mkdir()
     with open(user_cfg, "w") as cfg:
         cfg.write(textwrap.dedent("""
@@ -251,8 +254,7 @@ def test_wheel_user_with_prefix_in_pydistutils_cfg(
 
 def test_nowheel_user_with_prefix_in_pydistutils_cfg(script, data, virtualenv):
     virtualenv.system_site_packages = True
-    homedir = script.environ["HOME"]
-    with open(os.path.join(homedir, ".pydistutils.cfg"), "w") as cfg:
+    with open(os.path.join(get_home(), ".pydistutils.cfg"), "w") as cfg:
         cfg.write(textwrap.dedent("""
             [install]
             prefix=%s""" % script.scratch_path))
@@ -268,8 +270,7 @@ def test_wheel_target_with_prefix_in_pydistutils_cfg(
         script, data, virtualenv, common_wheels):
     # pip needs `wheel` to build `requiresupper` wheel before installing
     script.pip('install', 'wheel', '--no-index', '-f', common_wheels)
-    homedir = script.environ["HOME"]
-    with open(os.path.join(homedir, ".pydistutils.cfg"), "w") as cfg:
+    with open(os.path.join(get_home(), ".pydistutils.cfg"), "w") as cfg:
         cfg.write(textwrap.dedent("""
             [install]
             prefix=%s""" % script.scratch_path))
@@ -285,8 +286,7 @@ def test_wheel_target_with_prefix_in_pydistutils_cfg(
 
 def test_nowheel_target_with_prefix_in_pydistutils_cfg(script, data,
                                                        virtualenv):
-    homedir = script.environ["HOME"]
-    with open(os.path.join(homedir, ".pydistutils.cfg"), "w") as cfg:
+    with open(os.path.join(get_home(), ".pydistutils.cfg"), "w") as cfg:
         cfg.write(textwrap.dedent("""
             [install]
             prefix=%s""" % script.scratch_path))
