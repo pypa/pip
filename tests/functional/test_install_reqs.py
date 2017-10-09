@@ -13,6 +13,7 @@ from tests.lib.local_repos import local_checkout
 def get_home():
     return os.path.expanduser('~')
 
+
 @pytest.mark.network
 def test_requirements_file(script):
     """
