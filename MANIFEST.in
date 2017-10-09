@@ -12,7 +12,7 @@ exclude .travis.yml
 exclude .landscape.yml
 exclude src/pip/_vendor/Makefile
 exclude tox.ini
-exclude dev-requirements.txt
+exclude *-requirements.txt
 exclude appveyor.yml
 
 recursive-include src/pip/_vendor *.pem
