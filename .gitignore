@@ -1,16 +1,37 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
 build/
 dist/
-docs/_build/
-pip.egg-info/
-MANIFEST
-.tox
-.cache
-.mypy_cache
 *.egg
 *.eggs
-*.py[cod]
-*~
+*.egg-info/
+MANIFEST
+
+# Documentation
+docs/build/
+
+# mypy
+.mypy_cache/
+
+# Unit test / coverage reports
+.tox/
 .coverage
+.coverage.*
+.cache
+nosetests.xml
 coverage.xml
+*.cover
+
+# Misc
+*~
 .*.sw?
+
+# For IntelliJ IDEs (basically PyCharm)
 .idea/
+
+# Scratch Pad for experiments
+.scratch/

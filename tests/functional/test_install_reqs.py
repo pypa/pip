@@ -1,10 +1,11 @@
-import os.path
+import os
 import textwrap
 
 import pytest
 
 from tests.lib import (
-    _create_test_package_with_subdirectory, pyversion, requirements_file
+    _create_test_package_with_subdirectory, path_to_url, pyversion,
+    requirements_file
 )
 from tests.lib.local_repos import local_checkout
 
@@ -68,13 +69,13 @@ def test_relative_requirements_file(script, data):
 
     # Compute relative install path to FSPkg from scratch path.
     full_rel_path = data.packages.join('FSPkg') - script.scratch_path
+    full_rel_url = 'file:' + full_rel_path + '#egg=FSPkg'
     embedded_rel_path = script.scratch_path.join(full_rel_path)
 
     # For each relative path, install as either editable or not using either
     # URLs with egg links or not.
-    for req_path in (full_rel_path,
-                     'file:' + full_rel_path + '#egg=FSPkg',
-                     embedded_rel_path):
+    for req_path in (full_rel_path, full_rel_url, embedded_rel_path):
+        req_path = req_path.replace(os.path.sep, '/')
         # Regular install.
         with requirements_file(req_path + '\n',
                                script.scratch_path) as reqs_file:
@@ -203,7 +204,7 @@ def test_install_local_editable_with_subdirectory(script):
     result = script.pip(
         'install', '-e',
         '%s#egg=version_subpkg&subdirectory=version_subdir' %
-        ('git+file://%s' % version_pkg_path,)
+        ('git+%s' % path_to_url(version_pkg_path),)
     )
 
     result.assert_installed('version-subpkg', sub_dir='version_subdir')
@@ -216,7 +217,7 @@ def test_install_local_with_subdirectory(script):
     result = script.pip(
         'install',
         '%s#egg=version_subpkg&subdirectory=version_subdir' %
-        ('git+file://%s' % version_pkg_path,)
+        ('git+' + path_to_url(version_pkg_path),)
     )
 
     result.assert_installed('version_subpkg.py', editable=False)
@@ -228,9 +229,13 @@ def test_wheel_user_with_prefix_in_pydistutils_cfg(
     # Make sure wheel is available in the virtualenv
     script.pip('install', 'wheel', '--no-index', '-f', common_wheels)
     virtualenv.system_site_packages = True
-    homedir = script.environ["HOME"]
+    if os.name == 'posix':
+        user_filename = ".pydistutils.cfg"
+    else:
+        user_filename = "pydistutils.cfg"
+    user_cfg = os.path.join(os.path.expanduser('~'), user_filename)
     script.scratch_path.join("bin").mkdir()
-    with open(os.path.join(homedir, ".pydistutils.cfg"), "w") as cfg:
+    with open(user_cfg, "w") as cfg:
         cfg.write(textwrap.dedent("""
             [install]
             prefix=%s""" % script.scratch_path))
@@ -310,7 +315,7 @@ def test_constraints_local_install_causes_error(script, data):
 def test_constraints_constrain_to_local_editable(script, data):
     to_install = data.src.join("singlemodule")
     script.scratch_path.join("constraints.txt").write(
-        "-e file://%s#egg=singlemodule" % to_install
+        "-e %s#egg=singlemodule" % path_to_url(to_install)
     )
     result = script.pip(
         'install', '--no-index', '-f', data.find_links, '-c',
@@ -321,7 +326,7 @@ def test_constraints_constrain_to_local_editable(script, data):
 def test_constraints_constrain_to_local(script, data):
     to_install = data.src.join("singlemodule")
     script.scratch_path.join("constraints.txt").write(
-        "file://%s#egg=singlemodule" % to_install
+        "%s#egg=singlemodule" % path_to_url(to_install)
     )
     result = script.pip(
         'install', '--no-index', '-f', data.find_links, '-c',
@@ -331,13 +336,13 @@ def test_constraints_constrain_to_local(script, data):
 
 def test_constrained_to_url_install_same_url(script, data):
     to_install = data.src.join("singlemodule")
-    script.scratch_path.join("constraints.txt").write(
-        "file://%s#egg=singlemodule" % to_install
-    )
+    constraints = path_to_url(to_install) + "#egg=singlemodule"
+    script.scratch_path.join("constraints.txt").write(constraints)
     result = script.pip(
         'install', '--no-index', '-f', data.find_links, '-c',
         script.scratch_path / 'constraints.txt', to_install)
-    assert 'Running setup.py install for singlemodule' in result.stdout
+    assert ('Running setup.py install for singlemodule'
+            in result.stdout), str(result)
 
 
 @pytest.mark.network
@@ -377,7 +382,7 @@ def test_double_install_spurious_hash_mismatch(
 def test_install_with_extras_from_constraints(script, data):
     to_install = data.packages.join("LocalExtras")
     script.scratch_path.join("constraints.txt").write(
-        "file://%s#egg=LocalExtras[bar]" % to_install
+        "%s#egg=LocalExtras[bar]" % path_to_url(to_install)
     )
     result = script.pip_install_local(
         '-c', script.scratch_path / 'constraints.txt', 'LocalExtras')
@@ -387,7 +392,7 @@ def test_install_with_extras_from_constraints(script, data):
 def test_install_with_extras_from_install(script, data):
     to_install = data.packages.join("LocalExtras")
     script.scratch_path.join("constraints.txt").write(
-        "file://%s#egg=LocalExtras" % to_install
+        "%s#egg=LocalExtras" % path_to_url(to_install)
     )
     result = script.pip_install_local(
         '-c', script.scratch_path / 'constraints.txt', 'LocalExtras[baz]')
@@ -397,7 +402,7 @@ def test_install_with_extras_from_install(script, data):
 def test_install_with_extras_joined(script, data):
     to_install = data.packages.join("LocalExtras")
     script.scratch_path.join("constraints.txt").write(
-        "file://%s#egg=LocalExtras[bar]" % to_install
+        "%s#egg=LocalExtras[bar]" % path_to_url(to_install)
     )
     result = script.pip_install_local(
         '-c', script.scratch_path / 'constraints.txt', 'LocalExtras[baz]'
@@ -409,7 +414,7 @@ def test_install_with_extras_joined(script, data):
 def test_install_with_extras_editable_joined(script, data):
     to_install = data.packages.join("LocalExtras")
     script.scratch_path.join("constraints.txt").write(
-        "-e file://%s#egg=LocalExtras[bar]" % to_install
+        "-e %s#egg=LocalExtras[bar]" % path_to_url(to_install)
     )
     result = script.pip_install_local(
         '-c', script.scratch_path / 'constraints.txt', 'LocalExtras[baz]')
@@ -466,7 +471,7 @@ def test_install_distribution_union_conflicting_extras(script, data):
     assert "Conflict" in result.stderr
 
 
-def test_install_unsupported_wheel_link_with_marker(script, data):
+def test_install_unsupported_wheel_link_with_marker(script):
     script.scratch_path.join("with-marker.txt").write(
         textwrap.dedent("""\
             %s; %s

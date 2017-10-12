@@ -85,24 +85,24 @@ def test_command_line_append_flags(script, virtualenv, data):
     variables.
 
     """
-    script.environ['PIP_FIND_LINKS'] = 'http://pypi.pinaxproject.com'
+    script.environ['PIP_FIND_LINKS'] = 'https://testpypi.python.org'
     result = script.pip(
         'install', '-vvv', 'INITools', '--trusted-host',
-        'pypi.pinaxproject.com',
+        'testpypi.python.org',
         expect_error=True,
     )
     assert (
-        "Analyzing links from page http://pypi.pinaxproject.com"
+        "Analyzing links from page https://testpypi.python.org"
         in result.stdout
-    )
+    ), str(result)
     virtualenv.clear()
     result = script.pip(
         'install', '-vvv', '--find-links', data.find_links, 'INITools',
-        '--trusted-host', 'pypi.pinaxproject.com',
+        '--trusted-host', 'testpypi.python.org',
         expect_error=True,
     )
     assert (
-        "Analyzing links from page http://pypi.pinaxproject.com"
+        "Analyzing links from page https://testpypi.python.org"
         in result.stdout
     )
     assert "Skipping link %s" % data.find_links in result.stdout
@@ -115,16 +115,16 @@ def test_command_line_appends_correctly(script, data):
 
     """
     script.environ['PIP_FIND_LINKS'] = (
-        'http://pypi.pinaxproject.com %s' % data.find_links
+        'https://testpypi.python.org %s' % data.find_links
     )
     result = script.pip(
         'install', '-vvv', 'INITools', '--trusted-host',
-        'pypi.pinaxproject.com',
+        'testpypi.python.org',
         expect_error=True,
     )
 
     assert (
-        "Analyzing links from page http://pypi.pinaxproject.com"
+        "Analyzing links from page https://testpypi.python.org"
         in result.stdout
     ), result.stdout
     assert "Skipping link %s" % data.find_links in result.stdout
@@ -203,16 +203,19 @@ def test_options_from_venv_config(script, virtualenv):
 def test_install_no_binary_via_config_disables_cached_wheels(
         script, data, common_wheels):
     script.pip('install', 'wheel', '--no-index', '-f', common_wheels)
-    config_file = tempfile.NamedTemporaryFile(mode='wt')
-    script.environ['PIP_CONFIG_FILE'] = config_file.name
-    config_file.write(textwrap.dedent("""\
-        [global]
-        no-binary = :all:
-        """))
-    config_file.flush()
-    res = script.pip(
-        'install', '--no-index', '-f', data.find_links,
-        'upper', expect_stderr=True)
+    config_file = tempfile.NamedTemporaryFile(mode='wt', delete=False)
+    try:
+        script.environ['PIP_CONFIG_FILE'] = config_file.name
+        config_file.write(textwrap.dedent("""\
+            [global]
+            no-binary = :all:
+            """))
+        config_file.close()
+        res = script.pip(
+            'install', '--no-index', '-f', data.find_links,
+            'upper', expect_stderr=True)
+    finally:
+        os.unlink(config_file.name)
     assert "Successfully installed upper-2.0" in str(res), str(res)
     # No wheel building for upper, which was blacklisted
     assert "Running setup.py bdist_wheel for upper" not in str(res), str(res)

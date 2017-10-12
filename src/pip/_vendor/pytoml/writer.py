@@ -1,5 +1,5 @@
 from __future__ import unicode_literals
-import io, datetime, sys
+import io, datetime, math, sys
 
 if sys.version_info[0] == 3:
     long = int
@@ -61,7 +61,10 @@ def _format_value(v):
     if isinstance(v, int) or isinstance(v, long):
         return unicode(v)
     if isinstance(v, float):
-        return repr(v)
+        if math.isnan(v) or math.isinf(v):
+            raise ValueError("{0} is not a valid TOML value".format(v))
+        else:
+            return repr(v)
     elif isinstance(v, unicode) or isinstance(v, bytes):
         return _escape_string(v)
     elif isinstance(v, datetime.datetime):
@@ -102,6 +105,7 @@ def dump(obj, fout, sort_keys=False):
 
         table_keys = sorted(table.keys()) if sort_keys else table.keys()
         new_tables = []
+        has_kv = False
         for k in table_keys:
             v = table[k]
             if isinstance(v, dict):
@@ -112,10 +116,12 @@ def dump(obj, fout, sort_keys=False):
                 # based on mojombo's comment: https://github.com/toml-lang/toml/issues/146#issuecomment-25019344
                 fout.write(
                     '#{} = null  # To use: uncomment and replace null with value\n'.format(_escape_id(k)))
+                has_kv = True
             else:
                 fout.write('{0} = {1}\n'.format(_escape_id(k), _format_value(v)))
+                has_kv = True
 
         tables.extend(reversed(new_tables))
 
-        if tables:
+        if (name or has_kv) and tables:
             fout.write('\n')

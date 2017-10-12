@@ -4,8 +4,6 @@
 pip freeze
 -----------
 
-.. contents::
-
 Usage
 *****
 

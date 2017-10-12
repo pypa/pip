@@ -3,7 +3,7 @@ Reference Guide
 ===============
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    pip
    pip_install

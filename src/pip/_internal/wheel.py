@@ -3,6 +3,7 @@ Support for installing and building the "wheel" binary package format.
 """
 from __future__ import absolute_import
 
+import collections
 import compileall
 import copy
 import csv
@@ -37,7 +38,11 @@ from pip._internal.utils.misc import (
 )
 from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._internal.utils.temp_dir import TempDirectory
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import open_spinner
+
+if MYPY_CHECK_RUNNING:
+    from typing import Dict, List, Optional
 
 wheel_ext = '.whl'
 
@@ -140,8 +145,64 @@ def get_entrypoints(filename):
     return console, gui
 
 
+def message_about_scripts_not_on_PATH(scripts):
+    # type: (List[str]) -> Optional[str]
+    """Determine if any scripts are not on PATH and format a warning.
+
+    Returns a warning message if one or more scripts are not on PATH,
+    otherwise None.
+    """
+    if not scripts:
+        return None
+
+    # Group scripts by the path they were installed in
+    grouped_by_dir = collections.defaultdict(set)  # type: Dict[str, set]
+    for destfile in scripts:
+        parent_dir = os.path.dirname(destfile)
+        script_name = os.path.basename(destfile)
+        grouped_by_dir[parent_dir].add(script_name)
+
+    path_env_var_parts = os.environ["PATH"].split(os.pathsep)
+    # Warn only for directories that are not on PATH
+    warn_for = {
+        parent_dir: scripts for parent_dir, scripts in grouped_by_dir.items()
+        if parent_dir not in path_env_var_parts
+    }
+    if not warn_for:
+        return None
+
+    # Format a message
+    msg_lines = []
+    for parent_dir, scripts in warn_for.items():
+        scripts = sorted(scripts)
+        if len(scripts) == 1:
+            start_text = "script {} is".format(scripts[0])
+        else:
+            start_text = "scripts {} are".format(
+                ", ".join(scripts[:-1]) + " and " + scripts[-1]
+            )
+
+        msg_lines.append(
+            "The {} installed in '{}' which is not on PATH."
+            .format(start_text, parent_dir)
+        )
+
+    last_line_fmt = (
+        "Consider adding {} to PATH or, if you prefer "
+        "to suppress this warning, use --no-warn-script-location."
+    )
+    if len(msg_lines) == 1:
+        msg_lines.append(last_line_fmt.format("this directory"))
+    else:
+        msg_lines.append(last_line_fmt.format("these directories"))
+
+    # Returns the formatted multiline message
+    return "\n".join(msg_lines)
+
+
 def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
-                     pycompile=True, scheme=None, isolated=False, prefix=None):
+                     pycompile=True, scheme=None, isolated=False, prefix=None,
+                     warn_script_location=True):
     """Install a wheel"""
 
     if not scheme:
@@ -391,9 +452,16 @@ if __name__ == '__main__':
 
     # Generate the console and GUI entry points specified in the wheel
     if len(console) > 0:
-        generated.extend(
-            maker.make_multiple(['%s = %s' % kv for kv in console.items()])
+        generated_console_scripts = maker.make_multiple(
+            ['%s = %s' % kv for kv in console.items()]
         )
+        generated.extend(generated_console_scripts)
+
+        if warn_script_location:
+            msg = message_about_scripts_not_on_PATH(generated_console_scripts)
+            if msg is not None:
+                logger.warn(msg)
+
     if len(gui) > 0:
         generated.extend(
             maker.make_multiple(

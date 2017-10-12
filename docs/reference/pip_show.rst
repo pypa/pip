@@ -3,9 +3,6 @@
 pip show
 --------
 
-.. contents::
-
-
 Usage
 *****
 

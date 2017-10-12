@@ -39,7 +39,7 @@ class TestUserCacheDir:
     def test_user_cache_dir_linux(self, monkeypatch):
         monkeypatch.setattr(appdirs, "WINDOWS", False)
         monkeypatch.setattr(os, "path", posixpath)
-        monkeypatch.delenv("XDG_CACHE_HOME")
+        monkeypatch.delenv("XDG_CACHE_HOME", raising=False)
         monkeypatch.setenv("HOME", "/home/test")
         monkeypatch.setattr(sys, "platform", "linux2")
 
@@ -58,7 +58,7 @@ class TestUserCacheDir:
         monkeypatch.setattr(appdirs, "WINDOWS", False)
         monkeypatch.setattr(os, "path", posixpath)
         # Verify that we are not affected by http://bugs.python.org/issue14768
-        monkeypatch.delenv("XDG_CACHE_HOME")
+        monkeypatch.delenv("XDG_CACHE_HOME", raising=False)
         monkeypatch.setenv("HOME", "/")
         monkeypatch.setattr(sys, "platform", "linux2")
 
@@ -115,7 +115,7 @@ class TestSiteConfigDirs:
     def test_site_config_dirs_linux(self, monkeypatch):
         monkeypatch.setattr(appdirs, "WINDOWS", False)
         monkeypatch.setattr(os, "path", posixpath)
-        monkeypatch.delenv("XDG_CONFIG_DIRS")
+        monkeypatch.delenv("XDG_CONFIG_DIRS", raising=False)
         monkeypatch.setattr(sys, "platform", "linux2")
 
         assert appdirs.site_config_dirs("pip") == [
@@ -194,7 +194,7 @@ class TestUserDataDir:
     def test_user_data_dir_linux(self, monkeypatch):
         monkeypatch.setattr(appdirs, "WINDOWS", False)
         monkeypatch.setattr(os, "path", posixpath)
-        monkeypatch.delenv("XDG_DATA_HOME")
+        monkeypatch.delenv("XDG_DATA_HOME", raising=False)
         monkeypatch.setenv("HOME", "/home/test")
         monkeypatch.setattr(sys, "platform", "linux2")
 
@@ -213,7 +213,7 @@ class TestUserDataDir:
         monkeypatch.setattr(appdirs, "WINDOWS", False)
         monkeypatch.setattr(os, "path", posixpath)
         # Verify that we are not affected by http://bugs.python.org/issue14768
-        monkeypatch.delenv("XDG_DATA_HOME")
+        monkeypatch.delenv("XDG_DATA_HOME", raising=False)
         monkeypatch.setenv("HOME", "/")
         monkeypatch.setattr(sys, "platform", "linux2")
 
@@ -276,7 +276,7 @@ class TestUserConfigDir:
     def test_user_config_dir_linux(self, monkeypatch):
         monkeypatch.setattr(appdirs, "WINDOWS", False)
         monkeypatch.setattr(os, "path", posixpath)
-        monkeypatch.delenv("XDG_CONFIG_HOME")
+        monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
         monkeypatch.setenv("HOME", "/home/test")
         monkeypatch.setattr(sys, "platform", "linux2")
 
@@ -295,7 +295,7 @@ class TestUserConfigDir:
         monkeypatch.setattr(appdirs, "WINDOWS", False)
         monkeypatch.setattr(os, "path", posixpath)
         # Verify that we are not affected by http://bugs.python.org/issue14768
-        monkeypatch.delenv("XDG_CONFIG_HOME")
+        monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
         monkeypatch.setenv("HOME", "/")
         monkeypatch.setattr(sys, "platform", "linux2")
 

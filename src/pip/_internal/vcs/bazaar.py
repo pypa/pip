@@ -29,6 +29,9 @@ class Bazaar(VersionControl):
         if getattr(urllib_parse, 'uses_fragment', None):
             urllib_parse.uses_fragment.extend(['lp'])
 
+    def get_base_rev_args(self, rev):
+        return ['-r', rev]
+
     def export(self, location):
         """
         Export the Bazaar repository at the url to the destination location
@@ -49,24 +52,22 @@ class Bazaar(VersionControl):
         self.run_command(['switch', url], cwd=dest)
 
     def update(self, dest, rev_options):
-        self.run_command(['pull', '-q'] + rev_options, cwd=dest)
+        cmd_args = ['pull', '-q'] + rev_options.to_args()
+        self.run_command(cmd_args, cwd=dest)
 
     def obtain(self, dest):
         url, rev = self.get_url_rev()
-        if rev:
-            rev_options = ['-r', rev]
-            rev_display = ' (to revision %s)' % rev
-        else:
-            rev_options = []
-            rev_display = ''
-        if self.check_destination(dest, url, rev_options, rev_display):
+        rev_options = self.make_rev_options(rev)
+        if self.check_destination(dest, url, rev_options):
+            rev_display = rev_options.to_display()
             logger.info(
                 'Checking out %s%s to %s',
                 url,
                 rev_display,
                 display_path(dest),
             )
-            self.run_command(['branch', '-q'] + rev_options + [url, dest])
+            cmd_args = ['branch', '-q'] + rev_options.to_args() + [url, dest]
+            self.run_command(cmd_args)
 
     def get_url_rev(self):
         # hotfix the URL scheme after removing bzr+ from bzr+ssh:// readd it
@@ -103,7 +104,7 @@ class Bazaar(VersionControl):
         current_rev = self.get_revision(location)
         return '%s@%s#egg=%s' % (repo, current_rev, egg_project_name)
 
-    def check_version(self, dest, rev_options):
+    def is_commit_id_equal(self, dest, name):
         """Always assume the versions don't match"""
         return False
 
