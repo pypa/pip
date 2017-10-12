@@ -23,8 +23,8 @@ from pip._internal.utils.encoding import auto_decode
 from pip._internal.utils.glibc import check_glibc_version
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.misc import (
-    egg_link_path, ensure_dir, get_installed_distributions, normalize_path,
-    rmtree, untar_file, unzip_file
+    egg_link_path, ensure_dir, get_installed_distributions, get_prog,
+    normalize_path, rmtree, untar_file, unzip_file
 )
 from pip._internal.utils.packaging import check_dist_requires_python
 from pip._internal.utils.temp_dir import TempDirectory
@@ -592,3 +592,23 @@ class TestCheckRequiresPython(object):
                 check_dist_requires_python(fake_dist)
         else:
             check_dist_requires_python(fake_dist)
+
+
+class TestGetProg(object):
+
+    @pytest.mark.parametrize(
+        ("argv", "executable", "expected"),
+        [
+            ('/usr/bin/pip', '', 'pip'),
+            ('-c', '/usr/bin/python', '/usr/bin/python -m pip'),
+            ('__main__.py', '/usr/bin/python', '/usr/bin/python -m pip'),
+            ('/usr/bin/pip3', '', 'pip3'),
+        ]
+    )
+    def test_get_prog(self, monkeypatch, argv, executable, expected):
+        monkeypatch.setattr('pip._internal.utils.misc.sys.argv', [argv])
+        monkeypatch.setattr(
+            'pip._internal.utils.misc.sys.executable',
+            executable
+        )
+        assert get_prog() == expected

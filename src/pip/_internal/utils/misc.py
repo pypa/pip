@@ -91,8 +91,11 @@ def ensure_dir(path):
 
 def get_prog():
     try:
-        if os.path.basename(sys.argv[0]) in ('__main__.py', '-c'):
+        prog = os.path.basename(sys.argv[0])
+        if prog in ('__main__.py', '-c'):
             return "%s -m pip" % sys.executable
+        else:
+            return prog
     except (AttributeError, TypeError, IndexError):
         pass
     return 'pip'
