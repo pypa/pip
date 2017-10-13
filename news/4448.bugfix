@@ -1,0 +1,2 @@
+Reinstalling an editable package from Git no longer assumes that the ``master``
+branch exists.

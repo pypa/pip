@@ -28,7 +28,6 @@ class RequirementSet(object):
         self.requirement_aliases = {}
         self.unnamed_requirements = []
         self.successfully_downloaded = []
-        self.successfully_installed = []
         self.reqs_to_cleanup = []
         self.use_user_site = use_user_site
         self.target_dir = target_dir  # set from --target option
@@ -243,4 +242,4 @@ class RequirementSet(object):
                         requirement.uninstalled_pathset.commit()
                 requirement.remove_temporary_source()
 
-        self.successfully_installed = to_install
+        return to_install

@@ -28,12 +28,6 @@ except ImportError:
     wheel = None
 
 
-try:
-    import wheel
-except ImportError:
-    wheel = None
-
-
 logger = logging.getLogger(__name__)
 
 
@@ -164,6 +158,14 @@ class InstallCommand(RequirementCommand):
             help="Do not compile Python source files to bytecode",
         )
 
+        cmd_opts.add_option(
+            "--no-warn-script-location",
+            action="store_false",
+            dest="warn_script_location",
+            default=True,
+            help="Do not warn when installing scripts outside PATH",
+        )
+
         cmd_opts.add_option(cmdoptions.no_binary())
         cmd_opts.add_option(cmdoptions.only_binary())
         cmd_opts.add_option(cmdoptions.no_clean())
@@ -291,11 +293,12 @@ class InstallCommand(RequirementCommand):
                         # installed from the sdist/vcs whatever.
                         wb.build(session=session, autobuilding=True)
 
-                    requirement_set.install(
+                    installed = requirement_set.install(
                         install_options,
                         global_options,
                         root=options.root_path,
                         prefix=options.prefix_path,
+                        warn_script_location=options.warn_script_location,
                     )
 
                     possible_lib_locations = get_lib_location_guesses(
@@ -305,9 +308,7 @@ class InstallCommand(RequirementCommand):
                         prefix=options.prefix_path,
                         isolated=options.isolated_mode,
                     )
-                    reqs = sorted(
-                        requirement_set.successfully_installed,
-                        key=operator.attrgetter('name'))
+                    reqs = sorted(installed, key=operator.attrgetter('name'))
                     items = []
                     for req in reqs:
                         item = req.name

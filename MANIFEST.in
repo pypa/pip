@@ -18,9 +18,12 @@ exclude appveyor.yml
 recursive-include src/pip/_vendor *.pem
 recursive-include docs Makefile *.rst *.py *.bat
 
+exclude src/pip/_vendor/six
+recursive-exclude src/pip/_vendor *.pyi
+
 prune .github
 prune .travis
-prune docs/_build
+prune docs/build
 prune news
 prune contrib
 prune tasks

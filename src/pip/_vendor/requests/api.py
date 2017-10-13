@@ -73,7 +73,7 @@ def get(url, params=None, **kwargs):
 
 
 def options(url, **kwargs):
-    r"""Sends a OPTIONS request.
+    r"""Sends an OPTIONS request.
 
     :param url: URL for the new :class:`Request` object.
     :param \*\*kwargs: Optional arguments that ``request`` takes.
@@ -137,7 +137,7 @@ def patch(url, data=None, **kwargs):
     :rtype: requests.Response
     """
 
-    return request('patch', url,  data=data, **kwargs)
+    return request('patch', url, data=data, **kwargs)
 
 
 def delete(url, **kwargs):

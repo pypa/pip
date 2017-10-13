@@ -1,3 +1,4 @@
+import distutils
 import glob
 import os
 import sys
@@ -187,11 +188,8 @@ def test_install_wheel_with_prefix(script, data):
         'install', 'simple.dist==0.1', '--prefix', prefix_dir,
         '--no-index', '--find-links=' + data.find_links,
     )
-    if hasattr(sys, "pypy_version_info"):
-        lib = Path('scratch') / 'prefix' / 'site-packages'
-    else:
-        lib = Path('scratch') / 'prefix' / 'lib'
-    assert lib in result.files_created
+    lib = distutils.sysconfig.get_python_lib(prefix=Path('scratch') / 'prefix')
+    assert lib in result.files_created, str(result)
 
 
 def test_install_from_wheel_installs_deps(script, data):
@@ -234,7 +232,7 @@ def test_install_user_wheel(script, virtualenv, data, common_wheels):
     egg_info_folder = script.user_site / 'has.script-1.0.dist-info'
     assert egg_info_folder in result.files_created, str(result)
     script_file = script.user_bin / 'script.py'
-    assert script_file in result.files_created
+    assert script_file in result.files_created, str(result)
 
 
 def test_install_from_wheel_gen_entrypoint(script, data):

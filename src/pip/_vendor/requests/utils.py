@@ -20,7 +20,7 @@ import socket
 import struct
 import warnings
 
-from . import __version__
+from .__version__ import __version__
 from . import certs
 # to_native_string is unused here, but imported here for backwards compatibility
 from ._internal_utils import to_native_string
@@ -171,7 +171,7 @@ def get_netrc_auth(url, raise_errors=False):
             except KeyError:
                 # os.path.expanduser can fail when $HOME is undefined and
                 # getpwuid fails. See http://bugs.python.org/issue20164 &
-                # https://github.com/kennethreitz/requests/issues/1846
+                # https://github.com/requests/requests/issues/1846
                 return
 
             if os.path.exists(loc):
@@ -494,8 +494,7 @@ def get_unicode_from_response(r):
 
 # The unreserved URI characters (RFC 3986)
 UNRESERVED_SET = frozenset(
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-    + "0123456789-._~")
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz" + "0123456789-._~")
 
 
 def unquote_unreserved(uri):
@@ -613,18 +612,18 @@ def set_environ(env_name, value):
     the environment variable 'env_name'.
 
     If 'value' is None, do nothing"""
-    if value is not None:
+    value_changed = value is not None
+    if value_changed:
         old_value = os.environ.get(env_name)
         os.environ[env_name] = value
     try:
         yield
     finally:
-        if value is None:
-            return
-        if old_value is None:
-            del os.environ[env_name]
-        else:
-            os.environ[env_name] = old_value
+        if value_changed:
+            if old_value is None:
+                del os.environ[env_name]
+            else:
+                os.environ[env_name] = old_value
 
 
 def should_bypass_proxies(url, no_proxy):
@@ -684,7 +683,7 @@ def should_bypass_proxies(url, no_proxy):
     return False
 
 
-def get_environ_proxies(url, no_proxy):
+def get_environ_proxies(url, no_proxy=None):
     """
     Return a dict of environment proxies.
 
@@ -851,6 +850,7 @@ def get_auth_from_url(url):
 _CLEAN_HEADER_REGEX_BYTE = re.compile(b'^\\S[^\\r\\n]*$|^$')
 _CLEAN_HEADER_REGEX_STR = re.compile(r'^\S[^\r\n]*$|^$')
 
+
 def check_header_validity(header):
     """Verifies that header value is a string which doesn't contain
     leading whitespace or return characters. This prevents unintended
@@ -868,8 +868,8 @@ def check_header_validity(header):
         if not pat.match(value):
             raise InvalidHeader("Invalid return character or leading space in header: %s" % name)
     except TypeError:
-        raise InvalidHeader("Header value %s must be of type str or bytes, "
-                            "not %s" % (value, type(value)))
+        raise InvalidHeader("Value for header {%s: %s} must be of type str or "
+                            "bytes, not %s" % (name, value, type(value)))
 
 
 def urldefragauth(url):
@@ -887,6 +887,7 @@ def urldefragauth(url):
     netloc = netloc.rsplit('@', 1)[-1]
 
     return urlunparse((scheme, netloc, path, params, query, ''))
+
 
 def rewind_body(prepared_request):
     """Move file pointer back to its recorded starting position

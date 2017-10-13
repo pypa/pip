@@ -6,6 +6,11 @@ from __future__ import absolute_import
 import logging
 import warnings
 
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from typing import Any
+
 
 class PipDeprecationWarning(Warning):
     pass
@@ -26,7 +31,7 @@ class RemovedInPip12Warning(PipDeprecationWarning, Pending):
 # Warnings <-> Logging Integration
 
 
-_warnings_showwarning = None
+_warnings_showwarning = None  # type: Any
 
 
 def _showwarning(message, category, filename, lineno, file=None, line=None):
