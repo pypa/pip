@@ -488,11 +488,7 @@ class InstallRequirement(object):
                 self.setup_py, self.link,
             )
 
-        if self.editable:
-            metadata_directory = ''
-        else:
-            metadata_directory = 'pip-egg-info'
-
+        metadata_directory = 'pip-dist-info'
         with indent_log():
             self.build_backend.prepare_metadata_for_build_wheel(
                 metadata_directory)
@@ -535,40 +531,8 @@ class InstallRequirement(object):
 
     def egg_info_path(self, filename):
         if self._egg_info_path is None:
-            if self.editable:
-                base = self.source_dir
-            else:
-                base = os.path.join(self.setup_py_dir, 'pip-egg-info')
+            base = os.path.join(self.setup_py_dir, 'pip-dist-info')
             filenames = os.listdir(base)
-            if self.editable:
-                filenames = []
-                for root, dirs, files in os.walk(base):
-                    for dir in vcs.dirnames:
-                        if dir in dirs:
-                            dirs.remove(dir)
-                    # Iterate over a copy of ``dirs``, since mutating
-                    # a list while iterating over it can cause trouble.
-                    # (See https://github.com/pypa/pip/pull/462.)
-                    for dir in list(dirs):
-                        # Don't search in anything that looks like a virtualenv
-                        # environment
-                        if (
-                                os.path.lexists(
-                                    os.path.join(root, dir, 'bin', 'python')
-                                ) or
-                                os.path.exists(
-                                    os.path.join(
-                                        root, dir, 'Scripts', 'Python.exe'
-                                    )
-                                )):
-                            dirs.remove(dir)
-                        # Also don't search through tests
-                        elif dir == 'test' or dir == 'tests':
-                            dirs.remove(dir)
-                    filenames.extend([os.path.join(root, dir)
-                                      for dir in dirs])
-                filenames = [f for f in filenames if f.endswith('.egg-info')]
-
             if not filenames:
                 raise InstallationError(
                     'No files/directories in %s (from %s)' % (base, filename)
@@ -589,11 +553,11 @@ class InstallRequirement(object):
 
     def pkg_info(self):
         p = FeedParser()
-        data = self.egg_info_data('PKG-INFO')
+        data = self.egg_info_data('METADATA')
         if not data:
             logger.warning(
                 'No PKG-INFO file found in %s',
-                display_path(self.egg_info_path('PKG-INFO')),
+                display_path(self.egg_info_path('METADATA')),
             )
         p.feed(data or '')
         return p.close()
