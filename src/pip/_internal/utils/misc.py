@@ -887,7 +887,7 @@ def confirm_dependencies(req):
             [dist for d in dist.requires() if d.key == req.req.name])
     if not dep_keys:
         return True
-    logger.info("%s is depended from:" % req.req)
+    logger.info("The following packages depend on %s and may break if it is uninstalled:" % req.req)
     for dep in dep_keys:
         logger.info(dep)
     response = ask('Proceed (y/n)? ', ('y', 'n'))
