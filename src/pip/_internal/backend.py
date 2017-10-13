@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+import importlib
 
 from sysconfig import get_paths
 
@@ -8,7 +9,7 @@ from pip._internal.utils.misc import call_subprocess, ensure_dir
 from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._internal.utils.temp_dir import TempDirectory
 
-# from wheel import bdist_wheel
+from concurrent import futures
 
 
 logger = logging.getLogger(__name__)
@@ -74,74 +75,34 @@ class BuildEnvironment(object):
             os.environ['PYTHONPATH'] = self.save_pythonpath
 
 
-class BuildBackend(object):
-    """
-    PEP 517 Build Backend
 
-    Controls all setup.py interactions
-    """
+class BuildBackendBase(object):
+    def __init__(self, cwd=None, env={}, backend_name='setuptools.build_meta'):
+        self.cwd = cwd
+        self.env = env
+        self.backend_name = backend_name
 
-    def __init__(self, setup_py_dir):
-        self.setup_py_dir = setup_py_dir
 
-    @property
-    def setup_py(self):
-        return os.path.join(self.setup_py_dir, 'setup.py')
+class BuildBackend(BuildBackendBase):
+    """PEP 517 Build Backend"""
+    def __init__(self, *args, **kwargs):
+        super(BuildBackend, self).__init__(*args, **kwargs)
+        self.pool = futures.ProcessPoolExecutor()
 
-    def get_requires_for_build_wheel(self):
-        """Obtain the PEP 517 build requirements"""
-        raise NotImplementedError()
+    def __getattr__(self, name):
+        """Handles aribrary function invocations on the build backend."""
+        def method(*args, **kw):
+            root = os.path.abspath(self.cwd)
+            caller = BuildBackendCaller(root, self.env, self.backend_name)
+            return self.pool.submit(caller, name, *args, **kw).result()
 
-    def prepare_metadata_for_build_wheel(self, metadata_directory,
-                                         config_settings=None):
-        """Run the setup.py egg_info command"""
-        egg_info_cmd = ['egg_info']
-        # We can't put the .egg-info files at the root, because then the
-        # source code will be mistaken for an installed egg, causing
-        # problems
-        if metadata_directory == '':
-            egg_base_option = []
-            logger.debug("Preparing metadata for editable distribution")
-        else:
-            egg_info_dir = os.path.join(self.setup_py_dir, 'pip-egg-info')
-            ensure_dir(egg_info_dir)
-            egg_base_option = ['--egg-base', metadata_directory]
-            logger.debug("Preparing metadata for distribution")
+        return method
 
-        self._call_setup_py(
-            egg_info_cmd + egg_base_option,
-            command_desc='python setup.py egg_info')
 
-        # TODO: move PKG-INFO to METADATA
-
-        # bw = bdist_wheel.bdist_wheel(distutils.dist.Distribution())
-        # bw.egg2dist(os.path.join(dir, 'EGG-INFO'),
-        #        dist_info_dir)
-
-    def build_wheel(self, wheel_directory, metadata_directory=None,
-                    config_settings=None):
-        wheel_args = ['bdist_wheel', '-d', wheel_directory]
-        env = {'PYTHONNOUSERSITE': '1'}
-
-        self._call_setup_py(wheel_args,
-                            command_desc='python setup.py bdist_wheel',
-                            extra_environ=env)
-
-    def _base_setup_args(self):
-        flags = '-u'
-        # The -S flag currently breaks Python in virtualenvs, because it relies
-        # on site.py to find parts of the standard library outside the env. So
-        # isolation is disabled for now.
-        # if isolate:
-        #     flags += 'S'
-        return [
-            sys.executable, flags, '-c',
-            SETUPTOOLS_SHIM % self.setup_py
-        ]
-
-    def _call_setup_py(self, args, cwd=None, **kwargs):
-        if not cwd:
-            cwd = self.setup_py_dir
-        logger.debug("setup_py_dir is: " + self.setup_py_dir)
-        call_subprocess(self._base_setup_args() + args,
-                        cwd=cwd, show_stdout=False, **kwargs)
+class BuildBackendCaller(BuildBackendBase):
+    def __call__(self, name, *args, **kw):
+        """Handles aribrary function invocations on the build backend."""
+        os.chdir(self.cwd)
+        os.environ.update(self.env)
+        mod = importlib.import_module(self.backend_name)
+        return getattr(mod, name)(*args, **kw)
