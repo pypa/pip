@@ -463,13 +463,17 @@ class InstallRequirement(object):
         in PEP 518. If this file exists but doesn't specify build
         requirements, pip will default to installing setuptools and wheel.
         """
+        setuptools_reqs = [
+            "setuptools>=36.6.0",
+            "wheel",  # Temporary; to be removed
+        ]
         if os.path.isfile(self.pyproject_toml):
             with open(self.pyproject_toml) as f:
                 pp_toml = pytoml.load(f)
             return pp_toml.get('build-system', {})\
-                .get('requires', ['setuptools', 'wheel'])
+                .get('requires', setuptools_reqs)
 
-        return ['setuptools', 'wheel']
+        return setuptools_reqs
 
     def run_egg_info(self):
         assert self.source_dir
