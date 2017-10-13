@@ -10,9 +10,10 @@ from tests.lib import (
 from tests.lib.local_repos import local_checkout
 
 
-def get_home():
-    return os.path.expanduser('~')
-
+if os.name == 'posix':
+    distutils_cfg = os.path.expanduser('~/.pydistutils.cfg')
+else:
+    distutils_cfg = os.path.expanduser('~\\.pydistutils.cfg')
 
 @pytest.mark.network
 def test_requirements_file(script):
@@ -233,13 +234,8 @@ def test_wheel_user_with_prefix_in_pydistutils_cfg(
     # Make sure wheel is available in the virtualenv
     script.pip('install', 'wheel', '--no-index', '-f', common_wheels)
     virtualenv.system_site_packages = True
-    if os.name == 'posix':
-        user_filename = ".pydistutils.cfg"
-    else:
-        user_filename = "pydistutils.cfg"
-    user_cfg = os.path.join(get_home(), user_filename)
     script.scratch_path.join("bin").mkdir()
-    with open(user_cfg, "w") as cfg:
+    with open(distutils_cfg, "w") as cfg:
         cfg.write(textwrap.dedent("""
             [install]
             prefix=%s""" % script.scratch_path))
@@ -255,7 +251,7 @@ def test_wheel_user_with_prefix_in_pydistutils_cfg(
 
 def test_nowheel_user_with_prefix_in_pydistutils_cfg(script, data, virtualenv):
     virtualenv.system_site_packages = True
-    with open(os.path.join(get_home(), ".pydistutils.cfg"), "w") as cfg:
+    with open(distutils_cfg, "w") as cfg:
         cfg.write(textwrap.dedent("""
             [install]
             prefix=%s""" % script.scratch_path))
@@ -271,7 +267,7 @@ def test_wheel_target_with_prefix_in_pydistutils_cfg(
         script, data, virtualenv, common_wheels):
     # pip needs `wheel` to build `requiresupper` wheel before installing
     script.pip('install', 'wheel', '--no-index', '-f', common_wheels)
-    with open(os.path.join(get_home(), ".pydistutils.cfg"), "w") as cfg:
+    with open(distutils_cfg, "w") as cfg:
         cfg.write(textwrap.dedent("""
             [install]
             prefix=%s""" % script.scratch_path))
@@ -287,7 +283,7 @@ def test_wheel_target_with_prefix_in_pydistutils_cfg(
 
 def test_nowheel_target_with_prefix_in_pydistutils_cfg(script, data,
                                                        virtualenv):
-    with open(os.path.join(get_home(), ".pydistutils.cfg"), "w") as cfg:
+    with open(distutils_cfg, "w") as cfg:
         cfg.write(textwrap.dedent("""
             [install]
             prefix=%s""" % script.scratch_path))
