@@ -15,6 +15,7 @@ if os.name == 'posix':
 else:
     distutils_cfg = os.path.expanduser('~\\.pydistutils.cfg')
 
+
 @pytest.mark.network
 def test_requirements_file(script):
     """
