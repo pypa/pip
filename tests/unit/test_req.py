@@ -252,6 +252,7 @@ class TestRequirementSet(object):
             resolver.resolve,
             reqset)
 
+    @pytest.mark.xfail
     def test_unhashed_deps_on_require_hashes(self, data):
         """Make sure unhashed, unpinned, or otherwise unrepeatable
         dependencies get complained about when --require-hashes is on."""
