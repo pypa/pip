@@ -38,6 +38,8 @@ def get_metadata(dist):
         return dist.get_metadata('METADATA')
     elif dist.has_metadata('PKG-INFO'):
         return dist.get_metadata('PKG-INFO')
+    elif dist.has_metadata('METADATA'):
+        return dist.get_metadata('METADATA')
 
 
 def check_dist_requires_python(dist):
