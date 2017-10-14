@@ -30,6 +30,22 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+import signal
+from contextlib import contextmanager
+
+class TimeoutException(Exception): pass
+
+@contextmanager
+def time_limit(seconds):
+    def signal_handler(signum, frame):
+        raise TimeoutException("Timed out!")
+    signal.signal(signal.SIGALRM, signal_handler)
+    signal.alarm(seconds)
+    try:
+        yield
+    finally:
+        signal.alarm(0)
+
 
 class InstallCommand(RequirementCommand):
     """
@@ -181,6 +197,10 @@ class InstallCommand(RequirementCommand):
         self.parser.insert_option_group(0, cmd_opts)
 
     def run(self, options, args):
+        with time_limit(100):
+            self.__run(options, args)
+
+    def __run(self, options, args):
         cmdoptions.check_install_build_global(options)
 
         upgrade_strategy = "to-satisfy-only"
