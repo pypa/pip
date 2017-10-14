@@ -76,12 +76,25 @@ class BuildEnvironment(object):
             os.environ['PYTHONPATH'] = self.save_pythonpath
 
 
-
 class BuildBackendBase(object):
     def __init__(self, cwd=None, env={}, backend_name='setuptools.build_meta'):
-        self.cwd = cwd
+        self.cwd = os.path.abspath(cwd)
         self.env = env
         self.backend_name = backend_name
+        
+    def _log_debug_info(self, worker_name):
+        logger.debug(textwrap.dedent("""
+            {} runner data:
+                Current Directory: {}
+                System Backend: {}
+                System Path: {}
+                System Environment: {}
+            """).format(
+            worker_name,
+            self.cwd,
+            self.backend_name,
+            sys.path,
+            os.environ))
 
 
 class BuildBackend(BuildBackendBase):
@@ -93,8 +106,8 @@ class BuildBackend(BuildBackendBase):
     def __getattr__(self, name):
         """Handles aribrary function invocations on the build backend."""
         def method(*args, **kw):
-            root = os.path.abspath(self.cwd)
-            caller = BuildBackendCaller(root, self.env, self.backend_name)
+            self._log_debug_info('Parent')
+            caller = BuildBackendCaller(self.cwd, self.env, self.backend_name)
             return self.pool.submit(caller, name, *args, **kw).result()
 
         return method
@@ -105,17 +118,6 @@ class BuildBackendCaller(BuildBackendBase):
         """Handles aribrary function invocations on the build backend."""
         os.chdir(self.cwd)
         os.environ.update(self.env)
-        logger.debug(textwrap.dedent("""
-            Subprocess runner data:
-                Current Directory: {}
-                System Backend: {}
-                System Path: {}
-                System Environment: {}
-            """).format(
-            self.cwd,
-            self.backend_name,
-            sys.path,
-            os.environ))
-
+        self._log_debug_info('Child')
         mod = importlib.import_module(self.backend_name)
         return getattr(mod, name)(*args, **kw)
