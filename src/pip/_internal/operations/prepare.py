@@ -3,6 +3,7 @@
 
 import logging
 import os
+import sys
 
 from pip._vendor import pkg_resources, requests
 
@@ -16,7 +17,8 @@ from pip._internal.exceptions import (
 )
 from pip._internal.utils.hashes import MissingHashes
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import display_path, normalize_path
+from pip._internal.utils.misc import display_path, normalize_path, call_subprocess
+from pip._internal.utils.ui import open_spinner
 from pip._internal.vcs import vcs
 
 logger = logging.getLogger(__name__)
@@ -91,23 +93,20 @@ class IsSDist(DistAbstraction):
         return dist
 
     def prep_for_dist(self, finder):
-        # build_requirements = self.req_to_install.get_requires()
+        build_requirements = self.req_to_install.get_requires()
         logger.info("Installing build dependencies")
         # Install the build requirements
-        # with self.req.build_envirionment as prefix:
-        #    finder = copy(finder)
-        #    finder.format_control = FormatControl(set(), set())
-        #    urls = [finder.find_requirement(InstallRequirement.from_line(r),
-        #            upgrade=False).url for r in build_requirements]
-        #     #    # TODO: Use single process with recursion handling
-        #  args = [sys.executable, '-m', 'pip', 'install',
-        #           '--ignore-installed',
-        #           '--prefix', prefix] + list(urls)
-        #    with open_spinner("Installing build dependencies") as spinner:
-        #        call_subprocess(args, show_stdout=False, spinner=spinner)
+        # TODO: Use single process with recursion handling
+        with self.req_to_install.build_environment as prefix:
+            args = [sys.executable, '-m', 'pip', 'install',
+                '--ignore-installed',
+                '--prefix', prefix] + build_requirements        
+            with open_spinner("Installing build dependencies") as spinner:
+                call_subprocess(args, show_stdout=True, spinner=spinner)
 
-        self.req_to_install.run_egg_info()
-        self.req_to_install.assert_source_matches_version()
+            # Make sure to run inside the build environment!
+            self.req_to_install.run_egg_info()
+            self.req_to_install.assert_source_matches_version()
 
 
 class Installed(DistAbstraction):
