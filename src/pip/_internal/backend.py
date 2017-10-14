@@ -4,14 +4,13 @@ import sys
 import importlib
 import textwrap
 
-from sysconfig import get_paths
-
 from pip._internal.utils.misc import call_subprocess, ensure_dir
 from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._internal.utils.temp_dir import TempDirectory
 
 from concurrent import futures
-
+from sysconfig import get_paths
+from copy import copy
 
 logger = logging.getLogger(__name__)
 
@@ -78,9 +77,11 @@ class BuildEnvironment(object):
 
 class BuildBackendBase(object):
     def __init__(self, cwd=None, env={}, backend_name='setuptools.build_meta'):
+        if not env:
+            env = copy(os.environ)        
         self.cwd = os.path.abspath(cwd)
-        self.env = env
         self.backend_name = backend_name
+        self.env = env
         
     def _log_debug_info(self, worker_name):
         logger.debug(textwrap.dedent("""
@@ -117,7 +118,7 @@ class BuildBackendCaller(BuildBackendBase):
     def __call__(self, name, *args, **kw):
         """Handles aribrary function invocations on the build backend."""
         os.chdir(self.cwd)
-        os.environ.update(self.env)
+        os.environ = self.env
         self._log_debug_info('Child')
         mod = importlib.import_module(self.backend_name)
         return getattr(mod, name)(*args, **kw)
