@@ -19,6 +19,7 @@ import zipfile
 from collections import deque
 
 from pip._vendor import pkg_resources
+from pip._vendor.packaging.utils import canonicalize_name
 # NOTE: retrying is not annotated in typeshed as on 2017-07-17, which is
 #       why we ignore the type on this import.
 from pip._vendor.retrying import retry  # type: ignore
@@ -897,9 +898,9 @@ def confirm_dependencies(req):
 
 def sorted_reqs(reqs):
     installed_distributions = [
-        (d.key, [r.key for r in d.requires()])
+        (canonicalize_name(d.key), [r.key for r in d.requires()])
         for d in get_installed_distributions()
-        if d.key in reqs
+        if canonicalize_name(d.key) in reqs
     ]
     sorted_reqs = []
     while installed_distributions:
