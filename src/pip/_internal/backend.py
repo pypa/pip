@@ -2,6 +2,7 @@ import logging
 import os
 import sys
 import importlib
+import textwrap
 
 from sysconfig import get_paths
 
@@ -104,5 +105,17 @@ class BuildBackendCaller(BuildBackendBase):
         """Handles aribrary function invocations on the build backend."""
         os.chdir(self.cwd)
         os.environ.update(self.env)
+        logger.debug(textwrap.dedent("""
+            Subprocess runner data:
+                Current Directory: {}
+                System Backend: {}
+                System Path: {}
+                System Environment: {}
+            """).format(
+            self.cwd,
+            self.backend_name,
+            sys.path,
+            os.environ))
+
         mod = importlib.import_module(self.backend_name)
         return getattr(mod, name)(*args, **kw)
