@@ -912,4 +912,5 @@ def sorted_reqs(reqs):
                 sorted_reqs.append(reqs[d])
                 installed_distributions.remove((d, deps))
 
-    return sorted_reqs
+    return [d for d in reqs.values()
+            if d not in sorted_reqs] + sorted_reqs
