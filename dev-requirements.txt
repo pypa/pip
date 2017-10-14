@@ -9,3 +9,4 @@ pyyaml
 mock
 scripttest>=1.3
 https://github.com/pypa/virtualenv/archive/master.zip#egg=virtualenv
+setuptools>=36.6.0
