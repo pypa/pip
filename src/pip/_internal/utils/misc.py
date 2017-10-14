@@ -880,7 +880,7 @@ def enum(*sequential, **named):
 
 
 def confirm_dependencies(req):
-    installed_distributions = get_installed_distributions()
+    installed_distributions = pkg_resources.WorkingSet()
     dep_keys = set()
     for dist in installed_distributions:
         dep_keys.update(
