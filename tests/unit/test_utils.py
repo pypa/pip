@@ -597,38 +597,68 @@ class TestCheckRequiresPython(object):
 
 
 @pytest.mark.parametrize(
-    "installed_requires,confirm_answer",
+    "installed_requires",
     [
-        ((), None),
-        (("dummy",), 'y'),
-        pytest.mark.xfail((("dummy",), 'n')),
+        (),
+        ("dummy",),
     ],
 )
-def test_confirm_dependencies(installed_requires, confirm_answer):
+def test_confirm_dependencies(installed_requires):
     from pip._internal.utils.misc import confirm_dependencies
     patch_target = 'pip._internal.utils.misc.get_installed_distributions'
     with patch(patch_target) as mock_gid:
-        with patch('pip._internal.utils.misc.ask') as mock_ask:
-            mock_ask.return_value = confirm_answer
 
-            class req(Requirement):
-                def __init__(self, key):
-                    self.key = key
+        class req(Requirement):
+            def __init__(self, key):
+                self.key = key
 
-            class installed(object):
+        class installed(object):
 
-                def __init__(self, requires):
-                    self._requires = [req(r) for r in requires]
+            def __init__(self, requires):
+                self._requires = [req(r) for r in requires]
 
-                def requires(self):
-                    return self._requires
+            def requires(self):
+                return self._requires
 
-            requirement = InstallRequirement(Requirement("dummy"), None)
-            installed_packages = [installed(installed_requires)]
-            mock_gid.return_value = installed_packages
-            assert confirm_dependencies(requirement)
-            if confirm_answer:
-                mock_ask.assert_called_with('Proceed (y/n)? ', ('y', 'n'))
+        requirement = InstallRequirement(Requirement("dummy"), None)
+        installed_packages = [installed(installed_requires)]
+        mock_gid.return_value = installed_packages
+        assert confirm_dependencies(requirement)
+
+
+def test_sort_reqs():
+    from pip._internal.utils.misc import sorted_reqs
+    patch_target = 'pip._internal.utils.misc.get_installed_distributions'
+    with patch(patch_target) as mock_gid:
+
+        class req(Requirement):
+            def __init__(self, key):
+                self.key = key
+
+        class installed(object):
+
+            def __init__(self, key, requires):
+                self.key = key
+                self._requires = [req(r) for r in requires]
+
+            def requires(self):
+                return self._requires
+
+        uninstall_requirements = {
+            "d": InstallRequirement(Requirement("d"), None),
+            "c": InstallRequirement(Requirement("c"), None),
+            "b": InstallRequirement(Requirement("b"), None),
+            "a": InstallRequirement(Requirement("a"), None),
+        }
+        installed_packages = [
+            installed("a", ["b"]),
+            installed("b", ["c"]),
+            installed("c", []),
+            installed("d", ["a", "b", "c"]),
+        ]
+        mock_gid.return_value = installed_packages
+        result = sorted_reqs(uninstall_requirements)
+        assert [r.name for r in result] == ["d", "a", "b", "c"]
 
 
 class TestGetProg(object):

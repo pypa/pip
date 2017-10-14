@@ -893,3 +893,22 @@ def confirm_dependencies(req):
         logger.info(dep)
     response = ask('Proceed (y/n)? ', ('y', 'n'))
     return response == 'y'
+
+
+def sorted_reqs(reqs):
+    installed_distributions = [
+        (d.key, [r.key for r in d.requires()])
+        for d in get_installed_distributions()
+        if d.key in reqs
+    ]
+    sorted_reqs = []
+    while installed_distributions:
+        for d, deps in installed_distributions:
+            depset = set()
+            for i in installed_distributions:
+                depset = depset.union(set(i[1]))
+            if d not in depset:
+                sorted_reqs.append(reqs[d])
+                installed_distributions.remove((d, deps))
+
+    return sorted_reqs
