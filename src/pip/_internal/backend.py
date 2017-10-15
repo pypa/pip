@@ -101,8 +101,7 @@ class BuildBackend(BuildBackendBase):
     def __init__(self, *args, **kwargs):
         super(BuildBackend, self).__init__(*args, **kwargs)
         self.pool = futures.ProcessPoolExecutor()
-        if not self.env:
-            env = dict(copy(os.environ))
+        self.env = dict(os.environ)
 
     def __getattr__(self, name):
         """Handles aribrary function invocations on the build backend."""
@@ -118,7 +117,9 @@ class BuildBackendCaller(BuildBackendBase):
     def __call__(self, name, *args, **kw):
         """Handles aribrary function invocations on the build backend."""
         os.chdir(self.cwd)
-        os.environ = self.env
+        os.environ.update(self.env)
+        for path_entry in reversed(dict(os.environ).get('PYTHONPATH', '').split(os.pathsep)):
+            sys.path.insert(0, path_entry)
         self._log_debug_info('Child')
         mod = importlib.import_module(self.backend_name)
         return getattr(mod, name)(*args, **kw)
