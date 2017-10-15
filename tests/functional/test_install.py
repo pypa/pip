@@ -1190,6 +1190,10 @@ def test_install_compatible_python_requires(script, common_wheels):
     assert "Successfully installed pkga-0.1" in res.stdout, res
 
 
+@pytest.mark.xfail(reason='`install_requires` requirements with environment '
+                   'markers are no moved to `extras_require` by setuptools, '
+                   'and `pkg_resources.Distribution.requires()` does not warn '
+                   'about markers that don\'t match (or are invalid...).')
 def test_install_environment_markers(script):
     # make a dummy project
     pkga_path = script.scratch_path / 'pkga'
