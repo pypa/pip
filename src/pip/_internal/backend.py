@@ -121,5 +121,10 @@ class BuildBackendCaller(BuildBackendBase):
         for path_entry in reversed(dict(os.environ).get('PYTHONPATH', '').split(os.pathsep)):
             sys.path.insert(0, path_entry)
         self._log_debug_info('Child')
+        
+        from pkg_resources import iter_entry_points
+        for entry_point in iter_entry_points(group='distutils.commands', name=None):
+            print(entry_point)
+
         mod = importlib.import_module(self.backend_name)
         return getattr(mod, name)(*args, **kw)
