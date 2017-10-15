@@ -1227,6 +1227,8 @@ def test_install_pep508_with_url(script):
     assert "Successfully installed packaging-15.3" in str(res), str(res)
 
 
+@pytest.mark.xfail(reason='URLs are stripped from '
+                   'requirements when building a wheel')
 @pytest.mark.network
 def test_install_pep508_with_url_in_install_requires(script):
     pkga_path = create_test_package_with_setup(
