@@ -130,6 +130,7 @@ def test_command_line_appends_correctly(script, data):
     assert "Skipping link %s" % data.find_links in result.stdout
 
 
+@pytest.mark.xfailed(reason='cannot install build requirements with an invalid index')
 def test_config_file_override_stack(script, virtualenv):
     """
     Test config files (global, overriding a global config with a
