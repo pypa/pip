@@ -1,7 +1,9 @@
+import ast
+import importlib
 import logging
 import os
 import sys
-import importlib
+import tempfile
 import textwrap
 
 from pip._internal.utils.misc import call_subprocess, ensure_dir
@@ -114,17 +116,32 @@ class BuildBackend(BuildBackendBase):
 
 
 class BuildBackendCaller(BuildBackendBase):
-    def __call__(self, name, *args, **kw):
+    def __call__(self, name, *args, **kwargs):
         """Handles aribrary function invocations on the build backend."""
-        os.chdir(self.cwd)
-        os.environ.update(self.env)
-        for path_entry in reversed(dict(os.environ).get('PYTHONPATH', '').split(os.pathsep)):
-            sys.path.insert(0, path_entry)
-        self._log_debug_info('Child')
-        
-        from pkg_resources import iter_entry_points
-        for entry_point in iter_entry_points(group='distutils.commands', name=None):
-            print(entry_point)
+        tmpf = tempfile.NamedTemporaryFile(delete=False)
+        tmpf.close()
+        try:
+            call_subprocess([sys.executable, '-I', '-c', textwrap.dedent(
+                '''
+                import importlib
+                import os
+                import sys
 
-        mod = importlib.import_module(self.backend_name)
-        return getattr(mod, name)(*args, **kw)
+                py_path = {py_path!r}
+                if py_path is not None:
+                    sys.path[0:0] = py_path.split(os.pathsep)
+                mod = importlib.import_module({backend_name!r})
+                res = getattr(mod, {name!r})(*{args!r}, **{kwargs})
+                with open({result!r}, 'w') as fp:
+                    fp.write(repr(res))
+                ''').format(
+                    py_path=self.env.get('PYTHONPATH'),
+                    backend_name=self.backend_name,
+                    name=name, args=args, kwargs=kwargs,
+                    result=tmpf.name,
+                )], cwd=self.cwd, extra_environ=self.env)
+            with open(tmpf.name) as fp:
+                res = fp.read()
+        finally:
+            os.unlink(tmpf.name)
+        return ast.literal_eval(res)
