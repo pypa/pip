@@ -195,7 +195,7 @@ def test_install_collected_dependencies_first(script):
     text = [line for line in result.stdout.split('\n')
             if 'Installing' in line
             and 'Installing build dependencies' not in line][0]
-    assert text.endswith('toporequires2')
+    assert text.endswith('toporequires2'), str(result)
 
 
 @pytest.mark.network
