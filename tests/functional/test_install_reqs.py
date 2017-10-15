@@ -192,10 +192,12 @@ def test_install_collected_dependencies_first(script):
     result = script.pip_install_local(
         'toporequires2',
     )
-    text = [line for line in result.stdout.split('\n')
-            if 'Installing' in line
-            and 'Installing build dependencies' not in line][0]
-    assert text.endswith('toporequires2'), str(result)
+    install_lines = [
+        line for line in result.stdout.split('\n')
+        if 'Installing collected packages' in line and
+        line != 'Installing collected packages: setuptools, wheel'
+    ]
+    assert install_lines[0].endswith('toporequires2'), str(result)
 
 
 @pytest.mark.network
