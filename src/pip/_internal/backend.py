@@ -77,8 +77,6 @@ class BuildEnvironment(object):
 
 class BuildBackendBase(object):
     def __init__(self, cwd=None, env={}, backend_name='setuptools.build_meta'):
-        if not env:
-            env = copy(os.environ)        
         self.cwd = os.path.abspath(cwd)
         self.backend_name = backend_name
         self.env = env
@@ -103,6 +101,8 @@ class BuildBackend(BuildBackendBase):
     def __init__(self, *args, **kwargs):
         super(BuildBackend, self).__init__(*args, **kwargs)
         self.pool = futures.ProcessPoolExecutor()
+        if not self.env:
+            env = dict(copy(os.environ))
 
     def __getattr__(self, name):
         """Handles aribrary function invocations on the build backend."""
