@@ -124,5 +124,5 @@ def test_install_special_extra(script):
         'install', '--no-index', '%s[Hop_hOp-hoP]' % pkga_path,
         expect_error=True)
     assert (
-        "Could not find a version that satisfies the requirement missing_pkg"
+        'Ignoring missing-pkg: markers \'extra == "Hop_hOp-hoP"\' don\'t match your environment'
     ) in result.stderr, str(result)
