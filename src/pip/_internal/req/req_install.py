@@ -930,10 +930,11 @@ class InstallRequirement(object):
         base_dir = os.path.dirname(egg_info)
         metadata = pkg_resources.PathMetadata(base_dir, egg_info)
         dist_name = os.path.splitext(os.path.basename(egg_info))[0]
-        return pkg_resources.Distribution(
+        dist = pkg_resources.DistInfoDistribution(
             os.path.dirname(egg_info),
             project_name=dist_name,
             metadata=metadata)
+        return dist
 
     @property
     def has_hash_options(self):
