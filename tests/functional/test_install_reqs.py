@@ -194,7 +194,7 @@ def test_install_collected_dependencies_first(script):
     )
     text = [line for line in result.stdout.split('\n')
             if 'Installing' in line
-            and not 'Installing build dependencies' in line][0]
+            and 'Installing build dependencies' not in line][0]
     assert text.endswith('toporequires2')
 
 

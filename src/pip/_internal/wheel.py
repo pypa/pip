@@ -5,7 +5,6 @@ from __future__ import absolute_import
 
 import collections
 import compileall
-import copy
 import csv
 import hashlib
 import logging
@@ -14,12 +13,9 @@ import re
 import shutil
 import stat
 import sys
-import textwrap
 import warnings
 from base64 import urlsafe_b64encode
 from email.parser import Parser
-from importlib import import_module
-from sysconfig import get_paths
 
 from pip._vendor import pkg_resources, pytoml
 from pip._vendor.distlib.scripts import ScriptMaker
@@ -36,9 +32,8 @@ from pip._internal.locations import (
 )
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
-    call_subprocess, captured_stdout, ensure_dir, read_chunks
+    captured_stdout, ensure_dir, read_chunks
 )
-from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import open_spinner

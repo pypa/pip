@@ -1,15 +1,14 @@
+import logging
 import os
 import sys
-import logging
 
-from sysconfig import get_paths
 from importlib import import_module
+from sysconfig import get_paths
 
-from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
-from pip._internal.utils.misc import call_subprocess, ensure_dir
-from pip._internal.utils.temp_dir import TempDirectory
 from pip._vendor import pytoml, six
-
+from pip._internal.utils.misc import call_subprocess, ensure_dir
+from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
+from pip._internal.utils.temp_dir import TempDirectory
 
 logger = logging.getLogger(__name__)
 
