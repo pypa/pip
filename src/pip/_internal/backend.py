@@ -9,6 +9,7 @@ import textwrap
 from pip._internal.utils.misc import call_subprocess, ensure_dir
 from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._internal.utils.temp_dir import TempDirectory
+from pip._vendor.six import PY2
 
 from sysconfig import get_paths
 from copy import copy
@@ -118,8 +119,11 @@ class BuildBackendCaller(BuildBackendBase):
         """Handles aribrary function invocations on the build backend."""
         tmpf = tempfile.NamedTemporaryFile(delete=False)
         tmpf.close()
+        command_base = [sys.executable]
+        if not PY2:
+            command_base += ['-I']
         try:
-            call_subprocess([sys.executable, '-I', '-c', textwrap.dedent(
+            call_subprocess(command_base + ['-c', textwrap.dedent(
                 '''
                 import importlib
                 import os
