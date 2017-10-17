@@ -120,7 +120,9 @@ class BuildBackendCaller(BuildBackendBase):
         tmpf = tempfile.NamedTemporaryFile(delete=False)
         tmpf.close()
         command_base = [sys.executable]
-        if not PY2:
+        if PY2:
+            command_base += ['-E', '-s']
+        else:
             command_base += ['-I']
         try:
             call_subprocess(command_base + ['-c', textwrap.dedent(
