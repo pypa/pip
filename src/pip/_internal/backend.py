@@ -83,7 +83,7 @@ class BuildBackendBase(object):
         self.env = env
         
     def _log_debug_info(self, worker_name):
-        print(textwrap.dedent("""
+        logger.debug(textwrap.dedent("""
             {} runner data:
                 Current Directory: {}
                 System Backend: {}
