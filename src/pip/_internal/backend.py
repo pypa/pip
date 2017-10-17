@@ -10,7 +10,6 @@ from pip._internal.utils.misc import call_subprocess, ensure_dir
 from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._internal.utils.temp_dir import TempDirectory
 
-from concurrent import futures
 from sysconfig import get_paths
 from copy import copy
 
@@ -102,15 +101,14 @@ class BuildBackend(BuildBackendBase):
     """PEP 517 Build Backend"""
     def __init__(self, *args, **kwargs):
         super(BuildBackend, self).__init__(*args, **kwargs)
-        self.pool = futures.ProcessPoolExecutor()
         self.env = dict(os.environ)
 
     def __getattr__(self, name):
         """Handles aribrary function invocations on the build backend."""
         def method(*args, **kw):
             self._log_debug_info('Parent')
-            caller = BuildBackendCaller(self.cwd, self.env, self.backend_name)
-            return self.pool.submit(caller, name, *args, **kw).result()
+            return BuildBackendCaller(
+                self.cwd, self.env, self.backend_name)(name, *args, **kw)
 
         return method
 
