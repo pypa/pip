@@ -103,6 +103,9 @@ class IsSDist(DistAbstraction):
                 '--prefix', prefix] + build_requirements        
             with open_spinner("Installing build dependencies") as spinner:
                 call_subprocess(args, show_stdout=True, spinner=spinner)
+                
+            from .patch_setuptools import patch_build_meta
+            patch_build_meta(prefix)
 
             # Make sure to run inside the build environment!
             self.req_to_install.run_egg_info()
