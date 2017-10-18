@@ -34,11 +34,6 @@ def patch_build_meta(prefix_path):
                 @classmethod
                 @contextlib.contextmanager
                 def patch(cls):
-                    """
-                    Replace
-                    distutils.dist.Distribution with this class
-                    for the duration of this context.
-                    """
                     orig = distutils.core.Distribution
                     distutils.core.Distribution = cls
                     try:
