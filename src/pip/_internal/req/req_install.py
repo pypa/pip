@@ -488,7 +488,9 @@ class InstallRequirement(object):
                 self.setup_py, self.link,
             )
 
-        metadata_directory = 'pip-dist-info'
+        metadata_directory = os.path.abspath(
+            os.path.join(self.setup_py_dir, 'pip-dist-info'))
+        shutil.rmtree(metadata_directory)
         with indent_log():
             self.build_backend.prepare_metadata_for_build_wheel(
                 metadata_directory)
