@@ -12,28 +12,6 @@ def patch_build_meta(prefix_path):
     os.remove(build_meta_path)
     with open(build_meta_path, 'w+') as fp:
         fp.write(textwrap.dedent("""
-            """A PEP 517 interface to setuptools
-            Previously, when a user or a command line tool (let's call it a "frontend")
-            needed to make a request of setuptools to take a certain action, for
-            example, generating a list of installation requirements, the frontend would
-            would call "setup.py egg_info" or "setup.py bdist_wheel" on the command line.
-            PEP 517 defines a different method of interfacing with setuptools. Rather
-            than calling "setup.py" directly, the frontend should:
-              1. Set the current directory to the directory with a setup.py file
-              2. Import this module into a safe python interpreter (one in which
-                 setuptools can potentially set global variables or crash hard).
-              3. Call one of the functions defined in PEP 517.
-            What each function does is defined in PEP 517. However, here is a "casual"
-            definition of the functions (this definition should not be relied on for
-            bug reports or API stability):
-              - `build_wheel`: build a wheel in the folder and return the basename
-              - `get_requires_for_build_wheel`: get the `setup_requires` to build
-              - `prepare_metadata_for_build_wheel`: get the `install_requires`
-              - `build_sdist`: build an sdist in the folder and return the basename
-              - `get_requires_for_build_sdist`: get the `setup_requires` to build
-            Again, this is not a formal definition! Just a "taste" of the module.
-            """
-
             import os
             import sys
             import tokenize
