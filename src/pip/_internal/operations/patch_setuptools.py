@@ -155,4 +155,4 @@ def patch_build_meta(prefix_path):
 
                 assert len(sdists) == 1
                 return sdists[0]
-                """)
+                """))
