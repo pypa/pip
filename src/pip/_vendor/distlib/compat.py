@@ -348,8 +348,6 @@ except AttributeError:  # pragma: no cover
         if isinstance(filename, text_type):
             return filename
         elif isinstance(filename, bytes):
-            if _fsencoding is None and sys.version_info[0] < 3:
-                _fsencoding = 'utf8'
             return filename.decode(_fsencoding, _fserrors)
         else:
             raise TypeError("expect bytes or str, not %s" %
