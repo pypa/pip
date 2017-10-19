@@ -143,7 +143,7 @@ class BuildBackendCaller(BuildBackendBase):
                     backend_name=self.backend_name,
                     name=name, args=args, kwargs=kwargs,
                     result=tmpf.name,
-                )], cwd=self.cwd, extra_environ=self.env)
+                )], cwd=self.cwd, extra_environ=self.env, show_stdout=False)
             with open(tmpf.name) as fp:
                 res = fp.read()
         finally:
