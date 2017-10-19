@@ -75,6 +75,11 @@ def patch_build_meta(prefix_path):
                 return requirements
 
 
+            def _get_immediate_subdirectories(a_dir):
+                return [name for name in os.listdir(a_dir)
+                        if os.path.isdir(os.path.join(a_dir, name))]
+
+
             def get_requires_for_build_wheel(config_settings=None):
                 config_settings = _fix_config(config_settings)
                 return _get_build_requires(config_settings)
@@ -89,10 +94,28 @@ def patch_build_meta(prefix_path):
                 sys.argv = sys.argv[:1] + ['dist_info', '--egg-base', metadata_directory]
                 _run_setup()
 
-                dist_infos = [f for f in os.listdir(metadata_directory)
-                              if f.endswith('.dist-info')]
+                dist_info_directory = metadata_directory
+                while True:    
+                    dist_infos = [f for f in os.listdir(dist_info_directory)
+                                  if f.endswith('.dist-info')]
 
-                assert len(dist_infos) == 1
+                    if len(dist_infos) == 0 and \
+                            len(_get_immediate_subdirectories(dist_info_directory)) == 1:
+                        dist_info_directory = os.path.join(
+                            dist_info_directory, os.listdir(dist_info_directory)[0])
+                        continue
+
+                    assert len(dist_infos) == 1
+                    break
+
+                # PEP 517 requires that the .dist-info directory be placed in the
+                # metadata_directory. To comply, we MUST copy the directory to the root
+                if dist_info_directory != metadata_directory:
+                    shutil.move(
+                        os.path.join(dist_info_directory, dist_infos[0]),
+                        metadata_directory)
+                    shutil.rmtree(dist_info_directory, ignore_errors=True)
+
                 return dist_infos[0]
 
 
@@ -129,4 +152,4 @@ def patch_build_meta(prefix_path):
 
                 assert len(sdists) == 1
                 return sdists[0]
-                """))
+            """))
