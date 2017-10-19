@@ -108,6 +108,7 @@ def test_uninstall_namespace_package(script):
 
     """
     result = script.pip('install', 'pd.requires==0.0.3', expect_error=True)
+    
     assert join(script.site_packages, 'pd') in result.files_created, (
         sorted(result.files_created.keys())
     )
