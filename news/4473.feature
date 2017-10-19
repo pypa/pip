@@ -1,3 +1,2 @@
-Add `--retry-status <HTTP code>` to allow specifying custom HTTP status codes to retry on.
-This is useful for AWS S3 or Cloudflare, which at times return codes other than 503 for
-intermittent failures.
+More HTTP status codes for intermittent failures. Currently it's only the standard 503.
+Some popular CDNs use non-standard ones, for example AWS S3 (500) or Cloudflare (520, 527)

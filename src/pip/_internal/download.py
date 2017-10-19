@@ -328,8 +328,6 @@ class PipSession(requests.Session):
         retries = kwargs.pop("retries", 0)
         cache = kwargs.pop("cache", None)
         insecure_hosts = kwargs.pop("insecure_hosts", [])
-        # if retry_status not set, fall back to the default 503
-        retry_status = kwargs.pop("retry_status", [503])
 
         super(PipSession, self).__init__(*args, **kwargs)
 
@@ -350,7 +348,9 @@ class PipSession(requests.Session):
             # connection got interrupted in some way. A 503 error in general
             # is typically considered a transient error so we'll go ahead and
             # retry it.
-            status_forcelist=retry_status,
+            # A 500 may indicate transient errror in Amazon S3
+            # A 520 or 527 – may indicate transient errror in CloudFlare
+            status_forcelist=[500, 503, 520, 527],
 
             # Add a small amount of back off between failed requests in
             # order to prevent hammering the service.
