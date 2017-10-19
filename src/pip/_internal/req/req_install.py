@@ -496,6 +496,8 @@ class InstallRequirement(object):
                 self.build_backend.prepare_metadata_for_build_wheel(
                     metadata_directory)
             except:
+                for d in os.listdir(metadata_directory):
+                    print(d)
                 self.build_environment.cleanup()
 
         if not self.req:
