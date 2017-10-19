@@ -102,7 +102,7 @@ class IsSDist(DistAbstraction):
                 '--ignore-installed', '--only-binary',
                 '--prefix', prefix] + build_requirements
             with open_spinner("Installing build dependencies") as spinner:
-                call_subprocess(args, show_stdout=True, spinner=spinner)
+                call_subprocess(args, show_stdout=False, spinner=spinner)
 
             from .patch_setuptools import patch_build_meta
             patch_build_meta(prefix)
