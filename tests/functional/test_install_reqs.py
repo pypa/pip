@@ -158,14 +158,8 @@ def test_respect_order_in_requirements_file(script, data):
         script.scratch_path / 'frameworks-req.txt'
     )
 
-    assert result.stdout == ''
-    downloaded = (line for line in result.stdout.split('\n')
-                  if 'Collecting' in line)
-    
-    for download in downloaded:
-        if 'installed' in download:
-            break
-    downloaded = list(downloaded)
+    downloaded = [line for line in result.stdout.split('\n')
+                  if 'Collecting' in line]
 
     assert 'parent' in downloaded[0], (
         'First download should be "parent" but was "%s"' % downloaded[0]
