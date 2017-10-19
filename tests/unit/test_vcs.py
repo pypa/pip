@@ -2,10 +2,11 @@ import pytest
 from mock import Mock
 from pip._vendor.packaging.version import parse as parse_version
 
-from pip.vcs import VersionControl
-from pip.vcs.bazaar import Bazaar
-from pip.vcs.git import Git
-from pip.vcs.subversion import Subversion
+from pip._internal.vcs import RevOptions, VersionControl
+from pip._internal.vcs.bazaar import Bazaar
+from pip._internal.vcs.git import Git, looks_like_hash
+from pip._internal.vcs.mercurial import Mercurial
+from pip._internal.vcs.subversion import Subversion
 from tests.lib import pyversion
 
 if pyversion >= '3':
@@ -14,25 +15,68 @@ else:
     VERBOSE_FALSE = 0
 
 
+def test_rev_options_repr():
+    rev_options = RevOptions(Git(), 'develop')
+    assert repr(rev_options) == "<RevOptions git: rev='develop'>"
+
+
+@pytest.mark.parametrize(('vcs', 'expected1', 'expected2', 'kwargs'), [
+    # First check VCS-specific RevOptions behavior.
+    (Bazaar(), [], ['-r', '123'], {}),
+    (Git(), ['HEAD'], ['123'], {}),
+    (Mercurial(), [], ['123'], {}),
+    (Subversion(), [], ['-r', '123'], {}),
+    # Test extra_args.  For this, test using a single VersionControl class.
+    (Git(), ['HEAD', 'opt1', 'opt2'], ['123', 'opt1', 'opt2'],
+        dict(extra_args=['opt1', 'opt2'])),
+])
+def test_rev_options_to_args(vcs, expected1, expected2, kwargs):
+    """
+    Test RevOptions.to_args().
+    """
+    assert RevOptions(vcs, **kwargs).to_args() == expected1
+    assert RevOptions(vcs, '123', **kwargs).to_args() == expected2
+
+
+def test_rev_options_to_display():
+    """
+    Test RevOptions.to_display().
+    """
+    # The choice of VersionControl class doesn't matter here since
+    # the implementation is the same for all of them.
+    vcs = Git()
+
+    rev_options = RevOptions(vcs)
+    assert rev_options.to_display() == ''
+
+    rev_options = RevOptions(vcs, 'master')
+    assert rev_options.to_display() == ' (to revision master)'
+
+
+def test_rev_options_make_new():
+    """
+    Test RevOptions.make_new().
+    """
+    # The choice of VersionControl class doesn't matter here since
+    # the implementation is the same for all of them.
+    vcs = Git()
+
+    rev_options = RevOptions(vcs, 'master', extra_args=['foo', 'bar'])
+    new_options = rev_options.make_new('develop')
+
+    assert new_options is not rev_options
+    assert new_options.extra_args == ['foo', 'bar']
+    assert new_options.rev == 'develop'
+    assert new_options.vcs is vcs
+
+
 @pytest.fixture
 def git():
     git_url = 'http://github.com/pypa/pip-test-package'
-    refs = {
-        '0.1': 'a8992fc7ee17e5b9ece022417b64594423caca7c',
-        '0.1.1': '7d654e66c8fa7149c165ddeffa5b56bc06619458',
-        '0.1.2': 'f1c1020ebac81f9aeb5c766ff7a772f709e696ee',
-        'foo': '5547fa909e83df8bd743d3978d6667497983a4b7',
-        'bar': '5547fa909e83df8bd743d3978d6667497983a4b7',
-        'master': '5547fa909e83df8bd743d3978d6667497983a4b7',
-        'origin/master': '5547fa909e83df8bd743d3978d6667497983a4b7',
-        'origin/HEAD': '5547fa909e83df8bd743d3978d6667497983a4b7',
-    }
-    sha = refs['foo']
-
+    sha = '5547fa909e83df8bd743d3978d6667497983a4b7'
     git = Git()
     git.get_url = Mock(return_value=git_url)
     git.get_revision = Mock(return_value=sha)
-    git.get_short_refs = Mock(return_value=refs)
     return git
 
 
@@ -41,6 +85,15 @@ def dist():
     dist = Mock()
     dist.egg_name = Mock(return_value='pip_test_package')
     return dist
+
+
+def test_looks_like_hash():
+    assert looks_like_hash(40 * 'a')
+    assert looks_like_hash(40 * 'A')
+    # Test a string containing all valid characters.
+    assert looks_like_hash(18 * 'a' + '0123456789abcdefABCDEF')
+    assert not looks_like_hash(40 * 'g')
+    assert not looks_like_hash(39 * 'a')
 
 
 def test_git_get_src_requirements(git, dist):
@@ -53,14 +106,19 @@ def test_git_get_src_requirements(git, dist):
     ])
 
 
-@pytest.mark.parametrize('ref,result', (
+@pytest.mark.parametrize('rev_name,result', (
     ('5547fa909e83df8bd743d3978d6667497983a4b7', True),
-    ('5547fa909', True),
+    ('5547fa909', False),
+    ('5678', False),
     ('abc123', False),
     ('foo', False),
+    (None, False),
 ))
-def test_git_check_version(git, ref, result):
-    assert git.check_version('foo', ref) is result
+def test_git_is_commit_id_equal(git, rev_name, result):
+    """
+    Test Git.is_commit_id_equal().
+    """
+    assert git.is_commit_id_equal('/path', rev_name) is result
 
 
 def test_translate_egg_surname():

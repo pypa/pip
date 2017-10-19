@@ -1,39 +1,52 @@
-diff --git a/pip/_vendor/requests/__init__.py b/pip/_vendor/requests/__init__.py
+diff --git a/src/pip/_vendor/requests/packages.py b/src/pip/_vendor/requests/packages.py
+index 7232fe0f..6336a07d 100644
+--- a/src/pip/_vendor/requests/packages.py
++++ b/src/pip/_vendor/requests/packages.py
+@@ -4,7 +4,7 @@ import sys
+ # I don't like it either. Just look the other way. :)
+
+ for package in ('urllib3', 'idna', 'chardet'):
+-    locals()[package] = __import__(package)
++    locals()[package] = __import__("pip._vendor." + package)
+     # This traversal is apparently necessary such that the identities are
+     # preserved (requests.packages.urllib3.* is urllib3.*)
+     for mod in list(sys.modules):
+
+diff --git a/src/pip/_vendor/requests/__init__.py b/src/pip/_vendor/requests/__init__.py
 index 9c3b769..44f6836 100644
---- a/pip/_vendor/requests/__init__.py
-+++ b/pip/_vendor/requests/__init__.py
-@@ -48,11 +48,13 @@ __license__ = 'Apache 2.0'
- __copyright__ = 'Copyright 2016 Kenneth Reitz'
- 
+--- a/src/pip/_vendor/requests/__init__.py
++++ b/src/pip/_vendor/requests/__init__.py
+@@ -80,11 +80,13 @@
+                   RequestsDependencyWarning)
+
  # Attempt to enable urllib3's SNI support, if possible
 -try:
--    from .packages.urllib3.contrib import pyopenssl
+-    from pip._vendor.urllib3.contrib import pyopenssl
 -    pyopenssl.inject_into_urllib3()
 -except ImportError:
 -    pass
 +# Note: Patched by pip to prevent using the PyOpenSSL module. On Windows this
 +#       prevents upgrading cryptography.
 +# try:
-+#     from .packages.urllib3.contrib import pyopenssl
++#     from pip._vendor.urllib3.contrib import pyopenssl
 +#     pyopenssl.inject_into_urllib3()
 +# except ImportError:
 +#     pass
+
+ # urllib3's DependencyWarnings should be silenced.
+ from pip._vendor.urllib3.exceptions import DependencyWarning
  
- import warnings
- 
-diff --git a/pip/_vendor/requests/compat.py b/pip/_vendor/requests/compat.py
+diff --git a/src/pip/_vendor/requests/compat.py b/src/pip/_vendor/requests/compat.py
 index eb6530d..353ec29 100644
---- a/pip/_vendor/requests/compat.py
-+++ b/pip/_vendor/requests/compat.py
-@@ -25,12 +25,14 @@ is_py2 = (_ver[0] == 2)
+--- a/src/pip/_vendor/requests/compat.py
++++ b/src/pip/_vendor/requests/compat.py
+@@ -25,10 +25,14 @@
  #: Python 3.x?
  is_py3 = (_ver[0] == 3)
- 
+
 -try:
 -    import simplejson as json
--except (ImportError, SyntaxError):
--    # simplejson does not support Python 3.2, it throws a SyntaxError
--    # because of u'...' Unicode literals.
+-except ImportError:
 -    import json
 +# Note: We've patched out simplejson support in pip because it prevents
 +#       upgrading simplejson on Windows.
@@ -43,6 +56,6 @@ index eb6530d..353ec29 100644
 +#     # simplejson does not support Python 3.2, it throws a SyntaxError
 +#     # because of u'...' Unicode literals.
 +import json
- 
+
  # ---------
  # Specifics

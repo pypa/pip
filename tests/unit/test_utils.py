@@ -16,18 +16,18 @@ import pytest
 from mock import Mock, patch
 from pip._vendor.six import BytesIO
 
-from pip.exceptions import (
+from pip._internal.exceptions import (
     HashMismatch, HashMissing, InstallationError, UnsupportedPythonVersion
 )
-from pip.utils import (
-    egg_link_path, ensure_dir, get_installed_distributions, normalize_path,
-    rmtree, untar_file, unzip_file
+from pip._internal.utils.encoding import auto_decode
+from pip._internal.utils.glibc import check_glibc_version
+from pip._internal.utils.hashes import Hashes, MissingHashes
+from pip._internal.utils.misc import (
+    egg_link_path, ensure_dir, get_installed_distributions, get_prog,
+    normalize_path, rmtree, untar_file, unzip_file
 )
-from pip.utils.encoding import auto_decode
-from pip.utils.glibc import check_glibc_version
-from pip.utils.hashes import Hashes, MissingHashes
-from pip.utils.packaging import check_dist_requires_python
-from pip.utils.temp_dir import TempDirectory
+from pip._internal.utils.packaging import check_dist_requires_python
+from pip._internal.utils.temp_dir import TempDirectory
 
 
 class Tests_EgglinkPath:
@@ -50,7 +50,7 @@ class Tests_EgglinkPath:
         )
 
         # patches
-        from pip import utils
+        from pip._internal.utils import misc as utils
         self.old_site_packages = utils.site_packages
         self.mock_site_packages = utils.site_packages = 'SITE_PACKAGES'
         self.old_running_under_virtualenv = utils.running_under_virtualenv
@@ -65,7 +65,7 @@ class Tests_EgglinkPath:
         self.mock_isfile = path.isfile = Mock()
 
     def teardown(self):
-        from pip import utils
+        from pip._internal.utils import misc as utils
         utils.site_packages = self.old_site_packages
         utils.running_under_virtualenv = self.old_running_under_virtualenv
         utils.virtualenv_no_global = self.old_virtualenv_no_global
@@ -164,9 +164,9 @@ class Tests_EgglinkPath:
         assert egg_link_path(self.mock_dist) is None
 
 
-@patch('pip.utils.dist_in_usersite')
-@patch('pip.utils.dist_is_local')
-@patch('pip.utils.dist_is_editable')
+@patch('pip._internal.utils.misc.dist_in_usersite')
+@patch('pip._internal.utils.misc.dist_is_local')
+@patch('pip._internal.utils.misc.dist_is_editable')
 class Tests_get_installed_distributions:
     """test util.get_installed_distributions"""
 
@@ -351,7 +351,7 @@ class Failer:
 
 def test_rmtree_retries(tmpdir, monkeypatch):
     """
-    Test pip.utils.rmtree will retry failures
+    Test pip._internal.utils.rmtree will retry failures
     """
     monkeypatch.setattr(shutil, 'rmtree', Failer(duration=1).call)
     rmtree('foo')
@@ -359,7 +359,7 @@ def test_rmtree_retries(tmpdir, monkeypatch):
 
 def test_rmtree_retries_for_3sec(tmpdir, monkeypatch):
     """
-    Test pip.utils.rmtree will retry failures for no more than 3 sec
+    Test pip._internal.utils.rmtree will retry failures for no more than 3 sec
     """
     monkeypatch.setattr(shutil, 'rmtree', Failer(duration=5).call)
     with pytest.raises(OSError):
@@ -404,7 +404,7 @@ class Test_normalize_path(object):
 
 
 class TestHashes(object):
-    """Tests for pip.utils.hashes"""
+    """Tests for pip._internal.utils.hashes"""
 
     def test_success(self, tmpdir):
         """Make sure no error is raised when at least one hash matches.
@@ -448,7 +448,7 @@ class TestHashes(object):
 
 
 class TestEncoding(object):
-    """Tests for pip.utils.encoding"""
+    """Tests for pip._internal.utils.encoding"""
 
     def test_auto_decode_utf16_le(self):
         data = (
@@ -592,3 +592,23 @@ class TestCheckRequiresPython(object):
                 check_dist_requires_python(fake_dist)
         else:
             check_dist_requires_python(fake_dist)
+
+
+class TestGetProg(object):
+
+    @pytest.mark.parametrize(
+        ("argv", "executable", "expected"),
+        [
+            ('/usr/bin/pip', '', 'pip'),
+            ('-c', '/usr/bin/python', '/usr/bin/python -m pip'),
+            ('__main__.py', '/usr/bin/python', '/usr/bin/python -m pip'),
+            ('/usr/bin/pip3', '', 'pip3'),
+        ]
+    )
+    def test_get_prog(self, monkeypatch, argv, executable, expected):
+        monkeypatch.setattr('pip._internal.utils.misc.sys.argv', [argv])
+        monkeypatch.setattr(
+            'pip._internal.utils.misc.sys.executable',
+            executable
+        )
+        assert get_prog() == expected

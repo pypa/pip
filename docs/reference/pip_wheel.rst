@@ -4,8 +4,6 @@
 pip wheel
 ---------
 
-.. contents::
-
 Usage
 *****
 

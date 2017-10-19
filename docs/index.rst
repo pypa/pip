@@ -12,7 +12,7 @@ The `PyPA recommended <https://packaging.python.org/en/latest/current/>`_ tool
 for installing Python packages.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    quickstart
    installing

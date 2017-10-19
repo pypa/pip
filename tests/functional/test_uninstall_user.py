@@ -1,7 +1,7 @@
 """
 tests specific to uninstalling --user installs
 """
-from os.path import isdir, isfile
+from os.path import isdir, isfile, normcase
 
 import pytest
 
@@ -49,8 +49,8 @@ class Tests_UninstallUserSite:
         result3 = script.pip('uninstall', '-vy', 'pip-test-package')
 
         # uninstall console is mentioning user scripts, but not global scripts
-        assert script.user_bin_path in result3.stdout
-        assert script.bin_path not in result3.stdout
+        assert normcase(script.user_bin_path) in result3.stdout, str(result3)
+        assert normcase(script.bin_path) not in result3.stdout, str(result3)
 
         # uninstall worked
         assert_all_changes(result2, result3, [script.venv / 'build', 'cache'])

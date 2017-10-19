@@ -1,0 +1,2 @@
+Shell completion scripts now use correct executable names (e.g., ``pip3``
+instead of ``pip``)
