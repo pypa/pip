@@ -492,11 +492,8 @@ class InstallRequirement(object):
             os.path.join(self.setup_py_dir, 'pip-dist-info'))
         shutil.rmtree(metadata_directory, ignore_errors=True)
         with indent_log():
-            try:
-                self.build_backend.prepare_metadata_for_build_wheel(
-                    metadata_directory)
-            except:
-                self.build_environment.cleanup()
+            self.build_backend.prepare_metadata_for_build_wheel(
+                metadata_directory)
 
         if not self.req:
             if isinstance(parse_version(self.pkg_info()["Version"]), Version):
