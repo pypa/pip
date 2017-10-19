@@ -1,10 +1,11 @@
 import os
 import textwrap
 
-from glob import iglob
-
 def find_build_meta(prefix_path):
-    return next(iglob(prefix_path + '/**/build_meta.py', recursive=True))
+    for root, dirnames, filenames in os.walk(prefix_path):
+        for filename in filenames:
+            if filename == 'build_meta.py'
+                return os.path.join(root, filename)
 
 def patch_build_meta(prefix_path):
     
