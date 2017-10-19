@@ -99,7 +99,7 @@ class IsSDist(DistAbstraction):
         # TODO: Use single process with recursion handling
         with self.req_to_install.build_environment as prefix:
             args = [sys.executable, '-m', 'pip', 'install',
-                '--ignore-installed', '--only-binary',
+                '--ignore-installed', '--only-binary', ':all:',
                 '--prefix', prefix] + build_requirements
             with open_spinner("Installing build dependencies") as spinner:
                 call_subprocess(args, show_stdout=False, spinner=spinner)
