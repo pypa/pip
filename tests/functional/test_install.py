@@ -908,7 +908,7 @@ def test_install_subprocess_output_handling(script, data):
     # Only count examples with sys.argv[1] == egg_info, because we call
     # setup.py multiple times, which should not count as duplicate output.
     result = script.pip(*(args + ["--verbose"]))
-    assert 1 == result.stdout.count("HELLO FROM CHATTYMODULE egg_info")
+    assert 1 == result.stdout.count("HELLO FROM CHATTYMODULE dist_info")
     script.pip("uninstall", "-y", "chattymodule")
 
     # If the install fails, then we *should* show the output... but only once,
