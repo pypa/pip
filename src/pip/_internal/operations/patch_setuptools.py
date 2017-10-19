@@ -4,7 +4,7 @@ import textwrap
 def find_build_meta(prefix_path):
     for root, dirnames, filenames in os.walk(prefix_path):
         for filename in filenames:
-            if filename == 'build_meta.py'
+            if filename == 'build_meta.py':
                 return os.path.join(root, filename)
 
 def patch_build_meta(prefix_path):
