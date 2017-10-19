@@ -160,6 +160,8 @@ def test_respect_order_in_requirements_file(script, data):
 
     downloaded = (line for line in result.stdout.split('\n')
                   if 'Collecting' in line)
+    
+    assert downloaded == ''
     for download in downloaded:
         if 'installed' in download:
             break
