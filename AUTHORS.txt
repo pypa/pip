@@ -235,7 +235,7 @@ Phil Freo <phil@philfreo.com>
 Phil Whelan <phil123@gmail.com>
 Philippe Ombredanne <pombredanne@gmail.com>
 Pierre-Yves Rofes <github@rofes.fr>
-Piet Delport <pjdelport@gmail.com>
+Pi Delport <pjdelport@gmail.com>
 Pradyun <pradyunsg@users.noreply.github.com>
 Pradyun S. Gedam <pradyunsg@gmail.com>
 Preston Holmes <preston@ptone.com>
