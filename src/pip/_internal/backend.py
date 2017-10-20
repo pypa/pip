@@ -5,6 +5,7 @@ import os
 import sys
 import tempfile
 import textwrap
+import platform
 
 from pip._internal.utils.misc import call_subprocess, ensure_dir
 from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
@@ -119,7 +120,9 @@ class BuildBackendCaller(BuildBackendBase):
         tmpf = tempfile.NamedTemporaryFile(delete=False)
         tmpf.close()
         command_base = [sys.executable]
-        if sys.version_info < (3, 4):
+        if platform.python_implementation() == 'PyPy':
+            command_base += ['-S', '-s']
+        elif sys.version_info < (3, 4):
             command_base += ['-E', '-s']
         else:
             command_base += ['-I']
