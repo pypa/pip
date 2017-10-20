@@ -9,7 +9,6 @@ import textwrap
 from pip._internal.utils.misc import call_subprocess, ensure_dir
 from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._internal.utils.temp_dir import TempDirectory
-from pip._vendor.six import PY2
 
 from sysconfig import get_paths
 from copy import copy
@@ -120,7 +119,7 @@ class BuildBackendCaller(BuildBackendBase):
         tmpf = tempfile.NamedTemporaryFile(delete=False)
         tmpf.close()
         command_base = [sys.executable]
-        if PY2:
+        if sys.version_info < (3, 4):
             command_base += ['-E', '-s']
         else:
             command_base += ['-I']
