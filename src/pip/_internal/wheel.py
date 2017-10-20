@@ -700,7 +700,7 @@ class WheelBuilder(object):
                 for r in reqs]
 
         args = [sys.executable, '-m', 'pip', 'install', '--ignore-installed',
-                '--prefix', prefix] + list(urls)
+                '--only-binary', ':all:', '--prefix', prefix] + list(urls)
         with open_spinner("Installing build dependencies") as spinner:
             call_subprocess(args, show_stdout=False, spinner=spinner)
 
