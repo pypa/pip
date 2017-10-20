@@ -13,6 +13,7 @@
 
 import os
 import sys
+import glob
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
@@ -32,7 +33,7 @@ extensions = ['sphinx.ext.extlinks', 'docs.pipext', 'sphinx.ext.intersphinx']
 # intersphinx
 intersphinx_cache_limit = 0
 intersphinx_mapping = {
-    'pypug': ('https://packaging.python.org/en/latest/', None),
+    'pypug': ('https://packaging.python.org/', None),
     'pypa': ('https://www.pypa.io/en/latest/', None),
 }
 
@@ -51,7 +52,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'pip'
-copyright = '2008-2016, PyPA'
+copyright = '2008-2017, PyPA'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -82,7 +83,7 @@ today_fmt = '%B %d, %Y'
 
 # List of directories, relative to source directory, that shouldn't be searched
 # for source files.
-exclude_trees = ['build']
+exclude_patterns = ['build/', 'man/']
 
 # The reST default role (used for this markup: `text`) to use for all documents
 # default_role = None
@@ -113,19 +114,17 @@ extlinks = {
 
 # The theme to use for HTML and HTML Help pages.  Major themes that come with
 # Sphinx are currently 'default' and 'sphinxdoc'.
-html_theme = 'default'
-if not on_rtd:
-    try:
-        import sphinx_rtd_theme
-        html_theme = 'sphinx_rtd_theme'
-        html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
-    except ImportError:
-        pass
+html_theme = "pypa_theme"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-# html_theme_options = {}
+html_theme_options = {
+    'collapsiblesidebar': True,
+    'externalrefs': True,
+    'navigation_depth': 2,
+    'issues_url': 'https://github.com/pypa/pip/issues'
+}
 
 # Add any paths that contain custom themes here, relative to this directory.
 
@@ -156,10 +155,13 @@ html_last_updated_fmt = '%b %d, %Y'
 
 # If true, SmartyPants will be used to convert quotes and dashes to
 # typographically correct entities.
-# html_use_smartypants = False
+smart_quotes = False
 
 # Custom sidebar templates, maps document names to template names.
-# html_sidebars = {}
+html_sidebars = {
+    '**': ['localtoc.html', 'relations.html'],
+    'index': ['localtoc.html']
+}
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
@@ -204,7 +206,7 @@ latex_documents = [
         'index',
         'pip.tex',
         u'pip Documentation',
-        u'The pip developers',
+        u'pip developers',
         'manual',
     ),
 ]
@@ -225,3 +227,27 @@ latex_documents = [
 
 # If false, no module index is generated.
 # latex_use_modindex = True
+
+# -- Options for Manual Pages -------------------------------------------------
+
+# List of manual pages generated
+man_pages = [
+    (
+        'man/pip',
+        'pip',
+        u'package manager for Python packages',
+        u'pip developers',
+        1
+    )
+]
+
+# Here, we crawl the entire man/commands/ directory and list every file with
+# appropriate name and details
+for fname in glob.glob('man/commands/*.rst'):
+    fname_base = fname[:-4]
+    outname = 'pip-' + fname_base[13:]
+    description = u'description of {} command'.format(
+        outname.replace('-', ' ')
+    )
+
+    man_pages.append((fname_base, outname, description, u'pip developers', 1))

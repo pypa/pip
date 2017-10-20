@@ -3,7 +3,7 @@ import textwrap
 
 import pytest
 
-from pip.status_codes import ERROR
+from pip._internal.status_codes import ERROR
 from tests.lib.path import Path
 
 
@@ -93,7 +93,7 @@ def test_download_wheel_archive(script, data):
     It should download a wheel archive path
     """
     wheel_filename = 'colander-0.9.9-py2.py3-none-any.whl'
-    wheel_path = os.path.join(data.find_links, wheel_filename)
+    wheel_path = '/'.join((data.find_links, wheel_filename))
     result = script.pip(
         'download', wheel_path,
         '-d', '.', '--no-deps'
@@ -107,7 +107,7 @@ def test_download_should_download_wheel_deps(script, data):
     """
     wheel_filename = 'colander-0.9.9-py2.py3-none-any.whl'
     dep_filename = 'translationstring-1.1.tar.gz'
-    wheel_path = os.path.join(data.find_links, wheel_filename)
+    wheel_path = '/'.join((data.find_links, wheel_filename))
     result = script.pip(
         'download', wheel_path,
         '-d', '.', '--find-links', data.find_links, '--no-index'

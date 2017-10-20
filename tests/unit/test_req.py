@@ -9,18 +9,19 @@ from pip._vendor import pkg_resources
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
 
-from pip.commands.install import InstallCommand
-from pip.download import PipSession, path_to_url
-from pip.exceptions import (
+from pip._internal.commands.install import InstallCommand
+from pip._internal.download import PipSession, path_to_url
+from pip._internal.exceptions import (
     HashErrors, InstallationError, InvalidWheelFilename, PreviousBuildDirError
 )
-from pip.index import PackageFinder
-from pip.req import InstallRequirement, Requirements, RequirementSet
-from pip.req.req_file import process_line
-from pip.req.req_install import parse_editable
-from pip.resolve import Resolver
-from pip.utils import read_text_file
-from tests.lib import assert_raises_regexp, requirements_file
+from pip._internal.index import PackageFinder
+from pip._internal.operations.prepare import RequirementPreparer
+from pip._internal.req import InstallRequirement, RequirementSet
+from pip._internal.req.req_file import process_line
+from pip._internal.req.req_install import parse_editable
+from pip._internal.resolve import Resolver
+from pip._internal.utils.misc import read_text_file
+from tests.lib import DATA_DIR, assert_raises_regexp, requirements_file
 
 
 class TestRequirementSet(object):
@@ -32,17 +33,22 @@ class TestRequirementSet(object):
     def teardown(self):
         shutil.rmtree(self.tempdir, ignore_errors=True)
 
-    def basic_reqset(self, **kwargs):
-        return RequirementSet(
+    def _basic_resolver(self, finder):
+        preparer = RequirementPreparer(
             build_dir=os.path.join(self.tempdir, 'build'),
             src_dir=os.path.join(self.tempdir, 'src'),
             download_dir=None,
-            session=PipSession(),
-            **kwargs
+            wheel_download_dir=None,
+            progress_bar="on"
         )
-
-    def _basic_resolver(self, finder):
-        return Resolver("not-allowed", finder)
+        return Resolver(
+            preparer=preparer, wheel_cache=None,
+            session=PipSession(), finder=finder,
+            use_user_site=False, upgrade_strategy="to-satisfy-only",
+            ignore_dependencies=False, ignore_installed=False,
+            ignore_requires_python=False, force_reinstall=False,
+            isolated=False,
+        )
 
     def test_no_reuse_existing_build_dir(self, data):
         """Test prepare_files raise exception with previous build dir"""
@@ -50,7 +56,7 @@ class TestRequirementSet(object):
         build_dir = os.path.join(self.tempdir, 'build', 'simple')
         os.makedirs(build_dir)
         open(os.path.join(build_dir, "setup.py"), 'w')
-        reqset = self.basic_reqset()
+        reqset = RequirementSet()
         req = InstallRequirement.from_line('simple')
         reqset.add_requirement(req)
         finder = PackageFinder([data.find_links], [], session=PipSession())
@@ -68,7 +74,7 @@ class TestRequirementSet(object):
         Test that the environment marker extras are used with
         non-wheel installs.
         """
-        reqset = self.basic_reqset()
+        reqset = RequirementSet()
         req = InstallRequirement.from_editable(
             data.packages.join("LocalEnvironMarker"))
         reqset.add_requirement(req)
@@ -82,11 +88,11 @@ class TestRequirementSet(object):
             assert not reqset.has_requirement('simple')
 
     @pytest.mark.network
-    def test_missing_hash_checking(self, data):
+    def test_missing_hash_checking(self):
         """Make sure prepare_files() raises an error when a requirement has no
         hash in implicit hash-checking mode.
         """
-        reqset = self.basic_reqset()
+        reqset = RequirementSet()
         # No flags here. This tests that detection of later flags nonetheless
         # requires earlier packages to have hashes:
         reqset.add_requirement(
@@ -130,7 +136,7 @@ class TestRequirementSet(object):
         """Setting --require-hashes explicitly should raise errors if hashes
         are missing.
         """
-        reqset = self.basic_reqset(require_hashes=True)
+        reqset = RequirementSet(require_hashes=True)
         reqset.add_requirement(
             list(process_line('simple==1.0', 'file', 1))[0])
         finder = PackageFinder([data.find_links], [], session=PipSession())
@@ -148,7 +154,7 @@ class TestRequirementSet(object):
         """--require-hashes in a requirements file should make its way to the
         RequirementSet.
         """
-        req_set = self.basic_reqset(require_hashes=False)
+        req_set = RequirementSet(require_hashes=False)
         session = PipSession()
         finder = PackageFinder([data.find_links], [], session=session)
         command = InstallCommand()
@@ -159,10 +165,6 @@ class TestRequirementSet(object):
                 wheel_cache=None)
         assert req_set.require_hashes
 
-    # This test doesn't appear to handle URL-encoded Windows paths
-    # correctly. Needs reviewing by someone who understands the logic.
-    @pytest.mark.xfail("sys.platform == 'win32'",
-                       reason="Code doesn't handle url-encoded Windows paths")
     def test_unsupported_hashes(self, data):
         """VCS and dir links should raise errors when --require-hashes is
         on.
@@ -171,7 +173,7 @@ class TestRequirementSet(object):
         should trump the presence or absence of a hash.
 
         """
-        reqset = self.basic_reqset(require_hashes=True)
+        reqset = RequirementSet(require_hashes=True)
         reqset.add_requirement(
             list(process_line(
                 'git+git://github.com/pypa/pip-test-package --hash=sha256:123',
@@ -205,7 +207,7 @@ class TestRequirementSet(object):
         """Make sure prepare_files() raises an error when a requirement is not
         version-pinned in hash-checking mode.
         """
-        reqset = self.basic_reqset()
+        reqset = RequirementSet()
         # Test that there must be exactly 1 specifier:
         reqset.add_requirement(
             list(process_line('simple --hash=sha256:a90427ae31f5d1d0d7ec06ee97'
@@ -233,7 +235,7 @@ class TestRequirementSet(object):
         """A hash mismatch should raise an error."""
         file_url = path_to_url(
             (data.packages / 'simple-1.0.tar.gz').abspath)
-        reqset = self.basic_reqset(require_hashes=True)
+        reqset = RequirementSet(require_hashes=True)
         reqset.add_requirement(
             list(process_line('%s --hash=sha256:badbad' % file_url,
                               'file',
@@ -253,7 +255,7 @@ class TestRequirementSet(object):
     def test_unhashed_deps_on_require_hashes(self, data):
         """Make sure unhashed, unpinned, or otherwise unrepeatable
         dependencies get complained about when --require-hashes is on."""
-        reqset = self.basic_reqset()
+        reqset = RequirementSet()
         finder = PackageFinder([data.find_links], [], session=PipSession())
         resolver = self._basic_resolver(finder)
         reqset.add_requirement(next(process_line(
@@ -269,7 +271,7 @@ class TestRequirementSet(object):
             resolver.resolve,
             reqset)
 
-    def test_hashed_deps_on_require_hashes(self, data):
+    def test_hashed_deps_on_require_hashes(self):
         """Make sure hashed dependencies get installed when --require-hashes
         is on.
 
@@ -278,7 +280,7 @@ class TestRequirementSet(object):
         installation to then fail, as the code paths are the same as ever.)
 
         """
-        reqset = self.basic_reqset()
+        reqset = RequirementSet()
         reqset.add_requirement(next(process_line(
             'TopoRequires2==0.0.1 '  # requires TopoRequires
             '--hash=sha256:eaf9a01242c9f2f42cf2bd82a6a848cd'
@@ -300,7 +302,7 @@ def test_egg_info_data(file_contents, expected):
     om = mock_open(read_data=file_contents)
     em = Mock()
     em.return_value = 'cp1252'
-    with patch('pip.utils.open', om, create=True):
+    with patch('pip._internal.utils.misc.open', om, create=True):
         with patch('locale.getpreferredencoding', em):
             ret = read_text_file('foo')
     assert ret == expected.decode('utf-8')
@@ -313,15 +315,6 @@ class TestInstallRequirement(object):
     def teardown(self):
         shutil.rmtree(self.tempdir, ignore_errors=True)
 
-    def basic_reqset(self, **kwargs):
-        return RequirementSet(
-            build_dir=os.path.join(self.tempdir, 'build'),
-            src_dir=os.path.join(self.tempdir, 'src'),
-            download_dir=None,
-            session=PipSession(),
-            **kwargs
-        )
-
     def test_url_with_query(self):
         """InstallRequirement should strip the fragment, but not the query."""
         url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
@@ -330,7 +323,7 @@ class TestInstallRequirement(object):
         assert req.link.url == url + fragment, req.link
 
     def test_unsupported_wheel_link_requirement_raises(self):
-        reqset = self.basic_reqset()
+        reqset = RequirementSet()
         req = InstallRequirement.from_line(
             'https://whatever.com/peppercorn-0.4-py2.py3-bogus-any.whl',
         )
@@ -342,7 +335,7 @@ class TestInstallRequirement(object):
             reqset.add_requirement(req)
 
     def test_unsupported_wheel_local_file_requirement_raises(self, data):
-        reqset = self.basic_reqset()
+        reqset = RequirementSet()
         req = InstallRequirement.from_line(
             data.packages.join('simple.dist-0.1-py1-none-invalid.whl'),
         )
@@ -388,22 +381,18 @@ class TestInstallRequirement(object):
         req = InstallRequirement.from_editable(url)
         assert req.link.url == url
 
-    def test_get_dist(self):
-        req = InstallRequirement.from_line('foo')
-        req.egg_info_path = Mock(return_value='/path/to/foo.egg-info')
-        dist = req.get_dist()
-        assert isinstance(dist, pkg_resources.Distribution)
-        assert dist.project_name == 'foo'
-        assert dist.location == '/path/to'
-
-    def test_get_dist_trailing_slash(self):
+    @pytest.mark.parametrize('path', (
+        '/path/to/foo.egg-info'.replace('/', os.path.sep),
         # Tests issue fixed by https://github.com/pypa/pip/pull/2530
+        '/path/to/foo.egg-info/'.replace('/', os.path.sep),
+    ))
+    def test_get_dist(self, path):
         req = InstallRequirement.from_line('foo')
-        req.egg_info_path = Mock(return_value='/path/to/foo.egg-info/')
+        req.egg_info_path = Mock(return_value=path)
         dist = req.get_dist()
         assert isinstance(dist, pkg_resources.Distribution)
         assert dist.project_name == 'foo'
-        assert dist.location == '/path/to'
+        assert dist.location == '/path/to'.replace('/', os.path.sep)
 
     def test_markers(self):
         for line in (
@@ -550,35 +539,9 @@ class TestInstallRequirement(object):
         assert "If that is the case, use the '-r' flag to install" in err_msg
 
 
-def test_requirements_data_structure_keeps_order():
-    requirements = Requirements()
-    requirements['pip'] = 'pip'
-    requirements['nose'] = 'nose'
-    requirements['coverage'] = 'coverage'
-
-    assert ['pip', 'nose', 'coverage'] == list(requirements.values())
-    assert ['pip', 'nose', 'coverage'] == list(requirements.keys())
-
-
-def test_requirements_data_structure_implements__repr__():
-    requirements = Requirements()
-    requirements['pip'] = 'pip'
-    requirements['nose'] = 'nose'
-
-    assert "Requirements({'pip': 'pip', 'nose': 'nose'})" == repr(requirements)
-
-
-def test_requirements_data_structure_implements__contains__():
-    requirements = Requirements()
-    requirements['pip'] = 'pip'
-
-    assert 'pip' in requirements
-    assert 'nose' not in requirements
-
-
-@patch('pip.req.req_install.os.path.abspath')
-@patch('pip.req.req_install.os.path.exists')
-@patch('pip.req.req_install.os.path.isdir')
+@patch('pip._internal.req.req_install.os.path.abspath')
+@patch('pip._internal.req.req_install.os.path.exists')
+@patch('pip._internal.req.req_install.os.path.isdir')
 def test_parse_editable_local(
         isdir_mock, exists_mock, abspath_mock):
     exists_mock.return_value = isdir_mock.return_value = True
@@ -607,9 +570,9 @@ def test_parse_editable_vcs_extras():
     )
 
 
-@patch('pip.req.req_install.os.path.abspath')
-@patch('pip.req.req_install.os.path.exists')
-@patch('pip.req.req_install.os.path.isdir')
+@patch('pip._internal.req.req_install.os.path.abspath')
+@patch('pip._internal.req.req_install.os.path.exists')
+@patch('pip._internal.req.req_install.os.path.isdir')
 def test_parse_editable_local_extras(
         isdir_mock, exists_mock, abspath_mock):
     exists_mock.return_value = isdir_mock.return_value = True
@@ -630,7 +593,21 @@ def test_exclusive_environment_markers():
     ne26 = InstallRequirement.from_line(
         "Django>=1.6.10,<1.8 ; python_version != '2.6'")
 
-    req_set = RequirementSet('', '', '', session=PipSession())
+    req_set = RequirementSet('', '', '')
     req_set.add_requirement(eq26)
     req_set.add_requirement(ne26)
     assert req_set.has_requirement('Django')
+
+
+def test_mismatched_versions(caplog, tmpdir):
+    original_source = os.path.join(DATA_DIR, 'src', 'simplewheel-1.0')
+    source_dir = os.path.join(tmpdir, 'simplewheel')
+    shutil.copytree(original_source, source_dir)
+    req = InstallRequirement(req=Requirement('simplewheel==2.0'),
+                             comes_from=None, source_dir=source_dir)
+    req.run_egg_info()
+    req.assert_source_matches_version()
+    assert caplog.records[-1].message == (
+        'Requested simplewheel==2.0, '
+        'but installing version 1.0'
+    )

@@ -3,7 +3,7 @@ Reference Guide
 ===============
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    pip
    pip_install
@@ -14,5 +14,6 @@ Reference Guide
    pip_show
    pip_search
    pip_check
+   pip_config
    pip_wheel
    pip_hash

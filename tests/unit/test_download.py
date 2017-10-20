@@ -9,13 +9,14 @@ from mock import Mock, patch
 from pip._vendor.six.moves.urllib import request as urllib_request
 
 import pip
-from pip.download import (
+from pip._internal.download import (
     MultiDomainBasicAuth, PipSession, SafeFileCache, path_to_url,
     unpack_file_url, unpack_http_url, url_to_path
 )
-from pip.exceptions import HashMismatch
-from pip.index import Link
-from pip.utils.hashes import Hashes
+from pip._internal.exceptions import HashMismatch
+from pip._internal.index import Link
+from pip._internal.utils.hashes import Hashes
+from tests.lib import create_file
 
 
 def test_unpack_http_url_with_urllib_response_without_content_type(data):
@@ -53,11 +54,6 @@ def test_user_agent():
     PipSession().headers["User-Agent"].startswith("pip/%s" % pip.__version__)
 
 
-def _write_file(fn, contents):
-    with open(fn, 'w') as fh:
-        fh.write(contents)
-
-
 class FakeStream(object):
 
     def __init__(self, contents):
@@ -79,7 +75,7 @@ class MockResponse(object):
         pass
 
 
-@patch('pip.download.unpack_file')
+@patch('pip._internal.download.unpack_file')
 def test_unpack_http_url_bad_downloaded_checksum(mock_unpack_file):
     """
     If already-downloaded file has bad checksum, re-download.
@@ -98,7 +94,7 @@ def test_unpack_http_url_bad_downloaded_checksum(mock_unpack_file):
     download_dir = mkdtemp()
     try:
         downloaded_file = os.path.join(download_dir, 'somepackage.tgz')
-        _write_file(downloaded_file, 'some contents')
+        create_file(downloaded_file, 'some contents')
 
         unpack_http_url(
             link,
@@ -259,8 +255,8 @@ class Test_unpack_file_url(object):
 class TestSafeFileCache:
     """
     The no_perms test are useless on Windows since SafeFileCache uses
-    pip.utils.filesystem.check_path_owner which is based on os.geteuid
-    which is absent on Windows.
+    pip._internal.utils.filesystem.check_path_owner which is based on
+    os.geteuid which is absent on Windows.
     """
 
     def test_cache_roundtrip(self, tmpdir):

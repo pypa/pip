@@ -1,3 +1,4 @@
+import distutils
 import glob
 import os
 import sys
@@ -115,11 +116,11 @@ def test_install_from_wheel_with_headers(script, data):
 
 
 @pytest.mark.network
-def test_install_wheel_with_target(script, data):
+def test_install_wheel_with_target(script, data, common_wheels):
     """
     Test installing a wheel using pip install --target
     """
-    script.pip('install', 'wheel')
+    script.pip('install', 'wheel', '--no-index', '-f', common_wheels)
     target_dir = script.scratch_path / 'target'
     result = script.pip(
         'install', 'simple.dist==0.1', '-t', target_dir,
@@ -131,7 +132,7 @@ def test_install_wheel_with_target(script, data):
 
 
 @pytest.mark.network
-def test_install_wheel_with_target_and_data_files(script, data):
+def test_install_wheel_with_target_and_data_files(script, data, common_wheels):
     """
     Test for issue #4092. It will be checked that a data_files specification in
     setup.py is handled correctly when a wheel is installed with the --target
@@ -150,7 +151,7 @@ def test_install_wheel_with_target_and_data_files(script, data):
             ]
         )
     """
-    script.pip('install', 'wheel')
+    script.pip('install', 'wheel', '--no-index', '-f', common_wheels)
     target_dir = script.scratch_path / 'prjwithdatafile'
     package = data.packages.join("prjwithdatafile-1.0-py2.py3-none-any.whl")
     result = script.pip('install', package,
@@ -187,11 +188,8 @@ def test_install_wheel_with_prefix(script, data):
         'install', 'simple.dist==0.1', '--prefix', prefix_dir,
         '--no-index', '--find-links=' + data.find_links,
     )
-    if hasattr(sys, "pypy_version_info"):
-        lib = Path('scratch') / 'prefix' / 'site-packages'
-    else:
-        lib = Path('scratch') / 'prefix' / 'lib'
-    assert lib in result.files_created
+    lib = distutils.sysconfig.get_python_lib(prefix=Path('scratch') / 'prefix')
+    assert lib in result.files_created, str(result)
 
 
 def test_install_from_wheel_installs_deps(script, data):
@@ -221,12 +219,12 @@ def test_install_from_wheel_no_deps(script, data):
 
 
 @pytest.mark.network
-def test_install_user_wheel(script, virtualenv, data):
+def test_install_user_wheel(script, virtualenv, data, common_wheels):
     """
     Test user install from wheel (that has a script)
     """
     virtualenv.system_site_packages = True
-    script.pip('install', 'wheel')
+    script.pip('install', 'wheel', '--no-index', '-f', common_wheels)
     result = script.pip(
         'install', 'has.script==1.0', '--user', '--no-index',
         '--find-links=' + data.find_links,
@@ -234,7 +232,7 @@ def test_install_user_wheel(script, virtualenv, data):
     egg_info_folder = script.user_site / 'has.script-1.0.dist-info'
     assert egg_info_folder in result.files_created, str(result)
     script_file = script.user_bin / 'script.py'
-    assert script_file in result.files_created
+    assert script_file in result.files_created, str(result)
 
 
 def test_install_from_wheel_gen_entrypoint(script, data):

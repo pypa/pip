@@ -10,8 +10,8 @@ from tempfile import mkdtemp
 import pretend
 import pytest
 
-from pip.req import InstallRequirement
-from pip.utils import rmtree
+from pip._internal.req import InstallRequirement
+from pip._internal.utils.misc import rmtree
 from tests.lib import assert_all_changes, create_test_package_with_setup
 from tests.lib.local_repos import local_checkout, local_repo
 
@@ -180,6 +180,8 @@ def test_uninstall_entry_point(script, console_scripts):
                       }
     )
     script_name = script.bin_path.join(console_scripts.split('=')[0].strip())
+    if sys.platform == 'win32':
+        script_name += '.exe'
     result = script.pip('install', pkg_path)
     assert script_name.exists
     result = script.pip('list', '--format=json')
@@ -204,6 +206,8 @@ def test_uninstall_gui_scripts(script):
         entry_points={"gui_scripts": ["test_ = distutils_install", ], }
     )
     script_name = script.bin_path.join('test_')
+    if sys.platform == 'win32':
+        script_name += '.exe'
     script.pip('install', pkg_path)
     assert script_name.exists
     script.pip('uninstall', pkg_name, '-y')
@@ -371,7 +375,7 @@ def test_uninstallpathset_no_paths(caplog):
     Test UninstallPathSet logs notification when there are no paths to
     uninstall
     """
-    from pip.req.req_uninstall import UninstallPathSet
+    from pip._internal.req.req_uninstall import UninstallPathSet
     from pkg_resources import get_distribution
     test_dist = get_distribution('pip')
     uninstall_set = UninstallPathSet(test_dist)
@@ -424,8 +428,8 @@ def test_uninstall_setuptools_develop_install(script, data):
     script.run('python', 'setup.py', 'install',
                expect_stderr=True, cwd=pkg_path)
     list_result = script.pip('list', '--format=json')
-    assert {"name": "FSPkg", "version": "0.1.dev0"} \
-        in json.loads(list_result.stdout)
+    assert {"name": os.path.normcase("FSPkg"), "version": "0.1.dev0"} \
+        in json.loads(list_result.stdout), str(list_result)
     # Uninstall both develop and install
     uninstall = script.pip('uninstall', 'FSPkg', '-y')
     assert any(filename.endswith('.egg')
