@@ -728,6 +728,11 @@ change without notice. While we do try not to break things as much as possible, 
 the internal APIs can change at any time, for any reason. It also means that we
 generally *won't* fix issues that are a result of using pip in an unsupported way.
 
+For backward compatibility, pip's main command line entry point is exposed as
+``pip.main(args)``. The *only* valid usage for this is ``sys.exit(pip.main(args))``
+and even that is unsupported. New code should not use this interface, although you
+may see it in older applications.
+
 It should also be noted that modifying the contents of ``sys.path`` in a running Python
 process is something that should only be done with care. The import system caches
 certain data, and installing new packages while a program is running may not always
