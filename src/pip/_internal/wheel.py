@@ -694,18 +694,13 @@ class WheelBuilder(object):
         # Ignore the --no-binary option when installing the build system, so
         # we don't recurse trying to build a self-hosting build system.
         finder = copy.copy(self.finder)
-        finder.format_control = FormatControl(set(), set())
+        finder.format_control = FormatControl(set(), set(':all:'))
         urls = [finder.find_requirement(InstallRequirement.from_line(r),
                                         upgrade=False).url
                 for r in reqs]
-        urls = [url for url in urls if url.endswith('.whl')]
-        
-        if len(urls) != len(reqs):
-            raise RuntimeError('Installing build requirements from '
-                               'source is not supported at this time.')
 
         args = [sys.executable, '-m', 'pip', 'install', '--ignore-installed',
-                '--only-binary', ':all:', '--prefix', prefix] + list(urls)
+                '--prefix', prefix] + list(urls)
         with open_spinner("Installing build dependencies") as spinner:
             call_subprocess(args, show_stdout=False, spinner=spinner)
 
