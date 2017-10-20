@@ -4,7 +4,7 @@ from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.vcs import RevOptions, VersionControl
 from pip._internal.vcs.bazaar import Bazaar
-from pip._internal.vcs.git import Git
+from pip._internal.vcs.git import Git, looks_like_hash
 from pip._internal.vcs.mercurial import Mercurial
 from pip._internal.vcs.subversion import Subversion
 from tests.lib import pyversion
@@ -23,11 +23,11 @@ def test_rev_options_repr():
 @pytest.mark.parametrize(('vcs', 'expected1', 'expected2', 'kwargs'), [
     # First check VCS-specific RevOptions behavior.
     (Bazaar(), [], ['-r', '123'], {}),
-    (Git(), ['origin/HEAD'], ['123'], {}),
+    (Git(), ['HEAD'], ['123'], {}),
     (Mercurial(), [], ['123'], {}),
     (Subversion(), [], ['-r', '123'], {}),
     # Test extra_args.  For this, test using a single VersionControl class.
-    (Git(), ['origin/HEAD', 'opt1', 'opt2'], ['123', 'opt1', 'opt2'],
+    (Git(), ['HEAD', 'opt1', 'opt2'], ['123', 'opt1', 'opt2'],
         dict(extra_args=['opt1', 'opt2'])),
 ])
 def test_rev_options_to_args(vcs, expected1, expected2, kwargs):
@@ -73,22 +73,10 @@ def test_rev_options_make_new():
 @pytest.fixture
 def git():
     git_url = 'http://github.com/pypa/pip-test-package'
-    refs = {
-        '0.1': 'a8992fc7ee17e5b9ece022417b64594423caca7c',
-        '0.1.1': '7d654e66c8fa7149c165ddeffa5b56bc06619458',
-        '0.1.2': 'f1c1020ebac81f9aeb5c766ff7a772f709e696ee',
-        'foo': '5547fa909e83df8bd743d3978d6667497983a4b7',
-        'bar': '5547fa909e83df8bd743d3978d6667497983a4b7',
-        'master': '5547fa909e83df8bd743d3978d6667497983a4b7',
-        'origin/master': '5547fa909e83df8bd743d3978d6667497983a4b7',
-        'origin/HEAD': '5547fa909e83df8bd743d3978d6667497983a4b7',
-    }
-    sha = refs['foo']
-
+    sha = '5547fa909e83df8bd743d3978d6667497983a4b7'
     git = Git()
     git.get_url = Mock(return_value=git_url)
     git.get_revision = Mock(return_value=sha)
-    git.get_short_refs = Mock(return_value=refs)
     return git
 
 
@@ -97,6 +85,15 @@ def dist():
     dist = Mock()
     dist.egg_name = Mock(return_value='pip_test_package')
     return dist
+
+
+def test_looks_like_hash():
+    assert looks_like_hash(40 * 'a')
+    assert looks_like_hash(40 * 'A')
+    # Test a string containing all valid characters.
+    assert looks_like_hash(18 * 'a' + '0123456789abcdefABCDEF')
+    assert not looks_like_hash(40 * 'g')
+    assert not looks_like_hash(39 * 'a')
 
 
 def test_git_get_src_requirements(git, dist):
@@ -109,15 +106,19 @@ def test_git_get_src_requirements(git, dist):
     ])
 
 
-@pytest.mark.parametrize('ref,result', (
+@pytest.mark.parametrize('rev_name,result', (
     ('5547fa909e83df8bd743d3978d6667497983a4b7', True),
-    ('5547fa909', True),
+    ('5547fa909', False),
+    ('5678', False),
     ('abc123', False),
     ('foo', False),
+    (None, False),
 ))
-def test_git_check_version(git, ref, result):
-    rev_options = git.make_rev_options(ref)
-    assert git.check_version('foo', rev_options) is result
+def test_git_is_commit_id_equal(git, rev_name, result):
+    """
+    Test Git.is_commit_id_equal().
+    """
+    assert git.is_commit_id_equal('/path', rev_name) is result
 
 
 def test_translate_egg_surname():

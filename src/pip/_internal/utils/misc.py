@@ -91,8 +91,11 @@ def ensure_dir(path):
 
 def get_prog():
     try:
-        if os.path.basename(sys.argv[0]) in ('__main__.py', '-c'):
+        prog = os.path.basename(sys.argv[0])
+        if prog in ('__main__.py', '-c'):
             return "%s -m pip" % sys.executable
+        else:
+            return prog
     except (AttributeError, TypeError, IndexError):
         pass
     return 'pip'
@@ -627,7 +630,14 @@ def unpack_file(filename, location, content_type, link):
 def call_subprocess(cmd, show_stdout=True, cwd=None,
                     on_returncode='raise',
                     command_desc=None,
-                    extra_environ=None, spinner=None):
+                    extra_environ=None, unset_environ=None, spinner=None):
+    """
+    Args:
+      unset_environ: an iterable of environment variable names to unset
+        prior to calling subprocess.Popen().
+    """
+    if unset_environ is None:
+        unset_environ = []
     # This function's handling of subprocess output is confusing and I
     # previously broke it terribly, so as penance I will write a long comment
     # explaining things.
@@ -664,6 +674,8 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
     env = os.environ.copy()
     if extra_environ:
         env.update(extra_environ)
+    for name in unset_environ:
+        env.pop(name, None)
     try:
         proc = subprocess.Popen(
             cmd, stderr=subprocess.STDOUT, stdin=None, stdout=stdout,

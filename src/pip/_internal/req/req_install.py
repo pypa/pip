@@ -595,7 +595,7 @@ class InstallRequirement(object):
             logger.warning(
                 'Requested %s, but installing version %s',
                 self,
-                self.installed_version,
+                version,
             )
         else:
             logger.debug(
@@ -945,7 +945,7 @@ class InstallRequirement(object):
 
     def get_dist(self):
         """Return a pkg_resources.Distribution built from self.egg_info_path"""
-        egg_info = self.egg_info_path('').rstrip('/')
+        egg_info = self.egg_info_path('').rstrip(os.path.sep)
         base_dir = os.path.dirname(egg_info)
         metadata = pkg_resources.PathMetadata(base_dir, egg_info)
         dist_name = os.path.splitext(os.path.basename(egg_info))[0]

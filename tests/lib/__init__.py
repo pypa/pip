@@ -7,7 +7,9 @@ import re
 import textwrap
 import site
 import shutil
+import subprocess
 
+import pytest
 import scripttest
 import six
 import virtualenv
@@ -32,7 +34,9 @@ def path_to_url(path):
     filepath = path.split(os.path.sep)
     url = '/'.join(filepath)
     if drive:
-        return 'file:///' + drive + url
+        # Note: match urllib.request.pathname2url's
+        # behavior: uppercase the drive letter.
+        return 'file:///' + drive.upper() + url
     return 'file://' + url
 
 
@@ -197,10 +201,11 @@ class TestPipResult(object):
                 )
 
             egg_link_file = self.files_created[egg_link_path]
+            egg_link_contents = egg_link_file.bytes.replace(os.linesep, '\n')
 
             # FIXME: I don't understand why there's a trailing . here
-            if not (egg_link_file.bytes.endswith('\n.') and
-                    egg_link_file.bytes[:-2].endswith(pkg_dir)):
+            if not (egg_link_contents.endswith('\n.') and
+                    egg_link_contents[:-2].endswith(pkg_dir)):
                 raise TestFailure(textwrap.dedent(u'''\
                     Incorrect egg_link file %r
                     Expected ending: %r
@@ -209,7 +214,7 @@ class TestPipResult(object):
                     -------------------------------''' % (
                     egg_link_file,
                     pkg_dir + '\n.',
-                    repr(egg_link_file.bytes))
+                    repr(egg_link_contents))
                 ))
 
         if use_user_site:
@@ -283,13 +288,20 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
             self.site_packages_path = self.lib_path.join("site-packages")
 
         self.user_base_path = self.venv_path.join("user")
-        self.user_bin_path = self.user_base_path.join(
-            self.bin_path - self.venv_path
-        )
         self.user_site_path = self.venv_path.join(
             "user",
             site.USER_SITE[len(site.USER_BASE) + 1:],
         )
+        if sys.platform == 'win32':
+            if sys.version_info >= (3, 5):
+                scripts_base = self.user_site_path.join('..').normpath
+            else:
+                scripts_base = self.user_base_path
+            self.user_bin_path = scripts_base.join('Scripts')
+        else:
+            self.user_bin_path = self.user_base_path.join(
+                self.bin_path - self.venv_path
+            )
 
         # Create a Directory to use as a scratch pad
         self.scratch_path = base_path.join("scratch").mkdir()
@@ -308,6 +320,8 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
         environ["PYTHONUSERBASE"] = self.user_base_path
         # Writing bytecode can mess up updated file detection
         environ["PYTHONDONTWRITEBYTECODE"] = "1"
+        # Make sure we get UTF-8 on output, even on Windows...
+        environ["PYTHONIOENCODING"] = "UTF-8"
         kwargs["environ"] = environ
 
         # Call the TestFileEnvironment __init__
@@ -343,6 +357,9 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
         run_from = kw.pop('run_from', None)
         assert not cwd or not run_from, "Don't use run_from; it's going away"
         cwd = cwd or run_from or self.cwd
+        if sys.platform == 'win32':
+            # Partial fix for ScriptTest.run using `shell=True` on Windows.
+            args = [str(a).replace('^', '^^').replace('&', '^&') for a in args]
         return TestPipResult(
             super(PipTestEnvironment, self).run(cwd=cwd, *args, **kw),
             verbose=self.verbose,
@@ -358,8 +375,12 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
         # Python 3.3 is deprecated and we emit a warning on it.
         if pyversion_tuple[:2] == (3, 3):
             kwargs['expect_stderr'] = True
-
-        return self.run("pip", *args, **kwargs)
+        if kwargs.pop('use_module', False):
+            exe = 'python'
+            args = ('-m', 'pip') + args
+        else:
+            exe = 'pip'
+        return self.run(exe, *args, **kwargs)
 
     def pip_install_local(self, *args, **kwargs):
         return self.pip(
@@ -730,3 +751,25 @@ def create_basic_wheel_for_package(script, name, version, depends, extras):
     script.temp_path.mkdir()
 
     return retval
+
+
+def need_executable(name, check_cmd):
+    def wrapper(fn):
+        try:
+            subprocess.check_output(check_cmd)
+        except OSError:
+            return pytest.mark.skip(reason='%s is not available' % name)(fn)
+        return fn
+    return wrapper
+
+
+def need_bzr(fn):
+    return pytest.mark.bzr(need_executable(
+        'Bazaar', ('bzr', 'version', '--short')
+    )(fn))
+
+
+def need_mercurial(fn):
+    return pytest.mark.mercurial(need_executable(
+        'Mercurial', ('hg', 'version')
+    )(fn))

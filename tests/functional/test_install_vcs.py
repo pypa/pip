@@ -6,6 +6,57 @@ from tests.lib import (
 from tests.lib.local_repos import local_checkout
 
 
+def _install_version_pkg(script, path, rev=None):
+    """
+    Install the version_pkg package, and return the version installed.
+
+    Args:
+      path: a tests.lib.path.Path object pointing to a Git repository
+        containing the package.
+      rev: an optional revision to install like a branch name or tag.
+    """
+    path = path.abspath.replace('\\', '/')
+    revision = '' if rev is None else '@{}'.format(rev)
+    url = 'git+file://{}{}#egg=version_pkg'.format(path, revision)
+    script.pip('install', '-e', url)
+    result = script.run('version_pkg')
+    version = result.stdout.strip()
+
+    return version
+
+
+def test_git_install_again_after_changes(script):
+    """
+    Test installing a repository a second time without specifying a revision,
+    and after updates to the remote repository.
+
+    This test also checks that no warning message like the following gets
+    logged on the update: "Did not find branch or tag ..., assuming ref or
+    revision."
+    """
+    version_pkg_path = _create_test_package(script)
+    version = _install_version_pkg(script, version_pkg_path)
+    assert version == '0.1'
+
+    _change_test_package_version(script, version_pkg_path)
+    version = _install_version_pkg(script, version_pkg_path)
+    assert version == 'some different version'
+
+
+def test_git_install_branch_again_after_branch_changes(script):
+    """
+    Test installing a branch again after the branch is updated in the remote
+    repository.
+    """
+    version_pkg_path = _create_test_package(script)
+    version = _install_version_pkg(script, version_pkg_path, rev='master')
+    assert version == '0.1'
+
+    _change_test_package_version(script, version_pkg_path)
+    version = _install_version_pkg(script, version_pkg_path, rev='master')
+    assert version == 'some different version'
+
+
 @pytest.mark.network
 def test_install_editable_from_git_with_https(script, tmpdir):
     """

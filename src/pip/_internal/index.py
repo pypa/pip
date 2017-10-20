@@ -289,7 +289,7 @@ class PackageFinder(object):
                 )
             pri = -(wheel.support_index_min(self.valid_tags))
             if wheel.build_tag is not None:
-                match = re.match('^(\d+)(.*)$', wheel.build_tag)
+                match = re.match(r'^(\d+)(.*)$', wheel.build_tag)
                 build_tag_groups = match.groups()
                 build_tag = (int(build_tag_groups[0]), build_tag_groups[1])
         else:  # sdist

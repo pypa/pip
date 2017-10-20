@@ -3,8 +3,6 @@
 pip uninstall
 -------------
 
-.. contents::
-
 Usage
 *****
 

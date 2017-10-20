@@ -1,3 +1,4 @@
+import os
 import textwrap
 
 from pip._vendor.six.moves.urllib import parse as urllib_parse
@@ -29,7 +30,7 @@ def test_find_links_requirements_file_relative_path(script, data):
         --no-index
         --find-links=%s
         parent==0.1
-        """ % data.packages))
+        """ % data.packages.replace(os.path.sep, '/')))
     result = script.pip(
         'install',
         '-r',

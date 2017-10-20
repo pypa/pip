@@ -166,6 +166,8 @@ class VersionControl(object):
     dirname = ''
     # List of supported schemes for this Version Control
     schemes = ()  # type: Tuple[str, ...]
+    # Iterable of environment variable names to pass to call_subprocess().
+    unset_environ = ()  # type: Tuple[str, ...]
     default_arg_rev = None  # type: Optional[str]
 
     def __init__(self, url=None, *args, **kwargs):
@@ -277,13 +279,13 @@ class VersionControl(object):
         """
         raise NotImplementedError
 
-    def check_version(self, dest, rev_options):
+    def is_commit_id_equal(self, dest, name):
         """
-        Return True if the version is identical to what exists and
-        doesn't need to be updated.
+        Return whether the id of the current commit equals the given name.
 
         Args:
-          rev_options: a RevOptions object.
+          dest: the repository directory.
+          name: a string name.
         """
         raise NotImplementedError
 
@@ -311,7 +313,7 @@ class VersionControl(object):
                         display_path(dest),
                         url,
                     )
-                    if not self.check_version(dest, rev_options):
+                    if not self.is_commit_id_equal(dest, rev_options.rev):
                         logger.info(
                             'Updating %s %s%s',
                             display_path(dest),
@@ -403,8 +405,7 @@ class VersionControl(object):
 
     def get_revision(self, location):
         """
-        Return the current revision of the files at location
-        Used in get_info
+        Return the current commit id of the files at the given location.
         """
         raise NotImplementedError
 
@@ -422,7 +423,8 @@ class VersionControl(object):
             return call_subprocess(cmd, show_stdout, cwd,
                                    on_returncode,
                                    command_desc, extra_environ,
-                                   spinner)
+                                   unset_environ=self.unset_environ,
+                                   spinner=spinner)
         except OSError as e:
             # errno.ENOENT = no such file or directory
             # In other words, the VCS executable isn't available

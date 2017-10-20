@@ -21,7 +21,7 @@ from pip._internal.req.req_file import process_line
 from pip._internal.req.req_install import parse_editable
 from pip._internal.resolve import Resolver
 from pip._internal.utils.misc import read_text_file
-from tests.lib import assert_raises_regexp, requirements_file
+from tests.lib import DATA_DIR, assert_raises_regexp, requirements_file
 
 
 class TestRequirementSet(object):
@@ -165,10 +165,6 @@ class TestRequirementSet(object):
                 wheel_cache=None)
         assert req_set.require_hashes
 
-    # This test doesn't appear to handle URL-encoded Windows paths
-    # correctly. Needs reviewing by someone who understands the logic.
-    @pytest.mark.xfail("sys.platform == 'win32'",
-                       reason="Code doesn't handle url-encoded Windows paths")
     def test_unsupported_hashes(self, data):
         """VCS and dir links should raise errors when --require-hashes is
         on.
@@ -385,22 +381,18 @@ class TestInstallRequirement(object):
         req = InstallRequirement.from_editable(url)
         assert req.link.url == url
 
-    def test_get_dist(self):
-        req = InstallRequirement.from_line('foo')
-        req.egg_info_path = Mock(return_value='/path/to/foo.egg-info')
-        dist = req.get_dist()
-        assert isinstance(dist, pkg_resources.Distribution)
-        assert dist.project_name == 'foo'
-        assert dist.location == '/path/to'
-
-    def test_get_dist_trailing_slash(self):
+    @pytest.mark.parametrize('path', (
+        '/path/to/foo.egg-info'.replace('/', os.path.sep),
         # Tests issue fixed by https://github.com/pypa/pip/pull/2530
+        '/path/to/foo.egg-info/'.replace('/', os.path.sep),
+    ))
+    def test_get_dist(self, path):
         req = InstallRequirement.from_line('foo')
-        req.egg_info_path = Mock(return_value='/path/to/foo.egg-info/')
+        req.egg_info_path = Mock(return_value=path)
         dist = req.get_dist()
         assert isinstance(dist, pkg_resources.Distribution)
         assert dist.project_name == 'foo'
-        assert dist.location == '/path/to'
+        assert dist.location == '/path/to'.replace('/', os.path.sep)
 
     def test_markers(self):
         for line in (
@@ -605,3 +597,17 @@ def test_exclusive_environment_markers():
     req_set.add_requirement(eq26)
     req_set.add_requirement(ne26)
     assert req_set.has_requirement('Django')
+
+
+def test_mismatched_versions(caplog, tmpdir):
+    original_source = os.path.join(DATA_DIR, 'src', 'simplewheel-1.0')
+    source_dir = os.path.join(tmpdir, 'simplewheel')
+    shutil.copytree(original_source, source_dir)
+    req = InstallRequirement(req=Requirement('simplewheel==2.0'),
+                             comes_from=None, source_dir=source_dir)
+    req.run_egg_info()
+    req.assert_source_matches_version()
+    assert caplog.records[-1].message == (
+        'Requested simplewheel==2.0, '
+        'but installing version 1.0'
+    )
