@@ -298,7 +298,8 @@ class RequirementPreparer(object):
             if req.satisfied_by:
                 should_modify = (
                     resolver.upgrade_strategy != "to-satisfy-only" or
-                    resolver.ignore_installed
+                    resolver.ignore_installed or
+                    link.scheme == 'file'
                 )
                 if should_modify:
                     resolver._set_req_to_reinstall(req)
