@@ -699,6 +699,10 @@ class WheelBuilder(object):
                                         upgrade=False).url
                 for r in reqs]
         urls = [url for url in urls if url.endswith('.whl')]
+        
+        if len(urls) != len(reqs):
+            raise RuntimeError('Installing build requirements from '
+                               'source is not supported at this time.')
 
         args = [sys.executable, '-m', 'pip', 'install', '--ignore-installed',
                 '--only-binary', ':all:', '--prefix', prefix] + list(urls)
