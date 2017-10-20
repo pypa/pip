@@ -698,6 +698,7 @@ class WheelBuilder(object):
         urls = [finder.find_requirement(InstallRequirement.from_line(r),
                                         upgrade=False).url
                 for r in reqs]
+        urls = [url for url in urls if url.endswith('.whl')]
 
         args = [sys.executable, '-m', 'pip', 'install', '--ignore-installed',
                 '--only-binary', ':all:', '--prefix', prefix] + list(urls)
