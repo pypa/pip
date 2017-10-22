@@ -148,32 +148,8 @@ class RequirementPreparer(object):
                     % display_path(self.download_dir))
         return False
 
-    def prepare_requirement(self, req, resolver):
-        """Prepare a requirement for installation
-
-        Returns an AbstractDist that can be used to install the package
-        """
-        # TODO: Remove circular dependency on resolver
-        assert resolver.require_hashes is not None, (
-            "require_hashes should have been set in Resolver.resolve()"
-        )
-
-        if req.editable:
-            return self._prepare_editable_requirement(req, resolver)
-
-        # satisfied_by is only evaluated by calling _check_skip_installed,
-        # so it must be None here.
-        assert req.satisfied_by is None
-        skip_reason = resolver._check_skip_installed(req)
-
-        if req.satisfied_by:
-            return self._prepare_installed_requirement(
-                req, resolver, skip_reason
-            )
-
-        return self._prepare_linked_requirement(req, resolver)
-
-    def _prepare_linked_requirement(self, req, resolver):
+    def prepare_linked_requirement(self, req, session, finder,
+                                   upgrade_allowed, require_hashes):
         """Prepare a requirement that would be obtained from req.link
         """
         # TODO: Breakup into smaller functions
@@ -204,11 +180,8 @@ class RequirementPreparer(object):
                     "can delete this. Please delete it and try again."
                     % (req, req.source_dir)
                 )
-            req.populate_link(
-                resolver.finder,
-                resolver._is_upgrade_allowed(req),
-                resolver.require_hashes
-            )
+            req.populate_link(finder, upgrade_allowed, require_hashes)
+
             # We can't hit this spot and have populate_link return None.
             # req.satisfied_by is None here (because we're
             # guarded) and upgrade has no impact except when satisfied_by
@@ -223,7 +196,7 @@ class RequirementPreparer(object):
             # requirements we have and raise some more informative errors
             # than otherwise. (For example, we can raise VcsHashUnsupported
             # for a VCS URL rather than HashMissing.)
-            if resolver.require_hashes:
+            if require_hashes:
                 # We could check these first 2 conditions inside
                 # unpack_url and save repetition of conditions, but then
                 # we would report less-useful error messages for
@@ -242,8 +215,9 @@ class RequirementPreparer(object):
                     # file:/// URLs aren't pinnable, so don't complain
                     # about them not being pinned.
                     raise HashUnpinned()
-            hashes = req.hashes(trust_internet=not resolver.require_hashes)
-            if resolver.require_hashes and not hashes:
+
+            hashes = req.hashes(trust_internet=not require_hashes)
+            if require_hashes and not hashes:
                 # Known-good hashes are missing for this requirement, so
                 # shim it with a facade object that will provoke hash
                 # computation and then raise a HashMissing exception
@@ -270,7 +244,7 @@ class RequirementPreparer(object):
                 unpack_url(
                     req.link, req.source_dir,
                     download_dir, autodelete_unpacked,
-                    session=resolver.session, hashes=hashes,
+                    session=session, hashes=hashes,
                     progress_bar=self.progress_bar
                 )
             except requests.HTTPError as exc:
@@ -290,27 +264,9 @@ class RequirementPreparer(object):
                 # Make a .zip of the source_dir we already created.
                 if req.link.scheme in vcs.all_schemes:
                     req.archive(self.download_dir)
-            # req.req is only avail after unpack for URL
-            # pkgs repeat check_if_exists to uninstall-on-upgrade
-            # (#14)
-            if not resolver.ignore_installed:
-                req.check_if_exists()
-            if req.satisfied_by:
-                should_modify = (
-                    resolver.upgrade_strategy != "to-satisfy-only" or
-                    resolver.ignore_installed
-                )
-                if should_modify:
-                    resolver._set_req_to_reinstall(req)
-                else:
-                    logger.info(
-                        'Requirement already satisfied (use '
-                        '--upgrade to upgrade): %s',
-                        req,
-                    )
         return abstract_dist
 
-    def _prepare_editable_requirement(self, req, resolver):
+    def prepare_editable_requirement(self, req, require_hashes):
         """Prepare an editable requirement
         """
         assert req.editable, "cannot prepare a non-editable req as editable"
@@ -318,7 +274,7 @@ class RequirementPreparer(object):
         logger.info('Obtaining %s', req)
 
         with indent_log():
-            if resolver.require_hashes:
+            if require_hashes:
                 raise InstallationError(
                     'The editable requirement %s cannot be installed when '
                     'requiring hashes, because there is no single file to '
@@ -336,7 +292,7 @@ class RequirementPreparer(object):
 
         return abstract_dist
 
-    def _prepare_installed_requirement(self, req, resolver, skip_reason):
+    def prepare_installed_requirement(self, req, require_hashes, skip_reason):
         """Prepare an already-installed requirement
         """
         assert req.satisfied_by, "req should have been satisfied but isn't"
@@ -349,7 +305,7 @@ class RequirementPreparer(object):
             skip_reason, req, req.satisfied_by.version
         )
         with indent_log():
-            if resolver.require_hashes:
+            if require_hashes:
                 logger.debug(
                     'Since it is already installed, we are trusting this '
                     'package without checking its hash. To ensure a '
