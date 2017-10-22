@@ -173,6 +173,61 @@ class Resolver(object):
         self._set_req_to_reinstall(req_to_install)
         return None
 
+    def _get_abstract_dist_for(self, req):
+        """Takes a InstallRequirement and returns a single AbstractDist \
+        representing a prepared variant of the same.
+        """
+        assert self.require_hashes is not None, (
+            "require_hashes should have been set in Resolver.resolve()"
+        )
+
+        if req.editable:
+            return self.preparer.prepare_editable_requirement(
+                req, self.require_hashes
+            )
+
+        # satisfied_by is only evaluated by calling _check_skip_installed,
+        # so it must be None here.
+        assert req.satisfied_by is None
+        skip_reason = self._check_skip_installed(req)
+
+        if req.satisfied_by:
+            return self.preparer.prepare_installed_requirement(
+                req, self.require_hashes, skip_reason
+            )
+
+        upgrade_allowed = self._is_upgrade_allowed(req)
+        abstract_dist = self.preparer.prepare_linked_requirement(
+            req, self.session, self.finder, upgrade_allowed,
+            self.require_hashes
+        )
+
+        # NOTE
+        # The following portion is for determining if a certain package is
+        # going to be re-installed/upgraded or not and reporting to the user.
+        # This should probably get cleaned up in a future refactor.
+
+        # req.req is only avail after unpack for URL
+        # pkgs repeat check_if_exists to uninstall-on-upgrade
+        # (#14)
+        if not self.ignore_installed:
+            req.check_if_exists()
+
+        if req.satisfied_by:
+            should_modify = (
+                self.upgrade_strategy != "to-satisfy-only" or
+                self.ignore_installed
+            )
+            if should_modify:
+                self._set_req_to_reinstall(req)
+            else:
+                logger.info(
+                    'Requirement already satisfied (use --upgrade to upgrade):'
+                    ' %s', req,
+                )
+
+        return abstract_dist
+
     def _resolve_one(self, requirement_set, req_to_install):
         """Prepare a single requirements file.
 
@@ -185,7 +240,7 @@ class Resolver(object):
             return []
 
         req_to_install.prepared = True
-        abstract_dist = self.preparer.prepare_requirement(req_to_install, self)
+        abstract_dist = self._get_abstract_dist_for(req_to_install)
 
         # register tmp src for cleanup in case something goes wrong
         requirement_set.reqs_to_cleanup.append(req_to_install)
