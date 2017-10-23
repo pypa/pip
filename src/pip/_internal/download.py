@@ -349,7 +349,7 @@ class PipSession(requests.Session):
             # is typically considered a transient error so we'll go ahead and
             # retry it.
             # A 500 may indicate transient errror in Amazon S3
-            # A 520 or 527 – may indicate transient errror in CloudFlare
+            # A 520 or 527 - may indicate transient errror in CloudFlare
             status_forcelist=[500, 503, 520, 527],
 
             # Add a small amount of back off between failed requests in
