@@ -1,0 +1,1 @@
+Make ``pip install --force-reinstall`` not require passing ``--upgrade``.
