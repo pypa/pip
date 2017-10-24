@@ -802,6 +802,7 @@ class InstallRequirement(object):
                     new_lines.append(
                         os.path.relpath(prepend_root(filename), egg_info_dir)
                     )
+            new_lines.sort()
             ensure_dir(egg_info_dir)
             inst_files_path = os.path.join(egg_info_dir, 'installed-files.txt')
             with open(inst_files_path, 'w') as f:
