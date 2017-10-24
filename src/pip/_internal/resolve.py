@@ -150,6 +150,10 @@ class Resolver(object):
         if not req_to_install.satisfied_by:
             return None
 
+        if self.force_reinstall:
+            self._set_req_to_reinstall(req_to_install)
+            return None
+
         if not self._is_upgrade_allowed(req_to_install):
             if self.upgrade_strategy == "only-if-needed":
                 return 'not upgraded as not directly required'
@@ -158,7 +162,7 @@ class Resolver(object):
         # Check for the possibility of an upgrade.  For link-based
         # requirements we have to pull the tree down and inspect to assess
         # the version #, so it's handled way down.
-        if not (self.force_reinstall or req_to_install.link):
+        if not req_to_install.link:
             try:
                 self.finder.find_requirement(req_to_install, upgrade=True)
             except BestVersionAlreadyInstalled:
@@ -216,6 +220,7 @@ class Resolver(object):
         if req.satisfied_by:
             should_modify = (
                 self.upgrade_strategy != "to-satisfy-only" or
+                self.force_reinstall or 
                 self.ignore_installed or
                 req.link.scheme == 'file'
             )
