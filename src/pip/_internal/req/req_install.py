@@ -634,7 +634,8 @@ class InstallRequirement(object):
                 'Unexpected version control type (in %s): %s'
                 % (self.link, vc_type))
 
-    def uninstall(self, auto_confirm=False, verbose=False):
+    def uninstall(self, auto_confirm=False, verbose=False,
+                  ignore_missing=False):
         """
         Uninstall the distribution currently satisfying this requirement.
 
@@ -648,6 +649,10 @@ class InstallRequirement(object):
 
         """
         if not self.check_if_exists():
+            if ignore_missing:
+                logger.warning('Requirement %s not installed; skipping'
+                               % (self.name,))
+                return
             raise UninstallationError(
                 "Cannot uninstall requirement %s, not installed" % (self.name,)
             )

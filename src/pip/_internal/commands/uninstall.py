@@ -39,6 +39,11 @@ class UninstallCommand(Command):
             dest='yes',
             action='store_true',
             help="Don't ask for confirmation of uninstall deletions.")
+        self.cmd_opts.add_option(
+            '-i', '--ignore-missing',
+            dest='ignore_missing',
+            action='store_true',
+            help="Don't error if a requirement is not installed.")
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
@@ -65,6 +70,8 @@ class UninstallCommand(Command):
                 )
             for req in reqs_to_uninstall.values():
                 req.uninstall(
-                    auto_confirm=options.yes, verbose=options.verbose != 0
+                    auto_confirm=options.yes, verbose=options.verbose != 0,
+                    ignore_missing=options.ignore_missing
                 )
-                req.uninstalled_pathset.commit()
+                if req.uninstalled_pathset:
+                    req.uninstalled_pathset.commit()
