@@ -220,7 +220,7 @@ class Resolver(object):
         if req.satisfied_by:
             should_modify = (
                 self.upgrade_strategy != "to-satisfy-only" or
-                self.force_reinstall or 
+                self.force_reinstall or
                 self.ignore_installed or
                 req.link.scheme == 'file'
             )
