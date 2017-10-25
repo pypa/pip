@@ -268,19 +268,19 @@ class Resolver(object):
                 isolated=self.isolated,
                 wheel_cache=self.wheel_cache,
             )
-            more_reqs.extend(
-                requirement_set.add_requirement(
-                    sub_install_req, req_to_install.name,
-                    extras_requested=extras_requested
-                )
+            scan_result = requirement_set.scan_requirement(
+                sub_install_req, req_to_install.name,
+                extras_requested=extras_requested
             )
+            if scan_result is not None:
+                more_reqs.append(scan_result)
 
         with indent_log():
             # We add req_to_install before its dependencies, so that we
             # can refer to it when adding dependencies.
             if not requirement_set.has_requirement(req_to_install.name):
                 # 'unnamed' requirements will get added here
-                requirement_set.add_requirement(req_to_install, None)
+                requirement_set.scan_requirement(req_to_install, None)
 
             if not self.ignore_dependencies:
                 if req_to_install.extras:

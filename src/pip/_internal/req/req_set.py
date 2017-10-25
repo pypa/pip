@@ -48,9 +48,11 @@ class RequirementSet(object):
         return ('<%s object; %d requirement(s): %s>'
                 % (self.__class__.__name__, len(reqs), reqs_str))
 
-    def add_requirement(self, req, parent_req_name=None,
-                        extras_requested=None):
-        """Add req as a requirement to install.
+    def scan_requirement(self, req, parent_req_name=None,
+                         extras_requested=None):
+        """Scans a requirement.
+
+        Returns an InstallRequirement that should be explored or None.
 
         :param parent_req_name: The name of the requirement that needed this
             added. The name is used because when multiple unnamed requirements
@@ -59,17 +61,13 @@ class RequirementSet(object):
             already be added. Note that None implies that this is a user
             supplied requirement, vs an inferred one.
         :param extras_requested: an iterable of extras used to evaluate the
-            environement markers.
-        :return: Additional requirements to scan. That is either [] if
-            the requirement is not applicable, or [req] if the
-            requirement is applicable and has just been added.
+            environment markers.
         """
-        name = req.name
         if not req.match_markers(extras_requested):
             logger.warning("Ignoring %s: markers '%s' don't match your "
                            "environment", req.name,
                            req.markers)
-            return []
+            return None
 
         # This check has to come after we filter requirements with the
         # environment markers.
@@ -81,15 +79,17 @@ class RequirementSet(object):
                     wheel.filename
                 )
 
+        # FIXME: These cause action at a distance.
         req.use_user_site = self.use_user_site
         req.target_dir = self.target_dir
         req.pycompile = self.pycompile
         req.is_direct = (parent_req_name is None)
 
+        name = req.name
         if not name:
             # url or path requirement w/o an egg fragment
             self.unnamed_requirements.append(req)
-            return [req]
+            return req
         else:
             try:
                 existing_req = self.get_requirement(name)
@@ -108,11 +108,11 @@ class RequirementSet(object):
                 # FIXME: what about other normalizations?  E.g., _ vs. -?
                 if name.lower() != name:
                     self.requirement_aliases[name.lower()] = name
-                result = [req]
+                result = req
             else:
                 # Assume there's no need to scan, and that we've already
                 # encountered this for scanning.
-                result = []
+                result = None
                 if not req.constraint and existing_req.constraint:
                     if (req.link and not (existing_req.link and
                        req.link.path == existing_req.link.path)):
@@ -130,7 +130,7 @@ class RequirementSet(object):
                     logger.debug("Setting %s extras to: %s",
                                  existing_req, existing_req.extras)
                     # And now we need to scan this.
-                    result = [existing_req]
+                    result = existing_req
                 # Canonicalise to the already-added object for the backref
                 # check below.
                 req = existing_req
