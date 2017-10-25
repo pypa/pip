@@ -64,9 +64,10 @@ class RequirementSet(object):
             environment markers.
         """
         if not req.match_markers(extras_requested):
-            logger.warning("Ignoring %s: markers '%s' don't match your "
-                           "environment", req.name,
-                           req.markers)
+            logger.warning(
+                "Ignoring %s: markers '%s' don't match your environment",
+                req.name, req.markers,
+            )
             return None
 
         # This check has to come after we filter requirements with the
@@ -90,54 +91,69 @@ class RequirementSet(object):
             # url or path requirement w/o an egg fragment
             self.unnamed_requirements.append(req)
             return req
+
+        try:
+            existing_req = self.get_requirement(name)
+        except KeyError:
+            existing_req = None
+
+        already_specified = (
+            parent_req_name is None and existing_req and
+            not existing_req.constraint and
+            existing_req.extras == req.extras and
+            not existing_req.req.specifier == req.req.specifier
+        )
+        if already_specified:
+            raise InstallationError(
+                'Double requirement given: %s (already in %s, name=%r)' %
+                (req, existing_req, name)
+            )
+
+        if not existing_req:
+            # Add requirement
+            self.requirements[name] = req
+            # FIXME: what about other normalizations?  E.g., _ vs. -?
+            if name.lower() != name:
+                self.requirement_aliases[name.lower()] = name
+            result = req
         else:
-            try:
-                existing_req = self.get_requirement(name)
-            except KeyError:
-                existing_req = None
-            if (parent_req_name is None and existing_req and not
-                    existing_req.constraint and
-                    existing_req.extras == req.extras and not
-                    existing_req.req.specifier == req.req.specifier):
-                raise InstallationError(
-                    'Double requirement given: %s (already in %s, name=%r)'
-                    % (req, existing_req, name))
-            if not existing_req:
-                # Add requirement
-                self.requirements[name] = req
-                # FIXME: what about other normalizations?  E.g., _ vs. -?
-                if name.lower() != name:
-                    self.requirement_aliases[name.lower()] = name
-                result = req
-            else:
-                # Assume there's no need to scan, and that we've already
-                # encountered this for scanning.
-                result = None
-                if not req.constraint and existing_req.constraint:
-                    if (req.link and not (existing_req.link and
-                       req.link.path == existing_req.link.path)):
-                        self.reqs_to_cleanup.append(req)
-                        raise InstallationError(
-                            "Could not satisfy constraints for '%s': "
-                            "installation from path or url cannot be "
-                            "constrained to a version" % name)
-                    # If we're now installing a constraint, mark the existing
-                    # object for real installation.
-                    existing_req.constraint = False
-                    existing_req.extras = tuple(
-                        sorted(set(existing_req.extras).union(
-                               set(req.extras))))
-                    logger.debug("Setting %s extras to: %s",
-                                 existing_req, existing_req.extras)
-                    # And now we need to scan this.
-                    result = existing_req
-                # Canonicalise to the already-added object for the backref
-                # check below.
-                req = existing_req
-            if parent_req_name:
-                parent_req = self.get_requirement(parent_req_name)
-                self._dependencies[parent_req].append(req)
-            return result
+            # Assume there's no need to scan, and that we've already
+            # encountered this for scanning.
+            result = None
+            if not req.constraint and existing_req.constraint:
+                unsatisfiable = req.link and not (
+                    existing_req.link and
+                    req.link.path == existing_req.link.path
+                )
+                if unsatisfiable:
+                    self.reqs_to_cleanup.append(req)
+                    raise InstallationError(
+                        "Could not satisfy constraints for '%s': "
+                        "installation from path or url cannot be "
+                        "constrained to a version" % name
+                    )
+
+                # If we're now installing a constraint, mark the existing
+                # object for real installation.
+                existing_req.constraint = False
+                existing_req.extras = tuple(sorted(
+                    set(existing_req.extras).union(set(req.extras))
+                ))
+                logger.debug(
+                    "Setting %s extras to: %s",
+                    existing_req, existing_req.extras
+                )
+                # And now we need to scan this.
+                result = existing_req
+            # Canonicalise to the already-added object for the backref
+            # check below.
+            req = existing_req
+
+        if parent_req_name:
+            parent_req = self.get_requirement(parent_req_name)
+            self._dependencies[parent_req].append(req)
+
+        return result
 
     def has_requirement(self, project_name):
         name = project_name.lower()
