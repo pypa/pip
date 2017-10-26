@@ -12,7 +12,8 @@ here = os.path.abspath(os.path.dirname(__file__))
 def read(*parts):
     # intentionally *not* adding an encoding option to open, See:
     #   https://github.com/pypa/virtualenv/issues/201#issuecomment-3145690
-    return codecs.open(os.path.join(here, *parts), 'r').read()
+    with codecs.open(os.path.join(here, *parts), 'r') as fp:
+        return fp.read()
 
 
 def find_version(*file_paths):
@@ -46,6 +47,7 @@ setup(
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Topic :: Software Development :: Build Tools",
+        "Programming Language :: Python",
         "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
@@ -53,6 +55,7 @@ setup(
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Python :: Implementation :: PyPy"
     ],
     keywords='easy_install distutils setuptools egg virtualenv',
