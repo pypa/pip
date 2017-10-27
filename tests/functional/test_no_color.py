@@ -26,12 +26,20 @@ def test_no_color(script):
              stdout=sp.PIPE, stderr=sp.PIPE).communicate()
 
     with open("/tmp/colored-output.txt", "r") as result:
-        output = result.read()
+
+        red_lines = 0
+        reset_lines = 0
+
+        for line in result.readlines():
+            if line.startswith("\x1b[31m"):
+                red_lines += 1
+            if line.endswith("\x1b[0m\n"):
+                reset_lines += 1
+
+        assert red_lines >= 1
+        assert reset_lines >= 1
 
     os.unlink("/tmp/colored-output.txt")
-
-    assert output.startswith("\x1b[31m")
-    assert output.endswith("\x1b[0m\n")
 
     sp.Popen("script --flush --quiet --return /tmp/no-color-output.txt"
              " --command \"pip --no-color uninstall noSuchPackage\"",
@@ -39,9 +47,15 @@ def test_no_color(script):
              stdout=sp.PIPE, stderr=sp.PIPE).communicate()
 
     with open("/tmp/no-color-output.txt", "r") as result:
-        output = result.read()
+        red_lines = 0
+        reset_lines = 0
+        for line in result.readlines():
+            if line.startswith("\x1b[31m"):
+                red_lines += 1
+            if line.endswith("\x1b[0m\n"):
+                reset_lines += 1
 
     os.unlink("/tmp/no-color-output.txt")
 
-    assert not output.startswith("\x1b[31m")
-    assert not output.endswith("\x1b[0m\n")
+    assert red_lines == 0
+    assert reset_lines == 0
