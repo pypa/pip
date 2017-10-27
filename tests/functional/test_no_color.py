@@ -4,11 +4,12 @@ Test specific for the --no-color option
 import os
 import platform
 import subprocess as sp
+import sys
 
 import pytest
 
 
-@pytest.mark.skipif(platform.system() == 'Windows',
+@pytest.mark.skipif(sys.platform == 'win32',
                     reason="does not run on windows")
 def test_no_color(script):
 
