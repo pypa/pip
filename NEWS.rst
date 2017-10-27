@@ -769,7 +769,7 @@
   than erroring out. (#963)
 - ``pip bundle`` and support for installing from pybundle files is now
   considered deprecated and will be removed in pip v1.5.
-- Fix a number of isses related to cleaning up and not reusing build
+- Fix a number of issues related to cleaning up and not reusing build
   directories. (#413, #709, #634, #602, #939, #865, #948)
 - Added a User Agent so that pip is identifiable in logs. (#901)
 - Added ssl and --user support to get-pip.py. Thanks Gabriel de Perthuis.
