@@ -1,7 +1,9 @@
 import logging
 
 from pip._internal.basecommand import Command
-from pip._internal.operations.check import check_requirements
+from pip._internal.operations.check import (
+    check_package_set, create_package_set
+)
 from pip._internal.utils.misc import get_installed_distributions
 
 logger = logging.getLogger(__name__)
@@ -15,25 +17,28 @@ class CheckCommand(Command):
     summary = 'Verify installed packages have compatible dependencies.'
 
     def run(self, options, args):
-        dists = get_installed_distributions(local_only=False, skip=())
-        missing_reqs_dict, incompatible_reqs_dict = check_requirements(dists)
+        package_set = create_package_set(
+            get_installed_distributions(local_only=False, skip=())
+        )
+        missing, conflicting = check_package_set(package_set)
 
-        for dist in dists:
-            for requirement in missing_reqs_dict.get(dist.key, []):
+        for project_name in missing:
+            version = package_set[project_name][0]
+            for dependency in missing[project_name]:
                 logger.info(
                     "%s %s requires %s, which is not installed.",
-                    dist.project_name, dist.version, requirement.project_name,
+                    project_name, version, dependency,
                 )
 
-            for requirement, actual in incompatible_reqs_dict.get(
-                    dist.key, []):
+        for project_name in conflicting:
+            version = package_set[project_name][0]
+            for dep_name, dep_version, req in conflicting[project_name]:
                 logger.info(
                     "%s %s has requirement %s, but you have %s %s.",
-                    dist.project_name, dist.version, requirement,
-                    actual.project_name, actual.version,
+                    project_name, version, req, dep_name, dep_version,
                 )
 
-        if missing_reqs_dict or incompatible_reqs_dict:
+        if missing or conflicting:
             return 1
         else:
             logger.info("No broken requirements found.")

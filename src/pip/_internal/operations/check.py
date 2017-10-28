@@ -1,46 +1,57 @@
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from typing import Any, Dict, Iterator, Set, Tuple, List
+
+    # Shorthands
+    PackageSet = Dict[str, Tuple[str, List[Any]]]
+    Missing = str
+    Conflicting = Tuple[str, str, Any]
+
+    MissingDict = Dict[str, List[Missing]]
+    ConflictingDict = Dict[str, List[Conflicting]]
 
 
-def check_requirements(installed_dists):
-    missing_reqs_dict = {}
-    incompatible_reqs_dict = {}
-
+def create_package_set(installed_dists):
+    # type: (List[Any]) -> PackageSet
+    """Converts a list of distributions into a PackageSet.
+    """
+    retval = {}
     for dist in installed_dists:
-        missing_reqs = list(get_missing_reqs(dist, installed_dists))
-        if missing_reqs:
-            missing_reqs_dict[dist.key] = missing_reqs
-
-        incompatible_reqs = list(get_incompatible_reqs(dist, installed_dists))
-        if incompatible_reqs:
-            incompatible_reqs_dict[dist.key] = incompatible_reqs
-
-    return (missing_reqs_dict, incompatible_reqs_dict)
+        retval[dist.project_name.lower()] = dist.version, dist.requires()
+    return retval
 
 
-def get_missing_reqs(dist, installed_dists):
-    """Return all of the requirements of `dist` that aren't present in
-    `installed_dists`.
-
+def check_package_set(package_set):
+    # type: (PackageSet) -> Tuple[MissingDict, ConflictingDict]
+    """Check if a package set is consistent
     """
-    installed_names = {d.project_name.lower() for d in installed_dists}
-    missing_requirements = set()
+    missing = dict()
+    conflicting = dict()
 
-    for requirement in dist.requires():
-        if requirement.project_name.lower() not in installed_names:
-            missing_requirements.add(requirement)
-            yield requirement
+    for package_name in package_set:
+        assert package_name.islower(), "Should provide lowercased names"
 
+        # Info about dependencies of package_name
+        missing_deps = set()  # type: Set[Missing]
+        conflicting_deps = set()  # type: Set[Conflicting]
 
-def get_incompatible_reqs(dist, installed_dists):
-    """Return all of the requirements of `dist` that are present in
-    `installed_dists`, but have incompatible versions.
+        for req in package_set[package_name][1]:
+            name = req.project_name.lower()  # type: ignore
 
-    """
-    installed_dists_by_name = {}
-    for installed_dist in installed_dists:
-        installed_dists_by_name[installed_dist.project_name] = installed_dist
+            # Check if it's missing
+            if name not in package_set and name not in missing_deps:
+                missing_deps.add(name)
+                continue
 
-    for requirement in dist.requires():
-        present_dist = installed_dists_by_name.get(requirement.project_name)
+            # Check if there's a conflict
+            version = package_set[name][0]  # type: str
+            if version not in req.specifier:
+                conflicting_deps.add((name, version, req))
 
-        if present_dist and present_dist not in requirement:
-            yield (requirement, present_dist)
+        if missing_deps:
+            missing[package_name] = sorted(missing_deps)
+        if conflicting_deps:
+            conflicting[package_name] = sorted(conflicting_deps)
+
+    return missing, conflicting
