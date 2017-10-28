@@ -55,7 +55,9 @@ def test_check_broken_dependency(script):
         name='broken', version='0.1',
     )
     # Let's install broken==0.1
-    res = script.pip('install', '--no-index', broken_path)
+    res = script.pip(
+        'install', '--no-index', broken_path, '--no-warn-conflicts',
+    )
     assert "Successfully installed broken-0.1" in res.stdout, str(res)
 
     result = script.pip('check', expect_error=True)

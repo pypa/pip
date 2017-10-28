@@ -66,3 +66,32 @@ def check_package_set(package_set):
             conflicting[package_name] = sorted(conflicting_deps)
 
     return missing, conflicting
+
+
+def check_install_conflicts(requirement_set):
+    """For checking if the dependency graph would be consistent after \
+    installing RequirementSet
+    """
+    # Start from the current state
+    state = create_package_set_from_installed()
+    _simulate_installation_of(requirement_set, state)
+    return state, check_package_set(state)
+
+
+# NOTE from @pradyunsg
+# This next function is a fragile hack tbh.
+# - This is using a private method of RequirementSet that should be refactored
+#   into another class in the near future.
+# - This required a minor update in dependency link handling logic over at
+#   operations.prepare.IsSDist.dist() to get it working
+def _simulate_installation_of(requirement_set, state):
+    # type: (RequirementSet, PackageSet) -> None
+    """Computes the version of packages after installing requirement_set.
+    """
+
+    # Modify it as installing requirement_set would (assuming no errors)
+    for inst_req in requirement_set._to_install():
+        dist = make_abstract_dist(inst_req).dist(finder=None)
+        state[dist.key] = PackageDetails(
+            dist.version, dist.requires()
+        )
