@@ -1,24 +1,33 @@
+"""Validation of dependencies of packages
+"""
+
+from collections import namedtuple
+
+from pip._internal.utils.misc import get_installed_distributions
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import Any, Dict, Iterator, Set, Tuple, List
 
     # Shorthands
-    PackageSet = Dict[str, Tuple[str, List[Any]]]
-    Missing = str
+    PackageSet = Dict[str, 'PackageDetails']
+    Missing = Tuple[str, Any]
     Conflicting = Tuple[str, str, Any]
 
     MissingDict = Dict[str, List[Missing]]
     ConflictingDict = Dict[str, List[Conflicting]]
 
+PackageDetails = namedtuple('PackageDetails', ['version', 'requires'])
 
-def create_package_set(installed_dists):
-    # type: (List[Any]) -> PackageSet
+
+def create_package_set_from_installed(**kwargs):
+    # type: (**Any) -> PackageSet
     """Converts a list of distributions into a PackageSet.
     """
     retval = {}
-    for dist in installed_dists:
-        retval[dist.project_name.lower()] = dist.version, dist.requires()
+    for dist in get_installed_distributions(**kwargs):
+        name = dist.project_name.lower()
+        retval[name] = PackageDetails(dist.version, dist.requires())
     return retval
 
 
