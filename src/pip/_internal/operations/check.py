@@ -1,24 +1,37 @@
+"""Validation of dependencies of packages
+"""
+
+from collections import namedtuple
+
+from pip._vendor.packaging.utils import canonicalize_name
+
+from pip._internal.operations.prepare import make_abstract_dist
+from pip._internal.utils.misc import get_installed_distributions
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import Any, Dict, Iterator, Set, Tuple, List
+    from pip._internal.req.req_set import RequirementSet
 
     # Shorthands
-    PackageSet = Dict[str, Tuple[str, List[Any]]]
-    Missing = str
+    PackageSet = Dict[str, 'PackageDetails']
+    Missing = Tuple[str, Any]
     Conflicting = Tuple[str, str, Any]
 
     MissingDict = Dict[str, List[Missing]]
     ConflictingDict = Dict[str, List[Conflicting]]
 
+PackageDetails = namedtuple('PackageDetails', ['version', 'requires'])
 
-def create_package_set(installed_dists):
-    # type: (List[Any]) -> PackageSet
+
+def create_package_set_from_installed(**kwargs):
+    # type: (**Any) -> PackageSet
     """Converts a list of distributions into a PackageSet.
     """
     retval = {}
-    for dist in installed_dists:
-        retval[dist.project_name.lower()] = dist.version, dist.requires()
+    for dist in get_installed_distributions(**kwargs):
+        name = canonicalize_name(dist.project_name)
+        retval[name] = PackageDetails(dist.version, dist.requires())
     return retval
 
 
@@ -30,22 +43,20 @@ def check_package_set(package_set):
     conflicting = dict()
 
     for package_name in package_set:
-        assert package_name.islower(), "Should provide lowercased names"
-
         # Info about dependencies of package_name
         missing_deps = set()  # type: Set[Missing]
         conflicting_deps = set()  # type: Set[Conflicting]
 
-        for req in package_set[package_name][1]:
-            name = req.project_name.lower()  # type: ignore
+        for req in package_set[package_name].requires:
+            name = canonicalize_name(req.project_name)  # type: ignore
 
             # Check if it's missing
-            if name not in package_set and name not in missing_deps:
-                missing_deps.add(name)
+            if name not in package_set:
+                missing_deps.add((name, req))
                 continue
 
             # Check if there's a conflict
-            version = package_set[name][0]  # type: str
+            version = package_set[name].version  # type: str
             if version not in req.specifier:
                 conflicting_deps.add((name, version, req))
 

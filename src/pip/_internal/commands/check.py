@@ -2,7 +2,7 @@ import logging
 
 from pip._internal.basecommand import Command
 from pip._internal.operations.check import (
-    check_package_set, create_package_set
+    check_package_set, create_package_set_from_installed
 )
 from pip._internal.utils.misc import get_installed_distributions
 
@@ -17,21 +17,19 @@ class CheckCommand(Command):
     summary = 'Verify installed packages have compatible dependencies.'
 
     def run(self, options, args):
-        package_set = create_package_set(
-            get_installed_distributions(local_only=False, skip=())
-        )
+        package_set = create_package_set_from_installed()
         missing, conflicting = check_package_set(package_set)
 
         for project_name in missing:
-            version = package_set[project_name][0]
+            version = package_set[project_name].version
             for dependency in missing[project_name]:
                 logger.info(
                     "%s %s requires %s, which is not installed.",
-                    project_name, version, dependency
+                    project_name, version, dependency[1]
                 )
 
         for project_name in conflicting:
-            version = package_set[project_name][0]
+            version = package_set[project_name].version
             for dep_name, dep_version, req in conflicting[project_name]:
                 logger.info(
                     "%s %s has requirement %s, but you have %s %s.",

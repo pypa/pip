@@ -33,7 +33,7 @@ def test_check_missing_dependency(script):
     result = script.pip('check', expect_error=True)
 
     expected_lines = (
-        "pkga 1.0 requires missing, which is not installed.",
+        "pkga 1.0 requires missing==0.1, which is not installed.",
     )
     assert matches_expected_lines(result.stdout, expected_lines)
     assert result.returncode == 1
