@@ -2028,51 +2028,121 @@ def find_on_path(importer, path_item, only=False):
                 path_item, os.path.join(path_item, 'EGG-INFO')
             )
         )
-    else:
-        try:
-            entries = os.listdir(path_item)
-        except (PermissionError, NotADirectoryError):
-            return
-        except OSError as e:
-            # Ignore the directory if does not exist, not a directory or we
-            # don't have permissions
-            if (e.errno in (errno.ENOTDIR, errno.EACCES, errno.ENOENT)
-                # Python 2 on Windows needs to be handled this way :(
-               or hasattr(e, "winerror") and e.winerror == 267):
-                return
+        return
+
+    entries = safe_listdir(path_item)
+
+    # for performance, before sorting by version,
+    # screen entries for only those that will yield
+    # distributions
+    filtered = (
+        entry
+        for entry in entries
+        if dist_factory(path_item, entry, only)
+    )
+
+    # scan for .egg and .egg-info in directory
+    path_item_entries = _by_version_descending(filtered)
+    for entry in path_item_entries:
+        fullpath = os.path.join(path_item, entry)
+        factory = dist_factory(path_item, entry, only)
+        for dist in factory(fullpath):
+            yield dist
+
+
+def dist_factory(path_item, entry, only):
+    """
+    Return a dist_factory for a path_item and entry
+    """
+    lower = entry.lower()
+    is_meta = any(map(lower.endswith, ('.egg-info', '.dist-info')))
+    return (
+        distributions_from_metadata
+        if is_meta else
+        find_distributions
+        if not only and _is_egg_path(entry) else
+        resolve_egg_link
+        if not only and lower.endswith('.egg-link') else
+        NoDists()
+    )
+
+
+class NoDists:
+    """
+    >>> bool(NoDists())
+    False
+
+    >>> list(NoDists()('anything'))
+    []
+    """
+    def __bool__(self):
+        return False
+    if six.PY2:
+        __nonzero__ = __bool__
+
+    def __call__(self, fullpath):
+        return iter(())
+
+
+def safe_listdir(path):
+    """
+    Attempt to list contents of path, but suppress some exceptions.
+    """
+    try:
+        return os.listdir(path)
+    except (PermissionError, NotADirectoryError):
+        pass
+    except OSError as e:
+        # Ignore the directory if does not exist, not a directory or
+        # permission denied
+        ignorable = (
+            e.errno in (errno.ENOTDIR, errno.EACCES, errno.ENOENT)
+            # Python 2 on Windows needs to be handled this way :(
+            or getattr(e, "winerror", None) == 267
+        )
+        if not ignorable:
             raise
-        # scan for .egg and .egg-info in directory
-        path_item_entries = _by_version_descending(entries)
-        for entry in path_item_entries:
-            lower = entry.lower()
-            if lower.endswith('.egg-info') or lower.endswith('.dist-info'):
-                fullpath = os.path.join(path_item, entry)
-                if os.path.isdir(fullpath):
-                    # egg-info directory, allow getting metadata
-                    if len(os.listdir(fullpath)) == 0:
-                        # Empty egg directory, skip.
-                        continue
-                    metadata = PathMetadata(path_item, fullpath)
-                else:
-                    metadata = FileMetadata(fullpath)
-                yield Distribution.from_location(
-                    path_item, entry, metadata, precedence=DEVELOP_DIST
-                )
-            elif not only and _is_egg_path(entry):
-                dists = find_distributions(os.path.join(path_item, entry))
-                for dist in dists:
-                    yield dist
-            elif not only and lower.endswith('.egg-link'):
-                with open(os.path.join(path_item, entry)) as entry_file:
-                    entry_lines = entry_file.readlines()
-                for line in entry_lines:
-                    if not line.strip():
-                        continue
-                    path = os.path.join(path_item, line.rstrip())
-                    dists = find_distributions(path)
-                    for item in dists:
-                        yield item
-                    break
+    return ()
+
+
+def distributions_from_metadata(path):
+    root = os.path.dirname(path)
+    if os.path.isdir(path):
+        if len(os.listdir(path)) == 0:
+            # empty metadata dir; skip
+            return
+        metadata = PathMetadata(root, path)
+    else:
+        metadata = FileMetadata(path)
+    entry = os.path.basename(path)
+    yield Distribution.from_location(
+        root, entry, metadata, precedence=DEVELOP_DIST,
+    )
+
+
+def non_empty_lines(path):
+    """
+    Yield non-empty lines from file at path
+    """
+    with open(path) as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                yield line
+
+
+def resolve_egg_link(path):
+    """
+    Given a path to an .egg-link, resolve distributions
+    present in the referenced path.
+    """
+    referenced_paths = non_empty_lines(path)
+    resolved_paths = (
+        os.path.join(os.path.dirname(path), ref)
+        for ref in referenced_paths
+    )
+    dist_groups = map(find_distributions, resolved_paths)
+    return next(dist_groups, ())
 
 
 register_finder(pkgutil.ImpImporter, find_on_path)
@@ -2250,9 +2320,7 @@ def _is_egg_path(path):
     """
     Determine if given path appears to be an egg.
     """
-    return (
-        path.lower().endswith('.egg')
-    )
+    return path.lower().endswith('.egg')
 
 
 def _is_unpacked_egg(path):

@@ -18,5 +18,5 @@ requests==2.18.4
     idna==2.6
     urllib3==1.22
     certifi==2017.7.27.1
-setuptools==36.4.0
+setuptools==36.6.0
 webencodings==0.5.1
