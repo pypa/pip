@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2012-2016 The Python Software Foundation.
+# Copyright (C) 2012-2017 The Python Software Foundation.
 # See LICENSE.txt and CONTRIBUTORS.txt.
 #
 """

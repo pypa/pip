@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2012-2016 The Python Software Foundation.
+# Copyright (C) 2012-2017 The Python Software Foundation.
 # See LICENSE.txt and CONTRIBUTORS.txt.
 #
 """PEP 376 implementation."""
@@ -265,18 +265,23 @@ class DistributionPath(object):
                                       (name, version))
 
         for dist in self.get_distributions():
-            provided = dist.provides
+            # We hit a problem on Travis where enum34 was installed and doesn't
+            # have a provides attribute ...
+            if not hasattr(dist, 'provides'):
+                logger.debug('No "provides": %s', dist)
+            else:
+                provided = dist.provides
 
-            for p in provided:
-                p_name, p_ver = parse_name_and_version(p)
-                if matcher is None:
-                    if p_name == name:
-                        yield dist
-                        break
-                else:
-                    if p_name == name and matcher.match(p_ver):
-                        yield dist
-                        break
+                for p in provided:
+                    p_name, p_ver = parse_name_and_version(p)
+                    if matcher is None:
+                        if p_name == name:
+                            yield dist
+                            break
+                    else:
+                        if p_name == name and matcher.match(p_ver):
+                            yield dist
+                            break
 
     def get_file_path(self, name, relative_path):
         """
@@ -1025,20 +1030,21 @@ class EggInfoDistribution(BaseInstalledDistribution):
         :returns: iterator of paths
         """
         record_path = os.path.join(self.path, 'installed-files.txt')
-        skip = True
-        with codecs.open(record_path, 'r', encoding='utf-8') as f:
-            for line in f:
-                line = line.strip()
-                if line == './':
-                    skip = False
-                    continue
-                if not skip:
-                    p = os.path.normpath(os.path.join(self.path, line))
-                    if p.startswith(self.path):
-                        if absolute:
-                            yield p
-                        else:
-                            yield line
+        if os.path.exists(record_path):
+            skip = True
+            with codecs.open(record_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if line == './':
+                        skip = False
+                        continue
+                    if not skip:
+                        p = os.path.normpath(os.path.join(self.path, line))
+                        if p.startswith(self.path):
+                            if absolute:
+                                yield p
+                            else:
+                                yield line
 
     def __eq__(self, other):
         return (isinstance(other, EggInfoDistribution) and
