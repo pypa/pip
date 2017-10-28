@@ -5,6 +5,8 @@ from collections import namedtuple
 
 from pip._vendor.packaging.utils import canonicalize_name
 
+from pip._internal.operations.prepare import make_abstract_dist
+
 from pip._internal.utils.misc import get_installed_distributions
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -64,3 +66,27 @@ def check_package_set(package_set):
             conflicting[package_name] = sorted(conflicting_deps)
 
     return missing, conflicting
+
+
+def check_install_conflicts(to_install):
+    """For checking if the dependency graph would be consistent after \
+    installing RequirementSet
+    """
+    # Start from the current state
+    state = create_package_set_from_installed()
+    _simulate_installation_of(to_install, state)
+    return state, check_package_set(state)
+
+
+# NOTE from @pradyunsg
+# This required a minor update in dependency link handling logic over at
+# operations.prepare.IsSDist.dist() to get it working
+def _simulate_installation_of(to_install, state):
+    # type: (RequirementSet, PackageSet) -> None
+    """Computes the version of packages after installing to_install.
+    """
+
+    # Modify it as installing requirement_set would (assuming no errors)
+    for inst_req in to_install:
+        dist = make_abstract_dist(inst_req).dist(finder=None)
+        state[dist.key] = PackageDetails(dist.version, dist.requires())

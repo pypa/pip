@@ -1280,3 +1280,47 @@ def test_installed_files_recorded_in_deterministic_order(script, data):
         p for p in Path(installed_files_path).read_text().split('\n') if p
     ]
     assert installed_files_lines == sorted(installed_files_lines)
+
+
+def test_install_conflict_results_in_warning(script, data):
+    pkgA_path = create_test_package_with_setup(
+        script,
+        name='pkgA', version='1.0', install_requires=['pkgb == 1.0'],
+    )
+    pkgB_path = create_test_package_with_setup(
+        script,
+        name='pkgB', version='2.0',
+    )
+
+    # Install pkgA without its dependency
+    result1 = script.pip('install', '--no-index', pkgA_path, '--no-deps')
+    assert "Successfully installed pkgA-1.0" in result1.stdout, str(result1)
+
+    # Then install an incorrect version of the dependency
+    result2 = script.pip(
+        'install', '--no-index', pkgB_path,
+        expect_stderr=True,
+    )
+    assert "pkga 1.0 has requirement pkgb==1.0" in result2.stderr, str(result2)
+    assert "Successfully installed pkgB-2.0" in result2.stdout, str(result2)
+
+
+def test_install_conflict_warning_can_be_suppressed(script, data):
+    pkgA_path = create_test_package_with_setup(
+        script,
+        name='pkgA', version='1.0', install_requires=['pkgb == 1.0'],
+    )
+    pkgB_path = create_test_package_with_setup(
+        script,
+        name='pkgB', version='2.0',
+    )
+
+    # Install pkgA without its dependency
+    result1 = script.pip('install', '--no-index', pkgA_path, '--no-deps')
+    assert "Successfully installed pkgA-1.0" in result1.stdout, str(result1)
+
+    # Then install an incorrect version of the dependency; suppressing warning
+    result2 = script.pip(
+        'install', '--no-index', pkgB_path, '--no-warn-conflicts'
+    )
+    assert "Successfully installed pkgB-2.0" in result2.stdout, str(result2)
