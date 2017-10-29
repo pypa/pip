@@ -113,6 +113,10 @@ class TestData(object):
         return self.root.join("reqfiles")
 
     @property
+    def complete_paths(self):
+        return self.root.join("completepaths")
+
+    @property
     def find_links(self):
         return path_to_url(self.packages)
 

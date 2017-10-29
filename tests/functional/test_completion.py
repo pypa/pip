@@ -77,7 +77,7 @@ def test_completion_alone(script):
            'completion alone failed -- ' + result.stderr
 
 
-def setup_completion(script, words, cword):
+def setup_completion(script, words, cword, cwd=None):
     script.environ = os.environ.copy()
     script.environ['PIP_AUTO_COMPLETE'] = '1'
     script.environ['COMP_WORDS'] = words
@@ -87,6 +87,7 @@ def setup_completion(script, words, cword):
     result = script.run(
         'python', '-c', 'import pip._internal;pip._internal.autocomplete()',
         expect_error=True,
+        cwd=cwd,
     )
 
     return result, script
@@ -113,7 +114,7 @@ def test_completion_for_default_parameters(script):
 
 def test_completion_option_for_command(script):
     """
-    Test getting completion for ``--`` in command (eg. pip search --)
+    Test getting completion for ``--`` in command (e.g. ``pip search --``)
     """
 
     res, env = setup_completion(script, 'pip search --', '2')
@@ -142,6 +143,89 @@ def test_completion_short_option_for_command(script):
 
     assert '-h' in res.stdout.split(),\
            "autocomplete function could not complete short options after ``-``"
+
+
+def test_completion_files_after_option(script, data):
+    """
+    Test getting completion for <file> or <dir> after options in command
+    (e.g. ``pip install -r``)
+    """
+    res, env = setup_completion(
+        script, ('pip install -r r'),
+        '3',
+        data.complete_paths
+    )
+    assert 'requirements.txt' in res.stdout,\
+        "autocomplete function could not complete <file>"\
+        "after options in command"
+    assert 'README.txt' not in res.stdout,\
+        "autocomplete function completed <file> that"\
+        "should not be completed"
+    assert 'resources' in res.stdout,\
+        "autocomplete function could not complete <dir>"\
+        "after options in command"
+
+
+def test_completion_not_files_after_option(script, data):
+    """
+    Test not getting completion files after options which not applicable
+    (e.g. ``pip install``)
+    """
+    res, env = setup_completion(
+        script, ('pip install r'),
+        '2',
+        data.complete_paths
+    )
+    assert 'requirements.txt' not in res.stdout,\
+        "autocomplete function completed <file> when"\
+        "it should not complete"
+
+
+def test_completion_directories_after_option(script, data):
+    """
+    Test getting completion <dir> after options in command
+    (e.g. ``pip --cache-dir``)
+    """
+    res, env = setup_completion(
+        script,
+        ('pip --cache-dir resources'),
+        '2',
+        data.complete_paths
+    )
+    assert os.path.join('resources', '') in res.stdout,\
+        "autocomplete function could not complete <dir> after options"
+
+
+def test_completion_subdirectories_after_option(script, data):
+    """
+    Test getting completion <dir> after options in command
+    given path of a directory
+    """
+    res, env = setup_completion(
+        script,
+        ('pip --cache-dir ' + os.path.join('resources', '')),
+        '2',
+        data.complete_paths
+    )
+    assert os.path.join('resources',
+                        os.path.join('images', '')) in res.stdout,\
+        "autocomplete function could not complete <dir>"\
+        "given path of a directory after options"
+
+
+def test_completion_path_after_option(script, data):
+    """
+    Test getting completion <path> after options in command
+    given absolute path
+    """
+    res, env = setup_completion(
+        script,
+        ('pip install -e ' + os.path.join(data.complete_paths, 'R')),
+        '3'
+    )
+    assert os.path.join(data.complete_paths, 'README.txt') in res.stdout,\
+        "autocomplete function could not complete <path>"\
+        "after options in command given absolute path"
 
 
 @pytest.mark.parametrize('flag', ['--bash', '--zsh', '--fish'])
