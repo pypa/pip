@@ -595,70 +595,26 @@ class TestCheckRequiresPython(object):
         else:
             check_dist_requires_python(fake_dist)
 
-
-@pytest.mark.parametrize(
-    "installed_requires",
-    [
-        (),
-        ("dummy",),
-    ],
-)
-def test_confirm_dependencies(installed_requires):
+@patch('pip._internal.utils.misc.ask')
+@patch('pip._internal.utils.misc.get_installed_distributions')
+def test_confirm_dependencies(mock_gid, mock_ask):
     from pip._internal.utils.misc import confirm_dependencies
-    patch_target = 'pip._internal.utils.misc.get_installed_distributions'
-    with patch(patch_target) as mock_gid:
+    class installed:
+        def __init__(self, key, requires):
+            self.key = key
+            self._requires = requires
+        def requires(self):
+            return self._requires
+    class installed_require:
+        def __init__(self, name):
+                self.name = name
+    installed_packages = [installed('dependant', [InstallRequirement(Requirement("dummy"), None)])]
+    mock_gid.return_value = installed_packages
+    mock_ask.return_value = 'y'
 
-        class req(Requirement):
-            def __init__(self, key):
-                self.key = key
-
-        class installed(object):
-
-            def __init__(self, requires):
-                self._requires = [req(r) for r in requires]
-
-            def requires(self):
-                return self._requires
-
-        requirement = InstallRequirement(Requirement("dummy"), None)
-        installed_packages = [installed(installed_requires)]
-        mock_gid.return_value = installed_packages
-        assert confirm_dependencies(requirement)
-
-
-def test_sort_reqs():
-    from pip._internal.utils.misc import sorted_reqs
-    patch_target = 'pip._internal.utils.misc.get_installed_distributions'
-    with patch(patch_target) as mock_gid:
-
-        class req(Requirement):
-            def __init__(self, key):
-                self.key = key
-
-        class installed(object):
-
-            def __init__(self, key, requires):
-                self.key = key
-                self._requires = [req(r) for r in requires]
-
-            def requires(self):
-                return self._requires
-
-        uninstall_requirements = {
-            "d": InstallRequirement(Requirement("d"), None),
-            "c": InstallRequirement(Requirement("c"), None),
-            "b": InstallRequirement(Requirement("b"), None),
-            "a": InstallRequirement(Requirement("a"), None),
-        }
-        installed_packages = [
-            installed("a", ["b"]),
-            installed("b", ["c"]),
-            installed("c", []),
-            installed("d", ["a", "b", "c"]),
-        ]
-        mock_gid.return_value = installed_packages
-        result = sorted_reqs(uninstall_requirements)
-        assert [r.name for r in result] == ["d", "a", "b", "c"]
+    reqs_to_uninstall = ["dummy"]
+    result = confirm_dependencies(reqs_to_uninstall)
+    assert result
 
 
 class TestGetProg(object):

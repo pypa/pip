@@ -880,37 +880,19 @@ def enum(*sequential, **named):
     return type('Enum', (), enums)
 
 
-def confirm_dependencies(req):
-    installed_distributions = pkg_resources.WorkingSet()
-    dep_keys = set()
-    for dist in installed_distributions:
-        dep_keys.update(
-            [dist for d in dist.requires() if d.key == req.req.name])
-    if not dep_keys:
+def confirm_dependencies(reqs_to_uninstall):
+    depends = list(get_depends(reqs_to_uninstall))
+    if not depends:
         return True
-    logger.info(("The following packages depend on %s "
-                 "and may break if it is uninstalled:") % req.req)
-    for dep in dep_keys:
-        logger.info(dep)
-    response = ask('Proceed (y/n)? ', ('y', 'n'))
-    return response == 'y'
+    
+    return ask("depends %s  uninstall? (y/n)" % depends, options=('y', 'n')) == 'y'
 
-
-def sorted_reqs(reqs):
-    installed_distributions = [
-        (canonicalize_name(d.key), [r.key for r in d.requires()])
-        for d in get_installed_distributions()
-        if canonicalize_name(d.key) in reqs
-    ]
-    sorted_reqs = []
-    while installed_distributions:
-        for d, deps in installed_distributions:
-            depset = set()
-            for i in installed_distributions:
-                depset = depset.union(set(i[1]))
-            if d not in depset:
-                sorted_reqs.append(reqs[d])
-                installed_distributions.remove((d, deps))
-
-    return [d for d in reqs.values()
-            if d not in sorted_reqs] + sorted_reqs
+def get_depends(reqs_to_uninstall):
+    dist_deps = {d.key: [r.name for r in d.requires()] for d in get_installed_distributions()}
+    logger.debug('dist_deps %s', dist_deps)
+    dependants = {req: [d for d, r in dist_deps.items() if req in r] for req in reqs_to_uninstall}
+    logger.debug('dependants %s', dependants)
+    for d, deps in dependants.items():
+        deps = [r for r in deps if r not in reqs_to_uninstall]
+        if deps:
+            yield d, deps

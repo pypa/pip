@@ -5,7 +5,7 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._internal.basecommand import Command
 from pip._internal.exceptions import InstallationError
 from pip._internal.req import InstallRequirement, parse_requirements
-from pip._internal.utils.misc import confirm_dependencies, sorted_reqs
+from pip._internal.utils.misc import confirm_dependencies
 
 
 class UninstallCommand(Command):
@@ -64,9 +64,10 @@ class UninstallCommand(Command):
                     'You must give at least one requirement to %(name)s (see '
                     '"pip help %(name)s")' % dict(name=self.name)
                 )
-            for req in sorted_reqs(reqs_to_uninstall):
-                if not (options.yes or confirm_dependencies(req)):
-                    continue
+
+            if not confirm_dependencies(reqs_to_uninstall):
+                return
+            for req in reqs_to_uninstall.values():
                 req.uninstall(
                     auto_confirm=options.yes, verbose=options.verbose != 0
                 )
