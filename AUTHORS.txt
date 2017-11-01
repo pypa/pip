@@ -58,6 +58,7 @@ Cody <Purring@users.noreply.github.com>
 Cody Soyland <codysoyland@gmail.com>
 Colin Watson <cjwatson@debian.org>
 Connor Osborn <cdosborn@email.arizona.edu>
+Cooper Lees <me@cooperlees.com>
 Cory Benfield <lukasaoz@gmail.com>
 Cory Wright <corywright@gmail.com>
 Craig Kerstiens <craig.kerstiens@gmail.com>

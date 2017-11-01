@@ -1,0 +1,2 @@
+Stop a key part of wheel.py swallowing useful debug exception information
+during a wheel build
