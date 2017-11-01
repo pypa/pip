@@ -595,20 +595,28 @@ class TestCheckRequiresPython(object):
         else:
             check_dist_requires_python(fake_dist)
 
+
 @patch('pip._internal.utils.misc.ask')
 @patch('pip._internal.utils.misc.get_installed_distributions')
 def test_confirm_dependencies(mock_gid, mock_ask):
     from pip._internal.utils.misc import confirm_dependencies
+
     class installed:
         def __init__(self, key, requires):
             self.key = key
             self._requires = requires
+
         def requires(self):
             return self._requires
+
     class installed_require:
         def __init__(self, name):
                 self.name = name
-    installed_packages = [installed('dependant', [InstallRequirement(Requirement("dummy"), None)])]
+
+    installed_packages = [
+        installed('dependant',
+                  [InstallRequirement(Requirement("dummy"), None)]),
+    ]
     mock_gid.return_value = installed_packages
     mock_ask.return_value = 'y'
 

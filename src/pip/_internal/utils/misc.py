@@ -884,13 +884,17 @@ def confirm_dependencies(reqs_to_uninstall):
     depends = list(get_depends(reqs_to_uninstall))
     if not depends:
         return True
-    
-    return ask("depends %s  uninstall? (y/n)" % depends, options=('y', 'n')) == 'y'
+
+    msg = "depends %s  uninstall? (y/n)" % depends
+    return ask(msg, options=('y', 'n')) == 'y'
+
 
 def get_depends(reqs_to_uninstall):
-    dist_deps = {d.key: [r.name for r in d.requires()] for d in get_installed_distributions()}
+    dist_deps = {d.key: [r.name for r in d.requires()]
+                 for d in get_installed_distributions()}
     logger.debug('dist_deps %s', dist_deps)
-    dependants = {req: [d for d, r in dist_deps.items() if req in r] for req in reqs_to_uninstall}
+    dependants = {req: [d for d, r in dist_deps.items() if req in r]
+                  for req in reqs_to_uninstall}
     logger.debug('dependants %s', dependants)
     for d, deps in dependants.items():
         deps = [r for r in deps if r not in reqs_to_uninstall]
