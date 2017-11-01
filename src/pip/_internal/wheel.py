@@ -733,10 +733,12 @@ class WheelBuilder(object):
                     shutil.move(
                         os.path.join(temp_dir.path, wheel_name), wheel_path
                     )
+                except BaseException as exc:
+                    logger.critical('Failed to build: %s', exc)
+                    logger.debug('Exception information:', exc_info=True)
+                else:
                     logger.info('Stored in directory: %s', output_dir)
                     return wheel_path
-                except:
-                    pass
             # Ignore return, we can't do anything else useful.
             self._clean_one(req)
             return None
