@@ -1,0 +1,5 @@
+Fix for an incorrect ``freeze`` warning message due to a package being
+included in multiple requirements files that were passed to ``freeze``.
+Instead of warning incorrectly that the package is not installed, pip
+now warns that the package was declared multiple times and lists the
+name of each requirements file that contains the package in question.
