@@ -48,6 +48,7 @@ from pip._internal.vcs import vcs
 
 try:
     import ssl  # noqa
+
     HAS_TLS = True
 except ImportError:
     HAS_TLS = False
@@ -57,7 +58,6 @@ __all__ = ['get_file_content',
            'is_archive_file', 'unpack_vcs_link',
            'unpack_file_url', 'is_vcs_url', 'is_file_url',
            'unpack_http_url', 'unpack_url']
-
 
 logger = logging.getLogger(__name__)
 
@@ -132,7 +132,6 @@ def user_agent():
 
 
 class MultiDomainBasicAuth(AuthBase):
-
     def __init__(self, prompting=True):
         self.prompting = prompting
         self.passwords = {}
@@ -197,12 +196,21 @@ class MultiDomainBasicAuth(AuthBase):
 
         # Add our new username and password to the request
         req = HTTPBasicAuth(username or "", password or "")(resp.request)
+        req.register_hook("response", self.handle_401_again)
 
         # Send our new request
         new_resp = resp.connection.send(req, **kwargs)
         new_resp.history.append(resp)
 
         return new_resp
+
+    def handle_401_again(self, resp, **kwargs):
+        if resp.status_code != 401:
+            return resp
+
+        logger.warning('401 Error, Credentials not correct for %s',
+                       resp.request.url)
+        return resp
 
     def parse_credentials(self, netloc):
         if "@" in netloc:
@@ -215,7 +223,6 @@ class MultiDomainBasicAuth(AuthBase):
 
 
 class LocalFSAdapter(BaseAdapter):
-
     def send(self, request, stream=None, timeout=None, verify=None, cert=None,
              proxies=None):
         pathname = url_to_path(request.url)
@@ -314,14 +321,12 @@ class SafeFileCache(FileCache):
 
 
 class InsecureHTTPAdapter(HTTPAdapter):
-
     def cert_verify(self, conn, url, verify, cert):
         conn.cert_reqs = 'CERT_NONE'
         conn.ca_certs = None
 
 
 class PipSession(requests.Session):
-
     timeout = None
 
     def __init__(self, *args, **kwargs):
