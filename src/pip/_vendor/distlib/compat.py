@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2013-2016 Vinay Sajip.
+# Copyright (C) 2013-2017 Vinay Sajip.
 # Licensed to the Python Software Foundation under a contributor agreement.
 # See LICENSE.txt and CONTRIBUTORS.txt.
 #
@@ -12,7 +12,7 @@ import sys
 
 try:
     import ssl
-except ImportError:
+except ImportError:  # pragma: no cover
     ssl = None
 
 if sys.version_info[0] < 3:  # pragma: no cover
@@ -272,7 +272,7 @@ from zipfile import ZipFile as BaseZipFile
 
 if hasattr(BaseZipFile, '__enter__'):  # pragma: no cover
     ZipFile = BaseZipFile
-else:
+else:  # pragma: no cover
     from zipfile import ZipExtFile as BaseZipExtFile
 
     class ZipExtFile(BaseZipExtFile):
@@ -329,7 +329,13 @@ try:
     fsencode = os.fsencode
     fsdecode = os.fsdecode
 except AttributeError:  # pragma: no cover
-    _fsencoding = sys.getfilesystemencoding()
+    # Issue #99: on some systems (e.g. containerised),
+    # sys.getfilesystemencoding() returns None, and we need a real value,
+    # so fall back to utf-8. From the CPython 2.7 docs relating to Unix and
+    # sys.getfilesystemencoding(): the return value is "the user’s preference
+    # according to the result of nl_langinfo(CODESET), or None if the
+    # nl_langinfo(CODESET) failed."
+    _fsencoding = sys.getfilesystemencoding() or 'utf-8'
     if _fsencoding == 'mbcs':
         _fserrors = 'strict'
     else:
