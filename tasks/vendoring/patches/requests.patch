@@ -1,3 +1,17 @@
+diff --git a/src/pip/_vendor/requests/packages.py b/src/pip/_vendor/requests/packages.py
+index 7232fe0f..6336a07d 100644
+--- a/src/pip/_vendor/requests/packages.py
++++ b/src/pip/_vendor/requests/packages.py
+@@ -4,7 +4,7 @@ import sys
+ # I don't like it either. Just look the other way. :)
+
+ for package in ('urllib3', 'idna', 'chardet'):
+-    locals()[package] = __import__(package)
++    locals()[package] = __import__("pip._vendor." + package)
+     # This traversal is apparently necessary such that the identities are
+     # preserved (requests.packages.urllib3.* is urllib3.*)
+     for mod in list(sys.modules):
+
 diff --git a/pip/_vendor/requests/__init__.py b/pip/_vendor/requests/__init__.py
 index 9c3b769..36a4ef40 100644
 --- a/src/pip/_vendor/requests/__init__.py
@@ -11,7 +25,7 @@ index 9c3b769..36a4ef40 100644
 -    pyopenssl.inject_into_urllib3()
 -except ImportError:
 -    pass
-+from pip.compat import WINDOWS
++from pip._internal.compat import WINDOWS
 +if not WINDOWS:
 +    try:
 +        from pip._vendor.urllib3.contrib import pyopenssl

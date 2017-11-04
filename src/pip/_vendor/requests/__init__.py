@@ -80,7 +80,7 @@ except (AssertionError, ValueError):
                   RequestsDependencyWarning)
 
 # Attempt to enable urllib3's SNI support, if possible
-from pip.compat import WINDOWS
+from pip._internal.compat import WINDOWS
 if not WINDOWS:
     try:
         from pip._vendor.urllib3.contrib import pyopenssl
