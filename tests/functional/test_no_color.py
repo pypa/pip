@@ -26,18 +26,7 @@ def test_no_color(script):
              stdout=sp.PIPE, stderr=sp.PIPE).communicate()
 
     with open("/tmp/colored-output.txt", "r") as result:
-
-        red_lines = 0
-        reset_lines = 0
-
-        for line in result.readlines():
-            if line.startswith("\x1b[31m"):
-                red_lines += 1
-            if line.endswith("\x1b[0m\n"):
-                reset_lines += 1
-
-        assert red_lines >= 1
-        assert reset_lines >= 1
+        assert "\x1b[31m" in result.read()
 
     os.unlink("/tmp/colored-output.txt")
 
@@ -47,15 +36,6 @@ def test_no_color(script):
              stdout=sp.PIPE, stderr=sp.PIPE).communicate()
 
     with open("/tmp/no-color-output.txt", "r") as result:
-        red_lines = 0
-        reset_lines = 0
-        for line in result.readlines():
-            if line.startswith("\x1b[31m"):
-                red_lines += 1
-            if line.endswith("\x1b[0m\n"):
-                reset_lines += 1
+        assert "\x1b[31m" not in result.read()
 
     os.unlink("/tmp/no-color-output.txt")
-
-    assert red_lines == 0
-    assert reset_lines == 0
