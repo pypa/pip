@@ -6,7 +6,10 @@ from doctest import ELLIPSIS, OutputChecker
 
 import pytest
 
-from tests.lib import _create_test_package, _create_test_package_with_srcdir
+from tests.lib import (
+    _create_test_package, _create_test_package_with_srcdir, need_bzr,
+    need_mercurial
+)
 
 distribute_re = re.compile('^distribute==[0-9.]+\n', re.MULTILINE)
 
@@ -319,7 +322,7 @@ def test_freeze_git_remote(script, tmpdir):
     _check_output(result.stdout, expected)
 
 
-@pytest.mark.mercurial
+@need_mercurial
 def test_freeze_mercurial_clone(script, tmpdir):
     """
     Test freezing a Mercurial clone.
@@ -361,7 +364,7 @@ def test_freeze_mercurial_clone(script, tmpdir):
     _check_output(result.stdout, expected)
 
 
-@pytest.mark.bzr
+@need_bzr
 def test_freeze_bazaar_clone(script, tmpdir):
     """
     Test freezing a Bazaar clone.
@@ -478,7 +481,7 @@ def test_freeze_with_requirement_option_multiple(script):
         simple2==1.0
     """)
     expected += "## The following requirements were added by pip freeze:"
-    expected += os.linesep + textwrap.dedent("""\
+    expected += '\n' + textwrap.dedent("""\
         ...meta==1.0...
     """)
     _check_output(result.stdout, expected)
@@ -493,6 +496,78 @@ def test_freeze_with_requirement_option_multiple(script):
     # any options like '--index-url http://ignore' should only be emitted once
     # even if they are listed in multiple requirements files
     assert result.stdout.count("--index-url http://ignore") == 1
+
+
+def test_freeze_with_requirement_option_package_repeated_one_file(script):
+    """
+    Test freezing with single requirements file that contains a package
+    multiple times
+    """
+    script.scratch_path.join('hint1.txt').write(textwrap.dedent("""\
+        simple2
+        simple2
+        NoExist
+    """) + _freeze_req_opts)
+    result = script.pip_install_local('simple2==1.0')
+    result = script.pip_install_local('meta')
+    result = script.pip(
+        'freeze', '--requirement', 'hint1.txt',
+        expect_stderr=True,
+    )
+    expected_out = textwrap.dedent("""\
+        simple2==1.0
+    """)
+    expected_out += _freeze_req_opts
+    expected_out += "## The following requirements were added by pip freeze:"
+    expected_out += '\n' + textwrap.dedent("""\
+        ...meta==1.0...
+    """)
+    _check_output(result.stdout, expected_out)
+    err1 = ("Requirement file [hint1.txt] contains NoExist, "
+            "but that package is not installed\n")
+    err2 = "Requirement simple2 included multiple times [hint1.txt]\n"
+    assert err1 in result.stderr
+    assert err2 in result.stderr
+    # there shouldn't be any other 'is not installed' warnings
+    assert result.stderr.count('is not installed') == 1
+
+
+def test_freeze_with_requirement_option_package_repeated_multi_file(script):
+    """
+    Test freezing with multiple requirements file that contain a package
+    """
+    script.scratch_path.join('hint1.txt').write(textwrap.dedent("""\
+        simple
+    """) + _freeze_req_opts)
+    script.scratch_path.join('hint2.txt').write(textwrap.dedent("""\
+        simple
+        NoExist
+    """) + _freeze_req_opts)
+    result = script.pip_install_local('simple==1.0')
+    result = script.pip_install_local('meta')
+    result = script.pip(
+        'freeze', '--requirement', 'hint1.txt',
+        '--requirement', 'hint2.txt',
+        expect_stderr=True,
+    )
+    expected_out = textwrap.dedent("""\
+        simple==1.0
+    """)
+    expected_out += _freeze_req_opts
+    expected_out += "## The following requirements were added by pip freeze:"
+    expected_out += '\n' + textwrap.dedent("""\
+        ...meta==1.0...
+    """)
+    _check_output(result.stdout, expected_out)
+
+    err1 = ("Requirement file [hint2.txt] contains NoExist, but that "
+            "package is not installed\n")
+    err2 = ("Requirement simple included multiple times "
+            "[hint1.txt, hint2.txt]\n")
+    assert err1 in result.stderr
+    assert err2 in result.stderr
+    # there shouldn't be any other 'is not installed' warnings
+    assert result.stderr.count('is not installed') == 1
 
 
 @pytest.mark.network

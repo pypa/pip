@@ -5,7 +5,7 @@ import subprocess
 
 from pip._vendor.six.moves.urllib import request as urllib_request
 
-from pip.vcs import bazaar, git, mercurial, subversion
+from pip._internal.vcs import bazaar, git, mercurial, subversion
 from tests.lib import path_to_url
 
 if hasattr(subprocess, "check_call"):

@@ -8,8 +8,8 @@ import pretend
 import pytest
 from pip._vendor import lockfile
 
-from pip.index import InstallationCandidate
-from pip.utils import outdated
+from pip._internal.index import InstallationCandidate
+from pip._internal.utils import outdated
 
 
 class MockPackageFinder(object):
@@ -139,7 +139,7 @@ def test_virtualenv_state(monkeypatch):
     assert len(fake_file.write.calls)
 
 
-def test_global_state(monkeypatch):
+def test_global_state(monkeypatch, tmpdir):
     CONTENT = '''{"pip_prefix": {"last_check": "1970-01-02T11:00:00Z",
         "pypi_version": "1.0"}}'''
     fake_file = pretend.stub(
@@ -167,15 +167,16 @@ def test_global_state(monkeypatch):
     monkeypatch.setattr(outdated, 'running_under_virtualenv',
                         pretend.call_recorder(lambda: False))
 
-    monkeypatch.setattr(outdated, 'USER_CACHE_DIR', 'cache_dir')
-    monkeypatch.setattr(sys, 'prefix', 'pip_prefix')
+    cache_dir = tmpdir / 'cache_dir'
+    monkeypatch.setattr(outdated, 'USER_CACHE_DIR', cache_dir)
+    monkeypatch.setattr(sys, 'prefix', tmpdir / 'pip_prefix')
 
     state = outdated.load_selfcheck_statefile()
     state.save('2.0', datetime.datetime.utcnow())
 
     assert len(outdated.running_under_virtualenv.calls) == 1
 
-    expected_path = os.path.join('cache_dir', 'selfcheck.json')
+    expected_path = cache_dir / 'selfcheck.json'
     assert fake_lock.calls == [pretend.call(expected_path)]
 
     assert fake_open.calls == [

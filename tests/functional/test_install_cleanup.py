@@ -3,8 +3,9 @@ from os.path import exists
 
 import pytest
 
-from pip.locations import write_delete_marker_file
-from pip.status_codes import PREVIOUS_BUILD_DIR_ERROR
+from pip._internal.locations import write_delete_marker_file
+from pip._internal.status_codes import PREVIOUS_BUILD_DIR_ERROR
+from tests.lib import need_mercurial
 from tests.lib.local_repos import local_checkout
 
 
@@ -36,6 +37,7 @@ def test_no_clean_option_blocks_cleaning_after_install(script, data):
 
 
 @pytest.mark.network
+@need_mercurial
 def test_cleanup_after_install_editable_from_hg(script, tmpdir):
     """
     Test clean up after cloning from Mercurial.

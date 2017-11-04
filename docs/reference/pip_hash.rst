@@ -3,8 +3,6 @@
 pip hash
 ------------
 
-.. contents::
-
 Usage
 *****
 

@@ -1,8 +1,6 @@
 pip
 ---
 
-.. contents::
-
 Usage
 *****
 

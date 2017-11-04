@@ -1,13 +1,13 @@
 import io
 import os
 import shutil
+import subprocess
 import sys
 
 import pytest
 import six
 
-import pip
-from pip.utils import appdirs
+import pip._internal
 from tests.lib import SRC_DIR, TestData
 from tests.lib.path import Path
 from tests.lib.scripttest import PipTestEnvironment
@@ -77,8 +77,6 @@ def isolate(tmpdir):
     We use an autouse function scoped fixture because we want to ensure that
     every test has it's own isolated home directory.
     """
-    # TODO: Ensure Windows will respect $HOME, including for the cache
-    #       directory
 
     # TODO: Figure out how to isolate from *system* level configuration files
     #       as well as user level configuration files.
@@ -91,21 +89,36 @@ def isolate(tmpdir):
     fake_root = os.path.join(str(tmpdir), "fake-root")
     os.makedirs(fake_root)
 
-    # Set our home directory to our temporary directory, this should force all
-    # of our relative configuration files to be read from here instead of the
-    # user's actual $HOME directory.
-    os.environ["HOME"] = home_dir
-
-    # Isolate ourselves from XDG directories
-    os.environ["XDG_DATA_HOME"] = os.path.join(home_dir, ".local", "share")
-    os.environ["XDG_CONFIG_HOME"] = os.path.join(home_dir, ".config")
-    os.environ["XDG_CACHE_HOME"] = os.path.join(home_dir, ".cache")
-    os.environ["XDG_RUNTIME_DIR"] = os.path.join(home_dir, ".runtime")
-    os.environ["XDG_DATA_DIRS"] = ":".join([
-        os.path.join(fake_root, "usr", "local", "share"),
-        os.path.join(fake_root, "usr", "share"),
-    ])
-    os.environ["XDG_CONFIG_DIRS"] = os.path.join(fake_root, "etc", "xdg")
+    if sys.platform == 'win32':
+        # Note: this will only take effect in subprocesses...
+        home_drive, home_path = os.path.splitdrive(home_dir)
+        os.environ.update({
+            'USERPROFILE': home_dir,
+            'HOMEDRIVE': home_drive,
+            'HOMEPATH': home_path,
+        })
+        for env_var, sub_path in (
+            ('APPDATA', 'AppData/Roaming'),
+            ('LOCALAPPDATA', 'AppData/Local'),
+        ):
+            path = os.path.join(home_dir, *sub_path.split('/'))
+            os.environ[env_var] = path
+            os.makedirs(path)
+    else:
+        # Set our home directory to our temporary directory, this should force
+        # all of our relative configuration files to be read from here instead
+        # of the user's actual $HOME directory.
+        os.environ["HOME"] = home_dir
+        # Isolate ourselves from XDG directories
+        os.environ["XDG_DATA_HOME"] = os.path.join(home_dir, ".local", "share")
+        os.environ["XDG_CONFIG_HOME"] = os.path.join(home_dir, ".config")
+        os.environ["XDG_CACHE_HOME"] = os.path.join(home_dir, ".cache")
+        os.environ["XDG_RUNTIME_DIR"] = os.path.join(home_dir, ".runtime")
+        os.environ["XDG_DATA_DIRS"] = ":".join([
+            os.path.join(fake_root, "usr", "local", "share"),
+            os.path.join(fake_root, "usr", "share"),
+        ])
+        os.environ["XDG_CONFIG_DIRS"] = os.path.join(fake_root, "etc", "xdg")
 
     # Configure git, because without an author name/email git will complain
     # and cause test failures.
@@ -116,6 +129,7 @@ def isolate(tmpdir):
     # We want to disable the version check from running in the tests
     os.environ["PIP_DISABLE_PIP_VERSION_CHECK"] = "true"
 
+    # FIXME: Windows...
     os.makedirs(os.path.join(home_dir, ".config", "git"))
     with open(os.path.join(home_dir, ".config", "git", "config"), "wb") as fp:
         fp.write(
@@ -123,18 +137,9 @@ def isolate(tmpdir):
         )
 
 
-@pytest.fixture
-def virtualenv(tmpdir, monkeypatch, isolate):
-    """
-    Return a virtual environment which is unique to each test function
-    invocation created inside of a sub directory of the test function's
-    temporary directory. The returned object is a
-    ``tests.lib.venv.VirtualEnvironment`` object.
-    """
-    # Force shutil to use the older method of rmtree that didn't use the fd
-    # functions. These seem to fail on Travis (and only on Travis).
-    monkeypatch.setattr(shutil, "_use_fd_functions", False, raising=False)
-
+@pytest.yield_fixture(scope='session')
+def virtualenv_template(tmpdir_factory):
+    tmpdir = Path(str(tmpdir_factory.mktemp('virtualenv')))
     # Copy over our source tree so that each virtual environment is self
     # contained
     pip_src = tmpdir.join("pip_src").abspath
@@ -146,21 +151,42 @@ def virtualenv(tmpdir, monkeypatch, isolate):
             "tests", "pip.egg-info", "build", "dist", ".tox", ".git",
         ),
     )
-
     # Create the virtual environment
     venv = VirtualEnvironment.create(
-        tmpdir.join("workspace", "venv"),
+        tmpdir.join("venv_orig"),
         pip_source_dir=pip_src,
+        relocatable=True,
     )
+    if sys.platform == 'win32':
+        # Work around setuptools' easy_install.exe
+        # not working properly after relocation.
+        for exe in os.listdir(venv.bin):
+            if exe.startswith('easy_install'):
+                (venv.bin / exe).remove()
+        with open(venv.bin / 'easy_install.bat', 'w') as fp:
+            fp.write('python.exe -m easy_install %*\n')
 
-    # Clean out our cache: creating the venv injects wheels into it.
-    if os.path.exists(appdirs.user_cache_dir("pip")):
-        shutil.rmtree(appdirs.user_cache_dir("pip"))
+    # Rename original virtualenv directory to make sure
+    # it's not reused by mistake from one of the copies.
+    venv_template = tmpdir / "venv_template"
+    os.rename(venv.location, venv_template)
+    yield venv_template
+    tmpdir.rmtree(noerrors=True)
 
-    # Undo our monkeypatching of shutil
-    monkeypatch.undo()
 
-    return venv
+@pytest.yield_fixture
+def virtualenv(virtualenv_template, tmpdir, isolate):
+    """
+    Return a virtual environment which is unique to each test function
+    invocation created inside of a sub directory of the test function's
+    temporary directory. The returned object is a
+    ``tests.lib.venv.VirtualEnvironment`` object.
+    """
+    venv_location = tmpdir.join("workspace", "venv")
+    shutil.copytree(virtualenv_template, venv_location, symlinks=True)
+    venv = VirtualEnvironment(venv_location)
+    yield venv
+    venv_location.rmtree(noerrors=True)
 
 
 @pytest.fixture
@@ -191,6 +217,18 @@ def script(tmpdir, virtualenv):
     )
 
 
+@pytest.fixture(scope="session")
+def common_wheels(tmpdir_factory):
+    """Provide a directory with latest setuptools and wheel wheels"""
+    wheels_dir = tmpdir_factory.mktemp('common_wheels')
+    subprocess.check_call([
+        'pip', 'download', 'wheel', 'setuptools',
+        '-d', str(wheels_dir),
+    ])
+    yield wheels_dir
+    wheels_dir.remove(ignore_errors=True)
+
+
 @pytest.fixture
 def data(tmpdir):
     return TestData.copy(tmpdir.join("data"))
@@ -211,7 +249,7 @@ class InMemoryPip(object):
             stdout = io.BytesIO()
         sys.stdout = stdout
         try:
-            returncode = pip.main(list(args))
+            returncode = pip._internal.main(list(args))
         except SystemExit as e:
             returncode = e.code or 0
         finally:

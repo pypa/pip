@@ -2,7 +2,28 @@
 User Guide
 ==========
 
-.. contents::
+Running pip
+***********
+
+pip is a command line program. When you install pip, a ``pip`` command is added
+to your system, which can be run from the command prompt as follows::
+
+  $ pip <pip arguments>
+
+If you cannot run the ``pip`` command directly (possibly because the location
+where it was installed isn't on your operating system's ``PATH``) then you can
+run pip via the Python interpreter::
+
+  $ python -m pip <pip arguments>
+
+On Windows, the ``py`` launcher can be used::
+
+  $ py -m pip <pip arguments>
+
+Even though pip is available from your Python installation as an importable
+module, via ``import pip``, it is *not supported* to use pip in this way. For
+more details, see :ref:`Using pip from your program`.
+
 
 Installing Packages
 *******************
@@ -398,8 +419,8 @@ This is the same as passing the option to pip directly::
 
     pip --default-timeout=60 [...]
 
-To set options that can be set multiple times on the command line, just add
-spaces in between values. For example::
+For command line options which can be repeated, use a space to separate
+multiple values. For example::
 
     export PIP_FIND_LINKS="http://mirror1.example.com http://mirror2.example.com"
 
@@ -671,3 +692,71 @@ archives are built with identical packages.
     downloaded by setuptools directly, skipping pip's protections. If you need
     to use such a package, see :ref:`Controlling
     setup_requires<controlling-setup-requires>`.
+
+.. _`Using pip from your program`:
+
+Using pip from your program
+***************************
+
+As noted previously, pip is a command line program. While it is implemented in Python,
+and so is available from your Python code via ``import pip``, you must not use pip's
+internal APIs in this way. There are a number of reasons for this:
+
+#. The pip code assumes that is in sole control of the global state of the program.
+   Pip manages things like the logging system configuration, or the values of the
+   standard IO streams, without considering the possibility that user code might be
+   affected.
+
+#. Pip's code is *not* thread safe. If you were to run pip in a thread, there is no
+   guarantee that either your code or pip's would work as you expect.
+
+#. Pip assumes that once it has finished its work, the process will terminate. It
+   doesn't need to handle the possibility that other code will continue to run
+   after that point, so (for example) calling pip twice in the same process is
+   likely to have issues.
+
+This does not mean that the pip developers are opposed in principle to the idea that
+pip could be used as a library - it's just that this isn't how it was written, and it
+would be a lot of work to redesign the internals for use as a library, handling all
+of the above issues, and designing a usable, robust and stable API that we could
+guarantee would remain available across multiple releases of pip. And we simply don't
+currently have the resources to even consider such a task.
+
+What this means in practice is that everything inside of pip is considered an
+implementation detail. Even the fact that the import name is ``pip`` is subject to
+change without notice. While we do try not to break things as much as possible, all
+the internal APIs can change at any time, for any reason. It also means that we
+generally *won't* fix issues that are a result of using pip in an unsupported way.
+
+It should also be noted that modifying the contents of ``sys.path`` in a running Python
+process is something that should only be done with care. The import system caches
+certain data, and installing new packages while a program is running may not always
+behave as expected. In practice, there is rarely an issue, but it is something to be
+aware of.
+
+Having said all of the above, it is worth covering the options available if you
+decide that you do want to run pip from within your program. The most reliable
+approach, and the one that is fully supported, is to run pip in a subprocess. This
+is easily done using the standard ``subprocess`` module::
+
+  subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'my_package'])
+
+If you want to process the output further, use one of the other APIs in the module::
+
+  reqs = subprocess.check_output([sys.executable, '-m', 'pip', 'freeze'])
+
+If you don't want to use pip's command line functionality, but are rather
+trying to implement code that works with Python packages, their metadata, or
+PyPI, then you should consider other, supported, packages that offer this type
+of ability. Some examples that you could consider include:
+
+* ``packaging`` - Utilities to work with standard package metadata (versions,
+  requirements, etc.)
+
+* ``setuptools`` (specifically ``pkg_resources``) - Functions for querying what
+  packages the user has installed on their system.
+
+* ``wheel`` - Code for manipulating (creating, querying and installing) wheels.
+
+* ``distlib`` - Packaging and distribution utilities (including functions for
+  interacting with PyPI).
