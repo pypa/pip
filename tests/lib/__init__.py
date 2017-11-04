@@ -360,10 +360,15 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
         if sys.platform == 'win32':
             # Partial fix for ScriptTest.run using `shell=True` on Windows.
             args = [str(a).replace('^', '^^').replace('&', '^&') for a in args]
-        return TestPipResult(
-            super(PipTestEnvironment, self).run(cwd=cwd, *args, **kw),
-            verbose=self.verbose,
-        )
+
+        super_obj = super(PipTestEnvironment, self)
+        try:
+            result = super_obj.run(cwd=cwd, *args, **kw)
+        except Exception:
+            print(super_obj)
+            raise
+        else:
+            return TestPipResult(result, verbose=self.verbose)
 
     def pip(self, *args, **kwargs):
         # On old versions of Python, urllib3/requests will raise a warning
