@@ -284,10 +284,10 @@ class RequirementCommand(Command):
                     filename,
                     constraint=True, finder=finder, options=options,
                     session=session, wheel_cache=wheel_cache):
-                requirement_set.add_requirement(req)
+                requirement_set.scan_requirement(req)
 
         for req in args:
-            requirement_set.add_requirement(
+            requirement_set.scan_requirement(
                 InstallRequirement.from_line(
                     req, None, isolated=options.isolated_mode,
                     wheel_cache=wheel_cache
@@ -295,7 +295,7 @@ class RequirementCommand(Command):
             )
 
         for req in options.editables:
-            requirement_set.add_requirement(
+            requirement_set.scan_requirement(
                 InstallRequirement.from_editable(
                     req,
                     isolated=options.isolated_mode,
@@ -308,7 +308,7 @@ class RequirementCommand(Command):
                     filename,
                     finder=finder, options=options, session=session,
                     wheel_cache=wheel_cache):
-                requirement_set.add_requirement(req)
+                requirement_set.scan_requirement(req)
         # If --require-hashes was a line in a requirements file, tell
         # RequirementSet about it:
         requirement_set.require_hashes = options.require_hashes

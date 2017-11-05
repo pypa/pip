@@ -58,7 +58,7 @@ class TestRequirementSet(object):
         open(os.path.join(build_dir, "setup.py"), 'w')
         reqset = RequirementSet()
         req = InstallRequirement.from_line('simple')
-        reqset.add_requirement(req)
+        reqset.scan_requirement(req)
         finder = PackageFinder([data.find_links], [], session=PipSession())
         resolver = self._basic_resolver(finder)
         assert_raises_regexp(
@@ -77,7 +77,7 @@ class TestRequirementSet(object):
         reqset = RequirementSet()
         req = InstallRequirement.from_editable(
             data.packages.join("LocalEnvironMarker"))
-        reqset.add_requirement(req)
+        reqset.scan_requirement(req)
         finder = PackageFinder([data.find_links], [], session=PipSession())
         resolver = self._basic_resolver(finder)
         resolver.resolve(reqset)
@@ -95,21 +95,21 @@ class TestRequirementSet(object):
         reqset = RequirementSet()
         # No flags here. This tests that detection of later flags nonetheless
         # requires earlier packages to have hashes:
-        reqset.add_requirement(
+        reqset.scan_requirement(
             list(process_line('blessings==1.0', 'file', 1))[0])
         # This flag activates --require-hashes mode:
-        reqset.add_requirement(
+        reqset.scan_requirement(
             list(process_line('tracefront==0.1 --hash=sha256:somehash',
                               'file',
                               2))[0])
         # This hash should be accepted because it came from the reqs file, not
         # from the internet:
-        reqset.add_requirement(
+        reqset.scan_requirement(
             list(process_line('https://pypi.python.org/packages/source/m/more-'
                               'itertools/more-itertools-1.0.tar.gz#md5=b21850c'
                               '3cfa7efbb70fd662ab5413bdd', 'file', 3))[0])
         # The error text should list this as a URL and not `peep==3.1.1`:
-        reqset.add_requirement(
+        reqset.scan_requirement(
             list(process_line('https://pypi.python.org/packages/source/p/peep/'
                               'peep-3.1.1.tar.gz',
                               'file',
@@ -137,7 +137,7 @@ class TestRequirementSet(object):
         are missing.
         """
         reqset = RequirementSet(require_hashes=True)
-        reqset.add_requirement(
+        reqset.scan_requirement(
             list(process_line('simple==1.0', 'file', 1))[0])
         finder = PackageFinder([data.find_links], [], session=PipSession())
         resolver = self._basic_resolver(finder)
@@ -174,13 +174,13 @@ class TestRequirementSet(object):
 
         """
         reqset = RequirementSet(require_hashes=True)
-        reqset.add_requirement(
+        reqset.scan_requirement(
             list(process_line(
                 'git+git://github.com/pypa/pip-test-package --hash=sha256:123',
                 'file',
                 1))[0])
         dir_path = data.packages.join('FSPkg')
-        reqset.add_requirement(
+        reqset.scan_requirement(
             list(process_line(
                 'file://%s' % (dir_path,),
                 'file',
@@ -209,13 +209,13 @@ class TestRequirementSet(object):
         """
         reqset = RequirementSet()
         # Test that there must be exactly 1 specifier:
-        reqset.add_requirement(
+        reqset.scan_requirement(
             list(process_line('simple --hash=sha256:a90427ae31f5d1d0d7ec06ee97'
                               'd9fcf2d0fc9a786985250c1c83fd68df5911dd',
                               'file',
                               1))[0])
         # Test that the operator must be ==:
-        reqset.add_requirement(list(process_line(
+        reqset.scan_requirement(list(process_line(
             'simple2>1.0 --hash=sha256:3ad45e1e9aa48b4462af0'
             '123f6a7e44a9115db1ef945d4d92c123dfe21815a06',
             'file',
@@ -236,7 +236,7 @@ class TestRequirementSet(object):
         file_url = path_to_url(
             (data.packages / 'simple-1.0.tar.gz').abspath)
         reqset = RequirementSet(require_hashes=True)
-        reqset.add_requirement(
+        reqset.scan_requirement(
             list(process_line('%s --hash=sha256:badbad' % file_url,
                               'file',
                               1))[0])
@@ -258,7 +258,7 @@ class TestRequirementSet(object):
         reqset = RequirementSet()
         finder = PackageFinder([data.find_links], [], session=PipSession())
         resolver = self._basic_resolver(finder)
-        reqset.add_requirement(next(process_line(
+        reqset.scan_requirement(next(process_line(
             'TopoRequires2==0.0.1 '  # requires TopoRequires
             '--hash=sha256:eaf9a01242c9f2f42cf2bd82a6a848cd'
             'e3591d14f7896bdbefcf48543720c970',
@@ -281,12 +281,12 @@ class TestRequirementSet(object):
 
         """
         reqset = RequirementSet()
-        reqset.add_requirement(next(process_line(
+        reqset.scan_requirement(next(process_line(
             'TopoRequires2==0.0.1 '  # requires TopoRequires
             '--hash=sha256:eaf9a01242c9f2f42cf2bd82a6a848cd'
             'e3591d14f7896bdbefcf48543720c970',
             'file', 1)))
-        reqset.add_requirement(next(process_line(
+        reqset.scan_requirement(next(process_line(
             'TopoRequires==0.0.1 '
             '--hash=sha256:d6dd1e22e60df512fdcf3640ced3039b3b02a56ab2cee81ebcb'
             '3d0a6d4e8bfa6',
@@ -332,7 +332,7 @@ class TestInstallRequirement(object):
         assert req.link.scheme == "https"
 
         with pytest.raises(InstallationError):
-            reqset.add_requirement(req)
+            reqset.scan_requirement(req)
 
     def test_unsupported_wheel_local_file_requirement_raises(self, data):
         reqset = RequirementSet()
@@ -344,7 +344,7 @@ class TestInstallRequirement(object):
         assert req.link.scheme == "file"
 
         with pytest.raises(InstallationError):
-            reqset.add_requirement(req)
+            reqset.scan_requirement(req)
 
     def test_installed_version_not_installed(self):
         req = InstallRequirement.from_line('simple-0.1-py2.py3-none-any.whl')
@@ -594,8 +594,8 @@ def test_exclusive_environment_markers():
         "Django>=1.6.10,<1.8 ; python_version != '2.6'")
 
     req_set = RequirementSet('', '', '')
-    req_set.add_requirement(eq26)
-    req_set.add_requirement(ne26)
+    req_set.scan_requirement(eq26)
+    req_set.scan_requirement(ne26)
     assert req_set.has_requirement('Django')
 
 
