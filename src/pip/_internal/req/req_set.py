@@ -216,7 +216,9 @@ class RequirementSet(object):
                         requirement.conflicts_with,
                     )
                     with indent_log():
-                        requirement.uninstall(auto_confirm=True)
+                        uninstalled_pathset = requirement.uninstall(
+                            auto_confirm=True
+                        )
                 try:
                     requirement.install(
                         install_options,
@@ -231,7 +233,7 @@ class RequirementSet(object):
                     )
                     # if install did not succeed, rollback previous uninstall
                     if should_rollback:
-                        requirement.uninstalled_pathset.rollback()
+                        uninstalled_pathset.rollback()
                     raise
                 else:
                     should_commit = (
@@ -239,7 +241,7 @@ class RequirementSet(object):
                         requirement.install_succeeded
                     )
                     if should_commit:
-                        requirement.uninstalled_pathset.commit()
+                        uninstalled_pathset.commit()
                 requirement.remove_temporary_source()
 
         return to_install
