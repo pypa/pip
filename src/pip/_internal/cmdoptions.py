@@ -102,6 +102,15 @@ verbose = partial(
     help='Give more output. Option is additive, and can be used up to 3 times.'
 )
 
+no_color = partial(
+    Option,
+    '--no-color',
+    dest='no_color',
+    action='store_true',
+    default=False,
+    help="Suppress colored output",
+)
+
 version = partial(
     Option,
     '-V', '--version',
@@ -566,6 +575,7 @@ general_group = {
         cache_dir,
         no_cache,
         disable_pip_version_check,
+        no_color,
     ]
 }
 
