@@ -27,6 +27,7 @@ from pip._vendor.six.moves import xmlrpc_client  # type: ignore
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
+from pip._vendor.urllib3.util import IS_PYOPENSSL
 
 import pip
 from pip._internal.exceptions import HashMismatch, InstallationError
@@ -47,10 +48,16 @@ from pip._internal.utils.ui import DownloadProgressProvider
 from pip._internal.vcs import vcs
 
 try:
-    import ssl  # noqa
-    HAS_TLS = True
+    import OpenSSL  # noqa
 except ImportError:
-    HAS_TLS = False
+    OpenSSL = None
+
+try:
+    import ssl  # noqa
+except ImportError:
+    ssl = None
+
+HAS_TLS = (ssl is not None) or (OpenSSL is not None and IS_PYOPENSSL)
 
 __all__ = ['get_file_content',
            'is_url', 'url_to_path', 'path_to_url',
@@ -119,7 +126,10 @@ def user_agent():
         data["cpu"] = platform.machine()
 
     if HAS_TLS:
-        data["openssl_version"] = ssl.OPENSSL_VERSION
+        if IS_PYOPENSSL:
+            data["openssl_version"] = OpenSSL.SSL.OPENSSL_VERSION_NUMBER
+        else:
+            data["openssl_version"] = ssl.OPENSSL_VERSION
 
     setuptools_version = get_installed_version("setuptools")
     if setuptools_version is not None:
