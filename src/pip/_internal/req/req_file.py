@@ -131,7 +131,8 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
 
     # preserve for the nested code path
     line_comes_from = '%s %s (line %s)' % (
-        '-c' if constraint else '-r', filename, line_number)
+        '-c' if constraint else '-r', filename, line_number,
+    )
 
     # yield a line requirement
     if args_str:
@@ -299,7 +300,5 @@ def skip_regex(lines_enum, options):
     skip_regex = options.skip_requirements_regex if options else None
     if skip_regex:
         pattern = re.compile(skip_regex)
-        lines_enum = filterfalse(
-            lambda e: pattern.search(e[1]),
-            lines_enum)
+        lines_enum = filterfalse(lambda e: pattern.search(e[1]), lines_enum)
     return lines_enum

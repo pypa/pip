@@ -56,7 +56,8 @@ def check_install_build_global(options, check_options=None):
         fmt_ctl_no_binary(control)
         warnings.warn(
             'Disabling all use of wheels due to the use of --build-options '
-            '/ --global-options / --install-options.', stacklevel=2)
+            '/ --global-options / --install-options.', stacklevel=2,
+        )
 
 
 ###########
@@ -366,13 +367,15 @@ def _get_format_control(values, option):
 def _handle_no_binary(option, opt_str, value, parser):
     existing = getattr(parser.values, option.dest)
     fmt_ctl_handle_mutual_exclude(
-        value, existing.no_binary, existing.only_binary)
+        value, existing.no_binary, existing.only_binary,
+    )
 
 
 def _handle_only_binary(option, opt_str, value, parser):
     existing = getattr(parser.values, option.dest)
     fmt_ctl_handle_mutual_exclude(
-        value, existing.only_binary, existing.no_binary)
+        value, existing.only_binary, existing.no_binary,
+    )
 
 
 def no_binary():

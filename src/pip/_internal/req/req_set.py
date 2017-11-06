@@ -120,7 +120,8 @@ class RequirementSet(object):
                         raise InstallationError(
                             "Could not satisfy constraints for '%s': "
                             "installation from path or url cannot be "
-                            "constrained to a version" % name)
+                            "constrained to a version" % name,
+                        )
                     # If we're now installing a constraint, mark the existing
                     # object for real installation.
                     existing_req.constraint = False

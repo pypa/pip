@@ -729,7 +729,8 @@ class InstallRequirement(object):
         global_options = global_options if global_options is not None else []
         if self.editable:
             self.install_editable(
-                install_options, global_options, prefix=prefix)
+                install_options, global_options, prefix=prefix,
+            )
             return
         if self.is_wheel:
             version = wheel.wheel_version(self.source_dir)
@@ -756,7 +757,8 @@ class InstallRequirement(object):
         with TempDirectory(kind="record") as temp_dir:
             record_filename = os.path.join(temp_dir.path, 'install-record.txt')
             install_args = self.get_install_args(
-                global_options, record_filename, root, prefix)
+                global_options, record_filename, root, prefix,
+            )
             msg = 'Running setup.py install for %s' % (self.name,)
             with open_spinner(msg) as spinner:
                 with indent_log():
@@ -882,7 +884,8 @@ class InstallRequirement(object):
                 list(install_options),
 
                 cwd=self.setup_py_dir,
-                show_stdout=False)
+                show_stdout=False,
+            )
 
         self.install_succeeded = True
 
@@ -953,7 +956,8 @@ class InstallRequirement(object):
         return pkg_resources.Distribution(
             os.path.dirname(egg_info),
             project_name=dist_name,
-            metadata=metadata)
+            metadata=metadata,
+        )
 
     @property
     def has_hash_options(self):

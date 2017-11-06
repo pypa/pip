@@ -148,7 +148,8 @@ def create_main_parser():
 
     pip_pkg_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     parser.version = 'pip %s from %s (python %s)' % (
-        __version__, pip_pkg_dir, sys.version[:3])
+        __version__, pip_pkg_dir, sys.version[:3],
+    )
 
     # add the general options
     gen_opts = cmdoptions.make_option_group(cmdoptions.general_group, parser)

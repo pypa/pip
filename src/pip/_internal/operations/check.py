@@ -9,8 +9,7 @@ def check_requirements(installed_dists):
         if missing_reqs:
             missing_reqs_dict[dist.key] = missing_reqs
 
-        incompatible_reqs = list(get_incompatible_reqs(
-            dist, installed_dists))
+        incompatible_reqs = list(get_incompatible_reqs(dist, installed_dists))
         if incompatible_reqs:
             incompatible_reqs_dict[dist.key] = incompatible_reqs
 

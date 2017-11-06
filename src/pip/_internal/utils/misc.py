@@ -679,7 +679,8 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
     try:
         proc = subprocess.Popen(
             cmd, stderr=subprocess.STDOUT, stdin=None, stdout=stdout,
-            cwd=cwd, env=env)
+            cwd=cwd, env=env,
+        )
     except Exception as exc:
         logger.critical(
             "Error %s while executing command %s", exc, command_desc,
