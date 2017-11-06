@@ -834,8 +834,8 @@ class HTMLPage(object):
         except requests.HTTPError as exc:
             cls._handle_fail(link, exc, url)
         except SSLError as exc:
-            reason = ("There was a problem confirming the ssl certificate: "
-                      "%s" % exc)
+            reason = "There was a problem confirming the ssl certificate: "
+            reason += str(exc)
             cls._handle_fail(link, reason, url, meth=logger.info)
         except requests.ConnectionError as exc:
             cls._handle_fail(link, "connection error: %s" % exc, url)
