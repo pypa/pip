@@ -26,7 +26,7 @@ def test_no_color(script):
              stdout=sp.PIPE, stderr=sp.PIPE).communicate()
 
     with open("/tmp/colored-output.txt", "r") as result:
-        assert "\x1b[31m" in result.read()
+        assert "\x1b" in result.read()
 
     os.unlink("/tmp/colored-output.txt")
 
@@ -36,6 +36,6 @@ def test_no_color(script):
              stdout=sp.PIPE, stderr=sp.PIPE).communicate()
 
     with open("/tmp/no-color-output.txt", "r") as result:
-        assert "\x1b[31m" not in result.read()
+        assert "\x1b" not in result.read()
 
     os.unlink("/tmp/no-color-output.txt")
