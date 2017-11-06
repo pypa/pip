@@ -433,6 +433,44 @@ Tags or revisions can be installed like so::
     [-e] bzr+http://bzr.example.com/MyProject/trunk@v1.0#egg=MyProject
 
 
+.. _`Environment Variable Expansion`:
+
+Environment Variable Expansion
+++++++++++++++++++++++++++++++
+
+Since version 10, pip supports environment variables inside the requirements
+file. This makes it possible to specify a package using a URL that requires
+authentication but without storing the credential in the requirement file
+itself.
+
+For instance, the ZIP files available for a Github repository require basic
+auth when the repository is private. Previously, the token used for
+authenication had to be saved to the requirements file...which is a security
+concern::
+
+   https://a-not-so-secret-token:x-oauth-basic@github.com/user/repo/archive/master.zip
+
+Pip now supports the use of environment variables within the requirement file
+which makes it possible to provide credentials (and other values) as environment
+variables. They are then evaluated by pip at run time. This approach aligns
+with the `12-factor configuration approach <https://12factor.net/config>`_  and
+is widely used by continuous integration and deployment services.
+
+For a robust evaluation of variables, the format is limited to a specific
+POSIX-style version: wrapping an uppercase name in `${}`. For instance a valid
+variable name would be `${GITHUB_TOKEN}`. This turns the example above into::
+
+   https://${GITHUB_TOKEN}:x-oauth-basic@github.com/user/repo/archive/master.zip
+
+All you have to do now is export a variable `GITHUB_TOKEN` on your host system
+that contains the actual value and pip will use it when attempting to download
+this package from Github.
+
+Please be aware that pip doesn't support all variable formats supported by other
+systems! THere's no support for `$GITHUB_TOKEN` or `%GITHUB_TOKEN%` inside
+a requirements file, although they are valid names on their respective systems.
+
+
 Finding Packages
 ++++++++++++++++
 
