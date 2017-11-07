@@ -313,7 +313,7 @@ def skip_regex(lines_enum, options):
 
 
 def expand_env_variables(lines_enum):
-    """ Replace all environment variables that can be retrieved via `os.getenv`.
+    """Replace all environment variables that can be retrieved via `os.getenv`.
 
     The only allowed format for environment variables defined in the
     requirement file is `${MY_VARIABLE_1}` to ensure two things:
@@ -329,10 +329,8 @@ def expand_env_variables(lines_enum):
     to uppercase letter, digits and the `_` (underscore).
     """
     for line_number, line in lines_enum:
-
         for env_var, var_name in ENV_VAR_RE.findall(line):
             value = os.getenv(var_name)
-
             if not value:
                 continue
 
