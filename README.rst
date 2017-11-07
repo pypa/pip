@@ -14,8 +14,8 @@ tool for installing Python packages.
 .. image:: https://img.shields.io/appveyor/ci/pypa/pip.svg
    :target: https://ci.appveyor.com/project/pypa/pip/history
 
-.. image:: https://readthedocs.org/projects/pip/badge/?version=stable
-   :target: https://pip.pypa.io/en/stable
+.. image:: https://readthedocs.org/projects/pip/badge/?version=latest
+   :target: https://pip.pypa.io/en/latest
 
 * `Installation <https://pip.pypa.io/en/stable/installing.html>`_
 * `Documentation <https://pip.pypa.io/>`_
