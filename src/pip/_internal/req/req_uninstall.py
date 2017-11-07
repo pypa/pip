@@ -430,6 +430,9 @@ class UninstallPthEntries(object):
             endline = '\r\n'
         else:
             endline = '\n'
+        # handle missing trailing newline
+        if lines and not lines[-1].endswith(endline.encode("utf-8")):
+            lines[-1] = lines[-1] + endline.encode("utf-8")
         for entry in self.entries:
             try:
                 logger.debug('Removing entry: %s', entry)
