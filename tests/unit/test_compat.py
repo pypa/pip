@@ -59,7 +59,7 @@ def test_console_to_str(monkeypatch):
 def test_console_to_str_warning(monkeypatch):
     some_bytes = b"a\xE9b"
 
-    def check_warning(msg):
+    def check_warning(msg, *args, **kwargs):
         assert msg.startswith(
             "Subprocess output does not appear to be encoded as")
 
