@@ -276,9 +276,8 @@ class InstallCommand(RequirementCommand):
                     )
                     resolver.resolve(requirement_set)
 
-                    # on -d don't do complex things like building
-                    # wheels, and don't try to build wheels when wheel is
-                    # not installed.
+                    # If caching is disabled or wheel is not installed don't
+                    # try to build wheels.
                     if wheel and options.cache_dir:
                         # build wheels before install.
                         wb = WheelBuilder(
