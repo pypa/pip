@@ -37,6 +37,6 @@ rooms and mailing lists is expected to follow the `PyPA Code of Conduct`_.
 .. _Changelog: https://pip.pypa.io/en/stable/news.html
 .. _GitHub Page: https://github.com/pypa/pip
 .. _Issue Tracking: https://github.com/pypa/pip/issues
-.. _User mailing list: http://groups.google.com/group/python-virtualenv>
-.. _Dev mailing list: http://groups.google.com/group/pypa-dev>
+.. _User mailing list: http://groups.google.com/group/python-virtualenv
+.. _Dev mailing list: http://groups.google.com/group/pypa-dev
 .. _PyPA Code of Conduct: https://www.pypa.io/en/latest/code-of-conduct/
