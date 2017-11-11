@@ -20,3 +20,4 @@ requests==2.18.4
     certifi==2017.7.27.1
 setuptools==36.4.0
 webencodings==0.5.1
+requests_kerberos==0.11.0

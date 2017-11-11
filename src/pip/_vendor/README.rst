@@ -97,6 +97,8 @@ Modifications
 * ``pkg_resources`` has been modified to import its dependencies from ``pip._vendor``
 * ``CacheControl`` has been modified to import its dependencies from ``pip._vendor``
 * ``packaging`` has been modified to import its dependencies from ``pip._vendor``
+* ``requests_kerberos`` has been modified to import its dependencies from ``pip
+._vendor``
 * ``requests`` has been modified *not* to optionally load any C dependencies
 * Modified distro to delay importing ``argparse`` to avoid errors on 2.6
 
