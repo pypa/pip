@@ -79,6 +79,7 @@ class Command(object):
             ),
             retries=retries if retries is not None else options.retries,
             insecure_hosts=options.trusted_hosts,
+            prompting=not options.no_input
         )
 
         # Handle custom ca-bundles from the user
@@ -101,9 +102,6 @@ class Command(object):
                 "http": options.proxy,
                 "https": options.proxy,
             }
-
-        # Determine if we can prompt the user for authentication or not
-        session.auth.prompting = not options.no_input
 
         return session
 
@@ -194,6 +192,15 @@ class Command(object):
                 ]
             ),
         })
+
+        if level in ["INFO", "ERROR"]:
+            log_level_kerberos = logging.CRITICAL + 1
+        else:
+            log_level_kerberos = logging.DEBUG
+
+        logging.getLogger('pip._vendor.requests_kerberos.kerberos_').setLevel(
+            log_level_kerberos
+        )
 
         if sys.version_info[:2] == (3, 3):
             warnings.warn(

@@ -52,6 +52,14 @@ try:
 except ImportError:
     HAS_TLS = False
 
+try:
+    from pip._vendor.requests_kerberos import HTTPKerberosAuth
+    from pip._vendor.requests_kerberos import kerberos_ as ik
+    _KERBEROS_AVAILABLE = True
+
+except ImportError:
+    _KERBEROS_AVAILABLE = False
+
 __all__ = ['get_file_content',
            'is_url', 'url_to_path', 'path_to_url',
            'is_archive_file', 'unpack_vcs_link',
@@ -214,6 +222,47 @@ class MultiDomainBasicAuth(AuthBase):
         return None, None
 
 
+class MultiAuth(AuthBase):
+    def __init__(self, initial_auth=None, *auths):
+        if initial_auth is None:
+            self.initial_auth = MultiDomainBasicAuth(prompting=False)
+        else:
+            self.initial_auth = initial_auth
+
+        self.auths = auths
+
+    def __call__(self, req):
+        req = self.initial_auth(req)
+        self._register_hook(req, 0)  # register hook after auth itself
+        return req
+
+    def _register_hook(self, req, i):
+        if i >= len(self.auths):
+            return
+
+        def hook(resp, **kwargs):
+            self.handle_response(resp, i, **kwargs)
+
+        req.register_hook("response", hook)
+
+    def handle_response(self, resp, i, **kwargs):
+        if resp.status_code != 401:  # authorization required
+            return resp
+
+        # clear response
+        resp.content
+        resp.raw.release_conn()
+
+        req = self.auths[i](resp.request)  # deletegate to ith auth
+        logger.info('registering hook {}'.format(i + 1))
+        self._register_hook(req, i + 1)  # register hook after auth itself
+
+        new_resp = resp.connection.send(req, **kwargs)
+        new_resp.history.append(resp)
+
+        return new_resp
+
+
 class LocalFSAdapter(BaseAdapter):
 
     def send(self, request, stream=None, timeout=None, verify=None, cert=None,
@@ -328,6 +377,7 @@ class PipSession(requests.Session):
         retries = kwargs.pop("retries", 0)
         cache = kwargs.pop("cache", None)
         insecure_hosts = kwargs.pop("insecure_hosts", [])
+        prompting = kwargs.pop("prompting", True)
 
         super(PipSession, self).__init__(*args, **kwargs)
 
@@ -335,7 +385,18 @@ class PipSession(requests.Session):
         self.headers["User-Agent"] = user_agent()
 
         # Attach our Authentication handler to the session
-        self.auth = MultiDomainBasicAuth()
+        no_prompt = MultiDomainBasicAuth(prompting=False)
+        prompt = MultiDomainBasicAuth(prompting=True)
+        prompt.passwords = no_prompt.passwords  # share same dict of passwords
+
+        if _KERBEROS_AVAILABLE and prompting:
+            auths = [no_prompt, HTTPKerberosAuth(ik.REQUIRED), prompt]
+        elif _KERBEROS_AVAILABLE and not prompting:
+            auths = [no_prompt, HTTPKerberosAuth(ik.REQUIRED)]
+        else:
+            auths = [MultiDomainBasicAuth(prompting=prompting)]
+
+        self.auth = MultiAuth(*auths)
 
         # Create our urllib3.Retry instance which will allow us to customize
         # how we handle retries.
