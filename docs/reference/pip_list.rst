@@ -3,6 +3,8 @@
 pip list
 ---------
 
+.. contents::
+
 Usage
 *****
 
