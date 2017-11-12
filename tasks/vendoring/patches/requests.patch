@@ -12,7 +12,7 @@ index 7232fe0f..6336a07d 100644
      # preserved (requests.packages.urllib3.* is urllib3.*)
      for mod in list(sys.modules):
 
-diff --git a/pip/_vendor/requests/__init__.py b/pip/_vendor/requests/__init__.py
+diff --git a/src/pip/_vendor/requests/__init__.py b/src/pip/_vendor/requests/__init__.py
 index 9c3b769..36a4ef40 100644
 --- a/src/pip/_vendor/requests/__init__.py
 +++ b/src/pip/_vendor/requests/__init__.py
@@ -34,7 +34,7 @@ index 9c3b769..36a4ef40 100644
 +        pass
 
  # urllib3's DependencyWarnings should be silenced.
-diff --git a/pip/_vendor/requests/compat.py b/pip/_vendor/requests/compat.py
+diff --git a/src/pip/_vendor/requests/compat.py b/src/pip/_vendor/requests/compat.py
 index eb6530d..353ec29 100644
 --- a/src/pip/_vendor/requests/compat.py
 +++ b/src/pip/_vendor/requests/compat.py
