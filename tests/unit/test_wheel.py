@@ -364,10 +364,10 @@ class TestWheelBuilder(object):
         with patch('pip._internal.wheel.WheelBuilder._build_one') \
                 as mock_build_one:
             wheel_req = Mock(is_wheel=True, editable=False, constraint=False)
-            reqset = Mock(requirements=Mock(values=lambda: [wheel_req]),
-                          wheel_download_dir='/wheel/dir')
-            wb = wheel.WheelBuilder(reqset, Mock(), Mock(), wheel_cache=None)
-            wb.build(Mock())
+            wb = wheel.WheelBuilder(
+                finder=Mock(), preparer=Mock(), wheel_cache=None,
+            )
+            wb.build([wheel_req], session=Mock())
             assert "due to already being wheel" in caplog.text
             assert mock_build_one.mock_calls == []
 

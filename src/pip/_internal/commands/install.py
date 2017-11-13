@@ -282,16 +282,15 @@ class InstallCommand(RequirementCommand):
                     if wheel and options.cache_dir:
                         # build wheels before install.
                         wb = WheelBuilder(
-                            requirement_set,
-                            finder,
-                            preparer,
-                            wheel_cache,
-                            build_options=[],
-                            global_options=[],
+                            finder, preparer, wheel_cache,
+                            build_options=[], global_options=[],
                         )
                         # Ignore the result: a failed wheel will be
                         # installed from the sdist/vcs whatever.
-                        wb.build(session=session, autobuilding=True)
+                        wb.build(
+                            requirement_set.requirements.values(),
+                            session=session, autobuilding=True
+                        )
 
                     installed = requirement_set.install(
                         install_options,
