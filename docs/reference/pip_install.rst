@@ -459,6 +459,21 @@ SSL Certificate Verification
 Starting with v1.3, pip provides SSL certificate verification over https, to
 prevent man-in-the-middle attacks against PyPI downloads.
 
+.. _`Kerberos Authentication`:
+
+Kerberos Authentication
+++++++++++++++++++++++++++++
+
+Starting with v10.0, pip supports using a Kerberos ticket to authenticate
+with servers. This feature requires that ``pykerberos`` or ``winkerberos``
+is installed in the same environment as pip.
+
+If you wish to ignore Kerberos authenticated (index) servers for bootstrapping
+the installation of ``pykerberos`` or ``winkerberos`` or are not authenticated
+for all servers by default pip will ask for input. To change this behaviour
+to ignore those servers use the ``--no-input`` command line option. Your system
+administrator can also set this in the config files or an environment variable,
+see :ref:`Configuration`.
 
 .. _`Caching`:
 
