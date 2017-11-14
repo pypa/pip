@@ -2,6 +2,7 @@ freezegun
 pretend
 pytest
 pytest-catchlog
+pytest-cov
 pytest-rerunfailures
 pytest-timeout
 pytest-xdist
