@@ -3,39 +3,44 @@ Test specific for the --no-color option
 """
 import os
 import platform
-import subprocess as sp
+import subprocess
 import sys
 
 import pytest
 
 
-@pytest.mark.skipif(sys.platform == 'win32',
-                    reason="does not run on windows")
 def test_no_color(script):
-
+    """Ensure colour output disabled when --no-color is passed.
     """
-    Test uninstalling an existing package - should out put red error
+    # Using 'script' in this test allows for transparently testing pip's output
+    # since pip is smart enough to disable colour output when piped, which is
+    # not the behaviour we want to be testing here.
+    #
+    # On the other hand, this test is non-portable due to the options passed to
+    # 'script' and well as the mere use of the same.
+    #
+    # This test will stay until someone has the time to rewrite it.
+    command = (
+        'script --flush --quiet --return /tmp/pip-test-no-color.txt '
+        '--command "pip uninstall {} noSuchPackage"'
+    )
 
-    We must use subprocess with the script command, since redirection
-    in unix platform causes text coloring to disapper. Thus, we can't
-    use the testing infrastructure that other options has.
-    """
+    def get_run_output(option):
+        cmd = command.format(option)
+        proc = subprocess.Popen(
+            cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        )
+        proc.communicate()
+        if proc.returncode:
+            pytest.skip("Unable to capture output using script: " + cmd)
 
-    sp.Popen("script --flush --quiet --return /tmp/colored-output.txt"
-             " --command \"pip uninstall noSuchPackage\"", shell=True,
-             stdout=sp.PIPE, stderr=sp.PIPE).communicate()
+        try:
+            with open("/tmp/pip-test-no-color.txt", "r") as output_file:
+                retval = output_file.read()
+            return retval
+        finally:
+            os.unlink("/tmp/pip-test-no-color.txt")
 
-    with open("/tmp/colored-output.txt", "r") as result:
-        assert "\x1b" in result.read()
-
-    os.unlink("/tmp/colored-output.txt")
-
-    sp.Popen("script --flush --quiet --return /tmp/no-color-output.txt"
-             " --command \"pip --no-color uninstall noSuchPackage\"",
-             shell=True,
-             stdout=sp.PIPE, stderr=sp.PIPE).communicate()
-
-    with open("/tmp/no-color-output.txt", "r") as result:
-        assert "\x1b" not in result.read()
-
-    os.unlink("/tmp/no-color-output.txt")
+    assert "\x1b" in get_run_output(option=""), "Expected color in output"
+    assert "\x1b" not in get_run_output(option="--no-color"), \
+        "Expected no color in output"
