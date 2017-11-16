@@ -66,7 +66,7 @@ class Tests_UserSite:
                 tmpdir.join("cache"),
             )
         )
-        result.assert_installed('INITools', use_user_site=True)
+        result.assert_installed('INITools', in_user_site=True)
 
     def test_install_curdir_usersite(self, script, virtualenv, data):
         """

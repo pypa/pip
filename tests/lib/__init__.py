@@ -170,7 +170,7 @@ class TestPipResult(object):
 
     def assert_installed(self, pkg_name, editable=True, with_files=[],
                          without_files=[], without_egg_link=False,
-                         use_user_site=False, sub_dir=False):
+                         in_user_site=False, sub_dir=False):
         e = self.test_env
 
         if editable:
@@ -182,7 +182,7 @@ class TestPipResult(object):
             without_egg_link = True
             pkg_dir = e.site_packages / pkg_name
 
-        if use_user_site:
+        if in_user_site:
             egg_link_path = e.user_site / pkg_name + '.egg-link'
         else:
             egg_link_path = e.site_packages / pkg_name + '.egg-link'
@@ -217,7 +217,7 @@ class TestPipResult(object):
                     repr(egg_link_contents))
                 ))
 
-        if use_user_site:
+        if in_user_site:
             pth_file = e.user_site / 'easy-install.pth'
         else:
             pth_file = e.site_packages / 'easy-install.pth'
