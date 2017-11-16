@@ -133,6 +133,7 @@ class Command(object):
             root_level = "DEBUG"
 
         logger_class = "pip._internal.utils.logging.ColorizedStreamHandler"
+        handler_class = "pip._internal.utils.logging.BetterRotatingFileHandler"
 
         logging.config.dictConfig({
             "version": 1,
@@ -167,9 +168,7 @@ class Command(object):
                 },
                 "user_log": {
                     "level": "DEBUG",
-                    "class":
-                        ("pip._internal.utils.logging"
-                         ".BetterRotatingFileHandler"),
+                    "class": handler_class,
                     "filename": options.log or "/dev/null",
                     "delay": True,
                     "formatter": "indent",
