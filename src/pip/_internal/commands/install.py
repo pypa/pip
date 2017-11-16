@@ -18,7 +18,9 @@ from pip._internal.req import RequirementSet
 from pip._internal.resolve import Resolver
 from pip._internal.status_codes import ERROR
 from pip._internal.utils.filesystem import check_path_owner
-from pip._internal.utils.misc import ensure_dir, get_installed_version
+from pip._internal.utils.misc import (
+    ensure_dir, get_installed_version, should_use_user_site,
+)
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.wheel import WheelBuilder
 
@@ -79,10 +81,16 @@ class InstallCommand(RequirementCommand):
             '--user',
             dest='use_user_site',
             action='store_true',
-            help="Install to the Python user install directory for your "
-                 "platform. Typically ~/.local/, or %APPDATA%\\Python on "
-                 "Windows. (See the Python documentation for site.USER_BASE "
-                 "for full details.)")
+            help="Install into the user site packages."
+        )
+
+        cmd_opts.add_option(
+            '--global',
+            dest='use_user_site',
+            action='store_false',
+            help='Install into the global site packages.',
+        )
+
         cmd_opts.add_option(
             '--root',
             dest='root_path',
@@ -192,7 +200,9 @@ class InstallCommand(RequirementCommand):
 
         options.src_dir = os.path.abspath(options.src_dir)
         install_options = options.install_options or []
-        if options.use_user_site:
+
+        # Check if a user installation makes sense.
+        if options.use_user_site is True:
             if options.prefix_path:
                 raise CommandError(
                     "Can not combine '--user' and '--prefix' as they imply "
@@ -205,6 +215,11 @@ class InstallCommand(RequirementCommand):
                 )
             install_options.append('--user')
             install_options.append('--prefix=')
+
+        # If --user or --global is not passed, use some heuristic to determine
+        # whether the installations should be user or global.
+        if options.use_user_site is None:
+            options.use_user_site = should_use_user_site()
 
         target_temp_dir = TempDirectory(kind="target")
         if options.target_dir:
