@@ -44,7 +44,7 @@ class TestRequirementSet(object):
         return Resolver(
             preparer=preparer, wheel_cache=None,
             session=PipSession(), finder=finder,
-            use_user_site=False, upgrade_strategy="to-satisfy-only",
+            working_scheme="global", upgrade_strategy="to-satisfy-only",
             ignore_dependencies=False, ignore_installed=False,
             ignore_requires_python=False, force_reinstall=False,
             isolated=False,
