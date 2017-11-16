@@ -115,7 +115,7 @@ class InstallRequirement(object):
         self.install_succeeded = None
         # UninstallPathSet of uninstalled distribution (for possible rollback)
         self.uninstalled_pathset = None
-        self.use_user_site = False
+        self.working_scheme = "global"
         self.target_dir = None
         self.options = options if options else {}
         self.pycompile = pycompile
@@ -840,7 +840,7 @@ class InstallRequirement(object):
         else:
             install_args += ["--no-compile"]
 
-        if running_under_virtualenv():
+        if self.working_scheme == "venv":
             py_ver_str = 'python' + sysconfig.get_python_version()
             install_args += ['--install-headers',
                              os.path.join(sys.prefix, 'include', 'site',
@@ -913,7 +913,7 @@ class InstallRequirement(object):
             existing_dist = pkg_resources.get_distribution(
                 self.req.name
             )
-            if self.use_user_site:
+            if self.working_scheme == "user":
                 if dist_in_usersite(existing_dist):
                     self.conflicts_with = existing_dist
                 elif (running_under_virtualenv() and
@@ -935,7 +935,7 @@ class InstallRequirement(object):
                          warn_script_location=True):
         move_wheel_files(
             self.name, self.req, wheeldir,
-            user=self.use_user_site,
+            user=self.working_scheme == "user",
             home=self.target_dir,
             root=root,
             prefix=prefix,

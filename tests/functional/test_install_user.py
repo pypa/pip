@@ -98,8 +98,8 @@ class Tests_UserSite:
             expect_error=True,
         )
         assert (
-            "Can not perform a '--user' install. User site-packages are not "
-            "visible in this virtualenv." in result.stderr
+            "Can not perform a user scheme install. User site-packages are "
+            "not visible in this virtualenv." in result.stderr
         )
 
     @pytest.mark.network

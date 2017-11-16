@@ -708,7 +708,7 @@ def test_install_package_conflict_prefix_and_user(script, data):
         expect_error=True, quiet=True,
     )
     assert (
-        "Can not combine '--user' and '--prefix'" in result.stderr
+        "Can not combine '--scheme user' and '--prefix'" in result.stderr
     )
 
 

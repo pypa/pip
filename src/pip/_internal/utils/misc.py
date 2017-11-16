@@ -15,6 +15,7 @@ import stat
 import subprocess
 import sys
 import tarfile
+import tempfile
 import zipfile
 from collections import deque
 
@@ -28,8 +29,8 @@ from pip._vendor.six.moves import input
 from pip._internal.compat import console_to_str, expanduser, stdlib_pkgs
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import (
-    running_under_virtualenv, site_packages, user_site, virtualenv_no_global,
-    write_delete_marker_file
+    distutils_scheme, running_under_virtualenv, site_packages, user_site,
+    virtualenv_no_global, write_delete_marker_file,
 )
 
 if PY2:
@@ -877,3 +878,38 @@ def enum(*sequential, **named):
     reverse = dict((value, key) for key, value in enums.items())
     enums['reverse_mapping'] = reverse
     return type('Enum', (), enums)
+
+
+def guess_correct_working_scheme():
+    # XXX: This is purely for addressing backwards compatibility concerns.
+
+    def _can_create_file_in(folder_path):
+        """Returns whether a file can be created in the given folder
+        """
+        # If the given folder does not exist, try to create it. If there's
+        # going to be a successful installation, the folder probably needs to
+        # be created anyway.
+        try:
+            ensure_dir(folder_path)
+        except EnvironmentError:
+            return False
+
+        # Try to create a temporary file in the folder and delete it.
+        try:
+            with tempfile.TemporaryFile(dir=folder_path):
+                pass
+        except EnvironmentError:
+            return False
+
+        return True
+
+    # This is the "smart" portion. Check if there's any potential global folder
+    # for which pip doesn't have the required permissions. If there's any such
+    # location, pip should perform a user installation instead.
+    for folder in distutils_scheme("").values():
+        if not _can_create_file_in(folder):
+            return "user"
+
+    # Assume the user wants to do a global installation. This is the most
+    # backwards compatible policy; preserving behaviour for `sudo pip install`
+    return "global"

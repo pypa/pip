@@ -5,6 +5,7 @@ import logging
 import operator
 import os
 import shutil
+import site
 
 from pip._internal import cmdoptions
 from pip._internal.basecommand import RequirementCommand
@@ -12,13 +13,17 @@ from pip._internal.cache import WheelCache
 from pip._internal.exceptions import (
     CommandError, InstallationError, PreviousBuildDirError
 )
-from pip._internal.locations import distutils_scheme, virtualenv_no_global
+from pip._internal.locations import (
+    distutils_scheme, running_under_virtualenv, virtualenv_no_global,
+)
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import RequirementSet
 from pip._internal.resolve import Resolver
 from pip._internal.status_codes import ERROR
 from pip._internal.utils.filesystem import check_path_owner
-from pip._internal.utils.misc import ensure_dir, get_installed_version
+from pip._internal.utils.misc import (
+    ensure_dir, get_installed_version, guess_correct_working_scheme,
+)
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.wheel import WheelBuilder
 
@@ -75,14 +80,37 @@ class InstallCommand(RequirementCommand):
                  '<dir>. Use --upgrade to replace existing packages in <dir> '
                  'with new versions.'
         )
+
+        cmd_opts.add_option(
+            '--scheme',
+            dest='working_scheme',
+            default=None,
+            help=(
+                "Determines where to install the package. Valid values are "
+                "global, user and venv."
+            )
+        )
+
         cmd_opts.add_option(
             '--user',
             dest='use_user_site',
             action='store_true',
-            help="Install to the Python user install directory for your "
-                 "platform. Typically ~/.local/, or %APPDATA%\\Python on "
-                 "Windows. (See the Python documentation for site.USER_BASE "
-                 "for full details.)")
+            help=(
+                "Shorthand for --scheme user; if --scheme is passed, "
+                "this option is ignored."
+            ),
+        )
+
+        cmd_opts.add_option(
+            '--global',
+            dest='use_global_site',
+            action='store_true',
+            help=(
+                "Shorthand for --scheme global; if --scheme is passed, "
+                "this option is ignored."
+            ),
+        )
+
         cmd_opts.add_option(
             '--root',
             dest='root_path',
@@ -192,17 +220,67 @@ class InstallCommand(RequirementCommand):
 
         options.src_dir = os.path.abspath(options.src_dir)
         install_options = options.install_options or []
-        if options.use_user_site:
+
+        # When not passed a scheme, try to figure out what scheme to be used.
+        # Also handles --user and --global.
+        if options.working_scheme is None:
+            if options.use_user_site and options.use_global_site:
+                raise CommandError(
+                    "Unable to determine which scheme to use for "
+                    "installation (got both --global and --user). "
+                    "Please specify scheme explicitly using --scheme."
+                )
+            elif options.use_user_site or options.use_global_site:
+                if options.use_user_site:
+                    options.working_scheme = "user"
+                else:
+                    assert options.use_global_site
+                    options.working_scheme = "global"
+            # If we're in an virtualenv, we want to use the venv scheme.
+            elif running_under_virtualenv():
+                options.working_scheme = "venv"
+            # user scheme doesn't make sense if user site-packages is disabled
+            # or if a prefix is to be used.
+            elif not site.ENABLE_USER_SITE or options.prefix_path:
+                options.working_scheme = "global"
+            else:
+                # NOTE: We do backwards compatibility checks here. Eventually,
+                #       this line should just be:
+                # options.working_scheme = "user"
+                options.working_scheme = guess_correct_working_scheme()
+
+        # Ensure no one can ever depend on these variables.
+        del options.use_global_site
+        del options.use_user_site
+
+        # Ensure the given scheme is a valid one.
+        if options.working_scheme not in ["user", "global", "venv"]:
+            raise CommandError(
+                "Got unknown scheme {!r}. "
+                "Should be one of 'global', 'user' or 'venv'."
+                .format(options.working_scheme)
+            )
+
+        # Sanity checks for working schemes
+        if options.working_scheme == "venv":
+            if not running_under_virtualenv():
+                raise CommandError(
+                    "Can not use 'venv' scheme when a virtualenv is not "
+                    "active."
+                )
+            options.require_venv = True
+        elif options.working_scheme == "user":
             if options.prefix_path:
                 raise CommandError(
-                    "Can not combine '--user' and '--prefix' as they imply "
-                    "different installation locations"
+                    "Can not combine '--scheme user' and '--prefix' as they "
+                    "imply different installation locations."
                 )
             if virtualenv_no_global():
                 raise InstallationError(
-                    "Can not perform a '--user' install. User site-packages "
-                    "are not visible in this virtualenv."
+                    "Can not perform a user scheme install. User "
+                    "site-packages are not visible in this virtualenv."
                 )
+
             install_options.append('--user')
             install_options.append('--prefix=')
 
@@ -246,7 +324,7 @@ class InstallCommand(RequirementCommand):
                     target_dir=target_temp_dir.path,
                     pycompile=options.compile,
                     require_hashes=options.require_hashes,
-                    use_user_site=options.use_user_site,
+                    working_scheme=options.working_scheme,
                 )
 
                 self.populate_requirement_set(
@@ -266,7 +344,7 @@ class InstallCommand(RequirementCommand):
                         finder=finder,
                         session=session,
                         wheel_cache=wheel_cache,
-                        use_user_site=options.use_user_site,
+                        working_scheme=options.working_scheme,
                         upgrade_strategy=upgrade_strategy,
                         force_reinstall=options.force_reinstall,
                         ignore_dependencies=options.ignore_dependencies,
@@ -301,7 +379,7 @@ class InstallCommand(RequirementCommand):
                     )
 
                     possible_lib_locations = get_lib_location_guesses(
-                        user=options.use_user_site,
+                        user=options.working_scheme == "user",
                         home=target_temp_dir.path,
                         root=options.root_path,
                         prefix=options.prefix_path,
@@ -326,11 +404,11 @@ class InstallCommand(RequirementCommand):
                 except EnvironmentError as e:
                     message_parts = []
 
-                    user_option_part = "Consider using the `--user` option"
+                    user_option_part = "Consider using `--scheme user` option"
                     permissions_part = "Check the permissions"
 
                     if e.errno == errno.EPERM:
-                        if not options.use_user_site:
+                        if options.working_scheme != "user":
                             message_parts.extend([
                                 user_option_part, " or ",
                                 permissions_part.lower(),

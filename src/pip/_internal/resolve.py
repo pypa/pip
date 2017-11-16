@@ -32,7 +32,7 @@ class Resolver(object):
 
     _allowed_strategies = {"eager", "only-if-needed", "to-satisfy-only"}
 
-    def __init__(self, preparer, session, finder, wheel_cache, use_user_site,
+    def __init__(self, preparer, session, finder, wheel_cache, working_scheme,
                  ignore_dependencies, ignore_installed, ignore_requires_python,
                  force_reinstall, isolated, upgrade_strategy):
         super(Resolver, self).__init__()
@@ -54,7 +54,7 @@ class Resolver(object):
         self.ignore_dependencies = ignore_dependencies
         self.ignore_installed = ignore_installed
         self.ignore_requires_python = ignore_requires_python
-        self.use_user_site = use_user_site
+        self.working_scheme = working_scheme
 
     def resolve(self, requirement_set):
         """Resolve what operations need to be done
@@ -120,7 +120,7 @@ class Resolver(object):
         """
         # Don't uninstall the conflict if doing a user install and the
         # conflict is not a user install.
-        if not self.use_user_site or dist_in_usersite(req.satisfied_by):
+        if self.working_scheme != "user" or dist_in_usersite(req.satisfied_by):
             req.conflicts_with = req.satisfied_by
         req.satisfied_by = None
 

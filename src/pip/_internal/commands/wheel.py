@@ -164,7 +164,7 @@ class WheelCommand(RequirementCommand):
                     finder=finder,
                     session=session,
                     wheel_cache=wheel_cache,
-                    use_user_site=False,
+                    working_scheme="global",
                     upgrade_strategy="to-satisfy-only",
                     force_reinstall=False,
                     ignore_dependencies=options.ignore_dependencies,
