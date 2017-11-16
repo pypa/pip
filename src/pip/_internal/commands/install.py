@@ -18,7 +18,9 @@ from pip._internal.req import RequirementSet
 from pip._internal.resolve import Resolver
 from pip._internal.status_codes import ERROR
 from pip._internal.utils.filesystem import check_path_owner
-from pip._internal.utils.misc import ensure_dir, get_installed_version
+from pip._internal.utils.misc import (
+    ensure_dir, get_installed_version, should_use_user_site,
+)
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.wheel import WheelBuilder
 
@@ -213,6 +215,11 @@ class InstallCommand(RequirementCommand):
                 )
             install_options.append('--user')
             install_options.append('--prefix=')
+
+        # If --user or --global is not passed, use some heuristic to determine
+        # whether the installations should be user or global.
+        if options.use_user_site is None:
+            options.use_user_site = should_use_user_site()
 
         target_temp_dir = TempDirectory(kind="target")
         if options.target_dir:

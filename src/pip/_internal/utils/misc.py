@@ -11,10 +11,12 @@ import os
 import posixpath
 import re
 import shutil
+import site
 import stat
 import subprocess
 import sys
 import tarfile
+import tempfile
 import zipfile
 from collections import deque
 
@@ -28,8 +30,8 @@ from pip._vendor.six.moves import input
 from pip._internal.compat import console_to_str, expanduser, stdlib_pkgs
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import (
-    running_under_virtualenv, site_packages, user_site, virtualenv_no_global,
-    write_delete_marker_file
+    distutils_scheme, running_under_virtualenv, site_packages, user_site,
+    virtualenv_no_global, write_delete_marker_file,
 )
 
 if PY2:
@@ -877,3 +879,49 @@ def enum(*sequential, **named):
     reverse = dict((value, key) for key, value in enums.items())
     enums['reverse_mapping'] = reverse
     return type('Enum', (), enums)
+
+
+def should_use_user_site():
+    """Determines if pip uses user-site when not explicitly told
+    """
+    # Doing a user installation when a virtualenv is active does not make sense
+    if running_under_virtualenv():
+        return False
+
+    # It won't make sense to install to user site-packages if they are disabled
+    if not site.ENABLE_USER_SITE:
+        return False
+
+    # XXX: Everything beyond this line is for addressing backwards
+    #      compatibility concerns.
+    #      Eventually, the following should be replaced with a return True
+    def _can_create_file_in(folder_path):
+        """Returns whether a file can be created in the given folder
+        """
+        # If the given folder does not exist, try to create it. If there's
+        # going to be a successful installation, the folder probably needs to
+        # be created anyway.
+        try:
+            ensure_dir(folder_path)
+        except EnvironmentError:
+            return False
+
+        # Try to create a temporary file in the folder and delete it.
+        try:
+            with tempfile.TemporaryFile(dir=folder_path):
+                pass
+        except EnvironmentError:
+            return False
+        else:
+            return True
+
+    # This is the "smart" portion. Check if there's any potential global folder
+    # for which pip doesn't have the required permissions. If there's any such
+    # location, pip should perform a user installation instead.
+    for folder in distutils_scheme("").values():
+        if not _can_create_file_in(folder):
+            return True
+
+    # Assume the user wants to do a global installation. This is the most
+    # backwards compatible policy; preserving behaviour for `sudo pip install`
+    return False
