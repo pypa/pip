@@ -648,13 +648,13 @@ class InstallRequirement(object):
 
         """
         if not self.check_if_exists():
-            raise UninstallationError(
-                "Cannot uninstall requirement %s, not installed" % (self.name,)
-            )
+            logger.warning("Skipping %s as it is not installed.", self.name)
+            return
         dist = self.satisfied_by or self.conflicts_with
 
-        self.uninstalled_pathset = UninstallPathSet.from_dist(dist)
-        self.uninstalled_pathset.remove(auto_confirm, verbose)
+        uninstalled_pathset = UninstallPathSet.from_dist(dist)
+        uninstalled_pathset.remove(auto_confirm, verbose)
+        return uninstalled_pathset
 
     def archive(self, build_dir):
         assert self.source_dir
@@ -802,6 +802,7 @@ class InstallRequirement(object):
                     new_lines.append(
                         os.path.relpath(prepend_root(filename), egg_info_dir)
                     )
+            new_lines.sort()
             ensure_dir(egg_info_dir)
             inst_files_path = os.path.join(egg_info_dir, 'installed-files.txt')
             with open(inst_files_path, 'w') as f:

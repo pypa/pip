@@ -1,0 +1,1 @@
+Fix ``pip uninstall`` when ``easy-install.pth`` lacks a trailing newline.

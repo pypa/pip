@@ -1258,3 +1258,25 @@ def test_installing_scripts_on_path_does_not_print_warning(script):
     result = script.pip_install_local("script_wheel1")
     assert "Successfully installed script-wheel1" in result.stdout, str(result)
     assert "--no-warn-script-location" not in result.stderr
+
+
+def test_installed_files_recorded_in_deterministic_order(script, data):
+    """
+    Ensure that we record the files installed by a package in a deterministic
+    order, to make installs reproducible.
+    """
+    to_install = data.packages.join("FSPkg")
+    result = script.pip('install', to_install, expect_error=False)
+    fspkg_folder = script.site_packages / 'fspkg'
+    egg_info = 'FSPkg-0.1.dev0-py%s.egg-info' % pyversion
+    installed_files_path = (
+        script.site_packages / egg_info / 'installed-files.txt'
+    )
+    assert fspkg_folder in result.files_created, str(result.stdout)
+    assert installed_files_path in result.files_created, str(result)
+
+    installed_files_path = result.files_created[installed_files_path].full
+    installed_files_lines = [
+        p for p in Path(installed_files_path).read_text().split('\n') if p
+    ]
+    assert installed_files_lines == sorted(installed_files_lines)

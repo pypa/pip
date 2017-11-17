@@ -177,15 +177,14 @@ class WheelCommand(RequirementCommand):
 
                     # build wheels
                     wb = WheelBuilder(
-                        requirement_set,
-                        finder,
-                        preparer,
-                        wheel_cache,
+                        finder, preparer, wheel_cache,
                         build_options=options.build_options or [],
                         global_options=options.global_options or [],
                         no_clean=options.no_clean,
                     )
-                    wheels_built_successfully = wb.build(session=session)
+                    wheels_built_successfully = wb.build(
+                        requirement_set.requirements.values(), session=session,
+                    )
                     if not wheels_built_successfully:
                         raise CommandError(
                             "Failed to build one or more wheels"

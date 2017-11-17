@@ -101,6 +101,39 @@ def test_uninstall_easy_install_after_import(script):
 
 
 @pytest.mark.network
+def test_uninstall_trailing_newline(script):
+    """
+    Uninstall behaves appropriately if easy-install.pth
+    lacks a trailing newline
+
+    """
+    script.run('easy_install', 'INITools==0.2', expect_stderr=True)
+    script.run('easy_install', 'PyLogo', expect_stderr=True)
+    easy_install_pth = script.site_packages_path / 'easy-install.pth'
+
+    # trim trailing newline from easy-install.pth
+    with open(easy_install_pth) as f:
+        pth_before = f.read()
+
+    with open(easy_install_pth, 'w') as f:
+        f.write(pth_before.rstrip())
+
+    # uninstall initools
+    script.pip('uninstall', 'INITools', '-y')
+    with open(easy_install_pth) as f:
+        pth_after = f.read()
+
+    # verify that only initools is removed
+    before_without_initools = [
+        line for line in pth_before.splitlines()
+        if 'initools' not in line.lower()
+    ]
+    lines_after = pth_after.splitlines()
+
+    assert lines_after == before_without_initools
+
+
+@pytest.mark.network
 def test_uninstall_namespace_package(script):
     """
     Uninstall a distribution with a namespace package without clobbering
@@ -468,3 +501,25 @@ def test_uninstall_editable_and_pip_install(script, data):
     ) in uninstall2.files_deleted, list(uninstall2.files_deleted.keys())
     list_result2 = script.pip('list', '--format=json')
     assert "FSPkg" not in {p["name"] for p in json.loads(list_result2.stdout)}
+
+
+def test_uninstall_ignores_missing_packages(script, data):
+    """Uninstall of a non existent package prints a warning and exits cleanly
+    """
+    result = script.pip(
+        'uninstall', '-y', 'non-existent-pkg', expect_stderr=True,
+    )
+
+    assert "Skipping non-existent-pkg as it is not installed." in result.stderr
+    assert result.returncode == 0, "Expected clean exit"
+
+
+def test_uninstall_ignores_missing_packages_and_uninstalls_rest(script, data):
+    script.pip_install_local('simple')
+    result = script.pip(
+        'uninstall', '-y', 'non-existent-pkg', 'simple', expect_stderr=True,
+    )
+
+    assert "Skipping non-existent-pkg as it is not installed." in result.stderr
+    assert "Successfully uninstalled simple" in result.stdout
+    assert result.returncode == 0, "Expected clean exit"

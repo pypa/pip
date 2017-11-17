@@ -4,6 +4,8 @@
 pip download
 ------------
 
+.. contents::
+
 Usage
 *****
 

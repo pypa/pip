@@ -657,9 +657,8 @@ class BuildEnvironment(object):
 class WheelBuilder(object):
     """Build wheels from a RequirementSet."""
 
-    def __init__(self, requirement_set, finder, preparer, wheel_cache,
+    def __init__(self, finder, preparer, wheel_cache,
                  build_options=None, global_options=None, no_clean=False):
-        self.requirement_set = requirement_set
         self.finder = finder
         self.preparer = preparer
         self.wheel_cache = wheel_cache
@@ -791,7 +790,7 @@ class WheelBuilder(object):
             logger.error('Failed cleaning build dir for %s', req.name)
             return False
 
-    def build(self, session, autobuilding=False):
+    def build(self, requirements, session, autobuilding=False):
         """Build wheels.
 
         :param unpack: If True, replace the sdist we built from with the
@@ -805,10 +804,8 @@ class WheelBuilder(object):
         )
         assert building_is_possible
 
-        reqset = self.requirement_set.requirements.values()
-
         buildset = []
-        for req in reqset:
+        for req in requirements:
             ephem_cache = False
             if req.constraint:
                 continue
