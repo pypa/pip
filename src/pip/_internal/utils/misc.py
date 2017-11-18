@@ -890,7 +890,7 @@ def confirm_dependencies(reqs_to_uninstall):
 
 
 def get_depends(reqs_to_uninstall):
-    dist_deps = {d.key: [r.name for r in d.requires()]
+    dist_deps = {d.key: [canonicalize_name(r.name) for r in d.requires()]
                  for d in get_installed_distributions()}
     logger.debug('dist_deps %s', dist_deps)
     dependants = {req: [d for d, r in dist_deps.items() if req in r]
