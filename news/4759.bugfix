@@ -1,2 +1,2 @@
-Rather than report an error for git repositories with no remotes in
-pip freeze output report the filesystem location with a file:// url.
+Pip freeze now reports URL based on file system location for git
+repositories with no remotes.

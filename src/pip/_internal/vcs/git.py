@@ -208,6 +208,12 @@ class Git(VersionControl):
                 ['config', '--get-regexp', r'remote\..*\.url'],
                 show_stdout=False, cwd=location,
             )
+        except InstallationError as e:
+            # If the above command fails we have no git remotes or cannot
+            # determine what they are. Just use the local repo path in that
+            # case instead.
+            url = 'file://' + location
+        else:
             remotes = remotes.splitlines()
             found_remote = remotes[0]
             for remote in remotes:
@@ -215,10 +221,6 @@ class Git(VersionControl):
                     found_remote = remote
                     break
             url = found_remote.split(' ')[1]
-        except InstallationError:
-            # If the above command fails we have no git remotes. Just use the
-            # local repo path in that case instead.
-            url = 'file://' + location
         return url.strip()
 
     def get_revision(self, location):

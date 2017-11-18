@@ -331,7 +331,6 @@ def test_freeze_git_remote(script, tmpdir):
         """
     ).format(remote='file://' + repo_dir).strip()
     _check_output(result.stdout, expected)
-    # check when there are no remotes. Should report local file path.
 
 
 @need_mercurial
