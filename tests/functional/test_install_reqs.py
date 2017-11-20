@@ -484,11 +484,10 @@ def test_install_unsupported_wheel_link_with_marker(script):
     result = script.pip(
         'install', '-r', script.scratch_path / 'with-marker.txt',
         expect_error=False,
-        expect_stderr=True,
     )
 
     assert ("Ignoring asdf: markers 'sys_platform == \"xyz\"' don't match "
-            "your environment") in result.stderr
+            "your environment") in result.stdout
     assert len(result.files_created) == 0
 
 
