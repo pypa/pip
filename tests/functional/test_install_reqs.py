@@ -13,7 +13,7 @@ from tests.lib.local_repos import local_checkout
 if os.name == 'posix':
     distutils_cfg = os.path.expanduser('~/.pydistutils.cfg')
 else:
-    distutils_cfg = os.path.expanduser('~\\.pydistutils.cfg')
+    distutils_cfg = os.path.expanduser('~/pydistutils.cfg')
 
 
 @pytest.mark.network
