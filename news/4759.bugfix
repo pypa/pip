@@ -1,2 +1,2 @@
-Pip freeze now reports URL based on file system location for git
+pip freeze now reports URL based on file system location for git
 repositories with no remotes.

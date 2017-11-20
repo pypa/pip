@@ -329,7 +329,7 @@ def test_freeze_git_remote(script, tmpdir):
             ...-e git+{remote}@...#egg=version_pkg
             ...
         """
-    ).format(remote='file://' + repo_dir).strip()
+    ).format(remote='file://' + os.path.normcase(repo_dir)).strip()
     _check_output(result.stdout, expected)
 
 
