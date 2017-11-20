@@ -184,7 +184,7 @@ def test_install_editable_uninstalls_existing(data, script, tmpdir):
         'install', '-e',
         '%s#egg=pip-test-package' %
         local_checkout(
-            'git+http://github.com/pypa/pip-test-package.git',
+            'git+https://github.com/pypa/pip-test-package.git',
             tmpdir.join("cache"),
         ),
     )
