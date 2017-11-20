@@ -208,7 +208,7 @@ class Git(VersionControl):
                 ['config', '--get-regexp', r'remote\..*\.url'],
                 show_stdout=False, cwd=location,
             )
-        except InstallationError as e:
+        except InstallationError:
             # If the above command fails we have no git remotes or cannot
             # determine what they are. Just use the local repo path in that
             # case instead.
