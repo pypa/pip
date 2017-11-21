@@ -14,7 +14,7 @@ from pip._internal.exceptions import (
     CommandError, InstallationError, PreviousBuildDirError
 )
 from pip._internal.locations import (
-    distutils_scheme, running_under_virtualenv, virtualenv_no_global,
+    distutils_scheme, running_under_virtualenv, virtualenv_no_global
 )
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import RequirementSet
@@ -22,7 +22,7 @@ from pip._internal.resolve import Resolver
 from pip._internal.status_codes import ERROR
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.misc import (
-    ensure_dir, get_installed_version, guess_correct_working_scheme,
+    ensure_dir, get_installed_version, guess_correct_working_scheme
 )
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.wheel import WheelBuilder
