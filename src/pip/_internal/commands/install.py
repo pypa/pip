@@ -10,7 +10,7 @@ from pip._internal import cmdoptions
 from pip._internal.basecommand import RequirementCommand
 from pip._internal.cache import WheelCache
 from pip._internal.exceptions import (
-    CommandError, InstallationError, PreviousBuildDirError
+    CommandError, InstallationError, PreviousBuildDirError,
 )
 from pip._internal.locations import distutils_scheme, virtualenv_no_global
 from pip._internal.operations.prepare import RequirementPreparer

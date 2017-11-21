@@ -10,13 +10,13 @@ import warnings
 
 from pip._internal import cmdoptions
 from pip._internal.baseparser import (
-    ConfigOptionParser, UpdatingDefaultsHelpFormatter
+    ConfigOptionParser, UpdatingDefaultsHelpFormatter,
 )
 from pip._internal.compat import WINDOWS
 from pip._internal.download import PipSession
 from pip._internal.exceptions import (
     BadCommand, CommandError, InstallationError, PreviousBuildDirError,
-    UninstallationError
+    UninstallationError,
 )
 from pip._internal.index import PackageFinder
 from pip._internal.locations import running_under_virtualenv
@@ -24,7 +24,7 @@ from pip._internal.req.req_file import parse_requirements
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.status_codes import (
     ERROR, PREVIOUS_BUILD_DIR_ERROR, SUCCESS, UNKNOWN_ERROR,
-    VIRTUALENV_NOT_FOUND
+    VIRTUALENV_NOT_FOUND,
 )
 from pip._internal.utils import deprecation
 from pip._internal.utils.logging import IndentingFormatter

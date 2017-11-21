@@ -1,7 +1,7 @@
 import pytest
 
 from pip._internal.commands.search import (
-    SearchCommand, highest_version, print_results, transform_hits
+    SearchCommand, highest_version, print_results, transform_hits,
 )
 from pip._internal.status_codes import NO_MATCHES_FOUND, SUCCESS
 from tests.lib import pyversion
