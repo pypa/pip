@@ -241,12 +241,13 @@ class RequirementPreparer(object):
                         # When installing a wheel, we use the unpacked
                         # wheel.
                         autodelete_unpacked = False
-                unpack_url(
-                    req.link, req.source_dir,
-                    download_dir, autodelete_unpacked,
-                    session=session, hashes=hashes,
-                    progress_bar=self.progress_bar
-                )
+                with session.set_comes_from(req.comes_from):
+                    unpack_url(
+                        req.link, req.source_dir,
+                        download_dir, autodelete_unpacked,
+                        session=session, hashes=hashes,
+                        progress_bar=self.progress_bar
+                    )
             except requests.HTTPError as exc:
                 logger.critical(
                     'Could not install requirement %s because of error %s',

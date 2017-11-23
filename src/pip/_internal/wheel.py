@@ -886,9 +886,10 @@ class WheelBuilder(object):
                         req.link = index.Link(path_to_url(wheel_file))
                         assert req.link.is_wheel
                         # extract the wheel into the dir
-                        unpack_url(
-                            req.link, req.source_dir, None, False,
-                            session=session)
+                        with session.set_comes_from(req.comes_from):
+                            unpack_url(
+                                req.link, req.source_dir, None, False,
+                                session=session)
                 else:
                     build_failure.append(req)
 

@@ -1,4 +1,5 @@
 import hashlib
+import json
 import os
 from io import BytesIO
 from shutil import copy, rmtree
@@ -6,6 +7,7 @@ from tempfile import mkdtemp
 
 import pytest
 from mock import Mock, patch
+from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.six.moves.urllib import request as urllib_request
 
 import pip
@@ -15,6 +17,7 @@ from pip._internal.download import (
 )
 from pip._internal.exceptions import HashMismatch
 from pip._internal.index import Link
+from pip._internal.req import InstallRequirement
 from pip._internal.utils.hashes import Hashes
 from tests.lib import create_file
 
@@ -321,6 +324,27 @@ class TestPipSession:
 
         assert not hasattr(session.adapters["http://"], "cache")
         assert not hasattr(session.adapters["https://"], "cache")
+
+    def test_set_comes_from_with_none(self):
+        session = PipSession()
+        original = session.headers["User-Agent"]
+        with session.set_comes_from(None):
+            assert session.headers["User-Agent"] == original
+        assert session.headers["User-Agent"] == original
+
+    @pytest.mark.parametrize("comes_from,in_telemetry", [
+        ("requirement", "requirement"),
+        (InstallRequirement(Requirement("requirement"), None), "requirement"),
+    ])
+    def test_set_comes_from(self, comes_from, in_telemetry):
+        session = PipSession()
+        original = session.headers["User-Agent"]
+        with session.set_comes_from(comes_from):
+            with_comes_from = session.headers["User-Agent"]
+            telemetry = self.parse_user_agent_telemetry(with_comes_from)
+            assert "comes_from" in telemetry
+            assert telemetry["comes_from"] == in_telemetry
+        assert session.headers["User-Agent"] == original
 
     def test_cache_is_enabled(self, tmpdir):
         session = PipSession(cache=tmpdir.join("test-cache"))

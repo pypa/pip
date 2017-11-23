@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import cgi
+import contextlib
 import email.utils
 import getpass
 import json
@@ -62,7 +63,7 @@ __all__ = ['get_file_content',
 logger = logging.getLogger(__name__)
 
 
-def user_agent():
+def user_agent(comes_from=None):
     """
     Return a string representing the user agent.
     """
@@ -73,6 +74,14 @@ def user_agent():
             "name": platform.python_implementation(),
         },
     }
+
+    if comes_from is not None:
+        if isinstance(comes_from, six.string_types):
+            req = comes_from
+        else:
+            req = str(comes_from.req)
+
+        data["comes_from"] = req
 
     if data["implementation"]["name"] == 'CPython':
         data["implementation"]["version"] = platform.python_version()
@@ -385,6 +394,15 @@ class PipSession(requests.Session):
         # deemed insecure.
         for host in insecure_hosts:
             self.mount("https://{0}/".format(host), insecure_adapter)
+
+    @contextlib.contextmanager
+    def set_comes_from(self, comes_from):
+        original = self.headers["User-Agent"]
+        self.headers["User-Agent"] = user_agent(comes_from)
+        try:
+            yield
+        finally:
+            self.headers["User-Agent"] = original
 
     def request(self, method, url, *args, **kwargs):
         # Allow setting a default timeout on a session
