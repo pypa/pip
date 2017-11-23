@@ -50,10 +50,6 @@ def test_unpack_http_url_with_urllib_response_without_content_type(data):
         rmtree(temp_dir)
 
 
-def test_user_agent():
-    PipSession().headers["User-Agent"].startswith("pip/%s" % pip.__version__)
-
-
 class FakeStream(object):
 
     def __init__(self, contents):
@@ -301,6 +297,24 @@ class TestSafeFileCache:
 
 
 class TestPipSession:
+    PREAMBLE = "pip/%s" % pip.__version__
+
+    def parse_user_agent_telemetry(self, user_agent):
+        """
+        Parse out the telemetry JSON blob from a PipSession's user
+        agent.
+        """
+        telemetry_blob = user_agent.replace(self.PREAMBLE, "")
+        return json.loads(telemetry_blob)
+
+    def test_user_agent_format(self):
+        """
+        The user agent starts with the installer name and its version and
+        ends with a JSON blob of telemetry data.
+        """
+        user_agent = PipSession().headers["User-Agent"]
+        assert user_agent.startswith(self.PREAMBLE)
+        assert self.parse_user_agent_telemetry(user_agent)
 
     def test_cache_defaults_off(self):
         session = PipSession()
