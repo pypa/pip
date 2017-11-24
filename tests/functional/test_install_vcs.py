@@ -1,7 +1,7 @@
 import pytest
 
 from tests.lib import (
-    _change_test_package_version, _create_test_package, pyversion
+    _change_test_package_version, _create_test_package, pyversion,
 )
 from tests.lib.local_repos import local_checkout
 

@@ -8,7 +8,7 @@ import pytest
 
 from tests.lib import (
     _create_test_package, _create_test_package_with_srcdir, need_bzr,
-    need_mercurial
+    need_mercurial,
 )
 
 distribute_re = re.compile('^distribute==[0-9.]+\n', re.MULTILINE)

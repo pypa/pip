@@ -13,7 +13,7 @@ from pip._internal.utils.misc import rmtree
 from tests.lib import (
     _create_svn_repo, _create_test_package, create_test_package_with_setup,
     need_bzr, need_mercurial, path_to_url, pyversion, pyversion_tuple,
-    requirements_file
+    requirements_file,
 )
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path

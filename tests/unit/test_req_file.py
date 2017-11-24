@@ -9,12 +9,12 @@ from pretend import stub
 import pip._internal.index
 from pip._internal.download import PipSession
 from pip._internal.exceptions import (
-    InstallationError, RequirementsFileParseError
+    InstallationError, RequirementsFileParseError,
 )
 from pip._internal.index import PackageFinder
 from pip._internal.req.req_file import (
     break_args_options, ignore_comments, join_lines, parse_requirements,
-    preprocess, process_line, skip_regex
+    preprocess, process_line, skip_regex,
 )
 from pip._internal.req.req_install import InstallRequirement
 from tests.lib import requirements_file
