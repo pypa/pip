@@ -109,17 +109,36 @@ def rmtree(dir, ignore_errors=False):
 
 
 def rmtree_errorhandler(func, path, exc_info):
-    """On Windows, the files in .svn are read-only, so when rmtree() tries to
-    remove them, an exception is thrown.  We catch that here, remove the
-    read-only attribute, and hopefully continue without problems."""
-    # if file type currently read only
-    if os.stat(path).st_mode & stat.S_IREAD:
-        # convert to read/write
-        os.chmod(path, stat.S_IWRITE)
-        # use the original function to repeat the operation
-        func(path)
+    """Workaround for a couple of Windows specific issues.
+
+    1. The files in .svn are read-only, so when rmtree() tries to remove them,
+    an exception is thrown.  We catch that here, remove the read-only
+    attribute, and hopefully continue without problems.
+
+    2. We may get an access denied error on rmtree() causing us to retry the
+    operation, while the operation still removes the folder and the repeated
+    operation at some point encounters nothing left to remove.  We should
+    consider that a successful operation.
+
+    """
+    # if already removed - all good
+    if (isinstance(exc_info[0], EnvironmentError) and
+            exc_info[1].errno == errno.ENOENT):
         return
-    else:
+    try:
+        # if file type currently read only
+        if os.stat(path).st_mode & stat.S_IREAD:
+            # convert to read/write
+            os.chmod(path, stat.S_IWRITE)
+            # use the original function to repeat the operation
+            func(path)
+            return
+        else:
+            raise
+    except EnvironmentError as e:
+        # if already removed - all good
+        if e.errno == errno.ENOENT:
+            return
         raise
 
 
