@@ -690,7 +690,10 @@ def unpack_file_url(link, location, download_dir=None, hashes=None):
     """
     link_path = url_to_path(link.url_without_fragment)
 
-    # if a .pipignore' file location is set and exists, '#' style comments are stripped
+    # if a .pipignore' file location is set and exists, '#' style
+    # comments are stripped.  All other strings (space limited) are interpreted
+    # as glob-style pattersn to be passed to `shutil.copytree`, and are thus
+    # excluded from the file cloning operation.
     ignored = list()
     pipignore = os.environ.get('PIP_IGNORE')
     if pipignore and os.path.isfile(pipignore):
