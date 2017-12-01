@@ -15,7 +15,7 @@ from pip._internal.locations import bin_py, bin_user
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     FakeFile, ask, dist_in_usersite, dist_is_local, egg_link_path, is_local,
-    normalize_path, renames
+    normalize_path, renames,
 )
 from pip._internal.utils.temp_dir import TempDirectory
 

@@ -39,7 +39,7 @@ from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     ARCHIVE_EXTENSIONS, ask_path_exists, backup_dir, call_subprocess, consume,
     display_path, format_size, get_installed_version, rmtree, splitext,
-    unpack_file
+    unpack_file,
 )
 from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._internal.utils.temp_dir import TempDirectory

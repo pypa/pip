@@ -11,7 +11,7 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 import pip
 from pip._internal.download import (
     MultiDomainBasicAuth, PipSession, SafeFileCache, path_to_url,
-    unpack_file_url, unpack_http_url, url_to_path
+    unpack_file_url, unpack_http_url, url_to_path,
 )
 from pip._internal.exceptions import HashMismatch
 from pip._internal.index import Link

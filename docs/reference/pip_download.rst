@@ -30,8 +30,8 @@ directory). This directory can later be passed as the value to ``pip install
 ``pip download`` with the ``--platform``, ``--python-version``,
 ``--implementation``, and ``--abi`` options provides the ability to fetch
 dependencies for an interpreter and system other than the ones that pip is
-running on. ``--only-binary=:all:`` is required when using any of these
-options. It is important to note that these options all default to the
+running on. ``--only-binary=:all:`` or ``--no-deps`` is required when using any
+of these options. It is important to note that these options all default to the
 current system/interpreter, and not to the most restrictive constraints (e.g.
 platform any, abi none, etc). To avoid fetching dependencies that happen to
 match the constraint of the current interpreter (but not your target one), it

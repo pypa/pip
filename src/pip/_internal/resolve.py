@@ -15,7 +15,7 @@ from itertools import chain
 
 from pip._internal.exceptions import (
     BestVersionAlreadyInstalled, DistributionNotFound, HashError, HashErrors,
-    UnsupportedPythonVersion
+    UnsupportedPythonVersion,
 )
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.logging import indent_log

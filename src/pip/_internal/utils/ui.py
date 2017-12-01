@@ -10,7 +10,7 @@ from signal import SIGINT, default_int_handler, signal
 from pip._vendor import six
 from pip._vendor.progress.bar import (
     Bar, ChargingBar, FillingCirclesBar, FillingSquaresBar, IncrementalBar,
-    ShadyBar
+    ShadyBar,
 )
 from pip._vendor.progress.helpers import HIDE_CURSOR, SHOW_CURSOR, WritelnMixin
 from pip._vendor.progress.spinner import Spinner

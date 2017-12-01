@@ -14,7 +14,7 @@ from functools import partial
 from optparse import SUPPRESS_HELP, Option, OptionGroup
 
 from pip._internal.index import (
-    FormatControl, fmt_ctl_handle_mutual_exclude, fmt_ctl_no_binary
+    FormatControl, fmt_ctl_handle_mutual_exclude, fmt_ctl_no_binary,
 )
 from pip._internal.locations import USER_CACHE_DIR, src_prefix
 from pip._internal.models import PyPI

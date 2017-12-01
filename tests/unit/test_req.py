@@ -12,7 +12,7 @@ from pip._vendor.packaging.requirements import Requirement
 from pip._internal.commands.install import InstallCommand
 from pip._internal.download import PipSession, path_to_url
 from pip._internal.exceptions import (
-    HashErrors, InstallationError, InvalidWheelFilename, PreviousBuildDirError
+    HashErrors, InstallationError, InvalidWheelFilename, PreviousBuildDirError,
 )
 from pip._internal.index import PackageFinder
 from pip._internal.operations.prepare import RequirementPreparer

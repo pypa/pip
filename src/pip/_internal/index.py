@@ -25,7 +25,7 @@ from pip._internal.compat import ipaddress
 from pip._internal.download import HAS_TLS, is_url, path_to_url, url_to_path
 from pip._internal.exceptions import (
     BestVersionAlreadyInstalled, DistributionNotFound, InvalidWheelFilename,
-    UnsupportedWheel
+    UnsupportedWheel,
 )
 from pip._internal.models import PyPI
 from pip._internal.pep425tags import get_supported
@@ -33,7 +33,7 @@ from pip._internal.utils.deprecation import RemovedInPip11Warning
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, cached_property, normalize_path,
-    splitext
+    splitext,
 )
 from pip._internal.utils.packaging import check_requires_python
 from pip._internal.wheel import Wheel, wheel_ext
