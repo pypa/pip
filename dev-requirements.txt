@@ -1,6 +1,6 @@
 freezegun
 pretend
-pytest
+pytest<=3.2.5
 pytest-catchlog
 pytest-cov
 pytest-rerunfailures
