@@ -151,19 +151,34 @@ def test_completion_files_after_option(script, data):
     (e.g. ``pip install -r``)
     """
     res, env = setup_completion(
-        script, ('pip install -r r'),
-        '3',
-        data.complete_paths
+        script=script,
+        words=('pip install -r r'),
+        cword='3',
+        cwd=data.completion_paths,
     )
-    assert 'requirements.txt' in res.stdout,\
-        "autocomplete function could not complete <file>"\
+    assert 'requirements.txt' in res.stdout, (
+        "autocomplete function could not complete <file> "
         "after options in command"
-    assert 'README.txt' not in res.stdout,\
-        "autocomplete function completed <file> that"\
+    )
+    assert os.path.join('resources', '') in res.stdout, (
+        "autocomplete function could not complete <dir> "
+        "after options in command"
+    )
+    assert not any(out in res.stdout for out in
+                   (os.path.join('REPLAY', ''), 'README.txt')), (
+        "autocomplete function completed <file> or <dir> that "
         "should not be completed"
-    assert 'resources' in res.stdout,\
-        "autocomplete function could not complete <dir>"\
+    )
+    if sys.platform != 'win32':
+        return
+    assert 'readme.txt' in res.stdout, (
+        "autocomplete function could not complete <file> "
         "after options in command"
+    )
+    assert os.path.join('replay', '') in res.stdout, (
+        "autocomplete function could not complete <dir> "
+        "after options in command"
+    )
 
 
 def test_completion_not_files_after_option(script, data):
@@ -172,13 +187,21 @@ def test_completion_not_files_after_option(script, data):
     (e.g. ``pip install``)
     """
     res, env = setup_completion(
-        script, ('pip install r'),
-        '2',
-        data.complete_paths
+        script=script,
+        words=('pip install r'),
+        cword='2',
+        cwd=data.completion_paths,
     )
-    assert 'requirements.txt' not in res.stdout,\
-        "autocomplete function completed <file> when"\
+    assert not any(out in res.stdout for out in
+                   ('requirements.txt', 'readme.txt',)), (
+        "autocomplete function completed <file> when "
         "it should not complete"
+    )
+    assert not any(os.path.join(out, '') in res.stdout
+                   for out in ('replay', 'resources')), (
+        "autocomplete function completed <dir> when "
+        "it should not complete"
+    )
 
 
 def test_completion_directories_after_option(script, data):
@@ -187,13 +210,23 @@ def test_completion_directories_after_option(script, data):
     (e.g. ``pip --cache-dir``)
     """
     res, env = setup_completion(
-        script,
-        ('pip --cache-dir resources'),
-        '2',
-        data.complete_paths
+        script=script,
+        words=('pip --cache-dir r'),
+        cword='2',
+        cwd=data.completion_paths,
     )
-    assert os.path.join('resources', '') in res.stdout,\
+    assert os.path.join('resources', '') in res.stdout, (
         "autocomplete function could not complete <dir> after options"
+    )
+    assert not any(out in res.stdout for out in (
+        'requirements.txt', 'README.txt', os.path.join('REPLAY', ''))), (
+            "autocomplete function completed <dir> when "
+            "it should not complete"
+    )
+    if sys.platform == 'win32':
+        assert os.path.join('replay', '') in res.stdout, (
+            "autocomplete function could not complete <dir> after options"
+        )
 
 
 def test_completion_subdirectories_after_option(script, data):
@@ -202,15 +235,16 @@ def test_completion_subdirectories_after_option(script, data):
     given path of a directory
     """
     res, env = setup_completion(
-        script,
-        ('pip --cache-dir ' + os.path.join('resources', '')),
-        '2',
-        data.complete_paths
+        script=script,
+        words=('pip --cache-dir ' + os.path.join('resources', '')),
+        cword='2',
+        cwd=data.completion_paths,
     )
     assert os.path.join('resources',
-                        os.path.join('images', '')) in res.stdout,\
-        "autocomplete function could not complete <dir>"\
+                        os.path.join('images', '')) in res.stdout, (
+        "autocomplete function could not complete <dir> "
         "given path of a directory after options"
+    )
 
 
 def test_completion_path_after_option(script, data):
@@ -219,13 +253,16 @@ def test_completion_path_after_option(script, data):
     given absolute path
     """
     res, env = setup_completion(
-        script,
-        ('pip install -e ' + os.path.join(data.complete_paths, 'R')),
-        '3'
+        script=script,
+        words=('pip install -e ' + os.path.join(data.completion_paths, 'R')),
+        cword='3',
     )
-    assert os.path.join(data.complete_paths, 'README.txt') in res.stdout,\
-        "autocomplete function could not complete <path>"\
+    assert all(os.path.normcase(os.path.join(data.completion_paths, out))
+               in res.stdout for out in (
+               'README.txt', os.path.join('REPLAY', ''))), (
+        "autocomplete function could not complete <path> "
         "after options in command given absolute path"
+    )
 
 
 @pytest.mark.parametrize('flag', ['--bash', '--zsh', '--fish'])
