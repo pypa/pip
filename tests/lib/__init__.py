@@ -113,8 +113,8 @@ class TestData(object):
         return self.root.join("reqfiles")
 
     @property
-    def complete_paths(self):
-        return self.root.join("completepaths")
+    def completion_paths(self):
+        return self.root.join("completion_paths")
 
     @property
     def find_links(self):
