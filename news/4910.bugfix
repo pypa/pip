@@ -1,0 +1,6 @@
+Workaround for a Windows issue (encountered for example on Windows 10 machines,
+even with no anti-virus software installed) where a folder removal operation may
+fail while it actually does remove the folder or at least parts of it and a
+repeated operation then completes successfully. This used to cause pip to report
+failures on repeated operations due to the target folder not existing. Now such
+use-cases are treated as successful folder removals.
