@@ -885,8 +885,14 @@ def confirm_dependencies(reqs_to_uninstall):
     if not depends:
         return True
 
-    msg = "depends %s  uninstall? (y/n)" % depends
-    return ask(msg, options=('y', 'n')) == 'y'
+    for d, deps in depends:
+        msg = ("The following packages depend on "
+               "%s and may break if it is uninstalled:") % d
+        logger.info(msg)
+        for dep in deps:
+            logger.info(" " + dep)
+
+    return ask("uninstall? (y/n)", options=('y', 'n')) == 'y'
 
 
 def get_depends(reqs_to_uninstall):
