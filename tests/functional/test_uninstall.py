@@ -111,11 +111,70 @@ def test_uninstall_namespace_package(script):
     assert join(script.site_packages, 'pd') in result.files_created, (
         sorted(result.files_created.keys())
     )
-    result2 = script.pip('uninstall', 'pd.find', '-y', expect_error=True)
+    result2 = script.pip('uninstall', 'pd.requires', '-y', expect_error=True)
+    assert join(script.site_packages, 'pd') not in result2.files_deleted, (
+        sorted(result2.files_deleted.keys())
+    )
+    pd_requires_path = join(script.site_packages, 'pd', 'requires')
+    assert pd_requires_path in result2.files_deleted, (
+        sorted(result2.files_deleted.keys())
+    )
+
+
+@pytest.mark.network
+def test_uninstall_dependency(script):
+    """
+    Uninstall a distribution depended from other, answer `y` to confirmation.
+
+    """
+    result = script.pip('install', 'pd.requires==0.0.3', expect_error=True)
+    assert join(script.site_packages, 'pd') in result.files_created, (
+        sorted(result.files_created.keys())
+    )
+    result2 = script.pip('uninstall', 'pd.find', '-y',
+                         expect_error=True, stdin=b"y")
     assert join(script.site_packages, 'pd') not in result2.files_deleted, (
         sorted(result2.files_deleted.keys())
     )
     assert join(script.site_packages, 'pd', 'find') in result2.files_deleted, (
+        sorted(result2.files_deleted.keys())
+    )
+
+
+@pytest.mark.network
+def test_uninstall_dependency_no(script):
+    """
+    Not uninstalling, answer `no` to confirmation.
+
+    """
+    result = script.pip('install', 'pd.requires==0.0.3', expect_error=True)
+    assert join(script.site_packages, 'pd') in result.files_created, (
+        sorted(result.files_created.keys())
+    )
+    result2 = script.pip('uninstall', 'pd.find', '-y',
+                         expect_error=True, stdin=b"n")
+    assert not result2.files_deleted
+
+
+@pytest.mark.network
+def test_uninstall_dependency_all(script):
+    """
+    Uninstall all dependencies, no confirmation.
+    """
+    result = script.pip('install', 'pd.requires==0.0.3', expect_error=True)
+    assert join(script.site_packages, 'pd') in result.files_created, (
+        sorted(result.files_created.keys())
+    )
+    result2 = script.pip('uninstall', 'pd.requires', 'pd.find', '-y',
+                         expect_error=True, stdin=b"y")
+    assert join(script.site_packages, 'pd', 'find') in result2.files_deleted, (
+        sorted(result2.files_deleted.keys())
+    )
+    pd_requires_path = join(script.site_packages, 'pd', 'requires')
+    assert pd_requires_path in result2.files_deleted, (
+        sorted(result2.files_deleted.keys())
+    )
+    assert join(script.site_packages, 'pd') in result2.files_deleted, (
         sorted(result2.files_deleted.keys())
     )
 
