@@ -179,6 +179,31 @@ def test_uninstall_dependency_all(script):
     )
 
 
+@pytest.mark.network
+def test_uninstall_recursive_dependencies(script):
+    """
+    Uninstall recursive dependencies.
+    """
+    here = os.path.normpath(os.path.abspath(os.path.dirname(__file__)))
+    dummy1_whl = os.path.join(here, "dummy1-0.0.0-py2.py3-none-any.whl")
+    dummy2_whl = os.path.join(here, "dummy2-0.0.0-py2.py3-none-any.whl")
+    result = script.pip('install', dummy1_whl, dummy2_whl, expect_error=True)
+    assert join(script.site_packages, 'dummy1') in result.files_created, (
+        sorted(result.files_created.keys())
+    )
+    assert join(script.site_packages, 'dummy2') in result.files_created, (
+        sorted(result.files_created.keys())
+    )
+    result2 = script.pip('uninstall', 'dummy1', 'dummy2', '-y',
+                         expect_error=True, stdin=b"y")
+    assert join(script.site_packages, 'dummy1') in result2.files_deleted, (
+        sorted(result2.files_deleted.keys())
+    )
+    assert join(script.site_packages, 'dummy2') in result2.files_deleted, (
+        sorted(result2.files_deleted.keys())
+    )
+
+
 def test_uninstall_overlapping_package(script, data):
     """
     Uninstalling a distribution that adds modules to a pre-existing package
