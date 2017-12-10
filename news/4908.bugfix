@@ -1,0 +1,5 @@
+FIXED 
+UnboundLocalError: local variable 'base_url' referenced before assignment
+
+in File "c:\python27\lib\site-packages\pip\vcs\subversion.py", line 132, in get_revision
+elif not dirurl or not dirurl.startswith(base_url):
