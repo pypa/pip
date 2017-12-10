@@ -14,7 +14,7 @@ from email.parser import FeedParser
 
 from pip._vendor import pkg_resources, six
 from pip._vendor.packaging import specifiers
-from pip._vendor.packaging.markers import Marker
+from pip._vendor.packaging.markers import Marker, UndefinedEnvironmentName
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import parse as parse_version
@@ -713,14 +713,17 @@ class InstallRequirement(object):
         return name
 
     def match_markers(self, extras_requested=None):
-        if not extras_requested:
-            # Provide an extra to safely evaluate the markers
-            # without matching any extra
-            extras_requested = ('',)
+        # if not extras_requested:
+        #     # Provide an extra to safely evaluate the markers
+        #     # without matching any extra
+        #     extras_requested = ('',)
         if self.markers is not None:
-            return any(
-                self.markers.evaluate({'extra': extra})
-                for extra in extras_requested)
+            try:
+                return self.markers.evaluate()
+            except UndefinedEnvironmentName:
+                return True
+
+
         else:
             return True
 
