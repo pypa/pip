@@ -29,7 +29,7 @@ COMPLETION_SCRIPTS = {
                      COMP_CWORD=$(( cword-1 )) \\
                      PIP_AUTO_COMPLETE=1 $words[1] ) )
         }
-        compctl -K _pip_completion %(prog)s
+        compctl -K _pip_completion + -f %(prog)s
     """,
     'fish': """
         function __fish_complete_pip
