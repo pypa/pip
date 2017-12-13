@@ -712,18 +712,12 @@ class InstallRequirement(object):
         name = name.replace(os.path.sep, '/')
         return name
 
-    def match_markers(self, extras_requested=None):
-        # if not extras_requested:
-        #     # Provide an extra to safely evaluate the markers
-        #     # without matching any extra
-        #     extras_requested = ('',)
+    def match_markers(self):
         if self.markers is not None:
             try:
                 return self.markers.evaluate()
             except UndefinedEnvironmentName:
                 return True
-
-
         else:
             return True
 

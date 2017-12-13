@@ -48,8 +48,7 @@ class RequirementSet(object):
         return ('<%s object; %d requirement(s): %s>'
                 % (self.__class__.__name__, len(reqs), reqs_str))
 
-    def add_requirement(self, install_req, parent_req_name=None,
-                        extras_requested=None):
+    def add_requirement(self, install_req, parent_req_name=None):
         """Add install_req as a requirement to install.
 
         :param parent_req_name: The name of the requirement that needed this
@@ -58,14 +57,12 @@ class RequirementSet(object):
             links that point outside the Requirements set. parent_req must
             already be added. Note that None implies that this is a user
             supplied requirement, vs an inferred one.
-        :param extras_requested: an iterable of extras used to evaluate the
-            environement markers.
         :return: Additional requirements to scan. That is either [] if
             the requirement is not applicable, or [install_req] if the
             requirement is applicable and has just been added.
         """
         name = install_req.name
-        if not install_req.match_markers(extras_requested):
+        if not install_req.match_markers():
             logger.warning("Ignoring %s: markers '%s' don't match your "
                            "environment", install_req.name,
                            install_req.markers)

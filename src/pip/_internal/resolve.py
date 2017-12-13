@@ -261,7 +261,7 @@ class Resolver(object):
 
         more_reqs = []
 
-        def add_req(subreq, extras_requested):
+        def add_req(subreq):
             sub_install_req = InstallRequirement.from_req(
                 str(subreq),
                 req_to_install,
@@ -271,7 +271,6 @@ class Resolver(object):
             more_reqs.extend(
                 requirement_set.add_requirement(
                     sub_install_req, req_to_install.name,
-                    extras_requested=extras_requested
                 )
             )
 
@@ -280,7 +279,7 @@ class Resolver(object):
             # can refer to it when adding dependencies.
             if not requirement_set.has_requirement(req_to_install.name):
                 # 'unnamed' requirements will get added here
-                requirement_set.add_requirement(req_to_install, None)
+                requirement_set.add_requirement(req_to_install)
 
             if not self.ignore_dependencies:
                 if req_to_install.extras:
@@ -301,7 +300,7 @@ class Resolver(object):
                     set(dist.extras) & set(req_to_install.extras)
                 )
                 for subreq in dist.requires(available_requested):
-                    add_req(subreq, extras_requested=available_requested)
+                    add_req(subreq)
 
             if not req_to_install.editable and not req_to_install.satisfied_by:
                 # XXX: --no-install leads this to report 'Successfully
