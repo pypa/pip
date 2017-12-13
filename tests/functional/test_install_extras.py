@@ -1,3 +1,4 @@
+import sys
 import textwrap
 from os.path import join
 
@@ -126,3 +127,22 @@ def test_install_special_extra(script):
     assert (
         "Could not find a version that satisfies the requirement missing_pkg"
     ) in result.stderr, str(result)
+
+
+@pytest.mark.skipif(sys.version_info < (3, 0),
+                    reason="requires Python3")
+@pytest.mark.network
+def test_extras_with_mixed_case_name(script):
+    """
+    Test installing a package
+    """
+    extra_name = 'reST'
+    dependency_with_extra = 'django-rest-swagger[{}]==0.3.10'.format(
+        extra_name
+    )
+    result = script.pip(
+        'install', dependency_with_extra, expect_stderr=True,
+    )
+    template = """markers 'extra == "{}"' don't match your environment"""
+    error_message = template.format(extra_name)
+    assert error_message not in result.stderr
