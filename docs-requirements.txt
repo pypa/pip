@@ -1,0 +1,7 @@
+sphinx == 1.6.*
+git+https://github.com/python/python-docs-theme.git#egg=python-docs-theme
+git+https://github.com/pypa/pypa-docs-theme.git#egg=pypa-docs-theme
+
+# XXX: This is a workaround for conf.py not seeing the development pip version
+#      when the documentation is built on ReadTheDocs.
+.

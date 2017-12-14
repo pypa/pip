@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2013-2016 Vinay Sajip.
+# Copyright (C) 2013-2017 Vinay Sajip.
 # Licensed to the Python Software Foundation under a contributor agreement.
 # See LICENSE.txt and CONTRIBUTORS.txt.
 #
@@ -35,11 +35,11 @@ logger = logging.getLogger(__name__)
 
 cache = None    # created when needed
 
-if hasattr(sys, 'pypy_version_info'):
+if hasattr(sys, 'pypy_version_info'):  # pragma: no cover
     IMP_PREFIX = 'pp'
-elif sys.platform.startswith('java'):
+elif sys.platform.startswith('java'):  # pragma: no cover
     IMP_PREFIX = 'jy'
-elif sys.platform == 'cli':
+elif sys.platform == 'cli':  # pragma: no cover
     IMP_PREFIX = 'ip'
 else:
     IMP_PREFIX = 'cp'

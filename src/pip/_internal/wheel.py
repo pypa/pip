@@ -27,14 +27,14 @@ from pip._vendor.six import StringIO
 from pip._internal import pep425tags
 from pip._internal.download import path_to_url, unpack_url
 from pip._internal.exceptions import (
-    InstallationError, InvalidWheelFilename, UnsupportedWheel
+    InstallationError, InvalidWheelFilename, UnsupportedWheel,
 )
 from pip._internal.locations import (
-    PIP_DELETE_MARKER_FILENAME, distutils_scheme
+    PIP_DELETE_MARKER_FILENAME, distutils_scheme,
 )
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
-    call_subprocess, captured_stdout, ensure_dir, read_chunks
+    call_subprocess, captured_stdout, ensure_dir, read_chunks,
 )
 from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._internal.utils.temp_dir import TempDirectory
@@ -657,9 +657,8 @@ class BuildEnvironment(object):
 class WheelBuilder(object):
     """Build wheels from a RequirementSet."""
 
-    def __init__(self, requirement_set, finder, preparer, wheel_cache,
+    def __init__(self, finder, preparer, wheel_cache,
                  build_options=None, global_options=None, no_clean=False):
-        self.requirement_set = requirement_set
         self.finder = finder
         self.preparer = preparer
         self.wheel_cache = wheel_cache
@@ -791,7 +790,7 @@ class WheelBuilder(object):
             logger.error('Failed cleaning build dir for %s', req.name)
             return False
 
-    def build(self, session, autobuilding=False):
+    def build(self, requirements, session, autobuilding=False):
         """Build wheels.
 
         :param unpack: If True, replace the sdist we built from with the
@@ -805,10 +804,8 @@ class WheelBuilder(object):
         )
         assert building_is_possible
 
-        reqset = self.requirement_set.requirements.values()
-
         buildset = []
-        for req in reqset:
+        for req in requirements:
             if req.constraint:
                 continue
             if req.is_wheel:

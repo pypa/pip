@@ -24,11 +24,11 @@ from pip._vendor.pkg_resources import RequirementParseError, parse_requirements
 from pip._internal import wheel
 from pip._internal.compat import native_str
 from pip._internal.download import (
-    is_archive_file, is_url, path_to_url, url_to_path
+    is_archive_file, is_url, path_to_url, url_to_path,
 )
 from pip._internal.exceptions import InstallationError, UninstallationError
 from pip._internal.locations import (
-    PIP_DELETE_MARKER_FILENAME, running_under_virtualenv
+    PIP_DELETE_MARKER_FILENAME, running_under_virtualenv,
 )
 from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.deprecation import RemovedInPip11Warning
@@ -37,7 +37,7 @@ from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     _make_build_dir, ask_path_exists, backup_dir, call_subprocess,
     display_path, dist_in_site_packages, dist_in_usersite, ensure_dir,
-    get_installed_version, is_installable_dir, read_text_file, rmtree
+    get_installed_version, is_installable_dir, read_text_file, rmtree,
 )
 from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._internal.utils.temp_dir import TempDirectory
@@ -139,7 +139,7 @@ class InstallRequirement(object):
             try:
                 req = Requirement(name)
             except InvalidRequirement:
-                raise InstallationError("Invalid requirement: '%s'" % req)
+                raise InstallationError("Invalid requirement: '%s'" % name)
         else:
             req = None
         return cls(
@@ -648,13 +648,13 @@ class InstallRequirement(object):
 
         """
         if not self.check_if_exists():
-            raise UninstallationError(
-                "Cannot uninstall requirement %s, not installed" % (self.name,)
-            )
+            logger.warning("Skipping %s as it is not installed.", self.name)
+            return
         dist = self.satisfied_by or self.conflicts_with
 
-        self.uninstalled_pathset = UninstallPathSet.from_dist(dist)
-        self.uninstalled_pathset.remove(auto_confirm, verbose)
+        uninstalled_pathset = UninstallPathSet.from_dist(dist)
+        uninstalled_pathset.remove(auto_confirm, verbose)
+        return uninstalled_pathset
 
     def archive(self, build_dir):
         assert self.source_dir

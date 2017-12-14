@@ -14,7 +14,7 @@ from functools import partial
 from optparse import SUPPRESS_HELP, Option, OptionGroup
 
 from pip._internal.index import (
-    FormatControl, fmt_ctl_handle_mutual_exclude, fmt_ctl_no_binary
+    FormatControl, fmt_ctl_handle_mutual_exclude, fmt_ctl_no_binary,
 )
 from pip._internal.locations import USER_CACHE_DIR, src_prefix
 from pip._internal.models import PyPI
@@ -100,6 +100,15 @@ verbose = partial(
     action='count',
     default=0,
     help='Give more output. Option is additive, and can be used up to 3 times.'
+)
+
+no_color = partial(
+    Option,
+    '--no-color',
+    dest='no_color',
+    action='store_true',
+    default=False,
+    help="Suppress colored output",
 )
 
 version = partial(
@@ -569,6 +578,7 @@ general_group = {
         cache_dir,
         no_cache,
         disable_pip_version_check,
+        no_color,
     ]
 }
 

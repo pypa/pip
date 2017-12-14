@@ -29,7 +29,7 @@ from pip._internal.compat import console_to_str, expanduser, stdlib_pkgs
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import (
     running_under_virtualenv, site_packages, user_site, virtualenv_no_global,
-    write_delete_marker_file
+    write_delete_marker_file,
 )
 
 if PY2:

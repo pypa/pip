@@ -8,10 +8,10 @@ import pip._internal.pep425tags
 import pip._internal.wheel
 from pip._internal.download import PipSession
 from pip._internal.exceptions import (
-    BestVersionAlreadyInstalled, DistributionNotFound
+    BestVersionAlreadyInstalled, DistributionNotFound,
 )
 from pip._internal.index import (
-    FormatControl, InstallationCandidate, Link, PackageFinder, fmt_ctl_formats
+    FormatControl, InstallationCandidate, Link, PackageFinder, fmt_ctl_formats,
 )
 from pip._internal.req import InstallRequirement
 

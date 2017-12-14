@@ -15,7 +15,7 @@ from pip._internal.locations import bin_py, bin_user
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     FakeFile, ask, dist_in_usersite, dist_is_local, egg_link_path, is_local,
-    normalize_path, renames
+    normalize_path, renames,
 )
 from pip._internal.utils.temp_dir import TempDirectory
 
@@ -430,6 +430,9 @@ class UninstallPthEntries(object):
             endline = '\r\n'
         else:
             endline = '\n'
+        # handle missing trailing newline
+        if lines and not lines[-1].endswith(endline.encode("utf-8")):
+            lines[-1] = lines[-1] + endline.encode("utf-8")
         for entry in self.entries:
             try:
                 logger.debug('Removing entry: %s', entry)
