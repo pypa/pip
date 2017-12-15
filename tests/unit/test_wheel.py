@@ -20,7 +20,7 @@ def test_get_entrypoints(tmpdir, console_scripts):
     with open(str(entry_points), "w") as fp:
         fp.write("""
             [console_scripts]
-            {0}
+            {}
             [section]
             common:one = module:func
             common:two = module:other_func
