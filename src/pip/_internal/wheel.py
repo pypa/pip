@@ -349,7 +349,7 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
     # Ensure we don't generate any variants for scripts because this is almost
     # never what somebody wants.
     # See https://bitbucket.org/pypa/distlib/issue/35/
-    maker.variants = set(('', ))
+    maker.variants = {''}
 
     # This is required because otherwise distlib creates scripts that are not
     # executable.
@@ -578,10 +578,10 @@ class Wheel(object):
         self.plats = wheel_info.group('plat').split('.')
 
         # All the tag combinations from this file
-        self.file_tags = set(
+        self.file_tags = {
             (x, y, z) for x in self.pyversions
             for y in self.abis for z in self.plats
-        )
+        }
 
     def support_index_min(self, tags=None):
         """

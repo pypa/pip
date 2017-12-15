@@ -66,7 +66,7 @@ class InstallationCandidate(object):
         self._key = (self.project, self.version, self.location)
 
     def __repr__(self):
-        return "<InstallationCandidate({0!r}, {1!r}, {2!r})>".format(
+        return "<InstallationCandidate({!r}, {!r}, {!r})>".format(
             self.project, self.version, self.location,
         )
 
@@ -521,7 +521,7 @@ class PackageFinder(object):
                 req,
                 ', '.join(
                     sorted(
-                        set(str(c.version) for c in all_candidates),
+                        {str(c.version) for c in all_candidates},
                         key=parse_version,
                     )
                 )

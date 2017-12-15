@@ -185,15 +185,15 @@ class Command(object):
             # Disable any logging besides WARNING unless we have DEBUG level
             # logging enabled. These use both pip._vendor and the bare names
             # for the case where someone unbundles our libraries.
-            "loggers": dict(
-                (name, {
+            "loggers": {
+                name: {
                     "level": (
                         "WARNING" if level in ["INFO", "ERROR"] else "DEBUG"
                     )
-                }) for name in [
+                } for name in [
                     "pip._vendor", "distlib", "requests", "urllib3"
                 ]
-            ),
+            },
         })
 
         if sys.version_info[:2] == (3, 3):

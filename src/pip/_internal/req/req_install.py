@@ -88,9 +88,9 @@ class InstallRequirement(object):
         if extras:
             self.extras = extras
         elif req:
-            self.extras = set(
+            self.extras = {
                 pkg_resources.safe_extra(extra) for extra in req.extras
-            )
+            }
         else:
             self.extras = set()
         if markers is not None:
@@ -866,7 +866,7 @@ class InstallRequirement(object):
             global_options = list(global_options) + ["--no-user-cfg"]
 
         if prefix:
-            prefix_param = ['--prefix={0}'.format(prefix)]
+            prefix_param = ['--prefix={}'.format(prefix)]
             install_options = list(install_options) + prefix_param
 
         with indent_log():
