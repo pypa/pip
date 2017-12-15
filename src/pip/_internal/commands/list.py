@@ -167,7 +167,7 @@ class ListCommand(Command):
         dep_keys = set()
         for dist in packages:
             dep_keys.update(requirement.key for requirement in dist.requires())
-        return set(pkg for pkg in packages if pkg.key not in dep_keys)
+        return {pkg for pkg in packages if pkg.key not in dep_keys}
 
     def iter_packages_latest_infos(self, packages, options):
         index_urls = [options.index_url] + options.extra_index_urls
