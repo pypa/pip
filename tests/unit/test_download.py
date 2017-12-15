@@ -43,9 +43,9 @@ def test_unpack_http_url_with_urllib_response_without_content_type(data):
             download_dir=None,
             session=session,
         )
-        assert set(os.listdir(temp_dir)) == set([
+        assert set(os.listdir(temp_dir)) == {
             'PKG-INFO', 'setup.cfg', 'setup.py', 'simple', 'simple.egg-info'
-        ])
+        }
     finally:
         rmtree(temp_dir)
 

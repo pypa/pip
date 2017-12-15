@@ -661,7 +661,7 @@ def test_install_package_with_prefix(script, data):
     rel_prefix_path = script.scratch / 'prefix'
     install_path = (
         distutils.sysconfig.get_python_lib(prefix=rel_prefix_path) /
-        'simple-1.0-py{0}.egg-info'.format(pyversion)
+        'simple-1.0-py{}.egg-info'.format(pyversion)
     )
     assert install_path in result.files_created, str(result)
 
@@ -678,7 +678,7 @@ def test_install_editable_with_prefix(script):
 
     if hasattr(sys, "pypy_version_info"):
         site_packages = os.path.join(
-            'prefix', 'lib', 'python{0}'.format(pyversion), 'site-packages')
+            'prefix', 'lib', 'python{}'.format(pyversion), 'site-packages')
     else:
         site_packages = distutils.sysconfig.get_python_lib(prefix='prefix')
 
@@ -1008,7 +1008,7 @@ def test_install_builds_wheels(script, data, common_wheels):
     assert "Running setup.py install for wheelb" in str(res), str(res)
     # We want to make sure we used the correct implementation tag
     assert wheels == [
-        "Upper-2.0-{0}-none-any.whl".format(pep425tags.implementation_tag),
+        "Upper-2.0-{}-none-any.whl".format(pep425tags.implementation_tag),
     ]
 
 
