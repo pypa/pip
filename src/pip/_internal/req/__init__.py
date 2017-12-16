@@ -10,10 +10,11 @@ from pip._internal.utils.logging import indent_log
 
 __all__ = [
     "RequirementSet", "InstallRequirement",
-    "parse_requirements", "install_req_set",
+    "parse_requirements", "install_given_reqs",
 ]
 
 logger = logging.getLogger(__name__)
+
 
 def install_given_reqs(to_install, install_options, global_options=(),
                        *args, **kwargs):

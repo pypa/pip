@@ -272,8 +272,9 @@ class Resolver(object):
             )
             more_reqs.extend(
                 requirement_set.add_requirement(
-                    sub_install_req, req_to_install.name,
-                    extras_requested=extras_requested
+                    sub_install_req,
+                    parent_req_name=req_to_install.name,
+                    extras_requested=extras_requested,
                 )
             )
 
@@ -282,7 +283,9 @@ class Resolver(object):
             # can refer to it when adding dependencies.
             if not requirement_set.has_requirement(req_to_install.name):
                 # 'unnamed' requirements will get added here
-                requirement_set.add_requirement(req_to_install, None)
+                requirement_set.add_requirement(
+                    req_to_install, parent_req_name=None,
+                )
 
             if not self.ignore_dependencies:
                 if req_to_install.extras:
@@ -312,3 +315,30 @@ class Resolver(object):
                 requirement_set.successfully_downloaded.append(req_to_install)
 
         return more_reqs
+
+    def get_installation_order(self, req_set):
+        """Create the installation order.
+
+        The installation order is topological - requirements are installed
+        before the requiring thing. We break cycles at an arbitrary point,
+        and make no other guarantees.
+        """
+        # The current implementation, which we may change at any point
+        # installs the user specified things in the order given, except when
+        # dependencies must come earlier to achieve topological order.
+        order = []
+        ordered_reqs = set()
+
+        def schedule(req):
+            if req.satisfied_by or req in ordered_reqs:
+                return
+            if req.constraint:
+                return
+            ordered_reqs.add(req)
+            for dep in req_set._dependencies[req]:
+                schedule(dep)
+            order.append(req)
+
+        for install_req in req_set.requirements.values():
+            schedule(install_req)
+        return order

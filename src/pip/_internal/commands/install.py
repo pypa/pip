@@ -292,7 +292,9 @@ class InstallCommand(RequirementCommand):
                             session=session, autobuilding=True
                         )
 
-                    to_install = requirement_set.to_install()
+                    to_install = resolver.get_installation_order(
+                        requirement_set
+                    )
                     installed = install_given_reqs(
                         to_install,
                         install_options,

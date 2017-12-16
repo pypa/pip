@@ -169,31 +169,3 @@ class RequirementSet(object):
         with indent_log():
             for req in self.reqs_to_cleanup:
                 req.remove_temporary_source()
-
-    def to_install(self):
-        # XXX: Move into resolver
-        """Create the installation order.
-
-        The installation order is topological - requirements are installed
-        before the requiring thing. We break cycles at an arbitrary point,
-        and make no other guarantees.
-        """
-        # The current implementation, which we may change at any point
-        # installs the user specified things in the order given, except when
-        # dependencies must come earlier to achieve topological order.
-        order = []
-        ordered_reqs = set()
-
-        def schedule(req):
-            if req.satisfied_by or req in ordered_reqs:
-                return
-            if req.constraint:
-                return
-            ordered_reqs.add(req)
-            for dep in self._dependencies[req]:
-                schedule(dep)
-            order.append(req)
-
-        for install_req in self.requirements.values():
-            schedule(install_req)
-        return order
