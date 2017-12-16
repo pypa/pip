@@ -9,12 +9,12 @@ from pretend import stub
 import pip._internal.index
 from pip._internal.download import PipSession
 from pip._internal.exceptions import (
-    InstallationError, RequirementsFileParseError
+    InstallationError, RequirementsFileParseError,
 )
 from pip._internal.index import PackageFinder
 from pip._internal.req.req_file import (
     break_args_options, ignore_comments, join_lines, parse_requirements,
-    preprocess, process_line, skip_regex
+    preprocess, process_line, skip_regex,
 )
 from pip._internal.req.req_install import InstallRequirement
 from tests.lib import requirements_file
@@ -509,7 +509,7 @@ class TestParseRequirements(object):
             data.reqfiles.join("supported_options2.txt"), finder,
             session=PipSession()))
         expected = pip._internal.index.FormatControl(
-            set(['fred']), set(['wilma']))
+            {'fred'}, {'wilma'})
         assert finder.format_control == expected
 
     def test_req_file_parse_comment_start_of_line(self, tmpdir, finder):
@@ -596,5 +596,5 @@ class TestParseRequirements(object):
                 0 < args.index(global_option) < args.index('install') <
                 args.index(install_option)
             )
-        assert options.format_control.no_binary == set([':all:'])
-        assert options.format_control.only_binary == set([])
+        assert options.format_control.no_binary == {':all:'}
+        assert options.format_control.only_binary == set()

@@ -5,7 +5,7 @@ import pytest
 
 from tests.lib import (
     _create_test_package_with_subdirectory, path_to_url, pyversion,
-    requirements_file
+    requirements_file,
 )
 from tests.lib.local_repos import local_checkout
 

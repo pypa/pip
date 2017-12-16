@@ -40,7 +40,7 @@ from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     ARCHIVE_EXTENSIONS, ask_path_exists, backup_dir, call_subprocess, consume,
     display_path, format_size, get_installed_version, rmtree, splitext,
-    unpack_file
+    unpack_file,
 )
 from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._internal.utils.temp_dir import TempDirectory
@@ -394,7 +394,7 @@ class PipSession(requests.Session):
         # We want to use a non-validating adapter for any requests which are
         # deemed insecure.
         for host in insecure_hosts:
-            self.mount("https://{0}/".format(host), insecure_adapter)
+            self.mount("https://{}/".format(host), insecure_adapter)
 
     def request(self, method, url, *args, **kwargs):
         # Allow setting a default timeout on a session

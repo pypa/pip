@@ -10,7 +10,7 @@ from pip._internal import cmdoptions
 from pip._internal.basecommand import RequirementCommand
 from pip._internal.cache import WheelCache
 from pip._internal.exceptions import (
-    CommandError, InstallationError, PreviousBuildDirError
+    CommandError, InstallationError, PreviousBuildDirError,
 )
 from pip._internal.locations import distutils_scheme, virtualenv_no_global
 from pip._internal.operations.prepare import RequirementPreparer
@@ -276,22 +276,20 @@ class InstallCommand(RequirementCommand):
                     )
                     resolver.resolve(requirement_set)
 
-                    # on -d don't do complex things like building
-                    # wheels, and don't try to build wheels when wheel is
-                    # not installed.
+                    # If caching is disabled or wheel is not installed don't
+                    # try to build wheels.
                     if wheel and options.cache_dir:
                         # build wheels before install.
                         wb = WheelBuilder(
-                            requirement_set,
-                            finder,
-                            preparer,
-                            wheel_cache,
-                            build_options=[],
-                            global_options=[],
+                            finder, preparer, wheel_cache,
+                            build_options=[], global_options=[],
                         )
                         # Ignore the result: a failed wheel will be
                         # installed from the sdist/vcs whatever.
-                        wb.build(session=session, autobuilding=True)
+                        wb.build(
+                            requirement_set.requirements.values(),
+                            session=session, autobuilding=True
+                        )
 
                     installed = requirement_set.install(
                         install_options,

@@ -139,10 +139,10 @@ def test_all_fields(script):
     """
     result = script.pip('show', 'pip')
     lines = result.stdout.splitlines()
-    expected = set(['Name', 'Version', 'Summary', 'Home-page', 'Author',
-                    'Author-email', 'License', 'Location', 'Requires',
-                    'Required-by'])
-    actual = set(re.sub(':.*$', '', line) for line in lines)
+    expected = {'Name', 'Version', 'Summary', 'Home-page', 'Author',
+                'Author-email', 'License', 'Location', 'Requires',
+                'Required-by'}
+    actual = {re.sub(':.*$', '', line) for line in lines}
     assert actual == expected
 
 

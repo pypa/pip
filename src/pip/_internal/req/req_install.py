@@ -24,11 +24,11 @@ from pip._vendor.pkg_resources import RequirementParseError, parse_requirements
 from pip._internal import wheel
 from pip._internal.compat import native_str
 from pip._internal.download import (
-    is_archive_file, is_url, path_to_url, url_to_path
+    is_archive_file, is_url, path_to_url, url_to_path,
 )
 from pip._internal.exceptions import InstallationError, UninstallationError
 from pip._internal.locations import (
-    PIP_DELETE_MARKER_FILENAME, running_under_virtualenv
+    PIP_DELETE_MARKER_FILENAME, running_under_virtualenv,
 )
 from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.deprecation import RemovedInPip11Warning
@@ -37,7 +37,7 @@ from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     _make_build_dir, ask_path_exists, backup_dir, call_subprocess,
     display_path, dist_in_site_packages, dist_in_usersite, ensure_dir,
-    get_installed_version, is_installable_dir, read_text_file, rmtree
+    get_installed_version, is_installable_dir, read_text_file, rmtree,
 )
 from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._internal.utils.temp_dir import TempDirectory
@@ -88,9 +88,9 @@ class InstallRequirement(object):
         if extras:
             self.extras = extras
         elif req:
-            self.extras = set(
+            self.extras = {
                 pkg_resources.safe_extra(extra) for extra in req.extras
-            )
+            }
         else:
             self.extras = set()
         if markers is not None:
@@ -139,7 +139,7 @@ class InstallRequirement(object):
             try:
                 req = Requirement(name)
             except InvalidRequirement:
-                raise InstallationError("Invalid requirement: '%s'" % req)
+                raise InstallationError("Invalid requirement: '%s'" % name)
         else:
             req = None
         return cls(
@@ -866,7 +866,7 @@ class InstallRequirement(object):
             global_options = list(global_options) + ["--no-user-cfg"]
 
         if prefix:
-            prefix_param = ['--prefix={0}'.format(prefix)]
+            prefix_param = ['--prefix={}'.format(prefix)]
             install_options = list(install_options) + prefix_param
 
         with indent_log():

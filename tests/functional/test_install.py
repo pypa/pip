@@ -13,7 +13,7 @@ from pip._internal.utils.misc import rmtree
 from tests.lib import (
     _create_svn_repo, _create_test_package, create_test_package_with_setup,
     need_bzr, need_mercurial, path_to_url, pyversion, pyversion_tuple,
-    requirements_file
+    requirements_file,
 )
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
@@ -184,7 +184,7 @@ def test_install_editable_uninstalls_existing(data, script, tmpdir):
         'install', '-e',
         '%s#egg=pip-test-package' %
         local_checkout(
-            'git+http://github.com/pypa/pip-test-package.git',
+            'git+https://github.com/pypa/pip-test-package.git',
             tmpdir.join("cache"),
         ),
     )
@@ -661,7 +661,7 @@ def test_install_package_with_prefix(script, data):
     rel_prefix_path = script.scratch / 'prefix'
     install_path = (
         distutils.sysconfig.get_python_lib(prefix=rel_prefix_path) /
-        'simple-1.0-py{0}.egg-info'.format(pyversion)
+        'simple-1.0-py{}.egg-info'.format(pyversion)
     )
     assert install_path in result.files_created, str(result)
 
@@ -678,7 +678,7 @@ def test_install_editable_with_prefix(script):
 
     if hasattr(sys, "pypy_version_info"):
         site_packages = os.path.join(
-            'prefix', 'lib', 'python{0}'.format(pyversion), 'site-packages')
+            'prefix', 'lib', 'python{}'.format(pyversion), 'site-packages')
     else:
         site_packages = distutils.sysconfig.get_python_lib(prefix='prefix')
 
@@ -1008,7 +1008,7 @@ def test_install_builds_wheels(script, data, common_wheels):
     assert "Running setup.py install for wheelb" in str(res), str(res)
     # We want to make sure we used the correct implementation tag
     assert wheels == [
-        "Upper-2.0-{0}-none-any.whl".format(pep425tags.implementation_tag),
+        "Upper-2.0-{}-none-any.whl".format(pep425tags.implementation_tag),
     ]
 
 

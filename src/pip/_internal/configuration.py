@@ -20,7 +20,7 @@ from pip._vendor.six.moves import configparser
 from pip._internal.exceptions import ConfigurationError
 from pip._internal.locations import (
     legacy_config_file, new_config_file, running_under_virtualenv,
-    site_config_files, venv_config_file
+    site_config_files, venv_config_file,
 )
 from pip._internal.utils.misc import ensure_dir, enum
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING

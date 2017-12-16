@@ -3,6 +3,8 @@
 pip install
 -----------
 
+.. contents::
+
 Usage
 *****
 
@@ -363,7 +365,7 @@ Here are the supported forms::
     [-e] git+https://git.example.com/MyProject#egg=MyProject
     [-e] git+ssh://git.example.com/MyProject#egg=MyProject
     [-e] git+git://git.example.com/MyProject#egg=MyProject
-    [-e] git+file://git.example.com/MyProject#egg=MyProject
+    [-e] git+file:///home/user/projects/MyProject#egg=MyProject
     -e git+git@git.example.com:MyProject#egg=MyProject
 
 Passing branch names, a commit hash or a tag name is possible like so::

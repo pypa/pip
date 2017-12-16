@@ -19,6 +19,7 @@ docs/build/
 
 # Unit test / coverage reports
 .tox/
+htmlcov/
 .coverage
 .coverage.*
 .cache

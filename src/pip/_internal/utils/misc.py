@@ -29,7 +29,7 @@ from pip._internal.compat import console_to_str, expanduser, stdlib_pkgs
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import (
     running_under_virtualenv, site_packages, user_site, virtualenv_no_global,
-    write_delete_marker_file
+    write_delete_marker_file,
 )
 
 if PY2:
@@ -874,6 +874,6 @@ def consume(iterator):
 # Simulates an enum
 def enum(*sequential, **named):
     enums = dict(zip(sequential, range(len(sequential))), **named)
-    reverse = dict((value, key) for key, value in enums.items())
+    reverse = {value: key for key, value in enums.items()}
     enums['reverse_mapping'] = reverse
     return type('Enum', (), enums)

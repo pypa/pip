@@ -5,7 +5,7 @@ import pytest
 
 import pip._internal.compat
 from pip._internal.compat import (
-    console_to_str, expanduser, get_path_uid, native_str
+    console_to_str, expanduser, get_path_uid, native_str,
 )
 
 
