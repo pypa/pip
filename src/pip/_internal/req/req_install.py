@@ -63,6 +63,11 @@ def _strip_extras(path):
 
 
 class InstallRequirement(object):
+    """
+    Represents something that may be installed later on, may have information
+    about where to fetch the relavant requirement and also contains logic for
+    installing the said requirement.
+    """
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
                  link=None, update=True, pycompile=True, markers=None,

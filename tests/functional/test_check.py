@@ -8,7 +8,7 @@ def matches_expected_lines(string, expected_lines):
     return set(output_lines) == set(expected_lines)
 
 
-def test_check_clean(script):
+def test_basic_check_clean(script):
     """On a clean environment, check should print a helpful message.
 
     """
@@ -20,7 +20,7 @@ def test_check_clean(script):
     assert matches_expected_lines(result.stdout, expected_lines)
 
 
-def test_check_missing_dependency(script):
+def test_basic_check_missing_dependency(script):
     # Setup a small project
     pkga_path = create_test_package_with_setup(
         script,
@@ -39,7 +39,7 @@ def test_check_missing_dependency(script):
     assert result.returncode == 1
 
 
-def test_check_broken_dependency(script):
+def test_basic_check_broken_dependency(script):
     # Setup pkga depending on pkgb>=1.0
     pkga_path = create_test_package_with_setup(
         script,
@@ -67,7 +67,7 @@ def test_check_broken_dependency(script):
     assert result.returncode == 1
 
 
-def test_check_broken_dependency_and_missing_dependency(script):
+def test_basic_check_broken_dependency_and_missing_dependency(script):
     pkga_path = create_test_package_with_setup(
         script,
         name='pkga', version='1.0', install_requires=['broken>=1.0'],

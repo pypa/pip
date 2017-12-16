@@ -27,7 +27,7 @@ def test_download_if_requested(script):
 
 
 @pytest.mark.network
-def test_download_setuptools(script):
+def test_basic_download_setuptools(script):
     """
     It should download (in the scratch path) and not install if requested.
     """
@@ -73,7 +73,7 @@ def test_single_download_from_requirements_file(script):
 
 
 @pytest.mark.network
-def test_download_should_download_dependencies(script):
+def test_basic_download_should_download_dependencies(script):
     """
     It should download dependencies (in the scratch path)
     """

@@ -42,7 +42,7 @@ def _check_output(result, expected):
     )
 
 
-def test_freeze_basic(script):
+def test_basic_freeze(script):
     """
     Some tests of freeze, first we have to install some stuff.  Note that
     the test is a little crude at the end because Python 2.5+ adds egg
