@@ -11,12 +11,14 @@ for sub-dependencies
 """
 
 import logging
+from collections import defaultdict
 from itertools import chain
 
 from pip._internal.exceptions import (
     BestVersionAlreadyInstalled, DistributionNotFound, HashError, HashErrors,
     UnsupportedPythonVersion,
 )
+
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import dist_in_usersite, ensure_dir
@@ -55,6 +57,8 @@ class Resolver(object):
         self.ignore_installed = ignore_installed
         self.ignore_requires_python = ignore_requires_python
         self.use_user_site = use_user_site
+
+        self._discovered_dependencies = defaultdict(list)
 
     def resolve(self, requirement_set):
         """Resolve what operations need to be done
@@ -270,13 +274,17 @@ class Resolver(object):
                 isolated=self.isolated,
                 wheel_cache=self.wheel_cache,
             )
-            more_reqs.extend(
-                requirement_set.add_requirement(
-                    sub_install_req,
-                    parent_req_name=req_to_install.name,
-                    extras_requested=extras_requested,
-                )
+            parent_req_name = req_to_install.name
+            to_scan_again, add_to_parent = requirement_set.add_requirement(
+                sub_install_req,
+                parent_req_name=parent_req_name,
+                extras_requested=extras_requested,
             )
+            if parent_req_name and add_to_parent:
+                self._discovered_dependencies[parent_req_name].append(
+                    add_to_parent
+                )
+            more_reqs.extend(to_scan_again)
 
         with indent_log():
             # We add req_to_install before its dependencies, so that we
@@ -335,7 +343,7 @@ class Resolver(object):
             if req.constraint:
                 return
             ordered_reqs.add(req)
-            for dep in req_set._dependencies[req]:
+            for dep in self._discovered_dependencies[req.name]:
                 schedule(dep)
             order.append(req)
 

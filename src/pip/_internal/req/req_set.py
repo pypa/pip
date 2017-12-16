@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import logging
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.utils.logging import indent_log
@@ -32,9 +32,6 @@ class RequirementSet(object):
         self.use_user_site = use_user_site
         self.target_dir = target_dir  # set from --target option
         self.pycompile = pycompile
-        # Maps from install_req -> dependencies_of_install_req
-        # XXX: Move into resolver
-        self._dependencies = defaultdict(list)
 
     def __str__(self):
         reqs = [req for req in self.requirements.values()
@@ -70,7 +67,7 @@ class RequirementSet(object):
             logger.warning("Ignoring %s: markers '%s' don't match your "
                            "environment", install_req.name,
                            install_req.markers)
-            return []
+            return [], None
 
         # This check has to come after we filter requirements with the
         # environment markers.
@@ -90,7 +87,7 @@ class RequirementSet(object):
         if not name:
             # url or path requirement w/o an egg fragment
             self.unnamed_requirements.append(install_req)
-            return [install_req]
+            return [install_req], None
         else:
             try:
                 existing_req = self.get_requirement(name)
@@ -136,10 +133,10 @@ class RequirementSet(object):
                 # Canonicalise to the already-added object for the backref
                 # check below.
                 install_req = existing_req
-            if parent_req_name:
-                parent_req = self.get_requirement(parent_req_name)
-                self._dependencies[parent_req].append(install_req)
-            return result
+
+            # We return install_req here to allow for the caller to add it to
+            # the dependency information for the parent package.
+            return result, install_req
 
     def has_requirement(self, project_name):
         name = project_name.lower()
