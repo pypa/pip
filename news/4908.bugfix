@@ -1,1 +1,1 @@
-FIXED UnboundLocalError by changing local variable 'base_url' which was not referenced before assignment to 'base'.
+Replaced typo mistake in subversion support.
