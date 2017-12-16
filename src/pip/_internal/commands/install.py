@@ -14,7 +14,7 @@ from pip._internal.exceptions import (
 )
 from pip._internal.locations import distutils_scheme, virtualenv_no_global
 from pip._internal.operations.prepare import RequirementPreparer
-from pip._internal.req import RequirementSet
+from pip._internal.req import RequirementSet, install_given_reqs
 from pip._internal.resolve import Resolver
 from pip._internal.status_codes import ERROR
 from pip._internal.utils.filesystem import check_path_owner
@@ -292,7 +292,9 @@ class InstallCommand(RequirementCommand):
                             session=session, autobuilding=True
                         )
 
-                    installed = requirement_set.install(
+                    to_install = requirement_set.to_install()
+                    installed = install_given_reqs(
+                        to_install,
                         install_options,
                         global_options,
                         root=options.root_path,

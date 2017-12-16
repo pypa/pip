@@ -33,6 +33,7 @@ class RequirementSet(object):
         self.target_dir = target_dir  # set from --target option
         self.pycompile = pycompile
         # Maps from install_req -> dependencies_of_install_req
+        # XXX: Move into resolver
         self._dependencies = defaultdict(list)
 
     def __str__(self):
@@ -169,7 +170,8 @@ class RequirementSet(object):
             for req in self.reqs_to_cleanup:
                 req.remove_temporary_source()
 
-    def _to_install(self):
+    def to_install(self):
+        # XXX: Move into resolver
         """Create the installation order.
 
         The installation order is topological - requirements are installed
@@ -195,54 +197,3 @@ class RequirementSet(object):
         for install_req in self.requirements.values():
             schedule(install_req)
         return order
-
-    def install(self, install_options, global_options=(), *args, **kwargs):
-        """
-        Install everything in this set (after having downloaded and unpacked
-        the packages)
-        """
-        to_install = self._to_install()
-
-        if to_install:
-            logger.info(
-                'Installing collected packages: %s',
-                ', '.join([req.name for req in to_install]),
-            )
-
-        with indent_log():
-            for requirement in to_install:
-                if requirement.conflicts_with:
-                    logger.info(
-                        'Found existing installation: %s',
-                        requirement.conflicts_with,
-                    )
-                    with indent_log():
-                        uninstalled_pathset = requirement.uninstall(
-                            auto_confirm=True
-                        )
-                try:
-                    requirement.install(
-                        install_options,
-                        global_options,
-                        *args,
-                        **kwargs
-                    )
-                except:
-                    should_rollback = (
-                        requirement.conflicts_with and
-                        not requirement.install_succeeded
-                    )
-                    # if install did not succeed, rollback previous uninstall
-                    if should_rollback:
-                        uninstalled_pathset.rollback()
-                    raise
-                else:
-                    should_commit = (
-                        requirement.conflicts_with and
-                        requirement.install_succeeded
-                    )
-                    if should_commit:
-                        uninstalled_pathset.commit()
-                requirement.remove_temporary_source()
-
-        return to_install
