@@ -30,6 +30,7 @@ from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
 from pip._vendor.urllib3.util import IS_PYOPENSSL
 
 import pip
+from pip._internal.compat import WINDOWS
 from pip._internal.exceptions import HashMismatch, InstallationError
 from pip._internal.locations import write_delete_marker_file
 from pip._internal.models import PyPI
@@ -47,10 +48,15 @@ from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.ui import DownloadProgressProvider
 from pip._internal.vcs import vcs
 
-try:
-    import OpenSSL  # noqa
-except ImportError:
+if WINDOWS:
+    # We don't import OpenSSL on Windows since that might result in it loading
+    # C libraries.
     OpenSSL = None
+else:
+    try:
+        import OpenSSL  # noqa
+    except ImportError:
+        OpenSSL = None
 
 try:
     import ssl  # noqa
