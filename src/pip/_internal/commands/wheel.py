@@ -180,7 +180,6 @@ class WheelCommand(RequirementCommand):
                         finder, preparer, wheel_cache,
                         build_options=options.build_options or [],
                         global_options=options.global_options or [],
-                        no_clean=options.no_clean,
                     )
                     wheels_built_successfully = wb.build(
                         requirement_set.requirements.values(), session=session,
