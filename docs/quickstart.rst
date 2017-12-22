@@ -1,7 +1,7 @@
 Quickstart
 ==========
 
-First, :doc:`Install pip <installing>`.
+First, :doc:`install pip <installing>`.
 
 Install a package from `PyPI`_:
 
