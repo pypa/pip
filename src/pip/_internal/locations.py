@@ -10,8 +10,9 @@ import sysconfig
 from distutils import sysconfig as distutils_sysconfig
 from distutils.command.install import SCHEME_KEYS, install  # type: ignore
 
+from pip._vendor import appdirs
+
 from pip._internal.compat import WINDOWS, expanduser
-from pip._internal.utils import appdirs
 
 # Application Directories
 USER_CACHE_DIR = appdirs.user_cache_dir("pip")
@@ -125,8 +126,8 @@ else:
         bin_py = '/usr/local/bin'
 
 site_config_files = [
-    os.path.join(path, config_basename)
-    for path in appdirs.site_config_dirs('pip')
+    os.path.join(pth, config_basename)
+    for pth in appdirs.site_config_dir('pip', multipath=True).split(os.pathsep)
 ]
 
 venv_config_file = os.path.join(sys.prefix, config_basename)
