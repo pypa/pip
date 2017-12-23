@@ -48,15 +48,15 @@ from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.ui import DownloadProgressProvider
 from pip._internal.vcs import vcs
 
-if WINDOWS:
-    # We don't import OpenSSL on Windows since that might result in it loading
-    # C libraries.
-    OpenSSL = None
-else:
+OpenSSL = None
+
+# We don't try to import OpenSSL on Windows since that might result in it
+# loading C libraries, which can then not be uninstalled.
+if not WINDOWS:
     try:
         import OpenSSL  # noqa
     except ImportError:
-        OpenSSL = None
+        pass
 
 try:
     import ssl  # noqa
