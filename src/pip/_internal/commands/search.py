@@ -52,7 +52,7 @@ class SearchCommand(Command):
         if sys.stdout.isatty():
             terminal_width = get_terminal_size()[0]
 
-        print_results(hits, terminal_width=terminal_width)
+        print_results(hits, query, terminal_width=terminal_width)
         if pypi_hits:
             return SUCCESS
         return NO_MATCHES_FOUND
@@ -94,7 +94,7 @@ def transform_hits(hits):
     return list(packages.values())
 
 
-def print_results(hits, name_column_width=None, terminal_width=None):
+def print_results(hits, query, name_column_width=None, terminal_width=None):
     if not hits:
         return
     if name_column_width is None:
@@ -127,6 +127,9 @@ def print_results(hits, name_column_width=None, terminal_width=None):
                     else:
                         logger.info('INSTALLED: %s', dist.version)
                         logger.info('LATEST:    %s', latest)
+            elif name in query:
+                with indent_log():
+                    logger.info('NOT INSTALLED')
         except UnicodeEncodeError:
             pass
 
