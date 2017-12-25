@@ -184,7 +184,7 @@ class Git(VersionControl):
             logger.info(
                 'Cloning %s%s to %s', url, rev_display, display_path(dest),
             )
-            self.run_command(['clone', '-q', url, dest])
+            self.run_command(['clone', '--depth', '1', '-q', url, dest])
 
             if rev:
                 rev_options = self.check_rev_options(dest, rev_options)
