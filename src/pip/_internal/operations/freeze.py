@@ -209,7 +209,8 @@ class FrozenRequirement(object):
                     )
                 if not svn_location:
                     logger.warning(
-                        'Warning: cannot find svn location for %s', req)
+                        'Warning: cannot find svn location for %s', req,
+                    )
                     comments.append(
                         '## FIXME: could not find svn URL in dependency_links '
                         'for this package:'

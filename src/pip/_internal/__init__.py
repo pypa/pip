@@ -29,8 +29,8 @@ try:
 except ImportError:
     pass
 else:
-    if (sys.platform == "darwin" and
-            ssl.OPENSSL_VERSION_NUMBER < 0x1000100f):  # OpenSSL 1.0.1
+    # Checks for OpenSSL 1.0.1 on MacOS
+    if sys.platform == "darwin" and ssl.OPENSSL_VERSION_NUMBER < 0x1000100f:
         try:
             from pip._vendor.urllib3.contrib import securetransport
         except (ImportError, OSError):
@@ -148,7 +148,8 @@ def create_main_parser():
 
     pip_pkg_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     parser.version = 'pip %s from %s (python %s)' % (
-        __version__, pip_pkg_dir, sys.version[:3])
+        __version__, pip_pkg_dir, sys.version[:3],
+    )
 
     # add the general options
     gen_opts = cmdoptions.make_option_group(cmdoptions.general_group, parser)
