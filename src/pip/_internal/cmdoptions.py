@@ -434,10 +434,10 @@ build_dir = partial(
     '-b', '--build', '--build-dir', '--build-directory',
     dest='build_dir',
     metavar='dir',
-    help="Directory to unpack packages into and build in. "
-         "Initial build would still take place in direcotry set by TMPDIR "
-         "environment variable, (TEMP on windows) To change this behavior,"
-         "set appropriate directory by setting TMPDIR environment variable"
+    help='Directory to unpack packages into and build in. '
+         'Initial build would still take place in direcotry set by TMPDIR '
+         'environment variable, (TEMP on windows) To change this behavior,'
+         'set appropriate directory by setting TMPDIR environment variable'
 )  # type: Any
 
 ignore_requires_python = partial(
