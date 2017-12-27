@@ -1,1 +1,1 @@
-Stop unnecessary extra evaluations causing from causing errors.
+Fix bug that prevents pip from installing extras with names containing upper-case letters.
