@@ -972,7 +972,7 @@ def test_cleanup_after_failed_wheel(script, data, common_wheels):
 def test_install_builds_wheels(script, data, common_wheels):
     # We need to use a subprocess to get the right value on Windows.
     res = script.run('python', '-c', (
-        'from pip._internal.utils import appdirs; '
+        'from pip._vendor import appdirs; '
         'print(appdirs.user_cache_dir("pip"))'
     ))
     wheels_cache = os.path.join(res.stdout.rstrip('\n'), 'wheels')
