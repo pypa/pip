@@ -713,7 +713,17 @@ class InstallRequirement(object):
         return name
 
     def match_markers(self):
+
         if self.markers is not None:
+
+            # In certain situations,
+            # the parsing and evaluation of extra markers is unreliable.
+            # By the time this code is executed,
+            #  the existence of necessary extras
+            # has already been reliably determined.
+            # try/except clause forces extra marker to evaluate as True,
+            # avoiding incorrect and unnecessary evaluations.
+
             try:
                 return self.markers.evaluate()
             except UndefinedEnvironmentName:
