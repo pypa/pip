@@ -435,8 +435,8 @@ build_dir = partial(
     dest='build_dir',
     metavar='dir',
     help='Directory to unpack packages into and build in. Note that '
-        'an initial build still takes place in a temporary directory. The '
-        'location of temporary directories can be controlled by setting '
+        'an initial build still takes place in a temporary directory. '
+        'The location of temporary directories can be controlled by setting '
         'the TMPDIR environment variable (TEMP on Windows) appropriately.'
 )  # type: Any
 
