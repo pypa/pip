@@ -48,7 +48,6 @@ from pip._internal.vcs import vcs
 
 try:
     import ssl  # noqa
-
     HAS_TLS = True
 except ImportError:
     HAS_TLS = False
