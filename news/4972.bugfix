@@ -1,0 +1,1 @@
+  fixed fs encoding issues in py2 where sys.getfilesystemencoding() returns `None`
