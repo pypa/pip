@@ -128,7 +128,8 @@ def display_path(path):
     if possible."""
     path = os.path.normcase(os.path.abspath(path))
     if sys.version_info[0] == 2:
-        path = path.decode(sys.getfilesystemencoding(), 'replace')
+        fs_enc = sys.getfilesystemencoding() or 'utf-8'
+        path = path.decode(fs_enc, 'replace')
         path = path.encode(sys.getdefaultencoding(), 'replace')
     if path.startswith(os.getcwd() + os.path.sep):
         path = '.' + path[len(os.getcwd()):]

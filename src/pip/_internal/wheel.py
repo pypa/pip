@@ -85,7 +85,8 @@ def fix_script(path):
             firstline = script.readline()
             if not firstline.startswith(b'#!python'):
                 return False
-            exename = sys.executable.encode(sys.getfilesystemencoding())
+            fs_enc = sys.getfilesystemencoding() or 'utf-8'
+            exename = sys.executable.encode(fs_enc)
             firstline = b'#!' + exename + os.linesep.encode("ascii")
             rest = script.read()
         with open(path, 'wb') as script:

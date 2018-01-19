@@ -43,7 +43,8 @@ def description_of(lines, name='stdin'):
     u.close()
     result = u.result
     if PY2:
-        name = name.decode(sys.getfilesystemencoding(), 'ignore')
+        fs_enc = sys.getfilesystemencoding() or 'utf-8'
+        name = name.decode(fs_enc, 'ignore')
     if result['encoding']:
         return '{0}: {1} with confidence {2}'.format(name, result['encoding'],
                                                      result['confidence'])

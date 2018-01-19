@@ -431,7 +431,9 @@ class InstallRequirement(object):
 
         # Python2 __file__ should not be unicode
         if six.PY2 and isinstance(setup_py, six.text_type):
-            setup_py = setup_py.encode(sys.getfilesystemencoding())
+            fs_enc = sys.getfilesystemencoding()
+            if fs_enc is not None:
+                setup_py = setup_py.encode(fs_enc)
 
         return setup_py
 
@@ -443,7 +445,9 @@ class InstallRequirement(object):
 
         # Python2 __file__ should not be unicode
         if six.PY2 and isinstance(pp_toml, six.text_type):
-            pp_toml = pp_toml.encode(sys.getfilesystemencoding())
+            fs_enc = sys.getfilesystemencoding()
+            if fs_enc is not None:
+                pp_toml = pp_toml.encode(fs_enc)
 
         return pp_toml
 

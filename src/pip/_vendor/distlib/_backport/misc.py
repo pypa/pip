@@ -35,7 +35,8 @@ except AttributeError:
         if isinstance(filename, bytes):
             return filename
         elif isinstance(filename, str):
-            return filename.encode(sys.getfilesystemencoding())
+            fs_enc = sys.getfilesystemencoding() or 'utf-8'
+            return filename.encode(fs_enc)
         else:
             raise TypeError("expect bytes or str, not %s" %
                             type(filename).__name__)
