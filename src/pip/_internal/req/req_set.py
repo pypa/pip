@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class RequirementSet(object):
 
     def __init__(self,
-                 require_hashes=False, target_dir=None,
+                 require_hashes=False,
                  pycompile=True):
         """Create a RequirementSet.
 
@@ -29,7 +29,6 @@ class RequirementSet(object):
         self.unnamed_requirements = []
         self.successfully_downloaded = []
         self.reqs_to_cleanup = []
-        self.target_dir = target_dir  # set from --target option
         self.pycompile = pycompile
         # Maps from install_req -> dependencies_of_install_req
         self._dependencies = defaultdict(list)
@@ -80,7 +79,6 @@ class RequirementSet(object):
                     wheel.filename
                 )
 
-        install_req.target_dir = self.target_dir
         install_req.pycompile = self.pycompile
         install_req.is_direct = (parent_req_name is None)
 
