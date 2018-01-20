@@ -12,9 +12,7 @@ logger = logging.getLogger(__name__)
 
 class RequirementSet(object):
 
-    def __init__(self,
-                 require_hashes=False,
-                 pycompile=True):
+    def __init__(self, require_hashes=False):
         """Create a RequirementSet.
 
         :param wheel_cache: The pip wheel cache, for passing to
@@ -29,7 +27,6 @@ class RequirementSet(object):
         self.unnamed_requirements = []
         self.successfully_downloaded = []
         self.reqs_to_cleanup = []
-        self.pycompile = pycompile
         # Maps from install_req -> dependencies_of_install_req
         self._dependencies = defaultdict(list)
 
@@ -79,7 +76,6 @@ class RequirementSet(object):
                     wheel.filename
                 )
 
-        install_req.pycompile = self.pycompile
         install_req.is_direct = (parent_req_name is None)
 
         if not name:

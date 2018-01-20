@@ -70,7 +70,7 @@ class InstallRequirement(object):
     """
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
-                 link=None, update=True, pycompile=True, markers=None,
+                 link=None, update=True, markers=None,
                  isolated=False, options=None, wheel_cache=None,
                  constraint=False, extras=()):
         assert req is None or isinstance(req, Requirement), req
@@ -121,7 +121,6 @@ class InstallRequirement(object):
         # UninstallPathSet of uninstalled distribution (for possible rollback)
         self.uninstalled_pathset = None
         self.options = options if options else {}
-        self.pycompile = pycompile
         # Set to True after successful preparation of this requirement
         self.prepared = False
 
@@ -730,7 +729,7 @@ class InstallRequirement(object):
 
     def install(self, install_options, global_options=None, root=None,
                 home=None, prefix=None, warn_script_location=True,
-                use_user_site=False):
+                use_user_site=False, pycompile=True):
         global_options = global_options if global_options is not None else []
         if self.editable:
             self.install_editable(
@@ -744,7 +743,7 @@ class InstallRequirement(object):
             self.move_wheel_files(
                 self.source_dir, root=root, prefix=prefix, home=home,
                 warn_script_location=warn_script_location,
-                use_user_site=use_user_site,
+                use_user_site=use_user_site, pycompile=pycompile,
             )
             self.install_succeeded = True
             return
@@ -763,7 +762,7 @@ class InstallRequirement(object):
         with TempDirectory(kind="record") as temp_dir:
             record_filename = os.path.join(temp_dir.path, 'install-record.txt')
             install_args = self.get_install_args(
-                global_options, record_filename, root, prefix,
+                global_options, record_filename, root, prefix, pycompile,
             )
             msg = 'Running setup.py install for %s' % (self.name,)
             with open_spinner(msg) as spinner:
@@ -830,7 +829,8 @@ class InstallRequirement(object):
             self.source_dir = self.build_location(parent_dir)
         return self.source_dir
 
-    def get_install_args(self, global_options, record_filename, root, prefix):
+    def get_install_args(self, global_options, record_filename, root, prefix,
+                         pycompile):
         install_args = [sys.executable, "-u"]
         install_args.append('-c')
         install_args.append(SETUPTOOLS_SHIM % self.setup_py)
@@ -843,7 +843,7 @@ class InstallRequirement(object):
         if prefix is not None:
             install_args += ['--prefix', prefix]
 
-        if self.pycompile:
+        if pycompile:
             install_args += ["--compile"]
         else:
             install_args += ["--no-compile"]
@@ -941,14 +941,15 @@ class InstallRequirement(object):
         return self.link and self.link.is_wheel
 
     def move_wheel_files(self, wheeldir, root=None, home=None, prefix=None,
-                         warn_script_location=True, use_user_site=False):
+                         warn_script_location=True, use_user_site=False,
+                         pycompile=True):
         move_wheel_files(
             self.name, self.req, wheeldir,
             user=use_user_site,
             home=home,
             root=root,
             prefix=prefix,
-            pycompile=self.pycompile,
+            pycompile=pycompile,
             isolated=self.isolated,
             warn_script_location=warn_script_location,
         )
