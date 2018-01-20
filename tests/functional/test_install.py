@@ -104,7 +104,7 @@ def test_install_exit_status_code_when_blank_requirements_file(script):
 
 
 @pytest.mark.network
-def test_install_from_pypi(script):
+def test_basic_install_from_pypi(script):
     """
     Test installing a package from PyPI.
     """
@@ -121,7 +121,7 @@ def test_install_from_pypi(script):
     assert "Looking in links: " not in result.stdout
 
 
-def test_editable_install(script):
+def test_basic_editable_install(script):
     """
     Test editable installation.
     """
@@ -135,7 +135,7 @@ def test_editable_install(script):
 
 
 @pytest.mark.svn
-def test_install_editable_from_svn(script):
+def test_basic_install_editable_from_svn(script):
     """
     Test checking out from svn.
     """
@@ -156,7 +156,7 @@ def _test_install_editable_from_git(script, tmpdir):
     result.assert_installed('testpackage', with_files=['.git'])
 
 
-def test_install_editable_from_git(script, tmpdir):
+def test_basic_install_editable_from_git(script, tmpdir):
     _test_install_editable_from_git(script, tmpdir)
 
 
@@ -219,7 +219,7 @@ def test_install_editable_uninstalls_existing_from_path(script, data):
 
 
 @need_mercurial
-def test_install_editable_from_hg(script, tmpdir):
+def test_basic_install_editable_from_hg(script, tmpdir):
     """Test cloning from Mercurial."""
     pkg_path = _create_test_package(script, name='testpackage', vcs='hg')
     args = ['install', '-e', 'hg+%s#egg=testpackage' % path_to_url(pkg_path)]
@@ -264,7 +264,7 @@ def test_vcs_url_urlquote_normalization(script, tmpdir):
     )
 
 
-def test_install_from_local_directory(script, data):
+def test_basic_install_from_local_directory(script, data):
     """
     Test installing from a local directory.
     """
@@ -278,7 +278,7 @@ def test_install_from_local_directory(script, data):
     assert egg_info_folder in result.files_created, str(result)
 
 
-def test_install_relative_directory(script, data):
+def test_basic_install_relative_directory(script, data):
     """
     Test installing a requirement using a relative path.
     """
@@ -1190,7 +1190,7 @@ def test_install_compatible_python_requires(script, common_wheels):
     assert "Successfully installed pkga-0.1" in res.stdout, res
 
 
-def test_install_environment_markers(script):
+def test_basic_install_environment_markers(script):
     # make a dummy project
     pkga_path = script.scratch_path / 'pkga'
     pkga_path.mkdir()
