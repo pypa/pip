@@ -288,7 +288,8 @@ class Configuration(object):
                 parser.read(fname)
             except UnicodeDecodeError:
                 raise ConfigurationError((
-                    "ERROR: Configuration file contains invalid %s characters.\n"
+                    "ERROR: "
+                    "Configuration file contains invalid %s characters.\n"
                     "Please fix your configuration, located at %s\n"
                 ) % (locale.getpreferredencoding(False), fname))
         return parser
