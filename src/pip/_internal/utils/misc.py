@@ -344,7 +344,7 @@ def get_installed_distributions(local_only=True,
     ``skip`` argument is an iterable of lower-case project names to
     ignore; defaults to stdlib_pkgs
 
-    If ``editables`` is False, don't report editables.
+    If ``include_editables`` is False, don't report editables.
 
     If ``editables_only`` is True , only report editables.
 
