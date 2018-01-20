@@ -339,7 +339,7 @@ class InstallCommand(RequirementCommand):
                         message_parts.append("\n")
 
                     logger.error(
-                        "".join(message_parts), exc_info=(options.verbose > 1)
+                        "".join(message_parts), exc_info=(self.verbosity > 1)
                     )
                     return ERROR
                 except PreviousBuildDirError:
