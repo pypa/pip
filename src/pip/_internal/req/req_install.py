@@ -120,7 +120,6 @@ class InstallRequirement(object):
         self.install_succeeded = None
         # UninstallPathSet of uninstalled distribution (for possible rollback)
         self.uninstalled_pathset = None
-        self.use_user_site = False
         self.target_dir = None
         self.options = options if options else {}
         self.pycompile = pycompile
@@ -639,7 +638,8 @@ class InstallRequirement(object):
                 'Unexpected version control type (in %s): %s'
                 % (self.link, vc_type))
 
-    def uninstall(self, auto_confirm=False, verbose=False):
+    def uninstall(self, auto_confirm=False, verbose=False,
+                  use_user_site=False):
         """
         Uninstall the distribution currently satisfying this requirement.
 
@@ -652,7 +652,7 @@ class InstallRequirement(object):
         linked to global site-packages.
 
         """
-        if not self.check_if_exists():
+        if not self.check_if_exists(use_user_site):
             logger.warning("Skipping %s as it is not installed.", self.name)
             return
         dist = self.satisfied_by or self.conflicts_with
@@ -730,7 +730,7 @@ class InstallRequirement(object):
             return True
 
     def install(self, install_options, global_options=None, root=None,
-                prefix=None, warn_script_location=True):
+                prefix=None, warn_script_location=True, use_user_site=False):
         global_options = global_options if global_options is not None else []
         if self.editable:
             self.install_editable(
@@ -744,6 +744,7 @@ class InstallRequirement(object):
             self.move_wheel_files(
                 self.source_dir, root=root, prefix=prefix,
                 warn_script_location=warn_script_location,
+                use_user_site=use_user_site,
             )
             self.install_succeeded = True
             return
@@ -894,7 +895,7 @@ class InstallRequirement(object):
 
         self.install_succeeded = True
 
-    def check_if_exists(self):
+    def check_if_exists(self, use_user_site):
         """Find an installed distribution that satisfies or conflicts
         with this requirement, and set self.satisfied_by or
         self.conflicts_with appropriately.
@@ -921,7 +922,7 @@ class InstallRequirement(object):
             existing_dist = pkg_resources.get_distribution(
                 self.req.name
             )
-            if self.use_user_site:
+            if use_user_site:
                 if dist_in_usersite(existing_dist):
                     self.conflicts_with = existing_dist
                 elif (running_under_virtualenv() and
@@ -940,10 +941,10 @@ class InstallRequirement(object):
         return self.link and self.link.is_wheel
 
     def move_wheel_files(self, wheeldir, root=None, prefix=None,
-                         warn_script_location=True):
+                         warn_script_location=True, use_user_site=False):
         move_wheel_files(
             self.name, self.req, wheeldir,
-            user=self.use_user_site,
+            user=use_user_site,
             home=self.target_dir,
             root=root,
             prefix=prefix,

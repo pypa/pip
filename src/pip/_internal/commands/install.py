@@ -246,7 +246,6 @@ class InstallCommand(RequirementCommand):
                     target_dir=target_temp_dir.path,
                     pycompile=options.compile,
                     require_hashes=options.require_hashes,
-                    use_user_site=options.use_user_site,
                 )
 
                 self.populate_requirement_set(
@@ -297,6 +296,7 @@ class InstallCommand(RequirementCommand):
                         root=options.root_path,
                         prefix=options.prefix_path,
                         warn_script_location=options.warn_script_location,
+                        use_user_site=options.use_user_site,
                     )
 
                     possible_lib_locations = get_lib_location_guesses(

@@ -146,7 +146,7 @@ class Resolver(object):
         if self.ignore_installed:
             return None
 
-        req_to_install.check_if_exists()
+        req_to_install.check_if_exists(self.use_user_site)
         if not req_to_install.satisfied_by:
             return None
 
@@ -187,7 +187,7 @@ class Resolver(object):
 
         if req.editable:
             return self.preparer.prepare_editable_requirement(
-                req, self.require_hashes
+                req, self.require_hashes, self.use_user_site,
             )
 
         # satisfied_by is only evaluated by calling _check_skip_installed,
@@ -215,7 +215,7 @@ class Resolver(object):
         # pkgs repeat check_if_exists to uninstall-on-upgrade
         # (#14)
         if not self.ignore_installed:
-            req.check_if_exists()
+            req.check_if_exists(self.use_user_site)
 
         if req.satisfied_by:
             should_modify = (
