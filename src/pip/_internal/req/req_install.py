@@ -123,6 +123,7 @@ class InstallRequirement(object):
         self.options = options if options else {}
         # Set to True after successful preparation of this requirement
         self.prepared = False
+        self.is_direct = False
 
         self.isolated = isolated
 

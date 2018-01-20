@@ -76,7 +76,11 @@ class RequirementSet(object):
                     wheel.filename
                 )
 
-        install_req.is_direct = (parent_req_name is None)
+        # This next bit is really a sanity check.
+        assert install_req.is_direct == (parent_req_name is None), (
+            "a direct req shouldn't have a parent and also, "
+            "a non direct req should have a parent"
+        )
 
         if not name:
             # url or path requirement w/o an egg fragment
