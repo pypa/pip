@@ -31,8 +31,8 @@ from pip._internal.locations import (
     PIP_DELETE_MARKER_FILENAME, running_under_virtualenv,
 )
 from pip._internal.req.req_uninstall import UninstallPathSet
-from pip._internal.utils.encoding import fs_encode
 from pip._internal.utils.deprecation import RemovedInPip11Warning
+from pip._internal.utils.encoding import fs_encode
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
