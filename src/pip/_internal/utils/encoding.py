@@ -32,6 +32,7 @@ def auto_decode(data):
         locale.getpreferredencoding(False) or sys.getdefaultencoding(),
     )
 
+
 def fs_decode(data):
     """Wrapper around data.decode() using filesystem encoding
 
@@ -39,6 +40,7 @@ def fs_decode(data):
     it is used as an argument for s.decode()."""
     fs_enc = sys.getfilesystemencoding() or 'ascii'
     return data.decode(fs_enc)
+
 
 def fs_encode(data):
     """Wrapper around data.encode() using filesystem encoding
