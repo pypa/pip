@@ -26,6 +26,7 @@ from pip._vendor.six import PY2
 from pip._vendor.six.moves import input
 
 from pip._internal.compat import console_to_str, expanduser, stdlib_pkgs
+from pip._internal.utils.encoding import fs_decode
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import (
     running_under_virtualenv, site_packages, user_site, virtualenv_no_global,
@@ -128,8 +129,7 @@ def display_path(path):
     if possible."""
     path = os.path.normcase(os.path.abspath(path))
     if sys.version_info[0] == 2:
-        fs_enc = sys.getfilesystemencoding() or 'utf-8'
-        path = path.decode(fs_enc, 'replace')
+        path = fs_decode(path)
         path = path.encode(sys.getdefaultencoding(), 'replace')
     if path.startswith(os.getcwd() + os.path.sep):
         path = '.' + path[len(os.getcwd()):]

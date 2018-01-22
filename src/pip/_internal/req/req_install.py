@@ -31,6 +31,7 @@ from pip._internal.locations import (
     PIP_DELETE_MARKER_FILENAME, running_under_virtualenv,
 )
 from pip._internal.req.req_uninstall import UninstallPathSet
+from pip._internal.utils.encoding import fs_encode, fs_decode
 from pip._internal.utils.deprecation import RemovedInPip11Warning
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
@@ -431,9 +432,7 @@ class InstallRequirement(object):
 
         # Python2 __file__ should not be unicode
         if six.PY2 and isinstance(setup_py, six.text_type):
-            fs_enc = sys.getfilesystemencoding()
-            if fs_enc is not None:
-                setup_py = setup_py.encode(fs_enc)
+            setup_py = fs_encode(setup_py)
 
         return setup_py
 
@@ -445,9 +444,7 @@ class InstallRequirement(object):
 
         # Python2 __file__ should not be unicode
         if six.PY2 and isinstance(pp_toml, six.text_type):
-            fs_enc = sys.getfilesystemencoding()
-            if fs_enc is not None:
-                pp_toml = pp_toml.encode(fs_enc)
+            pp_toml = fs_encode(pp_toml)
 
         return pp_toml
 

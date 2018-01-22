@@ -32,6 +32,7 @@ from pip._internal.exceptions import (
 from pip._internal.locations import (
     PIP_DELETE_MARKER_FILENAME, distutils_scheme,
 )
+from pip._internal.utils.encoding import fs_encode
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     call_subprocess, captured_stdout, ensure_dir, read_chunks,
@@ -85,8 +86,7 @@ def fix_script(path):
             firstline = script.readline()
             if not firstline.startswith(b'#!python'):
                 return False
-            fs_enc = sys.getfilesystemencoding() or 'utf-8'
-            exename = sys.executable.encode(fs_enc)
+            exename = fs_encode(sys.executable)
             firstline = b'#!' + exename + os.linesep.encode("ascii")
             rest = script.read()
         with open(path, 'wb') as script:

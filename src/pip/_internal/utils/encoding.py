@@ -31,3 +31,19 @@ def auto_decode(data):
     return data.decode(
         locale.getpreferredencoding(False) or sys.getdefaultencoding(),
     )
+
+def fs_decode(data):
+    """Wrapper around data.decode() using filesystem encoding
+
+    sys.getfilesystemencoding() may return `None` which may cause issues when
+    it is used as an argument for s.decode()."""
+    fs_enc = sys.getfilesystemencoding() or 'ascii'
+    return data.decode(fs_enc)
+
+def fs_encode(data):
+    """Wrapper around data.encode() using filesystem encoding
+
+    sys.getfilesystemencoding() may return `None` which may cause issues when
+    it is used as an argument for s.encode()."""
+    fs_enc = sys.getfilesystemencoding() or 'ascii'
+    return data.encode(fs_enc)
