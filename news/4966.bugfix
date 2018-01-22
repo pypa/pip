@@ -1,0 +1,2 @@
+Updated pip._internal.utils.misc function get_terminal_size to use
+shutil.get_terminal_size on Python >= 3.3
