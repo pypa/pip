@@ -34,6 +34,7 @@ import sys
 import json
 import shlex
 import logging
+import argparse
 import subprocess
 
 
@@ -1074,8 +1075,6 @@ _distro = LinuxDistribution()
 
 
 def main():
-    import argparse
-
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler(sys.stdout))

@@ -38,14 +38,14 @@ def pytest_collection_modifyitems(items):
 
             # We don't want to allow using the script resource if this is a
             # unit test, as unit tests should not need all that heavy lifting
-            if set(getattr(item, "funcargnames", [])) & set(["script"]):
+            if set(getattr(item, "funcargnames", [])) & {"script"}:
                 raise RuntimeError(
                     "Cannot use the ``script`` funcarg in a unit test: "
-                    "(filename = {0}, item = {1})".format(module_path, item)
+                    "(filename = {}, item = {})".format(module_path, item)
                 )
         else:
             raise RuntimeError(
-                "Unknown test type (filename = {0})".format(module_path)
+                "Unknown test type (filename = {})".format(module_path)
             )
 
 

@@ -348,8 +348,8 @@ class PipSession(requests.Session):
             # connection got interrupted in some way. A 503 error in general
             # is typically considered a transient error so we'll go ahead and
             # retry it.
-            # A 500 may indicate transient errror in Amazon S3
-            # A 520 or 527 - may indicate transient errror in CloudFlare
+            # A 500 may indicate transient error in Amazon S3
+            # A 520 or 527 - may indicate transient error in CloudFlare
             status_forcelist=[500, 503, 520, 527],
 
             # Add a small amount of back off between failed requests in
@@ -384,7 +384,7 @@ class PipSession(requests.Session):
         # We want to use a non-validating adapter for any requests which are
         # deemed insecure.
         for host in insecure_hosts:
-            self.mount("https://{0}/".format(host), insecure_adapter)
+            self.mount("https://{}/".format(host), insecure_adapter)
 
     def request(self, method, url, *args, **kwargs):
         # Allow setting a default timeout on a session

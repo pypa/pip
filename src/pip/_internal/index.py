@@ -66,7 +66,7 @@ class InstallationCandidate(object):
         self._key = (self.project, self.version, self.location)
 
     def __repr__(self):
-        return "<InstallationCandidate({0!r}, {1!r}, {2!r})>".format(
+        return "<InstallationCandidate({!r}, {!r}, {!r})>".format(
             self.project, self.version, self.location,
         )
 
@@ -253,14 +253,16 @@ class PackageFinder(object):
                 else:
                     logger.warning(
                         "Url '%s' is ignored: it is neither a file "
-                        "nor a directory.", url)
+                        "nor a directory.", url,
+                    )
             elif is_url(url):
                 # Only add url with clear scheme
                 urls.append(url)
             else:
                 logger.warning(
                     "Url '%s' is ignored. It is either a non-existing "
-                    "path or lacks a specific scheme.", url)
+                    "path or lacks a specific scheme.", url,
+                )
 
         return files, urls
 
@@ -400,13 +402,13 @@ class PackageFinder(object):
         index_locations = self._get_index_urls_locations(project_name)
         index_file_loc, index_url_loc = self._sort_locations(index_locations)
         fl_file_loc, fl_url_loc = self._sort_locations(
-            self.find_links, expand_dir=True)
+            self.find_links, expand_dir=True,
+        )
         dep_file_loc, dep_url_loc = self._sort_locations(self.dependency_links)
 
-        file_locations = (
-            Link(url) for url in itertools.chain(
-                index_file_loc, fl_file_loc, dep_file_loc)
-        )
+        file_locations = (Link(url) for url in itertools.chain(
+            index_file_loc, fl_file_loc, dep_file_loc,
+        ))
 
         # We trust every url that the user has given us whether it was given
         #   via --index-url or --find-links
@@ -521,7 +523,7 @@ class PackageFinder(object):
                 req,
                 ', '.join(
                     sorted(
-                        set(str(c.version) for c in all_candidates),
+                        {str(c.version) for c in all_candidates},
                         key=parse_version,
                     )
                 )
@@ -632,11 +634,13 @@ class PackageFinder(object):
                 return
             if ext not in SUPPORTED_EXTENSIONS:
                 self._log_skipped_link(
-                    link, 'unsupported archive format: %s' % ext)
+                    link, 'unsupported archive format: %s' % ext,
+                )
                 return
             if "binary" not in search.formats and ext == wheel_ext:
                 self._log_skipped_link(
-                    link, 'No binaries permitted for %s' % search.supplied)
+                    link, 'No binaries permitted for %s' % search.supplied,
+                )
                 return
             if "macosx10" in link.path and ext == '.zip':
                 self._log_skipped_link(link, 'macosx10 one')
@@ -662,7 +666,8 @@ class PackageFinder(object):
         # This should be up by the search.ok_binary check, but see issue 2700.
         if "source" not in search.formats and ext != wheel_ext:
             self._log_skipped_link(
-                link, 'No sources permitted for %s' % search.supplied)
+                link, 'No sources permitted for %s' % search.supplied,
+            )
             return
 
         if not version:
@@ -829,8 +834,8 @@ class HTMLPage(object):
         except requests.HTTPError as exc:
             cls._handle_fail(link, exc, url)
         except SSLError as exc:
-            reason = ("There was a problem confirming the ssl certificate: "
-                      "%s" % exc)
+            reason = "There was a problem confirming the ssl certificate: "
+            reason += str(exc)
             cls._handle_fail(link, reason, url, meth=logger.info)
         except requests.ConnectionError as exc:
             cls._handle_fail(link, "connection error: %s" % exc, url)
@@ -1098,7 +1103,8 @@ def fmt_ctl_formats(fmt_ctl, canonical_name):
 
 def fmt_ctl_no_binary(fmt_ctl):
     fmt_ctl_handle_mutual_exclude(
-        ':all:', fmt_ctl.no_binary, fmt_ctl.only_binary)
+        ':all:', fmt_ctl.no_binary, fmt_ctl.only_binary,
+    )
 
 
 Search = namedtuple('Search', 'supplied canonical formats')

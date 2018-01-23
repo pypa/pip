@@ -4,7 +4,7 @@ import os
 import pytest
 
 
-def test_list_command(script, data):
+def test_basic_list(script, data):
     """
     Test default behavior of list command without format specifier.
 

@@ -9,7 +9,7 @@ from pip._internal.status_codes import ERROR, PREVIOUS_BUILD_DIR_ERROR
 from tests.lib import pyversion
 
 
-def test_pip_wheel_fails_without_wheel(script, data):
+def test_basic_pip_wheel_fails_without_wheel(script, data):
     """
     Test 'pip wheel' fails without wheel
     """
@@ -57,7 +57,7 @@ def test_pip_wheel_success(script, data, common_wheels):
 
 
 @pytest.mark.network
-def test_pip_wheel_downloads_wheels(script, data, common_wheels):
+def test_basic_pip_wheel_downloads_wheels(script, data, common_wheels):
     """
     Test 'pip wheel' downloads wheels
     """

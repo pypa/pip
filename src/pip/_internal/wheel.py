@@ -349,7 +349,7 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
     # Ensure we don't generate any variants for scripts because this is almost
     # never what somebody wants.
     # See https://bitbucket.org/pypa/distlib/issue/35/
-    maker.variants = set(('', ))
+    maker.variants = {''}
 
     # This is required because otherwise distlib creates scripts that are not
     # executable.
@@ -578,10 +578,10 @@ class Wheel(object):
         self.plats = wheel_info.group('plat').split('.')
 
         # All the tag combinations from this file
-        self.file_tags = set(
+        self.file_tags = {
             (x, y, z) for x in self.pyversions
             for y in self.abis for z in self.plats
-        )
+        }
 
     def support_index_min(self, tags=None):
         """
@@ -812,7 +812,8 @@ class WheelBuilder(object):
             if req.is_wheel:
                 if not autobuilding:
                     logger.info(
-                        'Skipping %s, due to already being wheel.', req.name)
+                        'Skipping %s, due to already being wheel.', req.name,
+                    )
             elif autobuilding and req.editable:
                 pass
             elif autobuilding and req.link and not req.link.is_artifact:
@@ -832,7 +833,8 @@ class WheelBuilder(object):
                             canonicalize_name(req.name)):
                         logger.info(
                             "Skipping bdist_wheel for %s, due to binaries "
-                            "being disabled for it.", req.name)
+                            "being disabled for it.", req.name,
+                        )
                         continue
                 buildset.append((req, ephem_cache))
 
@@ -893,7 +895,8 @@ class WheelBuilder(object):
                         # extract the wheel into the dir
                         unpack_url(
                             req.link, req.source_dir, None, False,
-                            session=session)
+                            session=session,
+                        )
                 else:
                     build_failure.append(req)
 

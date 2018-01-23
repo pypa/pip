@@ -344,7 +344,7 @@ def get_installed_distributions(local_only=True,
     ``skip`` argument is an iterable of lower-case project names to
     ignore; defaults to stdlib_pkgs
 
-    If ``editables`` is False, don't report editables.
+    If ``include_editables`` is False, don't report editables.
 
     If ``editables_only`` is True , only report editables.
 
@@ -679,7 +679,8 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
     try:
         proc = subprocess.Popen(
             cmd, stderr=subprocess.STDOUT, stdin=None, stdout=stdout,
-            cwd=cwd, env=env)
+            cwd=cwd, env=env,
+        )
     except Exception as exc:
         logger.critical(
             "Error %s while executing command %s", exc, command_desc,
@@ -874,6 +875,6 @@ def consume(iterator):
 # Simulates an enum
 def enum(*sequential, **named):
     enums = dict(zip(sequential, range(len(sequential))), **named)
-    reverse = dict((value, key) for key, value in enums.items())
+    reverse = {value: key for key, value in enums.items()}
     enums['reverse_mapping'] = reverse
     return type('Enum', (), enums)

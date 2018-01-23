@@ -86,7 +86,8 @@ class FreezeCommand(Command):
             isolated=options.isolated_mode,
             wheel_cache=wheel_cache,
             skip=skip,
-            exclude_editable=options.exclude_editable)
+            exclude_editable=options.exclude_editable,
+        )
 
         try:
             for line in freeze(**freeze_kwargs):

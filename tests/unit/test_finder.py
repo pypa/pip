@@ -414,7 +414,7 @@ def test_finder_only_installs_data_require(data):
     elif sys.version_info > (3, 3):
         expected.append('3.3.0')
 
-    assert set([str(v.version) for v in links]) == set(expected)
+    assert {str(v.version) for v in links} == set(expected)
 
 
 def test_finder_installs_pre_releases(data):
@@ -582,11 +582,11 @@ def test_find_all_candidates_find_links_and_index(data):
 def test_fmt_ctl_matches():
     fmt = FormatControl(set(), set())
     assert fmt_ctl_formats(fmt, "fred") == frozenset(["source", "binary"])
-    fmt = FormatControl(set(["fred"]), set())
+    fmt = FormatControl({"fred"}, set())
     assert fmt_ctl_formats(fmt, "fred") == frozenset(["source"])
-    fmt = FormatControl(set(["fred"]), set([":all:"]))
+    fmt = FormatControl({"fred"}, {":all:"})
     assert fmt_ctl_formats(fmt, "fred") == frozenset(["source"])
-    fmt = FormatControl(set(), set(["fred"]))
+    fmt = FormatControl(set(), {"fred"})
     assert fmt_ctl_formats(fmt, "fred") == frozenset(["binary"])
-    fmt = FormatControl(set([":all:"]), set(["fred"]))
+    fmt = FormatControl({":all:"}, {"fred"})
     assert fmt_ctl_formats(fmt, "fred") == frozenset(["binary"])

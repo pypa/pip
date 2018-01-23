@@ -294,7 +294,7 @@ class UninstallPathSet(object):
 
         paths_to_remove = cls(dist)
         develop_egg_link = egg_link_path(dist)
-        develop_egg_link_egg_info = '{0}.egg-info'.format(
+        develop_egg_link_egg_info = '{}.egg-info'.format(
             pkg_resources.to_filename(dist.project_name))
         egg_info_exists = dist.egg_info and os.path.exists(dist.egg_info)
         # Special case for distutils installed package
@@ -371,7 +371,8 @@ class UninstallPathSet(object):
         else:
             logger.debug(
                 'Not sure how to uninstall: %s - Check: %s',
-                dist, dist.location)
+                dist, dist.location,
+            )
 
         # find distutils scripts= scripts
         if dist.has_metadata('scripts') and dist.metadata_isdir('scripts'):

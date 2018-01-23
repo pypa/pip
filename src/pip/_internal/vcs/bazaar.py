@@ -91,7 +91,8 @@ class Bazaar(VersionControl):
 
     def get_revision(self, location):
         revision = self.run_command(
-            ['revno'], show_stdout=False, cwd=location)
+            ['revno'], show_stdout=False, cwd=location,
+        )
         return revision.splitlines()[-1]
 
     def get_src_requirement(self, dist, location):

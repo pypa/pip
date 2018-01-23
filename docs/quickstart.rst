@@ -1,7 +1,7 @@
 Quickstart
 ==========
 
-First, :doc:`Install pip <installing>`.
+First, :doc:`install pip <installing>`.
 
 Install a package from `PyPI`_:
 
@@ -11,8 +11,9 @@ Install a package from `PyPI`_:
   [...]
   Successfully installed SomePackage
 
-Install a package already downloaded from `PyPI`_ or got elsewhere.
-This is useful if the target machine does not have a network connection:
+Install a package that's already been downloaded from `PyPI`_ or
+obtained from elsewhere. This is useful if the target machine does not have a
+network connection:
 
 ::
 

@@ -63,6 +63,11 @@ def _strip_extras(path):
 
 
 class InstallRequirement(object):
+    """
+    Represents something that may be installed later on, may have information
+    about where to fetch the relavant requirement and also contains logic for
+    installing the said requirement.
+    """
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
                  link=None, update=True, pycompile=True, markers=None,
@@ -88,9 +93,9 @@ class InstallRequirement(object):
         if extras:
             self.extras = extras
         elif req:
-            self.extras = set(
+            self.extras = {
                 pkg_resources.safe_extra(extra) for extra in req.extras
-            )
+            }
         else:
             self.extras = set()
         if markers is not None:
@@ -139,7 +144,7 @@ class InstallRequirement(object):
             try:
                 req = Requirement(name)
             except InvalidRequirement:
-                raise InstallationError("Invalid requirement: '%s'" % req)
+                raise InstallationError("Invalid requirement: '%s'" % name)
         else:
             req = None
         return cls(
@@ -729,7 +734,8 @@ class InstallRequirement(object):
         global_options = global_options if global_options is not None else []
         if self.editable:
             self.install_editable(
-                install_options, global_options, prefix=prefix)
+                install_options, global_options, prefix=prefix,
+            )
             return
         if self.is_wheel:
             version = wheel.wheel_version(self.source_dir)
@@ -756,7 +762,8 @@ class InstallRequirement(object):
         with TempDirectory(kind="record") as temp_dir:
             record_filename = os.path.join(temp_dir.path, 'install-record.txt')
             install_args = self.get_install_args(
-                global_options, record_filename, root, prefix)
+                global_options, record_filename, root, prefix,
+            )
             msg = 'Running setup.py install for %s' % (self.name,)
             with open_spinner(msg) as spinner:
                 with indent_log():
@@ -866,7 +873,7 @@ class InstallRequirement(object):
             global_options = list(global_options) + ["--no-user-cfg"]
 
         if prefix:
-            prefix_param = ['--prefix={0}'.format(prefix)]
+            prefix_param = ['--prefix={}'.format(prefix)]
             install_options = list(install_options) + prefix_param
 
         with indent_log():
@@ -882,7 +889,8 @@ class InstallRequirement(object):
                 list(install_options),
 
                 cwd=self.setup_py_dir,
-                show_stdout=False)
+                show_stdout=False,
+            )
 
         self.install_succeeded = True
 
@@ -953,7 +961,8 @@ class InstallRequirement(object):
         return pkg_resources.Distribution(
             os.path.dirname(egg_info),
             project_name=dist_name,
-            metadata=metadata)
+            metadata=metadata,
+        )
 
     @property
     def has_hash_options(self):
