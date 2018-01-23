@@ -1,1 +1,0 @@
-Fixed UnicodeDecodeError on Linux which system encoding is not UTF-8.
