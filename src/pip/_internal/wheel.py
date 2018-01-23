@@ -19,7 +19,7 @@ from base64 import urlsafe_b64encode
 from email.parser import Parser
 from sysconfig import get_paths
 
-from pip._vendor import pkg_resources, pytoml
+from pip._vendor import pkg_resources
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.six import StringIO
@@ -669,23 +669,6 @@ class WheelBuilder(object):
         self.global_options = global_options or []
         self.no_clean = no_clean
 
-    def _find_build_reqs(self, req):
-        """Get a list of the packages required to build the project, if any,
-        and a flag indicating whether pyproject.toml is present, indicating
-        that the build should be isolated.
-
-        Build requirements can be specified in a pyproject.toml, as described
-        in PEP 518. If this file exists but doesn't specify build
-        requirements, pip will default to installing setuptools and wheel.
-        """
-        if os.path.isfile(req.pyproject_toml):
-            with open(req.pyproject_toml) as f:
-                pp_toml = pytoml.load(f)
-            return pp_toml.get('build-system', {})\
-                .get('requires', ['setuptools', 'wheel']), True
-
-        return ['setuptools', 'wheel'], False
-
     def _install_build_reqs(self, reqs, prefix):
         # Local import to avoid circular import (wheel <-> req_install)
         from pip._internal.req.req_install import InstallRequirement
@@ -708,7 +691,7 @@ class WheelBuilder(object):
 
         :return: The filename of the built wheel, or None if the build failed.
         """
-        build_reqs, isolate = self._find_build_reqs(req)
+        build_reqs, isolate = req.get_pep_518_info()
         if 'setuptools' not in build_reqs:
             logger.warning(
                 "This version of pip does not implement PEP 516, so "
