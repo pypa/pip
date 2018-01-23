@@ -15,6 +15,10 @@ class BuildEnvironment(object):
         self._temp_dir = TempDirectory(kind="build-env")
         self._no_clean = no_clean
 
+    @property
+    def path(self):
+        return self._temp_dir.path
+
     def __enter__(self):
         self._temp_dir.create()
 
@@ -23,8 +27,8 @@ class BuildEnvironment(object):
 
         install_scheme = 'nt' if (os.name == 'nt') else 'posix_prefix'
         install_dirs = get_paths(install_scheme, vars={
-            'base': self._temp_dir.path,
-            'platbase': self._temp_dir.path,
+            'base': self.path,
+            'platbase': self.path,
         })
 
         scripts = install_dirs['scripts']
@@ -44,7 +48,7 @@ class BuildEnvironment(object):
         else:
             os.environ['PYTHONPATH'] = lib_dirs
 
-        return self._temp_dir.path
+        return self.path
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if not self._no_clean:
