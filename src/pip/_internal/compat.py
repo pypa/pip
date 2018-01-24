@@ -6,8 +6,8 @@ import codecs
 import locale
 import logging
 import os
-import sys
 import shutil
+import sys
 
 from pip._vendor.six import text_type
 
