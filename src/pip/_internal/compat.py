@@ -192,10 +192,10 @@ def samefile(file1, file2):
     else:
         path1 = os.path.normcase(os.path.abspath(file1))
         path2 = os.path.normcase(os.path.abspath(file2))
-        return path1 == path2
-        
-        
-if sys.version_info >= (3,3):
+        return path1 == path
+
+
+if sys.version_info >= (3, 3):
     """Returns a tuple (x, y) representing the width(x) and the height(x)
     in characters of the terminal window."""
     def get_terminal_size():
