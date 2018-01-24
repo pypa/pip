@@ -192,7 +192,7 @@ def samefile(file1, file2):
     else:
         path1 = os.path.normcase(os.path.abspath(file1))
         path2 = os.path.normcase(os.path.abspath(file2))
-        return path1 == path
+        return path1 == path2
 
 
 if sys.version_info >= (3, 3):
