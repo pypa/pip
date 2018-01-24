@@ -202,7 +202,7 @@ if sys.version_info >= (3,3):
         cr = shutil.get_terminal_size()
         return int(cr[1]), int(cr[0])
 else:
-    def get_terminal_size()::
+    def get_terminal_size():
         def ioctl_GWINSZ(fd):
             try:
                 import fcntl
