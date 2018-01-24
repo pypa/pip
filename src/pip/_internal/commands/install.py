@@ -243,10 +243,7 @@ class InstallCommand(RequirementCommand):
                 options.build_dir, delete=build_delete, kind="install"
             ) as directory:
                 requirement_set = RequirementSet(
-                    target_dir=target_temp_dir.path,
-                    pycompile=options.compile,
                     require_hashes=options.require_hashes,
-                    use_user_site=options.use_user_site,
                 )
 
                 try:
@@ -300,8 +297,11 @@ class InstallCommand(RequirementCommand):
                         install_options,
                         global_options,
                         root=options.root_path,
+                        home=target_temp_dir.path,
                         prefix=options.prefix_path,
+                        pycompile=options.compile,
                         warn_script_location=options.warn_script_location,
+                        use_user_site=options.use_user_site,
                     )
 
                     possible_lib_locations = get_lib_location_guesses(

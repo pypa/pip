@@ -266,7 +266,7 @@ class RequirementPreparer(object):
                     req.archive(self.download_dir)
         return abstract_dist
 
-    def prepare_editable_requirement(self, req, require_hashes):
+    def prepare_editable_requirement(self, req, require_hashes, use_user_site):
         """Prepare an editable requirement
         """
         assert req.editable, "cannot prepare a non-editable req as editable"
@@ -288,7 +288,7 @@ class RequirementPreparer(object):
 
             if self._download_should_save:
                 req.archive(self.download_dir)
-            req.check_if_exists()
+            req.check_if_exists(use_user_site)
 
         return abstract_dist
 

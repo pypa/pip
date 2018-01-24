@@ -281,35 +281,37 @@ class RequirementCommand(Command):
         #       requirement_set.require_hashes may be updated
 
         for filename in options.constraints:
-            for req in parse_requirements(
+            for req_to_add in parse_requirements(
                     filename,
                     constraint=True, finder=finder, options=options,
                     session=session, wheel_cache=wheel_cache):
-                requirement_set.add_requirement(req)
+                req_to_add.is_direct = True
+                requirement_set.add_requirement(req_to_add)
 
         for req in args:
-            requirement_set.add_requirement(
-                InstallRequirement.from_line(
-                    req, None, isolated=options.isolated_mode,
-                    wheel_cache=wheel_cache
-                )
+            req_to_add = InstallRequirement.from_line(
+                req, None, isolated=options.isolated_mode,
+                wheel_cache=wheel_cache
             )
+            req_to_add.is_direct = True
+            requirement_set.add_requirement(req_to_add)
 
         for req in options.editables:
-            requirement_set.add_requirement(
-                InstallRequirement.from_editable(
-                    req,
-                    isolated=options.isolated_mode,
-                    wheel_cache=wheel_cache
-                )
+            req_to_add = InstallRequirement.from_editable(
+                req,
+                isolated=options.isolated_mode,
+                wheel_cache=wheel_cache
             )
+            req_to_add.is_direct = True
+            requirement_set.add_requirement(req_to_add)
 
         for filename in options.requirements:
-            for req in parse_requirements(
+            for req_to_add in parse_requirements(
                     filename,
                     finder=finder, options=options, session=session,
                     wheel_cache=wheel_cache):
-                requirement_set.add_requirement(req)
+                req_to_add.is_direct = True
+                requirement_set.add_requirement(req_to_add)
         # If --require-hashes was a line in a requirements file, tell
         # RequirementSet about it:
         requirement_set.require_hashes = options.require_hashes

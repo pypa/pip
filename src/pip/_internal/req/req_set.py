@@ -12,9 +12,7 @@ logger = logging.getLogger(__name__)
 
 class RequirementSet(object):
 
-    def __init__(self,
-                 require_hashes=False, target_dir=None, use_user_site=False,
-                 pycompile=True):
+    def __init__(self, require_hashes=False):
         """Create a RequirementSet.
 
         :param wheel_cache: The pip wheel cache, for passing to
@@ -29,9 +27,6 @@ class RequirementSet(object):
         self.unnamed_requirements = []
         self.successfully_downloaded = []
         self.reqs_to_cleanup = []
-        self.use_user_site = use_user_site
-        self.target_dir = target_dir  # set from --target option
-        self.pycompile = pycompile
 
     def __str__(self):
         reqs = [req for req in self.requirements.values()
@@ -79,10 +74,11 @@ class RequirementSet(object):
                     wheel.filename
                 )
 
-        install_req.use_user_site = self.use_user_site
-        install_req.target_dir = self.target_dir
-        install_req.pycompile = self.pycompile
-        install_req.is_direct = (parent_req_name is None)
+        # This next bit is really a sanity check.
+        assert install_req.is_direct == (parent_req_name is None), (
+            "a direct req shouldn't have a parent and also, "
+            "a non direct req should have a parent"
+        )
 
         if not name:
             # url or path requirement w/o an egg fragment
