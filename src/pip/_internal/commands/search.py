@@ -17,7 +17,7 @@ from pip._internal.exceptions import CommandError
 from pip._internal.models import PyPI
 from pip._internal.status_codes import NO_MATCHES_FOUND
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.compat import get_terminal_size
+from pip._internal.compat import get_terminal_size
 
 logger = logging.getLogger(__name__)
 
