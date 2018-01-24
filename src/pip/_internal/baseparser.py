@@ -9,7 +9,7 @@ from distutils.util import strtobool
 
 from pip._vendor.six import string_types
 
-from pip._internal.configuration import Configuration
+from pip._internal.configuration import Configuration, ConfigurationError
 from pip._internal.utils.compat import get_terminal_size
 
 logger = logging.getLogger(__name__)
@@ -177,9 +177,6 @@ class ConfigOptionParser(CustomOptionParser):
         the environ. Does a little special handling for certain types of
         options (lists)."""
 
-        # Load the configuration
-        self.config.load()
-
         # Accumulate complex default state.
         self.values = optparse.Values(self.defaults)
         late_eval = set()
@@ -223,6 +220,12 @@ class ConfigOptionParser(CustomOptionParser):
         if not self.process_default_values:
             # Old, pre-Optik 1.5 behaviour.
             return optparse.Values(self.defaults)
+
+        # Load the configuration, or error out in case of an error
+        try:
+            self.config.load()
+        except ConfigurationError as err:
+            self.exit(2, err.args[0])
 
         defaults = self._update_defaults(self.defaults.copy())  # ours
         for option in self._get_all_options():

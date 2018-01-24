@@ -89,5 +89,8 @@ class FreezeCommand(Command):
             exclude_editable=options.exclude_editable,
         )
 
-        for line in freeze(**freeze_kwargs):
-            sys.stdout.write(line + '\n')
+        try:
+            for line in freeze(**freeze_kwargs):
+                sys.stdout.write(line + '\n')
+        finally:
+            wheel_cache.cleanup()

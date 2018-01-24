@@ -11,6 +11,7 @@ Some terminology:
   A single word describing where the configuration key-value pair came from
 """
 
+import locale
 import logging
 import os
 
@@ -283,8 +284,14 @@ class Configuration(object):
         # Doing this is useful when modifying and saving files, where we don't
         # need to construct a parser.
         if os.path.exists(fname):
-            parser.read(fname)
-
+            try:
+                parser.read(fname)
+            except UnicodeDecodeError:
+                raise ConfigurationError((
+                    "ERROR: "
+                    "Configuration file contains invalid %s characters.\n"
+                    "Please fix your configuration, located at %s\n"
+                ) % (locale.getpreferredencoding(False), fname))
         return parser
 
     def _load_environment_vars(self):
