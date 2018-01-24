@@ -1,0 +1,28 @@
+diff --git a/src/pip/_vendor/appdirs.py b/src/pip/_vendor/appdirs.py
+index ae67001a..2bd39110 100644
+--- a/src/pip/_vendor/appdirs.py
++++ b/src/pip/_vendor/appdirs.py
+@@ -557,18 +557,14 @@ def _get_win_folder_with_jna(csidl_name):
+
+ if system == "win32":
+     try:
+-        import win32com.shell
+-        _get_win_folder = _get_win_folder_with_pywin32
++        from ctypes import windll
++        _get_win_folder = _get_win_folder_with_ctypes
+     except ImportError:
+         try:
+-            from ctypes import windll
+-            _get_win_folder = _get_win_folder_with_ctypes
++            import com.sun.jna
++            _get_win_folder = _get_win_folder_with_jna
+         except ImportError:
+-            try:
+-                import com.sun.jna
+-                _get_win_folder = _get_win_folder_with_jna
+-            except ImportError:
+-                _get_win_folder = _get_win_folder_from_registry
++            _get_win_folder = _get_win_folder_from_registry
+
+
+ #---- self test code
