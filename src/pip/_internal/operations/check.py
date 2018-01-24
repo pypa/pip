@@ -41,22 +41,20 @@ def check_package_set(package_set):
     conflicting = dict()
 
     for package_name in package_set:
-        assert package_name.islower(), "Should provide lowercased names"
-
         # Info about dependencies of package_name
         missing_deps = set()  # type: Set[Missing]
         conflicting_deps = set()  # type: Set[Conflicting]
 
-        for req in package_set[package_name][1]:
+        for req in package_set[package_name].requires:
             name = canonicalize_name(req.project_name)  # type: ignore
 
             # Check if it's missing
-            if name not in package_set and name not in missing_deps:
-                missing_deps.add(name)
+            if name not in package_set:
+                missing_deps.add((name, req))
                 continue
 
             # Check if there's a conflict
-            version = package_set[name][0]  # type: str
+            version = package_set[name].version  # type: str
             if version not in req.specifier:
                 conflicting_deps.add((name, version, req))
 
