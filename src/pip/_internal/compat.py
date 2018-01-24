@@ -7,6 +7,7 @@ import locale
 import logging
 import os
 import sys
+import shutil
 
 from pip._vendor.six import text_type
 
@@ -192,3 +193,38 @@ def samefile(file1, file2):
         path1 = os.path.normcase(os.path.abspath(file1))
         path2 = os.path.normcase(os.path.abspath(file2))
         return path1 == path2
+        
+        
+if sys.version_info >= (3,3):
+    """Returns a tuple (x, y) representing the width(x) and the height(x)
+    in characters of the terminal window."""
+    def get_terminal_size():
+        cr = shutil.get_terminal_size()
+        return int(cr[1]), int(cr[0])
+else:
+    def get_terminal_size()::
+        def ioctl_GWINSZ(fd):
+            try:
+                import fcntl
+                import termios
+                import struct
+                cr = struct.unpack(
+                    'hh',
+                    fcntl.ioctl(fd, termios.TIOCGWINSZ, '1234')
+                )
+            except:
+                return None
+            if cr == (0, 0):
+                return None
+            return cr
+        cr = ioctl_GWINSZ(0) or ioctl_GWINSZ(1) or ioctl_GWINSZ(2)
+        if not cr:
+            try:
+                fd = os.open(os.ctermid(), os.O_RDONLY)
+                cr = ioctl_GWINSZ(fd)
+                os.close(fd)
+            except:
+                pass
+        if not cr:
+            cr = (os.environ.get('LINES', 25), os.environ.get('COLUMNS', 80))
+        return int(cr[1]), int(cr[0])

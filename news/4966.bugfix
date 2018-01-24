@@ -1,2 +1,1 @@
-Updated pip._internal.utils.misc function get_terminal_size to use
-shutil.get_terminal_size on Python >= 3.3
+Terminal size is now correctly inferred when using Python 3 on Windows.

@@ -10,7 +10,7 @@ from distutils.util import strtobool
 from pip._vendor.six import string_types
 
 from pip._internal.configuration import Configuration
-from pip._internal.utils.misc import get_terminal_size
+from pip._internal.utils.compat import get_terminal_size
 
 logger = logging.getLogger(__name__)
 

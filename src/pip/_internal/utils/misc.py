@@ -43,7 +43,7 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'is_svn_page', 'file_contents',
            'split_leading_dir', 'has_leading_dir',
            'normalize_path',
-           'renames', 'get_terminal_size', 'get_prog',
+           'renames', 'get_prog',
            'unzip_file', 'untar_file', 'unpack_file', 'call_subprocess',
            'captured_stdout', 'ensure_dir',
            'ARCHIVE_EXTENSIONS', 'SUPPORTED_EXTENSIONS',
@@ -436,40 +436,6 @@ def dist_location(dist):
     if egg_link:
         return egg_link
     return dist.location
-
-
-def get_terminal_size():
-    """Returns a tuple (x, y) representing the width(x) and the height(x)
-    in characters of the terminal window."""
-    try:
-        from shutil import get_terminal_size
-        cr = get_terminal_size()
-    except:
-        def ioctl_GWINSZ(fd):
-            try:
-                import fcntl
-                import termios
-                import struct
-                cr = struct.unpack(
-                    'hh',
-                    fcntl.ioctl(fd, termios.TIOCGWINSZ, '1234')
-                )
-            except:
-                return None
-            if cr == (0, 0):
-                return None
-            return cr
-        cr = ioctl_GWINSZ(0) or ioctl_GWINSZ(1) or ioctl_GWINSZ(2)
-        if not cr:
-            try:
-                fd = os.open(os.ctermid(), os.O_RDONLY)
-                cr = ioctl_GWINSZ(fd)
-                os.close(fd)
-            except:
-                pass
-        if not cr:
-            cr = (os.environ.get('LINES', 25), os.environ.get('COLUMNS', 80))
-    return int(cr[1]), int(cr[0])
 
 
 def current_umask():
