@@ -3,6 +3,8 @@
 
 from collections import namedtuple
 
+from pip._vendor.packaging.utils import canonicalize_name
+
 from pip._internal.utils.misc import get_installed_distributions
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -26,7 +28,7 @@ def create_package_set_from_installed(**kwargs):
     """
     retval = {}
     for dist in get_installed_distributions(**kwargs):
-        name = dist.project_name.lower()
+        name = canonicalize_name(dist.project_name)
         retval[name] = PackageDetails(dist.version, dist.requires())
     return retval
 
@@ -46,7 +48,7 @@ def check_package_set(package_set):
         conflicting_deps = set()  # type: Set[Conflicting]
 
         for req in package_set[package_name][1]:
-            name = req.project_name.lower()  # type: ignore
+            name = canonicalize_name(req.project_name)  # type: ignore
 
             # Check if it's missing
             if name not in package_set and name not in missing_deps:
