@@ -24,7 +24,7 @@ except ImportError:
 
 __all__ = [
     "ipaddress", "uses_pycache", "console_to_str", "native_str",
-    "get_path_uid", "stdlib_pkgs", "WINDOWS", "samefile",
+    "get_path_uid", "stdlib_pkgs", "WINDOWS", "samefile", "get_terminal_size",
 ]
 
 
@@ -196,7 +196,7 @@ def samefile(file1, file2):
 
 
 if sys.version_info >= (3, 3):
-    """Returns a tuple (x, y) representing the width(x) and the height(x)
+    """Returns a tuple (x, y) representing the width(x) and the height(y)
     in characters of the terminal window."""
     def get_terminal_size():
         cr = shutil.get_terminal_size()
