@@ -187,7 +187,7 @@ class Resolver(object):
 
         if req.editable:
             return self.preparer.prepare_editable_requirement(
-                req, self.require_hashes
+                req, self.require_hashes, self.finder
             )
 
         # satisfied_by is only evaluated by calling _check_skip_installed,

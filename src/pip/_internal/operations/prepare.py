@@ -64,7 +64,7 @@ class DistAbstraction(object):
         """Return a setuptools Dist object."""
         raise NotImplementedError(self.dist)
 
-    def prep_for_dist(self):
+    def prep_for_dist(self, finder):
         """Ensure that we can get a Dist for this requirement."""
         raise NotImplementedError(self.dist)
 
@@ -75,7 +75,7 @@ class IsWheel(DistAbstraction):
         return list(pkg_resources.find_distributions(
             self.req.source_dir))[0]
 
-    def prep_for_dist(self):
+    def prep_for_dist(self, finder):
         # FIXME:https://github.com/pypa/pip/issues/1112
         pass
 
@@ -91,7 +91,7 @@ class IsSDist(DistAbstraction):
             )
         return dist
 
-    def prep_for_dist(self):
+    def prep_for_dist(self, finder):
         self.req.run_egg_info()
         self.req.assert_source_matches_version()
 
@@ -101,7 +101,7 @@ class Installed(DistAbstraction):
     def dist(self, finder):
         return self.req.satisfied_by
 
-    def prep_for_dist(self):
+    def prep_for_dist(self, finder):
         pass
 
 
@@ -259,14 +259,14 @@ class RequirementPreparer(object):
                     (req, exc, req.link)
                 )
             abstract_dist = make_abstract_dist(req)
-            abstract_dist.prep_for_dist()
+            abstract_dist.prep_for_dist(finder)
             if self._download_should_save:
                 # Make a .zip of the source_dir we already created.
                 if req.link.scheme in vcs.all_schemes:
                     req.archive(self.download_dir)
         return abstract_dist
 
-    def prepare_editable_requirement(self, req, require_hashes):
+    def prepare_editable_requirement(self, req, require_hashes, finder):
         """Prepare an editable requirement
         """
         assert req.editable, "cannot prepare a non-editable req as editable"
@@ -284,7 +284,7 @@ class RequirementPreparer(object):
             req.update_editable(not self._download_should_save)
 
             abstract_dist = make_abstract_dist(req)
-            abstract_dist.prep_for_dist()
+            abstract_dist.prep_for_dist(finder)
 
             if self._download_should_save:
                 req.archive(self.download_dir)
