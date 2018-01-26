@@ -196,13 +196,18 @@ def samefile(file1, file2):
 
 
 if sys.version_info >= (3, 3):
-    """Returns a tuple (x, y) representing the width(x) and the height(y)
-    in characters of the terminal window."""
     def get_terminal_size():
-        cr = shutil.get_terminal_size()
-        return int(cr[1]), int(cr[0])
+        """
+        Returns a tuple (x, y) representing the width(x) and the height(y)
+        in characters of the terminal window.
+        """
+        return tuple(shutil.get_terminal_size())
 else:
     def get_terminal_size():
+        """
+        Returns a tuple (x, y) representing the width(x) and the height(y)
+        in characters of the terminal window.
+        """
         def ioctl_GWINSZ(fd):
             try:
                 import fcntl
