@@ -111,7 +111,7 @@ def test_check_complicated_name_missing(script):
 
     result = script.pip('check', expect_error=True)
     expected_lines = (
-        "package-a 1.0 requires Dependency-B>=1.0, which is not installed.",
+        "package-a 1.0 requires dependency-b, which is not installed.",
     )
     assert matches_expected_lines(result.stdout, expected_lines)
 
