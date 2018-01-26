@@ -62,3 +62,6 @@ class BuildEnvironment(object):
             os.environ.pop('PYTHONPATH', None)
         else:
             os.environ['PYTHONPATH'] = self.save_pythonpath
+
+    def cleanup(self):
+        self._temp_dir.cleanup()
