@@ -11,6 +11,7 @@ from pip._internal.utils.misc import get_installed_distributions
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
+    from pip._internal.req.req_install import InstallRequirement
     from typing import Any, Dict, Iterator, Set, Tuple, List
 
     # Shorthands
@@ -20,6 +21,7 @@ if MYPY_CHECK_RUNNING:
 
     MissingDict = Dict[str, List[Missing]]
     ConflictingDict = Dict[str, List[Conflicting]]
+    CheckResult = Tuple[MissingDict, ConflictingDict]
 
 PackageDetails = namedtuple('PackageDetails', ['version', 'requires'])
 
@@ -36,7 +38,7 @@ def create_package_set_from_installed(**kwargs):
 
 
 def check_package_set(package_set):
-    # type: (PackageSet) -> Tuple[MissingDict, ConflictingDict]
+    # type: (PackageSet) -> CheckResult
     """Check if a package set is consistent
     """
     missing = dict()
@@ -69,8 +71,9 @@ def check_package_set(package_set):
 
 
 def check_install_conflicts(to_install):
+    # type: (List[InstallRequirement]) -> Tuple[PackageSet, CheckResult]
     """For checking if the dependency graph would be consistent after \
-    installing RequirementSet
+    installing given requirements
     """
     # Start from the current state
     state = create_package_set_from_installed()
@@ -82,7 +85,7 @@ def check_install_conflicts(to_install):
 # This required a minor update in dependency link handling logic over at
 # operations.prepare.IsSDist.dist() to get it working
 def _simulate_installation_of(to_install, state):
-    # type: (RequirementSet, PackageSet) -> None
+    # type: (List[InstallRequirement], PackageSet) -> None
     """Computes the version of packages after installing to_install.
     """
 

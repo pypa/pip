@@ -168,4 +168,3 @@ def test_check_complicated_name_clean(script):
         "No broken requirements found.",
     )
     assert matches_expected_lines(result.stdout, expected_lines)
-
