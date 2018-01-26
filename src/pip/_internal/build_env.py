@@ -65,3 +65,14 @@ class BuildEnvironment(object):
 
     def cleanup(self):
         self._temp_dir.cleanup()
+
+
+class FakeBuildEnvironment(BuildEnvironment):
+    def __enter__(self):
+        pass
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+        
+    def cleanup(self):
+        pass

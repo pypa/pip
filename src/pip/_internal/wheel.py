@@ -617,36 +617,12 @@ class WheelBuilder(object):
         self.global_options = global_options or []
         self.no_clean = no_clean
 
-    def _install_build_reqs(self, reqs, prefix):
-        # Local import to avoid circular import (wheel <-> req_install)
-        from pip._internal.req.req_install import InstallRequirement
-        from pip._internal.index import FormatControl
-        # Ignore the --no-binary option when installing the build system, so
-        # we don't recurse trying to build a self-hosting build system.
-        finder = copy.copy(self.finder)
-        finder.format_control = FormatControl(set(), set([":all:"]))
-        urls = [finder.find_requirement(InstallRequirement.from_line(r),
-                                        upgrade=False).url
-                for r in reqs]
-
-        args = [sys.executable, '-m', 'pip', 'install', '--ignore-installed',
-                '--prefix', prefix] + list(urls)
-        with open_spinner("Installing build dependencies") as spinner:
-            call_subprocess(args, show_stdout=False, spinner=spinner)
-
     def _build_one(self, req, output_dir, python_tag=None):
         """Build one wheel.
 
         :return: The filename of the built wheel, or None if the build failed.
         """
-        build_reqs, isolate = req.get_pep_518_info()
-        if 'setuptools' not in build_reqs:
-            logger.warning(
-                "This version of pip does not implement PEP 516, so "
-                "it cannot build a wheel without setuptools. You may need to "
-                "upgrade to a newer version of pip.")
         # Install build deps into temporary directory (PEP 518)
-            self._install_build_reqs(build_reqs, prefix)
         with req.build_environment as prefix:
             return self._build_one_inside_env(req, output_dir,
                                               python_tag=python_tag,

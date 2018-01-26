@@ -3,6 +3,10 @@
 
 import logging
 import os
+import sys
+import itertools
+
+from copy import copy
 
 from pip._vendor import pkg_resources, requests
 
@@ -16,8 +20,12 @@ from pip._internal.exceptions import (
 )
 from pip._internal.utils.hashes import MissingHashes
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import display_path, normalize_path
+from pip._internal.utils.misc import display_path, normalize_path, call_subprocess
+from pip._internal.utils.ui import open_spinner
 from pip._internal.vcs import vcs
+from pip._internal.req.req_install import InstallRequirement
+from pip._internal.index import FormatControl
+from pip._internal.build_env import FakeBuildEnvironment
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +44,19 @@ def make_abstract_dist(req):
         return IsWheel(req)
     else:
         return IsSDist(req)
+
+
+def _install_build_reqs(finder, prefix, build_requirements):
+    finder = copy(finder)
+    finder.format_control = FormatControl(set(), set([":all:"]))
+    urls = [finder.find_requirement(InstallRequirement.from_line(r),
+                                    upgrade=False).url
+            for r in build_requirements]
+    args = [sys.executable, '-m', 'pip', 'install', '--ignore-installed',
+        '--prefix', prefix] + list(urls)
+
+    with open_spinner("Installing build dependencies") as spinner:
+        call_subprocess(args, show_stdout=False, spinner=spinner)
 
 
 class DistAbstraction(object):
@@ -92,8 +113,25 @@ class IsSDist(DistAbstraction):
         return dist
 
     def prep_for_dist(self, finder):
-        self.req.run_egg_info()
-        self.req.assert_source_matches_version()
+        build_requirements, isolate = self.req.get_pep_518_info()
+
+        if 'setuptools' not in build_requirements:
+            logger.warning(
+                "This version of pip does not implement PEP 516, so "
+                "it cannot build a wheel without setuptools. You may need to "
+                "upgrade to a newer version of pip.")
+
+        if not isolate:
+            self.req.build_environment = FakeBuildEnvironment(no_clean=False)
+
+        with self.req.build_environment as prefix:
+            # Ignore the --no-binary option when installing the build system, so
+            # we don't recurse trying to build a self-hosting build system.
+            if isolate:
+                _install_build_reqs(finder, prefix, build_requirements)
+
+            self.req.run_egg_info()
+            self.req.assert_source_matches_version()
 
 
 class Installed(DistAbstraction):
