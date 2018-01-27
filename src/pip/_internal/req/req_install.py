@@ -129,7 +129,7 @@ class InstallRequirement(object):
         self.prepared = False
 
         self.isolated = isolated
-        self.build_environment = BuildEnvironment(no_clean=True)
+        self.build_env = BuildEnvironment(no_clean=True)
 
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, isolated=False,
@@ -882,7 +882,7 @@ class InstallRequirement(object):
             rmtree(self.source_dir)
         self.source_dir = None
         self._temp_build_dir.cleanup()
-        self.build_environment.cleanup()
+        self.build_env.cleanup()
 
     def install_editable(self, install_options,
                          global_options=(), prefix=None):

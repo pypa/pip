@@ -67,7 +67,7 @@ class BuildEnvironment(object):
         self._temp_dir.cleanup()
 
 
-class FakeBuildEnvironment(BuildEnvironment):
+class NoOpBuildEnvironment(BuildEnvironment):
     def __enter__(self):
         pass
 

@@ -25,7 +25,7 @@ from pip._internal.utils.ui import open_spinner
 from pip._internal.vcs import vcs
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.index import FormatControl
-from pip._internal.build_env import FakeBuildEnvironment
+from pip._internal.build_env import NoOpBuildEnvironment
 
 logger = logging.getLogger(__name__)
 
@@ -113,6 +113,9 @@ class IsSDist(DistAbstraction):
         return dist
 
     def prep_for_dist(self, finder):
+        # Before calling "setup.py egg_info", we need to set-up the build
+        # environment.
+        
         build_requirements, isolate = self.req.get_pep_518_info()
 
         if 'setuptools' not in build_requirements:
@@ -122,11 +125,9 @@ class IsSDist(DistAbstraction):
                 "upgrade to a newer version of pip.")
 
         if not isolate:
-            self.req.build_environment = FakeBuildEnvironment(no_clean=False)
+            self.req.build_env = NoOpBuildEnvironment(no_clean=False)
 
-        with self.req.build_environment as prefix:
-            # Ignore the --no-binary option when installing the build system, so
-            # we don't recurse trying to build a self-hosting build system.
+        with self.req.build_env as prefix:
             if isolate:
                 _install_build_reqs(finder, prefix, build_requirements)
 
