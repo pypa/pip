@@ -73,6 +73,6 @@ class NoOpBuildEnvironment(BuildEnvironment):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
-        
+
     def cleanup(self):
         pass

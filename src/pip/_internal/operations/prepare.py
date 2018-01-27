@@ -49,11 +49,15 @@ def make_abstract_dist(req):
 def _install_build_reqs(finder, prefix, build_requirements):
     finder = copy(finder)
     finder.format_control = FormatControl(set(), set([":all:"]))
-    urls = [finder.find_requirement(InstallRequirement.from_line(r),
-                                    upgrade=False).url
-            for r in build_requirements]
-    args = [sys.executable, '-m', 'pip', 'install', '--ignore-installed',
-        '--prefix', prefix] + list(urls)
+    urls = [
+        finder.find_requirement(
+            InstallRequirement.from_line(r), upgrade=False).url
+        for r in build_requirements
+    ]
+    args = [
+        sys.executable, '-m', 'pip', 'install', '--ignore-installed',
+        '--prefix', prefix
+    ] + list(urls)
 
     with open_spinner("Installing build dependencies") as spinner:
         call_subprocess(args, show_stdout=False, spinner=spinner)
@@ -115,7 +119,7 @@ class IsSDist(DistAbstraction):
     def prep_for_dist(self, finder):
         # Before calling "setup.py egg_info", we need to set-up the build
         # environment.
-        
+
         build_requirements, isolate = self.req.get_pep_518_info()
 
         if 'setuptools' not in build_requirements:
