@@ -623,7 +623,7 @@ class WheelBuilder(object):
         :return: The filename of the built wheel, or None if the build failed.
         """
         # Install build deps into temporary directory (PEP 518)
-        with req.build_environment as prefix:
+        with req.build_environment:
             return self._build_one_inside_env(req, output_dir,
                                               python_tag=python_tag,
                                               isolate=True)
