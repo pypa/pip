@@ -68,6 +68,9 @@ class BuildEnvironment(object):
 
 
 class NoOpBuildEnvironment(BuildEnvironment):
+    def __init__(self, no_clean):
+        pass
+
     def __enter__(self):
         pass
 
