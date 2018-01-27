@@ -1,15 +1,15 @@
 """Prepares a distribution for installation
 """
 
+import itertools
 import logging
 import os
 import sys
-import itertools
-
 from copy import copy
 
 from pip._vendor import pkg_resources, requests
 
+from pip._internal.build_env import NoOpBuildEnvironment
 from pip._internal.compat import expanduser
 from pip._internal.download import (
     is_dir_url, is_file_url, is_vcs_url, unpack_url, url_to_path,
@@ -18,14 +18,15 @@ from pip._internal.exceptions import (
     DirectoryUrlHashUnsupported, HashUnpinned, InstallationError,
     PreviousBuildDirError, VcsHashUnsupported,
 )
+from pip._internal.index import FormatControl
+from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.hashes import MissingHashes
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import display_path, normalize_path, call_subprocess
+from pip._internal.utils.misc import (
+    call_subprocess, display_path, normalize_path,
+)
 from pip._internal.utils.ui import open_spinner
 from pip._internal.vcs import vcs
-from pip._internal.req.req_install import InstallRequirement
-from pip._internal.index import FormatControl
-from pip._internal.build_env import NoOpBuildEnvironment
 
 logger = logging.getLogger(__name__)
 
