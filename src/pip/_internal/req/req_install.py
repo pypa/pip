@@ -897,19 +897,20 @@ class InstallRequirement(object):
 
         with indent_log():
             # FIXME: should we do --install-headers here too?
-            call_subprocess(
-                [
-                    sys.executable,
-                    '-c',
-                    SETUPTOOLS_SHIM % self.setup_py
-                ] +
-                list(global_options) +
-                ['develop', '--no-deps'] +
-                list(install_options),
+            with self.build_env:
+                call_subprocess(
+                    [
+                        sys.executable,
+                        '-c',
+                        SETUPTOOLS_SHIM % self.setup_py
+                    ] +
+                    list(global_options) +
+                    ['develop', '--no-deps'] +
+                    list(install_options),
 
-                cwd=self.setup_py_dir,
-                show_stdout=False,
-            )
+                    cwd=self.setup_py_dir,
+                    show_stdout=False,
+                )
 
         self.install_succeeded = True
 
