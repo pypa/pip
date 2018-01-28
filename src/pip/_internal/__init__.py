@@ -43,7 +43,7 @@ from pip._internal import cmdoptions
 from pip._internal.exceptions import CommandError, PipError
 from pip._internal.utils.misc import get_installed_distributions, get_prog
 from pip._internal.utils import deprecation
-from pip._internal.vcs import git, mercurial, subversion, bazaar  # noqa
+from pip._internal.vcs import git, mercurial, subversion, bazaar, helix_core  # noqa
 from pip._internal.baseparser import (
     ConfigOptionParser, UpdatingDefaultsHelpFormatter,
 )

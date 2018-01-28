@@ -630,7 +630,8 @@ def unpack_file(filename, location, content_type, link):
 def call_subprocess(cmd, show_stdout=True, cwd=None,
                     on_returncode='raise',
                     command_desc=None,
-                    extra_environ=None, unset_environ=None, spinner=None):
+                    extra_environ=None, unset_environ=None, spinner=None,
+                    stdin=None):
     """
     Args:
       unset_environ: an iterable of environment variable names to unset
@@ -678,9 +679,14 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
         env.pop(name, None)
     try:
         proc = subprocess.Popen(
-            cmd, stderr=subprocess.STDOUT, stdin=subprocess.PIPE,
-            stdout=stdout, cwd=cwd, env=env,
-        )
+            cmd,
+            stdin=subprocess.PIPE,
+            stdout=stdout,
+            stderr=subprocess.STDOUT,
+            cwd=cwd,
+            env=env)
+        if stdin:
+            proc.stdin.write(stdin)
         proc.stdin.close()
     except Exception as exc:
         logger.critical(

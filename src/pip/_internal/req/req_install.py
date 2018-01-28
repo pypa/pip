@@ -1074,7 +1074,7 @@ def parse_editable(editable_req):
     if '+' not in url:
         raise InstallationError(
             '%s should either be a path to a local project or a VCS url '
-            'beginning with svn+, git+, hg+, or bzr+' %
+            'beginning with svn+, git+, hg+, bzr+ or p4+' %
             editable_req
         )
 
