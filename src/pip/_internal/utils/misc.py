@@ -679,12 +679,9 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
         env.pop(name, None)
     try:
         proc = subprocess.Popen(
-            cmd,
-            stdin=subprocess.PIPE,
-            stdout=stdout,
-            stderr=subprocess.STDOUT,
-            cwd=cwd,
-            env=env)
+            cmd, stderr=subprocess.STDOUT, stdin=subprocess.PIPE,
+            stdout=stdout, cwd=cwd, env=env,
+        )
         if stdin:
             proc.stdin.write(stdin)
         proc.stdin.close()

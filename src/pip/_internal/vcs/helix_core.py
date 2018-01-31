@@ -22,6 +22,31 @@ Options: allwrite rmdir
 """
 
 
+def _get_p4user(environ):
+    return environ.get("P4USER") or environ.get("USER") or \
+           environ.get("USERNAME")
+
+
+def _get_p4passwd(environ):
+    return environ.get("P4PASSWD")
+
+
+def _get_p4port(environ):
+    value = environ.get("P4PORT")
+    if not value:
+        return None, None, None
+
+    parts = value.split(":")
+    if len(parts) == 1:
+        return None, None, parts[0]
+    elif len(parts) == 2:
+        return None, parts[0], parts[1]
+    elif len(parts) == 3:
+        return parts
+    else:
+        raise ValueError("Invalid P4PORT environment variable: %r" % value)
+
+
 def split_url(url, environ=os.environ):
     """
     Parses a URL and returns a 5-tuple of
@@ -40,36 +65,22 @@ def split_url(url, environ=os.environ):
         url = url[3:]
     url = urllib_parse.urlsplit(url)
 
-    p4path = url.path
-    if '@' in p4path:
-        p4path, p4rev = p4path.split("@")
+    # Determine P4PATH and P4REV by splitting the path
+    if '@' in url.path:
+        p4path, p4rev = url.path.split("@")
     else:
-        p4rev = None
+        p4path, p4rev = url.path, None
 
-    p4user = (
-        url.username or
-        environ.get("P4USER") or
-        environ.get("USER") or
-        environ.get("USERNAME") or
-        '')
-    p4passwd = (
-        url.password or
-        environ.get("P4PASSWD") or
-        '')
+    # Determine P4USER, P4PASSWD and P4PORT by layering URL components, the
+    # process environment, and defaults.
+    environ_scheme, environ_hostname, environ_port = _get_p4port(environ)
+    scheme = url.scheme.strip("p4") or environ_scheme or "tcp"
+    hostname = url.hostname or environ_hostname or "perforce"
+    port = str(url.port or environ_port or 1666)
 
-    p4port = ["tcp", "perforce", "1666"]
-    p4port_old = environ.get("P4PORT")
-    if p4port_old:
-        for i, v in enumerate(reversed(p4port_old.split(":"))):
-            if v:
-                p4port[-i - 1] = v
-    if url.scheme != "p4":
-        p4port[0] = url.scheme
-    if url.hostname:
-        p4port[1] = url.hostname
-    if url.port:
-        p4port[2] = str(url.port)
-    p4port = ":".join(p4port)
+    p4port = ":".join((scheme, hostname, port))
+    p4user = url.username or _get_p4user(environ) or ""
+    p4passwd = url.password or _get_p4passwd(environ) or ""
 
     return p4port, p4path, p4rev, p4user, p4passwd
 
