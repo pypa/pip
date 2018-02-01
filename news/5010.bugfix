@@ -1,0 +1,2 @@
+Prevent '--install-option' and '--global-option' from leaking into the next
+dependencies in the 'requirements.txt' file.
