@@ -131,6 +131,7 @@ def user_agent():
 
 
 class MultiDomainBasicAuth(AuthBase):
+
     def __init__(self, prompting=True):
         self.prompting = prompting
         self.passwords = {}
@@ -222,6 +223,7 @@ class MultiDomainBasicAuth(AuthBase):
 
 
 class LocalFSAdapter(BaseAdapter):
+
     def send(self, request, stream=None, timeout=None, verify=None, cert=None,
              proxies=None):
         pathname = url_to_path(request.url)
@@ -320,12 +322,14 @@ class SafeFileCache(FileCache):
 
 
 class InsecureHTTPAdapter(HTTPAdapter):
+
     def cert_verify(self, conn, url, verify, cert):
         conn.cert_reqs = 'CERT_NONE'
         conn.ca_certs = None
 
 
 class PipSession(requests.Session):
+
     timeout = None
 
     def __init__(self, *args, **kwargs):
