@@ -1,0 +1,1 @@
+Add handling for configparser errors when conf is malformed.

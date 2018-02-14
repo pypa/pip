@@ -69,6 +69,19 @@ class TestConfigurationLoading(ConfigurationMixin):
             self.configuration.get_value(":env:.version")
 
 
+class TestConfigurationLoadingErrors(ConfigurationMixin):
+    def test_environment_config_errors_if_malformed(self):
+        contents = """
+            test]
+            hello = 4
+        """
+        with self.tmpfile(contents) as config_file:
+            os.environ["PIP_CONFIG_FILE"] = config_file
+
+            with pytest.raises(ConfigurationError):
+                self.configuration.load()
+
+
 class TestConfigurationPrecedence(ConfigurationMixin):
     # Tests for methods to that determine the order of precedence of
     # configuration options
