@@ -95,7 +95,7 @@ def test_looks_like_hash():
     assert not looks_like_hash(40 * 'g')
     assert not looks_like_hash(39 * 'a')
 
-
+@pytest.mark.network
 def test_git_get_src_requirements(git, dist):
     ret = git.get_src_requirement(dist, location='.')
 
