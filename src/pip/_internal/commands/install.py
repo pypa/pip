@@ -138,6 +138,13 @@ class InstallCommand(RequirementCommand):
             action='store_true',
             help='Ignore the installed packages (reinstalling instead).')
 
+        cmd_opts.add_option(
+            '-D', '--dependencies-only',
+            dest='dependencies_only',
+            action='store_true',
+            help='Install only dependencies of given packages.'
+        )
+
         cmd_opts.add_option(cmdoptions.ignore_requires_python())
 
         cmd_opts.add_option(cmdoptions.install_options())
@@ -298,6 +305,7 @@ class InstallCommand(RequirementCommand):
                         root=options.root_path,
                         prefix=options.prefix_path,
                         warn_script_location=options.warn_script_location,
+                        dependencies_only=options.dependencies_only,
                     )
 
                     possible_lib_locations = get_lib_location_guesses(

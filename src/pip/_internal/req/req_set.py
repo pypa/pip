@@ -203,6 +203,11 @@ class RequirementSet(object):
         """
         to_install = self._to_install()
 
+        if kwargs.pop("dependencies_only"):
+            to_install = [
+                req for req in to_install if req.comes_from is None
+            ]
+
         if to_install:
             logger.info(
                 'Installing collected packages: %s',
