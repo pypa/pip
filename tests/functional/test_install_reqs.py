@@ -304,7 +304,7 @@ def test_constraints_local_editable_install_pep518(script, data):
     to_install = data.src.join("pep518-3.0")
 
     script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
-    result = script.pip(
+    script.pip(
         'install', '--no-index', '-f', data.find_links, '-e', to_install)
 
 
