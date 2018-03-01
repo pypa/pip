@@ -60,7 +60,7 @@ def _install_build_reqs(finder, prefix, build_requirements):
     ]
     args = [
         sys.executable, '-m', 'pip', 'install', '--ignore-installed',
-        '--prefix', prefix
+        '--prefix', prefix,
     ] + list(urls)
 
     with open_spinner("Installing build dependencies") as spinner:
