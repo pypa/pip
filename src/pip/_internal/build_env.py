@@ -8,7 +8,7 @@ from pip._internal.utils.temp_dir import TempDirectory
 
 
 class BuildEnvironment(object):
-    """Manages a temporary environment to install build deps
+    """Creates and manages an isolated environment to install build deps
     """
 
     def __init__(self, no_clean):
@@ -62,3 +62,23 @@ class BuildEnvironment(object):
             os.environ.pop('PYTHONPATH', None)
         else:
             os.environ['PYTHONPATH'] = self.save_pythonpath
+
+    def cleanup(self):
+        self._temp_dir.cleanup()
+
+
+class NoOpBuildEnvironment(BuildEnvironment):
+    """A no-op drop-in replacement for BuildEnvironment
+    """
+
+    def __init__(self, no_clean):
+        pass
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+
+    def cleanup(self):
+        pass

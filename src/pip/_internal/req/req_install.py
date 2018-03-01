@@ -22,6 +22,7 @@ from pip._vendor.packaging.version import Version
 from pip._vendor.pkg_resources import RequirementParseError, parse_requirements
 
 from pip._internal import wheel
+from pip._internal.build_env import BuildEnvironment
 from pip._internal.compat import native_str
 from pip._internal.download import (
     is_archive_file, is_url, path_to_url, url_to_path,
@@ -128,6 +129,7 @@ class InstallRequirement(object):
         self.prepared = False
 
         self.isolated = isolated
+        self.build_env = BuildEnvironment(no_clean=True)
 
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, isolated=False,
@@ -880,6 +882,7 @@ class InstallRequirement(object):
             rmtree(self.source_dir)
         self.source_dir = None
         self._temp_build_dir.cleanup()
+        self.build_env.cleanup()
 
     def install_editable(self, install_options,
                          global_options=(), prefix=None):
