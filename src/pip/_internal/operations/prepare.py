@@ -48,6 +48,9 @@ def make_abstract_dist(req):
 
 
 def _install_build_reqs(finder, prefix, build_requirements):
+    # NOTE: What follows is not a very good thing.
+    #       Eventually, this should move into the BuildEnvironment class and
+    #       that should handle all the isolation and sub-process invocation.
     finder = copy(finder)
     finder.format_control = FormatControl(set(), set([":all:"]))
     urls = [
