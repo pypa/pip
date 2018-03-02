@@ -114,14 +114,16 @@ class Command(object):
     def main(self, args):
         options, args = self.parse_args(args)
 
-        verbosity = options.verbose - options.quiet
-        if verbosity >= 1:
+        # Set verbosity so that it can be used elsewhere.
+        self.verbosity = options.verbose - options.quiet
+
+        if self.verbosity >= 1:
             level = "DEBUG"
-        elif verbosity == -1:
+        elif self.verbosity == -1:
             level = "WARNING"
-        elif verbosity == -2:
+        elif self.verbosity == -2:
             level = "ERROR"
-        elif verbosity <= -3:
+        elif self.verbosity <= -3:
             level = "CRITICAL"
         else:
             level = "INFO"

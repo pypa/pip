@@ -52,7 +52,7 @@ class RequirementSet(object):
             already be added. Note that None implies that this is a user
             supplied requirement, vs an inferred one.
         :param extras_requested: an iterable of extras used to evaluate the
-            environement markers.
+            environment markers.
         :return: Additional requirements to scan. That is either [] if
             the requirement is not applicable, or [install_req] if the
             requirement is applicable and has just been added.
