@@ -59,9 +59,9 @@ class RequirementSet(object):
         """
         name = install_req.name
         if not install_req.match_markers(extras_requested):
-            logger.warning("Ignoring %s: markers '%s' don't match your "
-                           "environment", install_req.name,
-                           install_req.markers)
+            logger.info("Ignoring %s: markers '%s' don't match your "
+                        "environment", install_req.name,
+                        install_req.markers)
             return [], None
 
         # This check has to come after we filter requirements with the
