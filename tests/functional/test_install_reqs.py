@@ -300,6 +300,14 @@ def test_constraints_local_editable_install_causes_error(script, data):
     assert 'Could not satisfy constraints for' in result.stderr
 
 
+def test_constraints_local_editable_install_pep518(script, data):
+    to_install = data.src.join("pep518-3.0")
+
+    script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
+    script.pip(
+        'install', '--no-index', '-f', data.find_links, '-e', to_install)
+
+
 def test_constraints_local_install_causes_error(script, data):
     script.scratch_path.join("constraints.txt").write(
         "singlemodule==0.0.0"
