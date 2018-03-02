@@ -54,16 +54,16 @@ class RequirementSet(object):
             already be added. Note that None implies that this is a user
             supplied requirement, vs an inferred one.
         :param extras_requested: an iterable of extras used to evaluate the
-            environement markers.
+            environment markers.
         :return: Additional requirements to scan. That is either [] if
             the requirement is not applicable, or [install_req] if the
             requirement is applicable and has just been added.
         """
         name = install_req.name
         if not install_req.match_markers(extras_requested):
-            logger.warning("Ignoring %s: markers '%s' don't match your "
-                           "environment", install_req.name,
-                           install_req.markers)
+            logger.info("Ignoring %s: markers '%s' don't match your "
+                        "environment", install_req.name,
+                        install_req.markers)
             return []
 
         # This check has to come after we filter requirements with the

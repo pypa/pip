@@ -187,7 +187,8 @@ class Resolver(object):
 
         if req.editable:
             return self.preparer.prepare_editable_requirement(
-                req, self.require_hashes, self.use_user_site,
+                req, self.require_hashes, self.use_user_site, self.finder,
+
             )
 
         # satisfied_by is only evaluated by calling _check_skip_installed,
@@ -220,7 +221,9 @@ class Resolver(object):
         if req.satisfied_by:
             should_modify = (
                 self.upgrade_strategy != "to-satisfy-only" or
-                self.force_reinstall or self.ignore_installed
+                self.force_reinstall or
+                self.ignore_installed or
+                req.link.scheme == 'file'
             )
             if should_modify:
                 self._set_req_to_reinstall(req)
@@ -244,10 +247,11 @@ class Resolver(object):
             return []
 
         req_to_install.prepared = True
-        abstract_dist = self._get_abstract_dist_for(req_to_install)
 
         # register tmp src for cleanup in case something goes wrong
         requirement_set.reqs_to_cleanup.append(req_to_install)
+
+        abstract_dist = self._get_abstract_dist_for(req_to_install)
 
         # Parse and return dependencies
         dist = abstract_dist.dist(self.finder)

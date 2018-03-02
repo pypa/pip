@@ -224,10 +224,10 @@ class InstallCommand(RequirementCommand):
         global_options = options.global_options or []
 
         with self._build_session(options) as session:
-
             finder = self._build_package_finder(options, session)
             build_delete = (not (options.no_clean or options.build_dir))
             wheel_cache = WheelCache(options.cache_dir, options.format_control)
+
             if options.cache_dir and not check_path_owner(options.cache_dir):
                 logger.warning(
                     "The directory '%s' or its parent directory is not owned "
@@ -246,18 +246,19 @@ class InstallCommand(RequirementCommand):
                     require_hashes=options.require_hashes,
                 )
 
-                self.populate_requirement_set(
-                    requirement_set, args, options, finder, session, self.name,
-                    wheel_cache
-                )
-                preparer = RequirementPreparer(
-                    build_dir=directory.path,
-                    src_dir=options.src_dir,
-                    download_dir=None,
-                    wheel_download_dir=None,
-                    progress_bar=options.progress_bar,
-                )
                 try:
+                    self.populate_requirement_set(
+                        requirement_set, args, options, finder, session,
+                        self.name, wheel_cache
+                    )
+                    preparer = RequirementPreparer(
+                        build_dir=directory.path,
+                        src_dir=options.src_dir,
+                        download_dir=None,
+                        wheel_download_dir=None,
+                        progress_bar=options.progress_bar,
+                    )
+
                     resolver = Resolver(
                         preparer=preparer,
                         finder=finder,
@@ -339,7 +340,7 @@ class InstallCommand(RequirementCommand):
                         message_parts.append("\n")
 
                     logger.error(
-                        "".join(message_parts), exc_info=(options.verbose > 1)
+                        "".join(message_parts), exc_info=(self.verbosity > 1)
                     )
                     return ERROR
                 except PreviousBuildDirError:
@@ -349,6 +350,7 @@ class InstallCommand(RequirementCommand):
                     # Clean up
                     if not options.no_clean:
                         requirement_set.cleanup_files()
+                        wheel_cache.cleanup()
 
         if options.target_dir:
             self._handle_target_dir(

@@ -495,6 +495,58 @@ class TestParseRequirements(object):
 
         assert finder.index_urls == ['Good']
 
+    def test_expand_existing_env_variables(self, tmpdir, finder):
+        template = (
+            'https://%s:x-oauth-basic@github.com/user/%s/archive/master.zip'
+        )
+
+        env_vars = (
+            ('GITHUB_TOKEN', 'notarealtoken'),
+            ('DO_12_FACTOR', 'awwyeah'),
+        )
+
+        with open(tmpdir.join('req1.txt'), 'w') as fp:
+            fp.write(template % tuple(['${%s}' % k for k, _ in env_vars]))
+
+        with patch('pip._internal.req.req_file.os.getenv') as getenv:
+            getenv.side_effect = lambda n: dict(env_vars)[n]
+
+            reqs = list(parse_requirements(
+                tmpdir.join('req1.txt'),
+                finder=finder,
+                session=PipSession()
+            ))
+
+            assert len(reqs) == 1, \
+                'parsing requirement file with env variable failed'
+
+            expected_url = template % tuple([v for _, v in env_vars])
+            assert reqs[0].link.url == expected_url, \
+                'variable expansion in req file failed'
+
+    def test_expand_missing_env_variables(self, tmpdir, finder):
+        req_url = (
+            'https://${NON_EXISTENT_VARIABLE}:$WRONG_FORMAT@'
+            '%WINDOWS_FORMAT%github.com/user/repo/archive/master.zip'
+        )
+
+        with open(tmpdir.join('req1.txt'), 'w') as fp:
+            fp.write(req_url)
+
+        with patch('pip._internal.req.req_file.os.getenv') as getenv:
+            getenv.return_value = ''
+
+            reqs = list(parse_requirements(
+                tmpdir.join('req1.txt'),
+                finder=finder,
+                session=PipSession()
+            ))
+
+            assert len(reqs) == 1, \
+                'parsing requirement file with env variable failed'
+            assert reqs[0].link.url == req_url, \
+                'ignoring invalid env variable in req file failed'
+
     def test_join_lines(self, tmpdir, finder):
         with open(tmpdir.join("req1.txt"), "w") as fp:
             fp.write("--extra-index-url url1 \\\n--extra-index-url url2")
