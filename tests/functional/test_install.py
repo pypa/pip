@@ -1202,10 +1202,10 @@ def test_basic_install_environment_markers(script):
         )
     """))
 
-    res = script.pip('install', '--no-index', pkga_path, expect_stderr=True)
+    res = script.pip('install', '--no-index', pkga_path)
     # missing_pkg should be ignored
     assert ("Ignoring missing-pkg: markers 'python_version == \"1.0\"' don't "
-            "match your environment") in res.stderr, str(res)
+            "match your environment") in res.stdout, str(res)
     assert "Successfully installed pkga-0.1" in res.stdout, str(res)
 
 
