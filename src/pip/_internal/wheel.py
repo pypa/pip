@@ -666,7 +666,6 @@ class WheelBuilder(object):
             if python_tag is not None:
                 wheel_args += ["--python-tag", python_tag]
 
-
             try:
                 call_subprocess(wheel_args, cwd=req.setup_py_dir,
                                 show_stdout=False, spinner=spinner)
