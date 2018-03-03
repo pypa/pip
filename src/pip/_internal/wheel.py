@@ -625,14 +625,11 @@ class WheelBuilder(object):
         # Install build deps into temporary directory (PEP 518)
         with req.build_env:
             return self._build_one_inside_env(req, output_dir,
-                                              python_tag=python_tag,
-                                              isolate=True)
+                                              python_tag=python_tag)
 
-    def _build_one_inside_env(self, req, output_dir, python_tag=None,
-                              isolate=False):
+    def _build_one_inside_env(self, req, output_dir, python_tag=None):
         with TempDirectory(kind="wheel") as temp_dir:
-            if self.__build_one(req, temp_dir.path, python_tag=python_tag,
-                                isolate=isolate):
+            if self.__build_one(req, temp_dir.path, python_tag=python_tag):
                 try:
                     wheel_name = os.listdir(temp_dir.path)[0]
                     wheel_path = os.path.join(output_dir, wheel_name)
@@ -647,20 +644,18 @@ class WheelBuilder(object):
             self._clean_one(req)
             return None
 
-    def _base_setup_args(self, req, isolate=False):
-        flags = '-u'
-        # The -S flag currently breaks Python in virtualenvs, because it relies
-        # on site.py to find parts of the standard library outside the env. So
-        # isolation is disabled for now.
-        # if isolate:
-        #     flags += 'S'
+    def _base_setup_args(self, req):
+        # NOTE: Eventually, we'd want to also -S to the flags here, when we're
+        # isolating. Currently, it breaks Python in virtualenvs, because it
+        # relies on site.py to find parts of the standard library outside the
+        # virtualenv.
         return [
-            sys.executable, flags, '-c',
+            sys.executable, '-u', '-c',
             SETUPTOOLS_SHIM % req.setup_py
         ] + list(self.global_options)
 
-    def __build_one(self, req, tempd, python_tag=None, isolate=False):
-        base_args = self._base_setup_args(req, isolate=isolate)
+    def __build_one(self, req, tempd, python_tag=None):
+        base_args = self._base_setup_args(req)
 
         spin_message = 'Running setup.py bdist_wheel for %s' % (req.name,)
         with open_spinner(spin_message) as spinner:
@@ -671,13 +666,8 @@ class WheelBuilder(object):
             if python_tag is not None:
                 wheel_args += ["--python-tag", python_tag]
 
-            env = {}
-            if isolate:
-                env['PYTHONNOUSERSITE'] = '1'
-
             try:
                 call_subprocess(wheel_args, cwd=req.setup_py_dir,
-                                extra_environ=env,
                                 show_stdout=False, spinner=spinner)
                 return True
             except:

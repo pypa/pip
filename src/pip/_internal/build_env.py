@@ -24,6 +24,7 @@ class BuildEnvironment(object):
 
         self.save_path = os.environ.get('PATH', None)
         self.save_pythonpath = os.environ.get('PYTHONPATH', None)
+        self.save_nousersite = os.environ.get('PYTHONNOUSERSITE', None)
 
         install_scheme = 'nt' if (os.name == 'nt') else 'posix_prefix'
         install_dirs = get_paths(install_scheme, vars={
@@ -48,20 +49,23 @@ class BuildEnvironment(object):
         else:
             os.environ['PYTHONPATH'] = lib_dirs
 
+        os.environ['PYTHONNOUSERSITE'] = '1'
+
         return self.path
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if not self._no_clean:
             self._temp_dir.cleanup()
-        if self.save_path is None:
-            os.environ.pop('PATH', None)
-        else:
-            os.environ['PATH'] = self.save_path
 
-        if self.save_pythonpath is None:
-            os.environ.pop('PYTHONPATH', None)
-        else:
-            os.environ['PYTHONPATH'] = self.save_pythonpath
+        def restore_var(varname, old_value):
+            if old_value is None:
+                os.environ.pop(varname, None)
+            else:
+                os.environ[varname] = old_value
+
+        restore_var('PATH', self.save_path)
+        restore_var('PYTHONPATH', self.save_pythonpath)
+        restore_var('PYTHONNOUSERSITE', self.save_nousersite)
 
     def cleanup(self):
         self._temp_dir.cleanup()
