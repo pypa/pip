@@ -139,6 +139,7 @@ class InstallCommand(RequirementCommand):
             help='Ignore the installed packages (reinstalling instead).')
 
         cmd_opts.add_option(cmdoptions.ignore_requires_python())
+        cmd_opts.add_option(cmdoptions.no_build_isolation())
 
         cmd_opts.add_option(cmdoptions.install_options())
         cmd_opts.add_option(cmdoptions.global_options())
@@ -260,6 +261,7 @@ class InstallCommand(RequirementCommand):
                         download_dir=None,
                         wheel_download_dir=None,
                         progress_bar=options.progress_bar,
+                        build_isolation=options.build_isolation,
                     )
 
                     resolver = Resolver(
