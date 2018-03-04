@@ -59,16 +59,16 @@ class RequirementSet(object):
             already be added. Note that None implies that this is a user
             supplied requirement, vs an inferred one.
         :param extras_requested: an iterable of extras used to evaluate the
-            environement markers.
+            environment markers.
         :return: Additional requirements to scan. That is either [] if
             the requirement is not applicable, or [install_req] if the
             requirement is applicable and has just been added.
         """
         name = install_req.name
         if not install_req.match_markers(extras_requested):
-            logger.warning("Ignoring %s: markers '%s' don't match your "
-                           "environment", install_req.name,
-                           install_req.markers)
+            logger.info("Ignoring %s: markers '%s' don't match your "
+                        "environment", install_req.name,
+                        install_req.markers)
             return []
 
         # This check has to come after we filter requirements with the
@@ -120,7 +120,8 @@ class RequirementSet(object):
                         raise InstallationError(
                             "Could not satisfy constraints for '%s': "
                             "installation from path or url cannot be "
-                            "constrained to a version" % name)
+                            "constrained to a version" % name,
+                        )
                     # If we're now installing a constraint, mark the existing
                     # object for real installation.
                     existing_req.constraint = False
@@ -216,7 +217,9 @@ class RequirementSet(object):
                         requirement.conflicts_with,
                     )
                     with indent_log():
-                        requirement.uninstall(auto_confirm=True)
+                        uninstalled_pathset = requirement.uninstall(
+                            auto_confirm=True
+                        )
                 try:
                     requirement.install(
                         install_options,
@@ -231,7 +234,7 @@ class RequirementSet(object):
                     )
                     # if install did not succeed, rollback previous uninstall
                     if should_rollback:
-                        requirement.uninstalled_pathset.rollback()
+                        uninstalled_pathset.rollback()
                     raise
                 else:
                     should_commit = (
@@ -239,7 +242,7 @@ class RequirementSet(object):
                         requirement.install_succeeded
                     )
                     if should_commit:
-                        requirement.uninstalled_pathset.commit()
+                        uninstalled_pathset.commit()
                 requirement.remove_temporary_source()
 
         return to_install

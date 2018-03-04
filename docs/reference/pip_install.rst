@@ -3,6 +3,8 @@
 pip install
 -----------
 
+.. contents::
+
 Usage
 *****
 
@@ -168,6 +170,28 @@ If you wish, you can refer to other requirements files, like this::
 You can also refer to :ref:`constraints files <Constraints Files>`, like this::
 
     -c some_constraints.txt
+
+.. _`Using Environment Variables`:
+
+Using Environment Variables
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Since version 10, pip supports the use of environment variables inside the
+requirements file. You can now store sensitive data (tokens, keys, etc.) in
+environment variables and only specify the variable name for your requirements,
+letting pip lookup the value at runtime. This approach aligns with the commonly
+used `12-factor configuration pattern <https://12factor.net/config>`_.
+
+You have to use the POSIX format for variable names including brackets around
+the uppercase name as shown in this example: ``${API_TOKEN}``. pip will attempt
+to find the corresponding environment variable defined on the host system at
+runtime.
+
+.. note::
+
+   There is no support for other variable expansion syntaxes such as
+   ``$VARIABLE`` and ``%VARIABLE%``.
+
 
 .. _`Example Requirements File`:
 
@@ -363,7 +387,7 @@ Here are the supported forms::
     [-e] git+https://git.example.com/MyProject#egg=MyProject
     [-e] git+ssh://git.example.com/MyProject#egg=MyProject
     [-e] git+git://git.example.com/MyProject#egg=MyProject
-    [-e] git+file://git.example.com/MyProject#egg=MyProject
+    [-e] git+file:///home/user/projects/MyProject#egg=MyProject
     -e git+git@git.example.com:MyProject#egg=MyProject
 
 Passing branch names, a commit hash or a tag name is possible like so::
@@ -430,6 +454,21 @@ Tags or revisions can be installed like so::
     [-e] bzr+https://bzr.example.com/MyProject/trunk@2019#egg=MyProject
     [-e] bzr+http://bzr.example.com/MyProject/trunk@v1.0#egg=MyProject
 
+Using Environment Variables
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Since version 10, pip also makes it possible to use environment variables which
+makes it possible to reference private repositories without having to store
+access tokens in the requirements file. For example, a private git repository
+allowing Basic Auth for authentication can be refenced like this::
+
+    [-e] git+http://${AUTH_USER}:${AUTH_PASSWORD}@git.example.com/MyProject#egg=MyProject
+    [-e] git+https://${AUTH_USER}:${AUTH_PASSWORD}@git.example.com/MyProject#egg=MyProject
+
+.. note::
+
+   Only ``${VARIABLE}`` is supported, other formats like ``$VARIABLE`` or
+   ``%VARIABLE%`` won't work.
 
 Finding Packages
 ++++++++++++++++

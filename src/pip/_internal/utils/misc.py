@@ -29,7 +29,7 @@ from pip._internal.compat import console_to_str, expanduser, stdlib_pkgs
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import (
     running_under_virtualenv, site_packages, user_site, virtualenv_no_global,
-    write_delete_marker_file
+    write_delete_marker_file,
 )
 
 if PY2:
@@ -344,7 +344,7 @@ def get_installed_distributions(local_only=True,
     ``skip`` argument is an iterable of lower-case project names to
     ignore; defaults to stdlib_pkgs
 
-    If ``editables`` is False, don't report editables.
+    If ``include_editables`` is False, don't report editables.
 
     If ``editables_only`` is True , only report editables.
 
@@ -678,8 +678,10 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
         env.pop(name, None)
     try:
         proc = subprocess.Popen(
-            cmd, stderr=subprocess.STDOUT, stdin=None, stdout=stdout,
-            cwd=cwd, env=env)
+            cmd, stderr=subprocess.STDOUT, stdin=subprocess.PIPE,
+            stdout=stdout, cwd=cwd, env=env,
+        )
+        proc.stdin.close()
     except Exception as exc:
         logger.critical(
             "Error %s while executing command %s", exc, command_desc,
@@ -874,6 +876,6 @@ def consume(iterator):
 # Simulates an enum
 def enum(*sequential, **named):
     enums = dict(zip(sequential, range(len(sequential))), **named)
-    reverse = dict((value, key) for key, value in enums.items())
+    reverse = {value: key for key, value in enums.items()}
     enums['reverse_mapping'] = reverse
     return type('Enum', (), enums)

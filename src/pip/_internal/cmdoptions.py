@@ -14,7 +14,7 @@ from functools import partial
 from optparse import SUPPRESS_HELP, Option, OptionGroup
 
 from pip._internal.index import (
-    FormatControl, fmt_ctl_handle_mutual_exclude, fmt_ctl_no_binary
+    FormatControl, fmt_ctl_handle_mutual_exclude, fmt_ctl_no_binary,
 )
 from pip._internal.locations import USER_CACHE_DIR, src_prefix
 from pip._internal.models import PyPI
@@ -56,7 +56,8 @@ def check_install_build_global(options, check_options=None):
         fmt_ctl_no_binary(control)
         warnings.warn(
             'Disabling all use of wheels due to the use of --build-options '
-            '/ --global-options / --install-options.', stacklevel=2)
+            '/ --global-options / --install-options.', stacklevel=2,
+        )
 
 
 ###########
@@ -100,6 +101,15 @@ verbose = partial(
     action='count',
     default=0,
     help='Give more output. Option is additive, and can be used up to 3 times.'
+)
+
+no_color = partial(
+    Option,
+    '--no-color',
+    dest='no_color',
+    action='store_true',
+    default=False,
+    help="Suppress colored output",
 )
 
 version = partial(
@@ -357,13 +367,15 @@ def _get_format_control(values, option):
 def _handle_no_binary(option, opt_str, value, parser):
     existing = getattr(parser.values, option.dest)
     fmt_ctl_handle_mutual_exclude(
-        value, existing.no_binary, existing.only_binary)
+        value, existing.no_binary, existing.only_binary,
+    )
 
 
 def _handle_only_binary(option, opt_str, value, parser):
     existing = getattr(parser.values, option.dest)
     fmt_ctl_handle_mutual_exclude(
-        value, existing.only_binary, existing.no_binary)
+        value, existing.only_binary, existing.no_binary,
+    )
 
 
 def no_binary():
@@ -425,7 +437,10 @@ build_dir = partial(
     '-b', '--build', '--build-dir', '--build-directory',
     dest='build_dir',
     metavar='dir',
-    help='Directory to unpack packages into and build in.'
+    help='Directory to unpack packages into and build in. Note that '
+         'an initial build still takes place in a temporary directory. '
+         'The location of temporary directories can be controlled by setting '
+         'the TMPDIR environment variable (TEMP on Windows) appropriately.'
 )  # type: Any
 
 ignore_requires_python = partial(
@@ -566,6 +581,7 @@ general_group = {
         cache_dir,
         no_cache,
         disable_pip_version_check,
+        no_color,
     ]
 }
 

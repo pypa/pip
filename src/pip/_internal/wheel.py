@@ -17,22 +17,23 @@ import warnings
 from base64 import urlsafe_b64encode
 from email.parser import Parser
 
-from pip._vendor import pkg_resources, pytoml
+from pip._vendor import pkg_resources
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.six import StringIO
 
 from pip._internal import pep425tags
+from pip._internal.build_env import BuildEnvironment
 from pip._internal.download import path_to_url, unpack_url
 from pip._internal.exceptions import (
-    InstallationError, InvalidWheelFilename, UnsupportedWheel
+    InstallationError, InvalidWheelFilename, UnsupportedWheel,
 )
 from pip._internal.locations import (
-    PIP_DELETE_MARKER_FILENAME, distutils_scheme
+    PIP_DELETE_MARKER_FILENAME, distutils_scheme,
 )
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
-    call_subprocess, captured_stdout, ensure_dir, read_chunks
+    call_subprocess, captured_stdout, ensure_dir, read_chunks,
 )
 from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._internal.utils.temp_dir import TempDirectory
@@ -347,7 +348,7 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
     # Ensure we don't generate any variants for scripts because this is almost
     # never what somebody wants.
     # See https://bitbucket.org/pypa/distlib/issue/35/
-    maker.variants = set(('', ))
+    maker.variants = {''}
 
     # This is required because otherwise distlib creates scripts that are not
     # executable.
@@ -576,10 +577,10 @@ class Wheel(object):
         self.plats = wheel_info.group('plat').split('.')
 
         # All the tag combinations from this file
-        self.file_tags = set(
+        self.file_tags = {
             (x, y, z) for x in self.pyversions
             for y in self.abis for z in self.plats
-        )
+        }
 
     def support_index_min(self, tags=None):
         """
@@ -603,9 +604,8 @@ class Wheel(object):
 class WheelBuilder(object):
     """Build wheels from a RequirementSet."""
 
-    def __init__(self, requirement_set, finder, preparer, wheel_cache,
+    def __init__(self, finder, preparer, wheel_cache,
                  build_options=None, global_options=None, no_clean=False):
-        self.requirement_set = requirement_set
         self.finder = finder
         self.preparer = preparer
         self.wheel_cache = wheel_cache
@@ -616,43 +616,19 @@ class WheelBuilder(object):
         self.global_options = global_options or []
         self.no_clean = no_clean
 
-    def _find_build_reqs(self, req):
-        """Get a list of the packages required to build the project, if any,
-        and a flag indicating whether pyproject.toml is present, indicating
-        that the build should be isolated.
-
-        Build requirements can be specified in a pyproject.toml, as described
-        in PEP 518. If this file exists but doesn't specify build
-        requirements, pip will default to installing setuptools and wheel.
-        """
-        if os.path.isfile(req.pyproject_toml):
-            with open(req.pyproject_toml) as f:
-                pp_toml = pytoml.load(f)
-            return pp_toml.get('build-system', {})\
-                .get('requires', ['setuptools', 'wheel']), True
-
-        return ['setuptools', 'wheel'], False
-
     def _build_one(self, req, output_dir, python_tag=None):
         """Build one wheel.
 
         :return: The filename of the built wheel, or None if the build failed.
         """
-        build_reqs, isolate = self._find_build_reqs(req)
-        if 'setuptools' not in build_reqs:
-            logger.warning(
-                "This version of pip does not implement PEP 516, so "
-                "it cannot build a wheel without setuptools. You may need to "
-                "upgrade to a newer version of pip.")
-        with req.build_environment:
+        # Install build deps into temporary directory (PEP 518)
+        with req.build_env:
             return self._build_one_inside_env(req, output_dir,
-                                              python_tag=python_tag,
-                                              isolate=True)
+                                              python_tag=python_tag)
 
-    def _build_one_inside_env(self, req, output_dir, python_tag=None,
-                              isolate=False):
+    def _build_one_inside_env(self, req, output_dir, python_tag=None):
         with TempDirectory(kind="wheel") as temp_dir:
-            if self.__build_one(req, temp_dir.path, isolate=isolate):
+            if self.__build_one(req, temp_dir.path, python_tag=python_tag):
                 try:
                     wheel_name = os.listdir(temp_dir.path)[0]
                     if python_tag is not None:
@@ -674,6 +650,16 @@ class WheelBuilder(object):
             # Ignore return, we can't do anything else useful.
             self._clean_one(req)
             return None
+
+    def _base_setup_args(self, req):
+        # NOTE: Eventually, we'd want to also -S to the flags here, when we're
+        # isolating. Currently, it breaks Python in virtualenvs, because it
+        # relies on site.py to find parts of the standard library outside the
+        # virtualenv.
+        return [
+            sys.executable, '-u', '-c',
+            SETUPTOOLS_SHIM % req.setup_py
+        ] + list(self.global_options)
 
     def __build_one(self, req, tempd, python_tag=None, isolate=False):
         logger.debug('Destination directory: %s', tempd)
@@ -703,7 +689,7 @@ class WheelBuilder(object):
             logger.error('Failed cleaning build dir for %s', req.name)
             return False
 
-    def build(self, session, autobuilding=False):
+    def build(self, requirements, session, autobuilding=False):
         """Build wheels.
 
         :param unpack: If True, replace the sdist we built from with the
@@ -717,20 +703,21 @@ class WheelBuilder(object):
         )
         assert building_is_possible
 
-        reqset = self.requirement_set.requirements.values()
-
         buildset = []
-        for req in reqset:
+        for req in requirements:
+            ephem_cache = False
             if req.constraint:
                 continue
             if req.is_wheel:
                 if not autobuilding:
                     logger.info(
-                        'Skipping %s, due to already being wheel.', req.name)
+                        'Skipping %s, due to already being wheel.', req.name,
+                    )
             elif autobuilding and req.editable:
                 pass
             elif autobuilding and req.link and not req.link.is_artifact:
-                pass
+                # VCS checkout. Build wheel just for this run.
+                ephem_cache = True
             elif autobuilding and not req.source_dir:
                 pass
             else:
@@ -738,17 +725,17 @@ class WheelBuilder(object):
                     link = req.link
                     base, ext = link.splitext()
                     if index.egg_info_matches(base, None, link) is None:
-                        # Doesn't look like a package - don't autobuild a wheel
-                        # because we'll have no way to lookup the result sanely
-                        continue
+                        # E.g. local directory. Build wheel just for this run.
+                        ephem_cache = True
                     if "binary" not in index.fmt_ctl_formats(
                             self.finder.format_control,
                             canonicalize_name(req.name)):
                         logger.info(
                             "Skipping bdist_wheel for %s, due to binaries "
-                            "being disabled for it.", req.name)
+                            "being disabled for it.", req.name,
+                        )
                         continue
-                buildset.append(req)
+                buildset.append((req, ephem_cache))
 
         if not buildset:
             return True
@@ -756,15 +743,19 @@ class WheelBuilder(object):
         # Build the wheels.
         logger.info(
             'Building wheels for collected packages: %s',
-            ', '.join([req.name for req in buildset]),
+            ', '.join([req.name for (req, _) in buildset]),
         )
+        _cache = self.wheel_cache  # shorter name
         with indent_log():
             build_success, build_failure = [], []
-            for req in buildset:
+            for req, ephem in buildset:
                 python_tag = None
                 if autobuilding:
                     python_tag = pep425tags.implementation_tag
-                    output_dir = self.wheel_cache.get_path_for_link(req.link)
+                    if ephem:
+                        output_dir = _cache.get_ephem_path_for_link(req.link)
+                    else:
+                        output_dir = _cache.get_path_for_link(req.link)
                     try:
                         ensure_dir(output_dir)
                     except OSError as e:
@@ -803,7 +794,8 @@ class WheelBuilder(object):
                         # extract the wheel into the dir
                         unpack_url(
                             req.link, req.source_dir, None, False,
-                            session=session)
+                            session=session,
+                        )
                 else:
                     build_failure.append(req)
 

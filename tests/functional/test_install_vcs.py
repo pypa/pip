@@ -1,7 +1,7 @@
 import pytest
 
 from tests.lib import (
-    _change_test_package_version, _create_test_package, pyversion
+    _change_test_package_version, _create_test_package, pyversion,
 )
 from tests.lib.local_repos import local_checkout
 
@@ -184,7 +184,7 @@ def test_git_with_tag_name_and_update(script, tmpdir):
     result = script.pip(
         'install', '-e', '%s#egg=pip-test-package' %
         local_checkout(
-            'git+http://github.com/pypa/pip-test-package.git',
+            'git+https://github.com/pypa/pip-test-package.git',
             tmpdir.join("cache"),
         ),
         expect_error=True,
@@ -194,7 +194,7 @@ def test_git_with_tag_name_and_update(script, tmpdir):
         'install', '--global-option=--version', '-e',
         '%s@0.1.2#egg=pip-test-package' %
         local_checkout(
-            'git+http://github.com/pypa/pip-test-package.git',
+            'git+https://github.com/pypa/pip-test-package.git',
             tmpdir.join("cache"),
         ),
         expect_error=True,
@@ -211,7 +211,7 @@ def test_git_branch_should_not_be_changed(script, tmpdir):
     script.pip(
         'install', '-e', '%s#egg=pip-test-package' %
         local_checkout(
-            'git+http://github.com/pypa/pip-test-package.git',
+            'git+https://github.com/pypa/pip-test-package.git',
             tmpdir.join("cache"),
         ),
         expect_error=True,
@@ -229,7 +229,7 @@ def test_git_with_non_editable_unpacking(script, tmpdir):
     result = script.pip(
         'install', '--global-option=--version',
         local_checkout(
-            'git+http://github.com/pypa/pip-test-package.git@0.1.2'
+            'git+https://github.com/pypa/pip-test-package.git@0.1.2'
             '#egg=pip-test-package',
             tmpdir.join("cache")
         ),

@@ -5,7 +5,7 @@ import pytest
 
 from tests.lib import (
     _create_test_package_with_subdirectory, path_to_url, pyversion,
-    requirements_file
+    requirements_file,
 )
 from tests.lib.local_repos import local_checkout
 
@@ -303,6 +303,14 @@ def test_constraints_local_editable_install_causes_error(script, data):
     assert 'Could not satisfy constraints for' in result.stderr
 
 
+def test_constraints_local_editable_install_pep518(script, data):
+    to_install = data.src.join("pep518-3.0")
+
+    script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
+    script.pip(
+        'install', '--no-index', '-f', data.find_links, '-e', to_install)
+
+
 def test_constraints_local_install_causes_error(script, data):
     script.scratch_path.join("constraints.txt").write(
         "singlemodule==0.0.0"
@@ -487,11 +495,10 @@ def test_install_unsupported_wheel_link_with_marker(script):
     result = script.pip(
         'install', '-r', script.scratch_path / 'with-marker.txt',
         expect_error=False,
-        expect_stderr=True,
     )
 
     assert ("Ignoring asdf: markers 'sys_platform == \"xyz\"' don't match "
-            "your environment") in result.stderr
+            "your environment") in result.stdout
     assert len(result.files_created) == 0
 
 

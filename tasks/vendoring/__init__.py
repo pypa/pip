@@ -144,9 +144,11 @@ def update_stubs(ctx):
 
     print("[vendoring.update_stubs] Add mypy stubs")
 
-    # Some projects need stubs other than a simple <name>.pyi
     extra_stubs_needed = {
-        "six": ["six.__init__", "six.moves"]
+        # Some projects need stubs other than a simple <name>.pyi
+        "six": ["six.__init__", "six.moves"],
+        # Some projects should not have stubs coz they're single file modules
+        "appdirs": [],
     }
 
     for lib in vendored_libs:

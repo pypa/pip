@@ -425,12 +425,12 @@ def diff_states(start, end, ignore=None):
         prefix = prefix.rstrip(os.path.sep) + os.path.sep
         return path.startswith(prefix)
 
-    start_keys = set([k for k in start.keys()
-                      if not any([prefix_match(k, i) for i in ignore])])
-    end_keys = set([k for k in end.keys()
-                    if not any([prefix_match(k, i) for i in ignore])])
-    deleted = dict([(k, start[k]) for k in start_keys.difference(end_keys)])
-    created = dict([(k, end[k]) for k in end_keys.difference(start_keys)])
+    start_keys = {k for k in start.keys()
+                  if not any([prefix_match(k, i) for i in ignore])}
+    end_keys = {k for k in end.keys()
+                if not any([prefix_match(k, i) for i in ignore])}
+    deleted = {k: start[k] for k in start_keys.difference(end_keys)}
+    created = {k: end[k] for k in end_keys.difference(start_keys)}
     updated = {}
     for k in start_keys.intersection(end_keys):
         if (start[k].size != end[k].size):

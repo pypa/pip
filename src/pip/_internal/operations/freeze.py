@@ -1,11 +1,12 @@
 from __future__ import absolute_import
 
+import collections
 import logging
 import os
 import re
 import warnings
 
-from pip._vendor import pkg_resources
+from pip._vendor import pkg_resources, six
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.pkg_resources import RequirementParseError
 
@@ -14,7 +15,7 @@ from pip._internal.req import InstallRequirement
 from pip._internal.req.req_file import COMMENT_RE
 from pip._internal.utils.deprecation import RemovedInPip11Warning
 from pip._internal.utils.misc import (
-    dist_is_editable, get_installed_distributions
+    dist_is_editable, get_installed_distributions,
 )
 
 logger = logging.getLogger(__name__)
@@ -70,6 +71,9 @@ def freeze(
         # requirements files, so we need to keep track of what has been emitted
         # so that we don't emit it again if it's seen again
         emitted_options = set()
+        # keep track of which files a requirement is in so that we can
+        # give an accurate warning if a requirement appears multiple times.
+        req_files = collections.defaultdict(list)
         for req_file_path in requirement:
             with open(req_file_path) as req_file:
                 for line in req_file:
@@ -119,14 +123,28 @@ def freeze(
                             " this warning)"
                         )
                     elif line_req.name not in installations:
-                        logger.warning(
-                            "Requirement file [%s] contains %s, but that "
-                            "package is not installed",
-                            req_file_path, COMMENT_RE.sub('', line).strip(),
-                        )
+                        # either it's not installed, or it is installed
+                        # but has been processed already
+                        if not req_files[line_req.name]:
+                            logger.warning(
+                                "Requirement file [%s] contains %s, but that "
+                                "package is not installed",
+                                req_file_path,
+                                COMMENT_RE.sub('', line).strip(),
+                            )
+                        else:
+                            req_files[line_req.name].append(req_file_path)
                     else:
                         yield str(installations[line_req.name]).rstrip()
                         del installations[line_req.name]
+                        req_files[line_req.name].append(req_file_path)
+
+        # Warn about requirements that were included multiple times (in a
+        # single requirements file or in different requirements files).
+        for name, files in six.iteritems(req_files):
+            if len(files) > 1:
+                logger.warning("Requirement %s included multiple times [%s]",
+                               name, ', '.join(sorted(set(files))))
 
         yield(
             '## The following requirements were added by '
@@ -191,7 +209,8 @@ class FrozenRequirement(object):
                     )
                 if not svn_location:
                     logger.warning(
-                        'Warning: cannot find svn location for %s', req)
+                        'Warning: cannot find svn location for %s', req,
+                    )
                     comments.append(
                         '## FIXME: could not find svn URL in dependency_links '
                         'for this package:'

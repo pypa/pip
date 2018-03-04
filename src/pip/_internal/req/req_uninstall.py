@@ -15,7 +15,7 @@ from pip._internal.locations import bin_py, bin_user
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     FakeFile, ask, dist_in_usersite, dist_is_local, egg_link_path, is_local,
-    normalize_path, renames
+    normalize_path, renames,
 )
 from pip._internal.utils.temp_dir import TempDirectory
 
@@ -294,7 +294,7 @@ class UninstallPathSet(object):
 
         paths_to_remove = cls(dist)
         develop_egg_link = egg_link_path(dist)
-        develop_egg_link_egg_info = '{0}.egg-info'.format(
+        develop_egg_link_egg_info = '{}.egg-info'.format(
             pkg_resources.to_filename(dist.project_name))
         egg_info_exists = dist.egg_info and os.path.exists(dist.egg_info)
         # Special case for distutils installed package
@@ -371,7 +371,8 @@ class UninstallPathSet(object):
         else:
             logger.debug(
                 'Not sure how to uninstall: %s - Check: %s',
-                dist, dist.location)
+                dist, dist.location,
+            )
 
         # find distutils scripts= scripts
         if dist.has_metadata('scripts') and dist.metadata_isdir('scripts'):
@@ -430,6 +431,9 @@ class UninstallPthEntries(object):
             endline = '\r\n'
         else:
             endline = '\n'
+        # handle missing trailing newline
+        if lines and not lines[-1].endswith(endline.encode("utf-8")):
+            lines[-1] = lines[-1] + endline.encode("utf-8")
         for entry in self.entries:
             try:
                 logger.debug('Removing entry: %s', entry)

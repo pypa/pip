@@ -27,7 +27,7 @@ def test_download_if_requested(script):
 
 
 @pytest.mark.network
-def test_download_setuptools(script):
+def test_basic_download_setuptools(script):
     """
     It should download (in the scratch path) and not install if requested.
     """
@@ -73,7 +73,7 @@ def test_single_download_from_requirements_file(script):
 
 
 @pytest.mark.network
-def test_download_should_download_dependencies(script):
+def test_basic_download_should_download_dependencies(script):
     """
     It should download dependencies (in the scratch path)
     """
@@ -168,10 +168,10 @@ def test_download_vcs_link(script):
     assert script.site_packages / 'piptestpackage' not in result.files_created
 
 
-def test_download_specify_platform_only_binary(script, data):
+def test_only_binary_set_then_download_specific_platform(script, data):
     """
     Confirm that specifying an interpreter/platform constraint
-    enforces that ``--only-binary=:all:`` is set.
+    is allowed when ``--only-binary=:all:`` is set.
     """
     fake_wheel(data, 'fake-1.0-py2.py3-none-any.whl')
 
@@ -187,14 +187,33 @@ def test_download_specify_platform_only_binary(script, data):
         in result.files_created
     )
 
+
+def test_no_deps_set_then_download_specific_platform(script, data):
+    """
+    Confirm that specifying an interpreter/platform constraint
+    is allowed when ``--no-deps`` is set.
+    """
+    fake_wheel(data, 'fake-1.0-py2.py3-none-any.whl')
+
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
+        '--no-deps',
         '--dest', '.',
         '--platform', 'linux_x86_64',
-        'fake',
-        expect_error=True,
+        'fake'
     )
-    assert '--only-binary=:all:' in result.stderr
+    assert (
+        Path('scratch') / 'fake-1.0-py2.py3-none-any.whl'
+        in result.files_created
+    )
+
+
+def test_download_specific_platform_fails(script, data):
+    """
+    Confirm that specifying an interpreter/platform constraint
+    enforces that ``--no-deps`` or ``--only-binary=:all:`` is set.
+    """
+    fake_wheel(data, 'fake-1.0-py2.py3-none-any.whl')
 
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
@@ -204,6 +223,14 @@ def test_download_specify_platform_only_binary(script, data):
         expect_error=True,
     )
     assert '--only-binary=:all:' in result.stderr
+
+
+def test_no_binary_set_then_download_specific_platform_fails(script, data):
+    """
+    Confirm that specifying an interpreter/platform constraint
+    enforces that ``--only-binary=:all:`` is set without ``--no-binary``.
+    """
+    fake_wheel(data, 'fake-1.0-py2.py3-none-any.whl')
 
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
