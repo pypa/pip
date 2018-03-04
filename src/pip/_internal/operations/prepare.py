@@ -22,7 +22,6 @@ from pip._internal.index import FormatControl
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.hashes import MissingHashes
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import display_path, normalize_path, call_subprocess
 from pip._internal.utils.misc import (
     call_subprocess, display_path, normalize_path,
 )
@@ -32,7 +31,7 @@ from pip._internal.vcs import vcs
 logger = logging.getLogger(__name__)
 
 
-def make_abstract_dist(req_to_install):
+def make_abstract_dist(req):
     """Factory to make an abstract dist object.
 
     Preconditions: Either an editable req with a source_dir, or satisfied_by or
@@ -40,12 +39,12 @@ def make_abstract_dist(req_to_install):
 
     :return: A concrete DistAbstraction.
     """
-    if req_to_install.editable:
-        return IsSDist(req_to_install)
-    elif req_to_install.link and req_to_install.link.is_wheel:
-        return IsWheel(req_to_install)
+    if req.editable:
+        return IsSDist(req)
+    elif req.link and req.link.is_wheel:
+        return IsWheel(req)
     else:
-        return IsSDist(req_to_install)
+        return IsSDist(req)
 
 
 def _install_build_reqs(finder, prefix, build_requirements):
@@ -87,8 +86,8 @@ class DistAbstraction(object):
        above metadata.
     """
 
-    def __init__(self, req_to_install):
-        self.req_to_install = req_to_install
+    def __init__(self, req):
+        self.req = req
 
     def dist(self, finder):
         """Return a setuptools Dist object."""
@@ -103,7 +102,7 @@ class IsWheel(DistAbstraction):
 
     def dist(self, finder):
         return list(pkg_resources.find_distributions(
-            self.req_to_install.source_dir))[0]
+            self.req.source_dir))[0]
 
     def prep_for_dist(self, finder):
         # FIXME:https://github.com/pypa/pip/issues/1112
@@ -111,8 +110,9 @@ class IsWheel(DistAbstraction):
 
 
 class IsSDist(DistAbstraction):
+
     def dist(self, finder):
-        dist = self.req_to_install.get_dist()
+        dist = self.req.get_dist()
         # FIXME: shouldn't be globally added.
         if dist.has_metadata('dependency_links.txt'):
             finder.add_dependency_links(
@@ -121,7 +121,6 @@ class IsSDist(DistAbstraction):
         return dist
 
     def prep_for_dist(self, finder):
-
         # Before calling "setup.py egg_info", we need to set-up the build
         # environment.
 
@@ -147,7 +146,7 @@ class IsSDist(DistAbstraction):
 class Installed(DistAbstraction):
 
     def dist(self, finder):
-        return self.req_to_install.satisfied_by
+        return self.req.satisfied_by
 
     def prep_for_dist(self, finder):
         pass
