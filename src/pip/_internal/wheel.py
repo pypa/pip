@@ -5,7 +5,6 @@ from __future__ import absolute_import
 
 import collections
 import compileall
-import copy
 import csv
 import hashlib
 import logging
@@ -632,7 +631,15 @@ class WheelBuilder(object):
             if self.__build_one(req, temp_dir.path, python_tag=python_tag):
                 try:
                     wheel_name = os.listdir(temp_dir.path)[0]
-                    wheel_path = os.path.join(output_dir, wheel_name)
+                    if python_tag is not None:
+                        wheel_parts = wheel_name.split('-')
+                        wheel_parts[-3] = python_tag
+                        target_wheel_name = '-'.join(wheel_parts)
+                        logger.debug('Renaming wheel from {} to {}'.format(
+                                     wheel_name, target_wheel_name))
+                    else:
+                        target_wheel_name = wheel_name
+                    wheel_path = os.path.join(output_dir, target_wheel_name)
                     shutil.move(
                         os.path.join(temp_dir.path, wheel_name), wheel_path
                     )
@@ -654,29 +661,24 @@ class WheelBuilder(object):
             SETUPTOOLS_SHIM % req.setup_py
         ] + list(self.global_options)
 
-    def __build_one(self, req, tempd, python_tag=None):
-        base_args = self._base_setup_args(req)
-
-        spin_message = 'Running setup.py bdist_wheel for %s' % (req.name,)
-        with open_spinner(spin_message) as spinner:
-            logger.debug('Destination directory: %s', tempd)
-            wheel_args = base_args + ['bdist_wheel', '-d', tempd] \
-                + self.build_options
-
-            if python_tag is not None:
-                wheel_args += ["--python-tag", python_tag]
-
-            try:
-                call_subprocess(wheel_args, cwd=req.setup_py_dir,
-                                show_stdout=False, spinner=spinner)
-                return True
-            except:
-                spinner.finish("error")
-                logger.error('Failed building wheel for %s', req.name)
-                return False
+    def __build_one(self, req, tempd, python_tag=None, isolate=False):
+        logger.debug('Destination directory: %s', tempd)
+        logger.info('Running setup.py bdist_wheel for %s' % (req.name,))
+        try:
+            req.build_backend.build_wheel(tempd)
+            return True
+        except:
+            logger.error('Failed building wheel for %s', req.name)
+            return False
 
     def _clean_one(self, req):
-        base_args = self._base_setup_args(req)
+        """DEPRECATED"""
+        # TODO: Remove this as it is not defined in PEP 517
+        flags = '-u'
+        base_args = [
+            sys.executable, flags, '-c',
+            SETUPTOOLS_SHIM % req.setup_py
+        ]
 
         logger.info('Running setup.py clean for %s', req.name)
         clean_args = base_args + ['clean', '--all']

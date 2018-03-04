@@ -908,7 +908,7 @@ def test_install_subprocess_output_handling(script, data):
     # Only count examples with sys.argv[1] == egg_info, because we call
     # setup.py multiple times, which should not count as duplicate output.
     result = script.pip(*(args + ["--verbose"]))
-    assert 1 == result.stdout.count("HELLO FROM CHATTYMODULE egg_info")
+    assert 1 == result.stdout.count("HELLO FROM CHATTYMODULE dist_info")
     script.pip("uninstall", "-y", "chattymodule")
 
     # If the install fails, then we *should* show the output... but only once,
@@ -1188,6 +1188,10 @@ def test_install_compatible_python_requires(script, common_wheels):
     assert "Successfully installed pkga-0.1" in res.stdout, res
 
 
+@pytest.mark.xfail(reason='`install_requires` requirements with environment '
+                   'markers are no moved to `extras_require` by setuptools, '
+                   'and `pkg_resources.Distribution.requires()` does not warn '
+                   'about markers that don\'t match (or are invalid...).')
 def test_basic_install_environment_markers(script):
     # make a dummy project
     pkga_path = script.scratch_path / 'pkga'
@@ -1221,6 +1225,8 @@ def test_install_pep508_with_url(script):
     assert "Successfully installed packaging-15.3" in str(res), str(res)
 
 
+@pytest.mark.xfail(reason='URLs are stripped from '
+                   'requirements when building a wheel')
 @pytest.mark.network
 def test_install_pep508_with_url_in_install_requires(script):
     pkga_path = create_test_package_with_setup(

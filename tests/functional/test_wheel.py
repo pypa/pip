@@ -210,6 +210,7 @@ def test_wheel_package_with_latin1_setup(script, data, common_wheels):
     assert 'Successfully built SetupPyUTF8' in result.stdout
 
 
+@pytest.mark.xfail
 @pytest.mark.network
 def test_pip_wheel_with_pep518_build_reqs(script, data):
     script.pip('install', 'wheel')

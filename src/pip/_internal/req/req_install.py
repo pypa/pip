@@ -22,6 +22,7 @@ from pip._vendor.packaging.version import Version
 from pip._vendor.pkg_resources import RequirementParseError, parse_requirements
 
 from pip._internal import wheel
+from pip._internal.backend import BuildBackend
 from pip._internal.build_env import BuildEnvironment
 from pip._internal.compat import native_str
 from pip._internal.download import (
@@ -443,6 +444,10 @@ class InstallRequirement(object):
         return setup_py
 
     @property
+    def build_backend(self):
+        return BuildBackend(self.setup_py_dir)
+
+    @property
     def pyproject_toml(self):
         assert self.source_dir, "No source dir for %s" % self
 
@@ -483,26 +488,13 @@ class InstallRequirement(object):
                 self.setup_py, self.link,
             )
 
+        metadata_directory = os.path.abspath(
+            os.path.join(self.setup_py_dir, 'pip-dist-info'))
+        shutil.rmtree(metadata_directory, ignore_errors=True)
+        os.makedirs(metadata_directory)
         with indent_log():
-            script = SETUPTOOLS_SHIM % self.setup_py
-            base_cmd = [sys.executable, '-c', script]
-            if self.isolated:
-                base_cmd += ["--no-user-cfg"]
-            egg_info_cmd = base_cmd + ['egg_info']
-            # We can't put the .egg-info files at the root, because then the
-            # source code will be mistaken for an installed egg, causing
-            # problems
-            if self.editable:
-                egg_base_option = []
-            else:
-                egg_info_dir = os.path.join(self.setup_py_dir, 'pip-egg-info')
-                ensure_dir(egg_info_dir)
-                egg_base_option = ['--egg-base', 'pip-egg-info']
-            call_subprocess(
-                egg_info_cmd + egg_base_option,
-                cwd=self.setup_py_dir,
-                show_stdout=False,
-                command_desc='python setup.py egg_info')
+            self.build_backend.prepare_metadata_for_build_wheel(
+                metadata_directory)
 
         if not self.req:
             if isinstance(parse_version(self.pkg_info()["Version"]), Version):
@@ -542,40 +534,8 @@ class InstallRequirement(object):
 
     def egg_info_path(self, filename):
         if self._egg_info_path is None:
-            if self.editable:
-                base = self.source_dir
-            else:
-                base = os.path.join(self.setup_py_dir, 'pip-egg-info')
+            base = os.path.join(self.setup_py_dir, 'pip-dist-info')
             filenames = os.listdir(base)
-            if self.editable:
-                filenames = []
-                for root, dirs, files in os.walk(base):
-                    for dir in vcs.dirnames:
-                        if dir in dirs:
-                            dirs.remove(dir)
-                    # Iterate over a copy of ``dirs``, since mutating
-                    # a list while iterating over it can cause trouble.
-                    # (See https://github.com/pypa/pip/pull/462.)
-                    for dir in list(dirs):
-                        # Don't search in anything that looks like a virtualenv
-                        # environment
-                        if (
-                                os.path.lexists(
-                                    os.path.join(root, dir, 'bin', 'python')
-                                ) or
-                                os.path.exists(
-                                    os.path.join(
-                                        root, dir, 'Scripts', 'Python.exe'
-                                    )
-                                )):
-                            dirs.remove(dir)
-                        # Also don't search through tests
-                        elif dir == 'test' or dir == 'tests':
-                            dirs.remove(dir)
-                    filenames.extend([os.path.join(root, dir)
-                                      for dir in dirs])
-                filenames = [f for f in filenames if f.endswith('.egg-info')]
-
             if not filenames:
                 raise InstallationError(
                     'No files/directories in %s (from %s)' % (base, filename)
@@ -596,11 +556,11 @@ class InstallRequirement(object):
 
     def pkg_info(self):
         p = FeedParser()
-        data = self.egg_info_data('PKG-INFO')
+        data = self.egg_info_data('METADATA')
         if not data:
             logger.warning(
                 'No PKG-INFO file found in %s',
-                display_path(self.egg_info_path('PKG-INFO')),
+                display_path(self.egg_info_path('METADATA')),
             )
         p.feed(data or '')
         return p.close()
@@ -978,11 +938,13 @@ class InstallRequirement(object):
         base_dir = os.path.dirname(egg_info)
         metadata = pkg_resources.PathMetadata(base_dir, egg_info)
         dist_name = os.path.splitext(os.path.basename(egg_info))[0]
-        return pkg_resources.Distribution(
+        dist = pkg_resources.DistInfoDistribution(
             os.path.dirname(egg_info),
             project_name=dist_name,
             metadata=metadata,
         )
+
+        return dist
 
     @property
     def has_hash_options(self):

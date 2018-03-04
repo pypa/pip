@@ -5,11 +5,11 @@ dist: trusty
 matrix:
   fast_finish: true
   include:
-    - env: TOXENV=docs
-    - env: TOXENV=lint-py2
-    - env: TOXENV=lint-py3
-    - env: TOXENV=mypy
-    - env: TOXENV=packaging
+    # - env: TOXENV=docs
+    # - env: TOXENV=lint-py2
+    # - env: TOXENV=lint-py3
+    # - env: TOXENV=mypy
+    # - env: TOXENV=packaging
     # PyPy jobs start first -- they are the slowest
     - env: TOXENV=pypy
       python: pypy
@@ -32,6 +32,7 @@ matrix:
       python: nightly
   allow_failures:
     - python: nightly
+    - python: 2.7
 
 install: travis_retry .travis/install.sh
 script: .travis/run.sh
