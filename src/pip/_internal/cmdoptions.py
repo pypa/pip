@@ -440,7 +440,8 @@ build_dir = partial(
     help='Directory to unpack packages into and build in. Note that '
          'an initial build still takes place in a temporary directory. '
          'The location of temporary directories can be controlled by setting '
-         'the TMPDIR environment variable (TEMP on Windows) appropriately.'
+         'the TMPDIR environment variable (TEMP on Windows) appropriately. '
+         'When passed, build directories are not cleaned in case of failures.'
 )  # type: Any
 
 ignore_requires_python = partial(
