@@ -22,7 +22,7 @@ from pip._vendor.packaging.version import Version
 from pip._vendor.pkg_resources import RequirementParseError, parse_requirements
 
 from pip._internal import wheel
-from pip._internal.backend import BuildBackend, BuildEnvironment
+from pip._internal.backend import BuildBackend
 from pip._internal.build_env import BuildEnvironment
 from pip._internal.compat import native_str
 from pip._internal.download import (
