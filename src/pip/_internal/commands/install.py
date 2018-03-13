@@ -171,6 +171,7 @@ class InstallCommand(RequirementCommand):
         cmd_opts.add_option(cmdoptions.no_clean())
         cmd_opts.add_option(cmdoptions.require_hashes())
         cmd_opts.add_option(cmdoptions.progress_bar())
+        cmd_opts.add_option(cmdoptions.ignore_uninstallation_errors())
 
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
@@ -295,6 +296,7 @@ class InstallCommand(RequirementCommand):
                     installed = requirement_set.install(
                         install_options,
                         global_options,
+                        options=options,
                         root=options.root_path,
                         prefix=options.prefix_path,
                         warn_script_location=options.warn_script_location,

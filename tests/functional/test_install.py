@@ -1,5 +1,6 @@
 import distutils
 import glob
+import json
 import os
 import sys
 import textwrap
@@ -620,6 +621,29 @@ def test_install_package_with_target(script):
     result = script.pip_install_local('-t', target_dir, 'singlemodule==0.0.1',
                                       '--upgrade')
     assert singlemodule_py in result.files_updated, str(result)
+
+
+def test_ignore_uninstallation_errors(script, data):
+    """
+    Test that uninstallation errors during install, such as those raised by
+    upgrading a distutils-installed package, are non-fatal when the
+    --ignore-uninstallation-errors option has been provided.
+
+    """
+    script.scratch_path.join("distutils_install").mkdir()
+    pkg_path = script.scratch_path / 'distutils_install'
+    pkg_path.join("setup.py").write(textwrap.dedent("""
+        from distutils.core import setup
+        setup(
+            name='simple',
+            version='0.1',
+        )
+    """))
+    result = script.run('python', pkg_path / 'setup.py', 'install')
+    result = script.pip_install_local(
+        '--ignore-uninstallation-errors', 'simple==1.0', expect_stderr=True
+    )
+    assert "Uninstallation error" in result.stderr
 
 
 def test_install_package_with_root(script, data):
