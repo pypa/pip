@@ -451,6 +451,17 @@ ignore_requires_python = partial(
     help='Ignore the Requires-Python information.'
 )  # type: Any
 
+no_build_isolation = partial(
+    Option,
+    '--no-build-isolation',
+    dest='build_isolation',
+    action='store_false',
+    default=True,
+    help='Disable isolation when building a modern source distribution. '
+         'Build dependencies specified by PEP 518 must be already installed '
+         'if this option is used.'
+)  # type: Any
+
 install_options = partial(
     Option,
     '--install-option',
