@@ -43,7 +43,7 @@ from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
 from pip._vendor.requests.utils import get_netrc_auth
 from pip._vendor.requests.structures import CaseInsensitiveDict
-from pip._vendor.requests.packages import urllib3
+from pip._vendor import urllib3
 from pip._vendor.cachecontrol import CacheControlAdapter
 from pip._vendor.cachecontrol.caches import FileCache
 from pip._vendor.lockfile import LockError

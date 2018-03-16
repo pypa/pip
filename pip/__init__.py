@@ -18,7 +18,7 @@ import re
 # to add socks as yet another dependency for pip, nor do I want to allow-stder
 # in the DEP-8 tests, so just suppress the warning.  pdb tells me this has to
 # be done before the import of pip.vcs.
-from pip._vendor.requests.packages.urllib3.exceptions import DependencyWarning
+from pip._vendor.urllib3.exceptions import DependencyWarning
 warnings.filterwarnings("ignore", category=DependencyWarning)  # noqa
 
 # We want to inject the use of SecureTransport as early as possible so that any
@@ -33,9 +33,7 @@ else:
     if (sys.platform == "darwin" and
             ssl.OPENSSL_VERSION_NUMBER < 0x1000100f):  # OpenSSL 1.0.1
         try:
-            from pip._vendor.requests.packages.urllib3.contrib import (
-                securetransport,
-            )
+            from pip._vendor.urllib3.contrib import securetransport
         except (ImportError, OSError):
             pass
         else:
@@ -48,9 +46,7 @@ from pip.vcs import git, mercurial, subversion, bazaar  # noqa
 from pip.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip.commands import get_summaries, get_similar_commands
 from pip.commands import commands_dict
-from pip._vendor.requests.packages.urllib3.exceptions import (
-    InsecureRequestWarning,
-)
+from pip._vendor.urllib3.exceptions import InsecureRequestWarning
 
 
 # assignment for flake8 to be happy

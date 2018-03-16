@@ -10,8 +10,8 @@ except ImportError:
     import pickle
 
 
-from pip._vendor.requests.packages.urllib3.response import HTTPResponse
-from pip._vendor.requests.packages.urllib3.util import is_fp_closed
+from pip._vendor.urllib3.response import HTTPResponse
+from pip._vendor.urllib3.util import is_fp_closed
 
 # Replicate some six behaviour
 try:
