@@ -1,3 +1,4 @@
+import logging
 import sys
 
 import pytest
@@ -120,6 +121,8 @@ class TestWheel:
         """
         Test if PackageFinder skips invalid wheel filenames
         """
+        caplog.set_level(logging.DEBUG)
+
         req = InstallRequirement.from_line("invalid")
         # data.find_links contains "invalid.whl", which is an invalid wheel
         finder = PackageFinder(
