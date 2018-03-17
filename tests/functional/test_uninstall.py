@@ -5,6 +5,7 @@ import os
 import sys
 import pytest
 import pretend
+import logging
 
 from os.path import join, normpath
 from tempfile import mkdtemp
@@ -364,6 +365,8 @@ def test_uninstallpathset_no_paths(caplog):
     Test UninstallPathSet logs notification when there are no paths to
     uninstall
     """
+    caplog.set_level(logging.DEBUG)
+
     from pip.req.req_uninstall import UninstallPathSet
     from pkg_resources import get_distribution
     test_dist = get_distribution('pip')
@@ -372,7 +375,7 @@ def test_uninstallpathset_no_paths(caplog):
 
     assert (
         "Can't uninstall 'pip'. No files were found to uninstall."
-        in caplog.text()
+        in caplog.text
     )
 
 
