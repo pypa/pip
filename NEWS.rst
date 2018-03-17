@@ -7,6 +7,14 @@
 
 .. towncrier release notes start
 
+
+9.0.2 (2017-03-16)
+==================
+
+- Fallback to using SecureTransport on macOS when the linked OpenSSL is too old
+  to support TLSv1.2.
+
+
 9.0.1 (2016-11-06)
 ==================
 
