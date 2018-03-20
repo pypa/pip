@@ -515,7 +515,7 @@ def test_install_unsupported_wheel_file(script, data):
     assert len(result.files_created) == 0
 
 
-def test_install_options_local_to_package(script, data, virtualenv):
+def test_install_options_local_to_package(script, data):
     """Make sure --install-options does not leak across packages.
 
     A requirements.txt file can have per-package --install-options; these
@@ -528,15 +528,15 @@ def test_install_options_local_to_package(script, data, virtualenv):
     home_simple.mkdir()
     reqs_file = script.scratch_path.join("reqs.txt")
     reqs_file.write(
-          textwrap.dedent("""
-              simple --install-option='--home=%s'
-              INITools
-              """ % home_simple))
+        textwrap.dedent("""
+            simple --install-option='--home=%s'
+            INITools
+            """ % home_simple))
     result = script.pip(
-            'install',
-            '--no-index', '-f', data.find_links,
-            '-r', reqs_file,
-            expect_error=True,
+        'install',
+        '--no-index', '-f', data.find_links,
+        '-r', reqs_file,
+        expect_error=True,
     )
 
     simple = test_simple / 'lib' / 'python' / 'simple'
