@@ -1,13 +1,6 @@
 from __future__ import absolute_import, division, unicode_literals
 
-try:
-    from collections import OrderedDict
-except ImportError:
-    try:
-        from ordereddict import OrderedDict
-    except ImportError:
-        OrderedDict = dict
-
+from collections import OrderedDict
 import re
 
 from pip._vendor.six import string_types
