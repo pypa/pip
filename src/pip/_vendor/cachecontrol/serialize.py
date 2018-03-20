@@ -150,7 +150,7 @@ class Serializer(object):
     def _loads_v1(self, request, data):
         try:
             cached = pickle.loads(data)
-        except ValueError:
+        except (ValueError, ImportError):
             return
 
         return self.prepare_response(request, cached)
