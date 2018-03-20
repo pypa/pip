@@ -1188,27 +1188,6 @@ def test_install_compatible_python_requires(script, common_wheels):
     assert "Successfully installed pkga-0.1" in res.stdout, res
 
 
-def test_basic_install_environment_markers(script):
-    # make a dummy project
-    pkga_path = script.scratch_path / 'pkga'
-    pkga_path.mkdir()
-    pkga_path.join("setup.py").write(textwrap.dedent("""
-        from setuptools import setup
-        setup(name='pkga',
-              version='0.1',
-              install_requires=[
-                'missing_pkg; python_version=="1.0"',
-              ],
-        )
-    """))
-
-    res = script.pip('install', '--no-index', pkga_path)
-    # missing_pkg should be ignored
-    assert ("Ignoring missing-pkg: markers 'python_version == \"1.0\"' don't "
-            "match your environment") in res.stdout, str(res)
-    assert "Successfully installed pkga-0.1" in res.stdout, str(res)
-
-
 @pytest.mark.network
 def test_install_pep508_with_url(script):
     res = script.pip(
