@@ -8,7 +8,7 @@ for package in ('urllib3', 'idna', 'chardet'):
     # This traversal is apparently necessary such that the identities are
     # preserved (requests.packages.urllib3.* is urllib3.*)
     for mod in list(sys.modules):
-        if mod == package or mod.startswith(package + '.'):
+        if mod == package or mod.startswith(package + '.') and "pip._vendor." + mod in list(sys.modules):
             sys.modules['requests.packages.' + mod] = sys.modules[mod]
 
 # Kinda cool, though, right?
