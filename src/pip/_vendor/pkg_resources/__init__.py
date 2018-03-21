@@ -2227,8 +2227,9 @@ def _rebuild_mod_path(orig_path, package_name, module):
         # Is this behavior useful when module.__path__ is not a list?
         return
 
-    orig_path.sort(key=position_in_sys_path)
-    module.__path__[:] = [_normalize_cached(p) for p in orig_path]
+    orig_path_t = list(orig_path)
+    orig_path_t.sort(key=position_in_sys_path)
+    module.__path__[:] = [_normalize_cached(p) for p in orig_path_t]
 
 
 def declare_namespace(packageName):
