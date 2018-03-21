@@ -31,6 +31,7 @@ except ImportError:
     pass
 else:
     if (sys.platform == "darwin" and
+            hasattr(ssl, "OPENSSL_VERSION_NUMBER") and
             ssl.OPENSSL_VERSION_NUMBER < 0x1000100f):  # OpenSSL 1.0.1
         try:
             from pip._vendor.urllib3.contrib import securetransport

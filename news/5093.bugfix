@@ -1,0 +1,1 @@
+Prevent pip from raising exception if ssl does not have OPENSSL_VERSION_NUMBER (ssl in python2.6 does not have this attribute)
