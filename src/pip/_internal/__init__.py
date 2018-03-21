@@ -30,7 +30,9 @@ except ImportError:
     pass
 else:
     # Checks for OpenSSL 1.0.1 on MacOS
-    if sys.platform == "darwin" and ssl.OPENSSL_VERSION_NUMBER < 0x1000100f:
+    if (sys.platform == "darwin" and\
+            hasattr(ssl, "OPENSSL_VERSION_NUMBER") and\
+            ssl.OPENSSL_VERSION_NUMBER < 0x1000100f):
         try:
             from pip._vendor.urllib3.contrib import securetransport
         except (ImportError, OSError):
