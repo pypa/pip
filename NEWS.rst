@@ -8,6 +8,14 @@
 .. towncrier release notes start
 
 
+9.0.3 (2018-03-21)
+==================
+
+- Fix an error where the vendored requests was not correctly containing itself
+  to only the internal vendored prefix.
+- Restore compatability with 2.6.
+
+
 9.0.2 (2018-03-16)
 ==================
 
