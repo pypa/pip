@@ -1,4 +1,4 @@
-**9.0.3 (unreleased)**
+**9.0.3 (2018-03-21)**
 
 * Fix an error where the vendored requests was not correctly containing itself
   to only the internal vendored prefix.
