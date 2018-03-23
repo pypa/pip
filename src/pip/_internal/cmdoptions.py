@@ -303,7 +303,7 @@ def trusted_host():
 # Remove after 1.5
 process_dependency_links = partial(
     Option,
-    "--process-dependency-links",
+    "-L", "--process-dependency-links",
     dest="process_dependency_links",
     action="store_true",
     default=False,

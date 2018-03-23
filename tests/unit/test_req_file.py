@@ -415,6 +415,9 @@ class TestProcessLine(object):
             "--process-dependency-links", "file", 1, finder=finder))
         assert finder.process_dependency_links
 
+        list(process_line("-L", "file", 1, finder=finder))
+        assert finder.process_dependency_links
+
 
 class TestBreakOptionsArgs(object):
 
