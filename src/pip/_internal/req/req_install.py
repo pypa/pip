@@ -10,7 +10,7 @@ import traceback
 import warnings
 import zipfile
 from distutils.util import change_root
-from email.parser import FeedParser
+from email.parser import FeedParser  # type: ignore
 
 from pip._vendor import pkg_resources, pytoml, six
 from pip._vendor.packaging import specifiers
