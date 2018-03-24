@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import logging
 import sys
-from email.parser import FeedParser
+from email.parser import FeedParser # type: ignore
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging import specifiers, version
