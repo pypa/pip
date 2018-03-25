@@ -84,6 +84,11 @@ class InstallCommand(RequirementCommand):
                  "Windows. (See the Python documentation for site.USER_BASE "
                  "for full details.)")
         cmd_opts.add_option(
+            '--no-user',
+            dest='use_user_site',
+            action='store_false',
+            help="Do not install to the Python user install directory")
+        cmd_opts.add_option(
             '--root',
             dest='root_path',
             metavar='dir',
