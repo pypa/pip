@@ -195,7 +195,7 @@ def samefile(file1, file2):
         return path1 == path2
 
 
-if sys.version_info >= (3, 3):
+if hasattr(shutil, 'get_terminal_size'):
     def get_terminal_size():
         """
         Returns a tuple (x, y) representing the width(x) and the height(y)
