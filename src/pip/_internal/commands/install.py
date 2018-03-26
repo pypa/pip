@@ -5,6 +5,7 @@ import logging
 import operator
 import os
 import shutil
+from optparse import SUPPRESS_HELP
 
 from pip._internal import cmdoptions
 from pip._internal.basecommand import RequirementCommand
@@ -83,6 +84,11 @@ class InstallCommand(RequirementCommand):
                  "platform. Typically ~/.local/, or %APPDATA%\\Python on "
                  "Windows. (See the Python documentation for site.USER_BASE "
                  "for full details.)")
+        cmd_opts.add_option(
+            '--no-user',
+            dest='use_user_site',
+            action='store_false',
+            help=SUPPRESS_HELP)
         cmd_opts.add_option(
             '--root',
             dest='root_path',

@@ -60,7 +60,7 @@ def _install_build_reqs(finder, prefix, build_requirements):
     ]
     args = [
         sys.executable, '-m', 'pip', 'install', '--ignore-installed',
-        '--prefix', prefix,
+        '--no-user', '--prefix', prefix,
     ] + list(urls)
 
     with open_spinner("Installing build dependencies") as spinner:
@@ -128,9 +128,13 @@ class IsSDist(DistAbstraction):
 
         if 'setuptools' not in build_requirements:
             logger.warning(
-                "This version of pip does not implement PEP 516, so "
-                "it cannot build a wheel without setuptools. You may need to "
-                "upgrade to a newer version of pip.")
+                "%s does not include 'setuptools' as a buildtime requirement "
+                "in its pyproject.toml.", self.req.name,
+            )
+            logger.warning(
+                "This version of pip does not implement PEP 517 so it cannot "
+                "build a wheel without setuptools."
+            )
 
         if not should_isolate:
             self.req.build_env = NoOpBuildEnvironment(no_clean=False)

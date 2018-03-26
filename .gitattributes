@@ -1,0 +1,2 @@
+# Patches must have Unix-style line endings, even on Windows
+tasks/vendoring/patches/* eol=lf

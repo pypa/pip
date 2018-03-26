@@ -10,7 +10,7 @@ import traceback
 import warnings
 import zipfile
 from distutils.util import change_root
-from email.parser import FeedParser
+from email.parser import FeedParser  # type: ignore
 
 from pip._vendor import pkg_resources, pytoml, six
 from pip._vendor.packaging import specifiers
@@ -771,11 +771,13 @@ class InstallRequirement(object):
         # Options specified in requirements file override those
         # specified on the command line, since the last option given
         # to setup.py is the one that is used.
-        global_options += self.options.get('global_options', [])
-        install_options += self.options.get('install_options', [])
+        global_options = list(global_options) + \
+            self.options.get('global_options', [])
+        install_options = list(install_options) + \
+            self.options.get('install_options', [])
 
         if self.isolated:
-            global_options = list(global_options) + ["--no-user-cfg"]
+            global_options = global_options + ["--no-user-cfg"]
 
         with TempDirectory(kind="record") as temp_dir:
             record_filename = os.path.join(temp_dir.path, 'install-record.txt')
