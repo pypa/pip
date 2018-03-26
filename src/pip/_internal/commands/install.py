@@ -5,6 +5,7 @@ import logging
 import operator
 import os
 import shutil
+from optparse import SUPPRESS_HELP
 
 from pip._internal import cmdoptions
 from pip._internal.basecommand import RequirementCommand
@@ -87,7 +88,7 @@ class InstallCommand(RequirementCommand):
             '--no-user',
             dest='use_user_site',
             action='store_false',
-            help="Do not install to the Python user install directory")
+            help=SUPPRESS_HELP)
         cmd_opts.add_option(
             '--root',
             dest='root_path',
