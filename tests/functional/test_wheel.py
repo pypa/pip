@@ -222,3 +222,29 @@ def test_pip_wheel_with_pep518_build_reqs(script, data):
     assert wheel_file_path in result.files_created, result.stdout
     assert "Successfully built pep518" in result.stdout, result.stdout
     assert "Installing build dependencies" in result.stdout, result.stdout
+
+
+@pytest.mark.network
+def test_pip_wheel_with_pep518_build_reqs_no_isolation(script, data):
+    script.pip('install', 'wheel')
+    result = script.pip(
+        'wheel', '--no-index', '-f', data.find_links, '--no-build-isolation',
+        'pep518==3.0',
+    )
+    wheel_file_name = 'pep518-3.0-py%s-none-any.whl' % pyversion[0]
+    wheel_file_path = script.scratch / wheel_file_name
+    assert wheel_file_path in result.files_created, result.stdout
+    assert "Successfully built pep518" in result.stdout, result.stdout
+    assert "Installing build dependencies" not in result.stdout, result.stdout
+
+
+def test_pip_wheel_with_user_set_in_config(script, data):
+    script.pip('install', 'wheel')
+    script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
+    config_file = script.scratch_path / 'pip.conf'
+    script.environ['PIP_CONFIG_FILE'] = str(config_file)
+    config_file.write("[install]\nuser = true")
+    result = script.pip(
+        'wheel', data.src / 'withpyproject',
+    )
+    assert "Successfully built withpyproject" in result.stdout, result.stdout

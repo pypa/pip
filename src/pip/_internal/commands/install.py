@@ -5,6 +5,7 @@ import logging
 import operator
 import os
 import shutil
+from optparse import SUPPRESS_HELP
 
 from pip._internal import cmdoptions
 from pip._internal.basecommand import RequirementCommand
@@ -85,6 +86,11 @@ class InstallCommand(RequirementCommand):
                  "Windows. (See the Python documentation for site.USER_BASE "
                  "for full details.)")
         cmd_opts.add_option(
+            '--no-user',
+            dest='use_user_site',
+            action='store_false',
+            help=SUPPRESS_HELP)
+        cmd_opts.add_option(
             '--root',
             dest='root_path',
             metavar='dir',
@@ -140,6 +146,7 @@ class InstallCommand(RequirementCommand):
             help='Ignore the installed packages (reinstalling instead).')
 
         cmd_opts.add_option(cmdoptions.ignore_requires_python())
+        cmd_opts.add_option(cmdoptions.no_build_isolation())
 
         cmd_opts.add_option(cmdoptions.install_options())
         cmd_opts.add_option(cmdoptions.global_options())
@@ -265,6 +272,7 @@ class InstallCommand(RequirementCommand):
                         download_dir=None,
                         wheel_download_dir=None,
                         progress_bar=options.progress_bar,
+                        build_isolation=options.build_isolation,
                     )
 
                     resolver = Resolver(
