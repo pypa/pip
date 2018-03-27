@@ -429,7 +429,7 @@ no_deps = partial(
     dest='ignore_dependencies',
     action='store_true',
     default=False,
-    help="Don't install package dependencies)."
+    help="Don't install package dependencies.",
 )  # type: Any
 
 build_dir = partial(
