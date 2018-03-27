@@ -709,7 +709,7 @@ def create_basic_wheel_for_package(script, name, version, depends, extras):
         "{dist_info}/top_level.txt": """
             {name}
         """,
-        # Have an empty RECORD becuase we don't want to be checking hashes.
+        # Have an empty RECORD because we don't want to be checking hashes.
         "{dist_info}/RECORD": ""
     }
 
