@@ -565,6 +565,15 @@ require_hashes = partial(
          'requirements file has a --hash option.',
 )  # type: Any
 
+ignore_uninstallation_errors = partial(
+    Option,
+    '--ignore-uninstallation-errors',
+    dest='ignore_uninstallation_errors',
+    action='store_true',
+    default=False,
+    help='Ignore any errors preventing uninstallation.'
+)  # type: Any
+
 
 ##########
 # groups #

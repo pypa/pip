@@ -196,7 +196,8 @@ class RequirementSet(object):
             schedule(install_req)
         return order
 
-    def install(self, install_options, global_options=(), *args, **kwargs):
+    def install(self, install_options, global_options=(), options=None, *args,
+                **kwargs):
         """
         Install everything in this set (after having downloaded and unpacked
         the packages)
@@ -218,7 +219,7 @@ class RequirementSet(object):
                     )
                     with indent_log():
                         uninstalled_pathset = requirement.uninstall(
-                            auto_confirm=True
+                            options=options, auto_confirm=True
                         )
                 try:
                     requirement.install(

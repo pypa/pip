@@ -657,7 +657,7 @@ class InstallRequirement(object):
                 'Unexpected version control type (in %s): %s'
                 % (self.link, vc_type))
 
-    def uninstall(self, auto_confirm=False, verbose=False):
+    def uninstall(self, options=None, auto_confirm=False, verbose=False):
         """
         Uninstall the distribution currently satisfying this requirement.
 
@@ -675,7 +675,18 @@ class InstallRequirement(object):
             return
         dist = self.satisfied_by or self.conflicts_with
 
-        uninstalled_pathset = UninstallPathSet.from_dist(dist)
+        try:
+            uninstalled_pathset = UninstallPathSet.from_dist(dist)
+        except UninstallationError:
+            if options.ignore_uninstallation_errors:
+                logger.warning(
+                    'Uninstallation error: %s - Check: %s',
+                    dist, dist.location,
+                )
+                uninstalled_pathset = UninstallPathSet(dist)
+            else:
+                raise
+
         uninstalled_pathset.remove(auto_confirm, verbose)
         return uninstalled_pathset
 
