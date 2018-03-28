@@ -54,6 +54,10 @@ def check_package_set(package_set):
 
             # Check if it's missing
             if name not in package_set:
+                missed = True
+                if req.marker is not None:
+                    missed = req.marker.evaluate()
+                if missed:
                 missing_deps.add((name, req))
                 continue
 

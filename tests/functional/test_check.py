@@ -172,3 +172,24 @@ def test_check_complicated_name_clean(script):
     )
     assert matches_expected_lines(result.stdout, expected_lines)
     assert result.returncode == 0
+
+
+def test_check_considers_conditional_reqs(script):
+    package_a_path = create_test_package_with_setup(
+        script,
+        name='package_A', version='1.0',
+        install_requires=[
+            "Dependency-B>=1.0; python_version != '2.7'",
+            "Dependency-B>=2.0; python_version == '2.7'",
+        ],
+    )
+
+    result = script.pip('install', '--no-index', package_a_path, '--no-deps')
+    assert "Successfully installed package-A-1.0" in result.stdout, str(result)
+
+    result = script.pip('check', expect_error=True)
+    expected_lines = (
+        "package-a 1.0 requires dependency-b, which is not installed.",
+    )
+    assert matches_expected_lines(result.stdout, expected_lines)
+    assert result.returncode == 1
