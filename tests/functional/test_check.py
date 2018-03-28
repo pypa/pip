@@ -18,6 +18,7 @@ def test_basic_check_clean(script):
         "No broken requirements found.",
     )
     assert matches_expected_lines(result.stdout, expected_lines)
+    assert result.returncode == 0
 
 
 def test_basic_check_missing_dependency(script):
@@ -114,6 +115,7 @@ def test_check_complicated_name_missing(script):
         "package-a 1.0 requires dependency-b, which is not installed.",
     )
     assert matches_expected_lines(result.stdout, expected_lines)
+    assert result.returncode == 1
 
 
 def test_check_complicated_name_broken(script):
@@ -142,6 +144,7 @@ def test_check_complicated_name_broken(script):
         "dependency-b 0.1.",
     )
     assert matches_expected_lines(result.stdout, expected_lines)
+    assert result.returncode == 1
 
 
 def test_check_complicated_name_clean(script):
@@ -168,3 +171,4 @@ def test_check_complicated_name_clean(script):
         "No broken requirements found.",
     )
     assert matches_expected_lines(result.stdout, expected_lines)
+    assert result.returncode == 0
