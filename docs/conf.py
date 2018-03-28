@@ -127,7 +127,7 @@ html_theme = "pypa_theme"
 html_theme_options = {
     'collapsiblesidebar': True,
     'externalrefs': True,
-    'navigation_depth': 2,
+    'navigation_depth': 3,
     'issues_url': 'https://github.com/pypa/pip/issues'
 }
 

@@ -205,7 +205,8 @@ class Git(VersionControl):
         """Return URL of the first remote encountered."""
         remotes = self.run_command(
             ['config', '--get-regexp', r'remote\..*\.url'],
-            show_stdout=False, cwd=location)
+            show_stdout=False, cwd=location,
+        )
         remotes = remotes.splitlines()
         found_remote = remotes[0]
         for remote in remotes:
@@ -217,7 +218,8 @@ class Git(VersionControl):
 
     def get_revision(self, location):
         current_rev = self.run_command(
-            ['rev-parse', 'HEAD'], show_stdout=False, cwd=location)
+            ['rev-parse', 'HEAD'], show_stdout=False, cwd=location,
+        )
         return current_rev.strip()
 
     def _get_subdirectory(self, location):

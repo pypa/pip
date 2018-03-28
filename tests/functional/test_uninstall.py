@@ -17,9 +17,9 @@ from tests.lib.local_repos import local_checkout, local_repo
 
 
 @pytest.mark.network
-def test_simple_uninstall(script):
+def test_basic_uninstall(script):
     """
-    Test simple install and uninstall.
+    Test basic install and uninstall.
 
     """
     result = script.pip('install', 'INITools==0.2')
@@ -33,9 +33,9 @@ def test_simple_uninstall(script):
     assert_all_changes(result, result2, [script.venv / 'build', 'cache'])
 
 
-def test_simple_uninstall_distutils(script):
+def test_basic_uninstall_distutils(script):
     """
-    Test simple install and uninstall.
+    Test basic install and uninstall.
 
     """
     script.scratch_path.join("distutils_install").mkdir()
@@ -61,7 +61,7 @@ def test_simple_uninstall_distutils(script):
 
 
 @pytest.mark.network
-def test_uninstall_with_scripts(script):
+def test_basic_uninstall_with_scripts(script):
     """
     Uninstall an easy_installed package with scripts.
 
@@ -101,7 +101,40 @@ def test_uninstall_easy_install_after_import(script):
 
 
 @pytest.mark.network
-def test_uninstall_namespace_package(script):
+def test_uninstall_trailing_newline(script):
+    """
+    Uninstall behaves appropriately if easy-install.pth
+    lacks a trailing newline
+
+    """
+    script.run('easy_install', 'INITools==0.2', expect_stderr=True)
+    script.run('easy_install', 'PyLogo', expect_stderr=True)
+    easy_install_pth = script.site_packages_path / 'easy-install.pth'
+
+    # trim trailing newline from easy-install.pth
+    with open(easy_install_pth) as f:
+        pth_before = f.read()
+
+    with open(easy_install_pth, 'w') as f:
+        f.write(pth_before.rstrip())
+
+    # uninstall initools
+    script.pip('uninstall', 'INITools', '-y')
+    with open(easy_install_pth) as f:
+        pth_after = f.read()
+
+    # verify that only initools is removed
+    before_without_initools = [
+        line for line in pth_before.splitlines()
+        if 'initools' not in line.lower()
+    ]
+    lines_after = pth_after.splitlines()
+
+    assert lines_after == before_without_initools
+
+
+@pytest.mark.network
+def test_basic_uninstall_namespace_package(script):
     """
     Uninstall a distribution with a namespace package without clobbering
     the namespace and everything in it.

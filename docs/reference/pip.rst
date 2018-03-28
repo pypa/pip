@@ -1,6 +1,8 @@
 pip
 ---
 
+.. contents::
+
 Usage
 *****
 
@@ -70,14 +72,16 @@ Build System Interface
 ======================
 
 Pip builds packages by invoking the build system. Presently, the only supported
-build system is ``setuptools``, but future developments to the Python packaging
-infrastructure are expected to include support for other build systems.  As
-well as package building, the build system is also invoked to install packages
-direct from source.
+build system is ``setuptools``, but in the future, pip will support `PEP517`_
+which allows projects to specify an alternative build system in a
+``pyproject.toml`` file.  As well as package building, the build system is also
+invoked to install packages direct from source.  This is handled by invoking
+the build system to build a wheel, and then installing from that wheel.  The
+built wheel is cached locally by pip to avoid repeated identical builds.
 
-The interface to the build system is via the ``setup.py`` command line script -
-all build actions are defined in terms of the specific ``setup.py`` command
-line that will be run to invoke the required action.
+The current interface to the build system is via the ``setup.py`` command line
+script - all build actions are defined in terms of the specific ``setup.py``
+command line that will be run to invoke the required action.
 
 Setuptools Injection
 ~~~~~~~~~~~~~~~~~~~~
@@ -108,6 +112,54 @@ if presented with incorrectly encoded build tool output, by translating
 unexpected byte sequences to Python-style hexadecimal escape sequences
 (``"\x80\xff"``, etc). However, it is still possible for output to be displayed
 using an incorrect encoding (mojibake).
+
+PEP 518 Support
+~~~~~~~~~~~~~~~
+
+Pip supports projects declaring dependencies that are required at install time
+using a ``pyproject.toml`` file, in the form described in `PEP518`_. When
+building a project, pip will install the required dependencies locally, and
+make them available to the build process.
+
+As noted in the PEP, the minimum requirements for pip to be able to build a
+project are::
+
+    [build-system]
+    # Minimum requirements for the build system to execute.
+    requires = ["setuptools", "wheel"]
+
+``setuptools`` and ``wheel`` **must** be included in any ``pyproject.toml``
+provided by a project - pip will assume these as a default, but will not add
+them to an explicitly supplied list in a project supplied ``pyproject.toml``
+file. Once `PEP517`_ support is added, this restriction will be lifted and
+alternative build tools will be allowed.
+
+When making build requirements available, pip does so in an *isolated
+environment*. That is, pip does not install those requirements into the user's
+``site-packages``, but rather installs them in a temporary directory which it
+adds to the user's ``sys.path`` for the duration of the build. This ensures
+that build requirements are handled independently of the user's runtime
+environment. For example, a project that needs a recent version of setuptools
+to build can still be installed, even if the user has an older version
+installed (and without silently replacing that version).
+
+In certain cases, projects (or redistributors) may have workflows that
+explicitly manage the build environment. For such workflows, build isolation
+can be problematic. If this is the case, pip provides a
+``--no-build-isolation`` flag to disable build isolation. Users supplying this
+flag are responsible for ensuring the build environment is managed
+appropriately.
+
+The current implementation of `PEP518`_ in pip requires that any dependencies
+specified in ``pyproject.toml`` are available as wheels. This is a technical
+limitation of the implementation - dependencies only available as source would
+require a build step of their own, which would recursively invoke the `PEP518`_
+dependency installation process. The potentially unbounded recursion involved
+was not considered acceptable, and so installation of build dependencies from
+source has been disabled until a safe resolution of this issue has been found.
+
+.. _PEP517: http://www.python.org/dev/peps/pep-0517/
+.. _PEP518: http://www.python.org/dev/peps/pep-0518/
 
 Future Developments
 ~~~~~~~~~~~~~~~~~~~

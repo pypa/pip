@@ -1,5 +1,5 @@
 class UnpackException(Exception):
-    pass
+    """Deprecated.  Use Exception instead to catch all exception during unpacking."""
 
 
 class BufferFull(UnpackException):
@@ -11,10 +11,10 @@ class OutOfData(UnpackException):
 
 
 class UnpackValueError(UnpackException, ValueError):
-    pass
+    """Deprecated.  Use ValueError instead."""
 
 
-class ExtraData(ValueError):
+class ExtraData(UnpackValueError):
     def __init__(self, unpacked, extra):
         self.unpacked = unpacked
         self.extra = extra
@@ -22,8 +22,20 @@ class ExtraData(ValueError):
     def __str__(self):
         return "unpack(b) received extra data."
 
+
 class PackException(Exception):
-    pass
+    """Deprecated.  Use Exception instead to catch all exception during packing."""
+
 
 class PackValueError(PackException, ValueError):
-    pass
+    """PackValueError is raised when type of input data is supported but it's value is unsupported.
+
+    Deprecated.  Use ValueError instead.
+    """
+
+
+class PackOverflowError(PackValueError, OverflowError):
+    """PackOverflowError is raised when integer value is out of range of msgpack support [-2**31, 2**32).
+
+    Deprecated.  Use ValueError instead.
+    """

@@ -10,9 +10,9 @@ import traceback
 import warnings
 import zipfile
 from distutils.util import change_root
-from email.parser import FeedParser
+from email.parser import FeedParser  # type: ignore
 
-from pip._vendor import pkg_resources, six
+from pip._vendor import pkg_resources, pytoml, six
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
@@ -22,13 +22,14 @@ from pip._vendor.packaging.version import Version
 from pip._vendor.pkg_resources import RequirementParseError, parse_requirements
 
 from pip._internal import wheel
+from pip._internal.build_env import BuildEnvironment
 from pip._internal.compat import native_str
 from pip._internal.download import (
-    is_archive_file, is_url, path_to_url, url_to_path
+    is_archive_file, is_url, path_to_url, url_to_path,
 )
 from pip._internal.exceptions import InstallationError, UninstallationError
 from pip._internal.locations import (
-    PIP_DELETE_MARKER_FILENAME, running_under_virtualenv
+    PIP_DELETE_MARKER_FILENAME, running_under_virtualenv,
 )
 from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.deprecation import RemovedInPip11Warning
@@ -37,7 +38,7 @@ from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     _make_build_dir, ask_path_exists, backup_dir, call_subprocess,
     display_path, dist_in_site_packages, dist_in_usersite, ensure_dir,
-    get_installed_version, is_installable_dir, read_text_file, rmtree
+    get_installed_version, is_installable_dir, read_text_file, rmtree,
 )
 from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._internal.utils.temp_dir import TempDirectory
@@ -63,6 +64,11 @@ def _strip_extras(path):
 
 
 class InstallRequirement(object):
+    """
+    Represents something that may be installed later on, may have information
+    about where to fetch the relavant requirement and also contains logic for
+    installing the said requirement.
+    """
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
                  link=None, update=True, pycompile=True, markers=None,
@@ -88,9 +94,9 @@ class InstallRequirement(object):
         if extras:
             self.extras = extras
         elif req:
-            self.extras = set(
+            self.extras = {
                 pkg_resources.safe_extra(extra) for extra in req.extras
-            )
+            }
         else:
             self.extras = set()
         if markers is not None:
@@ -123,6 +129,7 @@ class InstallRequirement(object):
         self.prepared = False
 
         self.isolated = isolated
+        self.build_env = BuildEnvironment(no_clean=True)
 
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, isolated=False,
@@ -139,7 +146,7 @@ class InstallRequirement(object):
             try:
                 req = Requirement(name)
             except InvalidRequirement:
-                raise InstallationError("Invalid requirement: '%s'" % req)
+                raise InstallationError("Invalid requirement: '%s'" % name)
         else:
             req = None
         return cls(
@@ -447,6 +454,22 @@ class InstallRequirement(object):
 
         return pp_toml
 
+    def get_pep_518_info(self):
+        """Get a list of the packages required to build the project, if any,
+        and a flag indicating whether pyproject.toml is present, indicating
+        that the build should be isolated.
+
+        Build requirements can be specified in a pyproject.toml, as described
+        in PEP 518. If this file exists but doesn't specify build
+        requirements, pip will default to installing setuptools and wheel.
+        """
+        if os.path.isfile(self.pyproject_toml):
+            with open(self.pyproject_toml) as f:
+                pp_toml = pytoml.load(f)
+            build_sys = pp_toml.get('build-system', {})
+            return (build_sys.get('requires', ['setuptools', 'wheel']), True)
+        return (['setuptools', 'wheel'], False)
+
     def run_egg_info(self):
         assert self.source_dir
         if self.name:
@@ -729,7 +752,8 @@ class InstallRequirement(object):
         global_options = global_options if global_options is not None else []
         if self.editable:
             self.install_editable(
-                install_options, global_options, prefix=prefix)
+                install_options, global_options, prefix=prefix,
+            )
             return
         if self.is_wheel:
             version = wheel.wheel_version(self.source_dir)
@@ -747,16 +771,19 @@ class InstallRequirement(object):
         # Options specified in requirements file override those
         # specified on the command line, since the last option given
         # to setup.py is the one that is used.
-        global_options += self.options.get('global_options', [])
-        install_options += self.options.get('install_options', [])
+        global_options = list(global_options) + \
+            self.options.get('global_options', [])
+        install_options = list(install_options) + \
+            self.options.get('install_options', [])
 
         if self.isolated:
-            global_options = list(global_options) + ["--no-user-cfg"]
+            global_options = global_options + ["--no-user-cfg"]
 
         with TempDirectory(kind="record") as temp_dir:
             record_filename = os.path.join(temp_dir.path, 'install-record.txt')
             install_args = self.get_install_args(
-                global_options, record_filename, root, prefix)
+                global_options, record_filename, root, prefix,
+            )
             msg = 'Running setup.py install for %s' % (self.name,)
             with open_spinner(msg) as spinner:
                 with indent_log():
@@ -857,6 +884,7 @@ class InstallRequirement(object):
             rmtree(self.source_dir)
         self.source_dir = None
         self._temp_build_dir.cleanup()
+        self.build_env.cleanup()
 
     def install_editable(self, install_options,
                          global_options=(), prefix=None):
@@ -866,23 +894,25 @@ class InstallRequirement(object):
             global_options = list(global_options) + ["--no-user-cfg"]
 
         if prefix:
-            prefix_param = ['--prefix={0}'.format(prefix)]
+            prefix_param = ['--prefix={}'.format(prefix)]
             install_options = list(install_options) + prefix_param
 
         with indent_log():
             # FIXME: should we do --install-headers here too?
-            call_subprocess(
-                [
-                    sys.executable,
-                    '-c',
-                    SETUPTOOLS_SHIM % self.setup_py
-                ] +
-                list(global_options) +
-                ['develop', '--no-deps'] +
-                list(install_options),
+            with self.build_env:
+                call_subprocess(
+                    [
+                        sys.executable,
+                        '-c',
+                        SETUPTOOLS_SHIM % self.setup_py
+                    ] +
+                    list(global_options) +
+                    ['develop', '--no-deps'] +
+                    list(install_options),
 
-                cwd=self.setup_py_dir,
-                show_stdout=False)
+                    cwd=self.setup_py_dir,
+                    show_stdout=False,
+                )
 
         self.install_succeeded = True
 
@@ -953,7 +983,8 @@ class InstallRequirement(object):
         return pkg_resources.Distribution(
             os.path.dirname(egg_info),
             project_name=dist_name,
-            metadata=metadata)
+            metadata=metadata,
+        )
 
     @property
     def has_hash_options(self):

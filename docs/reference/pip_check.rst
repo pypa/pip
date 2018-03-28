@@ -3,6 +3,8 @@
 pip check
 ---------
 
+.. contents::
+
 Usage
 *****
 

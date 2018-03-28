@@ -12,7 +12,7 @@ from pip._vendor.packaging.requirements import Requirement
 from pip._internal.commands.install import InstallCommand
 from pip._internal.download import PipSession, path_to_url
 from pip._internal.exceptions import (
-    HashErrors, InstallationError, InvalidWheelFilename, PreviousBuildDirError
+    HashErrors, InstallationError, InvalidWheelFilename, PreviousBuildDirError,
 )
 from pip._internal.index import PackageFinder
 from pip._internal.operations.prepare import RequirementPreparer
@@ -39,7 +39,8 @@ class TestRequirementSet(object):
             src_dir=os.path.join(self.tempdir, 'src'),
             download_dir=None,
             wheel_download_dir=None,
-            progress_bar="on"
+            progress_bar="on",
+            build_isolation=True,
         )
         return Resolver(
             preparer=preparer, wheel_cache=None,
@@ -478,7 +479,7 @@ class TestInstallRequirement(object):
         comes_from = '-r %s (line %s)' % (filename, 1)
         req = InstallRequirement.from_line(line, comes_from=comes_from)
         assert len(req.extras) == 2
-        assert req.extras == set(['ex1', 'ex2'])
+        assert req.extras == {'ex1', 'ex2'}
 
     def test_extras_for_line_url_requirement(self):
         line = 'git+https://url#egg=SomeProject[ex1,ex2]'
@@ -486,7 +487,7 @@ class TestInstallRequirement(object):
         comes_from = '-r %s (line %s)' % (filename, 1)
         req = InstallRequirement.from_line(line, comes_from=comes_from)
         assert len(req.extras) == 2
-        assert req.extras == set(['ex1', 'ex2'])
+        assert req.extras == {'ex1', 'ex2'}
 
     def test_extras_for_editable_path_requirement(self):
         url = '.[ex1,ex2]'
@@ -494,7 +495,7 @@ class TestInstallRequirement(object):
         comes_from = '-r %s (line %s)' % (filename, 1)
         req = InstallRequirement.from_editable(url, comes_from=comes_from)
         assert len(req.extras) == 2
-        assert req.extras == set(['ex1', 'ex2'])
+        assert req.extras == {'ex1', 'ex2'}
 
     def test_extras_for_editable_url_requirement(self):
         url = 'git+https://url#egg=SomeProject[ex1,ex2]'
@@ -502,7 +503,7 @@ class TestInstallRequirement(object):
         comes_from = '-r %s (line %s)' % (filename, 1)
         req = InstallRequirement.from_editable(url, comes_from=comes_from)
         assert len(req.extras) == 2
-        assert req.extras == set(['ex1', 'ex2'])
+        assert req.extras == {'ex1', 'ex2'}
 
     def test_unexisting_path(self):
         with pytest.raises(InstallationError) as e:
@@ -578,11 +579,11 @@ def test_parse_editable_local_extras(
     exists_mock.return_value = isdir_mock.return_value = True
     abspath_mock.return_value = "/some/path"
     assert parse_editable('.[extras]') == (
-        None, 'file://' + "/some/path", set(['extras']),
+        None, 'file://' + "/some/path", {'extras'},
     )
     abspath_mock.return_value = "/some/path/foo"
     assert parse_editable('foo[bar,baz]') == (
-        None, 'file:///some/path/foo', set(['bar', 'baz']),
+        None, 'file:///some/path/foo', {'bar', 'baz'},
     )
 
 

@@ -13,7 +13,7 @@ from pip._internal.exceptions import CommandError
 from pip._internal.index import PackageFinder
 from pip._internal.utils.deprecation import RemovedInPip11Warning
 from pip._internal.utils.misc import (
-    dist_is_editable, get_installed_distributions
+    dist_is_editable, get_installed_distributions,
 )
 from pip._internal.utils.packaging import get_installer
 
@@ -167,7 +167,7 @@ class ListCommand(Command):
         dep_keys = set()
         for dist in packages:
             dep_keys.update(requirement.key for requirement in dist.requires())
-        return set(pkg for pkg in packages if pkg.key not in dep_keys)
+        return {pkg for pkg in packages if pkg.key not in dep_keys}
 
     def iter_packages_latest_infos(self, packages, options):
         index_urls = [options.index_url] + options.extra_index_urls

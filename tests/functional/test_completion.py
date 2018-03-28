@@ -241,6 +241,29 @@ def test_completion_path_after_option(script, data):
         "after options in command given absolute path"
     )
 
+def test_completion_short_option(script):
+    """
+    Test getting completion for short options after ``-`` (eg. pip -)
+    """
+
+    res, env = setup_completion(script, 'pip -', '1')
+
+    assert '-h' in res.stdout.split(),\
+           "autocomplete function could not complete short options after ``-``"
+
+
+def test_completion_short_option_for_command(script):
+    """
+    Test getting completion for short options after ``-`` in command
+    (eg. pip search -)
+    """
+
+    res, env = setup_completion(script, 'pip search -', '2')
+
+    assert '-h' in res.stdout.split(),\
+           "autocomplete function could not complete short options after ``-``"
+
+
 
 @pytest.mark.parametrize('flag', ['--bash', '--zsh', '--fish'])
 def test_completion_uses_same_executable_name(script, flag):

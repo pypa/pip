@@ -130,8 +130,8 @@ class Subversion(VersionControl):
             dirurl, localrev = self._get_svn_url_rev(base)
 
             if base == location:
-                base_url = dirurl + '/'   # save the root url
-            elif not dirurl or not dirurl.startswith(base_url):
+                base = dirurl + '/'   # save the root url
+            elif not dirurl or not dirurl.startswith(base):
                 dirs[:] = []
                 continue    # not part of the same svn tree, skip it
             revision = max(revision, localrev)

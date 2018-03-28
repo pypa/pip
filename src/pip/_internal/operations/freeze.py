@@ -15,7 +15,7 @@ from pip._internal.req import InstallRequirement
 from pip._internal.req.req_file import COMMENT_RE
 from pip._internal.utils.deprecation import RemovedInPip11Warning
 from pip._internal.utils.misc import (
-    dist_is_editable, get_installed_distributions
+    dist_is_editable, get_installed_distributions,
 )
 
 logger = logging.getLogger(__name__)
@@ -209,7 +209,8 @@ class FrozenRequirement(object):
                     )
                 if not svn_location:
                     logger.warning(
-                        'Warning: cannot find svn location for %s', req)
+                        'Warning: cannot find svn location for %s', req,
+                    )
                     comments.append(
                         '## FIXME: could not find svn URL in dependency_links '
                         'for this package:'

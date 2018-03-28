@@ -2,6 +2,8 @@
 User Guide
 ==========
 
+.. contents::
+
 Running pip
 ***********
 
