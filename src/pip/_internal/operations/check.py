@@ -58,7 +58,7 @@ def check_package_set(package_set):
                 if req.marker is not None:
                     missed = req.marker.evaluate()
                 if missed:
-                missing_deps.add((name, req))
+                    missing_deps.add((name, req))
                 continue
 
             # Check if there's a conflict
@@ -66,10 +66,13 @@ def check_package_set(package_set):
             if version not in req.specifier:
                 conflicting_deps.add((name, version, req))
 
+        def str_key(x):
+            return str(x)
+
         if missing_deps:
-            missing[package_name] = sorted(missing_deps)
+            missing[package_name] = sorted(missing_deps, key=str_key)
         if conflicting_deps:
-            conflicting[package_name] = sorted(conflicting_deps)
+            conflicting[package_name] = sorted(conflicting_deps, key=str_key)
 
     return missing, conflicting
 
