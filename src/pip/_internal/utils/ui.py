@@ -137,6 +137,7 @@ class DownloadProgressMixin(object):
     def __init__(self, *args, **kwargs):
         super(DownloadProgressMixin, self).__init__(*args, **kwargs)
         self.message = (" " * (get_indentation() + 2)) + self.message
+        self.last_update = 0.0
 
     @property
     def downloaded(self):
@@ -160,6 +161,15 @@ class DownloadProgressMixin(object):
             yield x
             self.next(n)
         self.finish()
+
+    def update(self):
+        # limit updates to avoid swamping the TTY
+        now = time.time()
+        if now < self.last_update + 0.2:
+            return
+        self.last_update = now
+
+        super(DownloadProgressMixin, self).update()
 
 
 class WindowsMixin(object):
