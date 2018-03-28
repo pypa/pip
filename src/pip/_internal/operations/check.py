@@ -50,7 +50,7 @@ def check_package_set(package_set):
         conflicting_deps = set()  # type: Set[Conflicting]
 
         for req in package_set[package_name].requires:
-            name = canonicalize_name(req.project_name)  # type: ignore
+            name = canonicalize_name(req.project_name)  # type: str
 
             # Check if it's missing
             if name not in package_set:
