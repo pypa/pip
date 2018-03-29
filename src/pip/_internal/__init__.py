@@ -138,7 +138,7 @@ def autocomplete():
         opts.append(parser.option_list)
         opts = (o for it in opts for o in it)
         if current.startswith('-'):
-             for opt in opts:
+            for opt in opts:
                 if opt.help != optparse.SUPPRESS_HELP:
                     subcommands += opt._long_opts + opt._short_opts
         else:
