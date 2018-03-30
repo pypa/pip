@@ -50,13 +50,18 @@ from pip._internal.vcs import vcs
 
 # We don't try to import OpenSSL on Windows since that might result in it
 # loading C libraries, which can then not be uninstalled.
+OpenSSL = None
 if not WINDOWS:
     try:
-        import OpenSSL  # noqa
+        # We vendor the package, so calling private functions is sorta okay
+        from pip._vendor.urllib3.contrib.pyopenssl import (
+            _validate_dependencies_met
+        )
+        _validate_dependencies_met()  # noqa
     except ImportError:
-        OpenSSL = None
-else:
-    OpenSSL = None
+        pass
+    else:
+        import OpenSSL  # type: ignore
 
 try:
     import ssl  # noqa
