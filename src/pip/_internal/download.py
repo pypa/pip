@@ -48,27 +48,12 @@ from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.ui import DownloadProgressProvider
 from pip._internal.vcs import vcs
 
-# We don't try to import OpenSSL on Windows since that might result in it
-# loading C libraries, which can then not be uninstalled.
-OpenSSL = None
-if not WINDOWS:
-    try:
-        # We vendor the package, so calling private functions is sorta okay
-        from pip._vendor.urllib3.contrib.pyopenssl import (
-            _validate_dependencies_met
-        )
-        _validate_dependencies_met()  # noqa
-    except ImportError:
-        pass
-    else:
-        import OpenSSL  # type: ignore
-
 try:
     import ssl  # noqa
 except ImportError:
     ssl = None
 
-HAS_TLS = (ssl is not None) or (OpenSSL is not None and IS_PYOPENSSL)
+HAS_TLS = (ssl is not None) or IS_PYOPENSSL
 
 __all__ = ['get_file_content',
            'is_url', 'url_to_path', 'path_to_url',
@@ -137,10 +122,7 @@ def user_agent():
         data["cpu"] = platform.machine()
 
     if HAS_TLS:
-        if IS_PYOPENSSL:
-            data["openssl_version"] = OpenSSL.SSL.OPENSSL_VERSION_NUMBER
-        else:
-            data["openssl_version"] = ssl.OPENSSL_VERSION
+        data["openssl_version"] = ssl.OPENSSL_VERSION
 
     setuptools_version = get_installed_version("setuptools")
     if setuptools_version is not None:
