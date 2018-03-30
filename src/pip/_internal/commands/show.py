@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import logging
 import os
-from email.parser import FeedParser
+from email.parser import FeedParser  # type: ignore
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.utils import canonicalize_name

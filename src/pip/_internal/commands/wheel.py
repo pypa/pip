@@ -63,7 +63,9 @@ class WheelCommand(RequirementCommand):
             dest='build_options',
             metavar='options',
             action='append',
-            help="Extra arguments to be supplied to 'setup.py bdist_wheel'.")
+            help="Extra arguments to be supplied to 'setup.py bdist_wheel'.",
+        )
+        cmd_opts.add_option(cmdoptions.no_build_isolation())
         cmd_opts.add_option(cmdoptions.constraints())
         cmd_opts.add_option(cmdoptions.editable())
         cmd_opts.add_option(cmdoptions.requirements())
@@ -158,6 +160,7 @@ class WheelCommand(RequirementCommand):
                         download_dir=None,
                         wheel_download_dir=options.wheel_dir,
                         progress_bar=options.progress_bar,
+                        build_isolation=options.build_isolation,
                     )
 
                     resolver = Resolver(
