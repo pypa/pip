@@ -7,6 +7,8 @@ import os
 import shutil
 from optparse import SUPPRESS_HELP
 
+from pip._vendor import pkg_resources
+
 from pip._internal import cmdoptions
 from pip._internal.basecommand import RequirementCommand
 from pip._internal.cache import WheelCache
@@ -343,20 +345,22 @@ class InstallCommand(RequirementCommand):
                         use_user_site=options.use_user_site,
                     )
 
-                    possible_lib_locations = get_lib_location_guesses(
+                    lib_locations = get_lib_location_guesses(
                         user=options.use_user_site,
                         home=target_temp_dir.path,
                         root=options.root_path,
                         prefix=options.prefix_path,
                         isolated=options.isolated_mode,
                     )
+                    working_set = pkg_resources.WorkingSet(lib_locations)
+
                     reqs = sorted(installed, key=operator.attrgetter('name'))
                     items = []
                     for req in reqs:
                         item = req.name
                         try:
                             installed_version = get_installed_version(
-                                req.name, possible_lib_locations
+                                req.name, working_set=working_set
                             )
                             if installed_version:
                                 item += '-' + installed_version
