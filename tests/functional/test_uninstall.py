@@ -17,9 +17,9 @@ from tests.lib.local_repos import local_checkout, local_repo
 
 
 @pytest.mark.network
-def test_simple_uninstall(script):
+def test_basic_uninstall(script):
     """
-    Test simple install and uninstall.
+    Test basic install and uninstall.
 
     """
     result = script.pip('install', 'INITools==0.2')
@@ -33,9 +33,9 @@ def test_simple_uninstall(script):
     assert_all_changes(result, result2, [script.venv / 'build', 'cache'])
 
 
-def test_simple_uninstall_distutils(script):
+def test_basic_uninstall_distutils(script):
     """
-    Test simple install and uninstall.
+    Test basic install and uninstall.
 
     """
     script.scratch_path.join("distutils_install").mkdir()
@@ -61,7 +61,7 @@ def test_simple_uninstall_distutils(script):
 
 
 @pytest.mark.network
-def test_uninstall_with_scripts(script):
+def test_basic_uninstall_with_scripts(script):
     """
     Uninstall an easy_installed package with scripts.
 
@@ -134,7 +134,7 @@ def test_uninstall_trailing_newline(script):
 
 
 @pytest.mark.network
-def test_uninstall_namespace_package(script):
+def test_basic_uninstall_namespace_package(script):
     """
     Uninstall a distribution with a namespace package without clobbering
     the namespace and everything in it.

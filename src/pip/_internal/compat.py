@@ -6,6 +6,7 @@ import codecs
 import locale
 import logging
 import os
+import shutil
 import sys
 
 from pip._vendor.six import text_type
@@ -23,7 +24,7 @@ except ImportError:
 
 __all__ = [
     "ipaddress", "uses_pycache", "console_to_str", "native_str",
-    "get_path_uid", "stdlib_pkgs", "WINDOWS", "samefile",
+    "get_path_uid", "stdlib_pkgs", "WINDOWS", "samefile", "get_terminal_size",
 ]
 
 
@@ -60,7 +61,8 @@ else:
         return u"".join(u"\\x%x" % c for c in raw_bytes), err.end
     codecs.register_error(
         "backslashreplace_decode",
-        backslashreplace_decode_fn)
+        backslashreplace_decode_fn,
+    )
     backslashreplace_decode = "backslashreplace_decode"
 
 
@@ -88,8 +90,9 @@ def console_to_str(data):
         s = data.decode(encoding)
     except UnicodeDecodeError:
         logger.warning(
-            "Subprocess output does not appear to be encoded as %s" %
-            encoding)
+            "Subprocess output does not appear to be encoded as %s",
+            encoding,
+        )
         s = data.decode(encoding, errors=backslashreplace_decode)
 
     # Make sure we can print the output, by encoding it to the output
@@ -190,3 +193,43 @@ def samefile(file1, file2):
         path1 = os.path.normcase(os.path.abspath(file1))
         path2 = os.path.normcase(os.path.abspath(file2))
         return path1 == path2
+
+
+if hasattr(shutil, 'get_terminal_size'):
+    def get_terminal_size():
+        """
+        Returns a tuple (x, y) representing the width(x) and the height(y)
+        in characters of the terminal window.
+        """
+        return tuple(shutil.get_terminal_size())
+else:
+    def get_terminal_size():
+        """
+        Returns a tuple (x, y) representing the width(x) and the height(y)
+        in characters of the terminal window.
+        """
+        def ioctl_GWINSZ(fd):
+            try:
+                import fcntl
+                import termios
+                import struct
+                cr = struct.unpack(
+                    'hh',
+                    fcntl.ioctl(fd, termios.TIOCGWINSZ, '1234')
+                )
+            except:
+                return None
+            if cr == (0, 0):
+                return None
+            return cr
+        cr = ioctl_GWINSZ(0) or ioctl_GWINSZ(1) or ioctl_GWINSZ(2)
+        if not cr:
+            try:
+                fd = os.open(os.ctermid(), os.O_RDONLY)
+                cr = ioctl_GWINSZ(fd)
+                os.close(fd)
+            except:
+                pass
+        if not cr:
+            cr = (os.environ.get('LINES', 25), os.environ.get('COLUMNS', 80))
+        return int(cr[1]), int(cr[0])

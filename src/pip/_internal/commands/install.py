@@ -5,6 +5,7 @@ import logging
 import operator
 import os
 import shutil
+from optparse import SUPPRESS_HELP
 
 from pip._internal import cmdoptions
 from pip._internal.basecommand import RequirementCommand
@@ -14,7 +15,7 @@ from pip._internal.exceptions import (
 )
 from pip._internal.locations import distutils_scheme, virtualenv_no_global
 from pip._internal.operations.prepare import RequirementPreparer
-from pip._internal.req import RequirementSet
+from pip._internal.req import RequirementSet, install_given_reqs
 from pip._internal.resolve import Resolver
 from pip._internal.status_codes import ERROR
 from pip._internal.utils.filesystem import check_path_owner
@@ -84,6 +85,11 @@ class InstallCommand(RequirementCommand):
                  "Windows. (See the Python documentation for site.USER_BASE "
                  "for full details.)")
         cmd_opts.add_option(
+            '--no-user',
+            dest='use_user_site',
+            action='store_false',
+            help=SUPPRESS_HELP)
+        cmd_opts.add_option(
             '--root',
             dest='root_path',
             metavar='dir',
@@ -139,6 +145,7 @@ class InstallCommand(RequirementCommand):
             help='Ignore the installed packages (reinstalling instead).')
 
         cmd_opts.add_option(cmdoptions.ignore_requires_python())
+        cmd_opts.add_option(cmdoptions.no_build_isolation())
 
         cmd_opts.add_option(cmdoptions.install_options())
         cmd_opts.add_option(cmdoptions.global_options())
@@ -224,10 +231,10 @@ class InstallCommand(RequirementCommand):
         global_options = options.global_options or []
 
         with self._build_session(options) as session:
-
             finder = self._build_package_finder(options, session)
             build_delete = (not (options.no_clean or options.build_dir))
             wheel_cache = WheelCache(options.cache_dir, options.format_control)
+
             if options.cache_dir and not check_path_owner(options.cache_dir):
                 logger.warning(
                     "The directory '%s' or its parent directory is not owned "
@@ -243,24 +250,23 @@ class InstallCommand(RequirementCommand):
                 options.build_dir, delete=build_delete, kind="install"
             ) as directory:
                 requirement_set = RequirementSet(
-                    target_dir=target_temp_dir.path,
-                    pycompile=options.compile,
                     require_hashes=options.require_hashes,
-                    use_user_site=options.use_user_site,
                 )
 
-                self.populate_requirement_set(
-                    requirement_set, args, options, finder, session, self.name,
-                    wheel_cache
-                )
-                preparer = RequirementPreparer(
-                    build_dir=directory.path,
-                    src_dir=options.src_dir,
-                    download_dir=None,
-                    wheel_download_dir=None,
-                    progress_bar=options.progress_bar,
-                )
                 try:
+                    self.populate_requirement_set(
+                        requirement_set, args, options, finder, session,
+                        self.name, wheel_cache
+                    )
+                    preparer = RequirementPreparer(
+                        build_dir=directory.path,
+                        src_dir=options.src_dir,
+                        download_dir=None,
+                        wheel_download_dir=None,
+                        progress_bar=options.progress_bar,
+                        build_isolation=options.build_isolation,
+                    )
+
                     resolver = Resolver(
                         preparer=preparer,
                         finder=finder,
@@ -291,12 +297,19 @@ class InstallCommand(RequirementCommand):
                             session=session, autobuilding=True
                         )
 
-                    installed = requirement_set.install(
+                    to_install = resolver.get_installation_order(
+                        requirement_set
+                    )
+                    installed = install_given_reqs(
+                        to_install,
                         install_options,
                         global_options,
                         root=options.root_path,
+                        home=target_temp_dir.path,
                         prefix=options.prefix_path,
+                        pycompile=options.compile,
                         warn_script_location=options.warn_script_location,
+                        use_user_site=options.use_user_site,
                     )
 
                     possible_lib_locations = get_lib_location_guesses(
@@ -339,7 +352,7 @@ class InstallCommand(RequirementCommand):
                         message_parts.append("\n")
 
                     logger.error(
-                        "".join(message_parts), exc_info=(options.verbose > 1)
+                        "".join(message_parts), exc_info=(self.verbosity > 1)
                     )
                     return ERROR
                 except PreviousBuildDirError:
@@ -349,6 +362,7 @@ class InstallCommand(RequirementCommand):
                     # Clean up
                     if not options.no_clean:
                         requirement_set.cleanup_files()
+                        wheel_cache.cleanup()
 
         if options.target_dir:
             self._handle_target_dir(

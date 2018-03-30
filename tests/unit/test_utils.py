@@ -23,8 +23,8 @@ from pip._internal.utils.encoding import auto_decode
 from pip._internal.utils.glibc import check_glibc_version
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.misc import (
-    egg_link_path, ensure_dir, get_installed_distributions, get_prog,
-    normalize_path, rmtree, untar_file, unzip_file,
+    call_subprocess, egg_link_path, ensure_dir, get_installed_distributions,
+    get_prog, normalize_path, rmtree, untar_file, unzip_file,
 )
 from pip._internal.utils.packaging import check_dist_requires_python
 from pip._internal.utils.temp_dir import TempDirectory
@@ -612,3 +612,15 @@ class TestGetProg(object):
             executable
         )
         assert get_prog() == expected
+
+
+def test_call_subprocess_works_okay_when_just_given_nothing():
+    try:
+        call_subprocess([sys.executable, '-c', 'print("Hello")'])
+    except Exception:
+        assert False, "Expected subprocess call to succeed"
+
+
+def test_call_subprocess_closes_stdin():
+    with pytest.raises(InstallationError):
+        call_subprocess([sys.executable, '-c', 'input()'])

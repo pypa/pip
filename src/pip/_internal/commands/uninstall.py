@@ -65,7 +65,7 @@ class UninstallCommand(Command):
                 )
             for req in reqs_to_uninstall.values():
                 uninstall_pathset = req.uninstall(
-                    auto_confirm=options.yes, verbose=options.verbose != 0
+                    auto_confirm=options.yes, verbose=self.verbosity > 0,
                 )
                 if uninstall_pathset:
                     uninstall_pathset.commit()

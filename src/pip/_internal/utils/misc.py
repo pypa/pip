@@ -43,7 +43,7 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'is_svn_page', 'file_contents',
            'split_leading_dir', 'has_leading_dir',
            'normalize_path',
-           'renames', 'get_terminal_size', 'get_prog',
+           'renames', 'get_prog',
            'unzip_file', 'untar_file', 'unpack_file', 'call_subprocess',
            'captured_stdout', 'ensure_dir',
            'ARCHIVE_EXTENSIONS', 'SUPPORTED_EXTENSIONS',
@@ -344,7 +344,7 @@ def get_installed_distributions(local_only=True,
     ``skip`` argument is an iterable of lower-case project names to
     ignore; defaults to stdlib_pkgs
 
-    If ``editables`` is False, don't report editables.
+    If ``include_editables`` is False, don't report editables.
 
     If ``editables_only`` is True , only report editables.
 
@@ -436,36 +436,6 @@ def dist_location(dist):
     if egg_link:
         return egg_link
     return dist.location
-
-
-def get_terminal_size():
-    """Returns a tuple (x, y) representing the width(x) and the height(x)
-    in characters of the terminal window."""
-    def ioctl_GWINSZ(fd):
-        try:
-            import fcntl
-            import termios
-            import struct
-            cr = struct.unpack(
-                'hh',
-                fcntl.ioctl(fd, termios.TIOCGWINSZ, '1234')
-            )
-        except:
-            return None
-        if cr == (0, 0):
-            return None
-        return cr
-    cr = ioctl_GWINSZ(0) or ioctl_GWINSZ(1) or ioctl_GWINSZ(2)
-    if not cr:
-        try:
-            fd = os.open(os.ctermid(), os.O_RDONLY)
-            cr = ioctl_GWINSZ(fd)
-            os.close(fd)
-        except:
-            pass
-    if not cr:
-        cr = (os.environ.get('LINES', 25), os.environ.get('COLUMNS', 80))
-    return int(cr[1]), int(cr[0])
 
 
 def current_umask():
@@ -678,8 +648,10 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
         env.pop(name, None)
     try:
         proc = subprocess.Popen(
-            cmd, stderr=subprocess.STDOUT, stdin=None, stdout=stdout,
-            cwd=cwd, env=env)
+            cmd, stderr=subprocess.STDOUT, stdin=subprocess.PIPE,
+            stdout=stdout, cwd=cwd, env=env,
+        )
+        proc.stdin.close()
     except Exception as exc:
         logger.critical(
             "Error %s while executing command %s", exc, command_desc,

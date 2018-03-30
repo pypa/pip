@@ -1,11 +1,15 @@
 """Prepares a distribution for installation
 """
 
+import itertools
 import logging
 import os
+import sys
+from copy import copy
 
 from pip._vendor import pkg_resources, requests
 
+from pip._internal.build_env import NoOpBuildEnvironment
 from pip._internal.compat import expanduser
 from pip._internal.download import (
     is_dir_url, is_file_url, is_vcs_url, unpack_url, url_to_path,
@@ -14,9 +18,14 @@ from pip._internal.exceptions import (
     DirectoryUrlHashUnsupported, HashUnpinned, InstallationError,
     PreviousBuildDirError, VcsHashUnsupported,
 )
+from pip._internal.index import FormatControl
+from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.hashes import MissingHashes
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import display_path, normalize_path
+from pip._internal.utils.misc import (
+    call_subprocess, display_path, normalize_path,
+)
+from pip._internal.utils.ui import open_spinner
 from pip._internal.vcs import vcs
 
 logger = logging.getLogger(__name__)
@@ -36,6 +45,26 @@ def make_abstract_dist(req):
         return IsWheel(req)
     else:
         return IsSDist(req)
+
+
+def _install_build_reqs(finder, prefix, build_requirements):
+    # NOTE: What follows is not a very good thing.
+    #       Eventually, this should move into the BuildEnvironment class and
+    #       that should handle all the isolation and sub-process invocation.
+    finder = copy(finder)
+    finder.format_control = FormatControl(set(), set([":all:"]))
+    urls = [
+        finder.find_requirement(
+            InstallRequirement.from_line(r), upgrade=False).url
+        for r in build_requirements
+    ]
+    args = [
+        sys.executable, '-m', 'pip', 'install', '--ignore-installed',
+        '--no-user', '--prefix', prefix,
+    ] + list(urls)
+
+    with open_spinner("Installing build dependencies") as spinner:
+        call_subprocess(args, show_stdout=False, spinner=spinner)
 
 
 class DistAbstraction(object):
@@ -64,7 +93,7 @@ class DistAbstraction(object):
         """Return a setuptools Dist object."""
         raise NotImplementedError(self.dist)
 
-    def prep_for_dist(self):
+    def prep_for_dist(self, finder):
         """Ensure that we can get a Dist for this requirement."""
         raise NotImplementedError(self.dist)
 
@@ -75,7 +104,7 @@ class IsWheel(DistAbstraction):
         return list(pkg_resources.find_distributions(
             self.req.source_dir))[0]
 
-    def prep_for_dist(self):
+    def prep_for_dist(self, finder, build_isolation):
         # FIXME:https://github.com/pypa/pip/issues/1112
         pass
 
@@ -91,9 +120,31 @@ class IsSDist(DistAbstraction):
             )
         return dist
 
-    def prep_for_dist(self):
-        self.req.run_egg_info()
-        self.req.assert_source_matches_version()
+    def prep_for_dist(self, finder, build_isolation):
+        # Before calling "setup.py egg_info", we need to set-up the build
+        # environment.
+        build_requirements, isolate = self.req.get_pep_518_info()
+        should_isolate = build_isolation and isolate
+
+        if 'setuptools' not in build_requirements:
+            logger.warning(
+                "%s does not include 'setuptools' as a buildtime requirement "
+                "in its pyproject.toml.", self.req.name,
+            )
+            logger.warning(
+                "This version of pip does not implement PEP 517 so it cannot "
+                "build a wheel without setuptools."
+            )
+
+        if not should_isolate:
+            self.req.build_env = NoOpBuildEnvironment(no_clean=False)
+
+        with self.req.build_env as prefix:
+            if should_isolate:
+                _install_build_reqs(finder, prefix, build_requirements)
+
+            self.req.run_egg_info()
+            self.req.assert_source_matches_version()
 
 
 class Installed(DistAbstraction):
@@ -101,7 +152,7 @@ class Installed(DistAbstraction):
     def dist(self, finder):
         return self.req.satisfied_by
 
-    def prep_for_dist(self):
+    def prep_for_dist(self, finder):
         pass
 
 
@@ -110,7 +161,7 @@ class RequirementPreparer(object):
     """
 
     def __init__(self, build_dir, download_dir, src_dir, wheel_download_dir,
-                 progress_bar):
+                 progress_bar, build_isolation):
         super(RequirementPreparer, self).__init__()
 
         self.src_dir = src_dir
@@ -133,6 +184,9 @@ class RequirementPreparer(object):
         # the wheelhouse output by 'pip wheel'.
 
         self.progress_bar = progress_bar
+
+        # Is build isolation allowed?
+        self.build_isolation = build_isolation
 
     @property
     def _download_should_save(self):
@@ -259,14 +313,15 @@ class RequirementPreparer(object):
                     (req, exc, req.link)
                 )
             abstract_dist = make_abstract_dist(req)
-            abstract_dist.prep_for_dist()
+            abstract_dist.prep_for_dist(finder, self.build_isolation)
             if self._download_should_save:
                 # Make a .zip of the source_dir we already created.
                 if req.link.scheme in vcs.all_schemes:
                     req.archive(self.download_dir)
         return abstract_dist
 
-    def prepare_editable_requirement(self, req, require_hashes):
+    def prepare_editable_requirement(self, req, require_hashes, use_user_site,
+                                     finder):
         """Prepare an editable requirement
         """
         assert req.editable, "cannot prepare a non-editable req as editable"
@@ -284,11 +339,11 @@ class RequirementPreparer(object):
             req.update_editable(not self._download_should_save)
 
             abstract_dist = make_abstract_dist(req)
-            abstract_dist.prep_for_dist()
+            abstract_dist.prep_for_dist(finder, self.build_isolation)
 
             if self._download_should_save:
                 req.archive(self.download_dir)
-            req.check_if_exists()
+            req.check_if_exists(use_user_site)
 
         return abstract_dist
 

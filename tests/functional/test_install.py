@@ -104,7 +104,7 @@ def test_install_exit_status_code_when_blank_requirements_file(script):
 
 
 @pytest.mark.network
-def test_install_from_pypi(script):
+def test_basic_install_from_pypi(script):
     """
     Test installing a package from PyPI.
     """
@@ -121,7 +121,7 @@ def test_install_from_pypi(script):
     assert "Looking in links: " not in result.stdout
 
 
-def test_editable_install(script):
+def test_basic_editable_install(script):
     """
     Test editable installation.
     """
@@ -135,7 +135,7 @@ def test_editable_install(script):
 
 
 @pytest.mark.svn
-def test_install_editable_from_svn(script):
+def test_basic_install_editable_from_svn(script):
     """
     Test checking out from svn.
     """
@@ -156,7 +156,7 @@ def _test_install_editable_from_git(script, tmpdir):
     result.assert_installed('testpackage', with_files=['.git'])
 
 
-def test_install_editable_from_git(script, tmpdir):
+def test_basic_install_editable_from_git(script, tmpdir):
     _test_install_editable_from_git(script, tmpdir)
 
 
@@ -219,7 +219,7 @@ def test_install_editable_uninstalls_existing_from_path(script, data):
 
 
 @need_mercurial
-def test_install_editable_from_hg(script, tmpdir):
+def test_basic_install_editable_from_hg(script, tmpdir):
     """Test cloning from Mercurial."""
     pkg_path = _create_test_package(script, name='testpackage', vcs='hg')
     args = ['install', '-e', 'hg+%s#egg=testpackage' % path_to_url(pkg_path)]
@@ -264,7 +264,7 @@ def test_vcs_url_urlquote_normalization(script, tmpdir):
     )
 
 
-def test_install_from_local_directory(script, data):
+def test_basic_install_from_local_directory(script, data):
     """
     Test installing from a local directory.
     """
@@ -278,7 +278,7 @@ def test_install_from_local_directory(script, data):
     assert egg_info_folder in result.files_created, str(result)
 
 
-def test_install_relative_directory(script, data):
+def test_basic_install_relative_directory(script, data):
     """
     Test installing a requirement using a relative path.
     """
@@ -994,16 +994,15 @@ def test_install_builds_wheels(script, data, common_wheels):
     # and built wheels for upper and wheelbroken
     assert "Running setup.py bdist_wheel for upper" in str(res), str(res)
     assert "Running setup.py bdist_wheel for wheelb" in str(res), str(res)
-    # But not requires_wheel... which is a local dir and thus uncachable.
-    assert "Running setup.py bdist_wheel for requir" not in str(res), str(res)
+    # Wheels are built for local directories, but not cached.
+    assert "Running setup.py bdist_wheel for requir" in str(res), str(res)
     # wheelbroken has to run install
     # into the cache
     assert wheels != [], str(res)
     # and installed from the wheel
     assert "Running setup.py install for upper" not in str(res), str(res)
-    # the local tree can't build a wheel (because we can't assume that every
-    # build will have a suitable unique key to cache on).
-    assert "Running setup.py install for requires-wheel" in str(res), str(res)
+    # Wheels are built for local directories, but not cached.
+    assert "Running setup.py install for requir" not in str(res), str(res)
     # wheelbroken has to run install
     assert "Running setup.py install for wheelb" in str(res), str(res)
     # We want to make sure we used the correct implementation tag
@@ -1027,13 +1026,12 @@ def test_install_no_binary_disables_building_wheels(
     assert expected in str(res), str(res)
     # and built wheels for wheelbroken only
     assert "Running setup.py bdist_wheel for wheelb" in str(res), str(res)
-    # But not requires_wheel... which is a local dir and thus uncachable.
-    assert "Running setup.py bdist_wheel for requir" not in str(res), str(res)
-    # Nor upper, which was blacklisted
+    # Wheels are built for local directories, but not cached across runs
+    assert "Running setup.py bdist_wheel for requir" in str(res), str(res)
+    # Don't build wheel for upper which was blacklisted
     assert "Running setup.py bdist_wheel for upper" not in str(res), str(res)
-    # the local tree can't build a wheel (because we can't assume that every
-    # build will have a suitable unique key to cache on).
-    assert "Running setup.py install for requires-wheel" in str(res), str(res)
+    # Wheels are built for local directories, but not cached across runs
+    assert "Running setup.py install for requir" not in str(res), str(res)
     # And these two fell back to sdist based installed.
     assert "Running setup.py install for wheelb" in str(res), str(res)
     assert "Running setup.py install for upper" in str(res), str(res)
@@ -1188,27 +1186,6 @@ def test_install_compatible_python_requires(script, common_wheels):
     )
     res = script.pip('install', pkga_path, expect_error=True)
     assert "Successfully installed pkga-0.1" in res.stdout, res
-
-
-def test_install_environment_markers(script):
-    # make a dummy project
-    pkga_path = script.scratch_path / 'pkga'
-    pkga_path.mkdir()
-    pkga_path.join("setup.py").write(textwrap.dedent("""
-        from setuptools import setup
-        setup(name='pkga',
-              version='0.1',
-              install_requires=[
-                'missing_pkg; python_version=="1.0"',
-              ],
-        )
-    """))
-
-    res = script.pip('install', '--no-index', pkga_path, expect_stderr=True)
-    # missing_pkg should be ignored
-    assert ("Ignoring missing-pkg: markers 'python_version == \"1.0\"' don't "
-            "match your environment") in res.stderr, str(res)
-    assert "Successfully installed pkga-0.1" in res.stdout, str(res)
 
 
 @pytest.mark.network

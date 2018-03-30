@@ -7,7 +7,7 @@ from pip import __version__
 from pip._internal.commands.show import search_packages_info
 
 
-def test_show(script):
+def test_basic_show(script):
     """
     Test end to end test for show command.
     """

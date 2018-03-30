@@ -1,3 +1,4 @@
+import logging
 import sys
 
 import pytest
@@ -120,6 +121,8 @@ class TestWheel:
         """
         Test if PackageFinder skips invalid wheel filenames
         """
+        caplog.set_level(logging.DEBUG)
+
         req = InstallRequirement.from_line("invalid")
         # data.find_links contains "invalid.whl", which is an invalid wheel
         finder = PackageFinder(
@@ -399,7 +402,7 @@ def test_finder_only_installs_data_require(data):
     distribution are compatible with which version of Python by adding a
     data-python-require to the anchor links.
 
-    See pep 503 for more informations.
+    See pep 503 for more information.
     """
 
     # using a local index (that has pre & dev releases)

@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import logging
 import sys
-from email.parser import FeedParser
+from email.parser import FeedParser  # type: ignore
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging import specifiers, version
@@ -56,8 +56,9 @@ def check_dist_requires_python(dist):
             )
     except specifiers.InvalidSpecifier as e:
         logger.warning(
-            "Package %s has an invalid Requires-Python entry %s - %s" % (
-                dist.project_name, requires_python, e))
+            "Package %s has an invalid Requires-Python entry %s - %s",
+            dist.project_name, requires_python, e,
+        )
         return
 
 

@@ -57,6 +57,7 @@ class DownloadCommand(RequirementCommand):
         cmd_opts.add_option(cmdoptions.no_clean())
         cmd_opts.add_option(cmdoptions.require_hashes())
         cmd_opts.add_option(cmdoptions.progress_bar())
+        cmd_opts.add_option(cmdoptions.no_build_isolation())
 
         cmd_opts.add_option(
             '-d', '--dest', '--destination-dir', '--destination-directory',
@@ -201,6 +202,7 @@ class DownloadCommand(RequirementCommand):
                     download_dir=options.download_dir,
                     wheel_download_dir=None,
                     progress_bar=options.progress_bar,
+                    build_isolation=options.build_isolation,
                 )
 
                 resolver = Resolver(
@@ -222,9 +224,7 @@ class DownloadCommand(RequirementCommand):
                     req.name for req in requirement_set.successfully_downloaded
                 ])
                 if downloaded:
-                    logger.info(
-                        'Successfully downloaded %s', downloaded
-                    )
+                    logger.info('Successfully downloaded %s', downloaded)
 
                 # Clean up
                 if not options.no_clean:
