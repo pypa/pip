@@ -402,7 +402,7 @@ def test_finder_only_installs_data_require(data):
     distribution are compatible with which version of Python by adding a
     data-python-require to the anchor links.
 
-    See pep 503 for more informations.
+    See pep 503 for more information.
     """
 
     # using a local index (that has pre & dev releases)

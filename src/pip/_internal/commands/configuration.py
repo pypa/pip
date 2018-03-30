@@ -13,19 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class ConfigurationCommand(Command):
-    """Manage local and global configuration."""
-    name = 'config'
-    usage = """
-        %prog [<file-option>] list
-        %prog [<file-option>] [--editor <editor-path>] edit
-
-        %prog [<file-option>] get name
-        %prog [<file-option>] set name value
-        %prog [<file-option>] unset name
-    """
-
-    summary = """
-        Manage local and global configuration.
+    """Manage local and global configuration.
 
         Subcommands:
 
@@ -40,6 +28,18 @@ class ConfigurationCommand(Command):
         exists. Otherwise, all modifications happen on the to the user file by
         default.
     """
+
+    name = 'config'
+    usage = """
+        %prog [<file-option>] list
+        %prog [<file-option>] [--editor <editor-path>] edit
+
+        %prog [<file-option>] get name
+        %prog [<file-option>] set name value
+        %prog [<file-option>] unset name
+    """
+
+    summary = "Manage local and global configuration."
 
     def __init__(self, *args, **kwargs):
         super(ConfigurationCommand, self).__init__(*args, **kwargs)
