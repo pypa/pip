@@ -21,10 +21,10 @@ index 6336a07d..9582fa73 100644
  # Kinda cool, though, right?
 
 diff --git a/src/pip/_vendor/requests/__init__.py b/src/pip/_vendor/requests/__init__.py
-index 9c3b769..44f6836 100644
+index 9c3b769..36a4ef40 100644
 --- a/src/pip/_vendor/requests/__init__.py
 +++ b/src/pip/_vendor/requests/__init__.py
-@@ -80,11 +80,13 @@
+@@ -80,10 +80,12 @@ except (AssertionError, ValueError):
                    RequestsDependencyWarning)
 
  # Attempt to enable urllib3's SNI support, if possible
@@ -33,17 +33,15 @@ index 9c3b769..44f6836 100644
 -    pyopenssl.inject_into_urllib3()
 -except ImportError:
 -    pass
-+# Note: Patched by pip to prevent using the PyOpenSSL module. On Windows this
-+#       prevents upgrading cryptography.
-+# try:
-+#     from pip._vendor.urllib3.contrib import pyopenssl
-+#     pyopenssl.inject_into_urllib3()
-+# except ImportError:
-+#     pass
++from pip._internal.compat import WINDOWS
++if not WINDOWS:
++    try:
++        from pip._vendor.urllib3.contrib import pyopenssl
++        pyopenssl.inject_into_urllib3()
++    except ImportError:
++        pass
 
  # urllib3's DependencyWarnings should be silenced.
- from pip._vendor.urllib3.exceptions import DependencyWarning
- 
 diff --git a/src/pip/_vendor/requests/compat.py b/src/pip/_vendor/requests/compat.py
 index eb6530d..353ec29 100644
 --- a/src/pip/_vendor/requests/compat.py

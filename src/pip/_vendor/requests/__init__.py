@@ -80,13 +80,13 @@ except (AssertionError, ValueError):
                   RequestsDependencyWarning)
 
 # Attempt to enable urllib3's SNI support, if possible
-# Note: Patched by pip to prevent using the PyOpenSSL module. On Windows this
-#       prevents upgrading cryptography.
-# try:
-#     from pip._vendor.urllib3.contrib import pyopenssl
-#     pyopenssl.inject_into_urllib3()
-# except ImportError:
-#     pass
+from pip._internal.compat import WINDOWS
+if not WINDOWS:
+    try:
+        from pip._vendor.urllib3.contrib import pyopenssl
+        pyopenssl.inject_into_urllib3()
+    except ImportError:
+        pass
 
 # urllib3's DependencyWarnings should be silenced.
 from pip._vendor.urllib3.exceptions import DependencyWarning
