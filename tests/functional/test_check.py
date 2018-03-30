@@ -18,6 +18,7 @@ def test_basic_check_clean(script):
         "No broken requirements found.",
     )
     assert matches_expected_lines(result.stdout, expected_lines)
+    assert result.returncode == 0
 
 
 def test_basic_check_missing_dependency(script):
@@ -55,7 +56,9 @@ def test_basic_check_broken_dependency(script):
         name='broken', version='0.1',
     )
     # Let's install broken==0.1
-    res = script.pip('install', '--no-index', broken_path)
+    res = script.pip(
+        'install', '--no-index', broken_path, '--no-warn-conflicts',
+    )
     assert "Successfully installed broken-0.1" in res.stdout, str(res)
 
     result = script.pip('check', expect_error=True)
@@ -96,25 +99,97 @@ def test_basic_check_broken_dependency_and_missing_dependency(script):
     assert result.returncode == 1
 
 
-def test_check_complex_names(script):
-    # Check that uppercase letters and '-' are dealt with
-    # Setup two small projects
-    pkga_path = create_test_package_with_setup(
+def test_check_complicated_name_missing(script):
+    package_a_path = create_test_package_with_setup(
         script,
-        name='pkga', version='1.0', install_requires=['Complex_Name==0.1'],
+        name='package_A', version='1.0',
+        install_requires=['Dependency-B>=1.0'],
     )
 
-    complex_path = create_test_package_with_setup(
+    # Without dependency
+    result = script.pip('install', '--no-index', package_a_path, '--no-deps')
+    assert "Successfully installed package-A-1.0" in result.stdout, str(result)
+
+    result = script.pip('check', expect_error=True)
+    expected_lines = (
+        "package-a 1.0 requires dependency-b, which is not installed.",
+    )
+    assert matches_expected_lines(result.stdout, expected_lines)
+    assert result.returncode == 1
+
+
+def test_check_complicated_name_broken(script):
+    package_a_path = create_test_package_with_setup(
         script,
-        name='Complex-Name', version='0.1',
+        name='package_A', version='1.0',
+        install_requires=['Dependency-B>=1.0'],
+    )
+    dependency_b_path_incompatible = create_test_package_with_setup(
+        script,
+        name='dependency-b', version='0.1',
     )
 
-    res = script.pip('install', '--no-index', complex_path)
-    assert "Successfully installed Complex-Name-0.1" in res.stdout, str(res)
+    # With broken dependency
+    result = script.pip('install', '--no-index', package_a_path, '--no-deps')
+    assert "Successfully installed package-A-1.0" in result.stdout, str(result)
 
-    res = script.pip('install', '--no-index', pkga_path, '--no-deps')
-    assert "Successfully installed pkga-1.0" in res.stdout, str(res)
+    result = script.pip(
+        'install', '--no-index', dependency_b_path_incompatible, '--no-deps',
+    )
+    assert "Successfully installed dependency-b-0.1" in result.stdout
 
-    # Check that Complex_Name is correctly dealt with
-    res = script.pip('check')
-    assert "No broken requirements found." in res.stdout, str(res)
+    result = script.pip('check', expect_error=True)
+    expected_lines = (
+        "package-a 1.0 has requirement Dependency-B>=1.0, but you have "
+        "dependency-b 0.1.",
+    )
+    assert matches_expected_lines(result.stdout, expected_lines)
+    assert result.returncode == 1
+
+
+def test_check_complicated_name_clean(script):
+    package_a_path = create_test_package_with_setup(
+        script,
+        name='package_A', version='1.0',
+        install_requires=['Dependency-B>=1.0'],
+    )
+    dependency_b_path = create_test_package_with_setup(
+        script,
+        name='dependency-b', version='1.0',
+    )
+
+    result = script.pip('install', '--no-index', package_a_path, '--no-deps')
+    assert "Successfully installed package-A-1.0" in result.stdout, str(result)
+
+    result = script.pip(
+        'install', '--no-index', dependency_b_path, '--no-deps',
+    )
+    assert "Successfully installed dependency-b-1.0" in result.stdout
+
+    result = script.pip('check', expect_error=True)
+    expected_lines = (
+        "No broken requirements found.",
+    )
+    assert matches_expected_lines(result.stdout, expected_lines)
+    assert result.returncode == 0
+
+
+def test_check_considers_conditional_reqs(script):
+    package_a_path = create_test_package_with_setup(
+        script,
+        name='package_A', version='1.0',
+        install_requires=[
+            "Dependency-B>=1.0; python_version != '2.7'",
+            "Dependency-B>=2.0; python_version == '2.7'",
+        ],
+    )
+
+    result = script.pip('install', '--no-index', package_a_path, '--no-deps')
+    assert "Successfully installed package-A-1.0" in result.stdout, str(result)
+
+    result = script.pip('check', expect_error=True)
+    expected_lines = (
+        "package-a 1.0 requires dependency-b, which is not installed.",
+    )
+    assert matches_expected_lines(result.stdout, expected_lines)
+    assert result.returncode == 1

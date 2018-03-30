@@ -114,7 +114,7 @@ class IsSDist(DistAbstraction):
     def dist(self, finder):
         dist = self.req.get_dist()
         # FIXME: shouldn't be globally added.
-        if dist.has_metadata('dependency_links.txt'):
+        if finder and dist.has_metadata('dependency_links.txt'):
             finder.add_dependency_links(
                 dist.get_metadata_lines('dependency_links.txt')
             )

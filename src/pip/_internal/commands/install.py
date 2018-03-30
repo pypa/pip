@@ -14,6 +14,7 @@ from pip._internal.exceptions import (
     CommandError, InstallationError, PreviousBuildDirError,
 )
 from pip._internal.locations import distutils_scheme, virtualenv_no_global
+from pip._internal.operations.check import check_install_conflicts
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import RequirementSet, install_given_reqs
 from pip._internal.resolve import Resolver
@@ -172,6 +173,13 @@ class InstallCommand(RequirementCommand):
             default=True,
             help="Do not warn when installing scripts outside PATH",
         )
+        cmd_opts.add_option(
+            "--no-warn-conflicts",
+            action="store_false",
+            dest="warn_about_conflicts",
+            default=True,
+            help="Do not warn about broken dependencies",
+        )
 
         cmd_opts.add_option(cmdoptions.no_binary())
         cmd_opts.add_option(cmdoptions.only_binary())
@@ -300,6 +308,15 @@ class InstallCommand(RequirementCommand):
                     to_install = resolver.get_installation_order(
                         requirement_set
                     )
+
+                    # Consistency Checking of the package set we're installing.
+                    should_warn_about_conflicts = (
+                        not options.ignore_dependencies and
+                        options.warn_about_conflicts
+                    )
+                    if should_warn_about_conflicts:
+                        self._warn_about_conflicts(to_install)
+
                     installed = install_given_reqs(
                         to_install,
                         install_options,
@@ -425,6 +442,28 @@ class InstallCommand(RequirementCommand):
                         os.path.join(lib_dir, item),
                         target_item_dir
                     )
+
+    def _warn_about_conflicts(self, to_install):
+        package_set, _dep_info = check_install_conflicts(to_install)
+        missing, conflicting = _dep_info
+
+        # NOTE: There is some duplication here from pip check
+        for project_name in missing:
+            version = package_set[project_name][0]
+            for dependency in missing[project_name]:
+                logger.critical(
+                    "%s %s requires %s, which is not installed.",
+                    project_name, version, dependency[1],
+                )
+
+        for project_name in conflicting:
+            version = package_set[project_name][0]
+            for dep_name, dep_version, req in conflicting[project_name]:
+                logger.critical(
+                    "%s %s has requirement %s, but you'll have %s %s which is "
+                    "incompatible.",
+                    project_name, version, req, dep_name, dep_version,
+                )
 
 
 def get_lib_location_guesses(*args, **kwargs):
