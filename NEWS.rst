@@ -1,8 +1,6 @@
 9.0.3 (2018-03-31)
 ==================
 
-======================================
-
 Deprecations and Removals
 -------------------------
 
@@ -151,7 +149,7 @@ Bug Fixes
   Instead of warning incorrectly that the package is not installed, pip now
   warns that the package was declared multiple times and lists the name of each
   requirements file that contains the package in question. (#4293)
-- Generalize help text for ``compile``/``no-compile` flags. (#4316)
+- Generalize help text for ``compile``/``no-compile`` flags. (#4316)
 - Handle the case when ``/etc`` is not readable by the current user by using a
   hardcoded list of possible names of release files. (#4320)
 - Fixed a ``NameError`` when attempting to catch ``FileNotFoundError`` on
