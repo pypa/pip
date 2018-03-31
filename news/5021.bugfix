@@ -1,0 +1,1 @@
+Fix safe_name behavior if package name includes dot.
