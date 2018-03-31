@@ -182,6 +182,8 @@ Bug Fixes
 - Abort if reading configuration causes encoding errors. (#4976)
 - Add a ``--no-user`` option and use it when installing build dependencies.
   (#5085)
+- Fixed line endings in CA Bundle - 10.0.0b1 was inadvertently released with Windows
+  line endings. (#5131)
 
 Vendored Libraries
 ------------------
