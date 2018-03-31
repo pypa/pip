@@ -3,7 +3,7 @@ Adam Wentz <awentz@theonion.com>
 Alan Yee <alyee@ucsd.edu>
 Aleks Bunin <github@compuix.com>
 Alex Gaynor <alex.gaynor@gmail.com>
-Alex GrÃ¶nholm <alex.gronholm@nextday.fi>
+Alex Grönholm <alex.gronholm@nextday.fi>
 Alex Morega <alex@grep.ro>
 Alex Stachowiak <alexander@computer.org>
 Alexandre Conrad <alexandre.conrad@gmail.com>
@@ -48,7 +48,7 @@ Brandon L. Reiss <brandon@damyata.co>
 Brian Rosner <brosner@gmail.com>
 BrownTruck <BrownTruck@users.noreply.github.com>
 Bruno Oliveira <nicoddemus@gmail.com>
-Bruno ReniÃ© <brutasse@gmail.com>
+Bruno Renié <brutasse@gmail.com>
 Buck Golemon <buck@yelp.com>
 burrows <burrows@preveil.com>
 Bussonnier Matthias <bussonniermatthias@gmail.com>
@@ -102,7 +102,7 @@ David Wales <daviewales@gmail.com>
 Davidovich <david.genest@gmail.com>
 derwolfe <chriswwolfe@gmail.com>
 Dmitry Gladkov <dmitry.gladkov@gmail.com>
-Domen KoÅ¾ar <domen@dev.si>
+Domen Kožar <domen@dev.si>
 Donald Stufft <donald@stufft.io>
 Dongweiming <dongweiming@admaster.com.cn>
 Douglas Thor <dougthor42@users.noreply.github.com>
@@ -121,7 +121,7 @@ Erik Rose <erik@mozilla.com>
 Erwin Janssen <erwinjanssen@outlook.com>
 Eugene Vereshchagin <evvers@gmail.com>
 fiber-space <fiber-space@users.noreply.github.com>
-Filip KokosiÅ„ski <filip.kokosinski@gmail.com>
+Filip Kokosiński <filip.kokosinski@gmail.com>
 Florian Briand <ownerfrance+github@hotmail.com>
 Francesco <f.guerrieri@gmail.com>
 Francesco Montesano <franz.bergesund@gmail.com>
@@ -129,7 +129,7 @@ Gabriel Curio <g.curio@gmail.com>
 Gabriel de Perthuis <g2p.code@gmail.com>
 Garry Polley <garrympolley@gmail.com>
 gdanielson <graeme.danielson@gmail.com>
-Geoffrey LehÃ©e <geoffrey@lehee.name>
+Geoffrey Lehée <geoffrey@lehee.name>
 Geoffrey Sneddon <me@gsnedders.com>
 George Song <george@55minutes.com>
 Georgi Valkov <georgi.t.valkov@gmail.com>
@@ -154,7 +154,7 @@ Igor Kuzmitshov <kuzmiigo@gmail.com>
 Igor Sobreira <igor@igorsobreira.com>
 Ilya Baryshev <baryshev@gmail.com>
 INADA Naoki <songofacandy@gmail.com>
-Ionel Cristian MÄƒrieÈ™ <contact@ionelmc.ro>
+Ionel Cristian Mărieș <contact@ionelmc.ro>
 Ionel Maries Cristian <ionel.mc@gmail.com>
 Jakub Stasiak <kuba.stasiak@gmail.com>
 Jakub Vysoky <jakub@borka.cz>
@@ -163,7 +163,7 @@ James Cleveland <jamescleveland@gmail.com>
 James Cleveland <radiosilence@users.noreply.github.com>
 James Firth <hello@james-firth.com>
 James Polley <jp@jamezpolley.com>
-Jan PokornÃ½ <jpokorny@redhat.com>
+Jan Pokorný <jpokorny@redhat.com>
 Jannis Leidel <jannis@leidel.info>
 jarondl <me@jarondl.net>
 Jason R. Coombs <jaraco@jaraco.com>
@@ -274,7 +274,7 @@ Paul Oswald <pauloswald@gmail.com>
 Paul van der Linden <mail@paultjuh.org>
 Paulus Schoutsen <paulus@paulusschoutsen.nl>
 Pawel Jasinski <pawel.jasinski@gmail.com>
-Pekka KlÃ¤rck <peke@iki.fi>
+Pekka Klärck <peke@iki.fi>
 Peter Waller <peter.waller@gmail.com>
 Phaneendra Chiruvella <hi@pcx.io>
 Phil Freo <phil@philfreo.com>
@@ -309,8 +309,8 @@ Romuald Brunet <romuald@chivil.com>
 Ronny Pfannschmidt <Ronny.Pfannschmidt@gmx.de>
 Rory McCann <rory@technomancy.org>
 Ross Brattain <ross.b.brattain@intel.com>
-Roy Wellington â…£ <cactus_hugged@yahoo.com>
-Roy Wellington â…£ <roy@mybasis.com>
+Roy Wellington Ⅳ <cactus_hugged@yahoo.com>
+Roy Wellington Ⅳ <roy@mybasis.com>
 Ryan Wooden <rygwdn@gmail.com>
 ryneeverett <ryneeverett@gmail.com>
 Sachi King <nakato@nakato.io>
@@ -335,9 +335,9 @@ Steve Barnes <gadgetsteve@hotmail.com>
 Steve Kowalik <steven@wedontsleep.org>
 Steven Myint <git@stevenmyint.com>
 stonebig <stonebig34@gmail.com>
-StÃ©phane Bidoul (ACSONE) <stephane.bidoul@acsone.eu>
-StÃ©phane Bidoul <stephane.bidoul@acsone.eu>
-StÃ©phane Klein <contact@stephane-klein.info>
+Stéphane Bidoul (ACSONE) <stephane.bidoul@acsone.eu>
+Stéphane Bidoul <stephane.bidoul@acsone.eu>
+Stéphane Klein <contact@stephane-klein.info>
 Takayuki SHIMIZUKAWA <shimizukawa@gmail.com>
 Thomas Fenzl <thomas.fenzl@gmail.com>
 Thomas Grainger <tagrain@gmail.com>
@@ -357,8 +357,8 @@ Toshio Kuratomi <toshio@fedoraproject.org>
 Travis Swicegood <development@domain51.com>
 Valentin Haenel <valentin.haenel@gmx.de>
 Victor Stinner <victor.stinner@gmail.com>
-Viktor SzÃ©pe <viktor@szepe.net>
-Ville SkyttÃ¤ <ville.skytta@iki.fi>
+Viktor Szépe <viktor@szepe.net>
+Ville Skyttä <ville.skytta@iki.fi>
 Vinay Sajip <vinay_sajip@yahoo.co.uk>
 Vincent Philippon <sindaewoh@gmail.com>
 Vitaly Babiy <vbabiy86@gmail.com>
@@ -379,4 +379,4 @@ Zearin <zearin@gonk.net>
 Zearin <Zearin@users.noreply.github.com>
 Zhiping Deng <kofreestyler@gmail.com>
 Zvezdan Petkovic <zpetkovic@acm.org>
-Ð¡ÐµÐ¼Ñ‘Ð½ ÐœÐ°Ñ€ÑŒÑ�Ñ�Ð¸Ð½ <simeon@maryasin.name>
+Семён Марьясин <simeon@maryasin.name>
