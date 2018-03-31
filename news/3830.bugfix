@@ -1,1 +1,0 @@
-pip no longer passes global options from one package to later packages in the same requirement file.

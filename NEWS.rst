@@ -1,3 +1,222 @@
+9.0.3 (2018-03-31)
+==================
+
+======================================
+
+Deprecations and Removals
+-------------------------
+
+- Removed the deprecated ``--egg`` parameter to ``pip install``. (#1749)
+- Removed support for uninstalling projects which have been installed using
+  distutils. distutils installed projects do not include metadata indicating
+  what files belong to that install and thus it is impossible to *actually*
+  uninstall them rather than just remove the metadata saying they've been
+  installed while leaving all of the actual files behind. (#2386)
+- Removed the deprecated ``--download`` option to ``pip install``. (#2643)
+- Removed the deprecated --(no-)use-wheel flags to ``pip install`` and ``pip
+  wheel``. (#2699)
+- Removed the deprecated ``--allow-external``, ``--allow-all-external``, and
+  ``--allow-unverified`` options. (#3070)
+- Switch the default for ``pip list`` to the columns format, and deprecate the
+  legacy format. (#3654, #3686)
+- Deprecate support for Python 3.3. (#3796)
+- Removed the deprecated ``--default-vcs`` option. (#4052)
+- Removed the ``setup.py test`` support from our sdist as it wasn't being
+  maintained as a supported means to run our tests. (#4203)
+- Dropped support for Python 2.6. (#4343)
+- Removed the --editable flag from pip download, as it did not make sense
+  (#4362)
+- Deprecate SVN detection based on dependency links in ``pip freeze``. (#4449)
+- Move all of pip's APIs into the pip._internal package, properly reflecting
+  the fact that pip does not currently have any public APIs. (#4696, #4700)
+
+Features
+--------
+
+- Add `--progress-bar <progress_bar>` to ``pip download``, ``pip install`` and
+  ``pip wheel`` commands, to allow selecting a specific progress indicator or,
+  to completely suppress, (for example in a CI environment) use
+  ``--progress-bar off```. (#2369, #2756)
+- Add `--no-color` to `pip`. All colored output is disabled if this flag is
+  detected. (#2449)
+- pip uninstall now ignores the absence of a requirement and prints a warning.
+  (#3016, #4642)
+- Improved the memory and disk efficiency of the HTTP cache. (#3515)
+- Support for packages specifying build dependencies in pyproject.toml (see
+  `PEP 518 <https://www.python.org/dev/peps/pep-0518/>`__). Packages which
+  specify one or more build dependencies this way will be built into wheels in
+  an isolated environment with those dependencies installed. (#3691)
+- pip now supports environment variable expansion in requirement files using
+  only ``${VARIABLE}`` syntax on all platforms. (#3728)
+- Allowed combinations of -q and -v to act sanely. Then we don't need warnings
+  mentioned in the issue. (#4008)
+- Add `--exclude-editable` to ``pip freeze`` and ``pip list`` to exclude
+  editable packages from installed package list. (#4015, #4016)
+- Improve the error message for the common ``pip install ./requirements.txt``
+  case. (#4127)
+- Add support for the new ``@ url`` syntax from PEP 508. (#4175)
+- Add setuptools version to the statistics sent to BigQuery. (#4209)
+- Report the line which caused the hash error when using requirement files.
+  (#4227)
+- Add a pip config command for managing configuration files. (#4240)
+- Allow ``pip download`` to be used with a specific platform when ``--no-deps``
+  is set. (#4289)
+- Support build-numbers in wheel versions and support sorting with
+  build-numbers. (#4299)
+- Change pip outdated to use PackageFinder in order to do the version lookup so
+  that local mirrors in Environments that do not have Internet connections can
+  be used as the Source of Truth for latest version. (#4336)
+- pip now retries on more HTTP status codes, for intermittent failures.
+  Previously, it only retried on the standard 503. Now, it also retries on 500
+  (transient failures on AWS S3), 520 and 527 (transient failures on
+  Cloudflare). (#4473)
+- pip now displays where it is looking for packages, if non-default locations
+  are used. (#4483)
+- Display a message to run the right command for modifying pip on Windows
+  (#4490)
+- Add Man Pages for pip (#4491)
+- Make uninstall command less verbose by default (#4493)
+- Switch the default upgrade strategy to be 'only-if-needed' (#4500)
+- Installing from a local directory or a VCS URL now builds a wheel to install,
+  rather than running ``setup.py install``. Wheels from these sources are not
+  cached. (#4501)
+- Don't log a warning when installing a dependency from Git if the name looks
+  like a commit hash. (#4507)
+- pip now displays a warning when it installs scripts from a wheel outside the
+  PATH. These warnings can be suppressed using a new --no-warn-script-location
+  option. (#4553)
+- Local Packages can now be referenced using forward slashes on Windows.
+  (#4563)
+- pip show learnt a new Required-by field that lists currently installed
+  packages that depend on the shown package (#4564)
+- The command-line autocompletion engine ``pip show`` now autocompletes
+  installed distribution names. (#4749)
+- Change documentation theme to be in line with Python Documentation (#4758)
+- Add auto completion of short options. (#4954)
+- Run 'setup.py develop' inside pep518 build environment. (#4999)
+- pip install now prints an error message when it installs an incompatible
+  version of a dependency. (#5000)
+- Added a way to distinguish between pip installed packages and those from the
+  system package manager in 'pip list'. Specifically, 'pip list -v' also shows
+  the installer of package if it has that meta data. (#949)
+- Show install locations when list command ran with "-v" option. (#979)
+
+Bug Fixes
+---------
+
+- Allow pip to work if the ``GIT_DIR`` and ``GIT_WORK_TREE`` environment
+  variables are set. (#1130)
+- Make ``pip install --force-reinstall`` not require passing ``--upgrade``.
+  (#1139)
+- Return a failing exit status when `pip install`, `pip download`, or `pip
+  wheel` is called with no requirements. (#2720)
+- Interactive setup.py files will no longer hang indefinitely. (#2732, #4982)
+- Correctly reset the terminal if an exception occurs while a progress bar is
+  being shown. (#3015)
+- "Support URL-encoded characters in URL credentials." (#3236)
+- Don't assume sys.__stderr__.encoding exists (#3356)
+- Fix ``pip uninstall`` when ``easy-install.pth`` lacks a trailing newline.
+  (#3741)
+- Keep install options in requirements.txt from leaking. (#3763)
+- pip no longer passes global options from one package to later packages in the
+  same requirement file. (#3830)
+- Support installing from Git refs (#3876)
+- Use pkg_resources to parse the entry points file to allow names with colons.
+  (#3901)
+- ``-q`` specified once correctly sets logging level to WARNING, instead of
+  CRITICAL. Use `-qqq` to have the previous behavior back. (#3994)
+- Shell completion scripts now use correct executable names (e.g., ``pip3``
+  instead of ``pip``) (#3997)
+- Changed vendored encodings from ``utf8`` to ``utf-8``. (#4076)
+- Fixes destination directory of data_files when ``pip install --target`` is
+  used. (#4092)
+- Limit the disabling of requests' pyopenssl to Windows only. Fixes
+  "SNIMissingWarning / InsecurePlatformWarning not fixable with pip 9.0 /
+  9.0.1" (for non-Windows) (#4098)
+- Support the installation of wheels with non-PEP 440 version in their
+  filenames. (#4169)
+- Fall back to sys.getdefaultencoding() if locale.getpreferredencoding()
+  returns None in `pip.utils.encoding.auto_decode`. (#4184)
+- Fix a bug where `SETUPTOOLS_SHIM` got called incorrectly for relative path
+  requirements by converting relative paths to absolute paths prior to calling
+  the shim. (#4208)
+- Return the latest version number in search results. (#4219)
+- Improve error message on permission errors (#4233)
+- Fail gracefully when ``/etc/image_version`` (or another distro version file)
+  appears to exists but is not readable. (#4249)
+- Avoid importing setuptools in the parent pip process, to avoid a race
+  condition when upgrading one of setuptools dependencies. (#4264)
+- Fix for an incorrect ``freeze`` warning message due to a package being
+  included in multiple requirements files that were passed to ``freeze``.
+  Instead of warning incorrectly that the package is not installed, pip now
+  warns that the package was declared multiple times and lists the name of each
+  requirements file that contains the package in question. (#4293)
+- Generalize help text for ``compile``/``no-compile` flags. (#4316)
+- Handle the case when ``/etc`` is not readable by the current user by using a
+  hardcoded list of possible names of release files. (#4320)
+- Fixed a ``NameError`` when attempting to catch ``FileNotFoundError`` on
+  Python 2.7. (#4322)
+- Ensure USER_SITE is correctly initialised. (#4437)
+- Reinstalling an editable package from Git no longer assumes that the
+  ``master`` branch exists. (#4448)
+- This fixes an issue where when someone who tries to use git with pip but pip
+  can't because git is not in the path environment variable. This clarifies the
+  error given to suggest to the user what might be wrong. (#4461)
+- Improve handling of text output from build tools (avoid Unicode errors)
+  (#4486)
+- Fix a "No such file or directory" error when using --prefix. (#4495)
+- Allow commands to opt out of --require-venv. This allows pip help to work
+  even when the environment variable PIP_REQUIRE_VIRTUALENV is set. (#4496)
+- Fix warning message on mismatched versions during installation. (#4655)
+- pip now records installed files in a deterministic manner improving
+  reproducibility. (#4667)
+- Fix an issue where ``pip install -e`` on a Git url would fail to update if a
+  branch or tag name is specified that happens to match the prefix of the
+  current ``HEAD`` commit hash. (#4675)
+- Fix an issue where a variable assigned in a try clause was accessed in the
+  except clause, resulting in an undefined variable error in the except clause.
+  (#4811)
+- Use log level `info` instead of `warning` when ignoring packages due to
+  environment markers. (#4876)
+- Replaced typo mistake in subversion support. (#4908)
+- Terminal size is now correctly inferred when using Python 3 on Windows.
+  (#4966)
+- Abort if reading configuration causes encoding errors. (#4976)
+- Add a ``--no-user`` option and use it when installing build dependencies.
+  (#5085)
+
+Vendored Libraries
+------------------
+
+- Upgraded appdirs to 1.4.3.
+- Upgraded CacheControl to 0.12.3.
+- Vendored certifi at 2017.7.27.1.
+- Vendored chardet at 3.0.4.
+- Upgraded colorama to 0.3.9.
+- Upgraded distlib to 0.2.6.
+- Upgraded distro to 1.2.0.
+- Vendored idna at idna==2.6.
+- Upgraded ipaddress to 1.0.18.
+- Vendored msgpack-python at 0.4.8.
+- Removed the vendored ordereddict.
+- Upgraded progress to 1.3.
+- Upgraded pyparsing to 2.2.0.
+- Upgraded pytoml to 0.1.14.
+- Upgraded requests to 2.18.4.
+- Upgraded pkg_resources (via setuptools) to 36.6.0.
+- Upgraded six to 1.11.0.
+- Vendored urllib3 at 1.22.
+- Upgraded webencodings to 0.5.1.
+
+Improved Documentation
+----------------------
+
+- Added documentation on usage of --build command line option (#4262)
+-  (#4358)
+- Document how to call pip from your code, including the fact that we do not
+  provide a Python API. (#4743)
+
+
 .. NOTE: You should *NOT* be adding new change log entries to this file, this
          file is managed by towncrier. You *may* edit previous change logs to
          fix problems like typo corrections or such.
