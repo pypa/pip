@@ -124,7 +124,7 @@ class InstallCommand(RequirementCommand):
             default='only-if-needed',
             choices=['only-if-needed', 'eager'],
             help='Determines how dependency upgrading should be handled '
-                 '(default: %(default)s). '
+                 '[default: %default]. '
                  '"eager" - dependencies are upgraded regardless of '
                  'whether the currently installed version satisfies the '
                  'requirements of the upgraded package(s). '
