@@ -3,6 +3,7 @@ requires = ["setuptools", "wheel"]
 
 [tool.towncrier]
 package = "pip"
+package_dir = "src"
 filename = "NEWS.rst"
 directory = "news/"
 title_format = """
