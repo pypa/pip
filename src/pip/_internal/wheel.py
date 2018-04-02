@@ -703,7 +703,6 @@ class WheelBuilder(object):
 
         buildset = []
         for req in requirements:
-            ephem_cache = False
             if req.constraint:
                 continue
             if req.is_wheel:
@@ -719,6 +718,7 @@ class WheelBuilder(object):
             elif autobuilding and not req.source_dir:
                 pass
             else:
+                ephem_cache = False
                 if autobuilding:
                     link = req.link
                     base, ext = link.splitext()
