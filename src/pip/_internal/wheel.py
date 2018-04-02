@@ -715,7 +715,7 @@ class WheelBuilder(object):
                 pass
             elif autobuilding and req.link and not req.link.is_artifact:
                 # VCS checkout. Build wheel just for this run.
-                ephem_cache = True
+                buildset.append((req, True))
             elif autobuilding and not req.source_dir:
                 pass
             else:
