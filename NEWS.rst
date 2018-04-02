@@ -1,3 +1,23 @@
+.. NOTE: You should *NOT* be adding new change log entries to this file, this
+         file is managed by towncrier. You *may* edit previous change logs to
+         fix problems like typo corrections or such.
+
+         To add a new change log entry, please see
+             https://pip.pypa.io/en/latest/development/#adding-a-news-entry
+
+.. towncrier release notes start
+
+
+10.0.0b2 (2018-04-02)
+=====================
+
+Bug Fixes
+---------
+
+- Fixed line endings in CA Bundle - 10.0.0b1 was inadvertently released with Windows
+  line endings. (#5131)
+
+
 10.0.0b1 (2018-03-31)
 =====================
 
@@ -182,8 +202,6 @@ Bug Fixes
 - Abort if reading configuration causes encoding errors. (#4976)
 - Add a ``--no-user`` option and use it when installing build dependencies.
   (#5085)
-- Fixed line endings in CA Bundle - 10.0.0b1 was inadvertently released with Windows
-  line endings. (#5131)
 
 Vendored Libraries
 ------------------
@@ -215,16 +233,6 @@ Improved Documentation
 -  (#4358)
 - Document how to call pip from your code, including the fact that we do not
   provide a Python API. (#4743)
-
-
-.. NOTE: You should *NOT* be adding new change log entries to this file, this
-         file is managed by towncrier. You *may* edit previous change logs to
-         fix problems like typo corrections or such.
-
-         To add a new change log entry, please see
-             https://pip.pypa.io/en/latest/development/#adding-a-news-entry
-
-.. towncrier release notes start
 
 
 9.0.3 (2018-03-21)
