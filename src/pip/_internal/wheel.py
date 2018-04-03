@@ -703,7 +703,6 @@ class WheelBuilder(object):
 
         buildset = []
         for req in requirements:
-            ephem_cache = False
             if req.constraint:
                 continue
             if req.is_wheel:
@@ -715,10 +714,11 @@ class WheelBuilder(object):
                 pass
             elif autobuilding and req.link and not req.link.is_artifact:
                 # VCS checkout. Build wheel just for this run.
-                ephem_cache = True
+                buildset.append((req, True))
             elif autobuilding and not req.source_dir:
                 pass
             else:
+                ephem_cache = False
                 if autobuilding:
                     link = req.link
                     base, ext = link.splitext()
