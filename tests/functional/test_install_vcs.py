@@ -116,6 +116,27 @@ def test_git_with_sha1_revisions(script):
 
 
 @pytest.mark.network
+def test_git_with_short_sha1_revisions(script):
+    """
+    Git backend should be able to install from SHA1 revisions
+    """
+    version_pkg_path = _create_test_package(script)
+    _change_test_package_version(script, version_pkg_path)
+    sha1 = script.run(
+        'git', 'rev-parse', 'HEAD~1',
+        cwd=version_pkg_path,
+    ).stdout.strip()[:7]
+    script.pip(
+        'install', '-e',
+        '%s@%s#egg=version_pkg' %
+        ('git+file://' + version_pkg_path.abspath.replace('\\', '/'), sha1),
+        expect_stderr=True
+    )
+    version = script.run('version_pkg')
+    assert '0.1' in version.stdout, version.stdout
+
+
+@pytest.mark.network
 def test_git_with_branch_name_as_revision(script):
     """
     Git backend should be able to install from branch names
