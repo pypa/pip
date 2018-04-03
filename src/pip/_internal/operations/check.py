@@ -99,4 +99,5 @@ def _simulate_installation_of(to_install, state):
     # Modify it as installing requirement_set would (assuming no errors)
     for inst_req in to_install:
         dist = make_abstract_dist(inst_req).dist(finder=None)
-        state[dist.key] = PackageDetails(dist.version, dist.requires())
+        name = canonicalize_name(dist.key)
+        state[name] = PackageDetails(dist.version, dist.requires())
