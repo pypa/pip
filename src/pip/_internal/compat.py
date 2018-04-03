@@ -213,9 +213,9 @@ else:
                 import fcntl
                 import termios
                 import struct
-                cr = struct.unpack(
+                cr = struct.unpack_from(
                     'hh',
-                    fcntl.ioctl(fd, termios.TIOCGWINSZ, '1234')
+                    fcntl.ioctl(fd, termios.TIOCGWINSZ, '12345678')
                 )
             except:
                 return None
