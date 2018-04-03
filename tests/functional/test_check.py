@@ -193,3 +193,32 @@ def test_check_considers_conditional_reqs(script):
     )
     assert matches_expected_lines(result.stdout, expected_lines)
     assert result.returncode == 1
+
+
+def test_check_development_versions_are_also_considered(script):
+    # Setup pkga depending on pkgb>=1.0
+    pkga_path = create_test_package_with_setup(
+        script,
+        name='pkga', version='1.0', install_requires=['depend>=1.0'],
+    )
+    # Let's install pkga without its dependency
+    res = script.pip('install', '--no-index', pkga_path, '--no-deps')
+    assert "Successfully installed pkga-1.0" in res.stdout, str(res)
+
+    # Setup depend==1.1.0.dev0
+    depend_path = create_test_package_with_setup(
+        script,
+        name='depend', version='1.1.0.dev0',
+    )
+    # Let's install depend==1.1.0.dev0
+    res = script.pip(
+        'install', '--no-index', depend_path, '--no-warn-conflicts',
+    )
+    assert "Successfully installed depend-1.1.0.dev0" in res.stdout, str(res)
+
+    result = script.pip('check')
+    expected_lines = (
+        "No broken requirements found.",
+    )
+    assert matches_expected_lines(result.stdout, expected_lines)
+    assert result.returncode == 0

@@ -63,7 +63,7 @@ def check_package_set(package_set):
 
             # Check if there's a conflict
             version = package_set[name].version  # type: str
-            if version not in req.specifier:
+            if not req.specifier.contains(version, prereleases=True):
                 conflicting_deps.add((name, version, req))
 
         def str_key(x):
