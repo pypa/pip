@@ -191,12 +191,16 @@ class Git(VersionControl):
                 # Only do a checkout if the current commit id doesn't match
                 # the requested revision.
                 if not self.is_commit_id_equal(dest, rev_options.rev):
-                    cmd_args = ['fetch', '-q', url] + rev_options.to_args()
-                    self.run_command(cmd_args, cwd=dest)
-                    self.run_command(
-                        ['checkout', '-q', 'FETCH_HEAD'],
-                        cwd=dest,
-                    )
+                    rev = rev_options.rev
+                    # Only fetch the revision if it's a ref
+                    if rev.startswith('refs/'):
+                        self.run_command(
+                            ['fetch', '-q', url] + rev_options.to_args(),
+                            cwd=dest,
+                        )
+                        # Change the revision to the SHA of the ref we fetched
+                        rev = 'FETCH_HEAD'
+                    self.run_command(['checkout', '-q', rev], cwd=dest)
 
             #: repo may contain submodules
             self.update_submodules(dest)
