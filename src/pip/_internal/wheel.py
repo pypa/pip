@@ -162,11 +162,14 @@ def message_about_scripts_not_on_PATH(scripts):
         script_name = os.path.basename(destfile)
         grouped_by_dir[parent_dir].add(script_name)
 
-    path_env_var_parts = os.environ["PATH"].split(os.pathsep)
-    # Warn only for directories that are not on PATH
+    # We don't want to warn for directories that are on PATH.
+    not_warn_dirs = os.environ["PATH"].split(os.pathsep)
+    # If an executable sits with sys.executable, we don't warn for it.
+    #     This covers the case of venv invocations without activating the venv.
+    not_warn_dirs.append(os.path.dirname(sys.executable))
     warn_for = {
         parent_dir: scripts for parent_dir, scripts in grouped_by_dir.items()
-        if parent_dir not in path_env_var_parts
+        if parent_dir not in not_warn_dirs
     }
     if not warn_for:
         return None
