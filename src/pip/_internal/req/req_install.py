@@ -256,8 +256,6 @@ class InstallRequirement(object):
                     add_msg += deduce_helpful_msg(req)
                 elif '=' in req and not any(op in req for op in operators):
                     add_msg = "= is not a valid operator. Did you mean == ?"
-                else:
-                    add_msg = traceback.format_exc()
                 raise InstallationError(
                     "Invalid requirement: '%s'\n%s" % (req, add_msg))
         return cls(
