@@ -541,7 +541,7 @@ class TestInstallRequirement(object):
             InstallRequirement.from_line('toto 42')
         err_msg = e.value.args[0]
         assert "Invalid requirement" in err_msg
-        assert "\nTraceback " not in err_msg
+        assert "Expected stringEnd" in err_msg
 
     def test_requirement_file(self):
         req_file_path = os.path.join(self.tempdir, 'test.txt')

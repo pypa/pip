@@ -257,7 +257,8 @@ class InstallRequirement(object):
                 elif '=' in req and not any(op in req for op in operators):
                     add_msg = "= is not a valid operator. Did you mean == ?"
                 else:
-                    add_msg = ''
+                    exc_type, exc_value, exc_tb = sys.exc_info()
+                    add_msg = exc_value.__context__
                 raise InstallationError(
                     "Invalid requirement: '%s'\n%s" % (req, add_msg))
         return cls(
