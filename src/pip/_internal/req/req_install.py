@@ -250,16 +250,16 @@ class InstallRequirement(object):
         if req is not None:
             try:
                 req = Requirement(req)
-            except InvalidRequirement:
+            except InvalidRequirement as e:
                 if os.path.sep in req:
                     add_msg = "It looks like a path."
                     add_msg += deduce_helpful_msg(req)
                 elif '=' in req and not any(op in req for op in operators):
                     add_msg = "= is not a valid operator. Did you mean == ?"
                 else:
-                    exc_type, exc_value, exc_tb = sys.exc_info()
-                    # __context__ is not available in python2
-                    add_msg = getattr(exc_value, '__context__', '')
+                    msg = str(e)
+                    msg = msg.replace('Invalid requirement, ', '')
+                    add_msg = msg
                 raise InstallationError(
                     "Invalid requirement: '%s'\n%s" % (req, add_msg))
         return cls(

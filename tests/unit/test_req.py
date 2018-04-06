@@ -543,13 +543,12 @@ class TestInstallRequirement(object):
         assert "Invalid requirement" in err_msg
         assert "Traceback" not in err_msg
 
-    @pytest.mark.skipif('sys.version_info < (3,3)')
     def test_error_hint(self):
         with pytest.raises(InstallationError) as e:
             InstallRequirement.from_line('toto 42')
         err_msg = e.value.args[0]
         assert "Invalid requirement" in err_msg
-        assert "Expected stringEnd" in err_msg
+        assert "parse error at" in err_msg
 
     def test_requirement_file(self):
         req_file_path = os.path.join(self.tempdir, 'test.txt')
