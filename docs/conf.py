@@ -71,7 +71,7 @@ version = release = 'dev'
 root = os.path.dirname(os.path.dirname(__file__))
 pip_init = os.path.join(root, 'src', 'pip', '__init__.py')
 
-with open(pip_init, encoding='utf-8') as f:
+with open(pip_init) as f:
     for line in f:
         m = re.match(r'__version__ = "(.*)"', line)
         if m:
