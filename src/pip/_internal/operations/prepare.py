@@ -126,25 +126,31 @@ class IsSDist(DistAbstraction):
         build_requirements, isolate = self.req.get_pep_518_info()
         should_isolate = build_isolation and isolate
 
-        if 'setuptools' not in build_requirements:
+        minimum_requirements = ('setuptools', 'wheel')
+        missing_requirements = set(minimum_requirements) - set(
+            pkg_resources.Requirement(r).key
+            for r in build_requirements
+        )
+        if missing_requirements:
+            def format_reqs(rs):
+                return ' and '.join(map(repr, sorted(rs)))
             logger.warning(
-                "%s does not include 'setuptools' as a buildtime requirement "
-                "in its pyproject.toml.", self.req.name,
+                "Missing build time requirements in pyproject.toml for %s: "
+                "%s.", self.req, format_reqs(missing_requirements)
             )
             logger.warning(
                 "This version of pip does not implement PEP 517 so it cannot "
-                "build a wheel without setuptools."
+                "build a wheel without %s.", format_reqs(minimum_requirements)
             )
 
-        if not should_isolate:
+        if should_isolate:
+            with self.req.build_env as prefix:
+                _install_build_reqs(finder, prefix, build_requirements)
+        else:
             self.req.build_env = NoOpBuildEnvironment(no_clean=False)
 
-        with self.req.build_env as prefix:
-            if should_isolate:
-                _install_build_reqs(finder, prefix, build_requirements)
-
-            self.req.run_egg_info()
-            self.req.assert_source_matches_version()
+        self.req.run_egg_info()
+        self.req.assert_source_matches_version()
 
 
 class Installed(DistAbstraction):

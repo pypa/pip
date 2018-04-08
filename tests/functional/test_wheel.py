@@ -9,17 +9,6 @@ from pip._internal.status_codes import ERROR, PREVIOUS_BUILD_DIR_ERROR
 from tests.lib import pyversion
 
 
-def test_basic_pip_wheel_fails_without_wheel(script, data):
-    """
-    Test 'pip wheel' fails without wheel
-    """
-    result = script.pip(
-        'wheel', '--no-index', '-f', data.find_links, 'simple==3.0',
-        expect_error=True,
-    )
-    assert "'pip wheel' requires the 'wheel' package" in result.stderr
-
-
 def test_wheel_exit_status_code_when_no_requirements(script, common_wheels):
     """
     Test wheel exit status code when no requirements specified
