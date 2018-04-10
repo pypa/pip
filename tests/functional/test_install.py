@@ -604,6 +604,37 @@ def test_install_package_with_target(script):
     assert singlemodule_py in result.files_updated, str(result)
 
 
+def test_install_package_with_target_and_scripts_no_warning(script, common_wheels):
+    """
+    Test that installing with --target does not trigger the "script not
+    in PATH" warning (issue #5201)
+    """
+    # We need to have wheel installed so that the project builds via a wheel,
+    # which is the only execution path that has the script warning.
+    script.pip('install', 'wheel', '--no-index', '-f', common_wheels)
+    target_dir = script.scratch_path / 'target'
+    pkga_path = script.scratch_path / 'pkga'
+    pkga_path.mkdir()
+    pkga_path.join("setup.py").write(textwrap.dedent("""
+        from setuptools import setup
+        setup(name='pkga',
+              version='0.1',
+              py_modules=["pkga"],
+              entry_points={
+                  'console_scripts': ['pkga=pkga:main']
+              }
+        )
+    """))
+    pkga_path.join("pkga.py").write(textwrap.dedent("""
+        def main(): pass
+    """))
+    result = script.pip('install', '--target', target_dir, pkga_path)
+    # This assertion isn't actually needed, if we get the script warning
+    # the script.pip() call will fail with "stderr not expected". But we
+    # leave the assertion to make the intention of the code clearer.
+    assert "--no-warn-script-location" not in result.stderr, str(result)
+
+
 def test_install_package_with_root(script, data):
     """
     Test installing a package using pip install --root
