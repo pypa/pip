@@ -604,7 +604,7 @@ def test_install_package_with_target(script):
     assert singlemodule_py in result.files_updated, str(result)
 
 
-def test_install_package_with_target_and_scripts_no_warning(script, common_wheels):
+def test_install_with_target_and_scripts_no_warning(script, common_wheels):
     """
     Test that installing with --target does not trigger the "script not
     in PATH" warning (issue #5201)
