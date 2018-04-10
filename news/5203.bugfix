@@ -1,0 +1,1 @@
+Don't warn about script locations if ``--target`` is specified.
