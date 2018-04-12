@@ -72,7 +72,10 @@ if sys.version_info >= (3,):
         try:
             return s.decode(sys.__stdout__.encoding)
         except UnicodeDecodeError:
-            return s.decode('utf_8')
+            try:
+                return s.decode('utf_8')
+            except UnicodeDecodeError:
+                return s.decode('cp1252')
 
     def native_str(s, replace=False):
         if isinstance(s, bytes):
