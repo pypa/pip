@@ -1,0 +1,1 @@
+Fix issue where installing from Git with a short SHA would fail.
