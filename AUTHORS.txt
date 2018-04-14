@@ -106,7 +106,7 @@ Domen Kožar <domen@dev.si>
 Donald Stufft <donald@stufft.io>
 Dongweiming <dongweiming@admaster.com.cn>
 Douglas Thor <dougthor42@users.noreply.github.com>
-Dustin Ingram <di@users.noreply.github.com>
+Dustin Ingram <di@di.codes>
 Dwayne Bailey <dwayne@translate.org.za>
 Ed Morley <501702+edmorley@users.noreply.github.com>
 Ed Morley <emorley@mozilla.com>
@@ -232,6 +232,7 @@ Matthew Iversen <teh.ivo@gmail.com>
 Matthew Trumbell <matthew@thirdstonepartners.com>
 Matthew Willson <matthew@swiftkey.com>
 Matthias Bussonnier <bussonniermatthias@gmail.com>
+mattip <matti.picus@gmail.com>
 Maxim Kurnikov <maxim.kurnikov@gmail.com>
 Maxime Rouyrre <rouyrre+git@gmail.com>
 memoselyk <memoselyk@gmail.com>
