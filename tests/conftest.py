@@ -157,6 +157,18 @@ def virtualenv_template(tmpdir_factory):
         pip_source_dir=pip_src,
         relocatable=True,
     )
+    # Ensure `virtualenv.system_site_packages = True` (needed for testing
+    # `--user`) does not result in adding the real site-packages' directory
+    # to `sys.path`.
+    site_py = venv.lib / 'site.py'
+    with open(site_py) as fp:
+        site_contents = fp.read()
+    site_pattern = '\ndef virtual_addsitepackages(known_paths):\n'
+    assert site_pattern in site_contents
+    site_contents = site_contents.replace(site_pattern, site_pattern +
+                                          '    return known_paths\n')
+    with open(site_py, 'w') as fp:
+        fp.write(site_contents)
     if sys.platform == 'win32':
         # Work around setuptools' easy_install.exe
         # not working properly after relocation.
