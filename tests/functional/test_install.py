@@ -45,6 +45,29 @@ def test_pep518_uses_build_env(script, data, original_setuptools):
         )
 
 
+def test_pep518_with_user_pip(script, virtualenv, pip_src, data):
+    virtualenv.system_site_packages = True
+    script.pip("install", "--ignore-installed", "--user", pip_src)
+    system_pip_dir = script.site_packages_path / 'pip'
+    system_pip_dir.rmtree()
+    system_pip_dir.mkdir()
+    with open(system_pip_dir / '__init__.py', 'w') as fp:
+        fp.write('raise ImportError\n')
+    to_install = data.src.join("pep518-3.0")
+    for command in ('install', 'wheel'):
+        kwargs = {}
+        if sys.version_info[:2] == (3, 3):
+            # Ignore Python 3.3 deprecation warning...
+            kwargs['expect_stderr'] = True
+        script.run(
+            "python", "-c",
+            "import pip._internal; pip._internal.main(["
+            "%r, " "'-f', %r, " "%r, "
+            "])" % (command, str(data.packages), str(to_install)),
+            **kwargs
+        )
+
+
 @pytest.mark.network
 def test_pip_second_command_line_interface_works(script, data):
     """

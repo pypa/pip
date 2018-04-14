@@ -137,20 +137,24 @@ def isolate(tmpdir):
         )
 
 
-@pytest.yield_fixture(scope='session')
-def virtualenv_template(tmpdir_factory):
-    tmpdir = Path(str(tmpdir_factory.mktemp('virtualenv')))
-    # Copy over our source tree so that each virtual environment is self
-    # contained
-    pip_src = tmpdir.join("pip_src").abspath
+@pytest.fixture(scope='session')
+def pip_src(tmpdir_factory):
+    pip_src = Path(str(tmpdir_factory.mktemp('pip_src'))).join('pip_src')
+    # Copy over our source tree so that each use is self contained
     shutil.copytree(
         SRC_DIR,
-        pip_src,
+        pip_src.abspath,
         ignore=shutil.ignore_patterns(
             "*.pyc", "__pycache__", "contrib", "docs", "tasks", "*.txt",
             "tests", "pip.egg-info", "build", "dist", ".tox", ".git",
         ),
     )
+    return pip_src
+
+
+@pytest.yield_fixture(scope='session')
+def virtualenv_template(tmpdir_factory, pip_src):
+    tmpdir = Path(str(tmpdir_factory.mktemp('virtualenv')))
     # Create the virtual environment
     venv = VirtualEnvironment.create(
         tmpdir.join("venv_orig"),

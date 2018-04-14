@@ -144,8 +144,10 @@ class IsSDist(DistAbstraction):
             )
 
         if should_isolate:
-            with self.req.build_env as prefix:
-                _install_build_reqs(finder, prefix, build_requirements)
+            with self.req.build_env:
+                pass
+            _install_build_reqs(finder, self.req.build_env.path,
+                                build_requirements)
         else:
             self.req.build_env = NoOpBuildEnvironment(no_clean=False)
 
