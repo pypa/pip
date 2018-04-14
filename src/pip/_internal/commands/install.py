@@ -124,7 +124,7 @@ class InstallCommand(RequirementCommand):
             default='only-if-needed',
             choices=['only-if-needed', 'eager'],
             help='Determines how dependency upgrading should be handled '
-                 '(default: %(default)s). '
+                 '[default: %default]. '
                  '"eager" - dependencies are upgraded regardless of '
                  'whether the currently installed version satisfies the '
                  'requirements of the upgraded package(s). '
@@ -317,6 +317,12 @@ class InstallCommand(RequirementCommand):
                     if should_warn_about_conflicts:
                         self._warn_about_conflicts(to_install)
 
+                    # Don't warn about script install locations if
+                    # --target has been specified
+                    warn_script_location = options.warn_script_location
+                    if options.target_dir:
+                        warn_script_location = False
+
                     installed = install_given_reqs(
                         to_install,
                         install_options,
@@ -325,7 +331,7 @@ class InstallCommand(RequirementCommand):
                         home=target_temp_dir.path,
                         prefix=options.prefix_path,
                         pycompile=options.compile,
-                        warn_script_location=options.warn_script_location,
+                        warn_script_location=warn_script_location,
                         use_user_site=options.use_user_site,
                     )
 

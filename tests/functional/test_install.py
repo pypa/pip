@@ -19,48 +19,30 @@ from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
 
 
-def test_without_setuptools(script, data):
-    script.pip("uninstall", "setuptools", "-y")
-    result = script.run(
-        "python", "-c",
-        "import pip._internal; pip._internal.main(["
-        "'install', "
-        "'INITools==0.2', "
-        "'-f', '%s', "
-        "'--no-binary=:all:'])" % data.packages,
-        expect_error=True,
-    )
-    assert (
-        "Could not import setuptools which is required to install from a "
-        "source distribution."
-        in result.stderr
-    )
-    assert "Please install setuptools" in result.stderr
-
-
-def test_with_setuptools_and_import_error(script, data):
-    # Make sure we get an ImportError while importing setuptools
-    setuptools_init_path = script.site_packages_path.join(
-        "setuptools", "__init__.py")
-    with open(setuptools_init_path, 'a') as f:
-        f.write('\nraise ImportError("toto")')
-
-    result = script.run(
-        "python", "-c",
-        "import pip._internal; pip._internal.main(["
-        "'install', "
-        "'INITools==0.2', "
-        "'-f', '%s', "
-        "'--no-binary=:all:'])" % data.packages,
-        expect_error=True,
-    )
-    assert (
-        "Could not import setuptools which is required to install from a "
-        "source distribution."
-        in result.stderr
-    )
-    assert "Traceback " in result.stderr
-    assert "ImportError: toto" in result.stderr
+@pytest.mark.parametrize('original_setuptools', ('missing', 'bad'))
+def test_pep518_uses_build_env(script, data, original_setuptools):
+    if original_setuptools == 'missing':
+        script.pip("uninstall", "-y", "setuptools")
+    elif original_setuptools == 'bad':
+        setuptools_init_path = script.site_packages_path.join(
+            "setuptools", "__init__.py")
+        with open(setuptools_init_path, 'a') as f:
+            f.write('\nraise ImportError("toto")')
+    else:
+        raise ValueError(original_setuptools)
+    to_install = data.src.join("pep518-3.0")
+    for command in ('install', 'wheel'):
+        kwargs = {}
+        if sys.version_info[:2] == (3, 3):
+            # Ignore Python 3.3 deprecation warning...
+            kwargs['expect_stderr'] = True
+        script.run(
+            "python", "-c",
+            "import pip._internal; pip._internal.main(["
+            "%r, " "'-f', %r, " "%r, "
+            "])" % (command, str(data.packages), str(to_install)),
+            **kwargs
+        )
 
 
 @pytest.mark.network
@@ -620,6 +602,37 @@ def test_install_package_with_target(script):
     result = script.pip_install_local('-t', target_dir, 'singlemodule==0.0.1',
                                       '--upgrade')
     assert singlemodule_py in result.files_updated, str(result)
+
+
+def test_install_with_target_and_scripts_no_warning(script, common_wheels):
+    """
+    Test that installing with --target does not trigger the "script not
+    in PATH" warning (issue #5201)
+    """
+    # We need to have wheel installed so that the project builds via a wheel,
+    # which is the only execution path that has the script warning.
+    script.pip('install', 'wheel', '--no-index', '-f', common_wheels)
+    target_dir = script.scratch_path / 'target'
+    pkga_path = script.scratch_path / 'pkga'
+    pkga_path.mkdir()
+    pkga_path.join("setup.py").write(textwrap.dedent("""
+        from setuptools import setup
+        setup(name='pkga',
+              version='0.1',
+              py_modules=["pkga"],
+              entry_points={
+                  'console_scripts': ['pkga=pkga:main']
+              }
+        )
+    """))
+    pkga_path.join("pkga.py").write(textwrap.dedent("""
+        def main(): pass
+    """))
+    result = script.pip('install', '--target', target_dir, pkga_path)
+    # This assertion isn't actually needed, if we get the script warning
+    # the script.pip() call will fail with "stderr not expected". But we
+    # leave the assertion to make the intention of the code clearer.
+    assert "--no-warn-script-location" not in result.stderr, str(result)
 
 
 def test_install_package_with_root(script, data):

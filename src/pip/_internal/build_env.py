@@ -2,6 +2,7 @@
 """
 
 import os
+from distutils.sysconfig import get_python_lib
 from sysconfig import get_paths
 
 from pip._internal.utils.temp_dir import TempDirectory
@@ -38,11 +39,14 @@ class BuildEnvironment(object):
         else:
             os.environ['PATH'] = scripts + os.pathsep + os.defpath
 
-        if install_dirs['purelib'] == install_dirs['platlib']:
-            lib_dirs = install_dirs['purelib']
+        # Note: prefer distutils' sysconfig to get the
+        # library paths so PyPy is correctly supported.
+        purelib = get_python_lib(plat_specific=0, prefix=self.path)
+        platlib = get_python_lib(plat_specific=1, prefix=self.path)
+        if purelib == platlib:
+            lib_dirs = purelib
         else:
-            lib_dirs = install_dirs['purelib'] + os.pathsep + \
-                install_dirs['platlib']
+            lib_dirs = purelib + os.pathsep + platlib
         if self.save_pythonpath:
             os.environ['PYTHONPATH'] = lib_dirs + os.pathsep + \
                 self.save_pythonpath

@@ -30,6 +30,9 @@ def create_package_set_from_installed(**kwargs):
     # type: (**Any) -> PackageSet
     """Converts a list of distributions into a PackageSet.
     """
+    # Default to using all packages installed on the system
+    if kwargs == {}:
+        kwargs = {"local_only": False, "skip": ()}
     retval = {}
     for dist in get_installed_distributions(**kwargs):
         name = canonicalize_name(dist.project_name)
@@ -63,7 +66,7 @@ def check_package_set(package_set):
 
             # Check if there's a conflict
             version = package_set[name].version  # type: str
-            if version not in req.specifier:
+            if not req.specifier.contains(version, prereleases=True):
                 conflicting_deps.add((name, version, req))
 
         def str_key(x):
@@ -99,4 +102,5 @@ def _simulate_installation_of(to_install, state):
     # Modify it as installing requirement_set would (assuming no errors)
     for inst_req in to_install:
         dist = make_abstract_dist(inst_req).dist(finder=None)
-        state[dist.key] = PackageDetails(dist.version, dist.requires())
+        name = canonicalize_name(dist.key)
+        state[name] = PackageDetails(dist.version, dist.requires())

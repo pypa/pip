@@ -1,1 +1,0 @@
-Fix the mismatched parameter name in ``get_installed_distributions()``.

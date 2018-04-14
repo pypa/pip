@@ -162,11 +162,16 @@ def message_about_scripts_not_on_PATH(scripts):
         script_name = os.path.basename(destfile)
         grouped_by_dir[parent_dir].add(script_name)
 
-    path_env_var_parts = os.environ["PATH"].split(os.pathsep)
-    # Warn only for directories that are not on PATH
+    # We don't want to warn for directories that are on PATH.
+    not_warn_dirs = [
+        os.path.normcase(i) for i in os.environ["PATH"].split(os.pathsep)
+    ]
+    # If an executable sits with sys.executable, we don't warn for it.
+    #     This covers the case of venv invocations without activating the venv.
+    not_warn_dirs.append(os.path.normcase(os.path.dirname(sys.executable)))
     warn_for = {
         parent_dir: scripts for parent_dir, scripts in grouped_by_dir.items()
-        if parent_dir not in path_env_var_parts
+        if os.path.normcase(parent_dir) not in not_warn_dirs
     }
     if not warn_for:
         return None
@@ -703,7 +708,6 @@ class WheelBuilder(object):
 
         buildset = []
         for req in requirements:
-            ephem_cache = False
             if req.constraint:
                 continue
             if req.is_wheel:
@@ -715,10 +719,11 @@ class WheelBuilder(object):
                 pass
             elif autobuilding and req.link and not req.link.is_artifact:
                 # VCS checkout. Build wheel just for this run.
-                ephem_cache = True
+                buildset.append((req, True))
             elif autobuilding and not req.source_dir:
                 pass
             else:
+                ephem_cache = False
                 if autobuilding:
                     link = req.link
                     base, ext = link.splitext()

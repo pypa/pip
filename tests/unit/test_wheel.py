@@ -453,3 +453,13 @@ class TestMessageAboutScriptsNotOnPATH(object):
             scripts=['/a/b/foo']
         )
         assert retval is None
+
+    def test_PATH_check_case_insensitive_on_windows(self):
+        retval = self._template(
+            paths=['C:\\A\\b'],
+            scripts=['c:\\a\\b\\c', 'C:/A/b/d']
+        )
+        if WINDOWS:
+            assert retval is None
+        else:
+            assert retval is not None
