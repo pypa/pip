@@ -8,6 +8,25 @@
 .. towncrier release notes start
 
 
+10.0.0 (2018-04-14)
+===================
+
+Bug Fixes
+---------
+
+- Prevent false-positive installation warnings due to incomplete name
+  normalizaton. (#5134)
+- Fix issue where installing from Git with a short SHA would fail. (#5140)
+- Accept pre-release versions when checking for conflicts with pip check or pip
+  install. (#5141)
+- ``ioctl(fd, termios.TIOCGWINSZ, ...)`` needs 8 bytes of data (#5150)
+- Do not warn about script location when installing to the directory containing
+  sys.executable. This is the case when 'pip install'ing without activating a
+  virtualenv. (#5157)
+- Fix PEP 518 support. (#5188)
+- Don't warn about script locations if ``--target`` is specified. (#5203)
+
+
 10.0.0b2 (2018-04-02)
 =====================
 

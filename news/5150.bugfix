@@ -1,1 +1,0 @@
-``ioctl(fd, termios.TIOCGWINSZ, ...)`` needs 8 bytes of data

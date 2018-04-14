@@ -1,3 +1,0 @@
-Do not warn about script location when installing to the directory containing
-sys.executable. This is the case when 'pip install'ing without activating a
-virtualenv.
