@@ -335,8 +335,8 @@ class RequirementCommand(Command):
         # See https://github.com/pypa/pip/issues/1299 for more discussion
         should_show_use_python_msg = (
             WINDOWS and
-            requirement_set.has_requirement('pip') and
-            "pip" in os.path.basename(sys.argv[0])
+            requirement_set.has_requirement("pip") and
+            os.path.basename(sys.argv[0]).startswith("pip")
         )
         if should_show_use_python_msg:
             new_command = [
