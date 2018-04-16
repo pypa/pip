@@ -1,0 +1,1 @@
+Fix a TypeError when loading the cache on older versions of Python 2.7.
