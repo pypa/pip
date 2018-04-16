@@ -1,5 +1,5 @@
 appdirs==1.4.3
-distlib==0.2.6
+distlib==0.2.7
 distro==1.2.0
 html5lib==1.0.1
 six==1.11.0

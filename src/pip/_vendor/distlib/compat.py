@@ -614,17 +614,20 @@ except ImportError: # pragma: no cover
             self.maps[0].clear()
 
 try:
-    from imp import cache_from_source
-except ImportError: # pragma: no cover
-    def cache_from_source(path, debug_override=None):
-        assert path.endswith('.py')
-        if debug_override is None:
-            debug_override = __debug__
-        if debug_override:
-            suffix = 'c'
-        else:
-            suffix = 'o'
-        return path + suffix
+    from importlib.util import cache_from_source  # Python >= 3.4
+except ImportError:  # pragma: no cover
+    try:
+        from imp import cache_from_source
+    except ImportError:  # pragma: no cover
+        def cache_from_source(path, debug_override=None):
+            assert path.endswith('.py')
+            if debug_override is None:
+                debug_override = __debug__
+            if debug_override:
+                suffix = 'c'
+            else:
+                suffix = 'o'
+            return path + suffix
 
 try:
     from collections import OrderedDict
