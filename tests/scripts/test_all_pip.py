@@ -17,7 +17,7 @@ else:
 
 
 def all_projects():
-    data = urllib_request.urlopen('http://pypi.python.org/simple/').read()
+    data = urllib_request.urlopen('http://pypi.org/simple/').read()
     projects = [m.group(1) for m in re.finditer(r'<a.*?>(.+)</a>', data)]
     return projects
 

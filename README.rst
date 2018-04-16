@@ -4,7 +4,7 @@ pip
 The `PyPA recommended`_ tool for installing Python packages.
 
 .. image:: https://img.shields.io/pypi/v/pip.svg
-   :target: https://pypi.python.org/pypi/pip
+   :target: https://pypi.org/project/pip/
 
 .. image:: https://img.shields.io/travis/pypa/pip/master.svg
    :target: http://travis-ci.org/pypa/pip

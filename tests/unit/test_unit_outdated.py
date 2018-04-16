@@ -14,7 +14,7 @@ from pip._internal.utils import outdated
 
 class MockPackageFinder(object):
 
-    BASE_URL = 'https://pypi.python.org/simple/pip-{0}.tar.gz'
+    BASE_URL = 'https://pypi.org/simple/pip-{0}.tar.gz'
     PIP_PROJECT_NAME = 'pip'
     INSTALLATION_CANDIDATES = [
         InstallationCandidate(PIP_PROJECT_NAME, '6.9.0',

@@ -474,7 +474,7 @@ Finding Packages
 ++++++++++++++++
 
 pip searches for packages on `PyPI`_ using the
-`http simple interface <http://pypi.python.org/simple>`_,
+`http simple interface <https://pypi.org/simple/>`_,
 which is documented `here <https://setuptools.readthedocs.io/en/latest/easy_install.html#package-index-api>`_
 and `there <http://www.python.org/dev/peps/pep-0301/>`_
 
@@ -774,7 +774,7 @@ No other build system commands are invoked by the ``pip install`` command.
 
 Installing a package from a wheel does not invoke the build system at all.
 
-.. _PyPI: http://pypi.python.org/pypi/
+.. _PyPI: https://pypi.org/
 .. _setuptools extras: https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies
 
 

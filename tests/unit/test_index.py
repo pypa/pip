@@ -122,11 +122,11 @@ class MockLogger(object):
 @pytest.mark.parametrize(
     ("location", "trusted", "expected"),
     [
-        ("http://pypi.python.org/something", [], True),
-        ("https://pypi.python.org/something", [], False),
-        ("git+http://pypi.python.org/something", [], True),
-        ("git+https://pypi.python.org/something", [], False),
-        ("git+ssh://git@pypi.python.org/something", [], False),
+        ("http://pypi.org/something", [], True),
+        ("https://pypi.org/something", [], False),
+        ("git+http://pypi.org/something", [], True),
+        ("git+https://pypi.org/something", [], False),
+        ("git+ssh://git@pypi.org/something", [], False),
         ("http://localhost", [], False),
         ("http://127.0.0.1", [], False),
         ("http://example.com/something/", [], True),

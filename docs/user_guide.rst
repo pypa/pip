@@ -46,7 +46,7 @@ Specifiers`
 
 For more information and examples, see the :ref:`pip install` reference.
 
-.. _PyPI: http://pypi.python.org/pypi
+.. _PyPI: https://pypi.org/
 
 
 .. _`Requirements Files`:
@@ -197,7 +197,7 @@ For the cases where wheels are not available, pip offers :ref:`pip wheel` as a
 convenience, to build wheels for all your requirements and dependencies.
 
 :ref:`pip wheel` requires the `wheel package
-<https://pypi.python.org/pypi/wheel>`_ to be installed, which provides the
+<https://pypi.org/project/wheel/>`_ to be installed, which provides the
 "bdist_wheel" setuptools extension that it uses.
 
 To build wheels for your requirements and all their dependencies to a local directory:
