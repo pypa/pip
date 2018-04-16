@@ -73,6 +73,12 @@ def test_basic_search(script):
 
 
 @pytest.mark.network
+@pytest.mark.skip(
+    reason=("Warehouse search behavior is different and no longer returns "
+            "multiple results. See "
+            "https://github.com/pypa/warehouse/issues/3717 for more "
+            "information."),
+)
 def test_multiple_search(script):
     """
     Test searching for multiple packages at once.
