@@ -150,6 +150,8 @@ can be problematic. If this is the case, pip provides a
 flag are responsible for ensuring the build environment is managed
 appropriately.
 
+.. _pep-518-limitations:
+
 The current implementation of `PEP518`_ in pip requires that any dependencies
 specified in ``pyproject.toml`` are available as wheels. This is a technical
 limitation of the implementation - dependencies only available as source would
@@ -157,6 +159,10 @@ require a build step of their own, which would recursively invoke the `PEP518`_
 dependency installation process. The potentially unbounded recursion involved
 was not considered acceptable, and so installation of build dependencies from
 source has been disabled until a safe resolution of this issue has been found.
+
+Further, it also doesn't support the use of environment markers and extras,
+only version specifiers are respected. Support for markers and extras will be
+added in a future release.
 
 .. _PEP517: http://www.python.org/dev/peps/pep-0517/
 .. _PEP518: http://www.python.org/dev/peps/pep-0518/
