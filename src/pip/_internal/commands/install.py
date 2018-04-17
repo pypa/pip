@@ -358,25 +358,14 @@ class InstallCommand(RequirementCommand):
                     installed = ' '.join(items)
                     if installed:
                         logger.info('Successfully installed %s', installed)
-                except EnvironmentError as e:
-                    message_parts = []
+                except EnvironmentError as error:
+                    show_traceback = (self.verbosity >= 1)
 
-                    user_option_part = "Consider using the `--user` option"
-                    permissions_part = "Check the permissions"
-
-                    if e.errno == errno.EPERM:
-                        if not options.use_user_site:
-                            message_parts.extend([
-                                user_option_part, " or ",
-                                permissions_part.lower(),
-                            ])
-                        else:
-                            message_parts.append(permissions_part)
-                        message_parts.append("\n")
-
-                    logger.error(
-                        "".join(message_parts), exc_info=(self.verbosity > 1)
+                    message = create_env_error_message(
+                        error, show_traceback, options.use_user_site,
                     )
+                    logger.error(message, exc_info=show_traceback)
+
                     return ERROR
                 except PreviousBuildDirError:
                     options.no_clean = True
@@ -475,3 +464,39 @@ class InstallCommand(RequirementCommand):
 def get_lib_location_guesses(*args, **kwargs):
     scheme = distutils_scheme('', *args, **kwargs)
     return [scheme['purelib'], scheme['platlib']]
+
+
+def create_env_error_message(error, show_traceback, using_user_site):
+    """Format an error message for an EnvironmentError
+
+    It may occur anytime during the execution of the install command.
+    """
+    parts = []
+
+    # Mention the error if we are not going to show a traceback
+    parts.append("Could not install packages due to an EnvironmentError")
+    if not show_traceback:
+        parts.append(": ")
+        parts.append(str(error))
+    else:
+        parts.append(".")
+
+    # Spilt the error indication from a helper message (if any)
+    parts[-1] += "\n"
+
+    # Suggest useful actions to the user:
+    #  (1) using user site-packages or (2) verifying the permissions
+    if error.errno == errno.EACCES:
+        user_option_part = "Consider using the `--user` option"
+        permissions_part = "Check the permissions"
+
+        if not using_user_site:
+            parts.extend([
+                user_option_part, " or ",
+                permissions_part.lower(),
+            ])
+        else:
+            parts.append(permissions_part)
+        parts.append(".\n")
+
+    return "".join(parts).strip() + "\n"
