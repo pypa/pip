@@ -53,11 +53,11 @@ def _install_build_reqs(finder, prefix, build_requirements):
     #       that should handle all the isolation and sub-process invocation.
     finder = copy(finder)
     finder.format_control = FormatControl(set(), set([":all:"]))
-    urls = [
-        finder.find_requirement(
-            InstallRequirement.from_line(r), upgrade=False).url
-        for r in build_requirements
-    ]
+    urls = []
+    for req_str in build_requirements:
+        req = InstallRequirement.from_line(req_str)
+        if req.match_markers():
+            urls.append(finder.find_requirement(req, upgrade=False).url)
     args = [
         sys.executable, '-m', 'pip', 'install', '--ignore-installed',
         '--no-user', '--prefix', prefix,
