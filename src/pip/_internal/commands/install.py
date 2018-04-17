@@ -499,10 +499,4 @@ def create_env_error_message(error, show_traceback, using_user_site):
             parts.append(permissions_part)
         parts.append(".\n")
 
-    # If we won't show a traceback, tell the user how to get it.
-    if not show_traceback:
-        parts.append(
-            "To view error traceback, increase verbosity by passing --verbose."
-        )
-
     return "".join(parts).strip() + "\n"
