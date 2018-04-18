@@ -200,12 +200,10 @@ def test_wheel_package_with_latin1_setup(script, data, common_wheels):
 
 
 @pytest.mark.network
-def test_pip_wheel_with_pep518_build_reqs(script, data):
-    script.pip('install', 'wheel')
-    script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
-    result = script.pip(
-        'wheel', '--no-index', '-f', data.find_links, 'pep518==3.0',
-    )
+def test_pip_wheel_with_pep518_build_reqs(script, data, common_wheels):
+    script.pip_install_local('-f', common_wheels, 'wheel')
+    result = script.pip('wheel', '--no-index', '-f', data.find_links,
+                        '-f', common_wheels, 'pep518==3.0',)
     wheel_file_name = 'pep518-3.0-py%s-none-any.whl' % pyversion[0]
     wheel_file_path = script.scratch / wheel_file_name
     assert wheel_file_path in result.files_created, result.stdout
@@ -214,11 +212,12 @@ def test_pip_wheel_with_pep518_build_reqs(script, data):
 
 
 @pytest.mark.network
-def test_pip_wheel_with_pep518_build_reqs_no_isolation(script, data):
-    script.pip('install', 'wheel')
+def test_pip_wheel_with_pep518_build_reqs_no_isolation(script, data,
+                                                       common_wheels):
+    script.pip_install_local('-f', common_wheels, 'wheel', 'simplewheel==2.0')
     result = script.pip(
-        'wheel', '--no-index', '-f', data.find_links, '--no-build-isolation',
-        'pep518==3.0',
+        'wheel', '--no-index', '-f', data.find_links,
+        '--no-build-isolation', 'pep518==3.0',
     )
     wheel_file_name = 'pep518-3.0-py%s-none-any.whl' % pyversion[0]
     wheel_file_path = script.scratch / wheel_file_name
