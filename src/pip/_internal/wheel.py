@@ -717,11 +717,11 @@ class WheelBuilder(object):
                     )
             elif autobuilding and req.editable:
                 pass
+            elif autobuilding and not req.source_dir:
+                pass
             elif autobuilding and req.link and not req.link.is_artifact:
                 # VCS checkout. Build wheel just for this run.
                 buildset.append((req, True))
-            elif autobuilding and not req.source_dir:
-                pass
             else:
                 ephem_cache = False
                 if autobuilding:
