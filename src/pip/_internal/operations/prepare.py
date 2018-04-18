@@ -1,11 +1,9 @@
 """Prepares a distribution for installation
 """
 
-import itertools
 import logging
 import os
 import sys
-from copy import copy
 
 from pip._vendor import pkg_resources, requests
 
@@ -18,8 +16,6 @@ from pip._internal.exceptions import (
     DirectoryUrlHashUnsupported, HashUnpinned, InstallationError,
     PreviousBuildDirError, VcsHashUnsupported,
 )
-from pip._internal.index import FormatControl
-from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.hashes import MissingHashes
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
@@ -51,18 +47,27 @@ def _install_build_reqs(finder, prefix, build_requirements):
     # NOTE: What follows is not a very good thing.
     #       Eventually, this should move into the BuildEnvironment class and
     #       that should handle all the isolation and sub-process invocation.
-    finder = copy(finder)
-    finder.format_control = FormatControl(set(), set([":all:"]))
-    urls = [
-        finder.find_requirement(
-            InstallRequirement.from_line(r), upgrade=False).url
-        for r in build_requirements
-    ]
     args = [
         sys.executable, '-m', 'pip', 'install', '--ignore-installed',
         '--no-user', '--prefix', prefix,
-    ] + list(urls)
-
+        '--only-binary', ':all:',
+    ]
+    if finder.index_urls:
+        args.extend(['-i', finder.index_urls[0]])
+        for extra_index in finder.index_urls[1:]:
+            args.extend(['--extra-index-url', extra_index])
+    else:
+        args.append('--no-index')
+    for link in finder.find_links:
+        args.extend(['--find-links', link])
+    for _, host, _ in finder.secure_origins:
+        args.extend(['--trusted-host', host])
+    if finder.allow_all_prereleases:
+        args.append('--pre')
+    if finder.process_dependency_links:
+        args.append('--process-dependency-links')
+    args.append('--')
+    args.extend(build_requirements)
     with open_spinner("Installing build dependencies") as spinner:
         call_subprocess(args, show_stdout=False, spinner=spinner)
 
