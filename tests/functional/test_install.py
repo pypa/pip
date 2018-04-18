@@ -197,8 +197,8 @@ def test_install_editable_uninstalls_existing_from_path(script, data):
     to_install = data.src.join('simplewheel-1.0')
     result = script.pip_install_local(to_install)
     assert 'Successfully installed simplewheel' in result.stdout
-    simple_folder = script.site_packages / 'simple'
-    result.assert_installed('simple', editable=False)
+    simple_folder = script.site_packages / 'simplewheel'
+    result.assert_installed('simplewheel', editable=False)
     assert simple_folder in result.files_created, str(result.stdout)
 
     result = script.pip(
