@@ -8,6 +8,32 @@
 .. towncrier release notes start
 
 
+10.0.1 (2018-04-19)
+===================
+
+Features
+--------
+
+- Switch the default repository to the new "PyPI 2.0" running at
+  https://pypi.org/. (#5214)
+
+Bug Fixes
+---------
+
+- Fix a bug that made get-pip.py unusable on Windows without renaming. (#5219)
+- Fix a TypeError when loading the cache on older versions of Python 2.7.
+  (#5231)
+- Fix and improve error message when EnvironmentError occurs during
+  installation. (#5237)
+- A crash when reinstalling from VCS requirements has been fixed. (#5251)
+- Fix PEP 518 support when pip is installed in the user site. (#5524)
+
+Vendored Libraries
+------------------
+
+- Upgrade distlib to 0.2.7
+
+
 10.0.0 (2018-04-14)
 ===================
 

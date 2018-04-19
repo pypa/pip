@@ -1,1 +1,0 @@
-Fix and improve error message when EnvironmentError occurs during installation.

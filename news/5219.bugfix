@@ -1,1 +1,0 @@
-Fix a bug that made get-pip.py unusable on Windows without renaming.
