@@ -200,7 +200,7 @@ class Command(object):
 
         if sys.version_info[:2] == (3, 3):
             warnings.warn(
-                "Python 3.3 supported has been deprecated and support for it "
+                "Python 3.3 support has been deprecated and support for it "
                 "will be dropped in the future. Please upgrade your Python.",
                 deprecation.RemovedInPip11Warning,
             )
