@@ -75,7 +75,7 @@ class BuildEnvironment(object):
     def install_requirements(self, finder, requirements, message):
         args = [
             sys.executable, '-m', 'pip', 'install', '--ignore-installed',
-            '--no-user', '--prefix', self.path,
+            '--no-user', '--prefix', self.path, '--no-warn-script-location',
             '--only-binary', ':all:',
         ]
         if finder.index_urls:
