@@ -154,8 +154,9 @@ appropriately.
   installation of build dependencies from source has been disabled until a safe
   resolution of this issue is found.
 
-* ``pip<18.0`` does not support the use of environment markers and extras, only
-  version specifiers are respected.
+* ``pip<18.0``: only support installing build requirements from wheels, and
+  does not support the use of environment markers and extras (only version
+  specifiers are respected).
 
 
 Future Developments
