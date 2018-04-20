@@ -7,7 +7,7 @@ setup(name='FSPkg',
       description="File system test package",
       long_description="""\
 File system test package""",
-      classifiers=[], # Get strings from http://pypi.python.org/pypi?%3Aaction=list_classifiers
+      classifiers=[], # Get strings from https://pypi.org/pypi?%3Aaction=list_classifiers
       keywords='pip tests',
       author='pip',
       author_email='pip@openplans.org',
