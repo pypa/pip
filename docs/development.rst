@@ -124,6 +124,15 @@ as the content of the news file entry. You do not need to reference the issue
 or PR numbers here as towncrier will automatically add a reference to all of
 the affected issues when rendering the news file.
 
+In order to maintain a consistent style in the ``NEWS.rst`` file, it is
+preferred to keep the news entry to the point, in sentence case, shorter than
+80 characters and in an imperative tone -- an entry should complete the sentence
+"This change will ...". In rare cases, where one line is not enough, use a
+summary line in an imperative tone followed by a blank line separating it
+from a description of the feature/change in one or more paragraphs, each wrapped
+at 80 characters. Remember that a news entry is meant for end users and should
+only contain details relevant to an end user.
+
 A trivial change is anything that does not warrant an entry in the news file.
 Some examples are: Code refactors that don't change anything as far as the
 public is concerned, typo fixes, white space modification, etc. To mark a PR
