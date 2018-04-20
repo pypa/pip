@@ -20,7 +20,10 @@ from pip._internal.req import RequirementSet, install_given_reqs
 from pip._internal.resolve import Resolver
 from pip._internal.status_codes import ERROR
 from pip._internal.utils.filesystem import check_path_owner
-from pip._internal.utils.misc import ensure_dir, get_installed_version
+from pip._internal.utils.misc import (
+    ensure_dir, get_installed_version,
+    protect_pip_from_modification_on_windows,
+)
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.wheel import WheelBuilder
 
@@ -290,6 +293,10 @@ class InstallCommand(RequirementCommand):
                         isolated=options.isolated_mode,
                     )
                     resolver.resolve(requirement_set)
+
+                    protect_pip_from_modification_on_windows(
+                        modifying_pip=requirement_set.has_requirement("pip")
+                    )
 
                     # If caching is disabled or wheel is not installed don't
                     # try to build wheels.
