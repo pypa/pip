@@ -31,7 +31,7 @@ push the changes to your fork::
   $ git push git@github.com:yourname/pip.git
 
 Open Pull Requests page at https://github.com/yourname/pip/pulls and
-click "New pull request". That's it.
+click "New pull request" and select your fork. That's it.
 
 Pull requests should be self-contained, and limited in scope. Before being
 merged, a pull request must be reviewed, and keeping individual PRs limited
@@ -50,9 +50,11 @@ based on our `.travis.yml file <https://github.com/pypa/pip/blob/master/.travis.
 Usually, a link to your specific travis build appears in pull requests, but if not,
 you can find it on our `travis pull requests page <https://travis-ci.org/pypa/pip/pull_requests>`_
 
-The only way to trigger Travis to run again for a pull request, is to submit another change to the pull branch.
+The only way to trigger Travis to run again for a pull request, is to submit
+another change to the pull branch.
 
-We also have Jenkins CI that runs regularly for certain python versions on windows and centos.
+We also have Jenkins CI that runs regularly for certain python versions on
+Windows and CentOS.
 
 Running tests
 =============
@@ -126,9 +128,9 @@ the affected issues when rendering the news file.
 A trivial change is anything that does not warrant an entry in the news file.
 Some examples are: Code refactors that don't change anything as far as the
 public is concerned, typo fixes, white space modification, etc. To mark a PR
-as trivial a contributor simply needs to add a randomly named, empty file to the
-``news/`` directory with the extension of ``.trivial``. If you are on a POSIX
-like operating system, one can be added by running
+as trivial a contributor simply needs to add a randomly named, empty file to
+the ``news/`` directory with the extension of ``.trivial``. If you are on a
+POSIX like operating system, one can be added by running
 ``touch news/$(uuidgen).trivial``. Core committers may also add a "trivial"
 label to the PR which will accomplish the same thing.
 
@@ -175,13 +177,13 @@ reworked and resubmitted for the next release.
 Deprecation Policy
 ==================
 
-Any change to pip that removes or significantly alters user-visible behaviour that
-is described in the pip documentation will be deprecated for a minimum of one
-released version before the change occurs. Deprecation will take the form of a
-warning being issued by pip when the feature is used. Longer deprecation periods,
-or deprecation warnings for behaviour changes that would not normally be covered
-by this policy, are also possible depending on circumstances, but this is at the
-discretion of the pip developers.
+Any change to pip that removes or significantly alters user-visible behaviour
+that is described in the pip documentation will be deprecated for a minimum of
+one released version before the change occurs. Deprecation will take the form of
+a warning being issued by pip when the feature is used. Longer deprecation
+periods, or deprecation warnings for behaviour changes that would not normally
+be covered by this policy, are also possible depending on circumstances, but
+this is at the discretion of the pip developers.
 
 Note that the documentation is the sole reference for what counts as agreed
 behaviour. If something isn't explicitly mentioned in the documentation, it can
@@ -200,8 +202,8 @@ Release Process
 #. On the current pip ``master`` branch, make a new commit which bumps the
    version in ``pip/__init__.py`` to the release version and adjust the
    ``CHANGES.txt`` file to reflect the current date. The release version should
-   follow a YY.N scheme, where YY is the two digit year, and N is the Nth release
-   within that year.
+   follow a YY.N scheme, where YY is the two digit year, and N is the Nth
+   release within that year.
 #. On the current pip ``master`` branch, generate a new ``NEWS.rst`` by running
    ``invoke generate.news`` and commit the results.
 #. Create a signed tag of the ``master`` branch of the form ``X.Y.Z`` using the
