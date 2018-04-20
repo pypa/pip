@@ -44,11 +44,11 @@ independent parts which can be reviewed and merged individually.
 Automated Testing
 =================
 
-All pull requests and merges to 'master' branch are tested in `Travis <https://travis-ci.org/>`_
-based on our `.travis.yml file <https://github.com/pypa/pip/blob/master/.travis.yml>`_.
+All pull requests and merges to 'master' branch are tested using `Travis CI`_
+based on `our .travis.yml file`_.
 
-Usually, a link to your specific travis build appears in pull requests, but if not,
-you can find it on our `travis pull requests page <https://travis-ci.org/pypa/pip/pull_requests>`_
+Usually, a link to your specific Travis CI build appears in pull requests, but
+if not, you can find it on `our Travis CI Pull Requests page`_
 
 The only way to trigger Travis to run again for a pull request, is to submit
 another change to the pull branch.
@@ -100,8 +100,7 @@ and they will initiate a vote.
 Adding a NEWS Entry
 ===================
 
-The ``NEWS.rst`` file is managed using
-`towncrier <https://pypi.org/project/towncrier/>`_ and all non trivial changes
+The ``NEWS.rst`` file is managed using `towncrier`_ and all non trivial changes
 must be accompanied by a news entry.
 
 To add an entry to the news file, first you need to have created an issue
@@ -238,3 +237,7 @@ to create one of these the changes should already be merged into the
 
 
 .. _`mailing list`: https://mail.python.org/mailman/listinfo/distutils-sig
+.. _`towncrier`: https://pypi.org/project/towncrier/
+.. _`Travis CI`: https://travis-ci.org/
+.. _`our .travis.yml file`: https://github.com/pypa/pip/blob/master/.travis.yml
+.. _`our Travis CI Pull Requests page`: https://travis-ci.org/pypa/pip/pull_requests
