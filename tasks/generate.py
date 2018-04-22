@@ -9,8 +9,13 @@ def authors(ctx):
 
     # Get our list of authors
     print("[generate.authors] Collecting author names")
+
+    # Note that it's necessary to use double quotes in the
+    # --format"=%aN <%aE>" part of the command, as the Windows
+    # shell doesn't recognise single quotes here.
     r = ctx.run('git log --use-mailmap --format"=%aN <%aE>"',
                 encoding="utf-8", hide=True)
+
     authors = []
     seen_authors = set()
     for author in r.stdout.splitlines():
