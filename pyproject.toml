@@ -6,10 +6,7 @@ package = "pip"
 package_dir = "src"
 filename = "NEWS.rst"
 directory = "news/"
-title_format = """
-{version} ({project_date})
-==================
-"""
+title_format = "{version} ({project_date})"
 template = "news/_template.rst"
 
   [[tool.towncrier.type]]
