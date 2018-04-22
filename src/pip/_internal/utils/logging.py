@@ -97,7 +97,7 @@ class ColorizedStreamHandler(logging.StreamHandler):
         if hasattr(real_stream, "isatty") and real_stream.isatty():
             return True
 
-        # If we have an ASNI term we should color it
+        # If we have an ANSI term we should color it
         if os.environ.get("TERM") == "ANSI":
             return True
 
