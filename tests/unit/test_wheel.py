@@ -466,7 +466,7 @@ class TestMessageAboutScriptsNotOnPATH(object):
 
     def test_trailing_ossep_removal(self):
         retval = self._template(
-            paths=[''.join([os.path.join('a', 'b'), os.sep])],
+            paths=[os.path.join('a', 'b', '')],
             scripts=[os.path.join('a', 'b', 'c')]
         )
         assert retval is None
