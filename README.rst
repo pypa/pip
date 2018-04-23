@@ -6,6 +6,9 @@ The `PyPA recommended`_ tool for installing Python packages.
 .. image:: https://img.shields.io/pypi/v/pip.svg
    :target: https://pypi.org/project/pip/
 
+.. image:: https://img.shields.io/badge/calver-YY.MINOR.MICRO-22bfda.svg
+    :target: https://calver.org/
+
 .. image:: https://img.shields.io/travis/pypa/pip/master.svg
    :target: http://travis-ci.org/pypa/pip
 
