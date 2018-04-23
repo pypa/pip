@@ -131,6 +131,30 @@ bugfixes, or other kinds of news that pulling in this library may have. This
 uses the library name as the key so that updating the same library twice doesn't
 produce two news file entries.
 
+Changes to the processes, policies, or other non code related changed that are
+otherwise notable can be done using a ``news/<name>.process`` file. This is not
+typically used, but can be used for things like changing version schemes,
+updating deprecation policy, etc.
+
+
+Release Cadence
+===============
+
+The pip project has a release cadence of releasing whatever is on `master`
+every 3 months. This gives users a predictable pattern for when releases
+are going to happen and prevents locking up improvements for fixes for long
+periods of time, while still preventing massively fracturing the user base
+with version numbers.
+
+Our release months are January, April, July, October. The release date within
+that month will be up to the release manager for that release. If there are
+no changes, then that release month is skipped and the next release will be
+3 month later.
+
+The release manager may, at their discretion, choose whether or not there
+will be a pre-release period for a release, and if there is may extend that
+period into the next month if needed.
+
 
 Release Process
 ===============
@@ -139,7 +163,9 @@ Release Process
    running ``invoke generate.authors`` and commit the results.
 #. On the current pip ``master`` branch, make a new commit which bumps the
    version in ``pip/__init__.py`` to the release version and adjust the
-   ``CHANGES.txt`` file to reflect the current date.
+   ``CHANGES.txt`` file to reflect the current date. The release version should
+   follow a YY.N scheme, where YY is the two digit year, and N is the Nth release
+   within that year.
 #. On the current pip ``master`` branch, generate a new ``NEWS.rst`` by running
    ``invoke generate.news`` and commit the results.
 #. Create a signed tag of the ``master`` branch of the form ``X.Y.Z`` using the
@@ -162,14 +188,14 @@ Sometimes we need to release a bugfix release of the form ``X.Y.Z+1``. In order
 to create one of these the changes should already be merged into the
 ``master`` branch.
 
-#. Create a new ``release/X.Y.Z+1`` branch off of the ``X.Y.Z`` tag using the
-   command ``git checkout -b release/X.Y.Z+1 X.Y.Z``.
+#. Create a new ``release/YY.N.Z+1`` branch off of the ``YY.N`` tag using the
+   command ``git checkout -b release/YY.N.Z+1 YY.N``.
 #. Cherry pick the fixed commits off of the ``master`` branch, fixing any
    conflicts and moving any changelog entries from the development version's
-   changelog section to the ``X.Y.Z+1`` section.
-#. Push the ``release/X.Y.Z+1`` branch to github and submit a PR for it against
+   changelog section to the ``YY.N.Z+1`` section.
+#. Push the ``release/YY.N.Z+1`` branch to github and submit a PR for it against
    the ``master`` branch and wait for the tests to run.
-#. Once tests run, merge the ``release/X.Y.Z+1`` branch into master, and follow
+#. Once tests run, merge the ``release/YY.N.Z+1`` branch into master, and follow
    the above release process starting with step 4.
 
 
