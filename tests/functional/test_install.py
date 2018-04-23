@@ -88,6 +88,25 @@ def test_pep518_with_extra_and_markers(script, data, common_wheels):
     )
 
 
+@pytest.mark.timeout(60)
+@pytest.mark.parametrize('command', ('install', 'wheel'))
+@pytest.mark.parametrize('package', ('pep518_forkbomb',
+                                     'pep518_twin_forkbombs_first',
+                                     'pep518_twin_forkbombs_second'))
+def test_pep518_forkbombs(script, data, common_wheels, command, package):
+    package_source = next(data.packages.glob(package + '-[0-9]*.tar.gz'))
+    result = script.pip(
+        'wheel', '--no-index', '-v',
+        '-f', common_wheels,
+        '-f', data.find_links,
+        package,
+        expect_error=True,
+    )
+    assert '{1} is already being built: {0} from {1}'.format(
+        package, path_to_url(package_source),
+    ) in result.stdout, str(result)
+
+
 @pytest.mark.network
 def test_pip_second_command_line_interface_works(script, data):
     """

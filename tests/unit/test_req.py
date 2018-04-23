@@ -19,6 +19,7 @@ from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import InstallRequirement, RequirementSet
 from pip._internal.req.req_file import process_line
 from pip._internal.req.req_install import parse_editable
+from pip._internal.req.req_tracker import RequirementTracker
 from pip._internal.resolve import Resolver
 from pip._internal.utils.misc import read_text_file
 from tests.lib import DATA_DIR, assert_raises_regexp, requirements_file
@@ -47,6 +48,7 @@ class TestRequirementSet(object):
             wheel_download_dir=None,
             progress_bar="on",
             build_isolation=True,
+            req_tracker=RequirementTracker(),
         )
         return Resolver(
             preparer=preparer, wheel_cache=None,

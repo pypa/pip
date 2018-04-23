@@ -19,6 +19,7 @@ from pip._internal.locations import distutils_scheme, virtualenv_no_global
 from pip._internal.operations.check import check_install_conflicts
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import RequirementSet, install_given_reqs
+from pip._internal.req.req_tracker import RequirementTracker
 from pip._internal.resolve import Resolver
 from pip._internal.status_codes import ERROR
 from pip._internal.utils.filesystem import check_path_owner
@@ -260,7 +261,7 @@ class InstallCommand(RequirementCommand):
                 )
                 options.cache_dir = None
 
-            with TempDirectory(
+            with RequirementTracker() as req_tracker, TempDirectory(
                 options.build_dir, delete=build_delete, kind="install"
             ) as directory:
                 requirement_set = RequirementSet(
@@ -279,6 +280,7 @@ class InstallCommand(RequirementCommand):
                         wheel_download_dir=None,
                         progress_bar=options.progress_bar,
                         build_isolation=options.build_isolation,
+                        req_tracker=req_tracker,
                     )
 
                     resolver = Resolver(
