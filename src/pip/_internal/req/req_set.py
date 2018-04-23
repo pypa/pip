@@ -14,9 +14,6 @@ class RequirementSet(object):
 
     def __init__(self, require_hashes=False):
         """Create a RequirementSet.
-
-        :param wheel_cache: The pip wheel cache, for passing to
-            InstallRequirement.
         """
 
         self.requirements = OrderedDict()
