@@ -1,6 +1,7 @@
 """Build Environment used for isolation during sdist building
 """
 
+import logging
 import os
 import sys
 from distutils.sysconfig import get_python_lib
@@ -9,6 +10,9 @@ from sysconfig import get_paths
 from pip._internal.utils.misc import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.ui import open_spinner
+
+
+logger = logging.getLogger(__name__)
 
 
 class BuildEnvironment(object):
@@ -78,6 +82,8 @@ class BuildEnvironment(object):
             '--no-user', '--prefix', self.path, '--no-warn-script-location',
             '--only-binary', ':all:',
         ]
+        if logger.getEffectiveLevel() <= logging.DEBUG:
+            args.append('-v')
         if finder.index_urls:
             args.extend(['-i', finder.index_urls[0]])
             for extra_index in finder.index_urls[1:]:
