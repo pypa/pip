@@ -24,7 +24,6 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.six import StringIO
 
 from pip._internal import pep425tags
-from pip._internal.build_env import BuildEnvironment
 from pip._internal.download import path_to_url, unpack_url
 from pip._internal.exceptions import (
     InstallationError, InvalidWheelFilename, UnsupportedWheel,
