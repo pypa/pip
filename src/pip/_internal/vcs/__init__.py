@@ -89,7 +89,7 @@ class RevOptions(object):
 
 class VcsSupport(object):
     _registry = {}  # type: Dict[str, Command]
-    schemes = ['ssh', 'git', 'hg', 'bzr', 'sftp', 'svn']
+    schemes = ['ssh', 'git', 'hg', 'bzr', 'sftp', 'svn', 'p4']
 
     def __init__(self):
         # Register more schemes with urlparse for various version control
@@ -304,7 +304,7 @@ class VersionControl(object):
         rev_display = rev_options.to_display()
         if os.path.exists(dest):
             checkout = False
-            if os.path.exists(os.path.join(dest, self.dirname)):
+            if self.controls_location(dest):
                 existing_url = self.get_url(dest)
                 if self.compare_urls(existing_url, url):
                     logger.debug(
@@ -412,7 +412,7 @@ class VersionControl(object):
     def run_command(self, cmd, show_stdout=True, cwd=None,
                     on_returncode='raise',
                     command_desc=None,
-                    extra_environ=None, spinner=None):
+                    extra_environ=None, spinner=None, stdin=None):
         """
         Run a VCS subcommand
         This is simply a wrapper around call_subprocess that adds the VCS
@@ -424,7 +424,8 @@ class VersionControl(object):
                                    on_returncode,
                                    command_desc, extra_environ,
                                    unset_environ=self.unset_environ,
-                                   spinner=spinner)
+                                   spinner=spinner,
+                                   stdin=stdin)
         except OSError as e:
             # errno.ENOENT = no such file or directory
             # In other words, the VCS executable isn't available

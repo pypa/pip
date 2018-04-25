@@ -57,7 +57,7 @@ We also have Jenkins CI that runs regularly for certain python versions on windo
 Running tests
 =============
 
-OS Requirements: subversion, bazaar, git, and mercurial.
+OS Requirements: subversion, bazaar, git, mercurial, and helix core.
 
 Python Requirements: tox or pytest, virtualenv, scripttest, and mock
 

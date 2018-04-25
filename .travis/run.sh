@@ -2,6 +2,8 @@
 set -e
 set -x
 
+export PATH="$PATH:$HOME/.p4/bin"
+
 if [[ $TOXENV == py* ]]; then
     # Run unit tests
     tox -- -m unit

@@ -1,6 +1,6 @@
 environment:
   matrix:
-    # Unit and integration tests. 
+    # Unit and integration tests.
     - PYTHON: "C:\\Python27"
       RUN_INTEGRATION_TESTS: "True"
     - PYTHON: "C:\\Python36-x64"
@@ -23,6 +23,12 @@ install:
   - "python -m certifi >cacert.txt"
   - "set /p GIT_SSL_CAINFO=<cacert.txt"
   - "set GIT_SSL_CAINFO"
+  # Install Helix Core.
+  - ps: mkdir .p4\bin
+  - ps: pushd .p4\bin
+  - ps: Start-FileDownload "http://ftp.perforce.com/perforce/r17.2/bin.ntx86/p4.exe"
+  - ps: Start-FileDownload "http://ftp.perforce.com/perforce/r17.2/bin.ntx86/p4d.exe"
+  - ps: popd
 
 build: off
 
@@ -31,6 +37,7 @@ test_script:
   - "subst T: %TEMP%"
   - "set TEMP=T:\\"
   - "set TMP=T:\\"
+  - "set PATH=%PATH%;%APPVEYOR_BUILD_FOLDER%\\.p4\\bin"
   - "tox -e py -- -m unit -n 3"
   - "if \"%RUN_INTEGRATION_TESTS%\" == \"True\" (
     tox -e py -- -m integration -n 3 --duration=5 )"

@@ -5,6 +5,7 @@ from pip._vendor.packaging.version import parse as parse_version
 from pip._internal.vcs import RevOptions, VersionControl
 from pip._internal.vcs.bazaar import Bazaar
 from pip._internal.vcs.git import Git, looks_like_hash
+from pip._internal.vcs.helix_core import HelixCore
 from pip._internal.vcs.mercurial import Mercurial
 from pip._internal.vcs.subversion import Subversion
 from tests.lib import pyversion
@@ -26,6 +27,7 @@ def test_rev_options_repr():
     (Git(), ['HEAD'], ['123'], {}),
     (Mercurial(), [], ['123'], {}),
     (Subversion(), [], ['-r', '123'], {}),
+    (HelixCore(), [], ['@123'], {}),
     # Test extra_args.  For this, test using a single VersionControl class.
     (Git(), ['HEAD', 'opt1', 'opt2'], ['123', 'opt1', 'opt2'],
         dict(extra_args=['opt1', 'opt2'])),

@@ -3,6 +3,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 
 import pytest
 import six
@@ -297,3 +298,14 @@ class InMemoryPip(object):
 @pytest.fixture
 def in_memory_pip():
     return InMemoryPip()
+
+
+@pytest.yield_fixture
+def helix_core_server(tmpdir_factory, worker_id):
+    port = "localhost:%d" % (10000 + hash(worker_id) % 10000)
+    tmpdir = str(tmpdir_factory.mktemp('p4d-server'))
+    proc = subprocess.Popen(['p4d', '-p', port, '-r', tmpdir])
+    time.sleep(5)
+    yield port
+    subprocess.check_call(['p4', '-p', port, 'admin', 'stop'])
+    proc.wait()

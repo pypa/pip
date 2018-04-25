@@ -536,7 +536,7 @@ def _create_test_package_with_srcdir(script, name='version_pkg', vcs='git'):
     return _vcs_add(script, version_pkg_path, vcs)
 
 
-def _create_test_package(script, name='version_pkg', vcs='git'):
+def _create_test_package(script, name='version_pkg', vcs='git', **vcs_options):
     script.scratch_path.join(name).mkdir()
     version_pkg_path = script.scratch_path / name
     version_pkg_path.join("%s.py" % name).write(textwrap.dedent("""
@@ -553,10 +553,10 @@ def _create_test_package(script, name='version_pkg', vcs='git'):
             entry_points=dict(console_scripts=['{name}={name}:main'])
         )
     """.format(name=name)))
-    return _vcs_add(script, version_pkg_path, vcs)
+    return _vcs_add(script, version_pkg_path, vcs, **vcs_options)
 
 
-def _vcs_add(script, version_pkg_path, vcs='git'):
+def _vcs_add(script, version_pkg_path, vcs='git', **vcs_options):
     if vcs == 'git':
         script.run('git', 'init', cwd=version_pkg_path)
         script.run('git', 'add', '.', cwd=version_pkg_path)
@@ -596,9 +596,54 @@ def _vcs_add(script, version_pkg_path, vcs='git'):
             '--author', 'pip <pypa-dev@googlegroups.com>',
             '-m', 'initial version', cwd=version_pkg_path,
         )
+    elif vcs == 'p4':
+        _create_p4_repo(script, version_pkg_path, vcs_options["p4port"])
     else:
         raise ValueError('Unknown vcs: %r' % vcs)
     return version_pkg_path
+
+
+def _create_p4_repo(script, version_pkg_path, p4port):
+    def run_command(cmd, cwd, extra_environ, show_stdout, stdin=None):
+        """
+        Emulation of ``VersionControl.run_command()``.
+        """
+        old_environ = script.environ.copy()
+        script.environ.update(extra_environ)
+        script.run("p4", *cmd, cwd=cwd, stdin=stdin)
+        script.environ.clear()
+        script.environ.update(old_environ)
+
+    from pip._internal.vcs.helix_core import HelixCoreClient
+
+    for package_idx in range(2):
+        package = "pip-test-package-%d" % package_idx
+        canary = "canary%d.py" % package_idx
+
+        # Create client
+        client = HelixCoreClient(
+            run_command=run_command,
+            client_path=version_pkg_path,
+            environ={
+                'P4PORT': p4port,
+                'P4PATH': '/depot/%s' % package,
+                'P4CLIENT': package,
+                'P4USER': '',
+            })
+        client.save()
+
+        # First changelist
+        client.run('add', '//%s/...' % package)
+        client.run('submit', '-d', '%s first version' % package)
+
+        # Second changelist
+        version_pkg_path.join(canary).write("print 'hello world'")
+        client.run('add', '//%s/...' % package)
+        client.run('submit', '-d', '%s second version' % package)
+        os.remove(version_pkg_path.join(canary))
+
+        # Delete client
+        client.delete()
 
 
 def _create_svn_repo(script, version_pkg_path):
@@ -772,4 +817,10 @@ def need_bzr(fn):
 def need_mercurial(fn):
     return pytest.mark.mercurial(need_executable(
         'Mercurial', ('hg', 'version')
+    )(fn))
+
+
+def need_helix_core(fn):
+    return pytest.mark.helix_core(need_executable(
+        'Helix Core', ('p4', '-V')
     )(fn))
