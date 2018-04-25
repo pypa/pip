@@ -55,7 +55,13 @@ class SearchCommand(Command):
             default='or',
             help='Show results with query string in name or/and summary.'
         )
-
+        self.cmd_opts.add_option(
+            '-n', '--name-only',
+            action='store_true',
+            dest='name_only',
+            default=False,
+            help='Show only results with query string in package name (default %default) '
+        )
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
@@ -79,7 +85,12 @@ class SearchCommand(Command):
         with self._build_session(options) as session:
             transport = PipXmlrpcTransport(index_url, session)
             pypi = xmlrpc_client.ServerProxy(index_url, transport)
-            hits = pypi.search({'name': '', 'summary': query}, options.operator)
+            hits = pypi.search(
+                {
+                    'name': query,
+                    'summary': '' if options.name_only else query
+                }, options.operator
+            )
             return hits
 
 
