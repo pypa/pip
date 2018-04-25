@@ -33,6 +33,13 @@ push the changes to your fork::
 Open Pull Requests page at https://github.com/yourname/pip/pulls and
 click "New pull request". That's it.
 
+Pull requests should be self-contained, and limited in scope. Before being
+merged, a pull request must be reviewed, and keeping individual PRs limited
+in scope makes this far easier. In particular, pull requests must not be
+treated as "feature branches", with ongoing development work happening
+within the PR. Instead, the feature should be broken up into smaller,
+independent parts which can be reviewed and merged individually.
+
 
 Automated Testing
 =================
@@ -140,7 +147,7 @@ updating deprecation policy, etc.
 Release Cadence
 ===============
 
-The pip project has a release cadence of releasing whatever is on `master`
+The pip project has a release cadence of releasing whatever is on ``master``
 every 3 months. This gives users a predictable pattern for when releases
 are going to happen and prevents locking up improvements for fixes for long
 periods of time, while still preventing massively fracturing the user base
@@ -154,6 +161,35 @@ no changes, then that release month is skipped and the next release will be
 The release manager may, at their discretion, choose whether or not there
 will be a pre-release period for a release, and if there is may extend that
 period into the next month if needed.
+
+Because releases are made direct from the ``master`` branch, it is essential
+that ``master`` is always in a releasable state. It is acceptable to merge
+PRs that partially implement a new feature, but only if the partially
+implemented version is usable in that state (for example, with reduced
+functionality or disabled by default). In the case where a merged PR is found
+to need extra work before being released, the release manager always has the
+option to back out the partial change prior to a release. The PR can then be
+reworked and resubmitted for the next release.
+
+
+Deprecation Policy
+==================
+
+Any change to pip that removes or significantly alters user-visible behaviour that
+is described in the pip documentation will be deprecated for a minimum of one
+released version before the change occurs. Deprecation will take the form of a
+warning being issued by pip when the feature is used. Longer deprecation periods,
+or deprecation warnings for behaviour changes that would not normally be covered
+by this policy, are also possible depending on circumstances, but this is at the
+discretion of the pip developers.
+
+Note that the documentation is the sole reference for what counts as agreed
+behaviour. If something isn't explicitly mentioned in the documentation, it can
+be changed without warning, or any deprecation period, in a pip release.
+However, we are aware that the documentation isn't always complete - PRs that
+document existing behaviour with the intention of covering that behaviour with
+the above deprecation process are always acceptable, and will be considered on
+their merits.
 
 
 Release Process
