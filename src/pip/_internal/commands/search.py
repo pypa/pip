@@ -48,6 +48,13 @@ class SearchCommand(Command):
             help='Show only limited number of results. '
                  'By default this will show all results.'
         )
+        self.cmd_opts.add_option(
+            '-o', '--operator',
+            dest='operator',
+            metavar='or/and',
+            default='or',
+            help='Show results with query string in name or/and summary.'
+        )
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
@@ -72,7 +79,7 @@ class SearchCommand(Command):
         with self._build_session(options) as session:
             transport = PipXmlrpcTransport(index_url, session)
             pypi = xmlrpc_client.ServerProxy(index_url, transport)
-            hits = pypi.search({'name': query, 'summary': query}, 'or')
+            hits = pypi.search({'name': '', 'summary': query}, options.operator)
             return hits
 
 
