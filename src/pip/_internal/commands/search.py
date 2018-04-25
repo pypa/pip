@@ -37,7 +37,17 @@ class SearchCommand(Command):
             dest='index',
             metavar='URL',
             default=PyPI.pypi_url,
-            help='Base URL of Python Package Index (default %default)')
+            help='Base URL of Python Package Index (default %default)'
+        )
+        self.cmd_opts.add_option(
+            '-l', '--limit',
+            dest='limit',
+            metavar='number',
+            type=int,
+            default=None,
+            help='Show only limited number of results. '
+                 'By default this will show all results.'
+        )
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
@@ -46,7 +56,7 @@ class SearchCommand(Command):
             raise CommandError('Missing required argument (search query).')
         query = args
         pypi_hits = self.search(query, options)
-        hits = transform_hits(pypi_hits)
+        hits = transform_hits(pypi_hits, options.limit)
 
         terminal_width = None
         if sys.stdout.isatty():
@@ -66,14 +76,14 @@ class SearchCommand(Command):
             return hits
 
 
-def transform_hits(hits):
+def transform_hits(hits, limit):
     """
     The list from pypi is really a list of versions. We want a list of
     packages with the list of versions stored inline. This converts the
     list from pypi into one we can use.
     """
     packages = OrderedDict()
-    for hit in hits:
+    for hit in hits[:limit]:
         name = hit['name']
         summary = hit['summary']
         version = hit['version']
