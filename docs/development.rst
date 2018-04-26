@@ -61,7 +61,8 @@ Running tests
 
 OS Requirements: subversion, bazaar, git, and mercurial.
 
-Python Requirements: tox or pytest, virtualenv, scripttest, PyYAML, and mock
+Python Requirements: tox or install all packages listed in
+`dev-requirements.txt`_
 
 Ways to run the tests locally::
 
@@ -252,3 +253,4 @@ to create one of these the changes should already be merged into the
 .. _`.travis.yml`: https://github.com/pypa/pip/blob/master/.travis.yml
 .. _`appveyor.yml`: https://github.com/pypa/pip/blob/master/appveyor.yml
 .. _`Travis CI Pull Requests`: https://travis-ci.org/pypa/pip/pull_requests
+.. _`dev-requirements.txt`: https://github.com/pypa/pip/blob/master/dev-requirements.txt
