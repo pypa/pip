@@ -40,6 +40,13 @@ treated as "feature branches", with ongoing development work happening
 within the PR. Instead, the feature should be broken up into smaller,
 independent parts which can be reviewed and merged individually.
 
+When creating a pull request, avoid including "cosmetic" changes to
+code that is unrelated to your change, as these make reviewing the PR
+more difficult. Examples include re-flowing text in comments or
+documentation, or addition or removal of blank lines or whitespace
+within lines. Such changes can be made separately, as a "formatting
+cleanup" PR, if needed.
+
 
 Automated Testing
 =================
@@ -129,8 +136,10 @@ public is concerned, typo fixes, white space modification, etc. To mark a PR
 as trivial a contributor simply needs to add a randomly named, empty file to the
 ``news/`` directory with the extension of ``.trivial``. If you are on a POSIX
 like operating system, one can be added by running
-``touch news/$(uuidgen).trivial``. Core committers may also add a "trivial"
-label to the PR which will accomplish the same thing.
+``touch news/$(uuidgen).trivial``. On Windows, the same result can be achieved
+in Powershell using ``New-Item "news/$([guid]::NewGuid()).trivial"``.
+Core committers may also add a "trivial" label to the PR which will accomplish
+the same thing.
 
 Upgrading, removing, or adding a new vendored library gets a special mention
 using a ``news/<library>.vendor`` file. This is in addition to any features,
