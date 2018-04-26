@@ -24,7 +24,8 @@ from pip._internal.utils.glibc import check_glibc_version
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.misc import (
     call_subprocess, egg_link_path, ensure_dir, get_installed_distributions,
-    get_prog, normalize_path, rmtree, untar_file, unzip_file,
+    get_prog, normalize_path, remove_auth_from_url, rmtree, untar_file,
+    unzip_file,
 )
 from pip._internal.utils.packaging import check_dist_requires_python
 from pip._internal.utils.temp_dir import TempDirectory
@@ -624,3 +625,29 @@ def test_call_subprocess_works_okay_when_just_given_nothing():
 def test_call_subprocess_closes_stdin():
     with pytest.raises(InstallationError):
         call_subprocess([sys.executable, '-c', 'input()'])
+
+
+def test_remove_auth_from_url():
+    # Check that the url is doctored appropriately to remove auth elements
+    #    from the url
+    svn_auth_url = 'https://user:pass@svnrepo.org/svn/project/tags/v0.2'
+    expected_url = 'https://svnrepo.org/svn/project/tags/v0.2'
+    url = remove_auth_from_url(svn_auth_url)
+    assert url == expected_url
+
+    # Check that this doesn't impact urls without authentication'
+    svn_noauth_url = 'https://svnrepo.org/svn/project/tags/v0.2'
+    expected_url = svn_noauth_url
+    url = remove_auth_from_url(svn_noauth_url)
+    assert url == expected_url
+
+    # Check that links to specific revisions are handled properly
+    svn_rev_url = 'https://user:pass@svnrepo.org/svn/project/trunk@8181'
+    expected_url = 'https://svnrepo.org/svn/project/trunk@8181'
+    url = remove_auth_from_url(svn_rev_url)
+    assert url == expected_url
+
+    svn_rev_url = 'https://svnrepo.org/svn/project/trunk@8181'
+    expected_url = 'https://svnrepo.org/svn/project/trunk@8181'
+    url = remove_auth_from_url(svn_rev_url)
+    assert url == expected_url
