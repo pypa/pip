@@ -45,16 +45,16 @@ Automated Testing
 =================
 
 All pull requests and merges to 'master' branch are tested using `Travis CI`_
-based on `our .travis.yml file`_.
+and `Appveyor CI`_ based on our `.travis.yml`_ and `appveyor.yml`_ files.
 
-Usually, a link to your specific Travis CI build appears in pull requests, but
-if not, you can find it on `our Travis CI Pull Requests page`_
+You can find the status and results to the CI runs for your PR on GitHub's Web
+UI for the pull request. You can also find links to the CI services' pages for
+the specific builds in the form of "Details" links, in case the CI run fails
+and you wish to view the output.
 
-The only way to trigger Travis to run again for a pull request, is to submit
-another change to the pull branch.
-
-We also have Jenkins CI that runs regularly for certain python versions on
-Windows and CentOS.
+To trigger CI to run again for a pull request, you can close and open the pull
+request or submit another change to the pull request. If needed, project
+maintainers can manually trigger a restart of a job/build.
 
 Running tests
 =============
@@ -248,5 +248,7 @@ to create one of these the changes should already be merged into the
 .. _`mailing list`: https://mail.python.org/mailman/listinfo/distutils-sig
 .. _`towncrier`: https://pypi.org/project/towncrier/
 .. _`Travis CI`: https://travis-ci.org/
-.. _`our .travis.yml file`: https://github.com/pypa/pip/blob/master/.travis.yml
-.. _`our Travis CI Pull Requests page`: https://travis-ci.org/pypa/pip/pull_requests
+.. _`Appveyor CI`: https://www.appveyor.com/
+.. _`.travis.yml`: https://github.com/pypa/pip/blob/master/.travis.yml
+.. _`appveyor.yml`: https://github.com/pypa/pip/blob/master/appveyor.yml
+.. _`Travis CI Pull Requests`: https://travis-ci.org/pypa/pip/pull_requests
