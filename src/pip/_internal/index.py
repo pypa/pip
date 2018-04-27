@@ -33,7 +33,7 @@ from pip._internal.utils.deprecation import RemovedInPip11Warning
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, cached_property, normalize_path,
-    splitext,
+    remove_auth_from_url, splitext,
 )
 from pip._internal.utils.packaging import check_requires_python
 from pip._internal.wheel import Wheel, wheel_ext
@@ -193,7 +193,8 @@ class PackageFinder(object):
         lines = []
         if self.index_urls and self.index_urls != [PyPI.simple_url]:
             lines.append(
-                "Looking in indexes: {}".format(", ".join(self.index_urls))
+                "Looking in indexes: {}".format(", ".join(
+                    remove_auth_from_url(url) for url in self.index_urls))
             )
         if self.find_links:
             lines.append(
