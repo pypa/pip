@@ -60,7 +60,8 @@ class SearchCommand(Command):
             action='store_true',
             dest='name_only',
             default=False,
-            help='Show only results with query string in package name (default %default) '
+            help='Show only results with query string in package name.'
+                 'By default shows all results.'
         )
         self.parser.insert_option_group(0, self.cmd_opts)
 
@@ -94,7 +95,7 @@ class SearchCommand(Command):
             return hits
 
 
-def transform_hits(hits, limit):
+def transform_hits(hits, limit=None):
     """
     The list from pypi is really a list of versions. We want a list of
     packages with the list of versions stored inline. This converts the
