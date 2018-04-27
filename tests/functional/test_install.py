@@ -80,9 +80,6 @@ def test_pep518_with_extra_and_markers(script, data, common_wheels):
         'wheel', '--no-index',
         '-f', common_wheels,
         '-f', data.find_links,
-        # Add tests/data/packages4, which contains a wheel for
-        # simple==1.0 (needed by requires_simple_extra[extra]).
-        '-f', data.find_links4,
         data.src.join("pep518_with_extra_and_markers-1.0"),
         use_module=True,
     )
