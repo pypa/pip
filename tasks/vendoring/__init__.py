@@ -83,8 +83,8 @@ def rewrite_file_imports(item, vendored_libs):
             text,
         )
         text = re.sub(
-            r'(\n\s*)from %s' % lib,
-            r'\1from pip._vendor.%s' % lib,
+            r'(\n\s*)from %s(\.|\s+)' % lib,
+            r'\1from pip._vendor.%s\2' % lib,
             text,
         )
     item.write_text(text, encoding='utf-8')
