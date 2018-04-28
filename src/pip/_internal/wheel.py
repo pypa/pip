@@ -162,11 +162,17 @@ def message_about_scripts_not_on_PATH(scripts):
         script_name = os.path.basename(destfile)
         grouped_by_dir[parent_dir].add(script_name)
 
-    path_env_var_parts = os.environ["PATH"].split(os.pathsep)
-    # Warn only for directories that are not on PATH
+    # We don't want to warn for directories that are on PATH.
+    not_warn_dirs = [
+        os.path.normcase(i).rstrip(os.sep) for i in
+        os.environ["PATH"].split(os.pathsep)
+    ]
+    # If an executable sits with sys.executable, we don't warn for it.
+    #     This covers the case of venv invocations without activating the venv.
+    not_warn_dirs.append(os.path.normcase(os.path.dirname(sys.executable)))
     warn_for = {
         parent_dir: scripts for parent_dir, scripts in grouped_by_dir.items()
-        if parent_dir not in path_env_var_parts
+        if os.path.normcase(parent_dir) not in not_warn_dirs
     }
     if not warn_for:
         return None
@@ -617,46 +623,19 @@ class WheelBuilder(object):
         self.global_options = global_options or []
         self.no_clean = no_clean
 
-    def _install_build_reqs(self, reqs, prefix):
-        # Local import to avoid circular import (wheel <-> req_install)
-        from pip._internal.req.req_install import InstallRequirement
-        from pip._internal.index import FormatControl
-        # Ignore the --no-binary option when installing the build system, so
-        # we don't recurse trying to build a self-hosting build system.
-        finder = copy.copy(self.finder)
-        finder.format_control = FormatControl(set(), set([":all:"]))
-        urls = [finder.find_requirement(InstallRequirement.from_line(r),
-                                        upgrade=False).url
-                for r in reqs]
-
-        args = [sys.executable, '-m', 'pip', 'install', '--ignore-installed',
-                '--prefix', prefix] + list(urls)
-        with open_spinner("Installing build dependencies") as spinner:
-            call_subprocess(args, show_stdout=False, spinner=spinner)
-
     def _build_one(self, req, output_dir, python_tag=None):
         """Build one wheel.
 
         :return: The filename of the built wheel, or None if the build failed.
         """
-        build_reqs, isolate = req.get_pep_518_info()
-        if 'setuptools' not in build_reqs:
-            logger.warning(
-                "This version of pip does not implement PEP 516, so "
-                "it cannot build a wheel without setuptools. You may need to "
-                "upgrade to a newer version of pip.")
         # Install build deps into temporary directory (PEP 518)
-        with BuildEnvironment(self.no_clean) as prefix:
-            self._install_build_reqs(build_reqs, prefix)
+        with req.build_env:
             return self._build_one_inside_env(req, output_dir,
-                                              python_tag=python_tag,
-                                              isolate=True)
+                                              python_tag=python_tag)
 
-    def _build_one_inside_env(self, req, output_dir, python_tag=None,
-                              isolate=False):
+    def _build_one_inside_env(self, req, output_dir, python_tag=None):
         with TempDirectory(kind="wheel") as temp_dir:
-            if self.__build_one(req, temp_dir.path, python_tag=python_tag,
-                                isolate=isolate):
+            if self.__build_one(req, temp_dir.path, python_tag=python_tag):
                 try:
                     wheel_name = os.listdir(temp_dir.path)[0]
                     wheel_path = os.path.join(output_dir, wheel_name)
@@ -671,20 +650,18 @@ class WheelBuilder(object):
             self._clean_one(req)
             return None
 
-    def _base_setup_args(self, req, isolate=False):
-        flags = '-u'
-        # The -S flag currently breaks Python in virtualenvs, because it relies
-        # on site.py to find parts of the standard library outside the env. So
-        # isolation is disabled for now.
-        # if isolate:
-        #     flags += 'S'
+    def _base_setup_args(self, req):
+        # NOTE: Eventually, we'd want to also -S to the flags here, when we're
+        # isolating. Currently, it breaks Python in virtualenvs, because it
+        # relies on site.py to find parts of the standard library outside the
+        # virtualenv.
         return [
-            sys.executable, flags, '-c',
+            sys.executable, '-u', '-c',
             SETUPTOOLS_SHIM % req.setup_py
         ] + list(self.global_options)
 
-    def __build_one(self, req, tempd, python_tag=None, isolate=False):
-        base_args = self._base_setup_args(req, isolate=isolate)
+    def __build_one(self, req, tempd, python_tag=None):
+        base_args = self._base_setup_args(req)
 
         spin_message = 'Running setup.py bdist_wheel for %s' % (req.name,)
         with open_spinner(spin_message) as spinner:
@@ -695,13 +672,8 @@ class WheelBuilder(object):
             if python_tag is not None:
                 wheel_args += ["--python-tag", python_tag]
 
-            env = {}
-            if isolate:
-                env['PYTHONNOUSERSITE'] = '1'
-
             try:
                 call_subprocess(wheel_args, cwd=req.setup_py_dir,
-                                extra_environ=env,
                                 show_stdout=False, spinner=spinner)
                 return True
             except:
@@ -737,7 +709,6 @@ class WheelBuilder(object):
 
         buildset = []
         for req in requirements:
-            ephem_cache = False
             if req.constraint:
                 continue
             if req.is_wheel:
@@ -747,12 +718,13 @@ class WheelBuilder(object):
                     )
             elif autobuilding and req.editable:
                 pass
-            elif autobuilding and req.link and not req.link.is_artifact:
-                # VCS checkout. Build wheel just for this run.
-                ephem_cache = True
             elif autobuilding and not req.source_dir:
                 pass
+            elif autobuilding and req.link and not req.link.is_artifact:
+                # VCS checkout. Build wheel just for this run.
+                buildset.append((req, True))
             else:
+                ephem_cache = False
                 if autobuilding:
                     link = req.link
                     base, ext = link.splitext()

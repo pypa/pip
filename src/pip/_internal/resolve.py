@@ -11,12 +11,14 @@ for sub-dependencies
 """
 
 import logging
+from collections import defaultdict
 from itertools import chain
 
 from pip._internal.exceptions import (
     BestVersionAlreadyInstalled, DistributionNotFound, HashError, HashErrors,
     UnsupportedPythonVersion,
 )
+
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import dist_in_usersite, ensure_dir
@@ -55,6 +57,8 @@ class Resolver(object):
         self.ignore_installed = ignore_installed
         self.ignore_requires_python = ignore_requires_python
         self.use_user_site = use_user_site
+
+        self._discovered_dependencies = defaultdict(list)
 
     def resolve(self, requirement_set):
         """Resolve what operations need to be done
@@ -146,7 +150,7 @@ class Resolver(object):
         if self.ignore_installed:
             return None
 
-        req_to_install.check_if_exists()
+        req_to_install.check_if_exists(self.use_user_site)
         if not req_to_install.satisfied_by:
             return None
 
@@ -187,7 +191,7 @@ class Resolver(object):
 
         if req.editable:
             return self.preparer.prepare_editable_requirement(
-                req, self.require_hashes
+                req, self.require_hashes, self.use_user_site, self.finder,
             )
 
         # satisfied_by is only evaluated by calling _check_skip_installed,
@@ -215,7 +219,7 @@ class Resolver(object):
         # pkgs repeat check_if_exists to uninstall-on-upgrade
         # (#14)
         if not self.ignore_installed:
-            req.check_if_exists()
+            req.check_if_exists(self.use_user_site)
 
         if req.satisfied_by:
             should_modify = (
@@ -246,10 +250,11 @@ class Resolver(object):
             return []
 
         req_to_install.prepared = True
-        abstract_dist = self._get_abstract_dist_for(req_to_install)
 
         # register tmp src for cleanup in case something goes wrong
         requirement_set.reqs_to_cleanup.append(req_to_install)
+
+        abstract_dist = self._get_abstract_dist_for(req_to_install)
 
         # Parse and return dependencies
         dist = abstract_dist.dist(self.finder)
@@ -270,19 +275,27 @@ class Resolver(object):
                 isolated=self.isolated,
                 wheel_cache=self.wheel_cache,
             )
-            more_reqs.extend(
-                requirement_set.add_requirement(
-                    sub_install_req, req_to_install.name,
-                    extras_requested=extras_requested
-                )
+            parent_req_name = req_to_install.name
+            to_scan_again, add_to_parent = requirement_set.add_requirement(
+                sub_install_req,
+                parent_req_name=parent_req_name,
+                extras_requested=extras_requested,
             )
+            if parent_req_name and add_to_parent:
+                self._discovered_dependencies[parent_req_name].append(
+                    add_to_parent
+                )
+            more_reqs.extend(to_scan_again)
 
         with indent_log():
             # We add req_to_install before its dependencies, so that we
             # can refer to it when adding dependencies.
             if not requirement_set.has_requirement(req_to_install.name):
                 # 'unnamed' requirements will get added here
-                requirement_set.add_requirement(req_to_install, None)
+                req_to_install.is_direct = True
+                requirement_set.add_requirement(
+                    req_to_install, parent_req_name=None,
+                )
 
             if not self.ignore_dependencies:
                 if req_to_install.extras:
@@ -312,3 +325,30 @@ class Resolver(object):
                 requirement_set.successfully_downloaded.append(req_to_install)
 
         return more_reqs
+
+    def get_installation_order(self, req_set):
+        """Create the installation order.
+
+        The installation order is topological - requirements are installed
+        before the requiring thing. We break cycles at an arbitrary point,
+        and make no other guarantees.
+        """
+        # The current implementation, which we may change at any point
+        # installs the user specified things in the order given, except when
+        # dependencies must come earlier to achieve topological order.
+        order = []
+        ordered_reqs = set()
+
+        def schedule(req):
+            if req.satisfied_by or req in ordered_reqs:
+                return
+            if req.constraint:
+                return
+            ordered_reqs.add(req)
+            for dep in self._discovered_dependencies[req.name]:
+                schedule(dep)
+            order.append(req)
+
+        for install_req in req_set.requirements.values():
+            schedule(install_req)
+        return order

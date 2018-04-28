@@ -1,2 +1,0 @@
-Move all of pip's APIs into the pip._internal package, properly reflecting the
-fact that pip does not currently have any public APIs.

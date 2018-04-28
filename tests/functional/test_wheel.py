@@ -9,17 +9,6 @@ from pip._internal.status_codes import ERROR, PREVIOUS_BUILD_DIR_ERROR
 from tests.lib import pyversion
 
 
-def test_basic_pip_wheel_fails_without_wheel(script, data):
-    """
-    Test 'pip wheel' fails without wheel
-    """
-    result = script.pip(
-        'wheel', '--no-index', '-f', data.find_links, 'simple==3.0',
-        expect_error=True,
-    )
-    assert "'pip wheel' requires the 'wheel' package" in result.stderr
-
-
 def test_wheel_exit_status_code_when_no_requirements(script, common_wheels):
     """
     Test wheel exit status code when no requirements specified
@@ -222,3 +211,29 @@ def test_pip_wheel_with_pep518_build_reqs(script, data):
     assert wheel_file_path in result.files_created, result.stdout
     assert "Successfully built pep518" in result.stdout, result.stdout
     assert "Installing build dependencies" in result.stdout, result.stdout
+
+
+@pytest.mark.network
+def test_pip_wheel_with_pep518_build_reqs_no_isolation(script, data):
+    script.pip('install', 'wheel')
+    result = script.pip(
+        'wheel', '--no-index', '-f', data.find_links, '--no-build-isolation',
+        'pep518==3.0',
+    )
+    wheel_file_name = 'pep518-3.0-py%s-none-any.whl' % pyversion[0]
+    wheel_file_path = script.scratch / wheel_file_name
+    assert wheel_file_path in result.files_created, result.stdout
+    assert "Successfully built pep518" in result.stdout, result.stdout
+    assert "Installing build dependencies" not in result.stdout, result.stdout
+
+
+def test_pip_wheel_with_user_set_in_config(script, data):
+    script.pip('install', 'wheel')
+    script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
+    config_file = script.scratch_path / 'pip.conf'
+    script.environ['PIP_CONFIG_FILE'] = str(config_file)
+    config_file.write("[install]\nuser = true")
+    result = script.pip(
+        'wheel', data.src / 'withpyproject',
+    )
+    assert "Successfully built withpyproject" in result.stdout, result.stdout

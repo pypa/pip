@@ -11,7 +11,6 @@ from pip._internal.exceptions import CommandError, PreviousBuildDirError
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import RequirementSet
 from pip._internal.resolve import Resolver
-from pip._internal.utils.misc import import_or_raise
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.wheel import WheelBuilder
 
@@ -63,7 +62,9 @@ class WheelCommand(RequirementCommand):
             dest='build_options',
             metavar='options',
             action='append',
-            help="Extra arguments to be supplied to 'setup.py bdist_wheel'.")
+            help="Extra arguments to be supplied to 'setup.py bdist_wheel'.",
+        )
+        cmd_opts.add_option(cmdoptions.no_build_isolation())
         cmd_opts.add_option(cmdoptions.constraints())
         cmd_opts.add_option(cmdoptions.editable())
         cmd_opts.add_option(cmdoptions.requirements())
@@ -100,28 +101,7 @@ class WheelCommand(RequirementCommand):
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, cmd_opts)
 
-    def check_required_packages(self):
-        import_or_raise(
-            'wheel.bdist_wheel',
-            CommandError,
-            "'pip wheel' requires the 'wheel' package. To fix this, run: "
-            "pip install wheel"
-        )
-
-        need_setuptools_message = (
-            "'pip wheel' requires setuptools >= 0.8 for dist-info support. "
-            "To fix this, run: pip install --upgrade setuptools>=0.8"
-        )
-        pkg_resources = import_or_raise(
-            'pkg_resources',
-            CommandError,
-            need_setuptools_message
-        )
-        if not hasattr(pkg_resources, 'DistInfoDistribution'):
-            raise CommandError(need_setuptools_message)
-
     def run(self, options, args):
-        self.check_required_packages()
         cmdoptions.check_install_build_global(options)
 
         index_urls = [options.index_url] + options.extra_index_urls
@@ -158,6 +138,7 @@ class WheelCommand(RequirementCommand):
                         download_dir=None,
                         wheel_download_dir=options.wheel_dir,
                         progress_bar=options.progress_bar,
+                        build_isolation=options.build_isolation,
                     )
 
                     resolver = Resolver(

@@ -5,6 +5,7 @@ import logging
 import operator
 import os
 import shutil
+from optparse import SUPPRESS_HELP
 
 from pip._internal import cmdoptions
 from pip._internal.basecommand import RequirementCommand
@@ -13,8 +14,9 @@ from pip._internal.exceptions import (
     CommandError, InstallationError, PreviousBuildDirError,
 )
 from pip._internal.locations import distutils_scheme, virtualenv_no_global
+from pip._internal.operations.check import check_install_conflicts
 from pip._internal.operations.prepare import RequirementPreparer
-from pip._internal.req import RequirementSet
+from pip._internal.req import RequirementSet, install_given_reqs
 from pip._internal.resolve import Resolver
 from pip._internal.status_codes import ERROR
 from pip._internal.utils.filesystem import check_path_owner
@@ -84,6 +86,11 @@ class InstallCommand(RequirementCommand):
                  "Windows. (See the Python documentation for site.USER_BASE "
                  "for full details.)")
         cmd_opts.add_option(
+            '--no-user',
+            dest='use_user_site',
+            action='store_false',
+            help=SUPPRESS_HELP)
+        cmd_opts.add_option(
             '--root',
             dest='root_path',
             metavar='dir',
@@ -117,7 +124,7 @@ class InstallCommand(RequirementCommand):
             default='only-if-needed',
             choices=['only-if-needed', 'eager'],
             help='Determines how dependency upgrading should be handled '
-                 '(default: %(default)s). '
+                 '[default: %default]. '
                  '"eager" - dependencies are upgraded regardless of '
                  'whether the currently installed version satisfies the '
                  'requirements of the upgraded package(s). '
@@ -139,6 +146,7 @@ class InstallCommand(RequirementCommand):
             help='Ignore the installed packages (reinstalling instead).')
 
         cmd_opts.add_option(cmdoptions.ignore_requires_python())
+        cmd_opts.add_option(cmdoptions.no_build_isolation())
 
         cmd_opts.add_option(cmdoptions.install_options())
         cmd_opts.add_option(cmdoptions.global_options())
@@ -164,6 +172,13 @@ class InstallCommand(RequirementCommand):
             dest="warn_script_location",
             default=True,
             help="Do not warn when installing scripts outside PATH",
+        )
+        cmd_opts.add_option(
+            "--no-warn-conflicts",
+            action="store_false",
+            dest="warn_about_conflicts",
+            default=True,
+            help="Do not warn about broken dependencies",
         )
 
         cmd_opts.add_option(cmdoptions.no_binary())
@@ -243,10 +258,7 @@ class InstallCommand(RequirementCommand):
                 options.build_dir, delete=build_delete, kind="install"
             ) as directory:
                 requirement_set = RequirementSet(
-                    target_dir=target_temp_dir.path,
-                    pycompile=options.compile,
                     require_hashes=options.require_hashes,
-                    use_user_site=options.use_user_site,
                 )
 
                 try:
@@ -260,6 +272,7 @@ class InstallCommand(RequirementCommand):
                         download_dir=None,
                         wheel_download_dir=None,
                         progress_bar=options.progress_bar,
+                        build_isolation=options.build_isolation,
                     )
 
                     resolver = Resolver(
@@ -292,12 +305,34 @@ class InstallCommand(RequirementCommand):
                             session=session, autobuilding=True
                         )
 
-                    installed = requirement_set.install(
+                    to_install = resolver.get_installation_order(
+                        requirement_set
+                    )
+
+                    # Consistency Checking of the package set we're installing.
+                    should_warn_about_conflicts = (
+                        not options.ignore_dependencies and
+                        options.warn_about_conflicts
+                    )
+                    if should_warn_about_conflicts:
+                        self._warn_about_conflicts(to_install)
+
+                    # Don't warn about script install locations if
+                    # --target has been specified
+                    warn_script_location = options.warn_script_location
+                    if options.target_dir:
+                        warn_script_location = False
+
+                    installed = install_given_reqs(
+                        to_install,
                         install_options,
                         global_options,
                         root=options.root_path,
+                        home=target_temp_dir.path,
                         prefix=options.prefix_path,
-                        warn_script_location=options.warn_script_location,
+                        pycompile=options.compile,
+                        warn_script_location=warn_script_location,
+                        use_user_site=options.use_user_site,
                     )
 
                     possible_lib_locations = get_lib_location_guesses(
@@ -323,25 +358,14 @@ class InstallCommand(RequirementCommand):
                     installed = ' '.join(items)
                     if installed:
                         logger.info('Successfully installed %s', installed)
-                except EnvironmentError as e:
-                    message_parts = []
+                except EnvironmentError as error:
+                    show_traceback = (self.verbosity >= 1)
 
-                    user_option_part = "Consider using the `--user` option"
-                    permissions_part = "Check the permissions"
-
-                    if e.errno == errno.EPERM:
-                        if not options.use_user_site:
-                            message_parts.extend([
-                                user_option_part, " or ",
-                                permissions_part.lower(),
-                            ])
-                        else:
-                            message_parts.append(permissions_part)
-                        message_parts.append("\n")
-
-                    logger.error(
-                        "".join(message_parts), exc_info=(options.verbose > 1)
+                    message = create_env_error_message(
+                        error, show_traceback, options.use_user_site,
                     )
+                    logger.error(message, exc_info=show_traceback)
+
                     return ERROR
                 except PreviousBuildDirError:
                     options.no_clean = True
@@ -414,7 +438,65 @@ class InstallCommand(RequirementCommand):
                         target_item_dir
                     )
 
+    def _warn_about_conflicts(self, to_install):
+        package_set, _dep_info = check_install_conflicts(to_install)
+        missing, conflicting = _dep_info
+
+        # NOTE: There is some duplication here from pip check
+        for project_name in missing:
+            version = package_set[project_name][0]
+            for dependency in missing[project_name]:
+                logger.critical(
+                    "%s %s requires %s, which is not installed.",
+                    project_name, version, dependency[1],
+                )
+
+        for project_name in conflicting:
+            version = package_set[project_name][0]
+            for dep_name, dep_version, req in conflicting[project_name]:
+                logger.critical(
+                    "%s %s has requirement %s, but you'll have %s %s which is "
+                    "incompatible.",
+                    project_name, version, req, dep_name, dep_version,
+                )
+
 
 def get_lib_location_guesses(*args, **kwargs):
     scheme = distutils_scheme('', *args, **kwargs)
     return [scheme['purelib'], scheme['platlib']]
+
+
+def create_env_error_message(error, show_traceback, using_user_site):
+    """Format an error message for an EnvironmentError
+
+    It may occur anytime during the execution of the install command.
+    """
+    parts = []
+
+    # Mention the error if we are not going to show a traceback
+    parts.append("Could not install packages due to an EnvironmentError")
+    if not show_traceback:
+        parts.append(": ")
+        parts.append(str(error))
+    else:
+        parts.append(".")
+
+    # Spilt the error indication from a helper message (if any)
+    parts[-1] += "\n"
+
+    # Suggest useful actions to the user:
+    #  (1) using user site-packages or (2) verifying the permissions
+    if error.errno == errno.EACCES:
+        user_option_part = "Consider using the `--user` option"
+        permissions_part = "Check the permissions"
+
+        if not using_user_site:
+            parts.extend([
+                user_option_part, " or ",
+                permissions_part.lower(),
+            ])
+        else:
+            parts.append(permissions_part)
+        parts.append(".\n")
+
+    return "".join(parts).strip() + "\n"

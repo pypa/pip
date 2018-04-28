@@ -114,14 +114,16 @@ class Command(object):
     def main(self, args):
         options, args = self.parse_args(args)
 
-        verbosity = options.verbose - options.quiet
-        if verbosity >= 1:
+        # Set verbosity so that it can be used elsewhere.
+        self.verbosity = options.verbose - options.quiet
+
+        if self.verbosity >= 1:
             level = "DEBUG"
-        elif verbosity == -1:
+        elif self.verbosity == -1:
             level = "WARNING"
-        elif verbosity == -2:
+        elif self.verbosity == -2:
             level = "ERROR"
-        elif verbosity <= -3:
+        elif self.verbosity <= -3:
             level = "CRITICAL"
         else:
             level = "INFO"
@@ -198,8 +200,8 @@ class Command(object):
 
         if sys.version_info[:2] == (3, 3):
             warnings.warn(
-                "Python 3.3 supported has been deprecated and support for it "
-                "will be dropped in the future. Please upgrade your Python.",
+                "Python 3.3 support has been deprecated and will be dropped "
+                "in the future. Please upgrade your Python.",
                 deprecation.RemovedInPip11Warning,
             )
 
@@ -281,35 +283,37 @@ class RequirementCommand(Command):
         #       requirement_set.require_hashes may be updated
 
         for filename in options.constraints:
-            for req in parse_requirements(
+            for req_to_add in parse_requirements(
                     filename,
                     constraint=True, finder=finder, options=options,
                     session=session, wheel_cache=wheel_cache):
-                requirement_set.add_requirement(req)
+                req_to_add.is_direct = True
+                requirement_set.add_requirement(req_to_add)
 
         for req in args:
-            requirement_set.add_requirement(
-                InstallRequirement.from_line(
-                    req, None, isolated=options.isolated_mode,
-                    wheel_cache=wheel_cache
-                )
+            req_to_add = InstallRequirement.from_line(
+                req, None, isolated=options.isolated_mode,
+                wheel_cache=wheel_cache
             )
+            req_to_add.is_direct = True
+            requirement_set.add_requirement(req_to_add)
 
         for req in options.editables:
-            requirement_set.add_requirement(
-                InstallRequirement.from_editable(
-                    req,
-                    isolated=options.isolated_mode,
-                    wheel_cache=wheel_cache
-                )
+            req_to_add = InstallRequirement.from_editable(
+                req,
+                isolated=options.isolated_mode,
+                wheel_cache=wheel_cache
             )
+            req_to_add.is_direct = True
+            requirement_set.add_requirement(req_to_add)
 
         for filename in options.requirements:
-            for req in parse_requirements(
+            for req_to_add in parse_requirements(
                     filename,
                     finder=finder, options=options, session=session,
                     wheel_cache=wheel_cache):
-                requirement_set.add_requirement(req)
+                req_to_add.is_direct = True
+                requirement_set.add_requirement(req_to_add)
         # If --require-hashes was a line in a requirements file, tell
         # RequirementSet about it:
         requirement_set.require_hashes = options.require_hashes
@@ -331,8 +335,8 @@ class RequirementCommand(Command):
         # See https://github.com/pypa/pip/issues/1299 for more discussion
         should_show_use_python_msg = (
             WINDOWS and
-            requirement_set.has_requirement('pip') and
-            "pip" in os.path.basename(sys.argv[0])
+            requirement_set.has_requirement("pip") and
+            os.path.basename(sys.argv[0]).startswith("pip")
         )
         if should_show_use_python_msg:
             new_command = [

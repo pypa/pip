@@ -19,48 +19,53 @@ from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
 
 
-def test_without_setuptools(script, data):
-    script.pip("uninstall", "setuptools", "-y")
-    result = script.run(
-        "python", "-c",
-        "import pip._internal; pip._internal.main(["
-        "'install', "
-        "'INITools==0.2', "
-        "'-f', '%s', "
-        "'--no-binary=:all:'])" % data.packages,
-        expect_error=True,
-    )
-    assert (
-        "Could not import setuptools which is required to install from a "
-        "source distribution."
-        in result.stderr
-    )
-    assert "Please install setuptools" in result.stderr
+@pytest.mark.parametrize('original_setuptools', ('missing', 'bad'))
+def test_pep518_uses_build_env(script, data, original_setuptools):
+    if original_setuptools == 'missing':
+        script.pip("uninstall", "-y", "setuptools")
+    elif original_setuptools == 'bad':
+        setuptools_init_path = script.site_packages_path.join(
+            "setuptools", "__init__.py")
+        with open(setuptools_init_path, 'a') as f:
+            f.write('\nraise ImportError("toto")')
+    else:
+        raise ValueError(original_setuptools)
+    to_install = data.src.join("pep518-3.0")
+    for command in ('install', 'wheel'):
+        kwargs = {}
+        if sys.version_info[:2] == (3, 3):
+            # Ignore Python 3.3 deprecation warning...
+            kwargs['expect_stderr'] = True
+        script.run(
+            "python", "-c",
+            "import pip._internal; pip._internal.main(["
+            "%r, " "'-f', %r, " "%r, "
+            "])" % (command, str(data.packages), str(to_install)),
+            **kwargs
+        )
 
 
-def test_with_setuptools_and_import_error(script, data):
-    # Make sure we get an ImportError while importing setuptools
-    setuptools_init_path = script.site_packages_path.join(
-        "setuptools", "__init__.py")
-    with open(setuptools_init_path, 'a') as f:
-        f.write('\nraise ImportError("toto")')
-
-    result = script.run(
-        "python", "-c",
-        "import pip._internal; pip._internal.main(["
-        "'install', "
-        "'INITools==0.2', "
-        "'-f', '%s', "
-        "'--no-binary=:all:'])" % data.packages,
-        expect_error=True,
-    )
-    assert (
-        "Could not import setuptools which is required to install from a "
-        "source distribution."
-        in result.stderr
-    )
-    assert "Traceback " in result.stderr
-    assert "ImportError: toto" in result.stderr
+def test_pep518_with_user_pip(script, virtualenv, pip_src, data):
+    virtualenv.system_site_packages = True
+    script.pip("install", "--ignore-installed", "--user", pip_src)
+    system_pip_dir = script.site_packages_path / 'pip'
+    system_pip_dir.rmtree()
+    system_pip_dir.mkdir()
+    with open(system_pip_dir / '__init__.py', 'w') as fp:
+        fp.write('raise ImportError\n')
+    to_install = data.src.join("pep518-3.0")
+    for command in ('install', 'wheel'):
+        kwargs = {}
+        if sys.version_info[:2] == (3, 3):
+            # Ignore Python 3.3 deprecation warning...
+            kwargs['expect_stderr'] = True
+        script.run(
+            "python", "-c",
+            "import pip._internal; pip._internal.main(["
+            "%r, " "'-f', %r, " "%r, "
+            "])" % (command, str(data.packages), str(to_install)),
+            **kwargs
+        )
 
 
 @pytest.mark.network
@@ -620,6 +625,37 @@ def test_install_package_with_target(script):
     result = script.pip_install_local('-t', target_dir, 'singlemodule==0.0.1',
                                       '--upgrade')
     assert singlemodule_py in result.files_updated, str(result)
+
+
+def test_install_with_target_and_scripts_no_warning(script, common_wheels):
+    """
+    Test that installing with --target does not trigger the "script not
+    in PATH" warning (issue #5201)
+    """
+    # We need to have wheel installed so that the project builds via a wheel,
+    # which is the only execution path that has the script warning.
+    script.pip('install', 'wheel', '--no-index', '-f', common_wheels)
+    target_dir = script.scratch_path / 'target'
+    pkga_path = script.scratch_path / 'pkga'
+    pkga_path.mkdir()
+    pkga_path.join("setup.py").write(textwrap.dedent("""
+        from setuptools import setup
+        setup(name='pkga',
+              version='0.1',
+              py_modules=["pkga"],
+              entry_points={
+                  'console_scripts': ['pkga=pkga:main']
+              }
+        )
+    """))
+    pkga_path.join("pkga.py").write(textwrap.dedent("""
+        def main(): pass
+    """))
+    result = script.pip('install', '--target', target_dir, pkga_path)
+    # This assertion isn't actually needed, if we get the script warning
+    # the script.pip() call will fail with "stderr not expected". But we
+    # leave the assertion to make the intention of the code clearer.
+    assert "--no-warn-script-location" not in result.stderr, str(result)
 
 
 def test_install_package_with_root(script, data):
@@ -1188,27 +1224,6 @@ def test_install_compatible_python_requires(script, common_wheels):
     assert "Successfully installed pkga-0.1" in res.stdout, res
 
 
-def test_basic_install_environment_markers(script):
-    # make a dummy project
-    pkga_path = script.scratch_path / 'pkga'
-    pkga_path.mkdir()
-    pkga_path.join("setup.py").write(textwrap.dedent("""
-        from setuptools import setup
-        setup(name='pkga',
-              version='0.1',
-              install_requires=[
-                'missing_pkg; python_version=="1.0"',
-              ],
-        )
-    """))
-
-    res = script.pip('install', '--no-index', pkga_path, expect_stderr=True)
-    # missing_pkg should be ignored
-    assert ("Ignoring missing-pkg: markers 'python_version == \"1.0\"' don't "
-            "match your environment") in res.stderr, str(res)
-    assert "Successfully installed pkga-0.1" in res.stdout, str(res)
-
-
 @pytest.mark.network
 def test_install_pep508_with_url(script):
     res = script.pip(
@@ -1280,3 +1295,47 @@ def test_installed_files_recorded_in_deterministic_order(script, data):
         p for p in Path(installed_files_path).read_text().split('\n') if p
     ]
     assert installed_files_lines == sorted(installed_files_lines)
+
+
+def test_install_conflict_results_in_warning(script, data):
+    pkgA_path = create_test_package_with_setup(
+        script,
+        name='pkgA', version='1.0', install_requires=['pkgb == 1.0'],
+    )
+    pkgB_path = create_test_package_with_setup(
+        script,
+        name='pkgB', version='2.0',
+    )
+
+    # Install pkgA without its dependency
+    result1 = script.pip('install', '--no-index', pkgA_path, '--no-deps')
+    assert "Successfully installed pkgA-1.0" in result1.stdout, str(result1)
+
+    # Then install an incorrect version of the dependency
+    result2 = script.pip(
+        'install', '--no-index', pkgB_path,
+        expect_stderr=True,
+    )
+    assert "pkga 1.0 has requirement pkgb==1.0" in result2.stderr, str(result2)
+    assert "Successfully installed pkgB-2.0" in result2.stdout, str(result2)
+
+
+def test_install_conflict_warning_can_be_suppressed(script, data):
+    pkgA_path = create_test_package_with_setup(
+        script,
+        name='pkgA', version='1.0', install_requires=['pkgb == 1.0'],
+    )
+    pkgB_path = create_test_package_with_setup(
+        script,
+        name='pkgB', version='2.0',
+    )
+
+    # Install pkgA without its dependency
+    result1 = script.pip('install', '--no-index', pkgA_path, '--no-deps')
+    assert "Successfully installed pkgA-1.0" in result1.stdout, str(result1)
+
+    # Then install an incorrect version of the dependency; suppressing warning
+    result2 = script.pip(
+        'install', '--no-index', pkgB_path, '--no-warn-conflicts'
+    )
+    assert "Successfully installed pkgB-2.0" in result2.stdout, str(result2)
