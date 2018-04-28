@@ -31,46 +31,56 @@ push the changes to your fork::
   $ git push git@github.com:yourname/pip.git
 
 Open Pull Requests page at https://github.com/yourname/pip/pulls and
-click "New pull request". That's it.
+click "New pull request" and select your fork. That's it.
+
+Pull requests should be self-contained, and limited in scope. Before being
+merged, a pull request must be reviewed, and keeping individual PRs limited
+in scope makes this far easier. In particular, pull requests must not be
+treated as "feature branches", with ongoing development work happening
+within the PR. Instead, the feature should be broken up into smaller,
+independent parts which can be reviewed and merged individually.
 
 
 Automated Testing
 =================
 
-All pull requests and merges to 'master' branch are tested in `Travis <https://travis-ci.org/>`_
-based on our `.travis.yml file <https://github.com/pypa/pip/blob/master/.travis.yml>`_.
+All pull requests and merges to 'master' branch are tested using `Travis CI`_
+and `Appveyor CI`_ based on our `.travis.yml`_ and `appveyor.yml`_ files.
 
-Usually, a link to your specific travis build appears in pull requests, but if not,
-you can find it on our `travis pull requests page <https://travis-ci.org/pypa/pip/pull_requests>`_
+You can find the status and results to the CI runs for your PR on GitHub's Web
+UI for the pull request. You can also find links to the CI services' pages for
+the specific builds in the form of "Details" links, in case the CI run fails
+and you wish to view the output.
 
-The only way to trigger Travis to run again for a pull request, is to submit another change to the pull branch.
-
-We also have Jenkins CI that runs regularly for certain python versions on windows and centos.
+To trigger CI to run again for a pull request, you can close and open the pull
+request or submit another change to the pull request. If needed, project
+maintainers can manually trigger a restart of a job/build.
 
 Running tests
 =============
 
 OS Requirements: subversion, bazaar, git, and mercurial.
 
-Python Requirements: tox or pytest, virtualenv, scripttest, and mock
+Python Requirements: tox or install all packages listed in
+`dev-requirements.txt`_
 
-Ways to run the tests locally:
+Ways to run the tests locally::
 
-::
-
- $ tox -e py33           # The preferred way to run the tests, can use pyNN to
+ $ tox -e py36           # The preferred way to run the tests, can use pyNN to
                          # run for a particular version or leave off the -e to
                          # run for all versions.
  $ python setup.py test  # Using the setuptools test plugin
  $ py.test               # Using py.test directly
  $ tox                   # Using tox against pip's tox.ini
 
-If you are missing one of the VCS tools, you can tell ``py.test`` to skip it:
+If you are missing one of the VCS tools, you can tell ``py.test`` to skip it::
 
-::
-
- $ py.test -k 'not bzr'
+ # When using tox
+ $ tox -e py36 -- -k 'not svn'
+ $ tox -e py36 -- -k 'not (svn or git)'
+ # Directly with py.test
  $ py.test -k 'not svn'
+ $ py.test -k 'not (svn or git)'
 
 
 Getting Involved
@@ -91,8 +101,7 @@ and they will initiate a vote.
 Adding a NEWS Entry
 ===================
 
-The ``NEWS.rst`` file is managed using
-`towncrier <https://pypi.org/project/towncrier/>`_ and all non trivial changes
+The ``NEWS.rst`` file is managed using `towncrier`_ and all non trivial changes
 must be accompanied by a news entry.
 
 To add an entry to the news file, first you need to have created an issue
@@ -116,12 +125,21 @@ as the content of the news file entry. You do not need to reference the issue
 or PR numbers here as towncrier will automatically add a reference to all of
 the affected issues when rendering the news file.
 
+In order to maintain a consistent style in the ``NEWS.rst`` file, it is
+preferred to keep the news entry to the point, in sentence case, shorter than
+80 characters and in an imperative tone -- an entry should complete the sentence
+"This change will ...". In rare cases, where one line is not enough, use a
+summary line in an imperative tone followed by a blank line separating it
+from a description of the feature/change in one or more paragraphs, each wrapped
+at 80 characters. Remember that a news entry is meant for end users and should
+only contain details relevant to an end user.
+
 A trivial change is anything that does not warrant an entry in the news file.
 Some examples are: Code refactors that don't change anything as far as the
 public is concerned, typo fixes, white space modification, etc. To mark a PR
-as trivial a contributor simply needs to add a randomly named, empty file to the
-``news/`` directory with the extension of ``.trivial``. If you are on a POSIX
-like operating system, one can be added by running
+as trivial a contributor simply needs to add a randomly named, empty file to
+the ``news/`` directory with the extension of ``.trivial``. If you are on a
+POSIX like operating system, one can be added by running
 ``touch news/$(uuidgen).trivial``. Core committers may also add a "trivial"
 label to the PR which will accomplish the same thing.
 
@@ -140,7 +158,7 @@ updating deprecation policy, etc.
 Release Cadence
 ===============
 
-The pip project has a release cadence of releasing whatever is on `master`
+The pip project has a release cadence of releasing whatever is on ``master``
 every 3 months. This gives users a predictable pattern for when releases
 are going to happen and prevents locking up improvements for fixes for long
 periods of time, while still preventing massively fracturing the user base
@@ -155,6 +173,35 @@ The release manager may, at their discretion, choose whether or not there
 will be a pre-release period for a release, and if there is may extend that
 period into the next month if needed.
 
+Because releases are made direct from the ``master`` branch, it is essential
+that ``master`` is always in a releasable state. It is acceptable to merge
+PRs that partially implement a new feature, but only if the partially
+implemented version is usable in that state (for example, with reduced
+functionality or disabled by default). In the case where a merged PR is found
+to need extra work before being released, the release manager always has the
+option to back out the partial change prior to a release. The PR can then be
+reworked and resubmitted for the next release.
+
+
+Deprecation Policy
+==================
+
+Any change to pip that removes or significantly alters user-visible behaviour
+that is described in the pip documentation will be deprecated for a minimum of
+one released version before the change occurs. Deprecation will take the form of
+a warning being issued by pip when the feature is used. Longer deprecation
+periods, or deprecation warnings for behaviour changes that would not normally
+be covered by this policy, are also possible depending on circumstances, but
+this is at the discretion of the pip developers.
+
+Note that the documentation is the sole reference for what counts as agreed
+behaviour. If something isn't explicitly mentioned in the documentation, it can
+be changed without warning, or any deprecation period, in a pip release.
+However, we are aware that the documentation isn't always complete - PRs that
+document existing behaviour with the intention of covering that behaviour with
+the above deprecation process are always acceptable, and will be considered on
+their merits.
+
 
 Release Process
 ===============
@@ -164,8 +211,8 @@ Release Process
 #. On the current pip ``master`` branch, make a new commit which bumps the
    version in ``pip/__init__.py`` to the release version and adjust the
    ``CHANGES.txt`` file to reflect the current date. The release version should
-   follow a YY.N scheme, where YY is the two digit year, and N is the Nth release
-   within that year.
+   follow a YY.N scheme, where YY is the two digit year, and N is the Nth
+   release within that year.
 #. On the current pip ``master`` branch, generate a new ``NEWS.rst`` by running
    ``invoke generate.news`` and commit the results.
 #. Create a signed tag of the ``master`` branch of the form ``X.Y.Z`` using the
@@ -200,3 +247,10 @@ to create one of these the changes should already be merged into the
 
 
 .. _`mailing list`: https://mail.python.org/mailman/listinfo/distutils-sig
+.. _`towncrier`: https://pypi.org/project/towncrier/
+.. _`Travis CI`: https://travis-ci.org/
+.. _`Appveyor CI`: https://www.appveyor.com/
+.. _`.travis.yml`: https://github.com/pypa/pip/blob/master/.travis.yml
+.. _`appveyor.yml`: https://github.com/pypa/pip/blob/master/appveyor.yml
+.. _`Travis CI Pull Requests`: https://travis-ci.org/pypa/pip/pull_requests
+.. _`dev-requirements.txt`: https://github.com/pypa/pip/blob/master/dev-requirements.txt
