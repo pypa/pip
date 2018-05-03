@@ -11,6 +11,18 @@ from pip._vendor.six import PY2, text_type
 
 from pip._internal.compat import WINDOWS, expanduser
 
+try:
+    import pwd
+except ImportError:
+    pwd = None
+
+
+def _effective_user():
+    try:
+        return pwd.getpwuid(os.geteuid()).pw_name
+    except Exception:
+        return ''
+
 
 def user_cache_dir(appname):
     r"""
@@ -44,15 +56,17 @@ def user_cache_dir(appname):
 
         # Add our app name and Cache directory to it
         path = os.path.join(path, appname, "Cache")
-    elif sys.platform == "darwin":
-        # Get the base path
-        path = expanduser("~/Library/Caches")
-
-        # Add our app name to it
-        path = os.path.join(path, appname)
     else:
-        # Get the base path
-        path = os.getenv("XDG_CACHE_HOME", expanduser("~/.cache"))
+        user = _effective_user()
+        if sys.platform == "darwin":
+            # Get the base path
+            path = expanduser("~{0}/Library/Caches".format(user))
+        else:
+            # Get the base path
+            path = os.getenv(
+                "XDG_CACHE_HOME",
+                expanduser("~{0}/.cache".format(user))
+            )
 
         # Add our app name to it
         path = os.path.join(path, appname)
@@ -91,23 +105,28 @@ def user_data_dir(appname, roaming=False):
     if WINDOWS:
         const = roaming and "CSIDL_APPDATA" or "CSIDL_LOCAL_APPDATA"
         path = os.path.join(os.path.normpath(_get_win_folder(const)), appname)
-    elif sys.platform == "darwin":
-        path = os.path.join(
-            expanduser('~/Library/Application Support/'),
-            appname,
-        ) if os.path.isdir(os.path.join(
-            expanduser('~/Library/Application Support/'),
-            appname,
-        )
-        ) else os.path.join(
-            expanduser('~/.config/'),
-            appname,
-        )
     else:
-        path = os.path.join(
-            os.getenv('XDG_DATA_HOME', expanduser("~/.local/share")),
-            appname,
-        )
+        user = _effective_user()
+        if sys.platform == "darwin":
+            path = os.path.join(
+                expanduser('~{0}/Library/Application Support/'.format(user)),
+                appname,
+            ) if os.path.isdir(os.path.join(
+                expanduser('~{0}/Library/Application Support/'.format(user)),
+                appname,
+            )
+            ) else os.path.join(
+                expanduser('~{0}/.config/'.format(user)),
+                appname,
+            )
+        else:
+            path = os.path.join(
+                os.getenv(
+                    'XDG_DATA_HOME',
+                    expanduser("~{0}/.local/share".format(user))
+                ),
+                appname,
+            )
 
     return path
 
@@ -137,7 +156,11 @@ def user_config_dir(appname, roaming=True):
     elif sys.platform == "darwin":
         path = user_data_dir(appname)
     else:
-        path = os.getenv('XDG_CONFIG_HOME', expanduser("~/.config"))
+        user = _effective_user()
+        path = os.getenv(
+            'XDG_CONFIG_HOME',
+            expanduser("~{0}/.config".format(user))
+        )
         path = os.path.join(path, appname)
 
     return path
