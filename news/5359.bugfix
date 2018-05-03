@@ -1,0 +1,48 @@
+When executing a pip install from within a Python process in which the euid has
+been changed, the appdirs helpers which use `expanduser()` return paths
+relative to the home directory of the actual user, rather than the effective
+user. This causes the install to fail when the effective user cannot write to
+the cachedir:
+
+.. code-block:: python
+
+    >>> import subprocess
+    >>> import os
+    >>> os.geteuid()
+    0
+    >>> os.seteuid(1000)
+    >>> os.geteuid()
+    1000
+    >>> p = subprocess.Popen(['/home/erik/virtualenv/pipdev/bin/pip', 'install', 'pudb'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    >>> stdout, stderr = p.communicate()
+    >>> p.returncode
+    1
+    >>> stderr
+    "Could not install packages due to an EnvironmentError: [Errno 13] Permission denied: '/root/.cache/pip/wheels/ec/bb/79/09cd8a9982b637b251208ac3400f9702c72e63accc8e4b69e3'\nConsider using the `--user` option or check the permissions.\n\n"
+    >>>
+
+With this bugfix, the installation proceeds as expected, and the sources/wheels
+are downloaded to the effective user's cachedir:
+
+.. code-block:: python
+
+    >>> import subprocess
+    >>> import os
+    >>> os.geteuid()
+    0
+    >>> os.seteuid(1000)
+    >>> os.geteuid()
+    1000
+    >>> p = subprocess.Popen(['/home/erik/virtualenv/pipdev/bin/pip', 'install', 'pudb'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    >>> stdout, stderr = p.communicate()
+    >>> p.returncode
+    0
+    >>> print(stdout)
+    Collecting pudb
+    Collecting urwid>=1.1.1 (from pudb)
+    Collecting pygments>=1.0 (from pudb)
+      Using cached https://files.pythonhosted.org/packages/02/ee/b6e02dc6529e82b75bb06823ff7d005b141037cb1416b10c6f00fc419dca/Pygments-2.2.0-py2.py3-none-any.whl
+    Installing collected packages: urwid, pygments, pudb
+    Successfully installed pudb-2017.1.4 pygments-2.2.0 urwid-2.0.1
+
+    >>>
