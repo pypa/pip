@@ -57,6 +57,7 @@ class WheelCommand(RequirementCommand):
         )
         cmd_opts.add_option(cmdoptions.no_binary())
         cmd_opts.add_option(cmdoptions.only_binary())
+        cmd_opts.add_option(cmdoptions.prefer_binary())
         cmd_opts.add_option(
             '--build-option',
             dest='build_options',

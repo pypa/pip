@@ -370,4 +370,5 @@ class RequirementCommand(Command):
             versions=python_versions,
             abi=abi,
             implementation=implementation,
+            prefer_binary=options.prefer_binary,
         )

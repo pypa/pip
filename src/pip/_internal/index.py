@@ -108,7 +108,7 @@ class PackageFinder(object):
     def __init__(self, find_links, index_urls, allow_all_prereleases=False,
                  trusted_hosts=None, process_dependency_links=False,
                  session=None, format_control=None, platform=None,
-                 versions=None, abi=None, implementation=None):
+                 versions=None, abi=None, implementation=None, prefer_binary=False):
         """Create a PackageFinder.
 
         :param format_control: A FormatControl object or None. Used to control
@@ -175,6 +175,9 @@ class PackageFinder(object):
             abi=abi,
             impl=implementation,
         )
+
+        # Do we prefer old, but valid, binary dist over new source dist
+        self.prefer_binary = prefer_binary
 
         # If we don't have TLS enabled, then WARN if anyplace we're looking
         # relies on TLS.
@@ -275,12 +278,14 @@ class PackageFinder(object):
           1. existing installs
           2. wheels ordered via Wheel.support_index_min(self.valid_tags)
           3. source archives
+        If prefer_binary was set, then all wheels are sorted above sources.
         Note: it was considered to embed this logic into the Link
               comparison operators, but then different sdist links
               with the same version, would have to be considered equal
         """
         support_num = len(self.valid_tags)
         build_tag = tuple()
+        binary_preference = 0
         if candidate.location.is_wheel:
             # can raise InvalidWheelFilename
             wheel = Wheel(candidate.location.filename)
@@ -289,6 +294,8 @@ class PackageFinder(object):
                     "%s is not a supported wheel for this platform. It "
                     "can't be sorted." % wheel.filename
                 )
+            if self.prefer_binary:
+                binary_preference = 1
             pri = -(wheel.support_index_min(self.valid_tags))
             if wheel.build_tag is not None:
                 match = re.match(r'^(\d+)(.*)$', wheel.build_tag)
@@ -296,7 +303,7 @@ class PackageFinder(object):
                 build_tag = (int(build_tag_groups[0]), build_tag_groups[1])
         else:  # sdist
             pri = -(support_num)
-        return (candidate.version, build_tag, pri)
+        return (binary_preference, candidate.version, build_tag, pri)
 
     def _validate_secure_origin(self, logger, location):
         # Determine if this url used a secure transport mechanism

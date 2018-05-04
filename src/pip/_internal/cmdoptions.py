@@ -406,6 +406,16 @@ def only_binary():
     )
 
 
+def prefer_binary():
+    return Option(
+        "--prefer-binary",
+        dest="prefer_binary",
+        action="store_true",
+        default=False,
+        help="Prefer older binary packages over newer source packages."
+    )
+
+
 cache_dir = partial(
     Option,
     "--cache-dir",
