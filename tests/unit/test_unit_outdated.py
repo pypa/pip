@@ -7,7 +7,7 @@ from contextlib import contextmanager
 import freezegun
 import pretend
 import pytest
-from pip._vendor import lockfile
+from pip._vendor import lockfile, pkg_resources
 
 from pip._internal.index import InstallationCandidate
 from pip._internal.utils import outdated
@@ -33,6 +33,20 @@ class MockPackageFinder(object):
         return self.INSTALLATION_CANDIDATES
 
 
+class MockDistribution(object):
+    def __init__(self, installer):
+        self.installer = installer
+
+    def has_metadata(self, name):
+        return name == 'INSTALLER'
+
+    def get_metadata_lines(self, name):
+        if self.has_metadata(name):
+            yield self.installer
+        else:
+            raise NotImplementedError('nope')
+
+
 def _options():
     ''' Some default options that we pass to outdated.pip_version_check '''
     return pretend.stub(
@@ -47,20 +61,24 @@ def _options():
         'stored_time',
         'installed_ver',
         'new_ver',
+        'installer',
         'check_if_upgrade_required',
         'check_warn_logs',
     ],
     [
         # Test we return None when installed version is None
-        ('1970-01-01T10:00:00Z', None, '1.0', False, False),
+        ('1970-01-01T10:00:00Z', None, '1.0', 'pip', False, False),
         # Need an upgrade - upgrade warning should print
-        ('1970-01-01T10:00:00Z', '1.0', '6.9.0', True, True),
+        ('1970-01-01T10:00:00Z', '1.0', '6.9.0', 'pip', True, True),
+        # Upgrade available, pip installed via rpm - warning should not print
+        ('1970-01-01T10:00:00Z', '1.0', '6.9.0', 'rpm', True, False),
         # No upgrade - upgrade warning should not print
-        ('1970-01-9T10:00:00Z', '6.9.0', '6.9.0', False, False),
+        ('1970-01-9T10:00:00Z', '6.9.0', '6.9.0', 'pip', False, False),
     ]
 )
 def test_pip_version_check(monkeypatch, stored_time, installed_ver, new_ver,
-                           check_if_upgrade_required, check_warn_logs):
+                           installer, check_if_upgrade_required,
+                           check_warn_logs):
     monkeypatch.setattr(outdated, 'get_installed_version',
                         lambda name: installed_ver)
     monkeypatch.setattr(outdated, 'PackageFinder', MockPackageFinder)
@@ -68,6 +86,8 @@ def test_pip_version_check(monkeypatch, stored_time, installed_ver, new_ver,
                         pretend.call_recorder(lambda *a, **kw: None))
     monkeypatch.setattr(outdated.logger, 'debug',
                         pretend.call_recorder(lambda s, exc_info=None: None))
+    monkeypatch.setattr(pkg_resources, 'get_distribution',
+                        lambda name: MockDistribution(installer))
 
     fake_state = pretend.stub(
         state={"last_check": stored_time, 'pypi_version': installed_ver},
