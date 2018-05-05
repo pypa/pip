@@ -37,8 +37,32 @@ class SearchCommand(Command):
             dest='index',
             metavar='URL',
             default=PyPI.pypi_url,
-            help='Base URL of Python Package Index (default %default)')
-
+            help='Base URL of Python Package Index (default %default)'
+        )
+        self.cmd_opts.add_option(
+            '-l', '--limit',
+            dest='limit',
+            metavar='number',
+            type=int,
+            default=None,
+            help='Show only limited number of results. '
+                 'By default this will show all results.'
+        )
+        self.cmd_opts.add_option(
+            '-o', '--operator',
+            dest='operator',
+            metavar='or/and',
+            default='or',
+            help='Show results with query string in name or/and summary.'
+        )
+        self.cmd_opts.add_option(
+            '-n', '--name-only',
+            action='store_true',
+            dest='name_only',
+            default=False,
+            help='Show only results with query string in package name.'
+                 'By default shows all results.'
+        )
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
@@ -46,7 +70,7 @@ class SearchCommand(Command):
             raise CommandError('Missing required argument (search query).')
         query = args
         pypi_hits = self.search(query, options)
-        hits = transform_hits(pypi_hits)
+        hits = transform_hits(pypi_hits, options.limit)
 
         terminal_width = None
         if sys.stdout.isatty():
@@ -62,18 +86,23 @@ class SearchCommand(Command):
         with self._build_session(options) as session:
             transport = PipXmlrpcTransport(index_url, session)
             pypi = xmlrpc_client.ServerProxy(index_url, transport)
-            hits = pypi.search({'name': query, 'summary': query}, 'or')
+            hits = pypi.search(
+                {
+                    'name': query,
+                    'summary': '' if options.name_only else query
+                }, options.operator
+            )
             return hits
 
 
-def transform_hits(hits):
+def transform_hits(hits, limit=None):
     """
     The list from pypi is really a list of versions. We want a list of
     packages with the list of versions stored inline. This converts the
     list from pypi into one we can use.
     """
     packages = OrderedDict()
-    for hit in hits:
+    for hit in hits[:limit]:
         name = hit['name']
         summary = hit['summary']
         version = hit['version']
