@@ -693,11 +693,23 @@ def unpack_file_url(link, location, download_dir=None, hashes=None):
     """
     link_path = url_to_path(link.url_without_fragment)
 
+    # if a .pipignore' file location is set and exists, '#' style
+    # comments are stripped.  All other strings (space limited) are interpreted
+    # as glob-style pattersn to be passed to `shutil.copytree`, and are thus
+    # excluded from the file cloning operation.
+    ignored = list()
+    pipignore = os.environ.get('PIP_IGNORE')
+    if pipignore and os.path.isfile(pipignore):
+        with open(pipignore, 'r') as fin:
+            for line in fin.readlines():
+                ignored.extend(line.split('#')[0].strip().split())
+
     # If it's a url to a local directory
     if is_dir_url(link):
         if os.path.isdir(location):
             rmtree(location)
-        shutil.copytree(link_path, location, symlinks=True)
+        shutil.copytree(link_path, location, symlinks=True,
+                        ignore=shutil.ignore_patterns(*ignored))
         if download_dir:
             logger.info('Link is a directory, ignoring download_dir')
         return

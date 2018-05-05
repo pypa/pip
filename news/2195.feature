@@ -1,0 +1,1 @@
+Add supporte for a `PIP_IGNORE` environment setting, which, when pointing to a valid file, causes `pip install` to ignore all file patterns listed in there.  This can speed up installations from large source trees.
