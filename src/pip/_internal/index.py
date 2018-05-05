@@ -108,7 +108,8 @@ class PackageFinder(object):
     def __init__(self, find_links, index_urls, allow_all_prereleases=False,
                  trusted_hosts=None, process_dependency_links=False,
                  session=None, format_control=None, platform=None,
-                 versions=None, abi=None, implementation=None, prefer_binary=False):
+                 versions=None, abi=None, implementation=None,
+                 prefer_binary=False):
         """Create a PackageFinder.
 
         :param format_control: A FormatControl object or None. Used to control
