@@ -602,3 +602,55 @@ def test_download_exit_status_code_when_blank_requirements_file(script):
     """
     script.scratch_path.join("blank.txt").write("\n")
     script.pip('download', '-r', 'blank.txt')
+
+
+def test_download_prefer_binary_when_tarball_higher_than_wheel(script, data):
+    fake_wheel(data, 'source-0.8-py2.py3-none-any.whl')
+    result = script.pip(
+        'download',
+        '--prefer-binary',
+        '--no-index',
+        '-f', data.packages,
+        '-d', '.', 'source'
+    )
+    assert (
+        Path('scratch') / 'source-0.8-py2.py3-none-any.whl'
+        in result.files_created
+    )
+    assert (
+        Path('scratch') / 'source-1.0.tar.gz'
+        not in result.files_created
+    )
+
+
+def test_download_prefer_binary_when_wheel_doesnt_satisfy_req(script, data):
+    fake_wheel(data, 'source-0.8-py2.py3-none-any.whl')
+    result = script.pip(
+        'download',
+        '--prefer-binary',
+        '--no-index',
+        '-f', data.packages,
+        '-d', '.', 'source>=0.9'
+    )
+    assert (
+        Path('scratch') / 'source-1.0.tar.gz'
+        in result.files_created
+    )
+    assert (
+        Path('scratch') / 'source-0.8-py2.py3-none-any.whl'
+        not in result.files_created
+    )
+
+
+def test_download_prefer_binary_when_only_tarball_exists(script, data):
+    result = script.pip(
+        'download',
+        '--prefer-binary',
+        '--no-index',
+        '-f', data.packages,
+        '-d', '.', 'source'
+    )
+    assert (
+        Path('scratch') / 'source-1.0.tar.gz'
+        in result.files_created
+    )
