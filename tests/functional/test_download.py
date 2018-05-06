@@ -625,12 +625,17 @@ def test_download_prefer_binary_when_tarball_higher_than_wheel(script, data):
 
 def test_download_prefer_binary_when_wheel_doesnt_satisfy_req(script, data):
     fake_wheel(data, 'source-0.8-py2.py3-none-any.whl')
+    script.scratch_path.join("test-req.txt").write(textwrap.dedent("""
+        source>0.9
+        """))
+
     result = script.pip(
         'download',
         '--prefer-binary',
         '--no-index',
         '-f', data.packages,
-        '-d', '.', 'source>=0.9'
+        '-d', '.',
+        '-r', script.scratch_path / 'test-req.txt'
     )
     assert (
         Path('scratch') / 'source-1.0.tar.gz'
