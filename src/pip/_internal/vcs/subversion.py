@@ -229,14 +229,20 @@ class Subversion(VersionControl):
 
         # parsed url
         purl = urllib_parse.urlsplit(url)
-        stripped_netloc = \
-            purl.netloc.split('@')[-1]
+        # Do not remove auth for svn+ssh
+        # (svn --username is not recognized for that scheme)
+        if purl[0] == 'svn+ssh':
+            surl = url
+        else:
+            stripped_netloc = \
+                purl.netloc.split('@')[-1]
 
-        # stripped url
-        url_pieces = (
-            purl.scheme, stripped_netloc, purl.path, purl.query, purl.fragment
-        )
-        surl = urllib_parse.urlunsplit(url_pieces)
+            # stripped url
+            url_pieces = (
+                purl.scheme, stripped_netloc, purl.path, purl.query,
+                purl.fragment
+            )
+            surl = urllib_parse.urlunsplit(url_pieces)
         return surl
 
 
@@ -245,25 +251,28 @@ def get_rev_options(vcs, url, rev):
     Return a RevOptions object.
     """
     r = urllib_parse.urlsplit(url)
-    if hasattr(r, 'username'):
-        # >= Python-2.5
-        username, password = r.username, r.password
-    else:
-        netloc = r[1]
-        if '@' in netloc:
-            auth = netloc.split('@')[0]
-            if ':' in auth:
-                username, password = auth.split(':', 1)
-            else:
-                username, password = auth, None
-        else:
-            username, password = None, None
-
     extra_args = []
-    if username:
-        extra_args += ['--username', username]
-    if password:
-        extra_args += ['--password', password]
+    # Do not get auth for svn+ssh
+    # (svn --username is not recognized for that scheme)
+    if r[0] != 'svn+ssh':
+        if hasattr(r, 'username'):
+            # >= Python-2.5
+            username, password = r.username, r.password
+        else:
+            netloc = r[1]
+            if '@' in netloc:
+                auth = netloc.split('@')[0]
+                if ':' in auth:
+                    username, password = auth.split(':', 1)
+                else:
+                    username, password = auth, None
+            else:
+                username, password = None, None
+
+        if username:
+            extra_args += ['--username', username]
+        if password:
+            extra_args += ['--password', password]
 
     return vcs.make_rev_options(rev, extra_args=extra_args)
 
