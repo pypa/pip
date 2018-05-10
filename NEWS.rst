@@ -1265,7 +1265,7 @@ Improved Documentation
 0.8.3
 =====
 
-- Moved main repository to Github: https://github.com/pypa/pip
+- Moved main repository to GitHub: https://github.com/pypa/pip
 - Transferred primary maintenance from Ian to Jannis Leidel, Carl Meyer,
   Brian Rosner
 - Fixed no uninstall-on-upgrade with URL package. Thanks Oliver Tonnhofer.
