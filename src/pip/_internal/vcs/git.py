@@ -270,8 +270,8 @@ class Git(VersionControl):
     def get_url_rev(self):
         """
         Prefixes stub URLs like 'user@hostname:user/repo.git' with 'ssh://'.
-        That's required because although they use SSH they sometimes doesn't
-        work with a ssh:// scheme (e.g. Github). But we need a scheme for
+        That's required because although they use SSH they sometimes don't
+        work with a ssh:// scheme (e.g. GitHub). But we need a scheme for
         parsing. Hence we remove it again afterwards and return it as a stub.
         """
         if '://' not in self.url:
