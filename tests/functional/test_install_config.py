@@ -148,6 +148,8 @@ def test_config_file_override_stack(script, virtualenv):
 
 def _test_config_file_override_stack(script, virtualenv, config_file):
     # set this to make pip load it
+    if 'PIP_INDEX_URL' in script.environ:
+        del script.environ['PIP_INDEX_URL']
     script.environ['PIP_CONFIG_FILE'] = config_file
     (script.scratch_path / config_file).write(textwrap.dedent("""\
         [global]
