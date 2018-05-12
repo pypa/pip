@@ -80,11 +80,27 @@ def test_help_commands_equally_functional(in_memory_pip):
     assert sum(ret) == 0, 'exit codes of: ' + msg
     assert all(len(o) > 0 for o in out)
 
-    for name, cls in commands.items():
-        if cls.hidden:
-            continue
 
-        assert (
-            in_memory_pip.pip('help', name).stdout ==
-            in_memory_pip.pip(name, '--help').stdout != ""
-        )
+@pytest.mark.parametrize('name',
+                         [k for k, v in commands.items() if not v.hidden])
+def test_name_help_same_as_help_name(name, in_memory_pip, monkeypatch):
+    monkeypatch.delenv('PIP_INDEX_URL', raising=False)
+    help_name = in_memory_pip.pip('help', name).stdout
+    name_help = in_memory_pip.pip(name, '--help').stdout
+    assert help_name == name_help
+
+
+_PIP_INDEX_URL_IN_HELP_FOR = 'install', 'download', 'list', 'wheel'
+
+
+@pytest.mark.parametrize('name',
+                         [k for k, v in commands.items() if not v.hidden])
+def test_name_help_same_as_help_name_with_pip_index(name, in_memory_pip,
+                                                    monkeypatch):
+    monkeypatch.setenv('PIP_INDEX_URL', 'http://magical')
+    help_name = in_memory_pip.pip('help', name).stdout
+    name_help = in_memory_pip.pip(name, '--help').stdout
+    if name in _PIP_INDEX_URL_IN_HELP_FOR:
+        assert help_name != name_help
+    else:
+        assert help_name == name_help
