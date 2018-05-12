@@ -352,3 +352,10 @@ class Resolver(object):
         for install_req in req_set.requirements.values():
             schedule(install_req)
         return order
+
+    def get_dependencies(self):
+        """ Gets dependencies discovered after resolution
+
+        Returns a mapping of package names to lists of requirement objects
+        """
+        return self._discovered_dependencies

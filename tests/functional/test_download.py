@@ -1,7 +1,10 @@
+import json
 import os
+import sys
 import textwrap
 
 import pytest
+from pip._vendor.six.moves.urllib.parse import urlparse
 
 from pip._internal.status_codes import ERROR
 from tests.lib.path import Path
@@ -86,6 +89,82 @@ def test_basic_download_should_download_dependencies(script):
         path.startswith(openid_tarball_prefix) for path in result.files_created
     )
     assert script.site_packages / 'openid' not in result.files_created
+
+
+@pytest.mark.network
+def test_prints_json(script):
+    result = script.pip(
+        'download', 'flake8==3.5.0', '-d', '.', '--log-stderr', '--json',
+        expect_stderr=True
+    )
+
+    expected = {
+        'flake8': {
+            'dependencies': [
+                'pyflakes',
+                'enum34',
+                'configparser',
+                'pycodestyle',
+                'mccabe',
+            ],
+            'filename': 'flake8-{version}-py2.py3-none-any.whl'
+        },
+        'pyflakes': {
+            'dependencies': [],
+            'filename': 'pyflakes-{version}-py2.py3-none-any.whl'
+        },
+        'pycodestyle': {
+            'dependencies': [],
+            'filename': 'pycodestyle-{version}-py2.py3-none-any.whl'
+        },
+        'mccabe': {
+            'dependencies': [],
+            'filename': 'mccabe-{version}-py2.py3-none-any.whl'
+        },
+        'configparser': {
+            'dependencies': [],
+            'filename': 'configparser-{version}.tar.gz',
+        },
+        'enum34': {
+            'dependencies': [],
+            'filename': 'enum34-{version}-py{py_version}-none-any.whl',
+        },
+    }
+    expected_keys = ['dependencies', 'download_path', 'name', 'url', 'version']
+
+    actual = json.loads(result.stdout)
+    transformed = {package['name']: package for package in actual}
+
+    assert 'flake8' in transformed
+    assert 'pyflakes' in transformed
+
+    for package in actual:
+        assert sorted(package.keys()) == expected_keys
+
+        expected_package = expected[package['name']]
+        version = package['version']
+        url = urlparse(package['url'])
+        filename = expected_package['filename'].format(
+            version=version, py_version=sys.version_info[0])
+
+        created = result.files_created[Path('scratch') / filename]
+        created_path = os.path.join(created.base_path, created.path)
+
+        # Windows likes to spit this path out lowercase.
+        assert package['download_path'].lower() == created_path.lower()
+        assert url.scheme == 'https'
+        assert url.hostname == 'files.pythonhosted.org'
+        assert Path(url.path).name == filename
+        if package['dependencies']:
+            # Dependencies can change between python versions. Just try to get
+            # /something/ matched
+            assert any(
+                (dep['name'] in expected for dep in package['dependencies']))
+            for dep in package['dependencies']:
+                assert sorted(dep.keys()) == ['name', 'version']
+                if dep['name'] in expected:
+                    expected_version = transformed[dep['name']]['version']
+                    assert dep['version'] == expected_version
 
 
 def test_download_wheel_archive(script, data):

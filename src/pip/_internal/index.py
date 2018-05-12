@@ -486,7 +486,7 @@ class PackageFinder(object):
         """Try to find a Link matching req
 
         Expects req, an InstallRequirement and upgrade, a boolean
-        Returns a Link if found,
+        Returns an InstallationCandidate if found,
         Raises DistributionNotFound or BestVersionAlreadyInstalled otherwise
         """
         all_candidates = self.find_all_candidates(req.name)
@@ -579,7 +579,7 @@ class PackageFinder(object):
             best_candidate.version,
             ', '.join(sorted(compatible_versions, key=parse_version))
         )
-        return best_candidate.location
+        return best_candidate
 
     def _get_pages(self, locations, project_name):
         """

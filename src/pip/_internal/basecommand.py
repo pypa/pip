@@ -135,7 +135,9 @@ class Command(object):
         logger_class = "pip._internal.utils.logging.ColorizedStreamHandler"
         handler_class = "pip._internal.utils.logging.BetterRotatingFileHandler"
 
-        logging.config.dictConfig({
+        stdout, stderr = self.log_streams
+
+        config = {
             "version": 1,
             "disable_existing_loggers": False,
             "filters": {
@@ -155,7 +157,7 @@ class Command(object):
                     "level": level,
                     "class": logger_class,
                     "no_color": options.no_color,
-                    "stream": self.log_streams[0],
+                    "stream": stderr if options.log_stderr else stdout,
                     "filters": ["exclude_warnings"],
                     "formatter": "indent",
                 },
@@ -163,7 +165,7 @@ class Command(object):
                     "level": "WARNING",
                     "class": logger_class,
                     "no_color": options.no_color,
-                    "stream": self.log_streams[1],
+                    "stream": stderr,
                     "formatter": "indent",
                 },
                 "user_log": {
@@ -171,6 +173,13 @@ class Command(object):
                     "class": handler_class,
                     "filename": options.log or "/dev/null",
                     "delay": True,
+                    "formatter": "indent",
+                },
+                "structured_output": {
+                    "level": "DEBUG",
+                    "class": logger_class,
+                    "no_color": True,
+                    "stream": stdout,
                     "formatter": "indent",
                 },
             },
@@ -194,7 +203,11 @@ class Command(object):
                     "pip._vendor", "distlib", "requests", "urllib3"
                 ]
             },
-        })
+        }
+        config["loggers"]["pip.__structured_output"] = {
+            "handlers": ["structured_output"],
+        }
+        logging.config.dictConfig(config)
 
         # TODO: try to get these passing down from the command?
         #      without resorting to os.environ to hold these.

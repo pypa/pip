@@ -3,7 +3,17 @@ import tempfile
 
 import pytest
 
+from pip._internal.index import InstallationCandidate
 from pip._internal.req.req_install import InstallRequirement
+
+
+class MockedFinder(object):
+
+    def __init__(self, ret):
+        self.ret = ret
+
+    def find_requirement(self, req, upgrade):
+        return self.ret
 
 
 class TestInstallRequirementBuildDirectory(object):
@@ -41,3 +51,33 @@ class TestInstallRequirementBuildDirectory(object):
         )
 
         assert requirement.link is not None
+
+    def test_install_requirement_version_is_correct(self, tmpdir):
+        install_dir = tmpdir / "foo" / "bar"
+
+        # Just create a file for letting the logic work
+        setup_py_path = install_dir / "setup.py"
+        os.makedirs(str(install_dir))
+        with open(setup_py_path, 'w') as f:
+            f.write('')
+
+        requirement1 = InstallRequirement.from_line(
+            'https://example.com/urllib3.tar.gz',
+        )
+        requirement2 = InstallRequirement.from_line(
+            'https://example.com/urllib3-1.22-py2.py3-none-any.whl',
+        )
+        requirement3 = InstallRequirement.from_line(
+            'urllib3==1.22',
+        )
+        mocked_finder = MockedFinder(
+            InstallationCandidate(
+                'urllib3', '1.4', 'https://example.com/urllib3.tar.gz'))
+        requirement3.populate_link(mocked_finder, False, False)
+
+        assert requirement1.link is not None
+        assert requirement1.version is None
+        assert requirement2.link is not None
+        assert requirement2.version == "1.22"
+        assert requirement3.link is not None
+        assert requirement3.version == "1.4"

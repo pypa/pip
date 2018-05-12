@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import json
 import logging
 import os
 
@@ -115,6 +116,15 @@ class DownloadCommand(RequirementCommand):
                   "this option."),
         )
 
+        cmd_opts.add_option(
+            '--json',
+            dest='json',
+            action='store_true',
+            default=False,
+            help=("Output information about downloaded packages as json. "
+                  "See documentation for caveats."),
+        )
+
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
             self.parser,
@@ -227,8 +237,34 @@ class DownloadCommand(RequirementCommand):
                 if downloaded:
                     logger.info('Successfully downloaded %s', downloaded)
 
+                if options.json:
+                    details = self._get_download_details(
+                        resolver, requirement_set, options.download_dir)
+                    logging.getLogger('pip.__structured_output').info(
+                        json.dumps(details))
+
                 # Clean up
                 if not options.no_clean:
                     requirement_set.cleanup_files()
 
         return requirement_set
+
+    def _get_download_details(self, resolver, requirement_set, download_dir):
+        downloaded = []
+        download_dir = os.path.abspath(download_dir)
+        for req in requirement_set.successfully_downloaded:
+            deps = resolver.get_dependencies().get(req.name, [])
+            download_path = os.path.join(download_dir, req.link.filename)
+            downloaded.append(
+                {
+                    'name': req.name,
+                    'download_path': download_path,
+                    'url': req.link.url,
+                    'version': req.version,
+                    'dependencies': [
+                        {'name': dep.name, 'version': dep.version}
+                        for dep in deps
+                    ],
+                }
+            )
+        return downloaded

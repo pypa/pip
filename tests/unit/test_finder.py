@@ -21,7 +21,7 @@ def test_no_mpkg(data):
     """Finder skips zipfiles with "macosx10" in the name."""
     finder = PackageFinder([data.find_links], [], session=PipSession())
     req = InstallRequirement.from_line("pkgwithmpkg")
-    found = finder.find_requirement(req, False)
+    found = finder.find_requirement(req, False).location
 
     assert found.url.endswith("pkgwithmpkg-1.0.tar.gz"), found
 
@@ -30,7 +30,7 @@ def test_no_partial_name_match(data):
     """Finder requires the full project name to match, not just beginning."""
     finder = PackageFinder([data.find_links], [], session=PipSession())
     req = InstallRequirement.from_line("gmpy")
-    found = finder.find_requirement(req, False)
+    found = finder.find_requirement(req, False).location
 
     assert found.url.endswith("gmpy-1.15.tar.gz"), found
 
@@ -42,7 +42,7 @@ def test_tilde():
         finder = PackageFinder(['~/python-pkgs'], [], session=session)
     req = InstallRequirement.from_line("gmpy")
     with pytest.raises(DistributionNotFound):
-        finder.find_requirement(req, False)
+        finder.find_requirement(req, False).location
 
 
 def test_duplicates_sort_ok(data):
@@ -54,7 +54,7 @@ def test_duplicates_sort_ok(data):
         session=PipSession(),
     )
     req = InstallRequirement.from_line("duplicate")
-    found = finder.find_requirement(req, False)
+    found = finder.find_requirement(req, False).location
 
     assert found.url.endswith("duplicate-1.0.tar.gz"), found
 
@@ -63,7 +63,7 @@ def test_finder_detects_latest_find_links(data):
     """Test PackageFinder detects latest using find-links"""
     req = InstallRequirement.from_line('simple', None)
     finder = PackageFinder([data.find_links], [], session=PipSession())
-    link = finder.find_requirement(req, False)
+    link = finder.find_requirement(req, False).location
     assert link.url.endswith("simple-3.0.tar.gz")
 
 
@@ -71,7 +71,7 @@ def test_incorrect_case_file_index(data):
     """Test PackageFinder detects latest using wrong case"""
     req = InstallRequirement.from_line('dinner', None)
     finder = PackageFinder([], [data.find_links3], session=PipSession())
-    link = finder.find_requirement(req, False)
+    link = finder.find_requirement(req, False).location
     assert link.url.endswith("Dinner-2.0.tar.gz")
 
 
@@ -90,7 +90,7 @@ def test_finder_detects_latest_already_satisfied_find_links(data):
     finder = PackageFinder([data.find_links], [], session=PipSession())
 
     with pytest.raises(BestVersionAlreadyInstalled):
-        finder.find_requirement(req, True)
+        finder.find_requirement(req, True).location
 
 
 @pytest.mark.network
@@ -112,7 +112,7 @@ def test_finder_detects_latest_already_satisfied_pypi_links():
     )
 
     with pytest.raises(BestVersionAlreadyInstalled):
-        finder.find_requirement(req, True)
+        finder.find_requirement(req, True).location
 
 
 class TestWheel:
@@ -131,7 +131,7 @@ class TestWheel:
             session=PipSession(),
         )
         with pytest.raises(DistributionNotFound):
-            finder.find_requirement(req, True)
+            finder.find_requirement(req, True).location
 
         assert (
             "invalid.whl; invalid wheel filename"
@@ -157,7 +157,7 @@ class TestWheel:
         finder.valid_tags = pip._internal.pep425tags.get_supported()
 
         with pytest.raises(DistributionNotFound):
-            finder.find_requirement(req, True)
+            finder.find_requirement(req, True).location
 
     def test_find_wheel_supported(self, data, monkeypatch):
         """
@@ -175,7 +175,7 @@ class TestWheel:
             [],
             session=PipSession(),
         )
-        found = finder.find_requirement(req, True)
+        found = finder.find_requirement(req, True).location
         assert (
             found.url.endswith("simple.dist-0.1-py2.py3-none-any.whl")
         ), found
@@ -191,7 +191,7 @@ class TestWheel:
             [],
             session=PipSession(),
         )
-        found = finder.find_requirement(req, True)
+        found = finder.find_requirement(req, True).location
         assert found.url.endswith("priority-1.0-py2.py3-none-any.whl"), found
 
     def test_existing_over_wheel_priority(self, data):
@@ -214,7 +214,7 @@ class TestWheel:
         )
 
         with pytest.raises(BestVersionAlreadyInstalled):
-            finder.find_requirement(req, True)
+            finder.find_requirement(req, True).location
 
     def test_link_sorting(self):
         """
@@ -296,7 +296,7 @@ def test_finder_priority_file_over_page(data):
     assert all(version.location.scheme == 'https'
                for version in all_versions[1:]), all_versions
 
-    link = finder.find_requirement(req, False)
+    link = finder.find_requirement(req, False).location
     assert link.url.startswith("file://")
 
 
@@ -314,7 +314,7 @@ def test_finder_deplink():
     finder.add_dependency_links(
         ['https://files.pythonhosted.org/packages/source/g/gmpy/gmpy-1.15.zip']
     )
-    link = finder.find_requirement(req, False)
+    link = finder.find_requirement(req, False).location
     assert link.url.startswith("https://files.pythonhosted.org/"), link
 
 
@@ -338,7 +338,7 @@ def test_finder_priority_page_over_deplink():
     assert all_versions[-1].location.url.startswith(
         'https://files.pythonhosted.org/'
     )
-    link = finder.find_requirement(req, False)
+    link = finder.find_requirement(req, False).location
     assert link.url.startswith(
         "https://files.pythonhosted.org/packages/3f/08/7347ca4"
     ), link
@@ -356,7 +356,7 @@ def test_finder_priority_nonegg_over_eggfragments():
         assert all_versions[0].location.url.endswith('tar.gz')
         assert all_versions[1].location.url.endswith('#egg=bar-1.0')
 
-        link = finder.find_requirement(req, False)
+        link = finder.find_requirement(req, False).location
 
     assert link.url.endswith('tar.gz')
 
@@ -367,7 +367,7 @@ def test_finder_priority_nonegg_over_eggfragments():
         all_versions = finder.find_all_candidates(req.name)
         assert all_versions[0].location.url.endswith('tar.gz')
         assert all_versions[1].location.url.endswith('#egg=bar-1.0')
-        link = finder.find_requirement(req, False)
+        link = finder.find_requirement(req, False).location
 
     assert link.url.endswith('tar.gz')
 
@@ -381,7 +381,7 @@ def test_finder_only_installs_stable_releases(data):
 
     # using a local index (that has pre & dev releases)
     finder = PackageFinder([], [data.index_url("pre")], session=PipSession())
-    link = finder.find_requirement(req, False)
+    link = finder.find_requirement(req, False).location
     assert link.url.endswith("bar-1.0.tar.gz"), link.url
 
     # using find-links
@@ -389,14 +389,14 @@ def test_finder_only_installs_stable_releases(data):
     finder = PackageFinder(links, [], session=PipSession())
 
     with patch.object(finder, "_get_pages", lambda x, y: []):
-        link = finder.find_requirement(req, False)
+        link = finder.find_requirement(req, False).location
         assert link.url == "https://foo/bar-1.0.tar.gz"
 
     links.reverse()
     finder = PackageFinder(links, [], session=PipSession())
 
     with patch.object(finder, "_get_pages", lambda x, y: []):
-        link = finder.find_requirement(req, False)
+        link = finder.find_requirement(req, False).location
         assert link.url == "https://foo/bar-1.0.tar.gz"
 
 
@@ -439,7 +439,7 @@ def test_finder_installs_pre_releases(data):
         allow_all_prereleases=True,
         session=PipSession(),
     )
-    link = finder.find_requirement(req, False)
+    link = finder.find_requirement(req, False).location
     assert link.url.endswith("bar-2.0b1.tar.gz"), link.url
 
     # using find-links
@@ -451,7 +451,7 @@ def test_finder_installs_pre_releases(data):
     )
 
     with patch.object(finder, "_get_pages", lambda x, y: []):
-        link = finder.find_requirement(req, False)
+        link = finder.find_requirement(req, False).location
         assert link.url == "https://foo/bar-2.0b1.tar.gz"
 
     links.reverse()
@@ -462,7 +462,7 @@ def test_finder_installs_pre_releases(data):
     )
 
     with patch.object(finder, "_get_pages", lambda x, y: []):
-        link = finder.find_requirement(req, False)
+        link = finder.find_requirement(req, False).location
         assert link.url == "https://foo/bar-2.0b1.tar.gz"
 
 
@@ -479,7 +479,7 @@ def test_finder_installs_dev_releases(data):
         allow_all_prereleases=True,
         session=PipSession(),
     )
-    link = finder.find_requirement(req, False)
+    link = finder.find_requirement(req, False).location
     assert link.url.endswith("bar-2.0.dev1.tar.gz"), link.url
 
 
@@ -493,14 +493,14 @@ def test_finder_installs_pre_releases_with_version_spec():
     finder = PackageFinder(links, [], session=PipSession())
 
     with patch.object(finder, "_get_pages", lambda x, y: []):
-        link = finder.find_requirement(req, False)
+        link = finder.find_requirement(req, False).location
         assert link.url == "https://foo/bar-2.0b1.tar.gz"
 
     links.reverse()
     finder = PackageFinder(links, [], session=PipSession())
 
     with patch.object(finder, "_get_pages", lambda x, y: []):
-        link = finder.find_requirement(req, False)
+        link = finder.find_requirement(req, False).location
         assert link.url == "https://foo/bar-2.0b1.tar.gz"
 
 

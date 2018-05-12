@@ -27,7 +27,9 @@ from pip._internal.compat import native_str
 from pip._internal.download import (
     is_archive_file, is_url, path_to_url, url_to_path,
 )
-from pip._internal.exceptions import InstallationError, UninstallationError
+from pip._internal.exceptions import (
+    InstallationError, InvalidWheelFilename, UninstallationError,
+)
 from pip._internal.locations import (
     PIP_DELETE_MARKER_FILENAME, running_under_virtualenv,
 )
@@ -304,7 +306,9 @@ class InstallRequirement(object):
         to file modification times.
         """
         if self.link is None:
-            self.link = finder.find_requirement(self, upgrade)
+            candidate = finder.find_requirement(self, upgrade)
+            self.link = candidate.location
+            self._found_version = candidate.version
         if self._wheel_cache is not None and not require_hashes:
             old_link = self.link
             self.link = self._wheel_cache.get(self.link, self.name)
@@ -324,6 +328,27 @@ class InstallRequirement(object):
         specifiers = self.specifier
         return (len(specifiers) == 1 and
                 next(iter(specifiers)).operator in {'==', '==='})
+
+    _found_version = None
+
+    @property
+    def version(self):
+        """ The version if available, else None
+
+        The version determined during requirement resolution if available,
+        the wheel version from the filename if available, or None if no
+        version information could be obtained
+        """
+        if self._found_version:
+            return str(self._found_version)
+        # If we didn't lookup the version from the internet/a finder, try to
+        # guess it
+        if self.is_wheel:
+            try:
+                return Wheel(self.link.filename).version
+            except InvalidWheelFilename:
+                pass
+        return None
 
     def from_path(self):
         if self.req is None:

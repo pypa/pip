@@ -274,6 +274,15 @@ no_index = partial(
     help='Ignore package index (only looking at --find-links URLs instead).',
 )  # type: Any
 
+log_stderr = partial(
+    Option,
+    '--log-stderr',
+    dest='log_stderr',
+    action='store_true',
+    default=False,
+    help="Log logger warnings to stderr",
+)
+
 
 def find_links():
     return Option(
@@ -604,6 +613,7 @@ general_group = {
         no_cache,
         disable_pip_version_check,
         no_color,
+        log_stderr,
     ]
 }
 
