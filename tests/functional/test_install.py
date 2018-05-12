@@ -171,6 +171,8 @@ def test_basic_install_from_pypi(script):
     """
     Test installing a package from PyPI.
     """
+    if 'PIP_INDEX_URL' in script.environ:
+        del script.environ['PIP_INDEX_URL']
     result = script.pip('install', '-vvv', 'INITools==0.2')
     egg_info_folder = (
         script.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
