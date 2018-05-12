@@ -11,11 +11,13 @@ def test_basic_show(script):
     """
     Test end to end test for show command.
     """
+    if 'PIP_INDEX_URL' in script.environ:
+        del script.environ['PIP_INDEX_URL']
     result = script.pip('show', 'pip')
     lines = result.stdout.splitlines()
     assert len(lines) == 10
     assert 'Name: pip' in lines
-    assert 'Version: %s' % __version__ in lines
+    assert 'Version: {}'.format(__version__) in lines
     assert any(line.startswith('Location: ') for line in lines)
     assert 'Requires: ' in lines
 
