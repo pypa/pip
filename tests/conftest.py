@@ -160,6 +160,9 @@ def isolate(tmpdir):
 
     # We want to disable the version check from running in the tests
     os.environ["PIP_DISABLE_PIP_VERSION_CHECK"] = "true"
+    
+    # Tox will pass PIP_INDEX_URL, ensure it's not set.
+    os.environ.pop('PIP_INDEX_URL', None)
 
     # Make sure tests don't share a requirements tracker.
     os.environ.pop('PIP_REQ_TRACKER', None)
