@@ -284,6 +284,17 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
                 # uninstalled.
                 ensure_dir(destdir)
 
+                # copyfile (called below) truncates the destination if it
+                # exists and then writes the new contents. This is fine in most
+                # cases, but can cause a segfault if pip has loaded a shared
+                # object (e.g. from pyopenssl through its vendored urllib3)
+                # Since the shared object is mmap'd an attempt to call a
+                # symbol in it will then cause a segfault. Unlinking the file
+                # allows writing of new contents while allowing the process to
+                # continue to use the old copy.
+                if os.path.exists(destfile):
+                    os.unlink(destfile)
+
                 # We use copyfile (not move, copy, or copy2) to be extra sure
                 # that we are not moving directories over (copyfile fails for
                 # directories) as well as to ensure that we are not copying
