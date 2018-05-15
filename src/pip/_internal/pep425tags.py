@@ -281,7 +281,7 @@ def get_supported(versions=None, noarch=False, platform=None,
     if not noarch:
         arch = platform or get_platform()
         arch_prefix, arch_sep, arch_suffix = arch.partition('_')
-        if arch_prefix == 'macosx':
+        if arch.startswith('macosx'):
             # support macosx-10.6-intel on macosx-10.9-x86_64
             match = _osx_arch_pat.match(arch)
             if match:
