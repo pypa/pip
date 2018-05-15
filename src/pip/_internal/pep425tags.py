@@ -280,7 +280,8 @@ def get_supported(versions=None, noarch=False, platform=None,
 
     if not noarch:
         arch = platform or get_platform()
-        if arch.startswith('macosx'):
+        arch_prefix, arch_sep, arch_suffix = arch.partition('_')
+        if arch_prefix == 'macosx':
             # support macosx-10.6-intel on macosx-10.9-x86_64
             match = _osx_arch_pat.match(arch)
             if match:
@@ -293,15 +294,15 @@ def get_supported(versions=None, noarch=False, platform=None,
             else:
                 # arch pattern didn't match (?!)
                 arches = [arch]
-        elif arch.startswith('manylinux2010'):
+        elif arch_prefix == 'manylinux2010':
             # manylinux1 wheels run on manylinux2010 systems.
-            arches = [arch, arch.replace('manylinux2010', 'manylinux1')]
+            arches = [arch, 'manylinux1' + arch_sep + arch_suffix]
         elif platform is None:
             arches = []
             if is_manylinux2010_compatible():
-                arches.append(arch.replace('linux', 'manylinux2010'))
+                arches.append('manylinux2010' + arch_sep + arch_suffix)
             if is_manylinux1_compatible():
-                arches.append(arch.replace('linux', 'manylinux1'))
+                arches.append('manylinux1' + arch_sep + arch_suffix)
             arches.append(arch)
         else:
             arches = [arch]
