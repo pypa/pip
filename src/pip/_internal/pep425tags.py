@@ -295,7 +295,10 @@ def get_supported(versions=None, noarch=False, platform=None,
                 # arch pattern didn't match (?!)
                 arches = [arch]
         elif arch_prefix == 'manylinux2010':
-            # manylinux1 wheels run on manylinux2010 systems.
+            # manylinux1 wheels run on most manylinux2010 systems with the
+            # exception of wheels depending on ncurses. PEP 571 states
+            # manylinux1 wheels should be considered manylinux2010 wheels:
+            # https://www.python.org/dev/peps/pep-0571/#backwards-compatibility-with-manylinux1-wheels
             arches = [arch, 'manylinux1' + arch_sep + arch_suffix]
         elif platform is None:
             arches = []
