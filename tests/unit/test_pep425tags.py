@@ -118,11 +118,11 @@ class TestPEP425Tags(object):
 
 @pytest.mark.parametrize('is_manylinux_compatible', [
     pep425tags.is_manylinux1_compatible,
-    pep425tags.is_manylinux2_compatible,
+    pep425tags.is_manylinux2010_compatible,
 ])
 class TestManylinuxTags(object):
     """
-    Tests common to all manylinux tags (e.g. manylinux1, manylinux2,
+    Tests common to all manylinux tags (e.g. manylinux1, manylinux2010,
     ...)
     """
     @patch('pip._internal.pep425tags.get_platform', lambda: 'linux_x86_64')
@@ -166,7 +166,8 @@ class TestManylinuxTags(object):
 
 class TestManylinux1Tags(object):
 
-    @patch('pip._internal.pep425tags.is_manylinux2_compatible', lambda: False)
+    @patch('pip._internal.pep425tags.is_manylinux2010_compatible',
+           lambda: False)
     @patch('pip._internal.pep425tags.get_platform', lambda: 'linux_x86_64')
     @patch('pip._internal.utils.glibc.have_compatible_glibc',
            lambda major, minor: True)
@@ -189,15 +190,15 @@ class TestManylinux1Tags(object):
                 assert arches == ['manylinux1_x86_64', 'linux_x86_64']
 
 
-class TestManylinux2Tags(object):
+class TestManylinux2010Tags(object):
 
     @patch('pip._internal.pep425tags.get_platform', lambda: 'linux_x86_64')
     @patch('pip._internal.utils.glibc.have_compatible_glibc',
            lambda major, minor: True)
     @patch('sys.platform', 'linux2')
-    def test_manylinux2_tag_is_first(self):
+    def test_manylinux2010_tag_is_first(self):
         """
-        Test that the more specific tag manylinux2 comes first.
+        Test that the more specific tag manylinux2010 comes first.
         """
         groups = {}
         for pyimpl, abi, arch in pep425tags.get_supported():
@@ -208,28 +209,29 @@ class TestManylinux2Tags(object):
                 continue
             # Expect the most specific arch first:
             if len(arches) == 4:
-                assert arches == ['manylinux2_x86_64',
+                assert arches == ['manylinux2010_x86_64',
                                   'manylinux1_x86_64',
                                   'linux_x86_64',
                                   'any']
             else:
-                assert arches == ['manylinux2_x86_64',
+                assert arches == ['manylinux2010_x86_64',
                                   'manylinux1_x86_64',
                                   'linux_x86_64']
 
-    @pytest.mark.parametrize("manylinux2,manylinux1", [
-        ("manylinux2_x86_64", "manylinux1_x86_64"),
-        ("manylinux2_i686", "manylinux1_i686"),
+    @pytest.mark.parametrize("manylinux2010,manylinux1", [
+        ("manylinux2010_x86_64", "manylinux1_x86_64"),
+        ("manylinux2010_i686", "manylinux1_i686"),
     ])
-    def test_manylinux2_implies_manylinux1(self, manylinux2, manylinux1):
+    def test_manylinux2010_implies_manylinux1(self, manylinux2010, manylinux1):
         """
-        Specifying manylinux2 implies manylinux1.
+        Specifying manylinux2010 implies manylinux1.
         """
         groups = {}
-        for pyimpl, abi, arch in pep425tags.get_supported(platform=manylinux2):
+        supported = pep425tags.get_supported(platform=manylinux2010)
+        for pyimpl, abi, arch in supported:
             groups.setdefault((pyimpl, abi), []).append(arch)
 
         for arches in groups.values():
             if arches == ['any']:
                 continue
-            assert arches[:2] == [manylinux2, manylinux1]
+            assert arches[:2] == [manylinux2010, manylinux1]

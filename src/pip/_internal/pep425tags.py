@@ -157,7 +157,7 @@ def is_manylinux1_compatible():
     return pip._internal.utils.glibc.have_compatible_glibc(2, 5)
 
 
-def is_manylinux2_compatible():
+def is_manylinux2010_compatible():
     # Only Linux, and only x86-64 / i686
     if get_platform() not in {"linux_x86_64", "linux_i686"}:
         return False
@@ -165,7 +165,7 @@ def is_manylinux2_compatible():
     # Check for presence of _manylinux module
     try:
         import _manylinux
-        return bool(_manylinux.manylinux2_compatible)
+        return bool(_manylinux.manylinux2010_compatible)
     except (ImportError, AttributeError):
         # Fall through to heuristic check below
         pass
@@ -293,13 +293,13 @@ def get_supported(versions=None, noarch=False, platform=None,
             else:
                 # arch pattern didn't match (?!)
                 arches = [arch]
-        elif arch.startswith('manylinux2'):
-            # manylinux1 wheels run on manylinux2 systems.
-            arches = [arch, arch.replace('manylinux2', 'manylinux1')]
+        elif arch.startswith('manylinux2010'):
+            # manylinux1 wheels run on manylinux2010 systems.
+            arches = [arch, arch.replace('manylinux2010', 'manylinux1')]
         elif platform is None:
             arches = []
-            if is_manylinux2_compatible():
-                arches.append(arch.replace('linux', 'manylinux2'))
+            if is_manylinux2010_compatible():
+                arches.append(arch.replace('linux', 'manylinux2010'))
             if is_manylinux1_compatible():
                 arches.append(arch.replace('linux', 'manylinux1'))
             arches.append(arch)
