@@ -142,6 +142,27 @@ def test_search_exit_status_code_when_finds_no_package(script):
     assert result.returncode == NO_MATCHES_FOUND, result.returncode
 
 
+def test_latest_prerelease_install_message(caplog):
+    """
+    Test documentation for installing pre-release packages is displayed
+    """
+    hits = [
+        {
+            'name': 'ni',
+            'summary': 'For knights who say Ni!',
+            'versions': ['1.0.0', '1.0.1.dev']
+        }
+    ]
+    print_results(hits)
+    print(dir(caplog))
+    print(caplog.text)
+    records = sorted([r.getMessage() for r in caplog.records])
+    print(records)
+    print(dir(records))
+    lines = records[0].splitlines()
+    assert 'pre-release; install with "pip install --pre"' in lines[-1]
+
+
 def test_search_print_results_should_contain_latest_versions(caplog):
     """
     Test that printed search results contain the latest package versions
