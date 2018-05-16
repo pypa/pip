@@ -21,31 +21,6 @@ SELFCHECK_DATE_FMT = "%Y-%m-%dT%H:%M:%SZ"
 logger = logging.getLogger(__name__)
 
 
-class VirtualenvSelfCheckState(object):
-    def __init__(self):
-        self.statefile_path = os.path.join(sys.prefix, "pip-selfcheck.json")
-
-        # Load the existing state
-        try:
-            with open(self.statefile_path) as statefile:
-                self.state = json.load(statefile)
-        except (IOError, ValueError):
-            self.state = {}
-
-    def save(self, pypi_version, current_time):
-        # Attempt to write out our version check file
-        with open(self.statefile_path, "w") as statefile:
-            json.dump(
-                {
-                    "last_check": current_time.strftime(SELFCHECK_DATE_FMT),
-                    "pypi_version": pypi_version,
-                },
-                statefile,
-                sort_keys=True,
-                separators=(",", ":")
-            )
-
-
 class GlobalSelfCheckState(object):
     def __init__(self):
         self.statefile_path = os.path.join(USER_CACHE_DIR, "selfcheck.json")
@@ -84,13 +59,6 @@ class GlobalSelfCheckState(object):
                           separators=(",", ":"))
 
 
-def load_selfcheck_statefile():
-    if running_under_virtualenv():
-        return VirtualenvSelfCheckState()
-    else:
-        return GlobalSelfCheckState()
-
-
 def pip_version_check(session, options):
     """Check for an update for pip.
 
@@ -106,7 +74,7 @@ def pip_version_check(session, options):
     pypi_version = None
 
     try:
-        state = load_selfcheck_statefile()
+        state = GlobalSelfCheckState()
 
         current_time = datetime.datetime.utcnow()
         # Determine if we need to refresh the state
