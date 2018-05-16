@@ -3,6 +3,7 @@ import os
 import sys
 from contextlib import contextmanager
 
+
 import freezegun
 import pretend
 import pytest
@@ -37,6 +38,7 @@ def _options():
     return pretend.stub(
         find_links=False, extra_index_urls=[], index_url='default_url',
         pre=False, trusted_hosts=False, process_dependency_links=False,
+        cache_dir='',
     )
 
 
@@ -72,7 +74,7 @@ def test_pip_version_check(monkeypatch, stored_time, installed_ver, new_ver,
         save=pretend.call_recorder(lambda v, t: None),
     )
     monkeypatch.setattr(
-        outdated, 'GlobalSelfCheckState', lambda: fake_state
+        outdated, 'GlobalSelfCheckState', lambda **kw: fake_state
     )
 
     with freezegun.freeze_time(
@@ -135,7 +137,7 @@ def test_global_state(monkeypatch, tmpdir):
     monkeypatch.setattr(outdated, 'USER_CACHE_DIR', cache_dir)
     monkeypatch.setattr(sys, 'prefix', tmpdir / 'pip_prefix')
 
-    state = outdated.GlobalSelfCheckState()
+    state = outdated.GlobalSelfCheckState(cache_dir=cache_dir)
     state.save('2.0', datetime.datetime.utcnow())
 
     expected_path = cache_dir / 'selfcheck.json'

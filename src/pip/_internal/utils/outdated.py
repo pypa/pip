@@ -22,8 +22,8 @@ logger = logging.getLogger(__name__)
 
 
 class GlobalSelfCheckState(object):
-    def __init__(self):
-        self.statefile_path = os.path.join(USER_CACHE_DIR, "selfcheck.json")
+    def __init__(self, cache_dir):
+        self.statefile_path = os.path.join(cache_dir, "selfcheck.json")
 
         # Load the existing state
         try:
@@ -74,7 +74,7 @@ def pip_version_check(session, options):
     pypi_version = None
 
     try:
-        state = GlobalSelfCheckState()
+        state = GlobalSelfCheckState(cache_dir=options.cache_dir)
 
         current_time = datetime.datetime.utcnow()
         # Determine if we need to refresh the state
