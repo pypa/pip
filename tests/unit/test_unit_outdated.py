@@ -107,7 +107,7 @@ def test_pip_version_check(monkeypatch, stored_time, installed_ver, new_ver,
         assert len(outdated.logger.warning.calls) == 0
 
 
-def test_global_state(monkeypatch, tmpdir):
+def test_self_check_state(monkeypatch, tmpdir):
     CONTENT = '''{"pip_prefix": {"last_check": "1970-01-02T11:00:00Z",
         "pypi_version": "1.0"}}'''
     fake_file = pretend.stub(
@@ -134,7 +134,6 @@ def test_global_state(monkeypatch, tmpdir):
 
 
     cache_dir = tmpdir / 'cache_dir'
-    monkeypatch.setattr(outdated, 'USER_CACHE_DIR', cache_dir)
     monkeypatch.setattr(sys, 'prefix', tmpdir / 'pip_prefix')
 
     state = outdated.SelfCheckState(cache_dir=cache_dir)
