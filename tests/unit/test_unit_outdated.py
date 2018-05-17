@@ -83,7 +83,7 @@ def test_pip_version_check(monkeypatch, stored_time, installed_ver, new_ver,
             "six.moves",
             "pip._vendor.six.moves",
             "pip._vendor.requests.packages.urllib3.packages.six.moves",
-        ]):
+            ]):
         latest_pypi_version = outdated.pip_version_check(None, _options())
 
     # See we return None if not installed_version
@@ -131,7 +131,6 @@ def test_self_check_state(monkeypatch, tmpdir):
 
     monkeypatch.setattr(lockfile, 'LockFile', fake_lock)
     monkeypatch.setattr(os.path, "exists", lambda p: True)
-
 
     cache_dir = tmpdir / 'cache_dir'
     monkeypatch.setattr(sys, 'prefix', tmpdir / 'pip_prefix')
