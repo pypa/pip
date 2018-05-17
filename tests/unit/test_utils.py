@@ -627,27 +627,22 @@ def test_call_subprocess_closes_stdin():
         call_subprocess([sys.executable, '-c', 'input()'])
 
 
-def test_remove_auth_from_url():
-    # Check that the url is doctored appropriately to remove auth elements
-    #    from the url
-    svn_auth_url = 'https://user:pass@svnrepo.org/svn/project/tags/v0.2'
-    expected_url = 'https://svnrepo.org/svn/project/tags/v0.2'
-    url = remove_auth_from_url(svn_auth_url)
-    assert url == expected_url
-
-    # Check that this doesn't impact urls without authentication'
-    svn_noauth_url = 'https://svnrepo.org/svn/project/tags/v0.2'
-    expected_url = svn_noauth_url
-    url = remove_auth_from_url(svn_noauth_url)
-    assert url == expected_url
-
-    # Check that links to specific revisions are handled properly
-    svn_rev_url = 'https://user:pass@svnrepo.org/svn/project/trunk@8181'
-    expected_url = 'https://svnrepo.org/svn/project/trunk@8181'
-    url = remove_auth_from_url(svn_rev_url)
-    assert url == expected_url
-
-    svn_rev_url = 'https://svnrepo.org/svn/project/trunk@8181'
-    expected_url = 'https://svnrepo.org/svn/project/trunk@8181'
-    url = remove_auth_from_url(svn_rev_url)
+@pytest.mark.parametrize('auth_url, expected_url', [
+    ('https://user:pass@domain.tld/project/tags/v0.2',
+     'https://domain.tld/project/tags/v0.2'),
+    ('https://domain.tld/project/tags/v0.2',
+     'https://domain.tld/project/tags/v0.2',),
+    ('https://user:pass@domain.tld/svn/project/trunk@8181',
+     'https://domain.tld/svn/project/trunk@8181'),
+    ('https://domain.tld/project/trunk@8181',
+     'https://domain.tld/project/trunk@8181',),
+    ('git+https://pypi.org/something',
+     'git+https://pypi.org/something'),
+    ('git+https://user:pass@pypi.org/something',
+     'git+https://pypi.org/something'),
+    ('git+ssh://git@pypi.org/something',
+     'git+ssh://pypi.org/something'),
+])
+def test_remove_auth_from_url(auth_url, expected_url):
+    url = remove_auth_from_url(auth_url)
     assert url == expected_url
