@@ -74,7 +74,7 @@ def test_pip_version_check(monkeypatch, stored_time, installed_ver, new_ver,
         save=pretend.call_recorder(lambda v, t: None),
     )
     monkeypatch.setattr(
-        outdated, 'GlobalSelfCheckState', lambda **kw: fake_state
+        outdated, 'SelfCheckState', lambda **kw: fake_state
     )
 
     with freezegun.freeze_time(
@@ -137,7 +137,7 @@ def test_global_state(monkeypatch, tmpdir):
     monkeypatch.setattr(outdated, 'USER_CACHE_DIR', cache_dir)
     monkeypatch.setattr(sys, 'prefix', tmpdir / 'pip_prefix')
 
-    state = outdated.GlobalSelfCheckState(cache_dir=cache_dir)
+    state = outdated.SelfCheckState(cache_dir=cache_dir)
     state.save('2.0', datetime.datetime.utcnow())
 
     expected_path = cache_dir / 'selfcheck.json'

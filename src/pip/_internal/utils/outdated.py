@@ -11,7 +11,6 @@ from pip._vendor.packaging import version as packaging_version
 
 from pip._internal.compat import WINDOWS
 from pip._internal.index import PackageFinder
-from pip._internal.locations import USER_CACHE_DIR, running_under_virtualenv
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.misc import ensure_dir, get_installed_version
 
@@ -21,7 +20,7 @@ SELFCHECK_DATE_FMT = "%Y-%m-%dT%H:%M:%SZ"
 logger = logging.getLogger(__name__)
 
 
-class GlobalSelfCheckState(object):
+class SelfCheckState(object):
     def __init__(self, cache_dir):
         self.statefile_path = os.path.join(cache_dir, "selfcheck.json")
 
@@ -74,7 +73,7 @@ def pip_version_check(session, options):
     pypi_version = None
 
     try:
-        state = GlobalSelfCheckState(cache_dir=options.cache_dir)
+        state = SelfCheckState(cache_dir=options.cache_dir)
 
         current_time = datetime.datetime.utcnow()
         # Determine if we need to refresh the state

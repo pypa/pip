@@ -1,8 +1,1 @@
-Changed rules on where pip version lock file selfcheck.json is stored.
-
-Previously, the lock file was either stored at ``USER_CACHE``/selfcheck.json,
-or for vitual enviorments it is stored at ``sys.prefix``\pip-selfcheck.json
-
-Now regardless of whether the user is in a virtual environment, the lock file
-is stored either in selfcheck.json in the path specified in cache-dir in
-pip.conf, or if none is specified it is stored at``USER_CACHE``/selfcheck.json 
+Adjust path to selfcheck.json - remove virtualenv specific path and honor cache-dir in pip.conf
