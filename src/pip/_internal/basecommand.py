@@ -6,7 +6,6 @@ import logging.config
 import optparse
 import os
 import sys
-import warnings
 
 from pip._internal import cmdoptions
 from pip._internal.baseparser import (
@@ -26,7 +25,6 @@ from pip._internal.status_codes import (
     ERROR, PREVIOUS_BUILD_DIR_ERROR, SUCCESS, UNKNOWN_ERROR,
     VIRTUALENV_NOT_FOUND,
 )
-from pip._internal.utils import deprecation
 from pip._internal.utils.logging import IndentingFormatter
 from pip._internal.utils.misc import get_prog, normalize_path
 from pip._internal.utils.outdated import pip_version_check
@@ -197,13 +195,6 @@ class Command(object):
                 ]
             },
         })
-
-        if sys.version_info[:2] == (3, 3):
-            warnings.warn(
-                "Python 3.3 support has been deprecated and will be dropped "
-                "in the future. Please upgrade your Python.",
-                deprecation.RemovedInPip11Warning,
-            )
 
         # TODO: try to get these passing down from the command?
         #      without resorting to os.environ to hold these.

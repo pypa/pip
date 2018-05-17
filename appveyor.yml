@@ -1,14 +1,12 @@
 environment:
   matrix:
-    # Unit and integration tests. 
+    # Unit and integration tests.
     - PYTHON: "C:\\Python27"
       RUN_INTEGRATION_TESTS: "True"
     - PYTHON: "C:\\Python36-x64"
       RUN_INTEGRATION_TESTS: "True"
     # Unit tests only.
     - PYTHON: "C:\\Python27-x64"
-    - PYTHON: "C:\\Python33"
-    - PYTHON: "C:\\Python33-x64"
     - PYTHON: "C:\\Python34"
     - PYTHON: "C:\\Python34-x64"
     - PYTHON: "C:\\Python35"
