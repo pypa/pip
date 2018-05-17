@@ -83,7 +83,8 @@ def test_pip_version_check(monkeypatch, stored_time, installed_ver, new_ver,
             "six.moves",
             "pip._vendor.six.moves",
             "pip._vendor.requests.packages.urllib3.packages.six.moves",
-            ]):
+        ]
+    ):
         latest_pypi_version = outdated.pip_version_check(None, _options())
 
     # See we return None if not installed_version
