@@ -372,9 +372,6 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
         if (pyversion_tuple < (2, 7, 9) and
                 args and args[0] in ('search', 'install', 'download')):
             kwargs['expect_stderr'] = True
-        # Python 3.3 is deprecated and we emit a warning on it.
-        if pyversion_tuple[:2] == (3, 3):
-            kwargs['expect_stderr'] = True
         if kwargs.pop('use_module', False):
             exe = 'python'
             args = ('-m', 'pip') + args

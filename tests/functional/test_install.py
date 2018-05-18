@@ -32,16 +32,11 @@ def test_pep518_uses_build_env(script, data, original_setuptools):
         raise ValueError(original_setuptools)
     to_install = data.src.join("pep518-3.0")
     for command in ('install', 'wheel'):
-        kwargs = {}
-        if sys.version_info[:2] == (3, 3):
-            # Ignore Python 3.3 deprecation warning...
-            kwargs['expect_stderr'] = True
         script.run(
             "python", "-c",
             "import pip._internal; pip._internal.main(["
             "%r, " "'-f', %r, " "%r, "
             "])" % (command, str(data.packages), str(to_install)),
-            **kwargs
         )
 
 
@@ -55,16 +50,11 @@ def test_pep518_with_user_pip(script, virtualenv, pip_src, data):
         fp.write('raise ImportError\n')
     to_install = data.src.join("pep518-3.0")
     for command in ('install', 'wheel'):
-        kwargs = {}
-        if sys.version_info[:2] == (3, 3):
-            # Ignore Python 3.3 deprecation warning...
-            kwargs['expect_stderr'] = True
         script.run(
             "python", "-c",
             "import pip._internal; pip._internal.main(["
             "%r, " "'-f', %r, " "%r, "
             "])" % (command, str(data.packages), str(to_install)),
-            **kwargs
         )
 
 
@@ -76,7 +66,7 @@ def test_pip_second_command_line_interface_works(script, data):
     # On old versions of Python, urllib3/requests will raise a warning about
     # the lack of an SSLContext.
     kwargs = {}
-    if pyversion_tuple < (2, 7, 9) or pyversion_tuple[:2] == (3, 3):
+    if pyversion_tuple < (2, 7, 9):
         kwargs['expect_stderr'] = True
 
     args = ['pip%s' % pyversion]
