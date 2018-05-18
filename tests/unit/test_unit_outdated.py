@@ -3,6 +3,7 @@ import os
 import sys
 from contextlib import contextmanager
 
+
 import freezegun
 import pretend
 import pytest
@@ -37,6 +38,7 @@ def _options():
     return pretend.stub(
         find_links=False, extra_index_urls=[], index_url='default_url',
         pre=False, trusted_hosts=False, process_dependency_links=False,
+        cache_dir='',
     )
 
 
@@ -72,16 +74,17 @@ def test_pip_version_check(monkeypatch, stored_time, installed_ver, new_ver,
         save=pretend.call_recorder(lambda v, t: None),
     )
     monkeypatch.setattr(
-        outdated, 'load_selfcheck_statefile', lambda: fake_state
+        outdated, 'SelfCheckState', lambda **kw: fake_state
     )
 
     with freezegun.freeze_time(
-            "1970-01-09 10:00:00",
-            ignore=[
-                "six.moves",
-                "pip._vendor.six.moves",
-                "pip._vendor.requests.packages.urllib3.packages.six.moves",
-            ]):
+        "1970-01-09 10:00:00",
+        ignore=[
+            "six.moves",
+            "pip._vendor.six.moves",
+            "pip._vendor.requests.packages.urllib3.packages.six.moves",
+        ]
+    ):
         latest_pypi_version = outdated.pip_version_check(None, _options())
 
     # See we return None if not installed_version
@@ -105,41 +108,7 @@ def test_pip_version_check(monkeypatch, stored_time, installed_ver, new_ver,
         assert len(outdated.logger.warning.calls) == 0
 
 
-def test_virtualenv_state(monkeypatch):
-    CONTENT = '{"last_check": "1970-01-02T11:00:00Z", "pypi_version": "1.0"}'
-    fake_file = pretend.stub(
-        read=pretend.call_recorder(lambda: CONTENT),
-        write=pretend.call_recorder(lambda s: None),
-    )
-
-    @pretend.call_recorder
-    @contextmanager
-    def fake_open(filename, mode='r'):
-        yield fake_file
-
-    monkeypatch.setattr(outdated, 'open', fake_open, raising=False)
-
-    monkeypatch.setattr(outdated, 'running_under_virtualenv',
-                        pretend.call_recorder(lambda: True))
-
-    monkeypatch.setattr(sys, 'prefix', 'virtually_env')
-
-    state = outdated.load_selfcheck_statefile()
-    state.save('2.0', datetime.datetime.utcnow())
-
-    assert len(outdated.running_under_virtualenv.calls) == 1
-
-    expected_path = os.path.join('virtually_env', 'pip-selfcheck.json')
-    assert fake_open.calls == [
-        pretend.call(expected_path),
-        pretend.call(expected_path, 'w'),
-    ]
-
-    # json.dumps will call this a number of times
-    assert len(fake_file.write.calls)
-
-
-def test_global_state(monkeypatch, tmpdir):
+def test_self_check_state(monkeypatch, tmpdir):
     CONTENT = '''{"pip_prefix": {"last_check": "1970-01-02T11:00:00Z",
         "pypi_version": "1.0"}}'''
     fake_file = pretend.stub(
@@ -164,17 +133,11 @@ def test_global_state(monkeypatch, tmpdir):
     monkeypatch.setattr(lockfile, 'LockFile', fake_lock)
     monkeypatch.setattr(os.path, "exists", lambda p: True)
 
-    monkeypatch.setattr(outdated, 'running_under_virtualenv',
-                        pretend.call_recorder(lambda: False))
-
     cache_dir = tmpdir / 'cache_dir'
-    monkeypatch.setattr(outdated, 'USER_CACHE_DIR', cache_dir)
     monkeypatch.setattr(sys, 'prefix', tmpdir / 'pip_prefix')
 
-    state = outdated.load_selfcheck_statefile()
+    state = outdated.SelfCheckState(cache_dir=cache_dir)
     state.save('2.0', datetime.datetime.utcnow())
-
-    assert len(outdated.running_under_virtualenv.calls) == 1
 
     expected_path = cache_dir / 'selfcheck.json'
     assert fake_lock.calls == [pretend.call(expected_path)]
