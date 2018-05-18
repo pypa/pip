@@ -88,6 +88,11 @@ def test_user_agent__ci(monkeypatch, name, expected_like_ci):
     assert ('"ci":null' in user_agent) == (not expected_like_ci)
 
 
+def test_user_agent_override(monkeypatch):
+    monkeypatch.setenv("PIP_USER_AGENT_INSTALLER_OVERRIDE", "pipenv/1.0.0")
+    PipSession().headers["User-Agent"].startswith("pipenv/1.0.0")
+
+
 class FakeStream(object):
 
     def __init__(self, contents):

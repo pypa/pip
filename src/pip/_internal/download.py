@@ -167,8 +167,14 @@ def user_agent():
     # value to make it easier to know that the check has been run.
     data["ci"] = True if looks_like_ci() else None
 
-    return "{data[installer][name]}/{data[installer][version]} {json}".format(
-        data=data,
+    installer = os.environ.get("PIP_USER_AGENT_INSTALLER_OVERRIDE")
+    if not installer:
+        installer = (
+            "{data[installer][name]}/{data[installer][version]}".format(
+                data=data))
+
+    return "{installer} {json}".format(
+        installer=installer,
         json=json.dumps(data, separators=(",", ":"), sort_keys=True),
     )
 
