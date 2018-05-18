@@ -9,6 +9,7 @@ matrix:
     - env: TOXENV=docs
     - env: TOXENV=lint-py2
     - env: TOXENV=lint-py3
+      python: 3.6
     - env: TOXENV=mypy
     - env: TOXENV=packaging
     # PyPy jobs start first -- they are the slowest
