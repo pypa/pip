@@ -19,43 +19,52 @@ from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
 
 
-@pytest.mark.parametrize('original_setuptools', ('missing', 'bad'))
-def test_pep518_uses_build_env(script, data, original_setuptools):
-    if original_setuptools == 'missing':
+@pytest.mark.parametrize('command', ('install', 'wheel'))
+@pytest.mark.parametrize('variant', ('missing_setuptools', 'bad_setuptools'))
+def test_pep518_uses_build_env(script, data, common_wheels, command, variant):
+    if variant == 'missing_setuptools':
         script.pip("uninstall", "-y", "setuptools")
-    elif original_setuptools == 'bad':
+    elif variant == 'bad_setuptools':
         setuptools_init_path = script.site_packages_path.join(
             "setuptools", "__init__.py")
         with open(setuptools_init_path, 'a') as f:
             f.write('\nraise ImportError("toto")')
     else:
-        raise ValueError(original_setuptools)
-    to_install = data.src.join("pep518-3.0")
-    for command in ('install', 'wheel'):
-        script.run(
-            "python", "-c",
-            "import pip._internal; pip._internal.main(["
-            "%r, " "'-f', %r, " "%r, "
-            "])" % (command, str(data.packages), str(to_install)),
-        )
+        raise ValueError(variant)
+    script.pip(
+        command, '--no-index', '-f', common_wheels, '-f', data.packages,
+        data.src.join("pep518-3.0"), use_module=True
+    )
 
 
-def test_pep518_with_user_pip(script, virtualenv, pip_src, data):
+def test_pep518_with_user_pip(script, virtualenv, pip_src,
+                              data, common_wheels):
     virtualenv.system_site_packages = True
-    script.pip("install", "--ignore-installed", "--user", pip_src)
+    script.pip_install_local("--ignore-installed",
+                             "-f", common_wheels,
+                             "--user", pip_src)
     system_pip_dir = script.site_packages_path / 'pip'
     system_pip_dir.rmtree()
     system_pip_dir.mkdir()
     with open(system_pip_dir / '__init__.py', 'w') as fp:
         fp.write('raise ImportError\n')
-    to_install = data.src.join("pep518-3.0")
-    for command in ('install', 'wheel'):
-        script.run(
-            "python", "-c",
-            "import pip._internal; pip._internal.main(["
-            "%r, " "'-f', %r, " "%r, "
-            "])" % (command, str(data.packages), str(to_install)),
-        )
+    script.pip(
+        'wheel', '--no-index', '-f', common_wheels, '-f', data.packages,
+        data.src.join("pep518-3.0"), use_module=True,
+    )
+
+
+def test_pep518_with_extra_and_markers(script, data, common_wheels):
+    script.pip(
+        'wheel', '--no-index',
+        '-f', common_wheels,
+        '-f', data.find_links,
+        # Add tests/data/packages4, which contains a wheel for
+        # simple==1.0 (needed by requires_simple_extra[extra]).
+        '-f', data.find_links4,
+        data.src.join("pep518_with_extra_and_markers-1.0"),
+        use_module=True,
+    )
 
 
 @pytest.mark.network
@@ -197,8 +206,8 @@ def test_install_editable_uninstalls_existing_from_path(script, data):
     to_install = data.src.join('simplewheel-1.0')
     result = script.pip_install_local(to_install)
     assert 'Successfully installed simplewheel' in result.stdout
-    simple_folder = script.site_packages / 'simple'
-    result.assert_installed('simple', editable=False)
+    simple_folder = script.site_packages / 'simplewheel'
+    result.assert_installed('simplewheel', editable=False)
     assert simple_folder in result.files_created, str(result.stdout)
 
     result = script.pip(

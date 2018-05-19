@@ -101,6 +101,10 @@ class TestData(object):
         return self.root.join("packages3")
 
     @property
+    def packages4(self):
+        return self.root.join("packages4")
+
+    @property
     def src(self):
         return self.root.join("src")
 
@@ -123,6 +127,10 @@ class TestData(object):
     @property
     def find_links3(self):
         return path_to_url(self.packages3)
+
+    @property
+    def find_links4(self):
+        return path_to_url(self.packages4)
 
     def index_url(self, index="simple"):
         return path_to_url(self.root.join("indexes", index))

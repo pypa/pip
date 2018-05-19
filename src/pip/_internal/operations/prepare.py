@@ -1,15 +1,12 @@
 """Prepares a distribution for installation
 """
 
-import itertools
 import logging
 import os
-import sys
-from copy import copy
 
 from pip._vendor import pkg_resources, requests
 
-from pip._internal.build_env import NoOpBuildEnvironment
+from pip._internal.build_env import BuildEnvironment
 from pip._internal.compat import expanduser
 from pip._internal.download import (
     is_dir_url, is_file_url, is_vcs_url, unpack_url, url_to_path,
@@ -18,14 +15,9 @@ from pip._internal.exceptions import (
     DirectoryUrlHashUnsupported, HashUnpinned, InstallationError,
     PreviousBuildDirError, VcsHashUnsupported,
 )
-from pip._internal.index import FormatControl
-from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.hashes import MissingHashes
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import (
-    call_subprocess, display_path, normalize_path,
-)
-from pip._internal.utils.ui import open_spinner
+from pip._internal.utils.misc import display_path, normalize_path
 from pip._internal.vcs import vcs
 
 logger = logging.getLogger(__name__)
@@ -45,26 +37,6 @@ def make_abstract_dist(req):
         return IsWheel(req)
     else:
         return IsSDist(req)
-
-
-def _install_build_reqs(finder, prefix, build_requirements):
-    # NOTE: What follows is not a very good thing.
-    #       Eventually, this should move into the BuildEnvironment class and
-    #       that should handle all the isolation and sub-process invocation.
-    finder = copy(finder)
-    finder.format_control = FormatControl(set(), set([":all:"]))
-    urls = [
-        finder.find_requirement(
-            InstallRequirement.from_line(r), upgrade=False).url
-        for r in build_requirements
-    ]
-    args = [
-        sys.executable, '-m', 'pip', 'install', '--ignore-installed',
-        '--no-user', '--prefix', prefix,
-    ] + list(urls)
-
-    with open_spinner("Installing build dependencies") as spinner:
-        call_subprocess(args, show_stdout=False, spinner=spinner)
 
 
 class DistAbstraction(object):
@@ -144,12 +116,10 @@ class IsSDist(DistAbstraction):
             )
 
         if should_isolate:
-            with self.req.build_env:
-                pass
-            _install_build_reqs(finder, self.req.build_env.path,
-                                build_requirements)
-        else:
-            self.req.build_env = NoOpBuildEnvironment(no_clean=False)
+            self.req.build_env = BuildEnvironment()
+            self.req.build_env.install_requirements(
+                finder, build_requirements,
+                "Installing build dependencies")
 
         self.req.run_egg_info()
         self.req.assert_source_matches_version()

@@ -22,7 +22,7 @@ from pip._vendor.packaging.version import Version
 from pip._vendor.pkg_resources import RequirementParseError, parse_requirements
 
 from pip._internal import wheel
-from pip._internal.build_env import BuildEnvironment
+from pip._internal.build_env import NoOpBuildEnvironment
 from pip._internal.compat import native_str
 from pip._internal.download import (
     is_archive_file, is_url, path_to_url, url_to_path,
@@ -127,7 +127,7 @@ class InstallRequirement(object):
         self.is_direct = False
 
         self.isolated = isolated
-        self.build_env = BuildEnvironment(no_clean=True)
+        self.build_env = NoOpBuildEnvironment()
 
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, isolated=False,
