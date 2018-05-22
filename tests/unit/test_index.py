@@ -139,3 +139,18 @@ def test_secure_origin(location, trusted, expected):
     logger = MockLogger()
     finder._validate_secure_origin(logger, location)
     assert logger.called == expected
+
+
+def test_get_formatted_locations_basic_auth():
+    """
+    Test that basic authentication credentials defined in URL
+    is not included in formatted output.
+    """
+    index_urls = [
+        'https://pypi.org/simple',
+        'https://user:pass@repo.domain.com',
+    ]
+    finder = PackageFinder([], index_urls, session=[])
+
+    result = finder.get_formatted_locations()
+    assert 'user' not in result and 'pass' not in result
