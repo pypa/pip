@@ -6,7 +6,7 @@ import logging
 import os.path
 import sys
 
-from pip._vendor import lockfile
+from pip._vendor import lockfile, pkg_resources
 from pip._vendor.packaging import version as packaging_version
 
 from pip._internal.compat import WINDOWS
@@ -56,6 +56,20 @@ class SelfCheckState(object):
             with open(self.statefile_path, "w") as statefile:
                 json.dump(state, statefile, sort_keys=True,
                           separators=(",", ":"))
+
+
+def pip_installed_by_pip():
+    """Checks whether pip was installed by pip
+
+    This is used not to display the upgrade message when pip is in fact
+    installed by system package manager, such as dnf on Fedora.
+    """
+    try:
+        dist = pkg_resources.get_distribution('pip')
+        return (dist.has_metadata('INSTALLER') and
+                'pip' in dist.get_metadata_lines('INSTALLER'))
+    except pkg_resources.DistributionNotFound:
+        return False
 
 
 def pip_version_check(session, options):
@@ -110,7 +124,8 @@ def pip_version_check(session, options):
 
         # Determine if our pypi_version is older
         if (pip_version < remote_version and
-                pip_version.base_version != remote_version.base_version):
+                pip_version.base_version != remote_version.base_version and
+                pip_installed_by_pip()):
             # Advise "python -m pip" on Windows to avoid issues
             # with overwriting pip.exe.
             if WINDOWS:
