@@ -14,7 +14,22 @@ from tests.lib.scripttest import PipTestEnvironment
 from tests.lib.venv import VirtualEnvironment
 
 
-def pytest_collection_modifyitems(items):
+if hasattr(sys, "pypy_version_info"):
+    is_pypy = True
+else:
+    is_pypy = False
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--runslow", action="store_true", default=False, help="run slow tests"
+    )
+
+
+def pytest_collection_modifyitems(config, items):
+    skip_fast = pytest.mark.skip(reason="omit --runslow option to run")
+    skip_slow = pytest.mark.skip(reason="need --runslow option to run")
+
     for item in items:
         if not hasattr(item, 'module'):  # e.g.: DoctestTextfile
             continue
@@ -47,6 +62,18 @@ def pytest_collection_modifyitems(items):
             raise RuntimeError(
                 "Unknown test type (filename = {})".format(module_path)
             )
+
+        # Skip or run slow/network tests on PyPy
+        if is_pypy:
+            if config.getoption("--runslow"):
+                # --runslow given: run slow/network tests, skip fast tests
+                if ("network" not in item.keywords and
+                        "pypy_slow" not in item.keywords):
+                    item.add_marker(skip_fast)
+            else:
+                # no --runslow given: run fast/non-net tests, skip slow tests
+                if "network" in item.keywords or "pypy_slow" in item.keywords:
+                    item.add_marker(skip_slow)
 
 
 @pytest.yield_fixture

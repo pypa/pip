@@ -24,7 +24,10 @@ if [[ $TOXENV != docs ]]; then
     fi
 fi
 
-if [[ $TOXENV == py* ]]; then
+if [[ $TOXENV == *-slow ]]; then
+    # Only run slow/network integration tests
+    tox -- -m integration -n 4 --duration=5 --runslow
+elif [[ $TOXENV == py* ]]; then
     # Run unit tests
     tox -- -m unit
     # Run integration tests

@@ -123,6 +123,7 @@ def test_local_legacy_flag(script, data):
 
 
 @pytest.mark.network
+@pytest.mark.pypy_slow
 def test_user_flag(script, data, virtualenv):
     """
     Test the behavior of --user flag in the list command
@@ -140,6 +141,7 @@ def test_user_flag(script, data, virtualenv):
 
 
 @pytest.mark.network
+@pytest.mark.pypy_slow
 def test_user_columns_flag(script, data, virtualenv):
     """
     Test the behavior of --user --format=columns flags in the list command
@@ -158,6 +160,7 @@ def test_user_columns_flag(script, data, virtualenv):
 
 
 @pytest.mark.network
+@pytest.mark.pypy_slow
 def test_user_legacy(script, data, virtualenv):
     """
     Test the behavior of --user flag in the list command
@@ -175,6 +178,7 @@ def test_user_legacy(script, data, virtualenv):
 
 
 @pytest.mark.network
+@pytest.mark.pypy_slow
 def test_uptodate_flag(script, data):
     """
     Test the behavior of --uptodate flag in the list command
@@ -200,6 +204,7 @@ def test_uptodate_flag(script, data):
 
 
 @pytest.mark.network
+@pytest.mark.pypy_slow
 def test_uptodate_columns_flag(script, data):
     """
     Test the behavior of --uptodate --format=columns flag in the list command
@@ -226,6 +231,7 @@ def test_uptodate_columns_flag(script, data):
 
 
 @pytest.mark.network
+@pytest.mark.pypy_slow
 def test_uptodate_legacy_flag(script, data):
     """
     Test the behavior of --uptodate --format=legacy flag in the list command
@@ -250,6 +256,7 @@ def test_uptodate_legacy_flag(script, data):
 
 
 @pytest.mark.network
+@pytest.mark.pypy_slow
 def test_outdated_flag(script, data):
     """
     Test the behavior of --outdated flag in the list command
@@ -281,6 +288,7 @@ def test_outdated_flag(script, data):
 
 
 @pytest.mark.network
+@pytest.mark.pypy_slow
 def test_outdated_columns_flag(script, data):
     """
     Test the behavior of --outdated --format=columns flag in the list command
@@ -315,6 +323,7 @@ def test_outdated_columns_flag(script, data):
 
 
 @pytest.mark.network
+@pytest.mark.pypy_slow
 def test_outdated_legacy(script, data):
     """
     Test the behavior of --outdated --format=legacy flag in the list command
@@ -342,6 +351,7 @@ def test_outdated_legacy(script, data):
 
 
 @pytest.mark.network
+@pytest.mark.pypy_slow
 def test_editables_flag(script, data):
     """
     Test the behavior of --editables flag in the list command
@@ -413,6 +423,7 @@ def test_editables_legacy(script, data):
 
 
 @pytest.mark.network
+@pytest.mark.pypy_slow
 def test_uptodate_editables_flag(script, data):
     """
     test the behavior of --editable --uptodate flag in the list command
@@ -497,6 +508,7 @@ def test_outdated_editables_flag(script, data):
 
 
 @pytest.mark.network
+@pytest.mark.pypy_slow
 def test_outdated_editables_columns_flag(script, data):
     """
     test the behavior of --editable --outdated flag in the list command
@@ -569,6 +581,7 @@ def test_outdated_pre(script, data):
         in json.loads(result_pre.stdout)
 
 
+@pytest.mark.pypy_slow
 def test_outdated_formats(script, data):
     """ Test of different outdated formats """
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
@@ -613,6 +626,7 @@ def test_outdated_formats(script, data):
                      'latest_version': '1.1', 'latest_filetype': 'wheel'}]
 
 
+@pytest.mark.pypy_slow
 def test_not_required_flag(script, data):
     script.pip(
         'install', '-f', data.find_links, '--no-index', 'TopoRequires4'

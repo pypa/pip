@@ -1,3 +1,5 @@
+import pytest
+
 from tests.lib import create_test_package_with_setup
 
 
@@ -10,6 +12,7 @@ def matches_expected_lines(string, expected_lines):
     return set(output_lines) == set(expected_lines)
 
 
+@pytest.mark.pypy_slow
 def test_check_install_warnings(script):
     pkga_path = create_test_package_with_setup(
         script,

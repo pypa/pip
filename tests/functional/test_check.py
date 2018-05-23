@@ -1,3 +1,5 @@
+import pytest
+
 from tests.lib import create_test_package_with_setup
 
 
@@ -8,6 +10,7 @@ def matches_expected_lines(string, expected_lines):
     return set(output_lines) == set(expected_lines)
 
 
+@pytest.mark.pypy_slow
 def test_basic_check_clean(script):
     """On a clean environment, check should print a helpful message.
 
@@ -21,6 +24,7 @@ def test_basic_check_clean(script):
     assert result.returncode == 0
 
 
+@pytest.mark.pypy_slow
 def test_basic_check_missing_dependency(script):
     # Setup a small project
     pkga_path = create_test_package_with_setup(
@@ -40,6 +44,7 @@ def test_basic_check_missing_dependency(script):
     assert result.returncode == 1
 
 
+@pytest.mark.pypy_slow
 def test_basic_check_broken_dependency(script):
     # Setup pkga depending on pkgb>=1.0
     pkga_path = create_test_package_with_setup(
@@ -70,6 +75,7 @@ def test_basic_check_broken_dependency(script):
     assert result.returncode == 1
 
 
+@pytest.mark.pypy_slow
 def test_basic_check_broken_dependency_and_missing_dependency(script):
     pkga_path = create_test_package_with_setup(
         script,

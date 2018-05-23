@@ -12,10 +12,14 @@ matrix:
     - env: TOXENV=mypy
     - env: TOXENV=packaging
     # PyPy jobs start first -- they are the slowest
-    - env: TOXENV=pypy
-      python: pypy
+    - env: TOXENV=pypy3-slow
+      python: pypy3
     - env: TOXENV=pypy3
       python: pypy3
+    - env: TOXENV=pypy-slow
+      python: pypy
+    - env: TOXENV=pypy
+      python: pypy
     # Latest Stable CPython jobs
     - env: TOXENV=py27
       python: 2.7

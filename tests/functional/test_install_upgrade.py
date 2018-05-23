@@ -176,6 +176,7 @@ def test_upgrade_with_newest_already_installed(script, data):
 
 
 @pytest.mark.network
+@pytest.mark.pypy_slow
 def test_upgrade_force_reinstall_newest(script):
     """
     Force reinstallation of a package even if it is already at its newest
@@ -253,6 +254,7 @@ def test_upgrade_to_same_version_from_url(script):
 
 
 @pytest.mark.network
+@pytest.mark.pypy_slow
 def test_upgrade_from_reqs_file(script):
     """
     Upgrade from a requirements file.
@@ -312,6 +314,7 @@ def test_uninstall_rollback(script, data):
 
 
 @pytest.mark.network
+@pytest.mark.pypy_slow
 def test_should_not_install_always_from_cache(script):
     """
     If there is an old cached package, pip should download the newer version

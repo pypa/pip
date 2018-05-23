@@ -219,6 +219,7 @@ class Tests_UserSite:
         assert isdir(initools_folder)
 
     @pytest.mark.network
+    @pytest.mark.pypy_slow
     def test_install_user_conflict_in_globalsite_and_usersite(
             self, script, virtualenv):
         """

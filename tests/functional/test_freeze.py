@@ -164,6 +164,7 @@ def test_freeze_exclude_editable(script, tmpdir):
 
 
 @pytest.mark.git
+@pytest.mark.pypy_slow
 def test_freeze_git_clone(script, tmpdir):
     """
     Test freezing a Git clone.
@@ -270,6 +271,7 @@ def test_freeze_git_clone_srcdir(script, tmpdir):
 
 
 @pytest.mark.git
+@pytest.mark.pypy_slow
 def test_freeze_git_remote(script, tmpdir):
     """
     Test freezing a Git clone.
@@ -449,6 +451,7 @@ def test_freeze_with_requirement_option(script):
     ) in result.stderr
 
 
+@pytest.mark.pypy_slow
 def test_freeze_with_requirement_option_multiple(script):
     """
     Test that new requirements are created correctly with multiple
@@ -571,6 +574,7 @@ def test_freeze_with_requirement_option_package_repeated_multi_file(script):
 
 
 @pytest.mark.network
+@pytest.mark.pypy_slow
 def test_freeze_user(script, virtualenv, data):
     """
     Testing freeze with --user, first we have to install some stuff.
