@@ -226,7 +226,6 @@ def test_pip_wheel_with_pep518_build_reqs_no_isolation(script, data,
     assert "Installing build dependencies" not in result.stdout, result.stdout
 
 
-@pytest.mark.pypy_slow
 def test_pip_wheel_with_user_set_in_config(script, data):
     script.pip('install', 'wheel')
     script.pip('download', 'setuptools', 'wheel', '-d', data.packages)

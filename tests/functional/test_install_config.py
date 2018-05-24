@@ -19,7 +19,6 @@ def test_options_from_env_vars(script):
     )
 
 
-@pytest.mark.pypy_slow
 def test_command_line_options_override_env_vars(script, virtualenv):
     """
     Test that command line options override environmental variables.
@@ -42,7 +41,6 @@ def test_command_line_options_override_env_vars(script, virtualenv):
 
 
 @pytest.mark.network
-@pytest.mark.pypy_slow
 def test_env_vars_override_config_file(script, virtualenv):
     """
     Test that environmental variables override settings in config files.
@@ -81,7 +79,6 @@ def _test_env_vars_override_config_file(script, virtualenv, config_file):
 
 
 @pytest.mark.network
-@pytest.mark.pypy_slow
 def test_command_line_append_flags(script, virtualenv, data):
     """
     Test command line flags that append to defaults set by environmental
@@ -133,7 +130,6 @@ def test_command_line_appends_correctly(script, data):
     assert "Skipping link %s" % data.find_links in result.stdout
 
 
-@pytest.mark.pypy_slow
 def test_config_file_override_stack(script, virtualenv):
     """
     Test config files (global, overriding a global config with a

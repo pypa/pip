@@ -53,7 +53,6 @@ def test_schema_check_in_requirements_file(script):
         )
 
 
-@pytest.mark.pypy_slow
 def test_relative_requirements_file(script, data):
     """
     Test installing from a requirements file with a relative path. For path
@@ -355,7 +354,6 @@ def test_constrained_to_url_install_same_url(script, data):
 
 
 @pytest.mark.network
-@pytest.mark.pypy_slow
 def test_double_install_spurious_hash_mismatch(
         script, tmpdir, data, common_wheels):
     """Make sure installing the same hashed sdist twice doesn't throw hash

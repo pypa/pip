@@ -25,7 +25,6 @@ def _install_version_pkg(script, path, rev=None):
     return version
 
 
-@pytest.mark.pypy_slow
 def test_git_install_again_after_changes(script):
     """
     Test installing a repository a second time without specifying a revision,
@@ -44,7 +43,6 @@ def test_git_install_again_after_changes(script):
     assert version == 'some different version'
 
 
-@pytest.mark.pypy_slow
 def test_git_install_branch_again_after_branch_changes(script):
     """
     Test installing a branch again after the branch is updated in the remote
@@ -330,7 +328,6 @@ def test_git_works_with_editable_non_origin_repo(script):
 
 
 @pytest.mark.network
-@pytest.mark.pypy_slow
 def test_reinstalling_works_with_editible_non_master_branch(script):
     """
     Reinstalling an editable installation should not assume that the "master"

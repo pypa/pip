@@ -37,7 +37,6 @@ def test_pep518_uses_build_env(script, data, common_wheels, command, variant):
     )
 
 
-@pytest.mark.pypy_slow
 def test_pep518_with_user_pip(script, virtualenv, pip_src,
                               data, common_wheels):
     virtualenv.system_site_packages = True
@@ -283,7 +282,6 @@ def test_basic_install_from_local_directory(script, data):
     assert egg_info_folder in result.files_created, str(result)
 
 
-@pytest.mark.pypy_slow
 def test_basic_install_relative_directory(script, data):
     """
     Test installing a requirement using a relative path.
@@ -590,7 +588,6 @@ def test_install_package_which_contains_dev_in_name(script):
     assert egg_info_folder in result.files_created, str(result)
 
 
-@pytest.mark.pypy_slow
 def test_install_package_with_target(script):
     """
     Test installing a package using pip install --target
@@ -934,7 +931,6 @@ def test_install_upgrade_editable_depending_on_other_editable(script):
     assert "pkgb==0.1" in result.stdout
 
 
-@pytest.mark.pypy_slow
 def test_install_subprocess_output_handling(script, data):
     args = ['install', data.src.join('chattymodule')]
 
@@ -1008,7 +1004,6 @@ def test_cleanup_after_failed_wheel(script, data, common_wheels):
 
 
 @pytest.mark.network
-@pytest.mark.pypy_slow
 def test_install_builds_wheels(script, data, common_wheels):
     # We need to use a subprocess to get the right value on Windows.
     res = script.run('python', '-c', (
@@ -1052,7 +1047,6 @@ def test_install_builds_wheels(script, data, common_wheels):
 
 
 @pytest.mark.network
-@pytest.mark.pypy_slow
 def test_install_no_binary_disables_building_wheels(
         script, data, common_wheels):
     script.pip('install', 'wheel', '--no-index', '-f', common_wheels)
@@ -1079,7 +1073,6 @@ def test_install_no_binary_disables_building_wheels(
 
 
 @pytest.mark.network
-@pytest.mark.pypy_slow
 def test_install_no_binary_disables_cached_wheels(script, data, common_wheels):
     script.pip('install', 'wheel', '--no-index', '-f', common_wheels)
     # Seed the cache

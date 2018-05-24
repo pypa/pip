@@ -453,7 +453,6 @@ def test_uninstall_wheel(script, data):
     assert_all_changes(result, result2, [])
 
 
-@pytest.mark.pypy_slow
 def test_uninstall_setuptools_develop_install(script, data):
     """Try uninstall after setup.py develop followed of setup.py install"""
     pkg_path = data.packages.join("FSPkg")
@@ -476,7 +475,6 @@ def test_uninstall_setuptools_develop_install(script, data):
     assert "FSPkg" not in {p["name"] for p in json.loads(list_result2.stdout)}
 
 
-@pytest.mark.pypy_slow
 def test_uninstall_editable_and_pip_install(script, data):
     """Try uninstall after pip install -e after pip install"""
     # SETUPTOOLS_SYS_PATH_TECHNIQUE=raw removes the assumption that `-e`
