@@ -14,12 +14,6 @@ from tests.lib.scripttest import PipTestEnvironment
 from tests.lib.venv import VirtualEnvironment
 
 
-if hasattr(sys, "pypy_version_info"):
-    is_pypy = True
-else:
-    is_pypy = False
-
-
 def pytest_addoption(parser):
     parser.addoption(
         "--only_install_tests", action="store_true", default=False,
@@ -66,8 +60,8 @@ def pytest_collection_modifyitems(config, items):
                 "Unknown test type (filename = {})".format(module_path)
             )
 
-        # Skip or run test_install*.py functional tests on PyPy
-        if is_pypy and "integration" in item.keywords:
+        # Skip or run test_install*.py functional tests
+        if "integration" in item.keywords:
             if config.getoption("--only_install_tests"):
                 # --only_install_tests given:
                 # run test_install*.py tests,
