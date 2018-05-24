@@ -14,34 +14,49 @@ matrix:
     # PyPy jobs start first -- they are the slowest
     - env: TOXENV=pypy3-functional-install
       python: pypy3
-    - env: TOXENV=pypy3
+    - env: TOXENV=pypy3-functional
       python: pypy3
     - env: TOXENV=pypy-functional-install
       python: pypy
-    - env: TOXENV=pypy
+    - env: TOXENV=pypy-functional
       python: pypy
     # Latest Stable CPython jobs
     - env: TOXENV=py27-functional-install
       python: 2.7
-    - env: TOXENV=py27
+    - env: TOXENV=py27-functional
       python: 2.7
     - env: TOXENV=py36-functional-install
       python: 3.6
-    - env: TOXENV=py36
+    - env: TOXENV=py36-functional
       python: 3.6
     # All the other Py3 versions
     - env: TOXENV=py35-functional-install
       python: 3.5
-    - env: TOXENV=py35
+    - env: TOXENV=py35-functional
       python: 3.5
     - env: TOXENV=py34-functional-install
       python: 3.4
-    - env: TOXENV=py34
+    - env: TOXENV=py34-functional
+      python: 3.4
+    # Fast unit tests near the end
+    - env: TOXENV=pypy3-unit
+      python: pypy3
+    - env: TOXENV=pypy-unit
+      python: pypy
+    - env: TOXENV=py27-unit
+      python: 2.7
+    - env: TOXENV=py36-unit
+      python: 3.6
+    - env: TOXENV=py35-unit
+      python: 3.5
+    - env: TOXENV=py34-unit
       python: 3.4
     # Nightly Python goes last
     - env: TOXENV=py37-functional-install
       python: nightly
-    - env: TOXENV=py37
+    - env: TOXENV=py37-functional
+      python: nightly
+    - env: TOXENV=py37-unit
       python: nightly
   allow_failures:
     - python: nightly
