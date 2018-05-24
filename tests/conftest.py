@@ -22,13 +22,16 @@ else:
 
 def pytest_addoption(parser):
     parser.addoption(
-        "--runslow", action="store_true", default=False, help="run slow tests"
+        "--only_install_tests", action="store_true", default=False,
+        help="Only run test_install*.py tests"
     )
 
 
 def pytest_collection_modifyitems(config, items):
-    skip_fast = pytest.mark.skip(reason="omit --runslow option to run")
-    skip_slow = pytest.mark.skip(reason="need --runslow option to run")
+    skip_install_tests = pytest.mark.skip(
+        reason="Need --only_install_tests option to run")
+    skip_not_test_install = pytest.mark.skip(
+        reason="Omit --only_install_tests option to run")
 
     for item in items:
         if not hasattr(item, 'module'):  # e.g.: DoctestTextfile
@@ -63,17 +66,20 @@ def pytest_collection_modifyitems(config, items):
                 "Unknown test type (filename = {})".format(module_path)
             )
 
-        # Skip or run slow/network tests on PyPy
-        if is_pypy:
-            if config.getoption("--runslow"):
-                # --runslow given: run slow/network tests, skip fast tests
-                if ("network" not in item.keywords and
-                        "pypy_slow" not in item.keywords):
-                    item.add_marker(skip_fast)
+        # Skip or run test_install*.py functional tests on PyPy
+        if is_pypy and "integration" in item.keywords:
+            if config.getoption("--only_install_tests"):
+                # --only_install_tests given:
+                # run test_install*.py tests,
+                # skip others
+                if "test_install" not in item.location[0]:
+                    item.add_marker(skip_not_test_install)
             else:
-                # no --runslow given: run fast/non-net tests, skip slow tests
-                if "network" in item.keywords or "pypy_slow" in item.keywords:
-                    item.add_marker(skip_slow)
+                # no --only_install_tests given:
+                # skip test_install*.py tests,
+                # run others
+                if "test_install" in item.location[0]:
+                    item.add_marker(skip_install_tests)
 
 
 @pytest.yield_fixture

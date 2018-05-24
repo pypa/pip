@@ -24,9 +24,9 @@ if [[ $TOXENV != docs ]]; then
     fi
 fi
 
-if [[ $TOXENV == *-slow ]]; then
+if [[ $TOXENV == *-functional-install ]]; then
     # Only run slow/network integration tests
-    tox -- -m integration -n 4 --duration=5 --runslow
+    tox -- -m integration -n 4 --duration=5 --only_install_tests
 elif [[ $TOXENV == py* ]]; then
     # Run unit tests
     tox -- -m unit

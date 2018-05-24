@@ -12,11 +12,11 @@ matrix:
     - env: TOXENV=mypy
     - env: TOXENV=packaging
     # PyPy jobs start first -- they are the slowest
-    - env: TOXENV=pypy3-slow
+    - env: TOXENV=pypy3-functional-install
       python: pypy3
     - env: TOXENV=pypy3
       python: pypy3
-    - env: TOXENV=pypy-slow
+    - env: TOXENV=pypy-functional-install
       python: pypy
     - env: TOXENV=pypy
       python: pypy
