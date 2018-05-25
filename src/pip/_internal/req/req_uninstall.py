@@ -19,6 +19,12 @@ from pip._internal.utils.misc import (
 )
 from pip._internal.utils.temp_dir import TempDirectory
 
+if sys.version_info >= (3, 2):
+    samefile = os.path.samefile
+else:
+    def samefile(self, other):
+        return os.stat(self) == os.stat(other)
+
 logger = logging.getLogger(__name__)
 
 
@@ -359,7 +365,7 @@ class UninstallPathSet(object):
             # develop egg
             with open(develop_egg_link, 'r') as fh:
                 link_pointer = os.path.normcase(fh.readline().strip())
-            assert (link_pointer == dist.location), (
+            assert (samefile(link_pointer, dist.location)), (
                 'Egg-link %s does not match installed location of %s '
                 '(at %s)' % (link_pointer, dist.project_name, dist.location)
             )
