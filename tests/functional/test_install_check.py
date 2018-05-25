@@ -1,5 +1,3 @@
-import pytest
-
 from tests.lib import create_test_package_with_setup
 
 
