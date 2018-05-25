@@ -43,8 +43,6 @@ matrix:
       python: nightly
     - env: TOXENV=py37-others
       python: nightly
-    - env: TOXENV=py37-unit
-      python: nightly
   allow_failures:
     - python: nightly
 
