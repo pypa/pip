@@ -60,8 +60,8 @@ def pytest_collection_modifyitems(config, items):
                 "Unknown test type (filename = {})".format(module_path)
             )
 
-        # Skip or run test_install*.py functional tests
-        if "integration" in item.keywords:
+        # CI: Skip or run test_install*.py functional tests
+        if "integration" in item.keywords and os.environ.get("CI", False):
             if config.getoption("--only_install_tests"):
                 # --only_install_tests given:
                 # run test_install*.py tests,
