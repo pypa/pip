@@ -24,13 +24,13 @@ if [[ $TOXENV != docs ]]; then
     fi
 fi
 
-if [[ $TOXENV == py*-unit ]]; then
-    # Run unit tests
-    tox -- -m unit
-elif [[ $TOXENV == py*-functional-install ]]; then
+if [[ $TOXENV == py*-functional-install ]]; then
     # Only run test_install*.py integration tests
     tox -- -m integration -n 4 --duration=5 --only_install_tests
 elif [[ $TOXENV == py* ]]; then
+    # Run unit tests
+    tox -- -m unit
+
     # Run other integration tests
     tox -- -m integration -n 4 --duration=5
 else
