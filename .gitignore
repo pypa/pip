@@ -22,8 +22,7 @@ docs/build/
 htmlcov/
 .coverage
 .coverage.*
-.cache
-.pytest_cache
+.*cache
 nosetests.xml
 coverage.xml
 *.cover
