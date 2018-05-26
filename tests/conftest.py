@@ -14,7 +14,7 @@ from tests.lib.scripttest import PipTestEnvironment
 from tests.lib.venv import VirtualEnvironment
 
 
-def pytest_collection_modifyitems(config, items):
+def pytest_collection_modifyitems(items):
     for item in items:
         if not hasattr(item, 'module'):  # e.g.: DoctestTextfile
             continue
