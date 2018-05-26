@@ -14,19 +14,7 @@ from tests.lib.scripttest import PipTestEnvironment
 from tests.lib.venv import VirtualEnvironment
 
 
-def pytest_addoption(parser):
-    parser.addoption(
-        "--only_install_tests", action="store_true", default=False,
-        help="Only run test_install*.py tests"
-    )
-
-
 def pytest_collection_modifyitems(config, items):
-    skip_install_tests = pytest.mark.skip(
-        reason="Need --only_install_tests option to run")
-    skip_not_test_install = pytest.mark.skip(
-        reason="Omit --only_install_tests option to run")
-
     for item in items:
         if not hasattr(item, 'module'):  # e.g.: DoctestTextfile
             continue
@@ -59,21 +47,6 @@ def pytest_collection_modifyitems(config, items):
             raise RuntimeError(
                 "Unknown test type (filename = {})".format(module_path)
             )
-
-        # CI: Skip or run test_install*.py functional tests
-        if "integration" in item.keywords and os.environ.get("CI", False):
-            if config.getoption("--only_install_tests"):
-                # --only_install_tests given:
-                # run test_install*.py tests,
-                # skip others
-                if "test_install" not in item.location[0]:
-                    item.add_marker(skip_not_test_install)
-            else:
-                # no --only_install_tests given:
-                # skip test_install*.py tests,
-                # run others
-                if "test_install" in item.location[0]:
-                    item.add_marker(skip_install_tests)
 
 
 @pytest.yield_fixture

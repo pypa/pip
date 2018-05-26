@@ -26,13 +26,13 @@ fi
 
 if [[ $TOXENV == py*-functional-install ]]; then
     # Only run test_install*.py integration tests
-    tox -- -m integration -n 4 --duration=5 --only_install_tests
+    tox -- -m integration -n 4 --duration=5 -k test_install
 elif [[ $TOXENV == py* ]]; then
     # Run unit tests
     tox -- -m unit
 
     # Run other integration tests
-    tox -- -m integration -n 4 --duration=5
+    tox -- -m integration -n 4 --duration=5 -k "not test_install"
 else
     # Run once
     tox
