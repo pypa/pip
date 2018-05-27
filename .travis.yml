@@ -46,6 +46,7 @@ matrix:
   allow_failures:
     - python: nightly
 
+before_install: .travis/setup.sh
 install: travis_retry .travis/install.sh
 script: .travis/run.sh
 
