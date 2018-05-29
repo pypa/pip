@@ -1,6 +1,5 @@
 #!/bin/bash
 set -e
-set -x
 
 # Short circuit tests and linting jobs if there are no code changes involved.
 if [[ $TOXENV != docs ]]; then
@@ -24,16 +23,31 @@ if [[ $TOXENV != docs ]]; then
     fi
 fi
 
-if [[ $TOXENV == py*-functional-install ]]; then
-    # Only run test_install*.py integration tests
-    tox -- -m integration -n 4 --duration=5 -k test_install
-elif [[ $TOXENV == py* ]]; then
-    # Run unit tests
-    tox -- -m unit
+# Export the correct TOXENV when not provided.
+echo "Determining correct TOXENV..."
+if [[ -z "$TOXENV" ]]; then
+    if [[ ${TRAVIS_PYTHON_VERSION} == pypy* ]]; then
+        export TOXENV=${TRAVIS_PYTHON_VERSION}
+    else
+        # We use the syntax ${string:index:length} to make 2.7 -> py27
+        _major=${TRAVIS_PYTHON_VERSION:0:1}
+        _minor=${TRAVIS_PYTHON_VERSION:2:1}
+        export TOXENV="py${_major}${_minor}"
+    fi
+fi
+echo "TOXENV=${TOXENV}"
 
-    # Run other integration tests
+# Print the commands run for this test.
+set -x
+if [[ "$GROUP" == "1" ]]; then
+    # Unit tests
+    tox -- -m unit
+    # Integration tests (not the ones for 'pip install')
     tox -- -m integration -n 4 --duration=5 -k "not test_install"
+elif [[ "$GROUP" == "2" ]]; then
+    # Separate Job for running integration tests for 'pip install'
+    tox -- -m integration -n 4 --duration=5 -k "test_install"
 else
-    # Run once
+    # Non-Testing Jobs should run once
     tox
 fi
