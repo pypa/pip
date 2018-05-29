@@ -507,6 +507,7 @@ class InstallRequirement(object):
             else:
                 self.conflicts_with = existing_dist
         return True
+
     # Things valid for wheels
     @property
     def is_wheel(self):
@@ -1014,7 +1015,6 @@ class InstallRequirement(object):
                                           py_ver_str, self.name)]
 
         return install_args
-
 
 
 def _strip_postfix(req):
