@@ -40,9 +40,8 @@ def test_pep518_uses_build_env(script, data, common_wheels, command, variant):
 def test_pep518_with_user_pip(script, virtualenv, pip_src,
                               data, common_wheels):
     virtualenv.system_site_packages = True
-    script.pip_install_local("--ignore-installed",
-                             "-f", common_wheels,
-                             "--user", pip_src)
+    script.pip("install", "--ignore-installed", "--user", pip_src,
+               use_module=True)
     system_pip_dir = script.site_packages_path / 'pip'
     system_pip_dir.rmtree()
     system_pip_dir.mkdir()
