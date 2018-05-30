@@ -12,7 +12,9 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from pip._internal.req.req_install import InstallRequirement  # noqa: F401
-    from typing import Any, Dict, Iterator, Set, Tuple, List  # noqa: F401
+    from typing import (  # noqa: F401
+        Any, Callable, Dict, Iterator, Optional, Set, Tuple, List
+    )
 
     # Shorthands
     PackageSet = Dict[str, 'PackageDetails']
@@ -41,13 +43,17 @@ def create_package_set_from_installed(**kwargs):
     return package_set
 
 
-def check_package_set(package_set, whitelist=None):
-    # type: (PackageSet, List[str]) -> CheckResult
+def check_package_set(package_set, should_ignore=None):
+    # type: (PackageSet, Optional[Callable[[str], bool]]) -> CheckResult
     """Check if a package set is consistent
 
-    If a whitelist is given, only warns about dependencies included in the
-    whitelist.
+    If should_ignore is passed, it should be a callable that takes a
+    package name and returns a boolean.
     """
+    if should_ignore is None:
+        def should_ignore(name):
+            return False
+
     missing = dict()
     conflicting = dict()
 
@@ -56,8 +62,7 @@ def check_package_set(package_set, whitelist=None):
         missing_deps = set()  # type: Set[Missing]
         conflicting_deps = set()  # type: Set[Conflicting]
 
-        # Ignore dependency when it's not in the whitelist.
-        if whitelist is not None and package_name not in whitelist:
+        if should_ignore(package_name):
             continue
 
         for req in package_set[package_name].requires:
@@ -92,12 +97,17 @@ def check_install_conflicts(to_install):
     """
     # Start from the current state
     package_set = create_package_set_from_installed()
+    # Install packages
     would_be_installed = _simulate_installation_of(to_install, package_set)
+
+    # Only warn about directly-dependent packages; create a whitelist of them
     whitelist = _create_whitelist(would_be_installed, package_set)
 
     return (
         package_set,
-        check_package_set(package_set, whitelist=whitelist),
+        check_package_set(
+            package_set, should_ignore=lambda name: name not in whitelist
+        )
     )
 
 
@@ -105,12 +115,12 @@ def check_install_conflicts(to_install):
 # This required a minor update in dependency link handling logic over at
 # operations.prepare.IsSDist.dist() to get it working
 def _simulate_installation_of(to_install, package_set):
-    # type: (List[InstallRequirement], PackageSet) -> None
+    # type: (List[InstallRequirement], PackageSet) -> Set[str]
     """Computes the version of packages after installing to_install.
     """
 
     # Keep track of packages that were installed
-    installed = []
+    installed = set()
 
     # Modify it as installing requirement_set would (assuming no errors)
     for inst_req in to_install:
@@ -118,13 +128,14 @@ def _simulate_installation_of(to_install, package_set):
         name = canonicalize_name(dist.key)
         package_set[name] = PackageDetails(dist.version, dist.requires())
 
-        installed.append(name)
+        installed.add(name)
 
     return installed
 
 
 def _create_whitelist(would_be_installed, package_set):
-    packages_affected = would_be_installed[:]
+    # type: (Set[str], PackageSet) -> Set[str]
+    packages_affected = set(would_be_installed)
 
     for package_name in package_set:
         if package_name in packages_affected:
@@ -132,7 +143,7 @@ def _create_whitelist(would_be_installed, package_set):
 
         for req in package_set[package_name].requires:
             if canonicalize_name(req.name) in packages_affected:
-                packages_affected.append(package_name)
+                packages_affected.add(package_name)
                 break
 
     return packages_affected
