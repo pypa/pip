@@ -683,7 +683,7 @@ class PackageFinder(object):
             version = egg_info_matches(egg_info, search.supplied, link)
         if version is None:
             self._log_skipped_link(
-                link, 'wrong project name (not %s)' % search.supplied)
+                link, 'Missing project version for %s' % search.supplied)
             return
 
         match = self._py_version_re.search(version)
