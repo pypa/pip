@@ -33,16 +33,20 @@ def create_package_set_from_installed(**kwargs):
     # Default to using all packages installed on the system
     if kwargs == {}:
         kwargs = {"local_only": False, "skip": ()}
-    retval = {}
+
+    package_set = {}
     for dist in get_installed_distributions(**kwargs):
         name = canonicalize_name(dist.project_name)
-        retval[name] = PackageDetails(dist.version, dist.requires())
-    return retval
+        package_set[name] = PackageDetails(dist.version, dist.requires())
+    return package_set
 
 
-def check_package_set(package_set):
-    # type: (PackageSet) -> CheckResult
+def check_package_set(package_set, whitelist=None):
+    # type: (PackageSet, List[str]) -> CheckResult
     """Check if a package set is consistent
+
+    If a whitelist is given, only warns about dependencies included in the
+    whitelist.
     """
     missing = dict()
     conflicting = dict()
@@ -51,6 +55,10 @@ def check_package_set(package_set):
         # Info about dependencies of package_name
         missing_deps = set()  # type: Set[Missing]
         conflicting_deps = set()  # type: Set[Conflicting]
+
+        # Ignore dependency when it's not in the whitelist.
+        if whitelist is not None and package_name not in whitelist:
+            continue
 
         for req in package_set[package_name].requires:
             name = canonicalize_name(req.project_name)  # type: str
@@ -69,13 +77,10 @@ def check_package_set(package_set):
             if not req.specifier.contains(version, prereleases=True):
                 conflicting_deps.add((name, version, req))
 
-        def str_key(x):
-            return str(x)
-
         if missing_deps:
-            missing[package_name] = sorted(missing_deps, key=str_key)
+            missing[package_name] = sorted(missing_deps, key=str)
         if conflicting_deps:
-            conflicting[package_name] = sorted(conflicting_deps, key=str_key)
+            conflicting[package_name] = sorted(conflicting_deps, key=str)
 
     return missing, conflicting
 
@@ -86,21 +91,48 @@ def check_install_conflicts(to_install):
     installing given requirements
     """
     # Start from the current state
-    state = create_package_set_from_installed()
-    _simulate_installation_of(to_install, state)
-    return state, check_package_set(state)
+    package_set = create_package_set_from_installed()
+    would_be_installed = _simulate_installation_of(to_install, package_set)
+    whitelist = _create_whitelist(would_be_installed, package_set)
+
+    return (
+        package_set,
+        check_package_set(package_set, whitelist=whitelist),
+    )
 
 
 # NOTE from @pradyunsg
 # This required a minor update in dependency link handling logic over at
 # operations.prepare.IsSDist.dist() to get it working
-def _simulate_installation_of(to_install, state):
+def _simulate_installation_of(to_install, package_set):
     # type: (List[InstallRequirement], PackageSet) -> None
     """Computes the version of packages after installing to_install.
     """
+
+    # Keep track of packages that were installed
+    installed = []
 
     # Modify it as installing requirement_set would (assuming no errors)
     for inst_req in to_install:
         dist = make_abstract_dist(inst_req).dist(finder=None)
         name = canonicalize_name(dist.key)
-        state[name] = PackageDetails(dist.version, dist.requires())
+        package_set[name] = PackageDetails(dist.version, dist.requires())
+
+        installed.append(name)
+
+    return installed
+
+
+def _create_whitelist(would_be_installed, package_set):
+    packages_affected = would_be_installed[:]
+
+    for package_name in package_set:
+        if package_name in packages_affected:
+            continue
+
+        for req in package_set[package_name].requires:
+            if canonicalize_name(req.name) in packages_affected:
+                packages_affected.append(package_name)
+                break
+
+    return packages_affected
