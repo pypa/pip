@@ -878,12 +878,19 @@ def protect_pip_from_modification_on_windows(modifying_pip):
     On Windows, any operation modifying pip should be run as:
         python -m pip ...
     """
+    pip_names = [
+        "pip.exe",
+        "pip{}.exe".format(sys.version_info[0]),
+        "pip{}.{}.exe".format(*sys.version_info[:2])
+    ]
+
     # See https://github.com/pypa/pip/issues/1299 for more discussion
     should_show_use_python_msg = (
         modifying_pip and
         WINDOWS and
-        os.path.basename(sys.argv[0]).startswith("pip")
+        os.path.basename(sys.argv[0]) in pip_names
     )
+
     if should_show_use_python_msg:
         new_command = [
             sys.executable, "-m", "pip"
