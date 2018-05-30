@@ -30,7 +30,6 @@ from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
 from pip._vendor.urllib3.util import IS_PYOPENSSL
 
 import pip
-from pip._internal.compat import WINDOWS
 from pip._internal.exceptions import HashMismatch, InstallationError
 from pip._internal.locations import write_delete_marker_file
 from pip._internal.models.index import PyPI

@@ -5,7 +5,6 @@ from __future__ import absolute_import
 
 import collections
 import compileall
-import copy
 import csv
 import hashlib
 import logging
