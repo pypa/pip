@@ -11,8 +11,8 @@ from pip._internal.utils.misc import get_installed_distributions
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from pip._internal.req.req_install import InstallRequirement
-    from typing import Any, Dict, Iterator, Set, Tuple, List
+    from pip._internal.req.req_install import InstallRequirement  # noqa: F401
+    from typing import Any, Dict, Iterator, Set, Tuple, List  # noqa: F401
 
     # Shorthands
     PackageSet = Dict[str, 'PackageDetails']
