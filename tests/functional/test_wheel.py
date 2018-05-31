@@ -227,13 +227,13 @@ def test_pip_wheel_with_pep518_build_reqs_no_isolation(script, data,
 
 
 @pytest.mark.network
-def test_pip_wheel_with_user_set_in_config(script, data):
-    script.pip('install', 'wheel')
-    script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
+def test_pip_wheel_with_user_set_in_config(script, data, common_wheels):
+    script.pip_install_local('-f', common_wheels, 'wheel')
     config_file = script.scratch_path / 'pip.conf'
     script.environ['PIP_CONFIG_FILE'] = str(config_file)
     config_file.write("[install]\nuser = true")
     result = script.pip(
         'wheel', data.src / 'withpyproject',
+        '--no-index', '-f', common_wheels
     )
     assert "Successfully built withpyproject" in result.stdout, result.stdout
