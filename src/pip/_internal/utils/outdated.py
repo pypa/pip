@@ -113,6 +113,13 @@ def pip_version_check(session, options):
             all_candidates = finder.find_all_candidates("pip")
             if not all_candidates:
                 return
+
+            all_candidates = [
+                candidate
+                for candidate in all_candidates
+                if candidate.version.pre is None
+            ]
+
             pypi_version = str(
                 max(all_candidates, key=lambda c: c.version).version
             )

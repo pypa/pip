@@ -18,8 +18,10 @@ class MockPackageFinder(object):
     BASE_URL = 'https://pypi.org/simple/pip-{0}.tar.gz'
     PIP_PROJECT_NAME = 'pip'
     INSTALLATION_CANDIDATES = [
-        InstallationCandidate(PIP_PROJECT_NAME, '6.9.0',
-                              BASE_URL.format('6.9.0')),
+        InstallationCandidate(PIP_PROJECT_NAME, '10.0.0b2',
+                              BASE_URL.format('10.0.0b2')),
+        InstallationCandidate(PIP_PROJECT_NAME, '9.0.3',
+                              BASE_URL.format('9.0.3')),
         InstallationCandidate(PIP_PROJECT_NAME, '3.3.1',
                               BASE_URL.format('3.3.1')),
         InstallationCandidate(PIP_PROJECT_NAME, '1.0',
@@ -69,11 +71,13 @@ def _options():
         # Test we return None when installed version is None
         ('1970-01-01T10:00:00Z', None, '1.0', 'pip', False, False),
         # Need an upgrade - upgrade warning should print
-        ('1970-01-01T10:00:00Z', '1.0', '6.9.0', 'pip', True, True),
+        ('1970-01-01T10:00:00Z', '1.0', '9.0.3', 'pip', True, True),
         # Upgrade available, pip installed via rpm - warning should not print
-        ('1970-01-01T10:00:00Z', '1.0', '6.9.0', 'rpm', True, False),
+        ('1970-01-01T10:00:00Z', '1.0', '9.0.3', 'rpm', True, False),
         # No upgrade - upgrade warning should not print
-        ('1970-01-9T10:00:00Z', '6.9.0', '6.9.0', 'pip', False, False),
+        ('1970-01-9T10:00:00Z', '9.0.3', '9.0.3', 'pip', False, False),
+        # Pre-release available - upgrade warning should not print
+        ('1970-01-9T10:00:00Z', '9.0.3', '10.0.0b2', 'pip', False, False),
     ]
 )
 def test_pip_version_check(monkeypatch, stored_time, installed_ver, new_ver,
