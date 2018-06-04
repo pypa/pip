@@ -7,6 +7,8 @@ Install a package from `PyPI`_:
 
 ::
 
+(Windows users: To start pip from the command line, type: python -m pip)
+
   $ pip install SomePackage
   [...]
   Successfully installed SomePackage
