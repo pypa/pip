@@ -129,7 +129,7 @@ def test_cleanup_prevented_upon_build_dir_exception(script, data):
     build = script.venv_path / 'build'
     build_simple = build / 'simple'
     os.makedirs(build_simple)
-    write_delete_marker_file(build)
+    write_delete_marker_file(build_simple)
     build_simple.join("setup.py").write("#")
     result = script.pip(
         'install', '-f', data.find_links, '--no-index', 'simple',
@@ -137,6 +137,6 @@ def test_cleanup_prevented_upon_build_dir_exception(script, data):
         expect_error=True, expect_temp=True,
     )
 
-    assert result.returncode == PREVIOUS_BUILD_DIR_ERROR
-    assert "pip can't proceed" in result.stderr
-    assert exists(build_simple)
+    assert result.returncode == PREVIOUS_BUILD_DIR_ERROR, str(result)
+    assert "pip can't proceed" in result.stderr, str(result)
+    assert exists(build_simple), str(result)

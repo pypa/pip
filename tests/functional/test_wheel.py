@@ -175,7 +175,7 @@ def test_pip_wheel_fail_cause_of_previous_build_dir(
     # Given that I have a previous build dir of the `simple` package
     build = script.venv_path / 'build' / 'simple'
     os.makedirs(build)
-    write_delete_marker_file(script.venv_path / 'build')
+    write_delete_marker_file(script.venv_path / 'build' / 'simple')
     build.join('setup.py').write('#')
 
     # When I call pip trying to install things again
