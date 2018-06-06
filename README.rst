@@ -6,10 +6,10 @@ The `PyPA recommended`_ tool for installing Python packages.
 .. image:: https://img.shields.io/pypi/v/pip.svg
    :target: https://pypi.org/project/pip/
 
-.. image:: https://img.shields.io/travis/pypa/pip/master.svg
+.. image:: https://img.shields.io/travis/pypa/pip/master.svg?label=travis-ci
    :target: http://travis-ci.org/pypa/pip
 
-.. image:: https://img.shields.io/appveyor/ci/pypa/pip.svg
+.. image:: https://img.shields.io/appveyor/ci/pypa/pip.svg?label=appveyor-ci
    :target: https://ci.appveyor.com/project/pypa/pip/history
 
 .. image:: https://readthedocs.org/projects/pip/badge/?version=latest
