@@ -252,7 +252,7 @@ Some examples:
   SomeProject~=1.4.2
 
 Since version 6.0, pip also supports specifiers containing `environment markers
-<https://www.python.org/dev/peps/pep-0426/#environment-markers>`_ like so:
+<https://www.python.org/dev/peps/pep-0508/#environment-markers>`__ like so:
 
  ::
 
@@ -311,7 +311,7 @@ Pre-release Versions
 ++++++++++++++++++++
 
 Starting with v1.4, pip will only install stable versions as specified by
-`PEP426`_ by default. If a version cannot be parsed as a compliant `PEP426`_
+`pre-releases`_ by default. If a version cannot be parsed as a compliant `PEP440`_
 version then it is assumed to be a pre-release.
 
 If a Requirement specifier includes a pre-release or development version
@@ -322,7 +322,7 @@ The ``pip install`` command also supports a :ref:`--pre <install_--pre>` flag
 that will enable installing pre-releases and development releases.
 
 
-.. _PEP426: http://www.python.org/dev/peps/pep-0426
+.. _pre-releases: https://www.python.org/dev/peps/pep-0440/#handling-of-pre-releases
 
 
 .. _`VCS Support`:
