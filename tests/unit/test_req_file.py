@@ -259,8 +259,10 @@ class TestProcessLine(object):
         assert list(process_line(line, 'filename', 1)) == [(req, True)]
 
     def test_options_on_a_requirement_line(self):
-        line = 'SomeProject --install-option=yo1 --install-option yo2 '\
-               '--global-option="yo3" --global-option "yo4"'
+        line = (
+            'SomeProject --install-option=yo1 --install-option yo2 '
+            '--global-option="yo3" --global-option "yo4"'
+        )
         filename = 'filename'
         req = list(process_line(line, filename, 1))[0]
         assert req.options == {
