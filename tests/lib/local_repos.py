@@ -26,11 +26,7 @@ def _dump_initools_repository(directory):
     initools_folder = os.path.join(directory, 'INITools')
     devnull = open(os.devnull, 'w')
     dump = open(filename)
-    subprocess_call(
-        ['svnadmin', 'load', initools_folder],
-        stdin=dump,
-        stdout=devnull,
-    )
+    subprocess_call(['svnadmin', 'load', initools_folder], stdin=dump, stdout=devnull)
     dump.close()
     devnull.close()
     os.remove(filename)
@@ -43,10 +39,12 @@ def _create_svn_repository_for_initools(directory):
 
 
 def _get_vcs_and_checkout_url(remote_repository, directory):
-    vcs_classes = {'svn': subversion.Subversion,
-                   'git': git.Git,
-                   'bzr': bazaar.Bazaar,
-                   'hg': mercurial.Mercurial}
+    vcs_classes = {
+        'svn': subversion.Subversion,
+        'git': git.Git,
+        'bzr': bazaar.Bazaar,
+        'hg': mercurial.Mercurial,
+    }
     default_vcs = 'svn'
     if '+' not in remote_repository:
         remote_repository = '%s+%s' % (default_vcs, remote_repository)
@@ -56,19 +54,14 @@ def _get_vcs_and_checkout_url(remote_repository, directory):
     if vcs == 'svn':
         branch = os.path.basename(remote_repository)
         # remove the slash
-        repository_name = os.path.basename(
-            remote_repository[:-len(branch) - 1]
-        )
+        repository_name = os.path.basename(remote_repository[: -len(branch) - 1])
     else:
         repository_name = os.path.basename(remote_repository)
 
     destination_path = os.path.join(directory, repository_name)
     if not os.path.exists(destination_path):
         vcs_class(remote_repository).obtain(destination_path)
-    return '%s+%s' % (
-        vcs,
-        path_to_url('/'.join([directory, repository_name, branch])),
-    )
+    return '%s+%s' % (vcs, path_to_url('/'.join([directory, repository_name, branch])))
 
 
 def local_checkout(remote_repo, directory):

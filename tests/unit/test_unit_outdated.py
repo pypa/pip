@@ -18,12 +18,9 @@ class MockPackageFinder(object):
     BASE_URL = 'https://pypi.org/simple/pip-{0}.tar.gz'
     PIP_PROJECT_NAME = 'pip'
     INSTALLATION_CANDIDATES = [
-        InstallationCandidate(PIP_PROJECT_NAME, '6.9.0',
-                              BASE_URL.format('6.9.0')),
-        InstallationCandidate(PIP_PROJECT_NAME, '3.3.1',
-                              BASE_URL.format('3.3.1')),
-        InstallationCandidate(PIP_PROJECT_NAME, '1.0',
-                              BASE_URL.format('1.0')),
+        InstallationCandidate(PIP_PROJECT_NAME, '6.9.0', BASE_URL.format('6.9.0')),
+        InstallationCandidate(PIP_PROJECT_NAME, '3.3.1', BASE_URL.format('3.3.1')),
+        InstallationCandidate(PIP_PROJECT_NAME, '1.0', BASE_URL.format('1.0')),
     ]
 
     def __init__(self, *args, **kwargs):
@@ -50,8 +47,12 @@ class MockDistribution(object):
 def _options():
     ''' Some default options that we pass to outdated.pip_version_check '''
     return pretend.stub(
-        find_links=False, extra_index_urls=[], index_url='default_url',
-        pre=False, trusted_hosts=False, process_dependency_links=False,
+        find_links=False,
+        extra_index_urls=[],
+        index_url='default_url',
+        pre=False,
+        trusted_hosts=False,
+        process_dependency_links=False,
         cache_dir='',
     )
 
@@ -74,28 +75,34 @@ def _options():
         ('1970-01-01T10:00:00Z', '1.0', '6.9.0', 'rpm', True, False),
         # No upgrade - upgrade warning should not print
         ('1970-01-9T10:00:00Z', '6.9.0', '6.9.0', 'pip', False, False),
-    ]
+    ],
 )
-def test_pip_version_check(monkeypatch, stored_time, installed_ver, new_ver,
-                           installer, check_if_upgrade_required,
-                           check_warn_logs):
-    monkeypatch.setattr(outdated, 'get_installed_version',
-                        lambda name: installed_ver)
+def test_pip_version_check(
+    monkeypatch,
+    stored_time,
+    installed_ver,
+    new_ver,
+    installer,
+    check_if_upgrade_required,
+    check_warn_logs,
+):
+    monkeypatch.setattr(outdated, 'get_installed_version', lambda name: installed_ver)
     monkeypatch.setattr(outdated, 'PackageFinder', MockPackageFinder)
-    monkeypatch.setattr(outdated.logger, 'warning',
-                        pretend.call_recorder(lambda *a, **kw: None))
-    monkeypatch.setattr(outdated.logger, 'debug',
-                        pretend.call_recorder(lambda s, exc_info=None: None))
-    monkeypatch.setattr(pkg_resources, 'get_distribution',
-                        lambda name: MockDistribution(installer))
+    monkeypatch.setattr(
+        outdated.logger, 'warning', pretend.call_recorder(lambda *a, **kw: None)
+    )
+    monkeypatch.setattr(
+        outdated.logger, 'debug', pretend.call_recorder(lambda s, exc_info=None: None)
+    )
+    monkeypatch.setattr(
+        pkg_resources, 'get_distribution', lambda name: MockDistribution(installer)
+    )
 
     fake_state = pretend.stub(
         state={"last_check": stored_time, 'pypi_version': installed_ver},
         save=pretend.call_recorder(lambda v, t: None),
     )
-    monkeypatch.setattr(
-        outdated, 'SelfCheckState', lambda **kw: fake_state
-    )
+    monkeypatch.setattr(outdated, 'SelfCheckState', lambda **kw: fake_state)
 
     with freezegun.freeze_time(
         "1970-01-09 10:00:00",
@@ -103,7 +110,7 @@ def test_pip_version_check(monkeypatch, stored_time, installed_ver, new_ver,
             "six.moves",
             "pip._vendor.six.moves",
             "pip._vendor.requests.packages.urllib3.packages.six.moves",
-        ]
+        ],
     ):
         latest_pypi_version = outdated.pip_version_check(None, _options())
 
@@ -113,7 +120,7 @@ def test_pip_version_check(monkeypatch, stored_time, installed_ver, new_ver,
     # See that we saved the correct version
     elif check_if_upgrade_required:
         assert fake_state.save.calls == [
-            pretend.call(new_ver, datetime.datetime(1970, 1, 9, 10, 00, 00)),
+            pretend.call(new_ver, datetime.datetime(1970, 1, 9, 10, 00, 00))
         ]
     else:
         # Make sure no Exceptions

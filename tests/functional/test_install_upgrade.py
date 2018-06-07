@@ -15,9 +15,9 @@ def test_no_upgrade_unless_requested(script):
     """
     script.pip('install', 'INITools==0.1', expect_error=True)
     result = script.pip('install', 'INITools', expect_error=True)
-    assert not result.files_created, (
-        'pip install INITools upgraded when it should not have'
-    )
+    assert (
+        not result.files_created
+    ), 'pip install INITools upgraded when it should not have'
 
 
 def test_invalid_upgrade_strategy_causes_error(script):
@@ -26,8 +26,7 @@ def test_invalid_upgrade_strategy_causes_error(script):
 
     """
     result = script.pip_install_local(
-        '--upgrade', '--upgrade-strategy=bazinga', 'simple',
-        expect_error=True
+        '--upgrade', '--upgrade-strategy=bazinga', 'simple', expect_error=True
     )
 
     assert result.returncode
@@ -41,18 +40,18 @@ def test_only_if_needed_does_not_upgrade_deps_when_satisfied(script):
     """
     script.pip_install_local('simple==2.0', expect_error=True)
     result = script.pip_install_local(
-        '--upgrade', '--upgrade-strategy=only-if-needed', 'require_simple',
-        expect_error=True
+        '--upgrade',
+        '--upgrade-strategy=only-if-needed',
+        'require_simple',
+        expect_error=True,
     )
 
     assert (
-        (script.site_packages / 'require_simple-1.0-py%s.egg-info' % pyversion)
-        not in result.files_deleted
-    ), "should have installed require_simple==1.0"
+        script.site_packages / 'require_simple-1.0-py%s.egg-info' % pyversion
+    ) not in result.files_deleted, "should have installed require_simple==1.0"
     assert (
-        (script.site_packages / 'simple-2.0-py%s.egg-info' % pyversion)
-        not in result.files_deleted
-    ), "should not have uninstalled simple==2.0"
+        script.site_packages / 'simple-2.0-py%s.egg-info' % pyversion
+    ) not in result.files_deleted, "should not have uninstalled simple==2.0"
 
 
 def test_only_if_needed_does_upgrade_deps_when_no_longer_satisfied(script):
@@ -62,21 +61,22 @@ def test_only_if_needed_does_upgrade_deps_when_no_longer_satisfied(script):
     """
     script.pip_install_local('simple==1.0', expect_error=True)
     result = script.pip_install_local(
-        '--upgrade', '--upgrade-strategy=only-if-needed', 'require_simple',
-        expect_error=True
+        '--upgrade',
+        '--upgrade-strategy=only-if-needed',
+        'require_simple',
+        expect_error=True,
     )
 
     assert (
-        (script.site_packages / 'require_simple-1.0-py%s.egg-info' % pyversion)
-        not in result.files_deleted
-    ), "should have installed require_simple==1.0"
+        script.site_packages / 'require_simple-1.0-py%s.egg-info' % pyversion
+    ) not in result.files_deleted, "should have installed require_simple==1.0"
     assert (
-        script.site_packages / 'simple-3.0-py%s.egg-info' %
-        pyversion in result.files_created
+        script.site_packages / 'simple-3.0-py%s.egg-info' % pyversion
+        in result.files_created
     ), "should have installed simple==3.0"
     assert (
-        script.site_packages / 'simple-1.0-py%s.egg-info' %
-        pyversion in result.files_deleted
+        script.site_packages / 'simple-1.0-py%s.egg-info' % pyversion
+        in result.files_deleted
     ), "should have uninstalled simple==1.0"
 
 
@@ -87,18 +87,15 @@ def test_eager_does_upgrade_dependecies_when_currently_satisfied(script):
     """
     script.pip_install_local('simple==2.0', expect_error=True)
     result = script.pip_install_local(
-        '--upgrade', '--upgrade-strategy=eager', 'require_simple',
-        expect_error=True
+        '--upgrade', '--upgrade-strategy=eager', 'require_simple', expect_error=True
     )
 
     assert (
-        (script.site_packages / 'require_simple-1.0-py%s.egg-info' % pyversion)
-        not in result.files_deleted
-    ), "should have installed require_simple==1.0"
+        script.site_packages / 'require_simple-1.0-py%s.egg-info' % pyversion
+    ) not in result.files_deleted, "should have installed require_simple==1.0"
     assert (
-        (script.site_packages / 'simple-2.0-py%s.egg-info' % pyversion)
-        in result.files_deleted
-    ), "should have uninstalled simple==2.0"
+        script.site_packages / 'simple-2.0-py%s.egg-info' % pyversion
+    ) in result.files_deleted, "should have uninstalled simple==2.0"
 
 
 def test_eager_does_upgrade_dependecies_when_no_longer_satisfied(script):
@@ -108,21 +105,19 @@ def test_eager_does_upgrade_dependecies_when_no_longer_satisfied(script):
     """
     script.pip_install_local('simple==1.0', expect_error=True)
     result = script.pip_install_local(
-        '--upgrade', '--upgrade-strategy=eager', 'require_simple',
-        expect_error=True
+        '--upgrade', '--upgrade-strategy=eager', 'require_simple', expect_error=True
     )
 
     assert (
-        (script.site_packages / 'require_simple-1.0-py%s.egg-info' % pyversion)
-        not in result.files_deleted
-    ), "should have installed require_simple==1.0"
+        script.site_packages / 'require_simple-1.0-py%s.egg-info' % pyversion
+    ) not in result.files_deleted, "should have installed require_simple==1.0"
     assert (
-        script.site_packages / 'simple-3.0-py%s.egg-info' %
-        pyversion in result.files_created
+        script.site_packages / 'simple-3.0-py%s.egg-info' % pyversion
+        in result.files_created
     ), "should have installed simple==3.0"
     assert (
-        script.site_packages / 'simple-1.0-py%s.egg-info' %
-        pyversion in result.files_deleted
+        script.site_packages / 'simple-1.0-py%s.egg-info' % pyversion
+        in result.files_deleted
     ), "should have uninstalled simple==1.0"
 
 
@@ -134,16 +129,14 @@ def test_upgrade_to_specific_version(script):
     """
     script.pip('install', 'INITools==0.1', expect_error=True)
     result = script.pip('install', 'INITools==0.2', expect_error=True)
-    assert result.files_created, (
-        'pip install with specific version did not upgrade'
+    assert result.files_created, 'pip install with specific version did not upgrade'
+    assert (
+        script.site_packages / 'INITools-0.1-py%s.egg-info' % pyversion
+        in result.files_deleted
     )
     assert (
-        script.site_packages / 'INITools-0.1-py%s.egg-info' %
-        pyversion in result.files_deleted
-    )
-    assert (
-        script.site_packages / 'INITools-0.2-py%s.egg-info' %
-        pyversion in result.files_created
+        script.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
+        in result.files_created
     )
 
 
@@ -157,8 +150,8 @@ def test_upgrade_if_requested(script):
     result = script.pip('install', '--upgrade', 'INITools', expect_error=True)
     assert result.files_created, 'pip install --upgrade did not upgrade'
     assert (
-        script.site_packages / 'INITools-0.1-py%s.egg-info' %
-        pyversion not in result.files_created
+        script.site_packages / 'INITools-0.1-py%s.egg-info' % pyversion
+        not in result.files_created
     )
 
 
@@ -182,12 +175,10 @@ def test_upgrade_force_reinstall_newest(script):
     version if --force-reinstall is supplied.
     """
     result = script.pip('install', 'INITools')
-    assert script.site_packages / 'initools' in result.files_created, (
-        sorted(result.files_created.keys())
+    assert script.site_packages / 'initools' in result.files_created, sorted(
+        result.files_created.keys()
     )
-    result2 = script.pip(
-        'install', '--upgrade', '--force-reinstall', 'INITools'
-    )
+    result2 = script.pip('install', '--upgrade', '--force-reinstall', 'INITools')
     assert result2.files_updated, 'upgrade to INITools 0.3 failed'
     result3 = script.pip('uninstall', 'initools', '-y', expect_error=True)
     assert_all_changes(result, result3, [script.venv / 'build', 'cache'])
@@ -200,8 +191,8 @@ def test_uninstall_before_upgrade(script):
 
     """
     result = script.pip('install', 'INITools==0.2', expect_error=True)
-    assert script.site_packages / 'initools' in result.files_created, (
-        sorted(result.files_created.keys())
+    assert script.site_packages / 'initools' in result.files_created, sorted(
+        result.files_created.keys()
     )
     result2 = script.pip('install', 'INITools==0.3', expect_error=True)
     assert result2.files_created, 'upgrade to INITools 0.3 failed'
@@ -216,8 +207,8 @@ def test_uninstall_before_upgrade_from_url(script):
 
     """
     result = script.pip('install', 'INITools==0.2', expect_error=True)
-    assert script.site_packages / 'initools' in result.files_created, (
-        sorted(result.files_created.keys())
+    assert script.site_packages / 'initools' in result.files_created, sorted(
+        result.files_created.keys()
     )
     result2 = script.pip(
         'install',
@@ -238,8 +229,8 @@ def test_upgrade_to_same_version_from_url(script):
 
     """
     result = script.pip('install', 'INITools==0.3', expect_error=True)
-    assert script.site_packages / 'initools' in result.files_created, (
-        sorted(result.files_created.keys())
+    assert script.site_packages / 'initools' in result.files_created, sorted(
+        result.files_created.keys()
     )
     result2 = script.pip(
         'install',
@@ -258,22 +249,26 @@ def test_upgrade_from_reqs_file(script):
     Upgrade from a requirements file.
 
     """
-    script.scratch_path.join("test-req.txt").write(textwrap.dedent("""\
+    script.scratch_path.join("test-req.txt").write(
+        textwrap.dedent(
+            """\
         PyLogo<0.4
         # and something else to test out:
         INITools==0.3
-        """))
-    install_result = script.pip(
-        'install', '-r', script.scratch_path / 'test-req.txt'
+        """
+        )
     )
-    script.scratch_path.join("test-req.txt").write(textwrap.dedent("""\
+    install_result = script.pip('install', '-r', script.scratch_path / 'test-req.txt')
+    script.scratch_path.join("test-req.txt").write(
+        textwrap.dedent(
+            """\
         PyLogo
         # and something else to test out:
         INITools
-        """))
-    script.pip(
-        'install', '--upgrade', '-r', script.scratch_path / 'test-req.txt'
+        """
+        )
     )
+    script.pip('install', '--upgrade', '-r', script.scratch_path / 'test-req.txt')
     uninstall_result = script.pip(
         'uninstall', '-r', script.scratch_path / 'test-req.txt', '-y'
     )
@@ -290,25 +285,24 @@ def test_uninstall_rollback(script, data):
     crafted to fail on install).
 
     """
-    result = script.pip(
-        'install', '-f', data.find_links, '--no-index', 'broken==0.1'
-    )
+    result = script.pip('install', '-f', data.find_links, '--no-index', 'broken==0.1')
     assert script.site_packages / 'broken.py' in result.files_created, list(
         result.files_created.keys()
     )
     result2 = script.pip(
-        'install', '-f', data.find_links, '--no-index', 'broken===0.2broken',
+        'install',
+        '-f',
+        data.find_links,
+        '--no-index',
+        'broken===0.2broken',
         expect_error=True,
     )
     assert result2.returncode == 1, str(result2)
-    assert script.run(
-        'python', '-c', "import broken; print(broken.VERSION)"
-    ).stdout == '0.1\n'
-    assert_all_changes(
-        result.files_after,
-        result2,
-        [script.venv / 'build'],
+    assert (
+        script.run('python', '-c', "import broken; print(broken.VERSION)").stdout
+        == '0.1\n'
     )
+    assert_all_changes(result.files_after, result2, [script.venv / 'build'])
 
 
 @pytest.mark.network
@@ -321,12 +315,12 @@ def test_should_not_install_always_from_cache(script):
     script.pip('uninstall', '-y', 'INITools')
     result = script.pip('install', 'INITools==0.1', expect_error=True)
     assert (
-        script.site_packages / 'INITools-0.2-py%s.egg-info' %
-        pyversion not in result.files_created
+        script.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
+        not in result.files_created
     )
     assert (
-        script.site_packages / 'INITools-0.1-py%s.egg-info' %
-        pyversion in result.files_created
+        script.site_packages / 'INITools-0.1-py%s.egg-info' % pyversion
+        in result.files_created
     )
 
 
@@ -351,8 +345,7 @@ def test_install_with_ignoreinstalled_requested(script):
 def test_upgrade_vcs_req_with_no_dists_found(script, tmpdir):
     """It can upgrade a VCS requirement that has no distributions otherwise."""
     req = "%s#egg=pip-test-package" % local_checkout(
-        "git+https://github.com/pypa/pip-test-package.git",
-        tmpdir.join("cache"),
+        "git+https://github.com/pypa/pip-test-package.git", tmpdir.join("cache")
     )
     script.pip("install", req)
     result = script.pip("install", "-U", req)
@@ -364,12 +357,8 @@ def test_upgrade_vcs_req_with_dist_found(script):
     """It can upgrade a VCS requirement that has distributions on the index."""
     # TODO(pnasrat) Using local_checkout fails on windows - oddness with the
     # test path urls/git.
-    req = (
-        "%s#egg=pretend" %
-        (
-            "git+git://github.com/alex/pretend@e7f26ad7dbcb4a02a4995aade4"
-            "743aad47656b27"
-        )
+    req = "%s#egg=pretend" % (
+        "git+git://github.com/alex/pretend@e7f26ad7dbcb4a02a4995aade4" "743aad47656b27"
     )
     script.pip("install", req, expect_stderr=True)
     result = script.pip("install", "-U", req, expect_stderr=True)
@@ -416,7 +405,9 @@ class TestUpgradeDistributeToSetuptools(object):
         self.ve_bin = self.script.scratch_path / 'VE' / bindir
         self.script.run(self.ve_bin / 'pip', 'uninstall', '-y', 'pip')
         self.script.run(
-            self.ve_bin / 'python', 'setup.py', 'install',
+            self.ve_bin / 'python',
+            'setup.py',
+            'install',
             cwd=pip_src,
             expect_stderr=True,
         )

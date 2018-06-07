@@ -92,21 +92,16 @@ def user_data_dir(appname, roaming=False):
         const = roaming and "CSIDL_APPDATA" or "CSIDL_LOCAL_APPDATA"
         path = os.path.join(os.path.normpath(_get_win_folder(const)), appname)
     elif sys.platform == "darwin":
-        path = os.path.join(
-            expanduser('~/Library/Application Support/'),
-            appname,
-        ) if os.path.isdir(os.path.join(
-            expanduser('~/Library/Application Support/'),
-            appname,
-        )
-        ) else os.path.join(
-            expanduser('~/.config/'),
-            appname,
+        path = (
+            os.path.join(expanduser('~/Library/Application Support/'), appname)
+            if os.path.isdir(
+                os.path.join(expanduser('~/Library/Application Support/'), appname)
+            )
+            else os.path.join(expanduser('~/.config/'), appname)
         )
     else:
         path = os.path.join(
-            os.getenv('XDG_DATA_HOME', expanduser("~/.local/share")),
-            appname,
+            os.getenv('XDG_DATA_HOME', expanduser("~/.local/share")), appname
         )
 
     return path
@@ -185,6 +180,7 @@ def site_config_dirs(appname):
 
 # -- Windows support functions --
 
+
 def _get_win_folder_from_registry(csidl_name):
     """
     This is a fallback technique at best. I'm not sure if using the
@@ -201,7 +197,7 @@ def _get_win_folder_from_registry(csidl_name):
 
     key = _winreg.OpenKey(
         _winreg.HKEY_CURRENT_USER,
-        r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
+        r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders",
     )
     directory, _type = _winreg.QueryValueEx(key, shell_folder_name)
     return directory
@@ -235,6 +231,7 @@ def _get_win_folder_with_ctypes(csidl_name):
 if WINDOWS:
     try:
         import ctypes
+
         _get_win_folder = _get_win_folder_with_ctypes
     except ImportError:
         _get_win_folder = _get_win_folder_from_registry

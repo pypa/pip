@@ -33,8 +33,9 @@ def check_requires_python(requires_python):
 
 
 def get_metadata(dist):
-    if (isinstance(dist, pkg_resources.DistInfoDistribution) and
-            dist.has_metadata('METADATA')):
+    if isinstance(dist, pkg_resources.DistInfoDistribution) and dist.has_metadata(
+        'METADATA'
+    ):
         return dist.get_metadata('METADATA')
     elif dist.has_metadata('PKG-INFO'):
         return dist.get_metadata('PKG-INFO')
@@ -49,15 +50,19 @@ def check_dist_requires_python(dist):
     try:
         if not check_requires_python(requires_python):
             raise exceptions.UnsupportedPythonVersion(
-                "%s requires Python '%s' but the running Python is %s" % (
+                "%s requires Python '%s' but the running Python is %s"
+                % (
                     dist.project_name,
                     requires_python,
-                    '.'.join(map(str, sys.version_info[:3])),)
+                    '.'.join(map(str, sys.version_info[:3])),
+                )
             )
     except specifiers.InvalidSpecifier as e:
         logger.warning(
             "Package %s has an invalid Requires-Python entry %s - %s",
-            dist.project_name, requires_python, e,
+            dist.project_name,
+            requires_python,
+            e,
         )
         return
 

@@ -7,14 +7,11 @@ import pytest
 from mock import MagicMock
 
 from pip._internal.exceptions import ConfigurationError
-from pip._internal.locations import (
-    new_config_file, site_config_files, venv_config_file,
-)
+from pip._internal.locations import new_config_file, site_config_files, venv_config_file
 from tests.lib.configuration_helpers import ConfigurationMixin, kinds
 
 
 class TestConfigurationLoading(ConfigurationMixin):
-
     def test_global_loading(self):
         self.patch_configuration(kinds.GLOBAL, {"test.hello": "1"})
 
@@ -43,8 +40,9 @@ class TestConfigurationLoading(ConfigurationMixin):
             os.environ["PIP_CONFIG_FILE"] = config_file
 
             self.configuration.load()
-            assert self.configuration.get_value("test.hello") == "4", \
-                self.configuration._config
+            assert (
+                self.configuration.get_value("test.hello") == "4"
+            ), self.configuration._config
 
     def test_environment_var_loading(self):
         os.environ["PIP_HELLO"] = "5"

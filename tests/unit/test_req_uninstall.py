@@ -5,7 +5,9 @@ from mock import Mock
 
 import pip._internal.req.req_uninstall
 from pip._internal.req.req_uninstall import (
-    UninstallPathSet, compact, compress_for_output_listing,
+    UninstallPathSet,
+    compact,
+    compress_for_output_listing,
     uninstallation_paths,
 )
 from tests.lib import create_file
@@ -20,21 +22,15 @@ def mock_is_local(path):
 def test_uninstallation_paths():
     class dist(object):
         def get_metadata_lines(self, record):
-            return ['file.py,,',
-                    'file.pyc,,',
-                    'file.so,,',
-                    'nopyc.py']
+            return ['file.py,,', 'file.pyc,,', 'file.so,,', 'nopyc.py']
+
         location = ''
 
     d = dist()
 
     paths = list(uninstallation_paths(d))
 
-    expected = ['file.py',
-                'file.pyc',
-                'file.so',
-                'nopyc.py',
-                'nopyc.pyc']
+    expected = ['file.py', 'file.pyc', 'file.so', 'nopyc.py', 'nopyc.pyc']
 
     assert paths == expected
 
@@ -48,26 +44,32 @@ def test_compressed_listing(tmpdir):
     def in_tmpdir(paths):
         li = []
         for path in paths:
-            li.append(str(os.path.normcase(
-                os.path.join(tmpdir, path.replace("/", os.path.sep))
-            )))
+            li.append(
+                str(
+                    os.path.normcase(
+                        os.path.join(tmpdir, path.replace("/", os.path.sep))
+                    )
+                )
+            )
         return li
 
-    sample = in_tmpdir([
-        "lib/mypkg.dist-info/METADATA",
-        "lib/mypkg.dist-info/PKG-INFO",
-        "lib/mypkg/would_be_removed.txt",
-        "lib/mypkg/would_be_skipped.skip.txt",
-        "lib/mypkg/__init__.py",
-        "lib/mypkg/my_awesome_code.py",
-        "lib/mypkg/__pycache__/my_awesome_code-magic.pyc",
-        "lib/mypkg/support/support_file.py",
-        "lib/mypkg/support/more_support.py",
-        "lib/mypkg/support/would_be_skipped.skip.py",
-        "lib/mypkg/support/__pycache__/support_file-magic.pyc",
-        "lib/random_other_place/file_without_a_dot_pyc",
-        "bin/mybin",
-    ])
+    sample = in_tmpdir(
+        [
+            "lib/mypkg.dist-info/METADATA",
+            "lib/mypkg.dist-info/PKG-INFO",
+            "lib/mypkg/would_be_removed.txt",
+            "lib/mypkg/would_be_skipped.skip.txt",
+            "lib/mypkg/__init__.py",
+            "lib/mypkg/my_awesome_code.py",
+            "lib/mypkg/__pycache__/my_awesome_code-magic.pyc",
+            "lib/mypkg/support/support_file.py",
+            "lib/mypkg/support/more_support.py",
+            "lib/mypkg/support/would_be_skipped.skip.py",
+            "lib/mypkg/support/__pycache__/support_file-magic.pyc",
+            "lib/random_other_place/file_without_a_dot_pyc",
+            "bin/mybin",
+        ]
+    )
 
     # Create the required files
     for fname in sample:
@@ -76,17 +78,21 @@ def test_compressed_listing(tmpdir):
     # Remove the files to be skipped from the paths
     sample = [path for path in sample if ".skip." not in path]
 
-    expected_remove = in_tmpdir([
-        "bin/mybin",
-        "lib/mypkg.dist-info/*",
-        "lib/mypkg/*",
-        "lib/random_other_place/file_without_a_dot_pyc",
-    ])
+    expected_remove = in_tmpdir(
+        [
+            "bin/mybin",
+            "lib/mypkg.dist-info/*",
+            "lib/mypkg/*",
+            "lib/random_other_place/file_without_a_dot_pyc",
+        ]
+    )
 
-    expected_skip = in_tmpdir([
-        "lib/mypkg/would_be_skipped.skip.txt",
-        "lib/mypkg/support/would_be_skipped.skip.py",
-    ])
+    expected_skip = in_tmpdir(
+        [
+            "lib/mypkg/would_be_skipped.skip.txt",
+            "lib/mypkg/support/would_be_skipped.skip.py",
+        ]
+    )
 
     will_remove, will_skip = compress_for_output_listing(sample)
     assert sorted(expected_skip) == sorted(compact(will_skip))
@@ -95,12 +101,10 @@ def test_compressed_listing(tmpdir):
 
 class TestUninstallPathSet(object):
     def test_add(self, tmpdir, monkeypatch):
-        monkeypatch.setattr(pip._internal.req.req_uninstall, 'is_local',
-                            mock_is_local)
+        monkeypatch.setattr(pip._internal.req.req_uninstall, 'is_local', mock_is_local)
         # Fix case for windows tests
         file_extant = os.path.normcase(os.path.join(tmpdir, 'foo'))
-        file_nonexistent = os.path.normcase(
-            os.path.join(tmpdir, 'nonexistent'))
+        file_nonexistent = os.path.normcase(os.path.join(tmpdir, 'nonexistent'))
         with open(file_extant, 'w'):
             pass
 
@@ -114,8 +118,7 @@ class TestUninstallPathSet(object):
 
     @pytest.mark.skipif("sys.platform == 'win32'")
     def test_add_symlink(self, tmpdir, monkeypatch):
-        monkeypatch.setattr(pip._internal.req.req_uninstall, 'is_local',
-                            mock_is_local)
+        monkeypatch.setattr(pip._internal.req.req_uninstall, 'is_local', mock_is_local)
         f = os.path.join(tmpdir, 'foo')
         with open(f, 'w'):
             pass
@@ -127,12 +130,12 @@ class TestUninstallPathSet(object):
         assert ups.paths == {l}
 
     def test_compact_shorter_path(self, monkeypatch):
-        monkeypatch.setattr(pip._internal.req.req_uninstall, 'is_local',
-                            lambda p: True)
+        monkeypatch.setattr(pip._internal.req.req_uninstall, 'is_local', lambda p: True)
         monkeypatch.setattr('os.path.exists', lambda p: True)
         # This deals with nt/posix path differences
-        short_path = os.path.normcase(os.path.abspath(
-            os.path.join(os.path.sep, 'path')))
+        short_path = os.path.normcase(
+            os.path.abspath(os.path.join(os.path.sep, 'path'))
+        )
         ups = UninstallPathSet(dist=Mock())
         ups.add(short_path)
         ups.add(os.path.join(short_path, 'longer'))
@@ -140,8 +143,7 @@ class TestUninstallPathSet(object):
 
     @pytest.mark.skipif("sys.platform == 'win32'")
     def test_detect_symlink_dirs(self, monkeypatch, tmpdir):
-        monkeypatch.setattr(pip._internal.req.req_uninstall, 'is_local',
-                            lambda p: True)
+        monkeypatch.setattr(pip._internal.req.req_uninstall, 'is_local', lambda p: True)
 
         # construct 2 paths:
         #  tmpdir/dir/file

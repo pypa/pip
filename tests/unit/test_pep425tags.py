@@ -6,7 +6,6 @@ from pip._internal import pep425tags
 
 
 class TestPEP425Tags(object):
-
     def mock_get_config_var(self, **kwd):
         """
         Patch sysconfig.get_config_var for arbitrary keys.
@@ -19,6 +18,7 @@ class TestPEP425Tags(object):
             if var in kwd:
                 return kwd[var]
             return get_config_var(var)
+
         return _mock_get_config_var
 
     def abi_tag_unicode(self, flags, config_vars):
@@ -28,21 +28,21 @@ class TestPEP425Tags(object):
         import pip._internal.pep425tags
 
         config_vars.update({'SOABI': None})
-        base = pip._internal.pep425tags.get_abbr_impl() + \
-            pip._internal.pep425tags.get_impl_ver()
+        base = (
+            pip._internal.pep425tags.get_abbr_impl()
+            + pip._internal.pep425tags.get_impl_ver()
+        )
 
         if sys.version_info < (3, 3):
             config_vars.update({'Py_UNICODE_SIZE': 2})
             mock_gcf = self.mock_get_config_var(**config_vars)
-            with patch('pip._internal.pep425tags.sysconfig.get_config_var',
-                       mock_gcf):
+            with patch('pip._internal.pep425tags.sysconfig.get_config_var', mock_gcf):
                 abi_tag = pip._internal.pep425tags.get_abi_tag()
                 assert abi_tag == base + flags
 
             config_vars.update({'Py_UNICODE_SIZE': 4})
             mock_gcf = self.mock_get_config_var(**config_vars)
-            with patch('pip._internal.pep425tags.sysconfig.get_config_var',
-                       mock_gcf):
+            with patch('pip._internal.pep425tags.sysconfig.get_config_var', mock_gcf):
                 abi_tag = pip._internal.pep425tags.get_abi_tag()
                 assert abi_tag == base + flags + 'u'
 
@@ -52,8 +52,7 @@ class TestPEP425Tags(object):
             # the 'u' so manual SOABI detection should not do so either.
             config_vars.update({'Py_UNICODE_SIZE': None})
             mock_gcf = self.mock_get_config_var(**config_vars)
-            with patch('pip._internal.pep425tags.sysconfig.get_config_var',
-                       mock_gcf):
+            with patch('pip._internal.pep425tags.sysconfig.get_config_var', mock_gcf):
                 abi_tag = pip._internal.pep425tags.get_abi_tag()
                 assert abi_tag == base + flags
 
@@ -68,8 +67,7 @@ class TestPEP425Tags(object):
         def raises_ioerror(var):
             raise IOError("I have the wrong path!")
 
-        with patch('pip._internal.pep425tags.sysconfig.get_config_var',
-                   raises_ioerror):
+        with patch('pip._internal.pep425tags.sysconfig.get_config_var', raises_ioerror):
             assert len(pip._internal.pep425tags.get_supported())
 
     def test_no_hyphen_tag(self):
@@ -80,8 +78,7 @@ class TestPEP425Tags(object):
 
         mock_gcf = self.mock_get_config_var(SOABI='cpython-35m-darwin')
 
-        with patch('pip._internal.pep425tags.sysconfig.get_config_var',
-                   mock_gcf):
+        with patch('pip._internal.pep425tags.sysconfig.get_config_var', mock_gcf):
             supported = pip._internal.pep425tags.get_supported()
 
         for (py, abi, plat) in supported:
@@ -115,10 +112,8 @@ class TestPEP425Tags(object):
 
 
 class TestManylinux1Tags(object):
-
     @patch('pip._internal.pep425tags.get_platform', lambda: 'linux_x86_64')
-    @patch('pip._internal.utils.glibc.have_compatible_glibc',
-           lambda major, minor: True)
+    @patch('pip._internal.utils.glibc.have_compatible_glibc', lambda major, minor: True)
     def test_manylinux1_compatible_on_linux_x86_64(self):
         """
         Test that manylinux1 is enabled on linux_x86_64
@@ -126,8 +121,7 @@ class TestManylinux1Tags(object):
         assert pep425tags.is_manylinux1_compatible()
 
     @patch('pip._internal.pep425tags.get_platform', lambda: 'linux_i686')
-    @patch('pip._internal.utils.glibc.have_compatible_glibc',
-           lambda major, minor: True)
+    @patch('pip._internal.utils.glibc.have_compatible_glibc', lambda major, minor: True)
     def test_manylinux1_compatible_on_linux_i686(self):
         """
         Test that manylinux1 is enabled on linux_i686
@@ -135,8 +129,9 @@ class TestManylinux1Tags(object):
         assert pep425tags.is_manylinux1_compatible()
 
     @patch('pip._internal.pep425tags.get_platform', lambda: 'linux_x86_64')
-    @patch('pip._internal.utils.glibc.have_compatible_glibc',
-           lambda major, minor: False)
+    @patch(
+        'pip._internal.utils.glibc.have_compatible_glibc', lambda major, minor: False
+    )
     def test_manylinux1_2(self):
         """
         Test that manylinux1 is disabled with incompatible glibc
@@ -144,8 +139,7 @@ class TestManylinux1Tags(object):
         assert not pep425tags.is_manylinux1_compatible()
 
     @patch('pip._internal.pep425tags.get_platform', lambda: 'arm6vl')
-    @patch('pip._internal.utils.glibc.have_compatible_glibc',
-           lambda major, minor: True)
+    @patch('pip._internal.utils.glibc.have_compatible_glibc', lambda major, minor: True)
     def test_manylinux1_3(self):
         """
         Test that manylinux1 is disabled on arm6vl
@@ -153,8 +147,7 @@ class TestManylinux1Tags(object):
         assert not pep425tags.is_manylinux1_compatible()
 
     @patch('pip._internal.pep425tags.get_platform', lambda: 'linux_x86_64')
-    @patch('pip._internal.utils.glibc.have_compatible_glibc',
-           lambda major, minor: True)
+    @patch('pip._internal.utils.glibc.have_compatible_glibc', lambda major, minor: True)
     @patch('sys.platform', 'linux2')
     def test_manylinux1_tag_is_first(self):
         """

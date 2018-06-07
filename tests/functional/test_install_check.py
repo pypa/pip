@@ -24,15 +24,12 @@ def test_check_install_warnings(script):
     # Install the first missing dependency. Only an error for the
     # second dependency should remain.
     normal_path = create_test_package_with_setup(
-        script,
-        name='normal-missing', version='0.1',
+        script, name='normal-missing', version='0.1'
     )
     result = script.pip(
         'install', '--no-index', normal_path, '--quiet', expect_error=True
     )
-    expected_lines = (
-        "pkga 1.0 requires special.missing, which is not installed.",
-    )
+    expected_lines = ("pkga 1.0 requires special.missing, which is not installed.",)
     assert matches_expected_lines(result.stderr, expected_lines)
     assert result.returncode == 0
 
@@ -40,20 +37,15 @@ def test_check_install_warnings(script):
     # during the installation. This is special as the package name requires
     # name normalization (as in https://github.com/pypa/pip/issues/5134)
     missing_path = create_test_package_with_setup(
-        script,
-        name='special.missing', version='0.1',
+        script, name='special.missing', version='0.1'
     )
-    result = script.pip(
-        'install', '--no-index', missing_path, '--quiet',
-    )
+    result = script.pip('install', '--no-index', missing_path, '--quiet')
     assert matches_expected_lines(result.stdout, [])
     assert matches_expected_lines(result.stderr, [])
     assert result.returncode == 0
 
     # Double check that all errors are resolved in the end
     result = script.pip('check')
-    expected_lines = (
-        "No broken requirements found.",
-    )
+    expected_lines = ("No broken requirements found.",)
     assert matches_expected_lines(result.stdout, expected_lines)
     assert result.returncode == 0

@@ -13,16 +13,12 @@ class FakeCommand(Command):
     summary = name
 
     def main(self, args):
-        index_opts = cmdoptions.make_option_group(
-            cmdoptions.index_group,
-            self.parser,
-        )
+        index_opts = cmdoptions.make_option_group(cmdoptions.index_group, self.parser)
         self.parser.add_option_group(index_opts)
         return self.parse_args(args)
 
 
 class AddFakeCommandMixin(object):
-
     def setup(self):
         self.environ_before = os.environ.copy()
         commands_dict[FakeCommand.name] = FakeCommand

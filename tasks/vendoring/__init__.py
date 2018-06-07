@@ -9,12 +9,7 @@ import invoke
 
 TASK_NAME = 'update'
 
-FILE_WHITE_LIST = (
-    'Makefile',
-    'vendor.txt',
-    '__init__.py',
-    'README.rst',
-)
+FILE_WHITE_LIST = ('Makefile', 'vendor.txt', '__init__.py', 'README.rst')
 
 
 def drop_dir(path, **kwargs):
@@ -83,9 +78,7 @@ def rewrite_file_imports(item, vendored_libs):
             text,
         )
         text = re.sub(
-            r'(\n\s*)from %s(\.|\s+)' % lib,
-            r'\1from pip._vendor.%s\2' % lib,
-            text,
+            r'(\n\s*)from %s(\.|\s+)' % lib, r'\1from pip._vendor.%s\2' % lib, text
         )
     item.write_text(text, encoding='utf-8')
 
@@ -102,7 +95,7 @@ def vendor(ctx, vendor_dir):
     # the chain.
     ctx.run(
         'pip install -t {0} -r {0}/vendor.txt --no-compile --no-deps'.format(
-            str(vendor_dir),
+            str(vendor_dir)
         )
     )
     remove_all(vendor_dir.glob('*.dist-info'))

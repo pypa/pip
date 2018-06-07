@@ -12,7 +12,7 @@ def generate_yaml_tests(directory):
 
         # Strip the parts of the directory to only get a name without
         # extension and resolver directory
-        base_name = str(yml_file)[len(str(directory)) + 1:-4]
+        base_name = str(yml_file)[len(str(directory)) + 1 : -4]
 
         base = data.get("base", {})
         cases = data["cases"]

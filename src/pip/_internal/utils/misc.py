@@ -4,6 +4,7 @@ import contextlib
 import errno
 import io
 import locale
+
 # we have a submodule named 'logging' which would shadow this if we used the
 # regular name:
 import logging as std_logging
@@ -19,6 +20,7 @@ import zipfile
 from collections import deque
 
 from pip._vendor import pkg_resources
+
 # NOTE: retrying is not annotated in typeshed as on 2017-07-17, which is
 #       why we ignore the type on this import.
 from pip._vendor.retrying import retry  # type: ignore
@@ -26,12 +28,13 @@ from pip._vendor.six import PY2
 from pip._vendor.six.moves import input
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
-from pip._internal.compat import (
-    WINDOWS, console_to_str, expanduser, stdlib_pkgs,
-)
+from pip._internal.compat import WINDOWS, console_to_str, expanduser, stdlib_pkgs
 from pip._internal.exceptions import CommandError, InstallationError
 from pip._internal.locations import (
-    running_under_virtualenv, site_packages, user_site, virtualenv_no_global,
+    running_under_virtualenv,
+    site_packages,
+    user_site,
+    virtualenv_no_global,
     write_delete_marker_file,
 )
 
@@ -40,17 +43,32 @@ if PY2:
 else:
     from io import StringIO
 
-__all__ = ['rmtree', 'display_path', 'backup_dir',
-           'ask', 'splitext',
-           'format_size', 'is_installable_dir',
-           'is_svn_page', 'file_contents',
-           'split_leading_dir', 'has_leading_dir',
-           'normalize_path',
-           'renames', 'get_prog',
-           'unzip_file', 'untar_file', 'unpack_file', 'call_subprocess',
-           'captured_stdout', 'ensure_dir',
-           'ARCHIVE_EXTENSIONS', 'SUPPORTED_EXTENSIONS',
-           'get_installed_version', 'remove_auth_from_url']
+__all__ = [
+    'rmtree',
+    'display_path',
+    'backup_dir',
+    'ask',
+    'splitext',
+    'format_size',
+    'is_installable_dir',
+    'is_svn_page',
+    'file_contents',
+    'split_leading_dir',
+    'has_leading_dir',
+    'normalize_path',
+    'renames',
+    'get_prog',
+    'unzip_file',
+    'untar_file',
+    'unpack_file',
+    'call_subprocess',
+    'captured_stdout',
+    'ensure_dir',
+    'ARCHIVE_EXTENSIONS',
+    'SUPPORTED_EXTENSIONS',
+    'get_installed_version',
+    'remove_auth_from_url',
+]
 
 
 logger = std_logging.getLogger(__name__)
@@ -59,11 +77,11 @@ BZ2_EXTENSIONS = ('.tar.bz2', '.tbz')
 XZ_EXTENSIONS = ('.tar.xz', '.txz', '.tlz', '.tar.lz', '.tar.lzma')
 ZIP_EXTENSIONS = ('.zip', '.whl')
 TAR_EXTENSIONS = ('.tar.gz', '.tgz', '.tar')
-ARCHIVE_EXTENSIONS = (
-    ZIP_EXTENSIONS + BZ2_EXTENSIONS + TAR_EXTENSIONS + XZ_EXTENSIONS)
+ARCHIVE_EXTENSIONS = ZIP_EXTENSIONS + BZ2_EXTENSIONS + TAR_EXTENSIONS + XZ_EXTENSIONS
 SUPPORTED_EXTENSIONS = ZIP_EXTENSIONS + TAR_EXTENSIONS
 try:
     import bz2  # noqa
+
     SUPPORTED_EXTENSIONS += BZ2_EXTENSIONS
 except ImportError:
     logger.debug('bz2 module is not available')
@@ -71,6 +89,7 @@ except ImportError:
 try:
     # Only for Python 3.3+
     import lzma  # noqa
+
     SUPPORTED_EXTENSIONS += XZ_EXTENSIONS
 except ImportError:
     logger.debug('lzma module is not available')
@@ -107,8 +126,7 @@ def get_prog():
 # Retry every half second for up to 3 seconds
 @retry(stop_max_delay=3000, wait_fixed=500)
 def rmtree(dir, ignore_errors=False):
-    shutil.rmtree(dir, ignore_errors=ignore_errors,
-                  onerror=rmtree_errorhandler)
+    shutil.rmtree(dir, ignore_errors=ignore_errors, onerror=rmtree_errorhandler)
 
 
 def rmtree_errorhandler(func, path, exc_info):
@@ -134,7 +152,7 @@ def display_path(path):
         path = path.decode(sys.getfilesystemencoding(), 'replace')
         path = path.encode(sys.getdefaultencoding(), 'replace')
     if path.startswith(os.getcwd() + os.path.sep):
-        path = '.' + path[len(os.getcwd()):]
+        path = '.' + path[len(os.getcwd()) :]
     return path
 
 
@@ -161,8 +179,7 @@ def ask(message, options):
     while 1:
         if os.environ.get('PIP_NO_INPUT'):
             raise Exception(
-                'No input was expected ($PIP_NO_INPUT set); question: %s' %
-                message
+                'No input was expected ($PIP_NO_INPUT set); question: %s' % message
             )
         response = input(message)
         response = response.strip().lower()
@@ -200,8 +217,9 @@ def is_svn_page(html):
     """
     Returns true if the page appears to be the index page of an svn repository
     """
-    return (re.search(r'<title>[^<]*Revision \d+:', html) and
-            re.search(r'Powered by (?:<a[^>]*?>)?Subversion', html, re.I))
+    return re.search(r'<title>[^<]*Revision \d+:', html) and re.search(
+        r'Powered by (?:<a[^>]*?>)?Subversion', html, re.I
+    )
 
 
 def file_contents(filename):
@@ -220,8 +238,9 @@ def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):
 
 def split_leading_dir(path):
     path = path.lstrip('/').lstrip('\\')
-    if '/' in path and (('\\' in path and path.find('/') < path.find('\\')) or
-                        '\\' not in path):
+    if '/' in path and (
+        ('\\' in path and path.find('/') < path.find('\\')) or '\\' not in path
+    ):
         return path.split('/', 1)
     elif '\\' in path:
         return path.split('\\', 1)
@@ -319,9 +338,7 @@ def dist_in_site_packages(dist):
     Return True if given Distribution is installed in
     sysconfig.get_python_lib().
     """
-    return normalize_path(
-        dist_location(dist)
-    ).startswith(normalize_path(site_packages))
+    return normalize_path(dist_location(dist)).startswith(normalize_path(site_packages))
 
 
 def dist_is_editable(dist):
@@ -333,11 +350,13 @@ def dist_is_editable(dist):
     return False
 
 
-def get_installed_distributions(local_only=True,
-                                skip=stdlib_pkgs,
-                                include_editables=True,
-                                editables_only=False,
-                                user_only=False):
+def get_installed_distributions(
+    local_only=True,
+    skip=stdlib_pkgs,
+    include_editables=True,
+    editables_only=False,
+    user_only=False,
+):
     """
     Return a list of installed Distribution objects.
 
@@ -358,36 +377,46 @@ def get_installed_distributions(local_only=True,
     if local_only:
         local_test = dist_is_local
     else:
+
         def local_test(d):
             return True
 
     if include_editables:
+
         def editable_test(d):
             return True
+
     else:
+
         def editable_test(d):
             return not dist_is_editable(d)
 
     if editables_only:
+
         def editables_only_test(d):
             return dist_is_editable(d)
+
     else:
+
         def editables_only_test(d):
             return True
 
     if user_only:
         user_test = dist_in_usersite
     else:
+
         def user_test(d):
             return True
 
-    return [d for d in pkg_resources.working_set
-            if local_test(d) and
-            d.key not in skip and
-            editable_test(d) and
-            editables_only_test(d) and
-            user_test(d)
-            ]
+    return [
+        d
+        for d in pkg_resources.working_set
+        if local_test(d)
+        and d.key not in skip
+        and editable_test(d)
+        and editables_only_test(d)
+        and user_test(d)
+    ]
 
 
 def egg_link_path(dist):
@@ -510,17 +539,18 @@ def untar_file(filename, location):
     elif filename.lower().endswith('.tar'):
         mode = 'r'
     else:
-        logger.warning(
-            'Cannot determine compression type for file %s', filename,
-        )
+        logger.warning('Cannot determine compression type for file %s', filename)
         mode = 'r:*'
     tar = tarfile.open(filename, mode)
     try:
         # note: python<=2.5 doesn't seem to know about pax headers, filter them
-        leading = has_leading_dir([
-            member.name for member in tar.getmembers()
-            if member.name != 'pax_global_header'
-        ])
+        leading = has_leading_dir(
+            [
+                member.name
+                for member in tar.getmembers()
+                if member.name != 'pax_global_header'
+            ]
+        )
         for member in tar.getmembers():
             fn = member.name
             if fn == 'pax_global_header':
@@ -538,7 +568,9 @@ def untar_file(filename, location):
                     # (specifically bad symlinks)
                     logger.warning(
                         'In the tar file %s the member %s is invalid: %s',
-                        filename, member.name, exc,
+                        filename,
+                        member.name,
+                        exc,
                     )
                     continue
             else:
@@ -549,7 +581,9 @@ def untar_file(filename, location):
                     # (specifically bad symlinks)
                     logger.warning(
                         'In the tar file %s the member %s is invalid: %s',
-                        filename, member.name, exc,
+                        filename,
+                        member.name,
+                        exc,
                     )
                     continue
                 ensure_dir(os.path.dirname(path))
@@ -569,23 +603,26 @@ def untar_file(filename, location):
 
 def unpack_file(filename, location, content_type, link):
     filename = os.path.realpath(filename)
-    if (content_type == 'application/zip' or
-            filename.lower().endswith(ZIP_EXTENSIONS) or
-            zipfile.is_zipfile(filename)):
-        unzip_file(
-            filename,
-            location,
-            flatten=not filename.endswith('.whl')
-        )
-    elif (content_type == 'application/x-gzip' or
-            tarfile.is_tarfile(filename) or
-            filename.lower().endswith(
-                TAR_EXTENSIONS + BZ2_EXTENSIONS + XZ_EXTENSIONS)):
+    if (
+        content_type == 'application/zip'
+        or filename.lower().endswith(ZIP_EXTENSIONS)
+        or zipfile.is_zipfile(filename)
+    ):
+        unzip_file(filename, location, flatten=not filename.endswith('.whl'))
+    elif (
+        content_type == 'application/x-gzip'
+        or tarfile.is_tarfile(filename)
+        or filename.lower().endswith(TAR_EXTENSIONS + BZ2_EXTENSIONS + XZ_EXTENSIONS)
+    ):
         untar_file(filename, location)
-    elif (content_type and content_type.startswith('text/html') and
-            is_svn_page(file_contents(filename))):
+    elif (
+        content_type
+        and content_type.startswith('text/html')
+        and is_svn_page(file_contents(filename))
+    ):
         # We don't really care about this
         from pip._internal.vcs.subversion import Subversion
+
         Subversion('svn+' + link.url).unpack(location)
     else:
         # FIXME: handle?
@@ -593,17 +630,23 @@ def unpack_file(filename, location, content_type, link):
         logger.critical(
             'Cannot unpack file %s (downloaded from %s, content-type: %s); '
             'cannot detect archive format',
-            filename, location, content_type,
+            filename,
+            location,
+            content_type,
         )
-        raise InstallationError(
-            'Cannot determine archive format of %s' % location
-        )
+        raise InstallationError('Cannot determine archive format of %s' % location)
 
 
-def call_subprocess(cmd, show_stdout=True, cwd=None,
-                    on_returncode='raise',
-                    command_desc=None,
-                    extra_environ=None, unset_environ=None, spinner=None):
+def call_subprocess(
+    cmd,
+    show_stdout=True,
+    cwd=None,
+    on_returncode='raise',
+    command_desc=None,
+    extra_environ=None,
+    unset_environ=None,
+    spinner=None,
+):
     """
     Args:
       unset_environ: an iterable of environment variable names to unset
@@ -651,14 +694,16 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
         env.pop(name, None)
     try:
         proc = subprocess.Popen(
-            cmd, stderr=subprocess.STDOUT, stdin=subprocess.PIPE,
-            stdout=stdout, cwd=cwd, env=env,
+            cmd,
+            stderr=subprocess.STDOUT,
+            stdin=subprocess.PIPE,
+            stdout=stdout,
+            cwd=cwd,
+            env=env,
         )
         proc.stdin.close()
     except Exception as exc:
-        logger.critical(
-            "Error %s while executing command %s", exc, command_desc,
-        )
+        logger.critical("Error %s while executing command %s", exc, command_desc)
         raise
     all_output = []
     if stdout is not None:
@@ -687,28 +732,26 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
             spinner.finish("done")
     if proc.returncode:
         if on_returncode == 'raise':
-            if (logger.getEffectiveLevel() > std_logging.DEBUG and
-                    not show_stdout):
+            if logger.getEffectiveLevel() > std_logging.DEBUG and not show_stdout:
+                logger.info('Complete output from command %s:', command_desc)
                 logger.info(
-                    'Complete output from command %s:', command_desc,
-                )
-                logger.info(
-                    ''.join(all_output) +
-                    '\n----------------------------------------'
+                    ''.join(all_output) + '\n----------------------------------------'
                 )
             raise InstallationError(
                 'Command "%s" failed with error code %s in %s'
-                % (command_desc, proc.returncode, cwd))
+                % (command_desc, proc.returncode, cwd)
+            )
         elif on_returncode == 'warn':
             logger.warning(
                 'Command "%s" had error code %s in %s',
-                command_desc, proc.returncode, cwd,
+                command_desc,
+                proc.returncode,
+                cwd,
             )
         elif on_returncode == 'ignore':
             pass
         else:
-            raise ValueError('Invalid value: on_returncode=%s' %
-                             repr(on_returncode))
+            raise ValueError('Invalid value: on_returncode=%s' % repr(on_returncode))
     if not show_stdout:
         return ''.join(all_output)
 
@@ -745,6 +788,7 @@ def _make_build_dir(build_dir):
 class FakeFile(object):
     """Wrap a list of lines in an object with readline() to make
     ConfigParser happy."""
+
     def __init__(self, lines):
         self._gen = (l for l in lines)
 
@@ -762,7 +806,6 @@ class FakeFile(object):
 
 
 class StreamWrapper(StringIO):
-
     @classmethod
     def from_stream(cls, orig_stream):
         cls.orig_stream = orig_stream
@@ -861,13 +904,10 @@ def remove_auth_from_url(url):
 
     # parsed url
     purl = urllib_parse.urlsplit(url)
-    stripped_netloc = \
-        purl.netloc.split('@')[-1]
+    stripped_netloc = purl.netloc.split('@')[-1]
 
     # stripped url
-    url_pieces = (
-        purl.scheme, stripped_netloc, purl.path, purl.query, purl.fragment
-    )
+    url_pieces = (purl.scheme, stripped_netloc, purl.path, purl.query, purl.fragment)
     surl = urllib_parse.urlunsplit(url_pieces)
     return surl
 
@@ -881,21 +921,18 @@ def protect_pip_from_modification_on_windows(modifying_pip):
     pip_names = [
         "pip.exe",
         "pip{}.exe".format(sys.version_info[0]),
-        "pip{}.{}.exe".format(*sys.version_info[:2])
+        "pip{}.{}.exe".format(*sys.version_info[:2]),
     ]
 
     # See https://github.com/pypa/pip/issues/1299 for more discussion
     should_show_use_python_msg = (
-        modifying_pip and
-        WINDOWS and
-        os.path.basename(sys.argv[0]) in pip_names
+        modifying_pip and WINDOWS and os.path.basename(sys.argv[0]) in pip_names
     )
 
     if should_show_use_python_msg:
-        new_command = [
-            sys.executable, "-m", "pip"
-        ] + sys.argv[1:]
+        new_command = [sys.executable, "-m", "pip"] + sys.argv[1:]
         raise CommandError(
-            'To modify pip, please run the following command:\n{}'
-            .format(" ".join(new_command))
+            'To modify pip, please run the following command:\n{}'.format(
+                " ".join(new_command)
+            )
         )

@@ -57,8 +57,15 @@ SUPPORTED_OPTIONS_REQ = [
 SUPPORTED_OPTIONS_REQ_DEST = [o().dest for o in SUPPORTED_OPTIONS_REQ]
 
 
-def parse_requirements(filename, finder=None, comes_from=None, options=None,
-                       session=None, constraint=False, wheel_cache=None):
+def parse_requirements(
+    filename,
+    finder=None,
+    comes_from=None,
+    options=None,
+    session=None,
+    constraint=False,
+    wheel_cache=None,
+):
     """Parse a requirements file and yield InstallRequirement instances.
 
     :param filename:    Path or url of requirements file.
@@ -72,20 +79,25 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
     """
     if session is None:
         raise TypeError(
-            "parse_requirements() missing 1 required keyword argument: "
-            "'session'"
+            "parse_requirements() missing 1 required keyword argument: " "'session'"
         )
 
-    _, content = get_file_content(
-        filename, comes_from=comes_from, session=session
-    )
+    _, content = get_file_content(filename, comes_from=comes_from, session=session)
 
     lines_enum = preprocess(content, options)
 
     for line_number, line in lines_enum:
-        req_iter = process_line(line, filename, line_number, finder,
-                                comes_from, options, session, wheel_cache,
-                                constraint=constraint)
+        req_iter = process_line(
+            line,
+            filename,
+            line_number,
+            finder,
+            comes_from,
+            options,
+            session,
+            wheel_cache,
+            constraint=constraint,
+        )
         for req in req_iter:
             yield req
 
@@ -104,9 +116,17 @@ def preprocess(content, options):
     return lines_enum
 
 
-def process_line(line, filename, line_number, finder=None, comes_from=None,
-                 options=None, session=None, wheel_cache=None,
-                 constraint=False):
+def process_line(
+    line,
+    filename,
+    line_number,
+    finder=None,
+    comes_from=None,
+    options=None,
+    session=None,
+    wheel_cache=None,
+    constraint=False,
+):
     """Process a single requirements line; This can result in creating/yielding
     requirements, or updating the finder.
 
@@ -138,7 +158,9 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
 
     # preserve for the nested code path
     line_comes_from = '%s %s (line %s)' % (
-        '-c' if constraint else '-r', filename, line_number,
+        '-c' if constraint else '-r',
+        filename,
+        line_number,
     )
 
     # yield a line requirement
@@ -152,16 +174,23 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
             if dest in opts.__dict__ and opts.__dict__[dest]:
                 req_options[dest] = opts.__dict__[dest]
         yield InstallRequirement.from_line(
-            args_str, line_comes_from, constraint=constraint,
-            isolated=isolated, options=req_options, wheel_cache=wheel_cache
+            args_str,
+            line_comes_from,
+            constraint=constraint,
+            isolated=isolated,
+            options=req_options,
+            wheel_cache=wheel_cache,
         )
 
     # yield an editable requirement
     elif opts.editables:
         isolated = options.isolated_mode if options else False
         yield InstallRequirement.from_editable(
-            opts.editables[0], comes_from=line_comes_from,
-            constraint=constraint, isolated=isolated, wheel_cache=wheel_cache
+            opts.editables[0],
+            comes_from=line_comes_from,
+            constraint=constraint,
+            isolated=isolated,
+            wheel_cache=wheel_cache,
         )
 
     # parse a nested requirements file
@@ -182,8 +211,13 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
             req_path = os.path.join(os.path.dirname(filename), req_path)
         # TODO: Why not use `comes_from='-r {} (line {})'` here as well?
         parser = parse_requirements(
-            req_path, finder, comes_from, options, session,
-            constraint=nested_constraint, wheel_cache=wheel_cache
+            req_path,
+            finder,
+            comes_from,
+            options,
+            session,
+            constraint=nested_constraint,
+            wheel_cache=wheel_cache,
         )
         for req in parser:
             yield req
@@ -216,7 +250,8 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
             finder.process_dependency_links = True
         if opts.trusted_hosts:
             finder.secure_origins.extend(
-                ("*", host, "*") for host in opts.trusted_hosts)
+                ("*", host, "*") for host in opts.trusted_hosts
+            )
 
 
 def break_args_options(line):
@@ -253,6 +288,7 @@ def build_parser(line):
         # add offending line
         msg = 'Invalid requirement: %s\n%s' % (line, msg)
         raise RequirementsFileParseError(msg)
+
     parser.exit = parser_exit
 
     return parser

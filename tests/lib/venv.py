@@ -25,25 +25,17 @@ class VirtualEnvironment(object):
         return "<VirtualEnvironment {}>".format(self.location)
 
     @classmethod
-    def create(cls, location, clear=False,
-               pip_source_dir=None, relocatable=False):
+    def create(cls, location, clear=False, pip_source_dir=None, relocatable=False):
         obj = cls(location)
-        obj._create(clear=clear,
-                    pip_source_dir=pip_source_dir,
-                    relocatable=relocatable)
+        obj._create(clear=clear, pip_source_dir=pip_source_dir, relocatable=relocatable)
         return obj
 
     def _create(self, clear=False, pip_source_dir=None, relocatable=False):
         # Create the actual virtual environment
         _virtualenv.create_environment(
-            self.location,
-            clear=clear,
-            download=False,
-            no_pip=True,
-            no_wheel=True,
+            self.location, clear=clear, download=False, no_pip=True, no_wheel=True
         )
-        _virtualenv.install_wheel([pip_source_dir or '.'],
-                                  self.bin.join("python"))
+        _virtualenv.install_wheel([pip_source_dir or '.'], self.bin.join("python"))
         if relocatable:
             _virtualenv.make_environment_relocatable(self.location)
         # FIXME: some tests rely on 'easy-install.pth' being already present.

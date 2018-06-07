@@ -21,6 +21,7 @@ from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
 from pip._vendor.requests.structures import CaseInsensitiveDict
 from pip._vendor.requests.utils import get_netrc_auth
+
 # NOTE: XMLRPC Client is not annotated in typeshed as on 2017-07-17, which is
 #       why we ignore the type on this import
 from pip._vendor.six.moves import xmlrpc_client  # type: ignore
@@ -39,8 +40,16 @@ from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.glibc import libc_ver
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
-    ARCHIVE_EXTENSIONS, ask_path_exists, backup_dir, call_subprocess, consume,
-    display_path, format_size, get_installed_version, rmtree, splitext,
+    ARCHIVE_EXTENSIONS,
+    ask_path_exists,
+    backup_dir,
+    call_subprocess,
+    consume,
+    display_path,
+    format_size,
+    get_installed_version,
+    rmtree,
+    splitext,
     unpack_file,
 )
 from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
@@ -55,11 +64,19 @@ except ImportError:
 
 HAS_TLS = (ssl is not None) or IS_PYOPENSSL
 
-__all__ = ['get_file_content',
-           'is_url', 'url_to_path', 'path_to_url',
-           'is_archive_file', 'unpack_vcs_link',
-           'unpack_file_url', 'is_vcs_url', 'is_file_url',
-           'unpack_http_url', 'unpack_url']
+__all__ = [
+    'get_file_content',
+    'is_url',
+    'url_to_path',
+    'path_to_url',
+    'is_archive_file',
+    'unpack_vcs_link',
+    'unpack_file_url',
+    'is_vcs_url',
+    'is_file_url',
+    'unpack_http_url',
+    'unpack_url',
+]
 
 
 logger = logging.getLogger(__name__)
@@ -72,9 +89,7 @@ def user_agent():
     data = {
         "installer": {"name": "pip", "version": pip.__version__},
         "python": platform.python_version(),
-        "implementation": {
-            "name": platform.python_implementation(),
-        },
+        "implementation": {"name": platform.python_implementation()},
     }
 
     if data["implementation"]["name"] == 'CPython':
@@ -96,14 +111,14 @@ def user_agent():
 
     if sys.platform.startswith("linux"):
         from pip._vendor import distro
-        distro_infos = dict(filter(
-            lambda x: x[1],
-            zip(["name", "version", "id"], distro.linux_distribution()),
-        ))
-        libc = dict(filter(
-            lambda x: x[1],
-            zip(["lib", "version"], libc_ver()),
-        ))
+
+        distro_infos = dict(
+            filter(
+                lambda x: x[1],
+                zip(["name", "version", "id"], distro.linux_distribution()),
+            )
+        )
+        libc = dict(filter(lambda x: x[1], zip(["lib", "version"], libc_ver())))
         if libc:
             distro_infos["libc"] = libc
         if distro_infos:
@@ -129,13 +144,11 @@ def user_agent():
         data["setuptools_version"] = setuptools_version
 
     return "{data[installer][name]}/{data[installer][version]} {json}".format(
-        data=data,
-        json=json.dumps(data, separators=(",", ":"), sort_keys=True),
+        data=data, json=json.dumps(data, separators=(",", ":"), sort_keys=True)
     )
 
 
 class MultiDomainBasicAuth(AuthBase):
-
     def __init__(self, prompting=True):
         self.prompting = prompting
         self.passwords = {}
@@ -218,9 +231,9 @@ class MultiDomainBasicAuth(AuthBase):
 
 
 class LocalFSAdapter(BaseAdapter):
-
-    def send(self, request, stream=None, timeout=None, verify=None, cert=None,
-             proxies=None):
+    def send(
+        self, request, stream=None, timeout=None, verify=None, cert=None, proxies=None
+    ):
         pathname = url_to_path(request.url)
 
         resp = Response()
@@ -235,11 +248,13 @@ class LocalFSAdapter(BaseAdapter):
         else:
             modified = email.utils.formatdate(stats.st_mtime, usegmt=True)
             content_type = mimetypes.guess_type(pathname)[0] or "text/plain"
-            resp.headers = CaseInsensitiveDict({
-                "Content-Type": content_type,
-                "Content-Length": stats.st_size,
-                "Last-Modified": modified,
-            })
+            resp.headers = CaseInsensitiveDict(
+                {
+                    "Content-Type": content_type,
+                    "Content-Length": stats.st_size,
+                    "Last-Modified": modified,
+                }
+            )
 
             resp.raw = open(pathname, "rb")
             resp.close = resp.raw.close
@@ -317,7 +332,6 @@ class SafeFileCache(FileCache):
 
 
 class InsecureHTTPAdapter(HTTPAdapter):
-
     def cert_verify(self, conn, url, verify, cert):
         conn.cert_reqs = 'CERT_NONE'
         conn.ca_certs = None
@@ -346,7 +360,6 @@ class PipSession(requests.Session):
             # Set the total number of retries that a particular request can
             # have.
             total=retries,
-
             # A 503 error from PyPI typically means that the Fastly -> Origin
             # connection got interrupted in some way. A 503 error in general
             # is typically considered a transient error so we'll go ahead and
@@ -354,7 +367,6 @@ class PipSession(requests.Session):
             # A 500 may indicate transient error in Amazon S3
             # A 520 or 527 - may indicate transient error in CloudFlare
             status_forcelist=[500, 503, 520, 527],
-
             # Add a small amount of back off between failed requests in
             # order to prevent hammering the service.
             backoff_factor=0.25,
@@ -366,8 +378,7 @@ class PipSession(requests.Session):
         # require manual eviction from the cache to fix it.
         if cache:
             secure_adapter = CacheControlAdapter(
-                cache=SafeFileCache(cache, use_dir_lock=True),
-                max_retries=retries,
+                cache=SafeFileCache(cache, use_dir_lock=True), max_retries=retries
             )
         else:
             secure_adapter = HTTPAdapter(max_retries=retries)
@@ -413,11 +424,11 @@ def get_file_content(url, comes_from=None, session=None):
     match = _scheme_re.search(url)
     if match:
         scheme = match.group(1).lower()
-        if (scheme == 'file' and comes_from and
-                comes_from.startswith('http')):
+        if scheme == 'file' and comes_from and comes_from.startswith('http'):
             raise InstallationError(
                 'Requirements file %s references URL %s, which is local'
-                % (comes_from, url))
+                % (comes_from, url)
+            )
         if scheme == 'file':
             path = url.split(':', 1)[1]
             path = path.replace('\\', '/')
@@ -437,9 +448,7 @@ def get_file_content(url, comes_from=None, session=None):
         with open(url, 'rb') as f:
             content = auto_decode(f.read())
     except IOError as exc:
-        raise InstallationError(
-            'Could not open requirements file: %s' % str(exc)
-        )
+        raise InstallationError('Could not open requirements file: %s' % str(exc))
     return url, content
 
 
@@ -460,7 +469,8 @@ def url_to_path(url):
     Convert a file: URL to a path.
     """
     assert url.startswith('file:'), (
-        "You can only turn file: urls into filenames (not %r)" % url)
+        "You can only turn file: urls into filenames (not %r)" % url
+    )
 
     _, netloc, path, _, _ = urllib_parse.urlsplit(url)
 
@@ -549,30 +559,31 @@ def _download_url(resp, link, content_file, hashes, progress_bar):
         try:
             # Special case for urllib3.
             for chunk in resp.raw.stream(
-                    chunk_size,
-                    # We use decode_content=False here because we don't
-                    # want urllib3 to mess with the raw bytes we get
-                    # from the server. If we decompress inside of
-                    # urllib3 then we cannot verify the checksum
-                    # because the checksum will be of the compressed
-                    # file. This breakage will only occur if the
-                    # server adds a Content-Encoding header, which
-                    # depends on how the server was configured:
-                    # - Some servers will notice that the file isn't a
-                    #   compressible file and will leave the file alone
-                    #   and with an empty Content-Encoding
-                    # - Some servers will notice that the file is
-                    #   already compressed and will leave the file
-                    #   alone and will add a Content-Encoding: gzip
-                    #   header
-                    # - Some servers won't notice anything at all and
-                    #   will take a file that's already been compressed
-                    #   and compress it again and set the
-                    #   Content-Encoding: gzip header
-                    #
-                    # By setting this not to decode automatically we
-                    # hope to eliminate problems with the second case.
-                    decode_content=False):
+                chunk_size,
+                # We use decode_content=False here because we don't
+                # want urllib3 to mess with the raw bytes we get
+                # from the server. If we decompress inside of
+                # urllib3 then we cannot verify the checksum
+                # because the checksum will be of the compressed
+                # file. This breakage will only occur if the
+                # server adds a Content-Encoding header, which
+                # depends on how the server was configured:
+                # - Some servers will notice that the file isn't a
+                #   compressible file and will leave the file alone
+                #   and with an empty Content-Encoding
+                # - Some servers will notice that the file is
+                #   already compressed and will leave the file
+                #   alone and will add a Content-Encoding: gzip
+                #   header
+                # - Some servers won't notice anything at all and
+                #   will take a file that's already been compressed
+                #   and compress it again and set the
+                #   Content-Encoding: gzip header
+                #
+                # By setting this not to decode automatically we
+                # hope to eliminate problems with the second case.
+                decode_content=False,
+            ):
                 yield chunk
         except AttributeError:
             # Standard file-like object.
@@ -595,8 +606,7 @@ def _download_url(resp, link, content_file, hashes, progress_bar):
         url = link.url_without_fragment
 
     if show_progress:  # We don't show progress on cached responses
-        progress_indicator = DownloadProgressProvider(progress_bar,
-                                                      max=total_length)
+        progress_indicator = DownloadProgressProvider(progress_bar, max=total_length)
         if total_length:
             logger.info("Downloading %s (%s)", url, format_size(total_length))
         else:
@@ -609,10 +619,7 @@ def _download_url(resp, link, content_file, hashes, progress_bar):
     logger.debug('Downloading from URL %s', link)
 
     downloaded_chunks = written_chunks(
-        progress_indicator(
-            resp_read(CONTENT_CHUNK_SIZE),
-            CONTENT_CHUNK_SIZE
-        )
+        progress_indicator(resp_read(CONTENT_CHUNK_SIZE), CONTENT_CHUNK_SIZE)
     )
     if hashes:
         hashes.check_against_chunks(downloaded_chunks)
@@ -625,8 +632,10 @@ def _copy_file(filename, location, link):
     download_location = os.path.join(location, link.filename)
     if os.path.exists(download_location):
         response = ask_path_exists(
-            'The file %s exists. (i)gnore, (w)ipe, (b)ackup, (a)abort' %
-            display_path(download_location), ('i', 'w', 'b', 'a'))
+            'The file %s exists. (i)gnore, (w)ipe, (b)ackup, (a)abort'
+            % display_path(download_location),
+            ('i', 'w', 'b', 'a'),
+        )
         if response == 'i':
             copy = False
         elif response == 'w':
@@ -647,8 +656,9 @@ def _copy_file(filename, location, link):
         logger.info('Saved %s', display_path(download_location))
 
 
-def unpack_http_url(link, location, download_dir=None,
-                    session=None, hashes=None, progress_bar="on"):
+def unpack_http_url(
+    link, location, download_dir=None, session=None, hashes=None, progress_bar="on"
+):
     if session is None:
         raise TypeError(
             "unpack_http_url() missing 1 required keyword argument: 'session'"
@@ -658,20 +668,16 @@ def unpack_http_url(link, location, download_dir=None,
         # If a download dir is specified, is the file already downloaded there?
         already_downloaded_path = None
         if download_dir:
-            already_downloaded_path = _check_download_dir(link,
-                                                          download_dir,
-                                                          hashes)
+            already_downloaded_path = _check_download_dir(link, download_dir, hashes)
 
         if already_downloaded_path:
             from_path = already_downloaded_path
             content_type = mimetypes.guess_type(from_path)[0]
         else:
             # let's download to a tmp dir
-            from_path, content_type = _download_http_url(link,
-                                                         session,
-                                                         temp_dir.path,
-                                                         hashes,
-                                                         progress_bar)
+            from_path, content_type = _download_http_url(
+                link, session, temp_dir.path, hashes, progress_bar
+            )
 
         # unpack the archive to the build dir location. even when only
         # downloading archives, they have to be unpacked to parse dependencies
@@ -713,9 +719,7 @@ def unpack_file_url(link, location, download_dir=None, hashes=None):
     # If a download dir is specified, is the file already there and valid?
     already_downloaded_path = None
     if download_dir:
-        already_downloaded_path = _check_download_dir(link,
-                                                      download_dir,
-                                                      hashes)
+        already_downloaded_path = _check_download_dir(link, download_dir, hashes)
 
     if already_downloaded_path:
         from_path = already_downloaded_path
@@ -785,22 +789,28 @@ class PipXmlrpcTransport(xmlrpc_client.Transport):
         url = urllib_parse.urlunparse(parts)
         try:
             headers = {'Content-Type': 'text/xml'}
-            response = self._session.post(url, data=request_body,
-                                          headers=headers, stream=True)
+            response = self._session.post(
+                url, data=request_body, headers=headers, stream=True
+            )
             response.raise_for_status()
             self.verbose = verbose
             return self.parse_response(response.raw)
         except requests.HTTPError as exc:
             logger.critical(
-                "HTTP error %s while getting %s",
-                exc.response.status_code, url,
+                "HTTP error %s while getting %s", exc.response.status_code, url
             )
             raise
 
 
-def unpack_url(link, location, download_dir=None,
-               only_download=False, session=None, hashes=None,
-               progress_bar="on"):
+def unpack_url(
+    link,
+    location,
+    download_dir=None,
+    only_download=False,
+    session=None,
+    hashes=None,
+    progress_bar="on",
+):
     """Unpack link.
        If link is a VCS link:
          if only_download, export into download_dir and ignore location
@@ -834,7 +844,7 @@ def unpack_url(link, location, download_dir=None,
             download_dir,
             session,
             hashes=hashes,
-            progress_bar=progress_bar
+            progress_bar=progress_bar,
         )
     if only_download:
         write_delete_marker_file(location)
@@ -871,7 +881,7 @@ def _download_http_url(link, session, temp_dir, hashes, progress_bar):
         resp.raise_for_status()
     except requests.HTTPError as exc:
         logger.critical(
-            "HTTP error %s while getting %s", exc.response.status_code, link,
+            "HTTP error %s while getting %s", exc.response.status_code, link
         )
         raise
 
@@ -912,9 +922,8 @@ def _check_download_dir(link, download_dir, hashes):
                 hashes.check_against_path(download_path)
             except HashMismatch:
                 logger.warning(
-                    'Previously-downloaded file %s has bad hash. '
-                    'Re-downloading.',
-                    download_path
+                    'Previously-downloaded file %s has bad hash. ' 'Re-downloading.',
+                    download_path,
                 )
                 os.unlink(download_path)
                 return None

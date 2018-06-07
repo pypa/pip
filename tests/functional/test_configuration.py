@@ -15,7 +15,6 @@ def test_no_options_passed_should_error(script):
 
 
 class TestBasicLoading(ConfigurationMixin):
-
     @pytest.mark.skip("Can't modify underlying file for any mode")
     def test_reads_file_appropriately(self, script):
         contents = """
@@ -45,10 +44,9 @@ class TestBasicLoading(ConfigurationMixin):
 
         result = script.pip("config", "list")
 
-        lines = list(filter(
-            lambda x: x.startswith("test.listing-"),
-            result.stdout.splitlines()
-        ))
+        lines = list(
+            filter(lambda x: x.startswith("test.listing-"), result.stdout.splitlines())
+        )
 
         expected = """
             test.listing-alpha='1'

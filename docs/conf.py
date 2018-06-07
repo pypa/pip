@@ -142,7 +142,7 @@ html_theme_options = {
     'collapsiblesidebar': True,
     'externalrefs': True,
     'navigation_depth': 3,
-    'issues_url': 'https://github.com/pypa/pip/issues'
+    'issues_url': 'https://github.com/pypa/pip/issues',
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -177,10 +177,7 @@ html_last_updated_fmt = '%b %d, %Y'
 smart_quotes = False
 
 # Custom sidebar templates, maps document names to template names.
-html_sidebars = {
-    '**': ['localtoc.html', 'relations.html'],
-    'index': ['localtoc.html']
-}
+html_sidebars = {'**': ['localtoc.html', 'relations.html'], 'index': ['localtoc.html']}
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
@@ -221,13 +218,7 @@ htmlhelp_basename = 'pipdocs'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual])
 latex_documents = [
-    (
-        'index',
-        'pip.tex',
-        u'pip Documentation',
-        u'pip developers',
-        'manual',
-    ),
+    ('index', 'pip.tex', u'pip Documentation', u'pip developers', 'manual')
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -251,13 +242,7 @@ latex_documents = [
 
 # List of manual pages generated
 man_pages = [
-    (
-        'man/pip',
-        'pip',
-        u'package manager for Python packages',
-        u'pip developers',
-        1
-    )
+    ('man/pip', 'pip', u'package manager for Python packages', u'pip developers', 1)
 ]
 
 # Here, we crawl the entire man/commands/ directory and list every file with
@@ -265,8 +250,6 @@ man_pages = [
 for fname in glob.glob('man/commands/*.rst'):
     fname_base = fname[:-4]
     outname = 'pip-' + fname_base[13:]
-    description = u'description of {} command'.format(
-        outname.replace('-', ' ')
-    )
+    description = u'description of {} command'.format(outname.replace('-', ' '))
 
     man_pages.append((fname_base, outname, description, u'pip developers', 1))

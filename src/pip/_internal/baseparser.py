@@ -108,7 +108,6 @@ class UpdatingDefaultsHelpFormatter(PrettyHelpFormatter):
 
 
 class CustomOptionParser(optparse.OptionParser):
-
     def insert_option_group(self, idx, *args, **kwargs):
         """Insert an OptionGroup at a given position."""
         group = self.add_option_group(*args, **kwargs)
@@ -159,7 +158,7 @@ class ConfigOptionParser(CustomOptionParser):
             if not val:
                 logger.debug(
                     "Ignoring configuration key '%s' as it's value is empty.",
-                    section_key
+                    section_key,
                 )
                 continue
 

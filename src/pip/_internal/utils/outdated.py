@@ -54,8 +54,7 @@ class SelfCheckState(object):
             }
 
             with open(self.statefile_path, "w") as statefile:
-                json.dump(state, statefile, sort_keys=True,
-                          separators=(",", ":"))
+                json.dump(state, statefile, sort_keys=True, separators=(",", ":"))
 
 
 def pip_installed_by_pip():
@@ -66,8 +65,9 @@ def pip_installed_by_pip():
     """
     try:
         dist = pkg_resources.get_distribution('pip')
-        return (dist.has_metadata('INSTALLER') and
-                'pip' in dist.get_metadata_lines('INSTALLER'))
+        return dist.has_metadata('INSTALLER') and 'pip' in dist.get_metadata_lines(
+            'INSTALLER'
+        )
     except pkg_resources.DistributionNotFound:
         return False
 
@@ -93,8 +93,7 @@ def pip_version_check(session, options):
         # Determine if we need to refresh the state
         if "last_check" in state.state and "pypi_version" in state.state:
             last_check = datetime.datetime.strptime(
-                state.state["last_check"],
-                SELFCHECK_DATE_FMT
+                state.state["last_check"], SELFCHECK_DATE_FMT
             )
             if (current_time - last_check).total_seconds() < 7 * 24 * 60 * 60:
                 pypi_version = state.state["pypi_version"]
@@ -113,9 +112,7 @@ def pip_version_check(session, options):
             all_candidates = finder.find_all_candidates("pip")
             if not all_candidates:
                 return
-            pypi_version = str(
-                max(all_candidates, key=lambda c: c.version).version
-            )
+            pypi_version = str(max(all_candidates, key=lambda c: c.version).version)
 
             # save that we've performed a check
             state.save(pypi_version, current_time)
@@ -123,9 +120,11 @@ def pip_version_check(session, options):
         remote_version = packaging_version.parse(pypi_version)
 
         # Determine if our pypi_version is older
-        if (pip_version < remote_version and
-                pip_version.base_version != remote_version.base_version and
-                pip_installed_by_pip()):
+        if (
+            pip_version < remote_version
+            and pip_version.base_version != remote_version.base_version
+            and pip_installed_by_pip()
+        ):
             # Advise "python -m pip" on Windows to avoid issues
             # with overwriting pip.exe.
             if WINDOWS:
@@ -136,10 +135,11 @@ def pip_version_check(session, options):
                 "You are using pip version %s, however version %s is "
                 "available.\nYou should consider upgrading via the "
                 "'%s install --upgrade pip' command.",
-                pip_version, pypi_version, pip_cmd
+                pip_version,
+                pypi_version,
+                pip_cmd,
             )
     except Exception:
         logger.debug(
-            "There was an error checking the latest version of pip",
-            exc_info=True,
+            "There was an error checking the latest version of pip", exc_info=True
         )

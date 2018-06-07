@@ -48,12 +48,15 @@ class WheelCommand(RequirementCommand):
         cmd_opts = self.cmd_opts
 
         cmd_opts.add_option(
-            '-w', '--wheel-dir',
+            '-w',
+            '--wheel-dir',
             dest='wheel_dir',
             metavar='dir',
             default=os.curdir,
-            help=("Build wheels into <dir>, where the default is the "
-                  "current working directory."),
+            help=(
+                "Build wheels into <dir>, where the default is the "
+                "current working directory."
+            ),
         )
         cmd_opts.add_option(cmdoptions.no_binary())
         cmd_opts.add_option(cmdoptions.only_binary())
@@ -81,23 +84,23 @@ class WheelCommand(RequirementCommand):
             action='append',
             metavar='options',
             help="Extra global options to be supplied to the setup.py "
-            "call before the 'bdist_wheel' command.")
+            "call before the 'bdist_wheel' command.",
+        )
 
         cmd_opts.add_option(
             '--pre',
             action='store_true',
             default=False,
-            help=("Include pre-release and development versions. By default, "
-                  "pip only finds stable versions."),
+            help=(
+                "Include pre-release and development versions. By default, "
+                "pip only finds stable versions."
+            ),
         )
 
         cmd_opts.add_option(cmdoptions.no_clean())
         cmd_opts.add_option(cmdoptions.require_hashes())
 
-        index_opts = cmdoptions.make_option_group(
-            cmdoptions.index_group,
-            self.parser,
-        )
+        index_opts = cmdoptions.make_option_group(cmdoptions.index_group, self.parser)
 
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, cmd_opts)
@@ -117,20 +120,23 @@ class WheelCommand(RequirementCommand):
 
         with self._build_session(options) as session:
             finder = self._build_package_finder(options, session)
-            build_delete = (not (options.no_clean or options.build_dir))
+            build_delete = not (options.no_clean or options.build_dir)
             wheel_cache = WheelCache(options.cache_dir, options.format_control)
 
             with TempDirectory(
                 options.build_dir, delete=build_delete, kind="wheel"
             ) as directory:
-                requirement_set = RequirementSet(
-                    require_hashes=options.require_hashes,
-                )
+                requirement_set = RequirementSet(require_hashes=options.require_hashes)
 
                 try:
                     self.populate_requirement_set(
-                        requirement_set, args, options, finder, session,
-                        self.name, wheel_cache
+                        requirement_set,
+                        args,
+                        options,
+                        finder,
+                        session,
+                        self.name,
+                        wheel_cache,
                     )
 
                     preparer = RequirementPreparer(
@@ -159,18 +165,18 @@ class WheelCommand(RequirementCommand):
 
                     # build wheels
                     wb = WheelBuilder(
-                        finder, preparer, wheel_cache,
+                        finder,
+                        preparer,
+                        wheel_cache,
                         build_options=options.build_options or [],
                         global_options=options.global_options or [],
                         no_clean=options.no_clean,
                     )
                     wheels_built_successfully = wb.build(
-                        requirement_set.requirements.values(), session=session,
+                        requirement_set.requirements.values(), session=session
                     )
                     if not wheels_built_successfully:
-                        raise CommandError(
-                            "Failed to build one or more wheels"
-                        )
+                        raise CommandError("Failed to build one or more wheels")
                 except PreviousBuildDirError:
                     options.no_clean = True
                     raise

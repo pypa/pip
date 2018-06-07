@@ -12,7 +12,11 @@ from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip._internal.exceptions import BadCommand
 from pip._internal.utils.misc import (
-    display_path, backup_dir, call_subprocess, rmtree, ask_path_exists,
+    display_path,
+    backup_dir,
+    call_subprocess,
+    rmtree,
+    ask_path_exists,
 )
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -141,8 +145,7 @@ class VcsSupport(object):
         """
         for vc_type in self._registry.values():
             if vc_type.controls_location(location):
-                logger.debug('Determine that %s uses VCS: %s',
-                             location, vc_type.name)
+                logger.debug('Determine that %s uses VCS: %s', location, vc_type.name)
                 return vc_type.name
         return None
 
@@ -237,8 +240,9 @@ class VersionControl(object):
         """
         Returns (url, revision), where both are strings
         """
-        assert not location.rstrip('/').endswith(self.dirname), \
+        assert not location.rstrip('/').endswith(self.dirname), (
             'Bad directory: %s' % location
+        )
         return self.get_url(location), self.get_revision(location)
 
     def normalize_url(self, url):
@@ -252,7 +256,7 @@ class VersionControl(object):
         """
         Compare two repo URLs for identity, ignoring incidental differences.
         """
-        return (self.normalize_url(url1) == self.normalize_url(url2))
+        return self.normalize_url(url1) == self.normalize_url(url2)
 
     def obtain(self, dest):
         """
@@ -322,8 +326,7 @@ class VersionControl(object):
                         )
                         self.update(dest, rev_options)
                     else:
-                        logger.info(
-                            'Skipping because already up-to-date.')
+                        logger.info('Skipping because already up-to-date.')
                 else:
                     logger.warning(
                         '%s %s in %s exists with URL %s',
@@ -332,8 +335,10 @@ class VersionControl(object):
                         display_path(dest),
                         existing_url,
                     )
-                    prompt = ('(s)witch, (i)gnore, (w)ipe, (b)ackup ',
-                              ('s', 'i', 'w', 'b'))
+                    prompt = (
+                        '(s)witch, (i)gnore, (w)ipe, (b)ackup ',
+                        ('s', 'i', 'w', 'b'),
+                    )
             else:
                 logger.warning(
                     'Directory %s already exists, and is not a %s %s.',
@@ -344,12 +349,9 @@ class VersionControl(object):
                 prompt = ('(i)gnore, (w)ipe, (b)ackup ', ('i', 'w', 'b'))
         if prompt:
             logger.warning(
-                'The plan is to install the %s repository %s',
-                self.name,
-                url,
+                'The plan is to install the %s repository %s', self.name, url
             )
-            response = ask_path_exists('What to do?  %s' % prompt[0],
-                                       prompt[1])
+            response = ask_path_exists('What to do?  %s' % prompt[0], prompt[1])
 
             if response == 's':
                 logger.info(
@@ -369,9 +371,7 @@ class VersionControl(object):
                 checkout = True
             elif response == 'b':
                 dest_dir = backup_dir(dest)
-                logger.warning(
-                    'Backing up %s to %s', display_path(dest), dest_dir,
-                )
+                logger.warning('Backing up %s to %s', display_path(dest), dest_dir)
                 shutil.move(dest, dest_dir)
                 checkout = True
             elif response == 'a':
@@ -409,10 +409,16 @@ class VersionControl(object):
         """
         raise NotImplementedError
 
-    def run_command(self, cmd, show_stdout=True, cwd=None,
-                    on_returncode='raise',
-                    command_desc=None,
-                    extra_environ=None, spinner=None):
+    def run_command(
+        self,
+        cmd,
+        show_stdout=True,
+        cwd=None,
+        on_returncode='raise',
+        command_desc=None,
+        extra_environ=None,
+        spinner=None,
+    ):
         """
         Run a VCS subcommand
         This is simply a wrapper around call_subprocess that adds the VCS
@@ -420,11 +426,16 @@ class VersionControl(object):
         """
         cmd = [self.name] + cmd
         try:
-            return call_subprocess(cmd, show_stdout, cwd,
-                                   on_returncode,
-                                   command_desc, extra_environ,
-                                   unset_environ=self.unset_environ,
-                                   spinner=spinner)
+            return call_subprocess(
+                cmd,
+                show_stdout,
+                cwd,
+                on_returncode,
+                command_desc,
+                extra_environ,
+                unset_environ=self.unset_environ,
+                spinner=spinner,
+            )
         except OSError as e:
             # errno.ENOENT = no such file or directory
             # In other words, the VCS executable isn't available
@@ -432,7 +443,8 @@ class VersionControl(object):
                 raise BadCommand(
                     'Cannot find command %r - do you have '
                     '%r installed and in your '
-                    'PATH?' % (self.name, self.name))
+                    'PATH?' % (self.name, self.name)
+                )
             else:
                 raise  # re-raise exception if a different error occurred
 
@@ -443,8 +455,7 @@ class VersionControl(object):
         It is meant to be overridden to implement smarter detection
         mechanisms for specific vcs.
         """
-        logger.debug('Checking in %s for %s (%s)...',
-                     location, cls.dirname, cls.name)
+        logger.debug('Checking in %s for %s (%s)...', location, cls.dirname, cls.name)
         path = os.path.join(location, cls.dirname)
         return os.path.exists(path)
 
@@ -453,8 +464,7 @@ def get_src_requirement(dist, location):
     version_control = vcs.get_backend_from_location(location)
     if version_control:
         try:
-            return version_control().get_src_requirement(dist,
-                                                         location)
+            return version_control().get_src_requirement(dist, location)
         except BadCommand:
             logger.warning(
                 'cannot determine version of editable source in %s '

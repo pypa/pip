@@ -17,14 +17,24 @@ from mock import Mock, patch
 from pip._vendor.six import BytesIO
 
 from pip._internal.exceptions import (
-    HashMismatch, HashMissing, InstallationError, UnsupportedPythonVersion,
+    HashMismatch,
+    HashMissing,
+    InstallationError,
+    UnsupportedPythonVersion,
 )
 from pip._internal.utils.encoding import auto_decode
 from pip._internal.utils.glibc import check_glibc_version
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.misc import (
-    call_subprocess, egg_link_path, ensure_dir, get_installed_distributions,
-    get_prog, normalize_path, remove_auth_from_url, rmtree, untar_file,
+    call_subprocess,
+    egg_link_path,
+    ensure_dir,
+    get_installed_distributions,
+    get_prog,
+    normalize_path,
+    remove_auth_from_url,
+    rmtree,
+    untar_file,
     unzip_file,
 )
 from pip._internal.utils.packaging import check_dist_requires_python
@@ -41,37 +51,36 @@ class Tests_EgglinkPath:
         self.mock_dist = Mock(project_name=project)
         self.site_packages = 'SITE_PACKAGES'
         self.user_site = 'USER_SITE'
-        self.user_site_egglink = os.path.join(
-            self.user_site,
-            '%s.egg-link' % project
-        )
+        self.user_site_egglink = os.path.join(self.user_site, '%s.egg-link' % project)
         self.site_packages_egglink = os.path.join(
-            self.site_packages,
-            '%s.egg-link' % project,
+            self.site_packages, '%s.egg-link' % project
         )
 
         # patches
         from pip._internal.utils import misc as utils
+
         self.old_site_packages = utils.site_packages
         self.mock_site_packages = utils.site_packages = 'SITE_PACKAGES'
         self.old_running_under_virtualenv = utils.running_under_virtualenv
-        self.mock_running_under_virtualenv = utils.running_under_virtualenv = \
-            Mock()
+        self.mock_running_under_virtualenv = utils.running_under_virtualenv = Mock()
         self.old_virtualenv_no_global = utils.virtualenv_no_global
         self.mock_virtualenv_no_global = utils.virtualenv_no_global = Mock()
         self.old_user_site = utils.user_site
         self.mock_user_site = utils.user_site = self.user_site
         from os import path
+
         self.old_isfile = path.isfile
         self.mock_isfile = path.isfile = Mock()
 
     def teardown(self):
         from pip._internal.utils import misc as utils
+
         utils.site_packages = self.old_site_packages
         utils.running_under_virtualenv = self.old_running_under_virtualenv
         utils.virtualenv_no_global = self.old_virtualenv_no_global
         utils.user_site = self.old_user_site
         from os import path
+
         path.isfile = self.old_isfile
 
     def eggLinkInUserSite(self, egglink):
@@ -180,13 +189,13 @@ class Tests_get_installed_distributions:
 
     workingset_stdlib = [
         Mock(test_name='normal', key='argparse'),
-        Mock(test_name='normal', key='wsgiref')
+        Mock(test_name='normal', key='wsgiref'),
     ]
 
     workingset_freeze = [
         Mock(test_name='normal', key='pip'),
         Mock(test_name='normal', key='setuptools'),
-        Mock(test_name='normal', key='distribute')
+        Mock(test_name='normal', key='distribute'),
     ]
 
     def dist_is_editable(self, dist):
@@ -199,9 +208,9 @@ class Tests_get_installed_distributions:
         return dist.test_name == "user"
 
     @patch('pip._vendor.pkg_resources.working_set', workingset)
-    def test_editables_only(self, mock_dist_is_editable,
-                            mock_dist_is_local,
-                            mock_dist_in_usersite):
+    def test_editables_only(
+        self, mock_dist_is_editable, mock_dist_is_local, mock_dist_in_usersite
+    ):
         mock_dist_is_editable.side_effect = self.dist_is_editable
         mock_dist_is_local.side_effect = self.dist_is_local
         mock_dist_in_usersite.side_effect = self.dist_in_usersite
@@ -210,9 +219,9 @@ class Tests_get_installed_distributions:
         assert dists[0].test_name == "editable"
 
     @patch('pip._vendor.pkg_resources.working_set', workingset)
-    def test_exclude_editables(self, mock_dist_is_editable,
-                               mock_dist_is_local,
-                               mock_dist_in_usersite):
+    def test_exclude_editables(
+        self, mock_dist_is_editable, mock_dist_is_local, mock_dist_in_usersite
+    ):
         mock_dist_is_editable.side_effect = self.dist_is_editable
         mock_dist_is_local.side_effect = self.dist_is_local
         mock_dist_in_usersite.side_effect = self.dist_in_usersite
@@ -221,9 +230,9 @@ class Tests_get_installed_distributions:
         assert dists[0].test_name == "normal"
 
     @patch('pip._vendor.pkg_resources.working_set', workingset)
-    def test_include_globals(self, mock_dist_is_editable,
-                             mock_dist_is_local,
-                             mock_dist_in_usersite):
+    def test_include_globals(
+        self, mock_dist_is_editable, mock_dist_is_local, mock_dist_in_usersite
+    ):
         mock_dist_is_editable.side_effect = self.dist_is_editable
         mock_dist_is_local.side_effect = self.dist_is_local
         mock_dist_in_usersite.side_effect = self.dist_in_usersite
@@ -231,21 +240,20 @@ class Tests_get_installed_distributions:
         assert len(dists) == 4
 
     @patch('pip._vendor.pkg_resources.working_set', workingset)
-    def test_user_only(self, mock_dist_is_editable,
-                       mock_dist_is_local,
-                       mock_dist_in_usersite):
+    def test_user_only(
+        self, mock_dist_is_editable, mock_dist_is_local, mock_dist_in_usersite
+    ):
         mock_dist_is_editable.side_effect = self.dist_is_editable
         mock_dist_is_local.side_effect = self.dist_is_local
         mock_dist_in_usersite.side_effect = self.dist_in_usersite
-        dists = get_installed_distributions(local_only=False,
-                                            user_only=True)
+        dists = get_installed_distributions(local_only=False, user_only=True)
         assert len(dists) == 1
         assert dists[0].test_name == "user"
 
     @patch('pip._vendor.pkg_resources.working_set', workingset_stdlib)
-    def test_gte_py27_excludes(self, mock_dist_is_editable,
-                               mock_dist_is_local,
-                               mock_dist_in_usersite):
+    def test_gte_py27_excludes(
+        self, mock_dist_is_editable, mock_dist_is_local, mock_dist_in_usersite
+    ):
         mock_dist_is_editable.side_effect = self.dist_is_editable
         mock_dist_is_local.side_effect = self.dist_is_local
         mock_dist_in_usersite.side_effect = self.dist_in_usersite
@@ -253,14 +261,13 @@ class Tests_get_installed_distributions:
         assert len(dists) == 0
 
     @patch('pip._vendor.pkg_resources.working_set', workingset_freeze)
-    def test_freeze_excludes(self, mock_dist_is_editable,
-                             mock_dist_is_local,
-                             mock_dist_in_usersite):
+    def test_freeze_excludes(
+        self, mock_dist_is_editable, mock_dist_is_local, mock_dist_in_usersite
+    ):
         mock_dist_is_editable.side_effect = self.dist_is_editable
         mock_dist_is_local.side_effect = self.dist_is_local
         mock_dist_in_usersite.side_effect = self.dist_in_usersite
-        dists = get_installed_distributions(
-            skip=('setuptools', 'pip', 'distribute'))
+        dists = get_installed_distributions(skip=('setuptools', 'pip', 'distribute'))
         assert len(dists) == 0
 
 
@@ -298,13 +305,14 @@ class TestUnpackArchives(object):
         # expectations based on 022 umask set above and the unpack logic that
         # sets execute permissions, not preservation
         for fname, expected_mode, test in [
-                ('file.txt', 0o644, os.path.isfile),
-                ('symlink.txt', 0o644, os.path.isfile),
-                ('script_owner.sh', 0o755, os.path.isfile),
-                ('script_group.sh', 0o755, os.path.isfile),
-                ('script_world.sh', 0o755, os.path.isfile),
-                ('dir', 0o755, os.path.isdir),
-                (os.path.join('dir', 'dirfile'), 0o644, os.path.isfile)]:
+            ('file.txt', 0o644, os.path.isfile),
+            ('symlink.txt', 0o644, os.path.isfile),
+            ('script_owner.sh', 0o755, os.path.isfile),
+            ('script_group.sh', 0o755, os.path.isfile),
+            ('script_world.sh', 0o755, os.path.isfile),
+            ('dir', 0o755, os.path.isdir),
+            (os.path.join('dir', 'dirfile'), 0o644, os.path.isfile),
+        ]:
             path = os.path.join(self.tempdir, fname)
             if path.endswith('symlink.txt') and sys.platform == 'win32':
                 # no symlinks created on windows
@@ -315,8 +323,9 @@ class TestUnpackArchives(object):
                 # due to os.chmod being a noop
                 continue
             mode = self.mode(path)
-            assert mode == expected_mode, (
-                "mode: %s, expected mode: %s" % (mode, expected_mode)
+            assert mode == expected_mode, "mode: %s, expected mode: %s" % (
+                mode,
+                expected_mode,
             )
 
     def test_unpack_tgz(self, data):
@@ -394,12 +403,12 @@ class Test_normalize_path(object):
                 'dir_link/file1', resolve_symlinks=False
             ) == os.path.join(tmpdir, 'dir_link', 'file1')
 
-            assert normalize_path(
-                'file_link', resolve_symlinks=True
-            ) == os.path.join(tmpdir, f)
-            assert normalize_path(
-                'file_link', resolve_symlinks=False
-            ) == os.path.join(tmpdir, 'file_link')
+            assert normalize_path('file_link', resolve_symlinks=True) == os.path.join(
+                tmpdir, f
+            )
+            assert normalize_path('file_link', resolve_symlinks=False) == os.path.join(
+                tmpdir, 'file_link'
+            )
         finally:
             os.chdir(orig_working_dir)
 
@@ -415,11 +424,16 @@ class TestHashes(object):
         """
         file = tmpdir / 'to_hash'
         file.write('hello')
-        hashes = Hashes({
-            'sha256': ['2cf24dba5fb0a30e26e83b2ac5b9e29e'
-                       '1b161e5c1fa7425e73043362938b9824'],
-            'sha224': ['wrongwrong'],
-            'md5': ['5d41402abc4b2a76b9719d911017c592']})
+        hashes = Hashes(
+            {
+                'sha256': [
+                    '2cf24dba5fb0a30e26e83b2ac5b9e29e'
+                    '1b161e5c1fa7425e73043362938b9824'
+                ],
+                'sha224': ['wrongwrong'],
+                'md5': ['5d41402abc4b2a76b9719d911017c592'],
+            }
+        )
         hashes.check_against_path(file)
 
     def test_failure(self):
@@ -485,21 +499,14 @@ class TestTempDirectory(object):
             assert os.path.exists(tmp_dir.path)
 
             alt_tmp_dir = tempfile.mkdtemp(prefix="pip-test-")
-            assert (
-                os.path.dirname(tmp_dir.path) ==
-                os.path.dirname(os.path.realpath(alt_tmp_dir))
+            assert os.path.dirname(tmp_dir.path) == os.path.dirname(
+                os.path.realpath(alt_tmp_dir)
             )
             # are we on a system where /tmp is a symlink
             if os.path.realpath(alt_tmp_dir) != os.path.abspath(alt_tmp_dir):
-                assert (
-                    os.path.dirname(tmp_dir.path) !=
-                    os.path.dirname(alt_tmp_dir)
-                )
+                assert os.path.dirname(tmp_dir.path) != os.path.dirname(alt_tmp_dir)
             else:
-                assert (
-                    os.path.dirname(tmp_dir.path) ==
-                    os.path.dirname(alt_tmp_dir)
-                )
+                assert os.path.dirname(tmp_dir.path) == os.path.dirname(alt_tmp_dir)
             os.rmdir(tmp_dir.path)
             assert not os.path.exists(tmp_dir.path)
 
@@ -545,14 +552,15 @@ class TestGlibc(object):
         Test that the check_glibc_version function is robust against weird
         glibc version strings.
         """
-        for two_twenty in ["2.20",
-                           # used by "linaro glibc", see gh-3588
-                           "2.20-2014.11",
-                           # weird possibilities that I just made up
-                           "2.20+dev",
-                           "2.20-custom",
-                           "2.20.1",
-                           ]:
+        for two_twenty in [
+            "2.20",
+            # used by "linaro glibc", see gh-3588
+            "2.20-2014.11",
+            # weird possibilities that I just made up
+            "2.20+dev",
+            "2.20-custom",
+            "2.20.1",
+        ]:
             assert check_glibc_version(two_twenty, 2, 15)
             assert check_glibc_version(two_twenty, 2, 20)
             assert not check_glibc_version(two_twenty, 2, 21)
@@ -574,7 +582,6 @@ class TestGlibc(object):
 
 
 class TestCheckRequiresPython(object):
-
     @pytest.mark.parametrize(
         ("metadata", "should_raise"),
         [
@@ -585,9 +592,7 @@ class TestCheckRequiresPython(object):
         ],
     )
     def test_check_requires(self, metadata, should_raise):
-        fake_dist = Mock(
-            has_metadata=lambda _: True,
-            get_metadata=lambda _: metadata)
+        fake_dist = Mock(has_metadata=lambda _: True, get_metadata=lambda _: metadata)
         if should_raise:
             with pytest.raises(UnsupportedPythonVersion):
                 check_dist_requires_python(fake_dist)
@@ -596,7 +601,6 @@ class TestCheckRequiresPython(object):
 
 
 class TestGetProg(object):
-
     @pytest.mark.parametrize(
         ("argv", "executable", "expected"),
         [
@@ -604,14 +608,11 @@ class TestGetProg(object):
             ('-c', '/usr/bin/python', '/usr/bin/python -m pip'),
             ('__main__.py', '/usr/bin/python', '/usr/bin/python -m pip'),
             ('/usr/bin/pip3', '', 'pip3'),
-        ]
+        ],
     )
     def test_get_prog(self, monkeypatch, argv, executable, expected):
         monkeypatch.setattr('pip._internal.utils.misc.sys.argv', [argv])
-        monkeypatch.setattr(
-            'pip._internal.utils.misc.sys.executable',
-            executable
-        )
+        monkeypatch.setattr('pip._internal.utils.misc.sys.executable', executable)
         assert get_prog() == expected
 
 
@@ -627,22 +628,30 @@ def test_call_subprocess_closes_stdin():
         call_subprocess([sys.executable, '-c', 'input()'])
 
 
-@pytest.mark.parametrize('auth_url, expected_url', [
-    ('https://user:pass@domain.tld/project/tags/v0.2',
-     'https://domain.tld/project/tags/v0.2'),
-    ('https://domain.tld/project/tags/v0.2',
-     'https://domain.tld/project/tags/v0.2',),
-    ('https://user:pass@domain.tld/svn/project/trunk@8181',
-     'https://domain.tld/svn/project/trunk@8181'),
-    ('https://domain.tld/project/trunk@8181',
-     'https://domain.tld/project/trunk@8181',),
-    ('git+https://pypi.org/something',
-     'git+https://pypi.org/something'),
-    ('git+https://user:pass@pypi.org/something',
-     'git+https://pypi.org/something'),
-    ('git+ssh://git@pypi.org/something',
-     'git+ssh://pypi.org/something'),
-])
+@pytest.mark.parametrize(
+    'auth_url, expected_url',
+    [
+        (
+            'https://user:pass@domain.tld/project/tags/v0.2',
+            'https://domain.tld/project/tags/v0.2',
+        ),
+        (
+            'https://domain.tld/project/tags/v0.2',
+            'https://domain.tld/project/tags/v0.2',
+        ),
+        (
+            'https://user:pass@domain.tld/svn/project/trunk@8181',
+            'https://domain.tld/svn/project/trunk@8181',
+        ),
+        (
+            'https://domain.tld/project/trunk@8181',
+            'https://domain.tld/project/trunk@8181',
+        ),
+        ('git+https://pypi.org/something', 'git+https://pypi.org/something'),
+        ('git+https://user:pass@pypi.org/something', 'git+https://pypi.org/something'),
+        ('git+ssh://git@pypi.org/something', 'git+ssh://pypi.org/something'),
+    ],
+)
 def test_remove_auth_from_url(auth_url, expected_url):
     url = remove_auth_from_url(auth_url)
     assert url == expected_url

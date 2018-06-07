@@ -24,7 +24,9 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 from pip._internal.compat import ipaddress
 from pip._internal.download import HAS_TLS, is_url, path_to_url, url_to_path
 from pip._internal.exceptions import (
-    BestVersionAlreadyInstalled, DistributionNotFound, InvalidWheelFilename,
+    BestVersionAlreadyInstalled,
+    DistributionNotFound,
+    InvalidWheelFilename,
     UnsupportedWheel,
 )
 from pip._internal.models.index import PyPI
@@ -32,8 +34,12 @@ from pip._internal.pep425tags import get_supported
 from pip._internal.utils.deprecation import RemovedInPip11Warning
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
-    ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, cached_property, normalize_path,
-    remove_auth_from_url, splitext,
+    ARCHIVE_EXTENSIONS,
+    SUPPORTED_EXTENSIONS,
+    cached_property,
+    normalize_path,
+    remove_auth_from_url,
+    splitext,
 )
 from pip._internal.utils.packaging import check_requires_python
 from pip._internal.wheel import Wheel, wheel_ext
@@ -58,7 +64,6 @@ logger = logging.getLogger(__name__)
 
 
 class InstallationCandidate(object):
-
     def __init__(self, project, version, location):
         self.project = project
         self.version = parse_version(version)
@@ -67,7 +72,7 @@ class InstallationCandidate(object):
 
     def __repr__(self):
         return "<InstallationCandidate({!r}, {!r}, {!r})>".format(
-            self.project, self.version, self.location,
+            self.project, self.version, self.location
         )
 
     def __hash__(self):
@@ -105,11 +110,21 @@ class PackageFinder(object):
     packages, by reading pages and looking for appropriate links.
     """
 
-    def __init__(self, find_links, index_urls, allow_all_prereleases=False,
-                 trusted_hosts=None, process_dependency_links=False,
-                 session=None, format_control=None, platform=None,
-                 versions=None, abi=None, implementation=None,
-                 prefer_binary=False):
+    def __init__(
+        self,
+        find_links,
+        index_urls,
+        allow_all_prereleases=False,
+        trusted_hosts=None,
+        process_dependency_links=False,
+        session=None,
+        format_control=None,
+        platform=None,
+        versions=None,
+        abi=None,
+        implementation=None,
+        prefer_binary=False,
+    ):
         """Create a PackageFinder.
 
         :param format_control: A FormatControl object or None. Used to control
@@ -129,8 +144,7 @@ class PackageFinder(object):
         """
         if session is None:
             raise TypeError(
-                "PackageFinder() missing 1 required keyword argument: "
-                "'session'"
+                "PackageFinder() missing 1 required keyword argument: " "'session'"
             )
 
         # Build find_links. If an argument starts with ~, it may be
@@ -156,8 +170,7 @@ class PackageFinder(object):
 
         # Domains that we won't emit warnings for when not using HTTPS
         self.secure_origins = [
-            ("*", host, "*")
-            for host in (trusted_hosts if trusted_hosts else [])
+            ("*", host, "*") for host in (trusted_hosts if trusted_hosts else [])
         ]
 
         # Do we want to allow _all_ pre-releases?
@@ -171,10 +184,7 @@ class PackageFinder(object):
 
         # The valid tags to check potential found wheel candidates against
         self.valid_tags = get_supported(
-            versions=versions,
-            platform=platform,
-            abi=abi,
-            impl=implementation,
+            versions=versions, platform=platform, abi=abi, impl=implementation
         )
 
         # Do we prefer old, but valid, binary dist over new source dist
@@ -197,13 +207,12 @@ class PackageFinder(object):
         lines = []
         if self.index_urls and self.index_urls != [PyPI.simple_url]:
             lines.append(
-                "Looking in indexes: {}".format(", ".join(
-                    remove_auth_from_url(url) for url in self.index_urls))
+                "Looking in indexes: {}".format(
+                    ", ".join(remove_auth_from_url(url) for url in self.index_urls)
+                )
             )
         if self.find_links:
-            lines.append(
-                "Looking in links: {}".format(", ".join(self.find_links))
-            )
+            lines.append("Looking in links: {}".format(", ".join(self.find_links)))
         return "\n".join(lines)
 
     def add_dependency_links(self, links):
@@ -257,8 +266,8 @@ class PackageFinder(object):
                     sort_path(path)
                 else:
                     logger.warning(
-                        "Url '%s' is ignored: it is neither a file "
-                        "nor a directory.", url,
+                        "Url '%s' is ignored: it is neither a file " "nor a directory.",
+                        url,
                     )
             elif is_url(url):
                 # Only add url with clear scheme
@@ -266,7 +275,8 @@ class PackageFinder(object):
             else:
                 logger.warning(
                     "Url '%s' is ignored. It is either a non-existing "
-                    "path or lacks a specific scheme.", url,
+                    "path or lacks a specific scheme.",
+                    url,
                 )
 
         return files, urls
@@ -321,7 +331,7 @@ class PackageFinder(object):
         # Determine if our origin is a secure origin by looking through our
         # hardcoded list of secure origins, as well as any additional ones
         # configured on this PackageFinder instance.
-        for secure_origin in (SECURE_ORIGINS + self.secure_origins):
+        for secure_origin in SECURE_ORIGINS + self.secure_origins:
             if protocol != secure_origin[0] and secure_origin[0] != "*":
                 continue
 
@@ -330,10 +340,7 @@ class PackageFinder(object):
                 # unicode object, even on Python 2.x.
                 addr = ipaddress.ip_address(
                     origin[1]
-                    if (
-                        isinstance(origin[1], six.text_type) or
-                        origin[1] is None
-                    )
+                    if (isinstance(origin[1], six.text_type) or origin[1] is None)
                     else origin[1].decode("utf8")
                 )
                 network = ipaddress.ip_network(
@@ -344,9 +351,11 @@ class PackageFinder(object):
             except ValueError:
                 # We don't have both a valid address or a valid network, so
                 # we'll check this origin against hostnames.
-                if (origin[1] and
-                        origin[1].lower() != secure_origin[1].lower() and
-                        secure_origin[1] != "*"):
+                if (
+                    origin[1]
+                    and origin[1].lower() != secure_origin[1].lower()
+                    and secure_origin[1] != "*"
+                ):
                     continue
             else:
                 # We have a valid address and network, so see if the address
@@ -355,9 +364,11 @@ class PackageFinder(object):
                     continue
 
             # Check to see if the port patches
-            if (origin[2] != secure_origin[2] and
-                    secure_origin[2] != "*" and
-                    secure_origin[2] is not None):
+            if (
+                origin[2] != secure_origin[2]
+                and secure_origin[2] != "*"
+                and secure_origin[2] is not None
+            ):
                 continue
 
             # If we've gotten here, then this origin matches the current
@@ -387,8 +398,8 @@ class PackageFinder(object):
 
         def mkurl_pypi_url(url):
             loc = posixpath.join(
-                url,
-                urllib_parse.quote(canonicalize_name(project_name)))
+                url, urllib_parse.quote(canonicalize_name(project_name))
+            )
             # For maximum compatibility with easy_install, ensure the path
             # ends in a trailing slash.  Although this isn't in the spec
             # (and PyPI can handle it without the slash) some other index
@@ -410,21 +421,21 @@ class PackageFinder(object):
         """
         index_locations = self._get_index_urls_locations(project_name)
         index_file_loc, index_url_loc = self._sort_locations(index_locations)
-        fl_file_loc, fl_url_loc = self._sort_locations(
-            self.find_links, expand_dir=True,
-        )
+        fl_file_loc, fl_url_loc = self._sort_locations(self.find_links, expand_dir=True)
         dep_file_loc, dep_url_loc = self._sort_locations(self.dependency_links)
 
-        file_locations = (Link(url) for url in itertools.chain(
-            index_file_loc, fl_file_loc, dep_file_loc,
-        ))
+        file_locations = (
+            Link(url)
+            for url in itertools.chain(index_file_loc, fl_file_loc, dep_file_loc)
+        )
 
         # We trust every url that the user has given us whether it was given
         #   via --index-url or --find-links
         # We explicitly do not trust links that came from dependency_links
         # We want to filter out any thing which does not have a secure origin.
         url_locations = [
-            link for link in itertools.chain(
+            link
+            for link in itertools.chain(
                 (Link(url) for url in index_url_loc),
                 (Link(url) for url in fl_url_loc),
                 (Link(url) for url in dep_url_loc),
@@ -432,8 +443,11 @@ class PackageFinder(object):
             if self._validate_secure_origin(logger, link)
         ]
 
-        logger.debug('%d location(s) to search for versions of %s:',
-                     len(url_locations), project_name)
+        logger.debug(
+            '%d location(s) to search for versions of %s:',
+            len(url_locations),
+            project_name,
+        )
 
         for location in url_locations:
             logger.debug('* %s', location)
@@ -444,16 +458,14 @@ class PackageFinder(object):
         find_links_versions = self._package_versions(
             # We trust every directly linked archive in find_links
             (Link(url, '-f') for url in self.find_links),
-            search
+            search,
         )
 
         page_versions = []
         for page in self._get_pages(url_locations, project_name):
             logger.debug('Analyzing links from page %s', page.url)
             with indent_log():
-                page_versions.extend(
-                    self._package_versions(page.links, search)
-                )
+                page_versions.extend(self._package_versions(page.links, search))
 
         dependency_versions = self._package_versions(
             (Link(url) for url in self.dependency_links), search
@@ -461,9 +473,7 @@ class PackageFinder(object):
         if dependency_versions:
             logger.debug(
                 'dependency_links found: %s',
-                ', '.join([
-                    version.location.url for version in dependency_versions
-                ])
+                ', '.join([version.location.url for version in dependency_versions]),
             )
 
         file_versions = self._package_versions(file_locations, search)
@@ -471,17 +481,13 @@ class PackageFinder(object):
             file_versions.sort(reverse=True)
             logger.debug(
                 'Local files found: %s',
-                ', '.join([
-                    url_to_path(candidate.location.url)
-                    for candidate in file_versions
-                ])
+                ', '.join(
+                    [url_to_path(candidate.location.url) for candidate in file_versions]
+                ),
             )
 
         # This is an intentional priority ordering
-        return (
-            file_versions + find_links_versions + page_versions +
-            dependency_versions
-        )
+        return file_versions + find_links_versions + page_versions + dependency_versions
 
     def find_requirement(self, req, upgrade):
         """Try to find a Link matching req
@@ -504,19 +510,19 @@ class PackageFinder(object):
                 # and start using our own, we can drop the cast to str().
                 [str(c.version) for c in all_candidates],
                 prereleases=(
-                    self.allow_all_prereleases
-                    if self.allow_all_prereleases else None
+                    self.allow_all_prereleases if self.allow_all_prereleases else None
                 ),
             )
         )
         applicable_candidates = [
             # Again, converting to str to deal with debundling.
-            c for c in all_candidates if str(c.version) in compatible_versions
+            c
+            for c in all_candidates
+            if str(c.version) in compatible_versions
         ]
 
         if applicable_candidates:
-            best_candidate = max(applicable_candidates,
-                                 key=self._candidate_sort_key)
+            best_candidate = max(applicable_candidates, key=self._candidate_sort_key)
         else:
             best_candidate = None
 
@@ -531,21 +537,16 @@ class PackageFinder(object):
                 '(from versions: %s)',
                 req,
                 ', '.join(
-                    sorted(
-                        {str(c.version) for c in all_candidates},
-                        key=parse_version,
-                    )
-                )
+                    sorted({str(c.version) for c in all_candidates}, key=parse_version)
+                ),
             )
 
-            raise DistributionNotFound(
-                'No matching distribution found for %s' % req
-            )
+            raise DistributionNotFound('No matching distribution found for %s' % req)
 
         best_installed = False
         if installed_version and (
-                best_candidate is None or
-                best_candidate.version <= installed_version):
+            best_candidate is None or best_candidate.version <= installed_version
+        ):
             best_installed = True
 
         if not upgrade and installed_version is not None:
@@ -567,18 +568,16 @@ class PackageFinder(object):
         if best_installed:
             # We have an existing version, and its the best version
             logger.debug(
-                'Installed version (%s) is most up-to-date (past versions: '
-                '%s)',
+                'Installed version (%s) is most up-to-date (past versions: ' '%s)',
                 installed_version,
-                ', '.join(sorted(compatible_versions, key=parse_version)) or
-                "none",
+                ', '.join(sorted(compatible_versions, key=parse_version)) or "none",
             )
             raise BestVersionAlreadyInstalled
 
         logger.debug(
             'Using version %s (newest of versions: %s)',
             best_candidate.version,
-            ', '.join(sorted(compatible_versions, key=parse_version))
+            ', '.join(sorted(compatible_versions, key=parse_version)),
         )
         return best_candidate.location
 
@@ -642,13 +641,11 @@ class PackageFinder(object):
                 self._log_skipped_link(link, 'not a file')
                 return
             if ext not in SUPPORTED_EXTENSIONS:
-                self._log_skipped_link(
-                    link, 'unsupported archive format: %s' % ext,
-                )
+                self._log_skipped_link(link, 'unsupported archive format: %s' % ext)
                 return
             if "binary" not in search.formats and ext == wheel_ext:
                 self._log_skipped_link(
-                    link, 'No binaries permitted for %s' % search.supplied,
+                    link, 'No binaries permitted for %s' % search.supplied
                 )
                 return
             if "macosx10" in link.path and ext == '.zip':
@@ -662,12 +659,14 @@ class PackageFinder(object):
                     return
                 if canonicalize_name(wheel.name) != search.canonical:
                     self._log_skipped_link(
-                        link, 'wrong project name (not %s)' % search.supplied)
+                        link, 'wrong project name (not %s)' % search.supplied
+                    )
                     return
 
                 if not wheel.supported(self.valid_tags):
                     self._log_skipped_link(
-                        link, 'it is not compatible with this Python')
+                        link, 'it is not compatible with this Python'
+                    )
                     return
 
                 version = wheel.version
@@ -675,7 +674,7 @@ class PackageFinder(object):
         # This should be up by the search.ok_binary check, but see issue 2700.
         if "source" not in search.formats and ext != wheel_ext:
             self._log_skipped_link(
-                link, 'No sources permitted for %s' % search.supplied,
+                link, 'No sources permitted for %s' % search.supplied
             )
             return
 
@@ -683,28 +682,34 @@ class PackageFinder(object):
             version = egg_info_matches(egg_info, search.supplied, link)
         if version is None:
             self._log_skipped_link(
-                link, 'Missing project version for %s' % search.supplied)
+                link, 'Missing project version for %s' % search.supplied
+            )
             return
 
         match = self._py_version_re.search(version)
         if match:
-            version = version[:match.start()]
+            version = version[: match.start()]
             py_version = match.group(1)
             if py_version != sys.version[:3]:
-                self._log_skipped_link(
-                    link, 'Python version is incorrect')
+                self._log_skipped_link(link, 'Python version is incorrect')
                 return
         try:
             support_this_python = check_requires_python(link.requires_python)
         except specifiers.InvalidSpecifier:
-            logger.debug("Package %s has an invalid Requires-Python entry: %s",
-                         link.filename, link.requires_python)
+            logger.debug(
+                "Package %s has an invalid Requires-Python entry: %s",
+                link.filename,
+                link.requires_python,
+            )
             support_this_python = True
 
         if not support_this_python:
-            logger.debug("The package %s is incompatible with the python"
-                         "version in use. Acceptable python versions are:%s",
-                         link, link.requires_python)
+            logger.debug(
+                "The package %s is incompatible with the python"
+                "version in use. Acceptable python versions are:%s",
+                link,
+                link.requires_python,
+            )
             return
         logger.debug('Found link %s, version: %s', link, version)
 
@@ -715,8 +720,11 @@ class PackageFinder(object):
 
 
 def egg_info_matches(
-        egg_info, search_name, link,
-        _egg_info_re=re.compile(r'([a-z0-9_.]+)-([a-z0-9_.!+-]+)', re.I)):
+    egg_info,
+    search_name,
+    link,
+    _egg_info_re=re.compile(r'([a-z0-9_.]+)-([a-z0-9_.!+-]+)', re.I),
+):
     """Pull the version part out of a string.
 
     :param egg_info: The string to parse. E.g. foo-2.1
@@ -731,14 +739,14 @@ def egg_info_matches(
         return None
     if search_name is None:
         full_match = match.group(0)
-        return full_match[full_match.index('-'):]
+        return full_match[full_match.index('-') :]
     name = match.group(0).lower()
     # To match the "safe" name that pkg_resources creates:
     name = name.replace('_', '-')
     # project name and version must be separated by a dash
     look_for = search_name.lower() + "-"
     if name.startswith(look_for):
-        return match.group(0)[len(look_for):]
+        return match.group(0)[len(look_for) :]
     else:
         return None
 
@@ -757,9 +765,7 @@ class HTMLPage(object):
 
         self.content = content
         self.parsed = html5lib.parse(
-            self.content,
-            transport_encoding=encoding,
-            namespaceHTMLElements=False,
+            self.content, transport_encoding=encoding, namespaceHTMLElements=False
         )
         self.url = url
         self.headers = headers
@@ -770,15 +776,14 @@ class HTMLPage(object):
     @classmethod
     def get_page(cls, link, skip_archives=True, session=None):
         if session is None:
-            raise TypeError(
-                "get_page() missing 1 required keyword argument: 'session'"
-            )
+            raise TypeError("get_page() missing 1 required keyword argument: 'session'")
 
         url = link.url
         url = url.split('#', 1)[0]
 
         # Check for VCS schemes that do not support lookup as web pages.
         from pip._internal.vcs import VcsSupport
+
         for scheme in VcsSupport.schemes:
             if url.lower().startswith(scheme) and url[len(scheme)] in '+:':
                 logger.debug('Cannot look at %s URL %s', scheme, link)
@@ -789,9 +794,7 @@ class HTMLPage(object):
                 filename = link.filename
                 for bad_ext in ARCHIVE_EXTENSIONS:
                     if filename.endswith(bad_ext):
-                        content_type = cls._get_content_type(
-                            url, session=session,
-                        )
+                        content_type = cls._get_content_type(url, session=session)
                         if content_type.lower().startswith('text/html'):
                             break
                         else:
@@ -805,10 +808,8 @@ class HTMLPage(object):
             logger.debug('Getting page %s', url)
 
             # Tack index.html onto file:// URLs that point to directories
-            (scheme, netloc, path, params, query, fragment) = \
-                urllib_parse.urlparse(url)
-            if (scheme == 'file' and
-                    os.path.isdir(urllib_request.url2pathname(path))):
+            (scheme, netloc, path, params, query, fragment) = urllib_parse.urlparse(url)
+            if scheme == 'file' and os.path.isdir(urllib_request.url2pathname(path)):
                 # add trailing slash if not present so urljoin doesn't trim
                 # final segment
                 if not url.endswith('/'):
@@ -817,11 +818,7 @@ class HTMLPage(object):
                 logger.debug(' file: URL is directory, getting %s', url)
 
             resp = session.get(
-                url,
-                headers={
-                    "Accept": "text/html",
-                    "Cache-Control": "max-age=600",
-                },
+                url, headers={"Accept": "text/html", "Cache-Control": "max-age=600"}
             )
             resp.raise_for_status()
 
@@ -833,9 +830,7 @@ class HTMLPage(object):
             content_type = resp.headers.get('Content-Type', 'unknown')
             if not content_type.lower().startswith("text/html"):
                 logger.debug(
-                    'Skipping page %s because of Content-Type: %s',
-                    link,
-                    content_type,
+                    'Skipping page %s because of Content-Type: %s', link, content_type
                 )
                 return
 
@@ -876,10 +871,7 @@ class HTMLPage(object):
 
     @cached_property
     def base_url(self):
-        bases = [
-            x for x in self.parsed.findall(".//base")
-            if x.get("href") is not None
-        ]
+        bases = [x for x in self.parsed.findall(".//base") if x.get("href") is not None]
         if bases and bases[0].get("href"):
             return bases[0].get("href")
         else:
@@ -891,9 +883,7 @@ class HTMLPage(object):
         for anchor in self.parsed.findall(".//a"):
             if anchor.get("href"):
                 href = anchor.get("href")
-                url = self.clean_link(
-                    urllib_parse.urljoin(self.base_url, href)
-                )
+                url = self.clean_link(urllib_parse.urljoin(self.base_url, href))
                 pyrequire = anchor.get('data-requires-python')
                 pyrequire = unescape(pyrequire) if pyrequire else None
                 yield Link(url, self, requires_python=pyrequire)
@@ -904,12 +894,10 @@ class HTMLPage(object):
         """Makes sure a link is fully encoded.  That is, if a ' ' shows up in
         the link, it will be rewritten to %20 (while not over-quoting
         % or other characters)."""
-        return self._clean_re.sub(
-            lambda match: '%%%2x' % ord(match.group(0)), url)
+        return self._clean_re.sub(lambda match: '%%%2x' % ord(match.group(0)), url)
 
 
 class Link(object):
-
     def __init__(self, url, comes_from=None, requires_python=None):
         """
         Object representing a parsed link from https://pypi.org/simple/*
@@ -983,7 +971,7 @@ class Link(object):
         _, netloc, path, _, _ = urllib_parse.urlsplit(self.url)
         name = posixpath.basename(path.rstrip('/')) or netloc
         name = urllib_parse.unquote(name)
-        assert name, ('URL %r produced no filename' % self.url)
+        assert name, 'URL %r produced no filename' % self.url
         return name
 
     @property
@@ -1028,9 +1016,7 @@ class Link(object):
             return None
         return match.group(1)
 
-    _hash_re = re.compile(
-        r'(sha1|sha224|sha384|sha256|sha512|md5)=([a-f0-9]+)'
-    )
+    _hash_re = re.compile(r'(sha1|sha224|sha384|sha256|sha512|md5)=([a-f0-9]+)')
 
     @property
     def hash(self):
@@ -1084,7 +1070,7 @@ def fmt_ctl_handle_mutual_exclude(value, target, other):
         other.clear()
         target.clear()
         target.add(':all:')
-        del new[:new.index(':all:') + 1]
+        del new[: new.index(':all:') + 1]
         if ':none:' not in new:
             # Without a none, we want to discard everything as :all: covers it
             return
@@ -1111,9 +1097,7 @@ def fmt_ctl_formats(fmt_ctl, canonical_name):
 
 
 def fmt_ctl_no_binary(fmt_ctl):
-    fmt_ctl_handle_mutual_exclude(
-        ':all:', fmt_ctl.no_binary, fmt_ctl.only_binary,
-    )
+    fmt_ctl_handle_mutual_exclude(':all:', fmt_ctl.no_binary, fmt_ctl.only_binary)
 
 
 Search = namedtuple('Search', 'supplied canonical formats')

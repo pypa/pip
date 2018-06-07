@@ -63,18 +63,12 @@ class Cache(object):
         return parts
 
     def _get_candidates(self, link, package_name):
-        can_not_cache = (
-            not self.cache_dir or
-            not package_name or
-            not link
-        )
+        can_not_cache = not self.cache_dir or not package_name or not link
         if can_not_cache:
             return []
 
         canonical_name = canonicalize_name(package_name)
-        formats = index.fmt_ctl_formats(
-            self.format_control, canonical_name
-        )
+        formats = index.fmt_ctl_formats(self.format_control, canonical_name)
         if not self.allowed_formats.intersection(formats):
             return []
 
@@ -112,9 +106,7 @@ class SimpleWheelCache(Cache):
     """
 
     def __init__(self, cache_dir, format_control):
-        super(SimpleWheelCache, self).__init__(
-            cache_dir, format_control, {"binary"}
-        )
+        super(SimpleWheelCache, self).__init__(cache_dir, format_control, {"binary"})
 
     def get_path_for_link(self, link):
         """Return a directory to store cached wheels for link
@@ -163,9 +155,7 @@ class EphemWheelCache(SimpleWheelCache):
         self._temp_dir = TempDirectory(kind="ephem-wheel-cache")
         self._temp_dir.create()
 
-        super(EphemWheelCache, self).__init__(
-            self._temp_dir.path, format_control
-        )
+        super(EphemWheelCache, self).__init__(self._temp_dir.path, format_control)
 
     def cleanup(self):
         self._temp_dir.cleanup()
@@ -179,9 +169,7 @@ class WheelCache(Cache):
     """
 
     def __init__(self, cache_dir, format_control):
-        super(WheelCache, self).__init__(
-            cache_dir, format_control, {'binary'}
-        )
+        super(WheelCache, self).__init__(cache_dir, format_control, {'binary'})
         self._wheel_cache = SimpleWheelCache(cache_dir, format_control)
         self._ephem_cache = EphemWheelCache(format_control)
 

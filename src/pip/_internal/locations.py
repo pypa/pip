@@ -69,9 +69,7 @@ else:
         src_prefix = os.path.join(os.getcwd(), 'src')
     except OSError:
         # In case the current working directory has been renamed or deleted
-        sys.exit(
-            "The folder you are executing pip from can no longer be found."
-        )
+        sys.exit("The folder you are executing pip from can no longer be found.")
 
 # under macOS + virtualenv sys.prefix is not properly resolved
 # it is something like /path/to/python/bin/..
@@ -104,10 +102,7 @@ if WINDOWS:
     config_basename = 'pip.ini'
 
     legacy_storage_dir = os.path.join(user_dir, 'pip')
-    legacy_config_file = os.path.join(
-        legacy_storage_dir,
-        config_basename,
-    )
+    legacy_config_file = os.path.join(legacy_storage_dir, config_basename)
 else:
     bin_py = os.path.join(sys.prefix, 'bin')
     bin_user = os.path.join(user_site, 'bin')
@@ -115,26 +110,23 @@ else:
     config_basename = 'pip.conf'
 
     legacy_storage_dir = os.path.join(user_dir, '.pip')
-    legacy_config_file = os.path.join(
-        legacy_storage_dir,
-        config_basename,
-    )
+    legacy_config_file = os.path.join(legacy_storage_dir, config_basename)
     # Forcing to use /usr/local/bin for standard macOS framework installs
     # Also log to ~/Library/Logs/ for use with the Console.app log viewer
     if sys.platform[:6] == 'darwin' and sys.prefix[:16] == '/System/Library/':
         bin_py = '/usr/local/bin'
 
 site_config_files = [
-    os.path.join(path, config_basename)
-    for path in appdirs.site_config_dirs('pip')
+    os.path.join(path, config_basename) for path in appdirs.site_config_dirs('pip')
 ]
 
 venv_config_file = os.path.join(sys.prefix, config_basename)
 new_config_file = os.path.join(appdirs.user_config_dir("pip"), config_basename)
 
 
-def distutils_scheme(dist_name, user=False, home=None, root=None,
-                     isolated=False, prefix=None):
+def distutils_scheme(
+    dist_name, user=False, home=None, root=None, isolated=False, prefix=None
+):
     """
     Return a distutils install scheme
     """
@@ -176,19 +168,11 @@ def distutils_scheme(dist_name, user=False, home=None, root=None,
 
     if running_under_virtualenv():
         scheme['headers'] = os.path.join(
-            sys.prefix,
-            'include',
-            'site',
-            'python' + sys.version[:3],
-            dist_name,
+            sys.prefix, 'include', 'site', 'python' + sys.version[:3], dist_name
         )
 
         if root is not None:
-            path_no_drive = os.path.splitdrive(
-                os.path.abspath(scheme["headers"]))[1]
-            scheme["headers"] = os.path.join(
-                root,
-                path_no_drive[1:],
-            )
+            path_no_drive = os.path.splitdrive(os.path.abspath(scheme["headers"]))[1]
+            scheme["headers"] = os.path.join(root, path_no_drive[1:])
 
     return scheme

@@ -15,17 +15,11 @@ class TestOptionPrecedence(AddFakeCommandMixin):
     """
 
     def get_config_section(self, section):
-        config = {
-            'global': [('timeout', '-3')],
-            'fake': [('timeout', '-2')],
-        }
+        config = {'global': [('timeout', '-3')], 'fake': [('timeout', '-2')]}
         return config[section]
 
     def get_config_section_global(self, section):
-        config = {
-            'global': [('timeout', '-3')],
-            'fake': [],
-        }
+        config = {'global': [('timeout', '-3')], 'fake': []}
         return config[section]
 
     def test_env_override_default_int(self):
@@ -83,7 +77,6 @@ class TestOptionPrecedence(AddFakeCommandMixin):
 
 
 class TestOptionsInterspersed(AddFakeCommandMixin):
-
     def test_general_option_after_subcommand(self):
         options, args = main(['fake', '--timeout', '-1'])
         assert options.timeout == -1
@@ -184,7 +177,6 @@ class TestGeneralOptions(AddFakeCommandMixin):
 
 
 class TestOptionsConfigFiles(object):
-
     def test_venv_config_file_found(self, monkeypatch):
         # strict limit on the site_config_files list
         monkeypatch.setattr(
@@ -194,9 +186,7 @@ class TestOptionsConfigFiles(object):
         # If we are running in a virtualenv and all files appear to exist,
         # we should see two config files.
         monkeypatch.setattr(
-            pip._internal.configuration,
-            'running_under_virtualenv',
-            lambda: True,
+            pip._internal.configuration, 'running_under_virtualenv', lambda: True
         )
         monkeypatch.setattr(os.path, 'exists', lambda filename: True)
         cp = pip._internal.configuration.Configuration(isolated=False)

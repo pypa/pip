@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 class ShowCommand(Command):
     """Show information about one or more installed packages."""
+
     name = 'show'
     usage = """
       %prog [options] <package> ..."""
@@ -24,11 +25,13 @@ class ShowCommand(Command):
     def __init__(self, *args, **kw):
         super(ShowCommand, self).__init__(*args, **kw)
         self.cmd_opts.add_option(
-            '-f', '--files',
+            '-f',
+            '--files',
             dest='files',
             action='store_true',
             default=False,
-            help='Show the full list of installed files for each package.')
+            help='Show the full list of installed files for each package.',
+        )
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
@@ -40,7 +43,8 @@ class ShowCommand(Command):
 
         results = search_packages_info(query)
         if not print_results(
-                results, list_files=options.files, verbose=options.verbose):
+            results, list_files=options.files, verbose=options.verbose
+        ):
             return ERROR
         return SUCCESS
 
@@ -102,15 +106,21 @@ def search_packages_info(query):
         feed_parser = FeedParser()
         feed_parser.feed(metadata)
         pkg_info_dict = feed_parser.close()
-        for key in ('metadata-version', 'summary',
-                    'home-page', 'author', 'author-email', 'license'):
+        for key in (
+            'metadata-version',
+            'summary',
+            'home-page',
+            'author',
+            'author-email',
+            'license',
+        ):
             package[key] = pkg_info_dict.get(key)
 
         # It looks like FeedParser cannot deal with repeated headers
         classifiers = []
         for line in metadata.splitlines():
             if line.startswith('Classifier: '):
-                classifiers.append(line[len('Classifier: '):])
+                classifiers.append(line[len('Classifier: ') :])
         package['classifiers'] = classifiers
 
         if file_list:
@@ -130,7 +140,8 @@ def print_results(distributions, list_files=False, verbose=False):
 
         name = dist.get('name', '')
         required_by = [
-            pkg.project_name for pkg in pkg_resources.working_set
+            pkg.project_name
+            for pkg in pkg_resources.working_set
             if name in [required.name for required in pkg.requires()]
         ]
 
@@ -146,8 +157,7 @@ def print_results(distributions, list_files=False, verbose=False):
         logger.info("Required-by: %s", ', '.join(required_by))
 
         if verbose:
-            logger.info("Metadata-Version: %s",
-                        dist.get('metadata-version', ''))
+            logger.info("Metadata-Version: %s", dist.get('metadata-version', ''))
             logger.info("Installer: %s", dist.get('installer', ''))
             logger.info("Classifiers:")
             for classifier in dist.get('classifiers', []):

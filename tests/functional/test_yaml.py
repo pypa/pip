@@ -20,12 +20,11 @@ _conflict_finder_re = re.compile(
         (?P<selector>.+?)
         (?=,|\.$)
     """,
-    re.X
+    re.X,
 )
 
 
 def _convert_to_dict(string):
-
     def stripping_split(my_str, splitwith, count=None):
         if count is None:
             return [x.strip() for x in my_str.strip().split(splitwith)]
@@ -50,13 +49,13 @@ def _convert_to_dict(string):
 
 
 def handle_install_request(script, requirement):
-    assert isinstance(requirement, str), (
-        "Need install requirement to be a string only"
-    )
+    assert isinstance(requirement, str), "Need install requirement to be a string only"
     result = script.pip(
         "install",
-        "--no-index", "--find-links", path_to_url(script.scratch_path),
-        requirement
+        "--no-index",
+        "--find-links",
+        path_to_url(script.scratch_path),
+        requirement,
     )
 
     retval = {}
@@ -66,9 +65,9 @@ def handle_install_request(script, requirement):
 
         for path in result.files_created:
             if path.endswith(".dist-info"):
-                name, version = (
-                    os.path.basename(path)[:-len(".dist-info")]
-                ).rsplit("-", 1)
+                name, version = (os.path.basename(path)[: -len(".dist-info")]).rsplit(
+                    "-", 1
+                )
 
                 # TODO: information about extras.
 
@@ -90,7 +89,7 @@ def handle_install_request(script, requirement):
             retval["conflicting"].append(
                 {
                     "required_by": "{} {}".format(di["name"], di["version"]),
-                    "selector": di["selector"]
+                    "selector": di["selector"],
                 }
             )
 
@@ -106,9 +105,9 @@ def test_yaml_based(script, case):
     requests = case.get("request", [])
     transaction = case.get("transaction", [])
 
-    assert len(requests) == len(transaction), (
-        "Expected requests and transaction counts to be same"
-    )
+    assert len(requests) == len(
+        transaction
+    ), "Expected requests and transaction counts to be same"
 
     # Create a custom index of all the packages that are supposed to be
     # available
@@ -121,9 +120,7 @@ def test_yaml_based(script, case):
 
         create_basic_wheel_for_package(script, **package)
 
-    available_actions = {
-        "install": handle_install_request
-    }
+    available_actions = {"install": handle_install_request}
 
     # use scratch path for index
     for request, expected in zip(requests, transaction):
@@ -133,8 +130,8 @@ def test_yaml_based(script, case):
         # Get the only key
         action = list(request.keys())[0]
 
-        assert action in available_actions.keys(), (
-            "Unsupported action {!r}".format(action)
+        assert action in available_actions.keys(), "Unsupported action {!r}".format(
+            action
         )
 
         # Perform the requested action
