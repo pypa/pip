@@ -63,4 +63,4 @@ Uninstall a package:
   Successfully uninstalled SomePackage
 
 
-.. _PyPI: http://pypi.python.org/pypi/
+.. _PyPI: https://pypi.org/

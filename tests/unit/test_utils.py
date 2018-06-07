@@ -24,7 +24,8 @@ from pip._internal.utils.glibc import check_glibc_version
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.misc import (
     call_subprocess, egg_link_path, ensure_dir, get_installed_distributions,
-    get_prog, normalize_path, rmtree, untar_file, unzip_file,
+    get_prog, normalize_path, remove_auth_from_url, rmtree, untar_file,
+    unzip_file,
 )
 from pip._internal.utils.packaging import check_dist_requires_python
 from pip._internal.utils.temp_dir import TempDirectory
@@ -624,3 +625,24 @@ def test_call_subprocess_works_okay_when_just_given_nothing():
 def test_call_subprocess_closes_stdin():
     with pytest.raises(InstallationError):
         call_subprocess([sys.executable, '-c', 'input()'])
+
+
+@pytest.mark.parametrize('auth_url, expected_url', [
+    ('https://user:pass@domain.tld/project/tags/v0.2',
+     'https://domain.tld/project/tags/v0.2'),
+    ('https://domain.tld/project/tags/v0.2',
+     'https://domain.tld/project/tags/v0.2',),
+    ('https://user:pass@domain.tld/svn/project/trunk@8181',
+     'https://domain.tld/svn/project/trunk@8181'),
+    ('https://domain.tld/project/trunk@8181',
+     'https://domain.tld/project/trunk@8181',),
+    ('git+https://pypi.org/something',
+     'git+https://pypi.org/something'),
+    ('git+https://user:pass@pypi.org/something',
+     'git+https://pypi.org/something'),
+    ('git+ssh://git@pypi.org/something',
+     'git+ssh://pypi.org/something'),
+])
+def test_remove_auth_from_url(auth_url, expected_url):
+    url = remove_auth_from_url(auth_url)
+    assert url == expected_url

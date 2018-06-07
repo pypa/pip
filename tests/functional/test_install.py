@@ -19,48 +19,51 @@ from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
 
 
-def test_without_setuptools(script, data):
-    script.pip("uninstall", "setuptools", "-y")
-    result = script.run(
-        "python", "-c",
-        "import pip._internal; pip._internal.main(["
-        "'install', "
-        "'INITools==0.2', "
-        "'-f', '%s', "
-        "'--no-binary=:all:'])" % data.packages,
-        expect_error=True,
+@pytest.mark.parametrize('command', ('install', 'wheel'))
+@pytest.mark.parametrize('variant', ('missing_setuptools', 'bad_setuptools'))
+def test_pep518_uses_build_env(script, data, common_wheels, command, variant):
+    if variant == 'missing_setuptools':
+        script.pip("uninstall", "-y", "setuptools")
+    elif variant == 'bad_setuptools':
+        setuptools_init_path = script.site_packages_path.join(
+            "setuptools", "__init__.py")
+        with open(setuptools_init_path, 'a') as f:
+            f.write('\nraise ImportError("toto")')
+    else:
+        raise ValueError(variant)
+    script.pip(
+        command, '--no-index', '-f', common_wheels, '-f', data.packages,
+        data.src.join("pep518-3.0"), use_module=True
     )
-    assert (
-        "Could not import setuptools which is required to install from a "
-        "source distribution."
-        in result.stderr
-    )
-    assert "Please install setuptools" in result.stderr
 
 
-def test_with_setuptools_and_import_error(script, data):
-    # Make sure we get an ImportError while importing setuptools
-    setuptools_init_path = script.site_packages_path.join(
-        "setuptools", "__init__.py")
-    with open(setuptools_init_path, 'a') as f:
-        f.write('\nraise ImportError("toto")')
+def test_pep518_with_user_pip(script, virtualenv, pip_src,
+                              data, common_wheels):
+    virtualenv.system_site_packages = True
+    script.pip("install", "--ignore-installed", "--user", pip_src,
+               use_module=True)
+    system_pip_dir = script.site_packages_path / 'pip'
+    system_pip_dir.rmtree()
+    system_pip_dir.mkdir()
+    with open(system_pip_dir / '__init__.py', 'w') as fp:
+        fp.write('raise ImportError\n')
+    script.pip(
+        'wheel', '--no-index', '-f', common_wheels, '-f', data.packages,
+        data.src.join("pep518-3.0"), use_module=True,
+    )
 
-    result = script.run(
-        "python", "-c",
-        "import pip._internal; pip._internal.main(["
-        "'install', "
-        "'INITools==0.2', "
-        "'-f', '%s', "
-        "'--no-binary=:all:'])" % data.packages,
-        expect_error=True,
+
+def test_pep518_with_extra_and_markers(script, data, common_wheels):
+    script.pip(
+        'wheel', '--no-index',
+        '-f', common_wheels,
+        '-f', data.find_links,
+        # Add tests/data/packages4, which contains a wheel for
+        # simple==1.0 (needed by requires_simple_extra[extra]).
+        '-f', data.find_links4,
+        data.src.join("pep518_with_extra_and_markers-1.0"),
+        use_module=True,
     )
-    assert (
-        "Could not import setuptools which is required to install from a "
-        "source distribution."
-        in result.stderr
-    )
-    assert "Traceback " in result.stderr
-    assert "ImportError: toto" in result.stderr
 
 
 @pytest.mark.network
@@ -71,7 +74,7 @@ def test_pip_second_command_line_interface_works(script, data):
     # On old versions of Python, urllib3/requests will raise a warning about
     # the lack of an SSLContext.
     kwargs = {}
-    if pyversion_tuple < (2, 7, 9) or pyversion_tuple[:2] == (3, 3):
+    if pyversion_tuple < (2, 7, 9):
         kwargs['expect_stderr'] = True
 
     args = ['pip%s' % pyversion]
@@ -202,8 +205,8 @@ def test_install_editable_uninstalls_existing_from_path(script, data):
     to_install = data.src.join('simplewheel-1.0')
     result = script.pip_install_local(to_install)
     assert 'Successfully installed simplewheel' in result.stdout
-    simple_folder = script.site_packages / 'simple'
-    result.assert_installed('simple', editable=False)
+    simple_folder = script.site_packages / 'simplewheel'
+    result.assert_installed('simplewheel', editable=False)
     assert simple_folder in result.files_created, str(result.stdout)
 
     result = script.pip(
@@ -620,6 +623,37 @@ def test_install_package_with_target(script):
     result = script.pip_install_local('-t', target_dir, 'singlemodule==0.0.1',
                                       '--upgrade')
     assert singlemodule_py in result.files_updated, str(result)
+
+
+def test_install_with_target_and_scripts_no_warning(script, common_wheels):
+    """
+    Test that installing with --target does not trigger the "script not
+    in PATH" warning (issue #5201)
+    """
+    # We need to have wheel installed so that the project builds via a wheel,
+    # which is the only execution path that has the script warning.
+    script.pip('install', 'wheel', '--no-index', '-f', common_wheels)
+    target_dir = script.scratch_path / 'target'
+    pkga_path = script.scratch_path / 'pkga'
+    pkga_path.mkdir()
+    pkga_path.join("setup.py").write(textwrap.dedent("""
+        from setuptools import setup
+        setup(name='pkga',
+              version='0.1',
+              py_modules=["pkga"],
+              entry_points={
+                  'console_scripts': ['pkga=pkga:main']
+              }
+        )
+    """))
+    pkga_path.join("pkga.py").write(textwrap.dedent("""
+        def main(): pass
+    """))
+    result = script.pip('install', '--target', target_dir, pkga_path)
+    # This assertion isn't actually needed, if we get the script warning
+    # the script.pip() call will fail with "stderr not expected". But we
+    # leave the assertion to make the intention of the code clearer.
+    assert "--no-warn-script-location" not in result.stderr, str(result)
 
 
 def test_install_package_with_root(script, data):

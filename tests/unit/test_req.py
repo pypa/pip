@@ -115,18 +115,19 @@ class TestRequirementSet(object):
         # This hash should be accepted because it came from the reqs file, not
         # from the internet:
         reqset.add_requirement(get_processed_req_from_line(
-            'https://pypi.python.org/packages/source/m/more-itertools/'
+            'https://files.pythonhosted.org/packages/source/m/more-itertools/'
             'more-itertools-1.0.tar.gz#md5=b21850c3cfa7efbb70fd662ab5413bdd',
             lineno=3,
         ))
         # The error text should list this as a URL and not `peep==3.1.1`:
         reqset.add_requirement(get_processed_req_from_line(
-            'https://pypi.python.org/packages/source/p/peep/peep-3.1.1.tar.gz',
+            'https://files.pythonhosted.org/'
+            'packages/source/p/peep/peep-3.1.1.tar.gz',
             lineno=4,
         ))
         finder = PackageFinder(
             [],
-            ['https://pypi.python.org/simple'],
+            ['https://pypi.org/simple/'],
             session=PipSession(),
         )
         resolver = self._basic_resolver(finder)
@@ -134,7 +135,7 @@ class TestRequirementSet(object):
             HashErrors,
             r'Hashes are required in --require-hashes mode, but they are '
             r'missing .*\n'
-            r'    https://pypi\.python\.org/packages/source/p/peep/peep'
+            r'    https://files\.pythonhosted\.org/packages/source/p/peep/peep'
             r'-3\.1\.1\.tar\.gz --hash=sha256:[0-9a-f]+\n'
             r'    blessings==1.0 --hash=sha256:[0-9a-f]+\n'
             r'THESE PACKAGES DO NOT MATCH THE HASHES.*\n'

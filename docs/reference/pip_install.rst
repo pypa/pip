@@ -252,7 +252,7 @@ Some examples:
   SomeProject~=1.4.2
 
 Since version 6.0, pip also supports specifiers containing `environment markers
-<https://www.python.org/dev/peps/pep-0426/#environment-markers>`_ like so:
+<https://www.python.org/dev/peps/pep-0508/#environment-markers>`__ like so:
 
  ::
 
@@ -311,7 +311,7 @@ Pre-release Versions
 ++++++++++++++++++++
 
 Starting with v1.4, pip will only install stable versions as specified by
-`PEP426`_ by default. If a version cannot be parsed as a compliant `PEP426`_
+`pre-releases`_ by default. If a version cannot be parsed as a compliant `PEP440`_
 version then it is assumed to be a pre-release.
 
 If a Requirement specifier includes a pre-release or development version
@@ -322,7 +322,7 @@ The ``pip install`` command also supports a :ref:`--pre <install_--pre>` flag
 that will enable installing pre-releases and development releases.
 
 
-.. _PEP426: http://www.python.org/dev/peps/pep-0426
+.. _pre-releases: https://www.python.org/dev/peps/pep-0440/#handling-of-pre-releases
 
 
 .. _`VCS Support`:
@@ -474,7 +474,7 @@ Finding Packages
 ++++++++++++++++
 
 pip searches for packages on `PyPI`_ using the
-`http simple interface <http://pypi.python.org/simple>`_,
+`http simple interface <https://pypi.org/simple/>`_,
 which is documented `here <https://setuptools.readthedocs.io/en/latest/easy_install.html#package-index-api>`_
 and `there <http://www.python.org/dev/peps/pep-0301/>`_
 
@@ -774,7 +774,7 @@ No other build system commands are invoked by the ``pip install`` command.
 
 Installing a package from a wheel does not invoke the build system at all.
 
-.. _PyPI: http://pypi.python.org/pypi/
+.. _PyPI: https://pypi.org/
 .. _setuptools extras: https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies
 
 

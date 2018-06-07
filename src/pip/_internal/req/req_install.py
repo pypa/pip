@@ -22,7 +22,7 @@ from pip._vendor.packaging.version import Version
 from pip._vendor.pkg_resources import RequirementParseError, parse_requirements
 
 from pip._internal import wheel
-from pip._internal.build_env import BuildEnvironment
+from pip._internal.build_env import NoOpBuildEnvironment
 from pip._internal.compat import native_str
 from pip._internal.download import (
     is_archive_file, is_url, path_to_url, url_to_path,
@@ -127,7 +127,7 @@ class InstallRequirement(object):
         self.is_direct = False
 
         self.isolated = isolated
-        self.build_env = BuildEnvironment(no_clean=True)
+        self.build_env = NoOpBuildEnvironment()
 
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, isolated=False,
@@ -415,24 +415,6 @@ class InstallRequirement(object):
     @property
     def setup_py(self):
         assert self.source_dir, "No source dir for %s" % self
-        cmd = [sys.executable, '-c', 'import setuptools']
-        output = call_subprocess(
-            cmd,
-            show_stdout=False,
-            command_desc='python -c "import setuptools"',
-            on_returncode='ignore',
-        )
-
-        if output:
-            if get_installed_version('setuptools') is None:
-                add_msg = "Please install setuptools."
-            else:
-                add_msg = output
-            # Setuptools is not available
-            raise InstallationError(
-                "Could not import setuptools which is required to "
-                "install from a source distribution.\n%s" % add_msg
-            )
 
         setup_py = os.path.join(self.setup_py_dir, 'setup.py')
 
@@ -498,11 +480,12 @@ class InstallRequirement(object):
                 egg_info_dir = os.path.join(self.setup_py_dir, 'pip-egg-info')
                 ensure_dir(egg_info_dir)
                 egg_base_option = ['--egg-base', 'pip-egg-info']
-            call_subprocess(
-                egg_info_cmd + egg_base_option,
-                cwd=self.setup_py_dir,
-                show_stdout=False,
-                command_desc='python setup.py egg_info')
+            with self.build_env:
+                call_subprocess(
+                    egg_info_cmd + egg_base_option,
+                    cwd=self.setup_py_dir,
+                    show_stdout=False,
+                    command_desc='python setup.py egg_info')
 
         if not self.req:
             if isinstance(parse_version(self.pkg_info()["Version"]), Version):
@@ -790,12 +773,13 @@ class InstallRequirement(object):
             msg = 'Running setup.py install for %s' % (self.name,)
             with open_spinner(msg) as spinner:
                 with indent_log():
-                    call_subprocess(
-                        install_args + install_options,
-                        cwd=self.setup_py_dir,
-                        show_stdout=False,
-                        spinner=spinner,
-                    )
+                    with self.build_env:
+                        call_subprocess(
+                            install_args + install_options,
+                            cwd=self.setup_py_dir,
+                            show_stdout=False,
+                            spinner=spinner,
+                        )
 
             if not os.path.exists(record_filename):
                 logger.debug('Record file %s not found', record_filename)

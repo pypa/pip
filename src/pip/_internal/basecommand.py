@@ -6,13 +6,11 @@ import logging.config
 import optparse
 import os
 import sys
-import warnings
 
 from pip._internal import cmdoptions
 from pip._internal.baseparser import (
     ConfigOptionParser, UpdatingDefaultsHelpFormatter,
 )
-from pip._internal.compat import WINDOWS
 from pip._internal.download import PipSession
 from pip._internal.exceptions import (
     BadCommand, CommandError, InstallationError, PreviousBuildDirError,
@@ -26,7 +24,6 @@ from pip._internal.status_codes import (
     ERROR, PREVIOUS_BUILD_DIR_ERROR, SUCCESS, UNKNOWN_ERROR,
     VIRTUALENV_NOT_FOUND,
 )
-from pip._internal.utils import deprecation
 from pip._internal.utils.logging import IndentingFormatter
 from pip._internal.utils.misc import get_prog, normalize_path
 from pip._internal.utils.outdated import pip_version_check
@@ -198,13 +195,6 @@ class Command(object):
             },
         })
 
-        if sys.version_info[:2] == (3, 3):
-            warnings.warn(
-                "Python 3.3 supported has been deprecated and support for it "
-                "will be dropped in the future. Please upgrade your Python.",
-                deprecation.RemovedInPip11Warning,
-            )
-
         # TODO: try to get these passing down from the command?
         #      without resorting to os.environ to hold these.
 
@@ -330,23 +320,6 @@ class RequirementCommand(Command):
                     'You must give at least one requirement to %(name)s '
                     '(see "pip help %(name)s")' % opts)
 
-        # On Windows, any operation modifying pip should be run as:
-        #     python -m pip ...
-        # See https://github.com/pypa/pip/issues/1299 for more discussion
-        should_show_use_python_msg = (
-            WINDOWS and
-            requirement_set.has_requirement('pip') and
-            "pip" in os.path.basename(sys.argv[0])
-        )
-        if should_show_use_python_msg:
-            new_command = [
-                sys.executable, "-m", "pip"
-            ] + sys.argv[1:]
-            raise CommandError(
-                'To modify pip, please run the following command:\n{}'
-                .format(" ".join(new_command))
-            )
-
     def _build_package_finder(self, options, session,
                               platform=None, python_versions=None,
                               abi=None, implementation=None):
@@ -370,4 +343,5 @@ class RequirementCommand(Command):
             versions=python_versions,
             abi=abi,
             implementation=implementation,
+            prefer_binary=options.prefer_binary,
         )

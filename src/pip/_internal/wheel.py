@@ -24,7 +24,6 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.six import StringIO
 
 from pip._internal import pep425tags
-from pip._internal.build_env import BuildEnvironment
 from pip._internal.download import path_to_url, unpack_url
 from pip._internal.exceptions import (
     InstallationError, InvalidWheelFilename, UnsupportedWheel,
@@ -162,11 +161,17 @@ def message_about_scripts_not_on_PATH(scripts):
         script_name = os.path.basename(destfile)
         grouped_by_dir[parent_dir].add(script_name)
 
-    path_env_var_parts = os.environ["PATH"].split(os.pathsep)
-    # Warn only for directories that are not on PATH
+    # We don't want to warn for directories that are on PATH.
+    not_warn_dirs = [
+        os.path.normcase(i).rstrip(os.sep) for i in
+        os.environ["PATH"].split(os.pathsep)
+    ]
+    # If an executable sits with sys.executable, we don't warn for it.
+    #     This covers the case of venv invocations without activating the venv.
+    not_warn_dirs.append(os.path.normcase(os.path.dirname(sys.executable)))
     warn_for = {
         parent_dir: scripts for parent_dir, scripts in grouped_by_dir.items()
-        if parent_dir not in path_env_var_parts
+        if os.path.normcase(parent_dir) not in not_warn_dirs
     }
     if not warn_for:
         return None
@@ -278,6 +283,17 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
                 # to ensure we don't install empty dirs; empty dirs can't be
                 # uninstalled.
                 ensure_dir(destdir)
+
+                # copyfile (called below) truncates the destination if it
+                # exists and then writes the new contents. This is fine in most
+                # cases, but can cause a segfault if pip has loaded a shared
+                # object (e.g. from pyopenssl through its vendored urllib3)
+                # Since the shared object is mmap'd an attempt to call a
+                # symbol in it will then cause a segfault. Unlinking the file
+                # allows writing of new contents while allowing the process to
+                # continue to use the old copy.
+                if os.path.exists(destfile):
+                    os.unlink(destfile)
 
                 # We use copyfile (not move, copy, or copy2) to be extra sure
                 # that we are not moving directories over (copyfile fails for
@@ -703,7 +719,6 @@ class WheelBuilder(object):
 
         buildset = []
         for req in requirements:
-            ephem_cache = False
             if req.constraint:
                 continue
             if req.is_wheel:
@@ -713,12 +728,13 @@ class WheelBuilder(object):
                     )
             elif autobuilding and req.editable:
                 pass
-            elif autobuilding and req.link and not req.link.is_artifact:
-                # VCS checkout. Build wheel just for this run.
-                ephem_cache = True
             elif autobuilding and not req.source_dir:
                 pass
+            elif autobuilding and req.link and not req.link.is_artifact:
+                # VCS checkout. Build wheel just for this run.
+                buildset.append((req, True))
             else:
+                ephem_cache = False
                 if autobuilding:
                     link = req.link
                     base, ext = link.splitext()

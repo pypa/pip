@@ -116,23 +116,10 @@ using an incorrect encoding (mojibake).
 PEP 518 Support
 ~~~~~~~~~~~~~~~
 
-Pip supports projects declaring dependencies that are required at install time
-using a ``pyproject.toml`` file, in the form described in `PEP518`_. When
-building a project, pip will install the required dependencies locally, and
-make them available to the build process.
-
-As noted in the PEP, the minimum requirements for pip to be able to build a
-project are::
-
-    [build-system]
-    # Minimum requirements for the build system to execute.
-    requires = ["setuptools", "wheel"]
-
-``setuptools`` and ``wheel`` **must** be included in any ``pyproject.toml``
-provided by a project - pip will assume these as a default, but will not add
-them to an explicitly supplied list in a project supplied ``pyproject.toml``
-file. Once `PEP517`_ support is added, this restriction will be lifted and
-alternative build tools will be allowed.
+As of 10.0, pip supports projects declaring dependencies that are required at
+install time using a ``pyproject.toml`` file, in the form described in
+`PEP518`_. When building a project, pip will install the required dependencies
+locally, and make them available to the build process.
 
 When making build requirements available, pip does so in an *isolated
 environment*. That is, pip does not install those requirements into the user's
@@ -150,13 +137,25 @@ can be problematic. If this is the case, pip provides a
 flag are responsible for ensuring the build environment is managed
 appropriately.
 
-The current implementation of `PEP518`_ in pip requires that any dependencies
-specified in ``pyproject.toml`` are available as wheels. This is a technical
-limitation of the implementation - dependencies only available as source would
-require a build step of their own, which would recursively invoke the `PEP518`_
-dependency installation process. The potentially unbounded recursion involved
-was not considered acceptable, and so installation of build dependencies from
-source has been disabled until a safe resolution of this issue has been found.
+.. _pep-518-limitations:
+
+**Limitations**:
+
+* until `PEP517`_ support is added, ``setuptools`` and ``wheel`` **must** be
+  included in the list of build requirements: pip will assume these as default,
+  but will not automatically add them to the list of build requirements if
+  explicitly defined in ``pyproject.toml``.
+
+* the current implementation only support installing build requirements from
+  wheels: this is a technical limitation of the implementation - source
+  installs would require a build step of their own, potentially recursively
+  triggering another `PEP518`_ dependency installation process. The possible
+  unbounded recursion involved was not considered acceptable, and so
+  installation of build dependencies from source has been disabled until a safe
+  resolution of this issue is found.
+
+* ``pip<18.0`` does not support the use of environment markers and extras, only
+  version specifiers are respected.
 
 .. _PEP517: http://www.python.org/dev/peps/pep-0517/
 .. _PEP518: http://www.python.org/dev/peps/pep-0518/

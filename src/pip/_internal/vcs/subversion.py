@@ -8,7 +8,7 @@ from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip._internal.index import Link
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import display_path, rmtree
+from pip._internal.utils.misc import display_path, remove_auth_from_url, rmtree
 from pip._internal.vcs import VersionControl, vcs
 
 _svn_xml_url_re = re.compile('url="([^"]+)"')
@@ -63,7 +63,7 @@ class Subversion(VersionControl):
         """Export the svn repository at the url to the destination location"""
         url, rev = self.get_url_rev()
         rev_options = get_rev_options(self, url, rev)
-        url = self.remove_auth_from_url(url)
+        url = remove_auth_from_url(url)
         logger.info('Exporting svn repository %s to %s', url, location)
         with indent_log():
             if os.path.exists(location):
@@ -84,7 +84,7 @@ class Subversion(VersionControl):
     def obtain(self, dest):
         url, rev = self.get_url_rev()
         rev_options = get_rev_options(self, url, rev)
-        url = self.remove_auth_from_url(url)
+        url = remove_auth_from_url(url)
         if self.check_destination(dest, url, rev_options):
             rev_display = rev_options.to_display()
             logger.info(
@@ -220,24 +220,6 @@ class Subversion(VersionControl):
     def is_commit_id_equal(self, dest, name):
         """Always assume the versions don't match"""
         return False
-
-    @staticmethod
-    def remove_auth_from_url(url):
-        # Return a copy of url with 'username:password@' removed.
-        # username/pass params are passed to subversion through flags
-        # and are not recognized in the url.
-
-        # parsed url
-        purl = urllib_parse.urlsplit(url)
-        stripped_netloc = \
-            purl.netloc.split('@')[-1]
-
-        # stripped url
-        url_pieces = (
-            purl.scheme, stripped_netloc, purl.path, purl.query, purl.fragment
-        )
-        surl = urllib_parse.urlunsplit(url_pieces)
-        return surl
 
 
 def get_rev_options(vcs, url, rev):
