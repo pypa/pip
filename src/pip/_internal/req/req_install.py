@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import io
 import logging
 import os
 import re
@@ -444,7 +445,7 @@ class InstallRequirement(object):
         requirements, pip will default to installing setuptools and wheel.
         """
         if os.path.isfile(self.pyproject_toml):
-            with open(self.pyproject_toml) as f:
+            with io.open(self.pyproject_toml, encoding="utf-8") as f:
                 pp_toml = pytoml.load(f)
             build_sys = pp_toml.get('build-system', {})
             return (build_sys.get('requires', ['setuptools', 'wheel']), True)
