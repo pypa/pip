@@ -24,21 +24,26 @@ from pip._vendor.pkg_resources import RequirementParseError, parse_requirements
 from pip._internal import wheel
 from pip._internal.build_env import NoOpBuildEnvironment
 from pip._internal.compat import native_str
-from pip._internal.download import (
-    is_archive_file, is_url, path_to_url, url_to_path,
-)
+from pip._internal.download import is_archive_file, is_url, path_to_url, url_to_path
 from pip._internal.exceptions import InstallationError, UninstallationError
-from pip._internal.locations import (
-    PIP_DELETE_MARKER_FILENAME, running_under_virtualenv,
-)
+from pip._internal.locations import PIP_DELETE_MARKER_FILENAME, running_under_virtualenv
 from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.deprecation import RemovedInPip11Warning
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
-    _make_build_dir, ask_path_exists, backup_dir, call_subprocess,
-    display_path, dist_in_site_packages, dist_in_usersite, ensure_dir,
-    get_installed_version, is_installable_dir, read_text_file, rmtree,
+    _make_build_dir,
+    ask_path_exists,
+    backup_dir,
+    call_subprocess,
+    display_path,
+    dist_in_site_packages,
+    dist_in_usersite,
+    ensure_dir,
+    get_installed_version,
+    is_installable_dir,
+    read_text_file,
+    rmtree,
 )
 from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._internal.utils.temp_dir import TempDirectory
@@ -70,10 +75,21 @@ class InstallRequirement(object):
     installing the said requirement.
     """
 
-    def __init__(self, req, comes_from, source_dir=None, editable=False,
-                 link=None, update=True, markers=None,
-                 isolated=False, options=None, wheel_cache=None,
-                 constraint=False, extras=()):
+    def __init__(
+        self,
+        req,
+        comes_from,
+        source_dir=None,
+        editable=False,
+        link=None,
+        update=True,
+        markers=None,
+        isolated=False,
+        options=None,
+        wheel_cache=None,
+        constraint=False,
+        extras=(),
+    ):
         assert req is None or isinstance(req, Requirement), req
         self.req = req
         self.comes_from = comes_from
@@ -89,14 +105,13 @@ class InstallRequirement(object):
             self.link = self.original_link = link
         else:
             from pip._internal.index import Link
+
             self.link = self.original_link = req and req.url and Link(req.url)
 
         if extras:
             self.extras = extras
         elif req:
-            self.extras = {
-                pkg_resources.safe_extra(extra) for extra in req.extras
-            }
+            self.extras = {pkg_resources.safe_extra(extra) for extra in req.extras}
         else:
             self.extras = set()
         if markers is not None:
@@ -130,8 +145,15 @@ class InstallRequirement(object):
         self.build_env = NoOpBuildEnvironment()
 
     @classmethod
-    def from_editable(cls, editable_req, comes_from=None, isolated=False,
-                      options=None, wheel_cache=None, constraint=False):
+    def from_editable(
+        cls,
+        editable_req,
+        comes_from=None,
+        isolated=False,
+        options=None,
+        wheel_cache=None,
+        constraint=False,
+    ):
         from pip._internal.index import Link
 
         name, url, extras_override = parse_editable(editable_req)
@@ -148,7 +170,9 @@ class InstallRequirement(object):
         else:
             req = None
         return cls(
-            req, comes_from, source_dir=source_dir,
+            req,
+            comes_from,
+            source_dir=source_dir,
             editable=True,
             link=Link(url),
             constraint=constraint,
@@ -173,8 +197,14 @@ class InstallRequirement(object):
 
     @classmethod
     def from_line(
-            cls, name, comes_from=None, isolated=False, options=None,
-            wheel_cache=None, constraint=False):
+        cls,
+        name,
+        comes_from=None,
+        isolated=False,
+        options=None,
+        wheel_cache=None,
+        constraint=False,
+    ):
         """Creates an InstallRequirement from a name, which might be a
         requirement, directory containing 'setup.py', filename, or URL.
         """
@@ -204,9 +234,9 @@ class InstallRequirement(object):
         else:
             p, extras = _strip_extras(path)
             looks_like_dir = os.path.isdir(p) and (
-                os.path.sep in name or
-                (os.path.altsep is not None and os.path.altsep in name) or
-                name.startswith('.')
+                os.path.sep in name
+                or (os.path.altsep is not None and os.path.altsep in name)
+                or name.startswith('.')
             )
             if looks_like_dir:
                 if not is_installable_dir(p):
@@ -220,7 +250,7 @@ class InstallRequirement(object):
                     logger.warning(
                         'Requirement %r looks like a filename, but the '
                         'file does not exist',
-                        name
+                        name,
                     )
                 link = Link(path_to_url(p))
 
@@ -228,8 +258,7 @@ class InstallRequirement(object):
         if link:
             # Handle relative file URLs
             if link.scheme == 'file' and re.search(r'\.\./', link.url):
-                link = Link(
-                    path_to_url(os.path.normpath(os.path.abspath(link.path))))
+                link = Link(path_to_url(os.path.normpath(os.path.abspath(link.path))))
             # wheel file
             if link.is_wheel:
                 wheel = Wheel(link.filename)  # can raise InvalidWheelFilename
@@ -259,9 +288,13 @@ class InstallRequirement(object):
                 else:
                     add_msg = traceback.format_exc()
                 raise InstallationError(
-                    "Invalid requirement: '%s'\n%s" % (req, add_msg))
+                    "Invalid requirement: '%s'\n%s" % (req, add_msg)
+                )
         return cls(
-            req, comes_from, link=link, markers=markers,
+            req,
+            comes_from,
+            link=link,
+            markers=markers,
             isolated=isolated,
             options=options if options else {},
             wheel_cache=wheel_cache,
@@ -289,7 +322,10 @@ class InstallRequirement(object):
 
     def __repr__(self):
         return '<%s object: %s editable=%r>' % (
-            self.__class__.__name__, str(self), self.editable)
+            self.__class__.__name__,
+            str(self),
+            self.editable,
+        )
 
     def populate_link(self, finder, upgrade, require_hashes):
         """Ensure that if a link can be found for this, that it is found.
@@ -322,8 +358,7 @@ class InstallRequirement(object):
         For example, some-package==1.2 is pinned; some-package>1.2 is not.
         """
         specifiers = self.specifier
-        return (len(specifiers) == 1 and
-                next(iter(specifiers)).operator in {'==', '==='})
+        return len(specifiers) == 1 and next(iter(specifiers)).operator in {'==', '==='}
 
     def from_path(self):
         if self.req is None:
@@ -387,10 +422,13 @@ class InstallRequirement(object):
         if os.path.exists(new_location):
             raise InstallationError(
                 'A package already exists in %s; please remove it to continue'
-                % display_path(new_location))
+                % display_path(new_location)
+            )
         logger.debug(
             'Moving package %s from %s to new location %s',
-            self, display_path(old_location), display_path(new_location),
+            self,
+            display_path(old_location),
+            display_path(new_location),
         )
         shutil.move(old_location, new_location)
         self._temp_build_dir.path = new_location
@@ -407,8 +445,8 @@ class InstallRequirement(object):
     @property
     def setup_py_dir(self):
         return os.path.join(
-            self.source_dir,
-            self.link and self.link.subdirectory_fragment or '')
+            self.source_dir, self.link and self.link.subdirectory_fragment or ''
+        )
 
     @property
     def setup_py(self):
@@ -455,12 +493,14 @@ class InstallRequirement(object):
         if self.name:
             logger.debug(
                 'Running setup.py (path:%s) egg_info for package %s',
-                self.setup_py, self.name,
+                self.setup_py,
+                self.name,
             )
         else:
             logger.debug(
                 'Running setup.py (path:%s) egg_info for package from %s',
-                self.setup_py, self.link,
+                self.setup_py,
+                self.link,
             )
 
         with indent_log():
@@ -483,7 +523,8 @@ class InstallRequirement(object):
                     egg_info_cmd + egg_base_option,
                     cwd=self.setup_py_dir,
                     show_stdout=False,
-                    command_desc='python setup.py egg_info')
+                    command_desc='python setup.py egg_info',
+                )
 
         if not self.req:
             if isinstance(parse_version(self.pkg_info()["Version"]), Version):
@@ -491,11 +532,7 @@ class InstallRequirement(object):
             else:
                 op = "==="
             self.req = Requirement(
-                "".join([
-                    self.pkg_info()["Name"],
-                    op,
-                    self.pkg_info()["Version"],
-                ])
+                "".join([self.pkg_info()["Name"], op, self.pkg_info()["Version"]])
             )
             self._correct_build_location()
         else:
@@ -505,7 +542,10 @@ class InstallRequirement(object):
                     'Running setup.py (path:%s) egg_info for package %s '
                     'produced metadata for project name %s. Fix your '
                     '#egg=%s fragments.',
-                    self.setup_py, self.name, metadata_name, self.name
+                    self.setup_py,
+                    self.name,
+                    metadata_name,
+                    self.name,
                 )
                 self.req = Requirement(metadata_name)
 
@@ -540,37 +580,31 @@ class InstallRequirement(object):
                     for dir in list(dirs):
                         # Don't search in anything that looks like a virtualenv
                         # environment
-                        if (
-                                os.path.lexists(
-                                    os.path.join(root, dir, 'bin', 'python')
-                                ) or
-                                os.path.exists(
-                                    os.path.join(
-                                        root, dir, 'Scripts', 'Python.exe'
-                                    )
-                                )):
+                        if os.path.lexists(
+                            os.path.join(root, dir, 'bin', 'python')
+                        ) or os.path.exists(
+                            os.path.join(root, dir, 'Scripts', 'Python.exe')
+                        ):
                             dirs.remove(dir)
                         # Also don't search through tests
                         elif dir == 'test' or dir == 'tests':
                             dirs.remove(dir)
-                    filenames.extend([os.path.join(root, dir)
-                                      for dir in dirs])
+                    filenames.extend([os.path.join(root, dir) for dir in dirs])
                 filenames = [f for f in filenames if f.endswith('.egg-info')]
 
             if not filenames:
                 raise InstallationError(
                     'No files/directories in %s (from %s)' % (base, filename)
                 )
-            assert filenames, \
-                "No files/directories in %s (from %s)" % (base, filename)
+            assert filenames, "No files/directories in %s (from %s)" % (base, filename)
 
             # if we have more than one match, we pick the toplevel one.  This
             # can easily be the case if there is a dist folder which contains
             # an extracted tarball for testing purposes.
             if len(filenames) > 1:
                 filenames.sort(
-                    key=lambda x: x.count(os.path.sep) +
-                    (os.path.altsep and x.count(os.path.altsep) or 0)
+                    key=lambda x: x.count(os.path.sep)
+                    + (os.path.altsep and x.count(os.path.altsep) or 0)
                 )
             self._egg_info_path = os.path.join(base, filenames[0])
         return os.path.join(self._egg_info_path, filename)
@@ -596,11 +630,7 @@ class InstallRequirement(object):
         assert self.source_dir
         version = self.pkg_info()['version']
         if self.req.specifier and version not in self.req.specifier:
-            logger.warning(
-                'Requested %s, but installing version %s',
-                self,
-                version,
-            )
+            logger.warning('Requested %s, but installing version %s', self, version)
         else:
             logger.debug(
                 'Source in %s has version %s, which satisfies requirement %s',
@@ -612,8 +642,7 @@ class InstallRequirement(object):
     def update_editable(self, obtain=True):
         if not self.link:
             logger.debug(
-                "Cannot update repository at %s; repository location is "
-                "unknown",
+                "Cannot update repository at %s; repository location is " "unknown",
                 self.source_dir,
             )
             return
@@ -634,12 +663,12 @@ class InstallRequirement(object):
             else:
                 vcs_backend.export(self.source_dir)
         else:
-            assert 0, (
-                'Unexpected version control type (in %s): %s'
-                % (self.link, vc_type))
+            assert 0, 'Unexpected version control type (in %s): %s' % (
+                self.link,
+                vc_type,
+            )
 
-    def uninstall(self, auto_confirm=False, verbose=False,
-                  use_user_site=False):
+    def uninstall(self, auto_confirm=False, verbose=False, use_user_site=False):
         """
         Uninstall the distribution currently satisfying this requirement.
 
@@ -668,8 +697,10 @@ class InstallRequirement(object):
         archive_path = os.path.join(build_dir, archive_name)
         if os.path.exists(archive_path):
             response = ask_path_exists(
-                'The file %s exists. (i)gnore, (w)ipe, (b)ackup, (a)bort ' %
-                display_path(archive_path), ('i', 'w', 'b', 'a'))
+                'The file %s exists. (i)gnore, (w)ipe, (b)ackup, (a)bort '
+                % display_path(archive_path),
+                ('i', 'w', 'b', 'a'),
+            )
             if response == 'i':
                 create_archive = False
             elif response == 'w':
@@ -687,8 +718,7 @@ class InstallRequirement(object):
                 sys.exit(-1)
         if create_archive:
             zip = zipfile.ZipFile(
-                archive_path, 'w', zipfile.ZIP_DEFLATED,
-                allowZip64=True
+                archive_path, 'w', zipfile.ZIP_DEFLATED, allowZip64=True
             )
             dir = os.path.normcase(os.path.abspath(self.setup_py_dir))
             for dirpath, dirnames, filenames in os.walk(dir):
@@ -710,10 +740,10 @@ class InstallRequirement(object):
             logger.info('Saved %s', display_path(archive_path))
 
     def _clean_zip_name(self, name, prefix):
-        assert name.startswith(prefix + os.path.sep), (
-            "name %r doesn't start with prefix %r" % (name, prefix)
-        )
-        name = name[len(prefix) + 1:]
+        assert name.startswith(
+            prefix + os.path.sep
+        ), "name %r doesn't start with prefix %r" % (name, prefix)
+        name = name[len(prefix) + 1 :]
         name = name.replace(os.path.sep, '/')
         return name
 
@@ -724,28 +754,38 @@ class InstallRequirement(object):
             extras_requested = ('',)
         if self.markers is not None:
             return any(
-                self.markers.evaluate({'extra': extra})
-                for extra in extras_requested)
+                self.markers.evaluate({'extra': extra}) for extra in extras_requested
+            )
         else:
             return True
 
-    def install(self, install_options, global_options=None, root=None,
-                home=None, prefix=None, warn_script_location=True,
-                use_user_site=False, pycompile=True):
+    def install(
+        self,
+        install_options,
+        global_options=None,
+        root=None,
+        home=None,
+        prefix=None,
+        warn_script_location=True,
+        use_user_site=False,
+        pycompile=True,
+    ):
         global_options = global_options if global_options is not None else []
         if self.editable:
-            self.install_editable(
-                install_options, global_options, prefix=prefix,
-            )
+            self.install_editable(install_options, global_options, prefix=prefix)
             return
         if self.is_wheel:
             version = wheel.wheel_version(self.source_dir)
             wheel.check_compatibility(version, self.name)
 
             self.move_wheel_files(
-                self.source_dir, root=root, prefix=prefix, home=home,
+                self.source_dir,
+                root=root,
+                prefix=prefix,
+                home=home,
                 warn_script_location=warn_script_location,
-                use_user_site=use_user_site, pycompile=pycompile,
+                use_user_site=use_user_site,
+                pycompile=pycompile,
             )
             self.install_succeeded = True
             return
@@ -755,10 +795,10 @@ class InstallRequirement(object):
         # Options specified in requirements file override those
         # specified on the command line, since the last option given
         # to setup.py is the one that is used.
-        global_options = list(global_options) + \
-            self.options.get('global_options', [])
-        install_options = list(install_options) + \
-            self.options.get('install_options', [])
+        global_options = list(global_options) + self.options.get('global_options', [])
+        install_options = list(install_options) + self.options.get(
+            'install_options', []
+        )
 
         if self.isolated:
             global_options = global_options + ["--no-user-cfg"]
@@ -766,7 +806,7 @@ class InstallRequirement(object):
         with TempDirectory(kind="record") as temp_dir:
             record_filename = os.path.join(temp_dir.path, 'install-record.txt')
             install_args = self.get_install_args(
-                global_options, record_filename, root, prefix, pycompile,
+                global_options, record_filename, root, prefix, pycompile
             )
             msg = 'Running setup.py install for %s' % (self.name,)
             with open_spinner(msg) as spinner:
@@ -834,13 +874,13 @@ class InstallRequirement(object):
             self.source_dir = self.build_location(parent_dir)
         return self.source_dir
 
-    def get_install_args(self, global_options, record_filename, root, prefix,
-                         pycompile):
+    def get_install_args(
+        self, global_options, record_filename, root, prefix, pycompile
+    ):
         install_args = [sys.executable, "-u"]
         install_args.append('-c')
         install_args.append(SETUPTOOLS_SHIM % self.setup_py)
-        install_args += list(global_options) + \
-            ['install', '--record', record_filename]
+        install_args += list(global_options) + ['install', '--record', record_filename]
         install_args += ['--single-version-externally-managed']
 
         if root is not None:
@@ -855,9 +895,10 @@ class InstallRequirement(object):
 
         if running_under_virtualenv():
             py_ver_str = 'python' + sysconfig.get_python_version()
-            install_args += ['--install-headers',
-                             os.path.join(sys.prefix, 'include', 'site',
-                                          py_ver_str, self.name)]
+            install_args += [
+                '--install-headers',
+                os.path.join(sys.prefix, 'include', 'site', py_ver_str, self.name),
+            ]
 
         return install_args
 
@@ -865,15 +906,15 @@ class InstallRequirement(object):
         """Remove the source files from this requirement, if they are marked
         for deletion"""
         if self.source_dir and os.path.exists(
-                os.path.join(self.source_dir, PIP_DELETE_MARKER_FILENAME)):
+            os.path.join(self.source_dir, PIP_DELETE_MARKER_FILENAME)
+        ):
             logger.debug('Removing source in %s', self.source_dir)
             rmtree(self.source_dir)
         self.source_dir = None
         self._temp_build_dir.cleanup()
         self.build_env.cleanup()
 
-    def install_editable(self, install_options,
-                         global_options=(), prefix=None):
+    def install_editable(self, install_options, global_options=(), prefix=None):
         logger.info('Running setup.py develop for %s', self.name)
 
         if self.isolated:
@@ -887,15 +928,10 @@ class InstallRequirement(object):
             # FIXME: should we do --install-headers here too?
             with self.build_env:
                 call_subprocess(
-                    [
-                        sys.executable,
-                        '-c',
-                        SETUPTOOLS_SHIM % self.setup_py
-                    ] +
-                    list(global_options) +
-                    ['develop', '--no-deps'] +
-                    list(install_options),
-
+                    [sys.executable, '-c', SETUPTOOLS_SHIM % self.setup_py]
+                    + list(global_options)
+                    + ['develop', '--no-deps']
+                    + list(install_options),
                     cwd=self.setup_py_dir,
                     show_stdout=False,
                 )
@@ -926,18 +962,17 @@ class InstallRequirement(object):
         except pkg_resources.DistributionNotFound:
             return False
         except pkg_resources.VersionConflict:
-            existing_dist = pkg_resources.get_distribution(
-                self.req.name
-            )
+            existing_dist = pkg_resources.get_distribution(self.req.name)
             if use_user_site:
                 if dist_in_usersite(existing_dist):
                     self.conflicts_with = existing_dist
-                elif (running_under_virtualenv() and
-                        dist_in_site_packages(existing_dist)):
+                elif running_under_virtualenv() and dist_in_site_packages(
+                    existing_dist
+                ):
                     raise InstallationError(
                         "Will not install to the user site because it will "
-                        "lack sys.path precedence to %s in %s" %
-                        (existing_dist.project_name, existing_dist.location)
+                        "lack sys.path precedence to %s in %s"
+                        % (existing_dist.project_name, existing_dist.location)
                     )
             else:
                 self.conflicts_with = existing_dist
@@ -947,11 +982,20 @@ class InstallRequirement(object):
     def is_wheel(self):
         return self.link and self.link.is_wheel
 
-    def move_wheel_files(self, wheeldir, root=None, home=None, prefix=None,
-                         warn_script_location=True, use_user_site=False,
-                         pycompile=True):
+    def move_wheel_files(
+        self,
+        wheeldir,
+        root=None,
+        home=None,
+        prefix=None,
+        warn_script_location=True,
+        use_user_site=False,
+        pycompile=True,
+    ):
         move_wheel_files(
-            self.name, self.req, wheeldir,
+            self.name,
+            self.req,
+            wheeldir,
             user=use_user_site,
             home=home,
             root=root,
@@ -968,9 +1012,7 @@ class InstallRequirement(object):
         metadata = pkg_resources.PathMetadata(base_dir, egg_info)
         dist_name = os.path.splitext(os.path.basename(egg_info))[0]
         return pkg_resources.Distribution(
-            os.path.dirname(egg_info),
-            project_name=dist_name,
-            metadata=metadata,
+            os.path.dirname(egg_info), project_name=dist_name, metadata=metadata
         )
 
     @property
@@ -1042,8 +1084,8 @@ def parse_editable(editable_req):
     if os.path.isdir(url_no_extras):
         if not os.path.exists(os.path.join(url_no_extras, 'setup.py')):
             raise InstallationError(
-                "Directory %r is not installable. File 'setup.py' not found." %
-                url_no_extras
+                "Directory %r is not installable. File 'setup.py' not found."
+                % url_no_extras
             )
         # Treating it as code that has already been checked out
         url_no_extras = path_to_url(url_no_extras)
@@ -1067,16 +1109,17 @@ def parse_editable(editable_req):
     if '+' not in url:
         raise InstallationError(
             '%s should either be a path to a local project or a VCS url '
-            'beginning with svn+, git+, hg+, or bzr+' %
-            editable_req
+            'beginning with svn+, git+, hg+, or bzr+' % editable_req
         )
 
     vc_type = url.split('+', 1)[0].lower()
 
     if not vcs.get_backend(vc_type):
-        error_message = 'For --editable=%s only ' % editable_req + \
-            ', '.join([backend.name + '+URL' for backend in vcs.backends]) + \
-            ' is currently supported'
+        error_message = (
+            'For --editable=%s only ' % editable_req
+            + ', '.join([backend.name + '+URL' for backend in vcs.backends])
+            + ' is currently supported'
+        )
         raise InstallationError(error_message)
 
     package_name = Link(url).egg_fragment
@@ -1102,14 +1145,20 @@ def deduce_helpful_msg(req):
             with open(req, 'r') as fp:
                 # parse first line only
                 next(parse_requirements(fp.read()))
-                msg += " The argument you provided " + \
-                    "(%s) appears to be a" % (req) + \
-                    " requirements file. If that is the" + \
-                    " case, use the '-r' flag to install" + \
-                    " the packages specified within it."
+                msg += (
+                    " The argument you provided "
+                    + "(%s) appears to be a" % (req)
+                    + " requirements file. If that is the"
+                    + " case, use the '-r' flag to install"
+                    + " the packages specified within it."
+                )
         except RequirementParseError:
-            logger.debug("Cannot parse '%s' as requirements \
-            file" % (req), exc_info=1)
+            logger.debug(
+                "Cannot parse '%s' as requirements \
+            file"
+                % (req),
+                exc_info=1,
+            )
     else:
         msg += " File '%s' does not exist." % (req)
     return msg

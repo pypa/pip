@@ -14,8 +14,14 @@ from pip._internal.exceptions import UninstallationError
 from pip._internal.locations import bin_py, bin_user
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
-    FakeFile, ask, dist_in_usersite, dist_is_local, egg_link_path, is_local,
-    normalize_path, renames,
+    FakeFile,
+    ask,
+    dist_in_usersite,
+    dist_is_local,
+    egg_link_path,
+    is_local,
+    normalize_path,
+    renames,
 )
 from pip._internal.utils.temp_dir import TempDirectory
 
@@ -51,6 +57,7 @@ def _unique(fn):
             if item not in seen:
                 seen.add(item)
                 yield item
+
     return unique
 
 
@@ -85,8 +92,8 @@ def compact(paths):
     short_paths = set()
     for path in sorted(paths, key=len):
         should_add = any(
-            path.startswith(shortpath.rstrip("*")) and
-            path[len(shortpath.rstrip("*").rstrip(sep))] == sep
+            path.startswith(shortpath.rstrip("*"))
+            and path[len(shortpath.rstrip("*").rstrip(sep))] == sep
             for shortpath in short_paths
         )
         if not should_add:
@@ -133,9 +140,7 @@ def compress_for_output_listing(paths):
                     # We are skipping this file. Add it to the set.
                     will_skip.add(file_)
 
-    will_remove = files | {
-        os.path.join(folder, "*") for folder in folders
-    }
+    will_remove = files | {os.path.join(folder, "*") for folder in folders}
 
     return will_remove, will_skip
 
@@ -143,6 +148,7 @@ def compress_for_output_listing(paths):
 class UninstallPathSet(object):
     """A set of file paths to be removed in the uninstallation of a
     requirement."""
+
     def __init__(self, dist):
         self.paths = set()
         self._refuse = set()
@@ -203,9 +209,7 @@ class UninstallPathSet(object):
             )
             return
 
-        dist_name_version = (
-            self.dist.project_name + "-" + self.dist.version
-        )
+        dist_name_version = self.dist.project_name + "-" + self.dist.version
         logger.info('Uninstalling %s:', dist_name_version)
 
         with indent_log():
@@ -253,8 +257,7 @@ class UninstallPathSet(object):
         """Rollback the changes previously made by remove()."""
         if self.save_dir.path is None:
             logger.error(
-                "Can't roll back %s; was not uninstalled",
-                self.dist.project_name,
+                "Can't roll back %s; was not uninstalled", self.dist.project_name
             )
             return False
         logger.info('Rolling back uninstall of %s', self.dist.project_name)
@@ -282,9 +285,11 @@ class UninstallPathSet(object):
             )
             return cls(dist)
 
-        if dist_path in {p for p in {sysconfig.get_path("stdlib"),
-                                     sysconfig.get_path("platstdlib")}
-                         if p}:
+        if dist_path in {
+            p
+            for p in {sysconfig.get_path("stdlib"), sysconfig.get_path("platstdlib")}
+            if p
+        }:
             logger.info(
                 "Not uninstalling %s at %s, as it is in the standard library.",
                 dist.key,
@@ -295,24 +300,27 @@ class UninstallPathSet(object):
         paths_to_remove = cls(dist)
         develop_egg_link = egg_link_path(dist)
         develop_egg_link_egg_info = '{}.egg-info'.format(
-            pkg_resources.to_filename(dist.project_name))
+            pkg_resources.to_filename(dist.project_name)
+        )
         egg_info_exists = dist.egg_info and os.path.exists(dist.egg_info)
         # Special case for distutils installed package
         distutils_egg_info = getattr(dist._provider, 'path', None)
 
         # Uninstall cases order do matter as in the case of 2 installs of the
         # same package, pip needs to uninstall the currently detected version
-        if (egg_info_exists and dist.egg_info.endswith('.egg-info') and
-                not dist.egg_info.endswith(develop_egg_link_egg_info)):
+        if (
+            egg_info_exists
+            and dist.egg_info.endswith('.egg-info')
+            and not dist.egg_info.endswith(develop_egg_link_egg_info)
+        ):
             # if dist.egg_info.endswith(develop_egg_link_egg_info), we
             # are in fact in the develop_egg_link case
             paths_to_remove.add(dist.egg_info)
             if dist.has_metadata('installed-files.txt'):
                 for installed_file in dist.get_metadata(
-                        'installed-files.txt').splitlines():
-                    path = os.path.normpath(
-                        os.path.join(dist.egg_info, installed_file)
-                    )
+                    'installed-files.txt'
+                ).splitlines():
+                    path = os.path.normpath(os.path.join(dist.egg_info, installed_file))
                     paths_to_remove.add(path)
             # FIXME: need a test for this elif block
             # occurs with --single-version-externally-managed/--record outside
@@ -323,9 +331,10 @@ class UninstallPathSet(object):
                 else:
                     namespaces = []
                 for top_level_pkg in [
-                        p for p
-                        in dist.get_metadata('top_level.txt').splitlines()
-                        if p and p not in namespaces]:
+                    p
+                    for p in dist.get_metadata('top_level.txt').splitlines()
+                    if p and p not in namespaces
+                ]:
                     path = os.path.join(dist.location, top_level_pkg)
                     paths_to_remove.add(path)
                     paths_to_remove.add(path + '.py')
@@ -337,7 +346,7 @@ class UninstallPathSet(object):
                 "Cannot uninstall {!r}. It is a distutils installed project "
                 "and thus we cannot accurately determine which files belong "
                 "to it which would lead to only a partial uninstall.".format(
-                    dist.project_name,
+                    dist.project_name
                 )
             )
 
@@ -347,8 +356,9 @@ class UninstallPathSet(object):
             # i.e. setuptools-0.6c11-py2.6.egg vs setuptools-0.6rc11-py2.6.egg
             paths_to_remove.add(dist.location)
             easy_install_egg = os.path.split(dist.location)[1]
-            easy_install_pth = os.path.join(os.path.dirname(dist.location),
-                                            'easy-install.pth')
+            easy_install_pth = os.path.join(
+                os.path.dirname(dist.location), 'easy-install.pth'
+            )
             paths_to_remove.add_pth(easy_install_pth, './' + easy_install_egg)
 
         elif egg_info_exists and dist.egg_info.endswith('.dist-info'):
@@ -359,19 +369,19 @@ class UninstallPathSet(object):
             # develop egg
             with open(develop_egg_link, 'r') as fh:
                 link_pointer = os.path.normcase(fh.readline().strip())
-            assert (link_pointer == dist.location), (
+            assert link_pointer == dist.location, (
                 'Egg-link %s does not match installed location of %s '
                 '(at %s)' % (link_pointer, dist.project_name, dist.location)
             )
             paths_to_remove.add(develop_egg_link)
-            easy_install_pth = os.path.join(os.path.dirname(develop_egg_link),
-                                            'easy-install.pth')
+            easy_install_pth = os.path.join(
+                os.path.dirname(develop_egg_link), 'easy-install.pth'
+            )
             paths_to_remove.add_pth(easy_install_pth, dist.location)
 
         else:
             logger.debug(
-                'Not sure how to uninstall: %s - Check: %s',
-                dist, dist.location,
+                'Not sure how to uninstall: %s - Check: %s', dist, dist.location
             )
 
         # find distutils scripts= scripts
@@ -445,9 +455,7 @@ class UninstallPthEntries(object):
 
     def rollback(self):
         if self._saved_lines is None:
-            logger.error(
-                'Cannot roll back changes to %s, none were made', self.file
-            )
+            logger.error('Cannot roll back changes to %s, none were made', self.file)
             return False
         logger.debug('Rolling %s back to previous state', self.file)
         with open(self.file, 'wb') as fh:

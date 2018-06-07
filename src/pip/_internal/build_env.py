@@ -33,10 +33,9 @@ class BuildEnvironment(object):
         self.save_nousersite = os.environ.get('PYTHONNOUSERSITE', None)
 
         install_scheme = 'nt' if (os.name == 'nt') else 'posix_prefix'
-        install_dirs = get_paths(install_scheme, vars={
-            'base': self.path,
-            'platbase': self.path,
-        })
+        install_dirs = get_paths(
+            install_scheme, vars={'base': self.path, 'platbase': self.path}
+        )
 
         scripts = install_dirs['scripts']
         if self.save_path:
@@ -53,8 +52,7 @@ class BuildEnvironment(object):
         else:
             lib_dirs = purelib + os.pathsep + platlib
         if self.save_pythonpath:
-            os.environ['PYTHONPATH'] = lib_dirs + os.pathsep + \
-                self.save_pythonpath
+            os.environ['PYTHONPATH'] = lib_dirs + os.pathsep + self.save_pythonpath
         else:
             os.environ['PYTHONPATH'] = lib_dirs
 
@@ -78,9 +76,17 @@ class BuildEnvironment(object):
 
     def install_requirements(self, finder, requirements, message):
         args = [
-            sys.executable, '-m', 'pip', 'install', '--ignore-installed',
-            '--no-user', '--prefix', self.path, '--no-warn-script-location',
-            '--only-binary', ':all:',
+            sys.executable,
+            '-m',
+            'pip',
+            'install',
+            '--ignore-installed',
+            '--no-user',
+            '--prefix',
+            self.path,
+            '--no-warn-script-location',
+            '--only-binary',
+            ':all:',
         ]
         if logger.getEffectiveLevel() <= logging.DEBUG:
             args.append('-v')

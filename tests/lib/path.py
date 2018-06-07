@@ -16,7 +16,6 @@ except ImportError:
     supports_fd = set()
 
 
-
 _base = six.text_type if os.path.supports_unicode_filenames else str
 
 
@@ -296,5 +295,6 @@ class Path(_base):
     def touch(self, times=None):
         with open(self, "a") as fp:
             os.utime(fp.fileno() if os.utime in supports_fd else self, times)
+
 
 curdir = Path(os.path.curdir)

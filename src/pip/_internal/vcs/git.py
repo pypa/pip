@@ -32,9 +32,7 @@ class Git(VersionControl):
     name = 'git'
     dirname = '.git'
     repo_name = 'clone'
-    schemes = (
-        'git', 'git+http', 'git+https', 'git+ssh', 'git+git', 'git+file',
-    )
+    schemes = ('git', 'git+http', 'git+https', 'git+ssh', 'git+git', 'git+file')
     # Prevent the user's environment variables from interfering with pip:
     # https://github.com/pypa/pip/issues/1130
     unset_environ = ('GIT_DIR', 'GIT_WORK_TREE')
@@ -47,16 +45,14 @@ class Git(VersionControl):
         if url:
             scheme, netloc, path, query, fragment = urlsplit(url)
             if scheme.endswith('file'):
-                initial_slashes = path[:-len(path.lstrip('/'))]
-                newpath = (
-                    initial_slashes +
-                    urllib_request.url2pathname(path)
-                    .replace('\\', '/').lstrip('/')
-                )
+                initial_slashes = path[: -len(path.lstrip('/'))]
+                newpath = initial_slashes + urllib_request.url2pathname(path).replace(
+                    '\\', '/'
+                ).lstrip('/')
                 url = urlunsplit((scheme, netloc, newpath, query, fragment))
                 after_plus = scheme.find('+') + 1
                 url = scheme[:after_plus] + urlunsplit(
-                    (scheme[after_plus:], netloc, newpath, query, fragment),
+                    (scheme[after_plus:], netloc, newpath, query, fragment)
                 )
 
         super(Git, self).__init__(url, *args, **kwargs)
@@ -68,7 +64,7 @@ class Git(VersionControl):
         VERSION_PFX = 'git version '
         version = self.run_command(['version'], show_stdout=False)
         if version.startswith(VERSION_PFX):
-            version = version[len(VERSION_PFX):].split()[0]
+            version = version[len(VERSION_PFX) :].split()[0]
         else:
             version = ''
         # get first 3 positions of the git version becasue
@@ -86,7 +82,8 @@ class Git(VersionControl):
             self.unpack(temp_dir.path)
             self.run_command(
                 ['checkout-index', '-a', '-f', '--prefix', location],
-                show_stdout=False, cwd=temp_dir.path
+                show_stdout=False,
+                cwd=temp_dir.path,
             )
 
     def get_revision_sha(self, dest, rev):
@@ -99,8 +96,9 @@ class Git(VersionControl):
           rev: the revision name.
         """
         # Pass rev to pre-filter the list.
-        output = self.run_command(['show-ref', rev], cwd=dest,
-                                  show_stdout=False, on_returncode='ignore')
+        output = self.run_command(
+            ['show-ref', rev], cwd=dest, show_stdout=False, on_returncode='ignore'
+        )
         refs = {}
         for line in output.strip().splitlines():
             try:
@@ -136,8 +134,7 @@ class Git(VersionControl):
         # the form of a Git commit hash.
         if not looks_like_hash(rev):
             logger.warning(
-                "Did not find branch or tag '%s', assuming revision or ref.",
-                rev,
+                "Did not find branch or tag '%s', assuming revision or ref.", rev
             )
         return rev_options
 
@@ -181,9 +178,7 @@ class Git(VersionControl):
         rev_options = self.make_rev_options(rev)
         if self.check_destination(dest, url, rev_options):
             rev_display = rev_options.to_display()
-            logger.info(
-                'Cloning %s%s to %s', url, rev_display, display_path(dest),
-            )
+            logger.info('Cloning %s%s to %s', url, rev_display, display_path(dest))
             self.run_command(['clone', '-q', url, dest])
 
             if rev:
@@ -195,8 +190,7 @@ class Git(VersionControl):
                     # Only fetch the revision if it's a ref
                     if rev.startswith('refs/'):
                         self.run_command(
-                            ['fetch', '-q', url] + rev_options.to_args(),
-                            cwd=dest,
+                            ['fetch', '-q', url] + rev_options.to_args(), cwd=dest
                         )
                         # Change the revision to the SHA of the ref we fetched
                         rev = 'FETCH_HEAD'
@@ -209,7 +203,8 @@ class Git(VersionControl):
         """Return URL of the first remote encountered."""
         remotes = self.run_command(
             ['config', '--get-regexp', r'remote\..*\.url'],
-            show_stdout=False, cwd=location,
+            show_stdout=False,
+            cwd=location,
         )
         remotes = remotes.splitlines()
         found_remote = remotes[0]
@@ -222,15 +217,16 @@ class Git(VersionControl):
 
     def get_revision(self, location):
         current_rev = self.run_command(
-            ['rev-parse', 'HEAD'], show_stdout=False, cwd=location,
+            ['rev-parse', 'HEAD'], show_stdout=False, cwd=location
         )
         return current_rev.strip()
 
     def _get_subdirectory(self, location):
         """Return the relative path of setup.py to the git repo root."""
         # find the repo root
-        git_dir = self.run_command(['rev-parse', '--git-dir'],
-                                   show_stdout=False, cwd=location).strip()
+        git_dir = self.run_command(
+            ['rev-parse', '--git-dir'], show_stdout=False, cwd=location
+        ).strip()
         if not os.path.isabs(git_dir):
             git_dir = os.path.join(location, git_dir)
         root_dir = os.path.join(git_dir, '..')
@@ -288,8 +284,7 @@ class Git(VersionControl):
         if not os.path.exists(os.path.join(location, '.gitmodules')):
             return
         self.run_command(
-            ['submodule', 'update', '--init', '--recursive', '-q'],
-            cwd=location,
+            ['submodule', 'update', '--init', '--recursive', '-q'], cwd=location
         )
 
     @classmethod
@@ -297,14 +292,16 @@ class Git(VersionControl):
         if super(Git, cls).controls_location(location):
             return True
         try:
-            r = cls().run_command(['rev-parse'],
-                                  cwd=location,
-                                  show_stdout=False,
-                                  on_returncode='ignore')
+            r = cls().run_command(
+                ['rev-parse'], cwd=location, show_stdout=False, on_returncode='ignore'
+            )
             return not r
         except BadCommand:
-            logger.debug("could not determine if %s is under git control "
-                         "because git is not available", location)
+            logger.debug(
+                "could not determine if %s is under git control "
+                "because git is not available",
+                location,
+            )
             return False
 
 

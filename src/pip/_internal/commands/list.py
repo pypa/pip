@@ -12,9 +12,7 @@ from pip._internal.cmdoptions import index_group, make_option_group
 from pip._internal.exceptions import CommandError
 from pip._internal.index import PackageFinder
 from pip._internal.utils.deprecation import RemovedInPip11Warning
-from pip._internal.utils.misc import (
-    dist_is_editable, get_installed_distributions,
-)
+from pip._internal.utils.misc import dist_is_editable, get_installed_distributions
 from pip._internal.utils.packaging import get_installer
 
 logger = logging.getLogger(__name__)
@@ -26,6 +24,7 @@ class ListCommand(Command):
 
     Packages are listed in a case-insensitive sorted order.
     """
+
     name = 'list'
     usage = """
       %prog [options]"""
@@ -37,40 +36,52 @@ class ListCommand(Command):
         cmd_opts = self.cmd_opts
 
         cmd_opts.add_option(
-            '-o', '--outdated',
+            '-o',
+            '--outdated',
             action='store_true',
             default=False,
-            help='List outdated packages')
+            help='List outdated packages',
+        )
         cmd_opts.add_option(
-            '-u', '--uptodate',
+            '-u',
+            '--uptodate',
             action='store_true',
             default=False,
-            help='List uptodate packages')
+            help='List uptodate packages',
+        )
         cmd_opts.add_option(
-            '-e', '--editable',
+            '-e',
+            '--editable',
             action='store_true',
             default=False,
-            help='List editable projects.')
+            help='List editable projects.',
+        )
         cmd_opts.add_option(
-            '-l', '--local',
+            '-l',
+            '--local',
             action='store_true',
             default=False,
-            help=('If in a virtualenv that has global access, do not list '
-                  'globally-installed packages.'),
+            help=(
+                'If in a virtualenv that has global access, do not list '
+                'globally-installed packages.'
+            ),
         )
         self.cmd_opts.add_option(
             '--user',
             dest='user',
             action='store_true',
             default=False,
-            help='Only output packages installed in user-site.')
+            help='Only output packages installed in user-site.',
+        )
 
         cmd_opts.add_option(
             '--pre',
             action='store_true',
             default=False,
-            help=("Include pre-release and development versions. By default, "
-                  "pip only finds stable versions."),
+            help=(
+                "Include pre-release and development versions. By default, "
+                "pip only finds stable versions."
+            ),
         )
 
         cmd_opts.add_option(
@@ -80,15 +91,14 @@ class ListCommand(Command):
             default="columns",
             choices=('legacy', 'columns', 'freeze', 'json'),
             help="Select the output format among: columns (default), freeze, "
-                 "json, or legacy.",
+            "json, or legacy.",
         )
 
         cmd_opts.add_option(
             '--not-required',
             action='store_true',
             dest='not_required',
-            help="List packages that are not dependencies of "
-                 "installed packages.",
+            help="List packages that are not dependencies of " "installed packages.",
         )
 
         cmd_opts.add_option(
@@ -131,8 +141,7 @@ class ListCommand(Command):
             )
 
         if options.outdated and options.uptodate:
-            raise CommandError(
-                "Options --outdated and --uptodate cannot be combined.")
+            raise CommandError("Options --outdated and --uptodate cannot be combined.")
 
         packages = get_installed_distributions(
             local_only=options.local,
@@ -153,13 +162,15 @@ class ListCommand(Command):
 
     def get_outdated(self, packages, options):
         return [
-            dist for dist in self.iter_packages_latest_infos(packages, options)
+            dist
+            for dist in self.iter_packages_latest_infos(packages, options)
             if dist.latest_version > dist.parsed_version
         ]
 
     def get_uptodate(self, packages, options):
         return [
-            dist for dist in self.iter_packages_latest_infos(packages, options)
+            dist
+            for dist in self.iter_packages_latest_infos(packages, options)
             if dist.latest_version == dist.parsed_version
         ]
 
@@ -178,9 +189,7 @@ class ListCommand(Command):
         dependency_links = []
         for dist in packages:
             if dist.has_metadata('dependency_links.txt'):
-                dependency_links.extend(
-                    dist.get_metadata_lines('dependency_links.txt'),
-                )
+                dependency_links.extend(dist.get_metadata_lines('dependency_links.txt'))
 
         with self._build_session(options) as session:
             finder = self._build_package_finder(options, index_urls, session)
@@ -191,13 +200,15 @@ class ListCommand(Command):
                 all_candidates = finder.find_all_candidates(dist.key)
                 if not options.pre:
                     # Remove prereleases
-                    all_candidates = [candidate for candidate in all_candidates
-                                      if not candidate.version.is_prerelease]
+                    all_candidates = [
+                        candidate
+                        for candidate in all_candidates
+                        if not candidate.version.is_prerelease
+                    ]
 
                 if not all_candidates:
                     continue
-                best_candidate = max(all_candidates,
-                                     key=finder._candidate_sort_key)
+                best_candidate = max(all_candidates, key=finder._candidate_sort_key)
                 remote_version = best_candidate.version
                 if best_candidate.location.is_wheel:
                     typ = 'wheel'
@@ -217,11 +228,7 @@ class ListCommand(Command):
                 get_installer(dist),
             )
         elif dist_is_editable(dist):
-            return '%s (%s, %s)' % (
-                dist.project_name,
-                dist.version,
-                dist.location,
-            )
+            return '%s (%s, %s)' % (dist.project_name, dist.version, dist.location)
         else:
             return '%s (%s)' % (dist.project_name, dist.version)
 
@@ -233,18 +240,16 @@ class ListCommand(Command):
         )
 
     def output_package_listing(self, packages, options):
-        packages = sorted(
-            packages,
-            key=lambda dist: dist.project_name.lower(),
-        )
+        packages = sorted(packages, key=lambda dist: dist.project_name.lower())
         if options.list_format == 'columns' and packages:
             data, header = format_for_columns(packages, options)
             self.output_package_listing_columns(data, header)
         elif options.list_format == 'freeze':
             for dist in packages:
                 if options.verbose >= 1:
-                    logger.info("%s==%s (%s)", dist.project_name,
-                                dist.version, dist.location)
+                    logger.info(
+                        "%s==%s (%s)", dist.project_name, dist.version, dist.location
+                    )
                 else:
                     logger.info("%s==%s", dist.project_name, dist.version)
         elif options.list_format == 'json':
@@ -282,8 +287,12 @@ def tabulate(vals):
 
     result = []
     for row in vals:
-        display = " ".join([str(c).ljust(s) if c is not None else ''
-                            for s, c in zip_longest(sizes, row)])
+        display = " ".join(
+            [
+                str(c).ljust(s) if c is not None else ''
+                for s, c in zip_longest(sizes, row)
+            ]
+        )
         result.append(display)
 
     return result, sizes
@@ -329,10 +338,7 @@ def format_for_columns(pkgs, options):
 def format_for_json(packages, options):
     data = []
     for dist in packages:
-        info = {
-            'name': dist.project_name,
-            'version': six.text_type(dist.version),
-        }
+        info = {'name': dist.project_name, 'version': six.text_type(dist.version)}
         if options.verbose >= 1:
             info['location'] = dist.location
             info['installer'] = get_installer(dist)

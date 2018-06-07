@@ -12,19 +12,24 @@ from pip._internal.utils.misc import unpack_file
 from tests.lib import DATA_DIR
 
 
-@pytest.mark.parametrize("console_scripts",
-                         ["pip = pip._internal.main:pip",
-                          "pip:pip = pip._internal.main:pip"])
+@pytest.mark.parametrize(
+    "console_scripts",
+    ["pip = pip._internal.main:pip", "pip:pip = pip._internal.main:pip"],
+)
 def test_get_entrypoints(tmpdir, console_scripts):
     entry_points = tmpdir.join("entry_points.txt")
     with open(str(entry_points), "w") as fp:
-        fp.write("""
+        fp.write(
+            """
             [console_scripts]
             {}
             [section]
             common:one = module:func
             common:two = module:other_func
-        """.format(console_scripts))
+        """.format(
+                console_scripts
+            )
+        )
 
     assert wheel.get_entrypoints(str(entry_points)) == (
         dict([console_scripts.split(' = ')]),
@@ -37,10 +42,8 @@ def test_wheel_version(tmpdir, data):
     broken_wheel = 'brokenwheel-1.0-py2.py3-none-any.whl'
     future_version = (1, 9)
 
-    unpack_file(data.packages.join(future_wheel),
-                tmpdir + 'future', None, None)
-    unpack_file(data.packages.join(broken_wheel),
-                tmpdir + 'broken', None, None)
+    unpack_file(data.packages.join(future_wheel), tmpdir + 'future', None, None)
+    unpack_file(data.packages.join(broken_wheel), tmpdir + 'broken', None, None)
 
     assert wheel.wheel_version(tmpdir + 'future') == future_version
     assert not wheel.wheel_version(tmpdir + 'broken')
@@ -71,7 +74,6 @@ def test_check_compatibility():
 
 
 class TestWheelFile(object):
-
     def test_std_wheel_pattern(self):
         w = wheel.Wheel('simple-1.1.1-py2-none-any.whl')
         assert w.name == 'simple'
@@ -137,8 +139,7 @@ class TestWheelFile(object):
 
     @patch('sys.platform', 'darwin')
     @patch('pip._internal.pep425tags.get_abbr_impl', lambda: 'cp')
-    @patch('pip._internal.pep425tags.get_platform',
-           lambda: 'macosx_10_9_intel')
+    @patch('pip._internal.pep425tags.get_platform', lambda: 'macosx_10_9_intel')
     def test_supported_osx_version(self):
         """
         Wheels built for macOS 10.6 are supported on 10.9
@@ -151,8 +152,7 @@ class TestWheelFile(object):
 
     @patch('sys.platform', 'darwin')
     @patch('pip._internal.pep425tags.get_abbr_impl', lambda: 'cp')
-    @patch('pip._internal.pep425tags.get_platform',
-           lambda: 'macosx_10_6_intel')
+    @patch('pip._internal.pep425tags.get_platform', lambda: 'macosx_10_6_intel')
     def test_not_supported_osx_version(self):
         """
         Wheels built for macOS 10.9 are not supported on 10.6
@@ -167,23 +167,25 @@ class TestWheelFile(object):
         """
         Multi-arch wheels (intel) are supported on components (i386, x86_64)
         """
-        with patch('pip._internal.pep425tags.get_platform',
-                   lambda: 'macosx_10_5_universal'):
+        with patch(
+            'pip._internal.pep425tags.get_platform', lambda: 'macosx_10_5_universal'
+        ):
             universal = pep425tags.get_supported(['27'], False)
-        with patch('pip._internal.pep425tags.get_platform',
-                   lambda: 'macosx_10_5_intel'):
+        with patch(
+            'pip._internal.pep425tags.get_platform', lambda: 'macosx_10_5_intel'
+        ):
             intel = pep425tags.get_supported(['27'], False)
-        with patch('pip._internal.pep425tags.get_platform',
-                   lambda: 'macosx_10_5_x86_64'):
+        with patch(
+            'pip._internal.pep425tags.get_platform', lambda: 'macosx_10_5_x86_64'
+        ):
             x64 = pep425tags.get_supported(['27'], False)
-        with patch('pip._internal.pep425tags.get_platform',
-                   lambda: 'macosx_10_5_i386'):
+        with patch('pip._internal.pep425tags.get_platform', lambda: 'macosx_10_5_i386'):
             i386 = pep425tags.get_supported(['27'], False)
-        with patch('pip._internal.pep425tags.get_platform',
-                   lambda: 'macosx_10_5_ppc'):
+        with patch('pip._internal.pep425tags.get_platform', lambda: 'macosx_10_5_ppc'):
             ppc = pep425tags.get_supported(['27'], False)
-        with patch('pip._internal.pep425tags.get_platform',
-                   lambda: 'macosx_10_5_ppc64'):
+        with patch(
+            'pip._internal.pep425tags.get_platform', lambda: 'macosx_10_5_ppc64'
+        ):
             ppc64 = pep425tags.get_supported(['27'], False)
 
         w = wheel.Wheel('simple-0.1-cp27-none-macosx_10_5_intel.whl')
@@ -207,11 +209,13 @@ class TestWheelFile(object):
         """
         Single-arch wheels (x86_64) are not supported on multi-arch (intel)
         """
-        with patch('pip._internal.pep425tags.get_platform',
-                   lambda: 'macosx_10_5_universal'):
+        with patch(
+            'pip._internal.pep425tags.get_platform', lambda: 'macosx_10_5_universal'
+        ):
             universal = pep425tags.get_supported(['27'], False)
-        with patch('pip._internal.pep425tags.get_platform',
-                   lambda: 'macosx_10_5_intel'):
+        with patch(
+            'pip._internal.pep425tags.get_platform', lambda: 'macosx_10_5_intel'
+        ):
             intel = pep425tags.get_supported(['27'], False)
 
         w = wheel.Wheel('simple-0.1-cp27-none-macosx_10_5_i386.whl')
@@ -225,11 +229,7 @@ class TestWheelFile(object):
         """
         Test results from `support_index_min`
         """
-        tags = [
-            ('py2', 'none', 'TEST'),
-            ('py2', 'TEST', 'any'),
-            ('py2', 'none', 'any'),
-        ]
+        tags = [('py2', 'none', 'TEST'), ('py2', 'TEST', 'any'), ('py2', 'none', 'any')]
         w = wheel.Wheel('simple-0.1-py2-none-any.whl')
         assert w.support_index_min(tags=tags) == 2
         w = wheel.Wheel('simple-0.1-py2-none-TEST.whl')
@@ -247,8 +247,7 @@ class TestWheelFile(object):
         from tempfile import mkdtemp
         from shutil import rmtree
 
-        filepath = os.path.join(DATA_DIR, 'packages',
-                                'meta-1.0-py2.py3-none-any.whl')
+        filepath = os.path.join(DATA_DIR, 'packages', 'meta-1.0-py2.py3-none-any.whl')
         try:
             tmpdir = mkdtemp()
             utils.unpack_file(filepath, tmpdir, 'application/zip', None)
@@ -264,10 +263,8 @@ class TestWheelFile(object):
         packages = [
             ("pure_wheel", data.packages.join("pure_wheel-1.7"), True),
             ("plat_wheel", data.packages.join("plat_wheel-1.7"), False),
-            ("pure_wheel", data.packages.join(
-                "pure_wheel-_invalidversion_"), True),
-            ("plat_wheel", data.packages.join(
-                "plat_wheel-_invalidversion_"), False),
+            ("pure_wheel", data.packages.join("pure_wheel-_invalidversion_"), True),
+            ("plat_wheel", data.packages.join("plat_wheel-_invalidversion_"), False),
         ]
 
         for name, path, expected in packages:
@@ -289,8 +286,7 @@ class TestMoveWheelFiles(object):
 
     def prep(self, data, tmpdir):
         self.name = 'sample'
-        self.wheelpath = data.packages.join(
-            'sample-1.2.0-py2.py3-none-any.whl')
+        self.wheelpath = data.packages.join('sample-1.2.0-py2.py3-none-any.whl')
         self.req = Requirement('sample')
         self.src = os.path.join(tmpdir, 'src')
         self.dest = os.path.join(tmpdir, 'dest')
@@ -300,15 +296,14 @@ class TestMoveWheelFiles(object):
             'purelib': os.path.join(self.dest, 'lib'),
             'data': os.path.join(self.dest, 'data'),
         }
-        self.src_dist_info = os.path.join(
-            self.src, 'sample-1.2.0.dist-info')
+        self.src_dist_info = os.path.join(self.src, 'sample-1.2.0.dist-info')
         self.dest_dist_info = os.path.join(
-            self.scheme['purelib'], 'sample-1.2.0.dist-info')
+            self.scheme['purelib'], 'sample-1.2.0.dist-info'
+        )
 
     def assert_installed(self):
         # lib
-        assert os.path.isdir(
-            os.path.join(self.scheme['purelib'], 'sample'))
+        assert os.path.isdir(os.path.join(self.scheme['purelib'], 'sample'))
         # dist-info
         metadata = os.path.join(self.dest_dist_info, 'METADATA')
         assert os.path.isfile(metadata)
@@ -316,25 +311,19 @@ class TestMoveWheelFiles(object):
         data_file = os.path.join(self.scheme['data'], 'my_data', 'data_file')
         assert os.path.isfile(data_file)
         # package data
-        pkg_data = os.path.join(
-            self.scheme['purelib'], 'sample', 'package_data.dat')
+        pkg_data = os.path.join(self.scheme['purelib'], 'sample', 'package_data.dat')
         assert os.path.isfile(pkg_data)
 
     def test_std_install(self, data, tmpdir):
         self.prep(data, tmpdir)
-        wheel.move_wheel_files(
-            self.name, self.req, self.src, scheme=self.scheme)
+        wheel.move_wheel_files(self.name, self.req, self.src, scheme=self.scheme)
         self.assert_installed()
 
     def test_install_prefix(self, data, tmpdir):
         prefix = os.path.join(os.path.sep, 'some', 'path')
         self.prep(data, tmpdir)
         wheel.move_wheel_files(
-            self.name,
-            self.req,
-            self.src,
-            root=tmpdir,
-            prefix=prefix,
+            self.name, self.req, self.src, root=tmpdir, prefix=prefix
         )
 
         bin_dir = 'Scripts' if WINDOWS else 'bin'
@@ -347,57 +336,42 @@ class TestMoveWheelFiles(object):
         """
         # e.g. https://github.com/pypa/pip/issues/1632#issuecomment-38027275
         self.prep(data, tmpdir)
-        src_empty_dir = os.path.join(
-            self.src_dist_info, 'empty_dir', 'empty_dir')
+        src_empty_dir = os.path.join(self.src_dist_info, 'empty_dir', 'empty_dir')
         os.makedirs(src_empty_dir)
         assert os.path.isdir(src_empty_dir)
-        wheel.move_wheel_files(
-            self.name, self.req, self.src, scheme=self.scheme)
+        wheel.move_wheel_files(self.name, self.req, self.src, scheme=self.scheme)
         self.assert_installed()
-        assert not os.path.isdir(
-            os.path.join(self.dest_dist_info, 'empty_dir'))
+        assert not os.path.isdir(os.path.join(self.dest_dist_info, 'empty_dir'))
 
 
 class TestWheelBuilder(object):
-
     def test_skip_building_wheels(self, caplog):
-        with patch('pip._internal.wheel.WheelBuilder._build_one') \
-                as mock_build_one:
+        with patch('pip._internal.wheel.WheelBuilder._build_one') as mock_build_one:
             wheel_req = Mock(is_wheel=True, editable=False, constraint=False)
-            wb = wheel.WheelBuilder(
-                finder=Mock(), preparer=Mock(), wheel_cache=None,
-            )
+            wb = wheel.WheelBuilder(finder=Mock(), preparer=Mock(), wheel_cache=None)
             wb.build([wheel_req], session=Mock())
             assert "due to already being wheel" in caplog.text
             assert mock_build_one.mock_calls == []
 
 
 class TestMessageAboutScriptsNotOnPATH(object):
-
     def _template(self, paths, scripts):
         with patch.dict('os.environ', {'PATH': os.pathsep.join(paths)}):
             return wheel.message_about_scripts_not_on_PATH(scripts)
 
     def test_no_script(self):
-        retval = self._template(
-            paths=['/a/b', '/c/d/bin'],
-            scripts=[]
-        )
+        retval = self._template(paths=['/a/b', '/c/d/bin'], scripts=[])
         assert retval is None
 
     def test_single_script__single_dir_not_on_PATH(self):
-        retval = self._template(
-            paths=['/a/b', '/c/d/bin'],
-            scripts=['/c/d/foo']
-        )
+        retval = self._template(paths=['/a/b', '/c/d/bin'], scripts=['/c/d/foo'])
         assert retval is not None
         assert "--no-warn-script-location" in retval
         assert "foo is installed in '/c/d'" in retval
 
     def test_two_script__single_dir_not_on_PATH(self):
         retval = self._template(
-            paths=['/a/b', '/c/d/bin'],
-            scripts=['/c/d/foo', '/c/d/baz']
+            paths=['/a/b', '/c/d/bin'], scripts=['/c/d/foo', '/c/d/baz']
         )
         assert retval is not None
         assert "--no-warn-script-location" in retval
@@ -406,7 +380,7 @@ class TestMessageAboutScriptsNotOnPATH(object):
     def test_multi_script__multi_dir_not_on_PATH(self):
         retval = self._template(
             paths=['/a/b', '/c/d/bin'],
-            scripts=['/c/d/foo', '/c/d/bar', '/c/d/baz', '/a/b/c/spam']
+            scripts=['/c/d/foo', '/c/d/bar', '/c/d/baz', '/a/b/c/spam'],
         )
         assert retval is not None
         assert "--no-warn-script-location" in retval
@@ -416,10 +390,7 @@ class TestMessageAboutScriptsNotOnPATH(object):
     def test_multi_script_all__multi_dir_not_on_PATH(self):
         retval = self._template(
             paths=['/a/b', '/c/d/bin'],
-            scripts=[
-                '/c/d/foo', '/c/d/bar', '/c/d/baz',
-                '/a/b/c/spam', '/a/b/c/eggs'
-            ]
+            scripts=['/c/d/foo', '/c/d/bar', '/c/d/baz', '/a/b/c/spam', '/a/b/c/eggs'],
         )
         assert retval is not None
         assert "--no-warn-script-location" in retval
@@ -428,37 +399,29 @@ class TestMessageAboutScriptsNotOnPATH(object):
 
     def test_two_script__single_dir_on_PATH(self):
         retval = self._template(
-            paths=['/a/b', '/c/d/bin'],
-            scripts=['/a/b/foo', '/a/b/baz']
+            paths=['/a/b', '/c/d/bin'], scripts=['/a/b/foo', '/a/b/baz']
         )
         assert retval is None
 
     def test_multi_script__multi_dir_on_PATH(self):
         retval = self._template(
             paths=['/a/b', '/c/d/bin'],
-            scripts=['/a/b/foo', '/a/b/bar', '/a/b/baz', '/c/d/bin/spam']
+            scripts=['/a/b/foo', '/a/b/bar', '/a/b/baz', '/c/d/bin/spam'],
         )
         assert retval is None
 
     def test_multi_script__single_dir_on_PATH(self):
         retval = self._template(
-            paths=['/a/b', '/c/d/bin'],
-            scripts=['/a/b/foo', '/a/b/bar', '/a/b/baz']
+            paths=['/a/b', '/c/d/bin'], scripts=['/a/b/foo', '/a/b/bar', '/a/b/baz']
         )
         assert retval is None
 
     def test_single_script__single_dir_on_PATH(self):
-        retval = self._template(
-            paths=['/a/b', '/c/d/bin'],
-            scripts=['/a/b/foo']
-        )
+        retval = self._template(paths=['/a/b', '/c/d/bin'], scripts=['/a/b/foo'])
         assert retval is None
 
     def test_PATH_check_case_insensitive_on_windows(self):
-        retval = self._template(
-            paths=['C:\\A\\b'],
-            scripts=['c:\\a\\b\\c', 'C:/A/b/d']
-        )
+        retval = self._template(paths=['C:\\A\\b'], scripts=['c:\\a\\b\\c', 'C:/A/b/d'])
         if WINDOWS:
             assert retval is None
         else:
@@ -466,7 +429,6 @@ class TestMessageAboutScriptsNotOnPATH(object):
 
     def test_trailing_ossep_removal(self):
         retval = self._template(
-            paths=[os.path.join('a', 'b', '')],
-            scripts=[os.path.join('a', 'b', 'c')]
+            paths=[os.path.join('a', 'b', '')], scripts=[os.path.join('a', 'b', 'c')]
         )
         assert retval is None

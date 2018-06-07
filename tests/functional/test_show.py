@@ -139,9 +139,18 @@ def test_all_fields(script):
     """
     result = script.pip('show', 'pip')
     lines = result.stdout.splitlines()
-    expected = {'Name', 'Version', 'Summary', 'Home-page', 'Author',
-                'Author-email', 'License', 'Location', 'Requires',
-                'Required-by'}
+    expected = {
+        'Name',
+        'Version',
+        'Summary',
+        'Home-page',
+        'Author',
+        'Author-email',
+        'License',
+        'Location',
+        'Requires',
+        'Required-by',
+    }
     actual = {re.sub(':.*$', '', line) for line in lines}
     assert actual == expected
 
@@ -159,16 +168,14 @@ def test_pip_show_divider(script, data):
     """
     Expect a divider between packages
     """
-    script.pip('install', 'pip-test-package', '--no-index',
-               '-f', data.packages)
+    script.pip('install', 'pip-test-package', '--no-index', '-f', data.packages)
     result = script.pip('show', 'pip', 'pip-test-package')
     lines = result.stdout.splitlines()
     assert "---" in lines
 
 
 def test_package_name_is_canonicalized(script, data):
-    script.pip('install', 'pip-test-package', '--no-index', '-f',
-               data.packages)
+    script.pip('install', 'pip-test-package', '--no-index', '-f', data.packages)
 
     dash_show_result = script.pip('show', 'pip-test-package')
     underscore_upper_show_result = script.pip('show', 'pip-test_Package')
@@ -182,9 +189,7 @@ def test_show_required_by_packages(script, data):
     Test that installed packages that depend on this package are shown
     """
     editable_path = os.path.join(data.src, 'requires_simple')
-    script.pip(
-        'install', '--no-index', '-f', data.find_links, editable_path
-    )
+    script.pip('install', '--no-index', '-f', data.find_links, editable_path)
 
     result = script.pip('show', 'simple')
     lines = result.stdout.splitlines()

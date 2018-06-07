@@ -51,8 +51,11 @@ def get_impl_version_info():
     version."""
     if get_abbr_impl() == 'pp':
         # as per https://github.com/pypa/pip/issues/2882
-        return (sys.version_info[0], sys.pypy_version_info.major,
-                sys.pypy_version_info.minor)
+        return (
+            sys.version_info[0],
+            sys.pypy_version_info.major,
+            sys.pypy_version_info.minor,
+        )
     else:
         return sys.version_info[0], sys.version_info[1]
 
@@ -70,8 +73,9 @@ def get_flag(var, fallback, expected=True, warn=True):
     val = get_config_var(var)
     if val is None:
         if warn:
-            logger.debug("Config variable '%s' is unset, Python ABI tag may "
-                         "be incorrect", var)
+            logger.debug(
+                "Config variable '%s' is unset, Python ABI tag may " "be incorrect", var
+            )
         return fallback()
     return val == expected
 
@@ -85,20 +89,18 @@ def get_abi_tag():
         d = ''
         m = ''
         u = ''
-        if get_flag('Py_DEBUG',
-                    lambda: hasattr(sys, 'gettotalrefcount'),
-                    warn=(impl == 'cp')):
+        if get_flag(
+            'Py_DEBUG', lambda: hasattr(sys, 'gettotalrefcount'), warn=(impl == 'cp')
+        ):
             d = 'd'
-        if get_flag('WITH_PYMALLOC',
-                    lambda: impl == 'cp',
-                    warn=(impl == 'cp')):
+        if get_flag('WITH_PYMALLOC', lambda: impl == 'cp', warn=(impl == 'cp')):
             m = 'm'
-        if get_flag('Py_UNICODE_SIZE',
-                    lambda: sys.maxunicode == 0x10ffff,
-                    expected=4,
-                    warn=(impl == 'cp' and
-                          sys.version_info < (3, 3))) \
-                and sys.version_info < (3, 3):
+        if get_flag(
+            'Py_UNICODE_SIZE',
+            lambda: sys.maxunicode == 0x10ffff,
+            expected=4,
+            warn=(impl == 'cp' and sys.version_info < (3, 3)),
+        ) and sys.version_info < (3, 3):
             u = 'u'
         abi = '%s%s%s%s%s' % (impl, get_impl_ver(), d, m, u)
     elif soabi and soabi.startswith('cpython-'):
@@ -148,6 +150,7 @@ def is_manylinux1_compatible():
     # Check for presence of _manylinux module
     try:
         import _manylinux
+
         return bool(_manylinux.manylinux1_compatible)
     except (ImportError, AttributeError):
         # Fall through to heuristic check below
@@ -199,12 +202,14 @@ def get_darwin_arches(major, minor, machine):
                     return True
         return False
 
-    groups = OrderedDict([
-        ("fat", ("i386", "ppc")),
-        ("intel", ("x86_64", "i386")),
-        ("fat64", ("x86_64", "ppc64")),
-        ("fat32", ("x86_64", "i386", "ppc")),
-    ])
+    groups = OrderedDict(
+        [
+            ("fat", ("i386", "ppc")),
+            ("intel", ("x86_64", "i386")),
+            ("fat64", ("x86_64", "ppc64")),
+            ("fat32", ("x86_64", "i386", "ppc")),
+        ]
+    )
 
     if _supports_arch(major, minor, machine):
         arches.append(machine)
@@ -218,8 +223,7 @@ def get_darwin_arches(major, minor, machine):
     return arches
 
 
-def get_supported(versions=None, noarch=False, platform=None,
-                  impl=None, abi=None):
+def get_supported(versions=None, noarch=False, platform=None, impl=None, abi=None):
     """Return a list of supported tags for each version specified in
     `versions`.
 
@@ -253,6 +257,7 @@ def get_supported(versions=None, noarch=False, platform=None,
 
     abi3s = set()
     import imp
+
     for suffix in imp.get_suffixes():
         if suffix[0].startswith('.abi'):
             abi3s.add(suffix[0].split('.', 2)[1])
@@ -291,7 +296,7 @@ def get_supported(versions=None, noarch=False, platform=None,
             # abi3 was introduced in Python 3.2
             if version in {'31', '30'}:
                 break
-            for abi in abi3s:   # empty set if not Python 3
+            for abi in abi3s:  # empty set if not Python 3
                 for arch in arches:
                     supported.append(("%s%s" % (impl, version), abi, arch))
 

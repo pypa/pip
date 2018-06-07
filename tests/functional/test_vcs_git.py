@@ -16,8 +16,15 @@ def get_head_sha(script, dest):
 
 def do_commit(script, dest):
     script.run(
-        'git', 'commit', '-q', '--author', 'pip <pypa-dev@googlegroups.com>',
-        '--allow-empty', '-m', 'test commit', cwd=dest
+        'git',
+        'commit',
+        '-q',
+        '--author',
+        'pip <pypa-dev@googlegroups.com>',
+        '--allow-empty',
+        '-m',
+        'test commit',
+        cwd=dest,
     )
     return get_head_sha(script, dest)
 
@@ -51,14 +58,15 @@ def test_get_revision_sha(script):
         origin_ref = 'refs/remotes/origin/origin-branch'
         generic_ref = 'refs/generic-ref'
 
-        script.run(
-            'git', 'branch', 'local-branch', head_sha, cwd=repo_dir
-        )
+        script.run('git', 'branch', 'local-branch', head_sha, cwd=repo_dir)
         script.run('git', 'tag', 'v1.0', tag_sha, cwd=repo_dir)
         script.run('git', 'update-ref', origin_ref, origin_sha, cwd=repo_dir)
         script.run(
-            'git', 'update-ref', 'refs/remotes/upstream/upstream-branch',
-            head_sha, cwd=repo_dir
+            'git',
+            'update-ref',
+            'refs/remotes/upstream/upstream-branch',
+            head_sha,
+            cwd=repo_dir,
         )
         script.run('git', 'update-ref', generic_ref, head_sha, cwd=repo_dir)
 

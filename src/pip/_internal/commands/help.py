@@ -6,6 +6,7 @@ from pip._internal.exceptions import CommandError
 
 class HelpCommand(Command):
     """Show help for commands"""
+
     name = 'help'
     usage = """
       %prog <command>"""

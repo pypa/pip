@@ -8,12 +8,13 @@ import os
 import sys
 
 from pip._internal import cmdoptions
-from pip._internal.baseparser import (
-    ConfigOptionParser, UpdatingDefaultsHelpFormatter,
-)
+from pip._internal.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip._internal.download import PipSession
 from pip._internal.exceptions import (
-    BadCommand, CommandError, InstallationError, PreviousBuildDirError,
+    BadCommand,
+    CommandError,
+    InstallationError,
+    PreviousBuildDirError,
     UninstallationError,
 )
 from pip._internal.index import PackageFinder
@@ -21,7 +22,10 @@ from pip._internal.locations import running_under_virtualenv
 from pip._internal.req.req_file import parse_requirements
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.status_codes import (
-    ERROR, PREVIOUS_BUILD_DIR_ERROR, SUCCESS, UNKNOWN_ERROR,
+    ERROR,
+    PREVIOUS_BUILD_DIR_ERROR,
+    SUCCESS,
+    UNKNOWN_ERROR,
     VIRTUALENV_NOT_FOUND,
 )
 from pip._internal.utils.logging import IndentingFormatter
@@ -62,17 +66,15 @@ class Command(object):
         self.cmd_opts = optparse.OptionGroup(self.parser, optgroup_name)
 
         # Add the general options
-        gen_opts = cmdoptions.make_option_group(
-            cmdoptions.general_group,
-            self.parser,
-        )
+        gen_opts = cmdoptions.make_option_group(cmdoptions.general_group, self.parser)
         self.parser.add_option_group(gen_opts)
 
     def _build_session(self, options, retries=None, timeout=None):
         session = PipSession(
             cache=(
                 normalize_path(os.path.join(options.cache_dir, "http"))
-                if options.cache_dir else None
+                if options.cache_dir
+                else None
             ),
             retries=retries if retries is not None else options.retries,
             insecure_hosts=options.trusted_hosts,
@@ -88,16 +90,11 @@ class Command(object):
 
         # Handle timeouts
         if options.timeout or timeout:
-            session.timeout = (
-                timeout if timeout is not None else options.timeout
-            )
+            session.timeout = timeout if timeout is not None else options.timeout
 
         # Handle configured proxies
         if options.proxy:
-            session.proxies = {
-                "http": options.proxy,
-                "https": options.proxy,
-            }
+            session.proxies = {"http": options.proxy, "https": options.proxy}
 
         # Determine if we can prompt the user for authentication or not
         session.auth.prompting = not options.no_input
@@ -134,66 +131,67 @@ class Command(object):
         logger_class = "pip._internal.utils.logging.ColorizedStreamHandler"
         handler_class = "pip._internal.utils.logging.BetterRotatingFileHandler"
 
-        logging.config.dictConfig({
-            "version": 1,
-            "disable_existing_loggers": False,
-            "filters": {
-                "exclude_warnings": {
-                    "()": "pip._internal.utils.logging.MaxLevelFilter",
-                    "level": logging.WARNING,
+        logging.config.dictConfig(
+            {
+                "version": 1,
+                "disable_existing_loggers": False,
+                "filters": {
+                    "exclude_warnings": {
+                        "()": "pip._internal.utils.logging.MaxLevelFilter",
+                        "level": logging.WARNING,
+                    }
                 },
-            },
-            "formatters": {
-                "indent": {
-                    "()": IndentingFormatter,
-                    "format": "%(message)s",
+                "formatters": {
+                    "indent": {"()": IndentingFormatter, "format": "%(message)s"}
                 },
-            },
-            "handlers": {
-                "console": {
-                    "level": level,
-                    "class": logger_class,
-                    "no_color": options.no_color,
-                    "stream": self.log_streams[0],
-                    "filters": ["exclude_warnings"],
-                    "formatter": "indent",
+                "handlers": {
+                    "console": {
+                        "level": level,
+                        "class": logger_class,
+                        "no_color": options.no_color,
+                        "stream": self.log_streams[0],
+                        "filters": ["exclude_warnings"],
+                        "formatter": "indent",
+                    },
+                    "console_errors": {
+                        "level": "WARNING",
+                        "class": logger_class,
+                        "no_color": options.no_color,
+                        "stream": self.log_streams[1],
+                        "formatter": "indent",
+                    },
+                    "user_log": {
+                        "level": "DEBUG",
+                        "class": handler_class,
+                        "filename": options.log or "/dev/null",
+                        "delay": True,
+                        "formatter": "indent",
+                    },
                 },
-                "console_errors": {
-                    "level": "WARNING",
-                    "class": logger_class,
-                    "no_color": options.no_color,
-                    "stream": self.log_streams[1],
-                    "formatter": "indent",
+                "root": {
+                    "level": root_level,
+                    "handlers": list(
+                        filter(
+                            None,
+                            [
+                                "console",
+                                "console_errors",
+                                "user_log" if options.log else None,
+                            ],
+                        )
+                    ),
                 },
-                "user_log": {
-                    "level": "DEBUG",
-                    "class": handler_class,
-                    "filename": options.log or "/dev/null",
-                    "delay": True,
-                    "formatter": "indent",
+                # Disable any logging besides WARNING unless we have DEBUG level
+                # logging enabled. These use both pip._vendor and the bare names
+                # for the case where someone unbundles our libraries.
+                "loggers": {
+                    name: {
+                        "level": ("WARNING" if level in ["INFO", "ERROR"] else "DEBUG")
+                    }
+                    for name in ["pip._vendor", "distlib", "requests", "urllib3"]
                 },
-            },
-            "root": {
-                "level": root_level,
-                "handlers": list(filter(None, [
-                    "console",
-                    "console_errors",
-                    "user_log" if options.log else None,
-                ])),
-            },
-            # Disable any logging besides WARNING unless we have DEBUG level
-            # logging enabled. These use both pip._vendor and the bare names
-            # for the case where someone unbundles our libraries.
-            "loggers": {
-                name: {
-                    "level": (
-                        "WARNING" if level in ["INFO", "ERROR"] else "DEBUG"
-                    )
-                } for name in [
-                    "pip._vendor", "distlib", "requests", "urllib3"
-                ]
-            },
-        })
+            }
+        )
 
         # TODO: try to get these passing down from the command?
         #      without resorting to os.environ to hold these.
@@ -207,9 +205,7 @@ class Command(object):
         if options.require_venv and not self.ignore_require_venv:
             # If a venv is required check if it can really be found
             if not running_under_virtualenv():
-                logger.critical(
-                    'Could not find an activated virtualenv (required).'
-                )
+                logger.critical('Could not find an activated virtualenv (required).')
                 sys.exit(VIRTUALENV_NOT_FOUND)
 
         original_root_handlers = set(logging.root.handlers)
@@ -246,12 +242,12 @@ class Command(object):
             return UNKNOWN_ERROR
         finally:
             # Check if we're using the latest version of pip available
-            if (not options.disable_pip_version_check and not
-                    getattr(options, "no_index", False)):
+            if not options.disable_pip_version_check and not getattr(
+                options, "no_index", False
+            ):
                 with self._build_session(
-                        options,
-                        retries=0,
-                        timeout=min(5, options.timeout)) as session:
+                    options, retries=0, timeout=min(5, options.timeout)
+                ) as session:
                     pip_version_check(session, options)
             # Avoid leaking loggers
             for handler in set(logging.root.handlers) - original_root_handlers:
@@ -262,10 +258,10 @@ class Command(object):
 
 
 class RequirementCommand(Command):
-
     @staticmethod
-    def populate_requirement_set(requirement_set, args, options, finder,
-                                 session, name, wheel_cache):
+    def populate_requirement_set(
+        requirement_set, args, options, finder, session, name, wheel_cache
+    ):
         """
         Marshal cmd line args into a requirement set.
         """
@@ -274,34 +270,38 @@ class RequirementCommand(Command):
 
         for filename in options.constraints:
             for req_to_add in parse_requirements(
-                    filename,
-                    constraint=True, finder=finder, options=options,
-                    session=session, wheel_cache=wheel_cache):
+                filename,
+                constraint=True,
+                finder=finder,
+                options=options,
+                session=session,
+                wheel_cache=wheel_cache,
+            ):
                 req_to_add.is_direct = True
                 requirement_set.add_requirement(req_to_add)
 
         for req in args:
             req_to_add = InstallRequirement.from_line(
-                req, None, isolated=options.isolated_mode,
-                wheel_cache=wheel_cache
+                req, None, isolated=options.isolated_mode, wheel_cache=wheel_cache
             )
             req_to_add.is_direct = True
             requirement_set.add_requirement(req_to_add)
 
         for req in options.editables:
             req_to_add = InstallRequirement.from_editable(
-                req,
-                isolated=options.isolated_mode,
-                wheel_cache=wheel_cache
+                req, isolated=options.isolated_mode, wheel_cache=wheel_cache
             )
             req_to_add.is_direct = True
             requirement_set.add_requirement(req_to_add)
 
         for filename in options.requirements:
             for req_to_add in parse_requirements(
-                    filename,
-                    finder=finder, options=options, session=session,
-                    wheel_cache=wheel_cache):
+                filename,
+                finder=finder,
+                options=options,
+                session=session,
+                wheel_cache=wheel_cache,
+            ):
                 req_to_add.is_direct = True
                 requirement_set.add_requirement(req_to_add)
         # If --require-hashes was a line in a requirements file, tell
@@ -313,16 +313,24 @@ class RequirementCommand(Command):
             if options.find_links:
                 raise CommandError(
                     'You must give at least one requirement to %(name)s '
-                    '(maybe you meant "pip %(name)s %(links)s"?)' %
-                    dict(opts, links=' '.join(options.find_links)))
+                    '(maybe you meant "pip %(name)s %(links)s"?)'
+                    % dict(opts, links=' '.join(options.find_links))
+                )
             else:
                 raise CommandError(
                     'You must give at least one requirement to %(name)s '
-                    '(see "pip help %(name)s")' % opts)
+                    '(see "pip help %(name)s")' % opts
+                )
 
-    def _build_package_finder(self, options, session,
-                              platform=None, python_versions=None,
-                              abi=None, implementation=None):
+    def _build_package_finder(
+        self,
+        options,
+        session,
+        platform=None,
+        python_versions=None,
+        abi=None,
+        implementation=None,
+    ):
         """
         Create a package finder appropriate to this requirement command.
         """

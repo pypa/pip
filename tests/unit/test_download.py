@@ -10,8 +10,13 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 
 import pip
 from pip._internal.download import (
-    MultiDomainBasicAuth, PipSession, SafeFileCache, path_to_url,
-    unpack_file_url, unpack_http_url, url_to_path,
+    MultiDomainBasicAuth,
+    PipSession,
+    SafeFileCache,
+    path_to_url,
+    unpack_file_url,
+    unpack_http_url,
+    url_to_path,
 )
 from pip._internal.exceptions import HashMismatch
 from pip._internal.index import Link
@@ -37,14 +42,13 @@ def test_unpack_http_url_with_urllib_response_without_content_type(data):
     link = Link(uri)
     temp_dir = mkdtemp()
     try:
-        unpack_http_url(
-            link,
-            temp_dir,
-            download_dir=None,
-            session=session,
-        )
+        unpack_http_url(link, temp_dir, download_dir=None, session=session)
         assert set(os.listdir(temp_dir)) == {
-            'PKG-INFO', 'setup.cfg', 'setup.py', 'simple', 'simple.egg-info'
+            'PKG-INFO',
+            'setup.cfg',
+            'setup.py',
+            'simple',
+            'simple.egg-info',
         }
     finally:
         rmtree(temp_dir)
@@ -55,7 +59,6 @@ def test_user_agent():
 
 
 class FakeStream(object):
-
     def __init__(self, contents):
         self._io = BytesIO(contents)
 
@@ -67,7 +70,6 @@ class FakeStream(object):
 
 
 class MockResponse(object):
-
     def __init__(self, contents):
         self.raw = FakeStream(contents)
 
@@ -101,7 +103,7 @@ def test_unpack_http_url_bad_downloaded_checksum(mock_unpack_file):
             'location',
             download_dir=download_dir,
             session=session,
-            hashes=Hashes({'sha1': [download_hash.hexdigest()]})
+            hashes=Hashes({'sha1': [download_hash.hexdigest()]}),
         )
 
         # despite existence of downloaded file with bad hash, downloaded again
@@ -155,7 +157,6 @@ def test_url_to_path_path_to_url_symmetry_win():
 
 
 class Test_unpack_file_url(object):
-
     def prep(self, tmpdir, data):
         self.build_dir = tmpdir.join('build')
         self.download_dir = tmpdir.join('download')
@@ -172,18 +173,15 @@ class Test_unpack_file_url(object):
         self.prep(tmpdir, data)
         unpack_file_url(self.dist_url, self.build_dir)
         assert os.path.isdir(os.path.join(self.build_dir, 'simple'))
-        assert not os.path.isfile(
-            os.path.join(self.download_dir, self.dist_file))
+        assert not os.path.isfile(os.path.join(self.download_dir, self.dist_file))
 
     def test_unpack_file_url_and_download(self, tmpdir, data):
         self.prep(tmpdir, data)
-        unpack_file_url(self.dist_url, self.build_dir,
-                        download_dir=self.download_dir)
+        unpack_file_url(self.dist_url, self.build_dir, download_dir=self.download_dir)
         assert os.path.isdir(os.path.join(self.build_dir, 'simple'))
         assert os.path.isfile(os.path.join(self.download_dir, self.dist_file))
 
-    def test_unpack_file_url_download_already_exists(self, tmpdir,
-                                                     data, monkeypatch):
+    def test_unpack_file_url_download_already_exists(self, tmpdir, data, monkeypatch):
         self.prep(tmpdir, data)
         # add in previous download (copy simple-2.0 as simple-1.0)
         # so we can tell it didn't get overwritten
@@ -192,26 +190,23 @@ class Test_unpack_file_url(object):
         with open(self.dist_path2, 'rb') as f:
             dist_path2_md5 = hashlib.md5(f.read()).hexdigest()
 
-        unpack_file_url(self.dist_url, self.build_dir,
-                        download_dir=self.download_dir)
+        unpack_file_url(self.dist_url, self.build_dir, download_dir=self.download_dir)
         # our hash should be the same, i.e. not overwritten by simple-1.0 hash
         with open(dest_file, 'rb') as f:
             assert dist_path2_md5 == hashlib.md5(f.read()).hexdigest()
 
-    def test_unpack_file_url_bad_hash(self, tmpdir, data,
-                                      monkeypatch):
+    def test_unpack_file_url_bad_hash(self, tmpdir, data, monkeypatch):
         """
         Test when the file url hash fragment is wrong
         """
         self.prep(tmpdir, data)
         self.dist_url.url = "%s#md5=bogus" % self.dist_url.url
         with pytest.raises(HashMismatch):
-            unpack_file_url(self.dist_url,
-                            self.build_dir,
-                            hashes=Hashes({'md5': ['bogus']}))
+            unpack_file_url(
+                self.dist_url, self.build_dir, hashes=Hashes({'md5': ['bogus']})
+            )
 
-    def test_unpack_file_url_download_bad_hash(self, tmpdir, data,
-                                               monkeypatch):
+    def test_unpack_file_url_download_bad_hash(self, tmpdir, data, monkeypatch):
         """
         Test when existing download has different hash from the file url
         fragment
@@ -230,13 +225,13 @@ class Test_unpack_file_url(object):
 
         assert dist_path_md5 != dist_path2_md5
 
-        self.dist_url.url = "%s#md5=%s" % (
-            self.dist_url.url,
-            dist_path_md5
+        self.dist_url.url = "%s#md5=%s" % (self.dist_url.url, dist_path_md5)
+        unpack_file_url(
+            self.dist_url,
+            self.build_dir,
+            download_dir=self.download_dir,
+            hashes=Hashes({'md5': [dist_path_md5]}),
         )
-        unpack_file_url(self.dist_url, self.build_dir,
-                        download_dir=self.download_dir,
-                        hashes=Hashes({'md5': [dist_path_md5]}))
 
         # confirm hash is for simple1-1.0
         # the previous bad download has been removed
@@ -247,8 +242,7 @@ class Test_unpack_file_url(object):
         self.prep(tmpdir, data)
         dist_path = data.packages.join("FSPkg")
         dist_url = Link(path_to_url(dist_path))
-        unpack_file_url(dist_url, self.build_dir,
-                        download_dir=self.download_dir)
+        unpack_file_url(dist_url, self.build_dir, download_dir=self.download_dir)
         assert os.path.isdir(os.path.join(self.build_dir, 'fspkg'))
 
 
@@ -301,7 +295,6 @@ class TestSafeFileCache:
 
 
 class TestPipSession:
-
     def test_cache_defaults_off(self):
         session = PipSession()
 
@@ -313,8 +306,7 @@ class TestPipSession:
 
         assert hasattr(session.adapters["https://"], "cache")
 
-        assert (session.adapters["https://"].cache.directory ==
-                tmpdir.join("test-cache"))
+        assert session.adapters["https://"].cache.directory == tmpdir.join("test-cache")
 
     def test_http_cache_is_not_enabled(self, tmpdir):
         session = PipSession(cache=tmpdir.join("test-cache"))
@@ -323,8 +315,7 @@ class TestPipSession:
 
     def test_insecure_host_cache_is_not_enabled(self, tmpdir):
         session = PipSession(
-            cache=tmpdir.join("test-cache"),
-            insecure_hosts=["example.com"],
+            cache=tmpdir.join("test-cache"), insecure_hosts=["example.com"]
         )
 
         assert not hasattr(session.adapters["https://example.com/"], "cache")
@@ -337,5 +328,7 @@ def test_parse_credentials():
     assert auth.parse_credentials("example.com") == (None, None)
 
     # URL-encoded reserved characters:
-    assert auth.parse_credentials("user%3Aname:%23%40%5E@example.com") \
-        == ("user:name", "#@^")
+    assert auth.parse_credentials("user%3Aname:%23%40%5E@example.com") == (
+        "user:name",
+        "#@^",
+    )

@@ -27,5 +27,5 @@ setup(
     packages=find_packages(),
     install_requires=['simple==1.0'],
     extras_require={'bar': ['simple==2.0'], 'baz': ['singlemodule']},
-    dependency_links=[DEP_URL]
+    dependency_links=[DEP_URL],
 )

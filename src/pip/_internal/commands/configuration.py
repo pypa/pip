@@ -54,7 +54,7 @@ class ConfigurationCommand(Command):
             help=(
                 'Editor to use to edit the file. Uses VISUAL or EDITOR '
                 'environment variables if not provided.'
-            )
+            ),
         )
 
         self.cmd_opts.add_option(
@@ -62,7 +62,7 @@ class ConfigurationCommand(Command):
             dest='global_file',
             action='store_true',
             default=False,
-            help='Use the system-wide configuration file only'
+            help='Use the system-wide configuration file only',
         )
 
         self.cmd_opts.add_option(
@@ -70,7 +70,7 @@ class ConfigurationCommand(Command):
             dest='user_file',
             action='store_true',
             default=False,
-            help='Use the user configuration file only'
+            help='Use the user configuration file only',
         )
 
         self.cmd_opts.add_option(
@@ -78,7 +78,7 @@ class ConfigurationCommand(Command):
             dest='venv_file',
             action='store_true',
             default=False,
-            help='Use the virtualenv configuration file only'
+            help='Use the virtualenv configuration file only',
         )
 
         self.parser.insert_option_group(0, self.cmd_opts)
@@ -89,13 +89,13 @@ class ConfigurationCommand(Command):
             "edit": self.open_in_editor,
             "get": self.get_name,
             "set": self.set_name_value,
-            "unset": self.unset_name
+            "unset": self.unset_name,
         }
 
         # Determine action
         if not args or args[0] not in handlers:
-            logger.error("Need an action ({}) to perform.".format(
-                ", ".join(sorted(handlers)))
+            logger.error(
+                "Need an action ({}) to perform.".format(", ".join(sorted(handlers)))
             )
             return ERROR
 
@@ -130,7 +130,7 @@ class ConfigurationCommand(Command):
         file_options = {
             kinds.USER: options.user_file,
             kinds.GLOBAL: options.global_file,
-            kinds.VENV: options.venv_file
+            kinds.VENV: options.venv_file,
         }
 
         if sum(file_options.values()) == 0:
@@ -185,8 +185,7 @@ class ConfigurationCommand(Command):
             subprocess.check_call([editor, fname])
         except subprocess.CalledProcessError as e:
             raise PipError(
-                "Editor Subprocess exited with exit code {}"
-                .format(e.returncode)
+                "Editor Subprocess exited with exit code {}".format(e.returncode)
             )
 
     def _get_n_args(self, args, example, n):
@@ -211,8 +210,7 @@ class ConfigurationCommand(Command):
             self.configuration.save()
         except Exception:
             logger.error(
-                "Unable to save configuration. Please report this as a bug.",
-                exc_info=1
+                "Unable to save configuration. Please report this as a bug.", exc_info=1
             )
             raise PipError("Internal Error.")
 

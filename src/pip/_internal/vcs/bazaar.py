@@ -18,7 +18,12 @@ class Bazaar(VersionControl):
     dirname = '.bzr'
     repo_name = 'branch'
     schemes = (
-        'bzr', 'bzr+http', 'bzr+https', 'bzr+ssh', 'bzr+sftp', 'bzr+ftp',
+        'bzr',
+        'bzr+http',
+        'bzr+https',
+        'bzr+ssh',
+        'bzr+sftp',
+        'bzr+ftp',
         'bzr+lp',
     )
 
@@ -43,10 +48,7 @@ class Bazaar(VersionControl):
         with TempDirectory(kind="export") as temp_dir:
             self.unpack(temp_dir.path)
 
-            self.run_command(
-                ['export', location],
-                cwd=temp_dir.path, show_stdout=False,
-            )
+            self.run_command(['export', location], cwd=temp_dir.path, show_stdout=False)
 
     def switch(self, dest, url, rev_options):
         self.run_command(['switch', url], cwd=dest)
@@ -60,12 +62,7 @@ class Bazaar(VersionControl):
         rev_options = self.make_rev_options(rev)
         if self.check_destination(dest, url, rev_options):
             rev_display = rev_options.to_display()
-            logger.info(
-                'Checking out %s%s to %s',
-                url,
-                rev_display,
-                display_path(dest),
-            )
+            logger.info('Checking out %s%s to %s', url, rev_display, display_path(dest))
             cmd_args = ['branch', '-q'] + rev_options.to_args() + [url, dest]
             self.run_command(cmd_args)
 
@@ -80,8 +77,7 @@ class Bazaar(VersionControl):
         urls = self.run_command(['info'], show_stdout=False, cwd=location)
         for line in urls.splitlines():
             line = line.strip()
-            for x in ('checkout of branch: ',
-                      'parent branch: '):
+            for x in ('checkout of branch: ', 'parent branch: '):
                 if line.startswith(x):
                     repo = line.split(x)[1]
                     if self._is_local_repository(repo):
@@ -90,9 +86,7 @@ class Bazaar(VersionControl):
         return None
 
     def get_revision(self, location):
-        revision = self.run_command(
-            ['revno'], show_stdout=False, cwd=location,
-        )
+        revision = self.run_command(['revno'], show_stdout=False, cwd=location)
         return revision.splitlines()[-1]
 
     def get_src_requirement(self, dist, location):

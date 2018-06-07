@@ -33,7 +33,7 @@ def test_correct_pip_version(script):
     pip_folder_outputed = re.match(
         r'pip \d+(\.[\d]+)+(\.?(b|rc|dev|pre|post)\d+)? from (.*) '
         r'\(python \d(.[\d])+\)$',
-        result.stdout
+        result.stdout,
     ).group(4)
     pip_folder = join(SRC_DIR, 'src', 'pip')
 
@@ -44,12 +44,14 @@ def test_correct_pip_version(script):
     # primary resources other than .py files, this code will need
     # maintenance
     mismatch_py = [
-        x for x in diffs.left_only + diffs.right_only + diffs.diff_files
+        x
+        for x in diffs.left_only + diffs.right_only + diffs.diff_files
         if x.endswith('.py')
     ]
-    assert not mismatch_py, (
-        'mismatched source files in %r and %r: %r' %
-        (pip_folder, pip_folder_outputed, mismatch_py)
+    assert not mismatch_py, 'mismatched source files in %r and %r: %r' % (
+        pip_folder,
+        pip_folder_outputed,
+        mismatch_py,
     )
 
 
@@ -58,4 +60,5 @@ def test_as_import(script):
     the command submodule with a dictionary
     """
     import pip._internal.commands.install as inst
+
     assert inst is not None

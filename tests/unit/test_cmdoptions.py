@@ -38,9 +38,7 @@ def test_none_resets():
 
 def test_none_preserves_other_side():
     cmd = SimpleCommand()
-    cmd.main(
-        ['fake', '--no-binary=:all:', '--only-binary=fred',
-         '--no-binary=:none:'])
+    cmd.main(['fake', '--no-binary=:all:', '--only-binary=fred', '--no-binary=:none:'])
     expected = index.FormatControl(set(), {'fred'})
     assert cmd.options.format_control == expected
 

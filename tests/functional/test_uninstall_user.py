@@ -10,7 +10,6 @@ from tests.lib import assert_all_changes, pyversion
 
 
 class Tests_UninstallUserSite:
-
     @pytest.mark.network
     def test_uninstall_from_usersite(self, script, virtualenv):
         """
@@ -21,8 +20,7 @@ class Tests_UninstallUserSite:
         result2 = script.pip('uninstall', '-y', 'INITools')
         assert_all_changes(result1, result2, [script.venv / 'build', 'cache'])
 
-    def test_uninstall_from_usersite_with_dist_in_global_site(
-            self, script, virtualenv):
+    def test_uninstall_from_usersite_with_dist_in_global_site(self, script, virtualenv):
         """
         Test uninstall from usersite (with same dist in global site)
         """
@@ -45,7 +43,8 @@ class Tests_UninstallUserSite:
         script.pip_install_local('pip-test-package==0.1', '--no-binary=:all:')
 
         result2 = script.pip_install_local(
-            '--user', 'pip-test-package==0.1.1', '--no-binary=:all:')
+            '--user', 'pip-test-package==0.1.1', '--no-binary=:all:'
+        )
         result3 = script.pip('uninstall', '-vy', 'pip-test-package')
 
         # uninstall console is mentioning user scripts, but not global scripts
@@ -57,8 +56,10 @@ class Tests_UninstallUserSite:
 
         # site still has 0.2 (can't look in result1; have to check)
         egg_info_folder = (
-            script.base_path / script.site_packages /
-            'pip_test_package-0.1-py%s.egg-info' % pyversion
+            script.base_path
+            / script.site_packages
+            / 'pip_test_package-0.1-py%s.egg-info'
+            % pyversion
         )
         assert isdir(egg_info_folder)
 
@@ -71,9 +72,7 @@ class Tests_UninstallUserSite:
 
         # install
         to_install = data.packages.join("FSPkg")
-        result1 = script.pip(
-            'install', '--user', '-e', to_install, expect_error=False,
-        )
+        result1 = script.pip('install', '--user', '-e', to_install, expect_error=False)
         egg_link = script.user_site / 'FSPkg.egg-link'
         assert egg_link in result1.files_created, str(result1.stdout)
 
@@ -84,9 +83,5 @@ class Tests_UninstallUserSite:
         assert_all_changes(
             result1,
             result2,
-            [
-                script.venv / 'build',
-                'cache',
-                script.user_site / 'easy-install.pth',
-            ]
+            [script.venv / 'build', 'cache', script.user_site / 'easy-install.pth'],
         )

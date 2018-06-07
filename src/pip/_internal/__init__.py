@@ -18,6 +18,7 @@ import sys
 # in the DEP-8 tests, so just suppress the warning.  pdb tells me this has to
 # be done before the import of pip.vcs.
 from pip._vendor.urllib3.exceptions import DependencyWarning
+
 warnings.filterwarnings("ignore", category=DependencyWarning)  # noqa
 
 # We want to inject the use of SecureTransport as early as possible so that any
@@ -44,9 +45,7 @@ from pip._internal.exceptions import CommandError, PipError
 from pip._internal.utils.misc import get_installed_distributions, get_prog
 from pip._internal.utils import deprecation
 from pip._internal.vcs import git, mercurial, subversion, bazaar  # noqa
-from pip._internal.baseparser import (
-    ConfigOptionParser, UpdatingDefaultsHelpFormatter,
-)
+from pip._internal.baseparser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip._internal.commands import get_summaries, get_similar_commands
 from pip._internal.commands import commands_dict
 from pip._vendor.urllib3.exceptions import InsecureRequestWarning
@@ -88,10 +87,10 @@ def autocomplete():
         if subcommand_name == 'help':
             sys.exit(1)
         # special case: list locally installed dists for show and uninstall
-        should_list_installed = (
-            subcommand_name in ['show', 'uninstall'] and
-            not current.startswith('-')
-        )
+        should_list_installed = subcommand_name in [
+            'show',
+            'uninstall',
+        ] and not current.startswith('-')
         if should_list_installed:
             installed = []
             lc = current.lower()
@@ -112,7 +111,7 @@ def autocomplete():
                     options.append((opt_str, opt.nargs))
 
         # filter out previously specified options from available options
-        prev_opts = [x.split('=')[0] for x in cwords[1:cword - 1]]
+        prev_opts = [x.split('=')[0] for x in cwords[1 : cword - 1]]
         options = [(x, v) for (x, v) in options if x not in prev_opts]
         # filter options by current input
         options = [(k, v) for k, v in options if k.startswith(current)]
@@ -151,7 +150,9 @@ def create_main_parser():
 
     pip_pkg_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     parser.version = 'pip %s from %s (python %s)' % (
-        __version__, pip_pkg_dir, sys.version[:3],
+        __version__,
+        pip_pkg_dir,
+        sys.version[:3],
     )
 
     # add the general options

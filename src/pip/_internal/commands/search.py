@@ -7,6 +7,7 @@ from collections import OrderedDict
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.version import parse as parse_version
+
 # NOTE: XMLRPC Client is not annotated in typeshed as on 2017-07-17, which is
 #       why we ignore the type on this import
 from pip._vendor.six.moves import xmlrpc_client  # type: ignore
@@ -24,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 class SearchCommand(Command):
     """Search for PyPI packages whose name or summary contains <query>."""
+
     name = 'search'
     usage = """
       %prog [options] <query>"""
@@ -33,11 +35,13 @@ class SearchCommand(Command):
     def __init__(self, *args, **kw):
         super(SearchCommand, self).__init__(*args, **kw)
         self.cmd_opts.add_option(
-            '-i', '--index',
+            '-i',
+            '--index',
             dest='index',
             metavar='URL',
             default=PyPI.pypi_url,
-            help='Base URL of Python Package Index (default %default)')
+            help='Base URL of Python Package Index (default %default)',
+        )
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
@@ -79,11 +83,7 @@ def transform_hits(hits):
         version = hit['version']
 
         if name not in packages.keys():
-            packages[name] = {
-                'name': name,
-                'summary': summary,
-                'versions': [version],
-            }
+            packages[name] = {'name': name, 'summary': summary, 'versions': [version]}
         else:
             packages[name]['versions'].append(version)
 
@@ -98,10 +98,15 @@ def print_results(hits, name_column_width=None, terminal_width=None):
     if not hits:
         return
     if name_column_width is None:
-        name_column_width = max([
-            len(hit['name']) + len(highest_version(hit.get('versions', ['-'])))
-            for hit in hits
-        ]) + 4
+        name_column_width = (
+            max(
+                [
+                    len(hit['name']) + len(highest_version(hit.get('versions', ['-'])))
+                    for hit in hits
+                ]
+            )
+            + 4
+        )
 
     installed_packages = [p.project_name for p in pkg_resources.working_set]
     for hit in hits:
@@ -115,8 +120,7 @@ def print_results(hits, name_column_width=None, terminal_width=None):
                 summary = textwrap.wrap(summary, target_width)
                 summary = ('\n' + ' ' * (name_column_width + 3)).join(summary)
 
-        line = '%-*s - %s' % (name_column_width,
-                              '%s (%s)' % (name, latest), summary)
+        line = '%-*s - %s' % (name_column_width, '%s (%s)' % (name, latest), summary)
         try:
             logger.info(line)
             if name in installed_packages:

@@ -4,7 +4,8 @@ from mock import patch
 from pip._internal.vcs.git import Git
 from tests.lib import _create_test_package
 from tests.lib.git_submodule_helpers import (
-    _change_test_package_submodule, _create_test_package_with_submodule,
+    _change_test_package_submodule,
+    _create_test_package_with_submodule,
     _pull_in_submodule_changes_to_module,
 )
 
@@ -16,10 +17,7 @@ def test_is_commit_id_equal(script):
     """
     version_pkg_path = _create_test_package(script)
     script.run('git', 'branch', 'branch0.1', cwd=version_pkg_path)
-    commit = script.run(
-        'git', 'rev-parse', 'HEAD',
-        cwd=version_pkg_path
-    ).stdout.strip()
+    commit = script.run('git', 'rev-parse', 'HEAD', cwd=version_pkg_path).stdout.strip()
     git = Git()
     assert git.is_commit_id_equal(version_pkg_path, commit)
     assert not git.is_commit_id_equal(version_pkg_path, commit[:7])
@@ -93,7 +91,9 @@ def test_check_submodule_addition(script):
 
     # expect error because git may write to stderr
     update_result = script.pip(
-        'install', '-e', 'git+' + module_path + '#egg=version_pkg',
+        'install',
+        '-e',
+        'git+' + module_path + '#egg=version_pkg',
         '--upgrade',
         expect_error=True,
     )

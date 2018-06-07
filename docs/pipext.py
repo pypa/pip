@@ -37,7 +37,6 @@ class PipCommandDescription(rst.Directive):
 
 
 class PipOptions(rst.Directive):
-
     def _format_option(self, option, cmd_name=None):
         if cmd_name:
             bookmark_line = ".. _`%s_%s`:" % (cmd_name, option._long_opts[0])
@@ -77,16 +76,12 @@ class PipOptions(rst.Directive):
 
 class PipGeneralOptions(PipOptions):
     def process_options(self):
-        self._format_options(
-            [o() for o in cmdoptions.general_group['options']]
-        )
+        self._format_options([o() for o in cmdoptions.general_group['options']])
 
 
 class PipIndexOptions(PipOptions):
     def process_options(self):
-        self._format_options(
-            [o() for o in cmdoptions.index_group['options']]
-        )
+        self._format_options([o() for o in cmdoptions.index_group['options']])
 
 
 class PipCommandOptions(PipOptions):
@@ -94,10 +89,7 @@ class PipCommandOptions(PipOptions):
 
     def process_options(self):
         cmd = commands[self.arguments[0]]()
-        self._format_options(
-            cmd.parser.option_groups[0].option_list,
-            cmd_name=cmd.name,
-        )
+        self._format_options(cmd.parser.option_groups[0].option_list, cmd_name=cmd.name)
 
 
 def setup(app):

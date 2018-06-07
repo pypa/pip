@@ -29,6 +29,7 @@ class DownloadCommand(RequirementCommand):
     pip also supports downloading from "requirements files", which provide
     an easy way to specify a whole environment to be downloaded.
     """
+
     name = 'download'
 
     usage = """
@@ -61,7 +62,10 @@ class DownloadCommand(RequirementCommand):
         cmd_opts.add_option(cmdoptions.no_build_isolation())
 
         cmd_opts.add_option(
-            '-d', '--dest', '--destination-dir', '--destination-directory',
+            '-d',
+            '--dest',
+            '--destination-dir',
+            '--destination-directory',
             dest='download_dir',
             metavar='dir',
             default=os.curdir,
@@ -73,8 +77,10 @@ class DownloadCommand(RequirementCommand):
             dest='platform',
             metavar='platform',
             default=None,
-            help=("Only download wheels compatible with <platform>. "
-                  "Defaults to the platform of the running system."),
+            help=(
+                "Only download wheels compatible with <platform>. "
+                "Defaults to the platform of the running system."
+            ),
         )
 
         cmd_opts.add_option(
@@ -82,12 +88,14 @@ class DownloadCommand(RequirementCommand):
             dest='python_version',
             metavar='python_version',
             default=None,
-            help=("Only download wheels compatible with Python "
-                  "interpreter version <version>. If not specified, then the "
-                  "current system interpreter minor version is used. A major "
-                  "version (e.g. '2') can be specified to match all "
-                  "minor revs of that major version.  A minor version "
-                  "(e.g. '34') can also be specified."),
+            help=(
+                "Only download wheels compatible with Python "
+                "interpreter version <version>. If not specified, then the "
+                "current system interpreter minor version is used. A major "
+                "version (e.g. '2') can be specified to match all "
+                "minor revs of that major version.  A minor version "
+                "(e.g. '34') can also be specified."
+            ),
         )
 
         cmd_opts.add_option(
@@ -95,11 +103,13 @@ class DownloadCommand(RequirementCommand):
             dest='implementation',
             metavar='implementation',
             default=None,
-            help=("Only download wheels compatible with Python "
-                  "implementation <implementation>, e.g. 'pp', 'jy', 'cp', "
-                  " or 'ip'. If not specified, then the current "
-                  "interpreter implementation is used.  Use 'py' to force "
-                  "implementation-agnostic wheels."),
+            help=(
+                "Only download wheels compatible with Python "
+                "implementation <implementation>, e.g. 'pp', 'jy', 'cp', "
+                " or 'ip'. If not specified, then the current "
+                "interpreter implementation is used.  Use 'py' to force "
+                "implementation-agnostic wheels."
+            ),
         )
 
         cmd_opts.add_option(
@@ -107,18 +117,17 @@ class DownloadCommand(RequirementCommand):
             dest='abi',
             metavar='abi',
             default=None,
-            help=("Only download wheels compatible with Python "
-                  "abi <abi>, e.g. 'pypy_41'.  If not specified, then the "
-                  "current interpreter abi tag is used.  Generally "
-                  "you will need to specify --implementation, "
-                  "--platform, and --python-version when using "
-                  "this option."),
+            help=(
+                "Only download wheels compatible with Python "
+                "abi <abi>, e.g. 'pypy_41'.  If not specified, then the "
+                "current interpreter abi tag is used.  Generally "
+                "you will need to specify --implementation, "
+                "--platform, and --python-version when using "
+                "this option."
+            ),
         )
 
-        index_opts = cmdoptions.make_option_group(
-            cmdoptions.index_group,
-            self.parser,
-        )
+        index_opts = cmdoptions.make_option_group(cmdoptions.index_group, self.parser)
 
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, cmd_opts)
@@ -134,16 +143,17 @@ class DownloadCommand(RequirementCommand):
         else:
             python_versions = None
 
-        dist_restriction_set = any([
-            options.python_version,
-            options.platform,
-            options.abi,
-            options.implementation,
-        ])
+        dist_restriction_set = any(
+            [
+                options.python_version,
+                options.platform,
+                options.abi,
+                options.implementation,
+            ]
+        )
         binary_only = FormatControl(set(), {':all:'})
         no_sdist_dependencies = (
-            options.format_control != binary_only and
-            not options.ignore_dependencies
+            options.format_control != binary_only and not options.ignore_dependencies
         )
         if dist_restriction_set and no_sdist_dependencies:
             raise CommandError(
@@ -168,7 +178,7 @@ class DownloadCommand(RequirementCommand):
                 abi=options.abi,
                 implementation=options.implementation,
             )
-            build_delete = (not (options.no_clean or options.build_dir))
+            build_delete = not (options.no_clean or options.build_dir)
             if options.cache_dir and not check_path_owner(options.cache_dir):
                 logger.warning(
                     "The directory '%s' or its parent directory is not owned "
@@ -184,17 +194,9 @@ class DownloadCommand(RequirementCommand):
                 options.build_dir, delete=build_delete, kind="download"
             ) as directory:
 
-                requirement_set = RequirementSet(
-                    require_hashes=options.require_hashes,
-                )
+                requirement_set = RequirementSet(require_hashes=options.require_hashes)
                 self.populate_requirement_set(
-                    requirement_set,
-                    args,
-                    options,
-                    finder,
-                    session,
-                    self.name,
-                    None
+                    requirement_set, args, options, finder, session, self.name, None
                 )
 
                 preparer = RequirementPreparer(
@@ -221,9 +223,9 @@ class DownloadCommand(RequirementCommand):
                 )
                 resolver.resolve(requirement_set)
 
-                downloaded = ' '.join([
-                    req.name for req in requirement_set.successfully_downloaded
-                ])
+                downloaded = ' '.join(
+                    [req.name for req in requirement_set.successfully_downloaded]
+                )
                 if downloaded:
                     logger.info('Successfully downloaded %s', downloaded)
 

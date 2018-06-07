@@ -15,9 +15,8 @@ class TestInstallRequirementBuildDirectory(object):
         requirement = InstallRequirement(None, None)
         tmp_dir = tempfile.mkdtemp('-build', 'pip-')
         tmp_build_dir = requirement.build_location(tmp_dir)
-        assert (
-            os.path.dirname(tmp_build_dir) ==
-            os.path.realpath(os.path.dirname(tmp_dir))
+        assert os.path.dirname(tmp_build_dir) == os.path.realpath(
+            os.path.dirname(tmp_dir)
         )
         # are we on a system where /tmp is a symlink
         if os.path.realpath(tmp_dir) != os.path.abspath(tmp_dir):

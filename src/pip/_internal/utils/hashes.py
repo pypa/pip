@@ -4,9 +4,7 @@ import hashlib
 
 from pip._vendor.six import iteritems, iterkeys, itervalues
 
-from pip._internal.exceptions import (
-    HashMismatch, HashMissing, InstallationError,
-)
+from pip._internal.exceptions import HashMismatch, HashMissing, InstallationError
 from pip._internal.utils.misc import read_chunks
 
 # The recommended hash algo of the moment. Change this whenever the state of
@@ -24,6 +22,7 @@ class Hashes(object):
     known-good values
 
     """
+
     def __init__(self, hashes=None):
         """
         :param hashes: A dict of algorithm names pointing to lists of allowed
@@ -84,6 +83,7 @@ class MissingHashes(Hashes):
     exception showing it to the user.
 
     """
+
     def __init__(self):
         """Don't offer the ``hashes`` kwarg."""
         # Pass our favorite hash in to generate a "gotten hash". With the

@@ -20,16 +20,23 @@ def test_rev_options_repr():
     assert repr(rev_options) == "<RevOptions git: rev='develop'>"
 
 
-@pytest.mark.parametrize(('vcs', 'expected1', 'expected2', 'kwargs'), [
-    # First check VCS-specific RevOptions behavior.
-    (Bazaar(), [], ['-r', '123'], {}),
-    (Git(), ['HEAD'], ['123'], {}),
-    (Mercurial(), [], ['123'], {}),
-    (Subversion(), [], ['-r', '123'], {}),
-    # Test extra_args.  For this, test using a single VersionControl class.
-    (Git(), ['HEAD', 'opt1', 'opt2'], ['123', 'opt1', 'opt2'],
-        dict(extra_args=['opt1', 'opt2'])),
-])
+@pytest.mark.parametrize(
+    ('vcs', 'expected1', 'expected2', 'kwargs'),
+    [
+        # First check VCS-specific RevOptions behavior.
+        (Bazaar(), [], ['-r', '123'], {}),
+        (Git(), ['HEAD'], ['123'], {}),
+        (Mercurial(), [], ['123'], {}),
+        (Subversion(), [], ['-r', '123'], {}),
+        # Test extra_args.  For this, test using a single VersionControl class.
+        (
+            Git(),
+            ['HEAD', 'opt1', 'opt2'],
+            ['123', 'opt1', 'opt2'],
+            dict(extra_args=['opt1', 'opt2']),
+        ),
+    ],
+)
 def test_rev_options_to_args(vcs, expected1, expected2, kwargs):
     """
     Test RevOptions.to_args().
@@ -100,21 +107,26 @@ def test_looks_like_hash():
 def test_git_get_src_requirements(git, dist):
     ret = git.get_src_requirement(dist, location='.')
 
-    assert ret == ''.join([
-        'git+https://github.com/pypa/pip-test-package',
-        '@5547fa909e83df8bd743d3978d6667497983a4b7',
-        '#egg=pip_test_package'
-    ])
+    assert ret == ''.join(
+        [
+            'git+https://github.com/pypa/pip-test-package',
+            '@5547fa909e83df8bd743d3978d6667497983a4b7',
+            '#egg=pip_test_package',
+        ]
+    )
 
 
-@pytest.mark.parametrize('rev_name,result', (
-    ('5547fa909e83df8bd743d3978d6667497983a4b7', True),
-    ('5547fa909', False),
-    ('5678', False),
-    ('abc123', False),
-    ('foo', False),
-    (None, False),
-))
+@pytest.mark.parametrize(
+    'rev_name,result',
+    (
+        ('5547fa909e83df8bd743d3978d6667497983a4b7', True),
+        ('5547fa909', False),
+        ('5678', False),
+        ('abc123', False),
+        ('foo', False),
+        (None, False),
+    ),
+)
 def test_git_is_commit_id_equal(git, rev_name, result):
     """
     Test Git.is_commit_id_equal().
@@ -150,28 +162,29 @@ def test_bazaar_simple_urls():
     sftp_bzr_repo = Bazaar(
         url='bzr+sftp://bzr.myproject.org/MyProject/trunk/#egg=MyProject'
     )
-    launchpad_bzr_repo = Bazaar(
-        url='bzr+lp:MyLaunchpadProject#egg=MyLaunchpadProject'
-    )
+    launchpad_bzr_repo = Bazaar(url='bzr+lp:MyLaunchpadProject#egg=MyLaunchpadProject')
 
     assert http_bzr_repo.get_url_rev() == (
-        'http://bzr.myproject.org/MyProject/trunk/', None,
+        'http://bzr.myproject.org/MyProject/trunk/',
+        None,
     )
     assert https_bzr_repo.get_url_rev() == (
-        'https://bzr.myproject.org/MyProject/trunk/', None,
+        'https://bzr.myproject.org/MyProject/trunk/',
+        None,
     )
     assert ssh_bzr_repo.get_url_rev() == (
-        'bzr+ssh://bzr.myproject.org/MyProject/trunk/', None,
+        'bzr+ssh://bzr.myproject.org/MyProject/trunk/',
+        None,
     )
     assert ftp_bzr_repo.get_url_rev() == (
-        'ftp://bzr.myproject.org/MyProject/trunk/', None,
+        'ftp://bzr.myproject.org/MyProject/trunk/',
+        None,
     )
     assert sftp_bzr_repo.get_url_rev() == (
-        'sftp://bzr.myproject.org/MyProject/trunk/', None,
+        'sftp://bzr.myproject.org/MyProject/trunk/',
+        None,
     )
-    assert launchpad_bzr_repo.get_url_rev() == (
-        'lp:MyLaunchpadProject', None,
-    )
+    assert launchpad_bzr_repo.get_url_rev() == ('lp:MyLaunchpadProject', None)
 
 
 def test_get_git_version():

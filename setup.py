@@ -18,11 +18,7 @@ def read(*parts):
 
 def find_version(*file_paths):
     version_file = read(*file_paths)
-    version_match = re.search(
-        r"^__version__ = ['\"]([^'\"]*)['\"]",
-        version_file,
-        re.M,
-    )
+    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]", version_file, re.M)
     if version_match:
         return version_match.group(1)
 
@@ -36,7 +32,6 @@ setup(
     version=find_version("src", "pip", "__init__.py"),
     description="The PyPA recommended tool for installing Python packages.",
     long_description=long_description,
-
     license='MIT',
     classifiers=[
         "Development Status :: 5 - Production/Stable",
@@ -55,15 +50,10 @@ setup(
     ],
     url='https://pip.pypa.io/',
     keywords='distutils easy_install egg setuptools wheel virtualenv',
-
     author='The pip developers',
     author_email='pypa-dev@groups.google.com',
-
     package_dir={"": "src"},
-    packages=find_packages(
-        where="src",
-        exclude=["contrib", "docs", "tests*", "tasks"],
-    ),
+    packages=find_packages(where="src", exclude=["contrib", "docs", "tests*", "tasks"]),
     package_data={
         "pip._vendor.certifi": ["*.pem"],
         "pip._vendor.requests": ["*.pem"],
@@ -75,9 +65,8 @@ setup(
             "pip=pip._internal:main",
             "pip%s=pip._internal:main" % sys.version_info[:1],
             "pip%s.%s=pip._internal:main" % sys.version_info[:2],
-        ],
+        ]
     },
-
     zip_safe=False,
     python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*',
 )

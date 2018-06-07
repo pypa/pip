@@ -13,8 +13,8 @@ def test_sort_locations_file_expand_dir(data):
     finder = PackageFinder([data.find_links], [], session=PipSession())
     files, urls = finder._sort_locations([data.find_links], expand_dir=True)
     assert files and not urls, (
-        "files and not urls should have been found at find-links url: %s" %
-        data.find_links
+        "files and not urls should have been found at find-links url: %s"
+        % data.find_links
     )
 
 
@@ -33,13 +33,11 @@ def test_sort_locations_non_existing_path():
     Test that a non-existing path is ignored.
     """
     finder = PackageFinder([], [], session=PipSession())
-    files, urls = finder._sort_locations(
-        [os.path.join('this', 'doesnt', 'exist')])
+    files, urls = finder._sort_locations([os.path.join('this', 'doesnt', 'exist')])
     assert not urls and not files, "nothing should have been found"
 
 
 class TestLink(object):
-
     def test_splitext(self):
         assert ('wheel', '.whl') == Link('http://yo/wheel.whl').splitext()
 
@@ -146,10 +144,7 @@ def test_get_formatted_locations_basic_auth():
     Test that basic authentication credentials defined in URL
     is not included in formatted output.
     """
-    index_urls = [
-        'https://pypi.org/simple',
-        'https://user:pass@repo.domain.com',
-    ]
+    index_urls = ['https://pypi.org/simple', 'https://user:pass@repo.domain.com']
     finder = PackageFinder([], index_urls, session=[])
 
     result = finder.get_formatted_locations()

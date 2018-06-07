@@ -12,7 +12,10 @@ from pip._vendor.packaging.requirements import Requirement
 from pip._internal.commands.install import InstallCommand
 from pip._internal.download import PipSession, path_to_url
 from pip._internal.exceptions import (
-    HashErrors, InstallationError, InvalidWheelFilename, PreviousBuildDirError,
+    HashErrors,
+    InstallationError,
+    InvalidWheelFilename,
+    PreviousBuildDirError,
 )
 from pip._internal.index import PackageFinder
 from pip._internal.operations.prepare import RequirementPreparer
@@ -49,11 +52,16 @@ class TestRequirementSet(object):
             build_isolation=True,
         )
         return Resolver(
-            preparer=preparer, wheel_cache=None,
-            session=PipSession(), finder=finder,
-            use_user_site=False, upgrade_strategy="to-satisfy-only",
-            ignore_dependencies=False, ignore_installed=False,
-            ignore_requires_python=False, force_reinstall=False,
+            preparer=preparer,
+            wheel_cache=None,
+            session=PipSession(),
+            finder=finder,
+            use_user_site=False,
+            upgrade_strategy="to-satisfy-only",
+            ignore_dependencies=False,
+            ignore_installed=False,
+            ignore_requires_python=False,
+            force_reinstall=False,
             isolated=False,
         )
 
@@ -71,8 +79,8 @@ class TestRequirementSet(object):
         resolver = self._basic_resolver(finder)
         assert_raises_regexp(
             PreviousBuildDirError,
-            r"pip can't proceed with [\s\S]*%s[\s\S]*%s" %
-            (req, build_dir.replace('\\', '\\\\')),
+            r"pip can't proceed with [\s\S]*%s[\s\S]*%s"
+            % (req, build_dir.replace('\\', '\\\\')),
             resolver.resolve,
             reqset,
         )
@@ -83,9 +91,7 @@ class TestRequirementSet(object):
         non-wheel installs.
         """
         reqset = RequirementSet()
-        req = InstallRequirement.from_editable(
-            data.packages.join("LocalEnvironMarker")
-        )
+        req = InstallRequirement.from_editable(data.packages.join("LocalEnvironMarker"))
         req.is_direct = True
         reqset.add_requirement(req)
         finder = PackageFinder([data.find_links], [], session=PipSession())
@@ -105,31 +111,31 @@ class TestRequirementSet(object):
         reqset = RequirementSet()
         # No flags here. This tests that detection of later flags nonetheless
         # requires earlier packages to have hashes:
-        reqset.add_requirement(get_processed_req_from_line(
-            'blessings==1.0', lineno=1
-        ))
+        reqset.add_requirement(get_processed_req_from_line('blessings==1.0', lineno=1))
         # This flag activates --require-hashes mode:
-        reqset.add_requirement(get_processed_req_from_line(
-            'tracefront==0.1 --hash=sha256:somehash', lineno=2,
-        ))
+        reqset.add_requirement(
+            get_processed_req_from_line(
+                'tracefront==0.1 --hash=sha256:somehash', lineno=2
+            )
+        )
         # This hash should be accepted because it came from the reqs file, not
         # from the internet:
-        reqset.add_requirement(get_processed_req_from_line(
-            'https://files.pythonhosted.org/packages/source/m/more-itertools/'
-            'more-itertools-1.0.tar.gz#md5=b21850c3cfa7efbb70fd662ab5413bdd',
-            lineno=3,
-        ))
-        # The error text should list this as a URL and not `peep==3.1.1`:
-        reqset.add_requirement(get_processed_req_from_line(
-            'https://files.pythonhosted.org/'
-            'packages/source/p/peep/peep-3.1.1.tar.gz',
-            lineno=4,
-        ))
-        finder = PackageFinder(
-            [],
-            ['https://pypi.org/simple/'],
-            session=PipSession(),
+        reqset.add_requirement(
+            get_processed_req_from_line(
+                'https://files.pythonhosted.org/packages/source/m/more-itertools/'
+                'more-itertools-1.0.tar.gz#md5=b21850c3cfa7efbb70fd662ab5413bdd',
+                lineno=3,
+            )
         )
+        # The error text should list this as a URL and not `peep==3.1.1`:
+        reqset.add_requirement(
+            get_processed_req_from_line(
+                'https://files.pythonhosted.org/'
+                'packages/source/p/peep/peep-3.1.1.tar.gz',
+                lineno=4,
+            )
+        )
+        finder = PackageFinder([], ['https://pypi.org/simple/'], session=PipSession())
         resolver = self._basic_resolver(finder)
         assert_raises_regexp(
             HashErrors,
@@ -143,7 +149,7 @@ class TestRequirementSet(object):
             r'        Expected sha256 somehash\n'
             r'             Got        [0-9a-f]+$',
             resolver.resolve,
-            reqset
+            reqset,
         )
 
     def test_missing_hash_with_require_hashes(self, data):
@@ -151,9 +157,7 @@ class TestRequirementSet(object):
         are missing.
         """
         reqset = RequirementSet(require_hashes=True)
-        reqset.add_requirement(get_processed_req_from_line(
-            'simple==1.0', lineno=1
-        ))
+        reqset.add_requirement(get_processed_req_from_line('simple==1.0', lineno=1))
 
         finder = PackageFinder([data.find_links], [], session=PipSession())
         resolver = self._basic_resolver(finder)
@@ -165,7 +169,7 @@ class TestRequirementSet(object):
             r'    simple==1.0 --hash=sha256:393043e672415891885c9a2a0929b1af95'
             r'fb866d6ca016b42d2e6ce53619b653$',
             resolver.resolve,
-            reqset
+            reqset,
         )
 
     def test_missing_hash_with_require_hashes_in_reqs_file(self, data, tmpdir):
@@ -179,8 +183,7 @@ class TestRequirementSet(object):
         with requirements_file('--require-hashes', tmpdir) as reqs_file:
             options, args = command.parse_args(['-r', reqs_file])
             command.populate_requirement_set(
-                req_set, args, options, finder, session, command.name,
-                wheel_cache=None,
+                req_set, args, options, finder, session, command.name, wheel_cache=None
             )
         assert req_set.require_hashes
 
@@ -193,15 +196,15 @@ class TestRequirementSet(object):
 
         """
         reqset = RequirementSet(require_hashes=True)
-        reqset.add_requirement(get_processed_req_from_line(
-            'git+git://github.com/pypa/pip-test-package --hash=sha256:123',
-            lineno=1,
-        ))
+        reqset.add_requirement(
+            get_processed_req_from_line(
+                'git+git://github.com/pypa/pip-test-package --hash=sha256:123', lineno=1
+            )
+        )
         dir_path = data.packages.join('FSPkg')
-        reqset.add_requirement(get_processed_req_from_line(
-            'file://%s' % (dir_path,),
-            lineno=2,
-        ))
+        reqset.add_requirement(
+            get_processed_req_from_line('file://%s' % (dir_path,), lineno=2)
+        )
         finder = PackageFinder([data.find_links], [], session=PipSession())
         resolver = self._basic_resolver(finder)
         sep = os.path.sep
@@ -218,7 +221,8 @@ class TestRequirementSet(object):
             r"    file://.*{sep}data{sep}packages{sep}FSPkg "
             r"\(from -r file \(line 2\)\)".format(sep=sep),
             resolver.resolve,
-            reqset)
+            reqset,
+        )
 
     def test_unpinned_hash_checking(self, data):
         """Make sure prepare_files() raises an error when a requirement is not
@@ -226,16 +230,21 @@ class TestRequirementSet(object):
         """
         reqset = RequirementSet()
         # Test that there must be exactly 1 specifier:
-        reqset.add_requirement(get_processed_req_from_line(
-            'simple --hash=sha256:a90427ae31f5d1d0d7ec06ee97d9fcf2d0fc9a786985'
-            '250c1c83fd68df5911dd', lineno=1,
-        ))
+        reqset.add_requirement(
+            get_processed_req_from_line(
+                'simple --hash=sha256:a90427ae31f5d1d0d7ec06ee97d9fcf2d0fc9a786985'
+                '250c1c83fd68df5911dd',
+                lineno=1,
+            )
+        )
         # Test that the operator must be ==:
-        reqset.add_requirement(get_processed_req_from_line(
-            'simple2>1.0 --hash=sha256:3ad45e1e9aa48b4462af0'
-            '123f6a7e44a9115db1ef945d4d92c123dfe21815a06',
-            lineno=2,
-        ))
+        reqset.add_requirement(
+            get_processed_req_from_line(
+                'simple2>1.0 --hash=sha256:3ad45e1e9aa48b4462af0'
+                '123f6a7e44a9115db1ef945d4d92c123dfe21815a06',
+                lineno=2,
+            )
+        )
         finder = PackageFinder([data.find_links], [], session=PipSession())
         resolver = self._basic_resolver(finder)
         assert_raises_regexp(
@@ -245,16 +254,16 @@ class TestRequirementSet(object):
             r'    simple .* \(from -r file \(line 1\)\)\n'
             r'    simple2>1.0 .* \(from -r file \(line 2\)\)',
             resolver.resolve,
-            reqset)
+            reqset,
+        )
 
     def test_hash_mismatch(self, data):
         """A hash mismatch should raise an error."""
-        file_url = path_to_url(
-            (data.packages / 'simple-1.0.tar.gz').abspath)
+        file_url = path_to_url((data.packages / 'simple-1.0.tar.gz').abspath)
         reqset = RequirementSet(require_hashes=True)
-        reqset.add_requirement(get_processed_req_from_line(
-            '%s --hash=sha256:badbad' % file_url, lineno=1,
-        ))
+        reqset.add_requirement(
+            get_processed_req_from_line('%s --hash=sha256:badbad' % file_url, lineno=1)
+        )
         finder = PackageFinder([data.find_links], [], session=PipSession())
         resolver = self._basic_resolver(finder)
         assert_raises_regexp(
@@ -265,7 +274,8 @@ class TestRequirementSet(object):
             r'             Got        393043e672415891885c9a2a0929b1af95fb866d'
             r'6ca016b42d2e6ce53619b653$',
             resolver.resolve,
-            reqset)
+            reqset,
+        )
 
     def test_unhashed_deps_on_require_hashes(self, data):
         """Make sure unhashed, unpinned, or otherwise unrepeatable
@@ -273,19 +283,22 @@ class TestRequirementSet(object):
         reqset = RequirementSet()
         finder = PackageFinder([data.find_links], [], session=PipSession())
         resolver = self._basic_resolver(finder)
-        reqset.add_requirement(get_processed_req_from_line(
-            'TopoRequires2==0.0.1 '  # requires TopoRequires
-            '--hash=sha256:eaf9a01242c9f2f42cf2bd82a6a848cd'
-            'e3591d14f7896bdbefcf48543720c970',
-            lineno=1
-        ))
+        reqset.add_requirement(
+            get_processed_req_from_line(
+                'TopoRequires2==0.0.1 '  # requires TopoRequires
+                '--hash=sha256:eaf9a01242c9f2f42cf2bd82a6a848cd'
+                'e3591d14f7896bdbefcf48543720c970',
+                lineno=1,
+            )
+        )
         assert_raises_regexp(
             HashErrors,
             r'In --require-hashes mode, all requirements must have their '
             r'versions pinned.*\n'
             r'    TopoRequires from .*$',
             resolver.resolve,
-            reqset)
+            reqset,
+        )
 
     def test_hashed_deps_on_require_hashes(self):
         """Make sure hashed dependencies get installed when --require-hashes
@@ -297,25 +310,32 @@ class TestRequirementSet(object):
 
         """
         reqset = RequirementSet()
-        reqset.add_requirement(get_processed_req_from_line(
-            'TopoRequires2==0.0.1 '  # requires TopoRequires
-            '--hash=sha256:eaf9a01242c9f2f42cf2bd82a6a848cd'
-            'e3591d14f7896bdbefcf48543720c970',
-            lineno=1
-        ))
-        reqset.add_requirement(get_processed_req_from_line(
-            'TopoRequires==0.0.1 '
-            '--hash=sha256:d6dd1e22e60df512fdcf3640ced3039b3b02a56ab2cee81ebcb'
-            '3d0a6d4e8bfa6',
-            lineno=2
-        ))
+        reqset.add_requirement(
+            get_processed_req_from_line(
+                'TopoRequires2==0.0.1 '  # requires TopoRequires
+                '--hash=sha256:eaf9a01242c9f2f42cf2bd82a6a848cd'
+                'e3591d14f7896bdbefcf48543720c970',
+                lineno=1,
+            )
+        )
+        reqset.add_requirement(
+            get_processed_req_from_line(
+                'TopoRequires==0.0.1 '
+                '--hash=sha256:d6dd1e22e60df512fdcf3640ced3039b3b02a56ab2cee81ebcb'
+                '3d0a6d4e8bfa6',
+                lineno=2,
+            )
+        )
 
 
-@pytest.mark.parametrize(('file_contents', 'expected'), [
-    (b'\xf6\x80', b'\xc3\xb6\xe2\x82\xac'),  # cp1252
-    (b'\xc3\xb6\xe2\x82\xac', b'\xc3\xb6\xe2\x82\xac'),  # utf-8
-    (b'\xc3\xb6\xe2', b'\xc3\x83\xc2\xb6\xc3\xa2'),  # Garbage
-])
+@pytest.mark.parametrize(
+    ('file_contents', 'expected'),
+    [
+        (b'\xf6\x80', b'\xc3\xb6\xe2\x82\xac'),  # cp1252
+        (b'\xc3\xb6\xe2\x82\xac', b'\xc3\xb6\xe2\x82\xac'),  # utf-8
+        (b'\xc3\xb6\xe2', b'\xc3\x83\xc2\xb6\xc3\xa2'),  # Garbage
+    ],
+)
 def test_egg_info_data(file_contents, expected):
     om = mock_open(read_data=file_contents)
     em = Mock()
@@ -343,7 +363,7 @@ class TestInstallRequirement(object):
     def test_unsupported_wheel_link_requirement_raises(self):
         reqset = RequirementSet()
         req = InstallRequirement.from_line(
-            'https://whatever.com/peppercorn-0.4-py2.py3-bogus-any.whl',
+            'https://whatever.com/peppercorn-0.4-py2.py3-bogus-any.whl'
         )
         assert req.link is not None
         assert req.link.is_wheel
@@ -355,7 +375,7 @@ class TestInstallRequirement(object):
     def test_unsupported_wheel_local_file_requirement_raises(self, data):
         reqset = RequirementSet()
         req = InstallRequirement.from_line(
-            data.packages.join('simple.dist-0.1-py1-none-invalid.whl'),
+            data.packages.join('simple.dist-0.1-py1-none-invalid.whl')
         )
         assert req.link is not None
         assert req.link.is_wheel
@@ -374,9 +394,7 @@ class TestInstallRequirement(object):
 
     def test_repr(self):
         req = InstallRequirement.from_line('simple==0.1')
-        assert repr(req) == (
-            '<InstallRequirement object: simple==0.1 editable=False>'
-        )
+        assert repr(req) == ('<InstallRequirement object: simple==0.1 editable=False>')
 
     def test_invalid_wheel_requirement_raises(self):
         with pytest.raises(InvalidWheelFilename):
@@ -399,11 +417,14 @@ class TestInstallRequirement(object):
         req = InstallRequirement.from_editable(url)
         assert req.link.url == url
 
-    @pytest.mark.parametrize('path', (
-        '/path/to/foo.egg-info'.replace('/', os.path.sep),
-        # Tests issue fixed by https://github.com/pypa/pip/pull/2530
-        '/path/to/foo.egg-info/'.replace('/', os.path.sep),
-    ))
+    @pytest.mark.parametrize(
+        'path',
+        (
+            '/path/to/foo.egg-info'.replace('/', os.path.sep),
+            # Tests issue fixed by https://github.com/pypa/pip/pull/2530
+            '/path/to/foo.egg-info/'.replace('/', os.path.sep),
+        ),
+    )
     def test_get_dist(self, path):
         req = InstallRequirement.from_line('foo')
         req.egg_info_path = Mock(return_value=path)
@@ -450,20 +471,14 @@ class TestInstallRequirement(object):
 
     def test_markers_match_from_line(self):
         # match
-        for markers in (
-            'python_version >= "1.0"',
-            'sys_platform == %r' % sys.platform,
-        ):
+        for markers in ('python_version >= "1.0"', 'sys_platform == %r' % sys.platform):
             line = 'name; ' + markers
             req = InstallRequirement.from_line(line)
             assert str(req.markers) == str(Marker(markers))
             assert req.match_markers()
 
         # don't match
-        for markers in (
-            'python_version >= "5.0"',
-            'sys_platform != %r' % sys.platform,
-        ):
+        for markers in ('python_version >= "5.0"', 'sys_platform != %r' % sys.platform):
             line = 'name; ' + markers
             req = InstallRequirement.from_line(line)
             assert str(req.markers) == str(Marker(markers))
@@ -471,20 +486,14 @@ class TestInstallRequirement(object):
 
     def test_markers_match(self):
         # match
-        for markers in (
-            'python_version >= "1.0"',
-            'sys_platform == %r' % sys.platform,
-        ):
+        for markers in ('python_version >= "1.0"', 'sys_platform == %r' % sys.platform):
             line = 'name; ' + markers
             req = InstallRequirement.from_line(line, comes_from='')
             assert str(req.markers) == str(Marker(markers))
             assert req.match_markers()
 
         # don't match
-        for markers in (
-            'python_version >= "5.0"',
-            'sys_platform != %r' % sys.platform,
-        ):
+        for markers in ('python_version >= "5.0"', 'sys_platform != %r' % sys.platform):
             line = 'name; ' + markers
             req = InstallRequirement.from_line(line, comes_from='')
             assert str(req.markers) == str(Marker(markers))
@@ -525,7 +534,8 @@ class TestInstallRequirement(object):
     def test_unexisting_path(self):
         with pytest.raises(InstallationError) as e:
             InstallRequirement.from_line(
-                os.path.join('this', 'path', 'does', 'not', 'exist'))
+                os.path.join('this', 'path', 'does', 'not', 'exist')
+            )
         err_msg = e.value.args[0]
         assert "Invalid requirement" in err_msg
         assert "It looks like a path." in err_msg
@@ -560,16 +570,13 @@ class TestInstallRequirement(object):
 @patch('pip._internal.req.req_install.os.path.abspath')
 @patch('pip._internal.req.req_install.os.path.exists')
 @patch('pip._internal.req.req_install.os.path.isdir')
-def test_parse_editable_local(
-        isdir_mock, exists_mock, abspath_mock):
+def test_parse_editable_local(isdir_mock, exists_mock, abspath_mock):
     exists_mock.return_value = isdir_mock.return_value = True
     # mocks needed to support path operations on windows tests
     abspath_mock.return_value = "/some/path"
     assert parse_editable('.') == (None, 'file:///some/path', None)
     abspath_mock.return_value = "/some/path/foo"
-    assert parse_editable('foo') == (
-        None, 'file:///some/path/foo', None,
-    )
+    assert parse_editable('foo') == (None, 'file:///some/path/foo', None)
 
 
 def test_parse_editable_explicit_vcs():
@@ -591,26 +598,23 @@ def test_parse_editable_vcs_extras():
 @patch('pip._internal.req.req_install.os.path.abspath')
 @patch('pip._internal.req.req_install.os.path.exists')
 @patch('pip._internal.req.req_install.os.path.isdir')
-def test_parse_editable_local_extras(
-        isdir_mock, exists_mock, abspath_mock):
+def test_parse_editable_local_extras(isdir_mock, exists_mock, abspath_mock):
     exists_mock.return_value = isdir_mock.return_value = True
     abspath_mock.return_value = "/some/path"
-    assert parse_editable('.[extras]') == (
-        None, 'file://' + "/some/path", {'extras'},
-    )
+    assert parse_editable('.[extras]') == (None, 'file://' + "/some/path", {'extras'})
     abspath_mock.return_value = "/some/path/foo"
     assert parse_editable('foo[bar,baz]') == (
-        None, 'file:///some/path/foo', {'bar', 'baz'},
+        None,
+        'file:///some/path/foo',
+        {'bar', 'baz'},
     )
 
 
 def test_exclusive_environment_markers():
     """Make sure RequirementSet accepts several excluding env markers"""
-    eq26 = InstallRequirement.from_line(
-        "Django>=1.6.10,<1.7 ; python_version == '2.6'")
+    eq26 = InstallRequirement.from_line("Django>=1.6.10,<1.7 ; python_version == '2.6'")
     eq26.is_direct = True
-    ne26 = InstallRequirement.from_line(
-        "Django>=1.6.10,<1.8 ; python_version != '2.6'")
+    ne26 = InstallRequirement.from_line("Django>=1.6.10,<1.8 ; python_version != '2.6'")
     ne26.is_direct = True
 
     req_set = RequirementSet()
@@ -623,11 +627,11 @@ def test_mismatched_versions(caplog, tmpdir):
     original_source = os.path.join(DATA_DIR, 'src', 'simplewheel-1.0')
     source_dir = os.path.join(tmpdir, 'simplewheel')
     shutil.copytree(original_source, source_dir)
-    req = InstallRequirement(req=Requirement('simplewheel==2.0'),
-                             comes_from=None, source_dir=source_dir)
+    req = InstallRequirement(
+        req=Requirement('simplewheel==2.0'), comes_from=None, source_dir=source_dir
+    )
     req.run_egg_info()
     req.assert_source_matches_version()
     assert caplog.records[-1].message == (
-        'Requested simplewheel==2.0, '
-        'but installing version 1.0'
+        'Requested simplewheel==2.0, ' 'but installing version 1.0'
     )

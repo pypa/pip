@@ -33,18 +33,16 @@ class Subversion(VersionControl):
 
     def get_info(self, location):
         """Returns (url, revision), where both are strings"""
-        assert not location.rstrip('/').endswith(self.dirname), \
+        assert not location.rstrip('/').endswith(self.dirname), (
             'Bad directory: %s' % location
+        )
         output = self.run_command(
-            ['info', location],
-            show_stdout=False,
-            extra_environ={'LANG': 'C'},
+            ['info', location], show_stdout=False, extra_environ={'LANG': 'C'}
         )
         match = _svn_url_re.search(output)
         if not match:
             logger.warning(
-                'Cannot determine URL of svn checkout %s',
-                display_path(location),
+                'Cannot determine URL of svn checkout %s', display_path(location)
             )
             logger.debug('Output that cannot be parsed: \n%s', output)
             return None, None
@@ -52,8 +50,7 @@ class Subversion(VersionControl):
         match = _svn_revision_re.search(output)
         if not match:
             logger.warning(
-                'Cannot determine revision of svn checkout %s',
-                display_path(location),
+                'Cannot determine revision of svn checkout %s', display_path(location)
             )
             logger.debug('Output that cannot be parsed: \n%s', output)
             return url, None
@@ -87,12 +84,7 @@ class Subversion(VersionControl):
         url = remove_auth_from_url(url)
         if self.check_destination(dest, url, rev_options):
             rev_display = rev_options.to_display()
-            logger.info(
-                'Checking out %s%s to %s',
-                url,
-                rev_display,
-                display_path(dest),
-            )
+            logger.info('Checking out %s%s to %s', url, rev_display, display_path(dest))
             cmd_args = ['checkout', '-q'] + rev_options.to_args() + [url, dest]
             self.run_command(cmd_args)
 
@@ -120,7 +112,7 @@ class Subversion(VersionControl):
         for base, dirs, files in os.walk(location):
             if self.dirname not in dirs:
                 dirs[:] = []
-                continue    # no sense walking uncontrolled subdirs
+                continue  # no sense walking uncontrolled subdirs
             dirs.remove(self.dirname)
             entries_fn = os.path.join(base, self.dirname, 'entries')
             if not os.path.exists(entries_fn):
@@ -130,10 +122,10 @@ class Subversion(VersionControl):
             dirurl, localrev = self._get_svn_url_rev(base)
 
             if base == location:
-                base = dirurl + '/'   # save the root url
+                base = dirurl + '/'  # save the root url
             elif not dirurl or not dirurl.startswith(base):
                 dirs[:] = []
-                continue    # not part of the same svn tree, skip it
+                continue  # not part of the same svn tree, skip it
             revision = max(revision, localrev)
         return revision
 
@@ -174,9 +166,7 @@ class Subversion(VersionControl):
         else:  # subversion >= 1.7 does not have the 'entries' file
             data = ''
 
-        if (data.startswith('8') or
-                data.startswith('9') or
-                data.startswith('10')):
+        if data.startswith('8') or data.startswith('9') or data.startswith('10'):
             data = list(map(str.splitlines, data.split('\n\x0c\n')))
             del data[0][0]  # get rid of the '8'
             url = data[0][3]
@@ -185,19 +175,14 @@ class Subversion(VersionControl):
             match = _svn_xml_url_re.search(data)
             if not match:
                 raise ValueError('Badly formatted data: %r' % data)
-            url = match.group(1)    # get repository URL
+            url = match.group(1)  # get repository URL
             revs = [int(m.group(1)) for m in _svn_rev_re.finditer(data)] + [0]
         else:
             try:
                 # subversion >= 1.7
-                xml = self.run_command(
-                    ['info', '--xml', location],
-                    show_stdout=False,
-                )
+                xml = self.run_command(['info', '--xml', location], show_stdout=False)
                 url = _svn_info_xml_url_re.search(xml).group(1)
-                revs = [
-                    int(m.group(1)) for m in _svn_info_xml_rev_re.finditer(xml)
-                ]
+                revs = [int(m.group(1)) for m in _svn_info_xml_rev_re.finditer(xml)]
             except InstallationError:
                 url, revs = None, []
 

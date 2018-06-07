@@ -40,9 +40,7 @@ class Mercurial(VersionControl):
             with open(repo_config, 'w') as config_file:
                 config.write(config_file)
         except (OSError, configparser.NoSectionError) as exc:
-            logger.warning(
-                'Could not switch Mercurial repository to %s: %s', url, exc,
-            )
+            logger.warning('Could not switch Mercurial repository to %s: %s', url, exc)
         else:
             cmd_args = ['update', '-q'] + rev_options.to_args()
             self.run_command(cmd_args, cwd=dest)
@@ -57,34 +55,29 @@ class Mercurial(VersionControl):
         rev_options = self.make_rev_options(rev)
         if self.check_destination(dest, url, rev_options):
             rev_display = rev_options.to_display()
-            logger.info(
-                'Cloning hg %s%s to %s',
-                url,
-                rev_display,
-                display_path(dest),
-            )
+            logger.info('Cloning hg %s%s to %s', url, rev_display, display_path(dest))
             self.run_command(['clone', '--noupdate', '-q', url, dest])
             cmd_args = ['update', '-q'] + rev_options.to_args()
             self.run_command(cmd_args, cwd=dest)
 
     def get_url(self, location):
         url = self.run_command(
-            ['showconfig', 'paths.default'],
-            show_stdout=False, cwd=location).strip()
+            ['showconfig', 'paths.default'], show_stdout=False, cwd=location
+        ).strip()
         if self._is_local_repository(url):
             url = path_to_url(url)
         return url.strip()
 
     def get_revision(self, location):
         current_revision = self.run_command(
-            ['parents', '--template={rev}'],
-            show_stdout=False, cwd=location).strip()
+            ['parents', '--template={rev}'], show_stdout=False, cwd=location
+        ).strip()
         return current_revision
 
     def get_revision_hash(self, location):
         current_rev_hash = self.run_command(
-            ['parents', '--template={node}'],
-            show_stdout=False, cwd=location).strip()
+            ['parents', '--template={node}'], show_stdout=False, cwd=location
+        ).strip()
         return current_rev_hash
 
     def get_src_requirement(self, dist, location):

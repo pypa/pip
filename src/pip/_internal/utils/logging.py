@@ -44,23 +44,22 @@ def get_indentation():
 
 
 class IndentingFormatter(logging.Formatter):
-
     def format(self, record):
         """
         Calls the standard formatter, but will indent all of the log messages
         by our current indentation level.
         """
         formatted = logging.Formatter.format(self, record)
-        formatted = "".join([
-            (" " * get_indentation()) + line
-            for line in formatted.splitlines(True)
-        ])
+        formatted = "".join(
+            [(" " * get_indentation()) + line for line in formatted.splitlines(True)]
+        )
         return formatted
 
 
 def _color_wrap(*colors):
     def wrapped(inp):
         return "".join(list(colors) + [inp, colorama.Style.RESET_ALL])
+
     return wrapped
 
 
@@ -89,7 +88,8 @@ class ColorizedStreamHandler(logging.StreamHandler):
             return False
 
         real_stream = (
-            self.stream if not isinstance(self.stream, colorama.AnsiToWin32)
+            self.stream
+            if not isinstance(self.stream, colorama.AnsiToWin32)
             else self.stream.wrapped
         )
 
@@ -117,14 +117,12 @@ class ColorizedStreamHandler(logging.StreamHandler):
 
 
 class BetterRotatingFileHandler(logging.handlers.RotatingFileHandler):
-
     def _open(self):
         ensure_dir(os.path.dirname(self.baseFilename))
         return logging.handlers.RotatingFileHandler._open(self)
 
 
 class MaxLevelFilter(logging.Filter):
-
     def __init__(self, level):
         self.level = level
 

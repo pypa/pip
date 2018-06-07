@@ -9,11 +9,18 @@ from pip._vendor import pkg_resources, requests
 from pip._internal.build_env import BuildEnvironment
 from pip._internal.compat import expanduser
 from pip._internal.download import (
-    is_dir_url, is_file_url, is_vcs_url, unpack_url, url_to_path,
+    is_dir_url,
+    is_file_url,
+    is_vcs_url,
+    unpack_url,
+    url_to_path,
 )
 from pip._internal.exceptions import (
-    DirectoryUrlHashUnsupported, HashUnpinned, InstallationError,
-    PreviousBuildDirError, VcsHashUnsupported,
+    DirectoryUrlHashUnsupported,
+    HashUnpinned,
+    InstallationError,
+    PreviousBuildDirError,
+    VcsHashUnsupported,
 )
 from pip._internal.utils.hashes import MissingHashes
 from pip._internal.utils.logging import indent_log
@@ -71,10 +78,8 @@ class DistAbstraction(object):
 
 
 class IsWheel(DistAbstraction):
-
     def dist(self, finder):
-        return list(pkg_resources.find_distributions(
-            self.req.source_dir))[0]
+        return list(pkg_resources.find_distributions(self.req.source_dir))[0]
 
     def prep_for_dist(self, finder, build_isolation):
         # FIXME:https://github.com/pypa/pip/issues/1112
@@ -82,14 +87,11 @@ class IsWheel(DistAbstraction):
 
 
 class IsSDist(DistAbstraction):
-
     def dist(self, finder):
         dist = self.req.get_dist()
         # FIXME: shouldn't be globally added.
         if finder and dist.has_metadata('dependency_links.txt'):
-            finder.add_dependency_links(
-                dist.get_metadata_lines('dependency_links.txt')
-            )
+            finder.add_dependency_links(dist.get_metadata_lines('dependency_links.txt'))
         return dist
 
     def prep_for_dist(self, finder, build_isolation):
@@ -100,33 +102,35 @@ class IsSDist(DistAbstraction):
 
         minimum_requirements = ('setuptools', 'wheel')
         missing_requirements = set(minimum_requirements) - set(
-            pkg_resources.Requirement(r).key
-            for r in build_requirements
+            pkg_resources.Requirement(r).key for r in build_requirements
         )
         if missing_requirements:
+
             def format_reqs(rs):
                 return ' and '.join(map(repr, sorted(rs)))
+
             logger.warning(
-                "Missing build time requirements in pyproject.toml for %s: "
-                "%s.", self.req, format_reqs(missing_requirements)
+                "Missing build time requirements in pyproject.toml for %s: " "%s.",
+                self.req,
+                format_reqs(missing_requirements),
             )
             logger.warning(
                 "This version of pip does not implement PEP 517 so it cannot "
-                "build a wheel without %s.", format_reqs(minimum_requirements)
+                "build a wheel without %s.",
+                format_reqs(minimum_requirements),
             )
 
         if should_isolate:
             self.req.build_env = BuildEnvironment()
             self.req.build_env.install_requirements(
-                finder, build_requirements,
-                "Installing build dependencies")
+                finder, build_requirements, "Installing build dependencies"
+            )
 
         self.req.run_egg_info()
         self.req.assert_source_matches_version()
 
 
 class Installed(DistAbstraction):
-
     def dist(self, finder):
         return self.req.satisfied_by
 
@@ -138,8 +142,15 @@ class RequirementPreparer(object):
     """Prepares a Requirement
     """
 
-    def __init__(self, build_dir, download_dir, src_dir, wheel_download_dir,
-                 progress_bar, build_isolation):
+    def __init__(
+        self,
+        build_dir,
+        download_dir,
+        src_dir,
+        wheel_download_dir,
+        progress_bar,
+        build_isolation,
+    ):
         super(RequirementPreparer, self).__init__()
 
         self.src_dir = src_dir
@@ -177,11 +188,13 @@ class RequirementPreparer(object):
                 logger.critical('Could not find download directory')
                 raise InstallationError(
                     "Could not find or access download directory '%s'"
-                    % display_path(self.download_dir))
+                    % display_path(self.download_dir)
+                )
         return False
 
-    def prepare_linked_requirement(self, req, session, finder,
-                                   upgrade_allowed, require_hashes):
+    def prepare_linked_requirement(
+        self, req, session, finder, upgrade_allowed, require_hashes
+    ):
         """Prepare a requirement that would be obtained from req.link
         """
         # TODO: Breakup into smaller functions
@@ -274,21 +287,21 @@ class RequirementPreparer(object):
                         # wheel.
                         autodelete_unpacked = False
                 unpack_url(
-                    req.link, req.source_dir,
-                    download_dir, autodelete_unpacked,
-                    session=session, hashes=hashes,
-                    progress_bar=self.progress_bar
+                    req.link,
+                    req.source_dir,
+                    download_dir,
+                    autodelete_unpacked,
+                    session=session,
+                    hashes=hashes,
+                    progress_bar=self.progress_bar,
                 )
             except requests.HTTPError as exc:
                 logger.critical(
-                    'Could not install requirement %s because of error %s',
-                    req,
-                    exc,
+                    'Could not install requirement %s because of error %s', req, exc
                 )
                 raise InstallationError(
                     'Could not install requirement %s because of HTTP '
-                    'error %s for URL %s' %
-                    (req, exc, req.link)
+                    'error %s for URL %s' % (req, exc, req.link)
                 )
             abstract_dist = make_abstract_dist(req)
             abstract_dist.prep_for_dist(finder, self.build_isolation)
@@ -298,8 +311,7 @@ class RequirementPreparer(object):
                     req.archive(self.download_dir)
         return abstract_dist
 
-    def prepare_editable_requirement(self, req, require_hashes, use_user_site,
-                                     finder):
+    def prepare_editable_requirement(self, req, require_hashes, use_user_site, finder):
         """Prepare an editable requirement
         """
         assert req.editable, "cannot prepare a non-editable req as editable"
@@ -334,8 +346,7 @@ class RequirementPreparer(object):
             "is set to %r" % (req.satisfied_by,)
         )
         logger.info(
-            'Requirement %s: %s (%s)',
-            skip_reason, req, req.satisfied_by.version
+            'Requirement %s: %s (%s)', skip_reason, req, req.satisfied_by.version
         )
         with indent_log():
             if require_hashes:

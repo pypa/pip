@@ -9,7 +9,11 @@ from signal import SIGINT, default_int_handler, signal
 
 from pip._vendor import six
 from pip._vendor.progress.bar import (
-    Bar, ChargingBar, FillingCirclesBar, FillingSquaresBar, IncrementalBar,
+    Bar,
+    ChargingBar,
+    FillingCirclesBar,
+    FillingSquaresBar,
+    IncrementalBar,
     ShadyBar,
 )
 from pip._vendor.progress.helpers import HIDE_CURSOR, SHOW_CURSOR, WritelnMixin
@@ -119,7 +123,6 @@ class InterruptibleMixin(object):
 
 
 class SilentBar(Bar):
-
     def update(self):
         pass
 
@@ -133,7 +136,6 @@ class BlueEmojiBar(IncrementalBar):
 
 
 class DownloadProgressMixin(object):
-
     def __init__(self, *args, **kwargs):
         super(DownloadProgressMixin, self).__init__(*args, **kwargs)
         self.message = (" " * (get_indentation() + 2)) + self.message
@@ -163,7 +165,6 @@ class DownloadProgressMixin(object):
 
 
 class WindowsMixin(object):
-
     def __init__(self, *args, **kwargs):
         # The Windows terminal does not support the hide/show cursor ANSI codes
         # even with colorama. So we'll ensure that hide_cursor is False on
@@ -191,19 +192,18 @@ class WindowsMixin(object):
             self.file.flush = lambda: self.file.wrapped.flush()
 
 
-class BaseDownloadProgressBar(WindowsMixin, InterruptibleMixin,
-                              DownloadProgressMixin):
+class BaseDownloadProgressBar(WindowsMixin, InterruptibleMixin, DownloadProgressMixin):
 
     file = sys.stdout
     message = "%(percent)d%%"
     suffix = "%(downloaded)s %(download_speed)s %(pretty_eta)s"
 
+
 # NOTE: The "type: ignore" comments on the following classes are there to
 #       work around https://github.com/python/typing/issues/241
 
 
-class DefaultDownloadProgressBar(BaseDownloadProgressBar,
-                                 _BaseBar):  # type: ignore
+class DefaultDownloadProgressBar(BaseDownloadProgressBar, _BaseBar):  # type: ignore
     pass
 
 
@@ -211,13 +211,11 @@ class DownloadSilentBar(BaseDownloadProgressBar, SilentBar):  # type: ignore
     pass
 
 
-class DownloadIncrementalBar(BaseDownloadProgressBar,  # type: ignore
-                             IncrementalBar):
+class DownloadIncrementalBar(BaseDownloadProgressBar, IncrementalBar):  # type: ignore
     pass
 
 
-class DownloadChargingBar(BaseDownloadProgressBar,  # type: ignore
-                          ChargingBar):
+class DownloadChargingBar(BaseDownloadProgressBar, ChargingBar):  # type: ignore
     pass
 
 
@@ -225,23 +223,27 @@ class DownloadShadyBar(BaseDownloadProgressBar, ShadyBar):  # type: ignore
     pass
 
 
-class DownloadFillingSquaresBar(BaseDownloadProgressBar,  # type: ignore
-                                FillingSquaresBar):
+class DownloadFillingSquaresBar(
+    BaseDownloadProgressBar, FillingSquaresBar  # type: ignore
+):
     pass
 
 
-class DownloadFillingCirclesBar(BaseDownloadProgressBar,  # type: ignore
-                                FillingCirclesBar):
+class DownloadFillingCirclesBar(
+    BaseDownloadProgressBar, FillingCirclesBar  # type: ignore
+):
     pass
 
 
-class DownloadBlueEmojiProgressBar(BaseDownloadProgressBar,  # type: ignore
-                                   BlueEmojiBar):
+class DownloadBlueEmojiProgressBar(
+    BaseDownloadProgressBar, BlueEmojiBar  # type: ignore
+):
     pass
 
 
-class DownloadProgressSpinner(WindowsMixin, InterruptibleMixin,
-                              DownloadProgressMixin, WritelnMixin, Spinner):
+class DownloadProgressSpinner(
+    WindowsMixin, InterruptibleMixin, DownloadProgressMixin, WritelnMixin, Spinner
+):
 
     file = sys.stdout
     suffix = "%(downloaded)s %(download_speed)s"
@@ -255,13 +257,9 @@ class DownloadProgressSpinner(WindowsMixin, InterruptibleMixin,
         message = self.message % self
         phase = self.next_phase()
         suffix = self.suffix % self
-        line = ''.join([
-            message,
-            " " if message else "",
-            phase,
-            " " if suffix else "",
-            suffix,
-        ])
+        line = ''.join(
+            [message, " " if message else "", phase, " " if suffix else "", suffix]
+        )
 
         self.writeln(line)
 
@@ -271,7 +269,7 @@ BAR_TYPES = {
     "on": (DefaultDownloadProgressBar, DownloadProgressSpinner),
     "ascii": (DownloadIncrementalBar, DownloadProgressSpinner),
     "pretty": (DownloadFillingCirclesBar, DownloadProgressSpinner),
-    "emoji": (DownloadBlueEmojiProgressBar, DownloadProgressSpinner)
+    "emoji": (DownloadBlueEmojiProgressBar, DownloadProgressSpinner),
 }
 
 
@@ -289,6 +287,7 @@ def DownloadProgressProvider(progress_bar, max=None):
 # simpler to reimplement from scratch than to coerce their code into doing
 # what we need.
 ################################################################
+
 
 @contextlib.contextmanager
 def hidden_cursor(file):
@@ -324,9 +323,14 @@ class RateLimiter(object):
 
 
 class InteractiveSpinner(object):
-    def __init__(self, message, file=None, spin_chars="-\\|/",
-                 # Empirically, 8 updates/second looks nice
-                 min_update_interval_seconds=0.125):
+    def __init__(
+        self,
+        message,
+        file=None,
+        spin_chars="-\\|/",
+        # Empirically, 8 updates/second looks nice
+        min_update_interval_seconds=0.125,
+    ):
         self._message = message
         if file is None:
             file = sys.stdout

@@ -11,7 +11,9 @@ from pip._internal import cmdoptions
 from pip._internal.basecommand import RequirementCommand
 from pip._internal.cache import WheelCache
 from pip._internal.exceptions import (
-    CommandError, InstallationError, PreviousBuildDirError,
+    CommandError,
+    InstallationError,
+    PreviousBuildDirError,
 )
 from pip._internal.locations import distutils_scheme, virtualenv_no_global
 from pip._internal.operations.check import check_install_conflicts
@@ -21,7 +23,8 @@ from pip._internal.resolve import Resolver
 from pip._internal.status_codes import ERROR
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.misc import (
-    ensure_dir, get_installed_version,
+    ensure_dir,
+    get_installed_version,
     protect_pip_from_modification_on_windows,
 )
 from pip._internal.utils.temp_dir import TempDirectory
@@ -48,6 +51,7 @@ class InstallCommand(RequirementCommand):
     pip also supports installing from "requirements files", which provide
     an easy way to specify a whole environment to be installed.
     """
+
     name = 'install'
 
     usage = """
@@ -71,54 +75,56 @@ class InstallCommand(RequirementCommand):
 
         cmd_opts.add_option(cmdoptions.editable())
         cmd_opts.add_option(
-            '-t', '--target',
+            '-t',
+            '--target',
             dest='target_dir',
             metavar='dir',
             default=None,
             help='Install packages into <dir>. '
-                 'By default this will not replace existing files/folders in '
-                 '<dir>. Use --upgrade to replace existing packages in <dir> '
-                 'with new versions.'
+            'By default this will not replace existing files/folders in '
+            '<dir>. Use --upgrade to replace existing packages in <dir> '
+            'with new versions.',
         )
         cmd_opts.add_option(
             '--user',
             dest='use_user_site',
             action='store_true',
             help="Install to the Python user install directory for your "
-                 "platform. Typically ~/.local/, or %APPDATA%\\Python on "
-                 "Windows. (See the Python documentation for site.USER_BASE "
-                 "for full details.)")
+            "platform. Typically ~/.local/, or %APPDATA%\\Python on "
+            "Windows. (See the Python documentation for site.USER_BASE "
+            "for full details.)",
+        )
         cmd_opts.add_option(
-            '--no-user',
-            dest='use_user_site',
-            action='store_false',
-            help=SUPPRESS_HELP)
+            '--no-user', dest='use_user_site', action='store_false', help=SUPPRESS_HELP
+        )
         cmd_opts.add_option(
             '--root',
             dest='root_path',
             metavar='dir',
             default=None,
-            help="Install everything relative to this alternate root "
-                 "directory.")
+            help="Install everything relative to this alternate root " "directory.",
+        )
         cmd_opts.add_option(
             '--prefix',
             dest='prefix_path',
             metavar='dir',
             default=None,
             help="Installation prefix where lib, bin and other top-level "
-                 "folders are placed")
+            "folders are placed",
+        )
 
         cmd_opts.add_option(cmdoptions.build_dir())
 
         cmd_opts.add_option(cmdoptions.src())
 
         cmd_opts.add_option(
-            '-U', '--upgrade',
+            '-U',
+            '--upgrade',
             dest='upgrade',
             action='store_true',
             help='Upgrade all specified packages to the newest available '
-                 'version. The handling of dependencies depends on the '
-                 'upgrade-strategy used.'
+            'version. The handling of dependencies depends on the '
+            'upgrade-strategy used.',
         )
 
         cmd_opts.add_option(
@@ -127,26 +133,28 @@ class InstallCommand(RequirementCommand):
             default='only-if-needed',
             choices=['only-if-needed', 'eager'],
             help='Determines how dependency upgrading should be handled '
-                 '[default: %default]. '
-                 '"eager" - dependencies are upgraded regardless of '
-                 'whether the currently installed version satisfies the '
-                 'requirements of the upgraded package(s). '
-                 '"only-if-needed" -  are upgraded only when they do not '
-                 'satisfy the requirements of the upgraded package(s).'
+            '[default: %default]. '
+            '"eager" - dependencies are upgraded regardless of '
+            'whether the currently installed version satisfies the '
+            'requirements of the upgraded package(s). '
+            '"only-if-needed" -  are upgraded only when they do not '
+            'satisfy the requirements of the upgraded package(s).',
         )
 
         cmd_opts.add_option(
             '--force-reinstall',
             dest='force_reinstall',
             action='store_true',
-            help='Reinstall all packages even if they are already '
-                 'up-to-date.')
+            help='Reinstall all packages even if they are already ' 'up-to-date.',
+        )
 
         cmd_opts.add_option(
-            '-I', '--ignore-installed',
+            '-I',
+            '--ignore-installed',
             dest='ignore_installed',
             action='store_true',
-            help='Ignore the installed packages (reinstalling instead).')
+            help='Ignore the installed packages (reinstalling instead).',
+        )
 
         cmd_opts.add_option(cmdoptions.ignore_requires_python())
         cmd_opts.add_option(cmdoptions.no_build_isolation())
@@ -191,10 +199,7 @@ class InstallCommand(RequirementCommand):
         cmd_opts.add_option(cmdoptions.require_hashes())
         cmd_opts.add_option(cmdoptions.progress_bar())
 
-        index_opts = cmdoptions.make_option_group(
-            cmdoptions.index_group,
-            self.parser,
-        )
+        index_opts = cmdoptions.make_option_group(cmdoptions.index_group, self.parser)
 
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, cmd_opts)
@@ -229,11 +234,11 @@ class InstallCommand(RequirementCommand):
         if options.target_dir:
             options.ignore_installed = True
             options.target_dir = os.path.abspath(options.target_dir)
-            if (os.path.exists(options.target_dir) and not
-                    os.path.isdir(options.target_dir)):
+            if os.path.exists(options.target_dir) and not os.path.isdir(
+                options.target_dir
+            ):
                 raise CommandError(
-                    "Target path exists but is not a directory, will not "
-                    "continue."
+                    "Target path exists but is not a directory, will not " "continue."
                 )
 
             # Create a target directory for using with the target option
@@ -244,7 +249,7 @@ class InstallCommand(RequirementCommand):
 
         with self._build_session(options) as session:
             finder = self._build_package_finder(options, session)
-            build_delete = (not (options.no_clean or options.build_dir))
+            build_delete = not (options.no_clean or options.build_dir)
             wheel_cache = WheelCache(options.cache_dir, options.format_control)
 
             if options.cache_dir and not check_path_owner(options.cache_dir):
@@ -261,14 +266,17 @@ class InstallCommand(RequirementCommand):
             with TempDirectory(
                 options.build_dir, delete=build_delete, kind="install"
             ) as directory:
-                requirement_set = RequirementSet(
-                    require_hashes=options.require_hashes,
-                )
+                requirement_set = RequirementSet(require_hashes=options.require_hashes)
 
                 try:
                     self.populate_requirement_set(
-                        requirement_set, args, options, finder, session,
-                        self.name, wheel_cache
+                        requirement_set,
+                        args,
+                        options,
+                        finder,
+                        session,
+                        self.name,
+                        wheel_cache,
                     )
                     preparer = RequirementPreparer(
                         build_dir=directory.path,
@@ -303,24 +311,25 @@ class InstallCommand(RequirementCommand):
                     if wheel and options.cache_dir:
                         # build wheels before install.
                         wb = WheelBuilder(
-                            finder, preparer, wheel_cache,
-                            build_options=[], global_options=[],
+                            finder,
+                            preparer,
+                            wheel_cache,
+                            build_options=[],
+                            global_options=[],
                         )
                         # Ignore the result: a failed wheel will be
                         # installed from the sdist/vcs whatever.
                         wb.build(
                             requirement_set.requirements.values(),
-                            session=session, autobuilding=True
+                            session=session,
+                            autobuilding=True,
                         )
 
-                    to_install = resolver.get_installation_order(
-                        requirement_set
-                    )
+                    to_install = resolver.get_installation_order(requirement_set)
 
                     # Consistency Checking of the package set we're installing.
                     should_warn_about_conflicts = (
-                        not options.ignore_dependencies and
-                        options.warn_about_conflicts
+                        not options.ignore_dependencies and options.warn_about_conflicts
                     )
                     if should_warn_about_conflicts:
                         self._warn_about_conflicts(to_install)
@@ -367,10 +376,10 @@ class InstallCommand(RequirementCommand):
                     if installed:
                         logger.info('Successfully installed %s', installed)
                 except EnvironmentError as error:
-                    show_traceback = (self.verbosity >= 1)
+                    show_traceback = self.verbosity >= 1
 
                     message = create_env_error_message(
-                        error, show_traceback, options.use_user_site,
+                        error, show_traceback, options.use_user_site
                     )
                     logger.error(message, exc_info=show_traceback)
 
@@ -424,7 +433,7 @@ class InstallCommand(RequirementCommand):
                             logger.warning(
                                 'Target directory %s already exists. Specify '
                                 '--upgrade to force replacement.',
-                                target_item_dir
+                                target_item_dir,
                             )
                             continue
                         if os.path.islink(target_item_dir):
@@ -433,7 +442,7 @@ class InstallCommand(RequirementCommand):
                                 'a link. Pip will not automatically replace '
                                 'links, please remove if replacement is '
                                 'desired.',
-                                target_item_dir
+                                target_item_dir,
                             )
                             continue
                         if os.path.isdir(target_item_dir):
@@ -441,10 +450,7 @@ class InstallCommand(RequirementCommand):
                         else:
                             os.remove(target_item_dir)
 
-                    shutil.move(
-                        os.path.join(lib_dir, item),
-                        target_item_dir
-                    )
+                    shutil.move(os.path.join(lib_dir, item), target_item_dir)
 
     def _warn_about_conflicts(self, to_install):
         package_set, _dep_info = check_install_conflicts(to_install)
@@ -456,7 +462,9 @@ class InstallCommand(RequirementCommand):
             for dependency in missing[project_name]:
                 logger.critical(
                     "%s %s requires %s, which is not installed.",
-                    project_name, version, dependency[1],
+                    project_name,
+                    version,
+                    dependency[1],
                 )
 
         for project_name in conflicting:
@@ -465,7 +473,11 @@ class InstallCommand(RequirementCommand):
                 logger.critical(
                     "%s %s has requirement %s, but you'll have %s %s which is "
                     "incompatible.",
-                    project_name, version, req, dep_name, dep_version,
+                    project_name,
+                    version,
+                    req,
+                    dep_name,
+                    dep_version,
                 )
 
 
@@ -499,10 +511,7 @@ def create_env_error_message(error, show_traceback, using_user_site):
         permissions_part = "Check the permissions"
 
         if not using_user_site:
-            parts.extend([
-                user_option_part, " or ",
-                permissions_part.lower(),
-            ])
+            parts.extend([user_option_part, " or ", permissions_part.lower()])
         else:
             parts.append(permissions_part)
         parts.append(".\n")

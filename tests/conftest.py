@@ -24,14 +24,15 @@ def pytest_collection_modifyitems(items):
             item.add_marker(pytest.mark.flaky(reruns=3))
 
         module_path = os.path.relpath(
-            item.module.__file__,
-            os.path.commonprefix([__file__, item.module.__file__]),
+            item.module.__file__, os.path.commonprefix([__file__, item.module.__file__])
         )
 
         module_root_dir = module_path.split(os.pathsep)[0]
-        if (module_root_dir.startswith("functional") or
-                module_root_dir.startswith("integration") or
-                module_root_dir.startswith("lib")):
+        if (
+            module_root_dir.startswith("functional")
+            or module_root_dir.startswith("integration")
+            or module_root_dir.startswith("lib")
+        ):
             item.add_marker(pytest.mark.integration)
         elif module_root_dir.startswith("unit"):
             item.add_marker(pytest.mark.unit)
@@ -44,9 +45,7 @@ def pytest_collection_modifyitems(items):
                     "(filename = {}, item = {})".format(module_path, item)
                 )
         else:
-            raise RuntimeError(
-                "Unknown test type (filename = {})".format(module_path)
-            )
+            raise RuntimeError("Unknown test type (filename = {})".format(module_path))
 
 
 @pytest.yield_fixture
@@ -92,11 +91,9 @@ def isolate(tmpdir):
     if sys.platform == 'win32':
         # Note: this will only take effect in subprocesses...
         home_drive, home_path = os.path.splitdrive(home_dir)
-        os.environ.update({
-            'USERPROFILE': home_dir,
-            'HOMEDRIVE': home_drive,
-            'HOMEPATH': home_path,
-        })
+        os.environ.update(
+            {'USERPROFILE': home_dir, 'HOMEDRIVE': home_drive, 'HOMEPATH': home_path}
+        )
         for env_var, sub_path in (
             ('APPDATA', 'AppData/Roaming'),
             ('LOCALAPPDATA', 'AppData/Local'),
@@ -114,10 +111,12 @@ def isolate(tmpdir):
         os.environ["XDG_CONFIG_HOME"] = os.path.join(home_dir, ".config")
         os.environ["XDG_CACHE_HOME"] = os.path.join(home_dir, ".cache")
         os.environ["XDG_RUNTIME_DIR"] = os.path.join(home_dir, ".runtime")
-        os.environ["XDG_DATA_DIRS"] = ":".join([
-            os.path.join(fake_root, "usr", "local", "share"),
-            os.path.join(fake_root, "usr", "share"),
-        ])
+        os.environ["XDG_DATA_DIRS"] = ":".join(
+            [
+                os.path.join(fake_root, "usr", "local", "share"),
+                os.path.join(fake_root, "usr", "share"),
+            ]
+        )
         os.environ["XDG_CONFIG_DIRS"] = os.path.join(fake_root, "etc", "xdg")
 
     # Configure git, because without an author name/email git will complain
@@ -132,9 +131,7 @@ def isolate(tmpdir):
     # FIXME: Windows...
     os.makedirs(os.path.join(home_dir, ".config", "git"))
     with open(os.path.join(home_dir, ".config", "git", "config"), "wb") as fp:
-        fp.write(
-            b"[user]\n\tname = pip\n\temail = pypa-dev@googlegroups.com\n"
-        )
+        fp.write(b"[user]\n\tname = pip\n\temail = pypa-dev@googlegroups.com\n")
 
 
 @pytest.fixture(scope='session')
@@ -145,8 +142,18 @@ def pip_src(tmpdir_factory):
         SRC_DIR,
         pip_src.abspath,
         ignore=shutil.ignore_patterns(
-            "*.pyc", "__pycache__", "contrib", "docs", "tasks", "*.txt",
-            "tests", "pip.egg-info", "build", "dist", ".tox", ".git",
+            "*.pyc",
+            "__pycache__",
+            "contrib",
+            "docs",
+            "tasks",
+            "*.txt",
+            "tests",
+            "pip.egg-info",
+            "build",
+            "dist",
+            ".tox",
+            ".git",
         ),
     )
     return pip_src
@@ -157,9 +164,7 @@ def virtualenv_template(tmpdir_factory, pip_src):
     tmpdir = Path(str(tmpdir_factory.mktemp('virtualenv')))
     # Create the virtual environment
     venv = VirtualEnvironment.create(
-        tmpdir.join("venv_orig"),
-        pip_source_dir=pip_src,
-        relocatable=True,
+        tmpdir.join("venv_orig"), pip_source_dir=pip_src, relocatable=True
     )
     # Fix `site.py`.
     site_py = venv.lib / 'site.py'
@@ -170,9 +175,7 @@ def virtualenv_template(tmpdir_factory, pip_src):
             # Ensure `virtualenv.system_site_packages = True` (needed
             # for testing `--user`) does not result in adding the real
             # site-packages' directory to `sys.path`.
-            (
-                '\ndef virtual_addsitepackages(known_paths):\n'
-            ),
+            ('\ndef virtual_addsitepackages(known_paths):\n'),
             (
                 '\ndef virtual_addsitepackages(known_paths):\n'
                 '    return known_paths\n'
@@ -237,16 +240,12 @@ def script(tmpdir, virtualenv):
     return PipTestEnvironment(
         # The base location for our test environment
         tmpdir.join("workspace"),
-
         # Tell the Test Environment where our virtualenv is located
         virtualenv=virtualenv.location,
-
         # Do not ignore hidden files, they need to be checked as well
         ignore_hidden=False,
-
         # We are starting with an already empty directory
         start_clear=False,
-
         # We want to ensure no temporary files are left behind, so the
         # PipTestEnvironment needs to capture and assert against temp
         capture_temp=True,
@@ -258,10 +257,9 @@ def script(tmpdir, virtualenv):
 def common_wheels(tmpdir_factory):
     """Provide a directory with latest setuptools and wheel wheels"""
     wheels_dir = tmpdir_factory.mktemp('common_wheels')
-    subprocess.check_call([
-        'pip', 'download', 'wheel', 'setuptools',
-        '-d', str(wheels_dir),
-    ])
+    subprocess.check_call(
+        ['pip', 'download', 'wheel', 'setuptools', '-d', str(wheels_dir)]
+    )
     yield wheels_dir
     wheels_dir.remove(ignore_errors=True)
 

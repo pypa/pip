@@ -15,11 +15,8 @@ kinds = pip._internal.configuration.kinds
 
 
 class ConfigurationMixin(object):
-
     def setup(self):
-        self.configuration = pip._internal.configuration.Configuration(
-            isolated=False,
-        )
+        self.configuration = pip._internal.configuration.Configuration(isolated=False)
         self._files_to_clear = []
 
         self._old_environ = os.environ.copy()
@@ -45,9 +42,7 @@ class ConfigurationMixin(object):
     @contextlib.contextmanager
     def tmpfile(self, contents):
         # Create a temporary file
-        fd, path = tempfile.mkstemp(
-            prefix="pip_", suffix="_config.ini", text=True
-        )
+        fd, path = tempfile.mkstemp(prefix="pip_", suffix="_config.ini", text=True)
         os.close(fd)
 
         contents = textwrap.dedent(contents).lstrip()

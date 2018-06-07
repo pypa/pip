@@ -20,8 +20,11 @@ from pip._vendor.six.moves import configparser
 
 from pip._internal.exceptions import ConfigurationError
 from pip._internal.locations import (
-    legacy_config_file, new_config_file, running_under_virtualenv,
-    site_config_files, venv_config_file,
+    legacy_config_file,
+    new_config_file,
+    running_under_virtualenv,
+    site_config_files,
+    venv_config_file,
 )
 from pip._internal.utils.misc import ensure_dir, enum
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -53,10 +56,10 @@ def _disassemble_key(name):
 
 # The kinds of configurations there are.
 kinds = enum(
-    USER="user",        # User Specific
-    GLOBAL="global",    # System Wide
-    VENV="venv",        # Virtual Environment Specific
-    ENV="env",          # from PIP_CONFIG_FILE
+    USER="user",  # User Specific
+    GLOBAL="global",  # System Wide
+    VENV="venv",  # Virtual Environment Specific
+    ENV="env",  # from PIP_CONFIG_FILE
     ENV_VAR="env-var",  # from Environment Variables
 )
 
@@ -91,7 +94,11 @@ class Configuration(object):
 
         # The order here determines the override order.
         self._override_order = [
-            kinds.GLOBAL, kinds.USER, kinds.VENV, kinds.ENV, kinds.ENV_VAR
+            kinds.GLOBAL,
+            kinds.USER,
+            kinds.VENV,
+            kinds.ENV,
+            kinds.ENV_VAR,
         ]
 
         self._ignore_env_names = ["version", "help"]
@@ -117,8 +124,7 @@ class Configuration(object):
         # type: () -> Optional[str]
         """Returns the file with highest priority in configuration
         """
-        assert self.load_only is not None, \
-            "Need to be specified a file to be editing"
+        assert self.load_only is not None, "Need to be specified a file to be editing"
 
         try:
             return self._get_parser_to_modify()[0]
@@ -255,9 +261,7 @@ class Configuration(object):
                 # If there's specific variant set in `load_only`, load only
                 # that variant, not the others.
                 if self.load_only is not None and variant != self.load_only:
-                    logger.debug(
-                        "Skipping file '%s' (variant: %s)", fname, variant
-                    )
+                    logger.debug("Skipping file '%s' (variant: %s)", fname, variant)
                     continue
 
                 parser = self._load_file(variant, fname)
@@ -287,11 +291,14 @@ class Configuration(object):
             try:
                 parser.read(fname)
             except UnicodeDecodeError:
-                raise ConfigurationError((
-                    "ERROR: "
-                    "Configuration file contains invalid %s characters.\n"
-                    "Please fix your configuration, located at %s\n"
-                ) % (locale.getpreferredencoding(False), fname))
+                raise ConfigurationError(
+                    (
+                        "ERROR: "
+                        "Configuration file contains invalid %s characters.\n"
+                        "Please fix your configuration, located at %s\n"
+                    )
+                    % (locale.getpreferredencoding(False), fname)
+                )
         return parser
 
     def _load_environment_vars(self):
@@ -320,8 +327,7 @@ class Configuration(object):
         """Returns a generator with all environmental vars with prefix PIP_"""
         for key, val in os.environ.items():
             should_be_yielded = (
-                key.startswith("PIP_") and
-                key[4:].lower() not in self._ignore_env_names
+                key.startswith("PIP_") and key[4:].lower() not in self._ignore_env_names
             )
             if should_be_yielded:
                 yield key[4:].lower(), val

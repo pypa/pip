@@ -18,13 +18,21 @@ except ImportError:
         from pip._vendor import ipaddress  # type: ignore
     except ImportError:
         import ipaddr as ipaddress  # type: ignore
+
         ipaddress.ip_address = ipaddress.IPAddress
         ipaddress.ip_network = ipaddress.IPNetwork
 
 
 __all__ = [
-    "ipaddress", "uses_pycache", "console_to_str", "native_str",
-    "get_path_uid", "stdlib_pkgs", "WINDOWS", "samefile", "get_terminal_size",
+    "ipaddress",
+    "uses_pycache",
+    "console_to_str",
+    "native_str",
+    "get_path_uid",
+    "stdlib_pkgs",
+    "WINDOWS",
+    "samefile",
+    "get_terminal_size",
 ]
 
 
@@ -59,10 +67,8 @@ else:
             # Python 2 gave us characters - convert to numeric bytes
             raw_bytes = (ord(b) for b in raw_bytes)
         return u"".join(u"\\x%x" % c for c in raw_bytes), err.end
-    codecs.register_error(
-        "backslashreplace_decode",
-        backslashreplace_decode_fn,
-    )
+
+    codecs.register_error("backslashreplace_decode", backslashreplace_decode_fn)
     backslashreplace_decode = "backslashreplace_decode"
 
 
@@ -90,8 +96,7 @@ def console_to_str(data):
         s = data.decode(encoding)
     except UnicodeDecodeError:
         logger.warning(
-            "Subprocess output does not appear to be encoded as %s",
-            encoding,
+            "Subprocess output does not appear to be encoded as %s", encoding
         )
         s = data.decode(encoding, errors=backslashreplace_decode)
 
@@ -107,8 +112,7 @@ def console_to_str(data):
     # or doesn't have an encoding attribute. Neither of these cases
     # should occur in normal pip use, but there's no harm in checking
     # in case people use pip in (unsupported) unusual situations.
-    output_encoding = getattr(getattr(sys, "__stderr__", None),
-                              "encoding", None)
+    output_encoding = getattr(getattr(sys, "__stderr__", None), "encoding", None)
 
     if output_encoding:
         s = s.encode(output_encoding, errors="backslashreplace")
@@ -118,12 +122,15 @@ def console_to_str(data):
 
 
 if sys.version_info >= (3,):
+
     def native_str(s, replace=False):
         if isinstance(s, bytes):
             return s.decode('utf-8', 'replace' if replace else 'strict')
         return s
 
+
 else:
+
     def native_str(s, replace=False):
         # Replace is ignored -- unicode to UTF-8 can't fail
         if isinstance(s, text_type):
@@ -154,9 +161,7 @@ def get_path_uid(path):
             file_uid = os.stat(path).st_uid
         else:
             # raise OSError for parity with os.O_NOFOLLOW above
-            raise OSError(
-                "%s is a symlink; Will not return uid for symlinks" % path
-            )
+            raise OSError("%s is a symlink; Will not return uid for symlinks" % path)
     return file_uid
 
 
@@ -181,8 +186,7 @@ stdlib_pkgs = {"python", "wsgiref", "argparse"}
 
 
 # windows detection, covers cpython and ironpython
-WINDOWS = (sys.platform.startswith("win") or
-           (sys.platform == 'cli' and os.name == 'nt'))
+WINDOWS = sys.platform.startswith("win") or (sys.platform == 'cli' and os.name == 'nt')
 
 
 def samefile(file1, file2):
@@ -196,32 +200,38 @@ def samefile(file1, file2):
 
 
 if hasattr(shutil, 'get_terminal_size'):
+
     def get_terminal_size():
         """
         Returns a tuple (x, y) representing the width(x) and the height(y)
         in characters of the terminal window.
         """
         return tuple(shutil.get_terminal_size())
+
+
 else:
+
     def get_terminal_size():
         """
         Returns a tuple (x, y) representing the width(x) and the height(y)
         in characters of the terminal window.
         """
+
         def ioctl_GWINSZ(fd):
             try:
                 import fcntl
                 import termios
                 import struct
+
                 cr = struct.unpack_from(
-                    'hh',
-                    fcntl.ioctl(fd, termios.TIOCGWINSZ, '12345678')
+                    'hh', fcntl.ioctl(fd, termios.TIOCGWINSZ, '12345678')
                 )
             except:
                 return None
             if cr == (0, 0):
                 return None
             return cr
+
         cr = ioctl_GWINSZ(0) or ioctl_GWINSZ(1) or ioctl_GWINSZ(2)
         if not cr:
             try:

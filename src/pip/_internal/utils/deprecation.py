@@ -37,9 +37,7 @@ _warnings_showwarning = None  # type: Any
 def _showwarning(message, category, filename, lineno, file=None, line=None):
     if file is not None:
         if _warnings_showwarning is not None:
-            _warnings_showwarning(
-                message, category, filename, lineno, file, line,
-            )
+            _warnings_showwarning(message, category, filename, lineno, file, line)
     else:
         if issubclass(category, PipDeprecationWarning):
             # We use a specially named logger which will handle all of the
@@ -61,9 +59,7 @@ def _showwarning(message, category, filename, lineno, file=None, line=None):
             else:
                 logger.error(log_message)
         else:
-            _warnings_showwarning(
-                message, category, filename, lineno, file, line,
-            )
+            _warnings_showwarning(message, category, filename, lineno, file, line)
 
 
 def install_warning_logger():

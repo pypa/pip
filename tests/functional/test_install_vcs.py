@@ -1,8 +1,6 @@
 import pytest
 
-from tests.lib import (
-    _change_test_package_version, _create_test_package, pyversion,
-)
+from tests.lib import _change_test_package_version, _create_test_package, pyversion
 from tests.lib.local_repos import local_checkout
 
 
@@ -63,11 +61,11 @@ def test_install_editable_from_git_with_https(script, tmpdir):
     Test cloning from Git with https.
     """
     result = script.pip(
-        'install', '-e',
-        '%s#egg=pip-test-package' %
-        local_checkout(
-            'git+https://github.com/pypa/pip-test-package.git',
-            tmpdir.join("cache"),
+        'install',
+        '-e',
+        '%s#egg=pip-test-package'
+        % local_checkout(
+            'git+https://github.com/pypa/pip-test-package.git', tmpdir.join("cache")
         ),
         expect_error=True,
     )
@@ -82,15 +80,12 @@ def test_install_noneditable_git(script, tmpdir):
     result = script.pip(
         'install',
         'git+https://github.com/pypa/pip-test-package.git'
-        '@0.1.1#egg=pip-test-package'
+        '@0.1.1#egg=pip-test-package',
     )
     egg_info_folder = (
-        script.site_packages /
-        'pip_test_package-0.1.1-py%s.egg-info' % pyversion
+        script.site_packages / 'pip_test_package-0.1.1-py%s.egg-info' % pyversion
     )
-    result.assert_installed('piptestpackage',
-                            without_egg_link=True,
-                            editable=False)
+    result.assert_installed('piptestpackage', without_egg_link=True, editable=False)
     assert egg_info_folder in result.files_created, str(result)
 
 
@@ -101,15 +96,13 @@ def test_git_with_sha1_revisions(script):
     """
     version_pkg_path = _create_test_package(script)
     _change_test_package_version(script, version_pkg_path)
-    sha1 = script.run(
-        'git', 'rev-parse', 'HEAD~1',
-        cwd=version_pkg_path,
-    ).stdout.strip()
+    sha1 = script.run('git', 'rev-parse', 'HEAD~1', cwd=version_pkg_path).stdout.strip()
     script.pip(
-        'install', '-e',
-        '%s@%s#egg=version_pkg' %
-        ('git+file://' + version_pkg_path.abspath.replace('\\', '/'), sha1),
-        expect_stderr=True
+        'install',
+        '-e',
+        '%s@%s#egg=version_pkg'
+        % ('git+file://' + version_pkg_path.abspath.replace('\\', '/'), sha1),
+        expect_stderr=True,
     )
     version = script.run('version_pkg')
     assert '0.1' in version.stdout, version.stdout
@@ -123,14 +116,14 @@ def test_git_with_short_sha1_revisions(script):
     version_pkg_path = _create_test_package(script)
     _change_test_package_version(script, version_pkg_path)
     sha1 = script.run(
-        'git', 'rev-parse', 'HEAD~1',
-        cwd=version_pkg_path,
+        'git', 'rev-parse', 'HEAD~1', cwd=version_pkg_path
     ).stdout.strip()[:7]
     script.pip(
-        'install', '-e',
-        '%s@%s#egg=version_pkg' %
-        ('git+file://' + version_pkg_path.abspath.replace('\\', '/'), sha1),
-        expect_stderr=True
+        'install',
+        '-e',
+        '%s@%s#egg=version_pkg'
+        % ('git+file://' + version_pkg_path.abspath.replace('\\', '/'), sha1),
+        expect_stderr=True,
     )
     version = script.run('version_pkg')
     assert '0.1' in version.stdout, version.stdout
@@ -143,14 +136,14 @@ def test_git_with_branch_name_as_revision(script):
     """
     version_pkg_path = _create_test_package(script)
     script.run(
-        'git', 'checkout', '-b', 'test_branch',
-        expect_stderr=True,
-        cwd=version_pkg_path,
+        'git', 'checkout', '-b', 'test_branch', expect_stderr=True, cwd=version_pkg_path
     )
     _change_test_package_version(script, version_pkg_path)
     script.pip(
-        'install', '-e', '%s@test_branch#egg=version_pkg' %
-        ('git+file://' + version_pkg_path.abspath.replace('\\', '/'))
+        'install',
+        '-e',
+        '%s@test_branch#egg=version_pkg'
+        % ('git+file://' + version_pkg_path.abspath.replace('\\', '/')),
     )
     version = script.run('version_pkg')
     assert 'some different version' in version.stdout
@@ -162,15 +155,13 @@ def test_git_with_tag_name_as_revision(script):
     Git backend should be able to install from tag names
     """
     version_pkg_path = _create_test_package(script)
-    script.run(
-        'git', 'tag', 'test_tag',
-        expect_stderr=True,
-        cwd=version_pkg_path,
-    )
+    script.run('git', 'tag', 'test_tag', expect_stderr=True, cwd=version_pkg_path)
     _change_test_package_version(script, version_pkg_path)
     script.pip(
-        'install', '-e', '%s@test_tag#egg=version_pkg' %
-        ('git+file://' + version_pkg_path.abspath.replace('\\', '/'))
+        'install',
+        '-e',
+        '%s@test_tag#egg=version_pkg'
+        % ('git+file://' + version_pkg_path.abspath.replace('\\', '/')),
     )
     version = script.run('version_pkg')
     assert '0.1' in version.stdout
@@ -183,15 +174,20 @@ def test_git_with_ref_as_revision(script):
     """
     version_pkg_path = _create_test_package(script)
     script.run(
-        'git', 'update-ref', 'refs/foo/bar', 'HEAD',
+        'git',
+        'update-ref',
+        'refs/foo/bar',
+        'HEAD',
         expect_stderr=True,
         cwd=version_pkg_path,
     )
     _change_test_package_version(script, version_pkg_path)
     script.pip(
-        'install', '-e', '%s@refs/foo/bar#egg=version_pkg' %
-        ('git+file://' + version_pkg_path.abspath.replace('\\', '/')),
-        expect_stderr=True
+        'install',
+        '-e',
+        '%s@refs/foo/bar#egg=version_pkg'
+        % ('git+file://' + version_pkg_path.abspath.replace('\\', '/')),
+        expect_stderr=True,
     )
     version = script.run('version_pkg')
     assert '0.1' in version.stdout
@@ -203,20 +199,22 @@ def test_git_with_tag_name_and_update(script, tmpdir):
     Test cloning a git repository and updating to a different version.
     """
     result = script.pip(
-        'install', '-e', '%s#egg=pip-test-package' %
-        local_checkout(
-            'git+https://github.com/pypa/pip-test-package.git',
-            tmpdir.join("cache"),
+        'install',
+        '-e',
+        '%s#egg=pip-test-package'
+        % local_checkout(
+            'git+https://github.com/pypa/pip-test-package.git', tmpdir.join("cache")
         ),
         expect_error=True,
     )
     result.assert_installed('pip-test-package', with_files=['.git'])
     result = script.pip(
-        'install', '--global-option=--version', '-e',
-        '%s@0.1.2#egg=pip-test-package' %
-        local_checkout(
-            'git+https://github.com/pypa/pip-test-package.git',
-            tmpdir.join("cache"),
+        'install',
+        '--global-option=--version',
+        '-e',
+        '%s@0.1.2#egg=pip-test-package'
+        % local_checkout(
+            'git+https://github.com/pypa/pip-test-package.git', tmpdir.join("cache")
         ),
         expect_error=True,
     )
@@ -230,10 +228,11 @@ def test_git_branch_should_not_be_changed(script, tmpdir):
     related to issue #32 and #161
     """
     script.pip(
-        'install', '-e', '%s#egg=pip-test-package' %
-        local_checkout(
-            'git+https://github.com/pypa/pip-test-package.git',
-            tmpdir.join("cache"),
+        'install',
+        '-e',
+        '%s#egg=pip-test-package'
+        % local_checkout(
+            'git+https://github.com/pypa/pip-test-package.git', tmpdir.join("cache")
         ),
         expect_error=True,
     )
@@ -248,11 +247,12 @@ def test_git_with_non_editable_unpacking(script, tmpdir):
     Test cloning a git repository from a non-editable URL with a given tag.
     """
     result = script.pip(
-        'install', '--global-option=--version',
+        'install',
+        '--global-option=--version',
         local_checkout(
             'git+https://github.com/pypa/pip-test-package.git@0.1.2'
             '#egg=pip-test-package',
-            tmpdir.join("cache")
+            tmpdir.join("cache"),
         ),
         expect_error=True,
     )
@@ -266,12 +266,12 @@ def test_git_with_editable_where_egg_contains_dev_string(script, tmpdir):
     string
     """
     result = script.pip(
-        'install', '-e',
-        '%s#egg=django-devserver' %
-        local_checkout(
-            'git+git://github.com/dcramer/django-devserver.git',
-            tmpdir.join("cache")
-        )
+        'install',
+        '-e',
+        '%s#egg=django-devserver'
+        % local_checkout(
+            'git+git://github.com/dcramer/django-devserver.git', tmpdir.join("cache")
+        ),
     )
     result.assert_installed('django-devserver', with_files=['.git'])
 
@@ -284,10 +284,9 @@ def test_git_with_non_editable_where_egg_contains_dev_string(script, tmpdir):
     """
     result = script.pip(
         'install',
-        '%s#egg=django-devserver' %
-        local_checkout(
-            'git+git://github.com/dcramer/django-devserver.git',
-            tmpdir.join("cache")
+        '%s#egg=django-devserver'
+        % local_checkout(
+            'git+git://github.com/dcramer/django-devserver.git', tmpdir.join("cache")
         ),
     )
     devserver_folder = script.site_packages / 'devserver'
@@ -300,9 +299,8 @@ def test_git_with_ambiguous_revs(script):
     Test git with two "names" (tag/branch) pointing to the same commit
     """
     version_pkg_path = _create_test_package(script)
-    package_url = (
-        'git+file://%s@0.1#egg=version_pkg' %
-        (version_pkg_path.abspath.replace('\\', '/'))
+    package_url = 'git+file://%s@0.1#egg=version_pkg' % (
+        version_pkg_path.abspath.replace('\\', '/')
     )
     script.run('git', 'tag', '0.1', cwd=version_pkg_path)
     result = script.pip('install', '-e', package_url)
@@ -339,18 +337,20 @@ def test_reinstalling_works_with_editible_non_master_branch(script):
     script.run('git', 'branch', '-m', 'foobar', cwd=version_pkg_path)
 
     script.pip(
-        'install', '-e',
-        '%s#egg=version_pkg' %
-        ('git+file://' + version_pkg_path.abspath.replace('\\', '/')),
+        'install',
+        '-e',
+        '%s#egg=version_pkg'
+        % ('git+file://' + version_pkg_path.abspath.replace('\\', '/')),
     )
     version = script.run('version_pkg')
     assert '0.1' in version.stdout
 
     _change_test_package_version(script, version_pkg_path)
     script.pip(
-        'install', '-e',
-        '%s#egg=version_pkg' %
-        ('git+file://' + version_pkg_path.abspath.replace('\\', '/')),
+        'install',
+        '-e',
+        '%s#egg=version_pkg'
+        % ('git+file://' + version_pkg_path.abspath.replace('\\', '/')),
     )
     version = script.run('version_pkg')
     assert 'some different version' in version.stdout

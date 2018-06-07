@@ -1,7 +1,10 @@
 import pytest
 
 from pip._internal.commands.search import (
-    SearchCommand, highest_version, print_results, transform_hits,
+    SearchCommand,
+    highest_version,
+    print_results,
+    transform_hits,
 )
 from pip._internal.status_codes import NO_MATCHES_FOUND, SUCCESS
 from tests.lib import pyversion
@@ -27,16 +30,8 @@ def test_pypi_xml_transformation():
 
     """
     pypi_hits = [
-        {
-            'name': 'foo',
-            'summary': 'foo summary',
-            'version': '1.0',
-        },
-        {
-            'name': 'foo',
-            'summary': 'foo summary v2',
-            'version': '2.0',
-        },
+        {'name': 'foo', 'summary': 'foo summary', 'version': '1.0'},
+        {'name': 'foo', 'summary': 'foo summary v2', 'version': '2.0'},
         {
             '_pypi_ordering': 50,
             'name': 'bar',
@@ -45,16 +40,8 @@ def test_pypi_xml_transformation():
         },
     ]
     expected = [
-        {
-            'versions': ['1.0', '2.0'],
-            'name': 'foo',
-            'summary': 'foo summary v2',
-        },
-        {
-            'versions': ['1.0'],
-            'name': 'bar',
-            'summary': 'bar summary',
-        },
+        {'versions': ['1.0', '2.0'], 'name': 'foo', 'summary': 'foo summary v2'},
+        {'versions': ['1.0'], 'name': 'bar', 'summary': 'bar summary'},
     ]
     assert transform_hits(pypi_hits) == expected
 
@@ -67,17 +54,18 @@ def test_basic_search(script):
     """
     output = script.pip('search', 'pip')
     assert (
-        'The PyPA recommended tool for installing '
-        'Python packages.' in output.stdout
+        'The PyPA recommended tool for installing ' 'Python packages.' in output.stdout
     )
 
 
 @pytest.mark.network
 @pytest.mark.skip(
-    reason=("Warehouse search behavior is different and no longer returns "
-            "multiple results. See "
-            "https://github.com/pypa/warehouse/issues/3717 for more "
-            "information."),
+    reason=(
+        "Warehouse search behavior is different and no longer returns "
+        "multiple results. See "
+        "https://github.com/pypa/warehouse/issues/3717 for more "
+        "information."
+    )
 )
 def test_multiple_search(script):
     """
@@ -86,8 +74,7 @@ def test_multiple_search(script):
     """
     output = script.pip('search', 'pip', 'INITools')
     assert (
-        'The PyPA recommended tool for installing '
-        'Python packages.' in output.stdout
+        'The PyPA recommended tool for installing ' 'Python packages.' in output.stdout
     )
     assert 'Tools for parsing and using INI-style files' in output.stdout
 
@@ -150,13 +137,13 @@ def test_search_print_results_should_contain_latest_versions(caplog):
         {
             'name': 'testlib1',
             'summary': 'Test library 1.',
-            'versions': ['1.0.5', '1.0.3']
+            'versions': ['1.0.5', '1.0.3'],
         },
         {
             'name': 'testlib2',
             'summary': 'Test library 1.',
-            'versions': ['2.0.1', '2.0.3']
-        }
+            'versions': ['2.0.1', '2.0.3'],
+        },
     ]
     print_results(hits)
     log_messages = sorted([r.getMessage() for r in caplog.records])

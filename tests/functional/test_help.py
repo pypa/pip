@@ -85,6 +85,7 @@ def test_help_commands_equally_functional(in_memory_pip):
             continue
 
         assert (
-            in_memory_pip.pip('help', name).stdout ==
-            in_memory_pip.pip(name, '--help').stdout != ""
+            in_memory_pip.pip('help', name).stdout
+            == in_memory_pip.pip(name, '--help').stdout
+            != ""
         )

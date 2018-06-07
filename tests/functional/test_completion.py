@@ -73,8 +73,9 @@ def test_completion_alone(script):
     Test getting completion for none shell, just pip completion
     """
     result = script.pip('completion', expect_error=True)
-    assert 'ERROR: You must pass --bash or --fish or --zsh' in result.stderr, \
-           'completion alone failed -- ' + result.stderr
+    assert 'ERROR: You must pass --bash or --fish or --zsh' in result.stderr, (
+        'completion alone failed -- ' + result.stderr
+    )
 
 
 def setup_completion(script, words, cword):
@@ -85,7 +86,9 @@ def setup_completion(script, words, cword):
 
     # expect_error is True because autocomplete exists with 1 status code
     result = script.run(
-        'python', '-c', 'import pip._internal;pip._internal.autocomplete()',
+        'python',
+        '-c',
+        'import pip._internal;pip._internal.autocomplete()',
         expect_error=True,
     )
 
@@ -107,8 +110,7 @@ def test_completion_for_default_parameters(script):
     """
 
     res, env = setup_completion(script, 'pip --', '1')
-    assert '--help' in res.stdout,\
-           "autocomplete function could not complete ``--``"
+    assert '--help' in res.stdout, "autocomplete function could not complete ``--``"
 
 
 def test_completion_option_for_command(script):
@@ -117,8 +119,7 @@ def test_completion_option_for_command(script):
     """
 
     res, env = setup_completion(script, 'pip search --', '2')
-    assert '--help' in res.stdout,\
-           "autocomplete function could not complete ``--``"
+    assert '--help' in res.stdout, "autocomplete function could not complete ``--``"
 
 
 def test_completion_short_option(script):
@@ -128,8 +129,9 @@ def test_completion_short_option(script):
 
     res, env = setup_completion(script, 'pip -', '1')
 
-    assert '-h' in res.stdout.split(),\
-           "autocomplete function could not complete short options after ``-``"
+    assert (
+        '-h' in res.stdout.split()
+    ), "autocomplete function could not complete short options after ``-``"
 
 
 def test_completion_short_option_for_command(script):
@@ -140,8 +142,9 @@ def test_completion_short_option_for_command(script):
 
     res, env = setup_completion(script, 'pip search -', '2')
 
-    assert '-h' in res.stdout.split(),\
-           "autocomplete function could not complete short options after ``-``"
+    assert (
+        '-h' in res.stdout.split()
+    ), "autocomplete function could not complete short options after ``-``"
 
 
 @pytest.mark.parametrize('flag', ['--bash', '--zsh', '--fish'])
