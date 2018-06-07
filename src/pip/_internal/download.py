@@ -33,7 +33,7 @@ import pip
 from pip._internal.compat import WINDOWS
 from pip._internal.exceptions import HashMismatch, InstallationError
 from pip._internal.locations import write_delete_marker_file
-from pip._internal.models import PyPI
+from pip._internal.models.index import PyPI
 from pip._internal.utils.encoding import auto_decode
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.glibc import libc_ver

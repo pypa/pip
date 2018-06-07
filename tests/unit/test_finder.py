@@ -107,7 +107,7 @@ def test_finder_detects_latest_already_satisfied_pypi_links():
     req.satisfied_by = satisfied_by
     finder = PackageFinder(
         [],
-        ["http://pypi.python.org/simple"],
+        ["http://pypi.org/simple/"],
         session=PipSession(),
     )
 
@@ -287,7 +287,7 @@ def test_finder_priority_file_over_page(data):
     req = InstallRequirement.from_line('gmpy==1.15', None)
     finder = PackageFinder(
         [data.find_links],
-        ["http://pypi.python.org/simple"],
+        ["http://pypi.org/simple/"],
         session=PipSession(),
     )
     all_versions = finder.find_all_candidates(req.name)
@@ -312,9 +312,10 @@ def test_finder_deplink():
         session=PipSession(),
     )
     finder.add_dependency_links(
-        ['https://pypi.python.org/packages/source/g/gmpy/gmpy-1.15.zip'])
+        ['https://files.pythonhosted.org/packages/source/g/gmpy/gmpy-1.15.zip']
+    )
     link = finder.find_requirement(req, False)
-    assert link.url.startswith("https://pypi"), link
+    assert link.url.startswith("https://files.pythonhosted.org/"), link
 
 
 @pytest.mark.network
@@ -325,17 +326,22 @@ def test_finder_priority_page_over_deplink():
     req = InstallRequirement.from_line('pip==1.5.6', None)
     finder = PackageFinder(
         [],
-        ["https://pypi.python.org/simple"],
+        ["https://pypi.org/simple/"],
         process_dependency_links=True,
         session=PipSession(),
     )
     finder.add_dependency_links([
-        'https://warehouse.python.org/packages/source/p/pip/pip-1.5.6.tar.gz'])
+        'https://files.pythonhosted.org/packages/source/p/pip/pip-1.5.6.tar.gz'
+    ])
     all_versions = finder.find_all_candidates(req.name)
     # Check that the dependency_link is last
-    assert all_versions[-1].location.url.startswith('https://warehouse')
+    assert all_versions[-1].location.url.startswith(
+        'https://files.pythonhosted.org/'
+    )
     link = finder.find_requirement(req, False)
-    assert link.url.startswith("https://pypi"), link
+    assert link.url.startswith(
+        "https://files.pythonhosted.org/packages/3f/08/7347ca4"
+    ), link
 
 
 def test_finder_priority_nonegg_over_eggfragments():

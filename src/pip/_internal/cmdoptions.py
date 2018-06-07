@@ -17,7 +17,7 @@ from pip._internal.index import (
     FormatControl, fmt_ctl_handle_mutual_exclude, fmt_ctl_no_binary,
 )
 from pip._internal.locations import USER_CACHE_DIR, src_prefix
-from pip._internal.models import PyPI
+from pip._internal.models.index import PyPI
 from pip._internal.utils.hashes import STRONG_HASHES
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import BAR_TYPES
@@ -403,6 +403,16 @@ def only_binary():
              "more package names with commas between them. Packages without "
              "binary distributions will fail to install when this option is "
              "used on them.",
+    )
+
+
+def prefer_binary():
+    return Option(
+        "--prefer-binary",
+        dest="prefer_binary",
+        action="store_true",
+        default=False,
+        help="Prefer older binary packages over newer source packages."
     )
 
 

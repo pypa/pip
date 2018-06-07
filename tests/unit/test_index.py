@@ -122,11 +122,11 @@ class MockLogger(object):
 @pytest.mark.parametrize(
     ("location", "trusted", "expected"),
     [
-        ("http://pypi.python.org/something", [], True),
-        ("https://pypi.python.org/something", [], False),
-        ("git+http://pypi.python.org/something", [], True),
-        ("git+https://pypi.python.org/something", [], False),
-        ("git+ssh://git@pypi.python.org/something", [], False),
+        ("http://pypi.org/something", [], True),
+        ("https://pypi.org/something", [], False),
+        ("git+http://pypi.org/something", [], True),
+        ("git+https://pypi.org/something", [], False),
+        ("git+ssh://git@pypi.org/something", [], False),
         ("http://localhost", [], False),
         ("http://127.0.0.1", [], False),
         ("http://example.com/something/", [], True),
@@ -139,3 +139,18 @@ def test_secure_origin(location, trusted, expected):
     logger = MockLogger()
     finder._validate_secure_origin(logger, location)
     assert logger.called == expected
+
+
+def test_get_formatted_locations_basic_auth():
+    """
+    Test that basic authentication credentials defined in URL
+    is not included in formatted output.
+    """
+    index_urls = [
+        'https://pypi.org/simple',
+        'https://user:pass@repo.domain.com',
+    ]
+    finder = PackageFinder([], index_urls, session=[])
+
+    result = finder.get_formatted_locations()
+    assert 'user' not in result and 'pass' not in result

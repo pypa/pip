@@ -1,0 +1,1 @@
+Add test for PR 5293: Remove trailing os.sep to avoid false negatives

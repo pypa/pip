@@ -27,13 +27,13 @@ from pip._internal.exceptions import (
     BestVersionAlreadyInstalled, DistributionNotFound, InvalidWheelFilename,
     UnsupportedWheel,
 )
-from pip._internal.models import PyPI
+from pip._internal.models.index import PyPI
 from pip._internal.pep425tags import get_supported
 from pip._internal.utils.deprecation import RemovedInPip11Warning
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, cached_property, normalize_path,
-    splitext,
+    remove_auth_from_url, splitext,
 )
 from pip._internal.utils.packaging import check_requires_python
 from pip._internal.wheel import Wheel, wheel_ext
@@ -108,7 +108,8 @@ class PackageFinder(object):
     def __init__(self, find_links, index_urls, allow_all_prereleases=False,
                  trusted_hosts=None, process_dependency_links=False,
                  session=None, format_control=None, platform=None,
-                 versions=None, abi=None, implementation=None):
+                 versions=None, abi=None, implementation=None,
+                 prefer_binary=False):
         """Create a PackageFinder.
 
         :param format_control: A FormatControl object or None. Used to control
@@ -176,6 +177,9 @@ class PackageFinder(object):
             impl=implementation,
         )
 
+        # Do we prefer old, but valid, binary dist over new source dist
+        self.prefer_binary = prefer_binary
+
         # If we don't have TLS enabled, then WARN if anyplace we're looking
         # relies on TLS.
         if not HAS_TLS:
@@ -193,7 +197,8 @@ class PackageFinder(object):
         lines = []
         if self.index_urls and self.index_urls != [PyPI.simple_url]:
             lines.append(
-                "Looking in indexes: {}".format(", ".join(self.index_urls))
+                "Looking in indexes: {}".format(", ".join(
+                    remove_auth_from_url(url) for url in self.index_urls))
             )
         if self.find_links:
             lines.append(
@@ -275,12 +280,14 @@ class PackageFinder(object):
           1. existing installs
           2. wheels ordered via Wheel.support_index_min(self.valid_tags)
           3. source archives
+        If prefer_binary was set, then all wheels are sorted above sources.
         Note: it was considered to embed this logic into the Link
               comparison operators, but then different sdist links
               with the same version, would have to be considered equal
         """
         support_num = len(self.valid_tags)
         build_tag = tuple()
+        binary_preference = 0
         if candidate.location.is_wheel:
             # can raise InvalidWheelFilename
             wheel = Wheel(candidate.location.filename)
@@ -289,6 +296,8 @@ class PackageFinder(object):
                     "%s is not a supported wheel for this platform. It "
                     "can't be sorted." % wheel.filename
                 )
+            if self.prefer_binary:
+                binary_preference = 1
             pri = -(wheel.support_index_min(self.valid_tags))
             if wheel.build_tag is not None:
                 match = re.match(r'^(\d+)(.*)$', wheel.build_tag)
@@ -296,7 +305,7 @@ class PackageFinder(object):
                 build_tag = (int(build_tag_groups[0]), build_tag_groups[1])
         else:  # sdist
             pri = -(support_num)
-        return (candidate.version, build_tag, pri)
+        return (binary_preference, candidate.version, build_tag, pri)
 
     def _validate_secure_origin(self, logger, location):
         # Determine if this url used a secure transport mechanism
@@ -674,7 +683,7 @@ class PackageFinder(object):
             version = egg_info_matches(egg_info, search.supplied, link)
         if version is None:
             self._log_skipped_link(
-                link, 'wrong project name (not %s)' % search.supplied)
+                link, 'Missing project version for %s' % search.supplied)
             return
 
         match = self._py_version_re.search(version)
@@ -903,7 +912,7 @@ class Link(object):
 
     def __init__(self, url, comes_from=None, requires_python=None):
         """
-        Object representing a parsed link from https://pypi.python.org/simple/*
+        Object representing a parsed link from https://pypi.org/simple/*
 
         url:
             url of the resource pointed to (href of the link)

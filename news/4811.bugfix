@@ -1,2 +1,0 @@
-Fix an issue where a variable assigned in a try clause was accessed in the except clause, resulting in an undefined
-variable error in the except clause.
