@@ -16,7 +16,7 @@ from pip._vendor.distlib.compat import unescape
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import parse as parse_version
-from pip._vendor.requests.exceptions import SSLError
+from pip._vendor.requests.exceptions import SSLError, RetryError
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
@@ -162,6 +162,8 @@ def _get_html_page(link, session=None):
 
         inst = HTMLPage(resp.content, resp.url, resp.headers)
     except requests.HTTPError as exc:
+        _handle_get_page_fail(link, exc, url)
+    except RetryError as exc:
         _handle_get_page_fail(link, exc, url)
     except SSLError as exc:
         reason = "There was a problem confirming the ssl certificate: "
