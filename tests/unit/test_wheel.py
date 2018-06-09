@@ -20,7 +20,7 @@ def test_get_entrypoints(tmpdir, console_scripts):
     with open(str(entry_points), "w") as fp:
         fp.write("""
             [console_scripts]
-            {0}
+            {}
             [section]
             common:one = module:func
             common:two = module:other_func
@@ -364,10 +364,10 @@ class TestWheelBuilder(object):
         with patch('pip._internal.wheel.WheelBuilder._build_one') \
                 as mock_build_one:
             wheel_req = Mock(is_wheel=True, editable=False, constraint=False)
-            reqset = Mock(requirements=Mock(values=lambda: [wheel_req]),
-                          wheel_download_dir='/wheel/dir')
-            wb = wheel.WheelBuilder(reqset, Mock(), Mock(), wheel_cache=None)
-            wb.build(Mock())
+            wb = wheel.WheelBuilder(
+                finder=Mock(), preparer=Mock(), wheel_cache=None,
+            )
+            wb.build([wheel_req], session=Mock())
             assert "due to already being wheel" in caplog.text
             assert mock_build_one.mock_calls == []
 
@@ -451,5 +451,22 @@ class TestMessageAboutScriptsNotOnPATH(object):
         retval = self._template(
             paths=['/a/b', '/c/d/bin'],
             scripts=['/a/b/foo']
+        )
+        assert retval is None
+
+    def test_PATH_check_case_insensitive_on_windows(self):
+        retval = self._template(
+            paths=['C:\\A\\b'],
+            scripts=['c:\\a\\b\\c', 'C:/A/b/d']
+        )
+        if WINDOWS:
+            assert retval is None
+        else:
+            assert retval is not None
+
+    def test_trailing_ossep_removal(self):
+        retval = self._template(
+            paths=[os.path.join('a', 'b', '')],
+            scripts=[os.path.join('a', 'b', 'c')]
         )
         assert retval is None

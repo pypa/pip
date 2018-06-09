@@ -72,7 +72,7 @@ def test_rev_options_make_new():
 
 @pytest.fixture
 def git():
-    git_url = 'http://github.com/pypa/pip-test-package'
+    git_url = 'https://github.com/pypa/pip-test-package'
     sha = '5547fa909e83df8bd743d3978d6667497983a4b7'
     git = Git()
     git.get_url = Mock(return_value=git_url)
@@ -96,11 +96,12 @@ def test_looks_like_hash():
     assert not looks_like_hash(39 * 'a')
 
 
+@pytest.mark.network
 def test_git_get_src_requirements(git, dist):
     ret = git.get_src_requirement(dist, location='.')
 
     assert ret == ''.join([
-        'git+http://github.com/pypa/pip-test-package',
+        'git+https://github.com/pypa/pip-test-package',
         '@5547fa909e83df8bd743d3978d6667497983a4b7',
         '#egg=pip_test_package'
     ])
@@ -171,32 +172,6 @@ def test_bazaar_simple_urls():
     assert launchpad_bzr_repo.get_url_rev() == (
         'lp:MyLaunchpadProject', None,
     )
-
-
-def test_subversion_remove_auth_from_url():
-    # Check that the url is doctored appropriately to remove auth elements
-    #    from the url
-    svn_auth_url = 'https://user:pass@svnrepo.org/svn/project/tags/v0.2'
-    expected_url = 'https://svnrepo.org/svn/project/tags/v0.2'
-    url = Subversion.remove_auth_from_url(svn_auth_url)
-    assert url == expected_url
-
-    # Check that this doesn't impact urls without authentication'
-    svn_noauth_url = 'https://svnrepo.org/svn/project/tags/v0.2'
-    expected_url = svn_noauth_url
-    url = Subversion.remove_auth_from_url(svn_noauth_url)
-    assert url == expected_url
-
-    # Check that links to specific revisions are handled properly
-    svn_rev_url = 'https://user:pass@svnrepo.org/svn/project/trunk@8181'
-    expected_url = 'https://svnrepo.org/svn/project/trunk@8181'
-    url = Subversion.remove_auth_from_url(svn_rev_url)
-    assert url == expected_url
-
-    svn_rev_url = 'https://svnrepo.org/svn/project/trunk@8181'
-    expected_url = 'https://svnrepo.org/svn/project/trunk@8181'
-    url = Subversion.remove_auth_from_url(svn_rev_url)
-    assert url == expected_url
 
 
 def test_get_git_version():

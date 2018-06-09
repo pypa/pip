@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import logging
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.utils.logging import indent_log
@@ -12,13 +12,8 @@ logger = logging.getLogger(__name__)
 
 class RequirementSet(object):
 
-    def __init__(self,
-                 require_hashes=False, target_dir=None, use_user_site=False,
-                 pycompile=True):
+    def __init__(self, require_hashes=False):
         """Create a RequirementSet.
-
-        :param wheel_cache: The pip wheel cache, for passing to
-            InstallRequirement.
         """
 
         self.requirements = OrderedDict()
@@ -29,11 +24,6 @@ class RequirementSet(object):
         self.unnamed_requirements = []
         self.successfully_downloaded = []
         self.reqs_to_cleanup = []
-        self.use_user_site = use_user_site
-        self.target_dir = target_dir  # set from --target option
-        self.pycompile = pycompile
-        # Maps from install_req -> dependencies_of_install_req
-        self._dependencies = defaultdict(list)
 
     def __str__(self):
         reqs = [req for req in self.requirements.values()
@@ -59,17 +49,17 @@ class RequirementSet(object):
             already be added. Note that None implies that this is a user
             supplied requirement, vs an inferred one.
         :param extras_requested: an iterable of extras used to evaluate the
-            environement markers.
+            environment markers.
         :return: Additional requirements to scan. That is either [] if
             the requirement is not applicable, or [install_req] if the
             requirement is applicable and has just been added.
         """
         name = install_req.name
         if not install_req.match_markers(extras_requested):
-            logger.warning("Ignoring %s: markers '%s' don't match your "
-                           "environment", install_req.name,
-                           install_req.markers)
-            return []
+            logger.info("Ignoring %s: markers '%s' don't match your "
+                        "environment", install_req.name,
+                        install_req.markers)
+            return [], None
 
         # This check has to come after we filter requirements with the
         # environment markers.
@@ -81,15 +71,16 @@ class RequirementSet(object):
                     wheel.filename
                 )
 
-        install_req.use_user_site = self.use_user_site
-        install_req.target_dir = self.target_dir
-        install_req.pycompile = self.pycompile
-        install_req.is_direct = (parent_req_name is None)
+        # This next bit is really a sanity check.
+        assert install_req.is_direct == (parent_req_name is None), (
+            "a direct req shouldn't have a parent and also, "
+            "a non direct req should have a parent"
+        )
 
         if not name:
             # url or path requirement w/o an egg fragment
             self.unnamed_requirements.append(install_req)
-            return [install_req]
+            return [install_req], None
         else:
             try:
                 existing_req = self.get_requirement(name)
@@ -120,7 +111,8 @@ class RequirementSet(object):
                         raise InstallationError(
                             "Could not satisfy constraints for '%s': "
                             "installation from path or url cannot be "
-                            "constrained to a version" % name)
+                            "constrained to a version" % name,
+                        )
                     # If we're now installing a constraint, mark the existing
                     # object for real installation.
                     existing_req.constraint = False
@@ -134,10 +126,10 @@ class RequirementSet(object):
                 # Canonicalise to the already-added object for the backref
                 # check below.
                 install_req = existing_req
-            if parent_req_name:
-                parent_req = self.get_requirement(parent_req_name)
-                self._dependencies[parent_req].append(install_req)
-            return result
+
+            # We return install_req here to allow for the caller to add it to
+            # the dependency information for the parent package.
+            return result, install_req
 
     def has_requirement(self, project_name):
         name = project_name.lower()
@@ -167,79 +159,3 @@ class RequirementSet(object):
         with indent_log():
             for req in self.reqs_to_cleanup:
                 req.remove_temporary_source()
-
-    def _to_install(self):
-        """Create the installation order.
-
-        The installation order is topological - requirements are installed
-        before the requiring thing. We break cycles at an arbitrary point,
-        and make no other guarantees.
-        """
-        # The current implementation, which we may change at any point
-        # installs the user specified things in the order given, except when
-        # dependencies must come earlier to achieve topological order.
-        order = []
-        ordered_reqs = set()
-
-        def schedule(req):
-            if req.satisfied_by or req in ordered_reqs:
-                return
-            if req.constraint:
-                return
-            ordered_reqs.add(req)
-            for dep in self._dependencies[req]:
-                schedule(dep)
-            order.append(req)
-
-        for install_req in self.requirements.values():
-            schedule(install_req)
-        return order
-
-    def install(self, install_options, global_options=(), *args, **kwargs):
-        """
-        Install everything in this set (after having downloaded and unpacked
-        the packages)
-        """
-        to_install = self._to_install()
-
-        if to_install:
-            logger.info(
-                'Installing collected packages: %s',
-                ', '.join([req.name for req in to_install]),
-            )
-
-        with indent_log():
-            for requirement in to_install:
-                if requirement.conflicts_with:
-                    logger.info(
-                        'Found existing installation: %s',
-                        requirement.conflicts_with,
-                    )
-                    with indent_log():
-                        requirement.uninstall(auto_confirm=True)
-                try:
-                    requirement.install(
-                        install_options,
-                        global_options,
-                        *args,
-                        **kwargs
-                    )
-                except:
-                    should_rollback = (
-                        requirement.conflicts_with and
-                        not requirement.install_succeeded
-                    )
-                    # if install did not succeed, rollback previous uninstall
-                    if should_rollback:
-                        requirement.uninstalled_pathset.rollback()
-                    raise
-                else:
-                    should_commit = (
-                        requirement.conflicts_with and
-                        requirement.install_succeeded
-                    )
-                    if should_commit:
-                        requirement.uninstalled_pathset.commit()
-                requirement.remove_temporary_source()
-
-        return to_install

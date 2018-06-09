@@ -2,6 +2,8 @@
 User Guide
 ==========
 
+.. contents::
+
 Running pip
 ***********
 
@@ -44,7 +46,7 @@ Specifiers`
 
 For more information and examples, see the :ref:`pip install` reference.
 
-.. _PyPI: http://pypi.python.org/pypi
+.. _PyPI: https://pypi.org/
 
 
 .. _`Requirements Files`:
@@ -195,7 +197,7 @@ For the cases where wheels are not available, pip offers :ref:`pip wheel` as a
 convenience, to build wheels for all your requirements and dependencies.
 
 :ref:`pip wheel` requires the `wheel package
-<https://pypi.python.org/pypi/wheel>`_ to be installed, which provides the
+<https://pypi.org/project/wheel/>`_ to be installed, which provides the
 "bdist_wheel" setuptools extension that it uses.
 
 To build wheels for your requirements and all their dependencies to a local directory:
@@ -728,7 +730,7 @@ change without notice. While we do try not to break things as much as possible, 
 the internal APIs can change at any time, for any reason. It also means that we
 generally *won't* fix issues that are a result of using pip in an unsupported way.
 
-It should also be noted that modifying the contents of ``sys.path`` in a running Python
+It should also be noted that installing packages into ``sys.path`` in a running Python
 process is something that should only be done with care. The import system caches
 certain data, and installing new packages while a program is running may not always
 behave as expected. In practice, there is rarely an issue, but it is something to be
@@ -755,8 +757,6 @@ of ability. Some examples that you could consider include:
 
 * ``setuptools`` (specifically ``pkg_resources``) - Functions for querying what
   packages the user has installed on their system.
-
-* ``wheel`` - Code for manipulating (creating, querying and installing) wheels.
 
 * ``distlib`` - Packaging and distribution utilities (including functions for
   interacting with PyPI).

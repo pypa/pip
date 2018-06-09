@@ -3,6 +3,8 @@
 pip search
 ----------
 
+.. contents::
+
 Usage
 *****
 

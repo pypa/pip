@@ -29,8 +29,8 @@ try:
 except ImportError:
     pass
 else:
-    if (sys.platform == "darwin" and
-            ssl.OPENSSL_VERSION_NUMBER < 0x1000100f):  # OpenSSL 1.0.1
+    # Checks for OpenSSL 1.0.1 on MacOS
+    if sys.platform == "darwin" and ssl.OPENSSL_VERSION_NUMBER < 0x1000100f:
         try:
             from pip._vendor.urllib3.contrib import securetransport
         except (ImportError, OSError):
@@ -105,9 +105,11 @@ def autocomplete():
                 sys.exit(1)
 
         subcommand = commands_dict[subcommand_name]()
-        options += [(opt.get_opt_string(), opt.nargs)
-                    for opt in subcommand.parser.option_list_all
-                    if opt.help != optparse.SUPPRESS_HELP]
+
+        for opt in subcommand.parser.option_list_all:
+            if opt.help != optparse.SUPPRESS_HELP:
+                for opt_str in opt._long_opts + opt._short_opts:
+                    options.append((opt_str, opt.nargs))
 
         # filter out previously specified options from available options
         prev_opts = [x.split('=')[0] for x in cwords[1:cword - 1]]
@@ -117,7 +119,7 @@ def autocomplete():
         for option in options:
             opt_label = option[0]
             # append '=' to options which require args
-            if option[1]:
+            if option[1] and option[0][:2] == "--":
                 opt_label += '='
             print(opt_label)
     else:
@@ -127,8 +129,9 @@ def autocomplete():
             opts.append(parser.option_list)
             opts = (o for it in opts for o in it)
 
-            subcommands += [i.get_opt_string() for i in opts
-                            if i.help != optparse.SUPPRESS_HELP]
+            for opt in opts:
+                if opt.help != optparse.SUPPRESS_HELP:
+                    subcommands += opt._long_opts + opt._short_opts
 
         print(' '.join([x for x in subcommands if x.startswith(current)]))
     sys.exit(1)
@@ -148,7 +151,8 @@ def create_main_parser():
 
     pip_pkg_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     parser.version = 'pip %s from %s (python %s)' % (
-        __version__, pip_pkg_dir, sys.version[:3])
+        __version__, pip_pkg_dir, sys.version[:3],
+    )
 
     # add the general options
     gen_opts = cmdoptions.make_option_group(cmdoptions.general_group, parser)

@@ -1,3 +1,4 @@
+import logging
 import sys
 
 import pytest
@@ -8,10 +9,10 @@ import pip._internal.pep425tags
 import pip._internal.wheel
 from pip._internal.download import PipSession
 from pip._internal.exceptions import (
-    BestVersionAlreadyInstalled, DistributionNotFound
+    BestVersionAlreadyInstalled, DistributionNotFound,
 )
 from pip._internal.index import (
-    FormatControl, InstallationCandidate, Link, PackageFinder, fmt_ctl_formats
+    FormatControl, InstallationCandidate, Link, PackageFinder, fmt_ctl_formats,
 )
 from pip._internal.req import InstallRequirement
 
@@ -106,7 +107,7 @@ def test_finder_detects_latest_already_satisfied_pypi_links():
     req.satisfied_by = satisfied_by
     finder = PackageFinder(
         [],
-        ["http://pypi.python.org/simple"],
+        ["http://pypi.org/simple/"],
         session=PipSession(),
     )
 
@@ -120,6 +121,8 @@ class TestWheel:
         """
         Test if PackageFinder skips invalid wheel filenames
         """
+        caplog.set_level(logging.DEBUG)
+
         req = InstallRequirement.from_line("invalid")
         # data.find_links contains "invalid.whl", which is an invalid wheel
         finder = PackageFinder(
@@ -284,7 +287,7 @@ def test_finder_priority_file_over_page(data):
     req = InstallRequirement.from_line('gmpy==1.15', None)
     finder = PackageFinder(
         [data.find_links],
-        ["http://pypi.python.org/simple"],
+        ["http://pypi.org/simple/"],
         session=PipSession(),
     )
     all_versions = finder.find_all_candidates(req.name)
@@ -309,9 +312,10 @@ def test_finder_deplink():
         session=PipSession(),
     )
     finder.add_dependency_links(
-        ['https://pypi.python.org/packages/source/g/gmpy/gmpy-1.15.zip'])
+        ['https://files.pythonhosted.org/packages/source/g/gmpy/gmpy-1.15.zip']
+    )
     link = finder.find_requirement(req, False)
-    assert link.url.startswith("https://pypi"), link
+    assert link.url.startswith("https://files.pythonhosted.org/"), link
 
 
 @pytest.mark.network
@@ -322,17 +326,22 @@ def test_finder_priority_page_over_deplink():
     req = InstallRequirement.from_line('pip==1.5.6', None)
     finder = PackageFinder(
         [],
-        ["https://pypi.python.org/simple"],
+        ["https://pypi.org/simple/"],
         process_dependency_links=True,
         session=PipSession(),
     )
     finder.add_dependency_links([
-        'https://warehouse.python.org/packages/source/p/pip/pip-1.5.6.tar.gz'])
+        'https://files.pythonhosted.org/packages/source/p/pip/pip-1.5.6.tar.gz'
+    ])
     all_versions = finder.find_all_candidates(req.name)
     # Check that the dependency_link is last
-    assert all_versions[-1].location.url.startswith('https://warehouse')
+    assert all_versions[-1].location.url.startswith(
+        'https://files.pythonhosted.org/'
+    )
     link = finder.find_requirement(req, False)
-    assert link.url.startswith("https://pypi"), link
+    assert link.url.startswith(
+        "https://files.pythonhosted.org/packages/3f/08/7347ca4"
+    ), link
 
 
 def test_finder_priority_nonegg_over_eggfragments():
@@ -399,7 +408,7 @@ def test_finder_only_installs_data_require(data):
     distribution are compatible with which version of Python by adding a
     data-python-require to the anchor links.
 
-    See pep 503 for more informations.
+    See pep 503 for more information.
     """
 
     # using a local index (that has pre & dev releases)
@@ -414,7 +423,7 @@ def test_finder_only_installs_data_require(data):
     elif sys.version_info > (3, 3):
         expected.append('3.3.0')
 
-    assert set([str(v.version) for v in links]) == set(expected)
+    assert {str(v.version) for v in links} == set(expected)
 
 
 def test_finder_installs_pre_releases(data):
@@ -582,11 +591,11 @@ def test_find_all_candidates_find_links_and_index(data):
 def test_fmt_ctl_matches():
     fmt = FormatControl(set(), set())
     assert fmt_ctl_formats(fmt, "fred") == frozenset(["source", "binary"])
-    fmt = FormatControl(set(["fred"]), set())
+    fmt = FormatControl({"fred"}, set())
     assert fmt_ctl_formats(fmt, "fred") == frozenset(["source"])
-    fmt = FormatControl(set(["fred"]), set([":all:"]))
+    fmt = FormatControl({"fred"}, {":all:"})
     assert fmt_ctl_formats(fmt, "fred") == frozenset(["source"])
-    fmt = FormatControl(set(), set(["fred"]))
+    fmt = FormatControl(set(), {"fred"})
     assert fmt_ctl_formats(fmt, "fred") == frozenset(["binary"])
-    fmt = FormatControl(set([":all:"]), set(["fred"]))
+    fmt = FormatControl({":all:"}, {"fred"})
     assert fmt_ctl_formats(fmt, "fred") == frozenset(["binary"])

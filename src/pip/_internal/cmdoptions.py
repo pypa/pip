@@ -14,10 +14,10 @@ from functools import partial
 from optparse import SUPPRESS_HELP, Option, OptionGroup
 
 from pip._internal.index import (
-    FormatControl, fmt_ctl_handle_mutual_exclude, fmt_ctl_no_binary
+    FormatControl, fmt_ctl_handle_mutual_exclude, fmt_ctl_no_binary,
 )
 from pip._internal.locations import USER_CACHE_DIR, src_prefix
-from pip._internal.models import PyPI
+from pip._internal.models.index import PyPI
 from pip._internal.utils.hashes import STRONG_HASHES
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import BAR_TYPES
@@ -56,7 +56,8 @@ def check_install_build_global(options, check_options=None):
         fmt_ctl_no_binary(control)
         warnings.warn(
             'Disabling all use of wheels due to the use of --build-options '
-            '/ --global-options / --install-options.', stacklevel=2)
+            '/ --global-options / --install-options.', stacklevel=2,
+        )
 
 
 ###########
@@ -100,6 +101,15 @@ verbose = partial(
     action='count',
     default=0,
     help='Give more output. Option is additive, and can be used up to 3 times.'
+)
+
+no_color = partial(
+    Option,
+    '--no-color',
+    dest='no_color',
+    action='store_true',
+    default=False,
+    help="Suppress colored output",
 )
 
 version = partial(
@@ -357,13 +367,15 @@ def _get_format_control(values, option):
 def _handle_no_binary(option, opt_str, value, parser):
     existing = getattr(parser.values, option.dest)
     fmt_ctl_handle_mutual_exclude(
-        value, existing.no_binary, existing.only_binary)
+        value, existing.no_binary, existing.only_binary,
+    )
 
 
 def _handle_only_binary(option, opt_str, value, parser):
     existing = getattr(parser.values, option.dest)
     fmt_ctl_handle_mutual_exclude(
-        value, existing.only_binary, existing.no_binary)
+        value, existing.only_binary, existing.no_binary,
+    )
 
 
 def no_binary():
@@ -394,6 +406,16 @@ def only_binary():
     )
 
 
+def prefer_binary():
+    return Option(
+        "--prefer-binary",
+        dest="prefer_binary",
+        action="store_true",
+        default=False,
+        help="Prefer older binary packages over newer source packages."
+    )
+
+
 cache_dir = partial(
     Option,
     "--cache-dir",
@@ -417,7 +439,7 @@ no_deps = partial(
     dest='ignore_dependencies',
     action='store_true',
     default=False,
-    help="Don't install package dependencies)."
+    help="Don't install package dependencies.",
 )  # type: Any
 
 build_dir = partial(
@@ -425,7 +447,11 @@ build_dir = partial(
     '-b', '--build', '--build-dir', '--build-directory',
     dest='build_dir',
     metavar='dir',
-    help='Directory to unpack packages into and build in.'
+    help='Directory to unpack packages into and build in. Note that '
+         'an initial build still takes place in a temporary directory. '
+         'The location of temporary directories can be controlled by setting '
+         'the TMPDIR environment variable (TEMP on Windows) appropriately. '
+         'When passed, build directories are not cleaned in case of failures.'
 )  # type: Any
 
 ignore_requires_python = partial(
@@ -434,6 +460,17 @@ ignore_requires_python = partial(
     dest='ignore_requires_python',
     action='store_true',
     help='Ignore the Requires-Python information.'
+)  # type: Any
+
+no_build_isolation = partial(
+    Option,
+    '--no-build-isolation',
+    dest='build_isolation',
+    action='store_false',
+    default=True,
+    help='Disable isolation when building a modern source distribution. '
+         'Build dependencies specified by PEP 518 must be already installed '
+         'if this option is used.'
 )  # type: Any
 
 install_options = partial(
@@ -566,6 +603,7 @@ general_group = {
         cache_dir,
         no_cache,
         disable_pip_version_check,
+        no_color,
     ]
 }
 

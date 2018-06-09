@@ -52,11 +52,13 @@ class DownloadCommand(RequirementCommand):
         cmd_opts.add_option(cmdoptions.global_options())
         cmd_opts.add_option(cmdoptions.no_binary())
         cmd_opts.add_option(cmdoptions.only_binary())
+        cmd_opts.add_option(cmdoptions.prefer_binary())
         cmd_opts.add_option(cmdoptions.src())
         cmd_opts.add_option(cmdoptions.pre())
         cmd_opts.add_option(cmdoptions.no_clean())
         cmd_opts.add_option(cmdoptions.require_hashes())
         cmd_opts.add_option(cmdoptions.progress_bar())
+        cmd_opts.add_option(cmdoptions.no_build_isolation())
 
         cmd_opts.add_option(
             '-d', '--dest', '--destination-dir', '--destination-directory',
@@ -139,12 +141,17 @@ class DownloadCommand(RequirementCommand):
             options.implementation,
         ])
         binary_only = FormatControl(set(), {':all:'})
-        if dist_restriction_set and options.format_control != binary_only:
+        no_sdist_dependencies = (
+            options.format_control != binary_only and
+            not options.ignore_dependencies
+        )
+        if dist_restriction_set and no_sdist_dependencies:
             raise CommandError(
-                "--only-binary=:all: must be set and --no-binary must not "
-                "be set (or must be set to :none:) when restricting platform "
-                "and interpreter constraints using --python-version, "
-                "--platform, --abi, or --implementation."
+                "When restricting platform and interpreter constraints using "
+                "--python-version, --platform, --abi, or --implementation, "
+                "either --no-deps must be set, or --only-binary=:all: must be "
+                "set and --no-binary must not be set (or must be set to "
+                ":none:)."
             )
 
         options.src_dir = os.path.abspath(options.src_dir)
@@ -196,6 +203,7 @@ class DownloadCommand(RequirementCommand):
                     download_dir=options.download_dir,
                     wheel_download_dir=None,
                     progress_bar=options.progress_bar,
+                    build_isolation=options.build_isolation,
                 )
 
                 resolver = Resolver(
@@ -217,9 +225,7 @@ class DownloadCommand(RequirementCommand):
                     req.name for req in requirement_set.successfully_downloaded
                 ])
                 if downloaded:
-                    logger.info(
-                        'Successfully downloaded %s', downloaded
-                    )
+                    logger.info('Successfully downloaded %s', downloaded)
 
                 # Clean up
                 if not options.no_clean:

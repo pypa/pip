@@ -25,15 +25,15 @@ from pip._internal.compat import ipaddress
 from pip._internal.download import HAS_TLS, is_url, path_to_url, url_to_path
 from pip._internal.exceptions import (
     BestVersionAlreadyInstalled, DistributionNotFound, InvalidWheelFilename,
-    UnsupportedWheel
+    UnsupportedWheel,
 )
-from pip._internal.models import PyPI
+from pip._internal.models.index import PyPI
 from pip._internal.pep425tags import get_supported
 from pip._internal.utils.deprecation import RemovedInPip11Warning
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, cached_property, normalize_path,
-    splitext
+    remove_auth_from_url, splitext,
 )
 from pip._internal.utils.packaging import check_requires_python
 from pip._internal.wheel import Wheel, wheel_ext
@@ -66,7 +66,7 @@ class InstallationCandidate(object):
         self._key = (self.project, self.version, self.location)
 
     def __repr__(self):
-        return "<InstallationCandidate({0!r}, {1!r}, {2!r})>".format(
+        return "<InstallationCandidate({!r}, {!r}, {!r})>".format(
             self.project, self.version, self.location,
         )
 
@@ -108,7 +108,8 @@ class PackageFinder(object):
     def __init__(self, find_links, index_urls, allow_all_prereleases=False,
                  trusted_hosts=None, process_dependency_links=False,
                  session=None, format_control=None, platform=None,
-                 versions=None, abi=None, implementation=None):
+                 versions=None, abi=None, implementation=None,
+                 prefer_binary=False):
         """Create a PackageFinder.
 
         :param format_control: A FormatControl object or None. Used to control
@@ -176,6 +177,9 @@ class PackageFinder(object):
             impl=implementation,
         )
 
+        # Do we prefer old, but valid, binary dist over new source dist
+        self.prefer_binary = prefer_binary
+
         # If we don't have TLS enabled, then WARN if anyplace we're looking
         # relies on TLS.
         if not HAS_TLS:
@@ -193,7 +197,8 @@ class PackageFinder(object):
         lines = []
         if self.index_urls and self.index_urls != [PyPI.simple_url]:
             lines.append(
-                "Looking in indexes: {}".format(", ".join(self.index_urls))
+                "Looking in indexes: {}".format(", ".join(
+                    remove_auth_from_url(url) for url in self.index_urls))
             )
         if self.find_links:
             lines.append(
@@ -253,14 +258,16 @@ class PackageFinder(object):
                 else:
                     logger.warning(
                         "Url '%s' is ignored: it is neither a file "
-                        "nor a directory.", url)
+                        "nor a directory.", url,
+                    )
             elif is_url(url):
                 # Only add url with clear scheme
                 urls.append(url)
             else:
                 logger.warning(
                     "Url '%s' is ignored. It is either a non-existing "
-                    "path or lacks a specific scheme.", url)
+                    "path or lacks a specific scheme.", url,
+                )
 
         return files, urls
 
@@ -273,12 +280,14 @@ class PackageFinder(object):
           1. existing installs
           2. wheels ordered via Wheel.support_index_min(self.valid_tags)
           3. source archives
+        If prefer_binary was set, then all wheels are sorted above sources.
         Note: it was considered to embed this logic into the Link
               comparison operators, but then different sdist links
               with the same version, would have to be considered equal
         """
         support_num = len(self.valid_tags)
         build_tag = tuple()
+        binary_preference = 0
         if candidate.location.is_wheel:
             # can raise InvalidWheelFilename
             wheel = Wheel(candidate.location.filename)
@@ -287,6 +296,8 @@ class PackageFinder(object):
                     "%s is not a supported wheel for this platform. It "
                     "can't be sorted." % wheel.filename
                 )
+            if self.prefer_binary:
+                binary_preference = 1
             pri = -(wheel.support_index_min(self.valid_tags))
             if wheel.build_tag is not None:
                 match = re.match(r'^(\d+)(.*)$', wheel.build_tag)
@@ -294,7 +305,7 @@ class PackageFinder(object):
                 build_tag = (int(build_tag_groups[0]), build_tag_groups[1])
         else:  # sdist
             pri = -(support_num)
-        return (candidate.version, build_tag, pri)
+        return (binary_preference, candidate.version, build_tag, pri)
 
     def _validate_secure_origin(self, logger, location):
         # Determine if this url used a secure transport mechanism
@@ -400,13 +411,13 @@ class PackageFinder(object):
         index_locations = self._get_index_urls_locations(project_name)
         index_file_loc, index_url_loc = self._sort_locations(index_locations)
         fl_file_loc, fl_url_loc = self._sort_locations(
-            self.find_links, expand_dir=True)
+            self.find_links, expand_dir=True,
+        )
         dep_file_loc, dep_url_loc = self._sort_locations(self.dependency_links)
 
-        file_locations = (
-            Link(url) for url in itertools.chain(
-                index_file_loc, fl_file_loc, dep_file_loc)
-        )
+        file_locations = (Link(url) for url in itertools.chain(
+            index_file_loc, fl_file_loc, dep_file_loc,
+        ))
 
         # We trust every url that the user has given us whether it was given
         #   via --index-url or --find-links
@@ -521,7 +532,7 @@ class PackageFinder(object):
                 req,
                 ', '.join(
                     sorted(
-                        set(str(c.version) for c in all_candidates),
+                        {str(c.version) for c in all_candidates},
                         key=parse_version,
                     )
                 )
@@ -632,11 +643,13 @@ class PackageFinder(object):
                 return
             if ext not in SUPPORTED_EXTENSIONS:
                 self._log_skipped_link(
-                    link, 'unsupported archive format: %s' % ext)
+                    link, 'unsupported archive format: %s' % ext,
+                )
                 return
             if "binary" not in search.formats and ext == wheel_ext:
                 self._log_skipped_link(
-                    link, 'No binaries permitted for %s' % search.supplied)
+                    link, 'No binaries permitted for %s' % search.supplied,
+                )
                 return
             if "macosx10" in link.path and ext == '.zip':
                 self._log_skipped_link(link, 'macosx10 one')
@@ -662,14 +675,15 @@ class PackageFinder(object):
         # This should be up by the search.ok_binary check, but see issue 2700.
         if "source" not in search.formats and ext != wheel_ext:
             self._log_skipped_link(
-                link, 'No sources permitted for %s' % search.supplied)
+                link, 'No sources permitted for %s' % search.supplied,
+            )
             return
 
         if not version:
             version = egg_info_matches(egg_info, search.supplied, link)
         if version is None:
             self._log_skipped_link(
-                link, 'wrong project name (not %s)' % search.supplied)
+                link, 'Missing project version for %s' % search.supplied)
             return
 
         match = self._py_version_re.search(version)
@@ -829,8 +843,8 @@ class HTMLPage(object):
         except requests.HTTPError as exc:
             cls._handle_fail(link, exc, url)
         except SSLError as exc:
-            reason = ("There was a problem confirming the ssl certificate: "
-                      "%s" % exc)
+            reason = "There was a problem confirming the ssl certificate: "
+            reason += str(exc)
             cls._handle_fail(link, reason, url, meth=logger.info)
         except requests.ConnectionError as exc:
             cls._handle_fail(link, "connection error: %s" % exc, url)
@@ -898,7 +912,7 @@ class Link(object):
 
     def __init__(self, url, comes_from=None, requires_python=None):
         """
-        Object representing a parsed link from https://pypi.python.org/simple/*
+        Object representing a parsed link from https://pypi.org/simple/*
 
         url:
             url of the resource pointed to (href of the link)
@@ -1098,7 +1112,8 @@ def fmt_ctl_formats(fmt_ctl, canonical_name):
 
 def fmt_ctl_no_binary(fmt_ctl):
     fmt_ctl_handle_mutual_exclude(
-        ':all:', fmt_ctl.no_binary, fmt_ctl.only_binary)
+        ':all:', fmt_ctl.no_binary, fmt_ctl.only_binary,
+    )
 
 
 Search = namedtuple('Search', 'supplied canonical formats')

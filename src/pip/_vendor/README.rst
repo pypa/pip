@@ -43,30 +43,30 @@ way (via ``install_requires``) for pip. These issues are:
 
 * **Making other libraries uninstallable.** One of pip's current dependencies is
   the ``requests`` library, for which pip requires a fairly recent version to run.
-  If pip dependended on ``requests`` in the traditional manner, then we'd either 
-  have to maintain compatibility with every ``requests`` version that has ever 
+  If pip dependended on ``requests`` in the traditional manner, then we'd either
+  have to maintain compatibility with every ``requests`` version that has ever
   existed (and ever will), OR allow pip to render certain versions of ``requests``
-  uninstallable. (The second issue, although technically true for any Python 
-  application, is magnified by pip's ubiquity; pip is installed by default in 
+  uninstallable. (The second issue, although technically true for any Python
+  application, is magnified by pip's ubiquity; pip is installed by default in
   Python, in ``pyvenv``, and in ``virtualenv``.)
 
-* **Security.** This might seem puzzling at first glance, since vendoring 
+* **Security.** This might seem puzzling at first glance, since vendoring
   has a tendency to complicate updating dependencies for security updates,
-  and that holds true for pip. However, given the *other* reasons for avoiding 
-  dependencies, the alternative is for pip to reinvent the wheel itself. 
-  This is what pip did historically. It forced pip to re-implement its own 
-  HTTPS verification routines as a workaround for the Python standard library's 
-  lack of SSL validation, which resulted in similar bugs in the validation routine 
+  and that holds true for pip. However, given the *other* reasons for avoiding
+  dependencies, the alternative is for pip to reinvent the wheel itself.
+  This is what pip did historically. It forced pip to re-implement its own
+  HTTPS verification routines as a workaround for the Python standard library's
+  lack of SSL validation, which resulted in similar bugs in the validation routine
   in ``requests`` and ``urllib3``, except that they had to be discovered and
-  fixed independently. Even though we're vendoring, reusing libraries keeps pip 
+  fixed independently. Even though we're vendoring, reusing libraries keeps pip
   more secure by relying on the great work of our dependencies, *and* allowing for
   faster, easier security fixes by simply pulling in newer versions of dependencies.
 
 * **Bootstrapping.** Currently most popular methods of installing pip rely
-  on pip's self-contained nature to install pip itself. These tools work by bundling 
-  a copy of pip, adding it to ``sys.path``, and then executing that copy of pip. 
-  This is done instead of implementing a "mini installer" (to reduce duplication); 
-  pip already knows how to install a Python package, and is far more battle-tested 
+  on pip's self-contained nature to install pip itself. These tools work by bundling
+  a copy of pip, adding it to ``sys.path``, and then executing that copy of pip.
+  This is done instead of implementing a "mini installer" (to reduce duplication);
+  pip already knows how to install a Python package, and is far more battle-tested
   than any "mini installer" could ever possibly be.
 
 Many downstream redistributors have policies against this kind of bundling, and
@@ -92,13 +92,13 @@ such as OS packages.
 Modifications
 -------------
 
-* ``html5lib`` has been modified to ``import six from pip._vendor``
 * ``setuptools`` is completely stripped to only keep ``pkg_resources``
 * ``pkg_resources`` has been modified to import its dependencies from ``pip._vendor``
-* ``CacheControl`` has been modified to import its dependencies from ``pip._vendor``
 * ``packaging`` has been modified to import its dependencies from ``pip._vendor``
-* ``requests`` has been modified *not* to optionally load any C dependencies
-* Modified distro to delay importing ``argparse`` to avoid errors on 2.6
+* ``html5lib`` has been modified to ``import six from pip._vendor``
+* ``CacheControl`` has been modified to import its dependencies from ``pip._vendor``
+* ``requests`` has been modified to import its other dependencies from ``pip._vendor``
+  and to *not* load ``simplejson`` (all platforms) and ``pyopenssl`` (Windows).
 
 
 Automatic Vendoring

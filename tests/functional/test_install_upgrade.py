@@ -221,7 +221,7 @@ def test_uninstall_before_upgrade_from_url(script):
     )
     result2 = script.pip(
         'install',
-        'https://pypi.python.org/packages/source/I/INITools/INITools-'
+        'https://files.pythonhosted.org/packages/source/I/INITools/INITools-'
         '0.3.tar.gz',
         expect_error=True,
     )
@@ -243,7 +243,7 @@ def test_upgrade_to_same_version_from_url(script):
     )
     result2 = script.pip(
         'install',
-        'https://pypi.python.org/packages/source/I/INITools/INITools-'
+        'https://files.pythonhosted.org/packages/source/I/INITools/INITools-'
         '0.3.tar.gz',
         expect_error=True,
     )
@@ -351,7 +351,7 @@ def test_install_with_ignoreinstalled_requested(script):
 def test_upgrade_vcs_req_with_no_dists_found(script, tmpdir):
     """It can upgrade a VCS requirement that has no distributions otherwise."""
     req = "%s#egg=pip-test-package" % local_checkout(
-        "git+http://github.com/pypa/pip-test-package.git",
+        "git+https://github.com/pypa/pip-test-package.git",
         tmpdir.join("cache"),
     )
     script.pip("install", req)
@@ -373,7 +373,7 @@ def test_upgrade_vcs_req_with_dist_found(script):
     )
     script.pip("install", req, expect_stderr=True)
     result = script.pip("install", "-U", req, expect_stderr=True)
-    assert "pypi.python.org" not in result.stdout, result.stdout
+    assert "pypi.org" not in result.stdout, result.stdout
 
 
 class TestUpgradeDistributeToSetuptools(object):

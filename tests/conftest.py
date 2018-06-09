@@ -38,14 +38,14 @@ def pytest_collection_modifyitems(items):
 
             # We don't want to allow using the script resource if this is a
             # unit test, as unit tests should not need all that heavy lifting
-            if set(getattr(item, "funcargnames", [])) & set(["script"]):
+            if set(getattr(item, "funcargnames", [])) & {"script"}:
                 raise RuntimeError(
                     "Cannot use the ``script`` funcarg in a unit test: "
-                    "(filename = {0}, item = {1})".format(module_path, item)
+                    "(filename = {}, item = {})".format(module_path, item)
                 )
         else:
             raise RuntimeError(
-                "Unknown test type (filename = {0})".format(module_path)
+                "Unknown test type (filename = {})".format(module_path)
             )
 
 
@@ -137,26 +137,63 @@ def isolate(tmpdir):
         )
 
 
-@pytest.yield_fixture(scope='session')
-def virtualenv_template(tmpdir_factory):
-    tmpdir = Path(str(tmpdir_factory.mktemp('virtualenv')))
-    # Copy over our source tree so that each virtual environment is self
-    # contained
-    pip_src = tmpdir.join("pip_src").abspath
+@pytest.fixture(scope='session')
+def pip_src(tmpdir_factory):
+    pip_src = Path(str(tmpdir_factory.mktemp('pip_src'))).join('pip_src')
+    # Copy over our source tree so that each use is self contained
     shutil.copytree(
         SRC_DIR,
-        pip_src,
+        pip_src.abspath,
         ignore=shutil.ignore_patterns(
             "*.pyc", "__pycache__", "contrib", "docs", "tasks", "*.txt",
             "tests", "pip.egg-info", "build", "dist", ".tox", ".git",
         ),
     )
+    return pip_src
+
+
+@pytest.yield_fixture(scope='session')
+def virtualenv_template(tmpdir_factory, pip_src):
+    tmpdir = Path(str(tmpdir_factory.mktemp('virtualenv')))
     # Create the virtual environment
     venv = VirtualEnvironment.create(
         tmpdir.join("venv_orig"),
         pip_source_dir=pip_src,
         relocatable=True,
     )
+    # Fix `site.py`.
+    site_py = venv.lib / 'site.py'
+    with open(site_py) as fp:
+        site_contents = fp.read()
+    for pattern, replace in (
+        (
+            # Ensure `virtualenv.system_site_packages = True` (needed
+            # for testing `--user`) does not result in adding the real
+            # site-packages' directory to `sys.path`.
+            (
+                '\ndef virtual_addsitepackages(known_paths):\n'
+            ),
+            (
+                '\ndef virtual_addsitepackages(known_paths):\n'
+                '    return known_paths\n'
+            ),
+        ),
+        (
+            # Fix sites ordering: user site must be added before system site.
+            (
+                '\n    paths_in_sys = addsitepackages(paths_in_sys)'
+                '\n    paths_in_sys = addusersitepackages(paths_in_sys)\n'
+            ),
+            (
+                '\n    paths_in_sys = addusersitepackages(paths_in_sys)'
+                '\n    paths_in_sys = addsitepackages(paths_in_sys)\n'
+            ),
+        ),
+    ):
+        assert pattern in site_contents
+        site_contents = site_contents.replace(pattern, replace)
+    with open(site_py, 'w') as fp:
+        fp.write(site_contents)
     if sys.platform == 'win32':
         # Work around setuptools' easy_install.exe
         # not working properly after relocation.

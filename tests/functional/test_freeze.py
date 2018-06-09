@@ -8,7 +8,7 @@ import pytest
 
 from tests.lib import (
     _create_test_package, _create_test_package_with_srcdir, need_bzr,
-    need_mercurial
+    need_mercurial,
 )
 
 distribute_re = re.compile('^distribute==[0-9.]+\n', re.MULTILINE)
@@ -42,7 +42,7 @@ def _check_output(result, expected):
     )
 
 
-def test_freeze_basic(script):
+def test_basic_freeze(script):
     """
     Some tests of freeze, first we have to install some stuff.  Note that
     the test is a little crude at the end because Python 2.5+ adds egg
@@ -80,7 +80,7 @@ def test_freeze_with_invalid_names(script):
 
     def fake_install(pkgname, dest):
         egg_info_path = os.path.join(
-            dest, '{0}-1.0-py{1}.{2}.egg-info'.format(
+            dest, '{}-1.0-py{}.{}.egg-info'.format(
                 pkgname.replace('-', '_'),
                 sys.version_info[0],
                 sys.version_info[1]
@@ -89,7 +89,7 @@ def test_freeze_with_invalid_names(script):
         with open(egg_info_path, 'w') as egg_info_file:
             egg_info_file.write(textwrap.dedent("""\
                 Metadata-Version: 1.0
-                Name: {0}
+                Name: {}
                 Version: 1.0
                 """.format(pkgname)
             ))
@@ -105,12 +105,12 @@ def test_freeze_with_invalid_names(script):
     for pkgname in valid_pkgnames:
         _check_output(
             result.stdout,
-            '...{0}==1.0...'.format(pkgname.replace('_', '-'))
+            '...{}==1.0...'.format(pkgname.replace('_', '-'))
         )
     for pkgname in invalid_pkgnames:
         _check_output(
             result.stderr,
-            '...Could not parse requirement: {0}\n...'.format(
+            '...Could not parse requirement: {}\n...'.format(
                 pkgname.replace('_', '-')
             )
         )
@@ -519,7 +519,7 @@ def test_freeze_with_requirement_option_package_repeated_one_file(script):
     """)
     expected_out += _freeze_req_opts
     expected_out += "## The following requirements were added by pip freeze:"
-    expected_out += os.linesep + textwrap.dedent("""\
+    expected_out += '\n' + textwrap.dedent("""\
         ...meta==1.0...
     """)
     _check_output(result.stdout, expected_out)
@@ -555,7 +555,7 @@ def test_freeze_with_requirement_option_package_repeated_multi_file(script):
     """)
     expected_out += _freeze_req_opts
     expected_out += "## The following requirements were added by pip freeze:"
-    expected_out += os.linesep + textwrap.dedent("""\
+    expected_out += '\n' + textwrap.dedent("""\
         ...meta==1.0...
     """)
     _check_output(result.stdout, expected_out)

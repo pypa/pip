@@ -6,13 +6,14 @@ import os
 
 from pip._vendor import pkg_resources, requests
 
+from pip._internal.build_env import BuildEnvironment
 from pip._internal.compat import expanduser
 from pip._internal.download import (
-    is_dir_url, is_file_url, is_vcs_url, unpack_url, url_to_path
+    is_dir_url, is_file_url, is_vcs_url, unpack_url, url_to_path,
 )
 from pip._internal.exceptions import (
     DirectoryUrlHashUnsupported, HashUnpinned, InstallationError,
-    PreviousBuildDirError, VcsHashUnsupported
+    PreviousBuildDirError, VcsHashUnsupported,
 )
 from pip._internal.utils.hashes import MissingHashes
 from pip._internal.utils.logging import indent_log
@@ -64,7 +65,7 @@ class DistAbstraction(object):
         """Return a setuptools Dist object."""
         raise NotImplementedError(self.dist)
 
-    def prep_for_dist(self):
+    def prep_for_dist(self, finder):
         """Ensure that we can get a Dist for this requirement."""
         raise NotImplementedError(self.dist)
 
@@ -75,7 +76,7 @@ class IsWheel(DistAbstraction):
         return list(pkg_resources.find_distributions(
             self.req.source_dir))[0]
 
-    def prep_for_dist(self):
+    def prep_for_dist(self, finder, build_isolation):
         # FIXME:https://github.com/pypa/pip/issues/1112
         pass
 
@@ -85,13 +86,41 @@ class IsSDist(DistAbstraction):
     def dist(self, finder):
         dist = self.req.get_dist()
         # FIXME: shouldn't be globally added.
-        if dist.has_metadata('dependency_links.txt'):
+        if finder and dist.has_metadata('dependency_links.txt'):
             finder.add_dependency_links(
                 dist.get_metadata_lines('dependency_links.txt')
             )
         return dist
 
-    def prep_for_dist(self):
+    def prep_for_dist(self, finder, build_isolation):
+        # Before calling "setup.py egg_info", we need to set-up the build
+        # environment.
+        build_requirements, isolate = self.req.get_pep_518_info()
+        should_isolate = build_isolation and isolate
+
+        minimum_requirements = ('setuptools', 'wheel')
+        missing_requirements = set(minimum_requirements) - set(
+            pkg_resources.Requirement(r).key
+            for r in build_requirements
+        )
+        if missing_requirements:
+            def format_reqs(rs):
+                return ' and '.join(map(repr, sorted(rs)))
+            logger.warning(
+                "Missing build time requirements in pyproject.toml for %s: "
+                "%s.", self.req, format_reqs(missing_requirements)
+            )
+            logger.warning(
+                "This version of pip does not implement PEP 517 so it cannot "
+                "build a wheel without %s.", format_reqs(minimum_requirements)
+            )
+
+        if should_isolate:
+            self.req.build_env = BuildEnvironment()
+            self.req.build_env.install_requirements(
+                finder, build_requirements,
+                "Installing build dependencies")
+
         self.req.run_egg_info()
         self.req.assert_source_matches_version()
 
@@ -101,7 +130,7 @@ class Installed(DistAbstraction):
     def dist(self, finder):
         return self.req.satisfied_by
 
-    def prep_for_dist(self):
+    def prep_for_dist(self, finder):
         pass
 
 
@@ -110,7 +139,7 @@ class RequirementPreparer(object):
     """
 
     def __init__(self, build_dir, download_dir, src_dir, wheel_download_dir,
-                 progress_bar):
+                 progress_bar, build_isolation):
         super(RequirementPreparer, self).__init__()
 
         self.src_dir = src_dir
@@ -133,6 +162,9 @@ class RequirementPreparer(object):
         # the wheelhouse output by 'pip wheel'.
 
         self.progress_bar = progress_bar
+
+        # Is build isolation allowed?
+        self.build_isolation = build_isolation
 
     @property
     def _download_should_save(self):
@@ -259,14 +291,15 @@ class RequirementPreparer(object):
                     (req, exc, req.link)
                 )
             abstract_dist = make_abstract_dist(req)
-            abstract_dist.prep_for_dist()
+            abstract_dist.prep_for_dist(finder, self.build_isolation)
             if self._download_should_save:
                 # Make a .zip of the source_dir we already created.
                 if req.link.scheme in vcs.all_schemes:
                     req.archive(self.download_dir)
         return abstract_dist
 
-    def prepare_editable_requirement(self, req, require_hashes):
+    def prepare_editable_requirement(self, req, require_hashes, use_user_site,
+                                     finder):
         """Prepare an editable requirement
         """
         assert req.editable, "cannot prepare a non-editable req as editable"
@@ -284,11 +317,11 @@ class RequirementPreparer(object):
             req.update_editable(not self._download_should_save)
 
             abstract_dist = make_abstract_dist(req)
-            abstract_dist.prep_for_dist()
+            abstract_dist.prep_for_dist(finder, self.build_isolation)
 
             if self._download_should_save:
                 req.archive(self.download_dir)
-            req.check_if_exists()
+            req.check_if_exists(use_user_site)
 
         return abstract_dist
 

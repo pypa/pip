@@ -6,17 +6,15 @@ import logging.config
 import optparse
 import os
 import sys
-import warnings
 
 from pip._internal import cmdoptions
 from pip._internal.baseparser import (
-    ConfigOptionParser, UpdatingDefaultsHelpFormatter
+    ConfigOptionParser, UpdatingDefaultsHelpFormatter,
 )
-from pip._internal.compat import WINDOWS
 from pip._internal.download import PipSession
 from pip._internal.exceptions import (
     BadCommand, CommandError, InstallationError, PreviousBuildDirError,
-    UninstallationError
+    UninstallationError,
 )
 from pip._internal.index import PackageFinder
 from pip._internal.locations import running_under_virtualenv
@@ -24,9 +22,8 @@ from pip._internal.req.req_file import parse_requirements
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.status_codes import (
     ERROR, PREVIOUS_BUILD_DIR_ERROR, SUCCESS, UNKNOWN_ERROR,
-    VIRTUALENV_NOT_FOUND
+    VIRTUALENV_NOT_FOUND,
 )
-from pip._internal.utils import deprecation
 from pip._internal.utils.logging import IndentingFormatter
 from pip._internal.utils.misc import get_prog, normalize_path
 from pip._internal.utils.outdated import pip_version_check
@@ -114,14 +111,16 @@ class Command(object):
     def main(self, args):
         options, args = self.parse_args(args)
 
-        verbosity = options.verbose - options.quiet
-        if verbosity >= 1:
+        # Set verbosity so that it can be used elsewhere.
+        self.verbosity = options.verbose - options.quiet
+
+        if self.verbosity >= 1:
             level = "DEBUG"
-        elif verbosity == -1:
+        elif self.verbosity == -1:
             level = "WARNING"
-        elif verbosity == -2:
+        elif self.verbosity == -2:
             level = "ERROR"
-        elif verbosity <= -3:
+        elif self.verbosity <= -3:
             level = "CRITICAL"
         else:
             level = "INFO"
@@ -131,6 +130,9 @@ class Command(object):
         root_level = level
         if options.log:
             root_level = "DEBUG"
+
+        logger_class = "pip._internal.utils.logging.ColorizedStreamHandler"
+        handler_class = "pip._internal.utils.logging.BetterRotatingFileHandler"
 
         logging.config.dictConfig({
             "version": 1,
@@ -150,24 +152,22 @@ class Command(object):
             "handlers": {
                 "console": {
                     "level": level,
-                    "class":
-                        "pip._internal.utils.logging.ColorizedStreamHandler",
+                    "class": logger_class,
+                    "no_color": options.no_color,
                     "stream": self.log_streams[0],
                     "filters": ["exclude_warnings"],
                     "formatter": "indent",
                 },
                 "console_errors": {
                     "level": "WARNING",
-                    "class":
-                        "pip._internal.utils.logging.ColorizedStreamHandler",
+                    "class": logger_class,
+                    "no_color": options.no_color,
                     "stream": self.log_streams[1],
                     "formatter": "indent",
                 },
                 "user_log": {
                     "level": "DEBUG",
-                    "class":
-                        ("pip._internal.utils.logging"
-                         ".BetterRotatingFileHandler"),
+                    "class": handler_class,
                     "filename": options.log or "/dev/null",
                     "delay": True,
                     "formatter": "indent",
@@ -184,23 +184,16 @@ class Command(object):
             # Disable any logging besides WARNING unless we have DEBUG level
             # logging enabled. These use both pip._vendor and the bare names
             # for the case where someone unbundles our libraries.
-            "loggers": dict(
-                (name, {
+            "loggers": {
+                name: {
                     "level": (
                         "WARNING" if level in ["INFO", "ERROR"] else "DEBUG"
                     )
-                }) for name in [
+                } for name in [
                     "pip._vendor", "distlib", "requests", "urllib3"
                 ]
-            ),
+            },
         })
-
-        if sys.version_info[:2] == (3, 3):
-            warnings.warn(
-                "Python 3.3 supported has been deprecated and support for it "
-                "will be dropped in the future. Please upgrade your Python.",
-                deprecation.RemovedInPip11Warning,
-            )
 
         # TODO: try to get these passing down from the command?
         #      without resorting to os.environ to hold these.
@@ -280,35 +273,37 @@ class RequirementCommand(Command):
         #       requirement_set.require_hashes may be updated
 
         for filename in options.constraints:
-            for req in parse_requirements(
+            for req_to_add in parse_requirements(
                     filename,
                     constraint=True, finder=finder, options=options,
                     session=session, wheel_cache=wheel_cache):
-                requirement_set.add_requirement(req)
+                req_to_add.is_direct = True
+                requirement_set.add_requirement(req_to_add)
 
         for req in args:
-            requirement_set.add_requirement(
-                InstallRequirement.from_line(
-                    req, None, isolated=options.isolated_mode,
-                    wheel_cache=wheel_cache
-                )
+            req_to_add = InstallRequirement.from_line(
+                req, None, isolated=options.isolated_mode,
+                wheel_cache=wheel_cache
             )
+            req_to_add.is_direct = True
+            requirement_set.add_requirement(req_to_add)
 
         for req in options.editables:
-            requirement_set.add_requirement(
-                InstallRequirement.from_editable(
-                    req,
-                    isolated=options.isolated_mode,
-                    wheel_cache=wheel_cache
-                )
+            req_to_add = InstallRequirement.from_editable(
+                req,
+                isolated=options.isolated_mode,
+                wheel_cache=wheel_cache
             )
+            req_to_add.is_direct = True
+            requirement_set.add_requirement(req_to_add)
 
         for filename in options.requirements:
-            for req in parse_requirements(
+            for req_to_add in parse_requirements(
                     filename,
                     finder=finder, options=options, session=session,
                     wheel_cache=wheel_cache):
-                requirement_set.add_requirement(req)
+                req_to_add.is_direct = True
+                requirement_set.add_requirement(req_to_add)
         # If --require-hashes was a line in a requirements file, tell
         # RequirementSet about it:
         requirement_set.require_hashes = options.require_hashes
@@ -324,23 +319,6 @@ class RequirementCommand(Command):
                 raise CommandError(
                     'You must give at least one requirement to %(name)s '
                     '(see "pip help %(name)s")' % opts)
-
-        # On Windows, any operation modifying pip should be run as:
-        #     python -m pip ...
-        # See https://github.com/pypa/pip/issues/1299 for more discussion
-        should_show_use_python_msg = (
-            WINDOWS and
-            requirement_set.has_requirement('pip') and
-            "pip" in os.path.basename(sys.argv[0])
-        )
-        if should_show_use_python_msg:
-            new_command = [
-                sys.executable, "-m", "pip"
-            ] + sys.argv[1:]
-            raise CommandError(
-                'To modify pip, please run the following command:\n{}'
-                .format(" ".join(new_command))
-            )
 
     def _build_package_finder(self, options, session,
                               platform=None, python_versions=None,
@@ -365,4 +343,5 @@ class RequirementCommand(Command):
             versions=python_versions,
             abi=abi,
             implementation=implementation,
+            prefer_binary=options.prefer_binary,
         )
