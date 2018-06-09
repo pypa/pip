@@ -53,6 +53,10 @@ def test_only_if_needed_does_not_upgrade_deps_when_satisfied(script):
         (script.site_packages / 'simple-2.0-py%s.egg-info' % pyversion)
         not in result.files_deleted
     ), "should not have uninstalled simple==2.0"
+    assert (
+        "Requirement already satisfied, skipping upgrade: simple"
+        in result.stdout
+    ), "did not print correct message for not-upgraded requirement"
 
 
 def test_only_if_needed_does_upgrade_deps_when_no_longer_satisfied(script):
