@@ -38,7 +38,7 @@ each is, in the following order:
    an error).
 3. Local file (a sdist or wheel format archive, following the naming
    conventions for those formats).
-4. A requirement, as specified in PEP 440.
+4. A requirement, as specified in :pep:`440`.
 
 Each item identified is added to the set of requirements to be satisfied by
 the install.
@@ -237,7 +237,7 @@ Requirement Specifiers
 pip supports installing from a package index using a :term:`requirement
 specifier <pypug:Requirement Specifier>`. Generally speaking, a requirement
 specifier is composed of a project name followed by optional :term:`version
-specifiers <pypug:Version Specifier>`.  `PEP508`_ contains a full specification
+specifiers <pypug:Version Specifier>`.  :pep:`508` contains a full specification
 of the format of a requirement (``pip`` does not support the ``url_req`` form
 of specifier at this time).
 
@@ -311,7 +311,7 @@ Pre-release Versions
 ++++++++++++++++++++
 
 Starting with v1.4, pip will only install stable versions as specified by
-`pre-releases`_ by default. If a version cannot be parsed as a compliant `PEP440`_
+`pre-releases`_ by default. If a version cannot be parsed as a compliant :pep:`440`
 version then it is assumed to be a pre-release.
 
 If a Requirement specifier includes a pre-release or development version
@@ -484,7 +484,7 @@ pip looks for packages in a number of places, on PyPI (if not disabled via
 ```--no-index```), in the local filesystem, and in any additional repositories
 specified via ```--find-links``` or ```--index-url```. There is no ordering in
 the locations that are searched, rather they are all checked, and the "best"
-match for the requirements (in terms of version number - see `PEP440`_ for
+match for the requirements (in terms of version number - see :pep:`440` for
 details) is selected.
 
 See the :ref:`pip install Examples<pip install Examples>`.
@@ -881,6 +881,3 @@ Examples
 
 .. [1] This is true with the exception that pip v7.0 and v7.0.1 required quotes
        around specifiers containing environment markers in requirement files.
-
-.. _PEP440: https://www.python.org/dev/peps/pep-0440/
-.. _PEP508: https://www.python.org/dev/peps/pep-0508/
