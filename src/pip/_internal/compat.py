@@ -164,7 +164,7 @@ def expanduser(path):
     """
     Expand ~ and ~user constructions.
 
-    Includes a workaround for http://bugs.python.org/issue14768
+    Includes a workaround for https://bugs.python.org/issue14768
     """
     expanded = os.path.expanduser(path)
     if path.startswith('~/') and expanded.startswith('//'):

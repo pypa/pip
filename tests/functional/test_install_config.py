@@ -51,7 +51,7 @@ def test_env_vars_override_config_file(script, virtualenv):
         _test_env_vars_override_config_file(script, virtualenv, config_file)
     finally:
         # `os.close` is a workaround for a bug in subprocess
-        # http://bugs.python.org/issue3210
+        # https://bugs.python.org/issue3210
         os.close(fd)
         os.remove(config_file)
 
@@ -141,7 +141,7 @@ def test_config_file_override_stack(script, virtualenv):
         _test_config_file_override_stack(script, virtualenv, config_file)
     finally:
         # `os.close` is a workaround for a bug in subprocess
-        # http://bugs.python.org/issue3210
+        # https://bugs.python.org/issue3210
         os.close(fd)
         os.remove(config_file)
 

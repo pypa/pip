@@ -43,7 +43,7 @@ class Git(VersionControl):
     def __init__(self, url=None, *args, **kwargs):
 
         # Works around an apparent Git bug
-        # (see http://article.gmane.org/gmane.comp.version-control.git/146500)
+        # (see https://article.gmane.org/gmane.comp.version-control.git/146500)
         if url:
             scheme, netloc, path, query, fragment = urlsplit(url)
             if scheme.endswith('file'):

@@ -157,8 +157,8 @@ appropriately.
 * ``pip<18.0`` does not support the use of environment markers and extras, only
   version specifiers are respected.
 
-.. _PEP517: http://www.python.org/dev/peps/pep-0517/
-.. _PEP518: http://www.python.org/dev/peps/pep-0518/
+.. _PEP517: https://www.python.org/dev/peps/pep-0517/
+.. _PEP518: https://www.python.org/dev/peps/pep-0518/
 
 Future Developments
 ~~~~~~~~~~~~~~~~~~~
@@ -173,7 +173,7 @@ have migrated.
 Specifically, applications should *not* expect to rely on there being any form
 of backward compatibility guarantees around the ``setup.py`` interface.
 
-.. _PEP426: http://www.python.org/dev/peps/pep-0426/#metabuild-system
+.. _PEP426: https://www.python.org/dev/peps/pep-0426/#metabuild-system
 
 Build Options
 ~~~~~~~~~~~~~

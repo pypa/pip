@@ -177,8 +177,8 @@ Installing from Wheels
 "Wheel" is a built, archive format that can greatly speed installation compared
 to building and installing from source archives. For more information, see the
 `Wheel docs <https://wheel.readthedocs.io>`_ ,
-`PEP427 <http://www.python.org/dev/peps/pep-0427>`_, and
-`PEP425 <http://www.python.org/dev/peps/pep-0425>`_
+`PEP427 <https://www.python.org/dev/peps/pep-0427/>`_, and
+`PEP425 <https://www.python.org/dev/peps/pep-0425/>`_
 
 Pip prefers Wheels where they are available. To disable this, use the
 :ref:`--no-binary <install_--no-binary>` flag for :ref:`pip install`.
@@ -355,7 +355,7 @@ look like this:
 
     [global]
     timeout = 60
-    index-url = http://download.zope.org/ppix
+    index-url = https://download.zope.org/ppix
 
 Each subcommand can be configured optionally in its own section so that every
 global setting with the same name will be overridden; e.g. decreasing the
@@ -527,11 +527,11 @@ User Installs
 *************
 
 With Python 2.6 came the `"user scheme" for installation
-<http://docs.python.org/install/index.html#alternate-installation-the-user-scheme>`_,
+<https://docs.python.org/3/install/index.html#alternate-installation-the-user-scheme>`_,
 which means that all Python distributions support an alternative install
 location that is specific to a user.  The default location for each OS is
 explained in the python documentation for the `site.USER_BASE
-<http://docs.python.org/library/site.html#site.USER_BASE>`_ variable.  This mode
+<https://docs.python.org/3/library/site.html#site.USER_BASE>`_ variable.  This mode
 of installation can be turned on by specifying the :ref:`--user
 <install_--user>` option to ``pip install``.
 
