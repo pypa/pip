@@ -51,9 +51,9 @@ VERSION_COMPATIBLE = (1, 0)
 logger = logging.getLogger(__name__)
 
 
-def rehash(path, algo='sha256', blocksize=1 << 20):
-    """Return (hash, length) for path using hashlib.new(algo)"""
-    h = hashlib.new(algo)
+def rehash(path, blocksize=1 << 20):
+    """Return (hash, length) for path using hashlib.sha256()"""
+    h = hashlib.sha256()
     length = 0
     with open(path, 'rb') as f:
         for block in read_chunks(f, size=blocksize):
