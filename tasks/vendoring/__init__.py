@@ -150,7 +150,11 @@ def update_stubs(ctx):
 
     extra_stubs_needed = {
         # Some projects need stubs other than a simple <name>.pyi
-        "six": ["six.__init__", "six.moves"],
+        "six": [
+            "six.__init__",
+            "six.moves.__init__",
+            "six.moves.configparser",
+        ],
         # Some projects should not have stubs coz they're single file modules
         "appdirs": [],
     }

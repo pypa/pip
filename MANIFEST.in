@@ -22,6 +22,7 @@ recursive-include src/pip/_vendor *.pem
 recursive-include docs Makefile *.rst *.py *.bat
 
 exclude src/pip/_vendor/six
+exclude src/pip/_vendor/six/moves
 recursive-exclude src/pip/_vendor *.pyi
 
 prune .github
