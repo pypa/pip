@@ -16,7 +16,7 @@ from pip._vendor.distlib.compat import unescape
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import parse as parse_version
-from pip._vendor.requests.exceptions import SSLError, RetryError
+from pip._vendor.requests.exceptions import RetryError, SSLError
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
