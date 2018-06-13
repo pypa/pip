@@ -716,7 +716,7 @@ Package Index Options have an effect.
 
 The solution is to configure a "system" or "personal" `Distutils configuration
 file
-<http://docs.python.org/2/install/index.html#distutils-configuration-files>`_ to
+<https://docs.python.org/3/install/index.html#distutils-configuration-files>`_ to
 manage the fulfillment.
 
 For example, to have the dependency located at an alternate index, add this:
