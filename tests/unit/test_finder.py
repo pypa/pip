@@ -296,8 +296,26 @@ def test_finder_priority_file_over_page(data):
     assert all(version.location.scheme == 'https'
                for version in all_versions[1:]), all_versions
 
+
+def test_finder_priority_older_file_over_newer_page(data):
+    """
+    Test PackageFinder prefers an older local package file over newer page link
+    """
+    links = [data.find_links,  'https://foo/gmpy-1.16.tar.gz']
+    finder = PackageFinder(
+        links,
+        ["http://pypi.org/simple/"],
+        session=PipSession(),
+    )
+    req = InstallRequirement.from_line('gmpy', None)
+    all_versions = finder.find_all_candidates(req.name)
+
+    assert all_versions[0].location.scheme == 'file'
+    assert all_versions[1].location.scheme == 'https'
+
     link = finder.find_requirement(req, False)
     assert link.url.startswith("file://")
+    assert link.filename == "gmpy-1.15.tar.gz"
 
 
 def test_finder_deplink():

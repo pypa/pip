@@ -513,12 +513,19 @@ class PackageFinder(object):
             # Again, converting to str to deal with debundling.
             c for c in all_candidates if str(c.version) in compatible_versions
         ]
+        best_candidate = None
 
-        if applicable_candidates:
+        # See if there are any candidates found locally provided by find_links
+        if self.find_links:
+            file_candidates = [cand for cand in applicable_candidates
+                               if cand.location.scheme == "file"]
+            if file_candidates:
+                best_candidate = max(file_candidates,
+                                     key=self._candidate_sort_key)
+
+        if applicable_candidates and best_candidate is None:
             best_candidate = max(applicable_candidates,
                                  key=self._candidate_sort_key)
-        else:
-            best_candidate = None
 
         if req.satisfied_by is not None:
             installed_version = parse_version(req.satisfied_by.version)
