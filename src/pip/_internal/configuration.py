@@ -27,7 +27,9 @@ from pip._internal.utils.misc import ensure_dir, enum
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Dict, Iterable, List, NewType, Optional, Tuple
+    from typing import (  # noqa: F401
+        Any, Dict, Iterable, List, NewType, Optional, Tuple
+    )
 
     RawConfigParser = configparser.RawConfigParser  # Shorthand
     Kind = NewType("Kind", str)

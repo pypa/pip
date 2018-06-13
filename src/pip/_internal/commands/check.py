@@ -4,7 +4,6 @@ from pip._internal.basecommand import Command
 from pip._internal.operations.check import (
     check_package_set, create_package_set_from_installed,
 )
-from pip._internal.utils.misc import get_installed_distributions
 
 logger = logging.getLogger(__name__)
 

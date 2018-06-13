@@ -28,7 +28,7 @@ from pip._internal.compat import native_str
 from pip._internal.download import (
     is_archive_file, is_url, path_to_url, url_to_path,
 )
-from pip._internal.exceptions import InstallationError, UninstallationError
+from pip._internal.exceptions import InstallationError
 from pip._internal.locations import (
     PIP_DELETE_MARKER_FILENAME, running_under_virtualenv,
 )

@@ -1,7 +1,6 @@
 """Handles all VCS (version control) support"""
 from __future__ import absolute_import
 
-import copy
 import errno
 import logging
 import os
@@ -17,8 +16,8 @@ from pip._internal.utils.misc import (
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Dict, Optional, Tuple
-    from pip._internal.basecommand import Command
+    from typing import Dict, Optional, Tuple  # noqa: F401
+    from pip._internal.basecommand import Command  # noqa: F401
 
 __all__ = ['vcs', 'get_src_requirement']
 

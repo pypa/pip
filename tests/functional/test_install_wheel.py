@@ -1,7 +1,6 @@
 import distutils
 import glob
 import os
-import sys
 
 import pytest
 

@@ -9,7 +9,7 @@ import warnings
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any
+    from typing import Any  # noqa: F401
 
 
 class PipDeprecationWarning(Warning):
