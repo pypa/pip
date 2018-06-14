@@ -1,6 +1,7 @@
 from __future__ import with_statement
 
 import json
+import logging
 import os
 import sys
 import textwrap
@@ -410,6 +411,9 @@ def test_uninstallpathset_no_paths(caplog):
     """
     from pip._internal.req.req_uninstall import UninstallPathSet
     from pkg_resources import get_distribution
+
+    caplog.set_level(logging.INFO)
+
     test_dist = get_distribution('pip')
     uninstall_set = UninstallPathSet(test_dist)
     uninstall_set.remove()  # with no files added to set
