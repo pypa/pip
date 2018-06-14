@@ -319,7 +319,7 @@ If a Requirement specifier includes a pre-release or development version
 for that requirement. This does not include the != flag.
 
 The ``pip install`` command also supports a :ref:`--pre <install_--pre>` flag
-that will enable installing pre-releases and development releases.
+that enables installation of pre-releases and development releases.
 
 
 .. _pre-releases: https://www.python.org/dev/peps/pep-0440/#handling-of-pre-releases
