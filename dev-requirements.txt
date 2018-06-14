@@ -1,11 +1,11 @@
 freezegun
+mock
 pretend
 pytest
 pytest-cov
 pytest-rerunfailures
 pytest-timeout
 pytest-xdist
-mock
 scripttest
 https://github.com/pypa/virtualenv/archive/master.zip#egg=virtualenv
 # Revert the following hack after a PyYAML is released supporting Py3.7
