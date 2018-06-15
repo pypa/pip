@@ -12,8 +12,6 @@ include docs/docutils.conf
 exclude .coveragerc
 exclude .mailmap
 exclude .travis.yml
-exclude .landscape.yml
-exclude src/pip/_vendor/Makefile
 exclude tox.ini
 exclude *-requirements.txt
 exclude appveyor.yml
