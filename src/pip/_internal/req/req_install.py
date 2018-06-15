@@ -560,10 +560,10 @@ class InstallRequirement(object):
 
             if not filenames:
                 raise InstallationError(
-                    'No files/directories in %s (from %s)' % (base, filename)
+                    'Could not find files/directories in %s (from %s)' % (base, filename)
                 )
             assert filenames, \
-                "No files/directories in %s (from %s)" % (base, filename)
+                "Could not find files/directories in %s (from %s)" % (base, filename)
 
             # if we have more than one match, we pick the toplevel one.  This
             # can easily be the case if there is a dist folder which contains
