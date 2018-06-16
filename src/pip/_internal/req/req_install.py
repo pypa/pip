@@ -562,8 +562,6 @@ class InstallRequirement(object):
                 raise InstallationError(
                     "Files/directories (from %s) " +
                     "not found in %s" % (filename, base))
-            assert filenames, "Files/directories (from %s) " + \
-                              "not found in %s" % (filename, base)
 
             # if we have more than one match, we pick the toplevel one.  This
             # can easily be the case if there is a dist folder which contains
