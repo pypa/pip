@@ -559,10 +559,11 @@ class InstallRequirement(object):
                 filenames = [f for f in filenames if f.endswith('.egg-info')]
 
             if not filenames:
-                error_message="Files/directories (from %s) " + \
-                    "not found in %s " % (filename, base)
-                raise InstallationError(error_message)
-            assert filenames, error_message
+                raise InstallationError(
+                    "Files/directories (from %s) " +
+                    "not found in %s" % (filename, base))
+            assert filenames, "Files/directories (from %s) " + \
+                              "not found in %s" % (filename, base)
 
             # if we have more than one match, we pick the toplevel one.  This
             # can easily be the case if there is a dist folder which contains
