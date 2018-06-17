@@ -3,7 +3,7 @@
 
 from pip._vendor.packaging.version import parse as parse_version
 
-from pip._internal.models import index
+from pip._internal.models import index, candidate
 
 
 class TestPackageIndex(object):
@@ -26,3 +26,22 @@ class TestPackageIndex(object):
         assert pack_index.url == "https://pypi.org/"
         assert pack_index.simple_url == "https://pypi.org/simple"
         assert pack_index.pypi_url == "https://pypi.org/pypi"
+
+
+class TestInstallationCandidate(object):
+
+    def test_sets_correct_variables(self):
+        obj = candidate.InstallationCandidate(
+            "A", "1.0.0", "https://somewhere.com/path/A-1.0.0.tar.gz"
+        )
+        assert obj.project == "A"
+        assert obj.version == parse_version("1.0.0")
+        assert obj.location == "https://somewhere.com/path/A-1.0.0.tar.gz"
+
+    # NOTE: This isn't checking the ordering logic; only the data provided to
+    #       it is correct.
+    def test_sets_the_right_key(self):
+        obj = candidate.InstallationCandidate(
+            "A", "1.0.0", "https://somewhere.com/path/A-1.0.0.tar.gz"
+        )
+        assert obj._key == (obj.project, obj.version, obj.location)

@@ -28,6 +28,7 @@ from pip._internal.exceptions import (
     UnsupportedWheel,
 )
 from pip._internal.models.index import PyPI
+from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.pep425tags import get_supported
 from pip._internal.utils.deprecation import RemovedInPip11Warning
 from pip._internal.utils.logging import indent_log
@@ -55,47 +56,6 @@ SECURE_ORIGINS = [
 
 
 logger = logging.getLogger(__name__)
-
-
-class InstallationCandidate(object):
-
-    def __init__(self, project, version, location):
-        self.project = project
-        self.version = parse_version(version)
-        self.location = location
-        self._key = (self.project, self.version, self.location)
-
-    def __repr__(self):
-        return "<InstallationCandidate({!r}, {!r}, {!r})>".format(
-            self.project, self.version, self.location,
-        )
-
-    def __hash__(self):
-        return hash(self._key)
-
-    def __lt__(self, other):
-        return self._compare(other, lambda s, o: s < o)
-
-    def __le__(self, other):
-        return self._compare(other, lambda s, o: s <= o)
-
-    def __eq__(self, other):
-        return self._compare(other, lambda s, o: s == o)
-
-    def __ge__(self, other):
-        return self._compare(other, lambda s, o: s >= o)
-
-    def __gt__(self, other):
-        return self._compare(other, lambda s, o: s > o)
-
-    def __ne__(self, other):
-        return self._compare(other, lambda s, o: s != o)
-
-    def _compare(self, other, method):
-        if not isinstance(other, InstallationCandidate):
-            return NotImplemented
-
-        return method(self._key, other._key)
 
 
 class PackageFinder(object):
