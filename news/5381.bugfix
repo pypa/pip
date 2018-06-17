@@ -1,0 +1,1 @@
+Make error output a little more specific when pip install can't find any files as listed in PKG-INFO
