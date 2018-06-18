@@ -37,24 +37,12 @@ def test_pep518_uses_build_env(script, data, common_wheels, command, variant):
     )
 
 
-def test_pep518_refuses_missing_requires(script, data, common_wheels):
+@pytest.mark.parametrize(
+    "package", ["pep518_invalid_requires", "pep518_missing_requires"]
+)
+def test_pep518_refuses_invalid_requires(script, data, common_wheels, package):
     result = script.pip(
-        'install',
-        '-f', common_wheels,
-        '-f', data.find_links,
-        data.src.join("pep518_missing_requires"),
-        expect_error=True
-    )
-    assert result.returncode == 1
-    assert "does not comply with PEP 518" in result.stderr
-
-
-def test_pep518_refuses_invalid_requires(script, data, common_wheels):
-    result = script.pip(
-        'install',
-        '-f', common_wheels,
-        '-f', data.find_links,
-        data.src.join("pep518_invalid_requires"),
+        'install', '-f', common_wheels, data.src.join(package),
         expect_error=True
     )
     assert result.returncode == 1
