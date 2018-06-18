@@ -39,8 +39,7 @@ class ShowCommand(Command):
         query = args
 
         results = search_packages_info(query)
-        if not print_results(
-                results, list_files=options.files, verbose=options.verbose):
+        if not print_results(results, options):
             return ERROR
         return SUCCESS
 
@@ -118,7 +117,7 @@ def search_packages_info(query):
         yield package
 
 
-def print_results(distributions, list_files=False, verbose=False):
+def print_results(distributions, options):
     """
     Print the informations from installed distributions found.
     """
@@ -145,7 +144,7 @@ def print_results(distributions, list_files=False, verbose=False):
         logger.info("Requires: %s", ', '.join(dist.get('requires', [])))
         logger.info("Required-by: %s", ', '.join(required_by))
 
-        if verbose:
+        if options.verbose:
             logger.info("Metadata-Version: %s",
                         dist.get('metadata-version', ''))
             logger.info("Installer: %s", dist.get('installer', ''))
@@ -155,7 +154,7 @@ def print_results(distributions, list_files=False, verbose=False):
             logger.info("Entry-points:")
             for entry in dist.get('entry_points', []):
                 logger.info("  %s", entry.strip())
-        if list_files:
+        if options.list_files:
             logger.info("Files:")
             for line in dist.get('files', []):
                 logger.info("  %s", line.strip())
