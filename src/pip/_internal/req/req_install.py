@@ -560,42 +560,40 @@ class InstallRequirement(object):
         return pp_toml
 
     def get_pep_518_info(self):
-        """Get a list of the packages required to build the project, if any,
-        and a flag indicating whether pyproject.toml is present, indicating
-        that the build should be isolated.
+        """Get PEP 518 build-time requirements.
 
-        Build requirements can be specified in a pyproject.toml, as described
-        in PEP 518. If this file exists but doesn't specify build
-        requirements, pip will default to installing setuptools and wheel.
+        Returns the list of the packages required to build the project,
+        specified as per PEP 518 within the package. If `pyproject.toml` is not
+        present, returns None to signify not using the same.
         """
-        if os.path.isfile(self.pyproject_toml):
-            with io.open(self.pyproject_toml, encoding="utf-8") as f:
-                pp_toml = pytoml.load(f)
+        if not os.path.isfile(self.pyproject_toml):
+            return None
 
-            build_system = pp_toml.get('build-system', {})
-            if "requires" not in build_system:
-                raise InstallationError(
-                    "{} does not comply with PEP 518 as it since it's "
-                    "pyproject.toml file does not have a '[build-system]' "
-                    "table with a 'requires' key."
-                    .format(self)
-                )
+        with io.open(self.pyproject_toml, encoding="utf-8") as f:
+            pp_toml = pytoml.load(f)
 
-            requires = build_system["requires"]
+        # Extract the build requirements
+        requires = pp_toml.get("build-system", {}).get("requires", None)
+
+        # Error out if it's not valid
+        error_reason = None
+        if requires is None:
+            error_reason = "is missing."
+        else:
             is_list_of_str = isinstance(requires, list) and all(
-                isinstance(req, str) for req in requires
+                isinstance(req, six.string_types) for req in requires
             )
             if not is_list_of_str:
-                raise InstallationError(
-                    "{} does not comply with PEP 518 as it since it's "
-                    "pyproject.toml file contains [build-system].requires "
-                    "which is not a list of strings."
-                    .format(self)
-                )
+                error_reason = "not a list of strings."
+        if error_reason is not None:
+            msg = (
+                "{} does not comply with PEP 518 since pyproject.toml does "
+                "not contain a valid '[build-system].requires' key: {}"
+            ).format(self, error_reason)
+            raise InstallationError(msg)
 
-            return requires, True
-
-        return (['setuptools', 'wheel'], False)
+        # If control flow reaches here, we're good to go.
+        return requires
 
     def run_egg_info(self):
         assert self.source_dir

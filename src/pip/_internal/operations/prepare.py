@@ -95,31 +95,33 @@ class IsSDist(DistAbstraction):
     def prep_for_dist(self, finder, build_isolation):
         # Before calling "setup.py egg_info", we need to set-up the build
         # environment.
-        build_requirements, isolate = self.req.get_pep_518_info()
-        should_isolate = build_isolation and isolate
-
-        minimum_requirements = ('setuptools', 'wheel')
-        missing_requirements = set(minimum_requirements) - set(
-            pkg_resources.Requirement(r).key
-            for r in build_requirements
-        )
-        if missing_requirements:
-            def format_reqs(rs):
-                return ' and '.join(map(repr, sorted(rs)))
-            logger.warning(
-                "Missing build time requirements in pyproject.toml for %s: "
-                "%s.", self.req, format_reqs(missing_requirements)
-            )
-            logger.warning(
-                "This version of pip does not implement PEP 517 so it cannot "
-                "build a wheel without %s.", format_reqs(minimum_requirements)
-            )
+        build_requirements = self.req.get_pep_518_info()
+        should_isolate = build_isolation and build_requirements is not None
 
         if should_isolate:
+            # Haven't implemented PEP 517 yet, so spew a warning about it if
+            # build-requirements don't include setuptools and wheel.
+            missing_requirements = {'setuptools', 'wheel'} - {
+                pkg_resources.Requirement(r).key for r in build_requirements
+            }
+            if missing_requirements:
+                logger.warning(
+                    "Missing build requirements in pyproject.toml for %s.",
+                    self.req,
+                )
+                logger.warning(
+                    "This version of pip does not implement PEP 517 so it "
+                    "cannot build a wheel without %s.",
+                    " and ".join(map(repr, sorted(missing_requirements)))
+                )
+
+            # Isolate in a BuildEnvironment and install the build-time
+            # requirements.
             self.req.build_env = BuildEnvironment()
             self.req.build_env.install_requirements(
                 finder, build_requirements,
-                "Installing build dependencies")
+                "Installing build dependencies"
+            )
 
         self.req.run_egg_info()
         self.req.assert_source_matches_version()
