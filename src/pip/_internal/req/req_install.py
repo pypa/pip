@@ -571,8 +571,30 @@ class InstallRequirement(object):
         if os.path.isfile(self.pyproject_toml):
             with io.open(self.pyproject_toml, encoding="utf-8") as f:
                 pp_toml = pytoml.load(f)
-            build_sys = pp_toml.get('build-system', {})
-            return (build_sys.get('requires', ['setuptools', 'wheel']), True)
+
+            build_system = pp_toml.get('build-system', {})
+            if "requires" not in build_system:
+                raise InstallationError(
+                    "{} does not comply with PEP 518 as it since it's "
+                    "pyproject.toml file does not have a '[build-system]' "
+                    "table with a 'requires' key."
+                    .format(self)
+                )
+
+            requires = build_system["requires"]
+            is_list_of_str = isinstance(requires, list) and all(
+                isinstance(req, str) for req in requires
+            )
+            if not is_list_of_str:
+                raise InstallationError(
+                    "{} does not comply with PEP 518 as it since it's "
+                    "pyproject.toml file contains [build-system].requires "
+                    "which is not a list of strings."
+                    .format(self)
+                )
+
+            return requires, True
+
         return (['setuptools', 'wheel'], False)
 
     def run_egg_info(self):
