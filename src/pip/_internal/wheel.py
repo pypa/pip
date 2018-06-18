@@ -710,6 +710,7 @@ class WheelBuilder(object):
         :return: True if all the wheels built correctly.
         """
         from pip._internal import index
+        from pip._internal.models.link import Link
 
         building_is_possible = self._wheel_dir or (
             autobuilding and self.wheel_cache.cache_dir
@@ -802,7 +803,7 @@ class WheelBuilder(object):
                             self.preparer.build_dir
                         )
                         # Update the link for this.
-                        req.link = index.Link(path_to_url(wheel_file))
+                        req.link = Link(path_to_url(wheel_file))
                         assert req.link.is_wheel
                         # extract the wheel into the dir
                         unpack_url(

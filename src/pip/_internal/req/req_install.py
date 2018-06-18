@@ -137,7 +137,7 @@ class InstallRequirement(object):
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, isolated=False,
                       options=None, wheel_cache=None, constraint=False):
-        from pip._internal.index import Link
+        from pip._internal.models.link import Link  # TODO: move this to top
 
         name, url, extras_override = parse_editable(editable_req)
         if url.startswith('file:'):

@@ -6,7 +6,7 @@ import re
 
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
-from pip._internal.index import Link
+from pip._internal.models.link import Link
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import display_path, remove_auth_from_url, rmtree
 from pip._internal.vcs import VersionControl, vcs
