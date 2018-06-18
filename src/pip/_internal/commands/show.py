@@ -161,7 +161,8 @@ def print_results(distributions, options):
                 if "files" not in dist:
                     json_files_out.append("Cannot locate installed-files.txt")
 
-                json_dict_temp['metadata-version'] = dist.get('metadata-version', '')
+                metadata_version = dist.get('metadata-version', '')
+                json_dict_temp['metadata-version'] = metadata_version
                 json_dict_temp['installer'] = dist.get('installer', '')
                 json_dict_temp['classifiers'] = dist.get('classifiers', [])
                 json_dict_temp['entry-points'] = dist.get('entry_points', [])
