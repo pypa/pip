@@ -5,10 +5,11 @@ from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip._internal.download import path_to_url
 from pip._internal.utils.misc import splitext
+from pip._internal.utils.models import KeyBasedCompareMixin
 from pip._internal.wheel import wheel_ext
 
 
-class Link(object):
+class Link(KeyBasedCompareMixin):
     """Represents a parsed link from a Package Index's simple URL
     """
 
@@ -32,6 +33,11 @@ class Link(object):
         self.comes_from = comes_from
         self.requires_python = requires_python if requires_python else None
 
+        super(Link, self).__init__(
+            key=(self.url),
+            defining_class=Link
+        )
+
     def __str__(self):
         if self.requires_python:
             rp = ' (requires-python:%s)' % self.requires_python
@@ -44,39 +50,6 @@ class Link(object):
 
     def __repr__(self):
         return '<Link %s>' % self
-
-    def __eq__(self, other):
-        if not isinstance(other, Link):
-            return NotImplemented
-        return self.url == other.url
-
-    def __ne__(self, other):
-        if not isinstance(other, Link):
-            return NotImplemented
-        return self.url != other.url
-
-    def __lt__(self, other):
-        if not isinstance(other, Link):
-            return NotImplemented
-        return self.url < other.url
-
-    def __le__(self, other):
-        if not isinstance(other, Link):
-            return NotImplemented
-        return self.url <= other.url
-
-    def __gt__(self, other):
-        if not isinstance(other, Link):
-            return NotImplemented
-        return self.url > other.url
-
-    def __ge__(self, other):
-        if not isinstance(other, Link):
-            return NotImplemented
-        return self.url >= other.url
-
-    def __hash__(self):
-        return hash(self.url)
 
     @property
     def filename(self):
