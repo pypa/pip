@@ -135,7 +135,7 @@ def print_results(distributions, options):
         results_printed = True
 
         if options.show_output_format_json:
-
+            name = dist.get('name', '')
             required_by = [
                 pkg.project_name for pkg in pkg_resources.working_set
                 if name in [required.name for required in pkg.requires()]
