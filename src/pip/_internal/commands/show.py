@@ -26,8 +26,8 @@ class ShowCommand(Command):
         super(ShowCommand, self).__init__(*args, **kw)
         self.cmd_opts.add_option(
             '--json',
-            action='store_true',
             dest='show_output_format_json',
+            action='store_true',
             default=False,
             help='Output the result as json.')
 
