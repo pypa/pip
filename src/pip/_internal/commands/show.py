@@ -47,8 +47,12 @@ class ShowCommand(Command):
         query = args
 
         results = search_packages_info(query)
-        if not print_results(results, options):
-            return ERROR
+        if options.show_output_format_json:
+            if not print_results_json(results, options):
+                return ERROR
+        else:
+            if not print_results(results, options):
+                return ERROR
         return SUCCESS
 
 
@@ -130,84 +134,91 @@ def print_results(distributions, options):
     Print the informations from installed distributions found.
     """
     results_printed = False
+    for i, dist in enumerate(distributions):
+        results_printed = True
+        if i > 0:
+            logger.info("---")
+
+        name = dist.get('name', '')
+        required_by = [
+            pkg.project_name for pkg in pkg_resources.working_set
+            if name in [required.name for required in pkg.requires()]
+        ]
+
+        logger.info("Name: %s", name)
+        logger.info("Version: %s", dist.get('version', ''))
+        logger.info("Summary: %s", dist.get('summary', ''))
+        logger.info("Home-page: %s", dist.get('home-page', ''))
+        logger.info("Author: %s", dist.get('author', ''))
+        logger.info("Author-email: %s", dist.get('author-email', ''))
+        logger.info("License: %s", dist.get('license', ''))
+        logger.info("Location: %s", dist.get('location', ''))
+        logger.info("Requires: %s", ', '.join(dist.get('requires', [])))
+        logger.info("Required-by: %s", ', '.join(required_by))
+
+        if options.verbose:
+            logger.info("Metadata-Version: %s",
+                        dist.get('metadata-version', ''))
+            logger.info("Installer: %s", dist.get('installer', ''))
+            logger.info("Classifiers:")
+            for classifier in dist.get('classifiers', []):
+                logger.info("  %s", classifier)
+            logger.info("Entry-points:")
+            for entry in dist.get('entry_points', []):
+                logger.info("  %s", entry.strip())
+        if options.files:
+            logger.info("Files:")
+            for line in dist.get('files', []):
+                logger.info("  %s", line.strip())
+            if "files" not in dist:
+                logger.info("Cannot locate installed-files.txt")
+
+    return results_printed
+
+def print_results_json(distributions, options):
+    """
+    Print the informations from installed distributions found in json.
+    """
+    results_printed = False
     json_out = []
     for i, dist in enumerate(distributions):
         results_printed = True
 
-        if options.show_output_format_json:
-            name = dist.get('name', '')
-            required_by = [
-                pkg.project_name for pkg in pkg_resources.working_set
-                if name in [required.name for required in pkg.requires()]
-            ]
+        name = dist.get('name', '')
+        required_by = [
+            pkg.project_name for pkg in pkg_resources.working_set
+            if name in [required.name for required in pkg.requires()]
+        ]
 
-            json_dict_temp = {
-                'name': dist.get('name', ''),
-                'version': dist.get('version', ''),
-                'summary': dist.get('summary', ''),
-                'home-page': ('home-page', ''),
-                'author': dist.get('author', ''),
-                'author-email': dist.get('author-email', ''),
-                'license': dist.get('license', ''),
-                'location': dist.get('location', ''),
-                'requires': ', '.join(dist.get('requires', [])),
-                'required-by': ', '.join(required_by)
-            }
+        json_dict_temp = {
+            'name': dist.get('name', ''),
+            'version': dist.get('version', ''),
+            'summary': dist.get('summary', ''),
+            'home-page': ('home-page', ''),
+            'author': dist.get('author', ''),
+            'author-email': dist.get('author-email', ''),
+            'license': dist.get('license', ''),
+            'location': dist.get('location', ''),
+            'requires': ', '.join(dist.get('requires', [])),
+            'required-by': ', '.join(required_by)
+        }
 
-            if options.verbose:
-                metadata_version = dist.get('metadata-version', '')
-                json_dict_temp['metadata-version'] = metadata_version
-                json_dict_temp['installer'] = dist.get('installer', '')
-                json_dict_temp['classifiers'] = dist.get('classifiers', [])
-                json_dict_temp['entry-points'] = dist.get('entry_points', [])
+        if options.verbose:
+            metadata_version = dist.get('metadata-version', '')
+            json_dict_temp['metadata-version'] = metadata_version
+            json_dict_temp['installer'] = dist.get('installer', '')
+            json_dict_temp['classifiers'] = dist.get('classifiers', [])
+            json_dict_temp['entry-points'] = dist.get('entry_points', [])
 
-            if options.files:
-                json_files_out = []
-                for line in dist.get('files', []):
-                    json_files_out.append(line.strip())
-                if "files" not in dist:
-                    json_files_out.append("Cannot locate installed-files.txt")
-                json_dict_temp['files'] = json_files_out
+        if options.files:
+            json_files_out = []
+            for line in dist.get('files', []):
+                json_files_out.append(line.strip())
+            if "files" not in dist:
+                json_files_out.append("Cannot locate installed-files.txt")
+            json_dict_temp['files'] = json_files_out
 
-            json_out.append(json_dict_temp)
-        else:
-            if i > 0:
-                logger.info("---")
-
-            name = dist.get('name', '')
-            required_by = [
-                pkg.project_name for pkg in pkg_resources.working_set
-                if name in [required.name for required in pkg.requires()]
-            ]
-
-            logger.info("Name: %s", name)
-            logger.info("Version: %s", dist.get('version', ''))
-            logger.info("Summary: %s", dist.get('summary', ''))
-            logger.info("Home-page: %s", dist.get('home-page', ''))
-            logger.info("Author: %s", dist.get('author', ''))
-            logger.info("Author-email: %s", dist.get('author-email', ''))
-            logger.info("License: %s", dist.get('license', ''))
-            logger.info("Location: %s", dist.get('location', ''))
-            logger.info("Requires: %s", ', '.join(dist.get('requires', [])))
-            logger.info("Required-by: %s", ', '.join(required_by))
-
-            if options.verbose:
-                logger.info("Metadata-Version: %s",
-                            dist.get('metadata-version', ''))
-                logger.info("Installer: %s", dist.get('installer', ''))
-                logger.info("Classifiers:")
-                for classifier in dist.get('classifiers', []):
-                    logger.info("  %s", classifier)
-                logger.info("Entry-points:")
-                for entry in dist.get('entry_points', []):
-                    logger.info("  %s", entry.strip())
-            if options.files:
-                logger.info("Files:")
-                for line in dist.get('files', []):
-                    logger.info("  %s", line.strip())
-                if "files" not in dist:
-                    logger.info("Cannot locate installed-files.txt")
-
-    if options.show_output_format_json:
+        json_out.append(json_dict_temp)
+    
         logger.info(json.dumps(json_out))
-    return results_printed
+        return results_printed
