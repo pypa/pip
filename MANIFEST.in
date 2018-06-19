@@ -27,6 +27,5 @@ prune .github
 prune .travis
 prune docs/build
 prune news
-prune contrib
 prune tasks
 prune tests
