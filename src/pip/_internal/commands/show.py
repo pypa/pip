@@ -26,7 +26,7 @@ class ShowCommand(Command):
         super(ShowCommand, self).__init__(*args, **kw)
         self.cmd_opts.add_option(
             '--json',
-            dest='show_output_format_json',
+            dest='json',
             action='store_true',
             default=False,
             help='Output the result as json.')
@@ -47,7 +47,7 @@ class ShowCommand(Command):
         query = args
 
         results = search_packages_info(query)
-        if options.show_output_format_json:
+        if options.json:
             if not print_results_json(results, options):
                 return ERROR
         else:
