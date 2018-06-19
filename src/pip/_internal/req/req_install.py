@@ -33,7 +33,9 @@ from pip._internal.locations import (
     PIP_DELETE_MARKER_FILENAME, running_under_virtualenv,
 )
 from pip._internal.req.req_uninstall import UninstallPathSet
-from pip._internal.utils.deprecation import RemovedInPip11Warning
+from pip._internal.utils.deprecation import (
+    RemovedInPip11Warning, RemovedInPip12Warning,
+)
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
@@ -575,22 +577,33 @@ class InstallRequirement(object):
         # Extract the build requirements
         requires = pp_toml.get("build-system", {}).get("requires", None)
 
-        # Error out if it's not valid
-        error_reason = None
+        template = (
+            "%s does not comply with PEP 518 since pyproject.toml "
+            "does not contain a valid '[build-system].requires' key: %s"
+        )
+
         if requires is None:
-            error_reason = "is missing."
+            logging.warn(template, self, "it is missing.")
+            warnings.warn(
+                "Future versions of pip will reject packages with "
+                "pyproject.toml files that do not comply with PEP 518.",
+                RemovedInPip12Warning,
+            )
+
+            # NOTE: Currently allowing projects to skip this key so that they
+            #       can transition to a PEP 518 compliant pyproject.toml or
+            #       push to update the PEP.
+            # Come pip 19.0, bring this to compliance with PEP 518.
+            return None
         else:
+            # Error out if it's not a list of strings
             is_list_of_str = isinstance(requires, list) and all(
                 isinstance(req, six.string_types) for req in requires
             )
             if not is_list_of_str:
-                error_reason = "not a list of strings."
-        if error_reason is not None:
-            msg = (
-                "{} does not comply with PEP 518 since pyproject.toml does "
-                "not contain a valid '[build-system].requires' key: {}"
-            ).format(self, error_reason)
-            raise InstallationError(msg)
+                raise InstallationError(
+                    template % (self, "it is not a list of strings.")
+                )
 
         # If control flow reaches here, we're good to go.
         return requires
