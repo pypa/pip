@@ -155,17 +155,18 @@ def print_results(distributions, options):
             }
 
             if options.verbose:
-                json_files_out = []
-                for line in dist.get('files', []):
-                    json_files_out.append(line.strip())
-                if "files" not in dist:
-                    json_files_out.append("Cannot locate installed-files.txt")
-
                 metadata_version = dist.get('metadata-version', '')
                 json_dict_temp['metadata-version'] = metadata_version
                 json_dict_temp['installer'] = dist.get('installer', '')
                 json_dict_temp['classifiers'] = dist.get('classifiers', [])
                 json_dict_temp['entry-points'] = dist.get('entry_points', [])
+
+            if options.files:
+                json_files_out = []
+                for line in dist.get('files', []):
+                    json_files_out.append(line.strip())
+                if "files" not in dist:
+                    json_files_out.append("Cannot locate installed-files.txt")
                 json_dict_temp['files'] = json_files_out
 
             json_out.append(json_dict_temp)
