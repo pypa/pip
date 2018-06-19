@@ -176,7 +176,7 @@ Installing from Wheels
 
 "Wheel" is a built, archive format that can greatly speed installation compared
 to building and installing from source archives. For more information, see the
-`Wheel docs <https://wheel.readthedocs.io>`_ ,
+`Wheel docs <https://wheel.readthedocs.io>`_,
 `PEP427 <http://www.python.org/dev/peps/pep-0427>`_, and
 `PEP425 <http://www.python.org/dev/peps/pep-0425>`_
 
