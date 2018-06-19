@@ -181,7 +181,7 @@ def print_results_json(distributions, options):
     """
     results_printed = False
     json_out = []
-    for i, dist in enumerate(distributions):
+    for dist in distributions:
         results_printed = True
 
         name = dist.get('name', '')
@@ -219,6 +219,6 @@ def print_results_json(distributions, options):
             json_dict_temp['files'] = json_files_out
 
         json_out.append(json_dict_temp)
-    
+
         logger.info(json.dumps(json_out))
         return results_printed
