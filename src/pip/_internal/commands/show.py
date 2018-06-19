@@ -200,7 +200,7 @@ def print_results(distributions, options):
                 logger.info("Entry-points:")
                 for entry in dist.get('entry_points', []):
                     logger.info("  %s", entry.strip())
-            if options.list_files:
+            if options.files:
                 logger.info("Files:")
                 for line in dist.get('files', []):
                     logger.info("  %s", line.strip())
