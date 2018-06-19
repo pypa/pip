@@ -160,7 +160,7 @@ class Resolver(object):
 
         if not self._is_upgrade_allowed(req_to_install):
             if self.upgrade_strategy == "only-if-needed":
-                return 'not upgraded as not directly required'
+                return 'already satisfied, skipping upgrade'
             return 'already satisfied'
 
         # Check for the possibility of an upgrade.  For link-based
