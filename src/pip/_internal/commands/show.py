@@ -175,6 +175,7 @@ def print_results(distributions, options):
 
     return results_printed
 
+
 def print_results_json(distributions, options):
     """
     Print the informations from installed distributions found in json.
