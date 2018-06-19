@@ -208,5 +208,6 @@ def print_results(distributions, options):
                 if "files" not in dist:
                     logger.info("Cannot locate installed-files.txt")
 
-    logger.info(json.dumps(json_out))
+    if options.show_output_format_json:
+        logger.info(json.dumps(json_out))
     return results_printed
