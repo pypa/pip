@@ -25,7 +25,6 @@ recursive-exclude src/pip/_vendor *.pyi
 prune .github
 prune docs/build
 prune news
-prune contrib
 prune tasks
 prune tests
 prune tools
