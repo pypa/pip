@@ -495,7 +495,7 @@ Improved Documentation
 - When installing, if building a wheel fails, clear up the build directory
   before falling back to a source install. (#3047)
 - Fix user directory expansion when ``HOME=/``. Workaround for Python bug
-  http://bugs.python.org/issue14768. (#2996)
+  https://bugs.python.org/issue14768. (#2996)
 - Correct reporting of requirements file line numbers. (#3009, #3125)
 - Fixed Exception(IOError) for ``pip freeze`` and ``pip list`` commands with
   subversion >= 1.7. (#1062, #3346)
@@ -938,7 +938,7 @@ Improved Documentation
 - ``pip wheel`` was not downloading wheels that already existed. (#1320, #1524)
 - ``pip install --download`` was failing using local ``--find-links``.
   (#1111, #1524)
-- Workaround for Python bug http://bugs.python.org/issue20053. (#1544)
+- Workaround for Python bug https://bugs.python.org/issue20053. (#1544)
 - Don't pass a unicode __file__ to setup.py on Python 2.x. (#1583)
 - Verify that the Wheel version is compatible with this pip. (#1569)
 
@@ -1045,7 +1045,7 @@ Improved Documentation
 - Added support for installing and building wheel archives. Thanks Daniel Holth,
   Marcus Smith, Paul Moore, and Michele Lacchia (#845)
 - Applied security patch to pip's ssl support related to certificate DNS
-  wildcard matching (http://bugs.python.org/issue17980).
+  wildcard matching (https://bugs.python.org/issue17980).
 - To satisfy pip's setuptools requirement, pip now recommends setuptools>=0.8,
   not distribute. setuptools and distribute are now merged into one project
   called 'setuptools'. (#1003)
@@ -1169,7 +1169,7 @@ Improved Documentation
   instead. (#82)
 - Only warn about version conflicts if there is actually one. This re-enables
   using ``==dev`` in requirements files. (#436)
-- Moved tests to be run on Travis CI: http://travis-ci.org/pypa/pip
+- Moved tests to be run on Travis CI: https://travis-ci.org/pypa/pip
 - Added a better help formatter.
 
 
@@ -1304,7 +1304,7 @@ Improved Documentation
 - Added global --user flag as shortcut for --install-option="--user". From
   Ronny Pfannschmidt.
 - Added support for `PyPI mirrors <http://pypi.python.org/mirrors>`_ as
-  defined in `PEP 381 <http://www.python.org/dev/peps/pep-0381/>`_, from
+  defined in `PEP 381 <https://www.python.org/dev/peps/pep-0381/>`_, from
   Jannis Leidel.
 - Fixed git revisions being ignored. Thanks John-Scott Atlakson. (#138)
 - Fixed initial editable install of github package from a tag failing. Thanks
@@ -1490,7 +1490,7 @@ Improved Documentation
   might notice this if you use a custom index that is
   slash-sensitive).
 - Improvements on Windows (from `Ionel Maries Cristian
-  <http://ionelmc.wordpress.com/>`_).
+  <https://ionelmc.wordpress.com/>`_).
 - Fixed problem with not being able to install private git repositories.
 - Make ``pip zip`` zip all its arguments, not just the first.
 - Fix some filename issues on Windows.

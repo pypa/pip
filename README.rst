@@ -7,7 +7,7 @@ The `PyPA recommended`_ tool for installing Python packages.
    :target: https://pypi.org/project/pip/
 
 .. image:: https://img.shields.io/travis/pypa/pip/master.svg?label=travis-ci
-   :target: http://travis-ci.org/pypa/pip
+   :target: https://travis-ci.org/pypa/pip
 
 .. image:: https://img.shields.io/appveyor/ci/pypa/pip.svg?label=appveyor-ci
    :target: https://ci.appveyor.com/project/pypa/pip/history
@@ -37,6 +37,6 @@ rooms and mailing lists is expected to follow the `PyPA Code of Conduct`_.
 .. _Changelog: https://pip.pypa.io/en/stable/news.html
 .. _GitHub Page: https://github.com/pypa/pip
 .. _Issue Tracking: https://github.com/pypa/pip/issues
-.. _User mailing list: http://groups.google.com/group/python-virtualenv
-.. _Dev mailing list: http://groups.google.com/group/pypa-dev
+.. _User mailing list: https://groups.google.com/forum/#!forum/python-virtualenv
+.. _Dev mailing list: https://groups.google.com/forum/#!forum/pypa-dev
 .. _PyPA Code of Conduct: https://www.pypa.io/en/latest/code-of-conduct/

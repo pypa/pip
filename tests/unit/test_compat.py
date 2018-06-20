@@ -78,7 +78,7 @@ def test_to_native_str_type():
 @pytest.mark.parametrize("home,path,expanded", [
     ("/Users/test", "~", "/Users/test"),
     ("/Users/test", "~/.cache", "/Users/test/.cache"),
-    # Verify that we are not affected by http://bugs.python.org/issue14768
+    # Verify that we are not affected by https://bugs.python.org/issue14768
     ("/", "~", "/"),
     ("/", "~/.cache", "/.cache"),
 ])
