@@ -1,0 +1,2 @@
+[build-system]
+requires = [1, 2, 3]  # not a list of strings

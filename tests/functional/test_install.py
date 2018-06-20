@@ -37,6 +37,28 @@ def test_pep518_uses_build_env(script, data, common_wheels, command, variant):
     )
 
 
+def test_pep518_refuses_invalid_requires(script, data, common_wheels):
+    result = script.pip(
+        'install', '-f', common_wheels,
+        data.src.join("pep518_invalid_requires"),
+        expect_error=True
+    )
+    assert result.returncode == 1
+    assert "does not comply with PEP 518" in result.stderr
+
+
+def test_pep518_allows_but_warns_missing_requires(script, data, common_wheels):
+    result = script.pip(
+        'install', '-f', common_wheels,
+        data.src.join("pep518_missing_requires"),
+        expect_stderr=True
+    )
+    assert "does not comply with PEP 518" in result.stderr
+    assert "DEPRECATION" in result.stderr
+    assert result.returncode == 0
+    assert result.files_created
+
+
 def test_pep518_with_user_pip(script, virtualenv, pip_src,
                               data, common_wheels):
     virtualenv.system_site_packages = True

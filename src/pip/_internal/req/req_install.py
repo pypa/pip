@@ -33,7 +33,9 @@ from pip._internal.locations import (
     PIP_DELETE_MARKER_FILENAME, running_under_virtualenv,
 )
 from pip._internal.req.req_uninstall import UninstallPathSet
-from pip._internal.utils.deprecation import RemovedInPip11Warning
+from pip._internal.utils.deprecation import (
+    RemovedInPip11Warning, RemovedInPip12Warning,
+)
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
@@ -560,20 +562,51 @@ class InstallRequirement(object):
         return pp_toml
 
     def get_pep_518_info(self):
-        """Get a list of the packages required to build the project, if any,
-        and a flag indicating whether pyproject.toml is present, indicating
-        that the build should be isolated.
+        """Get PEP 518 build-time requirements.
 
-        Build requirements can be specified in a pyproject.toml, as described
-        in PEP 518. If this file exists but doesn't specify build
-        requirements, pip will default to installing setuptools and wheel.
+        Returns the list of the packages required to build the project,
+        specified as per PEP 518 within the package. If `pyproject.toml` is not
+        present, returns None to signify not using the same.
         """
-        if os.path.isfile(self.pyproject_toml):
-            with io.open(self.pyproject_toml, encoding="utf-8") as f:
-                pp_toml = pytoml.load(f)
-            build_sys = pp_toml.get('build-system', {})
-            return (build_sys.get('requires', ['setuptools', 'wheel']), True)
-        return (['setuptools', 'wheel'], False)
+        if not os.path.isfile(self.pyproject_toml):
+            return None
+
+        with io.open(self.pyproject_toml, encoding="utf-8") as f:
+            pp_toml = pytoml.load(f)
+
+        # Extract the build requirements
+        requires = pp_toml.get("build-system", {}).get("requires", None)
+
+        template = (
+            "%s does not comply with PEP 518 since pyproject.toml "
+            "does not contain a valid '[build-system].requires' key: %s"
+        )
+
+        if requires is None:
+            logging.warn(template, self, "it is missing.")
+            warnings.warn(
+                "Future versions of pip will reject packages with "
+                "pyproject.toml files that do not comply with PEP 518.",
+                RemovedInPip12Warning,
+            )
+
+            # NOTE: Currently allowing projects to skip this key so that they
+            #       can transition to a PEP 518 compliant pyproject.toml or
+            #       push to update the PEP.
+            # Come pip 19.0, bring this to compliance with PEP 518.
+            return None
+        else:
+            # Error out if it's not a list of strings
+            is_list_of_str = isinstance(requires, list) and all(
+                isinstance(req, six.string_types) for req in requires
+            )
+            if not is_list_of_str:
+                raise InstallationError(
+                    template % (self, "it is not a list of strings.")
+                )
+
+        # If control flow reaches here, we're good to go.
+        return requires
 
     def run_egg_info(self):
         assert self.source_dir
