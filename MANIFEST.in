@@ -13,7 +13,6 @@ exclude .coveragerc
 exclude .mailmap
 exclude .travis.yml
 exclude tox.ini
-exclude *-requirements.txt
 exclude appveyor.yml
 
 recursive-include src/pip/_vendor *.pem
@@ -24,9 +23,9 @@ exclude src/pip/_vendor/six/moves
 recursive-exclude src/pip/_vendor *.pyi
 
 prune .github
-prune .travis
 prune docs/build
 prune news
 prune contrib
 prune tasks
 prune tests
+prune tools
