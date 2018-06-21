@@ -217,6 +217,23 @@ def test_install_from_wheel_no_deps(script, data):
     assert pkg_folder not in result.files_created
 
 
+def test_wheel_record_lines_in_deterministic_order(script, data):
+    to_install = data.packages.join("simplewheel-1.0-py2.py3-none-any.whl")
+    result = script.pip('install', to_install)
+
+    dist_info_folder = script.site_packages / 'simplewheel-1.0.dist-info'
+    record_path = dist_info_folder / 'RECORD'
+
+    assert dist_info_folder in result.files_created, str(result)
+    assert record_path in result.files_created, str(result)
+
+    record_path = result.files_created[record_path].full
+    record_lines = [
+        p for p in Path(record_path).read_text().split('\n') if p
+    ]
+    assert record_lines == sorted(record_lines)
+
+
 @pytest.mark.network
 def test_install_user_wheel(script, virtualenv, data, common_wheels):
     """
