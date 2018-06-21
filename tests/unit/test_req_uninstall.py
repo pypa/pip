@@ -32,9 +32,11 @@ def test_uninstallation_paths():
 
     expected = ['file.py',
                 'file.pyc',
+                'file.pyo',
                 'file.so',
                 'nopyc.py',
-                'nopyc.pyc']
+                'nopyc.pyc',
+                'nopyc.pyo']
 
     assert paths == expected
 
