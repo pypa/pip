@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import json
 import logging
 import os
 from email.parser import FeedParser  # type: ignore
@@ -28,6 +29,13 @@ class ShowCommand(Command):
     def __init__(self, *args, **kw):
         super(ShowCommand, self).__init__(*args, **kw)
         self.cmd_opts.add_option(
+            '--json',
+            dest='json',
+            action='store_true',
+            default=False,
+            help='Output the result as json.')
+
+        self.cmd_opts.add_option(
             '-f', '--files',
             dest='files',
             action='store_true',
@@ -43,8 +51,12 @@ class ShowCommand(Command):
         query = args
 
         results = search_packages_info(query)
-        if not print_results(
-                results, list_files=options.files, verbose=options.verbose):
+        if options.json:
+            output = print_results_json
+        else:
+            output = print_results
+
+        if not output(results, options):
             return ERROR
         return SUCCESS
 
@@ -122,9 +134,9 @@ def search_packages_info(query):
         yield package
 
 
-def print_results(distributions, list_files=False, verbose=False):
+def print_results(distributions, options):
     """
-    Print the informations from installed distributions found.
+    Print the information about installed distributions found.
     """
     results_printed = False
     for i, dist in enumerate(distributions):
@@ -149,7 +161,7 @@ def print_results(distributions, list_files=False, verbose=False):
         logger.info("Requires: %s", ', '.join(dist.get('requires', [])))
         logger.info("Required-by: %s", ', '.join(required_by))
 
-        if verbose:
+        if options.verbose:
             logger.info("Metadata-Version: %s",
                         dist.get('metadata-version', ''))
             logger.info("Installer: %s", dist.get('installer', ''))
@@ -159,10 +171,49 @@ def print_results(distributions, list_files=False, verbose=False):
             logger.info("Entry-points:")
             for entry in dist.get('entry_points', []):
                 logger.info("  %s", entry.strip())
-        if list_files:
+        if options.files:
             logger.info("Files:")
             for line in dist.get('files', []):
                 logger.info("  %s", line.strip())
             if "files" not in dist:
                 logger.info("Cannot locate installed-files.txt")
+
     return results_printed
+
+
+def print_results_json(distributions, options):
+    """
+    Print the information about installed distributions found, in json.
+    """
+    output_list = []
+    for dist in distributions:
+
+        keys = [
+            'name', 'version', 'summary', 'home-page', 'author',
+            'author-email', 'license', 'location', 'requires'
+        ]
+        temp_dict = {key: dist.get(key, None) for key in keys}
+
+        name = temp_dict['name']
+        required_by = [
+            pkg.project_name for pkg in pkg_resources.working_set
+            if name in [required.name for required in pkg.requires()]
+        ]
+        temp_dict.update({'required-by': ', '.join(required_by)})
+
+        if options.verbose:
+            keys = [
+                'metadata-version', 'installer',
+                'classifiers', 'entry-points'
+            ]
+            temp_dict.update({key: dist.get(key, None) for key in keys})
+
+        if options.files:
+            if "files" in dist:
+                temp_dict['files'] = [line.strip() for line in dist["files"]]
+            else:
+                temp_dict['files'] = None
+
+        output_list.append(temp_dict)
+    logger.info(json.dumps(output_list))
+    return bool(output_list)
