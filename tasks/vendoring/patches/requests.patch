@@ -24,13 +24,17 @@ diff --git a/src/pip/_vendor/requests/__init__.py b/src/pip/_vendor/requests/__i
 index 9c3b769..36a4ef40 100644
 --- a/src/pip/_vendor/requests/__init__.py
 +++ b/src/pip/_vendor/requests/__init__.py
-@@ -80,10 +80,12 @@ except (AssertionError, ValueError):
+@@ -80,13 +80,15 @@ except (AssertionError, ValueError):
                    RequestsDependencyWarning)
 
  # Attempt to enable urllib3's SNI support, if possible
 -try:
 -    from pip._vendor.urllib3.contrib import pyopenssl
 -    pyopenssl.inject_into_urllib3()
+-
+-    # Check cryptography version
+-    from cryptography import __version__ as cryptography_version
+-    _check_cryptography(cryptography_version)
 -except ImportError:
 -    pass
 +from pip._internal.compat import WINDOWS
@@ -38,6 +42,10 @@ index 9c3b769..36a4ef40 100644
 +    try:
 +        from pip._vendor.urllib3.contrib import pyopenssl
 +        pyopenssl.inject_into_urllib3()
++
++        # Check cryptography version
++        from cryptography import __version__ as cryptography_version
++        _check_cryptography(cryptography_version)
 +    except ImportError:
 +        pass
 
