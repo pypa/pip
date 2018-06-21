@@ -500,16 +500,19 @@ if __name__ == '__main__':
         with open_for_csv(temp_record, 'w+') as record_out:
             reader = csv.reader(record_in)
             writer = csv.writer(record_out)
+            outrows = []
             for row in reader:
                 row[0] = installed.pop(row[0], row[0])
                 if row[0] in changed:
                     row[1], row[2] = rehash(row[0])
-                writer.writerow(row)
+                outrows.append(tuple(row))
             for f in generated:
                 digest, length = rehash(f)
-                writer.writerow((normpath(f, lib_dir), digest, length))
+                outrows.append((normpath(f, lib_dir), digest, length))
             for f in installed:
-                writer.writerow((installed[f], '', ''))
+                outrows.append((installed[f], '', ''))
+            for row in sorted(outrows):
+                writer.writerow(row)
     shutil.move(temp_record, record)
 
 
