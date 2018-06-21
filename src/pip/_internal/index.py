@@ -29,7 +29,7 @@ from pip._internal.exceptions import (
 )
 from pip._internal.models.index import PyPI
 from pip._internal.pep425tags import get_supported
-from pip._internal.utils.deprecation import RemovedInPip11Warning
+from pip._internal.utils.deprecation import RemovedInPip12Warning
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, cached_property, normalize_path,
@@ -215,7 +215,7 @@ class PackageFinder(object):
             warnings.warn(
                 "Dependency Links processing has been deprecated and will be "
                 "removed in a future release.",
-                RemovedInPip11Warning,
+                RemovedInPip12Warning,
             )
             self.dependency_links.extend(links)
 
