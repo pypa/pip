@@ -560,9 +560,9 @@ class InstallRequirement(object):
 
             if not filenames:
                 raise InstallationError(
-                    "Files/directories (from %s) " +
-                    "not found in %s" % (filename, base))
-
+                    "Files/directories (from %s) not found in %s"
+                    % (filename, base)
+                )
             # if we have more than one match, we pick the toplevel one.  This
             # can easily be the case if there is a dist folder which contains
             # an extracted tarball for testing purposes.

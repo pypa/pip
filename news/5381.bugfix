@@ -1,1 +1,1 @@
-Make error output a little more specific when pip install can't find any files as listed in PKG-INFO
+Improve error message to be  more specific when no files are found as listed in as listed in PKG-INFO.
