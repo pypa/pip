@@ -48,11 +48,12 @@ class ShowCommand(Command):
 
         results = search_packages_info(query)
         if options.json:
-            if not print_results_json(results, options):
-                return ERROR
+            output = print_results_json
         else:
-            if not print_results(results, options):
-                return ERROR
+            output = print_results
+
+        if not output(results, options):
+            return ERROR
         return SUCCESS
 
 
@@ -131,7 +132,7 @@ def search_packages_info(query):
 
 def print_results(distributions, options):
     """
-    Print the informations from installed distributions found.
+    Print the information about installed distributions found.
     """
     results_printed = False
     for i, dist in enumerate(distributions):
@@ -178,48 +179,37 @@ def print_results(distributions, options):
 
 def print_results_json(distributions, options):
     """
-    Print the informations from installed distributions found in json.
+    Print the information about installed distributions found, in json.
     """
-    results_printed = False
-    json_out = []
+    output_list = []
     for dist in distributions:
-        results_printed = True
 
-        name = dist.get('name', '')
+        keys = [
+            'name', 'version', 'summary', 'home-page', 'author',
+            'author-email', 'license', 'location', 'requires'
+        ]
+        temp_dict = {key: dist.get(key, None) for key in keys}
+
+        name = temp_dict['name']
         required_by = [
             pkg.project_name for pkg in pkg_resources.working_set
             if name in [required.name for required in pkg.requires()]
         ]
-
-        json_dict_temp = {
-            'name': dist.get('name', ''),
-            'version': dist.get('version', ''),
-            'summary': dist.get('summary', ''),
-            'home-page': ('home-page', ''),
-            'author': dist.get('author', ''),
-            'author-email': dist.get('author-email', ''),
-            'license': dist.get('license', ''),
-            'location': dist.get('location', ''),
-            'requires': ', '.join(dist.get('requires', [])),
-            'required-by': ', '.join(required_by)
-        }
+        temp_dict.update({'required-by': ', '.join(required_by)})
 
         if options.verbose:
-            metadata_version = dist.get('metadata-version', '')
-            json_dict_temp['metadata-version'] = metadata_version
-            json_dict_temp['installer'] = dist.get('installer', '')
-            json_dict_temp['classifiers'] = dist.get('classifiers', [])
-            json_dict_temp['entry-points'] = dist.get('entry_points', [])
+            keys = [
+                'metadata-version', 'installer',
+                'classifiers', 'entry-points'
+            ]
+            temp_dict.update({key: dist.get(key, None) for key in keys})
 
         if options.files:
-            json_files_out = []
-            for line in dist.get('files', []):
-                json_files_out.append(line.strip())
-            if "files" not in dist:
-                json_files_out.append("Cannot locate installed-files.txt")
-            json_dict_temp['files'] = json_files_out
+            if "files" in dist:
+                temp_dict['files'] = [line.strip() for line in dist["files"]]
+            else:
+                temp_dict['files'] = None
 
-        json_out.append(json_dict_temp)
-
-        logger.info(json.dumps(json_out))
-        return results_printed
+        output_list.append(temp_dict)
+    logger.info(json.dumps(output_list))
+    return bool(output_list)
