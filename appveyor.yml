@@ -13,14 +13,6 @@ environment:
     - PYTHON: "C:\\Python35-x64"
     - PYTHON: "C:\\Python36"
 
-skip_commits:
-  files:
-    - .github/
-    - docs/
-    - news/
-    - tools/travis/
-    - '**/*.rst'
-
 install:
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - "python --version"
