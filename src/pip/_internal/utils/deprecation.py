@@ -20,14 +20,14 @@ class PipPendingDeprecationWarning(PipDeprecationWarning):
     pass
 
 
-_warnings_showwarning = None  # type: Any
+_original_showwarning = None  # type: Any
 
 
 # Warnings <-> Logging Integration
 def _showwarning(message, category, filename, lineno, file=None, line=None):
     if file is not None:
-        if _warnings_showwarning is not None:
-            _warnings_showwarning(
+        if _original_showwarning is not None:
+            _original_showwarning(
                 message, category, filename, lineno, file, line,
             )
     elif issubclass(category, PipDeprecationWarning):
@@ -50,7 +50,7 @@ def _showwarning(message, category, filename, lineno, file=None, line=None):
         else:
             logger.error(log_message)
     else:
-        _warnings_showwarning(
+        _original_showwarning(
             message, category, filename, lineno, file, line,
         )
 
@@ -59,10 +59,10 @@ def install_warning_logger():
     # Enable our Deprecation Warnings
     warnings.simplefilter("default", PipDeprecationWarning, append=True)
 
-    global _warnings_showwarning
+    global _original_showwarning
 
-    if _warnings_showwarning is None:
-        _warnings_showwarning = warnings.showwarning
+    if _original_showwarning is None:
+        _original_showwarning = warnings.showwarning
         warnings.showwarning = _showwarning
 
 
