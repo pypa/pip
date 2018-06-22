@@ -8,7 +8,6 @@ import shutil
 import sys
 import sysconfig
 import traceback
-import warnings
 import zipfile
 from distutils.util import change_root
 from email.parser import FeedParser  # type: ignore
@@ -33,7 +32,7 @@ from pip._internal.locations import (
     PIP_DELETE_MARKER_FILENAME, running_under_virtualenv,
 )
 from pip._internal.req.req_uninstall import UninstallPathSet
-from pip._internal.utils.deprecation import RemovedInPip12Warning
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
@@ -582,11 +581,13 @@ class InstallRequirement(object):
 
         if requires is None:
             logging.warn(template, self, "it is missing.")
-            warnings.warn(
+            deprecated(
                 "Future versions of pip may reject packages with "
                 "pyproject.toml files that do not contain the [build-system]"
                 "table and the requires key, as specified in PEP 518.",
-                RemovedInPip12Warning,
+                replacement=None,
+                issue=5416,
+                imminent=True,
             )
 
             # Currently, we're isolating the build based on the presence of the

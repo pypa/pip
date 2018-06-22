@@ -9,7 +9,7 @@ import warnings
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any  # noqa: F401
+    from typing import Any, Optional  # noqa: F401
 
 
 class PipDeprecationWarning(Warning):
@@ -64,3 +64,21 @@ def install_warning_logger():
     if _warnings_showwarning is None:
         _warnings_showwarning = warnings.showwarning
         warnings.showwarning = _showwarning
+
+
+def deprecated(reason, replacement, issue=None, imminent=False):
+    # type: (str, Optional[str], Optional[int], bool) -> None
+    if imminent:
+        category = PipDeprecationWarning
+    else:
+        category = PipPendingDeprecationWarning
+
+    # Construct a nice message.
+    message = reason
+    if replacement is not None:
+        message += " An alternative is to {}.".format(replacement)
+    if issue is not None:
+        url = "https://github.com/pypa/pip/issues/" + str(issue)
+        message += " You can find discussion regarding this at {}.".format(url)
+
+    warnings.warn(message, category=category, stacklevel=2)
