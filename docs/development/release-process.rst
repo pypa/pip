@@ -51,11 +51,11 @@ the above deprecation process are always acceptable, and will be considered on
 their merits.
 
 
-Release Ops
-===========
+Release Process
+===============
 
-Doing a new release
--------------------
+Creating a new release
+----------------------
 
 #. On the current pip ``master`` branch, generate a new ``AUTHORS.txt`` by
    running ``invoke generate.authors`` and commit the results.
@@ -66,9 +66,9 @@ Doing a new release
    release within that year.
 #. On the current pip ``master`` branch, generate a new ``NEWS.rst`` by running
    ``invoke generate.news`` and commit the results.
-#. Create a signed tag of the ``master`` branch of the form ``X.Y.Z`` using the
-   command ``git tag -s X.Y.Z``.
-#. Checkout the tag using ``git checkout X.Y.Z`` and create the distribution
+#. Create a signed tag of the ``master`` branch of the form ``YY.N`` using the
+   command ``git tag -s YY.N``.
+#. Checkout the tag using ``git checkout YY.N`` and create the distribution
    files using ``python setup.py sdist bdist_wheel``.
 #. Upload the distribution files to PyPI using twine
    (``twine upload -s dist/*``). The upload should include GPG signatures of
@@ -78,11 +78,11 @@ Doing a new release
    ``invoke generate.installer`` in the get-pip repository, and committing the
    results.
 
-Doing a bug-fix release
------------------------
+Creating a bug-fix release
+--------------------------
 
-Sometimes we need to release a bugfix release of the form ``X.Y.Z+1``. In order
-to create one of these the changes should already be merged into the
+Sometimes we need to release a bugfix release of the form ``YY.N.Z+1``. In
+order to create one of these the changes should already be merged into the
 ``master`` branch.
 
 #. Create a new ``release/YY.N.Z+1`` branch off of the ``YY.N`` tag using the
