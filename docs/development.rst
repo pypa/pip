@@ -90,21 +90,6 @@ If you are missing one of the VCS tools, you can tell ``py.test`` to skip it::
  $ py.test -k 'not (svn or git)'
 
 
-Getting Involved
-================
-
-The pip project welcomes help in the following ways:
-
-- Making Pull Requests for code, tests, or docs.
-- Commenting on open issues and pull requests.
-- Helping to answer questions on the `mailing list`_.
-
-If you want to become an official maintainer, start by helping out.
-
-Later, when you think you're ready, get in touch with one of the maintainers,
-and they will initiate a vote.
-
-
 Adding a NEWS Entry
 ===================
 
