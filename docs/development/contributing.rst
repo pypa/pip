@@ -113,6 +113,112 @@ typically used, but can be used for things like changing version schemes,
 updating deprecation policy, etc.
 
 
+Updating your branch
+====================
+
+As you work, you might need to update your local master branch up-to-date with
+the ``master`` branch in the main pip repository, which moves forward as the
+maintainers merge pull requests. Most people working on the project use the
+following workflow.
+
+This assumes that you have Git configured so that when you run the following
+command:
+
+.. code-block:: console
+
+    git remote -v
+
+Your output looks like this:
+
+.. code-block:: console
+
+    origin  https://github.com/USERNAME/pip.git (fetch)
+    origin  https://github.com/USERNAME/pip.git (push)
+    upstream  https://github.com/pypa/pip.git (fetch)
+    upstream  https://github.com/pypa/pip.git (push)
+
+In the example above, ``USERNAME`` is your username on GitHub.
+
+First, fetch the latest changes from the main pip repository, ``upstream``:
+
+.. code-block:: console
+
+    git fetch upstream
+
+Then, check out your local ``master`` branch, and rebase the changes on top of
+it:
+
+.. code-block:: console
+
+    git checkout master
+    git rebase upstream/master
+
+At this point, you might have to `resolve merge conflicts`_. Once this is done,
+push the updates you have just made to your local ``master`` branch to your
+``origin`` repository on GitHub:
+
+.. code-block:: console
+
+    git checkout master
+    git push origin master
+
+Now your local ``master`` branch and the ``master`` branch in your ``origin``
+repo have been updated with the most recent changes from the main pip
+repository.
+
+To keep your branches updated, the process is similar:
+
+.. code-block:: console
+
+    git checkout awesome-feature
+    git fetch upstream
+    git rebase upstream/master
+
+Now your branch has been updated with the latest changes from the
+``master`` branch on the upstream pip repository.
+
+It's good practice to back up your branches by pushing them to your
+``origin`` on GitHub as you are working on them. To push a branch,
+run this command:
+
+.. code-block:: console
+
+    git push origin awesome-feature
+
+In this example, ``<awesome-feature>`` is the name of your branch. This
+will push the branch you are working on to GitHub, but will not
+create a PR.
+
+Once you have pushed your branch to your ``origin``, if you need to
+update it again, you will have to force push your changes by running the
+following command:
+
+.. code-block:: console
+
+    git push -f origin awesome-feature
+
+The ``-f`` (or ``--force``) flag after ``push`` forces updates from your local
+branch to update your ``origin`` branch. If you have a PR open on your
+branch, force pushing will update your PR. (This is a useful command
+when someone requests changes on a PR.)
+
+If you get an error message like this:
+
+.. code-block:: console
+
+    ! [rejected]        awesome-feature -> awesome-feature (non-fast-forward)
+    error: failed to push some refs to 'https://github.com/USERNAME/pip.git'
+    hint: Updates were rejected because the tip of your current branch is behind
+    hint: its remote counterpart. Integrate the remote changes (e.g.
+    hint: 'git pull ...') before pushing again.
+    hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+
+Try force-pushing your branch with ``push -f``.
+
+The ``master`` branch in the main pip repository gets updated frequently, so
+you might have to update your branch at least once while you are working on it.
+
+
 Becoming a maintainer
 =====================
 
