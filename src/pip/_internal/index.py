@@ -27,8 +27,8 @@ from pip._internal.exceptions import (
     BestVersionAlreadyInstalled, DistributionNotFound, InvalidWheelFilename,
     UnsupportedWheel,
 )
-from pip._internal.models.index import PyPI
 from pip._internal.models.candidate import InstallationCandidate
+from pip._internal.models.index import PyPI
 from pip._internal.models.link import Link
 from pip._internal.pep425tags import get_supported
 from pip._internal.utils.deprecation import RemovedInPip11Warning

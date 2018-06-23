@@ -3,7 +3,7 @@
 
 from pip._vendor.packaging.version import parse as parse_version
 
-from pip._internal.models import index, candidate
+from pip._internal.models import candidate, index
 
 
 class TestPackageIndex(object):

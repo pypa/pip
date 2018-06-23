@@ -1,6 +1,6 @@
 """Tests for wheel binary packages and .dist-info."""
-import os
 import logging
+import os
 
 import pytest
 from mock import Mock, patch
