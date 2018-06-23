@@ -7,6 +7,31 @@ Contributing to pip
    "you might want to take a look at the guide"
 
 
+Submitting Pull Requests
+========================
+
+Submit pull requests against the ``master`` branch, providing a good
+description of what you're doing and why. Provide tests that cover your changes
+and run the tests locally first.
+
+Pull Requests should be small to facilitate easier review. Keep them
+self-contained, and limited in scope. `Studies have shown`_ that review quality
+falls off as patch size grows. Sometimes this will result in many small PRs to
+land a single large feature. In particular, pull requests must not be treated
+as "feature branches", with ongoing development work happening within the PR.
+Instead, the feature should be broken up into smaller, independent parts which
+can be reviewed and merged individually.
+
+When creating a pull request, avoid including "cosmetic" changes to code that
+is unrelated to your change, as these make reviewing the PR more difficult.
+Examples include re-flowing text in comments or documentation, or addition or
+removal of blank lines or whitespace within lines. Such changes can be made
+separately, as a "formatting cleanup" PR, if needed.
+
+You must have legal permission to distribute any code you contribute to
+pip and it must be available under the MIT License.
+
+
 Automated Testing
 =================
 
@@ -96,6 +121,8 @@ If you want to become an official maintainer, start by helping out.
 Later, when you think you're ready, get in touch with one of the maintainers
 and they will initiate a vote.
 
+.. _`Studies have shown`: https://smartbear.com/smartbear/media/pdfs/wp-cc-11-best-practices-of-peer-code-review.pdf
+.. _`resolve merge conflicts`: https://help.github.com/articles/resolving-a-merge-conflict-using-the-command-line/
 .. _`Travis CI`: https://travis-ci.org/
 .. _`Appveyor CI`: https://www.appveyor.com/
 .. _`.travis.yml`: https://github.com/pypa/pip/blob/master/.travis.yml
