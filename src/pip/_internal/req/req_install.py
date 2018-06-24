@@ -32,6 +32,7 @@ from pip._internal.exceptions import InstallationError
 from pip._internal.locations import (
     PIP_DELETE_MARKER_FILENAME, running_under_virtualenv,
 )
+from pip._internal.models.link import Link
 from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.deprecation import (
     RemovedInPip11Warning, RemovedInPip12Warning,
@@ -137,8 +138,6 @@ class InstallRequirement(object):
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, isolated=False,
                       options=None, wheel_cache=None, constraint=False):
-        from pip._internal.models.link import Link  # TODO: move this to top
-
         name, url, extras_override = parse_editable(editable_req)
         if url.startswith('file:'):
             source_dir = url_to_path(url)
