@@ -11,10 +11,10 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
+import glob
 import os
 import re
 import sys
-import glob
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
