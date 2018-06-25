@@ -240,7 +240,7 @@ class Command(object):
             logger.debug('Exception information:', exc_info=True)
 
             return ERROR
-        except:
+        except Exception:
             logger.critical('Exception:', exc_info=True)
 
             return UNKNOWN_ERROR

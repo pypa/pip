@@ -121,12 +121,12 @@ class TestUninstallPathSet(object):
         f = os.path.join(tmpdir, 'foo')
         with open(f, 'w'):
             pass
-        l = os.path.join(tmpdir, 'foo_link')
-        os.symlink(f, l)
+        foo_link = os.path.join(tmpdir, 'foo_link')
+        os.symlink(f, foo_link)
 
         ups = UninstallPathSet(dist=Mock())
-        ups.add(l)
-        assert ups.paths == {l}
+        ups.add(foo_link)
+        assert ups.paths == {foo_link}
 
     def test_compact_shorter_path(self, monkeypatch):
         monkeypatch.setattr(pip._internal.req.req_uninstall, 'is_local',
