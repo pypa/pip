@@ -2,6 +2,7 @@
 """
 
 import mock
+
 from pip._internal.operations import check
 
 
