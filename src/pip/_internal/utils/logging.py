@@ -154,11 +154,15 @@ def setup_logging(verbosity, additional_log_file, no_color):
     if additional_log_file is not None:
         root_level = "DEBUG"
 
-    # Shorthand for clarity
-    log_streams = ("ext://sys.stdout", "ext://sys.stderr")
-
-    logger_class = "pip._internal.utils.logging.ColorizedStreamHandler"
-    handler_class = "pip._internal.utils.logging.BetterRotatingFileHandler"
+    # Shorthands for clarity
+    log_streams = {
+        "stdout": "ext://sys.stdout",
+        "stderr": "ext://sys.stderr",
+    }
+    handler_classes = {
+        "stream": "pip._internal.utils.logging.ColorizedStreamHandler",
+        "file": "pip._internal.utils.logging.BetterRotatingFileHandler",
+    }
 
     logging.config.dictConfig({
             "version": 1,
@@ -178,22 +182,22 @@ def setup_logging(verbosity, additional_log_file, no_color):
             "handlers": {
                 "console": {
                     "level": level,
-                    "class": logger_class,
+                    "class": handler_classes["stream"],
                     "no_color": no_color,
-                    "stream": log_streams[0],
+                    "stream": log_streams["stdout"],
                     "filters": ["exclude_warnings"],
                     "formatter": "indent",
                 },
                 "console_errors": {
                     "level": "WARNING",
-                    "class": logger_class,
+                    "class": handler_classes["stream"],
                     "no_color": no_color,
-                    "stream": log_streams[1],
+                    "stream": log_streams["stderr"],
                     "formatter": "indent",
                 },
                 "user_log": {
                     "level": "DEBUG",
-                    "class": handler_class,
+                    "class": handler_classes["file"],
                     "filename": additional_log_file or "/dev/null",
                     "delay": True,
                     "formatter": "indent",
