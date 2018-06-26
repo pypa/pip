@@ -132,7 +132,7 @@ class MaxLevelFilter(logging.Filter):
         return record.levelno < self.level
 
 
-def setup_logging(verbosity, additional_log_file, no_color):
+def setup_logging(verbosity, no_color, user_log_file):
     """Configures and sets up all of the logging
     """
 
@@ -148,11 +148,16 @@ def setup_logging(verbosity, additional_log_file, no_color):
     else:
         level = "INFO"
 
-    # The "root" logger should match the "console" level *unless* we specified
-    # a "--log" file to send debug logs.
-    root_level = level
-    if additional_log_file is not None:
+    # The "root" logger should match the "console" level *unless* we also need
+    # to log to a user log file.
+    include_user_log = user_log_file is not None
+    if include_user_log:
+        additional_log_file = user_log_file
         root_level = "DEBUG"
+    else:
+        additional_log_file = "/dev/null"
+        root_level = level
+
 
     # Shorthands for clarity
     log_streams = {
@@ -198,7 +203,7 @@ def setup_logging(verbosity, additional_log_file, no_color):
                 "user_log": {
                     "level": "DEBUG",
                     "class": handler_classes["file"],
-                    "filename": additional_log_file or "/dev/null",
+                    "filename": additional_log_file,
                     "delay": True,
                     "formatter": "indent",
                 },
@@ -206,7 +211,7 @@ def setup_logging(verbosity, additional_log_file, no_color):
             "root": {
                 "level": root_level,
                 "handlers": ["console", "console_errors"] + (
-                    ["user_log"] if additional_log_file else []
+                    ["user_log"] if include_user_log else []
                 ),
             },
             # Disable any logging besides WARNING unless we have DEBUG level

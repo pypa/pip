@@ -115,8 +115,8 @@ class Command(object):
 
         setup_logging(
             verbosity=self.verbosity,
-            additional_log_file=options.log,
             no_color=options.no_color,
+            user_log_file=options.log,
         )
 
         # TODO: Try to get these passing down from the command?
