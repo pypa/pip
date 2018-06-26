@@ -246,12 +246,17 @@ class Command(object):
             return UNKNOWN_ERROR
         finally:
             # Check if we're using the latest version of pip available
-            if (not options.disable_pip_version_check and not
-                    getattr(options, "no_index", False)):
-                with self._build_session(
-                        options,
-                        retries=0,
-                        timeout=min(5, options.timeout)) as session:
+            skip_version_check = (
+                options.disable_pip_version_check or
+                getattr(options, "no_index", False)
+            )
+            if not skip_version_check:
+                session = self._build_session(
+                    options,
+                    retries=0,
+                    timeout=min(5, options.timeout)
+                )
+                with session:
                     pip_version_check(session, options)
             # Avoid leaking loggers
             for handler in set(logging.root.handlers) - original_root_handlers:
