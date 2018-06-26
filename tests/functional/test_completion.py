@@ -34,7 +34,7 @@ function _pip_completion {
              COMP_CWORD=$(( cword-1 )) \\
              PIP_AUTO_COMPLETE=1 $words[1] ) )
 }
-compctl -K _pip_completion pip"""
+compctl -K _pip_completion + -f pip"""
 
     result = script.pip('completion', '--zsh')
     assert zsh_completion in result.stdout, 'zsh completion is wrong'
