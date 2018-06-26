@@ -1,0 +1,1 @@
+Remove files before writing to avoid overwriting symlinked files

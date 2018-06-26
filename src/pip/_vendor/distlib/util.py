@@ -545,6 +545,8 @@ class FileOperator(object):
     def write_binary_file(self, path, data):
         self.ensure_dir(os.path.dirname(path))
         if not self.dry_run:
+            if os.path.exists(path):
+                os.remove(path)
             with open(path, 'wb') as f:
                 f.write(data)
         self.record_as_written(path)
@@ -552,6 +554,8 @@ class FileOperator(object):
     def write_text_file(self, path, data, encoding):
         self.ensure_dir(os.path.dirname(path))
         if not self.dry_run:
+            if os.path.exists(path):
+                os.remove(path)
             with open(path, 'wb') as f:
                 f.write(data.encode(encoding))
         self.record_as_written(path)
