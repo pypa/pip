@@ -7,6 +7,15 @@
 
 .. towncrier release notes start
 
+10.0.2 (2018-06-26)
+===================
+
+Bug Fixes
+---------
+
+- Check for file existence and unlink first when clobbering existing files
+  during a wheel install. (#5366)
+
 
 10.0.1 (2018-04-19)
 ===================
