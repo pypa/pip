@@ -205,11 +205,9 @@ def setup_logging(verbosity, additional_log_file, no_color):
             },
             "root": {
                 "level": root_level,
-                "handlers": list(filter(None, [
-                    "console",
-                    "console_errors",
-                    "user_log" if additional_log_file else None,
-                ])),
+                "handlers": ["console", "console_errors"] + (
+                    ["user_log"] if additional_log_file else []
+                ),
             },
             # Disable any logging besides WARNING unless we have DEBUG level
             # logging enabled. These use both pip._vendor and the bare names
