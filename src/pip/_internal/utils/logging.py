@@ -130,3 +130,93 @@ class MaxLevelFilter(logging.Filter):
 
     def filter(self, record):
         return record.levelno < self.level
+
+
+def setup_logging(verbosity, additional_log_file, no_color):
+    """Configures and sets up all of the logging
+    """
+
+    # Determine the level to be logging at.
+    if verbosity >= 1:
+        level = "DEBUG"
+    elif verbosity == -1:
+        level = "WARNING"
+    elif verbosity == -2:
+        level = "ERROR"
+    elif verbosity <= -3:
+        level = "CRITICAL"
+    else:
+        level = "INFO"
+
+    # The "root" logger should match the "console" level *unless* we specified
+    # a "--log" file to send debug logs.
+    root_level = level
+    if additional_log_file is not None:
+        root_level = "DEBUG"
+
+    # Shorthand for clarity
+    log_streams = ("ext://sys.stdout", "ext://sys.stderr")
+
+    logger_class = "pip._internal.utils.logging.ColorizedStreamHandler"
+    handler_class = "pip._internal.utils.logging.BetterRotatingFileHandler"
+
+    logging.config.dictConfig({
+            "version": 1,
+            "disable_existing_loggers": False,
+            "filters": {
+                "exclude_warnings": {
+                    "()": "pip._internal.utils.logging.MaxLevelFilter",
+                    "level": logging.WARNING,
+                },
+            },
+            "formatters": {
+                "indent": {
+                    "()": IndentingFormatter,
+                    "format": "%(message)s",
+                },
+            },
+            "handlers": {
+                "console": {
+                    "level": level,
+                    "class": logger_class,
+                    "no_color": no_color,
+                    "stream": log_streams[0],
+                    "filters": ["exclude_warnings"],
+                    "formatter": "indent",
+                },
+                "console_errors": {
+                    "level": "WARNING",
+                    "class": logger_class,
+                    "no_color": no_color,
+                    "stream": log_streams[1],
+                    "formatter": "indent",
+                },
+                "user_log": {
+                    "level": "DEBUG",
+                    "class": handler_class,
+                    "filename": additional_log_file or "/dev/null",
+                    "delay": True,
+                    "formatter": "indent",
+                },
+            },
+            "root": {
+                "level": root_level,
+                "handlers": list(filter(None, [
+                    "console",
+                    "console_errors",
+                    "user_log" if additional_log_file else None,
+                ])),
+            },
+            # Disable any logging besides WARNING unless we have DEBUG level
+            # logging enabled. These use both pip._vendor and the bare names
+            # for the case where someone unbundles our libraries.
+            "loggers": {
+                name: {
+                    "level": (
+                        "WARNING" if level in ["INFO", "ERROR"] else "DEBUG"
+                    )
+                } for name in [
+                    "pip._vendor", "distlib", "requests", "urllib3"
+                ]
+            },
+        })
