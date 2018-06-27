@@ -262,7 +262,7 @@ class Resolver(object):
             self.finder.add_dependency_links(
                 dist.get_metadata_lines('dependency_links.txt')
             )
-        
+
         try:
             check_dist_requires_python(dist)
         except UnsupportedPythonVersion as err:
