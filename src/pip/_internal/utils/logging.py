@@ -158,6 +158,9 @@ def setup_logging(verbosity, no_color, user_log_file):
         additional_log_file = "/dev/null"
         root_level = level
 
+    # Disable any logging besides WARNING unless we have DEBUG level logging
+    # enabled for vendored libraries.
+    vendored_log_level = "WARNING" if level in ["INFO", "ERROR"] else "DEBUG"
 
     # Shorthands for clarity
     log_streams = {
@@ -214,16 +217,9 @@ def setup_logging(verbosity, no_color, user_log_file):
                     ["user_log"] if include_user_log else []
                 ),
             },
-            # Disable any logging besides WARNING unless we have DEBUG level
-            # logging enabled. These use both pip._vendor and the bare names
-            # for the case where someone unbundles our libraries.
             "loggers": {
-                name: {
-                    "level": (
-                        "WARNING" if level in ["INFO", "ERROR"] else "DEBUG"
-                    )
-                } for name in [
-                    "pip._vendor", "distlib", "requests", "urllib3"
-                ]
+                "pip._vendor": {
+                    "level": vendored_log_level
+                }
             },
         })
