@@ -258,7 +258,7 @@ class Resolver(object):
 
         # Parse and return dependencies
         dist = abstract_dist.dist(self.finder)
-        if self.finder and dist.has_metadata('dependency_links.txt'):
+        if dist.has_metadata('dependency_links.txt'):
             self.finder.add_dependency_links(
                 dist.get_metadata_lines('dependency_links.txt')
             )
