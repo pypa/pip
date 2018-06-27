@@ -32,11 +32,12 @@ def make_abstract_dist(req):
     :return: A concrete DistAbstraction.
     """
     if req.editable:
-        return IsSDist(req)
+        ctor=IsSDist
     elif req.link and req.link.is_wheel:
-        return IsWheel(req)
+        ctor=IsWheel
     else:
-        return IsSDist(req)
+        ctor=IsSDist
+    return ctor(req)
 
 
 class DistAbstraction(object):
