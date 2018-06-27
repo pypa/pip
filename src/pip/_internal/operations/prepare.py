@@ -84,13 +84,7 @@ class IsWheel(DistAbstraction):
 class IsSDist(DistAbstraction):
 
     def dist(self, finder):
-        dist = self.req.get_dist()
-        # FIXME: shouldn't be globally added.
-        if finder and dist.has_metadata('dependency_links.txt'):
-            finder.add_dependency_links(
-                dist.get_metadata_lines('dependency_links.txt')
-            )
-        return dist
+        return self.req.get_dist()
 
     def prep_for_dist(self, finder, build_isolation):
         # Before calling "setup.py egg_info", we need to set-up the build
