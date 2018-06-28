@@ -109,7 +109,11 @@ def user_agent():
             "name": platform.python_implementation(),
         },
     }
-
+    
+    provisional = os.environ.get("PIP_USER_AGENT_PROVISIONAL_STRING")
+    if provisional:
+        data["provisional"] = provisional
+        
     if data["implementation"]["name"] == 'CPython':
         data["implementation"]["version"] = platform.python_version()
     elif data["implementation"]["name"] == 'PyPy':
