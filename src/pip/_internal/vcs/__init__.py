@@ -298,49 +298,51 @@ class VersionControl(object):
         Args:
           rev_options: a RevOptions object.
         """
-        checkout = True
+        if not os.path.exists(dest):
+            return True
+
+        checkout = False
         prompt = False
         rev_display = rev_options.to_display()
-        if os.path.exists(dest):
-            checkout = False
-            if os.path.exists(os.path.join(dest, self.dirname)):
-                existing_url = self.get_url(dest)
-                if self.compare_urls(existing_url, url):
-                    logger.debug(
-                        '%s in %s exists, and has correct URL (%s)',
-                        self.repo_name.title(),
+        if os.path.exists(os.path.join(dest, self.dirname)):
+            existing_url = self.get_url(dest)
+            if self.compare_urls(existing_url, url):
+                logger.debug(
+                    '%s in %s exists, and has correct URL (%s)',
+                    self.repo_name.title(),
+                    display_path(dest),
+                    url,
+                )
+                if not self.is_commit_id_equal(dest, rev_options.rev):
+                    logger.info(
+                        'Updating %s %s%s',
                         display_path(dest),
-                        url,
-                    )
-                    if not self.is_commit_id_equal(dest, rev_options.rev):
-                        logger.info(
-                            'Updating %s %s%s',
-                            display_path(dest),
-                            self.repo_name,
-                            rev_display,
-                        )
-                        self.update(dest, rev_options)
-                    else:
-                        logger.info(
-                            'Skipping because already up-to-date.')
-                else:
-                    logger.warning(
-                        '%s %s in %s exists with URL %s',
-                        self.name,
                         self.repo_name,
-                        display_path(dest),
-                        existing_url,
+                        rev_display,
                     )
-                    prompt = ('(s)witch, (i)gnore, (w)ipe, (b)ackup ',
-                              ('s', 'i', 'w', 'b'))
+                    self.update(dest, rev_options)
+                else:
+                    logger.info(
+                        'Skipping because already up-to-date.')
             else:
                 logger.warning(
-                    'Directory %s already exists, and is not a %s %s.',
-                    dest,
+                    '%s %s in %s exists with URL %s',
                     self.name,
                     self.repo_name,
+                    display_path(dest),
+                    existing_url,
                 )
-                prompt = ('(i)gnore, (w)ipe, (b)ackup ', ('i', 'w', 'b'))
+                prompt = ('(s)witch, (i)gnore, (w)ipe, (b)ackup ',
+                          ('s', 'i', 'w', 'b'))
+        else:
+            logger.warning(
+                'Directory %s already exists, and is not a %s %s.',
+                dest,
+                self.name,
+                self.repo_name,
+            )
+            prompt = ('(i)gnore, (w)ipe, (b)ackup ', ('i', 'w', 'b'))
+
         if prompt:
             logger.warning(
                 'The plan is to install the %s repository %s',
