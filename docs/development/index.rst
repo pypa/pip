@@ -1,9 +1,9 @@
 Development
 ===========
 
-pip, as an open-source project, welcomes contributions of all forms. The
-sections below will help you get started with development, testing, and
-documentation.
+pip is a volunteer maintained open source project and we welcome contributions
+of all forms. The sections below will help you get started with development,
+testing, and documentation.
 
 You can also join ``#pypa`` (general packaging discussion and user support) and
 ``#pypa-dev`` (discussion about development of packaging tools) `on Freenode`_,
