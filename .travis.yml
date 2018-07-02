@@ -23,9 +23,9 @@ jobs:
     - env: GROUP=2
       python: 2.7
     - env: GROUP=1
-      python: 3.6
+      python: 3.7
     - env: GROUP=2
-      python: 3.6
+      python: 3.7
 
     # Complete checking for ensuring compatibility
     # PyPy
@@ -40,6 +40,10 @@ jobs:
       python: pypy
     # Older Supported CPython
     - env: GROUP=1
+      python: 3.6
+    - env: GROUP=2
+      python: 3.6
+    - env: GROUP=1
       python: 3.5
     - env: GROUP=2
       python: 3.5
@@ -49,14 +53,14 @@ jobs:
       python: 3.4
 
     - env: GROUP=1
-      python: 3.7-dev
+      python: 3.8-dev
     - env: GROUP=2
-      python: 3.7-dev
+      python: 3.8-dev
 
   # It's okay to fail on the in-development CPython version.
   fast_finish: true
   allow_failures:
-    - python: 3.7-dev
+    - python: 3.8-dev
 
 before_install: tools/travis/setup.sh
 install: travis_retry tools/travis/install.sh
