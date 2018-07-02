@@ -11,8 +11,14 @@ Submitting Pull Requests
 ========================
 
 Submit pull requests against the ``master`` branch, providing a good
-description of what you're doing and why. Provide tests that cover your changes
-and run the tests locally first.
+description of what you're doing and why. You must have legal permission to
+distribute any code you contribute to pip and it must be available under the
+MIT License.
+
+Provide tests that cover your changes and run the tests locally first. pip
+:ref:`supports <compatibility-requirements>` multiple Python versions and
+operating systems. Any pull request must consider and work on all these
+platforms.
 
 Pull Requests should be small to facilitate easier review. Keep them
 self-contained, and limited in scope. `Studies have shown`_ that review quality
@@ -22,15 +28,11 @@ as "feature branches", with ongoing development work happening within the PR.
 Instead, the feature should be broken up into smaller, independent parts which
 can be reviewed and merged individually.
 
-When creating a pull request, avoid including "cosmetic" changes to code that
+Additionally, avoid including "cosmetic" changes to code that
 is unrelated to your change, as these make reviewing the PR more difficult.
 Examples include re-flowing text in comments or documentation, or addition or
 removal of blank lines or whitespace within lines. Such changes can be made
 separately, as a "formatting cleanup" PR, if needed.
-
-You must have legal permission to distribute any code you contribute to
-pip and it must be available under the MIT License.
-
 
 Automated Testing
 =================
