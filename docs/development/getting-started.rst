@@ -32,9 +32,22 @@ To run tests locally, run:
 The example above runs tests against Python 3.6. You can also use other
 versions like ``py27`` and ``pypy3``.
 
-pip's test suite requires supported version control tools (subversion, bazaar,
-git, and mercurial) to be installed. If you are missing one of the VCS tools,
-you can tell pip to skip those tests:
+``tox`` has been configured to any additional arguments it is given to
+``pytest``. This enables the use of pytest's `rich CLI`_. As an example, you
+can select tests using the various ways that pytest provides:
+
+.. code-block:: console
+
+    $ # Using file name
+    $ tox -e py36 -- tests/functional/test_install.py
+    $ # Using markers
+    $ tox -e py36 -- -m unit
+    $ # Using keywords
+    $ tox -e py36 -- -k "install and not wheel"
+
+Running pip's test suite requires supported version control tools (subversion,
+bazaar, git, and mercurial) to be installed. If you are missing one of the VCS
+tools, you can tell pip to skip those tests:
 
 .. code-block:: console
 
@@ -91,6 +104,7 @@ To build it locally, run:
 
 The built documentation can be found in the ``docs/build`` folder.
 
-.. _`open an issue`: https://github.com/pypa/pip/issues/new?title=Truouble+with+pip+development+environment
+.. _`open an issue`: https://github.com/pypa/pip/issues/new?title=Trouble+with+pip+development+environment
 .. _`flake8 does not understand PEP 484 type-comments`: https://gitlab.com/pycqa/flake8/issues/118
 .. _`PEP 484 type-comments`: https://www.python.org/dev/peps/pep-0484/#suggested-syntax-for-python-2-7-and-straddling-code
+.. _`rich CLI`: https://docs.pytest.org/en/latest/usage.html#specifying-tests-selecting-tests
