@@ -301,8 +301,6 @@ class VersionControl(object):
         if not os.path.exists(dest):
             return True
 
-        checkout = False
-        prompt = False
         rev_display = rev_options.to_display()
         if os.path.exists(os.path.join(dest, self.dirname)):
             existing_url = self.get_url(dest)
@@ -322,18 +320,18 @@ class VersionControl(object):
                     )
                     self.update(dest, rev_options)
                 else:
-                    logger.info(
-                        'Skipping because already up-to-date.')
-            else:
-                logger.warning(
-                    '%s %s in %s exists with URL %s',
-                    self.name,
-                    self.repo_name,
-                    display_path(dest),
-                    existing_url,
-                )
-                prompt = ('(s)witch, (i)gnore, (w)ipe, (b)ackup ',
-                          ('s', 'i', 'w', 'b'))
+                    logger.info('Skipping because already up-to-date.')
+                return False
+
+            logger.warning(
+                '%s %s in %s exists with URL %s',
+                self.name,
+                self.repo_name,
+                display_path(dest),
+                existing_url,
+            )
+            prompt = ('(s)witch, (i)gnore, (w)ipe, (b)ackup ',
+                      ('s', 'i', 'w', 'b'))
         else:
             logger.warning(
                 'Directory %s already exists, and is not a %s %s.',
@@ -343,40 +341,40 @@ class VersionControl(object):
             )
             prompt = ('(i)gnore, (w)ipe, (b)ackup ', ('i', 'w', 'b'))
 
-        if prompt:
-            logger.warning(
-                'The plan is to install the %s repository %s',
-                self.name,
-                url,
-            )
-            response = ask_path_exists('What to do?  %s' % prompt[0],
-                                       prompt[1])
+        logger.warning(
+            'The plan is to install the %s repository %s',
+            self.name,
+            url,
+        )
+        response = ask_path_exists('What to do?  %s' % prompt[0], prompt[1])
 
-            if response == 's':
-                logger.info(
-                    'Switching %s %s to %s%s',
-                    self.repo_name,
-                    display_path(dest),
-                    url,
-                    rev_display,
-                )
-                self.switch(dest, url, rev_options)
-            elif response == 'i':
-                # do nothing
-                pass
-            elif response == 'w':
-                logger.warning('Deleting %s', display_path(dest))
-                rmtree(dest)
-                checkout = True
-            elif response == 'b':
-                dest_dir = backup_dir(dest)
-                logger.warning(
-                    'Backing up %s to %s', display_path(dest), dest_dir,
-                )
-                shutil.move(dest, dest_dir)
-                checkout = True
-            elif response == 'a':
-                sys.exit(-1)
+        checkout = False
+        if response == 's':
+            logger.info(
+                'Switching %s %s to %s%s',
+                self.repo_name,
+                display_path(dest),
+                url,
+                rev_display,
+            )
+            self.switch(dest, url, rev_options)
+        elif response == 'i':
+            # do nothing
+            pass
+        elif response == 'w':
+            logger.warning('Deleting %s', display_path(dest))
+            rmtree(dest)
+            checkout = True
+        elif response == 'b':
+            dest_dir = backup_dir(dest)
+            logger.warning(
+                'Backing up %s to %s', display_path(dest), dest_dir,
+            )
+            shutil.move(dest, dest_dir)
+            checkout = True
+        elif response == 'a':
+            sys.exit(-1)
+
         return checkout
 
     def unpack(self, location):
