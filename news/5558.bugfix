@@ -1,0 +1,1 @@
+Fix error trying to generate scripts warning when PATH not set
