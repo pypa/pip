@@ -1,0 +1,1 @@
+Fix stalled var: set _egg_info_path to None in notpip's req_install if source_dir changes. It may manifest when trying to install the same dependency again, and failing to do so.
