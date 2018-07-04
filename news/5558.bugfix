@@ -1,1 +1,1 @@
-Fix error trying to generate scripts warning when PATH not set
+Fix a crash that occurs when PATH not set, while generating script location warning.
