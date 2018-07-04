@@ -639,7 +639,7 @@ class TestParseRequirements(object):
             popen.return_value.stdout.readline.return_value = b""
             try:
                 req.install([])
-            except:
+            except Exception:
                 pass
 
             last_call = popen.call_args_list[-1]

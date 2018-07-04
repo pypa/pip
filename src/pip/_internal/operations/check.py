@@ -6,7 +6,6 @@ from collections import namedtuple
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.operations.prepare import make_abstract_dist
-
 from pip._internal.utils.misc import get_installed_distributions
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
