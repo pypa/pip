@@ -215,6 +215,7 @@ class PackageFinder(object):
                 "Dependency Links processing has been deprecated and will be "
                 "removed in a future release.",
                 replacement=None,
+                gone_in="18.2",
                 issue=4187,
             )
             self.dependency_links.extend(links)

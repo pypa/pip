@@ -219,6 +219,7 @@ class FrozenRequirement(object):
                         "SVN editable detection based on dependency links "
                         "will be dropped in the future.",
                         replacement=None,
+                        gone_in="18.2",
                         issue=4187,
                     )
                     comments.append(

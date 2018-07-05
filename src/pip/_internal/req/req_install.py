@@ -586,8 +586,8 @@ class InstallRequirement(object):
                 "pyproject.toml files that do not contain the [build-system]"
                 "table and the requires key, as specified in PEP 518.",
                 replacement=None,
+                gone_in="18.2",
                 issue=5416,
-                imminent=True,
             )
 
             # Currently, we're isolating the build based on the presence of the

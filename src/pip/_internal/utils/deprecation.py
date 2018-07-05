@@ -6,6 +6,9 @@ from __future__ import absolute_import
 import logging
 import warnings
 
+from pip._vendor.packaging.version import parse
+
+from pip import __version__ as current_version
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -13,10 +16,6 @@ if MYPY_CHECK_RUNNING:
 
 
 class PipDeprecationWarning(Warning):
-    pass
-
-
-class PipPendingDeprecationWarning(PipDeprecationWarning):
     pass
 
 
@@ -34,16 +33,7 @@ def _showwarning(message, category, filename, lineno, file=None, line=None):
         # We use a specially named logger which will handle all of the
         # deprecation messages for pip.
         logger = logging.getLogger("pip._internal.deprecations")
-
-        # PipPendingDeprecationWarnings still have at least 2
-        # versions to go until they are removed so they can just be
-        # warnings.  Otherwise, they will be removed in the very next
-        # version of pip. We want these to be more obvious so we use the
-        # ERROR logging level.
-        if issubclass(category, PipPendingDeprecationWarning):
-            logger.warning(log_message)
-        else:
-            logger.error(log_message)
+        logger.warning(message)
     else:
         _original_showwarning(
             message, category, filename, lineno, file, line,
@@ -61,12 +51,11 @@ def install_warning_logger():
         warnings.showwarning = _showwarning
 
 
-def deprecated(reason, replacement, issue=None, imminent=False):
-    # type: (str, Optional[str], Optional[int], bool) -> None
-    if imminent:
-        category = PipDeprecationWarning
-    else:
-        category = PipPendingDeprecationWarning
+def deprecated(reason, replacement, gone_in, issue=None):
+    # type: (str, Optional[str], Optional[str], Optional[int]) -> None
+    """Helper to deprecate existing functionality.
+    """
+    # NOTE: treat replacement, gone_in, issue as keyword only arguments.
 
     # Construct a nice message.
     # This is purposely eagerly formatted as we want it to appear as if someone
@@ -78,4 +67,7 @@ def deprecated(reason, replacement, issue=None, imminent=False):
         url = "https://github.com/pypa/pip/issues/" + str(issue)
         message += " You can find discussion regarding this at {}.".format(url)
 
-    warnings.warn(message, category=category, stacklevel=2)
+    # Raise as an error if it has to be removed.
+    if gone_in is not None and parse(current_version) >= parse(gone_in):
+        raise PipDeprecationWarning(message)
+    warnings.warn(message, category=PipDeprecationWarning, stacklevel=2)
