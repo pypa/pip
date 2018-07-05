@@ -62,7 +62,7 @@ def deprecated(reason, replacement, gone_in, issue=None):
     # typed this entire message out.
     message = "DEPRECATION: " + reason
     if replacement is not None:
-        message += " An alternative is to {}.".format(replacement)
+        message += " A possible replacement is {}.".format(replacement)
     if issue is not None:
         url = "https://github.com/pypa/pip/issues/" + str(issue)
         message += " You can find discussion regarding this at {}.".format(url)
