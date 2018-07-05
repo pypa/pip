@@ -35,11 +35,6 @@ def _showwarning(message, category, filename, lineno, file=None, line=None):
         # deprecation messages for pip.
         logger = logging.getLogger("pip._internal.deprecations")
 
-        # This is purposely using the % formatter here instead of letting
-        # the logging module handle the interpolation. This is because we
-        # want it to appear as if someone typed this entire message out.
-        log_message = "DEPRECATION: %s" % message
-
         # PipPendingDeprecationWarnings still have at least 2
         # versions to go until they are removed so they can just be
         # warnings.  Otherwise, they will be removed in the very next
@@ -74,7 +69,9 @@ def deprecated(reason, replacement, issue=None, imminent=False):
         category = PipPendingDeprecationWarning
 
     # Construct a nice message.
-    message = reason
+    # This is purposely eagerly formatted as we want it to appear as if someone
+    # typed this entire message out.
+    message = "DEPRECATION: " + reason
     if replacement is not None:
         message += " An alternative is to {}.".format(replacement)
     if issue is not None:
