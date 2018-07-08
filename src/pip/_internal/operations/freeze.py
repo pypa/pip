@@ -241,9 +241,6 @@ class FrozenRequirement(object):
                         cls.egg_name(dist)
                     )
             if sem_match and semantic:
-                # comments.append(
-                #         "# Using PEP404 semantic range for %s release" % semantic
-                #     )
                 req = cls.loose_semver(req.name, sem_match, semantic)
         return cls(dist.project_name, req, editable, comments)
 
