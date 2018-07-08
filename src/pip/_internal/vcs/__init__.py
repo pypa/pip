@@ -260,6 +260,17 @@ class VersionControl(object):
         """
         raise NotImplementedError
 
+    def fetch_new(self, dest, url, rev_options):
+        """
+        Fetch a revision from a repository, in the case that this is the
+        first fetch from the repository.
+
+        Args:
+          dest: the directory to fetch the repository to.
+          rev_options: a RevOptions object.
+        """
+        raise NotImplementedError
+
     def switch(self, dest, url, rev_options):
         """
         Switch the repo at ``dest`` to point to ``URL``.
