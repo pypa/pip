@@ -73,6 +73,17 @@ class Subversion(VersionControl):
             cmd_args = ['export'] + rev_options.to_args() + [url, location]
             self.run_command(cmd_args, show_stdout=False)
 
+    def fetch_new(self, dest, url, rev_options):
+        rev_display = rev_options.to_display()
+        logger.info(
+            'Checking out %s%s to %s',
+            url,
+            rev_display,
+            display_path(dest),
+        )
+        cmd_args = ['checkout', '-q'] + rev_options.to_args() + [url, dest]
+        self.run_command(cmd_args)
+
     def switch(self, dest, url, rev_options):
         cmd_args = ['switch'] + rev_options.to_args() + [url, dest]
         self.run_command(cmd_args)
@@ -86,15 +97,7 @@ class Subversion(VersionControl):
         rev_options = get_rev_options(self, url, rev)
         url = remove_auth_from_url(url)
         if self.check_destination(dest, url, rev_options):
-            rev_display = rev_options.to_display()
-            logger.info(
-                'Checking out %s%s to %s',
-                url,
-                rev_display,
-                display_path(dest),
-            )
-            cmd_args = ['checkout', '-q'] + rev_options.to_args() + [url, dest]
-            self.run_command(cmd_args)
+            self.fetch_new(dest, url, rev_options)
 
     def get_location(self, dist, dependency_links):
         for url in dependency_links:
