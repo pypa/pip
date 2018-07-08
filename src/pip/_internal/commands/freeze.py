@@ -67,6 +67,18 @@ class FreezeCommand(Command):
             dest='exclude_editable',
             action='store_true',
             help='Exclude editable package from output.')
+        self.cmd_opts.add_option(
+            '--major',
+            dest='semantic',
+            action='store_const',
+            const='major',
+            help='Freeze to major version.')
+        self.cmd_opts.add_option(
+            '--minor',
+            dest='semantic',
+            action='store_const',
+            const='minor',
+            help='Freeze to minor version.')
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
@@ -87,6 +99,7 @@ class FreezeCommand(Command):
             wheel_cache=wheel_cache,
             skip=skip,
             exclude_editable=options.exclude_editable,
+            semantic=options.semantic or None
         )
 
         try:
