@@ -348,7 +348,22 @@ class VersionControl(object):
         )
         response = ask_path_exists('What to do?  %s' % prompt[0], prompt[1])
 
-        checkout = False
+        if response == 'a':
+            sys.exit(-1)
+
+        if response == 'w':
+            logger.warning('Deleting %s', display_path(dest))
+            rmtree(dest)
+            return True
+
+        if response == 'b':
+            dest_dir = backup_dir(dest)
+            logger.warning(
+                'Backing up %s to %s', display_path(dest), dest_dir,
+            )
+            shutil.move(dest, dest_dir)
+            return True
+
         if response == 's':
             logger.info(
                 'Switching %s %s to %s%s',
@@ -358,24 +373,10 @@ class VersionControl(object):
                 rev_display,
             )
             self.switch(dest, url, rev_options)
-        elif response == 'i':
-            # do nothing
-            pass
-        elif response == 'w':
-            logger.warning('Deleting %s', display_path(dest))
-            rmtree(dest)
-            checkout = True
-        elif response == 'b':
-            dest_dir = backup_dir(dest)
-            logger.warning(
-                'Backing up %s to %s', display_path(dest), dest_dir,
-            )
-            shutil.move(dest, dest_dir)
-            checkout = True
-        elif response == 'a':
-            sys.exit(-1)
 
-        return checkout
+        # Do nothing if the response is "i".
+
+        return False
 
     def unpack(self, location):
         """
