@@ -203,12 +203,6 @@ class Git(VersionControl):
         #: update submodules
         self.update_submodules(dest)
 
-    def obtain(self, dest):
-        url, rev = self.get_url_rev()
-        rev_options = self.make_rev_options(rev)
-        if self.check_destination(dest, url, rev_options):
-            self.fetch_new(dest, url, rev_options)
-
     def get_url(self, location):
         """Return URL of the first remote encountered."""
         remotes = self.run_command(

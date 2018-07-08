@@ -177,3 +177,21 @@ def test_bazaar_simple_urls():
 def test_get_git_version():
     git_version = Git().get_git_version()
     assert git_version >= parse_version('1.0.0')
+
+
+@pytest.mark.parametrize('url, expected', [
+    # Test a basic case.
+    ('svn+https://svn.myproject.org/MyProject#egg=MyProject',
+     ('svn+https://svn.myproject.org/MyProject#egg=MyProject', [])),
+    # Test with username and pass.
+    ('svn+https://user:pass@svn.myproject.org/MyProject#egg=MyProject',
+     ('svn+https://svn.myproject.org/MyProject#egg=MyProject',
+      ['--username', 'user', '--password', 'pass'])),
+])
+def test_subversion__get_url_rev_args(url, expected):
+    """
+    Test Subversion.get_url_rev_args().
+    """
+    vcs = Subversion()
+    actual = vcs.get_url_rev_args(url)
+    assert actual == expected
