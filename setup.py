@@ -1,7 +1,6 @@
 import codecs
 import os
 import re
-import sys
 
 from setuptools import find_packages, setup
 
@@ -70,11 +69,7 @@ setup(
         "pip._vendor.distlib": ["t32.exe", "t64.exe", "w32.exe", "w64.exe"],
     },
     entry_points={
-        "console_scripts": [
-            "pip=pip._internal:main",
-            "pip%s=pip._internal:main" % sys.version_info[:1],
-            "pip%s.%s=pip._internal:main" % sys.version_info[:2],
-        ],
+        "console_scripts": ["pip=pip._internal:main"],
     },
 
     zip_safe=False,
