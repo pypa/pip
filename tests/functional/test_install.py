@@ -55,6 +55,10 @@ def test_pep518_allows_but_warns_missing_requires(script, data, common_wheels):
     )
     assert "does not comply with PEP 518" in result.stderr
     assert "DEPRECATION" in result.stderr
+
+    # We want it to go through isolation for now.
+    assert "Installing build dependencies" in result.stdout, result.stdout
+
     assert result.returncode == 0
     assert result.files_created
 

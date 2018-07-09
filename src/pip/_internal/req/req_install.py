@@ -585,16 +585,17 @@ class InstallRequirement(object):
         if requires is None:
             logging.warn(template, self, "it is missing.")
             warnings.warn(
-                "Future versions of pip will reject packages with "
-                "pyproject.toml files that do not comply with PEP 518.",
+                "Future versions of pip may reject packages with "
+                "pyproject.toml files that do not contain the [build-system]"
+                "table and the requires key, as specified in PEP 518.",
                 RemovedInPip12Warning,
             )
 
-            # NOTE: Currently allowing projects to skip this key so that they
-            #       can transition to a PEP 518 compliant pyproject.toml or
-            #       push to update the PEP.
-            # Come pip 19.0, bring this to compliance with PEP 518.
-            return None
+            # Currently, we're isolating the build based on the presence of the
+            # pyproject.toml file. If the user doesn't specify
+            # build-system.requires, assume they intended to use setuptools and
+            # wheel for now.
+            return ["setuptools", "wheel"]
         else:
             # Error out if it's not a list of strings
             is_list_of_str = isinstance(requires, list) and all(
