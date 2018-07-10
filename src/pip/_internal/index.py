@@ -938,9 +938,10 @@ class Link(object):
         else:
             rp = ''
         if self.comes_from:
-            return '%s (from %s)%s' % (self.url, self.comes_from, rp)
+            return '%s (from %s)%s' % (remove_auth_from_url(self.url),
+                                      self.comes_from, rp)
         else:
-            return str(self.url)
+            return remove_auth_from_url(str(self.url))
 
     def __repr__(self):
         return '<Link %s>' % self
