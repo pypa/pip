@@ -939,7 +939,7 @@ class Link(object):
             rp = ''
         if self.comes_from:
             return '%s (from %s)%s' % (remove_auth_from_url(self.url),
-                                      self.comes_from, rp)
+                                       self.comes_from, rp)
         else:
             return remove_auth_from_url(str(self.url))
 
