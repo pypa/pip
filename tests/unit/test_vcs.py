@@ -129,7 +129,19 @@ def test_translate_egg_surname():
     assert vc.translate_egg_surname("foo/1.2.3") == "foo_1.2.3"
 
 
-def test_bazaar_simple_urls():
+def test_git__get_url_rev__idempotent():
+    """
+    Check that Git.get_url_rev() is idempotent for what the code calls
+    "stub URLs" (i.e. URLs that don't contain "://").
+    """
+    vcs = Git('git+git@git.example.com:MyProject#egg=MyProject')
+    result1 = vcs.get_url_rev()
+    result2 = vcs.get_url_rev()
+    assert result1 == ('git@git.example.com:MyProject', None)
+    assert result2 == ('git@git.example.com:MyProject', None)
+
+
+def test_bazaar__get_url_rev():
     """
     Test bzr url support.
 
