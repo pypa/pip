@@ -179,19 +179,36 @@ def test_get_git_version():
     assert git_version >= parse_version('1.0.0')
 
 
+# The non-SVN backends all have the same get_url_rev_args() implementation,
+# so test with Git as a representative.
 @pytest.mark.parametrize('url, expected', [
     # Test a basic case.
-    ('svn+https://svn.myproject.org/MyProject#egg=MyProject',
-     ('svn+https://svn.myproject.org/MyProject#egg=MyProject', [])),
-    # Test with username and pass.
-    ('svn+https://user:pass@svn.myproject.org/MyProject#egg=MyProject',
-     ('svn+https://svn.myproject.org/MyProject#egg=MyProject',
+    ('git+https://git.example.com/MyProject#egg=MyProject',
+     ('git+https://git.example.com/MyProject#egg=MyProject', [])),
+    # Test with username and password.
+    ('git+https://user:pass@git.example.com/MyProject#egg=MyProject',
+     ('git+https://user:pass@git.example.com/MyProject#egg=MyProject', [])),
+])
+def test_git__get_url_rev_args(url, expected):
+    """
+    Test Git.get_url_rev_args().
+    """
+    actual = Git().get_url_rev_args(url)
+    assert actual == expected
+
+
+@pytest.mark.parametrize('url, expected', [
+    # Test a basic case.
+    ('svn+https://svn.example.com/MyProject#egg=MyProject',
+     ('svn+https://svn.example.com/MyProject#egg=MyProject', [])),
+    # Test with username and password.
+    ('svn+https://user:pass@svn.example.com/MyProject#egg=MyProject',
+     ('svn+https://svn.example.com/MyProject#egg=MyProject',
       ['--username', 'user', '--password', 'pass'])),
 ])
 def test_subversion__get_url_rev_args(url, expected):
     """
     Test Subversion.get_url_rev_args().
     """
-    vcs = Subversion()
-    actual = vcs.get_url_rev_args(url)
+    actual = Subversion().get_url_rev_args(url)
     assert actual == expected
