@@ -64,12 +64,6 @@ class Mercurial(VersionControl):
         cmd_args = ['update', '-q'] + rev_options.to_args()
         self.run_command(cmd_args, cwd=dest)
 
-    def obtain(self, dest):
-        url, rev = self.get_url_rev()
-        rev_options = self.make_rev_options(rev)
-        if self.check_destination(dest, url, rev_options):
-            self.fetch_new(dest, url, rev_options)
-
     def get_url(self, location):
         url = self.run_command(
             ['showconfig', 'paths.default'],
