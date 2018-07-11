@@ -265,20 +265,20 @@ class Git(VersionControl):
             req += '&subdirectory=' + subdirectory
         return req
 
-    def get_url_rev(self):
+    def get_url_rev(self, url):
         """
         Prefixes stub URLs like 'user@hostname:user/repo.git' with 'ssh://'.
         That's required because although they use SSH they sometimes don't
         work with a ssh:// scheme (e.g. GitHub). But we need a scheme for
         parsing. Hence we remove it again afterwards and return it as a stub.
         """
-        if '://' not in self.url:
-            assert 'file:' not in self.url
-            self.url = self.url.replace('git+', 'git+ssh://')
-            url, rev = super(Git, self).get_url_rev()
+        if '://' not in url:
+            assert 'file:' not in url
+            url = url.replace('git+', 'git+ssh://')
+            url, rev = super(Git, self).get_url_rev(url)
             url = url.replace('ssh://', '')
         else:
-            url, rev = super(Git, self).get_url_rev()
+            url, rev = super(Git, self).get_url_rev(url)
 
         return url, rev
 

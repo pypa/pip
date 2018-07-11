@@ -213,7 +213,7 @@ class VersionControl(object):
         """
         raise NotImplementedError
 
-    def get_url_rev(self):
+    def get_url_rev(self, url):
         """
         Returns the correct repository URL and revision by parsing the given
         repository URL
@@ -223,8 +223,8 @@ class VersionControl(object):
             "The format is <vcs>+<protocol>://<url>, "
             "e.g. svn+http://myrepo/svn/MyApp#egg=MyApp"
         )
-        assert '+' in self.url, error_message % self.url
-        url = self.url.split('+', 1)[1]
+        assert '+' in url, error_message % url
+        url = url.split('+', 1)[1]
         scheme, netloc, path, query, frag = urllib_parse.urlsplit(url)
         rev = None
         if '@' in path:
@@ -239,12 +239,12 @@ class VersionControl(object):
         """
         return url, []
 
-    def get_url_rev_options(self):
+    def get_url_rev_options(self, url):
         """
-        Return the URL and RevOptions object to use in obtain(), as a tuple
-        (url, rev_options).
+        Return the URL and RevOptions object to use in obtain() and in
+        some cases export(), as a tuple (url, rev_options).
         """
-        url, rev = self.get_url_rev()
+        url, rev = self.get_url_rev(url)
         url, extra_args = self.get_url_rev_args(url)
         rev_options = self.make_rev_options(rev, extra_args=extra_args)
 
@@ -318,7 +318,7 @@ class VersionControl(object):
         Args:
           dest: the repository directory in which to install or update.
         """
-        url, rev_options = self.get_url_rev_options()
+        url, rev_options = self.get_url_rev_options(self.url)
 
         if not os.path.exists(dest):
             self.fetch_new(dest, url, rev_options)

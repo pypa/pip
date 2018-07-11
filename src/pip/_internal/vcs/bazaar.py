@@ -66,9 +66,9 @@ class Bazaar(VersionControl):
         cmd_args = ['pull', '-q'] + rev_options.to_args()
         self.run_command(cmd_args, cwd=dest)
 
-    def get_url_rev(self):
+    def get_url_rev(self, url):
         # hotfix the URL scheme after removing bzr+ from bzr+ssh:// readd it
-        url, rev = super(Bazaar, self).get_url_rev()
+        url, rev = super(Bazaar, self).get_url_rev(url)
         if url.startswith('ssh://'):
             url = 'bzr+' + url
         return url, rev

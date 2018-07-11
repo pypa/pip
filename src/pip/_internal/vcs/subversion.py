@@ -61,7 +61,7 @@ class Subversion(VersionControl):
 
     def export(self, location):
         """Export the svn repository at the url to the destination location"""
-        url, rev_options = self.get_url_rev_options()
+        url, rev_options = self.get_url_rev_options(self.url)
 
         logger.info('Exporting svn repository %s to %s', url, location)
         with indent_log():
@@ -132,9 +132,9 @@ class Subversion(VersionControl):
             revision = max(revision, localrev)
         return revision
 
-    def get_url_rev(self):
+    def get_url_rev(self, url):
         # hotfix the URL scheme after removing svn+ from svn+ssh:// readd it
-        url, rev = super(Subversion, self).get_url_rev()
+        url, rev = super(Subversion, self).get_url_rev(url)
         if url.startswith('ssh://'):
             url = 'svn+' + url
         return url, rev
