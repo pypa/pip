@@ -42,7 +42,7 @@ from pip._internal.utils.misc import (
     _make_build_dir, ask_path_exists, backup_dir, call_subprocess,
     display_path, dist_in_site_packages, dist_in_usersite, ensure_dir,
     get_installed_version, is_installable_dir, read_text_file,
-    remove_auth_from_url, rmtree,
+    redact_auth_from_url, rmtree,
 )
 from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._internal.utils.temp_dir import TempDirectory
@@ -279,9 +279,9 @@ class InstallRequirement(object):
         if self.req:
             s = str(self.req)
             if self.link:
-                s += ' from %s' % remove_auth_from_url(self.link.url)
+                s += ' from %s' % redact_auth_from_url(self.link.url)
         else:
-            s = remove_auth_from_url(self.link.url) if self.link else None
+            s = redact_auth_from_url(self.link.url) if self.link else None
         if self.satisfied_by is not None:
             s += ' in %s' % display_path(self.satisfied_by.location)
         if self.comes_from:

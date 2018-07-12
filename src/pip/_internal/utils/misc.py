@@ -50,7 +50,8 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'unzip_file', 'untar_file', 'unpack_file', 'call_subprocess',
            'captured_stdout', 'ensure_dir',
            'ARCHIVE_EXTENSIONS', 'SUPPORTED_EXTENSIONS',
-           'get_installed_version', 'remove_auth_from_url']
+           'get_installed_version',
+           'redact_auth_from_url', 'remove_auth_from_url']
 
 
 logger = std_logging.getLogger(__name__)
@@ -850,6 +851,27 @@ def enum(*sequential, **named):
     reverse = {value: key for key, value in enums.items()}
     enums['reverse_mapping'] = reverse
     return type('Enum', (), enums)
+
+
+def redact_auth_from_url(url):
+    # Return a copy of url with 'username:password@' redacted by
+    # substituting the credentials with '<redacted>' in case they
+    # were present in the url.
+
+    # parsed url
+    purl = urllib_parse.urlsplit(url)
+
+    # redact credentials
+    redacted_netloc = purl.netloc
+    if '@' in redacted_netloc:
+        redacted_netloc = '<redacted>@' + redacted_netloc.split('@')[-1]
+
+    # redacted url
+    url_pieces = (
+        purl.scheme, redacted_netloc, purl.path, purl.query, purl.fragment
+    )
+    surl = urllib_parse.urlunsplit(url_pieces)
+    return surl
 
 
 def remove_auth_from_url(url):

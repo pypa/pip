@@ -1,1 +1,1 @@
-Remove username/password from log messages when installing packages from Git
+Redact username/password from log messages when installing packages from Git
