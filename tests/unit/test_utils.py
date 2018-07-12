@@ -657,7 +657,7 @@ def test_remove_auth_from_url(auth_url, expected_url):
      'https://user:****@domain.tld/svn/project/trunk@8181'),
     ('https://domain.tld/project/trunk@8181',
      'https://domain.tld/project/trunk@8181',),
-     ('http://user@domain.tld:8080/',
+    ('http://user@domain.tld:8080/',
      'http://user@domain.tld:8080/',),
     ('git+https://pypi.org/something',
      'git+https://pypi.org/something'),
