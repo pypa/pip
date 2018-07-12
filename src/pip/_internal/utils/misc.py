@@ -860,8 +860,8 @@ def redact_password_from_url(url):
     purl = urllib_parse.urlsplit(url)
 
     redacted_netloc = purl.netloc
-    if purl.password:
-        auth, netloc = redacted_netloc.split('@')
+    if purl.password is not None:
+        auth, netloc = redacted_netloc.rsplit('@', 1)
         auth = auth.split(':')[0] + ':****'
         redacted_netloc = auth + '@' + netloc
 

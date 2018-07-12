@@ -649,6 +649,8 @@ def test_remove_auth_from_url(auth_url, expected_url):
 
 
 @pytest.mark.parametrize('auth_url, expected_url', [
+    ('http://domain.tld:8080/',
+     'http://domain.tld:8080/',),
     ('http://user@domain.tld:8080/',
      'http://user@domain.tld:8080/',),
     ('https://domain.tld/project/tags/v0.2',
@@ -665,6 +667,10 @@ def test_remove_auth_from_url(auth_url, expected_url):
      'https://user:****@domain.tld/',),
     ('https://us%3Aer:pass@domain.tld/',
      'https://us%3Aer:****@domain.tld/',),
+    ('https://user:pass@word@domain.tld/',
+     'https://user:****@domain.tld/',),
+    ('https://user:@domain.tld/',
+     'https://user:****@domain.tld/',),
     ('git+https://pypi.org/something',
      'git+https://pypi.org/something'),
     ('git+ssh://git@pypi.org/something',
