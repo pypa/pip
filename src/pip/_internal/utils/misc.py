@@ -51,7 +51,7 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'captured_stdout', 'ensure_dir',
            'ARCHIVE_EXTENSIONS', 'SUPPORTED_EXTENSIONS',
            'get_installed_version',
-           'redact_auth_from_url', 'remove_auth_from_url']
+           'redact_password_from_url', 'remove_auth_from_url']
 
 
 logger = std_logging.getLogger(__name__)
@@ -853,18 +853,21 @@ def enum(*sequential, **named):
     return type('Enum', (), enums)
 
 
-def redact_auth_from_url(url):
-    # Return a copy of url with 'username:password@' redacted by
-    # substituting the credentials with '<redacted>' in case they
-    # were present in the url.
+def redact_password_from_url(url):
+    # Return a copy of url by redacting the password with '****' in case it
+    # was present in the url.
 
     # parsed url
     purl = urllib_parse.urlsplit(url)
 
-    # redact credentials
+    # redact the password
     redacted_netloc = purl.netloc
     if '@' in redacted_netloc:
-        redacted_netloc = '<redacted>@' + redacted_netloc.split('@')[-1]
+        userpass, netloc = redacted_netloc.split('@')
+        if ':' in userpass:
+            userpass = userpass.split(':')[0] + ':****'
+
+        redacted_netloc = userpass + '@' + netloc
 
     # redacted url
     url_pieces = (
