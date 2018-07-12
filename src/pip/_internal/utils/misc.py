@@ -854,22 +854,17 @@ def enum(*sequential, **named):
 
 
 def redact_password_from_url(url):
-    # Return a copy of url by redacting the password with '****' in case it
-    # was present in the url.
-
-    # parsed url
+    """Return a copy of the url by redacting the password in case it was
+    present. The password will be replaced with '****'.
+    """
     purl = urllib_parse.urlsplit(url)
 
-    # redact the password
     redacted_netloc = purl.netloc
-    if '@' in redacted_netloc:
-        userpass, netloc = redacted_netloc.split('@')
-        if ':' in userpass:
-            userpass = userpass.split(':')[0] + ':****'
+    if purl.password:
+        auth, netloc = redacted_netloc.split('@')
+        auth = auth.split(':')[0] + ':****'
+        redacted_netloc = auth + '@' + netloc
 
-        redacted_netloc = userpass + '@' + netloc
-
-    # redacted url
     url_pieces = (
         purl.scheme, redacted_netloc, purl.path, purl.query, purl.fragment
     )
@@ -878,16 +873,14 @@ def redact_password_from_url(url):
 
 
 def remove_auth_from_url(url):
-    # Return a copy of url with 'username:password@' removed.
-    # username/pass params are passed to subversion through flags
-    # and are not recognized in the url.
-
-    # parsed url
+    """Return a copy of url with 'username:password@' removed.
+    Username/pass params are passed to subversion through flags
+    and are not recognized in the url.
+    """
     purl = urllib_parse.urlsplit(url)
     stripped_netloc = \
         purl.netloc.split('@')[-1]
 
-    # stripped url
     url_pieces = (
         purl.scheme, stripped_netloc, purl.path, purl.query, purl.fragment
     )

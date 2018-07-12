@@ -628,20 +628,20 @@ def test_call_subprocess_closes_stdin():
 
 
 @pytest.mark.parametrize('auth_url, expected_url', [
-    ('https://user:pass@domain.tld/project/tags/v0.2',
-     'https://domain.tld/project/tags/v0.2'),
     ('https://domain.tld/project/tags/v0.2',
      'https://domain.tld/project/tags/v0.2',),
-    ('https://user:pass@domain.tld/svn/project/trunk@8181',
-     'https://domain.tld/svn/project/trunk@8181'),
     ('https://domain.tld/project/trunk@8181',
      'https://domain.tld/project/trunk@8181',),
+    ('https://user:pass@domain.tld/project/tags/v0.2',
+     'https://domain.tld/project/tags/v0.2'),
+    ('https://user:pass@domain.tld/svn/project/trunk@8181',
+     'https://domain.tld/svn/project/trunk@8181'),
     ('git+https://pypi.org/something',
-     'git+https://pypi.org/something'),
-    ('git+https://user:pass@pypi.org/something',
      'git+https://pypi.org/something'),
     ('git+ssh://git@pypi.org/something',
      'git+ssh://pypi.org/something'),
+    ('git+https://user:pass@pypi.org/something',
+     'git+https://pypi.org/something'),
 ])
 def test_remove_auth_from_url(auth_url, expected_url):
     url = remove_auth_from_url(auth_url)
@@ -649,22 +649,28 @@ def test_remove_auth_from_url(auth_url, expected_url):
 
 
 @pytest.mark.parametrize('auth_url, expected_url', [
-    ('https://user:pass@domain.tld/project/tags/v0.2',
-     'https://user:****@domain.tld/project/tags/v0.2'),
-    ('https://domain.tld/project/tags/v0.2',
-     'https://domain.tld/project/tags/v0.2',),
-    ('https://user:pass@domain.tld/svn/project/trunk@8181',
-     'https://user:****@domain.tld/svn/project/trunk@8181'),
-    ('https://domain.tld/project/trunk@8181',
-     'https://domain.tld/project/trunk@8181',),
     ('http://user@domain.tld:8080/',
      'http://user@domain.tld:8080/',),
+    ('https://domain.tld/project/tags/v0.2',
+     'https://domain.tld/project/tags/v0.2',),
+    ('https://domain.tld/project/trunk@8181',
+     'https://domain.tld/project/trunk@8181',),
+    ('https://user:pass@domain.tld/project/tags/v0.2',
+     'https://user:****@domain.tld/project/tags/v0.2'),
+    ('https://user:pass@domain.tld/svn/project/trunk@8181',
+     'https://user:****@domain.tld/svn/project/trunk@8181'),
+    ('https://user:pass:word@domain.tld/',
+     'https://user:****@domain.tld/',),
+    ('https://user:pass%3Aword@domain.tld/',
+     'https://user:****@domain.tld/',),
+    ('https://us%3Aer:pass@domain.tld/',
+     'https://us%3Aer:****@domain.tld/',),
     ('git+https://pypi.org/something',
      'git+https://pypi.org/something'),
-    ('git+https://user:pass@pypi.org/something',
-     'git+https://user:****@pypi.org/something'),
     ('git+ssh://git@pypi.org/something',
      'git+ssh://git@pypi.org/something'),
+    ('git+https://user:pass@pypi.org/something',
+     'git+https://user:****@pypi.org/something'),
 ])
 def test_redact_password_from_url(auth_url, expected_url):
     url = redact_password_from_url(auth_url)

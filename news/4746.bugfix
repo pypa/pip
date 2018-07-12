@@ -1,1 +1,1 @@
-Redact username/password from log messages when installing packages from Git
+Redact password from the URL in various log messages.
