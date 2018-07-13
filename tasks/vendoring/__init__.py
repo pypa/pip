@@ -78,12 +78,12 @@ def rewrite_file_imports(item, vendored_libs):
     text = re.sub(r'pkg_resources.extern', r'pip._vendor', text)
     for lib in vendored_libs:
         text = re.sub(
-            r'(\n\s*)import %s(\n\s*)' % lib,
+            r'(\n\s*|^)import %s(\n\s*)' % lib,
             r'\1from pip._vendor import %s\2' % lib,
             text,
         )
         text = re.sub(
-            r'(\n\s*)from %s(\.|\s+)' % lib,
+            r'(\n\s*|^)from %s(\.|\s+)' % lib,
             r'\1from pip._vendor.%s\2' % lib,
             text,
         )
