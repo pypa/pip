@@ -54,8 +54,24 @@ def install_warning_logger():
 def deprecated(reason, replacement, gone_in, issue=None):
     # type: (str, Optional[str], Optional[str], Optional[int]) -> None
     """Helper to deprecate existing functionality.
+
+    reason:
+        Textual reason shown to the user about why this functionality has
+        been deprecated.
+    replacement:
+        Textual suggestion shown to the user about what alternative
+        functionality they can use.
+    gone_in:
+        The version of pip does this functionality should get removed in.
+        Raises errors if pip's current version is greater than or equal to
+        this.
+    issue:
+        Issue number on the tracker that would serve as a useful place for
+        users to find related discussion and provide feedback.
+
+    Always pass replacement, gone_in and issue as keyword arguments for clarity
+    at the call site.
     """
-    # NOTE: treat replacement, gone_in, issue as keyword only arguments.
 
     # Construct a nice message.
     # This is purposely eagerly formatted as we want it to appear as if someone
