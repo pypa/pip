@@ -117,7 +117,7 @@ Debundling
 As mentioned in the rationale, we, the pip team, would prefer it if pip was not
 debundled (other than optionally ``pip/_vendor/requests/cacert.pem``) and that
 pip was left intact. However, if you insist on doing so, we have a
-semi-supported method that we do test in our CI, but requires a bit of
+semi-supported method (that we don't test in our CI) and requires a bit of
 extra work on your end in order to solve the problems described above.
 
 1. Delete everything in ``pip/_vendor/`` **except** for
