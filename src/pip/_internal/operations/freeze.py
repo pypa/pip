@@ -13,7 +13,7 @@ from pip._vendor.pkg_resources import RequirementParseError
 from pip._internal.exceptions import InstallationError
 from pip._internal.req import InstallRequirement
 from pip._internal.req.req_file import COMMENT_RE
-from pip._internal.utils.deprecation import RemovedInPip11Warning
+from pip._internal.utils.deprecation import RemovedInPip12Warning
 from pip._internal.utils.misc import (
     dist_is_editable, get_installed_distributions,
 )
@@ -219,7 +219,7 @@ class FrozenRequirement(object):
                     warnings.warn(
                         "SVN editable detection based on dependency links "
                         "will be dropped in the future.",
-                        RemovedInPip11Warning,
+                        RemovedInPip12Warning,
                     )
                     comments.append(
                         '# Installing as editable to satisfy requirement %s:' %

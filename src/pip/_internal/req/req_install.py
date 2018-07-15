@@ -33,9 +33,7 @@ from pip._internal.locations import (
     PIP_DELETE_MARKER_FILENAME, running_under_virtualenv,
 )
 from pip._internal.req.req_uninstall import UninstallPathSet
-from pip._internal.utils.deprecation import (
-    RemovedInPip11Warning, RemovedInPip12Warning,
-)
+from pip._internal.utils.deprecation import RemovedInPip12Warning
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
@@ -1050,22 +1048,6 @@ class InstallRequirement(object):
         return install_args
 
 
-def _strip_postfix(req):
-    """
-        Strip req postfix ( -dev, 0.2, etc )
-    """
-    # FIXME: use package_to_requirement?
-    match = re.search(r'^(.*?)(?:-dev|-\d.*)$', req)
-    if match:
-        # Strip off -dev, -0.2, etc.
-        warnings.warn(
-            "#egg cleanup for editable urls will be dropped in the future",
-            RemovedInPip11Warning,
-        )
-        req = match.group(1)
-    return req
-
-
 def parse_editable(editable_req):
     """Parses an editable requirement into:
         - a requirement name
@@ -1130,7 +1112,7 @@ def parse_editable(editable_req):
             "Could not detect requirement name for '%s', please specify one "
             "with #egg=your_package_name" % editable_req
         )
-    return _strip_postfix(package_name), url, None
+    return package_name, url, None
 
 
 def deduce_helpful_msg(req):
