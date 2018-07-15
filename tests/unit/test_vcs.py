@@ -129,7 +129,23 @@ def test_translate_egg_surname():
     assert vc.translate_egg_surname("foo/1.2.3") == "foo_1.2.3"
 
 
-def test_bazaar_simple_urls():
+def test_git__get_url_rev__idempotent():
+    """
+    Check that Git.get_url_rev() is idempotent for what the code calls
+    "stub URLs" (i.e. URLs that don't contain "://").
+
+    Also check that it doesn't change self.url.
+    """
+    url = 'git+git@git.example.com:MyProject#egg=MyProject'
+    vcs = Git(url)
+    result1 = vcs.get_url_rev(url)
+    assert vcs.url == url
+    result2 = vcs.get_url_rev(url)
+    assert result1 == ('git@git.example.com:MyProject', None)
+    assert result2 == ('git@git.example.com:MyProject', None)
+
+
+def test_bazaar__get_url_rev():
     """
     Test bzr url support.
 
@@ -154,22 +170,22 @@ def test_bazaar_simple_urls():
         url='bzr+lp:MyLaunchpadProject#egg=MyLaunchpadProject'
     )
 
-    assert http_bzr_repo.get_url_rev() == (
+    assert http_bzr_repo.get_url_rev(http_bzr_repo.url) == (
         'http://bzr.myproject.org/MyProject/trunk/', None,
     )
-    assert https_bzr_repo.get_url_rev() == (
+    assert https_bzr_repo.get_url_rev(https_bzr_repo.url) == (
         'https://bzr.myproject.org/MyProject/trunk/', None,
     )
-    assert ssh_bzr_repo.get_url_rev() == (
+    assert ssh_bzr_repo.get_url_rev(ssh_bzr_repo.url) == (
         'bzr+ssh://bzr.myproject.org/MyProject/trunk/', None,
     )
-    assert ftp_bzr_repo.get_url_rev() == (
+    assert ftp_bzr_repo.get_url_rev(ftp_bzr_repo.url) == (
         'ftp://bzr.myproject.org/MyProject/trunk/', None,
     )
-    assert sftp_bzr_repo.get_url_rev() == (
+    assert sftp_bzr_repo.get_url_rev(sftp_bzr_repo.url) == (
         'sftp://bzr.myproject.org/MyProject/trunk/', None,
     )
-    assert launchpad_bzr_repo.get_url_rev() == (
+    assert launchpad_bzr_repo.get_url_rev(launchpad_bzr_repo.url) == (
         'lp:MyLaunchpadProject', None,
     )
 
