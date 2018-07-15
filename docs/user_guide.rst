@@ -57,7 +57,6 @@ Using a Proxy Server
 When installing packages from `PyPI`_, pip requires internet access, which
 in many corporate environments requires an outbound HTTP proxy server.
 
-
 pip can be configured to connect through a proxy server in various ways:
 
 * using the ``--proxy`` command-line option to specify a proxy in the form
