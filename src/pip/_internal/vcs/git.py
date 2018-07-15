@@ -275,12 +275,12 @@ class Git(VersionControl):
         if '://' not in url:
             assert 'file:' not in url
             url = url.replace('git+', 'git+ssh://')
-            url, rev = super(Git, self).get_url_rev(url)
+            url, rev, user_auth = super(Git, self).get_url_rev(url)
             url = url.replace('ssh://', '')
         else:
-            url, rev = super(Git, self).get_url_rev(url)
+            url, rev, user_auth = super(Git, self).get_url_rev(url)
 
-        return url, rev
+        return url, rev, user_auth
 
     def update_submodules(self, location):
         if not os.path.exists(os.path.join(location, '.gitmodules')):

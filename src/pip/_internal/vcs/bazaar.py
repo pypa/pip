@@ -68,10 +68,10 @@ class Bazaar(VersionControl):
 
     def get_url_rev(self, url):
         # hotfix the URL scheme after removing bzr+ from bzr+ssh:// readd it
-        url, rev = super(Bazaar, self).get_url_rev(url)
+        url, rev, user_auth = super(Bazaar, self).get_url_rev(url)
         if url.startswith('ssh://'):
             url = 'bzr+' + url
-        return url, rev
+        return url, rev, user_auth
 
     def get_url(self, location):
         urls = self.run_command(['info'], show_stdout=False, cwd=location)

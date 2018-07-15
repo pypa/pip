@@ -213,10 +213,21 @@ class VersionControl(object):
         """
         raise NotImplementedError
 
+    def parse_netloc(self, netloc):
+        """
+        Parse the repository URL's netloc, and return the new netloc to use
+        along with auth information.
+
+        Returns: (netloc, username, password).
+        """
+        return netloc, None, None
+
     def get_url_rev(self, url):
         """
-        Returns the correct repository URL and revision by parsing the given
-        repository URL
+        Parse the repository URL to use, and return the URL, revision,
+        and auth info to use.
+
+        Returns: (url, rev, (username, password)).
         """
         error_message = (
             "Sorry, '%s' is a malformed VCS url. "
@@ -226,26 +237,27 @@ class VersionControl(object):
         assert '+' in url, error_message % url
         url = url.split('+', 1)[1]
         scheme, netloc, path, query, frag = urllib_parse.urlsplit(url)
+        netloc, username, password = self.parse_netloc(netloc)
         rev = None
         if '@' in path:
             path, rev = path.rsplit('@', 1)
         url = urllib_parse.urlunsplit((scheme, netloc, path, query, ''))
-        return url, rev
+        return url, rev, (username, password)
 
-    def get_url_rev_args(self, url):
+    def make_rev_args(self, username, password):
         """
-        Return the URL and RevOptions "extra arguments" to use in obtain(),
-        as a tuple (url, extra_args).
+        Return the RevOptions "extra arguments" to use in obtain().
         """
-        return url, []
+        return []
 
     def get_url_rev_options(self, url):
         """
         Return the URL and RevOptions object to use in obtain() and in
         some cases export(), as a tuple (url, rev_options).
         """
-        url, rev = self.get_url_rev(url)
-        url, extra_args = self.get_url_rev_args(url)
+        url, rev, user_auth = self.get_url_rev(url)
+        username, password = user_auth
+        extra_args = self.make_rev_args(username, password)
         rev_options = self.make_rev_options(rev, extra_args=extra_args)
 
         return url, rev_options
