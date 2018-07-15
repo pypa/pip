@@ -131,6 +131,14 @@ extra work on your end in order to solve the problems described above.
 3. Modify ``pip/_vendor/__init__.py`` so that the ``DEBUNDLED`` variable is
    ``True``.
 
-4. *(Optional)* If you've placed the wheels in a location other than
+4. Upon installation, the ``INSTALLER`` file in pip's own ``dist-info``
+   directory should be set to something other than ``pip``, so that pip
+   can detect that it wasn't installed using itself.
+
+5. *(optional)* If you've placed the wheels in a location other than
    ``pip/_vendor/``, then modify ``pip/_vendor/__init__.py`` so that the
    ``WHEEL_DIR`` variable points to the location you've placed them.
+
+6. *(optional)* Update the ``pip_version_check`` logic to use the
+   appropriate logic for determining the latest available version of pip and
+   prompt the user with the correct upgrade message.
