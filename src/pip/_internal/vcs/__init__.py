@@ -225,7 +225,9 @@ class VersionControl(object):
         )
         assert '+' in self.url, error_message % self.url
         url = self.url.split('+', 1)[1]
-        scheme, netloc, path, query, frag = urllib_parse.urlsplit(url)
+        scheme, netloc, path, query, frag = urllib_parse.urlsplit(url, allow_framents=False)
+        if '#' in path:
+            path, frag = path.rsplit('#', 1)
         rev = None
         if '@' in path:
             path, rev = path.rsplit('@', 1)

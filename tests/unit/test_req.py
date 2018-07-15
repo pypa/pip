@@ -399,6 +399,12 @@ class TestInstallRequirement(object):
         req = InstallRequirement.from_editable(url)
         assert req.link.url == url
 
+    def test_url_with_pound_sign_in_the_branch_name_req(self):
+        """Confirm that an URL which contains # in the branch name is correctly parsed"""
+        url = 'git+ssh://git@github.com/owner/reponame.git@issue#2035#egg=Reponame'
+        req = InstallRequirement.from_editable(url)
+        assert req.link.url == url
+
     @pytest.mark.parametrize('path', (
         '/path/to/foo.egg-info'.replace('/', os.path.sep),
         # Tests issue fixed by https://github.com/pypa/pip/pull/2530
