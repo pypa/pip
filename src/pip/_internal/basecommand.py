@@ -24,7 +24,7 @@ from pip._internal.status_codes import (
     ERROR, PREVIOUS_BUILD_DIR_ERROR, SUCCESS, UNKNOWN_ERROR,
     VIRTUALENV_NOT_FOUND,
 )
-from pip._internal.utils.logging import IndentingFormatter
+from pip._internal.utils.logging import setup_logging
 from pip._internal.utils.misc import get_prog, normalize_path
 from pip._internal.utils.outdated import pip_version_check
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -42,7 +42,6 @@ class Command(object):
     usage = None  # type: Optional[str]
     hidden = False  # type: bool
     ignore_require_venv = False  # type: bool
-    log_streams = ("ext://sys.stdout", "ext://sys.stderr")
 
     def __init__(self, isolated=False):
         parser_kw = {
@@ -114,89 +113,15 @@ class Command(object):
         # Set verbosity so that it can be used elsewhere.
         self.verbosity = options.verbose - options.quiet
 
-        if self.verbosity >= 1:
-            level = "DEBUG"
-        elif self.verbosity == -1:
-            level = "WARNING"
-        elif self.verbosity == -2:
-            level = "ERROR"
-        elif self.verbosity <= -3:
-            level = "CRITICAL"
-        else:
-            level = "INFO"
+        setup_logging(
+            verbosity=self.verbosity,
+            no_color=options.no_color,
+            user_log_file=options.log,
+        )
 
-        # The root logger should match the "console" level *unless* we
-        # specified "--log" to send debug logs to a file.
-        root_level = level
-        if options.log:
-            root_level = "DEBUG"
-
-        logger_class = "pip._internal.utils.logging.ColorizedStreamHandler"
-        handler_class = "pip._internal.utils.logging.BetterRotatingFileHandler"
-
-        logging.config.dictConfig({
-            "version": 1,
-            "disable_existing_loggers": False,
-            "filters": {
-                "exclude_warnings": {
-                    "()": "pip._internal.utils.logging.MaxLevelFilter",
-                    "level": logging.WARNING,
-                },
-            },
-            "formatters": {
-                "indent": {
-                    "()": IndentingFormatter,
-                    "format": "%(message)s",
-                },
-            },
-            "handlers": {
-                "console": {
-                    "level": level,
-                    "class": logger_class,
-                    "no_color": options.no_color,
-                    "stream": self.log_streams[0],
-                    "filters": ["exclude_warnings"],
-                    "formatter": "indent",
-                },
-                "console_errors": {
-                    "level": "WARNING",
-                    "class": logger_class,
-                    "no_color": options.no_color,
-                    "stream": self.log_streams[1],
-                    "formatter": "indent",
-                },
-                "user_log": {
-                    "level": "DEBUG",
-                    "class": handler_class,
-                    "filename": options.log or "/dev/null",
-                    "delay": True,
-                    "formatter": "indent",
-                },
-            },
-            "root": {
-                "level": root_level,
-                "handlers": list(filter(None, [
-                    "console",
-                    "console_errors",
-                    "user_log" if options.log else None,
-                ])),
-            },
-            # Disable any logging besides WARNING unless we have DEBUG level
-            # logging enabled. These use both pip._vendor and the bare names
-            # for the case where someone unbundles our libraries.
-            "loggers": {
-                name: {
-                    "level": (
-                        "WARNING" if level in ["INFO", "ERROR"] else "DEBUG"
-                    )
-                } for name in [
-                    "pip._vendor", "distlib", "requests", "urllib3"
-                ]
-            },
-        })
-
-        # TODO: try to get these passing down from the command?
-        #      without resorting to os.environ to hold these.
+        # TODO: Try to get these passing down from the command?
+        #       without resorting to os.environ to hold these.
+        #       This also affects isolated builds and it should.
 
         if options.no_input:
             os.environ['PIP_NO_INPUT'] = '1'
@@ -211,8 +136,6 @@ class Command(object):
                     'Could not find an activated virtualenv (required).'
                 )
                 sys.exit(VIRTUALENV_NOT_FOUND)
-
-        original_root_handlers = set(logging.root.handlers)
 
         try:
             status = self.run(options, args)
@@ -258,10 +181,9 @@ class Command(object):
                 )
                 with session:
                     pip_version_check(session, options)
-            # Avoid leaking loggers
-            for handler in set(logging.root.handlers) - original_root_handlers:
-                # this method benefit from the Logger class internal lock
-                logging.root.removeHandler(handler)
+
+            # Shutdown the logging module
+            logging.shutdown()
 
         return SUCCESS
 
