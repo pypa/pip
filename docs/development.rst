@@ -5,7 +5,7 @@ Development
 Pull Requests
 =============
 
-- Submit Pull Requests against the `master` branch.
+- Do not submit Pull Requests against the master branch
 - Provide a good description of what you're doing and why.
 - Provide tests that cover your changes and try to run the tests locally first.
 
