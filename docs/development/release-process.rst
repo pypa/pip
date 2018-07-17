@@ -34,19 +34,19 @@ reworked and resubmitted for the next release.
 Deprecation Policy
 ==================
 
-Any change to pip that removes or significantly alters user-visible behaviour
+Any change to pip that removes or significantly alters user-visible behavior
 that is described in the pip documentation will be deprecated for a minimum of
-one released version before the change occurs. Deprecation will take the form of
-a warning being issued by pip when the feature is used. Longer deprecation
-periods, or deprecation warnings for behaviour changes that would not normally
-be covered by this policy, are also possible depending on circumstances, but
-this is at the discretion of the pip developers.
+6 months before the change occurs. Deprecation will take the form of a warning
+being issued by pip when the feature is used. Longer deprecation periods, or
+deprecation warnings for behavior changes that would not normally be covered by
+this policy, are also possible depending on circumstances, but this is at the
+discretion of the pip developers.
 
 Note that the documentation is the sole reference for what counts as agreed
-behaviour. If something isn't explicitly mentioned in the documentation, it can
+behavior. If something isn't explicitly mentioned in the documentation, it can
 be changed without warning, or any deprecation period, in a pip release.
 However, we are aware that the documentation isn't always complete - PRs that
-document existing behaviour with the intention of covering that behaviour with
+document existing behavior with the intention of covering that behavior with
 the above deprecation process are always acceptable, and will be considered on
 their merits.
 
