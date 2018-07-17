@@ -204,6 +204,8 @@ class VersionControl(object):
         """
         Return whether a directory path is a repository directory.
         """
+        logger.debug('Checking in %s for %s (%s)...',
+                     path, self.dirname, self.name)
         return os.path.exists(os.path.join(path, self.dirname))
 
     # See issue #1083 for why this method was introduced:
@@ -472,10 +474,8 @@ class VersionControl(object):
         It is meant to be overridden to implement smarter detection
         mechanisms for specific vcs.
         """
-        logger.debug('Checking in %s for %s (%s)...',
-                     location, cls.dirname, cls.name)
-        path = os.path.join(location, cls.dirname)
-        return os.path.exists(path)
+        vcs = cls()
+        return vcs.is_repository_directory(location)
 
 
 def get_src_requirement(dist, location):
