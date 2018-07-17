@@ -200,6 +200,12 @@ class VersionControl(object):
         drive, tail = os.path.splitdrive(repo)
         return repo.startswith(os.path.sep) or drive
 
+    def is_repository_directory(self, path):
+        """
+        Return whether a directory path is a repository directory.
+        """
+        return os.path.exists(os.path.join(path, self.dirname))
+
     # See issue #1083 for why this method was introduced:
     # https://github.com/pypa/pip/issues/1083
     def translate_egg_surname(self, surname):
@@ -325,7 +331,7 @@ class VersionControl(object):
             return
 
         rev_display = rev_options.to_display()
-        if os.path.exists(os.path.join(dest, self.dirname)):
+        if self.is_repository_directory(dest):
             existing_url = self.get_url(dest)
             if self.compare_urls(existing_url, url):
                 logger.debug(
