@@ -59,7 +59,7 @@ class Mercurial(VersionControl):
             cmd_args = ['update', '-q'] + rev_options.to_args()
             self.run_command(cmd_args, cwd=dest)
 
-    def update(self, dest, rev_options):
+    def update(self, dest, url, rev_options):
         self.run_command(['pull', '-q'], cwd=dest)
         cmd_args = ['update', '-q'] + rev_options.to_args()
         self.run_command(cmd_args, cwd=dest)

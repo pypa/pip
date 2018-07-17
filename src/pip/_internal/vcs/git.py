@@ -117,11 +117,10 @@ class Git(VersionControl):
 
         return refs.get(branch_ref) or refs.get(tag_ref)
 
-    def check_rev_options(self, dest, rev_options):
-        """Check the revision options before checkout.
-
-        Returns a new RevOptions object for the SHA1 of the branch or tag
-        if found.
+    def resolve_revision(self, dest, url, rev_options):
+        """
+        Resolve a revision to a new RevOptions object with the SHA1 of the
+        branch, tag, or ref if found.
 
         Args:
           rev_options: a RevOptions object.
@@ -139,6 +138,19 @@ class Git(VersionControl):
                 "Did not find branch or tag '%s', assuming revision or ref.",
                 rev,
             )
+
+        if not rev.startswith('refs/'):
+            return rev_options
+
+        # If it looks like a ref, we have to fetch it explicitly.
+        self.run_command(
+            ['fetch', '-q', url] + rev_options.to_args(),
+            cwd=dest,
+        )
+        # Change the revision to the SHA of the ref we fetched
+        sha = self.get_revision(dest, rev='FETCH_HEAD')
+        rev_options = rev_options.make_new(sha)
+
         return rev_options
 
     def is_commit_id_equal(self, dest, name):
@@ -164,20 +176,12 @@ class Git(VersionControl):
 
         if rev_options.rev:
             # Then a specific revision was requested.
-            rev_options = self.check_rev_options(dest, rev_options)
+            rev_options = self.resolve_revision(dest, url, rev_options)
             # Only do a checkout if the current commit id doesn't match
             # the requested revision.
             if not self.is_commit_id_equal(dest, rev_options.rev):
-                rev = rev_options.rev
-                # Only fetch the revision if it's a ref
-                if rev.startswith('refs/'):
-                    self.run_command(
-                        ['fetch', '-q', url] + rev_options.to_args(),
-                        cwd=dest,
-                    )
-                    # Change the revision to the SHA of the ref we fetched
-                    rev = 'FETCH_HEAD'
-                self.run_command(['checkout', '-q', rev], cwd=dest)
+                cmd_args = ['checkout', '-q'] + rev_options.to_args()
+                self.run_command(cmd_args, cwd=dest)
 
         #: repo may contain submodules
         self.update_submodules(dest)
@@ -189,7 +193,7 @@ class Git(VersionControl):
 
         self.update_submodules(dest)
 
-    def update(self, dest, rev_options):
+    def update(self, dest, url, rev_options):
         # First fetch changes from the default remote
         if self.get_git_version() >= parse_version('1.9.0'):
             # fetch tags in addition to everything else
@@ -197,7 +201,7 @@ class Git(VersionControl):
         else:
             self.run_command(['fetch', '-q'], cwd=dest)
         # Then reset to wanted revision (maybe even origin/master)
-        rev_options = self.check_rev_options(dest, rev_options)
+        rev_options = self.resolve_revision(dest, url, rev_options)
         cmd_args = ['reset', '--hard', '-q'] + rev_options.to_args()
         self.run_command(cmd_args, cwd=dest)
         #: update submodules
@@ -218,9 +222,11 @@ class Git(VersionControl):
         url = found_remote.split(' ')[1]
         return url.strip()
 
-    def get_revision(self, location):
+    def get_revision(self, location, rev=None):
+        if rev is None:
+            rev = 'HEAD'
         current_rev = self.run_command(
-            ['rev-parse', 'HEAD'], show_stdout=False, cwd=location,
+            ['rev-parse', rev], show_stdout=False, cwd=location,
         )
         return current_rev.strip()
 

@@ -57,7 +57,7 @@ class Subversion(VersionControl):
         cmd_args = ['switch'] + rev_options.to_args() + [url, dest]
         self.run_command(cmd_args)
 
-    def update(self, dest, rev_options):
+    def update(self, dest, url, rev_options):
         cmd_args = ['update'] + rev_options.to_args() + [dest]
         self.run_command(cmd_args)
 
