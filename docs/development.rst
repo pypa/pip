@@ -9,7 +9,7 @@ Pull Requests
 - Provide a good description of what you're doing and why.
 - Provide tests that cover your changes and try to run the tests locally first.
 
-**Example**. Assuming you set up GitHub account, forked pip repository from
+**Example**. Assuming that you set up GitHub account, forked pip repository from
 https://github.com/pypa/pip to your own page via web interface, and your
 fork is located at https://github.com/yourname/pip
 
@@ -23,29 +23,30 @@ fork is located at https://github.com/yourname/pip
   $ git status
   $ git commit
 
-You may reference relevant issues in commit messages (like #1259) to
-make GitHub link issues and commits together, and with phrase like
-"fixes #1259" you can even close relevant issues automatically. Now
-push the changes to your fork::
+You may refer relevant issues in commit messages (like #1259) to link 
+GitHub issues and commits together, and close the issues automatically 
+with phrases like "fixes #1259". Now push the changes to your fork
+
+::
 
   $ git push git@github.com:yourname/pip.git
 
 Open Pull Requests page at https://github.com/yourname/pip/pulls and
-click "New pull request" and select your fork. That's it.
+click "New pull request" and select your fork.
 
-Pull requests should be self-contained, and limited in scope. Before being
+Pull requests should be self-contained and limited in scope. Before being
 merged, a pull request must be reviewed, and keeping individual PRs limited
-in scope makes this far easier. In particular, pull requests must not be
-treated as "feature branches", with ongoing development work happening
-within the PR. Instead, the feature should be broken up into smaller,
+in scope makes this far easier. Pull requests must not be
+treated as "feature branches" with ongoing development work happening
+within the PR. The feature should be broken into smaller,
 independent parts which can be reviewed and merged individually.
 
-When creating a pull request, avoid including "cosmetic" changes to
-code that is unrelated to your change, as these make reviewing the PR
-more difficult. Examples include re-flowing text in comments or
-documentation, or addition or removal of blank lines or whitespace
-within lines. Such changes can be made separately, as a "formatting
-cleanup" PR, if needed.
+
+When creating a pull request, avoid including unrelated "cosmetic" changes to
+the code, as these make reviewing the PR more difficult. Include re-flowing text 
+in comments or documentation and add or remove blank lines or whitespace
+within lines. Such changes can be made separately, as a "formatting cleanup" PR.
+
 
 
 Automated Testing
@@ -75,7 +76,7 @@ Ways to run the tests locally::
 
  $ tox -e py36           # The preferred way to run the tests, can use pyNN to
                          # run for a particular version or leave off the -e to
-                         # run for all versions.
+                         # run for all versions
  $ python setup.py test  # Using the setuptools test plugin
  $ py.test               # Using py.test directly
  $ tox                   # Using tox against pip's tox.ini
@@ -111,25 +112,25 @@ Adding a NEWS Entry
 The ``NEWS.rst`` file is managed using `towncrier`_ and all non trivial changes
 must be accompanied by a news entry.
 
-To add an entry to the news file, first you need to have created an issue
-describing the change you want to make. A Pull Request itself *may* function as
-such, but it is preferred to have a dedicated issue (for example, in case the
-PR ends up rejected due to code quality reasons).
+To add an entry to the news file, first you need to create an issue describing 
+the changes you want to make. A Pull Request itself *may* function as such, but 
+it is preferred a dedicated issue (for example, in case the PR gets rejected 
+due to code quality reasons).
 
-Once you have an issue or pull request, you take the number and you create a
+Once you have an issue or pull request, take the number and create a
 file inside of the ``news/`` directory named after that issue number with an
-extension of ``removal``, ``feature``, ``bugfix``, or ``doc``. Thus if your
+extension of ``removal``, ``feature``, ``bugfix``, or ``doc``. Thus, if your
 issue or PR number is ``1234`` and this change is fixing a bug, then you would
 create a file ``news/1234.bugfix``. PRs can span multiple categories by creating
 multiple files (for instance, if you added a feature and deprecated/removed the
 old feature at the same time, you would create ``news/NNNN.feature`` and
-``news/NNNN.removal``). Likewise if a PR touches multiple issues/PRs you may
+``news/NNNN.removal``). Likewise, if a PR touches multiple issues/PRs you may
 create a file for each of them with the exact same contents and Towncrier will
 deduplicate them.
 
-The contents of this file are reStructuredText formatted text that will be used
+The contents of this file are reStructuredText formatted texts that will be used
 as the content of the news file entry. You do not need to reference the issue
-or PR numbers here as towncrier will automatically add a reference to all of
+or PR numbers here because towncrier will automatically add a reference to all of 
 the affected issues when rendering the news file.
 
 In order to maintain a consistent style in the ``NEWS.rst`` file, it is
@@ -144,7 +145,7 @@ only contain details relevant to an end user.
 A trivial change is anything that does not warrant an entry in the news file.
 Some examples are: Code refactors that don't change anything as far as the
 public is concerned, typo fixes, white space modification, etc. To mark a PR
-as trivial a contributor simply needs to add a randomly named, empty file to
+as trivial, a contributor simply needs to add a randomly named empty file to
 the ``news/`` directory with the extension of ``.trivial``. If you are on a
 POSIX like operating system, one can be added by running
 ``touch news/$(uuidgen).trivial``. On Windows, the same result can be achieved
@@ -155,11 +156,11 @@ same thing.
 Upgrading, removing, or adding a new vendored library gets a special mention
 using a ``news/<library>.vendor`` file. This is in addition to any features,
 bugfixes, or other kinds of news that pulling in this library may have. This
-uses the library name as the key so that updating the same library twice doesn't
+uses the library name as the key, so that updating the same library twice doesn't
 produce two news file entries.
 
-Changes to the processes, policies, or other non code related changed that are
-otherwise notable can be done using a ``news/<name>.process`` file. This is not
+Changes to the processes, policies, or other non-code related changes that are 
+otherwise notable can be done using ``news/<name>.process`` file. This is not
 typically used, but can be used for things like changing version schemes,
 updating deprecation policy, etc.
 
@@ -173,23 +174,21 @@ are going to happen and prevents locking up improvements for fixes for long
 periods of time, while still preventing massively fracturing the user base
 with version numbers.
 
-Our release months are January, April, July, October. The release date within
-that month will be up to the release manager for that release. If there are
-no changes, then that release month is skipped and the next release will be
-3 month later.
+Our release months are January, April, July, and October. The release date within
+that month will be up to the release manager. If there are no changes, then that 
+release month is skipped and the next release will be 3 months later.
 
-The release manager may, at their discretion, choose whether or not there
-will be a pre-release period for a release, and if there is may extend that
-period into the next month if needed.
+The release manager may, at their discretion, choose whether there
+will be a pre-release period for a release, and if there is, manager 
+may extend that period into the next month if needed.
 
-Because releases are made direct from the ``master`` branch, it is essential
+Because releases are made directly from the ``master`` branch, it is essential
 that ``master`` is always in a releasable state. It is acceptable to merge
-PRs that partially implement a new feature, but only if the partially
-implemented version is usable in that state (for example, with reduced
-functionality or disabled by default). In the case where a merged PR is found
-to need extra work before being released, the release manager always has the
-option to back out the partial change prior to a release. The PR can then be
-reworked and resubmitted for the next release.
+PRs that partially implement a new feature, but only if the partially implemented 
+version is usable in that state (for example, with reduced functionality or disabled 
+by default). In the case where a merged PR that needs extra work before being released,
+the release manager always has the option to back out the partial change prior to a release. 
+The PR can then be reworked and resubmitted for the next release.
 
 
 Deprecation Policy
@@ -241,10 +240,10 @@ Creating a Bugfix Release
 =========================
 
 Sometimes we need to release a bugfix release of the form ``X.Y.Z+1``. In order
-to create one of these the changes should already be merged into the
+to create one of these, the changes should already be merged into the
 ``master`` branch.
 
-#. Create a new ``release/YY.N.Z+1`` branch off of the ``YY.N`` tag using the
+#. Create a new ``release/YY.N.Z+1`` branch of the ``YY.N`` tag using the
    command ``git checkout -b release/YY.N.Z+1 YY.N``.
 #. Cherry pick the fixed commits off of the ``master`` branch, fixing any
    conflicts and moving any changelog entries from the development version's
