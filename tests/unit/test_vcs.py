@@ -129,7 +129,23 @@ def test_translate_egg_surname():
     assert vc.translate_egg_surname("foo/1.2.3") == "foo_1.2.3"
 
 
-def test_bazaar_simple_urls():
+def test_git__get_url_rev__idempotent():
+    """
+    Check that Git.get_url_rev() is idempotent for what the code calls
+    "stub URLs" (i.e. URLs that don't contain "://").
+
+    Also check that it doesn't change self.url.
+    """
+    url = 'git+git@git.example.com:MyProject#egg=MyProject'
+    vcs = Git(url)
+    result1 = vcs.get_url_rev(url)
+    assert vcs.url == url
+    result2 = vcs.get_url_rev(url)
+    assert result1 == ('git@git.example.com:MyProject', None)
+    assert result2 == ('git@git.example.com:MyProject', None)
+
+
+def test_bazaar__get_url_rev():
     """
     Test bzr url support.
 
@@ -154,22 +170,22 @@ def test_bazaar_simple_urls():
         url='bzr+lp:MyLaunchpadProject#egg=MyLaunchpadProject'
     )
 
-    assert http_bzr_repo.get_url_rev() == (
+    assert http_bzr_repo.get_url_rev(http_bzr_repo.url) == (
         'http://bzr.myproject.org/MyProject/trunk/', None,
     )
-    assert https_bzr_repo.get_url_rev() == (
+    assert https_bzr_repo.get_url_rev(https_bzr_repo.url) == (
         'https://bzr.myproject.org/MyProject/trunk/', None,
     )
-    assert ssh_bzr_repo.get_url_rev() == (
+    assert ssh_bzr_repo.get_url_rev(ssh_bzr_repo.url) == (
         'bzr+ssh://bzr.myproject.org/MyProject/trunk/', None,
     )
-    assert ftp_bzr_repo.get_url_rev() == (
+    assert ftp_bzr_repo.get_url_rev(ftp_bzr_repo.url) == (
         'ftp://bzr.myproject.org/MyProject/trunk/', None,
     )
-    assert sftp_bzr_repo.get_url_rev() == (
+    assert sftp_bzr_repo.get_url_rev(sftp_bzr_repo.url) == (
         'sftp://bzr.myproject.org/MyProject/trunk/', None,
     )
-    assert launchpad_bzr_repo.get_url_rev() == (
+    assert launchpad_bzr_repo.get_url_rev(launchpad_bzr_repo.url) == (
         'lp:MyLaunchpadProject', None,
     )
 
@@ -177,3 +193,38 @@ def test_bazaar_simple_urls():
 def test_get_git_version():
     git_version = Git().get_git_version()
     assert git_version >= parse_version('1.0.0')
+
+
+# The non-SVN backends all have the same get_url_rev_args() implementation,
+# so test with Git as a representative.
+@pytest.mark.parametrize('url, expected', [
+    # Test a basic case.
+    ('git+https://git.example.com/MyProject#egg=MyProject',
+     ('git+https://git.example.com/MyProject#egg=MyProject', [])),
+    # Test with username and password.
+    ('git+https://user:pass@git.example.com/MyProject#egg=MyProject',
+     ('git+https://user:pass@git.example.com/MyProject#egg=MyProject', [])),
+])
+def test_git__get_url_rev_args(url, expected):
+    """
+    Test Git.get_url_rev_args().
+    """
+    actual = Git().get_url_rev_args(url)
+    assert actual == expected
+
+
+@pytest.mark.parametrize('url, expected', [
+    # Test a basic case.
+    ('svn+https://svn.example.com/MyProject#egg=MyProject',
+     ('svn+https://svn.example.com/MyProject#egg=MyProject', [])),
+    # Test with username and password.
+    ('svn+https://user:pass@svn.example.com/MyProject#egg=MyProject',
+     ('svn+https://svn.example.com/MyProject#egg=MyProject',
+      ['--username', 'user', '--password', 'pass'])),
+])
+def test_subversion__get_url_rev_args(url, expected):
+    """
+    Test Subversion.get_url_rev_args().
+    """
+    actual = Subversion().get_url_rev_args(url)
+    assert actual == expected

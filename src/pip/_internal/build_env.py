@@ -11,7 +11,6 @@ from pip._internal.utils.misc import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.ui import open_spinner
 
-
 logger = logging.getLogger(__name__)
 
 

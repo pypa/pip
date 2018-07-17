@@ -20,10 +20,6 @@ class Pending(object):
     pass
 
 
-class RemovedInPip11Warning(PipDeprecationWarning):
-    pass
-
-
 class RemovedInPip12Warning(PipDeprecationWarning, Pending):
     pass
 

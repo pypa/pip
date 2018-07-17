@@ -18,8 +18,8 @@ from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.packaging.version import Version
+from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.pkg_resources import RequirementParseError, parse_requirements
 
 from pip._internal import wheel
@@ -33,9 +33,7 @@ from pip._internal.locations import (
     PIP_DELETE_MARKER_FILENAME, running_under_virtualenv,
 )
 from pip._internal.req.req_uninstall import UninstallPathSet
-from pip._internal.utils.deprecation import (
-    RemovedInPip11Warning, RemovedInPip12Warning,
-)
+from pip._internal.utils.deprecation import RemovedInPip12Warning
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
@@ -585,16 +583,17 @@ class InstallRequirement(object):
         if requires is None:
             logging.warn(template, self, "it is missing.")
             warnings.warn(
-                "Future versions of pip will reject packages with "
-                "pyproject.toml files that do not comply with PEP 518.",
+                "Future versions of pip may reject packages with "
+                "pyproject.toml files that do not contain the [build-system]"
+                "table and the requires key, as specified in PEP 518.",
                 RemovedInPip12Warning,
             )
 
-            # NOTE: Currently allowing projects to skip this key so that they
-            #       can transition to a PEP 518 compliant pyproject.toml or
-            #       push to update the PEP.
-            # Come pip 19.0, bring this to compliance with PEP 518.
-            return None
+            # Currently, we're isolating the build based on the presence of the
+            # pyproject.toml file. If the user doesn't specify
+            # build-system.requires, assume they intended to use setuptools and
+            # wheel for now.
+            return ["setuptools", "wheel"]
         else:
             # Error out if it's not a list of strings
             is_list_of_str = isinstance(requires, list) and all(
@@ -1049,22 +1048,6 @@ class InstallRequirement(object):
         return install_args
 
 
-def _strip_postfix(req):
-    """
-        Strip req postfix ( -dev, 0.2, etc )
-    """
-    # FIXME: use package_to_requirement?
-    match = re.search(r'^(.*?)(?:-dev|-\d.*)$', req)
-    if match:
-        # Strip off -dev, -0.2, etc.
-        warnings.warn(
-            "#egg cleanup for editable urls will be dropped in the future",
-            RemovedInPip11Warning,
-        )
-        req = match.group(1)
-    return req
-
-
 def parse_editable(editable_req):
     """Parses an editable requirement into:
         - a requirement name
@@ -1129,7 +1112,7 @@ def parse_editable(editable_req):
             "Could not detect requirement name for '%s', please specify one "
             "with #egg=your_package_name" % editable_req
         )
-    return _strip_postfix(package_name), url, None
+    return package_name, url, None
 
 
 def deduce_helpful_msg(req):

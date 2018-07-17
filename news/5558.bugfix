@@ -1,0 +1,1 @@
+Fix a crash that occurs when PATH not set, while generating script location warning.

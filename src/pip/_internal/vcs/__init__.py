@@ -213,7 +213,7 @@ class VersionControl(object):
         """
         raise NotImplementedError
 
-    def get_url_rev(self):
+    def get_url_rev(self, url):
         """
         Returns the correct repository URL and revision by parsing the given
         repository URL
@@ -223,14 +223,32 @@ class VersionControl(object):
             "The format is <vcs>+<protocol>://<url>, "
             "e.g. svn+http://myrepo/svn/MyApp#egg=MyApp"
         )
-        assert '+' in self.url, error_message % self.url
-        url = self.url.split('+', 1)[1]
+        assert '+' in url, error_message % url
+        url = url.split('+', 1)[1]
         scheme, netloc, path, query, frag = urllib_parse.urlsplit(url)
         rev = None
         if '@' in path:
             path, rev = path.rsplit('@', 1)
         url = urllib_parse.urlunsplit((scheme, netloc, path, query, ''))
         return url, rev
+
+    def get_url_rev_args(self, url):
+        """
+        Return the URL and RevOptions "extra arguments" to use in obtain(),
+        as a tuple (url, extra_args).
+        """
+        return url, []
+
+    def get_url_rev_options(self, url):
+        """
+        Return the URL and RevOptions object to use in obtain() and in
+        some cases export(), as a tuple (url, rev_options).
+        """
+        url, rev = self.get_url_rev(url)
+        url, extra_args = self.get_url_rev_args(url)
+        rev_options = self.make_rev_options(rev, extra_args=extra_args)
+
+        return url, rev_options
 
     def get_info(self, location):
         """
@@ -253,10 +271,14 @@ class VersionControl(object):
         """
         return (self.normalize_url(url1) == self.normalize_url(url2))
 
-    def obtain(self, dest):
+    def fetch_new(self, dest, url, rev_options):
         """
-        Called when installing or updating an editable package, takes the
-        source path of the checkout.
+        Fetch a revision from a repository, in the case that this is the
+        first fetch from the repository.
+
+        Args:
+          dest: the directory to fetch the repository to.
+          rev_options: a RevOptions object.
         """
         raise NotImplementedError
 
@@ -288,18 +310,19 @@ class VersionControl(object):
         """
         raise NotImplementedError
 
-    def check_destination(self, dest, url, rev_options):
+    def obtain(self, dest):
         """
-        Prepare a location to receive a checkout/clone.
-
-        Return True if the location is ready for (and requires) a
-        checkout/clone, False otherwise.
+        Install or update in editable mode the package represented by this
+        VersionControl object.
 
         Args:
-          rev_options: a RevOptions object.
+          dest: the repository directory in which to install or update.
         """
+        url, rev_options = self.get_url_rev_options(self.url)
+
         if not os.path.exists(dest):
-            return True
+            self.fetch_new(dest, url, rev_options)
+            return
 
         rev_display = rev_options.to_display()
         if os.path.exists(os.path.join(dest, self.dirname)):
@@ -321,7 +344,7 @@ class VersionControl(object):
                     self.update(dest, rev_options)
                 else:
                     logger.info('Skipping because already up-to-date.')
-                return False
+                return
 
             logger.warning(
                 '%s %s in %s exists with URL %s',
@@ -348,7 +371,25 @@ class VersionControl(object):
         )
         response = ask_path_exists('What to do?  %s' % prompt[0], prompt[1])
 
-        checkout = False
+        if response == 'a':
+            sys.exit(-1)
+
+        if response == 'w':
+            logger.warning('Deleting %s', display_path(dest))
+            rmtree(dest)
+            self.fetch_new(dest, url, rev_options)
+            return
+
+        if response == 'b':
+            dest_dir = backup_dir(dest)
+            logger.warning(
+                'Backing up %s to %s', display_path(dest), dest_dir,
+            )
+            shutil.move(dest, dest_dir)
+            self.fetch_new(dest, url, rev_options)
+            return
+
+        # Do nothing if the response is "i".
         if response == 's':
             logger.info(
                 'Switching %s %s to %s%s',
@@ -358,24 +399,6 @@ class VersionControl(object):
                 rev_display,
             )
             self.switch(dest, url, rev_options)
-        elif response == 'i':
-            # do nothing
-            pass
-        elif response == 'w':
-            logger.warning('Deleting %s', display_path(dest))
-            rmtree(dest)
-            checkout = True
-        elif response == 'b':
-            dest_dir = backup_dir(dest)
-            logger.warning(
-                'Backing up %s to %s', display_path(dest), dest_dir,
-            )
-            shutil.move(dest, dest_dir)
-            checkout = True
-        elif response == 'a':
-            sys.exit(-1)
-
-        return checkout
 
     def unpack(self, location):
         """
@@ -398,7 +421,8 @@ class VersionControl(object):
     def get_url(self, location):
         """
         Return the url used at location
-        Used in get_info or check_destination
+
+        This is used in get_info() and obtain().
         """
         raise NotImplementedError
 

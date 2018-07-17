@@ -51,19 +51,6 @@ def test_columns_flag(script, data):
     assert 'simple2    3.0' in result.stdout, str(result)
 
 
-def test_legacy_format(script, data):
-    """
-    Test that legacy format
-    """
-    script.pip(
-        'install', '-f', data.find_links, '--no-index', 'simple==1.0',
-        'simple2==3.0',
-    )
-    result = script.pip('list', '--format=legacy', expect_stderr=True)
-    assert 'simple (1.0)' in result.stdout, str(result)
-    assert 'simple2 (3.0)' in result.stdout, str(result)
-
-
 def test_format_priority(script, data):
     """
     Test that latest format has priority over previous ones.
@@ -72,18 +59,18 @@ def test_format_priority(script, data):
         'install', '-f', data.find_links, '--no-index', 'simple==1.0',
         'simple2==3.0',
     )
-    result = script.pip('list', '--format=columns', '--format=legacy',
+    result = script.pip('list', '--format=columns', '--format=freeze',
                         expect_stderr=True)
-    assert 'simple (1.0)' in result.stdout, str(result)
-    assert 'simple2 (3.0)' in result.stdout, str(result)
+    assert 'simple==1.0' in result.stdout, str(result)
+    assert 'simple2==3.0' in result.stdout, str(result)
     assert 'simple     1.0' not in result.stdout, str(result)
     assert 'simple2    3.0' not in result.stdout, str(result)
 
-    result = script.pip('list', '--format=legacy', '--format=columns')
+    result = script.pip('list', '--format=freeze', '--format=columns')
     assert 'Package' in result.stdout, str(result)
     assert 'Version' in result.stdout, str(result)
-    assert 'simple (1.0)' not in result.stdout, str(result)
-    assert 'simple2 (3.0)' not in result.stdout, str(result)
+    assert 'simple==1.0' not in result.stdout, str(result)
+    assert 'simple2==3.0' not in result.stdout, str(result)
     assert 'simple     1.0' in result.stdout, str(result)
     assert 'simple2    3.0' in result.stdout, str(result)
 
@@ -109,17 +96,6 @@ def test_local_columns_flag(script, data):
     assert 'Version' in result.stdout
     assert 'simple (1.0)' not in result.stdout
     assert 'simple     1.0' in result.stdout, str(result)
-
-
-def test_local_legacy_flag(script, data):
-    """
-    Test the behavior of --local --format=legacy flags in the list
-    command.
-    """
-    script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
-    result = script.pip('list', '--local', '--format=legacy',
-                        expect_stderr=True)
-    assert 'simple (1.0)' in result.stdout
 
 
 @pytest.mark.network
@@ -155,23 +131,6 @@ def test_user_columns_flag(script, data, virtualenv):
     assert 'Version' in result.stdout
     assert 'simple2 (2.0)' not in result.stdout
     assert 'simple2 2.0' in result.stdout, str(result)
-
-
-@pytest.mark.network
-def test_user_legacy(script, data, virtualenv):
-    """
-    Test the behavior of --user flag in the list command
-
-    """
-    virtualenv.system_site_packages = True
-    script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
-    script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
-    script.pip('install', '-f', data.find_links, '--no-index',
-               '--user', 'simple2==2.0')
-    result = script.pip('list', '--user', '--format=legacy',
-                        expect_stderr=True)
-    assert 'simple (1.0)' not in result.stdout
-    assert 'simple2 (2.0)' in result.stdout, str(result)
 
 
 @pytest.mark.network
@@ -223,30 +182,6 @@ def test_uptodate_columns_flag(script, data):
     assert 'pip-test-package (0.1.1,' not in result.stdout
     assert 'pip-test-package 0.1.1' in result.stdout, str(result)
     assert 'simple2          3.0' in result.stdout, str(result)
-
-
-@pytest.mark.network
-def test_uptodate_legacy_flag(script, data):
-    """
-    Test the behavior of --uptodate --format=legacy flag in the list command
-
-    """
-    script.pip(
-        'install', '-f', data.find_links, '--no-index', 'simple==1.0',
-        'simple2==3.0',
-    )
-    script.pip(
-        'install', '-e',
-        'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package'
-    )
-    result = script.pip(
-        'list', '-f', data.find_links, '--no-index', '--uptodate',
-        '--format=legacy',
-        expect_stderr=True,
-    )
-    assert 'simple (1.0)' not in result.stdout  # 3.0 is latest
-    assert 'pip-test-package (0.1.1,' in result.stdout  # editables included
-    assert 'simple2 (3.0)' in result.stdout, str(result)
 
 
 @pytest.mark.network
@@ -315,33 +250,6 @@ def test_outdated_columns_flag(script, data):
 
 
 @pytest.mark.network
-def test_outdated_legacy(script, data):
-    """
-    Test the behavior of --outdated --format=legacy flag in the list command
-
-    """
-    script.pip(
-        'install', '-f', data.find_links, '--no-index', 'simple==1.0',
-        'simple2==3.0', 'simplewheel==1.0',
-    )
-    script.pip(
-        'install', '-e',
-        'git+https://github.com/pypa/pip-test-package.git'
-        '@0.1#egg=pip-test-package'
-    )
-    result = script.pip(
-        'list', '-f', data.find_links, '--no-index', '--outdated',
-        '--format=legacy',
-        expect_stderr=True,
-    )
-    assert 'simple (1.0) - Latest: 3.0 [sdist]' in result.stdout
-    assert 'simplewheel (1.0) - Latest: 2.0 [wheel]' in result.stdout
-    assert 'pip-test-package (0.1, ' in result.stdout
-    assert ' Latest: 0.1.1 [sdist]' in result.stdout
-    assert 'simple2' not in result.stdout, str(result)  # 3.0 is latest
-
-
-@pytest.mark.network
 def test_editables_flag(script, data):
     """
     Test the behavior of --editables flag in the list command
@@ -394,25 +302,6 @@ def test_editables_columns_flag(script, data):
 
 
 @pytest.mark.network
-def test_editables_legacy(script, data):
-    """
-    Test the behavior of --editables flag in the list command
-    """
-    script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
-    script.pip(
-        'install', '-e',
-        'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package'
-    )
-    result = script.pip(
-        'list', '--editable', '--format=legacy', expect_stderr=True,
-    )
-    assert 'simple (1.0)' not in result.stdout, str(result)
-    assert os.path.join('src', 'pip-test-package') in result.stdout, (
-        str(result)
-    )
-
-
-@pytest.mark.network
 def test_uptodate_editables_flag(script, data):
     """
     test the behavior of --editable --uptodate flag in the list command
@@ -450,28 +339,6 @@ def test_uptodate_editables_columns_flag(script, data):
     assert 'Package' in result.stdout
     assert 'Version' in result.stdout
     assert 'Location' in result.stdout
-    assert os.path.join('src', 'pip-test-package') in result.stdout, (
-        str(result)
-    )
-
-
-@pytest.mark.network
-def test_uptodate_editables_legacy(script, data):
-    """
-    test the behavior of --editable --uptodate --format=columns --format=legacy
-    flag in the list command
-    """
-    script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
-    script.pip(
-        'install', '-e',
-        'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package'
-    )
-    result = script.pip(
-        'list', '-f', data.find_links, '--no-index', '--editable',
-        '--uptodate', '--format=legacy',
-        expect_stderr=True,
-    )
-    assert 'simple (1.0)' not in result.stdout, str(result)
     assert os.path.join('src', 'pip-test-package') in result.stdout, (
         str(result)
     )
@@ -519,28 +386,6 @@ def test_outdated_editables_columns_flag(script, data):
     )
 
 
-@pytest.mark.network
-def test_outdated_editables_legacy(script, data):
-    """
-    test the behavior of --editable --outdated flag in the list command
-    """
-    script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
-    script.pip(
-        'install', '-e',
-        'git+https://github.com/pypa/pip-test-package.git'
-        '@0.1#egg=pip-test-package'
-    )
-    result = script.pip(
-        'list', '-f', data.find_links, '--no-index',
-        '--editable', '--outdated', '--format=legacy',
-        expect_stderr=True,
-    )
-    assert 'simple (1.0)' not in result.stdout, str(result)
-    assert os.path.join('src', 'pip-test-package') in result.stdout, (
-        str(result)
-    )
-
-
 def test_outdated_pre(script, data):
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
 
@@ -582,11 +427,6 @@ def test_outdated_formats(script, data):
         '--format=freeze',
     )
     assert 'simple==1.0' in result.stdout
-
-    # Check legacy
-    result = script.pip('list', '--no-index', '--find-links', wheelhouse_path,
-                        '--outdated', '--format=legacy', expect_stderr=True)
-    assert 'simple (1.0) - Latest: 1.1 [wheel]' in result.stdout
 
     # Check columns
     result = script.pip(
