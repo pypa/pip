@@ -173,53 +173,53 @@ def setup_logging(verbosity, no_color, user_log_file):
     }
 
     logging.config.dictConfig({
-            "version": 1,
-            "disable_existing_loggers": False,
-            "filters": {
-                "exclude_warnings": {
-                    "()": "pip._internal.utils.logging.MaxLevelFilter",
-                    "level": logging.WARNING,
-                },
+        "version": 1,
+        "disable_existing_loggers": False,
+        "filters": {
+            "exclude_warnings": {
+                "()": "pip._internal.utils.logging.MaxLevelFilter",
+                "level": logging.WARNING,
             },
-            "formatters": {
-                "indent": {
-                    "()": IndentingFormatter,
-                    "format": "%(message)s",
-                },
+        },
+        "formatters": {
+            "indent": {
+                "()": IndentingFormatter,
+                "format": "%(message)s",
             },
-            "handlers": {
-                "console": {
-                    "level": level,
-                    "class": handler_classes["stream"],
-                    "no_color": no_color,
-                    "stream": log_streams["stdout"],
-                    "filters": ["exclude_warnings"],
-                    "formatter": "indent",
-                },
-                "console_errors": {
-                    "level": "WARNING",
-                    "class": handler_classes["stream"],
-                    "no_color": no_color,
-                    "stream": log_streams["stderr"],
-                    "formatter": "indent",
-                },
-                "user_log": {
-                    "level": "DEBUG",
-                    "class": handler_classes["file"],
-                    "filename": additional_log_file,
-                    "delay": True,
-                    "formatter": "indent",
-                },
+        },
+        "handlers": {
+            "console": {
+                "level": level,
+                "class": handler_classes["stream"],
+                "no_color": no_color,
+                "stream": log_streams["stdout"],
+                "filters": ["exclude_warnings"],
+                "formatter": "indent",
             },
-            "root": {
-                "level": root_level,
-                "handlers": ["console", "console_errors"] + (
-                    ["user_log"] if include_user_log else []
-                ),
+            "console_errors": {
+                "level": "WARNING",
+                "class": handler_classes["stream"],
+                "no_color": no_color,
+                "stream": log_streams["stderr"],
+                "formatter": "indent",
             },
-            "loggers": {
-                "pip._vendor": {
-                    "level": vendored_log_level
-                }
+            "user_log": {
+                "level": "DEBUG",
+                "class": handler_classes["file"],
+                "filename": additional_log_file,
+                "delay": True,
+                "formatter": "indent",
             },
-        })
+        },
+        "root": {
+            "level": root_level,
+            "handlers": ["console", "console_errors"] + (
+                ["user_log"] if include_user_log else []
+            ),
+        },
+        "loggers": {
+            "pip._vendor": {
+                "level": vendored_log_level
+            }
+        },
+    })
