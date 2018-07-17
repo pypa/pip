@@ -133,6 +133,9 @@ class Subversion(VersionControl):
     def parse_netloc(self, netloc):
         """
         Parse out and remove from the netloc the auth information.
+
+        This allows the auth information to be provided via the --username
+        and --password options instead of via the URL.
         """
         if '@' not in netloc:
             return netloc, None, None

@@ -218,6 +218,11 @@ class VersionControl(object):
         Parse the repository URL's netloc, and return the new netloc to use
         along with auth information.
 
+        This is mainly for the Subversion class to override, so that auth
+        information can be provided via the --username and --password options
+        instead of through the URL.  For other subclasses like Git without
+        such an option, auth information must stay in the URL.
+
         Returns: (netloc, username, password).
         """
         return netloc, None, None
