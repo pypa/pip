@@ -31,34 +31,6 @@ class Subversion(VersionControl):
     def get_base_rev_args(self, rev):
         return ['-r', rev]
 
-    def get_info(self, location):
-        """Returns (url, revision), where both are strings"""
-        assert not location.rstrip('/').endswith(self.dirname), \
-            'Bad directory: %s' % location
-        output = self.run_command(
-            ['info', location],
-            show_stdout=False,
-            extra_environ={'LANG': 'C'},
-        )
-        match = _svn_url_re.search(output)
-        if not match:
-            logger.warning(
-                'Cannot determine URL of svn checkout %s',
-                display_path(location),
-            )
-            logger.debug('Output that cannot be parsed: \n%s', output)
-            return None, None
-        url = match.group(1).strip()
-        match = _svn_revision_re.search(output)
-        if not match:
-            logger.warning(
-                'Cannot determine revision of svn checkout %s',
-                display_path(location),
-            )
-            logger.debug('Output that cannot be parsed: \n%s', output)
-            return url, None
-        return url, match.group(1)
-
     def export(self, location):
         """Export the svn repository at the url to the destination location"""
         url, rev_options = self.get_url_rev_options(self.url)

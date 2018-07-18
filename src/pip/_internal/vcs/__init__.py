@@ -250,14 +250,6 @@ class VersionControl(object):
 
         return url, rev_options
 
-    def get_info(self, location):
-        """
-        Returns (url, revision), where both are strings
-        """
-        assert not location.rstrip('/').endswith(self.dirname), \
-            'Bad directory: %s' % location
-        return self.get_url(location), self.get_revision(location)
-
     def normalize_url(self, url):
         """
         Normalize a URL for comparison by unquoting it and removing any
@@ -422,7 +414,7 @@ class VersionControl(object):
         """
         Return the url used at location
 
-        This is used in get_info() and obtain().
+        This is used in obtain().
         """
         raise NotImplementedError
 
