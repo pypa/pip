@@ -435,7 +435,7 @@ class VersionControl(object):
     def run_command(self, cmd, show_stdout=True, cwd=None,
                     on_returncode='raise',
                     command_desc=None,
-                    extra_environ=None, spinner=None):
+                    extra_environ=None, spinner=None, stdin=None):
         """
         Run a VCS subcommand
         This is simply a wrapper around call_subprocess that adds the VCS
@@ -447,7 +447,7 @@ class VersionControl(object):
                                    on_returncode,
                                    command_desc, extra_environ,
                                    unset_environ=self.unset_environ,
-                                   spinner=spinner)
+                                   spinner=spinner, stdin=stdin)
         except OSError as e:
             # errno.ENOENT = no such file or directory
             # In other words, the VCS executable isn't available
