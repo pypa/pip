@@ -200,14 +200,6 @@ class VersionControl(object):
         drive, tail = os.path.splitdrive(repo)
         return repo.startswith(os.path.sep) or drive
 
-    def is_repository_directory(self, path):
-        """
-        Return whether a directory path is a repository directory.
-        """
-        logger.debug('Checking in %s for %s (%s)...',
-                     path, self.dirname, self.name)
-        return os.path.exists(os.path.join(path, self.dirname))
-
     # See issue #1083 for why this method was introduced:
     # https://github.com/pypa/pip/issues/1083
     def translate_egg_surname(self, surname):
@@ -468,14 +460,25 @@ class VersionControl(object):
                 raise  # re-raise exception if a different error occurred
 
     @classmethod
+    def is_repository_directory(cls, path):
+        """
+        Return whether a directory path is a repository directory.
+        """
+        logger.debug('Checking in %s for %s (%s)...',
+                     path, cls.dirname, cls.name)
+        return os.path.exists(os.path.join(path, cls.dirname))
+
+    @classmethod
     def controls_location(cls, location):
         """
         Check if a location is controlled by the vcs.
         It is meant to be overridden to implement smarter detection
         mechanisms for specific vcs.
+
+        This can do more than is_repository_directory() alone.  For example,
+        the Git override checks that Git is actually available.
         """
-        vcs = cls()
-        return vcs.is_repository_directory(location)
+        return cls.is_repository_directory(location)
 
 
 def get_src_requirement(dist, location):
