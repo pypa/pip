@@ -265,7 +265,7 @@ class Git(VersionControl):
             req += '&subdirectory=' + subdirectory
         return req
 
-    def get_url_rev(self, url):
+    def get_url_rev_and_auth(self, url):
         """
         Prefixes stub URLs like 'user@hostname:user/repo.git' with 'ssh://'.
         That's required because although they use SSH they sometimes don't
@@ -275,12 +275,12 @@ class Git(VersionControl):
         if '://' not in url:
             assert 'file:' not in url
             url = url.replace('git+', 'git+ssh://')
-            url, rev, user_auth = super(Git, self).get_url_rev(url)
+            url, rev, user_pass = super(Git, self).get_url_rev_and_auth(url)
             url = url.replace('ssh://', '')
         else:
-            url, rev, user_auth = super(Git, self).get_url_rev(url)
+            url, rev, user_pass = super(Git, self).get_url_rev_and_auth(url)
 
-        return url, rev, user_auth
+        return url, rev, user_pass
 
     def update_submodules(self, location):
         if not os.path.exists(os.path.join(location, '.gitmodules')):

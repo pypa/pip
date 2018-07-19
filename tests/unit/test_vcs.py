@@ -129,60 +129,60 @@ def test_translate_egg_surname():
     assert vc.translate_egg_surname("foo/1.2.3") == "foo_1.2.3"
 
 
-# The non-SVN backends all use the same parse_netloc(), so only test
+# The non-SVN backends all use the same get_netloc_and_auth(), so only test
 # Git as a representative.
 @pytest.mark.parametrize('netloc, expected', [
     # Test a basic case.
-    ('example.com', ('example.com', None, None)),
+    ('example.com', ('example.com', (None, None))),
     # Test with username and password.
-    ('user:pass@example.com', ('user:pass@example.com', None, None)),
+    ('user:pass@example.com', ('user:pass@example.com', (None, None))),
 ])
-def test_git__parse_netloc(netloc, expected):
+def test_git__get_netloc_and_auth(netloc, expected):
     """
-    Test VersionControl.parse_netloc().
+    Test VersionControl.get_netloc_and_auth().
     """
-    actual = Git().parse_netloc(netloc)
+    actual = Git().get_netloc_and_auth(netloc)
     assert actual == expected
 
 
 @pytest.mark.parametrize('netloc, expected', [
     # Test a basic case.
-    ('example.com', ('example.com', None, None)),
+    ('example.com', ('example.com', (None, None))),
     # Test with username and no password.
-    ('user@example.com', ('example.com', 'user', None)),
+    ('user@example.com', ('example.com', ('user', None))),
     # Test with username and password.
-    ('user:pass@example.com', ('example.com', 'user', 'pass')),
+    ('user:pass@example.com', ('example.com', ('user', 'pass'))),
     # Test the password containing an @ symbol.
-    ('user:pass@word@example.com', ('example.com', 'user', 'pass@word')),
+    ('user:pass@word@example.com', ('example.com', ('user', 'pass@word'))),
     # Test the password containing a : symbol.
-    ('user:pass:word@example.com', ('example.com', 'user', 'pass:word')),
+    ('user:pass:word@example.com', ('example.com', ('user', 'pass:word'))),
 ])
-def test_subversion__parse_netloc(netloc, expected):
+def test_subversion__get_netloc_and_auth(netloc, expected):
     """
-    Test Subversion.parse_netloc().
+    Test Subversion.get_netloc_and_auth().
     """
-    actual = Subversion().parse_netloc(netloc)
+    actual = Subversion().get_netloc_and_auth(netloc)
     assert actual == expected
 
 
 def test_git__get_url_rev__idempotent():
     """
-    Check that Git.get_url_rev() is idempotent for what the code calls
+    Check that Git.get_url_rev_and_auth() is idempotent for what the code calls
     "stub URLs" (i.e. URLs that don't contain "://").
 
     Also check that it doesn't change self.url.
     """
     url = 'git+git@git.example.com:MyProject#egg=MyProject'
     vcs = Git(url)
-    result1 = vcs.get_url_rev(url)
+    result1 = vcs.get_url_rev_and_auth(url)
     assert vcs.url == url
-    result2 = vcs.get_url_rev(url)
+    result2 = vcs.get_url_rev_and_auth(url)
     expected = ('git@git.example.com:MyProject', None, (None, None))
     assert result1 == expected
     assert result2 == expected
 
 
-def test_bazaar__get_url_rev():
+def test_bazaar__get_url_rev_and_auth():
     """
     Test bzr url support.
 
@@ -207,22 +207,22 @@ def test_bazaar__get_url_rev():
         url='bzr+lp:MyLaunchpadProject#egg=MyLaunchpadProject'
     )
 
-    assert http_bzr_repo.get_url_rev(http_bzr_repo.url) == (
+    assert http_bzr_repo.get_url_rev_and_auth(http_bzr_repo.url) == (
         'http://bzr.myproject.org/MyProject/trunk/', None, (None, None),
     )
-    assert https_bzr_repo.get_url_rev(https_bzr_repo.url) == (
+    assert https_bzr_repo.get_url_rev_and_auth(https_bzr_repo.url) == (
         'https://bzr.myproject.org/MyProject/trunk/', None, (None, None),
     )
-    assert ssh_bzr_repo.get_url_rev(ssh_bzr_repo.url) == (
+    assert ssh_bzr_repo.get_url_rev_and_auth(ssh_bzr_repo.url) == (
         'bzr+ssh://bzr.myproject.org/MyProject/trunk/', None, (None, None),
     )
-    assert ftp_bzr_repo.get_url_rev(ftp_bzr_repo.url) == (
+    assert ftp_bzr_repo.get_url_rev_and_auth(ftp_bzr_repo.url) == (
         'ftp://bzr.myproject.org/MyProject/trunk/', None, (None, None),
     )
-    assert sftp_bzr_repo.get_url_rev(sftp_bzr_repo.url) == (
+    assert sftp_bzr_repo.get_url_rev_and_auth(sftp_bzr_repo.url) == (
         'sftp://bzr.myproject.org/MyProject/trunk/', None, (None, None),
     )
-    assert launchpad_bzr_repo.get_url_rev(launchpad_bzr_repo.url) == (
+    assert launchpad_bzr_repo.get_url_rev_and_auth(launchpad_bzr_repo.url) == (
         'lp:MyLaunchpadProject', None, (None, None),
     )
 

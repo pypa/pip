@@ -130,7 +130,7 @@ class Subversion(VersionControl):
             revision = max(revision, localrev)
         return revision
 
-    def parse_netloc(self, netloc):
+    def get_netloc_and_auth(self, netloc):
         """
         Parse out and remove from the netloc the auth information.
 
@@ -138,7 +138,7 @@ class Subversion(VersionControl):
         and --password options instead of via the URL.
         """
         if '@' not in netloc:
-            return netloc, None, None
+            return netloc, (None, None)
 
         # Split from the right because that's how urllib.parse.urlsplit()
         # behaves if more than one @ is present (by checking the password
@@ -148,18 +148,18 @@ class Subversion(VersionControl):
             # Split from the left because that's how urllib.parse.urlsplit()
             # behaves if more than one : is present (again by checking the
             # password attribute of the return value)
-            username, password = auth.split(':', 1)
+            user_pass = tuple(auth.split(':', 1))
         else:
-            username, password = auth, None
+            user_pass = auth, None
 
-        return netloc, username, password
+        return netloc, user_pass
 
-    def get_url_rev(self, url):
+    def get_url_rev_and_auth(self, url):
         # hotfix the URL scheme after removing svn+ from svn+ssh:// readd it
-        url, rev, user_auth = super(Subversion, self).get_url_rev(url)
+        url, rev, user_pass = super(Subversion, self).get_url_rev_and_auth(url)
         if url.startswith('ssh://'):
             url = 'svn+' + url
-        return url, rev, user_auth
+        return url, rev, user_pass
 
     def make_rev_args(self, username, password):
         extra_args = []
