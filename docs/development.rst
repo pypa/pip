@@ -211,6 +211,12 @@ document existing behavior with the intention of covering that behavior with
 the above deprecation process are always acceptable, and will be considered on
 their merits.
 
+.. note::
+
+  pip has a helper function for making deprecation easier for pip maintainers.
+  The supporting documentation can be found in the source code of
+  ``pip._internal.utils.deprecation.deprecated``. The function is not a part of
+  pip's public API.
 
 Release Process
 ===============
