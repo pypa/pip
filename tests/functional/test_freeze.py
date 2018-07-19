@@ -587,3 +587,33 @@ def test_freeze_user(script, virtualenv, data):
         <BLANKLINE>""")
     _check_output(result.stdout, expected)
     assert 'simple2' not in result.stdout
+
+
+def test_freeze_minor(script):
+    """
+    Testing freeze with --minor, should ignore non-semver, x.x.x versioned packages
+    """
+    result = script.pip_install_local('singlemodule==0.0.1')
+    result = script.pip_install_local('simple2==2.0')
+
+    result = script.pip('freeze', '--minor', expect_stderr=True)
+    expected = textwrap.dedent("""\
+        simple2==2.0
+        singlemodule>=0.0.1,<0.1.0
+        <BLANKLINE>""")
+    _check_output(result.stdout, expected)
+
+
+def test_freeze_major(script):
+    """
+    Testing freeze with --major, should ignore non-semver, x.x.x versioned packages
+    """
+    result = script.pip_install_local('singlemodule==0.0.1')
+    result = script.pip_install_local('simple2==2.0')
+
+    result = script.pip('freeze', '--major', expect_stderr=True)
+    expected = textwrap.dedent("""\
+        simple2==2.0
+        singlemodule>=0.0.1,<1.0.0
+        <BLANKLINE>""")
+    _check_output(result.stdout, expected)

@@ -26,7 +26,8 @@ def freeze(
         isolated=False,
         wheel_cache=None,
         exclude_editable=False,
-        skip=()):
+        skip=(),
+        semantic=False):
     find_links = find_links or []
     skip_match = None
 
@@ -52,7 +53,8 @@ def freeze(
         try:
             req = FrozenRequirement.from_dist(
                 dist,
-                dependency_links
+                dependency_links,
+                semantic
             )
         except RequirementParseError:
             logger.warning(
@@ -164,9 +166,10 @@ class FrozenRequirement(object):
 
     _rev_re = re.compile(r'-r(\d+)$')
     _date_re = re.compile(r'-(20\d\d\d\d\d\d)$')
+    _sem_re  = re.compile('^v?(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patchlevel>\\d+)~?(?P<special>[a-z]\\w+[\\d+])?$')
 
     @classmethod
-    def from_dist(cls, dist, dependency_links):
+    def from_dist(cls, dist, dependency_links, semantic):
         location = os.path.normcase(os.path.abspath(dist.location))
         comments = []
         from pip._internal.vcs import vcs, get_src_requirement
@@ -199,6 +202,8 @@ class FrozenRequirement(object):
             version = specs[0][1]
             ver_match = cls._rev_re.search(version)
             date_match = cls._date_re.search(version)
+            sem_match = cls._sem_re.match(version)
+
             if ver_match or date_match:
                 svn_backend = vcs.get_backend('svn')
                 if svn_backend:
@@ -236,7 +241,21 @@ class FrozenRequirement(object):
                         rev,
                         cls.egg_name(dist)
                     )
+            if sem_match and semantic:
+                req = cls.loose_semver(req.name, sem_match, semantic)
         return cls(dist.project_name, req, editable, comments)
+
+    @staticmethod
+    def loose_semver(spec, version, semantic):
+        if not semantic:
+            return version.string
+        this_version = version.string
+        parts = version.groupdict()
+        if semantic == 'major':
+            next_version = "%d.%d.%d" % (int(parts['major'])+1, 0, 0)
+        elif semantic == 'minor':
+            next_version = "%d.%d.%d" % (int(parts['major']), int(parts['minor'])+1, 0) 
+        return '%s>=%s,<%s' % (spec, this_version, next_version)
 
     @staticmethod
     def egg_name(dist):
@@ -250,4 +269,5 @@ class FrozenRequirement(object):
         req = self.req
         if self.editable:
             req = '-e %s' % req
+
         return '\n'.join(list(self.comments) + [str(req)]) + '\n'
