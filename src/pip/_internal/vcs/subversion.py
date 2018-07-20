@@ -13,8 +13,6 @@ from pip._internal.vcs import VersionControl, vcs
 
 _svn_xml_url_re = re.compile('url="([^"]+)"')
 _svn_rev_re = re.compile(r'committed-rev="(\d+)"')
-_svn_url_re = re.compile(r'URL: (.+)')
-_svn_revision_re = re.compile(r'Revision: (.+)')
 _svn_info_xml_rev_re = re.compile(r'\s*revision="(\d+)"')
 _svn_info_xml_url_re = re.compile(r'<url>(.*)</url>')
 

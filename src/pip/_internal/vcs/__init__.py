@@ -413,8 +413,6 @@ class VersionControl(object):
     def get_url(self, location):
         """
         Return the url used at location
-
-        This is used in obtain().
         """
         raise NotImplementedError
 
