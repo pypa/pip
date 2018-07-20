@@ -1,0 +1,2 @@
+[build-system]
+requires = ["setuptools", "wheel", "pep518_twin_forkbombs_second"]

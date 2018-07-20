@@ -84,12 +84,28 @@ def test_pep518_with_extra_and_markers(script, data, common_wheels):
         'wheel', '--no-index',
         '-f', common_wheels,
         '-f', data.find_links,
-        # Add tests/data/packages4, which contains a wheel for
-        # simple==1.0 (needed by requires_simple_extra[extra]).
-        '-f', data.find_links4,
         data.src.join("pep518_with_extra_and_markers-1.0"),
         use_module=True,
     )
+
+
+@pytest.mark.timeout(60)
+@pytest.mark.parametrize('command', ('install', 'wheel'))
+@pytest.mark.parametrize('package', ('pep518_forkbomb',
+                                     'pep518_twin_forkbombs_first',
+                                     'pep518_twin_forkbombs_second'))
+def test_pep518_forkbombs(script, data, common_wheels, command, package):
+    package_source = next(data.packages.glob(package + '-[0-9]*.tar.gz'))
+    result = script.pip(
+        'wheel', '--no-index', '-v',
+        '-f', common_wheels,
+        '-f', data.find_links,
+        package,
+        expect_error=True,
+    )
+    assert '{1} is already being built: {0} from {1}'.format(
+        package, path_to_url(package_source),
+    ) in result.stdout, str(result)
 
 
 @pytest.mark.network
