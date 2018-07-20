@@ -1,1 +1,1 @@
-Clarify that the output of pip show is in RFC-compliant mail header format for people who want to parse the ouput.
+Document that the output of pip show is in RFC-compliant mail header format.

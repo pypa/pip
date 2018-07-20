@@ -1,1 +1,1 @@
-Start refusing to install packages with non PEP-518 compliant pyproject.toml
+Warn when a project's pyproject.toml file does not contain ``build-system.requires``.
