@@ -1,1 +1,0 @@
-Fix the revendoring script no to rewrite unrelated import that starts suspicious. 
