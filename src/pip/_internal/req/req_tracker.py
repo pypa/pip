@@ -8,7 +8,6 @@ import os
 
 from pip._internal.utils.temp_dir import TempDirectory
 
-
 logger = logging.getLogger(__name__)
 
 
