@@ -47,14 +47,14 @@ def test_pep518_refuses_invalid_requires(script, data, common_wheels):
     assert "does not comply with PEP 518" in result.stderr
 
 
-def test_pep518_allows_but_warns_missing_requires(script, data, common_wheels):
+def test_pep518_allows_missing_requires(script, data, common_wheels):
     result = script.pip(
         'install', '-f', common_wheels,
         data.src.join("pep518_missing_requires"),
         expect_stderr=True
     )
-    assert "does not comply with PEP 518" in result.stderr
-    assert "DEPRECATION" in result.stderr
+    # Make sure we don't warn when this occurs.
+    assert "does not comply with PEP 518" not in result.stderr
 
     # We want it to go through isolation for now.
     assert "Installing build dependencies" in result.stdout, result.stdout

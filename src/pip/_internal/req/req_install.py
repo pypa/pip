@@ -32,7 +32,6 @@ from pip._internal.locations import (
     PIP_DELETE_MARKER_FILENAME, running_under_virtualenv,
 )
 from pip._internal.req.req_uninstall import UninstallPathSet
-from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
@@ -574,26 +573,10 @@ class InstallRequirement(object):
         # Extract the build requirements
         requires = pp_toml.get("build-system", {}).get("requires", None)
 
-        template = (
-            "%s does not comply with PEP 518 since pyproject.toml "
-            "does not contain a valid '[build-system].requires' key: %s"
-        )
-
         if requires is None:
-            logging.warn(template, self, "it is missing.")
-            deprecated(
-                "Future versions of pip may reject packages with "
-                "pyproject.toml files that do not contain the [build-system]"
-                "table and the requires key, as specified in PEP 518.",
-                replacement=None,
-                gone_in="18.2",
-                issue=5416,
-            )
-
-            # Currently, we're isolating the build based on the presence of the
-            # pyproject.toml file. If the user doesn't specify
-            # build-system.requires, assume they intended to use setuptools and
-            # wheel for now.
+            # We isolate on the presence of the pyproject.toml file.
+            # If build-system.requires is not specified, treat it as if it was
+            # specified as ["setuptools", "wheel"]
             return ["setuptools", "wheel"]
         else:
             # Error out if it's not a list of strings
@@ -601,8 +584,12 @@ class InstallRequirement(object):
                 isinstance(req, six.string_types) for req in requires
             )
             if not is_list_of_str:
+                template = (
+                    "{} does not comply with PEP 518 since pyproject.toml "
+                    "does not contain a valid build-system.requires key: {}"
+                )
                 raise InstallationError(
-                    template % (self, "it is not a list of strings.")
+                    template.format(self, "it is not a list of strings.")
                 )
 
         # If control flow reaches here, we're good to go.

@@ -1,1 +1,0 @@
-Warn when a project's pyproject.toml file does not contain ``build-system.requires``.
