@@ -594,7 +594,8 @@ class InstallRequirement(object):
         requires = build_system["requires"]
         if not _is_list_of_str(requires):
             raise InstallationError(error_template.format(
-                self, "'build-system.requires' is not a list of strings."
+                package=self,
+                reason="'build-system.requires' is not a list of strings.",
             ))
 
         return requires
