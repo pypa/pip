@@ -585,7 +585,7 @@ class InstallRequirement(object):
         if "requires" not in build_system:
             raise InstallationError(
                 error_template.format(package=self, reason=(
-                    "it has a 'build-system' table but not the "
+                    "it has a 'build-system' table but not "
                     "'build-system.requires' which is mandatory in the table"
                 ))
             )
