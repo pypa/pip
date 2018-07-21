@@ -564,35 +564,40 @@ class InstallRequirement(object):
         specified as per PEP 518 within the package. If `pyproject.toml` is not
         present, returns None to signify not using the same.
         """
+        # If pyproject.toml does not exist, don't do anything.
         if not os.path.isfile(self.pyproject_toml):
             return None
+
+        error_template = (
+            "{package} has a pyproject.toml file that does not comply "
+            "with PEP 518: {reason}"
+        )
 
         with io.open(self.pyproject_toml, encoding="utf-8") as f:
             pp_toml = pytoml.load(f)
 
-        # Extract the build requirements
-        requires = pp_toml.get("build-system", {}).get("requires", None)
-
-        if requires is None:
-            # We isolate on the presence of the pyproject.toml file.
-            # If build-system.requires is not specified, treat it as if it was
-            # specified as ["setuptools", "wheel"]
+        # If there is no build-system table, just use setuptools and wheel.
+        if "build-system" not in pp_toml:
             return ["setuptools", "wheel"]
-        else:
-            # Error out if it's not a list of strings
-            is_list_of_str = isinstance(requires, list) and all(
-                isinstance(req, six.string_types) for req in requires
-            )
-            if not is_list_of_str:
-                template = (
-                    "{} does not comply with PEP 518 since pyproject.toml "
-                    "does not contain a valid build-system.requires key: {}"
-                )
-                raise InstallationError(
-                    template.format(self, "it is not a list of strings.")
-                )
 
-        # If control flow reaches here, we're good to go.
+        # Specifying the build-system table but not the requires key is invalid
+        build_system = pp_toml["build-system"]
+        if "requires" not in build_system:
+            raise InstallationError(
+                error_template.format(package=self, reason=(
+                    "it has a 'build-system' table but not "
+                    "'build-system.requires' which is mandatory in the table"
+                ))
+            )
+
+        # Error out if it's not a list of strings
+        requires = build_system["requires"]
+        if not _is_list_of_str(requires):
+            raise InstallationError(error_template.format(
+                package=self,
+                reason="'build-system.requires' is not a list of strings.",
+            ))
+
         return requires
 
     def run_egg_info(self):
@@ -1128,3 +1133,10 @@ def deduce_helpful_msg(req):
     else:
         msg += " File '%s' does not exist." % (req)
     return msg
+
+
+def _is_list_of_str(obj):
+    return (
+        isinstance(obj, list) and
+        all(isinstance(item, six.string_types) for item in obj)
+    )

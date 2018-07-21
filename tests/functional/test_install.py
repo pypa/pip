@@ -47,6 +47,16 @@ def test_pep518_refuses_invalid_requires(script, data, common_wheels):
     assert "does not comply with PEP 518" in result.stderr
 
 
+def test_pep518_refuses_invalid_build_system(script, data, common_wheels):
+    result = script.pip(
+        'install', '-f', common_wheels,
+        data.src.join("pep518_invalid_build_system"),
+        expect_error=True
+    )
+    assert result.returncode == 1
+    assert "does not comply with PEP 518" in result.stderr
+
+
 def test_pep518_allows_missing_requires(script, data, common_wheels):
     result = script.pip(
         'install', '-f', common_wheels,
