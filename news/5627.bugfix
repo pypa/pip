@@ -1,0 +1,1 @@
+Disallow packages with ``pyproject.toml`` files that have an empty build-system table.
