@@ -49,8 +49,6 @@ For more information and examples, see the :ref:`pip install` reference.
 .. _PyPI: https://pypi.org/
 
 
-.. _`Requirements Files`:
-
 Using a Proxy Server
 ********************
 
@@ -64,6 +62,9 @@ pip can be configured to connect through a proxy server in various ways:
 * using ``proxy`` in a :ref:`config-file`
 * by setting the standard environment-variables ``http_proxy``, ``https_proxy``
   and ``no_proxy``.
+
+
+.. _`Requirements Files`:
 
 Requirements Files
 ******************
