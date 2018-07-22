@@ -1,1 +1,0 @@
-Check for file existence and unlink first when clobbering existing files during a wheel install.
