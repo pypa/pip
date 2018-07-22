@@ -1,1 +1,0 @@
-Remove trailing os.sep from PATH directories to avoid false negatives

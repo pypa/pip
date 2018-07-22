@@ -8,7 +8,6 @@ import shutil
 import sys
 import sysconfig
 import traceback
-import warnings
 import zipfile
 from distutils.util import change_root
 from email.parser import FeedParser  # type: ignore
@@ -33,7 +32,6 @@ from pip._internal.locations import (
     PIP_DELETE_MARKER_FILENAME, running_under_virtualenv,
 )
 from pip._internal.req.req_uninstall import UninstallPathSet
-from pip._internal.utils.deprecation import RemovedInPip12Warning
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
@@ -566,45 +564,40 @@ class InstallRequirement(object):
         specified as per PEP 518 within the package. If `pyproject.toml` is not
         present, returns None to signify not using the same.
         """
+        # If pyproject.toml does not exist, don't do anything.
         if not os.path.isfile(self.pyproject_toml):
             return None
+
+        error_template = (
+            "{package} has a pyproject.toml file that does not comply "
+            "with PEP 518: {reason}"
+        )
 
         with io.open(self.pyproject_toml, encoding="utf-8") as f:
             pp_toml = pytoml.load(f)
 
-        # Extract the build requirements
-        requires = pp_toml.get("build-system", {}).get("requires", None)
-
-        template = (
-            "%s does not comply with PEP 518 since pyproject.toml "
-            "does not contain a valid '[build-system].requires' key: %s"
-        )
-
-        if requires is None:
-            logging.warn(template, self, "it is missing.")
-            warnings.warn(
-                "Future versions of pip may reject packages with "
-                "pyproject.toml files that do not contain the [build-system]"
-                "table and the requires key, as specified in PEP 518.",
-                RemovedInPip12Warning,
-            )
-
-            # Currently, we're isolating the build based on the presence of the
-            # pyproject.toml file. If the user doesn't specify
-            # build-system.requires, assume they intended to use setuptools and
-            # wheel for now.
+        # If there is no build-system table, just use setuptools and wheel.
+        if "build-system" not in pp_toml:
             return ["setuptools", "wheel"]
-        else:
-            # Error out if it's not a list of strings
-            is_list_of_str = isinstance(requires, list) and all(
-                isinstance(req, six.string_types) for req in requires
-            )
-            if not is_list_of_str:
-                raise InstallationError(
-                    template % (self, "it is not a list of strings.")
-                )
 
-        # If control flow reaches here, we're good to go.
+        # Specifying the build-system table but not the requires key is invalid
+        build_system = pp_toml["build-system"]
+        if "requires" not in build_system:
+            raise InstallationError(
+                error_template.format(package=self, reason=(
+                    "it has a 'build-system' table but not "
+                    "'build-system.requires' which is mandatory in the table"
+                ))
+            )
+
+        # Error out if it's not a list of strings
+        requires = build_system["requires"]
+        if not _is_list_of_str(requires):
+            raise InstallationError(error_template.format(
+                package=self,
+                reason="'build-system.requires' is not a list of strings.",
+            ))
+
         return requires
 
     def run_egg_info(self):
@@ -1140,3 +1133,10 @@ def deduce_helpful_msg(req):
     else:
         msg += " File '%s' does not exist." % (req)
     return msg
+
+
+def _is_list_of_str(obj):
+    return (
+        isinstance(obj, list) and
+        all(isinstance(item, six.string_types) for item in obj)
+    )

@@ -7,6 +7,83 @@
 
 .. towncrier release notes start
 
+18.0 (2018-07-22)
+=================
+
+Process
+-------
+
+- Switch to a Calendar based versioning scheme.
+- Formally document our deprecation process as a minimum of 6 months of deprecation
+  warnings.
+- Adopt and document NEWS fragment writing style.
+- Switch to releasing a new, non bug fix version of pip every 3 months.
+
+Deprecations and Removals
+-------------------------
+
+- Remove the legacy format from pip list. (#3651, #3654)
+- Dropped support for Python 3.3. (#3796)
+- Remove support for cleaning up #egg fragment postfixes. (#4174)
+- Remove the shim for the old get-pip.py location. (#5520)
+
+  For the past 2 years, it's only been redirecting users to use the newer
+  https://bootstrap.pypa.io/get-pip.py location.
+
+Features
+--------
+
+- Introduce a new --prefer-binary flag, to prefer older wheels over newer source packages. (#3785)
+- Improve autocompletion function on file name completion after options
+  which have ``<file>``, ``<dir>`` or ``<path>`` as metavar. (#4842, #5125)
+- Add support for installing PEP 518 build dependencies from source. (#5229)
+- Improve status message when upgrade is skipped due to only-if-needed strategy. (#5319)
+
+Bug Fixes
+---------
+
+- Update pip's self-check logic to not use a virtualenv specific file and honor cache-dir. (#3905)
+- Remove compiled pyo files for wheel packages. (#4471)
+- Speed up printing of newly installed package versions. (#5127)
+- Restrict install time dependency warnings to directly-dependant packages. (#5196, #5457)
+
+  Warning about the entire package set has resulted in users getting confused as
+  to why pip is printing these warnings.
+- Improve handling of PEP 518 build requirements: support environment markers and extras. (#5230, #5265)
+- Remove username/password from log message when using index with basic auth. (#5249)
+- Remove trailing os.sep from PATH directories to avoid false negatives. (#5293)
+- Fix "pip wheel pip" being blocked by the "don't use pip to modify itself" check. (#5311, #5312)
+- Disable pip's version check (and upgrade message) when installed by a different package manager. (#5346)
+
+  This works better with Linux distributions where pip's upgrade message may
+  result in users running pip in a manner that modifies files that should be
+  managed by the OS's package manager.
+- Check for file existence and unlink first when clobbering existing files during a wheel install. (#5366)
+- Improve error message to be more specific when no files are found as listed in as listed in PKG-INFO. (#5381)
+- Always read ``pyproject.toml`` as UTF-8. This fixes Unicode handling on Windows and Python 2. (#5482)
+- Fix a crash that occurs when PATH not set, while generating script location warning. (#5558)
+- Disallow packages with ``pyproject.toml`` files that have an empty build-system table. (#5627)
+
+Vendored Libraries
+------------------
+
+- Update CacheControl to 0.12.5.
+- Update certifi to 2018.4.16.
+- Update distro to 1.3.0.
+- Update idna to 2.7.
+- Update ipaddress to 1.0.22.
+- Update pkg_resources to 39.2.0 (via setuptools).
+- Update progress to 1.4.
+- Update pytoml to 0.1.16.
+- Update requests to 2.19.1.
+- Update urllib3 to 1.23.
+
+Improved Documentation
+----------------------
+
+- Document how to use pip with a proxy server. (#512, #5574)
+- Document that the output of pip show is in RFC-compliant mail header format. (#5261)
+
 
 10.0.1 (2018-04-19)
 ===================

@@ -47,14 +47,24 @@ def test_pep518_refuses_invalid_requires(script, data, common_wheels):
     assert "does not comply with PEP 518" in result.stderr
 
 
-def test_pep518_allows_but_warns_missing_requires(script, data, common_wheels):
+def test_pep518_refuses_invalid_build_system(script, data, common_wheels):
+    result = script.pip(
+        'install', '-f', common_wheels,
+        data.src.join("pep518_invalid_build_system"),
+        expect_error=True
+    )
+    assert result.returncode == 1
+    assert "does not comply with PEP 518" in result.stderr
+
+
+def test_pep518_allows_missing_requires(script, data, common_wheels):
     result = script.pip(
         'install', '-f', common_wheels,
         data.src.join("pep518_missing_requires"),
         expect_stderr=True
     )
-    assert "does not comply with PEP 518" in result.stderr
-    assert "DEPRECATION" in result.stderr
+    # Make sure we don't warn when this occurs.
+    assert "does not comply with PEP 518" not in result.stderr
 
     # We want it to go through isolation for now.
     assert "Installing build dependencies" in result.stdout, result.stdout
@@ -84,12 +94,28 @@ def test_pep518_with_extra_and_markers(script, data, common_wheels):
         'wheel', '--no-index',
         '-f', common_wheels,
         '-f', data.find_links,
-        # Add tests/data/packages4, which contains a wheel for
-        # simple==1.0 (needed by requires_simple_extra[extra]).
-        '-f', data.find_links4,
         data.src.join("pep518_with_extra_and_markers-1.0"),
         use_module=True,
     )
+
+
+@pytest.mark.timeout(60)
+@pytest.mark.parametrize('command', ('install', 'wheel'))
+@pytest.mark.parametrize('package', ('pep518_forkbomb',
+                                     'pep518_twin_forkbombs_first',
+                                     'pep518_twin_forkbombs_second'))
+def test_pep518_forkbombs(script, data, common_wheels, command, package):
+    package_source = next(data.packages.glob(package + '-[0-9]*.tar.gz'))
+    result = script.pip(
+        'wheel', '--no-index', '-v',
+        '-f', common_wheels,
+        '-f', data.find_links,
+        package,
+        expect_error=True,
+    )
+    assert '{1} is already being built: {0} from {1}'.format(
+        package, path_to_url(package_source),
+    ) in result.stdout, str(result)
 
 
 @pytest.mark.network

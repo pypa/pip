@@ -1,4 +1,0 @@
-Restrict install time dependency warnings to directly-dependant packages
-
-Warning about the entire package set has resulted in users getting confused as
-to why pip is printing these warnings.

@@ -325,7 +325,7 @@ class VersionControl(object):
             return
 
         rev_display = rev_options.to_display()
-        if os.path.exists(os.path.join(dest, self.dirname)):
+        if self.is_repository_directory(dest):
             existing_url = self.get_url(dest)
             if self.compare_urls(existing_url, url):
                 logger.debug(
@@ -460,16 +460,25 @@ class VersionControl(object):
                 raise  # re-raise exception if a different error occurred
 
     @classmethod
+    def is_repository_directory(cls, path):
+        """
+        Return whether a directory path is a repository directory.
+        """
+        logger.debug('Checking in %s for %s (%s)...',
+                     path, cls.dirname, cls.name)
+        return os.path.exists(os.path.join(path, cls.dirname))
+
+    @classmethod
     def controls_location(cls, location):
         """
         Check if a location is controlled by the vcs.
         It is meant to be overridden to implement smarter detection
         mechanisms for specific vcs.
+
+        This can do more than is_repository_directory() alone.  For example,
+        the Git override checks that Git is actually available.
         """
-        logger.debug('Checking in %s for %s (%s)...',
-                     location, cls.dirname, cls.name)
-        path = os.path.join(location, cls.dirname)
-        return os.path.exists(path)
+        return cls.is_repository_directory(location)
 
 
 def get_src_requirement(dist, location):
