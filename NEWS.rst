@@ -16,7 +16,7 @@ Process
 - Switch to a Calendar based versioning scheme.
 - Formally document our deprecation process as a minimum of 6 months of deprecation
   warnings.
-- Adopt and document NEWS fragment writing style
+- Adopt and document NEWS fragment writing style.
 - Switch to releasing a new, non bug fix version of pip every 3 months.
 
 Deprecations and Removals
@@ -25,10 +25,10 @@ Deprecations and Removals
 - Remove the legacy format from pip list. (#3651, #3654)
 - Dropped support for Python 3.3. (#3796)
 - Remove support for cleaning up #egg fragment postfixes. (#4174)
-- Remove the shim for the old get-pip.py location.
+- Remove the shim for the old get-pip.py location. (#5520)
 
   For the past 2 years, it's only been redirecting users to use the newer
-  https://bootstrap.pypa.io/get-pip.py location. (#5520)
+  https://bootstrap.pypa.io/get-pip.py location.
 
 Features
 --------
@@ -45,19 +45,19 @@ Bug Fixes
 - Update pip's self-check logic to not use a virtualenv specific file and honor cache-dir. (#3905)
 - Remove compiled pyo files for wheel packages. (#4471)
 - Speed up printing of newly installed package versions. (#5127)
-- Restrict install time dependency warnings to directly-dependant packages.
+- Restrict install time dependency warnings to directly-dependant packages. (#5196, #5457)
 
   Warning about the entire package set has resulted in users getting confused as
-  to why pip is printing these warnings. (#5196, #5457)
+  to why pip is printing these warnings.
 - Improve handling of PEP 518 build requirements: support environment markers and extras. (#5230, #5265)
 - Remove username/password from log message when using index with basic auth. (#5249)
 - Remove trailing os.sep from PATH directories to avoid false negatives. (#5293)
 - Fix "pip wheel pip" being blocked by the "don't use pip to modify itself" check. (#5311, #5312)
-- Disable pip's version check (and upgrade message) when installed by a different package manager.
+- Disable pip's version check (and upgrade message) when installed by a different package manager. (#5346)
 
   This works better with Linux distributions where pip's upgrade message may
   result in users running pip in a manner that modifies files that should be
-  managed by the OS's package manager. (#5346)
+  managed by the OS's package manager.
 - Check for file existence and unlink first when clobbering existing files during a wheel install. (#5366)
 - Improve error message to be more specific when no files are found as listed in as listed in PKG-INFO. (#5381)
 - Always read ``pyproject.toml`` as UTF-8. This fixes Unicode handling on Windows and Python 2. (#5482)
