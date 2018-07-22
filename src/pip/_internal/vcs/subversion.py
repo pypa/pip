@@ -4,11 +4,9 @@ import logging
 import os
 import re
 
-from pip._vendor.six.moves.urllib import parse as urllib_parse
-
 from pip._internal.index import Link
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import display_path, remove_auth_from_url, rmtree
+from pip._internal.utils.misc import display_path, rmtree
 from pip._internal.vcs import VersionControl, vcs
 
 _svn_xml_url_re = re.compile('url="([^"]+)"')
@@ -102,18 +100,45 @@ class Subversion(VersionControl):
             revision = max(revision, localrev)
         return revision
 
-    def get_url_rev(self, url):
+    def get_netloc_and_auth(self, netloc):
+        """
+        Parse out and remove from the netloc the auth information.
+
+        This allows the auth information to be provided via the --username
+        and --password options instead of via the URL.
+        """
+        if '@' not in netloc:
+            return netloc, (None, None)
+
+        # Split from the right because that's how urllib.parse.urlsplit()
+        # behaves if more than one @ is present (by checking the password
+        # attribute of urlsplit()'s return value).
+        auth, netloc = netloc.rsplit('@', 1)
+        if ':' in auth:
+            # Split from the left because that's how urllib.parse.urlsplit()
+            # behaves if more than one : is present (again by checking the
+            # password attribute of the return value)
+            user_pass = tuple(auth.split(':', 1))
+        else:
+            user_pass = auth, None
+
+        return netloc, user_pass
+
+    def get_url_rev_and_auth(self, url):
         # hotfix the URL scheme after removing svn+ from svn+ssh:// readd it
-        url, rev = super(Subversion, self).get_url_rev(url)
+        url, rev, user_pass = super(Subversion, self).get_url_rev_and_auth(url)
         if url.startswith('ssh://'):
             url = 'svn+' + url
-        return url, rev
+        return url, rev, user_pass
 
-    def get_url_rev_args(self, url):
-        extra_args = get_rev_options_args(url)
-        url = remove_auth_from_url(url)
+    def make_rev_args(self, username, password):
+        extra_args = []
+        if username:
+            extra_args += ['--username', username]
+        if password:
+            extra_args += ['--password', password]
 
-        return url, extra_args
+        return extra_args
 
     def get_url(self, location):
         # In cases where the source is in a subdirectory, not alongside
@@ -191,34 +216,6 @@ class Subversion(VersionControl):
     def is_commit_id_equal(self, dest, name):
         """Always assume the versions don't match"""
         return False
-
-
-def get_rev_options_args(url):
-    """
-    Return the extra arguments to pass to RevOptions.
-    """
-    r = urllib_parse.urlsplit(url)
-    if hasattr(r, 'username'):
-        # >= Python-2.5
-        username, password = r.username, r.password
-    else:
-        netloc = r[1]
-        if '@' in netloc:
-            auth = netloc.split('@')[0]
-            if ':' in auth:
-                username, password = auth.split(':', 1)
-            else:
-                username, password = auth, None
-        else:
-            username, password = None, None
-
-    extra_args = []
-    if username:
-        extra_args += ['--username', username]
-    if password:
-        extra_args += ['--password', password]
-
-    return extra_args
 
 
 vcs.register(Subversion)

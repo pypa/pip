@@ -213,10 +213,26 @@ class VersionControl(object):
         """
         raise NotImplementedError
 
-    def get_url_rev(self, url):
+    def get_netloc_and_auth(self, netloc):
         """
-        Returns the correct repository URL and revision by parsing the given
-        repository URL
+        Parse the repository URL's netloc, and return the new netloc to use
+        along with auth information.
+
+        This is mainly for the Subversion class to override, so that auth
+        information can be provided via the --username and --password options
+        instead of through the URL.  For other subclasses like Git without
+        such an option, auth information must stay in the URL.
+
+        Returns: (netloc, (username, password)).
+        """
+        return netloc, (None, None)
+
+    def get_url_rev_and_auth(self, url):
+        """
+        Parse the repository URL to use, and return the URL, revision,
+        and auth info to use.
+
+        Returns: (url, rev, (username, password)).
         """
         error_message = (
             "Sorry, '%s' is a malformed VCS url. "
@@ -226,26 +242,27 @@ class VersionControl(object):
         assert '+' in url, error_message % url
         url = url.split('+', 1)[1]
         scheme, netloc, path, query, frag = urllib_parse.urlsplit(url)
+        netloc, user_pass = self.get_netloc_and_auth(netloc)
         rev = None
         if '@' in path:
             path, rev = path.rsplit('@', 1)
         url = urllib_parse.urlunsplit((scheme, netloc, path, query, ''))
-        return url, rev
+        return url, rev, user_pass
 
-    def get_url_rev_args(self, url):
+    def make_rev_args(self, username, password):
         """
-        Return the URL and RevOptions "extra arguments" to use in obtain(),
-        as a tuple (url, extra_args).
+        Return the RevOptions "extra arguments" to use in obtain().
         """
-        return url, []
+        return []
 
     def get_url_rev_options(self, url):
         """
         Return the URL and RevOptions object to use in obtain() and in
         some cases export(), as a tuple (url, rev_options).
         """
-        url, rev = self.get_url_rev(url)
-        url, extra_args = self.get_url_rev_args(url)
+        url, rev, user_pass = self.get_url_rev_and_auth(url)
+        username, password = user_pass
+        extra_args = self.make_rev_args(username, password)
         rev_options = self.make_rev_options(rev, extra_args=extra_args)
 
         return url, rev_options
