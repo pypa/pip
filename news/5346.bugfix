@@ -1,5 +1,0 @@
-Disable pip's version check (and upgrade message) when installed by a different package manager.
-
-This works better with Linux distributions where pip's upgrade message may
-result in users running pip in a manner that modifies files that should be
-managed by the OS's package manager.

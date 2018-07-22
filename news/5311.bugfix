@@ -1,1 +1,0 @@
-Fix "pip wheel pip" being blocked by the "don't use pip to modify itself" check.

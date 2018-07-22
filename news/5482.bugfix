@@ -1,1 +1,0 @@
-Always read ``pyproject.toml`` as UTF-8. This fixes Unicode handling on Windows and Python 2.
