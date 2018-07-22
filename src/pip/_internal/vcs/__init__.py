@@ -200,12 +200,6 @@ class VersionControl(object):
         drive, tail = os.path.splitdrive(repo)
         return repo.startswith(os.path.sep) or drive
 
-    # See issue #1083 for why this method was introduced:
-    # https://github.com/pypa/pip/issues/1083
-    def translate_egg_surname(self, surname):
-        # For example, Django has branches of the form "stable/1.7.x".
-        return surname.replace('/', '_')
-
     def export(self, location):
         """
         Export the repository at the url to the destination location
