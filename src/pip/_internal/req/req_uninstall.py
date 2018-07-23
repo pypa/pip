@@ -120,6 +120,8 @@ def compress_for_output_listing(paths):
             folders.add(os.path.dirname(path))
         files.add(path)
 
+    _normcased_files = set(map(os.path.normcase, files))
+
     folders = compact(folders)
 
     # This walks the tree using os.walk to not miss extra folders
@@ -130,8 +132,9 @@ def compress_for_output_listing(paths):
                 if fname.endswith(".pyc"):
                     continue
 
-                file_ = os.path.normcase(os.path.join(dirpath, fname))
-                if os.path.isfile(file_) and file_ not in files:
+                file_ = os.path.join(dirpath, fname)
+                if (os.path.isfile(file_) and
+                        os.path.normcase(file_) not in _normcased_files):
                     # We are skipping this file. Add it to the set.
                     will_skip.add(file_)
 

@@ -274,15 +274,6 @@ def parseopts(args):
     return cmd_name, cmd_args
 
 
-def check_isolated(args):
-    isolated = False
-
-    if "--isolated" in args:
-        isolated = True
-
-    return isolated
-
-
 def main(args=None):
     if args is None:
         args = sys.argv[1:]
@@ -306,5 +297,5 @@ def main(args=None):
     except locale.Error as e:
         # setlocale can apparently crash if locale are uninitialized
         logger.debug("Ignoring error %s when setting locale", e)
-    command = commands_dict[cmd_name](isolated=check_isolated(cmd_args))
+    command = commands_dict[cmd_name](isolated=("--isolated" in cmd_args))
     return command.main(cmd_args)
