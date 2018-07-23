@@ -192,7 +192,17 @@ class ConfigOptionParser(CustomOptionParser):
                 continue
 
             if option.action in ('store_true', 'store_false', 'count'):
-                val = strtobool(val)
+                try:
+                    val = strtobool(val)
+                except ValueError:
+                    self.error(
+                        "#{0} is not a valid value. Valid true values"
+                        "are {1}, {2}, {3}, {4} and valid false values"
+                        "are {5}, {6}, {7}, {8}".format(
+                            val, "true", "yes", "on", 1,
+                            "false", "no", "off", 0
+                        )
+                    )
             elif option.action == 'append':
                 val = val.split()
                 val = [self.check_default(option, key, v) for v in val]
