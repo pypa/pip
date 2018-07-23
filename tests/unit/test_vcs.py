@@ -2,7 +2,7 @@ import pytest
 from mock import Mock
 from pip._vendor.packaging.version import parse as parse_version
 
-from pip._internal.vcs import RevOptions, VersionControl
+from pip._internal.vcs import RevOptions
 from pip._internal.vcs.bazaar import Bazaar
 from pip._internal.vcs.git import Git, looks_like_hash
 from pip._internal.vcs.mercurial import Mercurial
@@ -120,13 +120,6 @@ def test_git_is_commit_id_equal(git, rev_name, result):
     Test Git.is_commit_id_equal().
     """
     assert git.is_commit_id_equal('/path', rev_name) is result
-
-
-def test_translate_egg_surname():
-    vc = VersionControl()
-    assert vc.translate_egg_surname("foo") == "foo"
-    assert vc.translate_egg_surname("foo/bar") == "foo_bar"
-    assert vc.translate_egg_surname("foo/1.2.3") == "foo_1.2.3"
 
 
 # The non-SVN backends all use the same get_netloc_and_auth(), so only test
