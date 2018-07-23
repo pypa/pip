@@ -50,9 +50,9 @@ def test_compressed_listing(tmpdir):
     def in_tmpdir(paths):
         li = []
         for path in paths:
-            li.append(str(os.path.normcase(
-                os.path.join(tmpdir, path.replace("/", os.path.sep))
-            )))
+            li.append(
+                str(os.path.join(tmpdir, path.replace("/", os.path.sep)))
+            )
         return li
 
     sample = in_tmpdir([
