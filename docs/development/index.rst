@@ -16,5 +16,10 @@ or the `pypa-dev mailing list`_, to ask questions or get involved.
     contributing
     release-process
 
+.. note::
+
+    pip's development documentation has been rearranged and some older
+    references might be broken.
+
 .. _`on Freenode`: https://webchat.freenode.net/?channels=%23pypa-dev,pypa
 .. _`pypa-dev mailing list`: https://groups.google.com/forum/#!forum/pypa-dev
