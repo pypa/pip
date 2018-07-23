@@ -1,6 +1,6 @@
 import logging
 
-from pip._internal.basecommand import Command
+from pip._internal.cli.basecommand import Command
 
 
 class FakeCommand(Command):

@@ -2,7 +2,7 @@ import logging
 import os
 import subprocess
 
-from pip._internal.basecommand import Command
+from pip._internal.cli.basecommand import Command
 from pip._internal.configuration import Configuration, kinds
 from pip._internal.exceptions import PipError
 from pip._internal.locations import venv_config_file

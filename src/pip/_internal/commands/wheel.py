@@ -5,7 +5,7 @@ import logging
 import os
 
 from pip._internal import cmdoptions
-from pip._internal.basecommand import RequirementCommand
+from pip._internal.cli.basecommand import RequirementCommand
 from pip._internal.cache import WheelCache
 from pip._internal.exceptions import CommandError, PreviousBuildDirError
 from pip._internal.operations.prepare import RequirementPreparer

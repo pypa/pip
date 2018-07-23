@@ -11,7 +11,7 @@ from pip._vendor.packaging.version import parse as parse_version
 #       why we ignore the type on this import
 from pip._vendor.six.moves import xmlrpc_client  # type: ignore
 
-from pip._internal.basecommand import SUCCESS, Command
+from pip._internal.cli.basecommand import SUCCESS, Command
 from pip._internal.compat import get_terminal_size
 from pip._internal.download import PipXmlrpcTransport
 from pip._internal.exceptions import CommandError

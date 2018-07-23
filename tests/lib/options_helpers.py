@@ -4,7 +4,7 @@
 import os
 
 from pip._internal import cmdoptions
-from pip._internal.basecommand import Command
+from pip._internal.cli.basecommand import Command
 from pip._internal.commands import commands_dict
 
 
