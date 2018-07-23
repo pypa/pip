@@ -134,7 +134,7 @@ def compress_for_output_listing(paths):
 
                 file_ = os.path.join(dirpath, fname)
                 if (os.path.isfile(file_) and
-                    os.path.normcase(file_) not in _normcased_files):
+                        os.path.normcase(file_) not in _normcased_files):
                     # We are skipping this file. Add it to the set.
                     will_skip.add(file_)
 
