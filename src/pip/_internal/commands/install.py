@@ -9,7 +9,7 @@ from optparse import SUPPRESS_HELP
 
 from pip._vendor import pkg_resources
 
-from pip._internal import cmdoptions
+from pip._internal.cli import cmdoptions
 from pip._internal.cli.basecommand import RequirementCommand
 from pip._internal.cache import WheelCache
 from pip._internal.exceptions import (

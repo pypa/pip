@@ -13,7 +13,7 @@ import sys
 from pip._vendor.six.moves import filterfalse
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
-from pip._internal import cmdoptions
+from pip._internal.cli import cmdoptions
 from pip._internal.download import get_file_content
 from pip._internal.exceptions import RequirementsFileParseError
 from pip._internal.req.req_install import InstallRequirement

@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import logging
 import os
 
-from pip._internal import cmdoptions
+from pip._internal.cli import cmdoptions
 from pip._internal.cli.basecommand import RequirementCommand
 from pip._internal.exceptions import CommandError
 from pip._internal.index import FormatControl

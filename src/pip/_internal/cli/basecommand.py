@@ -7,7 +7,7 @@ import optparse
 import os
 import sys
 
-from pip._internal import cmdoptions
+from pip._internal.cli import cmdoptions
 from pip._internal.cli.baseparser import (
     ConfigOptionParser, UpdatingDefaultsHelpFormatter,
 )
