@@ -9,7 +9,6 @@ import os
 import posixpath
 import re
 import sys
-import warnings
 from collections import namedtuple
 
 from pip._vendor import html5lib, requests, six
@@ -31,7 +30,7 @@ from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.index import PyPI
 from pip._internal.models.link import Link
 from pip._internal.pep425tags import get_supported
-from pip._internal.utils.deprecation import RemovedInPip11Warning
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, cached_property, normalize_path,
@@ -173,10 +172,12 @@ class PackageFinder(object):
         # # dependency_links value
         # # FIXME: also, we should track comes_from (i.e., use Link)
         if self.process_dependency_links:
-            warnings.warn(
+            deprecated(
                 "Dependency Links processing has been deprecated and will be "
                 "removed in a future release.",
-                RemovedInPip11Warning,
+                replacement=None,
+                gone_in="18.2",
+                issue=4187,
             )
             self.dependency_links.extend(links)
 

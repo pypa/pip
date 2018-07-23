@@ -3,7 +3,6 @@ import os
 import sys
 from contextlib import contextmanager
 
-
 import freezegun
 import pretend
 import pytest

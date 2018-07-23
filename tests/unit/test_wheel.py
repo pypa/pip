@@ -472,3 +472,16 @@ class TestMessageAboutScriptsNotOnPATH(object):
             scripts=[os.path.join('a', 'b', 'c')]
         )
         assert retval is None
+
+    def test_missing_PATH_env_treated_as_empty_PATH_env(self):
+        scripts = ['a/b/foo']
+
+        env = os.environ.copy()
+        del env['PATH']
+        with patch.dict('os.environ', env, clear=True):
+            retval_missing = wheel.message_about_scripts_not_on_PATH(scripts)
+
+        with patch.dict('os.environ', {'PATH': ''}):
+            retval_empty = wheel.message_about_scripts_not_on_PATH(scripts)
+
+        assert retval_missing == retval_empty

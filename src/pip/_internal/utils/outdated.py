@@ -58,14 +58,14 @@ class SelfCheckState(object):
                           separators=(",", ":"))
 
 
-def pip_installed_by_pip():
-    """Checks whether pip was installed by pip
+def was_installed_by_pip(pkg):
+    """Checks whether pkg was installed by pip
 
     This is used not to display the upgrade message when pip is in fact
     installed by system package manager, such as dnf on Fedora.
     """
     try:
-        dist = pkg_resources.get_distribution('pip')
+        dist = pkg_resources.get_distribution(pkg)
         return (dist.has_metadata('INSTALLER') and
                 'pip' in dist.get_metadata_lines('INSTALLER'))
     except pkg_resources.DistributionNotFound:
@@ -125,7 +125,7 @@ def pip_version_check(session, options):
         # Determine if our pypi_version is older
         if (pip_version < remote_version and
                 pip_version.base_version != remote_version.base_version and
-                pip_installed_by_pip()):
+                was_installed_by_pip('pip')):
             # Advise "python -m pip" on Windows to avoid issues
             # with overwriting pip.exe.
             if WINDOWS:

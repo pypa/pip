@@ -51,6 +51,20 @@ For more information and examples, see the :ref:`pip install` reference.
 
 .. _`Requirements Files`:
 
+Using a Proxy Server
+********************
+
+When installing packages from `PyPI`_, pip requires internet access, which
+in many corporate environments requires an outbound HTTP proxy server.
+
+pip can be configured to connect through a proxy server in various ways:
+
+* using the ``--proxy`` command-line option to specify a proxy in the form
+  ``[user:passwd@]proxy.server:port``
+* using ``proxy`` in a :ref:`config-file`
+* by setting the standard environment-variables ``http_proxy``, ``https_proxy``
+  and ``no_proxy``.
+
 Requirements Files
 ******************
 
@@ -176,9 +190,7 @@ Installing from Wheels
 
 "Wheel" is a built, archive format that can greatly speed installation compared
 to building and installing from source archives. For more information, see the
-`Wheel docs <https://wheel.readthedocs.io>`_ ,
-`PEP427 <https://www.python.org/dev/peps/pep-0427/>`_, and
-`PEP425 <https://www.python.org/dev/peps/pep-0425/>`_
+`Wheel docs <https://wheel.readthedocs.io>`_ , :pep:`427`, and :pep:`425`.
 
 Pip prefers Wheels where they are available. To disable this, use the
 :ref:`--no-binary <install_--no-binary>` flag for :ref:`pip install`.
@@ -338,13 +350,13 @@ variable ``PIP_CONFIG_FILE``.
 If multiple configuration files are found by pip then they are combined in
 the following order:
 
-1. Firstly the site-wide file is read, then
-2. The per-user file is read, and finally
-3. The virtualenv-specific file is read.
+1. The site-wide file is read
+2. The per-user file is read
+3. The virtualenv-specific file is read
 
 Each file read overrides any values read from previous files, so if the
 global timeout is specified in both the site-wide file and the per-user file
-then the latter value is the one that will be used.
+then the latter value will be used.
 
 The names of the settings are derived from the long command line option, e.g.
 if you want to use a different package index (``--index-url``) and set the

@@ -72,7 +72,7 @@ Build System Interface
 ======================
 
 Pip builds packages by invoking the build system. Presently, the only supported
-build system is ``setuptools``, but in the future, pip will support `PEP517`_
+build system is ``setuptools``, but in the future, pip will support :pep:`517`
 which allows projects to specify an alternative build system in a
 ``pyproject.toml`` file.  As well as package building, the build system is also
 invoked to install packages direct from source.  This is handled by invoking
@@ -118,7 +118,7 @@ PEP 518 Support
 
 As of 10.0, pip supports projects declaring dependencies that are required at
 install time using a ``pyproject.toml`` file, in the form described in
-`PEP518`_. When building a project, pip will install the required dependencies
+:pep:`518`. When building a project, pip will install the required dependencies
 locally, and make them available to the build process.
 
 When making build requirements available, pip does so in an *isolated
@@ -141,7 +141,7 @@ appropriately.
 
 **Limitations**:
 
-* until `PEP517`_ support is added, ``setuptools`` and ``wheel`` **must** be
+* until :pep:`517` support is added, ``setuptools`` and ``wheel`` **must** be
   included in the list of build requirements: pip will assume these as default,
   but will not automatically add them to the list of build requirements if
   explicitly defined in ``pyproject.toml``.
@@ -149,21 +149,20 @@ appropriately.
 * the current implementation only support installing build requirements from
   wheels: this is a technical limitation of the implementation - source
   installs would require a build step of their own, potentially recursively
-  triggering another `PEP518`_ dependency installation process. The possible
+  triggering another :pep:`518` dependency installation process. The possible
   unbounded recursion involved was not considered acceptable, and so
   installation of build dependencies from source has been disabled until a safe
   resolution of this issue is found.
 
-* ``pip<18.0`` does not support the use of environment markers and extras, only
-  version specifiers are respected.
+* ``pip<18.0``: only support installing build requirements from wheels, and
+  does not support the use of environment markers and extras (only version
+  specifiers are respected).
 
-.. _PEP517: https://www.python.org/dev/peps/pep-0517/
-.. _PEP518: https://www.python.org/dev/peps/pep-0518/
 
 Future Developments
 ~~~~~~~~~~~~~~~~~~~
 
-`PEP426`_ notes that the intention is to add hooks to project metadata in
+:pep:`426` notes that the intention is to add hooks to project metadata in
 version 2.1 of the metadata spec, to explicitly define how to build a project
 from its source. Once this version of the metadata spec is final, pip will
 migrate to using that interface. At that point, the ``setup.py`` interface
@@ -173,7 +172,6 @@ have migrated.
 Specifically, applications should *not* expect to rely on there being any form
 of backward compatibility guarantees around the ``setup.py`` interface.
 
-.. _PEP426: https://www.python.org/dev/peps/pep-0426/#metabuild-system
 
 Build Options
 ~~~~~~~~~~~~~
