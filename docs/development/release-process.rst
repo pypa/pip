@@ -1,6 +1,6 @@
-=====================
-pip's release process
-=====================
+===============
+Release process
+===============
 
 
 Release Cadence
