@@ -1,6 +1,6 @@
-===================
-Contributing to pip
-===================
+============
+Contributing
+============
 
 .. todo
    Create a "guide" to pip's internals and link to it from here saying
