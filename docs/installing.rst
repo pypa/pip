@@ -6,10 +6,10 @@ Installation
 Do I need to install pip?
 -------------------------
 
-pip is already installed if you are using Python 2 >=2.7.9 or Python 3 >=3.4 
-downloaded from `python.org <https://www.python.org>`_ or if you are working 
-in a :ref:`Virtual Environment <pypug:Creating and using Virtual Environments>` 
-created by :ref:`pypug:virtualenv` or :ref:`pyvenv <pypug:venv>`. 
+pip is already installed if you are using Python 2 >=2.7.9 or Python 3 >=3.4
+downloaded from `python.org <https://www.python.org>`_ or if you are working
+in a :ref:`Virtual Environment <pypug:Creating and using Virtual Environments>`
+created by :ref:`pypug:virtualenv` or :ref:`pyvenv <pypug:venv>`.
 Just make sure to :ref:`upgrade pip <Upgrading pip>`.
 
 
@@ -36,7 +36,7 @@ Then run the following::
    system or another package manager. ``get-pip.py`` does not coordinate with
    those tools, and may leave your system in an inconsistent state.
 
-``get-pip.py`` also installs :ref:`pypug:setuptools` [2]_ and :ref:`pypug:wheel` 
+``get-pip.py`` also installs :ref:`pypug:setuptools` [2]_ and :ref:`pypug:wheel`
 if they are not already. :ref:`pypug:setuptools` is required to install
 :term:`source distributions <pypug:Source Distribution (or "sdist")>`.  Both are
 required in order to build a :ref:`Wheel cache` (which improves installation
@@ -105,6 +105,8 @@ On Windows [4]_::
 
  python -m pip install -U pip
 
+
+.. _compatibility-requirements:
 
 Python and OS Compatibility
 ---------------------------
