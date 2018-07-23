@@ -31,6 +31,7 @@ from pip._internal.exceptions import InstallationError
 from pip._internal.locations import (
     PIP_DELETE_MARKER_FILENAME, running_under_virtualenv,
 )
+from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
@@ -165,11 +166,19 @@ class InstallRequirement(object):
             req = Requirement(req)
         except InvalidRequirement:
             raise InstallationError("Invalid requirement: '%s'" % req)
-        if req.url:
+
+        domains_not_allowed = [
+            PyPI.file_storage_domain,
+            TestPyPI.file_storage_domain,
+        ]
+        if req.url and comes_from.link.netloc in domains_not_allowed:
+            # Explicitly disallow pypi packages that depend on external urls
             raise InstallationError(
-                "Direct url requirement (like %s) are not allowed for "
-                "dependencies" % req
+                "Packages installed from PyPI cannot depend on packages "
+                "which are not also hosted on PyPI.\n"
+                "%s depends on %s " % (comes_from.name, req)
             )
+
         return cls(req, comes_from, isolated=isolated, wheel_cache=wheel_cache)
 
     @classmethod

@@ -8,6 +8,7 @@ from os.path import curdir, join, pardir
 import pytest
 
 from pip._internal import pep425tags
+from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.status_codes import ERROR
 from pip._internal.utils.misc import rmtree
 from tests.lib import (
@@ -1297,9 +1298,31 @@ def test_install_pep508_with_url_in_install_requires(script):
             'ce1a869fe039fbf7e217df36c4653d1dbe657778b2d41709593a0003584405f4'
         ],
     )
-    res = script.pip('install', pkga_path, expect_error=True)
-    assert "Direct url requirement " in res.stderr, str(res)
-    assert "are not allowed for dependencies" in res.stderr, str(res)
+    res = script.pip('install', pkga_path)
+    assert "Successfully installed packaging-15.3" in str(res), str(res)
+
+
+@pytest.mark.network
+@pytest.mark.parametrize('index', (PyPI.simple_url, TestPyPI.simple_url))
+def test_install_from_test_pypi_with_ext_url_dep_is_blocked(script, index):
+    res = script.pip(
+        'install',
+        '--index-url',
+        index,
+        'pep-508-url-deps',
+        expect_error=True,
+    )
+    error_message = (
+        "Packages installed from PyPI cannot depend on packages "
+        "which are not also hosted on PyPI."
+    )
+    error_cause = (
+        "pep-508-url-deps depends on sampleproject@ "
+        "https://github.com/pypa/sampleproject/archive/master.zip"
+    )
+    assert res.returncode == 1
+    assert error_message in res.stderr, str(res)
+    assert error_cause in res.stderr, str(res)
 
 
 def test_installing_scripts_outside_path_prints_warning(script):
