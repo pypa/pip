@@ -64,26 +64,24 @@ Release Process
 Creating a new release
 ----------------------
 
-#. On the current pip ``master`` branch, generate a new ``AUTHORS.txt`` by
-   running ``invoke generate.authors`` and commit the results.
-#. On the current pip ``master`` branch, make a new commit which bumps the
-   version in ``pip/__init__.py`` to the release version and adjust the
-   ``CHANGES.txt`` file to reflect the current date. The release version should
-   follow a YY.N scheme, where YY is the two digit year, and N is the Nth
-   release within that year.
-#. On the current pip ``master`` branch, generate a new ``NEWS.rst`` by running
-   ``invoke generate.news`` and commit the results.
-#. Create a signed tag of the ``master`` branch of the form ``YY.N`` using the
-   command ``git tag -s YY.N``.
-#. Checkout the tag using ``git checkout YY.N`` and create the distribution
-   files using ``python setup.py sdist bdist_wheel``.
+#. Checkout the current pip ``master`` branch.
+#. Generate a new ``AUTHORS.txt`` (``invoke generate.authors``) and commit the
+   results.
+#. Bump the version in ``pip/__init__.py`` to the release version and commit
+   the results. Usually this involves dropping just the ``.devN`` suffix on the
+   version.
+#. Generate a new ``NEWS.rst`` (``invoke generate.news``) and commit the
+   results.
+#. Create a signed tag at the current commit, of the form ``YY.N``
+   (``git tag -s YY.N``).
+#. Checkout the tag (``git checkout YY.N``).
+#. Create the distribution files (``python setup.py sdist bdist_wheel``).
 #. Upload the distribution files to PyPI using twine
    (``twine upload -s dist/*``). The upload should include GPG signatures of
    the distribution files.
-#. Push all of the changes.
-#. Regenerate the ``get-pip.py`` script by running
-   ``invoke generate.installer`` in the get-pip repository, and committing the
-   results.
+#. Push all of the changes including the tag.
+#. Regenerate the ``get-pip.py`` script in the `get-pip repository`_ and commit
+   the results.
 
 Creating a bug-fix release
 --------------------------
@@ -101,3 +99,5 @@ order to create one of these the changes should already be merged into the
    the ``master`` branch and wait for the tests to run.
 #. Once tests run, merge the ``release/YY.N.Z+1`` branch into master, and follow
    the above release process starting with step 4.
+
+.. _`get-pip repository`: https://github.com/pypa/get-pip
