@@ -17,9 +17,13 @@ class PackageIndex(object):
         # block such packages themselves
         self.file_storage_domain = file_storage_domain
 
-    def _url_to_path(self, path):
+    def _url_for_path(self, path):
         return urllib_parse.urljoin(self.url, path)
 
 
-PyPI = PackageIndex('https://pypi.org/', 'files.pythonhosted.org')
-TestPyPI = PackageIndex('https://test.pypi.org/', 'test-files.pythonhosted.org')
+PyPI = PackageIndex(
+    'https://pypi.org/', file_storage_domain='files.pythonhosted.org'
+)
+TestPyPI = PackageIndex(
+    'https://test.pypi.org/', file_storage_domain='test-files.pythonhosted.org'
+)
