@@ -50,7 +50,8 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'unzip_file', 'untar_file', 'unpack_file', 'call_subprocess',
            'captured_stdout', 'ensure_dir',
            'ARCHIVE_EXTENSIONS', 'SUPPORTED_EXTENSIONS',
-           'get_installed_version', 'remove_auth_from_url']
+           'get_installed_version',
+           'redact_password_from_url', 'remove_auth_from_url']
 
 
 logger = std_logging.getLogger(__name__)
@@ -852,17 +853,34 @@ def enum(*sequential, **named):
     return type('Enum', (), enums)
 
 
-def remove_auth_from_url(url):
-    # Return a copy of url with 'username:password@' removed.
-    # username/pass params are passed to subversion through flags
-    # and are not recognized in the url.
+def redact_password_from_url(url):
+    """Return a copy of the url by redacting the password in case it was
+    present. The password will be replaced with '****'.
+    """
+    purl = urllib_parse.urlsplit(url)
 
-    # parsed url
+    redacted_netloc = purl.netloc
+    if purl.password is not None:
+        auth, netloc = redacted_netloc.rsplit('@', 1)
+        auth = auth.split(':')[0] + ':****'
+        redacted_netloc = auth + '@' + netloc
+
+    url_pieces = (
+        purl.scheme, redacted_netloc, purl.path, purl.query, purl.fragment
+    )
+    surl = urllib_parse.urlunsplit(url_pieces)
+    return surl
+
+
+def remove_auth_from_url(url):
+    """Return a copy of url with 'username:password@' removed.
+    Username/pass params are passed to subversion through flags
+    and are not recognized in the url.
+    """
     purl = urllib_parse.urlsplit(url)
     stripped_netloc = \
         purl.netloc.split('@')[-1]
 
-    # stripped url
     url_pieces = (
         purl.scheme, stripped_netloc, purl.path, purl.query, purl.fragment
     )

@@ -143,8 +143,7 @@ def test_secure_origin(location, trusted, expected):
 
 def test_get_formatted_locations_basic_auth():
     """
-    Test that basic authentication credentials defined in URL
-    is not included in formatted output.
+    Test that the password defined in URL is not included in formatted output.
     """
     index_urls = [
         'https://pypi.org/simple',
@@ -153,4 +152,4 @@ def test_get_formatted_locations_basic_auth():
     finder = PackageFinder([], index_urls, session=[])
 
     result = finder.get_formatted_locations()
-    assert 'user' not in result and 'pass' not in result
+    assert 'user' in result and 'pass' not in result
