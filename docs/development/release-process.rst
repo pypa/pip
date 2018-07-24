@@ -65,6 +65,8 @@ Creating a new release
 ----------------------
 
 #. Checkout the current pip ``master`` branch.
+#. Ensure you have the latest ``wheel``, ``setuptools``, ``twine``, ``invoke``
+   and ``towncrier`` packages installed.
 #. Generate a new ``AUTHORS.txt`` (``invoke generate.authors``) and commit the
    results.
 #. Bump the version in ``pip/__init__.py`` to the release version and commit
@@ -72,16 +74,15 @@ Creating a new release
    version.
 #. Generate a new ``NEWS.rst`` (``invoke generate.news``) and commit the
    results.
-#. Create a signed tag at the current commit, of the form ``YY.N``
-   (``git tag -s YY.N``).
+#. Create a tag at the current commit, of the form ``YY.N``
+   (``git tag YY.N``).
 #. Checkout the tag (``git checkout YY.N``).
 #. Create the distribution files (``python setup.py sdist bdist_wheel``).
 #. Upload the distribution files to PyPI using twine
-   (``twine upload -s dist/*``). The upload should include GPG signatures of
-   the distribution files.
+   (``twine upload dist/*``).
 #. Push all of the changes including the tag.
-#. Regenerate the ``get-pip.py`` script in the `get-pip repository`_ and commit
-   the results.
+#. Regenerate the ``get-pip.py`` script in the `get-pip repository`_ (as
+   documented there) and commit the results.
 
 Creating a bug-fix release
 --------------------------
