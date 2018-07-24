@@ -8,7 +8,7 @@ from os.path import curdir, join, pardir
 import pytest
 
 from pip._internal import pep425tags
-from pip._internal.cli.status_codes import ERROR
+from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.utils.misc import rmtree
 from tests.lib import (
@@ -677,6 +677,66 @@ def test_install_package_with_target(script):
     result = script.pip_install_local('-t', target_dir, 'singlemodule==0.0.1',
                                       '--upgrade')
     assert singlemodule_py in result.files_updated, str(result)
+
+
+def test_install_nonlocal_compatible_wheel(script, data):
+    target_dir = script.scratch_path / 'target'
+
+    # Test install with --target
+    result = script.pip(
+        'install',
+        '-t', target_dir,
+        '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
+        '--python', '3',
+        '--platform', 'fakeplat',
+        '--abi', 'fakeabi',
+        'simplewheel',
+    )
+    assert result.returncode == SUCCESS
+
+    distinfo = Path('scratch') / 'target' / 'simplewheel-2.0-1.dist-info'
+    assert distinfo in result.files_created
+
+    # Test install without --target
+    result = script.pip(
+        'install',
+        '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
+        '--python', '3',
+        '--platform', 'fakeplat',
+        '--abi', 'fakeabi',
+        'simplewheel',
+        expect_error=True
+    )
+    assert result.returncode == ERROR
+
+
+def test_install_nonlocal_compatible_wheel_path(script, data):
+    target_dir = script.scratch_path / 'target'
+
+    # Test a full path requirement
+    result = script.pip(
+        'install',
+        '-t', target_dir,
+        '--no-index',
+        '--only-binary=:all:',
+        Path(data.packages) / 'simplewheel-2.0-py3-fakeabi-fakeplat.whl'
+    )
+    assert result.returncode == SUCCESS
+
+    distinfo = Path('scratch') / 'target' / 'simplewheel-2.0.dist-info'
+    assert distinfo in result.files_created
+
+    # Test a full path requirement (without --target)
+    result = script.pip(
+        'install',
+        '--no-index',
+        '--only-binary=:all:',
+        Path(data.packages) / 'simplewheel-2.0-py3-fakeabi-fakeplat.whl',
+        expect_error=True
+    )
+    assert result.returncode == ERROR
 
 
 def test_install_with_target_and_scripts_no_warning(script, common_wheels):

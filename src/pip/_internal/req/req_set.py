@@ -12,12 +12,13 @@ logger = logging.getLogger(__name__)
 
 class RequirementSet(object):
 
-    def __init__(self, require_hashes=False):
+    def __init__(self, require_hashes=False, check_supported_wheels=True):
         """Create a RequirementSet.
         """
 
         self.requirements = OrderedDict()
         self.require_hashes = require_hashes
+        self.check_supported_wheels = check_supported_wheels
 
         # Mapping of alias: real_name
         self.requirement_aliases = {}
@@ -65,7 +66,7 @@ class RequirementSet(object):
         # environment markers.
         if install_req.link and install_req.link.is_wheel:
             wheel = Wheel(install_req.link.filename)
-            if not wheel.supported():
+            if self.check_supported_wheels and not wheel.supported():
                 raise InstallationError(
                     "%s is not a supported wheel on this platform." %
                     wheel.filename
