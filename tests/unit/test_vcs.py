@@ -200,7 +200,7 @@ def test_version_control__get_url_rev_and_auth__missing_plus(url):
     Test passing a URL to VersionControl.get_url_rev_and_auth() with a "+"
     missing from the scheme.
     """
-    with pytest.raises(AssertionError) as excinfo:
+    with pytest.raises(ValueError) as excinfo:
         VersionControl().get_url_rev_and_auth(url)
 
     assert 'malformed VCS url' in str(excinfo.value)

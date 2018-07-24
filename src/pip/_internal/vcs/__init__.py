@@ -230,7 +230,7 @@ class VersionControl(object):
         """
         scheme, netloc, path, query, frag = urllib_parse.urlsplit(url)
         if '+' not in scheme:
-            raise AssertionError(
+            raise ValueError(
                 "Sorry, '{}' is a malformed VCS url. "
                 "The format is <vcs>+<protocol>://<url>, "
                 "e.g. svn+http://myrepo/svn/MyApp#egg=MyApp".format(url)
