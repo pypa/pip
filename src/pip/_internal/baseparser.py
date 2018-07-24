@@ -196,11 +196,8 @@ class ConfigOptionParser(CustomOptionParser):
                     val = strtobool(val)
                 except ValueError:
                     self.error(
-                        "#{0} is not a valid value. Valid true values"
-                        "are {1}, {2}, {3}, {4} and valid false values"
-                        "are {5}, {6}, {7}, {8}".format(
-                            val, "true", "yes", "on", 1,
-                            "false", "no", "off", 0
+                        self.invalid_config_error_message(
+                            option.action, key, val
                         )
                     )
             elif option.action == 'append':
@@ -244,6 +241,18 @@ class ConfigOptionParser(CustomOptionParser):
                 opt_str = option.get_opt_string()
                 defaults[option.dest] = option.check_value(opt_str, default)
         return optparse.Values(defaults)
+
+    def invalid_config_error_message(self, action, key, val):
+        """Returns a better error message when invalid configuration option
+        is provided."""
+        if action in ('store_true', 'store_false'):
+            return ("{0} is not a valid value for {1} option, "
+                    "please specify a boolean value like yes/no, "
+                    "true/false or 1/0 instead.").format(val, key)
+
+        return ("{0} is not a valid value for {1} option, "
+                "please specify a numerical value like 1/0 "
+                "instead.").format(val, key)
 
     def error(self, msg):
         self.print_usage(sys.stderr)

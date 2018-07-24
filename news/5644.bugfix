@@ -1,1 +1,1 @@
-Show appropriate error message if invalid args passed
+Show a better error message when a configuration option has an invalid value.
