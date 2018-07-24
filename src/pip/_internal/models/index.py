@@ -17,7 +17,7 @@ class PackageIndex(object):
         # block such packages themselves
         self.file_storage_domain = file_storage_domain
 
-    def url_to_path(self, path):
+    def _url_to_path(self, path):
         return urllib_parse.urljoin(self.url, path)
 
 
