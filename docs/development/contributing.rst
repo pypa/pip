@@ -229,6 +229,17 @@ If you want to become an official maintainer, start by helping out.
 Later, when you think you're ready, get in touch with one of the maintainers
 and they will initiate a vote.
 
+.. note::
+
+    Upon becoming a maintainer, a person should be given access to various
+    pip-related tooling across multiple platforms. These are noted here for
+    future reference by the maintainers:
+
+    - GitHub Push Access
+    - PyPI Publishing Access
+    - CI Administration capabilities
+    - ReadTheDocs Administration capabilities
+
 .. _`Studies have shown`: https://smartbear.com/smartbear/media/pdfs/wp-cc-11-best-practices-of-peer-code-review.pdf
 .. _`resolve merge conflicts`: https://help.github.com/articles/resolving-a-merge-conflict-using-the-command-line/
 .. _`Travis CI`: https://travis-ci.org/
