@@ -228,14 +228,15 @@ class VersionControl(object):
 
         Returns: (url, rev, (username, password)).
         """
-        error_message = (
-            "Sorry, '%s' is a malformed VCS url. "
-            "The format is <vcs>+<protocol>://<url>, "
-            "e.g. svn+http://myrepo/svn/MyApp#egg=MyApp"
-        )
-        assert '+' in url, error_message % url
-        url = url.split('+', 1)[1]
         scheme, netloc, path, query, frag = urllib_parse.urlsplit(url)
+        if '+' not in scheme:
+            raise AssertionError(
+                "Sorry, '{}' is a malformed VCS url. "
+                "The format is <vcs>+<protocol>://<url>, "
+                "e.g. svn+http://myrepo/svn/MyApp#egg=MyApp".format(url)
+            )
+        # Remove the vcs prefix.
+        scheme = scheme.split('+', 1)[1]
         netloc, user_pass = self.get_netloc_and_auth(netloc)
         rev = None
         if '@' in path:
