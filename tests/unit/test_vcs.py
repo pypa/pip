@@ -2,7 +2,7 @@ import pytest
 from mock import Mock
 from pip._vendor.packaging.version import parse as parse_version
 
-from pip._internal.vcs import RevOptions
+from pip._internal.vcs import RevOptions, VersionControl
 from pip._internal.vcs.bazaar import Bazaar
 from pip._internal.vcs.git import Git, looks_like_hash
 from pip._internal.vcs.mercurial import Mercurial
@@ -173,6 +173,37 @@ def test_git__get_url_rev__idempotent():
     expected = ('git@git.example.com:MyProject', None, (None, None))
     assert result1 == expected
     assert result2 == expected
+
+
+@pytest.mark.parametrize('url, expected', [
+    ('svn+https://svn.example.com/MyProject',
+     ('https://svn.example.com/MyProject', None, (None, None))),
+    # Test a "+" in the path portion.
+    ('svn+https://svn.example.com/My+Project',
+     ('https://svn.example.com/My+Project', None, (None, None))),
+])
+def test_version_control__get_url_rev_and_auth(url, expected):
+    """
+    Test the basic case of VersionControl.get_url_rev_and_auth().
+    """
+    actual = VersionControl().get_url_rev_and_auth(url)
+    assert actual == expected
+
+
+@pytest.mark.parametrize('url', [
+    'https://svn.example.com/MyProject',
+    # Test a URL containing a "+" (but not in the scheme).
+    'https://svn.example.com/My+Project',
+])
+def test_version_control__get_url_rev_and_auth__missing_plus(url):
+    """
+    Test passing a URL to VersionControl.get_url_rev_and_auth() with a "+"
+    missing from the scheme.
+    """
+    with pytest.raises(AssertionError) as excinfo:
+        VersionControl().get_url_rev_and_auth(url)
+
+    assert 'malformed VCS url' in str(excinfo.value)
 
 
 def test_bazaar__get_url_rev_and_auth():
