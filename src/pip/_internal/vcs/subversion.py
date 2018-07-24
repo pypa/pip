@@ -4,7 +4,7 @@ import logging
 import os
 import re
 
-from pip._internal.index import Link
+from pip._internal.models.link import Link
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import display_path, rmtree
 from pip._internal.vcs import VersionControl, vcs

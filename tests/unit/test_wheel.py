@@ -1,4 +1,5 @@
 """Tests for wheel binary packages and .dist-info."""
+import logging
 import os
 
 import pytest
@@ -367,7 +368,8 @@ class TestWheelBuilder(object):
             wb = wheel.WheelBuilder(
                 finder=Mock(), preparer=Mock(), wheel_cache=None,
             )
-            wb.build([wheel_req], session=Mock())
+            with caplog.at_level(logging.INFO):
+                wb.build([wheel_req], session=Mock())
             assert "due to already being wheel" in caplog.text
             assert mock_build_one.mock_calls == []
 

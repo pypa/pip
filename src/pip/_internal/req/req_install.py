@@ -32,6 +32,7 @@ from pip._internal.locations import (
     PIP_DELETE_MARKER_FILENAME, running_under_virtualenv,
 )
 from pip._internal.models.index import PyPI, TestPyPI
+from pip._internal.models.link import Link
 from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
@@ -134,8 +135,6 @@ class InstallRequirement(object):
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, isolated=False,
                       options=None, wheel_cache=None, constraint=False):
-        from pip._internal.index import Link
-
         name, url, extras_override = parse_editable(editable_req)
         if url.startswith('file:'):
             source_dir = url_to_path(url)
