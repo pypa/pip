@@ -11,7 +11,6 @@ from pip._internal.utils.misc import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.ui import open_spinner
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -80,10 +79,13 @@ class BuildEnvironment(object):
         args = [
             sys.executable, '-m', 'pip', 'install', '--ignore-installed',
             '--no-user', '--prefix', self.path, '--no-warn-script-location',
-            '--only-binary', ':all:',
         ]
         if logger.getEffectiveLevel() <= logging.DEBUG:
             args.append('-v')
+        for format_control in ('no_binary', 'only_binary'):
+            formats = getattr(finder.format_control, format_control)
+            args.extend(('--' + format_control.replace('_', '-'),
+                         ','.join(sorted(formats or {':none:'}))))
         if finder.index_urls:
             args.extend(['-i', finder.index_urls[0]])
             for extra_index in finder.index_urls[1:]:

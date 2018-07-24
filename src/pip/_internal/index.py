@@ -9,7 +9,6 @@ import os
 import posixpath
 import re
 import sys
-import warnings
 from collections import namedtuple
 
 from pip._vendor import html5lib, requests, six
@@ -27,13 +26,15 @@ from pip._internal.exceptions import (
     BestVersionAlreadyInstalled, DistributionNotFound, InvalidWheelFilename,
     UnsupportedWheel,
 )
+from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.index import PyPI
+from pip._internal.models.link import Link
 from pip._internal.pep425tags import get_supported
-from pip._internal.utils.deprecation import RemovedInPip11Warning
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, cached_property, normalize_path,
-    remove_auth_from_url, splitext,
+    remove_auth_from_url,
 )
 from pip._internal.utils.packaging import check_requires_python
 from pip._internal.wheel import Wheel, wheel_ext
@@ -55,47 +56,6 @@ SECURE_ORIGINS = [
 
 
 logger = logging.getLogger(__name__)
-
-
-class InstallationCandidate(object):
-
-    def __init__(self, project, version, location):
-        self.project = project
-        self.version = parse_version(version)
-        self.location = location
-        self._key = (self.project, self.version, self.location)
-
-    def __repr__(self):
-        return "<InstallationCandidate({!r}, {!r}, {!r})>".format(
-            self.project, self.version, self.location,
-        )
-
-    def __hash__(self):
-        return hash(self._key)
-
-    def __lt__(self, other):
-        return self._compare(other, lambda s, o: s < o)
-
-    def __le__(self, other):
-        return self._compare(other, lambda s, o: s <= o)
-
-    def __eq__(self, other):
-        return self._compare(other, lambda s, o: s == o)
-
-    def __ge__(self, other):
-        return self._compare(other, lambda s, o: s >= o)
-
-    def __gt__(self, other):
-        return self._compare(other, lambda s, o: s > o)
-
-    def __ne__(self, other):
-        return self._compare(other, lambda s, o: s != o)
-
-    def _compare(self, other, method):
-        if not isinstance(other, InstallationCandidate):
-            return NotImplemented
-
-        return method(self._key, other._key)
 
 
 class PackageFinder(object):
@@ -212,10 +172,12 @@ class PackageFinder(object):
         # # dependency_links value
         # # FIXME: also, we should track comes_from (i.e., use Link)
         if self.process_dependency_links:
-            warnings.warn(
+            deprecated(
                 "Dependency Links processing has been deprecated and will be "
                 "removed in a future release.",
-                RemovedInPip11Warning,
+                replacement=None,
+                gone_in="18.2",
+                issue=4187,
             )
             self.dependency_links.extend(links)
 
@@ -906,166 +868,6 @@ class HTMLPage(object):
         % or other characters)."""
         return self._clean_re.sub(
             lambda match: '%%%2x' % ord(match.group(0)), url)
-
-
-class Link(object):
-
-    def __init__(self, url, comes_from=None, requires_python=None):
-        """
-        Object representing a parsed link from https://pypi.org/simple/*
-
-        url:
-            url of the resource pointed to (href of the link)
-        comes_from:
-            instance of HTMLPage where the link was found, or string.
-        requires_python:
-            String containing the `Requires-Python` metadata field, specified
-            in PEP 345. This may be specified by a data-requires-python
-            attribute in the HTML link tag, as described in PEP 503.
-        """
-
-        # url can be a UNC windows share
-        if url.startswith('\\\\'):
-            url = path_to_url(url)
-
-        self.url = url
-        self.comes_from = comes_from
-        self.requires_python = requires_python if requires_python else None
-
-    def __str__(self):
-        if self.requires_python:
-            rp = ' (requires-python:%s)' % self.requires_python
-        else:
-            rp = ''
-        if self.comes_from:
-            return '%s (from %s)%s' % (self.url, self.comes_from, rp)
-        else:
-            return str(self.url)
-
-    def __repr__(self):
-        return '<Link %s>' % self
-
-    def __eq__(self, other):
-        if not isinstance(other, Link):
-            return NotImplemented
-        return self.url == other.url
-
-    def __ne__(self, other):
-        if not isinstance(other, Link):
-            return NotImplemented
-        return self.url != other.url
-
-    def __lt__(self, other):
-        if not isinstance(other, Link):
-            return NotImplemented
-        return self.url < other.url
-
-    def __le__(self, other):
-        if not isinstance(other, Link):
-            return NotImplemented
-        return self.url <= other.url
-
-    def __gt__(self, other):
-        if not isinstance(other, Link):
-            return NotImplemented
-        return self.url > other.url
-
-    def __ge__(self, other):
-        if not isinstance(other, Link):
-            return NotImplemented
-        return self.url >= other.url
-
-    def __hash__(self):
-        return hash(self.url)
-
-    @property
-    def filename(self):
-        _, netloc, path, _, _ = urllib_parse.urlsplit(self.url)
-        name = posixpath.basename(path.rstrip('/')) or netloc
-        name = urllib_parse.unquote(name)
-        assert name, ('URL %r produced no filename' % self.url)
-        return name
-
-    @property
-    def scheme(self):
-        return urllib_parse.urlsplit(self.url)[0]
-
-    @property
-    def netloc(self):
-        return urllib_parse.urlsplit(self.url)[1]
-
-    @property
-    def path(self):
-        return urllib_parse.unquote(urllib_parse.urlsplit(self.url)[2])
-
-    def splitext(self):
-        return splitext(posixpath.basename(self.path.rstrip('/')))
-
-    @property
-    def ext(self):
-        return self.splitext()[1]
-
-    @property
-    def url_without_fragment(self):
-        scheme, netloc, path, query, fragment = urllib_parse.urlsplit(self.url)
-        return urllib_parse.urlunsplit((scheme, netloc, path, query, None))
-
-    _egg_fragment_re = re.compile(r'[#&]egg=([^&]*)')
-
-    @property
-    def egg_fragment(self):
-        match = self._egg_fragment_re.search(self.url)
-        if not match:
-            return None
-        return match.group(1)
-
-    _subdirectory_fragment_re = re.compile(r'[#&]subdirectory=([^&]*)')
-
-    @property
-    def subdirectory_fragment(self):
-        match = self._subdirectory_fragment_re.search(self.url)
-        if not match:
-            return None
-        return match.group(1)
-
-    _hash_re = re.compile(
-        r'(sha1|sha224|sha384|sha256|sha512|md5)=([a-f0-9]+)'
-    )
-
-    @property
-    def hash(self):
-        match = self._hash_re.search(self.url)
-        if match:
-            return match.group(2)
-        return None
-
-    @property
-    def hash_name(self):
-        match = self._hash_re.search(self.url)
-        if match:
-            return match.group(1)
-        return None
-
-    @property
-    def show_url(self):
-        return posixpath.basename(self.url.split('#', 1)[0].split('?', 1)[0])
-
-    @property
-    def is_wheel(self):
-        return self.ext == wheel_ext
-
-    @property
-    def is_artifact(self):
-        """
-        Determines if this points to an actual artifact (e.g. a tarball) or if
-        it points to an "abstract" thing like a path or a VCS location.
-        """
-        from pip._internal.vcs import vcs
-
-        if self.scheme in vcs.all_schemes:
-            return False
-
-        return True
 
 
 FormatControl = namedtuple('FormatControl', 'no_binary only_binary')

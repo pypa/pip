@@ -141,11 +141,12 @@ class RequirementPreparer(object):
     """
 
     def __init__(self, build_dir, download_dir, src_dir, wheel_download_dir,
-                 progress_bar, build_isolation):
+                 progress_bar, build_isolation, req_tracker):
         super(RequirementPreparer, self).__init__()
 
         self.src_dir = src_dir
         self.build_dir = build_dir
+        self.req_tracker = req_tracker
 
         # Where still packed archives should be written to. If None, they are
         # not saved, and are deleted immediately after unpacking.
@@ -293,7 +294,8 @@ class RequirementPreparer(object):
                     (req, exc, req.link)
                 )
             abstract_dist = make_abstract_dist(req)
-            abstract_dist.prep_for_dist(finder, self.build_isolation)
+            with self.req_tracker.track(req):
+                abstract_dist.prep_for_dist(finder, self.build_isolation)
             if self._download_should_save:
                 # Make a .zip of the source_dir we already created.
                 if req.link.scheme in vcs.all_schemes:
@@ -319,7 +321,8 @@ class RequirementPreparer(object):
             req.update_editable(not self._download_should_save)
 
             abstract_dist = make_abstract_dist(req)
-            abstract_dist.prep_for_dist(finder, self.build_isolation)
+            with self.req_tracker.track(req):
+                abstract_dist.prep_for_dist(finder, self.build_isolation)
 
             if self._download_should_save:
                 req.archive(self.download_dir)

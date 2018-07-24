@@ -10,6 +10,7 @@ from pip._internal.cache import WheelCache
 from pip._internal.exceptions import CommandError, PreviousBuildDirError
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import RequirementSet
+from pip._internal.req.req_tracker import RequirementTracker
 from pip._internal.resolve import Resolver
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.wheel import WheelBuilder
@@ -120,9 +121,10 @@ class WheelCommand(RequirementCommand):
             build_delete = (not (options.no_clean or options.build_dir))
             wheel_cache = WheelCache(options.cache_dir, options.format_control)
 
-            with TempDirectory(
+            with RequirementTracker() as req_tracker, TempDirectory(
                 options.build_dir, delete=build_delete, kind="wheel"
             ) as directory:
+
                 requirement_set = RequirementSet(
                     require_hashes=options.require_hashes,
                 )
@@ -140,6 +142,7 @@ class WheelCommand(RequirementCommand):
                         wheel_download_dir=options.wheel_dir,
                         progress_bar=options.progress_bar,
                         build_isolation=options.build_isolation,
+                        req_tracker=req_tracker,
                     )
 
                     resolver = Resolver(

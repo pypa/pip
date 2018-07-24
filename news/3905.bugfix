@@ -1,1 +1,0 @@
-Adjust path to selfcheck.json - remove virtualenv specific path and honor cache-dir in pip.conf

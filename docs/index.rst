@@ -18,5 +18,5 @@ for installing Python packages.
    installing
    user_guide
    reference/index
-   development
+   development/index
    news

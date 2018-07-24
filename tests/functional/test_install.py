@@ -8,6 +8,7 @@ from os.path import curdir, join, pardir
 import pytest
 
 from pip._internal import pep425tags
+from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.status_codes import ERROR
 from pip._internal.utils.misc import rmtree
 from tests.lib import (
@@ -47,14 +48,28 @@ def test_pep518_refuses_invalid_requires(script, data, common_wheels):
     assert "does not comply with PEP 518" in result.stderr
 
 
-def test_pep518_allows_but_warns_missing_requires(script, data, common_wheels):
+def test_pep518_refuses_invalid_build_system(script, data, common_wheels):
+    result = script.pip(
+        'install', '-f', common_wheels,
+        data.src.join("pep518_invalid_build_system"),
+        expect_error=True
+    )
+    assert result.returncode == 1
+    assert "does not comply with PEP 518" in result.stderr
+
+
+def test_pep518_allows_missing_requires(script, data, common_wheels):
     result = script.pip(
         'install', '-f', common_wheels,
         data.src.join("pep518_missing_requires"),
         expect_stderr=True
     )
-    assert "does not comply with PEP 518" in result.stderr
-    assert "DEPRECATION" in result.stderr
+    # Make sure we don't warn when this occurs.
+    assert "does not comply with PEP 518" not in result.stderr
+
+    # We want it to go through isolation for now.
+    assert "Installing build dependencies" in result.stdout, result.stdout
+
     assert result.returncode == 0
     assert result.files_created
 
@@ -80,12 +95,28 @@ def test_pep518_with_extra_and_markers(script, data, common_wheels):
         'wheel', '--no-index',
         '-f', common_wheels,
         '-f', data.find_links,
-        # Add tests/data/packages4, which contains a wheel for
-        # simple==1.0 (needed by requires_simple_extra[extra]).
-        '-f', data.find_links4,
         data.src.join("pep518_with_extra_and_markers-1.0"),
         use_module=True,
     )
+
+
+@pytest.mark.timeout(60)
+@pytest.mark.parametrize('command', ('install', 'wheel'))
+@pytest.mark.parametrize('package', ('pep518_forkbomb',
+                                     'pep518_twin_forkbombs_first',
+                                     'pep518_twin_forkbombs_second'))
+def test_pep518_forkbombs(script, data, common_wheels, command, package):
+    package_source = next(data.packages.glob(package + '-[0-9]*.tar.gz'))
+    result = script.pip(
+        'wheel', '--no-index', '-v',
+        '-f', common_wheels,
+        '-f', data.find_links,
+        package,
+        expect_error=True,
+    )
+    assert '{1} is already being built: {0} from {1}'.format(
+        package, path_to_url(package_source),
+    ) in result.stdout, str(result)
 
 
 @pytest.mark.network
@@ -1267,9 +1298,31 @@ def test_install_pep508_with_url_in_install_requires(script):
             'ce1a869fe039fbf7e217df36c4653d1dbe657778b2d41709593a0003584405f4'
         ],
     )
-    res = script.pip('install', pkga_path, expect_error=True)
-    assert "Direct url requirement " in res.stderr, str(res)
-    assert "are not allowed for dependencies" in res.stderr, str(res)
+    res = script.pip('install', pkga_path)
+    assert "Successfully installed packaging-15.3" in str(res), str(res)
+
+
+@pytest.mark.network
+@pytest.mark.parametrize('index', (PyPI.simple_url, TestPyPI.simple_url))
+def test_install_from_test_pypi_with_ext_url_dep_is_blocked(script, index):
+    res = script.pip(
+        'install',
+        '--index-url',
+        index,
+        'pep-508-url-deps',
+        expect_error=True,
+    )
+    error_message = (
+        "Packages installed from PyPI cannot depend on packages "
+        "which are not also hosted on PyPI."
+    )
+    error_cause = (
+        "pep-508-url-deps depends on sampleproject@ "
+        "https://github.com/pypa/sampleproject/archive/master.zip"
+    )
+    assert res.returncode == 1
+    assert error_message in res.stderr, str(res)
+    assert error_cause in res.stderr, str(res)
 
 
 def test_installing_scripts_outside_path_prints_warning(script):

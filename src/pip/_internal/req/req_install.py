@@ -8,7 +8,6 @@ import shutil
 import sys
 import sysconfig
 import traceback
-import warnings
 import zipfile
 from distutils.util import change_root
 from email.parser import FeedParser  # type: ignore
@@ -18,8 +17,8 @@ from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.packaging.version import Version
+from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.pkg_resources import RequirementParseError, parse_requirements
 
 from pip._internal import wheel
@@ -32,10 +31,9 @@ from pip._internal.exceptions import InstallationError
 from pip._internal.locations import (
     PIP_DELETE_MARKER_FILENAME, running_under_virtualenv,
 )
+from pip._internal.models.index import PyPI, TestPyPI
+from pip._internal.models.link import Link
 from pip._internal.req.req_uninstall import UninstallPathSet
-from pip._internal.utils.deprecation import (
-    RemovedInPip11Warning, RemovedInPip12Warning,
-)
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
@@ -137,8 +135,6 @@ class InstallRequirement(object):
     @classmethod
     def from_editable(cls, editable_req, comes_from=None, isolated=False,
                       options=None, wheel_cache=None, constraint=False):
-        from pip._internal.index import Link
-
         name, url, extras_override = parse_editable(editable_req)
         if url.startswith('file:'):
             source_dir = url_to_path(url)
@@ -169,11 +165,19 @@ class InstallRequirement(object):
             req = Requirement(req)
         except InvalidRequirement:
             raise InstallationError("Invalid requirement: '%s'" % req)
-        if req.url:
+
+        domains_not_allowed = [
+            PyPI.file_storage_domain,
+            TestPyPI.file_storage_domain,
+        ]
+        if req.url and comes_from.link.netloc in domains_not_allowed:
+            # Explicitly disallow pypi packages that depend on external urls
             raise InstallationError(
-                "Direct url requirement (like %s) are not allowed for "
-                "dependencies" % req
+                "Packages installed from PyPI cannot depend on packages "
+                "which are not also hosted on PyPI.\n"
+                "%s depends on %s " % (comes_from.name, req)
             )
+
         return cls(req, comes_from, isolated=isolated, wheel_cache=wheel_cache)
 
     @classmethod
@@ -568,44 +572,40 @@ class InstallRequirement(object):
         specified as per PEP 518 within the package. If `pyproject.toml` is not
         present, returns None to signify not using the same.
         """
+        # If pyproject.toml does not exist, don't do anything.
         if not os.path.isfile(self.pyproject_toml):
             return None
+
+        error_template = (
+            "{package} has a pyproject.toml file that does not comply "
+            "with PEP 518: {reason}"
+        )
 
         with io.open(self.pyproject_toml, encoding="utf-8") as f:
             pp_toml = pytoml.load(f)
 
-        # Extract the build requirements
-        requires = pp_toml.get("build-system", {}).get("requires", None)
+        # If there is no build-system table, just use setuptools and wheel.
+        if "build-system" not in pp_toml:
+            return ["setuptools", "wheel"]
 
-        template = (
-            "%s does not comply with PEP 518 since pyproject.toml "
-            "does not contain a valid '[build-system].requires' key: %s"
-        )
-
-        if requires is None:
-            logging.warn(template, self, "it is missing.")
-            warnings.warn(
-                "Future versions of pip will reject packages with "
-                "pyproject.toml files that do not comply with PEP 518.",
-                RemovedInPip12Warning,
+        # Specifying the build-system table but not the requires key is invalid
+        build_system = pp_toml["build-system"]
+        if "requires" not in build_system:
+            raise InstallationError(
+                error_template.format(package=self, reason=(
+                    "it has a 'build-system' table but not "
+                    "'build-system.requires' which is mandatory in the table"
+                ))
             )
 
-            # NOTE: Currently allowing projects to skip this key so that they
-            #       can transition to a PEP 518 compliant pyproject.toml or
-            #       push to update the PEP.
-            # Come pip 19.0, bring this to compliance with PEP 518.
-            return None
-        else:
-            # Error out if it's not a list of strings
-            is_list_of_str = isinstance(requires, list) and all(
-                isinstance(req, six.string_types) for req in requires
-            )
-            if not is_list_of_str:
-                raise InstallationError(
-                    template % (self, "it is not a list of strings.")
-                )
+        # Error out if it's not a list of strings
+        requires = build_system["requires"]
+        if not _is_list_of_str(requires):
+            raise InstallationError(error_template.format(
+                package=self,
+                reason="'build-system.requires' is not a list of strings.",
+            ))
 
-        # If control flow reaches here, we're good to go.
         return requires
 
     def run_egg_info(self):
@@ -1049,22 +1049,6 @@ class InstallRequirement(object):
         return install_args
 
 
-def _strip_postfix(req):
-    """
-        Strip req postfix ( -dev, 0.2, etc )
-    """
-    # FIXME: use package_to_requirement?
-    match = re.search(r'^(.*?)(?:-dev|-\d.*)$', req)
-    if match:
-        # Strip off -dev, -0.2, etc.
-        warnings.warn(
-            "#egg cleanup for editable urls will be dropped in the future",
-            RemovedInPip11Warning,
-        )
-        req = match.group(1)
-    return req
-
-
 def parse_editable(editable_req):
     """Parses an editable requirement into:
         - a requirement name
@@ -1129,7 +1113,7 @@ def parse_editable(editable_req):
             "Could not detect requirement name for '%s', please specify one "
             "with #egg=your_package_name" % editable_req
         )
-    return _strip_postfix(package_name), url, None
+    return package_name, url, None
 
 
 def deduce_helpful_msg(req):
@@ -1157,3 +1141,10 @@ def deduce_helpful_msg(req):
     else:
         msg += " File '%s' does not exist." % (req)
     return msg
+
+
+def _is_list_of_str(obj):
+    return (
+        isinstance(obj, list) and
+        all(isinstance(item, six.string_types) for item in obj)
+    )

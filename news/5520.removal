@@ -1,4 +1,0 @@
-Remove the shim for the old get-pip.py location.
-
-For the past 2 years, it's only been redirecting users to use the newer
-https://bootstrap.pypa.io/get-pip.py location.

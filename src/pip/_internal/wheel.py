@@ -163,7 +163,7 @@ def message_about_scripts_not_on_PATH(scripts):
     # We don't want to warn for directories that are on PATH.
     not_warn_dirs = [
         os.path.normcase(i).rstrip(os.sep) for i in
-        os.environ["PATH"].split(os.pathsep)
+        os.environ.get("PATH", "").split(os.pathsep)
     ]
     # If an executable sits with sys.executable, we don't warn for it.
     #     This covers the case of venv invocations without activating the venv.
@@ -506,8 +506,8 @@ if __name__ == '__main__':
                     row[1], row[2] = rehash(row[0])
                 writer.writerow(row)
             for f in generated:
-                h, l = rehash(f)
-                writer.writerow((normpath(f, lib_dir), h, l))
+                digest, length = rehash(f)
+                writer.writerow((normpath(f, lib_dir), digest, length))
             for f in installed:
                 writer.writerow((installed[f], '', ''))
     shutil.move(temp_record, record)
@@ -528,7 +528,7 @@ def wheel_version(source_dir):
         version = wheel_data['Wheel-Version'].strip()
         version = tuple(map(int, version.split('.')))
         return version
-    except:
+    except Exception:
         return False
 
 
@@ -653,7 +653,7 @@ class WheelBuilder(object):
                     )
                     logger.info('Stored in directory: %s', output_dir)
                     return wheel_path
-                except:
+                except Exception:
                     pass
             # Ignore return, we can't do anything else useful.
             self._clean_one(req)
@@ -685,7 +685,7 @@ class WheelBuilder(object):
                 call_subprocess(wheel_args, cwd=req.setup_py_dir,
                                 show_stdout=False, spinner=spinner)
                 return True
-            except:
+            except Exception:
                 spinner.finish("error")
                 logger.error('Failed building wheel for %s', req.name)
                 return False
@@ -698,7 +698,7 @@ class WheelBuilder(object):
         try:
             call_subprocess(clean_args, cwd=req.source_dir, show_stdout=False)
             return True
-        except:
+        except Exception:
             logger.error('Failed cleaning build dir for %s', req.name)
             return False
 
@@ -710,6 +710,7 @@ class WheelBuilder(object):
         :return: True if all the wheels built correctly.
         """
         from pip._internal import index
+        from pip._internal.models.link import Link
 
         building_is_possible = self._wheel_dir or (
             autobuilding and self.wheel_cache.cache_dir
@@ -802,7 +803,7 @@ class WheelBuilder(object):
                             self.preparer.build_dir
                         )
                         # Update the link for this.
-                        req.link = index.Link(path_to_url(wheel_file))
+                        req.link = Link(path_to_url(wheel_file))
                         assert req.link.is_wheel
                         # extract the wheel into the dir
                         unpack_url(

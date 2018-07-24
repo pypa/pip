@@ -2,7 +2,7 @@ import pytest
 from mock import Mock
 from pip._vendor.packaging.version import parse as parse_version
 
-from pip._internal.vcs import RevOptions, VersionControl
+from pip._internal.vcs import RevOptions
 from pip._internal.vcs.bazaar import Bazaar
 from pip._internal.vcs.git import Git, looks_like_hash
 from pip._internal.vcs.mercurial import Mercurial
@@ -122,14 +122,60 @@ def test_git_is_commit_id_equal(git, rev_name, result):
     assert git.is_commit_id_equal('/path', rev_name) is result
 
 
-def test_translate_egg_surname():
-    vc = VersionControl()
-    assert vc.translate_egg_surname("foo") == "foo"
-    assert vc.translate_egg_surname("foo/bar") == "foo_bar"
-    assert vc.translate_egg_surname("foo/1.2.3") == "foo_1.2.3"
+# The non-SVN backends all use the same get_netloc_and_auth(), so only test
+# Git as a representative.
+@pytest.mark.parametrize('netloc, expected', [
+    # Test a basic case.
+    ('example.com', ('example.com', (None, None))),
+    # Test with username and password.
+    ('user:pass@example.com', ('user:pass@example.com', (None, None))),
+])
+def test_git__get_netloc_and_auth(netloc, expected):
+    """
+    Test VersionControl.get_netloc_and_auth().
+    """
+    actual = Git().get_netloc_and_auth(netloc)
+    assert actual == expected
 
 
-def test_bazaar_simple_urls():
+@pytest.mark.parametrize('netloc, expected', [
+    # Test a basic case.
+    ('example.com', ('example.com', (None, None))),
+    # Test with username and no password.
+    ('user@example.com', ('example.com', ('user', None))),
+    # Test with username and password.
+    ('user:pass@example.com', ('example.com', ('user', 'pass'))),
+    # Test the password containing an @ symbol.
+    ('user:pass@word@example.com', ('example.com', ('user', 'pass@word'))),
+    # Test the password containing a : symbol.
+    ('user:pass:word@example.com', ('example.com', ('user', 'pass:word'))),
+])
+def test_subversion__get_netloc_and_auth(netloc, expected):
+    """
+    Test Subversion.get_netloc_and_auth().
+    """
+    actual = Subversion().get_netloc_and_auth(netloc)
+    assert actual == expected
+
+
+def test_git__get_url_rev__idempotent():
+    """
+    Check that Git.get_url_rev_and_auth() is idempotent for what the code calls
+    "stub URLs" (i.e. URLs that don't contain "://").
+
+    Also check that it doesn't change self.url.
+    """
+    url = 'git+git@git.example.com:MyProject#egg=MyProject'
+    vcs = Git(url)
+    result1 = vcs.get_url_rev_and_auth(url)
+    assert vcs.url == url
+    result2 = vcs.get_url_rev_and_auth(url)
+    expected = ('git@git.example.com:MyProject', None, (None, None))
+    assert result1 == expected
+    assert result2 == expected
+
+
+def test_bazaar__get_url_rev_and_auth():
     """
     Test bzr url support.
 
@@ -154,23 +200,64 @@ def test_bazaar_simple_urls():
         url='bzr+lp:MyLaunchpadProject#egg=MyLaunchpadProject'
     )
 
-    assert http_bzr_repo.get_url_rev() == (
-        'http://bzr.myproject.org/MyProject/trunk/', None,
+    assert http_bzr_repo.get_url_rev_and_auth(http_bzr_repo.url) == (
+        'http://bzr.myproject.org/MyProject/trunk/', None, (None, None),
     )
-    assert https_bzr_repo.get_url_rev() == (
-        'https://bzr.myproject.org/MyProject/trunk/', None,
+    assert https_bzr_repo.get_url_rev_and_auth(https_bzr_repo.url) == (
+        'https://bzr.myproject.org/MyProject/trunk/', None, (None, None),
     )
-    assert ssh_bzr_repo.get_url_rev() == (
-        'bzr+ssh://bzr.myproject.org/MyProject/trunk/', None,
+    assert ssh_bzr_repo.get_url_rev_and_auth(ssh_bzr_repo.url) == (
+        'bzr+ssh://bzr.myproject.org/MyProject/trunk/', None, (None, None),
     )
-    assert ftp_bzr_repo.get_url_rev() == (
-        'ftp://bzr.myproject.org/MyProject/trunk/', None,
+    assert ftp_bzr_repo.get_url_rev_and_auth(ftp_bzr_repo.url) == (
+        'ftp://bzr.myproject.org/MyProject/trunk/', None, (None, None),
     )
-    assert sftp_bzr_repo.get_url_rev() == (
-        'sftp://bzr.myproject.org/MyProject/trunk/', None,
+    assert sftp_bzr_repo.get_url_rev_and_auth(sftp_bzr_repo.url) == (
+        'sftp://bzr.myproject.org/MyProject/trunk/', None, (None, None),
     )
-    assert launchpad_bzr_repo.get_url_rev() == (
-        'lp:MyLaunchpadProject', None,
+    assert launchpad_bzr_repo.get_url_rev_and_auth(launchpad_bzr_repo.url) == (
+        'lp:MyLaunchpadProject', None, (None, None),
+    )
+
+
+# The non-SVN backends all use the same make_rev_args(), so only test
+# Git as a representative.
+@pytest.mark.parametrize('username, password, expected', [
+    (None, None, []),
+    ('user', None, []),
+    ('user', 'pass', []),
+])
+def test_git__make_rev_args(username, password, expected):
+    """
+    Test VersionControl.make_rev_args().
+    """
+    actual = Git().make_rev_args(username, password)
+    assert actual == expected
+
+
+@pytest.mark.parametrize('username, password, expected', [
+    (None, None, []),
+    ('user', None, ['--username', 'user']),
+    ('user', 'pass', ['--username', 'user', '--password', 'pass']),
+])
+def test_subversion__make_rev_args(username, password, expected):
+    """
+    Test Subversion.make_rev_args().
+    """
+    actual = Subversion().make_rev_args(username, password)
+    assert actual == expected
+
+
+def test_subversion__get_url_rev_options():
+    """
+    Test Subversion.get_url_rev_options().
+    """
+    url = 'svn+https://user:pass@svn.example.com/MyProject@v1.0#egg=MyProject'
+    url, rev_options = Subversion().get_url_rev_options(url)
+    assert url == 'https://svn.example.com/MyProject'
+    assert rev_options.rev == 'v1.0'
+    assert rev_options.extra_args == (
+        ['--username', 'user', '--password', 'pass']
     )
 
 

@@ -6,8 +6,6 @@ pytest-cov
 pytest-rerunfailures
 pytest-timeout
 pytest-xdist
+pyyaml
 scripttest
 https://github.com/pypa/virtualenv/archive/master.zip#egg=virtualenv
-# Revert the following hack after a PyYAML is released supporting Py3.7
-pyyaml; python_version < "3.7"
-https://github.com/yaml/pyyaml/archive/master.zip#egg=pyyaml ; python_version >= "3.7"

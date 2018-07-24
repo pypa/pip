@@ -1,1 +1,0 @@
-Improve handling of PEP 518 build requirements: support environment markers and extras.

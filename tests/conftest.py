@@ -129,6 +129,9 @@ def isolate(tmpdir):
     # We want to disable the version check from running in the tests
     os.environ["PIP_DISABLE_PIP_VERSION_CHECK"] = "true"
 
+    # Make sure tests don't share a requirements tracker.
+    os.environ.pop('PIP_REQ_TRACKER', None)
+
     # FIXME: Windows...
     os.makedirs(os.path.join(home_dir, ".config", "git"))
     with open(os.path.join(home_dir, ".config", "git", "config"), "wb") as fp:

@@ -1,4 +1,5 @@
 """Tests for wheel binary packages and .dist-info."""
+import logging
 import os
 
 import pytest
@@ -367,7 +368,8 @@ class TestWheelBuilder(object):
             wb = wheel.WheelBuilder(
                 finder=Mock(), preparer=Mock(), wheel_cache=None,
             )
-            wb.build([wheel_req], session=Mock())
+            with caplog.at_level(logging.INFO):
+                wb.build([wheel_req], session=Mock())
             assert "due to already being wheel" in caplog.text
             assert mock_build_one.mock_calls == []
 
@@ -470,3 +472,16 @@ class TestMessageAboutScriptsNotOnPATH(object):
             scripts=[os.path.join('a', 'b', 'c')]
         )
         assert retval is None
+
+    def test_missing_PATH_env_treated_as_empty_PATH_env(self):
+        scripts = ['a/b/foo']
+
+        env = os.environ.copy()
+        del env['PATH']
+        with patch.dict('os.environ', env, clear=True):
+            retval_missing = wheel.message_about_scripts_not_on_PATH(scripts)
+
+        with patch.dict('os.environ', {'PATH': ''}):
+            retval_empty = wheel.message_about_scripts_not_on_PATH(scripts)
+
+        assert retval_missing == retval_empty
