@@ -187,7 +187,8 @@ def format_size(bytes):
 
 
 def is_installable_dir(path):
-    """Return True if `path` is a directory containing a setup.py or pyproject.toml file."""
+    """Is path is a directory containing setup.py or pyproject.toml?
+    """
     if not os.path.isdir(path):
         return False
     setup_py = os.path.join(path, 'setup.py')

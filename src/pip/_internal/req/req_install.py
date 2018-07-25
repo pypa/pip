@@ -574,8 +574,8 @@ class InstallRequirement(object):
         """Load pyproject.toml.
 
         We cache the loaded data, so we only load and parse the file once.
-        Also, we extract the two values we care about (requires and build-backend)
-        and discard the rest.
+        Also, we extract the two values we care about (requires and
+        build-backend) and discard the rest.
         """
         if self._pyproject_toml_loaded:
             return
