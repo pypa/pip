@@ -220,8 +220,8 @@ class InstallRequirement(object):
             if looks_like_dir:
                 if not is_installable_dir(p):
                     raise InstallationError(
-                        "Directory %r is not installable. File 'setup.py' "
-                        "not found." % name
+                        "Directory %r is not installable. Neither 'setup.py' "
+                        "nor 'pyproject.toml' found." % name
                     )
                 link = Link(path_to_url(p))
             elif is_archive_file(p):
