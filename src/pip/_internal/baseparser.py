@@ -246,6 +246,7 @@ class ConfigOptionParser(CustomOptionParser):
         self.print_usage(sys.stderr)
         self.exit(2, "%s\n" % msg)
 
+
 def invalid_config_error_message(action, key, val):
     """Returns a better error message when invalid configuration option
     is provided."""
