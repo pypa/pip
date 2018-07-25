@@ -852,6 +852,30 @@ def enum(*sequential, **named):
     return type('Enum', (), enums)
 
 
+def split_auth_from_netloc(netloc):
+    """
+    Parse out and remove the auth information from a netloc.
+
+    Returns: (netloc, (username, password)).
+    """
+    if '@' not in netloc:
+        return netloc, (None, None)
+
+    # Split from the right because that's how urllib.parse.urlsplit()
+    # behaves if more than one @ is present (which can be checked using
+    # the password attribute of urlsplit()'s return value).
+    auth, netloc = netloc.rsplit('@', 1)
+    if ':' in auth:
+        # Split from the left because that's how urllib.parse.urlsplit()
+        # behaves if more than one : is present (which again can be checked
+        # using the password attribute of the return value)
+        user_pass = tuple(auth.split(':', 1))
+    else:
+        user_pass = auth, None
+
+    return netloc, user_pass
+
+
 def remove_auth_from_url(url):
     # Return a copy of url with 'username:password@' removed.
     # username/pass params are passed to subversion through flags
@@ -859,12 +883,11 @@ def remove_auth_from_url(url):
 
     # parsed url
     purl = urllib_parse.urlsplit(url)
-    stripped_netloc = \
-        purl.netloc.split('@')[-1]
+    netloc, user_pass = split_auth_from_netloc(purl.netloc)
 
     # stripped url
     url_pieces = (
-        purl.scheme, stripped_netloc, purl.path, purl.query, purl.fragment
+        purl.scheme, netloc, purl.path, purl.query, purl.fragment
     )
     surl = urllib_parse.urlunsplit(url_pieces)
     return surl

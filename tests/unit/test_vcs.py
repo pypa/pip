@@ -145,10 +145,6 @@ def test_git__get_netloc_and_auth(netloc, expected):
     ('user@example.com', ('example.com', ('user', None))),
     # Test with username and password.
     ('user:pass@example.com', ('example.com', ('user', 'pass'))),
-    # Test the password containing an @ symbol.
-    ('user:pass@word@example.com', ('example.com', ('user', 'pass@word'))),
-    # Test the password containing a : symbol.
-    ('user:pass:word@example.com', ('example.com', ('user', 'pass:word'))),
 ])
 def test_subversion__get_netloc_and_auth(netloc, expected):
     """

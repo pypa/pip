@@ -24,8 +24,8 @@ from pip._internal.utils.glibc import check_glibc_version
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.misc import (
     call_subprocess, egg_link_path, ensure_dir, get_installed_distributions,
-    get_prog, normalize_path, remove_auth_from_url, rmtree, untar_file,
-    unzip_file,
+    get_prog, normalize_path, remove_auth_from_url, rmtree,
+    split_auth_from_netloc, untar_file, unzip_file,
 )
 from pip._internal.utils.packaging import check_dist_requires_python
 from pip._internal.utils.temp_dir import TempDirectory
@@ -625,6 +625,25 @@ def test_call_subprocess_works_okay_when_just_given_nothing():
 def test_call_subprocess_closes_stdin():
     with pytest.raises(InstallationError):
         call_subprocess([sys.executable, '-c', 'input()'])
+
+
+@pytest.mark.parametrize('netloc, expected', [
+    # Test a basic case.
+    ('example.com', ('example.com', (None, None))),
+    # Test with username and no password.
+    ('user@example.com', ('example.com', ('user', None))),
+    # Test with username and password.
+    ('user:pass@example.com', ('example.com', ('user', 'pass'))),
+    # Test with username and empty password.
+    ('user:@example.com', ('example.com', ('user', ''))),
+    # Test the password containing an @ symbol.
+    ('user:pass@word@example.com', ('example.com', ('user', 'pass@word'))),
+    # Test the password containing a : symbol.
+    ('user:pass:word@example.com', ('example.com', ('user', 'pass:word'))),
+])
+def test_split_auth_from_netloc(netloc, expected):
+    actual = split_auth_from_netloc(netloc)
+    assert actual == expected
 
 
 @pytest.mark.parametrize('auth_url, expected_url', [
