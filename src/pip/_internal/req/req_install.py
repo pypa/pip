@@ -130,6 +130,11 @@ class InstallRequirement(object):
         self.isolated = isolated
         self.build_env = NoOpBuildEnvironment()
 
+        # pyproject.toml handling
+        self._pyproject_toml_loaded = False
+        self._pyproject_requires = None
+        self._pyproject_backend = None
+
     # Constructors
     #   TODO: Move these out of this class into custom methods.
     @classmethod
@@ -565,16 +570,22 @@ class InstallRequirement(object):
 
         return pp_toml
 
-    def get_pep_518_info(self):
-        """Get PEP 518 build-time requirements.
+    def load_pyproject_toml(self):
+        """Load pyproject.toml.
 
-        Returns the list of the packages required to build the project,
-        specified as per PEP 518 within the package. If `pyproject.toml` is not
-        present, returns None to signify not using the same.
+        We cache the loaded data, so we only load and parse the file once.
+        Also, we extract the two values we care about (requires and build-backend)
+        and discard the rest.
         """
+        if self._pyproject_toml_loaded:
+            return
+
+        # Don't do this processing twice
+        self._pyproject_toml_loaded = True
+
         # If pyproject.toml does not exist, don't do anything.
         if not os.path.isfile(self.pyproject_toml):
-            return None
+            return
 
         error_template = (
             "{package} has a pyproject.toml file that does not comply "
@@ -586,7 +597,8 @@ class InstallRequirement(object):
 
         # If there is no build-system table, just use setuptools and wheel.
         if "build-system" not in pp_toml:
-            return ["setuptools", "wheel"]
+            self._pyproject_requires = ["setuptools", "wheel"]
+            return
 
         # Specifying the build-system table but not the requires key is invalid
         build_system = pp_toml["build-system"]
@@ -606,7 +618,31 @@ class InstallRequirement(object):
                 reason="'build-system.requires' is not a list of strings.",
             ))
 
-        return requires
+        self._pyproject_requires = requires
+
+        if "build-backend" in build_system:
+            self._pyproject_backend = build_system["build-backend"]
+
+    @property
+    def pyproject_requires(self):
+        """Get PEP 518 build-time requirements.
+
+        Returns the list of the packages required to build the project,
+        specified as per PEP 518 within the package. If `pyproject.toml` is not
+        present, returns None to signify not using the same.
+        """
+        self.load_pyproject_toml()
+        return self._pyproject_requires
+
+    @property
+    def pyproject_backend(self):
+        """Get PEP 517 build backend.
+
+        Returns the backend to use for PEP 517. If there is no backend,
+        return None to indicate this.
+        """
+        self.load_pyproject_toml()
+        return self._pyproject_backend
 
     def run_egg_info(self):
         assert self.source_dir
