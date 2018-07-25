@@ -60,7 +60,6 @@ __all__ = ['get_file_content',
            'unpack_file_url', 'is_vcs_url', 'is_file_url',
            'unpack_http_url', 'unpack_url']
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -199,12 +198,21 @@ class MultiDomainBasicAuth(AuthBase):
 
         # Add our new username and password to the request
         req = HTTPBasicAuth(username or "", password or "")(resp.request)
+        req.register_hook("response", self.handle_401_again)
 
         # Send our new request
         new_resp = resp.connection.send(req, **kwargs)
         new_resp.history.append(resp)
 
         return new_resp
+
+    def handle_401_again(self, resp, **kwargs):
+        if resp.status_code != 401:
+            return resp
+
+        logger.warning('401 Error, Credentials not correct for %s',
+                       resp.request.url)
+        return resp
 
     def parse_credentials(self, netloc):
         if "@" in netloc:
