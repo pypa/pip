@@ -442,7 +442,8 @@ def test_install_from_local_directory_with_no_setup_py(script, data):
     """
     result = script.pip('install', data.root, expect_error=True)
     assert not result.files_created
-    assert "is not installable. File 'setup.py' not found." in result.stderr
+    assert "is not installable." in result.stderr
+    assert "Neither 'setup.py' nor 'pyproject.toml' found." in result.stderr
 
 
 def test_editable_install_from_local_directory_with_no_setup_py(script, data):
