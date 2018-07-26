@@ -135,6 +135,13 @@ class InstallRequirement(object):
         self._pyproject_requires = None
         self._pyproject_backend = None
 
+        # Are we using PEP 517 for this requirement?
+        # This can be None until load_pyproject_toml has been called,
+        # after which it will have an explicit value.
+        # TODO: Maybe make this a property, but if we do we'll need
+        # to set the backing value based on the --use-pep517 flag.
+        self.use_pep517 = None
+
     # Constructors
     #   TODO: Move these out of this class into custom methods.
     @classmethod
@@ -583,25 +590,56 @@ class InstallRequirement(object):
         # Don't do this processing twice
         self._pyproject_toml_loaded = True
 
-        # If pyproject.toml does not exist, don't do anything.
-        if not os.path.isfile(self.pyproject_toml):
-            return
+        has_pyproject = os.path.isfile(self.pyproject_toml)
+        has_setup = os.path.isfile(self.setup_py)
+
+        if has_pyproject:
+            with io.open(self.pyproject_toml, encoding="utf-8") as f:
+                pp_toml = pytoml.load(f)
+            build_system = pp_toml.get("build-system")
+        else:
+            build_system = None
+
+        # The following cases must use PEP 517
+        # We check for use_pep517 equalling False because that
+        # means the user explicitly requested --no-use-pep517
+        if (has_pyproject and not has_setup):
+            if self.use_pep517 is False:
+                raise Exception("No setup.py")
+            self.use_pep517 = True
+        if (build_system and "build-backend" in build_system):
+            if self.use_pep517 is False:
+                raise Exception("Project specifies build backend")
+            self.use_pep517 = True
+
+        # Choose whether to use PEP 517 if the user didn't say
+        if self.use_pep517 is None:
+            if has_pyproject:
+                self.use_pep517 = True
+            else:
+                self.use_pep517 = False
+
+        if not build_system:
+            if self.use_pep517:
+                build_system = {
+                    "requires": ["setuptools>=38.2.5", "wheel"],
+                    "build-backend": "setuptools.build_meta",
+                }
+            else:
+                build_system = {
+                    "requires": ["setuptools", "wheel"],
+                }
+
+        assert self.use_pep517 is not None
+        assert build_system is not None
 
         error_template = (
             "{package} has a pyproject.toml file that does not comply "
             "with PEP 518: {reason}"
         )
 
-        with io.open(self.pyproject_toml, encoding="utf-8") as f:
-            pp_toml = pytoml.load(f)
-
-        # If there is no build-system table, just use setuptools and wheel.
-        if "build-system" not in pp_toml:
-            self._pyproject_requires = ["setuptools", "wheel"]
-            return
-
-        # Specifying the build-system table but not the requires key is invalid
-        build_system = pp_toml["build-system"]
+        # Specifying the build-system table but not
+        # the requires key is invalid
         if "requires" not in build_system:
             raise InstallationError(
                 error_template.format(package=self, reason=(
@@ -610,7 +648,7 @@ class InstallRequirement(object):
                 ))
             )
 
-        # Error out if it's not a list of strings
+        # Error out if requires is not a list of strings
         requires = build_system["requires"]
         if not _is_list_of_str(requires):
             raise InstallationError(error_template.format(
@@ -618,10 +656,8 @@ class InstallRequirement(object):
                 reason="'build-system.requires' is not a list of strings.",
             ))
 
-        self._pyproject_requires = requires
-
-        if "build-backend" in build_system:
-            self._pyproject_backend = build_system["build-backend"]
+        self._pyproject_requires = build_system["requires"]
+        self._pyproject_backend = build_system.get("build-backend")
 
     @property
     def pyproject_requires(self):
