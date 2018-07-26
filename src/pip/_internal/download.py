@@ -215,7 +215,6 @@ class MultiDomainBasicAuth(AuthBase):
         logger.warning('401 Error, Credentials not correct for %s',
                        resp.request.url)
         return resp
-    
 
     def parse_credentials(self, netloc):
         if "@" in netloc:
