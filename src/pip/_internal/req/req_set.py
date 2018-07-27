@@ -112,8 +112,11 @@ class RequirementSet(object):
         # encountered this for scanning.
         result = []
         if not install_req.constraint and existing_req.constraint:
-            if (install_req.link and not (existing_req.link and
-                install_req.link.path == existing_req.link.path)):
+            does_not_satisfy_constraint = install_req.link and not (
+                existing_req.link and
+                install_req.link.path == existing_req.link.path
+            )
+            if does_not_satisfy_constraint:
                 self.reqs_to_cleanup.append(install_req)
                 raise InstallationError(
                     "Could not satisfy constraints for '%s': "
