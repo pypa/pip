@@ -605,11 +605,17 @@ class InstallRequirement(object):
         # means the user explicitly requested --no-use-pep517
         if (has_pyproject and not has_setup):
             if self.use_pep517 is False:
-                raise Exception("No setup.py")
+                raise InstallationError(
+                    "Disabling PEP 517 processing is invalid: "
+                    "project does not have a setup.py"
+                )
             self.use_pep517 = True
         if (build_system and "build-backend" in build_system):
             if self.use_pep517 is False:
-                raise Exception("Project specifies build backend")
+                raise InstallationError(
+                    "Disabling PEP 517 processing is invalid: "
+                    "project specifies a build-backend in pyproject.toml"
+                )
             self.use_pep517 = True
 
         # Choose whether to use PEP 517 if the user didn't say
@@ -619,7 +625,7 @@ class InstallRequirement(object):
             else:
                 self.use_pep517 = False
 
-        if not build_system:
+        if build_system is None:
             if self.use_pep517:
                 build_system = {
                     "requires": ["setuptools>=38.2.5", "wheel"],
@@ -656,7 +662,7 @@ class InstallRequirement(object):
                 reason="'build-system.requires' is not a list of strings.",
             ))
 
-        self._pyproject_requires = build_system["requires"]
+        self._pyproject_requires = requires
         self._pyproject_backend = build_system.get("build-backend")
 
     @property

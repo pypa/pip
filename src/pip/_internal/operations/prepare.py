@@ -96,7 +96,7 @@ class IsSDist(DistAbstraction):
         # Before calling "setup.py egg_info", we need to set-up the build
         # environment.
         build_requirements = self.req.pyproject_requires
-        should_isolate = build_isolation and build_requirements is not None
+        should_isolate = self.req.use_pep517 and build_isolation
 
         if should_isolate:
             # Haven't implemented PEP 517 yet, so spew a warning about it if
