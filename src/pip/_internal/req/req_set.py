@@ -112,35 +112,33 @@ class RequirementSet(object):
 
         # Assume there's no need to scan, and that we've already
         # encountered this for scanning.
-        result = []
-        if not install_req.constraint and existing_req.constraint:
-            does_not_satisfy_constraint = install_req.link and not (
-                existing_req.link and
-                install_req.link.path == existing_req.link.path
-            )
-            if does_not_satisfy_constraint:
-                self.reqs_to_cleanup.append(install_req)
-                raise InstallationError(
-                    "Could not satisfy constraints for '%s': "
-                    "installation from path or url cannot be "
-                    "constrained to a version" % name,
-                )
-            # If we're now installing a constraint, mark the existing
-            # object for real installation.
-            existing_req.constraint = False
-            existing_req.extras = tuple(sorted(
-                set(existing_req.extras) | set(install_req.extras)
-            ))
-            logger.debug(
-                "Setting %s extras to: %s",
-                existing_req, existing_req.extras,
-            )
-            # And now we need to scan this.
-            result = [existing_req]
+        if install_req.constraint and not existing_req.constraint:
+            return [], existing_req
 
+        does_not_satisfy_constraint = install_req.link and not (
+            existing_req.link and
+            install_req.link.path == existing_req.link.path
+        )
+        if does_not_satisfy_constraint:
+            self.reqs_to_cleanup.append(install_req)
+            raise InstallationError(
+                "Could not satisfy constraints for '%s': "
+                "installation from path or url cannot be "
+                "constrained to a version" % name,
+            )
+        # If we're now installing a constraint, mark the existing
+        # object for real installation.
+        existing_req.constraint = False
+        existing_req.extras = tuple(sorted(
+            set(existing_req.extras) | set(install_req.extras)
+        ))
+        logger.debug(
+            "Setting %s extras to: %s",
+            existing_req, existing_req.extras,
+        )
         # We return install_req here to allow for the caller to add it to
         # the dependency information for the parent package.
-        return result, existing_req
+        return [existing_req], existing_req
 
     def has_requirement(self, project_name):
         name = project_name.lower()
