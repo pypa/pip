@@ -2,8 +2,11 @@
 Contains functional tests of the Git class.
 """
 
+import pytest
+
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.vcs.git import Git
+from tests.lib import _create_test_package
 
 
 def get_head_sha(script, dest):
@@ -90,3 +93,23 @@ def test_get_revision_sha(script):
         ]
         for name in ignored_names:
             check_rev(repo_dir, name, None)
+
+
+@pytest.mark.network
+def test_is_commit_id_equal(script):
+    """
+    Test Git.is_commit_id_equal().
+    """
+    version_pkg_path = _create_test_package(script)
+    script.run('git', 'branch', 'branch0.1', cwd=version_pkg_path)
+    commit = script.run(
+        'git', 'rev-parse', 'HEAD',
+        cwd=version_pkg_path
+    ).stdout.strip()
+    git = Git()
+    assert git.is_commit_id_equal(version_pkg_path, commit)
+    assert not git.is_commit_id_equal(version_pkg_path, commit[:7])
+    assert not git.is_commit_id_equal(version_pkg_path, 'branch0.1')
+    assert not git.is_commit_id_equal(version_pkg_path, 'abc123')
+    # Also check passing a None value.
+    assert not git.is_commit_id_equal(version_pkg_path, None)
