@@ -6,7 +6,9 @@ import re
 
 from pip._internal.models.link import Link
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import display_path, rmtree
+from pip._internal.utils.misc import (
+    display_path, rmtree, split_auth_from_netloc,
+)
 from pip._internal.vcs import VersionControl, vcs
 
 _svn_xml_url_re = re.compile('url="([^"]+)"')
@@ -102,27 +104,10 @@ class Subversion(VersionControl):
 
     def get_netloc_and_auth(self, netloc):
         """
-        Parse out and remove from the netloc the auth information.
-
-        This allows the auth information to be provided via the --username
-        and --password options instead of via the URL.
+        This override allows the auth information to be passed to svn via the
+        --username and --password options instead of via the URL.
         """
-        if '@' not in netloc:
-            return netloc, (None, None)
-
-        # Split from the right because that's how urllib.parse.urlsplit()
-        # behaves if more than one @ is present (by checking the password
-        # attribute of urlsplit()'s return value).
-        auth, netloc = netloc.rsplit('@', 1)
-        if ':' in auth:
-            # Split from the left because that's how urllib.parse.urlsplit()
-            # behaves if more than one : is present (again by checking the
-            # password attribute of the return value)
-            user_pass = tuple(auth.split(':', 1))
-        else:
-            user_pass = auth, None
-
-        return netloc, user_pass
+        return split_auth_from_netloc(netloc)
 
     def get_url_rev_and_auth(self, url):
         # hotfix the URL scheme after removing svn+ from svn+ssh:// readd it
