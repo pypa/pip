@@ -126,9 +126,9 @@ class RequirementSet(object):
             # If we're now installing a constraint, mark the existing
             # object for real installation.
             existing_req.constraint = False
-            existing_req.extras = tuple(
-                sorted(set(existing_req.extras).union(
-                        set(install_req.extras))))
+            existing_req.extras = tuple(sorted(
+                set(existing_req.extras) | set(install_req.extras)
+            ))
             logger.debug("Setting %s extras to: %s",
                             existing_req, existing_req.extras)
             # And now we need to scan this.
