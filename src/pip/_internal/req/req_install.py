@@ -614,7 +614,10 @@ class InstallRequirement(object):
             if self.use_pep517 is False:
                 raise InstallationError(
                     "Disabling PEP 517 processing is invalid: "
-                    "project specifies a build-backend in pyproject.toml"
+                    "project specifies a build backend of {} "
+                    "in pyproject.toml".format(
+                        build_system["build-backend"]
+                    )
                 )
             self.use_pep517 = True
 
