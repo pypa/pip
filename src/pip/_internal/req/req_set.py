@@ -87,10 +87,15 @@ class RequirementSet(object):
             existing_req = self.get_requirement(name)
         except KeyError:
             existing_req = None
-        if (parent_req_name is None and existing_req and not
-                existing_req.constraint and
-                existing_req.extras == install_req.extras and not
-                existing_req.req.specifier == install_req.req.specifier):
+
+        have_conflicting_requirement = (
+            parent_req_name is None and
+            existing_req and
+            not existing_req.constraint and
+            existing_req.extras == install_req.extras and
+            not existing_req.req.specifier == install_req.req.specifier
+        )
+        if have_conflicting_requirement:
             raise InstallationError(
                 'Double requirement given: %s (already in %s, name=%r)'
                 % (install_req, existing_req, name))
