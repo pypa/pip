@@ -100,7 +100,8 @@ class RequirementSet(object):
                 # FIXME: what about other normalizations?  E.g., _ vs. -?
                 if name.lower() != name:
                     self.requirement_aliases[name.lower()] = name
-                result = [install_req]
+                # We'd want to rescan this requirements later
+                return [install_req], install_req
             else:
                 # Assume there's no need to scan, and that we've already
                 # encountered this for scanning.
