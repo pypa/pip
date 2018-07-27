@@ -57,9 +57,10 @@ class RequirementSet(object):
         """
         name = install_req.name
         if not install_req.match_markers(extras_requested):
-            logger.info("Ignoring %s: markers '%s' don't match your "
-                        "environment", install_req.name,
-                        install_req.markers)
+            logger.info(
+                "Ignoring %s: markers '%s' don't match your environment",
+                install_req.name, install_req.markers,
+            )
             return [], None
 
         # This check has to come after we filter requirements with the
@@ -97,8 +98,9 @@ class RequirementSet(object):
         )
         if have_conflicting_requirement:
             raise InstallationError(
-                'Double requirement given: %s (already in %s, name=%r)'
-                % (install_req, existing_req, name))
+                "Double requirement given: %s (already in %s, name=%r)"
+                % (install_req, existing_req, name)
+            )
         if not existing_req:
             # Add requirement
             self.requirements[name] = install_req
@@ -129,8 +131,10 @@ class RequirementSet(object):
             existing_req.extras = tuple(sorted(
                 set(existing_req.extras) | set(install_req.extras)
             ))
-            logger.debug("Setting %s extras to: %s",
-                            existing_req, existing_req.extras)
+            logger.debug(
+                "Setting %s extras to: %s",
+                existing_req, existing_req.extras,
+            )
             # And now we need to scan this.
             result = [existing_req]
 
