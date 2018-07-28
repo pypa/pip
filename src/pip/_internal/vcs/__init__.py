@@ -207,10 +207,14 @@ class VersionControl(object):
         """
         raise NotImplementedError
 
-    def get_netloc_and_auth(self, netloc):
+    def get_netloc_and_auth(self, netloc, scheme):
         """
         Parse the repository URL's netloc, and return the new netloc to use
         along with auth information.
+
+        Args:
+          netloc: the original repository URL netloc.
+          scheme: the repository URL's scheme without the vcs prefix.
 
         This is mainly for the Subversion class to override, so that auth
         information can be provided via the --username and --password options
@@ -237,7 +241,7 @@ class VersionControl(object):
             )
         # Remove the vcs prefix.
         scheme = scheme.split('+', 1)[1]
-        netloc, user_pass = self.get_netloc_and_auth(netloc)
+        netloc, user_pass = self.get_netloc_and_auth(netloc, scheme)
         rev = None
         if '@' in path:
             path, rev = path.rsplit('@', 1)
