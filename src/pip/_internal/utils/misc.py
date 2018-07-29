@@ -26,13 +26,13 @@ from pip._vendor.six import PY2
 from pip._vendor.six.moves import input
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
-from pip._internal.compat import (
-    WINDOWS, console_to_str, expanduser, stdlib_pkgs,
-)
 from pip._internal.exceptions import CommandError, InstallationError
 from pip._internal.locations import (
     running_under_virtualenv, site_packages, user_site, virtualenv_no_global,
     write_delete_marker_file,
+)
+from pip._internal.utils.compat import (
+    WINDOWS, console_to_str, expanduser, stdlib_pkgs,
 )
 
 if PY2:

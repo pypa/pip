@@ -9,9 +9,9 @@ import os
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal import index
-from pip._internal.compat import expanduser
 from pip._internal.download import path_to_url
 from pip._internal.models.link import Link
+from pip._internal.utils.compat import expanduser
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.wheel import InvalidWheelFilename, Wheel
 

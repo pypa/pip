@@ -7,8 +7,8 @@ from mock import Mock, patch
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal import pep425tags, wheel
-from pip._internal.compat import WINDOWS
 from pip._internal.exceptions import InvalidWheelFilename, UnsupportedWheel
+from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import unpack_file
 from tests.lib import DATA_DIR
 
