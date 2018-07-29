@@ -23,10 +23,9 @@ jobs:
     - env: GROUP=2
       python: 2.7
     - env: GROUP=1
-      python: 3.7
+      python: 3.6
     - env: GROUP=2
-      python: 3.7
-
+      python: 3.6
     # Complete checking for ensuring compatibility
     # PyPy
     - stage: secondary
@@ -38,11 +37,15 @@ jobs:
       python: pypy
     - env: GROUP=2
       python: pypy
-    # Older Supported CPython
+    # Other Supported CPython
     - env: GROUP=1
-      python: 3.6
+      python: 3.7
+      dist: xenial
+      sudo: required
     - env: GROUP=2
-      python: 3.6
+      python: 3.7
+      dist: xenial
+      sudo: required
     - env: GROUP=1
       python: 3.5
     - env: GROUP=2
