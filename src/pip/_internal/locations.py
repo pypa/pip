@@ -10,8 +10,8 @@ import sysconfig
 from distutils import sysconfig as distutils_sysconfig
 from distutils.command.install import SCHEME_KEYS  # type: ignore
 
-from pip._internal.compat import WINDOWS, expanduser
 from pip._internal.utils import appdirs
+from pip._internal.utils.compat import WINDOWS, expanduser
 
 # Application Directories
 USER_CACHE_DIR = appdirs.user_cache_dir("pip")

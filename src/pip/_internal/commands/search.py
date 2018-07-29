@@ -12,11 +12,11 @@ from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.six.moves import xmlrpc_client  # type: ignore
 
 from pip._internal.basecommand import SUCCESS, Command
-from pip._internal.compat import get_terminal_size
 from pip._internal.download import PipXmlrpcTransport
 from pip._internal.exceptions import CommandError
 from pip._internal.models.index import PyPI
 from pip._internal.status_codes import NO_MATCHES_FOUND
+from pip._internal.utils.compat import get_terminal_size
 from pip._internal.utils.logging import indent_log
 
 logger = logging.getLogger(__name__)

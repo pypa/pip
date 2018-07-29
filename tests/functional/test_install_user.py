@@ -7,7 +7,7 @@ from os.path import curdir, isdir, isfile
 
 import pytest
 
-from pip._internal.compat import cache_from_source, uses_pycache
+from pip._internal.utils.compat import cache_from_source, uses_pycache
 from tests.lib import pyversion
 from tests.lib.local_repos import local_checkout
 

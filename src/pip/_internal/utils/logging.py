@@ -5,7 +5,7 @@ import logging
 import logging.handlers
 import os
 
-from pip._internal.compat import WINDOWS
+from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import ensure_dir
 
 try:

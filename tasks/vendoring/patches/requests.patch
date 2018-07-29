@@ -37,7 +37,7 @@ index 9c3b769..36a4ef40 100644
 -    _check_cryptography(cryptography_version)
 -except ImportError:
 -    pass
-+from pip._internal.compat import WINDOWS
++from pip._internal.utils.compat import WINDOWS
 +if not WINDOWS:
 +    try:
 +        from pip._vendor.urllib3.contrib import pyopenssl
