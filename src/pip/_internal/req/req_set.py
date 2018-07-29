@@ -56,6 +56,8 @@ class RequirementSet(object):
             requirement is applicable and has just been added.
         """
         name = install_req.name
+
+        # If the markers do not match, ignore this requirement.
         if not install_req.match_markers(extras_requested):
             logger.info(
                 "Ignoring %s: markers '%s' don't match your environment",
@@ -63,8 +65,10 @@ class RequirementSet(object):
             )
             return [], None
 
-        # This check has to come after we filter requirements with the
-        # environment markers.
+        # If the wheel is not supported, raise an error.
+        # Should check this after filtering out based on environment markers to
+        # allow specifying different wheels based on the environment/OS, in a
+        # single requirements file.
         if install_req.link and install_req.link.is_wheel:
             wheel = Wheel(install_req.link.filename)
             if self.check_supported_wheels and not wheel.supported():
@@ -79,6 +83,8 @@ class RequirementSet(object):
             "a non direct req should have a parent"
         )
 
+        # Unnamed requirements are scanned again and the requirement won't be
+        # added as a dependency until after scanning.
         if not name:
             # url or path requirement w/o an egg fragment
             self.unnamed_requirements.append(install_req)
@@ -101,8 +107,10 @@ class RequirementSet(object):
                 "Double requirement given: %s (already in %s, name=%r)"
                 % (install_req, existing_req, name)
             )
+
+        # When no existing requirement exists, add the requirement as a
+        # dependency and it will be scanned again after.
         if not existing_req:
-            # Add requirement
             self.requirements[name] = install_req
             # FIXME: what about other normalizations?  E.g., _ vs. -?
             if name.lower() != name:
@@ -136,8 +144,8 @@ class RequirementSet(object):
             "Setting %s extras to: %s",
             existing_req, existing_req.extras,
         )
-        # We return install_req here to allow for the caller to add it to
-        # the dependency information for the parent package.
+        # Return the existing requirement for addition to the parent and
+        # scanning again.
         return [existing_req], existing_req
 
     def has_requirement(self, project_name):
