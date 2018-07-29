@@ -59,7 +59,7 @@ class RequirementSet(object):
         if not install_req.match_markers(extras_requested):
             logger.info(
                 "Ignoring %s: markers '%s' don't match your environment",
-                install_req.name, install_req.markers,
+                name, install_req.markers,
             )
             return [], None
 
