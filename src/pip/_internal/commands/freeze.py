@@ -3,8 +3,8 @@ from __future__ import absolute_import
 import sys
 
 from pip._internal import index
-from pip._internal.cli.basecommand import Command
 from pip._internal.cache import WheelCache
+from pip._internal.cli.basecommand import Command
 from pip._internal.compat import stdlib_pkgs
 from pip._internal.operations.freeze import freeze
 
