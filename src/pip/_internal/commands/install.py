@@ -9,9 +9,10 @@ from optparse import SUPPRESS_HELP
 
 from pip._vendor import pkg_resources
 
-from pip._internal import cmdoptions
-from pip._internal.basecommand import RequirementCommand
 from pip._internal.cache import WheelCache
+from pip._internal.cli import cmdoptions
+from pip._internal.cli.base_command import RequirementCommand
+from pip._internal.cli.status_codes import ERROR
 from pip._internal.exceptions import (
     CommandError, InstallationError, PreviousBuildDirError,
 )
@@ -21,7 +22,6 @@ from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import RequirementSet, install_given_reqs
 from pip._internal.req.req_tracker import RequirementTracker
 from pip._internal.resolve import Resolver
-from pip._internal.status_codes import ERROR
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.misc import (
     ensure_dir, get_installed_version,

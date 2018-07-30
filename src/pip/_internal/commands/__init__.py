@@ -21,7 +21,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import List, Type  # noqa: F401
-    from pip._internal.basecommand import Command  # noqa: F401
+    from pip._internal.cli.base_command import Command  # noqa: F401
 
 commands_order = [
     InstallCommand,

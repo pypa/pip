@@ -4,9 +4,9 @@ from __future__ import absolute_import
 import logging
 import os
 
-from pip._internal import cmdoptions
-from pip._internal.basecommand import RequirementCommand
 from pip._internal.cache import WheelCache
+from pip._internal.cli import cmdoptions
+from pip._internal.cli.base_command import RequirementCommand
 from pip._internal.exceptions import CommandError, PreviousBuildDirError
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import RequirementSet

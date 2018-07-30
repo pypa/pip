@@ -6,8 +6,8 @@ import logging
 from pip._vendor import six
 from pip._vendor.six.moves import zip_longest
 
-from pip._internal.basecommand import Command
-from pip._internal.cmdoptions import index_group, make_option_group
+from pip._internal.cli import cmdoptions
+from pip._internal.cli.base_command import Command
 from pip._internal.exceptions import CommandError
 from pip._internal.index import PackageFinder
 from pip._internal.utils.misc import (
@@ -102,7 +102,9 @@ class ListCommand(Command):
             help='Include editable package from output.',
             default=True,
         )
-        index_opts = make_option_group(index_group, self.parser)
+        index_opts = cmdoptions.make_option_group(
+            cmdoptions.index_group, self.parser
+        )
 
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, cmd_opts)

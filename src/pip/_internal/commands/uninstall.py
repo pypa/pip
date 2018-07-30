@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from pip._vendor.packaging.utils import canonicalize_name
 
-from pip._internal.basecommand import Command
+from pip._internal.cli.base_command import Command
 from pip._internal.exceptions import InstallationError
 from pip._internal.req import InstallRequirement, parse_requirements
 from pip._internal.utils.misc import protect_pip_from_modification_on_windows

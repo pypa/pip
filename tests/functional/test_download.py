@@ -2,7 +2,7 @@ import textwrap
 
 import pytest
 
-from pip._internal.status_codes import ERROR
+from pip._internal.cli.status_codes import ERROR
 from tests.lib.path import Path
 
 

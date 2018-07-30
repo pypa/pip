@@ -39,12 +39,12 @@ else:
             securetransport.inject_into_urllib3()
 
 from pip import __version__
-from pip._internal import cmdoptions
+from pip._internal.cli import cmdoptions
 from pip._internal.exceptions import CommandError, PipError
 from pip._internal.utils.misc import get_installed_distributions, get_prog
 from pip._internal.utils import deprecation
 from pip._internal.vcs import git, mercurial, subversion, bazaar  # noqa
-from pip._internal.baseparser import (
+from pip._internal.cli.parser import (
     ConfigOptionParser, UpdatingDefaultsHelpFormatter,
 )
 from pip._internal.commands import get_summaries, get_similar_commands
