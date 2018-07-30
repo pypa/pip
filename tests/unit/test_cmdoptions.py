@@ -1,4 +1,5 @@
-from pip._internal import cmdoptions, index
+from pip._internal import index
+from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
 
 

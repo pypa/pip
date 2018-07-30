@@ -5,7 +5,7 @@ import optparse
 import os
 import sys
 
-from pip._internal.cli.baseparser import create_main_parser
+from pip._internal.cli.main_parser import create_main_parser
 from pip._internal.commands import commands_dict, get_summaries
 from pip._internal.utils.misc import get_installed_distributions
 
