@@ -8,7 +8,7 @@ from pip._vendor import pkg_resources
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.cli.base_command import Command
-from pip._internal.status_codes import ERROR, SUCCESS
+from pip._internal.cli.status_codes import ERROR, SUCCESS
 
 logger = logging.getLogger(__name__)
 

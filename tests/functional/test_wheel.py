@@ -4,8 +4,8 @@ from os.path import exists
 
 import pytest
 
+from pip._internal.cli.status_codes import ERROR, PREVIOUS_BUILD_DIR_ERROR
 from pip._internal.locations import write_delete_marker_file
-from pip._internal.status_codes import ERROR, PREVIOUS_BUILD_DIR_ERROR
 from tests.lib import pyversion
 
 

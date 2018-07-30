@@ -2,10 +2,10 @@ import logging
 
 import pytest
 
+from pip._internal.cli.status_codes import NO_MATCHES_FOUND, SUCCESS
 from pip._internal.commands.search import (
     SearchCommand, highest_version, print_results, transform_hits,
 )
-from pip._internal.status_codes import NO_MATCHES_FOUND, SUCCESS
 from tests.lib import pyversion
 
 if pyversion >= '3':

@@ -11,6 +11,10 @@ from pip._internal.cli import cmdoptions
 from pip._internal.cli.parser import (
     ConfigOptionParser, UpdatingDefaultsHelpFormatter,
 )
+from pip._internal.cli.status_codes import (
+    ERROR, PREVIOUS_BUILD_DIR_ERROR, SUCCESS, UNKNOWN_ERROR,
+    VIRTUALENV_NOT_FOUND,
+)
 from pip._internal.download import PipSession
 from pip._internal.exceptions import (
     BadCommand, CommandError, InstallationError, PreviousBuildDirError,
@@ -20,10 +24,6 @@ from pip._internal.index import PackageFinder
 from pip._internal.locations import running_under_virtualenv
 from pip._internal.req.req_file import parse_requirements
 from pip._internal.req.req_install import InstallRequirement
-from pip._internal.status_codes import (
-    ERROR, PREVIOUS_BUILD_DIR_ERROR, SUCCESS, UNKNOWN_ERROR,
-    VIRTUALENV_NOT_FOUND,
-)
 from pip._internal.utils.logging import setup_logging
 from pip._internal.utils.misc import get_prog, normalize_path
 from pip._internal.utils.outdated import pip_version_check

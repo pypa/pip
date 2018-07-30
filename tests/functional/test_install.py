@@ -8,8 +8,8 @@ from os.path import curdir, join, pardir
 import pytest
 
 from pip._internal import pep425tags
+from pip._internal.cli.status_codes import ERROR
 from pip._internal.models.index import PyPI, TestPyPI
-from pip._internal.status_codes import ERROR
 from pip._internal.utils.misc import rmtree
 from tests.lib import (
     _create_svn_repo, _create_test_package, create_test_package_with_setup,
