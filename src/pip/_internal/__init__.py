@@ -38,9 +38,9 @@ else:
             securetransport.inject_into_urllib3()
 
 from pip._internal.cli.autocompletion import autocomplete
-from pip._internal.cli.main_parser import create_main_parser
-from pip._internal.commands import commands_dict, get_similar_commands
-from pip._internal.exceptions import CommandError, PipError
+from pip._internal.cli.main_parser import parse_command
+from pip._internal.commands import commands_dict
+from pip._internal.exceptions import PipError
 from pip._internal.utils import deprecation
 from pip._internal.vcs import git, mercurial, subversion, bazaar  # noqa
 from pip._vendor.urllib3.exceptions import InsecureRequestWarning
@@ -49,48 +49,6 @@ logger = logging.getLogger(__name__)
 
 # Hide the InsecureRequestWarning from urllib3
 warnings.filterwarnings("ignore", category=InsecureRequestWarning)
-
-
-def parseopts(args):
-    parser = create_main_parser()
-
-    # Note: parser calls disable_interspersed_args(), so the result of this
-    # call is to split the initial args into the general options before the
-    # subcommand and everything else.
-    # For example:
-    #  args: ['--timeout=5', 'install', '--user', 'INITools']
-    #  general_options: ['--timeout==5']
-    #  args_else: ['install', '--user', 'INITools']
-    general_options, args_else = parser.parse_args(args)
-
-    # --version
-    if general_options.version:
-        sys.stdout.write(parser.version)
-        sys.stdout.write(os.linesep)
-        sys.exit()
-
-    # pip || pip help -> print_help()
-    if not args_else or (args_else[0] == 'help' and len(args_else) == 1):
-        parser.print_help()
-        sys.exit()
-
-    # the subcommand name
-    cmd_name = args_else[0]
-
-    if cmd_name not in commands_dict:
-        guess = get_similar_commands(cmd_name)
-
-        msg = ['unknown command "%s"' % cmd_name]
-        if guess:
-            msg.append('maybe you meant "%s"' % guess)
-
-        raise CommandError(' - '.join(msg))
-
-    # all the args without the subcommand
-    cmd_args = args[:]
-    cmd_args.remove(cmd_name)
-
-    return cmd_name, cmd_args
 
 
 def main(args=None):
@@ -103,7 +61,7 @@ def main(args=None):
     autocomplete()
 
     try:
-        cmd_name, cmd_args = parseopts(args)
+        cmd_name, cmd_args = parse_command(args)
     except PipError as exc:
         sys.stderr.write("ERROR: %s" % exc)
         sys.stderr.write(os.linesep)
