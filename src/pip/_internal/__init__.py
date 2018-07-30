@@ -38,15 +38,11 @@ else:
         else:
             securetransport.inject_into_urllib3()
 
-from pip import __version__
-from pip._internal.cli import cmdoptions
+from pip._internal.cli.baseparser import create_main_parser
 from pip._internal.exceptions import CommandError, PipError
-from pip._internal.utils.misc import get_installed_distributions, get_prog
+from pip._internal.utils.misc import get_installed_distributions
 from pip._internal.utils import deprecation
 from pip._internal.vcs import git, mercurial, subversion, bazaar  # noqa
-from pip._internal.cli.parser import (
-    ConfigOptionParser, UpdatingDefaultsHelpFormatter,
-)
 from pip._internal.commands import get_summaries, get_similar_commands
 from pip._internal.commands import commands_dict
 from pip._vendor.urllib3.exceptions import InsecureRequestWarning
@@ -199,37 +195,6 @@ def auto_complete_paths(current, completion_type):
             yield comp_file
         elif os.path.isdir(opt):
             yield os.path.join(comp_file, '')
-
-
-def create_main_parser():
-    parser_kw = {
-        'usage': '\n%prog <command> [options]',
-        'add_help_option': False,
-        'formatter': UpdatingDefaultsHelpFormatter(),
-        'name': 'global',
-        'prog': get_prog(),
-    }
-
-    parser = ConfigOptionParser(**parser_kw)
-    parser.disable_interspersed_args()
-
-    pip_pkg_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    parser.version = 'pip %s from %s (python %s)' % (
-        __version__, pip_pkg_dir, sys.version[:3],
-    )
-
-    # add the general options
-    gen_opts = cmdoptions.make_option_group(cmdoptions.general_group, parser)
-    parser.add_option_group(gen_opts)
-
-    parser.main = True  # so the help formatter knows
-
-    # create command listing for description
-    command_summaries = get_summaries()
-    description = [''] + ['%-27s %s' % (i, j) for i, j in command_summaries]
-    parser.description = '\n'.join(description)
-
-    return parser
 
 
 def parseopts(args):
