@@ -15,7 +15,7 @@ from pip._vendor.progress.bar import (
 from pip._vendor.progress.helpers import HIDE_CURSOR, SHOW_CURSOR, WritelnMixin
 from pip._vendor.progress.spinner import Spinner
 
-from pip._internal.compat import WINDOWS
+from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.logging import get_indentation
 from pip._internal.utils.misc import format_size
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING

@@ -7,7 +7,6 @@ import os
 from pip._vendor import pkg_resources, requests
 
 from pip._internal.build_env import BuildEnvironment
-from pip._internal.compat import expanduser
 from pip._internal.download import (
     is_dir_url, is_file_url, is_vcs_url, unpack_url, url_to_path,
 )
@@ -15,6 +14,7 @@ from pip._internal.exceptions import (
     DirectoryUrlHashUnsupported, HashUnpinned, InstallationError,
     PreviousBuildDirError, VcsHashUnsupported,
 )
+from pip._internal.utils.compat import expanduser
 from pip._internal.utils.hashes import MissingHashes
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import display_path, normalize_path

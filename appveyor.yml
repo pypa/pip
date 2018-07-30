@@ -42,6 +42,7 @@ test_script:
             $important = $changes | Where-Object { $_ -NotLike "*.rst" } |
                                     Where-Object { $_ -NotLike "docs*" } |
                                     Where-Object { $_ -NotLike "news*" } |
+                                    Where-Object { $_ -NotLike "*travis*" } |
                                     Where-Object { $_ -NotLike ".github*" }
             if (!$important) {
                 Write-Host "Only documentation changes - skipping tests"

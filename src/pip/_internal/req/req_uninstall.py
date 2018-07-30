@@ -9,9 +9,9 @@ import sysconfig
 
 from pip._vendor import pkg_resources
 
-from pip._internal.compat import WINDOWS, cache_from_source, uses_pycache
 from pip._internal.exceptions import UninstallationError
 from pip._internal.locations import bin_py, bin_user
+from pip._internal.utils.compat import WINDOWS, cache_from_source, uses_pycache
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     FakeFile, ask, dist_in_usersite, dist_is_local, egg_link_path, is_local,

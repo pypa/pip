@@ -1,7 +1,7 @@
 import os
 import os.path
 
-from pip._internal.compat import get_path_uid
+from pip._internal.utils.compat import get_path_uid
 
 
 def check_path_owner(path):

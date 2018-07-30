@@ -8,8 +8,8 @@ from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
-from pip._internal.compat import samefile
 from pip._internal.exceptions import BadCommand
+from pip._internal.utils.compat import samefile
 from pip._internal.utils.misc import display_path
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.vcs import VersionControl, vcs

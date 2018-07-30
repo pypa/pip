@@ -3,8 +3,8 @@ import os
 
 import pytest
 
-import pip._internal.compat
-from pip._internal.compat import (
+import pip._internal.utils.compat as pip_compat
+from pip._internal.utils.compat import (
     console_to_str, expanduser, get_path_uid, native_str,
 )
 
@@ -64,7 +64,7 @@ def test_console_to_str_warning(monkeypatch):
             "Subprocess output does not appear to be encoded as")
 
     monkeypatch.setattr(locale, 'getpreferredencoding', lambda: 'utf-8')
-    monkeypatch.setattr(pip._internal.compat.logger, 'warning', check_warning)
+    monkeypatch.setattr(pip_compat.logger, 'warning', check_warning)
     console_to_str(some_bytes)
 
 
