@@ -14,6 +14,13 @@ from tests.lib.scripttest import PipTestEnvironment
 from tests.lib.venv import VirtualEnvironment
 
 
+def pytest_addoption(parser):
+    parser.addoption(
+        "--keep-tmpdir", action="store_true",
+        default=False, help="keep temporary test directories"
+    )
+
+
 def pytest_collection_modifyitems(items):
     for item in items:
         if not hasattr(item, 'module'):  # e.g.: DoctestTextfile
@@ -50,7 +57,7 @@ def pytest_collection_modifyitems(items):
 
 
 @pytest.yield_fixture
-def tmpdir(tmpdir):
+def tmpdir(request, tmpdir):
     """
     Return a temporary directory path object which is unique to each test
     function invocation, created as a sub directory of the base temporary
@@ -65,7 +72,7 @@ def tmpdir(tmpdir):
     # Clear out the temporary directory after the test has finished using it.
     # This should prevent us from needing a multiple gigabyte temporary
     # directory while running the tests.
-    if 'PIPTEST_KEEP_TMPDIR' not in os.environ:
+    if not request.config.getoption("--keep-tmpdir"):
         tmpdir.remove(ignore_errors=True)
 
 
