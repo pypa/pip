@@ -1,0 +1,1 @@
+The pip version check will now work correctly when using ``--no-cache-dir``.
