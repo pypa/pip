@@ -1,5 +1,5 @@
 from pip._internal import cmdoptions, index
-from pip._internal.cli.basecommand import Command
+from pip._internal.cli.base_command import Command
 
 
 class SimpleCommand(Command):

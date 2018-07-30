@@ -11,7 +11,7 @@ from pip._vendor import pkg_resources
 
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
-from pip._internal.cli.basecommand import RequirementCommand
+from pip._internal.cli.base_command import RequirementCommand
 from pip._internal.exceptions import (
     CommandError, InstallationError, PreviousBuildDirError,
 )

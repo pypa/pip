@@ -1,6 +1,6 @@
 import logging
 
-from pip._internal.cli.basecommand import Command
+from pip._internal.cli.base_command import Command
 
 
 class FakeCommand(Command):
@@ -32,9 +32,9 @@ class FakeCommandWithUnicode(FakeCommand):
         )
 
 
-class Test_basecommand_logging(object):
+class Test_base_command_logging(object):
     """
-    Test `pip.basecommand.Command` setting up logging consumers based on
+    Test `pip.base_command.Command` setting up logging consumers based on
     options
     """
 
