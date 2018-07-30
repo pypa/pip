@@ -8,7 +8,7 @@ import os
 import sys
 
 from pip._internal.cli import cmdoptions
-from pip._internal.cli.baseparser import (
+from pip._internal.cli.parser import (
     ConfigOptionParser, UpdatingDefaultsHelpFormatter,
 )
 from pip._internal.download import PipSession
