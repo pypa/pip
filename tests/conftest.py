@@ -65,7 +65,7 @@ def tmpdir(tmpdir):
     # Clear out the temporary directory after the test has finished using it.
     # This should prevent us from needing a multiple gigabyte temporary
     # directory while running the tests.
-    if not 'PIPTEST_KEEP_TMPDIR' in os.environ:
+    if 'PIPTEST_KEEP_TMPDIR' not in os.environ:
         tmpdir.remove(ignore_errors=True)
 
 
