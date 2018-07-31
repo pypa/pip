@@ -65,7 +65,7 @@ class DistAbstraction(object):
         """Return a setuptools Dist object."""
         raise NotImplementedError(self.dist)
 
-    def prep_for_dist(self, finder):
+    def prep_for_dist(self, finder, build_isolation):
         """Ensure that we can get a Dist for this requirement."""
         raise NotImplementedError(self.dist)
 
@@ -132,7 +132,7 @@ class Installed(DistAbstraction):
     def dist(self, finder):
         return self.req.satisfied_by
 
-    def prep_for_dist(self, finder):
+    def prep_for_dist(self, finder, build_isolation):
         pass
 
 
