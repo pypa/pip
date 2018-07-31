@@ -136,10 +136,10 @@ class InstallRequirement(object):
         self._pyproject_backend = None
 
         # Are we using PEP 517 for this requirement?
-        # This can be None until load_pyproject_toml has been called,
-        # after which it will have an explicit value.
-        # TODO: Maybe make this a property, but if we do we'll need
-        # to set the backing value based on the --use-pep517 flag.
+        # After pyproject.toml has been loaded, the only valid values are True
+        # and False. Before loading, None is valid (meaning "use the default").
+        # Setting an explicit value before loading pyproject.toml is supported,
+        # but after loading this flag should be treated as read only.
         self.use_pep517 = None
 
     # Constructors
