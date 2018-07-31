@@ -408,7 +408,7 @@ class TestInstallRequirement(object):
     ))
     def test_get_dist(self, path):
         req = InstallRequirement.from_line('foo')
-        req.egg_info_path = Mock(return_value=path)
+        req._egg_info_path = path
         dist = req.get_dist()
         assert isinstance(dist, pkg_resources.Distribution)
         assert dist.project_name == 'foo'
