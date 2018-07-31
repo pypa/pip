@@ -603,7 +603,7 @@ class InstallRequirement(object):
         # The following cases must use PEP 517
         # We check for use_pep517 equalling False because that
         # means the user explicitly requested --no-use-pep517
-        if (has_pyproject and not has_setup):
+        if has_pyproject and not has_setup:
             if self.use_pep517 is False:
                 raise InstallationError(
                     "Disabling PEP 517 processing is invalid: "
@@ -621,16 +621,17 @@ class InstallRequirement(object):
                 )
             self.use_pep517 = True
 
-        # Choose whether to use PEP 517 if the user didn't say
+        # If we haven't worked out whether to use PEP 517 yet,
+        # and the user hasn't explicitly stated a preference,
+        # we do so if the project has a pyproject.toml file.
         if self.use_pep517 is None:
-            if has_pyproject:
-                self.use_pep517 = True
-            else:
-                self.use_pep517 = False
+            self.use_pep517 = has_pyproject
 
         if build_system is None:
             if self.use_pep517:
                 build_system = {
+                    # Require a version of setuptools that includes
+                    # the PEP 517 build backend
                     "requires": ["setuptools>=38.2.5", "wheel"],
                     "build-backend": "setuptools.build_meta",
                 }
@@ -647,8 +648,7 @@ class InstallRequirement(object):
             "with PEP 518: {reason}"
         )
 
-        # Specifying the build-system table but not
-        # the requires key is invalid
+        # Specifying the build-system table but not the requires key is invalid
         if "requires" not in build_system:
             raise InstallationError(
                 error_template.format(package=self, reason=(
