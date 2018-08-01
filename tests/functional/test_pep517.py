@@ -1,9 +1,9 @@
+from pip._vendor import pytoml
+
 from pip._internal.build_env import BuildEnvironment
 from pip._internal.download import PipSession
 from pip._internal.index import PackageFinder
 from pip._internal.req import InstallRequirement
-
-from pip._vendor import pytoml
 
 
 def make_project(tmpdir, requires=[], backend=None):
