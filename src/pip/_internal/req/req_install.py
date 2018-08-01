@@ -611,7 +611,7 @@ class InstallRequirement(object):
                     "project does not have a setup.py"
                 )
             self.use_pep517 = True
-        if (build_system and "build-backend" in build_system):
+        if build_system and "build-backend" in build_system:
             if self.use_pep517 is False:
                 raise InstallationError(
                     "Disabling PEP 517 processing is invalid: "
@@ -667,14 +667,16 @@ class InstallRequirement(object):
             ))
 
         self._pyproject_requires = requires
-        # TODO: User may not have specified a sufficienty new setuptools
-        # in the requirements. We need to check later. Or do we? If it's
-        # too old, it will error anyway.
+        # TODO: If the user has a pyproject.toml, but does not include
+        # (a sufficiently new version of) setuptools and wheel in the
+        # requirements, they will get an error if we use the setuptools
+        # backend. That's fine if the user specifies that backend, but if
+        # we default to it, the resulting error could confuse the user.
+        # Problem - it's not possible to check what's installed in the
+        # build environment without a subprocess call, which is costly for
+        # something that is only a check...
         backend = build_system.get("build-backend", "setuptools.build_meta")
-        if backend is None:
-            self._pep517_backend = None
-        else:
-            self._pep517_backend = Pep517HookCaller(self.setup_py_dir, backend)
+        self._pep517_backend = Pep517HookCaller(self.setup_py_dir, backend)
 
     @property
     def pyproject_requires(self):
