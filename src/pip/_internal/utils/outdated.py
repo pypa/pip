@@ -135,7 +135,7 @@ def pip_version_check(session, options):
             logger.warning(
                 "You are using pip version %s, however version %s is "
                 "available.\nYou should consider upgrading via the "
-                "'%s install --upgrade pip' command.",
+                "'%s install --upgrade pip' command or your package manager.",
                 pip_version, pypi_version, pip_cmd
             )
     except Exception:
