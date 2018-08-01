@@ -128,6 +128,10 @@ class TestData(object):
     def find_links3(self):
         return path_to_url(self.packages3)
 
+    @property
+    def backends(self):
+        return path_to_url(self.root.join("backends"))
+
     def index_url(self, index="simple"):
         return path_to_url(self.root.join("indexes", index))
 
