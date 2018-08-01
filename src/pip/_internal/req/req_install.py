@@ -18,6 +18,7 @@ from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 from pip._vendor.packaging.version import parse as parse_version
+from pip._vendor.pep517.wrappers import Pep517HookCaller
 from pip._vendor.pkg_resources import RequirementParseError, parse_requirements
 
 from pip._internal import wheel
@@ -133,7 +134,7 @@ class InstallRequirement(object):
         # pyproject.toml handling
         self._pyproject_toml_loaded = False
         self._pyproject_requires = None
-        self._pyproject_backend = None
+        self._pep517_backend = None
 
         # Are we using PEP 517 for this requirement?
         # After pyproject.toml has been loaded, the only valid values are True
@@ -666,7 +667,14 @@ class InstallRequirement(object):
             ))
 
         self._pyproject_requires = requires
-        self._pyproject_backend = build_system.get("build-backend")
+        # TODO: User may not have specified a sufficienty new setuptools
+        # in the requirements. We need to check later. Or do we? If it's
+        # too old, it will error anyway.
+        backend = build_system.get("build-backend", "setuptools.build_meta")
+        if backend is None:
+            self._pep517_backend = None
+        else:
+            self._pep517_backend = Pep517HookCaller(self.setup_py_dir, backend)
 
     @property
     def pyproject_requires(self):
@@ -680,14 +688,14 @@ class InstallRequirement(object):
         return self._pyproject_requires
 
     @property
-    def pyproject_backend(self):
+    def pep517_backend(self):
         """Get PEP 517 build backend.
 
         Returns the backend to use for PEP 517. If there is no backend,
         return None to indicate this.
         """
         self.load_pyproject_toml()
-        return self._pyproject_backend
+        return self._pep517_backend
 
     def run_egg_info(self):
         assert self.source_dir
