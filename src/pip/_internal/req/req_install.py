@@ -10,7 +10,6 @@ import sysconfig
 import traceback
 import zipfile
 from distutils.util import change_root
-from email.parser import FeedParser  # type: ignore
 
 from pip._vendor import pkg_resources, pytoml, six
 from pip._vendor.packaging import specifiers
@@ -39,8 +38,9 @@ from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     _make_build_dir, ask_path_exists, backup_dir, call_subprocess,
     display_path, dist_in_site_packages, dist_in_usersite, ensure_dir,
-    get_installed_version, is_installable_dir, read_text_file, rmtree,
+    get_installed_version, is_installable_dir, rmtree,
 )
+from pip._internal.utils.packaging import get_metadata
 from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.ui import open_spinner
@@ -449,7 +449,7 @@ class InstallRequirement(object):
         package is not available until we run egg_info, so the build_location
         will return a temporary directory and store the _ideal_build_dir.
 
-        This is only called by self.egg_info_path to fix the temporary build
+        This is only called by self.run_egg_info to fix the temporary build
         directory.
         """
         if self.source_dir is not None:
@@ -725,20 +725,20 @@ class InstallRequirement(object):
                     command_desc='python setup.py egg_info')
 
         if not self.req:
-            if isinstance(parse_version(self.pkg_info()["Version"]), Version):
+            if isinstance(parse_version(self.metadata["Version"]), Version):
                 op = "=="
             else:
                 op = "==="
             self.req = Requirement(
                 "".join([
-                    self.pkg_info()["Name"],
+                    self.metadata["Name"],
                     op,
-                    self.pkg_info()["Version"],
+                    self.metadata["Version"],
                 ])
             )
             self._correct_build_location()
         else:
-            metadata_name = canonicalize_name(self.pkg_info()["Name"])
+            metadata_name = canonicalize_name(self.metadata["Name"])
             if canonicalize_name(self.req.name) != metadata_name:
                 logger.warning(
                     'Running setup.py (path:%s) egg_info for package %s '
@@ -748,19 +748,8 @@ class InstallRequirement(object):
                 )
                 self.req = Requirement(metadata_name)
 
-    def egg_info_data(self, filename):
-        if self.satisfied_by is not None:
-            if not self.satisfied_by.has_metadata(filename):
-                return None
-            return self.satisfied_by.get_metadata(filename)
-        assert self.source_dir
-        filename = self.egg_info_path(filename)
-        if not os.path.exists(filename):
-            return None
-        data = read_text_file(filename)
-        return data
-
-    def egg_info_path(self, filename):
+    @property
+    def egg_info_path(self):
         if self._egg_info_path is None:
             if self.editable:
                 base = self.source_dir
@@ -798,8 +787,7 @@ class InstallRequirement(object):
 
             if not filenames:
                 raise InstallationError(
-                    "Files/directories (from %s) not found in %s"
-                    % (filename, base)
+                    "Files/directories not found in %s" % base
                 )
             # if we have more than one match, we pick the toplevel one.  This
             # can easily be the case if there is a dist folder which contains
@@ -810,24 +798,18 @@ class InstallRequirement(object):
                     (os.path.altsep and x.count(os.path.altsep) or 0)
                 )
             self._egg_info_path = os.path.join(base, filenames[0])
-        return os.path.join(self._egg_info_path, filename)
+        return self._egg_info_path
 
-    def pkg_info(self):
-        p = FeedParser()
-        data = self.egg_info_data('PKG-INFO')
-        if not data:
-            logger.warning(
-                'No PKG-INFO file found in %s',
-                display_path(self.egg_info_path('PKG-INFO')),
-            )
-        p.feed(data or '')
-        return p.close()
+    @property
+    def metadata(self):
+        if not hasattr(self, '_metadata'):
+            self._metadata = get_metadata(self.get_dist())
 
-    _requirements_section_re = re.compile(r'\[(.*?)\]')
+        return self._metadata
 
     def get_dist(self):
         """Return a pkg_resources.Distribution built from self.egg_info_path"""
-        egg_info = self.egg_info_path('').rstrip(os.path.sep)
+        egg_info = self.egg_info_path.rstrip(os.path.sep)
         base_dir = os.path.dirname(egg_info)
         metadata = pkg_resources.PathMetadata(base_dir, egg_info)
         dist_name = os.path.splitext(os.path.basename(egg_info))[0]
@@ -839,7 +821,7 @@ class InstallRequirement(object):
 
     def assert_source_matches_version(self):
         assert self.source_dir
-        version = self.pkg_info()['version']
+        version = self.metadata['version']
         if self.req.specifier and version not in self.req.specifier:
             logger.warning(
                 'Requested %s, but installing version %s',
@@ -966,7 +948,7 @@ class InstallRequirement(object):
     def archive(self, build_dir):
         assert self.source_dir
         create_archive = True
-        archive_name = '%s-%s.zip' % (self.name, self.pkg_info()["version"])
+        archive_name = '%s-%s.zip' % (self.name, self.metadata["version"])
         archive_path = os.path.join(build_dir, archive_name)
         if os.path.exists(archive_path):
             response = ask_path_exists(
