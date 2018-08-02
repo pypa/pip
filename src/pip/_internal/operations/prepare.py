@@ -101,22 +101,6 @@ class IsSDist(DistAbstraction):
         should_isolate = self.req.use_pep517 and build_isolation
 
         if should_isolate:
-            # Haven't implemented PEP 517 yet, so spew a warning about it if
-            # build-requirements don't include setuptools and wheel.
-            missing_requirements = {'setuptools', 'wheel'} - {
-                pkg_resources.Requirement(r).key for r in build_requirements
-            }
-            if missing_requirements:
-                logger.warning(
-                    "Missing build requirements in pyproject.toml for %s.",
-                    self.req,
-                )
-                logger.warning(
-                    "This version of pip does not implement PEP 517 so it "
-                    "cannot build a wheel without %s.",
-                    " and ".join(map(repr, sorted(missing_requirements)))
-                )
-
             # Isolate in a BuildEnvironment and install the build-time
             # requirements.
             self.req.build_env = BuildEnvironment()
@@ -124,6 +108,20 @@ class IsSDist(DistAbstraction):
                 finder, self.req.pyproject_requires,
                 "Installing build dependencies"
             )
+            missing = []
+            if self.req.assumed_requirements:
+                assumed = self.req.assumed_requirements
+                missing = self.req.build_env.missing_requirements(assumed)
+            if missing:
+                logger.warning(
+                    "Missing build requirements in pyproject.toml for %s.",
+                    self.req,
+                )
+                logger.warning(
+                    "The project does not specify a build backend, and pip "
+                    "cannot fall back to setuptools without %s.",
+                    " and ".join(map(repr, sorted(missing)))
+                )
 
         self.req.run_egg_info()
         self.req.assert_source_matches_version()
