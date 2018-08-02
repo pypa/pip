@@ -19,6 +19,7 @@ def test_backend(tmpdir, data):
     """Can we call a requirement's backend successfully?"""
     project = make_project(tmpdir, backend="dummy_backend")
     req = InstallRequirement(None, None, source_dir=project)
+    req.load_pyproject_toml()
     env = BuildEnvironment()
     finder = PackageFinder([data.backends], [], session=PipSession())
     env.install_requirements(finder, ["dummy_backend"], "Installing")

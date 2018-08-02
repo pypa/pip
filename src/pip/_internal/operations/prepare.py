@@ -93,9 +93,11 @@ class IsSDist(DistAbstraction):
         return dist
 
     def prep_for_dist(self, finder, build_isolation):
-        # Before calling "setup.py egg_info", we need to set-up the build
-        # environment.
-        build_requirements = self.req.pyproject_requires
+        # Prepare for building. We need to:
+        #   1. Load pyproject.toml (if it exists)
+        #   2. Set up the build environment
+
+        self.req.load_pyproject_toml()
         should_isolate = self.req.use_pep517 and build_isolation
 
         if should_isolate:
@@ -119,7 +121,7 @@ class IsSDist(DistAbstraction):
             # requirements.
             self.req.build_env = BuildEnvironment()
             self.req.build_env.install_requirements(
-                finder, build_requirements,
+                finder, self.req.pyproject_requires,
                 "Installing build dependencies"
             )
 

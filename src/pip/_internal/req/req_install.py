@@ -131,10 +131,15 @@ class InstallRequirement(object):
         self.isolated = isolated
         self.build_env = NoOpBuildEnvironment()
 
-        # pyproject.toml handling
-        self._pyproject_toml_loaded = False
-        self._pyproject_requires = None
-        self._pep517_backend = None
+        # The static build requirements (from pyproject.toml)
+        self.pyproject_requires = None
+
+        # Build requirements that we will check are available
+        # TODO: We don't do this for --no-build-isolation. Should we?
+        self.assumed_requirements = []
+
+        # The PEP 517 backend we should use to build the project
+        self.pep517_backend = None
 
         # Are we using PEP 517 for this requirement?
         # After pyproject.toml has been loaded, the only valid values are True
@@ -579,18 +584,13 @@ class InstallRequirement(object):
         return pp_toml
 
     def load_pyproject_toml(self):
-        """Load pyproject.toml.
+        """Load the pyproject.toml file.
 
-        We cache the loaded data, so we only load and parse the file once.
-        Also, we extract the two values we care about (requires and
-        build-backend) and discard the rest.
+        After calling this routine, all of the attributes related to PEP 517
+        processing for this requirement have been set. In particular, the
+        use_pep517 attribute can be used to determine whether we should
+        follow the PEP 517 or legacy (setup.py) code path.
         """
-        if self._pyproject_toml_loaded:
-            return
-
-        # Don't do this processing twice
-        self._pyproject_toml_loaded = True
-
         has_pyproject = os.path.isfile(self.pyproject_toml)
         has_setup = os.path.isfile(self.setup_py)
 
@@ -628,22 +628,34 @@ class InstallRequirement(object):
         if self.use_pep517 is None:
             self.use_pep517 = has_pyproject
 
-        if build_system is None:
-            if self.use_pep517:
-                build_system = {
-                    # Require a version of setuptools that includes
-                    # the PEP 517 build backend
-                    "requires": ["setuptools>=38.2.5", "wheel"],
-                    "build-backend": "setuptools.build_meta",
-                }
-            else:
-                build_system = {
-                    "requires": ["setuptools", "wheel"],
-                }
+        if build_system is None and self.use_pep517:
+            # Either the user has a pyproject.toml with no build-system
+            # section, or the user has no pyproject.toml, but has opted in
+            # explicitly via --use-pep517.
+            # In the absence of any explicit backend specification, we
+            # assume the setuptools backend, and require wheel and a version
+            # of setuptools that supports that backend.
+            build_system = {
+                "requires": ["setuptools>=38.2.5", "wheel"],
+                "build-backend": "setuptools.build_meta",
+            }
 
+        # At this point, we know whether we're going to use PEP 517.
         assert self.use_pep517 is not None
+
+        # If we're using the legacy code path, there is nothing further
+        # for us to do here.
+        if not self.use_pep517:
+            return
+
+        # If we're using PEP 517, we have build system information (either
+        # from pyproject.toml, or defaulted by the code above).
+        # Note that at this point, we do not know if the user has actually
+        # specified a backend, though.
         assert build_system is not None
 
+        # Ensure that the build-system section in pyproject.toml conforms
+        # to PEP 518.
         error_template = (
             "{package} has a pyproject.toml file that does not comply "
             "with PEP 518: {reason}"
@@ -666,38 +678,26 @@ class InstallRequirement(object):
                 reason="'build-system.requires' is not a list of strings.",
             ))
 
-        self._pyproject_requires = requires
-        # TODO: If the user has a pyproject.toml, but does not include
-        # (a sufficiently new version of) setuptools and wheel in the
-        # requirements, they will get an error if we use the setuptools
-        # backend. That's fine if the user specifies that backend, but if
-        # we default to it, the resulting error could confuse the user.
-        # Problem - it's not possible to check what's installed in the
-        # build environment without a subprocess call, which is costly for
-        # something that is only a check...
-        backend = build_system.get("build-backend", "setuptools.build_meta")
-        self._pep517_backend = Pep517HookCaller(self.setup_py_dir, backend)
+        backend = build_system.get("build-backend")
+        if backend is None:
+            # If the user didn't specify a backend, we assume they want to use
+            # the setuptools backend. But we can't be sure they have included
+            # a version of setuptools which supplies the backend, or wheel
+            # (which is neede by the backend) in their requirements. So we
+            # make a note to check that those requirements are present once
+            # we have set up the environment.
+            # TODO: Review this - it's quite a lot of work to check for a very
+            # specific case. The problem is, that case is potentially quite
+            # common - projects that adopted PEP 518 early for the ability to
+            # specify requirements to execute setup.py, but never considered
+            # needing to mention the build tools themselves. The original PEP
+            # 518 code had a similar check (but implemented in a different
+            # way).
+            backend = "setuptools.build_meta"
+            self.assumed_requirements = ["setuptools>=38.2.5", "wheel"]
 
-    @property
-    def pyproject_requires(self):
-        """Get PEP 518 build-time requirements.
-
-        Returns the list of the packages required to build the project,
-        specified as per PEP 518 within the package. If `pyproject.toml` is not
-        present, returns None to signify not using the same.
-        """
-        self.load_pyproject_toml()
-        return self._pyproject_requires
-
-    @property
-    def pep517_backend(self):
-        """Get PEP 517 build backend.
-
-        Returns the backend to use for PEP 517. If there is no backend,
-        return None to indicate this.
-        """
-        self.load_pyproject_toml()
-        return self._pep517_backend
+        self.pyproject_requires = requires
+        self.pep517_backend = Pep517HookCaller(self.setup_py_dir, backend)
 
     def run_egg_info(self):
         assert self.source_dir
