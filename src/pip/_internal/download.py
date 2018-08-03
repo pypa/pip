@@ -394,7 +394,8 @@ class PipSession(requests.Session):
 
         # Dispatch the actual request
         try:
-            return super(PipSession, self).request(method, url, *args, **kwargs)
+            return super(PipSession, self).request(
+                method, url, *args, **kwargs)
         except requests.exceptions.ConnectionError:
             raise InstallationError(
                 'Could not connect to the server, '
