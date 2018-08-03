@@ -393,7 +393,12 @@ class PipSession(requests.Session):
         kwargs.setdefault("timeout", self.timeout)
 
         # Dispatch the actual request
-        return super(PipSession, self).request(method, url, *args, **kwargs)
+        try:
+            return super(PipSession, self).request(method, url, *args, **kwargs)
+        except requests.exceptions.ConnectionError:
+            raise InstallationError(
+                'Could not connect to the server, '
+                'do you have a internet connection?')
 
 
 def get_file_content(url, comes_from=None, session=None):
