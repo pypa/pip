@@ -301,8 +301,10 @@ class InstallRequirement(object):
             s = str(self.req)
             if self.link:
                 s += ' from %s' % self.link.url
+        elif self.link:
+            s = self.link.url
         else:
-            s = self.link.url if self.link else None
+            s = '<InstallRequirement>'
         if self.satisfied_by is not None:
             s += ' in %s' % display_path(self.satisfied_by.location)
         if self.comes_from:
