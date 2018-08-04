@@ -25,6 +25,7 @@ from pip._internal.exceptions import (
     BestVersionAlreadyInstalled, DistributionNotFound, InvalidWheelFilename,
     UnsupportedWheel,
 )
+from pip._internal.format_control import FormatControl
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.index import PyPI
 from pip._internal.models.link import Link
@@ -39,7 +40,7 @@ from pip._internal.utils.misc import (
 from pip._internal.utils.packaging import check_requires_python
 from pip._internal.wheel import Wheel, wheel_ext
 
-__all__ = ['FormatControl', 'fmt_ctl_handle_mutual_exclude', 'PackageFinder']
+__all__ = ['FormatControl', 'PackageFinder']
 
 
 SECURE_ORIGINS = [
@@ -401,7 +402,7 @@ class PackageFinder(object):
             logger.debug('* %s', location)
 
         canonical_name = canonicalize_name(project_name)
-        formats = fmt_ctl_formats(self.format_control, canonical_name)
+        formats = self.format_control.fmt_ctl_formats(canonical_name)
         search = Search(project_name, canonical_name, formats)
         find_links_versions = self._package_versions(
             # We trust every directly linked archive in find_links
@@ -868,54 +869,6 @@ class HTMLPage(object):
         % or other characters)."""
         return self._clean_re.sub(
             lambda match: '%%%2x' % ord(match.group(0)), url)
-
-
-FormatControl = namedtuple('FormatControl', 'no_binary only_binary')
-"""This object has two fields, no_binary and only_binary.
-
-If a field is falsy, it isn't set. If it is {':all:'}, it should match all
-packages except those listed in the other field. Only one field can be set
-to {':all:'} at a time. The rest of the time exact package name matches
-are listed, with any given package only showing up in one field at a time.
-"""
-
-
-def fmt_ctl_handle_mutual_exclude(value, target, other):
-    new = value.split(',')
-    while ':all:' in new:
-        other.clear()
-        target.clear()
-        target.add(':all:')
-        del new[:new.index(':all:') + 1]
-        if ':none:' not in new:
-            # Without a none, we want to discard everything as :all: covers it
-            return
-    for name in new:
-        if name == ':none:':
-            target.clear()
-            continue
-        name = canonicalize_name(name)
-        other.discard(name)
-        target.add(name)
-
-
-def fmt_ctl_formats(fmt_ctl, canonical_name):
-    result = {"binary", "source"}
-    if canonical_name in fmt_ctl.only_binary:
-        result.discard('source')
-    elif canonical_name in fmt_ctl.no_binary:
-        result.discard('binary')
-    elif ':all:' in fmt_ctl.only_binary:
-        result.discard('source')
-    elif ':all:' in fmt_ctl.no_binary:
-        result.discard('binary')
-    return frozenset(result)
-
-
-def fmt_ctl_no_binary(fmt_ctl):
-    fmt_ctl_handle_mutual_exclude(
-        ':all:', fmt_ctl.no_binary, fmt_ctl.only_binary,
-    )
 
 
 Search = namedtuple('Search', 'supplied canonical formats')

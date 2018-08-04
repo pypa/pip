@@ -718,6 +718,7 @@ class WheelBuilder(object):
         assert building_is_possible
 
         buildset = []
+        format_control = self.finder.format_control
         for req in requirements:
             if req.constraint:
                 continue
@@ -741,8 +742,7 @@ class WheelBuilder(object):
                     if index.egg_info_matches(base, None, link) is None:
                         # E.g. local directory. Build wheel just for this run.
                         ephem_cache = True
-                    if "binary" not in index.fmt_ctl_formats(
-                            self.finder.format_control,
+                    if "binary" not in format_control.fmt_ctl_formats(
                             canonicalize_name(req.name)):
                         logger.info(
                             "Skipping bdist_wheel for %s, due to binaries "

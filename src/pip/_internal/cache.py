@@ -8,7 +8,6 @@ import os
 
 from pip._vendor.packaging.utils import canonicalize_name
 
-from pip._internal import index
 from pip._internal.download import path_to_url
 from pip._internal.models.link import Link
 from pip._internal.utils.compat import expanduser
@@ -23,7 +22,7 @@ class Cache(object):
 
 
         :param cache_dir: The root of the cache.
-        :param format_control: A pip.index.FormatControl object to limit
+        :param format_control: A pip._internal.FormatControl object to limit
             binaries being read from the cache.
         :param allowed_formats: which formats of files the cache should store.
             ('binary' and 'source' are the only allowed values)
@@ -73,8 +72,8 @@ class Cache(object):
             return []
 
         canonical_name = canonicalize_name(package_name)
-        formats = index.fmt_ctl_formats(
-            self.format_control, canonical_name
+        formats = self.format_control.fmt_ctl_formats(
+            canonical_name
         )
         if not self.allowed_formats.intersection(formats):
             return []

@@ -14,9 +14,7 @@ from functools import partial
 from optparse import SUPPRESS_HELP, Option, OptionGroup
 
 from pip._internal.exceptions import CommandError
-from pip._internal.index import (
-    FormatControl, fmt_ctl_handle_mutual_exclude, fmt_ctl_no_binary,
-)
+from pip._internal.format_control import FormatControl
 from pip._internal.locations import USER_CACHE_DIR, src_prefix
 from pip._internal.models.index import PyPI
 from pip._internal.utils.hashes import STRONG_HASHES
@@ -54,7 +52,7 @@ def check_install_build_global(options, check_options=None):
     names = ["build_options", "global_options", "install_options"]
     if any(map(getname, names)):
         control = options.format_control
-        fmt_ctl_no_binary(control)
+        control.fmt_ctl_no_binary()
         warnings.warn(
             'Disabling all use of wheels due to the use of --build-options '
             '/ --global-options / --install-options.', stacklevel=2,
@@ -399,30 +397,12 @@ src = partial(
 )  # type: Any
 
 
-def _get_format_control(values, option):
-    """Get a format_control object."""
-    return getattr(values, option.dest)
-
-
-def _handle_no_binary(option, opt_str, value, parser):
-    existing = getattr(parser.values, option.dest)
-    fmt_ctl_handle_mutual_exclude(
-        value, existing.no_binary, existing.only_binary,
-    )
-
-
-def _handle_only_binary(option, opt_str, value, parser):
-    existing = getattr(parser.values, option.dest)
-    fmt_ctl_handle_mutual_exclude(
-        value, existing.only_binary, existing.no_binary,
-    )
-
-
 def no_binary():
+    format_control = FormatControl(set(), set())
     return Option(
         "--no-binary", dest="format_control", action="callback",
-        callback=_handle_no_binary, type="str",
-        default=FormatControl(set(), set()),
+        callback=format_control._handle_no_binary, type="str",
+        default=format_control,
         help="Do not use binary packages. Can be supplied multiple times, and "
              "each time adds to the existing value. Accepts either :all: to "
              "disable all binary packages, :none: to empty the set, or one or "
@@ -433,10 +413,11 @@ def no_binary():
 
 
 def only_binary():
+    format_control = FormatControl(set(), set())
     return Option(
         "--only-binary", dest="format_control", action="callback",
-        callback=_handle_only_binary, type="str",
-        default=FormatControl(set(), set()),
+        callback=format_control._handle_only_binary, type="str",
+        default=format_control,
         help="Do not use source packages. Can be supplied multiple times, and "
              "each time adds to the existing value. Accepts either :all: to "
              "disable all source packages, :none: to empty the set, or one or "

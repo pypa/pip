@@ -1,6 +1,6 @@
-from pip._internal import index
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
+from pip._internal.format_control import FormatControl
 
 
 class SimpleCommand(Command):
@@ -19,22 +19,25 @@ class SimpleCommand(Command):
 def test_no_binary_overrides():
     cmd = SimpleCommand()
     cmd.main(['fake', '--only-binary=:all:', '--no-binary=fred'])
-    expected = index.FormatControl({'fred'}, {':all:'})
-    assert cmd.options.format_control == expected
+    expected = FormatControl({'fred'}, {':all:'})
+    assert cmd.options.format_control.only_binary == expected.only_binary
+    assert cmd.options.format_control.no_binary == expected.no_binary
 
 
 def test_only_binary_overrides():
     cmd = SimpleCommand()
     cmd.main(['fake', '--no-binary=:all:', '--only-binary=fred'])
-    expected = index.FormatControl({':all:'}, {'fred'})
-    assert cmd.options.format_control == expected
+    expected = FormatControl({':all:'}, {'fred'})
+    assert cmd.options.format_control.only_binary == expected.only_binary
+    assert cmd.options.format_control.no_binary == expected.no_binary
 
 
 def test_none_resets():
     cmd = SimpleCommand()
     cmd.main(['fake', '--no-binary=:all:', '--no-binary=:none:'])
-    expected = index.FormatControl(set(), set())
-    assert cmd.options.format_control == expected
+    expected = FormatControl(set(), set())
+    assert cmd.options.format_control.only_binary == expected.only_binary
+    assert cmd.options.format_control.no_binary == expected.no_binary
 
 
 def test_none_preserves_other_side():
@@ -42,12 +45,14 @@ def test_none_preserves_other_side():
     cmd.main(
         ['fake', '--no-binary=:all:', '--only-binary=fred',
          '--no-binary=:none:'])
-    expected = index.FormatControl(set(), {'fred'})
-    assert cmd.options.format_control == expected
+    expected = FormatControl(set(), {'fred'})
+    assert cmd.options.format_control.only_binary == expected.only_binary
+    assert cmd.options.format_control.no_binary == expected.no_binary
 
 
 def test_comma_separated_values():
     cmd = SimpleCommand()
     cmd.main(['fake', '--no-binary=1,2,3'])
-    expected = index.FormatControl({'1', '2', '3'}, set())
-    assert cmd.options.format_control == expected
+    expected = FormatControl({'1', '2', '3'}, set())
+    assert cmd.options.format_control.only_binary == expected.only_binary
+    assert cmd.options.format_control.no_binary == expected.no_binary
