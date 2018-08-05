@@ -109,9 +109,9 @@ class IsSDist(DistAbstraction):
                 "Installing build dependencies"
             )
             missing = []
-            if self.req.assumed_requirements:
-                assumed = self.req.assumed_requirements
-                missing = self.req.build_env.missing_requirements(assumed)
+            if self.req.requirements_to_check:
+                check = self.req.requirements_to_check
+                missing = self.req.build_env.missing_requirements(check)
             if missing:
                 logger.warning(
                     "Missing build requirements in pyproject.toml for %s.",

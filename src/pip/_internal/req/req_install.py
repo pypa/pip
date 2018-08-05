@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import io
 import logging
 import os
 import re
@@ -11,7 +10,7 @@ import traceback
 import zipfile
 from distutils.util import change_root
 
-from pip._vendor import pkg_resources, pytoml, six
+from pip._vendor import pkg_resources, six
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
@@ -32,6 +31,7 @@ from pip._internal.locations import (
 )
 from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.models.link import Link
+from pip._internal.pyproject import load_pyproject_toml
 from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.compat import native_str
 from pip._internal.utils.hashes import Hashes
@@ -136,7 +136,7 @@ class InstallRequirement(object):
 
         # Build requirements that we will check are available
         # TODO: We don't do this for --no-build-isolation. Should we?
-        self.assumed_requirements = []
+        self.requirements_to_check = []
 
         # The PEP 517 backend we should use to build the project
         self.pep517_backend = None
@@ -593,113 +593,21 @@ class InstallRequirement(object):
         use_pep517 attribute can be used to determine whether we should
         follow the PEP 517 or legacy (setup.py) code path.
         """
-        has_pyproject = os.path.isfile(self.pyproject_toml)
-        has_setup = os.path.isfile(self.setup_py)
-
-        if has_pyproject:
-            with io.open(self.pyproject_toml, encoding="utf-8") as f:
-                pp_toml = pytoml.load(f)
-            build_system = pp_toml.get("build-system")
-        else:
-            build_system = None
-
-        # The following cases must use PEP 517
-        # We check for use_pep517 equalling False because that
-        # means the user explicitly requested --no-use-pep517
-        if has_pyproject and not has_setup:
-            if self.use_pep517 is False:
-                raise InstallationError(
-                    "Disabling PEP 517 processing is invalid: "
-                    "project does not have a setup.py"
-                )
-            self.use_pep517 = True
-        if build_system and "build-backend" in build_system:
-            if self.use_pep517 is False:
-                raise InstallationError(
-                    "Disabling PEP 517 processing is invalid: "
-                    "project specifies a build backend of {} "
-                    "in pyproject.toml".format(
-                        build_system["build-backend"]
-                    )
-                )
-            self.use_pep517 = True
-
-        # If we haven't worked out whether to use PEP 517 yet,
-        # and the user hasn't explicitly stated a preference,
-        # we do so if the project has a pyproject.toml file.
-        if self.use_pep517 is None:
-            self.use_pep517 = has_pyproject
-
-        if build_system is None and self.use_pep517:
-            # Either the user has a pyproject.toml with no build-system
-            # section, or the user has no pyproject.toml, but has opted in
-            # explicitly via --use-pep517.
-            # In the absence of any explicit backend specification, we
-            # assume the setuptools backend, and require wheel and a version
-            # of setuptools that supports that backend.
-            build_system = {
-                "requires": ["setuptools>=38.2.5", "wheel"],
-                "build-backend": "setuptools.build_meta",
-            }
-
-        # At this point, we know whether we're going to use PEP 517.
-        assert self.use_pep517 is not None
-
-        # If we're using the legacy code path, there is nothing further
-        # for us to do here.
-        if not self.use_pep517:
-            return
-
-        # If we're using PEP 517, we have build system information (either
-        # from pyproject.toml, or defaulted by the code above).
-        # Note that at this point, we do not know if the user has actually
-        # specified a backend, though.
-        assert build_system is not None
-
-        # Ensure that the build-system section in pyproject.toml conforms
-        # to PEP 518.
-        error_template = (
-            "{package} has a pyproject.toml file that does not comply "
-            "with PEP 518: {reason}"
+        pep517_data = load_pyproject_toml(
+            self.use_pep517,
+            self.pyproject_toml,
+            self.setup_py,
+            str(self)
         )
 
-        # Specifying the build-system table but not the requires key is invalid
-        if "requires" not in build_system:
-            raise InstallationError(
-                error_template.format(package=self, reason=(
-                    "it has a 'build-system' table but not "
-                    "'build-system.requires' which is mandatory in the table"
-                ))
-            )
-
-        # Error out if requires is not a list of strings
-        requires = build_system["requires"]
-        if not _is_list_of_str(requires):
-            raise InstallationError(error_template.format(
-                package=self,
-                reason="'build-system.requires' is not a list of strings.",
-            ))
-
-        backend = build_system.get("build-backend")
-        if backend is None:
-            # If the user didn't specify a backend, we assume they want to use
-            # the setuptools backend. But we can't be sure they have included
-            # a version of setuptools which supplies the backend, or wheel
-            # (which is neede by the backend) in their requirements. So we
-            # make a note to check that those requirements are present once
-            # we have set up the environment.
-            # TODO: Review this - it's quite a lot of work to check for a very
-            # specific case. The problem is, that case is potentially quite
-            # common - projects that adopted PEP 518 early for the ability to
-            # specify requirements to execute setup.py, but never considered
-            # needing to mention the build tools themselves. The original PEP
-            # 518 code had a similar check (but implemented in a different
-            # way).
-            backend = "setuptools.build_meta"
-            self.assumed_requirements = ["setuptools>=38.2.5", "wheel"]
-
-        self.pyproject_requires = requires
-        self.pep517_backend = Pep517HookCaller(self.setup_py_dir, backend)
+        if pep517_data is None:
+            self.use_pep517 = False
+        else:
+            self.use_pep517 = True
+            requires, backend, check = pep517_data
+            self.requirements_to_check = check
+            self.pyproject_requires = requires
+            self.pep517_backend = Pep517HookCaller(self.setup_py_dir, backend)
 
     def run_egg_info(self):
         assert self.source_dir
@@ -1216,10 +1124,3 @@ def deduce_helpful_msg(req):
     else:
         msg += " File '%s' does not exist." % (req)
     return msg
-
-
-def _is_list_of_str(obj):
-    return (
-        isinstance(obj, list) and
-        all(isinstance(item, six.string_types) for item in obj)
-    )
