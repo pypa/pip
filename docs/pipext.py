@@ -8,7 +8,7 @@ from docutils import nodes
 from docutils.parsers import rst
 from docutils.statemachine import ViewList
 
-from pip._internal import cmdoptions
+from pip._internal.cli import cmdoptions
 from pip._internal.commands import commands_dict as commands
 
 
