@@ -1,5 +1,5 @@
 import pytest
-from mock import Mock
+from mock import Mock, patch
 from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.vcs import RevOptions, VersionControl
@@ -105,6 +105,48 @@ def test_git_get_src_requirements(git, dist):
         '@5547fa909e83df8bd743d3978d6667497983a4b7',
         '#egg=pip_test_package'
     ])
+
+
+@patch('pip._internal.vcs.git.Git.get_revision_sha')
+def test_git_check_rev_options_ref_exists(get_sha_mock):
+    get_sha_mock.return_value = '123456'
+    git = Git()
+    rev_options = git.make_rev_options('develop')
+
+    new_options = git.check_rev_options('.', rev_options)
+    assert new_options.rev == '123456'
+
+
+@patch('pip._internal.vcs.git.Git.get_revision_sha')
+def test_git_check_rev_options_ref_not_found(get_sha_mock):
+    get_sha_mock.return_value = None
+    git = Git()
+    rev_options = git.make_rev_options('develop')
+
+    new_options = git.check_rev_options('.', rev_options)
+    assert new_options.rev == 'develop'
+
+
+@patch('pip._internal.vcs.git.Git.get_revision_sha')
+def test_git_check_rev_options_not_found_warning(get_sha_mock, caplog):
+    get_sha_mock.return_value = None
+    git = Git()
+
+    sha = 40 * 'a'
+    rev_options = git.make_rev_options(sha)
+    new_options = git.check_rev_options('.', rev_options)
+    assert new_options.rev == sha
+
+    rev_options = git.make_rev_options(sha[:6])
+    new_options = git.check_rev_options('.', rev_options)
+    assert new_options.rev == 'aaaaaa'
+
+    # Check that a warning got logged only for the abbreviated hash.
+    messages = [r.getMessage() for r in caplog.records]
+    messages = [msg for msg in messages if msg.startswith('Did not find ')]
+    assert messages == [
+        "Did not find branch or tag 'aaaaaa', assuming revision or ref."
+    ]
 
 
 @pytest.mark.parametrize('rev_name,result', (
