@@ -29,7 +29,7 @@ from .database import InstalledDistribution
 from .metadata import Metadata, METADATA_FILENAME, WHEEL_METADATA_FILENAME
 from .util import (FileOperator, convert_path, CSVReader, CSVWriter, Cache,
                    cached_property, get_cache_base, read_exports, tempdir)
-from .version import NormalizedVersion, UnsupportedVersionError
+from .version import UnsupportedVersionError
 
 logger = logging.getLogger(__name__)
 
@@ -310,7 +310,6 @@ class Wheel(object):
     def write_records(self, info, libdir, archive_paths):
         records = []
         distinfo, info_dir = info
-        hasher = getattr(hashlib, self.hash_kind)
         for ap, p in archive_paths:
             with open(p, 'rb') as f:
                 data = f.read()
@@ -833,7 +832,6 @@ class Wheel(object):
         def update_version(version, path):
             updated = None
             try:
-                v = NormalizedVersion(version)
                 i = version.find('-')
                 if i < 0:
                     updated = '%s+1' % version

@@ -2388,7 +2388,7 @@ class TarFile(object):
                 else:
                     if sys.platform != "os2emx":
                         os.chown(targetpath, u, g)
-            except EnvironmentError as e:
+            except EnvironmentError:
                 raise ExtractError("could not change owner")
 
     def chmod(self, tarinfo, targetpath):
@@ -2397,7 +2397,7 @@ class TarFile(object):
         if hasattr(os, 'chmod'):
             try:
                 os.chmod(targetpath, tarinfo.mode)
-            except EnvironmentError as e:
+            except EnvironmentError:
                 raise ExtractError("could not change mode")
 
     def utime(self, tarinfo, targetpath):
@@ -2407,7 +2407,7 @@ class TarFile(object):
             return
         try:
             os.utime(targetpath, (tarinfo.mtime, tarinfo.mtime))
-        except EnvironmentError as e:
+        except EnvironmentError:
             raise ExtractError("could not change modification time")
 
     #--------------------------------------------------------------------------
