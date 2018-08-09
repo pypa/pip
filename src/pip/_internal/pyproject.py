@@ -55,7 +55,7 @@ def load_pyproject_toml(use_pep517, pyproject_toml, setup_py, req_name):
                 "project does not have a setup.py"
             )
         use_pep517 = True
-    if build_system and "build-backend" in build_system:
+    elif build_system and "build-backend" in build_system:
         if use_pep517 is False:
             raise InstallationError(
                 "Disabling PEP 517 processing is invalid: "
@@ -69,10 +69,18 @@ def load_pyproject_toml(use_pep517, pyproject_toml, setup_py, req_name):
     # If we haven't worked out whether to use PEP 517 yet,
     # and the user hasn't explicitly stated a preference,
     # we do so if the project has a pyproject.toml file.
-    if use_pep517 is None:
+    elif use_pep517 is None:
         use_pep517 = has_pyproject
 
-    if build_system is None and use_pep517:
+    # At this point, we know whether we're going to use PEP 517.
+    assert use_pep517 is not None
+
+    # If we're using the legacy code path, there is nothing further
+    # for us to do here.
+    if not use_pep517:
+        return None
+
+    if build_system is None:
         # Either the user has a pyproject.toml with no build-system
         # section, or the user has no pyproject.toml, but has opted in
         # explicitly via --use-pep517.
@@ -83,14 +91,6 @@ def load_pyproject_toml(use_pep517, pyproject_toml, setup_py, req_name):
             "requires": ["setuptools>=38.2.5", "wheel"],
             "build-backend": "setuptools.build_meta",
         }
-
-    # At this point, we know whether we're going to use PEP 517.
-    assert use_pep517 is not None
-
-    # If we're using the legacy code path, there is nothing further
-    # for us to do here.
-    if not use_pep517:
-        return None
 
     # If we're using PEP 517, we have build system information (either
     # from pyproject.toml, or defaulted by the code above).
