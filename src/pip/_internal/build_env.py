@@ -7,6 +7,8 @@ import sys
 from distutils.sysconfig import get_python_lib
 from sysconfig import get_paths
 
+from pip._vendor.pkg_resources import Requirement, VersionConflict, WorkingSet
+
 from pip._internal.utils.misc import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.ui import open_spinner
@@ -74,6 +76,20 @@ class BuildEnvironment(object):
 
     def cleanup(self):
         self._temp_dir.cleanup()
+
+    def missing_requirements(self, reqs):
+        """Return a list of the requirements from reqs that are not present
+        """
+        missing = []
+        with self:
+            ws = WorkingSet(os.environ["PYTHONPATH"].split(os.pathsep))
+            for req in reqs:
+                try:
+                    if ws.find(Requirement.parse(req)) is None:
+                        missing.append(req)
+                except VersionConflict:
+                    missing.append(req)
+            return missing
 
     def install_requirements(self, finder, requirements, message):
         args = [
