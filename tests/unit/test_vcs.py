@@ -244,49 +244,33 @@ def test_version_control__get_url_rev_and_auth__missing_plus(url):
     assert 'malformed VCS url' in str(excinfo.value)
 
 
-def test_bazaar__get_url_rev_and_auth():
+@pytest.mark.parametrize('url, expected', [
+    # Test http.
+    ('bzr+http://bzr.myproject.org/MyProject/trunk/#egg=MyProject',
+     'http://bzr.myproject.org/MyProject/trunk/'),
+    # Test https.
+    ('bzr+https://bzr.myproject.org/MyProject/trunk/#egg=MyProject',
+     'https://bzr.myproject.org/MyProject/trunk/'),
+    # Test ftp.
+    ('bzr+ftp://bzr.myproject.org/MyProject/trunk/#egg=MyProject',
+     'ftp://bzr.myproject.org/MyProject/trunk/'),
+    # Test sftp.
+    ('bzr+sftp://bzr.myproject.org/MyProject/trunk/#egg=MyProject',
+     'sftp://bzr.myproject.org/MyProject/trunk/'),
+    # Test launchpad.
+    ('bzr+lp:MyLaunchpadProject#egg=MyLaunchpadProject',
+     'lp:MyLaunchpadProject'),
+    # Test ssh (special handling).
+    ('bzr+ssh://bzr.myproject.org/MyProject/trunk/#egg=MyProject',
+     'bzr+ssh://bzr.myproject.org/MyProject/trunk/'),
+])
+def test_bazaar__get_url_rev_and_auth(url, expected):
     """
-    Test bzr url support.
-
-    SSH and launchpad have special handling.
+    Test Bazaar.get_url_rev_and_auth().
     """
-    http_bzr_repo = Bazaar(
-        url='bzr+http://bzr.myproject.org/MyProject/trunk/#egg=MyProject'
-    )
-    https_bzr_repo = Bazaar(
-        url='bzr+https://bzr.myproject.org/MyProject/trunk/#egg=MyProject'
-    )
-    ssh_bzr_repo = Bazaar(
-        url='bzr+ssh://bzr.myproject.org/MyProject/trunk/#egg=MyProject'
-    )
-    ftp_bzr_repo = Bazaar(
-        url='bzr+ftp://bzr.myproject.org/MyProject/trunk/#egg=MyProject'
-    )
-    sftp_bzr_repo = Bazaar(
-        url='bzr+sftp://bzr.myproject.org/MyProject/trunk/#egg=MyProject'
-    )
-    launchpad_bzr_repo = Bazaar(
-        url='bzr+lp:MyLaunchpadProject#egg=MyLaunchpadProject'
-    )
-
-    assert http_bzr_repo.get_url_rev_and_auth(http_bzr_repo.url) == (
-        'http://bzr.myproject.org/MyProject/trunk/', None, (None, None),
-    )
-    assert https_bzr_repo.get_url_rev_and_auth(https_bzr_repo.url) == (
-        'https://bzr.myproject.org/MyProject/trunk/', None, (None, None),
-    )
-    assert ssh_bzr_repo.get_url_rev_and_auth(ssh_bzr_repo.url) == (
-        'bzr+ssh://bzr.myproject.org/MyProject/trunk/', None, (None, None),
-    )
-    assert ftp_bzr_repo.get_url_rev_and_auth(ftp_bzr_repo.url) == (
-        'ftp://bzr.myproject.org/MyProject/trunk/', None, (None, None),
-    )
-    assert sftp_bzr_repo.get_url_rev_and_auth(sftp_bzr_repo.url) == (
-        'sftp://bzr.myproject.org/MyProject/trunk/', None, (None, None),
-    )
-    assert launchpad_bzr_repo.get_url_rev_and_auth(launchpad_bzr_repo.url) == (
-        'lp:MyLaunchpadProject', None, (None, None),
-    )
+    bzr = Bazaar(url=url)
+    actual = bzr.get_url_rev_and_auth(url)
+    assert actual == (expected, None, (None, None))
 
 
 # The non-SVN backends all use the same make_rev_args(), so only test
