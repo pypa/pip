@@ -13,6 +13,7 @@ import warnings
 from functools import partial
 from optparse import SUPPRESS_HELP, Option, OptionGroup
 
+from pip._internal.exceptions import CommandError
 from pip._internal.index import (
     FormatControl, fmt_ctl_handle_mutual_exclude, fmt_ctl_no_binary,
 )
@@ -58,6 +59,45 @@ def check_install_build_global(options, check_options=None):
             'Disabling all use of wheels due to the use of --build-options '
             '/ --global-options / --install-options.', stacklevel=2,
         )
+
+
+def check_dist_restriction(options, check_target=False):
+    """Function for determining if custom platform options are allowed.
+
+    :param options: The OptionParser options.
+    :param check_target: Whether or not to check if --target is being used.
+    """
+    dist_restriction_set = any([
+        options.python_version,
+        options.platform,
+        options.abi,
+        options.implementation,
+    ])
+
+    binary_only = FormatControl(set(), {':all:'})
+    sdist_dependencies_allowed = (
+        options.format_control != binary_only and
+        not options.ignore_dependencies
+    )
+
+    # Installations or downloads using dist restrictions must not combine
+    # source distributions and dist-specific wheels, as they are not
+    # gauranteed to be locally compatible.
+    if dist_restriction_set and sdist_dependencies_allowed:
+        raise CommandError(
+            "When restricting platform and interpreter constraints using "
+            "--python-version, --platform, --abi, or --implementation, "
+            "either --no-deps must be set, or --only-binary=:all: must be "
+            "set and --no-binary must not be set (or must be set to "
+            ":none:)."
+        )
+
+    if check_target:
+        if dist_restriction_set and not options.target_dir:
+            raise CommandError(
+                "Can not use any platform or abi specific options unless "
+                "installing via '--target'"
+            )
 
 
 ###########
@@ -404,6 +444,61 @@ def only_binary():
              "binary distributions will fail to install when this option is "
              "used on them.",
     )
+
+
+platform = partial(
+    Option,
+    '--platform',
+    dest='platform',
+    metavar='platform',
+    default=None,
+    help=("Only use wheels compatible with <platform>. "
+          "Defaults to the platform of the running system."),
+)
+
+
+python_version = partial(
+    Option,
+    '--python-version',
+    dest='python_version',
+    metavar='python_version',
+    default=None,
+    help=("Only use wheels compatible with Python "
+          "interpreter version <version>. If not specified, then the "
+          "current system interpreter minor version is used. A major "
+          "version (e.g. '2') can be specified to match all "
+          "minor revs of that major version.  A minor version "
+          "(e.g. '34') can also be specified."),
+)
+
+
+implementation = partial(
+    Option,
+    '--implementation',
+    dest='implementation',
+    metavar='implementation',
+    default=None,
+    help=("Only use wheels compatible with Python "
+          "implementation <implementation>, e.g. 'pp', 'jy', 'cp', "
+          " or 'ip'. If not specified, then the current "
+          "interpreter implementation is used.  Use 'py' to force "
+          "implementation-agnostic wheels."),
+)
+
+
+abi = partial(
+    Option,
+    '--abi',
+    dest='abi',
+    metavar='abi',
+    default=None,
+    help=("Only use wheels compatible with Python "
+          "abi <abi>, e.g. 'pypy_41'.  If not specified, then the "
+          "current interpreter abi tag is used.  Generally "
+          "you will need to specify --implementation, "
+          "--platform, and --python-version when using "
+          "this option."),
+)
 
 
 def prefer_binary():

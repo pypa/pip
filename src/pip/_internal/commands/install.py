@@ -83,6 +83,11 @@ class InstallCommand(RequirementCommand):
                  '<dir>. Use --upgrade to replace existing packages in <dir> '
                  'with new versions.'
         )
+        cmd_opts.add_option(cmdoptions.platform())
+        cmd_opts.add_option(cmdoptions.python_version())
+        cmd_opts.add_option(cmdoptions.implementation())
+        cmd_opts.add_option(cmdoptions.abi())
+
         cmd_opts.add_option(
             '--user',
             dest='use_user_site',
@@ -204,13 +209,19 @@ class InstallCommand(RequirementCommand):
 
     def run(self, options, args):
         cmdoptions.check_install_build_global(options)
-
         upgrade_strategy = "to-satisfy-only"
         if options.upgrade:
             upgrade_strategy = options.upgrade_strategy
 
         if options.build_dir:
             options.build_dir = os.path.abspath(options.build_dir)
+
+        cmdoptions.check_dist_restriction(options, check_target=True)
+
+        if options.python_version:
+            python_versions = [options.python_version]
+        else:
+            python_versions = None
 
         options.src_dir = os.path.abspath(options.src_dir)
         install_options = options.install_options or []
@@ -246,7 +257,14 @@ class InstallCommand(RequirementCommand):
         global_options = options.global_options or []
 
         with self._build_session(options) as session:
-            finder = self._build_package_finder(options, session)
+            finder = self._build_package_finder(
+                options=options,
+                session=session,
+                platform=options.platform,
+                python_versions=python_versions,
+                abi=options.abi,
+                implementation=options.implementation,
+            )
             build_delete = (not (options.no_clean or options.build_dir))
             wheel_cache = WheelCache(options.cache_dir, options.format_control)
 
@@ -266,6 +284,7 @@ class InstallCommand(RequirementCommand):
             ) as directory:
                 requirement_set = RequirementSet(
                     require_hashes=options.require_hashes,
+                    check_supported_wheels=not options.target_dir,
                 )
 
                 try:
