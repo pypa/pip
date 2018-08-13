@@ -1,1 +1,1 @@
-Add handling for configparser errors when conf is malformed.
+Malformed configuration files now show helpful error messages, instead of tracebacks.
