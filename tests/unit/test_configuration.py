@@ -68,8 +68,6 @@ class TestConfigurationLoading(ConfigurationMixin):
         with pytest.raises(ConfigurationError):
             self.configuration.get_value(":env:.version")
 
-
-class TestConfigurationLoadingErrors(ConfigurationMixin):
     def test_environment_config_errors_if_malformed(self):
         contents = """
             test]
@@ -80,6 +78,10 @@ class TestConfigurationLoadingErrors(ConfigurationMixin):
 
             with pytest.raises(ConfigurationError):
                 self.configuration.load()
+
+            assert "malformed" in str(err)
+            assert lineno in str(err)
+            assert filepath in str(err)
 
 
 class TestConfigurationPrecedence(ConfigurationMixin):
