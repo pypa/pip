@@ -95,14 +95,14 @@ class RequirementSet(object):
         except KeyError:
             existing_req = None
 
-        have_conflicting_requirement = (
+        has_conflicting_requirement = (
             parent_req_name is None and
             existing_req and
             not existing_req.constraint and
             existing_req.extras == install_req.extras and
-            not existing_req.req.specifier == install_req.req.specifier
+            existing_req.req.specifier != install_req.req.specifier
         )
-        if have_conflicting_requirement:
+        if has_conflicting_requirement:
             raise InstallationError(
                 "Double requirement given: %s (already in %s, name=%r)"
                 % (install_req, existing_req, name)
@@ -120,12 +120,15 @@ class RequirementSet(object):
 
         # Assume there's no need to scan, and that we've already
         # encountered this for scanning.
-        if install_req.constraint and not existing_req.constraint:
+        if install_req.constraint or not existing_req.constraint:
             return [], existing_req
 
-        does_not_satisfy_constraint = install_req.link and not (
-            existing_req.link and
-            install_req.link.path == existing_req.link.path
+        does_not_satisfy_constraint = (
+            install_req.link and
+            not (
+                existing_req.link and
+                install_req.link.path == existing_req.link.path
+            )
         )
         if does_not_satisfy_constraint:
             self.reqs_to_cleanup.append(install_req)
