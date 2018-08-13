@@ -1,2 +1,0 @@
-Return a failing exit status when `pip install`, `pip download`, or `pip wheel`
-is called with no requirements.

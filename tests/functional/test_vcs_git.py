@@ -2,8 +2,13 @@
 Contains functional tests of the Git class.
 """
 
+import os
+
+import pytest
+
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.vcs.git import Git
+from tests.lib import _create_test_package
 
 
 def get_head_sha(script, dest):
@@ -35,6 +40,34 @@ def add_commits(script, dest, count):
 def check_rev(repo_dir, rev, expected_sha):
     git = Git()
     assert git.get_revision_sha(repo_dir, rev) == expected_sha
+
+
+def test_git_dir_ignored():
+    """
+    Test that a GIT_DIR environment variable is ignored.
+    """
+    git = Git()
+    with TempDirectory() as temp:
+        temp_dir = temp.path
+        env = {'GIT_DIR': 'foo'}
+        # If GIT_DIR is not ignored, then os.listdir() will return ['foo'].
+        git.run_command(['init', temp_dir], cwd=temp_dir, extra_environ=env)
+        assert os.listdir(temp_dir) == ['.git']
+
+
+def test_git_work_tree_ignored():
+    """
+    Test that a GIT_WORK_TREE environment variable is ignored.
+    """
+    git = Git()
+    with TempDirectory() as temp:
+        temp_dir = temp.path
+        git.run_command(['init', temp_dir], cwd=temp_dir)
+        # Choose a directory relative to the cwd that does not exist.
+        # If GIT_WORK_TREE is not ignored, then the command will error out
+        # with: "fatal: This operation must be run in a work tree".
+        env = {'GIT_WORK_TREE': 'foo'}
+        git.run_command(['status', temp_dir], extra_environ=env, cwd=temp_dir)
 
 
 def test_get_revision_sha(script):
@@ -90,3 +123,23 @@ def test_get_revision_sha(script):
         ]
         for name in ignored_names:
             check_rev(repo_dir, name, None)
+
+
+@pytest.mark.network
+def test_is_commit_id_equal(script):
+    """
+    Test Git.is_commit_id_equal().
+    """
+    version_pkg_path = _create_test_package(script)
+    script.run('git', 'branch', 'branch0.1', cwd=version_pkg_path)
+    commit = script.run(
+        'git', 'rev-parse', 'HEAD',
+        cwd=version_pkg_path
+    ).stdout.strip()
+    git = Git()
+    assert git.is_commit_id_equal(version_pkg_path, commit)
+    assert not git.is_commit_id_equal(version_pkg_path, commit[:7])
+    assert not git.is_commit_id_equal(version_pkg_path, 'branch0.1')
+    assert not git.is_commit_id_equal(version_pkg_path, 'abc123')
+    # Also check passing a None value.
+    assert not git.is_commit_id_equal(version_pkg_path, None)

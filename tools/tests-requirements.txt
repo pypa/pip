@@ -1,0 +1,11 @@
+freezegun
+mock
+pretend
+pytest
+pytest-cov
+pytest-rerunfailures
+pytest-timeout
+pytest-xdist
+pyyaml
+scripttest
+https://github.com/pypa/virtualenv/archive/master.zip#egg=virtualenv

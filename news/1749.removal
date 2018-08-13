@@ -1,1 +1,0 @@
-Removed the deprecated ``--egg`` parameter to ``pip install``.

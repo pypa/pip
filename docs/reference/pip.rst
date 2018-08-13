@@ -24,7 +24,9 @@ Console logging
 ~~~~~~~~~~~~~~~
 
 pip offers :ref:`-v, --verbose <--verbose>` and :ref:`-q, --quiet <--quiet>`
-to control the console log level.
+to control the console log level. By default, some messages (error and warnings)
+are colored in the terminal. If you want to suppress the colored output use
+:ref:`--no-color <--no-color>`.
 
 
 .. _`FileLogging`:
@@ -70,14 +72,16 @@ Build System Interface
 ======================
 
 Pip builds packages by invoking the build system. Presently, the only supported
-build system is ``setuptools``, but future developments to the Python packaging
-infrastructure are expected to include support for other build systems.  As
-well as package building, the build system is also invoked to install packages
-direct from source.
+build system is ``setuptools``, but in the future, pip will support :pep:`517`
+which allows projects to specify an alternative build system in a
+``pyproject.toml`` file.  As well as package building, the build system is also
+invoked to install packages direct from source.  This is handled by invoking
+the build system to build a wheel, and then installing from that wheel.  The
+built wheel is cached locally by pip to avoid repeated identical builds.
 
-The interface to the build system is via the ``setup.py`` command line script -
-all build actions are defined in terms of the specific ``setup.py`` command
-line that will be run to invoke the required action.
+The current interface to the build system is via the ``setup.py`` command line
+script - all build actions are defined in terms of the specific ``setup.py``
+command line that will be run to invoke the required action.
 
 Setuptools Injection
 ~~~~~~~~~~~~~~~~~~~~
@@ -109,10 +113,56 @@ unexpected byte sequences to Python-style hexadecimal escape sequences
 (``"\x80\xff"``, etc). However, it is still possible for output to be displayed
 using an incorrect encoding (mojibake).
 
+PEP 518 Support
+~~~~~~~~~~~~~~~
+
+As of 10.0, pip supports projects declaring dependencies that are required at
+install time using a ``pyproject.toml`` file, in the form described in
+:pep:`518`. When building a project, pip will install the required dependencies
+locally, and make them available to the build process.
+
+When making build requirements available, pip does so in an *isolated
+environment*. That is, pip does not install those requirements into the user's
+``site-packages``, but rather installs them in a temporary directory which it
+adds to the user's ``sys.path`` for the duration of the build. This ensures
+that build requirements are handled independently of the user's runtime
+environment. For example, a project that needs a recent version of setuptools
+to build can still be installed, even if the user has an older version
+installed (and without silently replacing that version).
+
+In certain cases, projects (or redistributors) may have workflows that
+explicitly manage the build environment. For such workflows, build isolation
+can be problematic. If this is the case, pip provides a
+``--no-build-isolation`` flag to disable build isolation. Users supplying this
+flag are responsible for ensuring the build environment is managed
+appropriately.
+
+.. _pep-518-limitations:
+
+**Limitations**:
+
+* until :pep:`517` support is added, ``setuptools`` and ``wheel`` **must** be
+  included in the list of build requirements: pip will assume these as default,
+  but will not automatically add them to the list of build requirements if
+  explicitly defined in ``pyproject.toml``.
+
+* the current implementation only support installing build requirements from
+  wheels: this is a technical limitation of the implementation - source
+  installs would require a build step of their own, potentially recursively
+  triggering another :pep:`518` dependency installation process. The possible
+  unbounded recursion involved was not considered acceptable, and so
+  installation of build dependencies from source has been disabled until a safe
+  resolution of this issue is found.
+
+* ``pip<18.0``: only support installing build requirements from wheels, and
+  does not support the use of environment markers and extras (only version
+  specifiers are respected).
+
+
 Future Developments
 ~~~~~~~~~~~~~~~~~~~
 
-`PEP426`_ notes that the intention is to add hooks to project metadata in
+:pep:`426` notes that the intention is to add hooks to project metadata in
 version 2.1 of the metadata spec, to explicitly define how to build a project
 from its source. Once this version of the metadata spec is final, pip will
 migrate to using that interface. At that point, the ``setup.py`` interface
@@ -122,7 +172,6 @@ have migrated.
 Specifically, applications should *not* expect to rely on there being any form
 of backward compatibility guarantees around the ``setup.py`` interface.
 
-.. _PEP426: http://www.python.org/dev/peps/pep-0426/#metabuild-system
 
 Build Options
 ~~~~~~~~~~~~~

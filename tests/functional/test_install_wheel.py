@@ -1,7 +1,6 @@
 import distutils
 import glob
 import os
-import sys
 
 import pytest
 
@@ -41,7 +40,7 @@ def test_install_from_broken_wheel(script, data):
                                 editable=False)
 
 
-def test_install_from_wheel(script, data):
+def test_basic_install_from_wheel(script, data):
     """
     Test installing from a wheel (that has a script)
     """
@@ -58,7 +57,7 @@ def test_install_from_wheel(script, data):
     assert script_file in result.files_created
 
 
-def test_install_from_wheel_with_extras(script, data):
+def test_basic_install_from_wheel_with_extras(script, data):
     """
     Test installing from a wheel with extras.
     """
@@ -77,7 +76,7 @@ def test_install_from_wheel_with_extras(script, data):
                                                       result.stdout)
 
 
-def test_install_from_wheel_file(script, data):
+def test_basic_install_from_wheel_file(script, data):
     """
     Test installing directly from a wheel file.
     """

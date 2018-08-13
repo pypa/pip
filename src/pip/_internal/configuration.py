@@ -11,6 +11,7 @@ Some terminology:
   A single word describing where the configuration key-value pair came from
 """
 
+import locale
 import logging
 import os
 
@@ -20,13 +21,15 @@ from pip._vendor.six.moves import configparser
 from pip._internal.exceptions import ConfigurationError
 from pip._internal.locations import (
     legacy_config_file, new_config_file, running_under_virtualenv,
-    site_config_files, venv_config_file
+    site_config_files, venv_config_file,
 )
 from pip._internal.utils.misc import ensure_dir, enum
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Dict, Iterable, List, NewType, Optional, Tuple
+    from typing import (  # noqa: F401
+        Any, Dict, Iterable, List, NewType, Optional, Tuple
+    )
 
     RawConfigParser = configparser.RawConfigParser  # Shorthand
     Kind = NewType("Kind", str)
@@ -283,8 +286,14 @@ class Configuration(object):
         # Doing this is useful when modifying and saving files, where we don't
         # need to construct a parser.
         if os.path.exists(fname):
-            parser.read(fname)
-
+            try:
+                parser.read(fname)
+            except UnicodeDecodeError:
+                raise ConfigurationError((
+                    "ERROR: "
+                    "Configuration file contains invalid %s characters.\n"
+                    "Please fix your configuration, located at %s\n"
+                ) % (locale.getpreferredencoding(False), fname))
         return parser
 
     def _load_environment_vars(self):

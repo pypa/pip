@@ -1,5 +1,6 @@
-from pip._internal import cmdoptions, index
-from pip._internal.basecommand import Command
+from pip._internal import index
+from pip._internal.cli import cmdoptions
+from pip._internal.cli.base_command import Command
 
 
 class SimpleCommand(Command):
@@ -18,21 +19,21 @@ class SimpleCommand(Command):
 def test_no_binary_overrides():
     cmd = SimpleCommand()
     cmd.main(['fake', '--only-binary=:all:', '--no-binary=fred'])
-    expected = index.FormatControl(set(['fred']), set([':all:']))
+    expected = index.FormatControl({'fred'}, {':all:'})
     assert cmd.options.format_control == expected
 
 
 def test_only_binary_overrides():
     cmd = SimpleCommand()
     cmd.main(['fake', '--no-binary=:all:', '--only-binary=fred'])
-    expected = index.FormatControl(set([':all:']), set(['fred']))
+    expected = index.FormatControl({':all:'}, {'fred'})
     assert cmd.options.format_control == expected
 
 
 def test_none_resets():
     cmd = SimpleCommand()
     cmd.main(['fake', '--no-binary=:all:', '--no-binary=:none:'])
-    expected = index.FormatControl(set([]), set([]))
+    expected = index.FormatControl(set(), set())
     assert cmd.options.format_control == expected
 
 
@@ -41,12 +42,12 @@ def test_none_preserves_other_side():
     cmd.main(
         ['fake', '--no-binary=:all:', '--only-binary=fred',
          '--no-binary=:none:'])
-    expected = index.FormatControl(set([]), set(['fred']))
+    expected = index.FormatControl(set(), {'fred'})
     assert cmd.options.format_control == expected
 
 
 def test_comma_separated_values():
     cmd = SimpleCommand()
     cmd.main(['fake', '--no-binary=1,2,3'])
-    expected = index.FormatControl(set(['1', '2', '3']), set([]))
+    expected = index.FormatControl({'1', '2', '3'}, set())
     assert cmd.options.format_control == expected

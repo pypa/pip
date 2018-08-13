@@ -8,10 +8,10 @@ import site
 import sys
 import sysconfig
 from distutils import sysconfig as distutils_sysconfig
-from distutils.command.install import SCHEME_KEYS, install  # type: ignore
+from distutils.command.install import SCHEME_KEYS  # type: ignore
 
-from pip._internal.compat import WINDOWS, expanduser
 from pip._internal.utils import appdirs
+from pip._internal.utils.compat import WINDOWS, expanduser
 
 # Application Directories
 USER_CACHE_DIR = appdirs.user_cache_dir("pip")
@@ -158,8 +158,6 @@ def distutils_scheme(dist_name, user=False, home=None, root=None,
     assert not (user and prefix), "user={0} prefix={1}".format(user, prefix)
     assert not (home and prefix), "home={0} prefix={1}".format(home, prefix)
     assert not (home and user), "home={0} user={1}".format(home, user)
-    if user or home:
-        i.prefix = ""
     i.user = user or i.user
     i.prefix = prefix or i.prefix
     i.home = home or i.home

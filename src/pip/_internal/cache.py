@@ -9,8 +9,10 @@ import os
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal import index
-from pip._internal.compat import expanduser
 from pip._internal.download import path_to_url
+from pip._internal.models.link import Link
+from pip._internal.utils.compat import expanduser
+from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.wheel import InvalidWheelFilename, Wheel
 
 logger = logging.getLogger(__name__)
@@ -100,15 +102,20 @@ class Cache(object):
         root = self.get_path_for_link(link)
         path = os.path.join(root, candidate)
 
-        return index.Link(path_to_url(path))
+        return Link(path_to_url(path))
+
+    def cleanup(self):
+        pass
 
 
-class WheelCache(Cache):
+class SimpleWheelCache(Cache):
     """A cache of wheels for future installs.
     """
 
     def __init__(self, cache_dir, format_control):
-        super(WheelCache, self).__init__(cache_dir, format_control, {"binary"})
+        super(SimpleWheelCache, self).__init__(
+            cache_dir, format_control, {"binary"}
+        )
 
     def get_path_for_link(self, link):
         """Return a directory to store cached wheels for link
@@ -127,8 +134,7 @@ class WheelCache(Cache):
         """
         parts = self._get_cache_path_parts(link)
 
-        # Inside of the base location for cached wheels, expand our parts and
-        # join them all together.
+        # Store wheels within the root cache_dir
         return os.path.join(self.cache_dir, "wheels", *parts)
 
     def get(self, link, package_name):
@@ -148,3 +154,50 @@ class WheelCache(Cache):
             return link
 
         return self._link_for_candidate(link, min(candidates)[1])
+
+
+class EphemWheelCache(SimpleWheelCache):
+    """A SimpleWheelCache that creates it's own temporary cache directory
+    """
+
+    def __init__(self, format_control):
+        self._temp_dir = TempDirectory(kind="ephem-wheel-cache")
+        self._temp_dir.create()
+
+        super(EphemWheelCache, self).__init__(
+            self._temp_dir.path, format_control
+        )
+
+    def cleanup(self):
+        self._temp_dir.cleanup()
+
+
+class WheelCache(Cache):
+    """Wraps EphemWheelCache and SimpleWheelCache into a single Cache
+
+    This Cache allows for gracefully degradation, using the ephem wheel cache
+    when a certain link is not found in the simple wheel cache first.
+    """
+
+    def __init__(self, cache_dir, format_control):
+        super(WheelCache, self).__init__(
+            cache_dir, format_control, {'binary'}
+        )
+        self._wheel_cache = SimpleWheelCache(cache_dir, format_control)
+        self._ephem_cache = EphemWheelCache(format_control)
+
+    def get_path_for_link(self, link):
+        return self._wheel_cache.get_path_for_link(link)
+
+    def get_ephem_path_for_link(self, link):
+        return self._ephem_cache.get_path_for_link(link)
+
+    def get(self, link, package_name):
+        retval = self._wheel_cache.get(link, package_name)
+        if retval is link:
+            retval = self._ephem_cache.get(link, package_name)
+        return retval
+
+    def cleanup(self):
+        self._wheel_cache.cleanup()
+        self._ephem_cache.cleanup()

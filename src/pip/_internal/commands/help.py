@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
-from pip._internal.basecommand import SUCCESS, Command
+from pip._internal.cli.base_command import Command
+from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.exceptions import CommandError
 
 

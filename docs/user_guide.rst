@@ -46,7 +46,22 @@ Specifiers`
 
 For more information and examples, see the :ref:`pip install` reference.
 
-.. _PyPI: http://pypi.python.org/pypi
+.. _PyPI: https://pypi.org/
+
+
+Using a Proxy Server
+********************
+
+When installing packages from `PyPI`_, pip requires internet access, which
+in many corporate environments requires an outbound HTTP proxy server.
+
+pip can be configured to connect through a proxy server in various ways:
+
+* using the ``--proxy`` command-line option to specify a proxy in the form
+  ``[user:passwd@]proxy.server:port``
+* using ``proxy`` in a :ref:`config-file`
+* by setting the standard environment-variables ``http_proxy``, ``https_proxy``
+  and ``no_proxy``.
 
 
 .. _`Requirements Files`:
@@ -176,9 +191,7 @@ Installing from Wheels
 
 "Wheel" is a built, archive format that can greatly speed installation compared
 to building and installing from source archives. For more information, see the
-`Wheel docs <https://wheel.readthedocs.io>`_ ,
-`PEP427 <http://www.python.org/dev/peps/pep-0427>`_, and
-`PEP425 <http://www.python.org/dev/peps/pep-0425>`_
+`Wheel docs <https://wheel.readthedocs.io>`_ , :pep:`427`, and :pep:`425`.
 
 Pip prefers Wheels where they are available. To disable this, use the
 :ref:`--no-binary <install_--no-binary>` flag for :ref:`pip install`.
@@ -197,7 +210,7 @@ For the cases where wheels are not available, pip offers :ref:`pip wheel` as a
 convenience, to build wheels for all your requirements and dependencies.
 
 :ref:`pip wheel` requires the `wheel package
-<https://pypi.python.org/pypi/wheel>`_ to be installed, which provides the
+<https://pypi.org/project/wheel/>`_ to be installed, which provides the
 "bdist_wheel" setuptools extension that it uses.
 
 To build wheels for your requirements and all their dependencies to a local directory:
@@ -338,13 +351,13 @@ variable ``PIP_CONFIG_FILE``.
 If multiple configuration files are found by pip then they are combined in
 the following order:
 
-1. Firstly the site-wide file is read, then
-2. The per-user file is read, and finally
-3. The virtualenv-specific file is read.
+1. The site-wide file is read
+2. The per-user file is read
+3. The virtualenv-specific file is read
 
 Each file read overrides any values read from previous files, so if the
 global timeout is specified in both the site-wide file and the per-user file
-then the latter value is the one that will be used.
+then the latter value will be used.
 
 The names of the settings are derived from the long command line option, e.g.
 if you want to use a different package index (``--index-url``) and set the
@@ -355,7 +368,7 @@ look like this:
 
     [global]
     timeout = 60
-    index-url = http://download.zope.org/ppix
+    index-url = https://download.zope.org/ppix
 
 Each subcommand can be configured optionally in its own section so that every
 global setting with the same name will be overridden; e.g. decreasing the
@@ -527,11 +540,11 @@ User Installs
 *************
 
 With Python 2.6 came the `"user scheme" for installation
-<http://docs.python.org/install/index.html#alternate-installation-the-user-scheme>`_,
+<https://docs.python.org/3/install/index.html#alternate-installation-the-user-scheme>`_,
 which means that all Python distributions support an alternative install
 location that is specific to a user.  The default location for each OS is
 explained in the python documentation for the `site.USER_BASE
-<http://docs.python.org/library/site.html#site.USER_BASE>`_ variable.  This mode
+<https://docs.python.org/3/library/site.html#site.USER_BASE>`_ variable.  This mode
 of installation can be turned on by specifying the :ref:`--user
 <install_--user>` option to ``pip install``.
 
@@ -730,7 +743,7 @@ change without notice. While we do try not to break things as much as possible, 
 the internal APIs can change at any time, for any reason. It also means that we
 generally *won't* fix issues that are a result of using pip in an unsupported way.
 
-It should also be noted that modifying the contents of ``sys.path`` in a running Python
+It should also be noted that installing packages into ``sys.path`` in a running Python
 process is something that should only be done with care. The import system caches
 certain data, and installing new packages while a program is running may not always
 behave as expected. In practice, there is rarely an issue, but it is something to be
@@ -757,8 +770,6 @@ of ability. Some examples that you could consider include:
 
 * ``setuptools`` (specifically ``pkg_resources``) - Functions for querying what
   packages the user has installed on their system.
-
-* ``wheel`` - Code for manipulating (creating, querying and installing) wheels.
 
 * ``distlib`` - Packaging and distribution utilities (including functions for
   interacting with PyPI).

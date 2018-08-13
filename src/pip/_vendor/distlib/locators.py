@@ -24,7 +24,7 @@ from .compat import (urljoin, urlparse, urlunparse, url2pathname, pathname2url,
                      HTTPRedirectHandler as BaseRedirectHandler, text_type,
                      Request, HTTPError, URLError)
 from .database import Distribution, DistributionPath, make_dist
-from .metadata import Metadata
+from .metadata import Metadata, MetadataInvalidError
 from .util import (cached_property, parse_credentials, ensure_slash,
                    split_filename, get_project_data, parse_requirement,
                    parse_name_and_version, ServerProxy, normalize_name)
@@ -69,7 +69,7 @@ class RedirectHandler(BaseRedirectHandler):
             if key in headers:
                 newurl = headers[key]
                 break
-        if newurl is None:
+        if newurl is None:  # pragma: no cover
             return
         urlparts = urlparse(newurl)
         if urlparts.scheme == '':
@@ -175,7 +175,7 @@ class Locator(object):
 
         This calls _get_project to do all the work, and just implements a caching layer on top.
         """
-        if self._cache is None:
+        if self._cache is None:  # pragma: no cover
             result = self._get_project(name)
         elif name in self._cache:
             result = self._cache[name]
@@ -197,7 +197,7 @@ class Locator(object):
         is_downloadable = basename.endswith(self.downloadable_extensions)
         if is_wheel:
             compatible = is_compatible(Wheel(basename), self.wheel_tags)
-        return (t.scheme != 'https', 'pypi.python.org' in t.netloc,
+        return (t.scheme == 'https', 'pypi.python.org' in t.netloc,
                 is_downloadable, is_wheel, compatible, basename)
 
     def prefer_url(self, url1, url2):
@@ -241,7 +241,7 @@ class Locator(object):
 
         result = None
         scheme, netloc, path, params, query, frag = urlparse(url)
-        if frag.lower().startswith('egg='):
+        if frag.lower().startswith('egg='):  # pragma: no cover
             logger.debug('%s: version hint in fragment: %r',
                          project_name, frag)
         m = HASHER_HASH.match(frag)
@@ -250,7 +250,7 @@ class Locator(object):
         else:
             algo, digest = None, None
         origpath = path
-        if path and path[-1] == '/':
+        if path and path[-1] == '/':  # pragma: no cover
             path = path[:-1]
         if path.endswith('.whl'):
             try:
@@ -272,13 +272,15 @@ class Locator(object):
                         }
             except Exception as e:  # pragma: no cover
                 logger.warning('invalid path for wheel: %s', path)
-        elif path.endswith(self.downloadable_extensions):
+        elif not path.endswith(self.downloadable_extensions):  # pragma: no cover
+            logger.debug('Not downloadable: %s', path)
+        else:  # downloadable extension
             path = filename = posixpath.basename(path)
             for ext in self.downloadable_extensions:
                 if path.endswith(ext):
                     path = path[:-len(ext)]
                     t = self.split_filename(path, project_name)
-                    if not t:
+                    if not t:  # pragma: no cover
                         logger.debug('No match for project/version: %s', path)
                     else:
                         name, version, pyver = t
@@ -291,7 +293,7 @@ class Locator(object):
                                                    params, query, '')),
                                 #'packagetype': 'sdist',
                             }
-                            if pyver:
+                            if pyver:  # pragma: no cover
                                 result['python-version'] = pyver
                     break
         if result and algo:
@@ -352,7 +354,7 @@ class Locator(object):
         """
         result = None
         r = parse_requirement(requirement)
-        if r is None:
+        if r is None:  # pragma: no cover
             raise DistlibException('Not a valid requirement: %r' % requirement)
         scheme = get_scheme(self.scheme)
         self.matcher = matcher = scheme.matcher(r.requirement)
@@ -390,7 +392,7 @@ class Locator(object):
             d = {}
             sd = versions.get('digests', {})
             for url in result.download_urls:
-                if url in sd:
+                if url in sd:  # pragma: no cover
                     d[url] = sd[url]
             result.digests = d
         self.matcher = None
@@ -730,11 +732,14 @@ class SimpleScrapingLocator(Locator):
                         continue
                     for link, rel in page.links:
                         if link not in self._seen:
-                            self._seen.add(link)
-                            if (not self._process_download(link) and
-                                self._should_queue(link, url, rel)):
-                                logger.debug('Queueing %s from %s', link, url)
-                                self._to_fetch.put(link)
+                            try:
+                                self._seen.add(link)
+                                if (not self._process_download(link) and
+                                    self._should_queue(link, url, rel)):
+                                    logger.debug('Queueing %s from %s', link, url)
+                                    self._to_fetch.put(link)
+                            except MetadataInvalidError:  # e.g. invalid versions
+                                pass
             except Exception as e:  # pragma: no cover
                 self.errors.put(text_type(e))
             finally:

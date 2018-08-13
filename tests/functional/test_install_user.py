@@ -7,7 +7,7 @@ from os.path import curdir, isdir, isfile
 
 import pytest
 
-from pip._internal.compat import cache_from_source, uses_pycache
+from pip._internal.utils.compat import cache_from_source, uses_pycache
 from tests.lib import pyversion
 from tests.lib.local_repos import local_checkout
 
@@ -68,24 +68,29 @@ class Tests_UserSite:
         )
         result.assert_installed('INITools', use_user_site=True)
 
-    def test_install_curdir_usersite(self, script, virtualenv, data):
+    @pytest.mark.network
+    def test_install_from_current_directory_into_usersite(
+            self, script, virtualenv, data, common_wheels):
         """
         Test installing current directory ('.') into usersite
         """
         virtualenv.system_site_packages = True
+        script.pip("install", "wheel", '--no-index', '-f', common_wheels)
+
         run_from = data.packages.join("FSPkg")
         result = script.pip(
             'install', '-vvv', '--user', curdir,
             cwd=run_from,
             expect_error=False,
         )
+
         fspkg_folder = script.user_site / 'fspkg'
-        egg_info_folder = (
-            script.user_site / 'FSPkg-0.1.dev0-py%s.egg-info' % pyversion
-        )
         assert fspkg_folder in result.files_created, result.stdout
 
-        assert egg_info_folder in result.files_created
+        dist_info_folder = (
+            script.user_site / 'FSPkg-0.1.dev0.dist-info'
+        )
+        assert dist_info_folder in result.files_created
 
     def test_install_user_venv_nositepkgs_fails(self, script, data):
         """

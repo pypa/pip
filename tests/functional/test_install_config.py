@@ -24,10 +24,10 @@ def test_command_line_options_override_env_vars(script, virtualenv):
     Test that command line options override environmental variables.
 
     """
-    script.environ['PIP_INDEX_URL'] = 'https://b.pypi.python.org/simple/'
+    script.environ['PIP_INDEX_URL'] = 'https://example.com/simple/'
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
     assert (
-        "Getting page https://b.pypi.python.org/simple/initools"
+        "Getting page https://example.com/simple/initools"
         in result.stdout
     )
     virtualenv.clear()
@@ -36,7 +36,7 @@ def test_command_line_options_override_env_vars(script, virtualenv):
         'INITools',
         expect_error=True,
     )
-    assert "b.pypi.python.org" not in result.stdout
+    assert "example.com" not in result.stdout
     assert "Getting page https://download.zope.org/ppix" in result.stdout
 
 
@@ -51,7 +51,7 @@ def test_env_vars_override_config_file(script, virtualenv):
         _test_env_vars_override_config_file(script, virtualenv, config_file)
     finally:
         # `os.close` is a workaround for a bug in subprocess
-        # http://bugs.python.org/issue3210
+        # https://bugs.python.org/issue3210
         os.close(fd)
         os.remove(config_file)
 
@@ -85,24 +85,24 @@ def test_command_line_append_flags(script, virtualenv, data):
     variables.
 
     """
-    script.environ['PIP_FIND_LINKS'] = 'https://testpypi.python.org'
+    script.environ['PIP_FIND_LINKS'] = 'https://test.pypi.org'
     result = script.pip(
         'install', '-vvv', 'INITools', '--trusted-host',
-        'testpypi.python.org',
+        'test.pypi.org',
         expect_error=True,
     )
     assert (
-        "Analyzing links from page https://testpypi.python.org"
+        "Analyzing links from page https://test.pypi.org"
         in result.stdout
     ), str(result)
     virtualenv.clear()
     result = script.pip(
         'install', '-vvv', '--find-links', data.find_links, 'INITools',
-        '--trusted-host', 'testpypi.python.org',
+        '--trusted-host', 'test.pypi.org',
         expect_error=True,
     )
     assert (
-        "Analyzing links from page https://testpypi.python.org"
+        "Analyzing links from page https://test.pypi.org"
         in result.stdout
     )
     assert "Skipping link %s" % data.find_links in result.stdout
@@ -115,16 +115,16 @@ def test_command_line_appends_correctly(script, data):
 
     """
     script.environ['PIP_FIND_LINKS'] = (
-        'https://testpypi.python.org %s' % data.find_links
+        'https://test.pypi.org %s' % data.find_links
     )
     result = script.pip(
         'install', '-vvv', 'INITools', '--trusted-host',
-        'testpypi.python.org',
+        'test.pypi.org',
         expect_error=True,
     )
 
     assert (
-        "Analyzing links from page https://testpypi.python.org"
+        "Analyzing links from page https://test.pypi.org"
         in result.stdout
     ), result.stdout
     assert "Skipping link %s" % data.find_links in result.stdout
@@ -141,7 +141,7 @@ def test_config_file_override_stack(script, virtualenv):
         _test_config_file_override_stack(script, virtualenv, config_file)
     finally:
         # `os.close` is a workaround for a bug in subprocess
-        # http://bugs.python.org/issue3210
+        # https://bugs.python.org/issue3210
         os.close(fd)
         os.remove(config_file)
 
@@ -167,7 +167,7 @@ def _test_config_file_override_stack(script, virtualenv, config_file):
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
     assert "Getting page https://pypi.gocept.com/initools" in result.stdout
     result = script.pip(
-        'install', '-vvv', '--index-url', 'https://pypi.python.org/simple',
+        'install', '-vvv', '--index-url', 'https://pypi.org/simple/',
         'INITools',
         expect_error=True,
     )
@@ -177,7 +177,7 @@ def _test_config_file_override_stack(script, virtualenv, config_file):
     )
     assert "Getting page https://pypi.gocept.com/INITools" not in result.stdout
     assert (
-        "Getting page https://pypi.python.org/simple/initools" in result.stdout
+        "Getting page https://pypi.org/simple/initools" in result.stdout
     )
 
 

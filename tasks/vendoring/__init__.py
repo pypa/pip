@@ -17,8 +17,8 @@ FILE_WHITE_LIST = (
 )
 
 
-def drop_dir(path):
-    shutil.rmtree(str(path))
+def drop_dir(path, **kwargs):
+    shutil.rmtree(str(path), **kwargs)
 
 
 def remove_all(paths):
@@ -73,7 +73,7 @@ def rewrite_imports(package_dir, vendored_libs):
 
 def rewrite_file_imports(item, vendored_libs):
     """Rewrite 'import xxx' and 'from xxx import' for vendored_libs"""
-    text = item.read_text()
+    text = item.read_text(encoding='utf-8')
     # Revendor pkg_resources.extern first
     text = re.sub(r'pkg_resources.extern', r'pip._vendor', text)
     for lib in vendored_libs:
@@ -83,11 +83,11 @@ def rewrite_file_imports(item, vendored_libs):
             text,
         )
         text = re.sub(
-            r'(\n\s*)from %s' % lib,
-            r'\1from pip._vendor.%s' % lib,
+            r'(\n\s*)from %s(\.|\s+)' % lib,
+            r'\1from pip._vendor.%s\2' % lib,
             text,
         )
-    item.write_text(text)
+    item.write_text(text, encoding='utf-8')
 
 
 def apply_patch(ctx, patch_file_path):
@@ -113,6 +113,10 @@ def vendor(ctx, vendor_dir):
     drop_dir(vendor_dir / 'setuptools')
     drop_dir(vendor_dir / 'pkg_resources' / '_vendor')
     drop_dir(vendor_dir / 'pkg_resources' / 'extern')
+
+    # Drop the bin directory (contains easy_install, distro, chardetect etc.)
+    # Might not appear on all OSes, so ignoring errors
+    drop_dir(vendor_dir / 'bin', ignore_errors=True)
 
     # Drop interpreter and OS specific msgpack libs.
     # Pip will rely on the python-only fallback instead.
@@ -144,9 +148,15 @@ def update_stubs(ctx):
 
     print("[vendoring.update_stubs] Add mypy stubs")
 
-    # Some projects need stubs other than a simple <name>.pyi
     extra_stubs_needed = {
-        "six": ["six.__init__", "six.moves"]
+        # Some projects need stubs other than a simple <name>.pyi
+        "six": [
+            "six.__init__",
+            "six.moves.__init__",
+            "six.moves.configparser",
+        ],
+        # Some projects should not have stubs coz they're single file modules
+        "appdirs": [],
     }
 
     for lib in vendored_libs:

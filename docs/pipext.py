@@ -2,13 +2,14 @@
 
 import optparse
 import sys
+from textwrap import dedent
+
 from docutils import nodes
 from docutils.parsers import rst
 from docutils.statemachine import ViewList
-from textwrap import dedent
-from pip._internal import cmdoptions
+
+from pip._internal.cli import cmdoptions
 from pip._internal.commands import commands_dict as commands
-from pip._internal.utils.misc import get_prog
 
 
 class PipCommandUsage(rst.Directive):
@@ -16,8 +17,7 @@ class PipCommandUsage(rst.Directive):
 
     def run(self):
         cmd = commands[self.arguments[0]]
-        prog = '%s %s' % (get_prog(), cmd.name)
-        usage = dedent(cmd.usage.replace('%prog', prog)).strip()
+        usage = dedent(cmd.usage.replace('%prog', 'pip')).strip()
         node = nodes.literal_block(usage, usage)
         return [node]
 

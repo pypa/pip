@@ -1,2 +1,2 @@
 [build-system]
-requires=["simple==3.0", "setuptools", "wheel"]
+requires=["simplewheel==2.0", "setuptools", "wheel"]

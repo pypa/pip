@@ -8,7 +8,7 @@ from mock import MagicMock
 
 from pip._internal.exceptions import ConfigurationError
 from pip._internal.locations import (
-    new_config_file, site_config_files, venv_config_file
+    new_config_file, site_config_files, venv_config_file,
 )
 from tests.lib.configuration_helpers import ConfigurationMixin, kinds
 

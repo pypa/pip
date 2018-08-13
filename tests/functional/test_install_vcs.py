@@ -1,7 +1,11 @@
 import pytest
 
 from tests.lib import (
-    _change_test_package_version, _create_test_package, pyversion
+    _change_test_package_version, _create_test_package, pyversion,
+)
+from tests.lib.git_submodule_helpers import (
+    _change_test_package_submodule, _create_test_package_with_submodule,
+    _pull_in_submodule_changes_to_module,
 )
 from tests.lib.local_repos import local_checkout
 
@@ -116,6 +120,27 @@ def test_git_with_sha1_revisions(script):
 
 
 @pytest.mark.network
+def test_git_with_short_sha1_revisions(script):
+    """
+    Git backend should be able to install from SHA1 revisions
+    """
+    version_pkg_path = _create_test_package(script)
+    _change_test_package_version(script, version_pkg_path)
+    sha1 = script.run(
+        'git', 'rev-parse', 'HEAD~1',
+        cwd=version_pkg_path,
+    ).stdout.strip()[:7]
+    script.pip(
+        'install', '-e',
+        '%s@%s#egg=version_pkg' %
+        ('git+file://' + version_pkg_path.abspath.replace('\\', '/'), sha1),
+        expect_stderr=True
+    )
+    version = script.run('version_pkg')
+    assert '0.1' in version.stdout, version.stdout
+
+
+@pytest.mark.network
 def test_git_with_branch_name_as_revision(script):
     """
     Git backend should be able to install from branch names
@@ -184,7 +209,7 @@ def test_git_with_tag_name_and_update(script, tmpdir):
     result = script.pip(
         'install', '-e', '%s#egg=pip-test-package' %
         local_checkout(
-            'git+http://github.com/pypa/pip-test-package.git',
+            'git+https://github.com/pypa/pip-test-package.git',
             tmpdir.join("cache"),
         ),
         expect_error=True,
@@ -194,7 +219,7 @@ def test_git_with_tag_name_and_update(script, tmpdir):
         'install', '--global-option=--version', '-e',
         '%s@0.1.2#egg=pip-test-package' %
         local_checkout(
-            'git+http://github.com/pypa/pip-test-package.git',
+            'git+https://github.com/pypa/pip-test-package.git',
             tmpdir.join("cache"),
         ),
         expect_error=True,
@@ -211,7 +236,7 @@ def test_git_branch_should_not_be_changed(script, tmpdir):
     script.pip(
         'install', '-e', '%s#egg=pip-test-package' %
         local_checkout(
-            'git+http://github.com/pypa/pip-test-package.git',
+            'git+https://github.com/pypa/pip-test-package.git',
             tmpdir.join("cache"),
         ),
         expect_error=True,
@@ -229,7 +254,7 @@ def test_git_with_non_editable_unpacking(script, tmpdir):
     result = script.pip(
         'install', '--global-option=--version',
         local_checkout(
-            'git+http://github.com/pypa/pip-test-package.git@0.1.2'
+            'git+https://github.com/pypa/pip-test-package.git@0.1.2'
             '#egg=pip-test-package',
             tmpdir.join("cache")
         ),
@@ -333,3 +358,36 @@ def test_reinstalling_works_with_editible_non_master_branch(script):
     )
     version = script.run('version_pkg')
     assert 'some different version' in version.stdout
+
+
+# TODO(pnasrat) fix all helpers to do right things with paths on windows.
+@pytest.mark.skipif("sys.platform == 'win32'")
+@pytest.mark.network
+def test_check_submodule_addition(script):
+    """
+    Submodules are pulled in on install and updated on upgrade.
+    """
+    module_path, submodule_path = _create_test_package_with_submodule(script)
+
+    install_result = script.pip(
+        'install', '-e', 'git+' + module_path + '#egg=version_pkg'
+    )
+    assert (
+        script.venv / 'src/version-pkg/testpkg/static/testfile'
+        in install_result.files_created
+    )
+
+    _change_test_package_submodule(script, submodule_path)
+    _pull_in_submodule_changes_to_module(script, module_path)
+
+    # expect error because git may write to stderr
+    update_result = script.pip(
+        'install', '-e', 'git+' + module_path + '#egg=version_pkg',
+        '--upgrade',
+        expect_error=True,
+    )
+
+    assert (
+        script.venv / 'src/version-pkg/testpkg/static/testfile2'
+        in update_result.files_created
+    )

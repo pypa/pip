@@ -10,18 +10,18 @@ from signal import SIGINT, default_int_handler, signal
 from pip._vendor import six
 from pip._vendor.progress.bar import (
     Bar, ChargingBar, FillingCirclesBar, FillingSquaresBar, IncrementalBar,
-    ShadyBar
+    ShadyBar,
 )
 from pip._vendor.progress.helpers import HIDE_CURSOR, SHOW_CURSOR, WritelnMixin
 from pip._vendor.progress.spinner import Spinner
 
-from pip._internal.compat import WINDOWS
+from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.logging import get_indentation
 from pip._internal.utils.misc import format_size
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any
+    from typing import Any  # noqa: F401
 
 try:
     from pip._vendor import colorama
@@ -137,6 +137,7 @@ class DownloadProgressMixin(object):
     def __init__(self, *args, **kwargs):
         super(DownloadProgressMixin, self).__init__(*args, **kwargs)
         self.message = (" " * (get_indentation() + 2)) + self.message
+        self.last_update = 0.0
 
     @property
     def downloaded(self):
@@ -160,6 +161,15 @@ class DownloadProgressMixin(object):
             yield x
             self.next(n)
         self.finish()
+
+    def update(self):
+        # limit updates to avoid swamping the TTY
+        now = time.time()
+        if now < self.last_update + 0.2:
+            return
+        self.last_update = now
+
+        super(DownloadProgressMixin, self).update()
 
 
 class WindowsMixin(object):

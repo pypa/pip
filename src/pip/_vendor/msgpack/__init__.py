@@ -19,13 +19,13 @@ class ExtType(namedtuple('ExtType', 'code data')):
 
 import os
 if os.environ.get('MSGPACK_PUREPYTHON'):
-    from pip._vendor.msgpack.fallback import Packer, unpack, unpackb, Unpacker
+    from pip._vendor.msgpack.fallback import Packer, unpackb, Unpacker
 else:
     try:
         from pip._vendor.msgpack._packer import Packer
-        from pip._vendor.msgpack._unpacker import unpack, unpackb, Unpacker
+        from pip._vendor.msgpack._unpacker import unpackb, Unpacker
     except ImportError:
-        from pip._vendor.msgpack.fallback import Packer, unpack, unpackb, Unpacker
+        from pip._vendor.msgpack.fallback import Packer, unpackb, Unpacker
 
 
 def pack(o, stream, **kwargs):
@@ -45,6 +45,18 @@ def packb(o, **kwargs):
     See :class:`Packer` for options.
     """
     return Packer(**kwargs).pack(o)
+
+
+def unpack(stream, **kwargs):
+    """
+    Unpack an object from `stream`.
+
+    Raises `ExtraData` when `stream` contains extra bytes.
+    See :class:`Unpacker` for options.
+    """
+    data = stream.read()
+    return unpackb(data, **kwargs)
+
 
 # alias for compatibility to simplejson/marshal/pickle.
 load = unpack

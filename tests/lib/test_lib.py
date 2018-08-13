@@ -31,7 +31,7 @@ def test_correct_pip_version(script):
     # compare the directory tree of the invoked pip with that of this source
     # distribution
     pip_folder_outputed = re.match(
-        r'pip \d+(\.[\d]+)+(\.?(rc|dev|pre|post)\d+)? from (.*) '
+        r'pip \d+(\.[\d]+)+(\.?(b|rc|dev|pre|post)\d+)? from (.*) '
         r'\(python \d(.[\d])+\)$',
         result.stdout
     ).group(4)

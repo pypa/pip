@@ -3,8 +3,8 @@ from os.path import exists
 
 import pytest
 
+from pip._internal.cli.status_codes import PREVIOUS_BUILD_DIR_ERROR
 from pip._internal.locations import write_delete_marker_file
-from pip._internal.status_codes import PREVIOUS_BUILD_DIR_ERROR
 from tests.lib import need_mercurial
 from tests.lib.local_repos import local_checkout
 
@@ -31,7 +31,7 @@ def test_no_clean_option_blocks_cleaning_after_install(script, data):
     build = script.base_path / 'pip-build'
     script.pip(
         'install', '--no-clean', '--no-index', '--build', build,
-        '--find-links=%s' % data.find_links, 'simple',
+        '--find-links=%s' % data.find_links, 'simple', expect_temp=True,
     )
     assert exists(build)
 
@@ -129,14 +129,14 @@ def test_cleanup_prevented_upon_build_dir_exception(script, data):
     build = script.venv_path / 'build'
     build_simple = build / 'simple'
     os.makedirs(build_simple)
-    write_delete_marker_file(build)
+    write_delete_marker_file(build_simple)
     build_simple.join("setup.py").write("#")
     result = script.pip(
         'install', '-f', data.find_links, '--no-index', 'simple',
         '--build', build,
-        expect_error=True,
+        expect_error=True, expect_temp=True,
     )
 
-    assert result.returncode == PREVIOUS_BUILD_DIR_ERROR
-    assert "pip can't proceed" in result.stderr
-    assert exists(build_simple)
+    assert result.returncode == PREVIOUS_BUILD_DIR_ERROR, str(result)
+    assert "pip can't proceed" in result.stderr, str(result)
+    assert exists(build_simple), str(result)

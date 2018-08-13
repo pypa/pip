@@ -22,7 +22,7 @@ class VirtualEnvironment(object):
         self.bin = Path(bin)
 
     def __repr__(self):
-        return "<VirtualEnvironment {0}>".format(self.location)
+        return "<VirtualEnvironment {}>".format(self.location)
 
     @classmethod
     def create(cls, location, clear=False,

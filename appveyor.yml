@@ -1,14 +1,12 @@
 environment:
   matrix:
-    # Unit and integration tests. 
+    # Unit and integration tests.
     - PYTHON: "C:\\Python27"
       RUN_INTEGRATION_TESTS: "True"
     - PYTHON: "C:\\Python36-x64"
       RUN_INTEGRATION_TESTS: "True"
     # Unit tests only.
     - PYTHON: "C:\\Python27-x64"
-    - PYTHON: "C:\\Python33"
-    - PYTHON: "C:\\Python33-x64"
     - PYTHON: "C:\\Python34"
     - PYTHON: "C:\\Python34-x64"
     - PYTHON: "C:\\Python35"
@@ -26,11 +24,42 @@ install:
 
 build: off
 
+cache:
+  - '%LOCALAPPDATA%\pip\Cache'
+
 test_script:
-  # Shorten paths, workaround https://bugs.python.org/issue18199
-  - "subst T: %TEMP%"
-  - "set TEMP=T:\\"
-  - "set TMP=T:\\"
-  - "tox -e py -- -m unit -n 3"
-  - "if \"%RUN_INTEGRATION_TESTS%\" == \"True\" (
-    tox -e py -- -m integration -n 3 --duration=5 )"
+    - ps: |
+        function should_run_tests {
+            if ("$env:APPVEYOR_PULL_REQUEST_NUMBER" -eq "") {
+                Write-Host "Not a pull request - running tests"
+                return $true
+            }
+            Write-Host "Pull request $env:APPVEYOR_PULL_REQUEST_NUMBER based on branch $env:APPVEYOR_REPO_BRANCH"
+            git fetch -q origin +refs/heads/$env:APPVEYOR_REPO_BRANCH
+            $changes = (git diff --name-only HEAD (git merge-base HEAD FETCH_HEAD))
+            Write-Host "Files changed:"
+            Write-Host $changes
+            $important = $changes | Where-Object { $_ -NotLike "*.rst" } |
+                                    Where-Object { $_ -NotLike "docs*" } |
+                                    Where-Object { $_ -NotLike "news*" } |
+                                    Where-Object { $_ -NotLike "*travis*" } |
+                                    Where-Object { $_ -NotLike ".github*" }
+            if (!$important) {
+                Write-Host "Only documentation changes - skipping tests"
+                return $false
+            }
+
+            Write-Host "Pull request $env:APPVEYOR_PULL_REQUEST_NUMBER alters code - running tests"
+            return $true
+        }
+
+        if (should_run_tests) {
+            # Shorten paths, workaround https://bugs.python.org/issue18199
+            subst T: $env:TEMP
+            $env:TEMP = "T:\"
+            $env:TMP = "T:\"
+            tox -e py -- -m unit -n 3
+            if ($env:RUN_INTEGRATION_TESTS -eq "True") {
+                tox -e py -- -m integration -n 3 --duration=5
+            }
+        }

@@ -1,9 +1,11 @@
+import logging
+
 import pytest
 
+from pip._internal.cli.status_codes import NO_MATCHES_FOUND, SUCCESS
 from pip._internal.commands.search import (
-    SearchCommand, highest_version, print_results, transform_hits
+    SearchCommand, highest_version, print_results, transform_hits,
 )
-from pip._internal.status_codes import NO_MATCHES_FOUND, SUCCESS
 from tests.lib import pyversion
 
 if pyversion >= '3':
@@ -60,7 +62,7 @@ def test_pypi_xml_transformation():
 
 
 @pytest.mark.network
-def test_search(script):
+def test_basic_search(script):
     """
     End to end test of search command.
 
@@ -73,6 +75,12 @@ def test_search(script):
 
 
 @pytest.mark.network
+@pytest.mark.skip(
+    reason=("Warehouse search behavior is different and no longer returns "
+            "multiple results. See "
+            "https://github.com/pypa/warehouse/issues/3717 for more "
+            "information."),
+)
 def test_multiple_search(script):
     """
     Test searching for multiple packages at once.
@@ -100,7 +108,7 @@ def test_run_method_should_return_success_when_find_packages():
     Test SearchCommand.run for found package
     """
     command = SearchCommand()
-    cmdline = "--index=https://pypi.python.org/pypi pip"
+    cmdline = "--index=https://pypi.org/pypi pip"
     options, args = command.parse_args(cmdline.split())
     status = command.run(options, args)
     assert status == SUCCESS
@@ -112,7 +120,7 @@ def test_run_method_should_return_no_matches_found_when_does_not_find_pkgs():
     Test SearchCommand.run for no matches
     """
     command = SearchCommand()
-    cmdline = "--index=https://pypi.python.org/pypi nonexistentpackage"
+    cmdline = "--index=https://pypi.org/pypi nonexistentpackage"
     options, args = command.parse_args(cmdline.split())
     status = command.run(options, args)
     assert status == NO_MATCHES_FOUND
@@ -152,7 +160,10 @@ def test_search_print_results_should_contain_latest_versions(caplog):
             'versions': ['2.0.1', '2.0.3']
         }
     ]
-    print_results(hits)
+
+    with caplog.at_level(logging.INFO):
+        print_results(hits)
+
     log_messages = sorted([r.getMessage() for r in caplog.records])
     assert log_messages[0].startswith('testlib1 (1.0.5)')
     assert log_messages[1].startswith('testlib2 (2.0.3)')

@@ -12,16 +12,17 @@ dist/
 MANIFEST
 
 # Documentation
-docs/_build/
+docs/build/
 
 # mypy
 .mypy_cache/
 
 # Unit test / coverage reports
 .tox/
+htmlcov/
 .coverage
 .coverage.*
-.cache
+.*cache
 nosetests.xml
 coverage.xml
 *.cover

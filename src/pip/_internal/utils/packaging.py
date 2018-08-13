@@ -2,12 +2,13 @@ from __future__ import absolute_import
 
 import logging
 import sys
-from email.parser import FeedParser
+from email.parser import FeedParser  # type: ignore
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging import specifiers, version
 
 from pip._internal import exceptions
+from pip._internal.utils.misc import display_path
 
 logger = logging.getLogger(__name__)
 
@@ -35,16 +36,20 @@ def check_requires_python(requires_python):
 def get_metadata(dist):
     if (isinstance(dist, pkg_resources.DistInfoDistribution) and
             dist.has_metadata('METADATA')):
-        return dist.get_metadata('METADATA')
+        metadata = dist.get_metadata('METADATA')
     elif dist.has_metadata('PKG-INFO'):
-        return dist.get_metadata('PKG-INFO')
+        metadata = dist.get_metadata('PKG-INFO')
+    else:
+        logger.warning("No metadata found in %s", display_path(dist.location))
+        metadata = ''
+
+    feed_parser = FeedParser()
+    feed_parser.feed(metadata)
+    return feed_parser.close()
 
 
 def check_dist_requires_python(dist):
-    metadata = get_metadata(dist)
-    feed_parser = FeedParser()
-    feed_parser.feed(metadata)
-    pkg_info_dict = feed_parser.close()
+    pkg_info_dict = get_metadata(dist)
     requires_python = pkg_info_dict.get('Requires-Python')
     try:
         if not check_requires_python(requires_python):
@@ -56,8 +61,9 @@ def check_dist_requires_python(dist):
             )
     except specifiers.InvalidSpecifier as e:
         logger.warning(
-            "Package %s has an invalid Requires-Python entry %s - %s" % (
-                dist.project_name, requires_python, e))
+            "Package %s has an invalid Requires-Python entry %s - %s",
+            dist.project_name, requires_python, e,
+        )
         return
 
 

@@ -38,7 +38,7 @@ each is, in the following order:
    an error).
 3. Local file (a sdist or wheel format archive, following the naming
    conventions for those formats).
-4. A requirement, as specified in PEP 440.
+4. A requirement, as specified in :pep:`440`.
 
 Each item identified is added to the set of requirements to be satisfied by
 the install.
@@ -171,6 +171,28 @@ You can also refer to :ref:`constraints files <Constraints Files>`, like this::
 
     -c some_constraints.txt
 
+.. _`Using Environment Variables`:
+
+Using Environment Variables
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Since version 10, pip supports the use of environment variables inside the
+requirements file. You can now store sensitive data (tokens, keys, etc.) in
+environment variables and only specify the variable name for your requirements,
+letting pip lookup the value at runtime. This approach aligns with the commonly
+used `12-factor configuration pattern <https://12factor.net/config>`_.
+
+You have to use the POSIX format for variable names including brackets around
+the uppercase name as shown in this example: ``${API_TOKEN}``. pip will attempt
+to find the corresponding environment variable defined on the host system at
+runtime.
+
+.. note::
+
+   There is no support for other variable expansion syntaxes such as
+   ``$VARIABLE`` and ``%VARIABLE%``.
+
+
 .. _`Example Requirements File`:
 
 Example Requirements File
@@ -215,7 +237,7 @@ Requirement Specifiers
 pip supports installing from a package index using a :term:`requirement
 specifier <pypug:Requirement Specifier>`. Generally speaking, a requirement
 specifier is composed of a project name followed by optional :term:`version
-specifiers <pypug:Version Specifier>`.  `PEP508`_ contains a full specification
+specifiers <pypug:Version Specifier>`.  :pep:`508` contains a full specification
 of the format of a requirement (``pip`` does not support the ``url_req`` form
 of specifier at this time).
 
@@ -230,7 +252,7 @@ Some examples:
   SomeProject~=1.4.2
 
 Since version 6.0, pip also supports specifiers containing `environment markers
-<https://www.python.org/dev/peps/pep-0426/#environment-markers>`_ like so:
+<https://www.python.org/dev/peps/pep-0508/#environment-markers>`__ like so:
 
  ::
 
@@ -289,7 +311,7 @@ Pre-release Versions
 ++++++++++++++++++++
 
 Starting with v1.4, pip will only install stable versions as specified by
-`PEP426`_ by default. If a version cannot be parsed as a compliant `PEP426`_
+`pre-releases`_ by default. If a version cannot be parsed as a compliant :pep:`440`
 version then it is assumed to be a pre-release.
 
 If a Requirement specifier includes a pre-release or development version
@@ -297,10 +319,10 @@ If a Requirement specifier includes a pre-release or development version
 for that requirement. This does not include the != flag.
 
 The ``pip install`` command also supports a :ref:`--pre <install_--pre>` flag
-that will enable installing pre-releases and development releases.
+that enables installation of pre-releases and development releases.
 
 
-.. _PEP426: http://www.python.org/dev/peps/pep-0426
+.. _pre-releases: https://www.python.org/dev/peps/pep-0440/#handling-of-pre-releases
 
 
 .. _`VCS Support`:
@@ -365,7 +387,7 @@ Here are the supported forms::
     [-e] git+https://git.example.com/MyProject#egg=MyProject
     [-e] git+ssh://git.example.com/MyProject#egg=MyProject
     [-e] git+git://git.example.com/MyProject#egg=MyProject
-    [-e] git+file://git.example.com/MyProject#egg=MyProject
+    [-e] git+file:///home/user/projects/MyProject#egg=MyProject
     -e git+git@git.example.com:MyProject#egg=MyProject
 
 Passing branch names, a commit hash or a tag name is possible like so::
@@ -432,14 +454,29 @@ Tags or revisions can be installed like so::
     [-e] bzr+https://bzr.example.com/MyProject/trunk@2019#egg=MyProject
     [-e] bzr+http://bzr.example.com/MyProject/trunk@v1.0#egg=MyProject
 
+Using Environment Variables
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Since version 10, pip also makes it possible to use environment variables which
+makes it possible to reference private repositories without having to store
+access tokens in the requirements file. For example, a private git repository
+allowing Basic Auth for authentication can be refenced like this::
+
+    [-e] git+http://${AUTH_USER}:${AUTH_PASSWORD}@git.example.com/MyProject#egg=MyProject
+    [-e] git+https://${AUTH_USER}:${AUTH_PASSWORD}@git.example.com/MyProject#egg=MyProject
+
+.. note::
+
+   Only ``${VARIABLE}`` is supported, other formats like ``$VARIABLE`` or
+   ``%VARIABLE%`` won't work.
 
 Finding Packages
 ++++++++++++++++
 
 pip searches for packages on `PyPI`_ using the
-`http simple interface <http://pypi.python.org/simple>`_,
+`http simple interface <https://pypi.org/simple/>`_,
 which is documented `here <https://setuptools.readthedocs.io/en/latest/easy_install.html#package-index-api>`_
-and `there <http://www.python.org/dev/peps/pep-0301/>`_
+and `there <https://www.python.org/dev/peps/pep-0301/>`_
 
 pip offers a number of Package Index Options for modifying how packages are found.
 
@@ -447,7 +484,7 @@ pip looks for packages in a number of places, on PyPI (if not disabled via
 ```--no-index```), in the local filesystem, and in any additional repositories
 specified via ```--find-links``` or ```--index-url```. There is no ordering in
 the locations that are searched, rather they are all checked, and the "best"
-match for the requirements (in terms of version number - see `PEP440`_ for
+match for the requirements (in terms of version number - see :pep:`440` for
 details) is selected.
 
 See the :ref:`pip install Examples<pip install Examples>`.
@@ -679,7 +716,7 @@ Package Index Options have an effect.
 
 The solution is to configure a "system" or "personal" `Distutils configuration
 file
-<http://docs.python.org/2/install/index.html#distutils-configuration-files>`_ to
+<https://docs.python.org/3/install/index.html#distutils-configuration-files>`_ to
 manage the fulfillment.
 
 For example, to have the dependency located at an alternate index, add this:
@@ -737,7 +774,7 @@ No other build system commands are invoked by the ``pip install`` command.
 
 Installing a package from a wheel does not invoke the build system at all.
 
-.. _PyPI: http://pypi.python.org/pypi/
+.. _PyPI: https://pypi.org/
 .. _setuptools extras: https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies
 
 
@@ -844,6 +881,3 @@ Examples
 
 .. [1] This is true with the exception that pip v7.0 and v7.0.1 required quotes
        around specifiers containing environment markers in requirement files.
-
-.. _PEP440: http://www.python.org/dev/peps/pep-0440
-.. _PEP508: http://www.python.org/dev/peps/pep-0508

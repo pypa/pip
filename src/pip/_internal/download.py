@@ -27,11 +27,12 @@ from pip._vendor.six.moves import xmlrpc_client  # type: ignore
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
+from pip._vendor.urllib3.util import IS_PYOPENSSL
 
 import pip
 from pip._internal.exceptions import HashMismatch, InstallationError
 from pip._internal.locations import write_delete_marker_file
-from pip._internal.models import PyPI
+from pip._internal.models.index import PyPI
 from pip._internal.utils.encoding import auto_decode
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.glibc import libc_ver
@@ -39,7 +40,7 @@ from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     ARCHIVE_EXTENSIONS, ask_path_exists, backup_dir, call_subprocess, consume,
     display_path, format_size, get_installed_version, rmtree, splitext,
-    unpack_file
+    unpack_file,
 )
 from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._internal.utils.temp_dir import TempDirectory
@@ -48,9 +49,10 @@ from pip._internal.vcs import vcs
 
 try:
     import ssl  # noqa
-    HAS_TLS = True
 except ImportError:
-    HAS_TLS = False
+    ssl = None
+
+HAS_TLS = (ssl is not None) or IS_PYOPENSSL
 
 __all__ = ['get_file_content',
            'is_url', 'url_to_path', 'path_to_url',
@@ -348,7 +350,9 @@ class PipSession(requests.Session):
             # connection got interrupted in some way. A 503 error in general
             # is typically considered a transient error so we'll go ahead and
             # retry it.
-            status_forcelist=[503],
+            # A 500 may indicate transient error in Amazon S3
+            # A 520 or 527 - may indicate transient error in CloudFlare
+            status_forcelist=[500, 503, 520, 527],
 
             # Add a small amount of back off between failed requests in
             # order to prevent hammering the service.
@@ -382,7 +386,7 @@ class PipSession(requests.Session):
         # We want to use a non-validating adapter for any requests which are
         # deemed insecure.
         for host in insecure_hosts:
-            self.mount("https://{0}/".format(host), insecure_adapter)
+            self.mount("https://{}/".format(host), insecure_adapter)
 
     def request(self, method, url, *args, **kwargs):
         # Allow setting a default timeout on a session
