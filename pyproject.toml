@@ -7,6 +7,7 @@ package_dir = "src"
 filename = "NEWS.rst"
 directory = "news/"
 title_format = "{version} ({project_date})"
+issue_format = "`#{issue} <https://github.com/pypa/pip/issues/{issue}>`_"
 template = "news/_template.rst"
 
   [[tool.towncrier.type]]
