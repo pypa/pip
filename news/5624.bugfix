@@ -1,1 +1,1 @@
-Fix installing a Git ref for installs after the first.
+Allow a Git ref to be installed over an existing installation.
