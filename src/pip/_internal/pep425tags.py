@@ -11,6 +11,7 @@ import warnings
 from collections import OrderedDict
 
 import pip._internal.utils.glibc
+from pip._internal.utils.compat import get_extension_suffixes
 
 logger = logging.getLogger(__name__)
 
@@ -252,10 +253,9 @@ def get_supported(versions=None, noarch=False, platform=None,
         abis[0:0] = [abi]
 
     abi3s = set()
-    import imp
-    for suffix in imp.get_suffixes():
-        if suffix[0].startswith('.abi'):
-            abi3s.add(suffix[0].split('.', 2)[1])
+    for suffix in get_extension_suffixes():
+        if suffix.startswith('.abi'):
+            abi3s.add(suffix.split('.', 2)[1])
 
     abis.extend(sorted(list(abi3s)))
 
