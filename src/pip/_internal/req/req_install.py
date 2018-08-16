@@ -90,7 +90,6 @@ class InstallRequirement(object):
         if link is not None:
             self.link = self.original_link = link
         else:
-            from pip._internal.index import Link
             self.link = self.original_link = req and req.url and Link(req.url)
 
         if extras:
@@ -205,8 +204,6 @@ class InstallRequirement(object):
         """Creates an InstallRequirement from a name, which might be a
         requirement, directory containing 'setup.py', filename, or URL.
         """
-        from pip._internal.index import Link
-
         if is_url(name):
             marker_sep = '; '
         else:
@@ -1042,8 +1039,6 @@ def parse_editable(editable_req):
         svn+http://blahblah@rev#egg=Foobar[baz]&subdirectory=version_subdir
         .[some_extra]
     """
-
-    from pip._internal.index import Link
 
     url = editable_req
 
