@@ -475,7 +475,7 @@ if __name__ == '__main__':
         if warn_script_location:
             msg = message_about_scripts_not_on_PATH(generated_console_scripts)
             if msg is not None:
-                logger.warn(msg)
+                logger.warning(msg)
 
     if len(gui) > 0:
         generated.extend(
