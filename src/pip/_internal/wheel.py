@@ -668,7 +668,11 @@ class WheelBuilder(object):
 
     def _build_one_inside_env(self, req, output_dir, python_tag=None):
         with TempDirectory(kind="wheel") as temp_dir:
-            if self.__build_one(req, temp_dir.path, python_tag=python_tag):
+            if req.use_pep517:
+                builder = self._build_one_pep517
+            else:
+                builder = self._build_one_legacy
+            if builder(req, temp_dir.path, python_tag=python_tag):
                 try:
                     wheel_name = os.listdir(temp_dir.path)[0]
                     wheel_path = os.path.join(output_dir, wheel_name)
@@ -693,7 +697,25 @@ class WheelBuilder(object):
             SETUPTOOLS_SHIM % req.setup_py
         ] + list(self.global_options)
 
-    def __build_one(self, req, tempd, python_tag=None):
+    def _build_one_pep517(self, req, tempd, python_tag=None):
+        # TODO: Cannot support python_tag
+        spin_message = 'Running PEP 517 build_wheel for %s' % (req.name,)
+        with open_spinner(spin_message) as spinner:
+            logger.debug('Destination directory: %s', tempd)
+            # assert req.metadata_directory is not None
+            try:
+                req.pep517_backend.build_wheel(
+                    tempd,
+                    # metadata_directory=req.metadata_directory
+                    metadata_directory=None
+                )
+                return True
+            except Exception:
+                spinner.finish("error")
+                logger.error('Failed building wheel for %s', req.name)
+                return False
+
+    def _build_one_legacy(self, req, tempd, python_tag=None):
         base_args = self._base_setup_args(req)
 
         spin_message = 'Running setup.py bdist_wheel for %s' % (req.name,)
