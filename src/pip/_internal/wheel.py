@@ -12,6 +12,7 @@ import collections
 import compileall
 import csv
 import hashlib
+import io
 import logging
 import os.path
 import re
@@ -103,7 +104,7 @@ def rehash(path, blocksize=1 << 20):
     return (digest, str(length))  # type: ignore
 
 
-def open_for_csv(name, mode):
+def open_for_csv(name, mode, encoding='utf8'):
     # type: (str, Text) -> IO
     if sys.version_info[0] < 3:
         nl = {}  # type: Dict[str, Any]
@@ -111,7 +112,7 @@ def open_for_csv(name, mode):
     else:
         nl = {'newline': ''}  # type: Dict[str, Any]
         bin = ''
-    return open(name, mode + bin, **nl)
+    return io.open(name, mode + bin, **nl)
 
 
 def replace_python_tag(wheelname, new_tag):
