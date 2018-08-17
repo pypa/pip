@@ -199,7 +199,7 @@ class MultiDomainBasicAuth(AuthBase):
 
         # Add our new username and password to the request
         req = HTTPBasicAuth(username or "", password or "")(resp.request)
-        req.register_hook("response", self.handle_401_warn)
+        req.register_hook("response", self.warn_on_401)
 
         # Send our new request
         new_resp = resp.connection.send(req, **kwargs)
@@ -207,12 +207,11 @@ class MultiDomainBasicAuth(AuthBase):
 
         return new_resp
 
-    def handle_401_warn(self, resp, **kwargs):
+    def warn_on_401(self, resp, **kwargs):
         # warn user that they provided incorrect credentials
         if resp.status_code == 401:
             logger.warning('401 Error, Credentials not correct for %s',
                            resp.request.url)
-        return resp
 
     def parse_credentials(self, netloc):
         if "@" in netloc:
