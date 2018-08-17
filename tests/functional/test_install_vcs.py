@@ -180,23 +180,52 @@ def test_git_with_tag_name_as_revision(script):
     assert '0.1' in version.stdout
 
 
-@pytest.mark.network
-def test_git_with_ref_as_revision(script):
+def _add_ref(script, path, ref):
     """
-    Git backend should be able to install from a ref
+    Add a new ref to a repository at the given path.
     """
-    version_pkg_path = _create_test_package(script)
-    script.run(
-        'git', 'update-ref', 'refs/foo/bar', 'HEAD',
-        expect_stderr=True,
-        cwd=version_pkg_path,
-    )
-    _change_test_package_version(script, version_pkg_path)
-    script.pip(
-        'install', '-e', '%s@refs/foo/bar#egg=version_pkg' %
-        ('git+file://' + version_pkg_path.abspath.replace('\\', '/')),
-        expect_stderr=True
-    )
+    script.run('git', 'update-ref', ref, 'HEAD', expect_stderr=True, cwd=path)
+
+
+def make_version_pkg_url(path, revision=None):
+    path = path.abspath.replace('\\', '/')
+    url_rev = '' if revision is None else '@' + revision
+    url = 'git+file://{}{}#egg=version_pkg'.format(path, url_rev)
+
+    return url
+
+
+def test_git_install_ref(script):
+    """
+    The Git backend should be able to install a ref with the first install.
+    """
+    package_path = _create_test_package(script)
+    _add_ref(script, package_path, 'refs/foo/bar')
+    _change_test_package_version(script, package_path)
+
+    package_url = make_version_pkg_url(package_path, revision='refs/foo/bar')
+    script.pip('install', '-e', package_url, expect_stderr=True)
+    version = script.run('version_pkg')
+    assert '0.1' in version.stdout
+
+
+def test_git_install_then_install_ref(script):
+    """
+    The Git backend should be able to install a ref after a package has
+    already been installed.
+    """
+    package_path = _create_test_package(script)
+    _add_ref(script, package_path, 'refs/foo/bar')
+    _change_test_package_version(script, package_path)
+
+    package_url = make_version_pkg_url(package_path)
+    script.pip('install', '-e', package_url, expect_stderr=True)
+    version = script.run('version_pkg')
+    assert 'some different version' in version.stdout
+
+    # Now install the ref.
+    package_url = make_version_pkg_url(package_path, revision='refs/foo/bar')
+    script.pip('install', '-e', package_url, expect_stderr=True)
     version = script.run('version_pkg')
     assert '0.1' in version.stdout
 

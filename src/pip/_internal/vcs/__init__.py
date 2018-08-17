@@ -295,7 +295,7 @@ class VersionControl(object):
         """
         raise NotImplementedError
 
-    def update(self, dest, rev_options):
+    def update(self, dest, url, rev_options):
         """
         Update an already-existing repo to the given ``rev_options``.
 
@@ -345,7 +345,7 @@ class VersionControl(object):
                         self.repo_name,
                         rev_display,
                     )
-                    self.update(dest, rev_options)
+                    self.update(dest, url, rev_options)
                 else:
                     logger.info('Skipping because already up-to-date.')
                 return
