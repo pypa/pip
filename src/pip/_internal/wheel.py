@@ -704,11 +704,20 @@ class WheelBuilder(object):
             logger.debug('Destination directory: %s', tempd)
             # assert req.metadata_directory is not None
             try:
-                req.pep517_backend.build_wheel(
-                    tempd,
-                    # metadata_directory=req.metadata_directory
-                    metadata_directory=None
-                )
+                def runner(cmd, cwd=None, extra_environ=None):
+                    call_subprocess(
+                        cmd,
+                        cwd=cwd,
+                        extra_environ=extra_environ,
+                        show_stdout=False,
+                        spinner=spinner
+                    )
+                with req.pep517_backend.subprocess_runner(runner):
+                    req.pep517_backend.build_wheel(
+                        tempd,
+                        # metadata_directory=req.metadata_directory
+                        metadata_directory=None
+                    )
                 return True
             except Exception:
                 spinner.finish("error")
