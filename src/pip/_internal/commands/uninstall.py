@@ -44,6 +44,7 @@ class UninstallCommand(Command):
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
+        exit_code = 0  # Assume successful outcome
         with self._build_session(options) as session:
             reqs_to_uninstall = {}
             for name in args:
@@ -70,8 +71,11 @@ class UninstallCommand(Command):
             )
 
             for req in reqs_to_uninstall.values():
-                uninstall_pathset = req.uninstall(
+                uninstall_exit_code, uninstall_pathset = req.uninstall(
                     auto_confirm=options.yes, verbose=self.verbosity > 0,
                 )
                 if uninstall_pathset:
                     uninstall_pathset.commit()
+                if uninstall_exit_code != 0:
+                    exit_code = uninstall_exit_code
+            return exit_code

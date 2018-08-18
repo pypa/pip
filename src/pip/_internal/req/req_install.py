@@ -868,8 +868,8 @@ class InstallRequirement(object):
         dist = self.satisfied_by or self.conflicts_with
 
         uninstalled_pathset = UninstallPathSet.from_dist(dist)
-        uninstalled_pathset.remove(auto_confirm, verbose)
-        return uninstalled_pathset
+        exit_code = uninstalled_pathset.remove(auto_confirm, verbose)
+        return exit_code, uninstalled_pathset
 
     def _clean_zip_name(self, name, prefix):  # only used by archive.
         assert name.startswith(prefix + os.path.sep), (
