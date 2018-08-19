@@ -128,7 +128,6 @@ def test_install_noneditable_git(script, tmpdir):
     assert egg_info_folder in result.files_created, str(result)
 
 
-@pytest.mark.network
 def test_git_with_sha1_revisions(script):
     """
     Git backend should be able to install from SHA1 revisions
@@ -145,7 +144,6 @@ def test_git_with_sha1_revisions(script):
     assert '0.1' in version.stdout, version.stdout
 
 
-@pytest.mark.network
 def test_git_with_short_sha1_revisions(script):
     """
     Git backend should be able to install from SHA1 revisions
@@ -162,7 +160,6 @@ def test_git_with_short_sha1_revisions(script):
     assert '0.1' in version.stdout, version.stdout
 
 
-@pytest.mark.network
 def test_git_with_branch_name_as_revision(script):
     """
     Git backend should be able to install from branch names
@@ -181,7 +178,6 @@ def test_git_with_branch_name_as_revision(script):
     assert 'some different version' in version.stdout
 
 
-@pytest.mark.network
 def test_git_with_tag_name_as_revision(script):
     """
     Git backend should be able to install from tag names
@@ -316,7 +312,6 @@ def test_git_with_non_editable_where_egg_contains_dev_string(script, tmpdir):
     assert devserver_folder in result.files_created, str(result)
 
 
-@pytest.mark.network
 def test_git_with_ambiguous_revs(script):
     """
     Test git with two "names" (tag/branch) pointing to the same commit
@@ -331,7 +326,6 @@ def test_git_with_ambiguous_revs(script):
     result.assert_installed('version-pkg', with_files=['.git'])
 
 
-@pytest.mark.network
 def test_git_works_with_editable_non_origin_repo(script):
     # set up, create a git repo and install it as editable from a local
     # directory path
@@ -346,7 +340,6 @@ def test_git_works_with_editable_non_origin_repo(script):
     assert "version-pkg==0.1" in result.stdout
 
 
-@pytest.mark.network
 def test_reinstalling_works_with_editible_non_master_branch(script):
     """
     Reinstalling an editable installation should not assume that the "master"
@@ -370,7 +363,6 @@ def test_reinstalling_works_with_editible_non_master_branch(script):
 
 # TODO(pnasrat) fix all helpers to do right things with paths on windows.
 @pytest.mark.skipif("sys.platform == 'win32'")
-@pytest.mark.network
 def test_check_submodule_addition(script):
     """
     Submodules are pulled in on install and updated on upgrade.
