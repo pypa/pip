@@ -1,0 +1,1 @@
+Cancelling an uninstall with "n" answer will cause pip to exit with code 1.
