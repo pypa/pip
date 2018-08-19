@@ -10,6 +10,23 @@ from tests.lib.git_submodule_helpers import (
 from tests.lib.local_repos import local_checkout
 
 
+def _checkout_into_temp(url, temp_dir, egg=None):
+    """
+    Call local_checkout(), and return the resulting URL.
+
+    Args:
+      url: a package URL (e.g. a "git+https://" or "git+git://" URL).
+      temp_dir: the pytest tmpdir value.
+      egg: an optional project name to append to the URL as the egg fragment,
+        prior to returning.
+    """
+    package_url = local_checkout(url, temp_dir.join("cache"))
+    if egg is not None:
+        package_url += '#egg={}'.format(egg)
+
+    return package_url
+
+
 def _make_version_pkg_url(path, rev=None):
     """
     Return a "git+file://" URL to the version_pkg test package.
@@ -80,15 +97,9 @@ def test_install_editable_from_git_with_https(script, tmpdir):
     """
     Test cloning from Git with https.
     """
-    result = script.pip(
-        'install', '-e',
-        '%s#egg=pip-test-package' %
-        local_checkout(
-            'git+https://github.com/pypa/pip-test-package.git',
-            tmpdir.join("cache"),
-        ),
-        expect_error=True,
-    )
+    url = 'git+https://github.com/pypa/pip-test-package.git'
+    local_url = _checkout_into_temp(url, tmpdir, egg='pip-test-package')
+    result = script.pip('install', '-e', local_url, expect_error=True)
     result.assert_installed('pip-test-package', with_files=['.git'])
 
 
@@ -230,22 +241,15 @@ def test_git_with_tag_name_and_update(script, tmpdir):
     """
     Test cloning a git repository and updating to a different version.
     """
-    result = script.pip(
-        'install', '-e', '%s#egg=pip-test-package' %
-        local_checkout(
-            'git+https://github.com/pypa/pip-test-package.git',
-            tmpdir.join("cache"),
-        ),
-        expect_error=True,
-    )
+    url = 'git+https://github.com/pypa/pip-test-package.git'
+    local_url = _checkout_into_temp(url, tmpdir, egg='pip-test-package')
+    result = script.pip('install', '-e', local_url, expect_error=True)
     result.assert_installed('pip-test-package', with_files=['.git'])
+
+    new_local_url = _checkout_into_temp(url, tmpdir)
+    new_local_url += '@0.1.2#egg=pip-test-package'
     result = script.pip(
-        'install', '--global-option=--version', '-e',
-        '%s@0.1.2#egg=pip-test-package' %
-        local_checkout(
-            'git+https://github.com/pypa/pip-test-package.git',
-            tmpdir.join("cache"),
-        ),
+        'install', '--global-option=--version', '-e', new_local_url,
         expect_error=True,
     )
     assert '0.1.2' in result.stdout
@@ -257,14 +261,9 @@ def test_git_branch_should_not_be_changed(script, tmpdir):
     Editable installations should not change branch
     related to issue #32 and #161
     """
-    script.pip(
-        'install', '-e', '%s#egg=pip-test-package' %
-        local_checkout(
-            'git+https://github.com/pypa/pip-test-package.git',
-            tmpdir.join("cache"),
-        ),
-        expect_error=True,
-    )
+    url = 'git+https://github.com/pypa/pip-test-package.git'
+    local_url = _checkout_into_temp(url, tmpdir, egg='pip-test-package')
+    script.pip('install', '-e', local_url, expect_error=True)
     source_dir = script.venv_path / 'src' / 'pip-test-package'
     result = script.run('git', 'branch', cwd=source_dir)
     assert '* master' in result.stdout, result.stdout
@@ -275,14 +274,13 @@ def test_git_with_non_editable_unpacking(script, tmpdir):
     """
     Test cloning a git repository from a non-editable URL with a given tag.
     """
+    url = (
+        'git+https://github.com/pypa/pip-test-package.git@0.1.2'
+        '#egg=pip-test-package'
+    )
+    local_url = _checkout_into_temp(url, tmpdir)
     result = script.pip(
-        'install', '--global-option=--version',
-        local_checkout(
-            'git+https://github.com/pypa/pip-test-package.git@0.1.2'
-            '#egg=pip-test-package',
-            tmpdir.join("cache")
-        ),
-        expect_error=True,
+        'install', '--global-option=--version', local_url, expect_error=True,
     )
     assert '0.1.2' in result.stdout
 
@@ -293,14 +291,9 @@ def test_git_with_editable_where_egg_contains_dev_string(script, tmpdir):
     Test cloning a git repository from an editable url which contains "dev"
     string
     """
-    result = script.pip(
-        'install', '-e',
-        '%s#egg=django-devserver' %
-        local_checkout(
-            'git+git://github.com/dcramer/django-devserver.git',
-            tmpdir.join("cache")
-        )
-    )
+    url = 'git+git://github.com/dcramer/django-devserver.git'
+    local_url = _checkout_into_temp(url, tmpdir, egg='django-devserver')
+    result = script.pip('install', '-e', local_url)
     result.assert_installed('django-devserver', with_files=['.git'])
 
 
@@ -310,14 +303,9 @@ def test_git_with_non_editable_where_egg_contains_dev_string(script, tmpdir):
     Test cloning a git repository from a non-editable url which contains "dev"
     string
     """
-    result = script.pip(
-        'install',
-        '%s#egg=django-devserver' %
-        local_checkout(
-            'git+git://github.com/dcramer/django-devserver.git',
-            tmpdir.join("cache")
-        ),
-    )
+    url = 'git+git://github.com/dcramer/django-devserver.git'
+    local_url = _checkout_into_temp(url, tmpdir, egg='django-devserver')
+    result = script.pip('install', local_url)
     devserver_folder = script.site_packages / 'devserver'
     assert devserver_folder in result.files_created, str(result)
 
