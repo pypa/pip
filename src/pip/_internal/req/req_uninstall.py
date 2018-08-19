@@ -224,8 +224,7 @@ class UninstallPathSet(object):
 
                 logger.info('Successfully uninstalled %s', dist_name_version)
                 return 0
-            else:
-                return 1
+            return 1
 
     def _allowed_to_proceed(self, verbose):
         """Display which files would be deleted and prompt for confirmation

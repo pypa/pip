@@ -527,3 +527,12 @@ def test_uninstall_ignores_missing_packages_and_uninstalls_rest(script, data):
     assert "Skipping non-existent-pkg as it is not installed." in result.stderr
     assert "Successfully uninstalled simple" in result.stdout
     assert result.returncode == 0, "Expected clean exit"
+
+
+def test_uninstall_cancel_exit_code(script):
+    script.pip_install_local('simple')
+    with pytest.raises(AssertionError, match="Script returned code: 1"):
+        result = script.pip(
+            'uninstall', 'simple',
+            stdin=b'n', quiet=True
+        )
