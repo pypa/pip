@@ -10,6 +10,22 @@ from tests.lib.git_submodule_helpers import (
 from tests.lib.local_repos import local_checkout
 
 
+def _make_version_pkg_url(path, rev=None):
+    """
+    Return a "git+file://" URL to the version_pkg test package.
+
+    Args:
+      path: a tests.lib.path.Path object pointing to a Git repository
+        containing the version_pkg package.
+      rev: an optional revision to install like a branch name, tag, or SHA.
+    """
+    path = path.abspath.replace('\\', '/')
+    url_rev = '' if rev is None else '@{}'.format(rev)
+    url = 'git+file://{}{}#egg=version_pkg'.format(path, url_rev)
+
+    return url
+
+
 def _install_version_pkg(script, path, rev=None):
     """
     Install the version_pkg package, and return the version installed.
@@ -19,10 +35,8 @@ def _install_version_pkg(script, path, rev=None):
         containing the package.
       rev: an optional revision to install like a branch name or tag.
     """
-    path = path.abspath.replace('\\', '/')
-    revision = '' if rev is None else '@{}'.format(rev)
-    url = 'git+file://{}{}#egg=version_pkg'.format(path, revision)
-    script.pip('install', '-e', url)
+    version_pkg_url = _make_version_pkg_url(path, rev=rev)
+    script.pip('install', '-e', version_pkg_url)
     result = script.run('version_pkg')
     version = result.stdout.strip()
 
@@ -109,12 +123,8 @@ def test_git_with_sha1_revisions(script):
         'git', 'rev-parse', 'HEAD~1',
         cwd=version_pkg_path,
     ).stdout.strip()
-    script.pip(
-        'install', '-e',
-        '%s@%s#egg=version_pkg' %
-        ('git+file://' + version_pkg_path.abspath.replace('\\', '/'), sha1),
-        expect_stderr=True
-    )
+    version_pkg_url = _make_version_pkg_url(version_pkg_path, rev=sha1)
+    script.pip('install', '-e', version_pkg_url, expect_stderr=True)
     version = script.run('version_pkg')
     assert '0.1' in version.stdout, version.stdout
 
@@ -130,12 +140,8 @@ def test_git_with_short_sha1_revisions(script):
         'git', 'rev-parse', 'HEAD~1',
         cwd=version_pkg_path,
     ).stdout.strip()[:7]
-    script.pip(
-        'install', '-e',
-        '%s@%s#egg=version_pkg' %
-        ('git+file://' + version_pkg_path.abspath.replace('\\', '/'), sha1),
-        expect_stderr=True
-    )
+    version_pkg_url = _make_version_pkg_url(version_pkg_path, rev=sha1)
+    script.pip('install', '-e', version_pkg_url, expect_stderr=True)
     version = script.run('version_pkg')
     assert '0.1' in version.stdout, version.stdout
 
@@ -146,16 +152,15 @@ def test_git_with_branch_name_as_revision(script):
     Git backend should be able to install from branch names
     """
     version_pkg_path = _create_test_package(script)
+    branch = 'test_branch'
     script.run(
-        'git', 'checkout', '-b', 'test_branch',
+        'git', 'checkout', '-b', branch,
         expect_stderr=True,
         cwd=version_pkg_path,
     )
     _change_test_package_version(script, version_pkg_path)
-    script.pip(
-        'install', '-e', '%s@test_branch#egg=version_pkg' %
-        ('git+file://' + version_pkg_path.abspath.replace('\\', '/'))
-    )
+    version_pkg_url = _make_version_pkg_url(version_pkg_path, rev=branch)
+    script.pip('install', '-e', version_pkg_url)
     version = script.run('version_pkg')
     assert 'some different version' in version.stdout
 
@@ -172,10 +177,8 @@ def test_git_with_tag_name_as_revision(script):
         cwd=version_pkg_path,
     )
     _change_test_package_version(script, version_pkg_path)
-    script.pip(
-        'install', '-e', '%s@test_tag#egg=version_pkg' %
-        ('git+file://' + version_pkg_path.abspath.replace('\\', '/'))
-    )
+    version_pkg_url = _make_version_pkg_url(version_pkg_path, rev='test_tag')
+    script.pip('install', '-e', version_pkg_url)
     version = script.run('version_pkg')
     assert '0.1' in version.stdout
 
@@ -187,14 +190,6 @@ def _add_ref(script, path, ref):
     script.run('git', 'update-ref', ref, 'HEAD', expect_stderr=True, cwd=path)
 
 
-def make_version_pkg_url(path, revision=None):
-    path = path.abspath.replace('\\', '/')
-    url_rev = '' if revision is None else '@' + revision
-    url = 'git+file://{}{}#egg=version_pkg'.format(path, url_rev)
-
-    return url
-
-
 def test_git_install_ref(script):
     """
     The Git backend should be able to install a ref with the first install.
@@ -203,8 +198,8 @@ def test_git_install_ref(script):
     _add_ref(script, package_path, 'refs/foo/bar')
     _change_test_package_version(script, package_path)
 
-    package_url = make_version_pkg_url(package_path, revision='refs/foo/bar')
-    script.pip('install', '-e', package_url, expect_stderr=True)
+    version_pkg_url = _make_version_pkg_url(package_path, rev='refs/foo/bar')
+    script.pip('install', '-e', version_pkg_url, expect_stderr=True)
     version = script.run('version_pkg')
     assert '0.1' in version.stdout
 
@@ -218,14 +213,14 @@ def test_git_install_then_install_ref(script):
     _add_ref(script, package_path, 'refs/foo/bar')
     _change_test_package_version(script, package_path)
 
-    package_url = make_version_pkg_url(package_path)
-    script.pip('install', '-e', package_url, expect_stderr=True)
+    version_pkg_url = _make_version_pkg_url(package_path)
+    script.pip('install', '-e', version_pkg_url, expect_stderr=True)
     version = script.run('version_pkg')
     assert 'some different version' in version.stdout
 
     # Now install the ref.
-    package_url = make_version_pkg_url(package_path, revision='refs/foo/bar')
-    script.pip('install', '-e', package_url, expect_stderr=True)
+    version_pkg_url = _make_version_pkg_url(package_path, rev='refs/foo/bar')
+    script.pip('install', '-e', version_pkg_url, expect_stderr=True)
     version = script.run('version_pkg')
     assert '0.1' in version.stdout
 
@@ -333,12 +328,9 @@ def test_git_with_ambiguous_revs(script):
     Test git with two "names" (tag/branch) pointing to the same commit
     """
     version_pkg_path = _create_test_package(script)
-    package_url = (
-        'git+file://%s@0.1#egg=version_pkg' %
-        (version_pkg_path.abspath.replace('\\', '/'))
-    )
+    version_pkg_url = _make_version_pkg_url(version_pkg_path, rev='0.1')
     script.run('git', 'tag', '0.1', cwd=version_pkg_path)
-    result = script.pip('install', '-e', package_url)
+    result = script.pip('install', '-e', version_pkg_url)
     assert 'Could not find a tag or branch' not in result.stdout
     # it is 'version-pkg' instead of 'version_pkg' because
     # egg-link name is version-pkg.egg-link because it is a single .py module
@@ -371,20 +363,13 @@ def test_reinstalling_works_with_editible_non_master_branch(script):
     # Switch the default branch to something other than 'master'
     script.run('git', 'branch', '-m', 'foobar', cwd=version_pkg_path)
 
-    script.pip(
-        'install', '-e',
-        '%s#egg=version_pkg' %
-        ('git+file://' + version_pkg_path.abspath.replace('\\', '/')),
-    )
+    version_pkg_url = _make_version_pkg_url(version_pkg_path)
+    script.pip('install', '-e', version_pkg_url)
     version = script.run('version_pkg')
     assert '0.1' in version.stdout
 
     _change_test_package_version(script, version_pkg_path)
-    script.pip(
-        'install', '-e',
-        '%s#egg=version_pkg' %
-        ('git+file://' + version_pkg_path.abspath.replace('\\', '/')),
-    )
+    script.pip('install', '-e', version_pkg_url)
     version = script.run('version_pkg')
     assert 'some different version' in version.stdout
 
