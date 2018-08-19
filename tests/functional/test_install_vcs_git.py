@@ -48,7 +48,7 @@ def _make_version_pkg_url(path, rev=None):
     return url
 
 
-def _install_version_pkg(script, path, rev=None):
+def _install_version_pkg(script, path, rev=None, expect_stderr=False):
     """
     Install the version_pkg package, and return the version installed.
 
@@ -58,7 +58,7 @@ def _install_version_pkg(script, path, rev=None):
       rev: an optional revision to install like a branch name or tag.
     """
     version_pkg_url = _make_version_pkg_url(path, rev=rev)
-    script.pip('install', '-e', version_pkg_url)
+    script.pip('install', '-e', version_pkg_url, expect_stderr=expect_stderr)
     result = script.run('version_pkg')
     version = result.stdout.strip()
 
@@ -139,10 +139,10 @@ def test_git_with_sha1_revisions(script):
         'git', 'rev-parse', 'HEAD~1',
         cwd=version_pkg_path,
     ).stdout.strip()
-    version_pkg_url = _make_version_pkg_url(version_pkg_path, rev=sha1)
-    script.pip('install', '-e', version_pkg_url, expect_stderr=True)
-    version = script.run('version_pkg')
-    assert '0.1' in version.stdout, version.stdout
+    version = _install_version_pkg(
+        script, version_pkg_path, rev=sha1, expect_stderr=True,
+    )
+    assert '0.1' == version
 
 
 @pytest.mark.network
@@ -156,10 +156,10 @@ def test_git_with_short_sha1_revisions(script):
         'git', 'rev-parse', 'HEAD~1',
         cwd=version_pkg_path,
     ).stdout.strip()[:7]
-    version_pkg_url = _make_version_pkg_url(version_pkg_path, rev=sha1)
-    script.pip('install', '-e', version_pkg_url, expect_stderr=True)
-    version = script.run('version_pkg')
-    assert '0.1' in version.stdout, version.stdout
+    version = _install_version_pkg(
+        script, version_pkg_path, rev=sha1, expect_stderr=True,
+    )
+    assert '0.1' == version
 
 
 @pytest.mark.network
@@ -175,10 +175,8 @@ def test_git_with_branch_name_as_revision(script):
         cwd=version_pkg_path,
     )
     _change_test_package_version(script, version_pkg_path)
-    version_pkg_url = _make_version_pkg_url(version_pkg_path, rev=branch)
-    script.pip('install', '-e', version_pkg_url)
-    version = script.run('version_pkg')
-    assert 'some different version' in version.stdout
+    version = _install_version_pkg(script, version_pkg_path, rev=branch)
+    assert 'some different version' == version
 
 
 @pytest.mark.network
@@ -193,10 +191,8 @@ def test_git_with_tag_name_as_revision(script):
         cwd=version_pkg_path,
     )
     _change_test_package_version(script, version_pkg_path)
-    version_pkg_url = _make_version_pkg_url(version_pkg_path, rev='test_tag')
-    script.pip('install', '-e', version_pkg_url)
-    version = script.run('version_pkg')
-    assert '0.1' in version.stdout
+    version = _install_version_pkg(script, version_pkg_path, rev='test_tag')
+    assert '0.1' == version
 
 
 def _add_ref(script, path, ref):
@@ -210,14 +206,14 @@ def test_git_install_ref(script):
     """
     The Git backend should be able to install a ref with the first install.
     """
-    package_path = _create_test_package(script)
-    _add_ref(script, package_path, 'refs/foo/bar')
-    _change_test_package_version(script, package_path)
+    version_pkg_path = _create_test_package(script)
+    _add_ref(script, version_pkg_path, 'refs/foo/bar')
+    _change_test_package_version(script, version_pkg_path)
 
-    version_pkg_url = _make_version_pkg_url(package_path, rev='refs/foo/bar')
-    script.pip('install', '-e', version_pkg_url, expect_stderr=True)
-    version = script.run('version_pkg')
-    assert '0.1' in version.stdout
+    version = _install_version_pkg(
+        script, version_pkg_path, rev='refs/foo/bar', expect_stderr=True,
+    )
+    assert '0.1' == version
 
 
 def test_git_install_then_install_ref(script):
@@ -225,20 +221,20 @@ def test_git_install_then_install_ref(script):
     The Git backend should be able to install a ref after a package has
     already been installed.
     """
-    package_path = _create_test_package(script)
-    _add_ref(script, package_path, 'refs/foo/bar')
-    _change_test_package_version(script, package_path)
+    version_pkg_path = _create_test_package(script)
+    _add_ref(script, version_pkg_path, 'refs/foo/bar')
+    _change_test_package_version(script, version_pkg_path)
 
-    version_pkg_url = _make_version_pkg_url(package_path)
-    script.pip('install', '-e', version_pkg_url, expect_stderr=True)
-    version = script.run('version_pkg')
-    assert 'some different version' in version.stdout
+    version = _install_version_pkg(
+        script, version_pkg_path, expect_stderr=True,
+    )
+    assert 'some different version' == version
 
     # Now install the ref.
-    version_pkg_url = _make_version_pkg_url(package_path, rev='refs/foo/bar')
-    script.pip('install', '-e', version_pkg_url, expect_stderr=True)
-    version = script.run('version_pkg')
-    assert '0.1' in version.stdout
+    version = _install_version_pkg(
+        script, version_pkg_path, rev='refs/foo/bar', expect_stderr=True,
+    )
+    assert '0.1' == version
 
 
 @pytest.mark.network
@@ -357,15 +353,12 @@ def test_reinstalling_works_with_editible_non_master_branch(script):
     # Switch the default branch to something other than 'master'
     script.run('git', 'branch', '-m', 'foobar', cwd=version_pkg_path)
 
-    version_pkg_url = _make_version_pkg_url(version_pkg_path)
-    script.pip('install', '-e', version_pkg_url)
-    version = script.run('version_pkg')
-    assert '0.1' in version.stdout
+    version = _install_version_pkg(script, version_pkg_path)
+    assert '0.1' == version
 
     _change_test_package_version(script, version_pkg_path)
-    script.pip('install', '-e', version_pkg_url)
-    version = script.run('version_pkg')
-    assert 'some different version' in version.stdout
+    version = _install_version_pkg(script, version_pkg_path)
+    assert 'some different version' == version
 
 
 # TODO(pnasrat) fix all helpers to do right things with paths on windows.
