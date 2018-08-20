@@ -702,7 +702,7 @@ class WheelBuilder(object):
         spin_message = 'Running PEP 517 build_wheel for %s' % (req.name,)
         with open_spinner(spin_message) as spinner:
             logger.debug('Destination directory: %s', tempd)
-            # assert req.metadata_directory is not None
+            assert req.metadata_directory is not None
             try:
                 def runner(cmd, cwd=None, extra_environ=None):
                     call_subprocess(
@@ -715,8 +715,7 @@ class WheelBuilder(object):
                 with req.pep517_backend.subprocess_runner(runner):
                     req.pep517_backend.build_wheel(
                         tempd,
-                        # metadata_directory=req.metadata_directory
-                        metadata_directory=None
+                        metadata_directory=req.metadata_directory
                     )
                 return True
             except Exception:

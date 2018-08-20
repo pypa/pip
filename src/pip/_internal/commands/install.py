@@ -336,6 +336,24 @@ class InstallCommand(RequirementCommand):
                             session=session, autobuilding=True
                         )
 
+                    # If we're using PEP 517, we cannot do a direct install
+                    # so we fail here.
+                    # TODO: Technically, if it's a setuptools-based project
+                    # we could fall back to setup.py install even if we've
+                    # been assuming PEP 517 to this point, but that would be
+                    # complicated to achieve, as none of the legacy setup has
+                    # been done. Better to get the user to specify
+                    # --no-use-pep517.
+                    failed_builds = [
+                        r for r in requirement_set.requirements.values()
+                        if r.use_pep517 and not r.is_wheel
+                    ]
+ 
+                    if failed_builds:
+                        raise InstallationError(
+                            "Could not build wheels for {}".format(
+                                failed_builds))
+
                     to_install = resolver.get_installation_order(
                         requirement_set
                     )

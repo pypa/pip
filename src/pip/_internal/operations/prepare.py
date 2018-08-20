@@ -132,7 +132,7 @@ class IsSDist(DistAbstraction):
                     " and ".join(map(repr, sorted(missing)))
                 )
 
-        self.req.run_egg_info()
+        self.req.prepare_metadata()
         self.req.assert_source_matches_version()
 
 

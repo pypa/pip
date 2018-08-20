@@ -107,6 +107,12 @@ class InstallRequirement(object):
         self.isolated = isolated
         self.build_env = NoOpBuildEnvironment()
 
+        # For PEP 517, the directory where we request the project metadata
+        # gets stored. We need this to pass to build_wheel, so the backend
+        # can ensure that the wheel matches the metadata (see the PEP for
+        # details).
+        self.metadata_directory = None
+
         # The static build requirements (from pyproject.toml)
         self.pyproject_requires = None
 
@@ -311,6 +317,14 @@ class InstallRequirement(object):
         self.source_dir = os.path.normpath(os.path.abspath(new_location))
         self._egg_info_path = None
 
+        # Correct the metadata directory, if it exists
+        if self.metadata_directory:
+            old_meta = self.metadata_directory
+            rel = os.path.relpath(old_meta, start=old_location)
+            new_meta = os.path.join(new_location, rel)
+            new_meta = os.path.normpath(os.path.abspath(new_meta))
+            self.metadata_directory = new_meta
+
     def remove_temporary_source(self):
         """Remove the source files from this requirement, if they are marked
         for deletion"""
@@ -437,7 +451,12 @@ class InstallRequirement(object):
             self.pyproject_requires = requires
             self.pep517_backend = Pep517HookCaller(self.setup_py_dir, backend)
 
-    def run_egg_info(self):
+    def prepare_metadata(self):
+        """Ensure that project metadata is available.
+
+        Under PEP 517, call the backend hook to prepare the metadata.
+        Under legacy processing, call setup.py egg-info.
+        """
         assert self.source_dir
         if self.name:
             logger.debug(
@@ -451,26 +470,10 @@ class InstallRequirement(object):
             )
 
         with indent_log():
-            script = SETUPTOOLS_SHIM % self.setup_py
-            base_cmd = [sys.executable, '-c', script]
-            if self.isolated:
-                base_cmd += ["--no-user-cfg"]
-            egg_info_cmd = base_cmd + ['egg_info']
-            # We can't put the .egg-info files at the root, because then the
-            # source code will be mistaken for an installed egg, causing
-            # problems
-            if self.editable:
-                egg_base_option = []
+            if self.use_pep517:
+                self.prepare_pep517_metadata()
             else:
-                egg_info_dir = os.path.join(self.setup_py_dir, 'pip-egg-info')
-                ensure_dir(egg_info_dir)
-                egg_base_option = ['--egg-base', 'pip-egg-info']
-            with self.build_env:
-                call_subprocess(
-                    egg_info_cmd + egg_base_option,
-                    cwd=self.setup_py_dir,
-                    show_stdout=False,
-                    command_desc='python setup.py egg_info')
+                self.run_egg_info()
 
         if not self.req:
             if isinstance(parse_version(self.metadata["Version"]), Version):
@@ -489,12 +492,55 @@ class InstallRequirement(object):
             metadata_name = canonicalize_name(self.metadata["Name"])
             if canonicalize_name(self.req.name) != metadata_name:
                 logger.warning(
-                    'Running setup.py (path:%s) egg_info for package %s '
+                    'Generating metadata for package %s '
                     'produced metadata for project name %s. Fix your '
                     '#egg=%s fragments.',
-                    self.setup_py, self.name, metadata_name, self.name
+                    self.name, metadata_name, self.name
                 )
                 self.req = Requirement(metadata_name)
+
+    def prepare_pep517_metadata(self):
+        assert self.pep517_backend is not None
+
+        metadata_dir = os.path.join(
+            self.setup_py_dir,
+            'pip-wheel-metadata'
+        )
+        ensure_dir(metadata_dir)
+
+        with self.build_env:
+            # Note that Pep517HookCaller implements a fallback for
+            # prepare_metadata_for_build_wheel, so we don't have to
+            # consider the possibility that this hook doesn't exist.
+            backend = self.pep517_backend
+            distinfo_dir = backend.prepare_metadata_for_build_wheel(
+                metadata_dir
+            )
+
+        self.metadata_directory = os.path.join(metadata_dir, distinfo_dir)
+
+    def run_egg_info(self):
+        script = SETUPTOOLS_SHIM % self.setup_py
+        base_cmd = [sys.executable, '-c', script]
+        if self.isolated:
+            base_cmd += ["--no-user-cfg"]
+        egg_info_cmd = base_cmd + ['egg_info']
+        # We can't put the .egg-info files at the root, because then the
+        # source code will be mistaken for an installed egg, causing
+        # problems
+        if self.editable:
+            egg_base_option = []
+        else:
+            egg_info_dir = os.path.join(self.setup_py_dir, 'pip-egg-info')
+            ensure_dir(egg_info_dir)
+            egg_base_option = ['--egg-base', 'pip-egg-info']
+        with self.build_env:
+            call_subprocess(
+                egg_info_cmd + egg_base_option,
+                cwd=self.setup_py_dir,
+                show_stdout=False,
+                command_desc='python setup.py egg_info')
+
 
     @property
     def egg_info_path(self):
@@ -556,13 +602,23 @@ class InstallRequirement(object):
         return self._metadata
 
     def get_dist(self):
-        """Return a pkg_resources.Distribution built from self.egg_info_path"""
-        egg_info = self.egg_info_path.rstrip(os.path.sep)
-        base_dir = os.path.dirname(egg_info)
-        metadata = pkg_resources.PathMetadata(base_dir, egg_info)
-        dist_name = os.path.splitext(os.path.basename(egg_info))[0]
-        return pkg_resources.Distribution(
-            os.path.dirname(egg_info),
+        """Return a pkg_resources.Distribution for this requirement"""
+        if self.metadata_directory:
+            base_dir, distinfo = os.path.split(self.metadata_directory)
+            metadata = pkg_resources.PathMetadata(
+                base_dir, self.metadata_directory
+            )
+            dist_name = os.path.splitext(distinfo)[0]
+            typ = pkg_resources.DistInfoDistribution
+        else:
+            egg_info = self.egg_info_path.rstrip(os.path.sep)
+            base_dir = os.path.dirname(egg_info)
+            metadata = pkg_resources.PathMetadata(base_dir, egg_info)
+            dist_name = os.path.splitext(os.path.basename(egg_info))[0]
+            typ = pkg_resources.Distribution
+
+        return typ(
+            base_dir,
             project_name=dist_name,
             metadata=metadata,
         )
@@ -693,6 +749,7 @@ class InstallRequirement(object):
 
     # TODO: Investigate if this should be kept in InstallRequirement
     #       Seems to be used only when VCS + downloads
+    # TODO: Consider PEP 517 implications
     def archive(self, build_dir):
         assert self.source_dir
         create_archive = True

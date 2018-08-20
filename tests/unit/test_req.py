@@ -630,7 +630,7 @@ def test_mismatched_versions(caplog, tmpdir):
     shutil.copytree(original_source, source_dir)
     req = InstallRequirement(req=Requirement('simplewheel==2.0'),
                              comes_from=None, source_dir=source_dir)
-    req.run_egg_info()
+    req.prepare_metadata()
     req.assert_source_matches_version()
     assert caplog.records[-1].message == (
         'Requested simplewheel==2.0, '
