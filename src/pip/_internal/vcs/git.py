@@ -77,6 +77,20 @@ class Git(VersionControl):
         version = '.'.join(version.split('.')[:3])
         return parse_version(version)
 
+    def get_branch(self, location):
+        """
+        Return the current branch, or None if HEAD isn't at a branch
+        (e.g. detached HEAD).
+        """
+        args = ['rev-parse', '--abbrev-ref', 'HEAD']
+        output = self.run_command(args, show_stdout=False, cwd=location)
+        branch = output.strip()
+
+        if branch == 'HEAD':
+            return None
+
+        return branch
+
     def export(self, location):
         """Export the Git repository at the url to the destination location"""
         if not location.endswith('/'):

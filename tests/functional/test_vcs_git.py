@@ -70,6 +70,27 @@ def test_git_work_tree_ignored():
         git.run_command(['status', temp_dir], extra_environ=env, cwd=temp_dir)
 
 
+def test_get_branch(script, tmpdir):
+    repo_dir = str(tmpdir)
+    script.run('git', 'init', cwd=repo_dir)
+    sha = do_commit(script, repo_dir)
+
+    git = Git()
+    assert git.get_branch(repo_dir) == 'master'
+
+    # Switch to a branch with the same SHA as "master" but whose name
+    # is alphabetically after.
+    script.run(
+        'git', 'checkout', '-b', 'release', cwd=repo_dir,
+        expect_stderr=True,
+    )
+    assert git.get_branch(repo_dir) == 'release'
+
+    # Also test the detached HEAD case.
+    script.run('git', 'checkout', sha, cwd=repo_dir, expect_stderr=True)
+    assert git.get_branch(repo_dir) is None
+
+
 def test_get_revision_sha(script):
     with TempDirectory(kind="testing") as temp:
         repo_dir = temp.path
