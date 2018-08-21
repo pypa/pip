@@ -149,7 +149,10 @@ class Git(VersionControl):
         sha, is_branch = self.get_revision_sha(dest, rev)
 
         if sha is not None:
-            return rev_options.make_new(sha)
+            rev_options = rev_options.make_new(sha)
+            rev_options.branch_name = rev if is_branch else None
+
+            return rev_options
 
         # Do not show a warning for the common case of something that has
         # the form of a Git commit hash.
@@ -197,10 +200,20 @@ class Git(VersionControl):
         if rev_options.rev:
             # Then a specific revision was requested.
             rev_options = self.resolve_revision(dest, url, rev_options)
-            # Only do a checkout if the current commit id doesn't match
-            # the requested revision.
-            if not self.is_commit_id_equal(dest, rev_options.rev):
-                cmd_args = ['checkout', '-q'] + rev_options.to_args()
+            branch_name = getattr(rev_options, 'branch_name', None)
+            if branch_name is None:
+                # Only do a checkout if the current commit id doesn't match
+                # the requested revision.
+                if not self.is_commit_id_equal(dest, rev_options.rev):
+                    cmd_args = ['checkout', '-q'] + rev_options.to_args()
+                    self.run_command(cmd_args, cwd=dest)
+            elif self.get_branch(dest) != branch_name:
+                # Then a specific branch was requested, and that branch
+                # is not yet checked out.
+                track_branch = 'origin/{}'.format(branch_name)
+                cmd_args = [
+                    'checkout', '-b', branch_name, '--track', track_branch,
+                ]
                 self.run_command(cmd_args, cwd=dest)
 
         #: repo may contain submodules
