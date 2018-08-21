@@ -1,13 +1,15 @@
 """
 Test specific for the --no-color option
 """
+import io
 import os
 import subprocess
 
 import pytest
 
 
-def test_no_color(script):
+@pytest.mark.usefixtures('script')
+def test_no_color():
     """Ensure colour output disabled when --no-color is passed.
     """
     # Using 'script' in this test allows for transparently testing pip's output
@@ -42,3 +44,92 @@ def test_no_color(script):
     assert "\x1b" in get_run_output(option=""), "Expected color in output"
     assert "\x1b" not in get_run_output(option="--no-color"), \
         "Expected no color in output"
+
+
+def _run_and_brake_stdout(cmd, read_nchars=1, check=False, **popen_kw):
+    """
+    Launch Popen, brake stdout, ignore returncode and return stderr.
+
+    :param read_nchars:
+        read that many chars before closing stream, if 0, close it immediately.
+
+    .. Note::
+       The output of cmd must be longer than any internal buffering,
+       or it may be completely consumed.
+
+    """
+    import threading
+    import errno
+
+    def pump_stream(s, buffer):
+        while True:
+            b = s.read(io.DEFAULT_BUFFER_SIZE)  # chunk, not block on big out.
+            if not b:
+                break
+            buffer.append(b)
+
+        try:
+            s.close()
+        except OSError as ex:  # Python-3 has `BrokenPipeError`
+            if ex.errno != errno.EPIPE:
+                raise
+
+    proc = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        **popen_kw
+    )
+
+    buffer = []
+    pump = threading.Thread(target=pump_stream,
+                            args=(proc.stderr, buffer))
+    pump.daemon = True
+    pump.start()
+
+    if read_nchars:
+        proc.stdout.readlines(read_nchars)
+    proc.stdout.close()  # break-pipe here!
+
+    pump.join()
+
+    err = b''.join(buffer)
+
+    if check:
+        assert not proc.returncode, (proc.returncode, cmd, err)
+
+    return err
+
+
+def test_broken_pipe_output(script):
+    """Ensure `freeze` stops if its stdout stream is broken."""
+    from . import test_freeze
+
+    # `freeze` cmd writes stdout in a loop, so a broken-pipe-error
+    #  breaks immediately with the 2 lines above, as expected.
+    cmd = 'pip freeze'
+
+    # Install some packages for freeze to print something.
+    test_freeze.test_basic_freeze(script)
+
+    stderr = _run_and_brake_stdout(cmd, shell=True, check=True)
+    assert not stderr, stderr
+
+
+def test_broken_pipe_logger():
+    """Ensure logs stop if their stream is broken."""
+    # `download` cmd has a lot of log-statements.
+    cmd = 'pip download -v pip'
+
+    # When the stream where logging is writting is broken,
+    # at least these 2 lines are emitted in stderr:
+    #    Exception ignored in: <_io.TextIOWrapper name='<stdout>' mode='w' ...
+    #    BrokenPipeError: [Errno 32] Broken pipe\n"
+    exp_stder_nlines = 2
+    exp_stderr_msg = b'Exception ignored in'
+
+    stderr = _run_and_brake_stdout(cmd, shell=True, check=True)
+    # Before #5721, it command does not stop, but it continued
+    # printing ~4 lines per each broken-pipe error!
+    assert stderr.count(b'\n') == exp_stder_nlines, stderr
+    assert exp_stderr_msg in stderr, stderr
