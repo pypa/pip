@@ -397,7 +397,7 @@ def test_editable__no_revision(script):
 def test_editable__branch_with_sha_same_as_default(script):
     """
     Test installing in editable mode a branch whose sha matches the sha
-    of the default branch.
+    of the default branch, but is different from the default branch.
     """
     version_pkg_path = _create_test_package(script)
     # Create a second branch with the same SHA.
@@ -405,7 +405,9 @@ def test_editable__branch_with_sha_same_as_default(script):
         'git', 'branch', 'develop', expect_stderr=True,
         cwd=version_pkg_path,
     )
-    _install_version_pkg_only(script, version_pkg_path, rev='develop')
+    _install_version_pkg_only(
+        script, version_pkg_path, rev='develop', expect_stderr=True
+    )
 
     branch = _get_editable_branch(script, 'version-pkg')
     assert branch == 'develop'
@@ -428,7 +430,9 @@ def test_editable__branch_with_sha_different_from_default(script):
     # Add another commit to the master branch to give it a different sha.
     _change_test_package_version(script, version_pkg_path)
 
-    version = _install_version_pkg(script, version_pkg_path, rev='develop')
+    version = _install_version_pkg(
+        script, version_pkg_path, rev='develop', expect_stderr=True
+    )
     assert version == '0.1'
 
     branch = _get_editable_branch(script, 'version-pkg')
