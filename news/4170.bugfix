@@ -1,0 +1,3 @@
+Avoid printing a Traceback when a broken pipe is encountered in stderr
+(like when piping through `head` on Unix).
+
