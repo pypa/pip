@@ -22,6 +22,7 @@ from pip._internal.exceptions import (
 )
 from pip._internal.index import PackageFinder
 from pip._internal.locations import running_under_virtualenv
+from pip._internal.req.constructors import install_req_from_editable
 from pip._internal.req.req_file import parse_requirements
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.logging import setup_logging
@@ -216,7 +217,7 @@ class RequirementCommand(Command):
             requirement_set.add_requirement(req_to_add)
 
         for req in options.editables:
-            req_to_add = InstallRequirement.from_editable(
+            req_to_add = install_req_from_editable(
                 req,
                 isolated=options.isolated_mode,
                 wheel_cache=wheel_cache

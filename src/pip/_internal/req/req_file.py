@@ -16,6 +16,7 @@ from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._internal.cli import cmdoptions
 from pip._internal.download import get_file_content
 from pip._internal.exceptions import RequirementsFileParseError
+from pip._internal.req.constructors import install_req_from_editable
 from pip._internal.req.req_install import InstallRequirement
 
 __all__ = ['parse_requirements']
@@ -159,7 +160,7 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
     # yield an editable requirement
     elif opts.editables:
         isolated = options.isolated_mode if options else False
-        yield InstallRequirement.from_editable(
+        yield install_req_from_editable(
             opts.editables[0], comes_from=line_comes_from,
             constraint=constraint, isolated=isolated, wheel_cache=wheel_cache
         )

@@ -17,8 +17,10 @@ from pip._internal.exceptions import (
 from pip._internal.index import PackageFinder
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import InstallRequirement, RequirementSet
+from pip._internal.req.constructors import (
+    install_req_from_editable, parse_editable,
+)
 from pip._internal.req.req_file import process_line
-from pip._internal.req.req_install import parse_editable
 from pip._internal.req.req_tracker import RequirementTracker
 from pip._internal.resolve import Resolver
 from pip._internal.utils.misc import read_text_file
@@ -85,7 +87,7 @@ class TestRequirementSet(object):
         non-wheel installs.
         """
         reqset = RequirementSet()
-        req = InstallRequirement.from_editable(
+        req = install_req_from_editable(
             data.packages.join("LocalEnvironMarker")
         )
         req.is_direct = True
@@ -398,7 +400,7 @@ class TestInstallRequirement(object):
     def test_url_preserved_editable_req(self):
         """Confirm the url is preserved in a editable requirement"""
         url = 'git+http://foo.com@ref#egg=foo'
-        req = InstallRequirement.from_editable(url)
+        req = install_req_from_editable(url)
         assert req.link.url == url
 
     @pytest.mark.parametrize('path', (
@@ -512,7 +514,7 @@ class TestInstallRequirement(object):
         url = '.[ex1,ex2]'
         filename = 'filename'
         comes_from = '-r %s (line %s)' % (filename, 1)
-        req = InstallRequirement.from_editable(url, comes_from=comes_from)
+        req = install_req_from_editable(url, comes_from=comes_from)
         assert len(req.extras) == 2
         assert req.extras == {'ex1', 'ex2'}
 
@@ -520,7 +522,7 @@ class TestInstallRequirement(object):
         url = 'git+https://url#egg=SomeProject[ex1,ex2]'
         filename = 'filename'
         comes_from = '-r %s (line %s)' % (filename, 1)
-        req = InstallRequirement.from_editable(url, comes_from=comes_from)
+        req = install_req_from_editable(url, comes_from=comes_from)
         assert len(req.extras) == 2
         assert req.extras == {'ex1', 'ex2'}
 

@@ -11,6 +11,7 @@ from pip._vendor.pkg_resources import RequirementParseError
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.req import InstallRequirement
+from pip._internal.req.constructors import install_req_from_editable
 from pip._internal.req.req_file import COMMENT_RE
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.misc import (
@@ -99,7 +100,7 @@ def freeze(
                             line = line[2:].strip()
                         else:
                             line = line[len('--editable'):].strip().lstrip('=')
-                        line_req = InstallRequirement.from_editable(
+                        line_req = install_req_from_editable(
                             line,
                             isolated=isolated,
                             wheel_cache=wheel_cache,
