@@ -9,7 +9,7 @@ import zipfile
 from distutils.util import change_root
 
 from pip._vendor import pkg_resources, six
-from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
+from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 from pip._vendor.packaging.version import parse as parse_version
@@ -21,7 +21,6 @@ from pip._internal.exceptions import InstallationError
 from pip._internal.locations import (
     PIP_DELETE_MARKER_FILENAME, running_under_virtualenv,
 )
-from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.models.link import Link
 from pip._internal.pyproject import load_pyproject_toml
 from pip._internal.req.req_uninstall import UninstallPathSet
@@ -124,29 +123,6 @@ class InstallRequirement(object):
         # Setting an explicit value before loading pyproject.toml is supported,
         # but after loading this flag should be treated as read only.
         self.use_pep517 = None
-
-    # Constructors
-    #   TODO: Move these out of this class into custom methods.
-    @classmethod
-    def from_req(cls, req, comes_from=None, isolated=False, wheel_cache=None):
-        try:
-            req = Requirement(req)
-        except InvalidRequirement:
-            raise InstallationError("Invalid requirement: '%s'" % req)
-
-        domains_not_allowed = [
-            PyPI.file_storage_domain,
-            TestPyPI.file_storage_domain,
-        ]
-        if req.url and comes_from.link.netloc in domains_not_allowed:
-            # Explicitly disallow pypi packages that depend on external urls
-            raise InstallationError(
-                "Packages installed from PyPI cannot depend on packages "
-                "which are not also hosted on PyPI.\n"
-                "%s depends on %s " % (comes_from.name, req)
-            )
-
-        return cls(req, comes_from, isolated=isolated, wheel_cache=wheel_cache)
 
     def __str__(self):
         if self.req:
