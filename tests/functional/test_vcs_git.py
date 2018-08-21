@@ -37,9 +37,9 @@ def add_commits(script, dest, count):
     return shas
 
 
-def check_rev(repo_dir, rev, expected_sha):
+def check_rev(repo_dir, rev, expected):
     git = Git()
-    assert git.get_revision_sha(repo_dir, rev) == expected_sha
+    assert git.get_revision_sha(repo_dir, rev) == expected
 
 
 def test_git_dir_ignored():
@@ -123,9 +123,9 @@ def test_get_revision_sha(script):
         script.run('git', 'tag', 'aaa/v1.0', head_sha, cwd=repo_dir)
         script.run('git', 'tag', 'zzz/v1.0', head_sha, cwd=repo_dir)
 
-        check_rev(repo_dir, 'v1.0', tag_sha)
-        check_rev(repo_dir, 'v2.0', tag_sha)
-        check_rev(repo_dir, 'origin-branch', origin_sha)
+        check_rev(repo_dir, 'v1.0', (tag_sha, False))
+        check_rev(repo_dir, 'v2.0', (tag_sha, False))
+        check_rev(repo_dir, 'origin-branch', (origin_sha, True))
 
         ignored_names = [
             # Local branches should be ignored.
@@ -143,7 +143,7 @@ def test_get_revision_sha(script):
             'does-not-exist',
         ]
         for name in ignored_names:
-            check_rev(repo_dir, name, None)
+            check_rev(repo_dir, name, (None, False))
 
 
 @pytest.mark.network

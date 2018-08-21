@@ -105,8 +105,8 @@ class Git(VersionControl):
 
     def get_revision_sha(self, dest, rev):
         """
-        Return a commit hash for the given revision if it names a remote
-        branch or tag.  Otherwise, return None.
+        Return (sha_or_none, is_branch), where sha_or_none is a commit hash
+        if the revision names a remote branch or tag, otherwise None.
 
         Args:
           dest: the repository directory.
@@ -129,7 +129,13 @@ class Git(VersionControl):
         branch_ref = 'refs/remotes/origin/{}'.format(rev)
         tag_ref = 'refs/tags/{}'.format(rev)
 
-        return refs.get(branch_ref) or refs.get(tag_ref)
+        sha = refs.get(branch_ref)
+        if sha is not None:
+            return (sha, True)
+
+        sha = refs.get(tag_ref)
+
+        return (sha, False)
 
     def resolve_revision(self, dest, url, rev_options):
         """
@@ -140,7 +146,7 @@ class Git(VersionControl):
           rev_options: a RevOptions object.
         """
         rev = rev_options.arg_rev
-        sha = self.get_revision_sha(dest, rev)
+        sha, is_branch = self.get_revision_sha(dest, rev)
 
         if sha is not None:
             return rev_options.make_new(sha)
