@@ -18,10 +18,11 @@ import sys
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
+here = os.path.dirname(__file__)
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.insert(0, os.path.abspath(os.pardir))
+sys.path.insert(0, here)
 # sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
 
 # -- General configuration ----------------------------------------------------
@@ -29,7 +30,7 @@ sys.path.insert(0, os.path.abspath(os.pardir))
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 # extensions = ['sphinx.ext.autodoc']
-extensions = ['sphinx.ext.extlinks', 'docs.pipext', 'sphinx.ext.intersphinx']
+extensions = ['sphinx.ext.extlinks', 'pip_sphinxext', 'sphinx.ext.intersphinx']
 
 # intersphinx
 intersphinx_cache_limit = 0
@@ -68,9 +69,8 @@ version = release = 'dev'
 # Rather than trying to force RTD to install pip properly, we'll simply
 # read the version direct from the __init__.py file. (Yes, this is
 # fragile, but it works...)
-root = os.path.dirname(os.path.dirname(__file__))
-pip_init = os.path.join(root, 'src', 'pip', '__init__.py')
 
+pip_init = os.path.join(here, '..', 'src', 'pip', '__init__.py')
 with open(pip_init) as f:
     for line in f:
         m = re.match(r'__version__ = "(.*)"', line)
@@ -102,7 +102,7 @@ today_fmt = '%B %d, %Y'
 
 # List of directories, relative to source directory, that shouldn't be searched
 # for source files.
-exclude_patterns = ['build/', 'man/']
+exclude_patterns = ['build/']
 
 # The reST default role (used for this markup: `text`) to use for all documents
 # default_role = None
@@ -253,7 +253,7 @@ latex_documents = [
 # List of manual pages generated
 man_pages = [
     (
-        'man/pip',
+        'index',
         'pip',
         u'package manager for Python packages',
         u'pip developers',
@@ -264,7 +264,7 @@ man_pages = [
 # Here, we crawl the entire man/commands/ directory and list every file with
 # appropriate name and details
 for fname in glob.glob('man/commands/*.rst'):
-    fname_base = fname[:-4]
+    fname_base = fname[4:-4]
     outname = 'pip-' + fname_base[13:]
     description = u'description of {} command'.format(
         outname.replace('-', ' ')
