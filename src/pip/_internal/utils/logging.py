@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import contextlib
+import errno
 import logging
 import logging.handlers
 import os
@@ -114,6 +115,15 @@ class ColorizedStreamHandler(logging.StreamHandler):
                     break
 
         return msg
+
+    def flush(self):
+        """Ignore `BrokenPipeErrors` on `flush()`."""
+        try:
+            super(ColorizedStreamHandler, self).flush()
+        except (IOError, OSError) as ex:  # Python-2 has no `BrokenPipeError`
+            if ex.errno != errno.EPIPE:
+                # Ignore BrokenPipeError eg. when piped in `head` UNIX command.
+                raise
 
 
 class BetterRotatingFileHandler(logging.handlers.RotatingFileHandler):
