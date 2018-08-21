@@ -10,6 +10,18 @@ from tests.lib.git_submodule_helpers import (
 from tests.lib.local_repos import local_checkout
 
 
+def _get_editable_branch(script, package_name):
+    """
+    Return the current branch of an editable install.
+    """
+    repo_dir = script.venv_path / 'src' / package_name
+    result = script.run(
+        'git', 'rev-parse', '--abbrev-ref', 'HEAD', cwd=repo_dir
+    )
+
+    return result.stdout.strip()
+
+
 def _github_checkout(url_path, temp_dir, egg=None, scheme=None):
     """
     Call local_checkout() with a GitHub URL, and return the resulting URL.
@@ -48,9 +60,10 @@ def _make_version_pkg_url(path, rev=None):
     return url
 
 
-def _install_version_pkg(script, path, rev=None, expect_stderr=False):
+def _install_version_pkg_only(script, path, rev=None, expect_stderr=False):
     """
-    Install the version_pkg package, and return the version installed.
+    Install the version_pkg package in editable mode (without returning
+    the version).
 
     Args:
       path: a tests.lib.path.Path object pointing to a Git repository
@@ -59,6 +72,21 @@ def _install_version_pkg(script, path, rev=None, expect_stderr=False):
     """
     version_pkg_url = _make_version_pkg_url(path, rev=rev)
     script.pip('install', '-e', version_pkg_url, expect_stderr=expect_stderr)
+
+
+def _install_version_pkg(script, path, rev=None, expect_stderr=False):
+    """
+    Install the version_pkg package in editable mode, and return the version
+    installed.
+
+    Args:
+      path: a tests.lib.path.Path object pointing to a Git repository
+        containing the package.
+      rev: an optional revision to install like a branch name or tag.
+    """
+    _install_version_pkg_only(
+        script, path, rev=rev, expect_stderr=expect_stderr,
+    )
     result = script.run('version_pkg')
     version = result.stdout.strip()
 
@@ -261,9 +289,8 @@ def test_git_branch_should_not_be_changed(script, tmpdir):
     url_path = 'pypa/pip-test-package.git'
     local_url = _github_checkout(url_path, tmpdir, egg='pip-test-package')
     script.pip('install', '-e', local_url, expect_error=True)
-    source_dir = script.venv_path / 'src' / 'pip-test-package'
-    result = script.run('git', 'branch', cwd=source_dir)
-    assert '* master' in result.stdout, result.stdout
+    branch = _get_editable_branch(script, 'pip-test-package')
+    assert 'master' == branch
 
 
 @pytest.mark.network
@@ -336,7 +363,24 @@ def test_git_works_with_editable_non_origin_repo(script):
     assert "version-pkg==0.1" in result.stdout
 
 
-def test_reinstalling_works_with_editible_non_master_branch(script):
+def test_editable_non_master_default_branch(script):
+    """
+    Test the branch you get after an editable install from a remote repo
+    with a non-master default branch.
+    """
+    version_pkg_path = _create_test_package(script)
+    # Change the default branch of the remote repo to a name that is
+    # alphabetically after "master".
+    script.run(
+        'git', 'checkout', '-b', 'release', expect_stderr=True,
+        cwd=version_pkg_path,
+    )
+    _install_version_pkg_only(script, version_pkg_path)
+    branch = _get_editable_branch(script, 'version-pkg')
+    assert 'release' == branch
+
+
+def test_reinstalling_works_with_editable_non_master_branch(script):
     """
     Reinstalling an editable installation should not assume that the "master"
     branch exists. See https://github.com/pypa/pip/issues/4448.
