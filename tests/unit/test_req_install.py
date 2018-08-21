@@ -3,6 +3,7 @@ import tempfile
 
 import pytest
 
+from pip._internal.req.constructors import install_req_from_line
 from pip._internal.req.req_install import InstallRequirement
 
 
@@ -36,7 +37,7 @@ class TestInstallRequirementBuildDirectory(object):
         with open(setup_py_path, 'w') as f:
             f.write('')
 
-        requirement = InstallRequirement.from_line(
+        requirement = install_req_from_line(
             str(install_dir).replace(os.sep, os.altsep or os.sep)
         )
 

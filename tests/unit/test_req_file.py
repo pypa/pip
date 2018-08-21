@@ -12,11 +12,13 @@ from pip._internal.exceptions import (
     InstallationError, RequirementsFileParseError,
 )
 from pip._internal.index import PackageFinder
+from pip._internal.req.constructors import (
+    install_req_from_editable, install_req_from_line,
+)
 from pip._internal.req.req_file import (
     break_args_options, ignore_comments, join_lines, parse_requirements,
     preprocess, process_line, skip_regex,
 )
-from pip._internal.req.req_install import InstallRequirement
 from tests.lib import requirements_file
 
 
@@ -192,14 +194,14 @@ class TestProcessLine(object):
         line = 'SomeProject'
         filename = 'filename'
         comes_from = '-r %s (line %s)' % (filename, 1)
-        req = InstallRequirement.from_line(line, comes_from=comes_from)
+        req = install_req_from_line(line, comes_from=comes_from)
         assert repr(list(process_line(line, filename, 1))[0]) == repr(req)
 
     def test_yield_line_constraint(self):
         line = 'SomeProject'
         filename = 'filename'
         comes_from = '-c %s (line %s)' % (filename, 1)
-        req = InstallRequirement.from_line(
+        req = install_req_from_line(
             line, comes_from=comes_from, constraint=True)
         found_req = list(process_line(line, filename, 1, constraint=True))[0]
         assert repr(found_req) == repr(req)
@@ -209,7 +211,7 @@ class TestProcessLine(object):
         line = 'SomeProject >= 2'
         filename = 'filename'
         comes_from = '-r %s (line %s)' % (filename, 1)
-        req = InstallRequirement.from_line(line, comes_from=comes_from)
+        req = install_req_from_line(line, comes_from=comes_from)
         assert repr(list(process_line(line, filename, 1))[0]) == repr(req)
         assert str(req.req.specifier) == '>=2'
 
@@ -218,7 +220,7 @@ class TestProcessLine(object):
         line = '-e %s' % url
         filename = 'filename'
         comes_from = '-r %s (line %s)' % (filename, 1)
-        req = InstallRequirement.from_editable(url, comes_from=comes_from)
+        req = install_req_from_editable(url, comes_from=comes_from)
         assert repr(list(process_line(line, filename, 1))[0]) == repr(req)
 
     def test_yield_editable_constraint(self):
@@ -226,7 +228,7 @@ class TestProcessLine(object):
         line = '-e %s' % url
         filename = 'filename'
         comes_from = '-c %s (line %s)' % (filename, 1)
-        req = InstallRequirement.from_editable(
+        req = install_req_from_editable(
             url, comes_from=comes_from, constraint=True)
         found_req = list(process_line(line, filename, 1, constraint=True))[0]
         assert repr(found_req) == repr(req)
@@ -234,7 +236,7 @@ class TestProcessLine(object):
 
     def test_nested_requirements_file(self, monkeypatch):
         line = '-r another_file'
-        req = InstallRequirement.from_line('SomeProject')
+        req = install_req_from_line('SomeProject')
         import pip._internal.req.req_file
 
         def stub_parse_requirements(req_url, finder, comes_from, options,
@@ -247,7 +249,7 @@ class TestProcessLine(object):
 
     def test_nested_constraints_file(self, monkeypatch):
         line = '-c another_file'
-        req = InstallRequirement.from_line('SomeProject')
+        req = install_req_from_line('SomeProject')
         import pip._internal.req.req_file
 
         def stub_parse_requirements(req_url, finder, comes_from, options,
