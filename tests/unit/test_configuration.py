@@ -76,12 +76,12 @@ class TestConfigurationLoading(ConfigurationMixin):
         with self.tmpfile(contents) as config_file:
             os.environ["PIP_CONFIG_FILE"] = config_file
 
-            with pytest.raises(ConfigurationError):
+            with pytest.raises(ConfigurationError) as err:
                 self.configuration.load()
 
-            assert "malformed" in str(err)
-            assert lineno in str(err)
-            assert filepath in str(err)
+        assert "malformed" in str(err)
+        assert lineno in str(err)
+        assert filepath in str(err)
 
 
 class TestConfigurationPrecedence(ConfigurationMixin):
