@@ -16,8 +16,9 @@ from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._internal.cli import cmdoptions
 from pip._internal.download import get_file_content
 from pip._internal.exceptions import RequirementsFileParseError
-from pip._internal.req.constructors import install_req_from_editable
-from pip._internal.req.req_install import InstallRequirement
+from pip._internal.req.constructors import (
+    install_req_from_editable, install_req_from_line,
+)
 
 __all__ = ['parse_requirements']
 
@@ -152,7 +153,7 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
         for dest in SUPPORTED_OPTIONS_REQ_DEST:
             if dest in opts.__dict__ and opts.__dict__[dest]:
                 req_options[dest] = opts.__dict__[dest]
-        yield InstallRequirement.from_line(
+        yield install_req_from_line(
             args_str, line_comes_from, constraint=constraint,
             isolated=isolated, options=req_options, wheel_cache=wheel_cache
         )

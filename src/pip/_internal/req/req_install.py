@@ -2,27 +2,21 @@ from __future__ import absolute_import
 
 import logging
 import os
-import re
 import shutil
 import sys
 import sysconfig
-import traceback
 import zipfile
 from distutils.util import change_root
 
 from pip._vendor import pkg_resources, six
-from pip._vendor.packaging import specifiers
-from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.pep517.wrappers import Pep517HookCaller
-from pip._vendor.pkg_resources import RequirementParseError, parse_requirements
 
 from pip._internal import wheel
 from pip._internal.build_env import NoOpBuildEnvironment
-from pip._internal.download import is_archive_file, is_url, path_to_url
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import (
     PIP_DELETE_MARKER_FILENAME, running_under_virtualenv,
@@ -37,30 +31,16 @@ from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     _make_build_dir, ask_path_exists, backup_dir, call_subprocess,
     display_path, dist_in_site_packages, dist_in_usersite, ensure_dir,
-    get_installed_version, is_installable_dir, rmtree,
+    get_installed_version, rmtree,
 )
 from pip._internal.utils.packaging import get_metadata
 from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.ui import open_spinner
 from pip._internal.vcs import vcs
-from pip._internal.wheel import Wheel, move_wheel_files
+from pip._internal.wheel import move_wheel_files
 
 logger = logging.getLogger(__name__)
-
-operators = specifiers.Specifier._operators.keys()
-
-
-def _strip_extras(path):
-    m = re.match(r'^(.+)(\[[^\]]+\])$', path)
-    extras = None
-    if m:
-        path_no_extras = m.group(1)
-        extras = m.group(2)
-    else:
-        path_no_extras = path
-
-    return path_no_extras, extras
 
 
 class InstallRequirement(object):
@@ -167,102 +147,6 @@ class InstallRequirement(object):
             )
 
         return cls(req, comes_from, isolated=isolated, wheel_cache=wheel_cache)
-
-    @classmethod
-    def from_line(
-            cls, name, comes_from=None, isolated=False, options=None,
-            wheel_cache=None, constraint=False):
-        """Creates an InstallRequirement from a name, which might be a
-        requirement, directory containing 'setup.py', filename, or URL.
-        """
-        if is_url(name):
-            marker_sep = '; '
-        else:
-            marker_sep = ';'
-        if marker_sep in name:
-            name, markers = name.split(marker_sep, 1)
-            markers = markers.strip()
-            if not markers:
-                markers = None
-            else:
-                markers = Marker(markers)
-        else:
-            markers = None
-        name = name.strip()
-        req = None
-        path = os.path.normpath(os.path.abspath(name))
-        link = None
-        extras = None
-
-        if is_url(name):
-            link = Link(name)
-        else:
-            p, extras = _strip_extras(path)
-            looks_like_dir = os.path.isdir(p) and (
-                os.path.sep in name or
-                (os.path.altsep is not None and os.path.altsep in name) or
-                name.startswith('.')
-            )
-            if looks_like_dir:
-                if not is_installable_dir(p):
-                    raise InstallationError(
-                        "Directory %r is not installable. Neither 'setup.py' "
-                        "nor 'pyproject.toml' found." % name
-                    )
-                link = Link(path_to_url(p))
-            elif is_archive_file(p):
-                if not os.path.isfile(p):
-                    logger.warning(
-                        'Requirement %r looks like a filename, but the '
-                        'file does not exist',
-                        name
-                    )
-                link = Link(path_to_url(p))
-
-        # it's a local file, dir, or url
-        if link:
-            # Handle relative file URLs
-            if link.scheme == 'file' and re.search(r'\.\./', link.url):
-                link = Link(
-                    path_to_url(os.path.normpath(os.path.abspath(link.path))))
-            # wheel file
-            if link.is_wheel:
-                wheel = Wheel(link.filename)  # can raise InvalidWheelFilename
-                req = "%s==%s" % (wheel.name, wheel.version)
-            else:
-                # set the req to the egg fragment.  when it's not there, this
-                # will become an 'unnamed' requirement
-                req = link.egg_fragment
-
-        # a requirement specifier
-        else:
-            req = name
-
-        if extras:
-            extras = Requirement("placeholder" + extras.lower()).extras
-        else:
-            extras = ()
-        if req is not None:
-            try:
-                req = Requirement(req)
-            except InvalidRequirement:
-                if os.path.sep in req:
-                    add_msg = "It looks like a path."
-                    add_msg += deduce_helpful_msg(req)
-                elif '=' in req and not any(op in req for op in operators):
-                    add_msg = "= is not a valid operator. Did you mean == ?"
-                else:
-                    add_msg = traceback.format_exc()
-                raise InstallationError(
-                    "Invalid requirement: '%s'\n%s" % (req, add_msg))
-        return cls(
-            req, comes_from, link=link, markers=markers,
-            isolated=isolated,
-            options=options if options else {},
-            wheel_cache=wheel_cache,
-            constraint=constraint,
-            extras=extras,
-        )
 
     def __str__(self):
         if self.req:
@@ -998,30 +882,3 @@ class InstallRequirement(object):
                                           py_ver_str, self.name)]
 
         return install_args
-
-
-def deduce_helpful_msg(req):
-    """Returns helpful msg in case requirements file does not exist,
-    or cannot be parsed.
-
-    :params req: Requirements file path
-    """
-    msg = ""
-    if os.path.exists(req):
-        msg = " It does exist."
-        # Try to parse and check if it is a requirements file.
-        try:
-            with open(req, 'r') as fp:
-                # parse first line only
-                next(parse_requirements(fp.read()))
-                msg += " The argument you provided " + \
-                    "(%s) appears to be a" % (req) + \
-                    " requirements file. If that is the" + \
-                    " case, use the '-r' flag to install" + \
-                    " the packages specified within it."
-        except RequirementParseError:
-            logger.debug("Cannot parse '%s' as requirements \
-            file" % (req), exc_info=1)
-    else:
-        msg += " File '%s' does not exist." % (req)
-    return msg

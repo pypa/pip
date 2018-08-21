@@ -18,7 +18,7 @@ from pip._internal.index import PackageFinder
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import InstallRequirement, RequirementSet
 from pip._internal.req.constructors import (
-    install_req_from_editable, parse_editable,
+    install_req_from_editable, install_req_from_line, parse_editable,
 )
 from pip._internal.req.req_file import process_line
 from pip._internal.req.req_tracker import RequirementTracker
@@ -68,7 +68,7 @@ class TestRequirementSet(object):
         os.makedirs(build_dir)
         open(os.path.join(build_dir, "setup.py"), 'w')
         reqset = RequirementSet()
-        req = InstallRequirement.from_line('simple')
+        req = install_req_from_line('simple')
         req.is_direct = True
         reqset.add_requirement(req)
         finder = PackageFinder([data.find_links], [], session=PipSession())
@@ -341,12 +341,12 @@ class TestInstallRequirement(object):
         """InstallRequirement should strip the fragment, but not the query."""
         url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
         fragment = '#egg=bar'
-        req = InstallRequirement.from_line(url + fragment)
+        req = install_req_from_line(url + fragment)
         assert req.link.url == url + fragment, req.link
 
     def test_unsupported_wheel_link_requirement_raises(self):
         reqset = RequirementSet()
-        req = InstallRequirement.from_line(
+        req = install_req_from_line(
             'https://whatever.com/peppercorn-0.4-py2.py3-bogus-any.whl',
         )
         assert req.link is not None
@@ -358,7 +358,7 @@ class TestInstallRequirement(object):
 
     def test_unsupported_wheel_local_file_requirement_raises(self, data):
         reqset = RequirementSet()
-        req = InstallRequirement.from_line(
+        req = install_req_from_line(
             data.packages.join('simple.dist-0.1-py1-none-invalid.whl'),
         )
         assert req.link is not None
@@ -369,32 +369,32 @@ class TestInstallRequirement(object):
             reqset.add_requirement(req)
 
     def test_installed_version_not_installed(self):
-        req = InstallRequirement.from_line('simple-0.1-py2.py3-none-any.whl')
+        req = install_req_from_line('simple-0.1-py2.py3-none-any.whl')
         assert req.installed_version is None
 
     def test_str(self):
-        req = InstallRequirement.from_line('simple==0.1')
+        req = install_req_from_line('simple==0.1')
         assert str(req) == 'simple==0.1'
 
     def test_repr(self):
-        req = InstallRequirement.from_line('simple==0.1')
+        req = install_req_from_line('simple==0.1')
         assert repr(req) == (
             '<InstallRequirement object: simple==0.1 editable=False>'
         )
 
     def test_invalid_wheel_requirement_raises(self):
         with pytest.raises(InvalidWheelFilename):
-            InstallRequirement.from_line('invalid.whl')
+            install_req_from_line('invalid.whl')
 
     def test_wheel_requirement_sets_req_attribute(self):
-        req = InstallRequirement.from_line('simple-0.1-py2.py3-none-any.whl')
+        req = install_req_from_line('simple-0.1-py2.py3-none-any.whl')
         assert isinstance(req.req, Requirement)
         assert str(req.req) == 'simple==0.1'
 
     def test_url_preserved_line_req(self):
         """Confirm the url is preserved in a non-editable requirement"""
         url = 'git+http://foo.com@ref#egg=foo'
-        req = InstallRequirement.from_line(url)
+        req = install_req_from_line(url)
         assert req.link.url == url
 
     def test_url_preserved_editable_req(self):
@@ -409,7 +409,7 @@ class TestInstallRequirement(object):
         '/path/to/foo.egg-info/'.replace('/', os.path.sep),
     ))
     def test_get_dist(self, path):
-        req = InstallRequirement.from_line('foo')
+        req = install_req_from_line('foo')
         req._egg_info_path = path
         dist = req.get_dist()
         assert isinstance(dist, pkg_resources.Distribution)
@@ -425,14 +425,14 @@ class TestInstallRequirement(object):
             # without spaces
             'mock3;python_version >= "3"',
         ):
-            req = InstallRequirement.from_line(line)
+            req = install_req_from_line(line)
             assert req.req.name == 'mock3'
             assert str(req.req.specifier) == ''
             assert str(req.markers) == 'python_version >= "3"'
 
     def test_markers_semicolon(self):
         # check that the markers can contain a semicolon
-        req = InstallRequirement.from_line('semicolon; os_name == "a; b"')
+        req = install_req_from_line('semicolon; os_name == "a; b"')
         assert req.req.name == 'semicolon'
         assert str(req.req.specifier) == ''
         assert str(req.markers) == 'os_name == "a; b"'
@@ -441,14 +441,14 @@ class TestInstallRequirement(object):
         # test "URL; markers" syntax
         url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
         line = '%s; python_version >= "3"' % url
-        req = InstallRequirement.from_line(line)
+        req = install_req_from_line(line)
         assert req.link.url == url, req.url
         assert str(req.markers) == 'python_version >= "3"'
 
         # without space, markers are part of the URL
         url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
         line = '%s;python_version >= "3"' % url
-        req = InstallRequirement.from_line(line)
+        req = install_req_from_line(line)
         assert req.link.url == line, req.url
         assert req.markers is None
 
@@ -459,7 +459,7 @@ class TestInstallRequirement(object):
             'sys_platform == %r' % sys.platform,
         ):
             line = 'name; ' + markers
-            req = InstallRequirement.from_line(line)
+            req = install_req_from_line(line)
             assert str(req.markers) == str(Marker(markers))
             assert req.match_markers()
 
@@ -469,7 +469,7 @@ class TestInstallRequirement(object):
             'sys_platform != %r' % sys.platform,
         ):
             line = 'name; ' + markers
-            req = InstallRequirement.from_line(line)
+            req = install_req_from_line(line)
             assert str(req.markers) == str(Marker(markers))
             assert not req.match_markers()
 
@@ -480,7 +480,7 @@ class TestInstallRequirement(object):
             'sys_platform == %r' % sys.platform,
         ):
             line = 'name; ' + markers
-            req = InstallRequirement.from_line(line, comes_from='')
+            req = install_req_from_line(line, comes_from='')
             assert str(req.markers) == str(Marker(markers))
             assert req.match_markers()
 
@@ -490,7 +490,7 @@ class TestInstallRequirement(object):
             'sys_platform != %r' % sys.platform,
         ):
             line = 'name; ' + markers
-            req = InstallRequirement.from_line(line, comes_from='')
+            req = install_req_from_line(line, comes_from='')
             assert str(req.markers) == str(Marker(markers))
             assert not req.match_markers()
 
@@ -498,7 +498,7 @@ class TestInstallRequirement(object):
         line = 'SomeProject[ex1,ex2]'
         filename = 'filename'
         comes_from = '-r %s (line %s)' % (filename, 1)
-        req = InstallRequirement.from_line(line, comes_from=comes_from)
+        req = install_req_from_line(line, comes_from=comes_from)
         assert len(req.extras) == 2
         assert req.extras == {'ex1', 'ex2'}
 
@@ -506,7 +506,7 @@ class TestInstallRequirement(object):
         line = 'git+https://url#egg=SomeProject[ex1,ex2]'
         filename = 'filename'
         comes_from = '-r %s (line %s)' % (filename, 1)
-        req = InstallRequirement.from_line(line, comes_from=comes_from)
+        req = install_req_from_line(line, comes_from=comes_from)
         assert len(req.extras) == 2
         assert req.extras == {'ex1', 'ex2'}
 
@@ -528,7 +528,7 @@ class TestInstallRequirement(object):
 
     def test_unexisting_path(self):
         with pytest.raises(InstallationError) as e:
-            InstallRequirement.from_line(
+            install_req_from_line(
                 os.path.join('this', 'path', 'does', 'not', 'exist'))
         err_msg = e.value.args[0]
         assert "Invalid requirement" in err_msg
@@ -536,14 +536,14 @@ class TestInstallRequirement(object):
 
     def test_single_equal_sign(self):
         with pytest.raises(InstallationError) as e:
-            InstallRequirement.from_line('toto=42')
+            install_req_from_line('toto=42')
         err_msg = e.value.args[0]
         assert "Invalid requirement" in err_msg
         assert "= is not a valid operator. Did you mean == ?" in err_msg
 
     def test_traceback(self):
         with pytest.raises(InstallationError) as e:
-            InstallRequirement.from_line('toto 42')
+            install_req_from_line('toto 42')
         err_msg = e.value.args[0]
         assert "Invalid requirement" in err_msg
         assert "\nTraceback " in err_msg
@@ -553,7 +553,7 @@ class TestInstallRequirement(object):
         with open(req_file_path, 'w') as req_file:
             req_file.write('pip\nsetuptools')
         with pytest.raises(InstallationError) as e:
-            InstallRequirement.from_line(req_file_path)
+            install_req_from_line(req_file_path)
         err_msg = e.value.args[0]
         assert "Invalid requirement" in err_msg
         assert "It looks like a path. It does exist." in err_msg
@@ -610,10 +610,10 @@ def test_parse_editable_local_extras(
 
 def test_exclusive_environment_markers():
     """Make sure RequirementSet accepts several excluding env markers"""
-    eq26 = InstallRequirement.from_line(
+    eq26 = install_req_from_line(
         "Django>=1.6.10,<1.7 ; python_version == '2.6'")
     eq26.is_direct = True
-    ne26 = InstallRequirement.from_line(
+    ne26 = install_req_from_line(
         "Django>=1.6.10,<1.8 ; python_version != '2.6'")
     ne26.is_direct = True
 

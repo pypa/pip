@@ -14,13 +14,13 @@ from pip._internal.exceptions import (
 from pip._internal.index import (
     FormatControl, InstallationCandidate, Link, PackageFinder, fmt_ctl_formats,
 )
-from pip._internal.req import InstallRequirement
+from pip._internal.req.constructors import install_req_from_line
 
 
 def test_no_mpkg(data):
     """Finder skips zipfiles with "macosx10" in the name."""
     finder = PackageFinder([data.find_links], [], session=PipSession())
-    req = InstallRequirement.from_line("pkgwithmpkg")
+    req = install_req_from_line("pkgwithmpkg")
     found = finder.find_requirement(req, False)
 
     assert found.url.endswith("pkgwithmpkg-1.0.tar.gz"), found
@@ -29,7 +29,7 @@ def test_no_mpkg(data):
 def test_no_partial_name_match(data):
     """Finder requires the full project name to match, not just beginning."""
     finder = PackageFinder([data.find_links], [], session=PipSession())
-    req = InstallRequirement.from_line("gmpy")
+    req = install_req_from_line("gmpy")
     found = finder.find_requirement(req, False)
 
     assert found.url.endswith("gmpy-1.15.tar.gz"), found
@@ -40,7 +40,7 @@ def test_tilde():
     session = PipSession()
     with patch('pip._internal.index.os.path.exists', return_value=True):
         finder = PackageFinder(['~/python-pkgs'], [], session=session)
-    req = InstallRequirement.from_line("gmpy")
+    req = install_req_from_line("gmpy")
     with pytest.raises(DistributionNotFound):
         finder.find_requirement(req, False)
 
@@ -53,7 +53,7 @@ def test_duplicates_sort_ok(data):
         [],
         session=PipSession(),
     )
-    req = InstallRequirement.from_line("duplicate")
+    req = install_req_from_line("duplicate")
     found = finder.find_requirement(req, False)
 
     assert found.url.endswith("duplicate-1.0.tar.gz"), found
@@ -61,7 +61,7 @@ def test_duplicates_sort_ok(data):
 
 def test_finder_detects_latest_find_links(data):
     """Test PackageFinder detects latest using find-links"""
-    req = InstallRequirement.from_line('simple', None)
+    req = install_req_from_line('simple', None)
     finder = PackageFinder([data.find_links], [], session=PipSession())
     link = finder.find_requirement(req, False)
     assert link.url.endswith("simple-3.0.tar.gz")
@@ -69,7 +69,7 @@ def test_finder_detects_latest_find_links(data):
 
 def test_incorrect_case_file_index(data):
     """Test PackageFinder detects latest using wrong case"""
-    req = InstallRequirement.from_line('dinner', None)
+    req = install_req_from_line('dinner', None)
     finder = PackageFinder([], [data.find_links3], session=PipSession())
     link = finder.find_requirement(req, False)
     assert link.url.endswith("Dinner-2.0.tar.gz")
@@ -78,7 +78,7 @@ def test_incorrect_case_file_index(data):
 @pytest.mark.network
 def test_finder_detects_latest_already_satisfied_find_links(data):
     """Test PackageFinder detects latest already satisfied using find-links"""
-    req = InstallRequirement.from_line('simple', None)
+    req = install_req_from_line('simple', None)
     # the latest simple in local pkgs is 3.0
     latest_version = "3.0"
     satisfied_by = Mock(
@@ -96,7 +96,7 @@ def test_finder_detects_latest_already_satisfied_find_links(data):
 @pytest.mark.network
 def test_finder_detects_latest_already_satisfied_pypi_links():
     """Test PackageFinder detects latest already satisfied using pypi links"""
-    req = InstallRequirement.from_line('initools', None)
+    req = install_req_from_line('initools', None)
     # the latest initools on pypi is 0.3.1
     latest_version = "0.3.1"
     satisfied_by = Mock(
@@ -123,7 +123,7 @@ class TestWheel:
         """
         caplog.set_level(logging.DEBUG)
 
-        req = InstallRequirement.from_line("invalid")
+        req = install_req_from_line("invalid")
         # data.find_links contains "invalid.whl", which is an invalid wheel
         finder = PackageFinder(
             [data.find_links],
@@ -148,7 +148,7 @@ class TestWheel:
             lambda **kw: [("py1", "none", "any")],
         )
 
-        req = InstallRequirement.from_line("simple.dist")
+        req = install_req_from_line("simple.dist")
         finder = PackageFinder(
             [data.find_links],
             [],
@@ -169,7 +169,7 @@ class TestWheel:
             lambda **kw: [('py2', 'none', 'any')],
         )
 
-        req = InstallRequirement.from_line("simple.dist")
+        req = install_req_from_line("simple.dist")
         finder = PackageFinder(
             [data.find_links],
             [],
@@ -185,7 +185,7 @@ class TestWheel:
         Test wheels have priority over sdists.
         `test_link_sorting` also covers this at lower level
         """
-        req = InstallRequirement.from_line("priority")
+        req = install_req_from_line("priority")
         finder = PackageFinder(
             [data.find_links],
             [],
@@ -199,7 +199,7 @@ class TestWheel:
         Test existing install has priority over wheels.
         `test_link_sorting` also covers this at a lower level
         """
-        req = InstallRequirement.from_line('priority', None)
+        req = install_req_from_line('priority', None)
         latest_version = "1.0"
         satisfied_by = Mock(
             location="/path",
@@ -284,7 +284,7 @@ class TestWheel:
 
 def test_finder_priority_file_over_page(data):
     """Test PackageFinder prefers file links over equivalent page links"""
-    req = InstallRequirement.from_line('gmpy==1.15', None)
+    req = install_req_from_line('gmpy==1.15', None)
     finder = PackageFinder(
         [data.find_links],
         ["http://pypi.org/simple/"],
@@ -304,7 +304,7 @@ def test_finder_deplink():
     """
     Test PackageFinder with dependency links only
     """
-    req = InstallRequirement.from_line('gmpy==1.15', None)
+    req = install_req_from_line('gmpy==1.15', None)
     finder = PackageFinder(
         [],
         [],
@@ -323,7 +323,7 @@ def test_finder_priority_page_over_deplink():
     """
     Test PackageFinder prefers page links over equivalent dependency links
     """
-    req = InstallRequirement.from_line('pip==1.5.6', None)
+    req = install_req_from_line('pip==1.5.6', None)
     finder = PackageFinder(
         [],
         ["https://pypi.org/simple/"],
@@ -346,7 +346,7 @@ def test_finder_priority_page_over_deplink():
 
 def test_finder_priority_nonegg_over_eggfragments():
     """Test PackageFinder prefers non-egg links over "#egg=" links"""
-    req = InstallRequirement.from_line('bar==1.0', None)
+    req = install_req_from_line('bar==1.0', None)
     links = ['http://foo/bar.py#egg=bar-1.0', 'http://foo/bar-1.0.tar.gz']
 
     finder = PackageFinder(links, [], session=PipSession())
@@ -377,7 +377,7 @@ def test_finder_only_installs_stable_releases(data):
     Test PackageFinder only accepts stable versioned releases by default.
     """
 
-    req = InstallRequirement.from_line("bar", None)
+    req = install_req_from_line("bar", None)
 
     # using a local index (that has pre & dev releases)
     finder = PackageFinder([], [data.index_url("pre")], session=PipSession())
@@ -431,7 +431,7 @@ def test_finder_installs_pre_releases(data):
     Test PackageFinder finds pre-releases if asked to.
     """
 
-    req = InstallRequirement.from_line("bar", None)
+    req = install_req_from_line("bar", None)
 
     # using a local index (that has pre & dev releases)
     finder = PackageFinder(
@@ -471,7 +471,7 @@ def test_finder_installs_dev_releases(data):
     Test PackageFinder finds dev releases if asked to.
     """
 
-    req = InstallRequirement.from_line("bar", None)
+    req = install_req_from_line("bar", None)
 
     # using a local index (that has dev releases)
     finder = PackageFinder(
@@ -487,7 +487,7 @@ def test_finder_installs_pre_releases_with_version_spec():
     """
     Test PackageFinder only accepts stable versioned releases by default.
     """
-    req = InstallRequirement.from_line("bar>=0.0.dev0", None)
+    req = install_req_from_line("bar>=0.0.dev0", None)
     links = ["https://foo/bar-1.0.tar.gz", "https://foo/bar-2.0b1.tar.gz"]
 
     finder = PackageFinder(links, [], session=PipSession())
@@ -555,7 +555,7 @@ def test_get_index_urls_locations():
     finder = PackageFinder(
         [], ['file://index1/', 'file://index2'], session=PipSession())
     locations = finder._get_index_urls_locations(
-        InstallRequirement.from_line('Complex_Name').name)
+        install_req_from_line('Complex_Name').name)
     assert locations == ['file://index1/complex-name/',
                          'file://index2/complex-name/']
 

@@ -11,7 +11,7 @@ from tempfile import mkdtemp
 import pretend
 import pytest
 
-from pip._internal.req import InstallRequirement
+from pip._internal.req.constructors import install_req_from_line
 from pip._internal.utils.misc import rmtree
 from tests.lib import assert_all_changes, create_test_package_with_setup
 from tests.lib.local_repos import local_checkout, local_repo
@@ -439,7 +439,7 @@ def test_uninstall_non_local_distutils(caplog, monkeypatch, tmpdir):
     get_dist = pretend.call_recorder(lambda x: dist)
     monkeypatch.setattr("pip._vendor.pkg_resources.get_distribution", get_dist)
 
-    req = InstallRequirement.from_line("thing")
+    req = install_req_from_line("thing")
     req.uninstall()
 
     assert os.path.exists(einfo)

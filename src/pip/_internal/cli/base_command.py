@@ -22,9 +22,10 @@ from pip._internal.exceptions import (
 )
 from pip._internal.index import PackageFinder
 from pip._internal.locations import running_under_virtualenv
-from pip._internal.req.constructors import install_req_from_editable
+from pip._internal.req.constructors import (
+    install_req_from_editable, install_req_from_line,
+)
 from pip._internal.req.req_file import parse_requirements
-from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.logging import setup_logging
 from pip._internal.utils.misc import get_prog, normalize_path
 from pip._internal.utils.outdated import pip_version_check
@@ -209,7 +210,7 @@ class RequirementCommand(Command):
                 requirement_set.add_requirement(req_to_add)
 
         for req in args:
-            req_to_add = InstallRequirement.from_line(
+            req_to_add = install_req_from_line(
                 req, None, isolated=options.isolated_mode,
                 wheel_cache=wheel_cache
             )
