@@ -1,4 +1,5 @@
 # Copyright Jonathan Hartley 2013. BSD 3-Clause license, see LICENSE file.
+import errno
 import re
 import sys
 import os
@@ -136,12 +137,25 @@ class AnsiToWin32(object):
             }
         return dict()
 
+    def _flush(self):
+        """Ignore `BrokenPipeErrors` eg. when piped in `head` UNIX cmd."""
+        try:
+            self.wrapped.flush()
+        except (IOError, OSError) as ex:  # Python-2 has no `BrokenPipeError`
+            # Windows also fails with:
+            #   File "pip\_vendor\colorama\ansitowin32.py", line 143, in _flush
+            #   self.wrapped.flush()
+            #    OSError: [Errno 22] Invalid argument
+            #
+            if ex.errno not in (errno.EPIPE, errno.EINVAL):
+                raise
+
     def write(self, text):
         if self.strip or self.convert:
             self.write_and_convert(text)
         else:
             self.wrapped.write(text)
-            self.wrapped.flush()
+            self._flush()
         if self.autoreset:
             self.reset_all()
 
@@ -172,7 +186,7 @@ class AnsiToWin32(object):
     def write_plain_text(self, text, start, end):
         if start < end:
             self.wrapped.write(text[start:end])
-            self.wrapped.flush()
+            self._flush()
 
 
     def convert_ansi(self, paramstring, command):

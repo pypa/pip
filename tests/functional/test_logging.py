@@ -6,6 +6,7 @@ import os
 import subprocess
 
 import pytest
+from pip._vendor.six import PY2
 
 
 @pytest.mark.usefixtures('script')
@@ -121,15 +122,16 @@ def test_broken_pipe_logger():
     # `download` cmd has a lot of log-statements.
     cmd = 'pip download -v pip'
 
-    # When the stream where logging is writting is broken,
-    # at least these 2 lines are emitted in stderr:
+    stderr = _run_and_brake_stdout(cmd, shell=True, check=True)
+    # When breaks the stream that the logging is writing into,
+    # in PY3 these 2 lines are emitted in stderr:
     #    Exception ignored in: <_io.TextIOWrapper name='<stdout>' mode='w' ...
     #    BrokenPipeError: [Errno 32] Broken pipe\n"
-    exp_stder_nlines = 2
-    exp_stderr_msg = b'Exception ignored in'
-
-    stderr = _run_and_brake_stdout(cmd, shell=True, check=True)
-    # Before #5721, it command does not stop, but it continued
-    # printing ~4 lines per each broken-pipe error!
-    assert stderr.count(b'\n') == exp_stder_nlines, stderr
-    assert exp_stderr_msg in stderr, stderr
+    #
+    # Before #5721, pip did not stop the 1st time, but it continued
+    # printing them lines on each `stream.flush()`!
+    if PY2:
+        assert not stderr, stderr
+    else:
+        assert stderr.count(b'\n') == 2
+        assert b'Exception ignored in' in stderr, stderr
