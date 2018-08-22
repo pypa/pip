@@ -47,9 +47,9 @@ def test_no_color():
         "Expected no color in output"
 
 
-def _run_and_brake_stdout(cmd, read_nchars=1, check=False, **popen_kw):
+def _run_and_break_stdout(cmd, read_nchars=1, check=False, **popen_kw):
     """
-    Launch Popen, brake stdout, ignore returncode and return stderr.
+    Launch Popen, break stdout, ignore returncode and return stderr.
 
     :param read_nchars:
         read that many chars before closing stream, if 0, close it immediately.
@@ -106,14 +106,14 @@ def test_broken_pipe_output(script):
     """Ensure `freeze` stops if its stdout stream is broken."""
     from . import test_freeze
 
-    # `freeze` cmd writes stdout in a loop, so a broken-pipe-error
-    #  breaks immediately with the 2 lines above, as expected.
-    cmd = 'pip freeze'
-
     # Install some packages for freeze to print something.
     test_freeze.test_basic_freeze(script)
 
-    stderr = _run_and_brake_stdout(cmd, shell=True, check=True)
+    # `freeze` cmd writes stdout in a loop, so a broken-pipe-error
+    #  breaks immediately with the 2 lines above, as expected.
+    cmd = 'pip freeze | head -n2'
+
+    stderr = _run_and_break_stdout(cmd, shell=True, check=True)
     assert not stderr, stderr
 
 
@@ -122,7 +122,7 @@ def test_broken_pipe_logger():
     # `download` cmd has a lot of log-statements.
     cmd = 'pip download -v pip'
 
-    stderr = _run_and_brake_stdout(cmd, shell=True, check=True)
+    stderr = _run_and_break_stdout(cmd, shell=True, check=True)
     # When breaks the stream that the logging is writing into,
     # in PY3 these 2 lines are emitted in stderr:
     #    Exception ignored in: <_io.TextIOWrapper name='<stdout>' mode='w' ...
