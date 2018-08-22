@@ -426,6 +426,12 @@ Subversion
 
 pip supports the URL schemes ``svn``, ``svn+svn``, ``svn+http``, ``svn+https``, ``svn+ssh``.
 
+Here are some of the supported forms::
+
+    [-e] svn+https://svn.example.com/MyProject#egg=MyProject
+    [-e] svn+ssh://svn.example.com/MyProject#egg=MyProject
+    [-e] svn+ssh://user@svn.example.com/MyProject#egg=MyProject
+
 You can also give specific revisions to an SVN URL, like so::
 
     [-e] svn+svn://svn.example.com/svn/MyProject#egg=MyProject

@@ -169,33 +169,39 @@ def test_git_is_commit_id_equal(git, rev_name, result):
 
 # The non-SVN backends all use the same get_netloc_and_auth(), so only test
 # Git as a representative.
-@pytest.mark.parametrize('netloc, expected', [
+@pytest.mark.parametrize('args, expected', [
     # Test a basic case.
-    ('example.com', ('example.com', (None, None))),
+    (('example.com', 'https'), ('example.com', (None, None))),
     # Test with username and password.
-    ('user:pass@example.com', ('user:pass@example.com', (None, None))),
+    (('user:pass@example.com', 'https'),
+     ('user:pass@example.com', (None, None))),
 ])
-def test_git__get_netloc_and_auth(netloc, expected):
+def test_git__get_netloc_and_auth(args, expected):
     """
     Test VersionControl.get_netloc_and_auth().
     """
-    actual = Git().get_netloc_and_auth(netloc)
+    netloc, scheme = args
+    actual = Git().get_netloc_and_auth(netloc, scheme)
     assert actual == expected
 
 
-@pytest.mark.parametrize('netloc, expected', [
-    # Test a basic case.
-    ('example.com', ('example.com', (None, None))),
-    # Test with username and no password.
-    ('user@example.com', ('example.com', ('user', None))),
-    # Test with username and password.
-    ('user:pass@example.com', ('example.com', ('user', 'pass'))),
+@pytest.mark.parametrize('args, expected', [
+    # Test https.
+    (('example.com', 'https'), ('example.com', (None, None))),
+    # Test https with username and no password.
+    (('user@example.com', 'https'), ('example.com', ('user', None))),
+    # Test https with username and password.
+    (('user:pass@example.com', 'https'), ('example.com', ('user', 'pass'))),
+    # Test ssh with username and password.
+    (('user:pass@example.com', 'ssh'),
+     ('user:pass@example.com', (None, None))),
 ])
-def test_subversion__get_netloc_and_auth(netloc, expected):
+def test_subversion__get_netloc_and_auth(args, expected):
     """
     Test Subversion.get_netloc_and_auth().
     """
-    actual = Subversion().get_netloc_and_auth(netloc)
+    netloc, scheme = args
+    actual = Subversion().get_netloc_and_auth(netloc, scheme)
     assert actual == expected
 
 
@@ -274,6 +280,28 @@ def test_bazaar__get_url_rev_and_auth(url, expected):
     bzr = Bazaar(url=url)
     actual = bzr.get_url_rev_and_auth(url)
     assert actual == (expected, None, (None, None))
+
+
+@pytest.mark.parametrize('url, expected', [
+    # Test an https URL.
+    ('svn+https://svn.example.com/MyProject#egg=MyProject',
+     ('https://svn.example.com/MyProject', None, (None, None))),
+    # Test an https URL with a username and password.
+    ('svn+https://user:pass@svn.example.com/MyProject#egg=MyProject',
+     ('https://svn.example.com/MyProject', None, ('user', 'pass'))),
+    # Test an ssh URL.
+    ('svn+ssh://svn.example.com/MyProject#egg=MyProject',
+     ('svn+ssh://svn.example.com/MyProject', None, (None, None))),
+    # Test an ssh URL with a username.
+    ('svn+ssh://user@svn.example.com/MyProject#egg=MyProject',
+     ('svn+ssh://user@svn.example.com/MyProject', None, (None, None))),
+])
+def test_subversion__get_url_rev_and_auth(url, expected):
+    """
+    Test Subversion.get_url_rev_and_auth().
+    """
+    actual = Subversion().get_url_rev_and_auth(url)
+    assert actual == expected
 
 
 # The non-SVN backends all use the same make_rev_args(), so only test

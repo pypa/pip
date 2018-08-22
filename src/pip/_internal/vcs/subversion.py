@@ -102,11 +102,17 @@ class Subversion(VersionControl):
             revision = max(revision, localrev)
         return revision
 
-    def get_netloc_and_auth(self, netloc):
+    def get_netloc_and_auth(self, netloc, scheme):
         """
         This override allows the auth information to be passed to svn via the
         --username and --password options instead of via the URL.
         """
+        if scheme == 'ssh':
+            # The --username and --password options can't be used for
+            # svn+ssh URLs, so keep the auth information in the URL.
+            return super(Subversion, self).get_netloc_and_auth(
+                netloc, scheme)
+
         return split_auth_from_netloc(netloc)
 
     def get_url_rev_and_auth(self, url):
