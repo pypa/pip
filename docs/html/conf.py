@@ -18,11 +18,11 @@ import sys
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
-here = os.path.dirname(__file__)
+docs_dir = os.path.dirname(os.path.dirname(__file__))
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.insert(0, here)
+sys.path.insert(0, docs_dir)
 # sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
 
 # -- General configuration ----------------------------------------------------
@@ -70,7 +70,7 @@ version = release = 'dev'
 # read the version direct from the __init__.py file. (Yes, this is
 # fragile, but it works...)
 
-pip_init = os.path.join(here, '..', 'src', 'pip', '__init__.py')
+pip_init = os.path.join(docs_dir, '..', 'src', 'pip', '__init__.py')
 with open(pip_init) as f:
     for line in f:
         m = re.match(r'__version__ = "(.*)"', line)
