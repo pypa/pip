@@ -247,3 +247,17 @@ class HashMismatch(HashError):
 class UnsupportedPythonVersion(InstallationError):
     """Unsupported python version according to Requires-Python package
     metadata."""
+
+
+class UnknownUnstableFeatures(PipError):
+    """Unstable feature names passed are not known.
+    """
+
+    def __init__(self, unknown_names):
+        super(UnknownUnstableFeatures, self).__init__(unknown_names)
+        self.unknown_names = unknown_names
+
+    def __str__(self):
+        return "UnknownUnstableFeatures: {}".format(
+            ", ".join(map(repr, sorted(self.unknown_names)))
+        )

@@ -17,7 +17,8 @@ from mock import Mock, patch
 from pip._vendor.six import BytesIO
 
 from pip._internal.exceptions import (
-    HashMismatch, HashMissing, InstallationError, UnsupportedPythonVersion,
+    HashMismatch, HashMissing, InstallationError, UnknownUnstableFeatures,
+    UnsupportedPythonVersion,
 )
 from pip._internal.utils.encoding import auto_decode
 from pip._internal.utils.glibc import check_glibc_version
@@ -29,6 +30,7 @@ from pip._internal.utils.misc import (
 )
 from pip._internal.utils.packaging import check_dist_requires_python
 from pip._internal.utils.temp_dir import TempDirectory
+from pip._internal.utils.unstable import UnstableFeaturesHelper
 
 
 class Tests_EgglinkPath:
@@ -665,3 +667,30 @@ def test_split_auth_from_netloc(netloc, expected):
 def test_remove_auth_from_url(auth_url, expected_url):
     url = remove_auth_from_url(auth_url)
     assert url == expected_url
+
+
+class TestUnstableFeaturesHelper(object):
+
+    def test_does_not_enable_on_registration(self):
+        unstable = UnstableFeaturesHelper()
+        unstable.register("name1", "name2")
+
+        assert not unstable.is_enabled("name1")
+        assert not unstable.is_enabled("name2")
+
+    def test_errors_when_validating_unregistered_name(self):
+        unstable = UnstableFeaturesHelper()
+        unstable.register("name1", "name2", "name3")
+
+        with pytest.raises(UnknownUnstableFeatures) as e:
+            unstable.validate(["name3", "name4", "name5"])
+
+        assert str(e.value) == "UnknownUnstableFeatures: 'name4', 'name5'"
+
+    def test_enables_names_on_validation(self):
+        unstable = UnstableFeaturesHelper()
+        unstable.register("name1", "name2")
+        unstable.validate(["name1"])
+
+        assert unstable.is_enabled("name1")
+        assert not unstable.is_enabled("name2")
