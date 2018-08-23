@@ -672,6 +672,18 @@ require_hashes = partial(
 )  # type: Any
 
 
+def unstable_features():
+    return Option(
+        '-X', '--unstable-feature',
+        dest='unstable_features',
+        metavar='feature',
+        action='append',
+        default=[],
+        help="Enable unstable functionality that is exempted from backwards "
+             "compatibility guarantees.",
+    )
+
+
 ##########
 # groups #
 ##########
@@ -699,6 +711,7 @@ general_group = {
         no_cache,
         disable_pip_version_check,
         no_color,
+        unstable_features,
     ]
 }
 
