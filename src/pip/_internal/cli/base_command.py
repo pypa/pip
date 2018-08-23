@@ -30,6 +30,7 @@ from pip._internal.utils.logging import setup_logging
 from pip._internal.utils.misc import get_prog, normalize_path
 from pip._internal.utils.outdated import pip_version_check
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.unstable import UnstableFeaturesHelper
 
 if MYPY_CHECK_RUNNING:
     from typing import Optional  # noqa: F401
@@ -46,6 +47,9 @@ class Command(object):
     ignore_require_venv = False  # type: bool
 
     def __init__(self, isolated=False):
+
+        self.unstable = UnstableFeaturesHelper()
+
         parser_kw = {
             'usage': self.usage,
             'prog': '%s %s' % (get_prog(), self.name),
@@ -138,6 +142,9 @@ class Command(object):
                     'Could not find an activated virtualenv (required).'
                 )
                 sys.exit(VIRTUALENV_NOT_FOUND)
+
+        # Raises an error if an unknown unstable feature is given.
+        self.unstable.validate(options.unstable_features)
 
         try:
             status = self.run(options, args)
