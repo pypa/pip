@@ -50,6 +50,10 @@ document existing behavior with the intention of covering that behavior with
 the above deprecation process are always acceptable, and will be considered on
 their merits.
 
+Any user-visible behavior enabled using a feature flag (i.e. the ``-X`` or
+the ``--unstable-feature`` option) is not subject to these guarantees and can
+be changed or be removed without a deprecation period.
+
 .. note::
 
   pip has a helper function for making deprecation easier for pip maintainers.
