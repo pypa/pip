@@ -167,15 +167,15 @@ class PackageFinder(object):
         return "\n".join(lines)
 
     def add_dependency_links(self, links):
-        # # FIXME: this shouldn't be global list this, it should only
-        # # apply to requirements of the package that specifies the
-        # # dependency_links value
-        # # FIXME: also, we should track comes_from (i.e., use Link)
+        # FIXME: this shouldn't be global list this, it should only
+        # apply to requirements of the package that specifies the
+        # dependency_links value
+        # FIXME: also, we should track comes_from (i.e., use Link)
         if self.process_dependency_links:
             deprecated(
                 "Dependency Links processing has been deprecated and will be "
                 "removed in a future release.",
-                replacement=None,
+                replacement="PEP 508 URL dependencies",
                 gone_in="18.2",
                 issue=4187,
             )
