@@ -23,6 +23,7 @@ exclude src/pip/_vendor/six/moves
 recursive-exclude src/pip/_vendor *.pyi
 
 prune .github
+prune .azure-pipelines
 prune docs/build
 prune news
 prune tasks
