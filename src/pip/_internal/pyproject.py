@@ -88,7 +88,7 @@ def load_pyproject_toml(use_pep517, pyproject_toml, setup_py, req_name):
         # assume the setuptools backend, and require wheel and a version
         # of setuptools that supports that backend.
         build_system = {
-            "requires": ["setuptools>=38.2.5", "wheel"],
+            "requires": ["setuptools>=40.2.0", "wheel"],
             "build-backend": "setuptools.build_meta",
         }
 
@@ -139,6 +139,6 @@ def load_pyproject_toml(use_pep517, pyproject_toml, setup_py, req_name):
         # 518 code had a similar check (but implemented in a different
         # way).
         backend = "setuptools.build_meta"
-        check = ["setuptools>=38.2.5", "wheel"]
+        check = ["setuptools>=40.2.0", "wheel"]
 
     return (requires, backend, check)
