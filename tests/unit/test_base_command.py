@@ -1,5 +1,7 @@
 import logging
 
+from mock import Mock
+
 from pip._internal.cli.base_command import Command
 
 
@@ -30,6 +32,14 @@ class FakeCommandWithUnicode(FakeCommand):
         logging.getLogger("pip.tests").info(
             b"unicode here \xC3\xA9".decode("utf-8")
         )
+
+
+def test_base_command_unstable_validation_done_in_main():
+    cmd = FakeCommand()
+    cmd.unstable = Mock()
+    cmd.main(['fake'])
+
+    cmd.unstable.validate.assert_called_once_with([])
 
 
 class Test_base_command_logging(object):
