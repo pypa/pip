@@ -30,11 +30,6 @@ from pip._internal.utils.misc import (
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.wheel import WheelBuilder
 
-try:
-    import wheel
-except ImportError:
-    wheel = None
-
 
 logger = logging.getLogger(__name__)
 
@@ -321,9 +316,8 @@ class InstallCommand(RequirementCommand):
                         modifying_pip=requirement_set.has_requirement("pip")
                     )
 
-                    # If caching is disabled or wheel is not installed don't
-                    # try to build wheels.
-                    if wheel and options.cache_dir:
+                    # If caching is disabled don't try to build wheels.
+                    if options.cache_dir:
                         # build wheels before install.
                         wb = WheelBuilder(
                             finder, preparer, wheel_cache,
