@@ -766,6 +766,8 @@ class WheelBuilder(object):
         from pip._internal import index
         from pip._internal.models.link import Link
 
+        # TODO: This check fails if --no-cache-dir is set. And yet we
+        #       might be able to build into the ephemeral cache, surely?
         building_is_possible = self._wheel_dir or (
             autobuilding and self.wheel_cache.cache_dir
         )
@@ -806,7 +808,7 @@ class WheelBuilder(object):
                 buildset.append((req, ephem_cache))
 
         if not buildset:
-            return True
+            return []
 
         # Build the wheels.
         logger.info(
@@ -879,4 +881,4 @@ class WheelBuilder(object):
                 ' '.join([req.name for req in build_failure]),
             )
         # Return True if all builds were successful
-        return len(build_failure) == 0
+        return build_failure

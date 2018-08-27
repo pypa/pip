@@ -541,7 +541,6 @@ class InstallRequirement(object):
                 show_stdout=False,
                 command_desc='python setup.py egg_info')
 
-
     @property
     def egg_info_path(self):
         if self._egg_info_path is None:

@@ -316,37 +316,50 @@ class InstallCommand(RequirementCommand):
                         modifying_pip=requirement_set.has_requirement("pip")
                     )
 
-                    # If caching is disabled don't try to build wheels.
-                    if options.cache_dir:
-                        # build wheels before install.
-                        wb = WheelBuilder(
-                            finder, preparer, wheel_cache,
-                            build_options=[], global_options=[],
-                        )
-                        # Ignore the result: a failed wheel will be
-                        # installed from the sdist/vcs whatever.
+                    # Consider legacy and PEP517-using requirements separately
+                    legacy_requirements = []
+                    pep517_requirements = []
+                    for req in requirement_set.requirements.values():
+                        if req.use_pep517:
+                            pep517_requirements.append(req)
+                        else:
+                            legacy_requirements.append(req)
+
+                    # We don't build wheels for legacy requirements if we
+                    # don't have wheel installed or we don't have a cache dir
+                    try:
+                        import wheel  # noqa: F401
+                        build_legacy = bool(options.cache_dir)
+                    except ImportError:
+                        build_legacy = False
+
+                    wb = WheelBuilder(
+                        finder, preparer, wheel_cache,
+                        build_options=[], global_options=[],
+                    )
+
+                    # Always build PEP 517 requirements
+                    build_failures = wb.build(
+                        pep517_requirements,
+                        session=session, autobuilding=True
+                    )
+
+                    if build_legacy:
+                        # We don't care about failures building legacy
+                        # requirements, as we'll fall through to a direct
+                        # install for those.
                         wb.build(
-                            requirement_set.requirements.values(),
+                            pep517_requirements,
                             session=session, autobuilding=True
                         )
 
                     # If we're using PEP 517, we cannot do a direct install
                     # so we fail here.
-                    # TODO: Technically, if it's a setuptools-based project
-                    # we could fall back to setup.py install even if we've
-                    # been assuming PEP 517 to this point, but that would be
-                    # complicated to achieve, as none of the legacy setup has
-                    # been done. Better to get the user to specify
-                    # --no-use-pep517.
-                    failed_builds = [
-                        r for r in requirement_set.requirements.values()
-                        if r.use_pep517 and not r.is_wheel
-                    ]
- 
-                    if failed_builds:
+                    if build_failures:
                         raise InstallationError(
-                            "Could not build wheels for {}".format(
-                                failed_builds))
+                            "Could not build wheels for {} which use" +
+                            " PEP 517 and cannot be installed directly".format(
+                                ", ".join(r.name for r in build_failures)))
 
                     to_install = resolver.get_installation_order(
                         requirement_set
