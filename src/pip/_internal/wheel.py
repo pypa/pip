@@ -880,5 +880,5 @@ class WheelBuilder(object):
                 'Failed to build %s',
                 ' '.join([req.name for req in build_failure]),
             )
-        # Return True if all builds were successful
+        # Return a list of requirements that failed to build
         return build_failure
