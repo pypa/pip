@@ -75,7 +75,7 @@ class Tests_UserSite:
         dist_info_folder = (
             script.user_site / 'FSPkg-0.1.dev0.dist-info'
         )
-        assert dist_info_folder in result.files_created
+        assert dist_info_folder in result.files_created, result.files_created
 
     @pytest.mark.incompatible_with_test_venv
     def test_install_user_venv_nositepkgs_fails(self, virtualenv,

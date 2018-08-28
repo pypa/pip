@@ -172,7 +172,7 @@ def pip_src(tmpdir_factory):
         SRC_DIR,
         pip_src.abspath,
         ignore=shutil.ignore_patterns(
-            "*.pyc", "__pycache__", "contrib", "docs", "tasks", "*.txt",
+            "*.pyc", "__pycache__", "contrib", "docs", "tasks",
             "tests", "pip.egg-info", "build", "dist", ".tox", ".git",
         ),
     )

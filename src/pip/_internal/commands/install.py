@@ -30,7 +30,6 @@ from pip._internal.utils.misc import (
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.wheel import WheelBuilder
 
-
 logger = logging.getLogger(__name__)
 
 
