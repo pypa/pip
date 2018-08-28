@@ -403,11 +403,13 @@ def handle_cli_no_binary(option, opt_str, value, parser):
         value, existing.no_binary, existing.only_binary,
     )
 
+
 def handle_cli_only_binary(option, opt_str, value, parser):
     existing = getattr(parser.values, option.dest)
     FormatControl.handle_mutual_excludes(
         value, existing.only_binary, existing.no_binary,
     )
+
 
 def no_binary():
     format_control = FormatControl(set(), set())

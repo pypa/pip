@@ -5,8 +5,6 @@ import os
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import RequirementCommand
-from pip._internal.exceptions import CommandError
-from pip._internal.format_control import FormatControl
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import RequirementSet
 from pip._internal.req.req_tracker import RequirementTracker

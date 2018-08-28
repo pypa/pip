@@ -57,6 +57,7 @@ def test_comma_separated_values():
     assert cmd.options.format_control.only_binary == expected.only_binary
     assert cmd.options.format_control.no_binary == expected.no_binary
 
+
 def test_fmt_ctl_matches():
     fmt = FormatControl(set(), set())
     assert fmt.get_allowed_formats("fred") == frozenset(["source", "binary"])
