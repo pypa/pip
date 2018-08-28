@@ -65,7 +65,7 @@ def test_pip_wheel_builds_when_no_binary_set(script, data):
         'wheel', '--no-index', '--no-binary', ':all:',
         '-f', data.find_links,
         'simple==3.0')
-    assert "Running setup.py bdist_wheel for simple" in str(res), str(res)
+    assert "Building wheel for simple" in str(res), str(res)
 
 
 def test_pip_wheel_builds_editable_deps(script, data):

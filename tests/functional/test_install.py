@@ -101,7 +101,20 @@ def test_pep518_allows_missing_requires(script, data, common_wheels):
 
 
 def test_pep518_with_user_pip(script, pip_src, data, common_wheels):
-    script.pip("install", "--ignore-installed", "--user", pip_src)
+    """
+    Check that build dependencies are installed into the build
+    environment without using build isolation for the pip invocation.
+
+    To ensure that we're not using build isolation when installing
+    the build dependencies, we install a user copy of pip in the
+    non-isolated environment, and break pip in the system site-packages,
+    so that isolated uses of pip will fail.
+    """
+    # Set expect_stderr, not so much because we expect output on stderr,
+    # rather we simply don't care (setuptools can write warnings to stderr
+    # which we'll ignore).
+    script.pip("install", "--ignore-installed", "--user", pip_src,
+               expect_stderr=True)
     system_pip_dir = script.site_packages_path / 'pip'
     system_pip_dir.rmtree()
     system_pip_dir.mkdir()
