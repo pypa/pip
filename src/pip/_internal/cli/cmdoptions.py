@@ -397,15 +397,20 @@ src = partial(
 )  # type: Any
 
 
-def handle_cli_no_binary(option, opt_str, value, parser):
-    existing = getattr(parser.values, option.dest)
+def _get_format_control(values, option):
+    """Get a format_control object."""
+    return getattr(values, option.dest)
+
+
+def _handle_no_binary(option, opt_str, value, parser):
+    existing = _get_format_control(parser.values, option)
     FormatControl.handle_mutual_excludes(
         value, existing.no_binary, existing.only_binary,
     )
 
 
-def handle_cli_only_binary(option, opt_str, value, parser):
-    existing = getattr(parser.values, option.dest)
+def _handle_only_binary(option, opt_str, value, parser):
+    existing = _get_format_control(parser.values, option)
     FormatControl.handle_mutual_excludes(
         value, existing.only_binary, existing.no_binary,
     )
@@ -415,7 +420,7 @@ def no_binary():
     format_control = FormatControl(set(), set())
     return Option(
         "--no-binary", dest="format_control", action="callback",
-        callback=handle_cli_no_binary, type="str",
+        callback=_handle_no_binary, type="str",
         default=format_control,
         help="Do not use binary packages. Can be supplied multiple times, and "
              "each time adds to the existing value. Accepts either :all: to "
@@ -430,7 +435,7 @@ def only_binary():
     format_control = FormatControl(set(), set())
     return Option(
         "--only-binary", dest="format_control", action="callback",
-        callback=handle_cli_only_binary, type="str",
+        callback=_handle_only_binary, type="str",
         default=format_control,
         help="Do not use source packages. Can be supplied multiple times, and "
              "each time adds to the existing value. Accepts either :all: to "

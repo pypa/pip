@@ -8,12 +8,15 @@ class FormatControl(object):
     to {':all:'} at a time. The rest of the time exact package name matches
     are listed, with any given package only showing up in one field at a time.
     """
-    def __init__(self, no_binary=set(), only_binary=set()):
-        self.no_binary = no_binary
-        self.only_binary = only_binary
+    def __init__(self, no_binary=None, only_binary=None):
+        self.no_binary = set() if no_binary is None else no_binary
+        self.only_binary = set() if only_binary is None else only_binary
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def __repr__(self):
         return "{}({}, {})".format(
@@ -57,7 +60,3 @@ class FormatControl(object):
         self.handle_mutual_excludes(
             ':all:', self.no_binary, self.only_binary,
         )
-
-    def _get_format_control(self, values, option):
-        """Get a format_control object."""
-        return getattr(values, option.dest)
