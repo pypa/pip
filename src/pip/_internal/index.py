@@ -402,7 +402,7 @@ class PackageFinder(object):
             logger.debug('* %s', location)
 
         canonical_name = canonicalize_name(project_name)
-        formats = self.format_control.fmt_ctl_formats(canonical_name)
+        formats = self.format_control.get_allowed_formats(canonical_name)
         search = Search(project_name, canonical_name, formats)
         find_links_versions = self._package_versions(
             # We trust every directly linked archive in find_links

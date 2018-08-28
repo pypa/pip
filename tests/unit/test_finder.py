@@ -584,16 +584,3 @@ def test_find_all_candidates_find_links_and_index(data):
     versions = finder.find_all_candidates('simple')
     # first the find-links versions then the page versions
     assert [str(v.version) for v in versions] == ['3.0', '2.0', '1.0', '1.0']
-
-
-def test_fmt_ctl_matches():
-    fmt = FormatControl(set(), set())
-    assert fmt.fmt_ctl_formats("fred") == frozenset(["source", "binary"])
-    fmt = FormatControl({"fred"}, set())
-    assert fmt.fmt_ctl_formats("fred") == frozenset(["source"])
-    fmt = FormatControl({"fred"}, {":all:"})
-    assert fmt.fmt_ctl_formats("fred") == frozenset(["source"])
-    fmt = FormatControl(set(), {"fred"})
-    assert fmt.fmt_ctl_formats("fred") == frozenset(["binary"])
-    fmt = FormatControl({":all:"}, {"fred"})
-    assert fmt.fmt_ctl_formats("fred") == frozenset(["binary"])

@@ -93,31 +93,7 @@ class DownloadCommand(RequirementCommand):
         else:
             python_versions = None
 
-<<<<<<< HEAD
         cmdoptions.check_dist_restriction(options)
-=======
-        dist_restriction_set = any([
-            options.python_version,
-            options.platform,
-            options.abi,
-            options.implementation,
-        ])
-        fmt_ctl = FormatControl(set(), {':all:'})
-        no_sdist_dependencies = (
-            (
-                options.format_control.no_binary != fmt_ctl.no_binary or
-                options.format_control.only_binary != fmt_ctl.only_binary
-            ) and not options.ignore_dependencies
-        )
-        if dist_restriction_set and no_sdist_dependencies:
-            raise CommandError(
-                "When restricting platform and interpreter constraints using "
-                "--python-version, --platform, --abi, or --implementation, "
-                "either --no-deps must be set, or --only-binary=:all: must be "
-                "set and --no-binary must not be set (or must be set to "
-                ":none:)."
-            )
->>>>>>> Refactoring: Move FormatControl to separate class
 
         options.src_dir = os.path.abspath(options.src_dir)
         options.download_dir = normalize_path(options.download_dir)

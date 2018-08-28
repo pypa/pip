@@ -72,7 +72,7 @@ class Cache(object):
             return []
 
         canonical_name = canonicalize_name(package_name)
-        formats = self.format_control.fmt_ctl_formats(
+        formats = self.format_control.get_allowed_formats(
             canonical_name
         )
         if not self.allowed_formats.intersection(formats):

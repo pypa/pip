@@ -52,7 +52,7 @@ def check_install_build_global(options, check_options=None):
     names = ["build_options", "global_options", "install_options"]
     if any(map(getname, names)):
         control = options.format_control
-        control.fmt_ctl_no_binary()
+        control.disallow_binaries()
         warnings.warn(
             'Disabling all use of wheels due to the use of --build-options '
             '/ --global-options / --install-options.', stacklevel=2,
@@ -397,11 +397,23 @@ src = partial(
 )  # type: Any
 
 
+def handle_cli_no_binary(option, opt_str, value, parser):
+    existing = getattr(parser.values, option.dest)
+    FormatControl.handle_mutual_excludes(
+        value, existing.no_binary, existing.only_binary,
+    )
+
+def handle_cli_only_binary(option, opt_str, value, parser):
+    existing = getattr(parser.values, option.dest)
+    FormatControl.handle_mutual_excludes(
+        value, existing.only_binary, existing.no_binary,
+    )
+
 def no_binary():
     format_control = FormatControl(set(), set())
     return Option(
         "--no-binary", dest="format_control", action="callback",
-        callback=format_control._handle_no_binary, type="str",
+        callback=handle_cli_no_binary, type="str",
         default=format_control,
         help="Do not use binary packages. Can be supplied multiple times, and "
              "each time adds to the existing value. Accepts either :all: to "
@@ -416,7 +428,7 @@ def only_binary():
     format_control = FormatControl(set(), set())
     return Option(
         "--only-binary", dest="format_control", action="callback",
-        callback=format_control._handle_only_binary, type="str",
+        callback=handle_cli_only_binary, type="str",
         default=format_control,
         help="Do not use source packages. Can be supplied multiple times, and "
              "each time adds to the existing value. Accepts either :all: to "

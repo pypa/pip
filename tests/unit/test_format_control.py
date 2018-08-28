@@ -56,3 +56,15 @@ def test_comma_separated_values():
     expected = FormatControl({'1', '2', '3'}, set())
     assert cmd.options.format_control.only_binary == expected.only_binary
     assert cmd.options.format_control.no_binary == expected.no_binary
+
+def test_fmt_ctl_matches():
+    fmt = FormatControl(set(), set())
+    assert fmt.get_allowed_formats("fred") == frozenset(["source", "binary"])
+    fmt = FormatControl({"fred"}, set())
+    assert fmt.get_allowed_formats("fred") == frozenset(["source"])
+    fmt = FormatControl({"fred"}, {":all:"})
+    assert fmt.get_allowed_formats("fred") == frozenset(["source"])
+    fmt = FormatControl(set(), {"fred"})
+    assert fmt.get_allowed_formats("fred") == frozenset(["binary"])
+    fmt = FormatControl({":all:"}, {"fred"})
+    assert fmt.get_allowed_formats("fred") == frozenset(["binary"])
