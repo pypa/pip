@@ -1117,7 +1117,6 @@ def test_install_wheel_broken(script, with_wheel):
     assert "Successfully installed wheelbroken-0.1" in str(res), str(res)
 
 
-@pytest.mark.xfail(reason="Test depends on exact output from setuptools")
 def test_cleanup_after_failed_wheel(script, with_wheel):
     res = script.pip_install_local('wheelbrokenafter', expect_stderr=True)
     # One of the effects of not cleaning up is broken scripts:
@@ -1129,7 +1128,6 @@ def test_cleanup_after_failed_wheel(script, with_wheel):
     assert "Running setup.py clean for wheelbrokenafter" in str(res), str(res)
 
 
-@pytest.mark.xfail(reason="Test depends on exact output from setuptools")
 def test_install_builds_wheels(script, data, with_wheel):
     # We need to use a subprocess to get the right value on Windows.
     res = script.run('python', '-c', (
@@ -1152,10 +1150,10 @@ def test_install_builds_wheels(script, data, with_wheel):
     for top, dirs, files in os.walk(wheels_cache):
         wheels.extend(files)
     # and built wheels for upper and wheelbroken
-    assert "Running setup.py bdist_wheel for upper" in str(res), str(res)
-    assert "Running setup.py bdist_wheel for wheelb" in str(res), str(res)
+    assert "Building wheel for upper" in str(res), str(res)
+    assert "Building wheel for wheelb" in str(res), str(res)
     # Wheels are built for local directories, but not cached.
-    assert "Running setup.py bdist_wheel for requir" in str(res), str(res)
+    assert "Building wheel for requir" in str(res), str(res)
     # wheelbroken has to run install
     # into the cache
     assert wheels != [], str(res)
@@ -1171,7 +1169,6 @@ def test_install_builds_wheels(script, data, with_wheel):
     ]
 
 
-@pytest.mark.xfail(reason="Test depends on exact output from setuptools")
 def test_install_no_binary_disables_building_wheels(script, data, with_wheel):
     to_install = data.packages.join('requires_wheelbroken_upper')
     res = script.pip(
@@ -1182,16 +1179,16 @@ def test_install_no_binary_disables_building_wheels(script, data, with_wheel):
     # Must have installed it all
     assert expected in str(res), str(res)
     # and built wheels for wheelbroken only
-    assert "Running setup.py bdist_wheel for wheelb" in str(res), str(res)
+    assert "Building wheel for wheelb" in str(res), str(res)
     # Wheels are built for local directories, but not cached across runs
-    assert "Running setup.py bdist_wheel for requir" in str(res), str(res)
+    assert "Building wheel for requir" in str(res), str(res)
     # Don't build wheel for upper which was blacklisted
-    assert "Running setup.py bdist_wheel for upper" not in str(res), str(res)
+    assert "Building wheel for upper" not in str(res), str(res)
     # Wheels are built for local directories, but not cached across runs
-    assert "Running setup.py install for requir" not in str(res), str(res)
+    assert "Building wheel for requir" not in str(res), str(res)
     # And these two fell back to sdist based installed.
-    assert "Running setup.py install for wheelb" in str(res), str(res)
-    assert "Running setup.py install for upper" in str(res), str(res)
+    assert "Building wheel for wheelb" in str(res), str(res)
+    assert "Building wheel for upper" in str(res), str(res)
 
 
 def test_install_no_binary_disables_cached_wheels(script, data, with_wheel):
@@ -1205,7 +1202,7 @@ def test_install_no_binary_disables_cached_wheels(script, data, with_wheel):
         'upper', expect_stderr=True)
     assert "Successfully installed upper-2.0" in str(res), str(res)
     # No wheel building for upper, which was blacklisted
-    assert "Running setup.py bdist_wheel for upper" not in str(res), str(res)
+    assert "Building wheel for upper" not in str(res), str(res)
     # Must have used source, not a cached wheel to install upper.
     assert "Running setup.py install for upper" in str(res), str(res)
 

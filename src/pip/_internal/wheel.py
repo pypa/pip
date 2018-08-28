@@ -699,7 +699,7 @@ class WheelBuilder(object):
 
     def _build_one_pep517(self, req, tempd, python_tag=None):
         # TODO: Cannot support python_tag
-        spin_message = 'Running PEP 517 build_wheel for %s' % (req.name,)
+        spin_message = 'Building wheel for %s (PEP 517)' % (req.name,)
         with open_spinner(spin_message) as spinner:
             logger.debug('Destination directory: %s', tempd)
             assert req.metadata_directory is not None
@@ -726,7 +726,7 @@ class WheelBuilder(object):
     def _build_one_legacy(self, req, tempd, python_tag=None):
         base_args = self._base_setup_args(req)
 
-        spin_message = 'Running setup.py bdist_wheel for %s' % (req.name,)
+        spin_message = 'Building wheel for %s (setup.py)' % (req.name,)
         with open_spinner(spin_message) as spinner:
             logger.debug('Destination directory: %s', tempd)
             wheel_args = base_args + ['bdist_wheel', '-d', tempd] \
