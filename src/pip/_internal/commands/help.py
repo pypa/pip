@@ -32,6 +32,6 @@ class HelpCommand(Command):
             raise CommandError(' - '.join(msg))
 
         command = commands_dict[cmd_name]()
-        command.print_help()
+        command.print_help(options.verbose)
 
         return SUCCESS
