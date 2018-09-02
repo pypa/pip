@@ -11,7 +11,7 @@ from pip._internal.download import PipSession
 from pip._internal.exceptions import (
     InstallationError, RequirementsFileParseError,
 )
-from pip._internal.format_control import FormatControl
+from pip._internal.models.format_control import FormatControl
 from pip._internal.index import PackageFinder
 from pip._internal.req.constructors import (
     install_req_from_editable, install_req_from_line,

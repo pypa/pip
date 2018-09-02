@@ -25,7 +25,7 @@ from pip._internal.exceptions import (
     BestVersionAlreadyInstalled, DistributionNotFound, InvalidWheelFilename,
     UnsupportedWheel,
 )
-from pip._internal.format_control import FormatControl
+from pip._internal.models.format_control import FormatControl
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.index import PyPI
 from pip._internal.models.link import Link

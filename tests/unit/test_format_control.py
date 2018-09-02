@@ -1,6 +1,7 @@
+import pytest
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
-from pip._internal.format_control import FormatControl
+from pip._internal.models.format_control import FormatControl
 
 
 class SimpleCommand(Command):
@@ -19,25 +20,22 @@ class SimpleCommand(Command):
 def test_no_binary_overrides():
     cmd = SimpleCommand()
     cmd.main(['fake', '--only-binary=:all:', '--no-binary=fred'])
-    expected = FormatControl({'fred'}, {':all:'})
-    assert cmd.options.format_control.only_binary == expected.only_binary
-    assert cmd.options.format_control.no_binary == expected.no_binary
+    format_control = FormatControl({'fred'}, {':all:'})
+    assert cmd.options.format_control == format_control
 
 
 def test_only_binary_overrides():
     cmd = SimpleCommand()
     cmd.main(['fake', '--no-binary=:all:', '--only-binary=fred'])
-    expected = FormatControl({':all:'}, {'fred'})
-    assert cmd.options.format_control.only_binary == expected.only_binary
-    assert cmd.options.format_control.no_binary == expected.no_binary
+    format_control = FormatControl({':all:'}, {'fred'})
+    assert cmd.options.format_control == format_control
 
 
 def test_none_resets():
     cmd = SimpleCommand()
     cmd.main(['fake', '--no-binary=:all:', '--no-binary=:none:'])
-    expected = FormatControl(set(), set())
-    assert cmd.options.format_control.only_binary == expected.only_binary
-    assert cmd.options.format_control.no_binary == expected.no_binary
+    format_control = FormatControl(set(), set())
+    assert cmd.options.format_control == format_control
 
 
 def test_none_preserves_other_side():
@@ -45,27 +43,32 @@ def test_none_preserves_other_side():
     cmd.main(
         ['fake', '--no-binary=:all:', '--only-binary=fred',
          '--no-binary=:none:'])
-    expected = FormatControl(set(), {'fred'})
-    assert cmd.options.format_control.only_binary == expected.only_binary
-    assert cmd.options.format_control.no_binary == expected.no_binary
+    format_control = FormatControl(set(), {'fred'})
+    assert cmd.options.format_control == format_control
 
 
 def test_comma_separated_values():
     cmd = SimpleCommand()
     cmd.main(['fake', '--no-binary=1,2,3'])
-    expected = FormatControl({'1', '2', '3'}, set())
-    assert cmd.options.format_control.only_binary == expected.only_binary
-    assert cmd.options.format_control.no_binary == expected.no_binary
+    format_control = FormatControl({'1', '2', '3'}, set())
+    assert cmd.options.format_control == format_control
 
-
-def test_fmt_ctl_matches():
+@pytest.mark.parametrize("no_binary,only_binary", [(
+    "fred", ":all:")
+])
+def test_fmt_ctl_matches(no_binary, only_binary):
     fmt = FormatControl(set(), set())
-    assert fmt.get_allowed_formats("fred") == frozenset(["source", "binary"])
-    fmt = FormatControl({"fred"}, set())
-    assert fmt.get_allowed_formats("fred") == frozenset(["source"])
-    fmt = FormatControl({"fred"}, {":all:"})
-    assert fmt.get_allowed_formats("fred") == frozenset(["source"])
-    fmt = FormatControl(set(), {"fred"})
-    assert fmt.get_allowed_formats("fred") == frozenset(["binary"])
-    fmt = FormatControl({":all:"}, {"fred"})
-    assert fmt.get_allowed_formats("fred") == frozenset(["binary"])
+    assert fmt.get_allowed_formats(no_binary) == frozenset(["source", "binary"])
+
+    fmt = FormatControl({no_binary}, set())
+    assert fmt.get_allowed_formats(no_binary) == frozenset(["source"])
+
+    fmt = FormatControl({no_binary}, {only_binary})
+    assert fmt.get_allowed_formats(no_binary) == frozenset(["source"])
+
+    no_binary, only_binary = only_binary, no_binary
+    fmt = FormatControl(set(), {only_binary})
+    assert fmt.get_allowed_formats(only_binary) == frozenset(["binary"])
+
+    fmt = FormatControl({no_binary}, {only_binary})
+    assert fmt.get_allowed_formats(only_binary) == frozenset(["binary"])
