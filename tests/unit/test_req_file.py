@@ -564,8 +564,7 @@ class TestParseRequirements(object):
             data.reqfiles.join("supported_options2.txt"), finder,
             session=PipSession()))
         expected = FormatControl({'fred'}, {'wilma'})
-        assert finder.format_control.only_binary == expected.only_binary
-        assert finder.format_control.no_binary == expected.no_binary
+        assert finder.format_control == expected
 
     def test_req_file_parse_comment_start_of_line(self, tmpdir, finder):
         """

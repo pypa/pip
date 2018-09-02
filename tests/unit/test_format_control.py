@@ -53,12 +53,15 @@ def test_comma_separated_values():
     format_control = FormatControl({'1', '2', '3'}, set())
     assert cmd.options.format_control == format_control
 
+
 @pytest.mark.parametrize("no_binary,only_binary", [(
     "fred", ":all:")
 ])
 def test_fmt_ctl_matches(no_binary, only_binary):
     fmt = FormatControl(set(), set())
-    assert fmt.get_allowed_formats(no_binary) == frozenset(["source", "binary"])
+    assert fmt.get_allowed_formats(
+        no_binary
+    ) == frozenset(["source", "binary"])
 
     fmt = FormatControl({no_binary}, set())
     assert fmt.get_allowed_formats(no_binary) == frozenset(["source"])
