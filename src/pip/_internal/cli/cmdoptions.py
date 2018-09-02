@@ -14,8 +14,8 @@ from functools import partial
 from optparse import SUPPRESS_HELP, Option, OptionGroup
 
 from pip._internal.exceptions import CommandError
-from pip._internal.models.format_control import FormatControl
 from pip._internal.locations import USER_CACHE_DIR, src_prefix
+from pip._internal.models.format_control import FormatControl
 from pip._internal.models.index import PyPI
 from pip._internal.utils.hashes import STRONG_HASHES
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING

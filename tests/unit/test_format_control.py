@@ -1,4 +1,5 @@
 import pytest
+
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
 from pip._internal.models.format_control import FormatControl
