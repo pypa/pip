@@ -596,7 +596,7 @@ no_clean = partial(
     '--no-clean',
     action='store_true',
     default=False,
-    help="Don't clean up build directories)."
+    help="Don't clean up build directories."
 )  # type: Any
 
 pre = partial(
