@@ -159,7 +159,6 @@ To build it locally, run:
 The built documentation can be found in the ``docs/build`` folder.
 
 .. _`open an issue`: https://github.com/pypa/pip/issues/new?title=Trouble+with+pip+development+environment
-.. _`pagure`: https://pagure.io/pagure
 .. _`flake8 does not understand PEP 484 type-comments`: https://gitlab.com/pycqa/flake8/issues/118
 .. _`PEP 484 type-comments`: https://www.python.org/dev/peps/pep-0484/#suggested-syntax-for-python-2-7-and-straddling-code
 .. _`rich CLI`: https://docs.pytest.org/en/latest/usage.html#specifying-tests-selecting-tests
