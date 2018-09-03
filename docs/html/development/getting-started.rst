@@ -11,14 +11,7 @@ process, please `open an issue`_ about it on the issue tracker.
 Running Developent Version
 ==========================
 
-Clone git repository and change dir into it:
-
-.. code-block:: console
-
-    $ git clone https://github.com/pypa/pip
-    $ cd pip
-
-Then run `python src/pip`:
+Just run `python src/pip` from cloned pip repo (https://github.com/pypa/pip):
 
 .. code-block:: console
 
