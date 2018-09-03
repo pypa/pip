@@ -86,9 +86,8 @@ def pip_version_check(session, options):
     pip_version = packaging_version.parse(installed_version)
     pypi_version = None
 
+    state = SelfCheckState(cache_dir=options.cache_dir)
     try:
-        state = SelfCheckState(cache_dir=options.cache_dir)
-
         current_time = datetime.datetime.utcnow()
         # Determine if we need to refresh the state
         if "last_check" in state.state and "pypi_version" in state.state:
