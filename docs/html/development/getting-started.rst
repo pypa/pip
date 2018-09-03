@@ -19,7 +19,8 @@ Just run `python src/pip` from cloned pip repo (https://github.com/pypa/pip):
     
 That's it!
 
-You may want to skip to next chapter, or read on for full details.
+You may want to skip to next chapter to read on how to run tests, or read on
+for details on how it works.
 
 Running `src/pip` will load all `pip` modules and
 `dependencies <https://github.com/pypa/pip/tree/master/src/pip/_vendor)>`_
