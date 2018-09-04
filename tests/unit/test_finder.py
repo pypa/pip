@@ -11,9 +11,7 @@ from pip._internal.download import PipSession
 from pip._internal.exceptions import (
     BestVersionAlreadyInstalled, DistributionNotFound,
 )
-from pip._internal.index import (
-    FormatControl, InstallationCandidate, Link, PackageFinder, fmt_ctl_formats,
-)
+from pip._internal.index import InstallationCandidate, Link, PackageFinder
 from pip._internal.req.constructors import install_req_from_line
 
 
@@ -586,16 +584,3 @@ def test_find_all_candidates_find_links_and_index(data):
     versions = finder.find_all_candidates('simple')
     # first the find-links versions then the page versions
     assert [str(v.version) for v in versions] == ['3.0', '2.0', '1.0', '1.0']
-
-
-def test_fmt_ctl_matches():
-    fmt = FormatControl(set(), set())
-    assert fmt_ctl_formats(fmt, "fred") == frozenset(["source", "binary"])
-    fmt = FormatControl({"fred"}, set())
-    assert fmt_ctl_formats(fmt, "fred") == frozenset(["source"])
-    fmt = FormatControl({"fred"}, {":all:"})
-    assert fmt_ctl_formats(fmt, "fred") == frozenset(["source"])
-    fmt = FormatControl(set(), {"fred"})
-    assert fmt_ctl_formats(fmt, "fred") == frozenset(["binary"])
-    fmt = FormatControl({":all:"}, {"fred"})
-    assert fmt_ctl_formats(fmt, "fred") == frozenset(["binary"])

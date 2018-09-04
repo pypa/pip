@@ -12,6 +12,7 @@ from pip._internal.exceptions import (
     InstallationError, RequirementsFileParseError,
 )
 from pip._internal.index import PackageFinder
+from pip._internal.models.format_control import FormatControl
 from pip._internal.req.constructors import (
     install_req_from_editable, install_req_from_line,
 )
@@ -37,7 +38,7 @@ def options(session):
     return stub(
         isolated_mode=False, index_url='default_url',
         skip_requirements_regex=False,
-        format_control=pip._internal.index.FormatControl(set(), set()))
+        format_control=FormatControl(set(), set()))
 
 
 class TestPreprocess(object):
@@ -562,8 +563,7 @@ class TestParseRequirements(object):
         list(parse_requirements(
             data.reqfiles.join("supported_options2.txt"), finder,
             session=PipSession()))
-        expected = pip._internal.index.FormatControl(
-            {'fred'}, {'wilma'})
+        expected = FormatControl({'fred'}, {'wilma'})
         assert finder.format_control == expected
 
     def test_req_file_parse_comment_start_of_line(self, tmpdir, finder):
