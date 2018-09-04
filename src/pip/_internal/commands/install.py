@@ -236,8 +236,9 @@ class InstallCommand(RequirementCommand):
                     "Can not perform a '--user' install. User site-packages "
                     "are not visible in this virtualenv."
                 )
-            install_options.append('--user')
-            install_options.append('--prefix=')
+            install_options.append('--install-dir=%s' \
+                                   % (os.path.join(os.path.expanduser('~'), '.local', 'lib',
+                                                   'python3.6', 'site-packages')))
 
         target_temp_dir = TempDirectory(kind="target")
         if options.target_dir:
