@@ -22,6 +22,12 @@ logger = logging.getLogger(__name__)
 
 class SelfCheckState(object):
     def __init__(self, cache_dir):
+        # cache_dir might be unset (e.g. False)
+        if not cache_dir:
+            self.statefile_path = None
+            self.state = {}
+            return
+
         self.statefile_path = os.path.join(cache_dir, "selfcheck.json")
 
         # Load the existing state
@@ -32,6 +38,9 @@ class SelfCheckState(object):
             self.state = {}
 
     def save(self, pypi_version, current_time):
+        if self.statefile_path is None:
+            return
+
         # Check to make sure that we own the directory
         if not check_path_owner(os.path.dirname(self.statefile_path)):
             return
