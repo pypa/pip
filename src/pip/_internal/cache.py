@@ -22,7 +22,7 @@ class Cache(object):
 
 
         :param cache_dir: The root of the cache.
-        :param format_control: A pip._internal.FormatControl object to limit
+        :param format_control: An object of FormatControl class to limit
             binaries being read from the cache.
         :param allowed_formats: which formats of files the cache should store.
             ('binary' and 'source' are the only allowed values)

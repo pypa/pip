@@ -55,24 +55,15 @@ def test_comma_separated_values():
     assert cmd.options.format_control == format_control
 
 
-@pytest.mark.parametrize("no_binary,only_binary", [(
-    "fred", ":all:")
-])
-def test_fmt_ctl_matches(no_binary, only_binary):
-    fmt = FormatControl(set(), set())
-    assert fmt.get_allowed_formats(
-        no_binary
-    ) == frozenset(["source", "binary"])
-
-    fmt = FormatControl({no_binary}, set())
-    assert fmt.get_allowed_formats(no_binary) == frozenset(["source"])
-
-    fmt = FormatControl({no_binary}, {only_binary})
-    assert fmt.get_allowed_formats(no_binary) == frozenset(["source"])
-
-    no_binary, only_binary = only_binary, no_binary
-    fmt = FormatControl(set(), {only_binary})
-    assert fmt.get_allowed_formats(only_binary) == frozenset(["binary"])
-
-    fmt = FormatControl({no_binary}, {only_binary})
-    assert fmt.get_allowed_formats(only_binary) == frozenset(["binary"])
+@pytest.mark.parametrize(
+    "no_binary,only_binary,argument,expected",
+    [
+        ({"fred"}, set(), "fred", frozenset(["source"])),
+        ({"fred"}, {":all:"}, "fred", frozenset(["source"])),
+        (set(), {"fred"}, "fred", frozenset(["binary"])),
+        ({":all:"}, {"fred"}, "fred", frozenset(["binary"]))
+    ]
+)
+def test_fmt_ctl_matches(no_binary, only_binary, argument, expected):
+    fmt = FormatControl(no_binary, only_binary)
+    assert fmt.get_allowed_formats(argument) == expected
