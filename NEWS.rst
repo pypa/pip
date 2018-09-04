@@ -3,7 +3,7 @@
          fix problems like typo corrections or such.
 
          To add a new change log entry, please see
-             https://pip.pypa.io/en/latest/development/#adding-a-news-entry
+             https://pip.pypa.io/en/latest/development/contributing/#news-entries
 
 .. towncrier release notes start
 
