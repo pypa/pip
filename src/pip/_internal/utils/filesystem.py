@@ -2,15 +2,19 @@ import os
 import os.path
 
 from pip._internal.utils.compat import get_path_uid
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
+if MYPY_CHECK_RUNNING:
+    from typing import (List)
 
 def check_path_owner(path):
+    # type: (str) -> List[str]
     # If we don't have a way to check the effective uid of this process, then
     # we'll just assume that we own the directory.
     if not hasattr(os, "geteuid"):
         return True
 
-    previous = None
+    previous = None # type: Optional[str]
     while path != previous:
         if os.path.lexists(path):
             # Check if path is writable by current user.
@@ -18,10 +22,10 @@ def check_path_owner(path):
                 # Special handling for root user in order to handle properly
                 # cases where users use sudo without -H flag.
                 try:
-                    path_uid = get_path_uid(path)
+                    path_uid = get_path_uid(path) # type: int
                 except OSError:
                     return False
-                return path_uid == 0
+                return path_uid == 0 # type: int
             else:
                 return os.access(path, os.W_OK)
         else:
