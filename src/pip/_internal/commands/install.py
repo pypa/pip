@@ -348,7 +348,7 @@ class InstallCommand(RequirementCommand):
                         # requirements, as we'll fall through to a direct
                         # install for those.
                         wb.build(
-                            pep517_requirements,
+                            legacy_requirements,
                             session=session, autobuilding=True
                         )
 
