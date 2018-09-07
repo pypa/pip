@@ -170,12 +170,14 @@ class Command(object):
 
             return UNKNOWN_ERROR
         finally:
-            # Check if we're using the latest version of pip available
-            skip_version_check = (
-                options.disable_pip_version_check or
-                getattr(options, "no_index", False)
+            allow_version_check = (
+                # Does this command have the index_group options?
+                hasattr(options, "no_index") and
+                # Is this command allowed to perform this check?
+                not (options.disable_pip_version_check or options.no_index)
             )
-            if not skip_version_check:
+            # Check if we're using the latest version of pip available
+            if allow_version_check:
                 session = self._build_session(
                     options,
                     retries=0,

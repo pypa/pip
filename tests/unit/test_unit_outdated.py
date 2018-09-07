@@ -169,3 +169,9 @@ def test_self_check_state(monkeypatch, tmpdir):
 
     # json.dumps will call this a number of times
     assert len(fake_file.write.calls)
+
+
+def test_self_check_state_no_cache_dir():
+    state = outdated.SelfCheckState(cache_dir=False)
+    assert state.state == {}
+    assert state.statefile_path is None
