@@ -1198,10 +1198,10 @@ def test_install_no_binary_disables_building_wheels(script, data, with_wheel):
     # Don't build wheel for upper which was blacklisted
     assert "Building wheel for upper" not in str(res), str(res)
     # Wheels are built for local directories, but not cached across runs
-    assert "Building wheel for requir" not in str(res), str(res)
+    assert "Running setup.py install for requir" not in str(res), str(res)
     # And these two fell back to sdist based installed.
-    assert "Building wheel for wheelb" in str(res), str(res)
-    assert "Building wheel for upper" in str(res), str(res)
+    assert "Running setup.py install for wheelb" in str(res), str(res)
+    assert "Running setup.py install for upper" in str(res), str(res)
 
 
 def test_install_no_binary_disables_cached_wheels(script, data, with_wheel):
