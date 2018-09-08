@@ -11,10 +11,10 @@ import sys
 import tempfile
 import time
 import warnings
+from io import BytesIO
 
 import pytest
 from mock import Mock, patch
-from pip._vendor.six import BytesIO
 
 from pip._internal.exceptions import (
     HashMismatch, HashMissing, InstallationError, UnsupportedPythonVersion,
