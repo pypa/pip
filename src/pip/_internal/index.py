@@ -35,7 +35,7 @@ from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, normalize_path,
-    remove_auth_from_url,
+    redact_password_from_url,
 )
 from pip._internal.utils.packaging import check_requires_python
 from pip._internal.wheel import Wheel, wheel_ext
@@ -326,7 +326,7 @@ class PackageFinder(object):
         if self.index_urls and self.index_urls != [PyPI.simple_url]:
             lines.append(
                 "Looking in indexes: {}".format(", ".join(
-                    remove_auth_from_url(url) for url in self.index_urls))
+                    redact_password_from_url(url) for url in self.index_urls))
             )
         if self.find_links:
             lines.append(
@@ -923,7 +923,7 @@ class HTMLPage(object):
         self.headers = headers
 
     def __str__(self):
-        return self.url
+        return redact_password_from_url(self.url)
 
     def iter_links(self):
         """Yields all links in the page"""

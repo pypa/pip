@@ -890,15 +890,29 @@ def split_auth_from_netloc(netloc):
     return netloc, user_pass
 
 
+def redact_password_from_url(url):
+    def _redact_netloc(netloc):
+        netloc, (user, passw) = split_auth_from_netloc(netloc)
+        if not user:
+            return netloc
+        passw = '' if passw is None else ':****'
+        return '{user}{passw}@{netloc}'.format(user=user,
+                                               passw=passw,
+                                               netloc=netloc)
+
+    return transform_url(url, _redact_netloc)
+
+
 def remove_auth_from_url(url):
     # Return a copy of url with 'username:password@' removed.
     # username/pass params are passed to subversion through flags
     # and are not recognized in the url.
+    return transform_url(url, lambda netloc: split_auth_from_netloc(netloc)[0])
 
-    # parsed url
+
+def transform_url(url, transform_netlock):
     purl = urllib_parse.urlsplit(url)
-    netloc, user_pass = split_auth_from_netloc(purl.netloc)
-
+    netloc = transform_netlock(purl.netloc)
     # stripped url
     url_pieces = (
         purl.scheme, netloc, purl.path, purl.query, purl.fragment

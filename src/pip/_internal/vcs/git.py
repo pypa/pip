@@ -10,7 +10,7 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip._internal.exceptions import BadCommand
 from pip._internal.utils.compat import samefile
-from pip._internal.utils.misc import display_path, make_vcs_requirement_url
+from pip._internal.utils.misc import display_path, make_vcs_requirement_url, redact_password_from_url
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.vcs import VersionControl, vcs
 
@@ -193,7 +193,8 @@ class Git(VersionControl):
     def fetch_new(self, dest, url, rev_options):
         rev_display = rev_options.to_display()
         logger.info(
-            'Cloning %s%s to %s', url, rev_display, display_path(dest),
+            'Cloning %s%s to %s', redact_password_from_url(url),
+            rev_display, display_path(dest),
         )
         self.run_command(['clone', '-q', url, dest])
 
