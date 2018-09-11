@@ -890,17 +890,29 @@ def split_auth_from_netloc(netloc):
     return netloc, user_pass
 
 
-def redact_password_from_url(url):
-    def _redact_netloc(netloc):
-        netloc, (user, passw) = split_auth_from_netloc(netloc)
-        if not user:
-            return netloc
-        passw = '' if passw is None else ':****'
-        return '{user}{passw}@{netloc}'.format(user=user,
-                                               passw=passw,
-                                               netloc=netloc)
+def redact_netloc(netloc):
+    netloc, (user, passw) = split_auth_from_netloc(netloc)
+    if not user:
+        return netloc
+    passw = '' if passw is None else ':****'
+    return '{user}{passw}@{netloc}'.format(user=user,
+                                           passw=passw,
+                                           netloc=netloc)
 
-    return transform_url(url, _redact_netloc)
+
+def transform_url(url, transform_netloc):
+    purl = urllib_parse.urlsplit(url)
+    netloc = transform_netloc(purl.netloc)
+    # stripped url
+    url_pieces = (
+        purl.scheme, netloc, purl.path, purl.query, purl.fragment
+    )
+    surl = urllib_parse.urlunsplit(url_pieces)
+    return surl
+
+
+def redact_password_from_url(url):
+    return transform_url(url, redact_netloc)
 
 
 def remove_auth_from_url(url):
@@ -908,17 +920,6 @@ def remove_auth_from_url(url):
     # username/pass params are passed to subversion through flags
     # and are not recognized in the url.
     return transform_url(url, lambda netloc: split_auth_from_netloc(netloc)[0])
-
-
-def transform_url(url, transform_netlock):
-    purl = urllib_parse.urlsplit(url)
-    netloc = transform_netlock(purl.netloc)
-    # stripped url
-    url_pieces = (
-        purl.scheme, netloc, purl.path, purl.query, purl.fragment
-    )
-    surl = urllib_parse.urlunsplit(url_pieces)
-    return surl
 
 
 def protect_pip_from_modification_on_windows(modifying_pip):

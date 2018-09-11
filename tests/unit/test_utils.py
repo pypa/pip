@@ -24,8 +24,9 @@ from pip._internal.utils.glibc import check_glibc_version
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.misc import (
     call_subprocess, egg_link_path, ensure_dir, get_installed_distributions,
-    get_prog, make_vcs_requirement_url, normalize_path, redact_password_from_url, remove_auth_from_url,
-    rmtree, split_auth_from_netloc, untar_file, unzip_file,
+    get_prog, make_vcs_requirement_url, normalize_path, redact_netloc, redact_password_from_url,
+    remove_auth_from_url, rmtree, split_auth_from_netloc, untar_file,
+    unzip_file,
 )
 from pip._internal.utils.packaging import check_dist_requires_python
 from pip._internal.utils.temp_dir import TempDirectory
@@ -661,56 +662,46 @@ def test_split_auth_from_netloc(netloc, expected):
 
 
 @pytest.mark.parametrize('auth_url, expected_url', [
-    ('https://domain.tld/project/tags/v0.2',
-     'https://domain.tld/project/tags/v0.2',),
-    ('https://domain.tld/project/trunk@8181',
-     'https://domain.tld/project/trunk@8181',),
     ('https://user:pass@domain.tld/project/tags/v0.2',
      'https://domain.tld/project/tags/v0.2'),
+    ('https://domain.tld/project/tags/v0.2',
+     'https://domain.tld/project/tags/v0.2',),
     ('https://user:pass@domain.tld/svn/project/trunk@8181',
      'https://domain.tld/svn/project/trunk@8181'),
+    ('https://domain.tld/project/trunk@8181',
+     'https://domain.tld/project/trunk@8181',),
     ('git+https://pypi.org/something',
+     'git+https://pypi.org/something'),
+    ('git+https://user:pass@pypi.org/something',
      'git+https://pypi.org/something'),
     ('git+ssh://git@pypi.org/something',
      'git+ssh://pypi.org/something'),
-    ('git+https://user:pass@pypi.org/something',
-     'git+https://pypi.org/something'),
 ])
 def test_remove_auth_from_url(auth_url, expected_url):
     url = remove_auth_from_url(auth_url)
     assert url == expected_url
 
 
-@pytest.mark.parametrize('auth_url, expected_url', [
-    ('http://domain.tld:8080/',
-     'http://domain.tld:8080/',),
-    ('http://user@domain.tld:8080/',
-     'http://user@domain.tld:8080/',),
-    ('https://domain.tld/project/tags/v0.2',
-     'https://domain.tld/project/tags/v0.2',),
-    ('https://domain.tld/project/trunk@8181',
-     'https://domain.tld/project/trunk@8181',),
-    ('https://user:pass@domain.tld/project/tags/v0.2',
-     'https://user:****@domain.tld/project/tags/v0.2'),
-    ('https://user:pass@domain.tld/svn/project/trunk@8181',
-     'https://user:****@domain.tld/svn/project/trunk@8181'),
-    ('https://user:pass:word@domain.tld/',
-     'https://user:****@domain.tld/',),
-    ('https://user:pass%3Aword@domain.tld/',
-     'https://user:****@domain.tld/',),
-    ('https://us%3Aer:pass@domain.tld/',
-     'https://us%3Aer:****@domain.tld/',),
-    ('https://user:pass@word@domain.tld/',
-     'https://user:****@domain.tld/',),
-    ('https://user:@domain.tld/',
-     'https://user:****@domain.tld/',),
-    ('git+https://pypi.org/something',
-     'git+https://pypi.org/something'),
-    ('git+ssh://git@pypi.org/something',
-     'git+ssh://git@pypi.org/something'),
-    ('git+https://user:pass@pypi.org/something',
-     'git+https://user:****@pypi.org/something'),
+@pytest.mark.parametrize('netloc, expected', [
+    # Test a basic case.
+    ('example.com', 'example.com'),
+    # Test with username and no password.
+    ('user@example.com', 'user@example.com'),
+    # Test with username and password.
+    ('user:pass@example.com', 'user:****@example.com'),
+    # Test with username and empty password.
+    ('user:@example.com', 'user:****@example.com'),
+    # Test the password containing an @ symbol.
+    ('user:pass@word@example.com', 'user:****@example.com'),
+    # Test the password containing a : symbol.
+    ('user:pass:word@example.com', 'user:****@example.com'),
 ])
-def test_redact_password_from_url(auth_url, expected_url):
-    url = redact_password_from_url(auth_url)
-    assert url == expected_url
+def test_redact_netloc(netloc, expected):
+    result = redact_netloc(netloc)
+    assert result == expected
+
+
+@patch('pip._internal.utils.misc.transform_url')
+def test_redact_password_from_url(mocked_transform_url):
+    redact_password_from_url('user@example.com')
+    mocked_transform_url.assert_called_with('user@example.com', redact_netloc)
