@@ -337,7 +337,7 @@ class InstallRequirement(object):
             no_marker = Requirement(str(self.req))
             no_marker.marker = None
             self.satisfied_by = pkg_resources.get_distribution(str(no_marker))
-            if self.editable and self.satisfied_by:
+            if (self.editable or self.link) and self.satisfied_by:
                 self.conflicts_with = self.satisfied_by
                 # when installing editables, nothing pre-existing should ever
                 # satisfy
