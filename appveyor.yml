@@ -2,6 +2,8 @@ environment:
   matrix:
     # Unit and integration tests.
     - PYTHON: "C:\\Python27"
+    - PYTHON: "C:\\Python36-x64"
+    - PYTHON: "C:\\Python27"
       RUN_INTEGRATION_TESTS: "True"
     - PYTHON: "C:\\Python36-x64"
       RUN_INTEGRATION_TESTS: "True"
@@ -58,8 +60,10 @@ test_script:
             subst T: $env:TEMP
             $env:TEMP = "T:\"
             $env:TMP = "T:\"
-            tox -e py -- -m unit -n 3
             if ($env:RUN_INTEGRATION_TESTS -eq "True") {
                 tox -e py -- -m integration -n 3 --duration=5
+            }
+            else {
+                tox -e py -- -m unit -n 3
             }
         }
