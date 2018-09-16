@@ -1,3 +1,4 @@
+import inspect
 import os
 import shutil
 import sys
@@ -18,7 +19,8 @@ from pip._internal.index import PackageFinder
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import InstallRequirement, RequirementSet
 from pip._internal.req.constructors import (
-    install_req_from_editable, install_req_from_line, parse_editable,
+    install_req_from_editable, install_req_from_line, install_req_from_req,
+    parse_editable,
 )
 from pip._internal.req.req_file import process_line
 from pip._internal.req.req_tracker import RequirementTracker
@@ -636,3 +638,151 @@ def test_mismatched_versions(caplog, tmpdir):
         'Requested simplewheel==2.0, '
         'but installing version 1.0'
     )
+
+
+if sys.platform == 'win32':
+    LOCAL_WHEEL_PATH = 'C:/foo-4.2-py3-none-any.whl'
+    LOCAL_WHEEL_URL = 'file:///' + LOCAL_WHEEL_PATH
+else:
+    LOCAL_WHEEL_PATH = '/foo-4.2-py3-none-any.whl'
+    LOCAL_WHEEL_URL = 'file://' + LOCAL_WHEEL_PATH
+INSTALL_REQ_CONSTRUCTORS_TESTS = (
+
+    # Using `install_req_from_line`.
+
+    # Simple requirement.
+    (install_req_from_line, 'simplewheel==2.0', (
+        'simplewheel==2.0', 'simplewheel==2.0',
+        'simplewheel==2.0', None, (), None)),
+    # Markers should be honored (but stripped for InstallRequirement.req).
+    (install_req_from_line, 'package;"linux" in sys_platform', (
+        'package', 'package',
+        'package', None, (), '"linux" in sys_platform')),
+    # Extras should be honored (but stripped for InstallRequirement.req).
+    (install_req_from_line, 'foo[bar]>1.0', (
+     'foo>1.0', 'foo[bar]>1.0',
+     'foo>1.0', None, ('bar',), None)),
+    # Requirement with non PEP 440 version with an extras like ending.
+    (install_req_from_line, 'bar[real_extra]==2.0+[not_an_extra]', (
+        'bar==2.0+[not_an_extra]', 'bar[real_extra]==2.0+[not_an_extra]',
+        'bar==2.0+[not_an_extra]', None, ('real_extra',), None)),
+    # Direct URL.
+    (install_req_from_line, 'http://hostename/foo.zip', (
+        'http://hostename/foo.zip', None,
+        None, 'http://hostename/foo.zip', (), None)),
+    # Direct URL with markers.
+    (install_req_from_line,
+     'http://hostename/foo.zip; "win32" not in sys_platform', (
+         'http://hostename/foo.zip', None,
+         None, 'http://hostename/foo.zip', (), '"win32" not in sys_platform')),
+    # Direct URL with egg fragment.
+    (install_req_from_line, 'http://hostename/master.zip#egg=foo', (
+        'foo from http://hostename/master.zip#egg=foo', 'foo',
+        'foo', 'http://hostename/master.zip#egg=foo', (), None)),
+    # Explicit wheel URL.
+    (install_req_from_line, 'http://hostname/foo-4.2-py3-none-any.whl', (
+        'foo==4.2 from http://hostname/foo-4.2-py3-none-any.whl', 'foo==4.2',
+        'foo==4.2', 'http://hostname/foo-4.2-py3-none-any.whl', (), None)),
+    # Implicit wheel URL.
+    (install_req_from_line, LOCAL_WHEEL_PATH, (
+     'foo==4.2 from ' + LOCAL_WHEEL_URL, 'foo==4.2',
+     'foo==4.2', LOCAL_WHEEL_URL, (), None)),
+    # Implicit wheel URL with extras.
+    (install_req_from_line, LOCAL_WHEEL_PATH + '[dev,test]', (
+        'foo==4.2 from ' + LOCAL_WHEEL_URL, 'foo[dev,test]==4.2',
+        'foo==4.2', LOCAL_WHEEL_URL, ('dev', 'test'),
+        None)),
+    # Implicit wheel URL with markers.
+    (install_req_from_line, LOCAL_WHEEL_PATH + ';python_version<"2.7"', (
+        'foo==4.2 from ' + LOCAL_WHEEL_URL, 'foo==4.2',
+        'foo==4.2', LOCAL_WHEEL_URL, (),
+        'python_version < "2.7"')),
+    # Implicit wheel URL with extras and markers.
+    (install_req_from_line,
+     LOCAL_WHEEL_PATH + '[extra]; python_version>="3.0"', (
+         'foo==4.2 from ' + LOCAL_WHEEL_URL, 'foo[extra]==4.2',
+         'foo==4.2', LOCAL_WHEEL_URL, ('extra',),
+         'python_version >= "3.0"')),
+    # PEP 508 direct URL.
+    (install_req_from_line, 'bar @ http://host/path[not_an_extra]', (
+        'bar from http://host/path[not_an_extra]', 'bar',
+        'bar', 'http://host/path[not_an_extra]', (), None)),
+    # Requirement with non PEP 440 version with an extras like ending.
+    (install_req_from_line, 'bar[real_extra]==2.0+[not_an_extra]', (
+        'bar==2.0+[not_an_extra]', 'bar[real_extra]==2.0+[not_an_extra]',
+        'bar==2.0+[not_an_extra]', None, ('real_extra',), None)),
+    (install_req_from_line, 'invalid_wheel_name.whl', InvalidWheelFilename),
+    # FIXME: should those work?
+    # - URL with extras:
+    #   svn+https://foo#egg=foo [extra]
+    # - requirement with a valid PEP 440 version looking like an archive/wheel:
+    #   bar[real_extra]==2.0+test.whl
+    # - requirement with a PEP 508 direct URL to a wheel:
+    #   bar@http://host/path/foo-4.2-py3-none-any.whl
+
+    # Using `install_req_from_req`.
+
+    # Simple requirement.
+    (install_req_from_req, 'simplewheel==2.0', (
+        'simplewheel==2.0', 'simplewheel==2.0',
+        'simplewheel==2.0', None, (), None)),
+    # Markers should be honored (but stripped for InstallRequirement.req).
+    (install_req_from_req, 'package;"linux" in sys_platform', (
+        'package', 'package',
+        'package', None, (), '"linux" in sys_platform')),
+    # Extras should be honored (but stripped for InstallRequirement.req).
+    (install_req_from_req, 'foo[bar]>1.0', (
+        'foo>1.0', 'foo[bar]>1.0',
+        'foo>1.0', None, ('bar',), None)),
+    # Requirement with non PEP 440 version with an extras like ending.
+    (install_req_from_req, 'bar[real_extra]==2.0+[not_an_extra]', (
+        'bar==2.0+[not_an_extra]', 'bar[real_extra]==2.0+[not_an_extra]',
+        'bar==2.0+[not_an_extra]', None, ('real_extra',), None)),
+    # PEP 508 direct URL.
+    (install_req_from_req, 'foo @ git+http://hostename/repository', (
+        'foo from git+http://hostename/repository', 'foo',
+        'foo', 'git+http://hostename/repository', (), None)),
+    # PEP 508 direct URL with extras.
+    (install_req_from_req, 'foo[bar] @ http://hostename/master.zip', (
+        'foo from http://hostename/master.zip', 'foo[bar]',
+        'foo', 'http://hostename/master.zip', ('bar',), None)),
+    # PEP 508 direct URL with markers.
+    (install_req_from_req,
+     'foo @ file://localhost/archive.zip ; "win32"in sys_platform', (
+         'foo from file://localhost/archive.zip', 'foo',
+         'foo', 'file://localhost/archive.zip', (),
+         '"win32" in sys_platform')),
+    # Looks like a wheel, not one!
+    (install_req_from_req, 'not_a.whl', (
+        'not_a.whl', 'not_a.whl', 'not_a.whl', None, (), None)),
+)
+
+
+@pytest.mark.parametrize('constructor, input_str, results',
+                         INSTALL_REQ_CONSTRUCTORS_TESTS, ids=[
+                             '%s(%r)' % (p[0].__name__, p[1])
+                             for p in INSTALL_REQ_CONSTRUCTORS_TESTS])
+def test_install_req_constructor(constructor, input_str, results):
+    if inspect.isclass(results):
+        with pytest.raises(results):
+            constructor(input_str)
+        return
+    req = constructor(input_str)
+    result_str, result_from_path, result_req, result_link, \
+        result_extras, result_markers = results
+    assert str(req) == result_str
+    assert req.from_path() == result_from_path
+    if result_req is None:
+        assert req.req is None
+    else:
+        assert str(req.req) == result_req
+    if result_link is None:
+        assert req.link is None
+    else:
+        assert str(req.link) == result_link
+    assert isinstance(req.extras, set)
+    assert tuple(sorted(req.extras)) == result_extras
+    if result_markers is None:
+        assert req.markers is None
+    else:
+        assert str(req.markers) == result_markers

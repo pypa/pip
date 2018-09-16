@@ -65,22 +65,26 @@ class InstallRequirement(object):
 
         self._wheel_cache = wheel_cache
         if link is not None:
-            self.link = self.original_link = link
-        else:
-            self.link = self.original_link = req and req.url and Link(req.url)
+            assert not req or not req.url
+        elif req and req.url:
+            link = Link(req.url)
+            req.url = None
+        self.link = self.original_link = link
 
         if extras:
-            self.extras = extras
+            assert not req or not req.extras
         elif req:
-            self.extras = {
-                pkg_resources.safe_extra(extra) for extra in req.extras
-            }
-        else:
-            self.extras = set()
+            extras = req.extras
+            req.extras = None
+        self.extras = {
+            pkg_resources.safe_extra(extra) for extra in extras
+        }
         if markers is not None:
-            self.markers = markers
-        else:
-            self.markers = req and req.marker
+            assert not req or not req.marker
+        elif req:
+            markers = req.marker
+            req.marker = None
+        self.markers = markers
         self._egg_info_path = None
         # This holds the pkg_resources.Distribution object if this requirement
         # is already available:
@@ -241,7 +245,11 @@ class InstallRequirement(object):
         """
         if self.req is None:
             return None
-        s = str(self.req)
+        s = self.req.name
+        if self.extras:
+            s += '[' + ','.join(sorted(self.extras)) + ']'
+        if self.req.specifier:
+            s += str(self.req.specifier)
         if self.comes_from:
             if isinstance(self.comes_from, six.string_types):
                 comes_from = self.comes_from
@@ -330,13 +338,10 @@ class InstallRequirement(object):
         if self.req is None:
             return False
         try:
-            # get_distribution() will resolve the entire list of requirements
-            # anyway, and we've already determined that we need the requirement
-            # in question, so strip the marker so that we don't try to
-            # evaluate it.
-            no_marker = Requirement(str(self.req))
-            no_marker.marker = None
-            self.satisfied_by = pkg_resources.get_distribution(str(no_marker))
+            # Note: we don't care about markers since get_distribution() will
+            # resolve the entire list of requirements anyway, and we've already
+            # determined that we need the requirement in question.
+            self.satisfied_by = pkg_resources.get_distribution(str(self.req))
             if self.editable and self.satisfied_by:
                 self.conflicts_with = self.satisfied_by
                 # when installing editables, nothing pre-existing should ever

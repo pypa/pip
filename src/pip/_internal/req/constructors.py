@@ -223,6 +223,8 @@ def install_req_from_line(
                     name
                 )
             link = Link(path_to_url(p))
+        else:
+            extras = None
 
     # it's a local file, dir, or url
     if link:
