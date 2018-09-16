@@ -1389,6 +1389,37 @@ def test_install_pep508_with_url_in_install_requires(script):
     assert "Successfully installed packaging-15.3" in str(res), str(res)
 
 
+def test_pep508_url_already_installed(script):
+    pkgA_path = create_basic_wheel_for_package(
+        script,
+        name='pkgA', version='1.0',
+        depends=[], extras={},
+    )
+    pkgA_file_url = path_to_url(pkgA_path)
+    assert pkgA_file_url.startswith('file:///')
+    pkgA_file_url = 'file://localhost/' + pkgA_file_url[8:]
+    pkgB_path = create_basic_wheel_for_package(
+        script,
+        name='pkgB', version='2.0',
+        depends=['pkgA @ %s' % pkgA_file_url],
+        extras={},
+    )
+    pkgC_path = create_basic_wheel_for_package(
+        script,
+        name='pkgC', version='3.0',
+        depends=['pkgB'],
+        extras={},
+    )
+    r = script.pip_install_local(
+        '-v', pkgB_path
+    )
+    assert "Successfully installed pkgA-1.0 pkgB-2.0" in r.stdout, str(r)
+    r = script.pip_install_local(
+        '-v', pkgC_path
+    )
+    assert "Successfully installed pkgC-3.0" in r.stdout, str(r)
+
+
 @pytest.mark.network
 @pytest.mark.parametrize('index', (PyPI.simple_url, TestPyPI.simple_url))
 def test_install_from_test_pypi_with_ext_url_dep_is_blocked(script, index):

@@ -1,0 +1,1 @@
+Fix exception when installing a package depending on an already installed dependency using a PEP 508 requirement.
