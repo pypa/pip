@@ -12,9 +12,9 @@ from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.utils.misc import rmtree
 from tests.lib import (
-    _create_svn_repo, _create_test_package, create_test_package_with_setup,
-    need_bzr, need_mercurial, path_to_url, pyversion, pyversion_tuple,
-    requirements_file,
+    _create_svn_repo, _create_test_package, create_basic_wheel_for_package,
+    create_test_package_with_setup, need_bzr, need_mercurial, path_to_url,
+    pyversion, pyversion_tuple, requirements_file,
 )
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
@@ -1364,6 +1364,37 @@ def test_install_pep508_with_url_in_install_requires(script):
     )
     res = script.pip('install', pkga_path)
     assert "Successfully installed packaging-15.3" in str(res), str(res)
+
+
+def test_pep508_url_already_installed(script):
+    pkgA_path = create_basic_wheel_for_package(
+        script,
+        name='pkgA', version='1.0',
+        depends=[], extras={},
+    )
+    pkgA_file_url = path_to_url(pkgA_path)
+    assert pkgA_file_url.startswith('file:///')
+    pkgA_file_url = 'file://localhost/' + pkgA_file_url[8:]
+    pkgB_path = create_basic_wheel_for_package(
+        script,
+        name='pkgB', version='2.0',
+        depends=['pkgA @ %s' % pkgA_file_url],
+        extras={},
+    )
+    pkgC_path = create_basic_wheel_for_package(
+        script,
+        name='pkgC', version='3.0',
+        depends=['pkgB'],
+        extras={},
+    )
+    r = script.pip_install_local(
+        '-v', pkgB_path
+    )
+    assert "Successfully installed pkgA-1.0 pkgB-2.0" in r.stdout, str(r)
+    r = script.pip_install_local(
+        '-v', pkgC_path
+    )
+    assert "Successfully installed pkgC-3.0" in r.stdout, str(r)
 
 
 @pytest.mark.network
