@@ -25,7 +25,7 @@ def test_version_compare():
 
 def test_pypi_xml_transformation():
     """
-    Test transformation of data structures (pypi xmlrpc to custom list).
+    Test transformation of data structures (PyPI xmlrpc to custom list).
 
     """
     pypi_hits = [

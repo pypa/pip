@@ -1207,7 +1207,7 @@ Improved Documentation
 
 - **Dropped support for Python 2.4** The minimum supported Python version is
   now Python 2.5.
-- Fixed pypi mirror support being broken on some DNS responses. Thanks
+- Fixed PyPI mirror support being broken on some DNS responses. Thanks
   philwhin. (#605)
 - Fixed pip uninstall removing files it didn't install. Thanks pjdelport.
   (#355)
