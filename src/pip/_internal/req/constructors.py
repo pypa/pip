@@ -168,7 +168,7 @@ def install_req_from_editable(
         link=Link(url),
         constraint=constraint,
         isolated=isolated,
-        options=options if options else {},
+        options=options,
         wheel_cache=wheel_cache,
         extras=extras_override or (),
     )
@@ -196,14 +196,13 @@ def install_req_from_line(
         markers = None
     name = name.strip()
     req = None
-    path = os.path.normpath(os.path.abspath(name))
     link = None
     extras = None
 
     if is_url(name):
         link = Link(name)
     else:
-        p, extras = _strip_extras(path)
+        p, extras = _strip_extras(os.path.normpath(os.path.abspath(name)))
         looks_like_dir = os.path.isdir(p) and (
             os.path.sep in name or
             (os.path.altsep is not None and os.path.altsep in name) or
@@ -266,7 +265,7 @@ def install_req_from_line(
     return InstallRequirement(
         req, comes_from, link=link, markers=markers,
         isolated=isolated,
-        options=options if options else {},
+        options=options,
         wheel_cache=wheel_cache,
         constraint=constraint,
         extras=extras,
