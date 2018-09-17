@@ -783,7 +783,20 @@ class HTMLPage(object):
                 url,
                 headers={
                     "Accept": "text/html",
-                    "Cache-Control": "max-age=600",
+                    # We don't want to blindly returned cached data for
+                    # /simple/, because authors generally expecting that
+                    # twine upload && pip install will function, but if
+                    # they've done a pip install in the last ~10 minutes
+                    # it won't. Thus by setting this to zero we will not
+                    # blindly use any cached data, however the benefit of
+                    # using max-age=0 instead of no-cache, is that we will
+                    # still support conditional requests, so we will still
+                    # minimize traffic sent in cases where the page hasn't
+                    # changed at all, we will just always incur the round
+                    # trip for the conditional GET now instead of only
+                    # once per 10 minutes.
+                    # For more information, please see pypa/pip#5670.
+                    "Cache-Control": "max-age=0",
                 },
             )
             resp.raise_for_status()
