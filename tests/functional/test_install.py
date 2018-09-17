@@ -629,7 +629,7 @@ def test_install_folder_using_relative_path(script):
 @pytest.mark.network
 def test_install_package_which_contains_dev_in_name(script):
     """
-    Test installing package from pypi which contains 'dev' in name
+    Test installing package from PyPI which contains 'dev' in name
     """
     result = script.pip('install', 'django-devserver==0.0.4')
     devserver_folder = script.site_packages / 'devserver'
