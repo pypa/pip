@@ -229,6 +229,11 @@ def split_leading_dir(path):
 def has_leading_dir(paths):
     """Returns true if all the paths have the same leading path name
     (i.e., everything is in one subdirectory in an archive)"""
+    if not paths:
+        return True
+    if len(paths) == 1:
+        prefix, rest = split_leading_dir(paths[0])
+        return bool(rest)
     common_prefix = None
     for path in paths:
         prefix, rest = split_leading_dir(path)
