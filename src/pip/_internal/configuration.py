@@ -294,6 +294,20 @@ class Configuration(object):
                     "Configuration file contains invalid %s characters.\n"
                     "Please fix your configuration, located at %s\n"
                 ) % (locale.getpreferredencoding(False), fname))
+            except configparser.MissingSectionHeaderError as e:
+                raise ConfigurationError((
+                    "ERROR: "
+                    "Configuration file headers cannot be parsed. \n"
+                    "Please fix the section formatting of the "
+                    "configuration located at line %s of file %s\n"
+                ) % (e.lineno, fname))
+            except configparser.ParsingError as e:
+                raise ConfigurationError(
+                    "ERROR: "
+                    "Configuration file cannot be parsed. \n"
+                    "%s\n" % str(e)
+                )
+
         return parser
 
     def _load_environment_vars(self):
