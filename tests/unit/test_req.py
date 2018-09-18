@@ -66,7 +66,8 @@ class TestRequirementSet(object):
 
         build_dir = os.path.join(self.tempdir, 'build', 'simple')
         os.makedirs(build_dir)
-        open(os.path.join(build_dir, "setup.py"), 'w')
+        with open(os.path.join(build_dir, "setup.py"), 'w'):
+            pass
         reqset = RequirementSet()
         req = install_req_from_line('simple')
         req.is_direct = True
