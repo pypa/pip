@@ -1,0 +1,1 @@
+Fix possible failures due to Window' SilentCleanup task deleting an empty temporary directory in use by pip.
