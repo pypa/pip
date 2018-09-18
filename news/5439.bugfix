@@ -1,0 +1,1 @@
+Remove assertion in req_uninstall.py that would fail as part of the normal workflow
