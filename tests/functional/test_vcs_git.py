@@ -37,9 +37,9 @@ def add_commits(script, dest, count):
     return shas
 
 
-def check_rev(repo_dir, rev, expected_sha):
+def check_rev(repo_dir, rev, expected):
     git = Git()
-    assert git.get_revision_sha(repo_dir, rev) == expected_sha
+    assert git.get_revision_sha(repo_dir, rev) == expected
 
 
 def test_git_dir_ignored():
@@ -68,6 +68,27 @@ def test_git_work_tree_ignored():
         # with: "fatal: This operation must be run in a work tree".
         env = {'GIT_WORK_TREE': 'foo'}
         git.run_command(['status', temp_dir], extra_environ=env, cwd=temp_dir)
+
+
+def test_get_branch(script, tmpdir):
+    repo_dir = str(tmpdir)
+    script.run('git', 'init', cwd=repo_dir)
+    sha = do_commit(script, repo_dir)
+
+    git = Git()
+    assert git.get_branch(repo_dir) == 'master'
+
+    # Switch to a branch with the same SHA as "master" but whose name
+    # is alphabetically after.
+    script.run(
+        'git', 'checkout', '-b', 'release', cwd=repo_dir,
+        expect_stderr=True,
+    )
+    assert git.get_branch(repo_dir) == 'release'
+
+    # Also test the detached HEAD case.
+    script.run('git', 'checkout', sha, cwd=repo_dir, expect_stderr=True)
+    assert git.get_branch(repo_dir) is None
 
 
 def test_get_revision_sha(script):
@@ -102,9 +123,9 @@ def test_get_revision_sha(script):
         script.run('git', 'tag', 'aaa/v1.0', head_sha, cwd=repo_dir)
         script.run('git', 'tag', 'zzz/v1.0', head_sha, cwd=repo_dir)
 
-        check_rev(repo_dir, 'v1.0', tag_sha)
-        check_rev(repo_dir, 'v2.0', tag_sha)
-        check_rev(repo_dir, 'origin-branch', origin_sha)
+        check_rev(repo_dir, 'v1.0', (tag_sha, False))
+        check_rev(repo_dir, 'v2.0', (tag_sha, False))
+        check_rev(repo_dir, 'origin-branch', (origin_sha, True))
 
         ignored_names = [
             # Local branches should be ignored.
@@ -122,7 +143,7 @@ def test_get_revision_sha(script):
             'does-not-exist',
         ]
         for name in ignored_names:
-            check_rev(repo_dir, name, None)
+            check_rev(repo_dir, name, (None, False))
 
 
 @pytest.mark.network

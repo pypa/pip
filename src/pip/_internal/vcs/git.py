@@ -77,6 +77,20 @@ class Git(VersionControl):
         version = '.'.join(version.split('.')[:3])
         return parse_version(version)
 
+    def get_branch(self, location):
+        """
+        Return the current branch, or None if HEAD isn't at a branch
+        (e.g. detached HEAD).
+        """
+        args = ['rev-parse', '--abbrev-ref', 'HEAD']
+        output = self.run_command(args, show_stdout=False, cwd=location)
+        branch = output.strip()
+
+        if branch == 'HEAD':
+            return None
+
+        return branch
+
     def export(self, location):
         """Export the Git repository at the url to the destination location"""
         if not location.endswith('/'):
@@ -91,8 +105,8 @@ class Git(VersionControl):
 
     def get_revision_sha(self, dest, rev):
         """
-        Return a commit hash for the given revision if it names a remote
-        branch or tag.  Otherwise, return None.
+        Return (sha_or_none, is_branch), where sha_or_none is a commit hash
+        if the revision names a remote branch or tag, otherwise None.
 
         Args:
           dest: the repository directory.
@@ -115,7 +129,13 @@ class Git(VersionControl):
         branch_ref = 'refs/remotes/origin/{}'.format(rev)
         tag_ref = 'refs/tags/{}'.format(rev)
 
-        return refs.get(branch_ref) or refs.get(tag_ref)
+        sha = refs.get(branch_ref)
+        if sha is not None:
+            return (sha, True)
+
+        sha = refs.get(tag_ref)
+
+        return (sha, False)
 
     def resolve_revision(self, dest, url, rev_options):
         """
@@ -126,10 +146,13 @@ class Git(VersionControl):
           rev_options: a RevOptions object.
         """
         rev = rev_options.arg_rev
-        sha = self.get_revision_sha(dest, rev)
+        sha, is_branch = self.get_revision_sha(dest, rev)
 
         if sha is not None:
-            return rev_options.make_new(sha)
+            rev_options = rev_options.make_new(sha)
+            rev_options.branch_name = rev if is_branch else None
+
+            return rev_options
 
         # Do not show a warning for the common case of something that has
         # the form of a Git commit hash.
@@ -177,10 +200,20 @@ class Git(VersionControl):
         if rev_options.rev:
             # Then a specific revision was requested.
             rev_options = self.resolve_revision(dest, url, rev_options)
-            # Only do a checkout if the current commit id doesn't match
-            # the requested revision.
-            if not self.is_commit_id_equal(dest, rev_options.rev):
-                cmd_args = ['checkout', '-q'] + rev_options.to_args()
+            branch_name = getattr(rev_options, 'branch_name', None)
+            if branch_name is None:
+                # Only do a checkout if the current commit id doesn't match
+                # the requested revision.
+                if not self.is_commit_id_equal(dest, rev_options.rev):
+                    cmd_args = ['checkout', '-q'] + rev_options.to_args()
+                    self.run_command(cmd_args, cwd=dest)
+            elif self.get_branch(dest) != branch_name:
+                # Then a specific branch was requested, and that branch
+                # is not yet checked out.
+                track_branch = 'origin/{}'.format(branch_name)
+                cmd_args = [
+                    'checkout', '-b', branch_name, '--track', track_branch,
+                ]
                 self.run_command(cmd_args, cwd=dest)
 
         #: repo may contain submodules

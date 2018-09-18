@@ -109,7 +109,7 @@ def test_git_get_src_requirements(git, dist):
 
 @patch('pip._internal.vcs.git.Git.get_revision_sha')
 def test_git_resolve_revision_rev_exists(get_sha_mock):
-    get_sha_mock.return_value = '123456'
+    get_sha_mock.return_value = ('123456', False)
     git = Git()
     rev_options = git.make_rev_options('develop')
 
@@ -120,7 +120,7 @@ def test_git_resolve_revision_rev_exists(get_sha_mock):
 
 @patch('pip._internal.vcs.git.Git.get_revision_sha')
 def test_git_resolve_revision_rev_not_found(get_sha_mock):
-    get_sha_mock.return_value = None
+    get_sha_mock.return_value = (None, False)
     git = Git()
     rev_options = git.make_rev_options('develop')
 
@@ -131,7 +131,7 @@ def test_git_resolve_revision_rev_not_found(get_sha_mock):
 
 @patch('pip._internal.vcs.git.Git.get_revision_sha')
 def test_git_resolve_revision_not_found_warning(get_sha_mock, caplog):
-    get_sha_mock.return_value = None
+    get_sha_mock.return_value = (None, False)
     git = Git()
 
     url = 'git+https://git.example.com'
