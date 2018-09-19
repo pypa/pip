@@ -30,6 +30,7 @@ from pip._internal.exceptions import (
 from pip._internal.locations import (
     PIP_DELETE_MARKER_FILENAME, distutils_scheme,
 )
+from pip._internal.models.link import Link
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     call_subprocess, captured_stdout, ensure_dir, read_chunks,
@@ -236,7 +237,6 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
                      pycompile=True, scheme=None, isolated=False, prefix=None,
                      warn_script_location=True):
     """Install a wheel"""
-
     if not scheme:
         scheme = distutils_scheme(
             name, user=user, home=home, root=root, isolated=isolated,
@@ -777,8 +777,6 @@ class WheelBuilder(object):
             newly built wheel, in preparation for installation.
         :return: True if all the wheels built correctly.
         """
-        from pip._internal.models.link import Link
-
         # TODO: This check fails if --no-cache-dir is set. And yet we
         #       might be able to build into the ephemeral cache, surely?
         building_is_possible = self._wheel_dir or (
