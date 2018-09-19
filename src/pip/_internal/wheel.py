@@ -237,6 +237,10 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
                      pycompile=True, scheme=None, isolated=False, prefix=None,
                      warn_script_location=True):
     """Install a wheel"""
+    # TODO: Investigate and break this up.
+    # TODO: Look into moving this into a dedicated class for representing an
+    #       installation.
+
     if not scheme:
         scheme = distutils_scheme(
             name, user=user, home=home, root=root, isolated=isolated,
@@ -596,7 +600,8 @@ def check_compatibility(version, name):
 class Wheel(object):
     """A wheel file"""
 
-    # TODO: maybe move the install code into this class
+    # TODO: Maybe move the class into the models sub-package
+    # TODO: Maybe move the install code into this class
 
     wheel_file_re = re.compile(
         r"""^(?P<namever>(?P<name>.+?)-(?P<ver>.*?))
@@ -820,6 +825,9 @@ class WheelBuilder(object):
 
         if not buildset:
             return []
+
+        # TODO by @pradyunsg
+        # Should break up this method into 2 separate methods.
 
         # Build the wheels.
         logger.info(
