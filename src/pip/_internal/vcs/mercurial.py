@@ -89,8 +89,6 @@ class Mercurial(VersionControl):
         if not repo.lower().startswith('hg:'):
             repo = 'hg+' + repo
         egg_project_name = dist.egg_name().split('-', 1)[0]
-        if not repo:
-            return None
         current_rev_hash = self.get_revision_hash(location)
         return '%s@%s#egg=%s' % (repo, current_rev_hash, egg_project_name)
 
