@@ -10,7 +10,7 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip._internal.exceptions import BadCommand
 from pip._internal.utils.compat import samefile
-from pip._internal.utils.misc import display_path
+from pip._internal.utils.misc import display_path, make_vcs_requirement_url
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.vcs import VersionControl, vcs
 
@@ -294,12 +294,12 @@ class Git(VersionControl):
         repo = self.get_url(location)
         if not repo.lower().startswith('git:'):
             repo = 'git+' + repo
-        egg_project_name = dist.egg_name().split('-', 1)[0]
         current_rev = self.get_revision(location)
-        req = '%s@%s#egg=%s' % (repo, current_rev, egg_project_name)
-        subdirectory = self._get_subdirectory(location)
-        if subdirectory:
-            req += '&subdirectory=' + subdirectory
+        egg_project_name = dist.egg_name().split('-', 1)[0]
+        subdir = self._get_subdirectory(location)
+        req = make_vcs_requirement_url(repo, current_rev, egg_project_name,
+                                       subdir=subdir)
+
         return req
 
     def get_url_rev_and_auth(self, url):

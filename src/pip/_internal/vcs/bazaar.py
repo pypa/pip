@@ -6,7 +6,9 @@ import os
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip._internal.download import path_to_url
-from pip._internal.utils.misc import display_path, rmtree
+from pip._internal.utils.misc import (
+    display_path, make_vcs_requirement_url, rmtree,
+)
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.vcs import VersionControl, vcs
 
@@ -98,9 +100,9 @@ class Bazaar(VersionControl):
             return None
         if not repo.lower().startswith('bzr:'):
             repo = 'bzr+' + repo
-        egg_project_name = dist.egg_name().split('-', 1)[0]
         current_rev = self.get_revision(location)
-        return '%s@%s#egg=%s' % (repo, current_rev, egg_project_name)
+        egg_project_name = dist.egg_name().split('-', 1)[0]
+        return make_vcs_requirement_url(repo, current_rev, egg_project_name)
 
     def is_commit_id_equal(self, dest, name):
         """Always assume the versions don't match"""

@@ -24,8 +24,8 @@ from pip._internal.utils.glibc import check_glibc_version
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.misc import (
     call_subprocess, egg_link_path, ensure_dir, get_installed_distributions,
-    get_prog, normalize_path, remove_auth_from_url, rmtree,
-    split_auth_from_netloc, untar_file, unzip_file,
+    get_prog, make_vcs_requirement_url, normalize_path, remove_auth_from_url,
+    rmtree, split_auth_from_netloc, untar_file, unzip_file,
 )
 from pip._internal.utils.packaging import check_dist_requires_python
 from pip._internal.utils.temp_dir import TempDirectory
@@ -625,6 +625,28 @@ def test_call_subprocess_works_okay_when_just_given_nothing():
 def test_call_subprocess_closes_stdin():
     with pytest.raises(InstallationError):
         call_subprocess([sys.executable, '-c', 'input()'])
+
+
+@pytest.mark.parametrize('args, expected', [
+    # Test without subdir.
+    (('git+https://example.com/pkg', 'dev', 'myproj'),
+     'git+https://example.com/pkg@dev#egg=myproj'),
+    # Test with subdir.
+    (('git+https://example.com/pkg', 'dev', 'myproj', 'sub/dir'),
+     'git+https://example.com/pkg@dev#egg=myproj&subdirectory=sub/dir'),
+    # Test with None subdir.
+    (('git+https://example.com/pkg', 'dev', 'myproj', None),
+     'git+https://example.com/pkg@dev#egg=myproj'),
+])
+def test_make_vcs_requirement_url(args, expected):
+    if len(args) == 3:
+        url, rev, egg_name = args
+        actual = make_vcs_requirement_url(url, rev, egg_name)
+    else:
+        url, rev, egg_name, subdir = args
+        actual = make_vcs_requirement_url(url, rev, egg_name, subdir=subdir)
+
+    assert actual == expected
 
 
 @pytest.mark.parametrize('netloc, expected', [
