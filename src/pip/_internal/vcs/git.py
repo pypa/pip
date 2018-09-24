@@ -295,8 +295,6 @@ class Git(VersionControl):
         if not repo.lower().startswith('git:'):
             repo = 'git+' + repo
         egg_project_name = dist.egg_name().split('-', 1)[0]
-        if not repo:
-            return None
         current_rev = self.get_revision(location)
         req = '%s@%s#egg=%s' % (repo, current_rev, egg_project_name)
         subdirectory = self._get_subdirectory(location)
