@@ -122,7 +122,11 @@ class Command(object):
             # remove General Options group and restore after print
             saveepy = self.parser.epilog
             saveogr = self.parser.option_groups  # it is a list
-            self.parser.epilog = "\nAdd '-v' flag to show general "\
+            self.parser.epilog = ""
+            if len(saveogr) > 1:
+                # need newline for commands with own options
+                self.parser.epilog = "\n"
+            self.parser.epilog += "Add '-v' flag to show general "\
                                  "options.\n"
             self.parser.option_groups.remove(self.gen_opts)
             self.parser.print_help()
