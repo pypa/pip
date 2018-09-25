@@ -639,13 +639,7 @@ def test_call_subprocess_closes_stdin():
      'git+https://example.com/pkg@dev#egg=myproj'),
 ])
 def test_make_vcs_requirement_url(args, expected):
-    if len(args) == 3:
-        url, rev, egg_name = args
-        actual = make_vcs_requirement_url(url, rev, egg_name)
-    else:
-        url, rev, egg_name, subdir = args
-        actual = make_vcs_requirement_url(url, rev, egg_name, subdir=subdir)
-
+    actual = make_vcs_requirement_url(*args)
     assert actual == expected
 
 
