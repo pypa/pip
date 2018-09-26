@@ -1,2 +1,0 @@
-pip now records installed files in a deterministic manner improving
-reproducibility.

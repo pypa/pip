@@ -1,4 +1,3 @@
-import pytest
 
 from tests.lib import assert_all_changes
 

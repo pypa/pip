@@ -2,30 +2,18 @@ import logging
 import os
 import subprocess
 
-from pip._internal.basecommand import Command
+from pip._internal.cli.base_command import Command
+from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.configuration import Configuration, kinds
 from pip._internal.exceptions import PipError
 from pip._internal.locations import venv_config_file
-from pip._internal.status_codes import ERROR, SUCCESS
 from pip._internal.utils.misc import get_prog
 
 logger = logging.getLogger(__name__)
 
 
 class ConfigurationCommand(Command):
-    """Manage local and global configuration."""
-    name = 'config'
-    usage = """
-        %prog [<file-option>] list
-        %prog [<file-option>] [--editor <editor-path>] edit
-
-        %prog [<file-option>] get name
-        %prog [<file-option>] set name value
-        %prog [<file-option>] unset name
-    """
-
-    summary = """
-        Manage local and global configuration.
+    """Manage local and global configuration.
 
         Subcommands:
 
@@ -40,6 +28,18 @@ class ConfigurationCommand(Command):
         exists. Otherwise, all modifications happen on the to the user file by
         default.
     """
+
+    name = 'config'
+    usage = """
+        %prog [<file-option>] list
+        %prog [<file-option>] [--editor <editor-path>] edit
+
+        %prog [<file-option>] get name
+        %prog [<file-option>] set name value
+        %prog [<file-option>] unset name
+    """
+
+    summary = "Manage local and global configuration."
 
     def __init__(self, *args, **kwargs):
         super(ConfigurationCommand, self).__init__(*args, **kwargs)

@@ -9,7 +9,6 @@ import os
 import posixpath
 import re
 import sys
-import warnings
 from collections import namedtuple
 
 from pip._vendor import html5lib, requests, six
@@ -21,24 +20,27 @@ from pip._vendor.requests.exceptions import SSLError
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
-from pip._internal.compat import ipaddress
 from pip._internal.download import HAS_TLS, is_url, path_to_url, url_to_path
 from pip._internal.exceptions import (
     BestVersionAlreadyInstalled, DistributionNotFound, InvalidWheelFilename,
-    UnsupportedWheel
+    UnsupportedWheel,
 )
-from pip._internal.models import PyPI
+from pip._internal.models.candidate import InstallationCandidate
+from pip._internal.models.format_control import FormatControl
+from pip._internal.models.index import PyPI
+from pip._internal.models.link import Link
 from pip._internal.pep425tags import get_supported
-from pip._internal.utils.deprecation import RemovedInPip11Warning
+from pip._internal.utils.compat import ipaddress
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, cached_property, normalize_path,
-    splitext
+    remove_auth_from_url,
 )
 from pip._internal.utils.packaging import check_requires_python
 from pip._internal.wheel import Wheel, wheel_ext
 
-__all__ = ['FormatControl', 'fmt_ctl_handle_mutual_exclude', 'PackageFinder']
+__all__ = ['FormatControl', 'PackageFinder']
 
 
 SECURE_ORIGINS = [
@@ -57,47 +59,6 @@ SECURE_ORIGINS = [
 logger = logging.getLogger(__name__)
 
 
-class InstallationCandidate(object):
-
-    def __init__(self, project, version, location):
-        self.project = project
-        self.version = parse_version(version)
-        self.location = location
-        self._key = (self.project, self.version, self.location)
-
-    def __repr__(self):
-        return "<InstallationCandidate({0!r}, {1!r}, {2!r})>".format(
-            self.project, self.version, self.location,
-        )
-
-    def __hash__(self):
-        return hash(self._key)
-
-    def __lt__(self, other):
-        return self._compare(other, lambda s, o: s < o)
-
-    def __le__(self, other):
-        return self._compare(other, lambda s, o: s <= o)
-
-    def __eq__(self, other):
-        return self._compare(other, lambda s, o: s == o)
-
-    def __ge__(self, other):
-        return self._compare(other, lambda s, o: s >= o)
-
-    def __gt__(self, other):
-        return self._compare(other, lambda s, o: s > o)
-
-    def __ne__(self, other):
-        return self._compare(other, lambda s, o: s != o)
-
-    def _compare(self, other, method):
-        if not isinstance(other, InstallationCandidate):
-            return NotImplemented
-
-        return method(self._key, other._key)
-
-
 class PackageFinder(object):
     """This finds packages.
 
@@ -108,7 +69,8 @@ class PackageFinder(object):
     def __init__(self, find_links, index_urls, allow_all_prereleases=False,
                  trusted_hosts=None, process_dependency_links=False,
                  session=None, format_control=None, platform=None,
-                 versions=None, abi=None, implementation=None):
+                 versions=None, abi=None, implementation=None,
+                 prefer_binary=False):
         """Create a PackageFinder.
 
         :param format_control: A FormatControl object or None. Used to control
@@ -176,6 +138,9 @@ class PackageFinder(object):
             impl=implementation,
         )
 
+        # Do we prefer old, but valid, binary dist over new source dist
+        self.prefer_binary = prefer_binary
+
         # If we don't have TLS enabled, then WARN if anyplace we're looking
         # relies on TLS.
         if not HAS_TLS:
@@ -193,7 +158,8 @@ class PackageFinder(object):
         lines = []
         if self.index_urls and self.index_urls != [PyPI.simple_url]:
             lines.append(
-                "Looking in indexes: {}".format(", ".join(self.index_urls))
+                "Looking in indexes: {}".format(", ".join(
+                    remove_auth_from_url(url) for url in self.index_urls))
             )
         if self.find_links:
             lines.append(
@@ -202,15 +168,17 @@ class PackageFinder(object):
         return "\n".join(lines)
 
     def add_dependency_links(self, links):
-        # # FIXME: this shouldn't be global list this, it should only
-        # # apply to requirements of the package that specifies the
-        # # dependency_links value
-        # # FIXME: also, we should track comes_from (i.e., use Link)
+        # FIXME: this shouldn't be global list this, it should only
+        # apply to requirements of the package that specifies the
+        # dependency_links value
+        # FIXME: also, we should track comes_from (i.e., use Link)
         if self.process_dependency_links:
-            warnings.warn(
+            deprecated(
                 "Dependency Links processing has been deprecated and will be "
                 "removed in a future release.",
-                RemovedInPip11Warning,
+                replacement="PEP 508 URL dependencies",
+                gone_in="18.2",
+                issue=4187,
             )
             self.dependency_links.extend(links)
 
@@ -253,14 +221,16 @@ class PackageFinder(object):
                 else:
                     logger.warning(
                         "Url '%s' is ignored: it is neither a file "
-                        "nor a directory.", url)
+                        "nor a directory.", url,
+                    )
             elif is_url(url):
                 # Only add url with clear scheme
                 urls.append(url)
             else:
                 logger.warning(
                     "Url '%s' is ignored. It is either a non-existing "
-                    "path or lacks a specific scheme.", url)
+                    "path or lacks a specific scheme.", url,
+                )
 
         return files, urls
 
@@ -273,12 +243,14 @@ class PackageFinder(object):
           1. existing installs
           2. wheels ordered via Wheel.support_index_min(self.valid_tags)
           3. source archives
+        If prefer_binary was set, then all wheels are sorted above sources.
         Note: it was considered to embed this logic into the Link
               comparison operators, but then different sdist links
               with the same version, would have to be considered equal
         """
         support_num = len(self.valid_tags)
         build_tag = tuple()
+        binary_preference = 0
         if candidate.location.is_wheel:
             # can raise InvalidWheelFilename
             wheel = Wheel(candidate.location.filename)
@@ -287,6 +259,8 @@ class PackageFinder(object):
                     "%s is not a supported wheel for this platform. It "
                     "can't be sorted." % wheel.filename
                 )
+            if self.prefer_binary:
+                binary_preference = 1
             pri = -(wheel.support_index_min(self.valid_tags))
             if wheel.build_tag is not None:
                 match = re.match(r'^(\d+)(.*)$', wheel.build_tag)
@@ -294,7 +268,7 @@ class PackageFinder(object):
                 build_tag = (int(build_tag_groups[0]), build_tag_groups[1])
         else:  # sdist
             pri = -(support_num)
-        return (candidate.version, build_tag, pri)
+        return (binary_preference, candidate.version, build_tag, pri)
 
     def _validate_secure_origin(self, logger, location):
         # Determine if this url used a secure transport mechanism
@@ -400,13 +374,13 @@ class PackageFinder(object):
         index_locations = self._get_index_urls_locations(project_name)
         index_file_loc, index_url_loc = self._sort_locations(index_locations)
         fl_file_loc, fl_url_loc = self._sort_locations(
-            self.find_links, expand_dir=True)
+            self.find_links, expand_dir=True,
+        )
         dep_file_loc, dep_url_loc = self._sort_locations(self.dependency_links)
 
-        file_locations = (
-            Link(url) for url in itertools.chain(
-                index_file_loc, fl_file_loc, dep_file_loc)
-        )
+        file_locations = (Link(url) for url in itertools.chain(
+            index_file_loc, fl_file_loc, dep_file_loc,
+        ))
 
         # We trust every url that the user has given us whether it was given
         #   via --index-url or --find-links
@@ -428,7 +402,7 @@ class PackageFinder(object):
             logger.debug('* %s', location)
 
         canonical_name = canonicalize_name(project_name)
-        formats = fmt_ctl_formats(self.format_control, canonical_name)
+        formats = self.format_control.get_allowed_formats(canonical_name)
         search = Search(project_name, canonical_name, formats)
         find_links_versions = self._package_versions(
             # We trust every directly linked archive in find_links
@@ -521,7 +495,7 @@ class PackageFinder(object):
                 req,
                 ', '.join(
                     sorted(
-                        set(str(c.version) for c in all_candidates),
+                        {str(c.version) for c in all_candidates},
                         key=parse_version,
                     )
                 )
@@ -632,11 +606,13 @@ class PackageFinder(object):
                 return
             if ext not in SUPPORTED_EXTENSIONS:
                 self._log_skipped_link(
-                    link, 'unsupported archive format: %s' % ext)
+                    link, 'unsupported archive format: %s' % ext,
+                )
                 return
             if "binary" not in search.formats and ext == wheel_ext:
                 self._log_skipped_link(
-                    link, 'No binaries permitted for %s' % search.supplied)
+                    link, 'No binaries permitted for %s' % search.supplied,
+                )
                 return
             if "macosx10" in link.path and ext == '.zip':
                 self._log_skipped_link(link, 'macosx10 one')
@@ -662,14 +638,15 @@ class PackageFinder(object):
         # This should be up by the search.ok_binary check, but see issue 2700.
         if "source" not in search.formats and ext != wheel_ext:
             self._log_skipped_link(
-                link, 'No sources permitted for %s' % search.supplied)
+                link, 'No sources permitted for %s' % search.supplied,
+            )
             return
 
         if not version:
             version = egg_info_matches(egg_info, search.supplied, link)
         if version is None:
             self._log_skipped_link(
-                link, 'wrong project name (not %s)' % search.supplied)
+                link, 'Missing project version for %s' % search.supplied)
             return
 
         match = self._py_version_re.search(version)
@@ -806,7 +783,20 @@ class HTMLPage(object):
                 url,
                 headers={
                     "Accept": "text/html",
-                    "Cache-Control": "max-age=600",
+                    # We don't want to blindly returned cached data for
+                    # /simple/, because authors generally expecting that
+                    # twine upload && pip install will function, but if
+                    # they've done a pip install in the last ~10 minutes
+                    # it won't. Thus by setting this to zero we will not
+                    # blindly use any cached data, however the benefit of
+                    # using max-age=0 instead of no-cache, is that we will
+                    # still support conditional requests, so we will still
+                    # minimize traffic sent in cases where the page hasn't
+                    # changed at all, we will just always incur the round
+                    # trip for the conditional GET now instead of only
+                    # once per 10 minutes.
+                    # For more information, please see pypa/pip#5670.
+                    "Cache-Control": "max-age=0",
                 },
             )
             resp.raise_for_status()
@@ -829,8 +819,8 @@ class HTMLPage(object):
         except requests.HTTPError as exc:
             cls._handle_fail(link, exc, url)
         except SSLError as exc:
-            reason = ("There was a problem confirming the ssl certificate: "
-                      "%s" % exc)
+            reason = "There was a problem confirming the ssl certificate: "
+            reason += str(exc)
             cls._handle_fail(link, reason, url, meth=logger.info)
         except requests.ConnectionError as exc:
             cls._handle_fail(link, "connection error: %s" % exc, url)
@@ -892,213 +882,6 @@ class HTMLPage(object):
         % or other characters)."""
         return self._clean_re.sub(
             lambda match: '%%%2x' % ord(match.group(0)), url)
-
-
-class Link(object):
-
-    def __init__(self, url, comes_from=None, requires_python=None):
-        """
-        Object representing a parsed link from https://pypi.python.org/simple/*
-
-        url:
-            url of the resource pointed to (href of the link)
-        comes_from:
-            instance of HTMLPage where the link was found, or string.
-        requires_python:
-            String containing the `Requires-Python` metadata field, specified
-            in PEP 345. This may be specified by a data-requires-python
-            attribute in the HTML link tag, as described in PEP 503.
-        """
-
-        # url can be a UNC windows share
-        if url.startswith('\\\\'):
-            url = path_to_url(url)
-
-        self.url = url
-        self.comes_from = comes_from
-        self.requires_python = requires_python if requires_python else None
-
-    def __str__(self):
-        if self.requires_python:
-            rp = ' (requires-python:%s)' % self.requires_python
-        else:
-            rp = ''
-        if self.comes_from:
-            return '%s (from %s)%s' % (self.url, self.comes_from, rp)
-        else:
-            return str(self.url)
-
-    def __repr__(self):
-        return '<Link %s>' % self
-
-    def __eq__(self, other):
-        if not isinstance(other, Link):
-            return NotImplemented
-        return self.url == other.url
-
-    def __ne__(self, other):
-        if not isinstance(other, Link):
-            return NotImplemented
-        return self.url != other.url
-
-    def __lt__(self, other):
-        if not isinstance(other, Link):
-            return NotImplemented
-        return self.url < other.url
-
-    def __le__(self, other):
-        if not isinstance(other, Link):
-            return NotImplemented
-        return self.url <= other.url
-
-    def __gt__(self, other):
-        if not isinstance(other, Link):
-            return NotImplemented
-        return self.url > other.url
-
-    def __ge__(self, other):
-        if not isinstance(other, Link):
-            return NotImplemented
-        return self.url >= other.url
-
-    def __hash__(self):
-        return hash(self.url)
-
-    @property
-    def filename(self):
-        _, netloc, path, _, _ = urllib_parse.urlsplit(self.url)
-        name = posixpath.basename(path.rstrip('/')) or netloc
-        name = urllib_parse.unquote(name)
-        assert name, ('URL %r produced no filename' % self.url)
-        return name
-
-    @property
-    def scheme(self):
-        return urllib_parse.urlsplit(self.url)[0]
-
-    @property
-    def netloc(self):
-        return urllib_parse.urlsplit(self.url)[1]
-
-    @property
-    def path(self):
-        return urllib_parse.unquote(urllib_parse.urlsplit(self.url)[2])
-
-    def splitext(self):
-        return splitext(posixpath.basename(self.path.rstrip('/')))
-
-    @property
-    def ext(self):
-        return self.splitext()[1]
-
-    @property
-    def url_without_fragment(self):
-        scheme, netloc, path, query, fragment = urllib_parse.urlsplit(self.url)
-        return urllib_parse.urlunsplit((scheme, netloc, path, query, None))
-
-    _egg_fragment_re = re.compile(r'[#&]egg=([^&]*)')
-
-    @property
-    def egg_fragment(self):
-        match = self._egg_fragment_re.search(self.url)
-        if not match:
-            return None
-        return match.group(1)
-
-    _subdirectory_fragment_re = re.compile(r'[#&]subdirectory=([^&]*)')
-
-    @property
-    def subdirectory_fragment(self):
-        match = self._subdirectory_fragment_re.search(self.url)
-        if not match:
-            return None
-        return match.group(1)
-
-    _hash_re = re.compile(
-        r'(sha1|sha224|sha384|sha256|sha512|md5)=([a-f0-9]+)'
-    )
-
-    @property
-    def hash(self):
-        match = self._hash_re.search(self.url)
-        if match:
-            return match.group(2)
-        return None
-
-    @property
-    def hash_name(self):
-        match = self._hash_re.search(self.url)
-        if match:
-            return match.group(1)
-        return None
-
-    @property
-    def show_url(self):
-        return posixpath.basename(self.url.split('#', 1)[0].split('?', 1)[0])
-
-    @property
-    def is_wheel(self):
-        return self.ext == wheel_ext
-
-    @property
-    def is_artifact(self):
-        """
-        Determines if this points to an actual artifact (e.g. a tarball) or if
-        it points to an "abstract" thing like a path or a VCS location.
-        """
-        from pip._internal.vcs import vcs
-
-        if self.scheme in vcs.all_schemes:
-            return False
-
-        return True
-
-
-FormatControl = namedtuple('FormatControl', 'no_binary only_binary')
-"""This object has two fields, no_binary and only_binary.
-
-If a field is falsy, it isn't set. If it is {':all:'}, it should match all
-packages except those listed in the other field. Only one field can be set
-to {':all:'} at a time. The rest of the time exact package name matches
-are listed, with any given package only showing up in one field at a time.
-"""
-
-
-def fmt_ctl_handle_mutual_exclude(value, target, other):
-    new = value.split(',')
-    while ':all:' in new:
-        other.clear()
-        target.clear()
-        target.add(':all:')
-        del new[:new.index(':all:') + 1]
-        if ':none:' not in new:
-            # Without a none, we want to discard everything as :all: covers it
-            return
-    for name in new:
-        if name == ':none:':
-            target.clear()
-            continue
-        name = canonicalize_name(name)
-        other.discard(name)
-        target.add(name)
-
-
-def fmt_ctl_formats(fmt_ctl, canonical_name):
-    result = {"binary", "source"}
-    if canonical_name in fmt_ctl.only_binary:
-        result.discard('source')
-    elif canonical_name in fmt_ctl.no_binary:
-        result.discard('binary')
-    elif ':all:' in fmt_ctl.only_binary:
-        result.discard('source')
-    elif ':all:' in fmt_ctl.no_binary:
-        result.discard('binary')
-    return frozenset(result)
-
-
-def fmt_ctl_no_binary(fmt_ctl):
-    fmt_ctl_handle_mutual_exclude(
-        ':all:', fmt_ctl.no_binary, fmt_ctl.only_binary)
 
 
 Search = namedtuple('Search', 'supplied canonical formats')

@@ -2,9 +2,11 @@ from __future__ import absolute_import
 
 from pip._vendor.packaging.utils import canonicalize_name
 
-from pip._internal.basecommand import Command
+from pip._internal.cli.base_command import Command
 from pip._internal.exceptions import InstallationError
-from pip._internal.req import InstallRequirement, parse_requirements
+from pip._internal.req import parse_requirements
+from pip._internal.req.constructors import install_req_from_line
+from pip._internal.utils.misc import protect_pip_from_modification_on_windows
 
 
 class UninstallCommand(Command):
@@ -46,7 +48,7 @@ class UninstallCommand(Command):
         with self._build_session(options) as session:
             reqs_to_uninstall = {}
             for name in args:
-                req = InstallRequirement.from_line(
+                req = install_req_from_line(
                     name, isolated=options.isolated_mode,
                 )
                 if req.name:
@@ -63,8 +65,14 @@ class UninstallCommand(Command):
                     'You must give at least one requirement to %(name)s (see '
                     '"pip help %(name)s")' % dict(name=self.name)
                 )
+
+            protect_pip_from_modification_on_windows(
+                modifying_pip="pip" in reqs_to_uninstall
+            )
+
             for req in reqs_to_uninstall.values():
-                req.uninstall(
-                    auto_confirm=options.yes, verbose=options.verbose != 0
+                uninstall_pathset = req.uninstall(
+                    auto_confirm=options.yes, verbose=self.verbosity > 0,
                 )
-                req.uninstalled_pathset.commit()
+                if uninstall_pathset:
+                    uninstall_pathset.commit()

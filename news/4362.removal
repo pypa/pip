@@ -1,1 +1,0 @@
-Removed the --editable flag from pip download, as it did not make sense

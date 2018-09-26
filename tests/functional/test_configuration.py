@@ -5,7 +5,7 @@ import textwrap
 
 import pytest
 
-from pip._internal.status_codes import ERROR
+from pip._internal.cli.status_codes import ERROR
 from tests.lib.configuration_helpers import ConfigurationMixin, kinds
 
 
@@ -28,7 +28,7 @@ class TestBasicLoading(ConfigurationMixin):
 
         assert "test.hello=1" in result.stdout
 
-    def test_modification_pipeline(self, script):
+    def test_basic_modification_pipeline(self, script):
         script.pip("config", "get", "test.blah", expect_error=True)
         script.pip("config", "set", "test.blah", "1")
 

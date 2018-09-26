@@ -8,10 +8,10 @@ import site
 import sys
 import sysconfig
 from distutils import sysconfig as distutils_sysconfig
-from distutils.command.install import SCHEME_KEYS, install  # type: ignore
+from distutils.command.install import SCHEME_KEYS  # type: ignore
 
-from pip._internal.compat import WINDOWS, expanduser
 from pip._internal.utils import appdirs
+from pip._internal.utils.compat import WINDOWS, expanduser
 
 # Application Directories
 USER_CACHE_DIR = appdirs.user_cache_dir("pip")
@@ -155,7 +155,7 @@ def distutils_scheme(dist_name, user=False, home=None, root=None,
     # NOTE: setting user or home has the side-effect of creating the home dir
     # or user base for installations during finalize_options()
     # ideally, we'd prefer a scheme class that has no side-effects.
-    assert not (user and prefix), "user={0} prefix={1}".format(user, prefix)
+    assert not (user and prefix), "user={} prefix={}".format(user, prefix)
     i.user = user or i.user
     if user:
         i.prefix = ""

@@ -6,5 +6,5 @@ require either a news file fragment or a marker to indicate they don't require
 one.
 
 To read more about adding a news file fragment for your PR, please check out
-our documentation at: https://pip.pypa.io/en/latest/development/#adding-a-news-entry
+our documentation at: https://pip.pypa.io/en/latest/development/contributing/#news-entries
 -->

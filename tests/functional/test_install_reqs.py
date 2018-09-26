@@ -5,7 +5,7 @@ import pytest
 
 from tests.lib import (
     _create_test_package_with_subdirectory, path_to_url, pyversion,
-    requirements_file
+    requirements_file,
 )
 from tests.lib.local_repos import local_checkout
 
@@ -300,6 +300,14 @@ def test_constraints_local_editable_install_causes_error(script, data):
     assert 'Could not satisfy constraints for' in result.stderr
 
 
+def test_constraints_local_editable_install_pep518(script, data):
+    to_install = data.src.join("pep518-3.0")
+
+    script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
+    script.pip(
+        'install', '--no-index', '-f', data.find_links, '-e', to_install)
+
+
 def test_constraints_local_install_causes_error(script, data):
     script.scratch_path.join("constraints.txt").write(
         "singlemodule==0.0.0"
@@ -484,11 +492,10 @@ def test_install_unsupported_wheel_link_with_marker(script):
     result = script.pip(
         'install', '-r', script.scratch_path / 'with-marker.txt',
         expect_error=False,
-        expect_stderr=True,
     )
 
     assert ("Ignoring asdf: markers 'sys_platform == \"xyz\"' don't match "
-            "your environment") in result.stderr
+            "your environment") in result.stdout
     assert len(result.files_created) == 0
 
 
@@ -506,3 +513,37 @@ def test_install_unsupported_wheel_file(script, data):
     assert ("simple.dist-0.1-py1-none-invalid.whl is not a supported " +
             "wheel on this platform" in result.stderr)
     assert len(result.files_created) == 0
+
+
+def test_install_options_local_to_package(script, data):
+    """Make sure --install-options does not leak across packages.
+
+    A requirements.txt file can have per-package --install-options; these
+    should be isolated to just the package instead of leaking to subsequent
+    packages.  This needs to be a functional test because the bug was around
+    cross-contamination at install time.
+    """
+    home_simple = script.scratch_path.join("for-simple")
+    test_simple = script.scratch.join("for-simple")
+    home_simple.mkdir()
+    reqs_file = script.scratch_path.join("reqs.txt")
+    reqs_file.write(
+        textwrap.dedent("""
+            simple --install-option='--home=%s'
+            INITools
+            """ % home_simple))
+    result = script.pip(
+        'install',
+        '--no-index', '-f', data.find_links,
+        '-r', reqs_file,
+        expect_error=True,
+    )
+
+    simple = test_simple / 'lib' / 'python' / 'simple'
+    bad = test_simple / 'lib' / 'python' / 'initools'
+    good = script.site_packages / 'initools'
+    assert simple in result.files_created
+    assert result.files_created[simple].dir
+    assert bad not in result.files_created
+    assert good in result.files_created
+    assert result.files_created[good].dir

@@ -9,13 +9,13 @@ import sysconfig
 
 from pip._vendor import pkg_resources
 
-from pip._internal.compat import WINDOWS, cache_from_source, uses_pycache
 from pip._internal.exceptions import UninstallationError
 from pip._internal.locations import bin_py, bin_user
+from pip._internal.utils.compat import WINDOWS, cache_from_source, uses_pycache
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     FakeFile, ask, dist_in_usersite, dist_is_local, egg_link_path, is_local,
-    normalize_path, renames
+    normalize_path, renames,
 )
 from pip._internal.utils.temp_dir import TempDirectory
 
@@ -57,12 +57,12 @@ def _unique(fn):
 @_unique
 def uninstallation_paths(dist):
     """
-    Yield all the uninstallation paths for dist based on RECORD-without-.pyc
+    Yield all the uninstallation paths for dist based on RECORD-without-.py[co]
 
     Yield paths to all the files in RECORD. For each .py file in RECORD, add
-    the .pyc in the same directory.
+    the .pyc and .pyo in the same directory.
 
-    UninstallPathSet.add() takes care of the __pycache__ .pyc.
+    UninstallPathSet.add() takes care of the __pycache__ .py[co].
     """
     r = csv.reader(FakeFile(dist.get_metadata_lines('RECORD')))
     for row in r:
@@ -72,6 +72,8 @@ def uninstallation_paths(dist):
             dn, fn = os.path.split(path)
             base = fn[:-3]
             path = os.path.join(dn, base + '.pyc')
+            yield path
+            path = os.path.join(dn, base + '.pyo')
             yield path
 
 
@@ -118,6 +120,8 @@ def compress_for_output_listing(paths):
             folders.add(os.path.dirname(path))
         files.add(path)
 
+    _normcased_files = set(map(os.path.normcase, files))
+
     folders = compact(folders)
 
     # This walks the tree using os.walk to not miss extra folders
@@ -128,8 +132,9 @@ def compress_for_output_listing(paths):
                 if fname.endswith(".pyc"):
                     continue
 
-                file_ = os.path.normcase(os.path.join(dirpath, fname))
-                if os.path.isfile(file_) and file_ not in files:
+                file_ = os.path.join(dirpath, fname)
+                if (os.path.isfile(file_) and
+                        os.path.normcase(file_) not in _normcased_files):
                     # We are skipping this file. Add it to the set.
                     will_skip.add(file_)
 
@@ -294,7 +299,7 @@ class UninstallPathSet(object):
 
         paths_to_remove = cls(dist)
         develop_egg_link = egg_link_path(dist)
-        develop_egg_link_egg_info = '{0}.egg-info'.format(
+        develop_egg_link_egg_info = '{}.egg-info'.format(
             pkg_resources.to_filename(dist.project_name))
         egg_info_exists = dist.egg_info and os.path.exists(dist.egg_info)
         # Special case for distutils installed package
@@ -371,7 +376,8 @@ class UninstallPathSet(object):
         else:
             logger.debug(
                 'Not sure how to uninstall: %s - Check: %s',
-                dist, dist.location)
+                dist, dist.location,
+            )
 
         # find distutils scripts= scripts
         if dist.has_metadata('scripts') and dist.metadata_isdir('scripts'):
@@ -430,6 +436,9 @@ class UninstallPthEntries(object):
             endline = '\r\n'
         else:
             endline = '\n'
+        # handle missing trailing newline
+        if lines and not lines[-1].endswith(endline.encode("utf-8")):
+            lines[-1] = lines[-1] + endline.encode("utf-8")
         for entry in self.entries:
             try:
                 logger.debug('Removing entry: %s', entry)

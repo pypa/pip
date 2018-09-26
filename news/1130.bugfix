@@ -1,2 +1,0 @@
-Allow pip to work if the ``GIT_DIR`` and ``GIT_WORK_TREE`` environment
-variables are set.

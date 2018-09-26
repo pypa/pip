@@ -9,14 +9,17 @@ from pretend import stub
 import pip._internal.index
 from pip._internal.download import PipSession
 from pip._internal.exceptions import (
-    InstallationError, RequirementsFileParseError
+    InstallationError, RequirementsFileParseError,
 )
 from pip._internal.index import PackageFinder
+from pip._internal.models.format_control import FormatControl
+from pip._internal.req.constructors import (
+    install_req_from_editable, install_req_from_line,
+)
 from pip._internal.req.req_file import (
     break_args_options, ignore_comments, join_lines, parse_requirements,
-    preprocess, process_line, skip_regex
+    preprocess, process_line, skip_regex,
 )
-from pip._internal.req.req_install import InstallRequirement
 from tests.lib import requirements_file
 
 
@@ -35,7 +38,7 @@ def options(session):
     return stub(
         isolated_mode=False, index_url='default_url',
         skip_requirements_regex=False,
-        format_control=pip._internal.index.FormatControl(set(), set()))
+        format_control=FormatControl(set(), set()))
 
 
 class TestPreprocess(object):
@@ -192,14 +195,14 @@ class TestProcessLine(object):
         line = 'SomeProject'
         filename = 'filename'
         comes_from = '-r %s (line %s)' % (filename, 1)
-        req = InstallRequirement.from_line(line, comes_from=comes_from)
+        req = install_req_from_line(line, comes_from=comes_from)
         assert repr(list(process_line(line, filename, 1))[0]) == repr(req)
 
     def test_yield_line_constraint(self):
         line = 'SomeProject'
         filename = 'filename'
         comes_from = '-c %s (line %s)' % (filename, 1)
-        req = InstallRequirement.from_line(
+        req = install_req_from_line(
             line, comes_from=comes_from, constraint=True)
         found_req = list(process_line(line, filename, 1, constraint=True))[0]
         assert repr(found_req) == repr(req)
@@ -209,7 +212,7 @@ class TestProcessLine(object):
         line = 'SomeProject >= 2'
         filename = 'filename'
         comes_from = '-r %s (line %s)' % (filename, 1)
-        req = InstallRequirement.from_line(line, comes_from=comes_from)
+        req = install_req_from_line(line, comes_from=comes_from)
         assert repr(list(process_line(line, filename, 1))[0]) == repr(req)
         assert str(req.req.specifier) == '>=2'
 
@@ -218,7 +221,7 @@ class TestProcessLine(object):
         line = '-e %s' % url
         filename = 'filename'
         comes_from = '-r %s (line %s)' % (filename, 1)
-        req = InstallRequirement.from_editable(url, comes_from=comes_from)
+        req = install_req_from_editable(url, comes_from=comes_from)
         assert repr(list(process_line(line, filename, 1))[0]) == repr(req)
 
     def test_yield_editable_constraint(self):
@@ -226,7 +229,7 @@ class TestProcessLine(object):
         line = '-e %s' % url
         filename = 'filename'
         comes_from = '-c %s (line %s)' % (filename, 1)
-        req = InstallRequirement.from_editable(
+        req = install_req_from_editable(
             url, comes_from=comes_from, constraint=True)
         found_req = list(process_line(line, filename, 1, constraint=True))[0]
         assert repr(found_req) == repr(req)
@@ -234,7 +237,7 @@ class TestProcessLine(object):
 
     def test_nested_requirements_file(self, monkeypatch):
         line = '-r another_file'
-        req = InstallRequirement.from_line('SomeProject')
+        req = install_req_from_line('SomeProject')
         import pip._internal.req.req_file
 
         def stub_parse_requirements(req_url, finder, comes_from, options,
@@ -247,7 +250,7 @@ class TestProcessLine(object):
 
     def test_nested_constraints_file(self, monkeypatch):
         line = '-c another_file'
-        req = InstallRequirement.from_line('SomeProject')
+        req = install_req_from_line('SomeProject')
         import pip._internal.req.req_file
 
         def stub_parse_requirements(req_url, finder, comes_from, options,
@@ -495,6 +498,58 @@ class TestParseRequirements(object):
 
         assert finder.index_urls == ['Good']
 
+    def test_expand_existing_env_variables(self, tmpdir, finder):
+        template = (
+            'https://%s:x-oauth-basic@github.com/user/%s/archive/master.zip'
+        )
+
+        env_vars = (
+            ('GITHUB_TOKEN', 'notarealtoken'),
+            ('DO_12_FACTOR', 'awwyeah'),
+        )
+
+        with open(tmpdir.join('req1.txt'), 'w') as fp:
+            fp.write(template % tuple(['${%s}' % k for k, _ in env_vars]))
+
+        with patch('pip._internal.req.req_file.os.getenv') as getenv:
+            getenv.side_effect = lambda n: dict(env_vars)[n]
+
+            reqs = list(parse_requirements(
+                tmpdir.join('req1.txt'),
+                finder=finder,
+                session=PipSession()
+            ))
+
+            assert len(reqs) == 1, \
+                'parsing requirement file with env variable failed'
+
+            expected_url = template % tuple([v for _, v in env_vars])
+            assert reqs[0].link.url == expected_url, \
+                'variable expansion in req file failed'
+
+    def test_expand_missing_env_variables(self, tmpdir, finder):
+        req_url = (
+            'https://${NON_EXISTENT_VARIABLE}:$WRONG_FORMAT@'
+            '%WINDOWS_FORMAT%github.com/user/repo/archive/master.zip'
+        )
+
+        with open(tmpdir.join('req1.txt'), 'w') as fp:
+            fp.write(req_url)
+
+        with patch('pip._internal.req.req_file.os.getenv') as getenv:
+            getenv.return_value = ''
+
+            reqs = list(parse_requirements(
+                tmpdir.join('req1.txt'),
+                finder=finder,
+                session=PipSession()
+            ))
+
+            assert len(reqs) == 1, \
+                'parsing requirement file with env variable failed'
+            assert reqs[0].link.url == req_url, \
+                'ignoring invalid env variable in req file failed'
+
     def test_join_lines(self, tmpdir, finder):
         with open(tmpdir.join("req1.txt"), "w") as fp:
             fp.write("--extra-index-url url1 \\\n--extra-index-url url2")
@@ -508,8 +563,7 @@ class TestParseRequirements(object):
         list(parse_requirements(
             data.reqfiles.join("supported_options2.txt"), finder,
             session=PipSession()))
-        expected = pip._internal.index.FormatControl(
-            set(['fred']), set(['wilma']))
+        expected = FormatControl({'fred'}, {'wilma'})
         assert finder.format_control == expected
 
     def test_req_file_parse_comment_start_of_line(self, tmpdir, finder):
@@ -587,7 +641,7 @@ class TestParseRequirements(object):
             popen.return_value.stdout.readline.return_value = b""
             try:
                 req.install([])
-            except:
+            except Exception:
                 pass
 
             last_call = popen.call_args_list[-1]
@@ -596,5 +650,5 @@ class TestParseRequirements(object):
                 0 < args.index(global_option) < args.index('install') <
                 args.index(install_option)
             )
-        assert options.format_control.no_binary == set([':all:'])
-        assert options.format_control.only_binary == set([])
+        assert options.format_control.no_binary == {':all:'}
+        assert options.format_control.only_binary == set()

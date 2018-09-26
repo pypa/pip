@@ -3,28 +3,28 @@ include LICENSE.txt
 include NEWS.rst
 include README.rst
 include pyproject.toml
+
 include src/pip/_vendor/README.rst
 include src/pip/_vendor/vendor.txt
+
+include docs/docutils.conf
 
 exclude .coveragerc
 exclude .mailmap
 exclude .travis.yml
-exclude .landscape.yml
-exclude src/pip/_vendor/Makefile
 exclude tox.ini
-exclude dev-requirements.txt
 exclude appveyor.yml
 
 recursive-include src/pip/_vendor *.pem
 recursive-include docs Makefile *.rst *.py *.bat
 
 exclude src/pip/_vendor/six
+exclude src/pip/_vendor/six/moves
 recursive-exclude src/pip/_vendor *.pyi
 
 prune .github
-prune .travis
 prune docs/build
 prune news
-prune contrib
 prune tasks
 prune tests
+prune tools

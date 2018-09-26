@@ -57,10 +57,10 @@ def check_compatibility(urllib3_version, chardet_version):
     # Check urllib3 for compatibility.
     major, minor, patch = urllib3_version  # noqa: F811
     major, minor, patch = int(major), int(minor), int(patch)
-    # urllib3 >= 1.21.1, <= 1.22
+    # urllib3 >= 1.21.1, <= 1.23
     assert major == 1
     assert minor >= 21
-    assert minor <= 22
+    assert minor <= 23
 
     # Check chardet for compatibility.
     major, minor, patch = chardet_version.split('.')[:3]
@@ -71,6 +71,17 @@ def check_compatibility(urllib3_version, chardet_version):
     assert patch >= 2
 
 
+def _check_cryptography(cryptography_version):
+    # cryptography < 1.3.4
+    try:
+        cryptography_version = list(map(int, cryptography_version.split('.')))
+    except ValueError:
+        return
+
+    if cryptography_version < [1, 3, 4]:
+        warning = 'Old version of cryptography ({0}) may cause slowdown.'.format(cryptography_version)
+        warnings.warn(warning, RequestsDependencyWarning)
+
 # Check imported dependencies for compatibility.
 try:
     check_compatibility(urllib3.__version__, chardet.__version__)
@@ -80,13 +91,17 @@ except (AssertionError, ValueError):
                   RequestsDependencyWarning)
 
 # Attempt to enable urllib3's SNI support, if possible
-# Note: Patched by pip to prevent using the PyOpenSSL module. On Windows this
-#       prevents upgrading cryptography.
-# try:
-#     from pip._vendor.urllib3.contrib import pyopenssl
-#     pyopenssl.inject_into_urllib3()
-# except ImportError:
-#     pass
+from pip._internal.utils.compat import WINDOWS
+if not WINDOWS:
+    try:
+        from pip._vendor.urllib3.contrib import pyopenssl
+        pyopenssl.inject_into_urllib3()
+
+        # Check cryptography version
+        from cryptography import __version__ as cryptography_version
+        _check_cryptography(cryptography_version)
+    except ImportError:
+        pass
 
 # urllib3's DependencyWarnings should be silenced.
 from pip._vendor.urllib3.exceptions import DependencyWarning

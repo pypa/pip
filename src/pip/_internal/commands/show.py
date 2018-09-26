@@ -2,19 +2,23 @@ from __future__ import absolute_import
 
 import logging
 import os
-from email.parser import FeedParser
+from email.parser import FeedParser  # type: ignore
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.utils import canonicalize_name
 
-from pip._internal.basecommand import Command
-from pip._internal.status_codes import ERROR, SUCCESS
+from pip._internal.cli.base_command import Command
+from pip._internal.cli.status_codes import ERROR, SUCCESS
 
 logger = logging.getLogger(__name__)
 
 
 class ShowCommand(Command):
-    """Show information about one or more installed packages."""
+    """
+    Show information about one or more installed packages.
+
+    The output is in RFC-compliant mail header format.
+    """
     name = 'show'
     usage = """
       %prog [options] <package> ..."""

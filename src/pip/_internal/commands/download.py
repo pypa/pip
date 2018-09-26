@@ -3,12 +3,11 @@ from __future__ import absolute_import
 import logging
 import os
 
-from pip._internal import cmdoptions
-from pip._internal.basecommand import RequirementCommand
-from pip._internal.exceptions import CommandError
-from pip._internal.index import FormatControl
+from pip._internal.cli import cmdoptions
+from pip._internal.cli.base_command import RequirementCommand
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import RequirementSet
+from pip._internal.req.req_tracker import RequirementTracker
 from pip._internal.resolve import Resolver
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.misc import ensure_dir, normalize_path
@@ -52,11 +51,13 @@ class DownloadCommand(RequirementCommand):
         cmd_opts.add_option(cmdoptions.global_options())
         cmd_opts.add_option(cmdoptions.no_binary())
         cmd_opts.add_option(cmdoptions.only_binary())
+        cmd_opts.add_option(cmdoptions.prefer_binary())
         cmd_opts.add_option(cmdoptions.src())
         cmd_opts.add_option(cmdoptions.pre())
         cmd_opts.add_option(cmdoptions.no_clean())
         cmd_opts.add_option(cmdoptions.require_hashes())
         cmd_opts.add_option(cmdoptions.progress_bar())
+        cmd_opts.add_option(cmdoptions.no_build_isolation())
 
         cmd_opts.add_option(
             '-d', '--dest', '--destination-dir', '--destination-directory',
@@ -66,52 +67,10 @@ class DownloadCommand(RequirementCommand):
             help=("Download packages into <dir>."),
         )
 
-        cmd_opts.add_option(
-            '--platform',
-            dest='platform',
-            metavar='platform',
-            default=None,
-            help=("Only download wheels compatible with <platform>. "
-                  "Defaults to the platform of the running system."),
-        )
-
-        cmd_opts.add_option(
-            '--python-version',
-            dest='python_version',
-            metavar='python_version',
-            default=None,
-            help=("Only download wheels compatible with Python "
-                  "interpreter version <version>. If not specified, then the "
-                  "current system interpreter minor version is used. A major "
-                  "version (e.g. '2') can be specified to match all "
-                  "minor revs of that major version.  A minor version "
-                  "(e.g. '34') can also be specified."),
-        )
-
-        cmd_opts.add_option(
-            '--implementation',
-            dest='implementation',
-            metavar='implementation',
-            default=None,
-            help=("Only download wheels compatible with Python "
-                  "implementation <implementation>, e.g. 'pp', 'jy', 'cp', "
-                  " or 'ip'. If not specified, then the current "
-                  "interpreter implementation is used.  Use 'py' to force "
-                  "implementation-agnostic wheels."),
-        )
-
-        cmd_opts.add_option(
-            '--abi',
-            dest='abi',
-            metavar='abi',
-            default=None,
-            help=("Only download wheels compatible with Python "
-                  "abi <abi>, e.g. 'pypy_41'.  If not specified, then the "
-                  "current interpreter abi tag is used.  Generally "
-                  "you will need to specify --implementation, "
-                  "--platform, and --python-version when using "
-                  "this option."),
-        )
+        cmd_opts.add_option(cmdoptions.platform())
+        cmd_opts.add_option(cmdoptions.python_version())
+        cmd_opts.add_option(cmdoptions.implementation())
+        cmd_opts.add_option(cmdoptions.abi())
 
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
@@ -132,20 +91,7 @@ class DownloadCommand(RequirementCommand):
         else:
             python_versions = None
 
-        dist_restriction_set = any([
-            options.python_version,
-            options.platform,
-            options.abi,
-            options.implementation,
-        ])
-        binary_only = FormatControl(set(), {':all:'})
-        if dist_restriction_set and options.format_control != binary_only:
-            raise CommandError(
-                "--only-binary=:all: must be set and --no-binary must not "
-                "be set (or must be set to :none:) when restricting platform "
-                "and interpreter constraints using --python-version, "
-                "--platform, --abi, or --implementation."
-            )
+        cmdoptions.check_dist_restriction(options)
 
         options.src_dir = os.path.abspath(options.src_dir)
         options.download_dir = normalize_path(options.download_dir)
@@ -173,7 +119,7 @@ class DownloadCommand(RequirementCommand):
                 )
                 options.cache_dir = None
 
-            with TempDirectory(
+            with RequirementTracker() as req_tracker, TempDirectory(
                 options.build_dir, delete=build_delete, kind="download"
             ) as directory:
 
@@ -196,6 +142,8 @@ class DownloadCommand(RequirementCommand):
                     download_dir=options.download_dir,
                     wheel_download_dir=None,
                     progress_bar=options.progress_bar,
+                    build_isolation=options.build_isolation,
+                    req_tracker=req_tracker,
                 )
 
                 resolver = Resolver(
@@ -217,9 +165,7 @@ class DownloadCommand(RequirementCommand):
                     req.name for req in requirement_set.successfully_downloaded
                 ])
                 if downloaded:
-                    logger.info(
-                        'Successfully downloaded %s', downloaded
-                    )
+                    logger.info('Successfully downloaded %s', downloaded)
 
                 # Clean up
                 if not options.no_clean:

@@ -1,4 +1,0 @@
-This fixes an issue where when someone who tries to use git
-with pip but pip can't because git is not in the path
-environment variable.  This clarifies the error given to
-suggest to the user what might be wrong.

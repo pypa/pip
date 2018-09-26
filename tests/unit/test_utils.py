@@ -17,14 +17,15 @@ from mock import Mock, patch
 from pip._vendor.six import BytesIO
 
 from pip._internal.exceptions import (
-    HashMismatch, HashMissing, InstallationError, UnsupportedPythonVersion
+    HashMismatch, HashMissing, InstallationError, UnsupportedPythonVersion,
 )
 from pip._internal.utils.encoding import auto_decode
 from pip._internal.utils.glibc import check_glibc_version
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.misc import (
-    egg_link_path, ensure_dir, get_installed_distributions, get_prog,
-    normalize_path, rmtree, untar_file, unzip_file
+    call_subprocess, egg_link_path, ensure_dir, get_installed_distributions,
+    get_prog, normalize_path, remove_auth_from_url, rmtree,
+    split_auth_from_netloc, untar_file, unzip_file,
 )
 from pip._internal.utils.packaging import check_dist_requires_python
 from pip._internal.utils.temp_dir import TempDirectory
@@ -612,3 +613,55 @@ class TestGetProg(object):
             executable
         )
         assert get_prog() == expected
+
+
+def test_call_subprocess_works_okay_when_just_given_nothing():
+    try:
+        call_subprocess([sys.executable, '-c', 'print("Hello")'])
+    except Exception:
+        assert False, "Expected subprocess call to succeed"
+
+
+def test_call_subprocess_closes_stdin():
+    with pytest.raises(InstallationError):
+        call_subprocess([sys.executable, '-c', 'input()'])
+
+
+@pytest.mark.parametrize('netloc, expected', [
+    # Test a basic case.
+    ('example.com', ('example.com', (None, None))),
+    # Test with username and no password.
+    ('user@example.com', ('example.com', ('user', None))),
+    # Test with username and password.
+    ('user:pass@example.com', ('example.com', ('user', 'pass'))),
+    # Test with username and empty password.
+    ('user:@example.com', ('example.com', ('user', ''))),
+    # Test the password containing an @ symbol.
+    ('user:pass@word@example.com', ('example.com', ('user', 'pass@word'))),
+    # Test the password containing a : symbol.
+    ('user:pass:word@example.com', ('example.com', ('user', 'pass:word'))),
+])
+def test_split_auth_from_netloc(netloc, expected):
+    actual = split_auth_from_netloc(netloc)
+    assert actual == expected
+
+
+@pytest.mark.parametrize('auth_url, expected_url', [
+    ('https://user:pass@domain.tld/project/tags/v0.2',
+     'https://domain.tld/project/tags/v0.2'),
+    ('https://domain.tld/project/tags/v0.2',
+     'https://domain.tld/project/tags/v0.2',),
+    ('https://user:pass@domain.tld/svn/project/trunk@8181',
+     'https://domain.tld/svn/project/trunk@8181'),
+    ('https://domain.tld/project/trunk@8181',
+     'https://domain.tld/project/trunk@8181',),
+    ('git+https://pypi.org/something',
+     'git+https://pypi.org/something'),
+    ('git+https://user:pass@pypi.org/something',
+     'git+https://pypi.org/something'),
+    ('git+ssh://git@pypi.org/something',
+     'git+ssh://pypi.org/something'),
+])
+def test_remove_auth_from_url(auth_url, expected_url):
+    url = remove_auth_from_url(auth_url)
+    assert url == expected_url

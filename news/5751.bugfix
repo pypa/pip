@@ -1,0 +1,1 @@
+Avoid traceback printing on autocomplete after flags in the CLI.

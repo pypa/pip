@@ -119,9 +119,12 @@ def interpret(marker, execution_context=None):
     :param execution_context: The context used for name lookup.
     :type execution_context: mapping
     """
-    expr, rest = parse_marker(marker)
+    try:
+        expr, rest = parse_marker(marker)
+    except Exception as e:
+        raise SyntaxError('Unable to interpret marker syntax: %s: %s' % (marker, e))
     if rest and rest[0] != '#':
-        raise SyntaxError('unexpected trailing data: %s' % rest)
+        raise SyntaxError('unexpected trailing data in marker: %s: %s' % (marker, rest))
     context = dict(DEFAULT_CONTEXT)
     if execution_context:
         context.update(execution_context)

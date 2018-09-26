@@ -1,9 +1,8 @@
-import os
 import textwrap
 
 import pytest
 
-from pip._internal.status_codes import ERROR
+from pip._internal.cli.status_codes import ERROR
 from tests.lib.path import Path
 
 
@@ -27,7 +26,7 @@ def test_download_if_requested(script):
 
 
 @pytest.mark.network
-def test_download_setuptools(script):
+def test_basic_download_setuptools(script):
     """
     It should download (in the scratch path) and not install if requested.
     """
@@ -58,7 +57,7 @@ def test_download_wheel(script, data):
 @pytest.mark.network
 def test_single_download_from_requirements_file(script):
     """
-    It should support download (in the scratch path) from PyPi from a
+    It should support download (in the scratch path) from PyPI from a
     requirements file
     """
     script.scratch_path.join("test-req.txt").write(textwrap.dedent("""
@@ -73,7 +72,7 @@ def test_single_download_from_requirements_file(script):
 
 
 @pytest.mark.network
-def test_download_should_download_dependencies(script):
+def test_basic_download_should_download_dependencies(script):
     """
     It should download dependencies (in the scratch path)
     """
@@ -167,10 +166,10 @@ def test_download_vcs_link(script):
     assert script.site_packages / 'piptestpackage' not in result.files_created
 
 
-def test_download_specify_platform_only_binary(script, data):
+def test_only_binary_set_then_download_specific_platform(script, data):
     """
     Confirm that specifying an interpreter/platform constraint
-    enforces that ``--only-binary=:all:`` is set.
+    is allowed when ``--only-binary=:all:`` is set.
     """
     fake_wheel(data, 'fake-1.0-py2.py3-none-any.whl')
 
@@ -186,14 +185,33 @@ def test_download_specify_platform_only_binary(script, data):
         in result.files_created
     )
 
+
+def test_no_deps_set_then_download_specific_platform(script, data):
+    """
+    Confirm that specifying an interpreter/platform constraint
+    is allowed when ``--no-deps`` is set.
+    """
+    fake_wheel(data, 'fake-1.0-py2.py3-none-any.whl')
+
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
+        '--no-deps',
         '--dest', '.',
         '--platform', 'linux_x86_64',
-        'fake',
-        expect_error=True,
+        'fake'
     )
-    assert '--only-binary=:all:' in result.stderr
+    assert (
+        Path('scratch') / 'fake-1.0-py2.py3-none-any.whl'
+        in result.files_created
+    )
+
+
+def test_download_specific_platform_fails(script, data):
+    """
+    Confirm that specifying an interpreter/platform constraint
+    enforces that ``--no-deps`` or ``--only-binary=:all:`` is set.
+    """
+    fake_wheel(data, 'fake-1.0-py2.py3-none-any.whl')
 
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
@@ -203,6 +221,14 @@ def test_download_specify_platform_only_binary(script, data):
         expect_error=True,
     )
     assert '--only-binary=:all:' in result.stderr
+
+
+def test_no_binary_set_then_download_specific_platform_fails(script, data):
+    """
+    Confirm that specifying an interpreter/platform constraint
+    enforces that ``--only-binary=:all:`` is set without ``--no-binary``.
+    """
+    fake_wheel(data, 'fake-1.0-py2.py3-none-any.whl')
 
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
@@ -575,3 +601,60 @@ def test_download_exit_status_code_when_blank_requirements_file(script):
     """
     script.scratch_path.join("blank.txt").write("\n")
     script.pip('download', '-r', 'blank.txt')
+
+
+def test_download_prefer_binary_when_tarball_higher_than_wheel(script, data):
+    fake_wheel(data, 'source-0.8-py2.py3-none-any.whl')
+    result = script.pip(
+        'download',
+        '--prefer-binary',
+        '--no-index',
+        '-f', data.packages,
+        '-d', '.', 'source'
+    )
+    assert (
+        Path('scratch') / 'source-0.8-py2.py3-none-any.whl'
+        in result.files_created
+    )
+    assert (
+        Path('scratch') / 'source-1.0.tar.gz'
+        not in result.files_created
+    )
+
+
+def test_download_prefer_binary_when_wheel_doesnt_satisfy_req(script, data):
+    fake_wheel(data, 'source-0.8-py2.py3-none-any.whl')
+    script.scratch_path.join("test-req.txt").write(textwrap.dedent("""
+        source>0.9
+        """))
+
+    result = script.pip(
+        'download',
+        '--prefer-binary',
+        '--no-index',
+        '-f', data.packages,
+        '-d', '.',
+        '-r', script.scratch_path / 'test-req.txt'
+    )
+    assert (
+        Path('scratch') / 'source-1.0.tar.gz'
+        in result.files_created
+    )
+    assert (
+        Path('scratch') / 'source-0.8-py2.py3-none-any.whl'
+        not in result.files_created
+    )
+
+
+def test_download_prefer_binary_when_only_tarball_exists(script, data):
+    result = script.pip(
+        'download',
+        '--prefer-binary',
+        '--no-index',
+        '-f', data.packages,
+        '-d', '.', 'source'
+    )
+    assert (
+        Path('scratch') / 'source-1.0.tar.gz'
+        in result.files_created
+    )

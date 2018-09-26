@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import sys
 import textwrap
 
-from pip._internal.basecommand import Command
+from pip._internal.cli.base_command import Command
 from pip._internal.utils.misc import get_prog
 
 BASE_COMPLETION = """

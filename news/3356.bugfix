@@ -1,1 +1,0 @@
-Don't assume sys.__stderr__.encoding exists

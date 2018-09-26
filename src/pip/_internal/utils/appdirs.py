@@ -9,7 +9,7 @@ import sys
 
 from pip._vendor.six import PY2, text_type
 
-from pip._internal.compat import WINDOWS, expanduser
+from pip._internal.utils.compat import WINDOWS, expanduser
 
 
 def user_cache_dir(appname):

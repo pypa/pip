@@ -11,10 +11,10 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 import pip
 from pip._internal.download import (
     MultiDomainBasicAuth, PipSession, SafeFileCache, path_to_url,
-    unpack_file_url, unpack_http_url, url_to_path
+    unpack_file_url, unpack_http_url, url_to_path,
 )
 from pip._internal.exceptions import HashMismatch
-from pip._internal.index import Link
+from pip._internal.models.link import Link
 from pip._internal.utils.hashes import Hashes
 from tests.lib import create_file
 
@@ -43,9 +43,9 @@ def test_unpack_http_url_with_urllib_response_without_content_type(data):
             download_dir=None,
             session=session,
         )
-        assert set(os.listdir(temp_dir)) == set([
+        assert set(os.listdir(temp_dir)) == {
             'PKG-INFO', 'setup.cfg', 'setup.py', 'simple', 'simple.egg-info'
-        ])
+        }
     finally:
         rmtree(temp_dir)
 
