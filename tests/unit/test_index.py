@@ -3,7 +3,7 @@ import os.path
 import pytest
 
 from pip._internal.download import PipSession
-from pip._internal.index import HTMLPage, Link, PackageFinder
+from pip._internal.index import Link, PackageFinder
 
 
 def test_sort_locations_file_expand_dir(data):
@@ -85,30 +85,6 @@ class TestLink(object):
         url = 'git+https://example.com/package#subdirectory=subdir&egg=eggname'
         assert 'eggname' == Link(url).egg_fragment
         assert 'subdir' == Link(url).subdirectory_fragment
-
-
-@pytest.mark.parametrize(
-    ("html", "url", "expected"),
-    [
-        (b"<html></html>", "https://example.com/", "https://example.com/"),
-        (
-            b"<html><head>"
-            b"<base href=\"https://foo.example.com/\">"
-            b"</head></html>",
-            "https://example.com/",
-            "https://foo.example.com/",
-        ),
-        (
-            b"<html><head>"
-            b"<base><base href=\"https://foo.example.com/\">"
-            b"</head></html>",
-            "https://example.com/",
-            "https://foo.example.com/",
-        ),
-    ],
-)
-def test_base_url(html, url, expected):
-    assert HTMLPage(html, url).base_url == expected
 
 
 class MockLogger(object):
