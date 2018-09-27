@@ -714,7 +714,6 @@ class HTMLPage(object):
         self.encoding = encoding
         self.content = content
         self.url = url
-        self.headers = headers
 
     def __str__(self):
         return self.url
