@@ -414,7 +414,15 @@ class PackageFinder(object):
         )
 
         page_versions = []
-        for page in self._get_pages(url_locations, project_name):
+
+        seen_locations = set()
+        for location in url_locations:
+            if location in seen_locations:
+                continue
+            seen_locations.add(location)
+            page = self._get_page(location)
+            if page is None:
+                continue
             logger.debug('Analyzing links from page %s', page.url)
             with indent_log():
                 page_versions.extend(
@@ -547,23 +555,6 @@ class PackageFinder(object):
             ', '.join(sorted(compatible_versions, key=parse_version))
         )
         return best_candidate.location
-
-    def _get_pages(self, locations, project_name):
-        """
-        Yields (page, page_url) from the given locations, skipping
-        locations that have errors.
-        """
-        seen = set()
-        for location in locations:
-            if location in seen:
-                continue
-            seen.add(location)
-
-            page = self._get_page(location)
-            if page is None:
-                continue
-
-            yield page
 
     _py_version_re = re.compile(r'-py([123]\.?[0-9]?)$')
 
