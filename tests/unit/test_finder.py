@@ -349,7 +349,7 @@ def test_finder_priority_nonegg_over_eggfragments():
 
     finder = PackageFinder(links, [], session=PipSession())
 
-    with patch.object(finder, "_get_pages", lambda x, y: []):
+    with patch.object(finder, "_iter_links", lambda x: []):
         all_versions = finder.find_all_candidates(req.name)
         assert all_versions[0].location.url.endswith('tar.gz')
         assert all_versions[1].location.url.endswith('#egg=bar-1.0')
@@ -361,7 +361,7 @@ def test_finder_priority_nonegg_over_eggfragments():
     links.reverse()
     finder = PackageFinder(links, [], session=PipSession())
 
-    with patch.object(finder, "_get_pages", lambda x, y: []):
+    with patch.object(finder, "_iter_links", lambda x: []):
         all_versions = finder.find_all_candidates(req.name)
         assert all_versions[0].location.url.endswith('tar.gz')
         assert all_versions[1].location.url.endswith('#egg=bar-1.0')
@@ -386,14 +386,14 @@ def test_finder_only_installs_stable_releases(data):
     links = ["https://foo/bar-1.0.tar.gz", "https://foo/bar-2.0b1.tar.gz"]
     finder = PackageFinder(links, [], session=PipSession())
 
-    with patch.object(finder, "_get_pages", lambda x, y: []):
+    with patch.object(finder, "_iter_links", lambda x: []):
         link = finder.find_requirement(req, False)
         assert link.url == "https://foo/bar-1.0.tar.gz"
 
     links.reverse()
     finder = PackageFinder(links, [], session=PipSession())
 
-    with patch.object(finder, "_get_pages", lambda x, y: []):
+    with patch.object(finder, "_iter_links", lambda x: []):
         link = finder.find_requirement(req, False)
         assert link.url == "https://foo/bar-1.0.tar.gz"
 
@@ -448,7 +448,7 @@ def test_finder_installs_pre_releases(data):
         session=PipSession(),
     )
 
-    with patch.object(finder, "_get_pages", lambda x, y: []):
+    with patch.object(finder, "_iter_links", lambda x: []):
         link = finder.find_requirement(req, False)
         assert link.url == "https://foo/bar-2.0b1.tar.gz"
 
@@ -459,7 +459,7 @@ def test_finder_installs_pre_releases(data):
         session=PipSession(),
     )
 
-    with patch.object(finder, "_get_pages", lambda x, y: []):
+    with patch.object(finder, "_iter_links", lambda x: []):
         link = finder.find_requirement(req, False)
         assert link.url == "https://foo/bar-2.0b1.tar.gz"
 
@@ -490,14 +490,14 @@ def test_finder_installs_pre_releases_with_version_spec():
 
     finder = PackageFinder(links, [], session=PipSession())
 
-    with patch.object(finder, "_get_pages", lambda x, y: []):
+    with patch.object(finder, "_iter_links", lambda x: []):
         link = finder.find_requirement(req, False)
         assert link.url == "https://foo/bar-2.0b1.tar.gz"
 
     links.reverse()
     finder = PackageFinder(links, [], session=PipSession())
 
-    with patch.object(finder, "_get_pages", lambda x, y: []):
+    with patch.object(finder, "_iter_links", lambda x: []):
         link = finder.find_requirement(req, False)
         assert link.url == "https://foo/bar-2.0b1.tar.gz"
 

@@ -420,13 +420,12 @@ class PackageFinder(object):
             if location in seen_locations:
                 continue
             seen_locations.add(location)
-            page = self._get_page(location)
-            if page is None:
+            links = self._iter_links(location)
+            if not links:
                 continue
-            logger.debug('Analyzing links from page %s', page.url)
             with indent_log():
                 page_versions.extend(
-                    self._package_versions(page.links, search)
+                    self._package_versions(links, search)
                 )
 
         dependency_versions = self._package_versions(
@@ -667,8 +666,9 @@ class PackageFinder(object):
 
         return InstallationCandidate(search.supplied, version, link)
 
-    def _get_page(self, link):
-        return HTMLPage.get_page(link, session=self.session)
+    # For mocking in unit tests.
+    def _iter_links(self, link):
+        return collect_links(link, session=self.session)
 
 
 def egg_info_matches(egg_info, search_name, link, _egg_info_re=None):
@@ -688,6 +688,14 @@ def egg_info_matches(egg_info, search_name, link, _egg_info_re=None):
     except ValueError:
         logger.debug('Could not parse version from link: %s', link)
     return None
+
+
+def collect_links(location, session):
+    page = HTMLPage.get_page(location, session=session)
+    if page is None:
+        return None
+    logger.debug('Analyzing links from page %s', page.url)
+    return page.links
 
 
 class HTMLPage(object):
