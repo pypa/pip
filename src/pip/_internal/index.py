@@ -1,7 +1,6 @@
 """Routines related to PyPI, indexes"""
 from __future__ import absolute_import
 
-import cgi
 import itertools
 import logging
 import mimetypes
@@ -33,6 +32,7 @@ from pip._internal.pep425tags import get_supported
 from pip._internal.repositories.entries import (
     match_egg_info_version, parse_base_url,
 )
+from pip._internal.repositories.utils import get_content_type_encoding
 from pip._internal.utils.compat import ipaddress
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.logging import indent_log
@@ -703,15 +703,7 @@ class HTMLPage(object):
     """Represents one page, along with its URL"""
 
     def __init__(self, content, url, headers=None):
-        # Determine if we have any encoding information in our headers
-        encoding = None
-        if headers and "Content-Type" in headers:
-            content_type, params = cgi.parse_header(headers["Content-Type"])
-
-            if "charset" in params:
-                encoding = params['charset']
-
-        self.encoding = encoding
+        self.encoding = get_content_type_encoding(headers)
         self.content = content
         self.url = url
 
