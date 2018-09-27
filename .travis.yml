@@ -57,8 +57,12 @@ jobs:
 
     - env: GROUP=1
       python: 3.8-dev
+      dist: xenial
+      sudo: required
     - env: GROUP=2
       python: 3.8-dev
+      dist: xenial
+      sudo: required
 
   # It's okay to fail on the in-development CPython version.
   fast_finish: true
