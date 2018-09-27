@@ -694,7 +694,7 @@ def egg_info_matches(
         return None
     if search_name is None:
         full_match = match.group(0)
-        return full_match[full_match.index('-'):]
+        return full_match.split('-', 1)[-1]
     name = match.group(0).lower()
     # To match the "safe" name that pkg_resources creates:
     name = name.replace('_', '-')
