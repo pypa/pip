@@ -1,0 +1,1 @@
+Refactor HTMLPage into a generator function and a few helper functions.
