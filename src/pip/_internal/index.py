@@ -30,6 +30,7 @@ from pip._internal.models.format_control import FormatControl
 from pip._internal.models.index import PyPI
 from pip._internal.models.link import Link
 from pip._internal.pep425tags import get_supported
+from pip._internal.repositories.entries import match_egg_info_version
 from pip._internal.utils.compat import ipaddress
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.logging import indent_log
@@ -677,9 +678,7 @@ class PackageFinder(object):
         return HTMLPage.get_page(link, session=self.session)
 
 
-def egg_info_matches(
-        egg_info, search_name, link,
-        _egg_info_re=re.compile(r'([a-z0-9_.]+)-([a-z0-9_.!+-]+)', re.I)):
+def egg_info_matches(egg_info, search_name, link, _egg_info_re=None):
     """Pull the version part out of a string.
 
     :param egg_info: The string to parse. E.g. foo-2.1
@@ -688,22 +687,14 @@ def egg_info_matches(
         like foo-2-2 which might be foo, 2-2 or foo-2, 2.
     :param link: The link the string came from, for logging on failure.
     """
-    match = _egg_info_re.search(egg_info)
-    if not match:
+    kwargs = {}
+    if _egg_info_re is not None:
+        kwargs["_egg_info_re"] = _egg_info_re
+    try:
+        return match_egg_info_version(egg_info, search_name, **kwargs)
+    except ValueError:
         logger.debug('Could not parse version from link: %s', link)
-        return None
-    if search_name is None:
-        full_match = match.group(0)
-        return full_match.split('-', 1)[-1]
-    name = match.group(0).lower()
-    # To match the "safe" name that pkg_resources creates:
-    name = name.replace('_', '-')
-    # project name and version must be separated by a dash
-    look_for = search_name.lower() + "-"
-    if name.startswith(look_for):
-        return match.group(0)[len(look_for):]
-    else:
-        return None
+    return None
 
 
 class HTMLPage(object):
