@@ -847,7 +847,7 @@ class HTMLPage(object):
                 url = _clean_link(urllib_parse.urljoin(base_url, href))
                 pyrequire = anchor.get('data-requires-python')
                 pyrequire = unescape(pyrequire) if pyrequire else None
-                yield Link(url, self, requires_python=pyrequire)
+                yield Link(url, self.url, requires_python=pyrequire)
 
 
 LINK_CLEAN_RE = re.compile(r'[^a-z0-9$&+,/:;=?@.#%_\\|-]', re.I)
