@@ -30,7 +30,9 @@ from pip._internal.models.format_control import FormatControl
 from pip._internal.models.index import PyPI
 from pip._internal.models.link import Link
 from pip._internal.pep425tags import get_supported
-from pip._internal.repositories.entries import match_egg_info_version
+from pip._internal.repositories.entries import (
+    match_egg_info_version, parse_base_url,
+)
 from pip._internal.utils.compat import ipaddress
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.logging import indent_log
@@ -842,14 +844,7 @@ class HTMLPage(object):
 
     @cached_property
     def base_url(self):
-        bases = [
-            x for x in self.parsed.findall(".//base")
-            if x.get("href") is not None
-        ]
-        if bases and bases[0].get("href"):
-            return bases[0].get("href")
-        else:
-            return self.url
+        return parse_base_url(self.parsed, self.url)
 
     @property
     def links(self):
