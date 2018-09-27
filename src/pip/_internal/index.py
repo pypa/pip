@@ -694,7 +694,7 @@ def egg_info_matches(
         return None
     if search_name is None:
         full_match = match.group(0)
-        return full_match[full_match.index('-'):]
+        return full_match.split('-', 1)[-1]
     name = match.group(0).lower()
     # To match the "safe" name that pkg_resources creates:
     name = name.replace('_', '-')
@@ -731,7 +731,7 @@ class HTMLPage(object):
         return self.url
 
     @classmethod
-    def get_page(cls, link, skip_archives=True, session=None):
+    def get_page(cls, link, session=None):
         if session is None:
             raise TypeError(
                 "get_page() missing 1 required keyword argument: 'session'"
@@ -748,22 +748,21 @@ class HTMLPage(object):
                 return None
 
         try:
-            if skip_archives:
-                filename = link.filename
-                for bad_ext in ARCHIVE_EXTENSIONS:
-                    if filename.endswith(bad_ext):
-                        content_type = cls._get_content_type(
-                            url, session=session,
+            filename = link.filename
+            for bad_ext in ARCHIVE_EXTENSIONS:
+                if filename.endswith(bad_ext):
+                    content_type = cls._get_content_type(
+                        url, session=session,
+                    )
+                    if content_type.lower().startswith('text/html'):
+                        break
+                    else:
+                        logger.debug(
+                            'Skipping page %s because of Content-Type: %s',
+                            link,
+                            content_type,
                         )
-                        if content_type.lower().startswith('text/html'):
-                            break
-                        else:
-                            logger.debug(
-                                'Skipping page %s because of Content-Type: %s',
-                                link,
-                                content_type,
-                            )
-                            return
+                        return
 
             logger.debug('Getting page %s', url)
 
