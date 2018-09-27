@@ -158,6 +158,8 @@ appropriately.
   does not support the use of environment markers and extras (only version
   specifiers are respected).
 
+* ``pip<18.1``: build dependencies using .pth files are not properly supported;
+  as a result namespace packages do not work under Python 3.2 and earlier.
 
 Future Developments
 ~~~~~~~~~~~~~~~~~~~

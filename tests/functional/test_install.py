@@ -100,6 +100,16 @@ def test_pep518_with_extra_and_markers(script, data, common_wheels):
     )
 
 
+def test_pep518_with_namespace_package(script, data, common_wheels):
+    script.pip(
+        'wheel', '--no-index',
+        '-f', common_wheels,
+        '-f', data.find_links,
+        data.src.join("pep518_with_namespace_package-1.0"),
+        use_module=True,
+    )
+
+
 @pytest.mark.timeout(60)
 @pytest.mark.parametrize('command', ('install', 'wheel'))
 @pytest.mark.parametrize('package', ('pep518_forkbomb',
