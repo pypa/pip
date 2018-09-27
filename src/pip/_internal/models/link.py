@@ -18,7 +18,7 @@ class Link(KeyBasedCompareMixin):
         url:
             url of the resource pointed to (href of the link)
         comes_from:
-            instance of HTMLPage where the link was found, or string.
+            a string to indicate where/how the link was found.
         requires_python:
             String containing the `Requires-Python` metadata field, specified
             in PEP 345. This may be specified by a data-requires-python
