@@ -711,12 +711,8 @@ class HTMLPage(object):
             if "charset" in params:
                 encoding = params['charset']
 
+        self.encoding = encoding
         self.content = content
-        self.parsed = html5lib.parse(
-            self.content,
-            transport_encoding=encoding,
-            namespaceHTMLElements=False,
-        )
         self.url = url
         self.headers = headers
 
@@ -845,8 +841,13 @@ class HTMLPage(object):
     @property
     def links(self):
         """Yields all links in the page"""
-        base_url = parse_base_url(self.parsed, self.url)
-        for anchor in self.parsed.findall(".//a"):
+        document = html5lib.parse(
+            self.content,
+            transport_encoding=self.encoding,
+            namespaceHTMLElements=False,
+        )
+        base_url = parse_base_url(document, self.url)
+        for anchor in document.findall(".//a"):
             if anchor.get("href"):
                 href = anchor.get("href")
                 url = self.clean_link(
