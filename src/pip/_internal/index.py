@@ -10,8 +10,7 @@ import re
 import sys
 from collections import namedtuple
 
-from pip._vendor import html5lib, requests, six
-from pip._vendor.distlib.compat import unescape
+from pip._vendor import requests, six
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import parse as parse_version
@@ -30,7 +29,7 @@ from pip._internal.models.index import PyPI
 from pip._internal.models.link import Link
 from pip._internal.pep425tags import get_supported
 from pip._internal.repositories.entries import (
-    match_egg_info_version, parse_base_url,
+    match_egg_info_version, parse_from_html,
 )
 from pip._internal.repositories.utils import get_content_type_encoding
 from pip._internal.utils.compat import ipaddress
@@ -803,29 +802,9 @@ def _iter_links(link, session):
 
     content, url, headers = args
     encoding = get_content_type_encoding(headers)
-    document = html5lib.parse(
-        content, transport_encoding=encoding, namespaceHTMLElements=False,
-    )
-    base_url = parse_base_url(document, url)
-
-    for anchor in document.findall(".//a"):
-        href = anchor.get("href")
-        if not href:
-            continue
-        url = _clean_link(urllib_parse.urljoin(base_url, href))
-        pyrequire = anchor.get('data-requires-python')
-        pyrequire = unescape(pyrequire) if pyrequire else None
-        yield Link(url, url, requires_python=pyrequire)
-
-
-def _clean_link(url):
-    """Makes sure a link is fully encoded.  That is, if a ' ' shows up
-    in the link, it will be rewritten to %20 (while not over-quoting
-    % or other characters)."""
-    return LINK_CLEAN_RE.sub(lambda match: '%%%2x' % ord(match.group(0)), url)
-
-
-LINK_CLEAN_RE = re.compile(r'[^a-z0-9$&+,/:;=?@.#%_\\|-]', re.I)
+    for data in parse_from_html((content, encoding), url):
+        _, url, requires_python, _ = data
+        yield Link(url, url, requires_python=requires_python)
 
 
 Search = namedtuple('Search', 'supplied canonical formats')

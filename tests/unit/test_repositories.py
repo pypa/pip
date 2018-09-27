@@ -1,7 +1,7 @@
 import pytest
 from pip._vendor import html5lib
 
-from pip._internal.repositories.entries import parse_base_url
+from pip._internal.repositories.entries import _parse_base_url
 
 
 @pytest.mark.parametrize(
@@ -28,4 +28,4 @@ def test_base_url(html, url, expected):
     document = html5lib.parse(
         html, transport_encoding=None, namespaceHTMLElements=False,
     )
-    assert parse_base_url(document, url) == expected
+    assert _parse_base_url(document, url) == expected
