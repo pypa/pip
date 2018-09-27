@@ -727,13 +727,29 @@ class HTMLPage(object):
                 logger.debug('Cannot look at %s URL %s', scheme, link)
                 return None
 
+        def _handle_fail(link, reason, url, meth=None):
+            if meth is None:
+                meth = logger.debug
+            meth("Could not fetch URL %s: %s - skipping", link, reason)
+
+        def _get_content_type(url, session):
+            """Get the Content-Type of the given url, using a HEAD request"""
+            scheme, netloc, path, query, fragment = urllib_parse.urlsplit(url)
+            if scheme not in {'http', 'https'}:
+                # FIXME: some warning or something?
+                # assertion error?
+                return ''
+
+            resp = session.head(url, allow_redirects=True)
+            resp.raise_for_status()
+
+            return resp.headers.get("Content-Type", "")
+
         try:
             filename = link.filename
             for bad_ext in ARCHIVE_EXTENSIONS:
                 if filename.endswith(bad_ext):
-                    content_type = cls._get_content_type(
-                        url, session=session,
-                    )
+                    content_type = _get_content_type(url, session=session)
                     if content_type.lower().startswith('text/html'):
                         break
                     else:
@@ -796,38 +812,17 @@ class HTMLPage(object):
 
             inst = cls(resp.content, resp.url, resp.headers)
         except requests.HTTPError as exc:
-            cls._handle_fail(link, exc, url)
+            _handle_fail(link, exc, url)
         except SSLError as exc:
             reason = "There was a problem confirming the ssl certificate: "
             reason += str(exc)
-            cls._handle_fail(link, reason, url, meth=logger.info)
+            _handle_fail(link, reason, url, meth=logger.info)
         except requests.ConnectionError as exc:
-            cls._handle_fail(link, "connection error: %s" % exc, url)
+            _handle_fail(link, "connection error: %s" % exc, url)
         except requests.Timeout:
-            cls._handle_fail(link, "timed out", url)
+            _handle_fail(link, "timed out", url)
         else:
             return inst
-
-    @staticmethod
-    def _handle_fail(link, reason, url, meth=None):
-        if meth is None:
-            meth = logger.debug
-
-        meth("Could not fetch URL %s: %s - skipping", link, reason)
-
-    @staticmethod
-    def _get_content_type(url, session):
-        """Get the Content-Type of the given url, using a HEAD request"""
-        scheme, netloc, path, query, fragment = urllib_parse.urlsplit(url)
-        if scheme not in {'http', 'https'}:
-            # FIXME: some warning or something?
-            # assertion error?
-            return ''
-
-        resp = session.head(url, allow_redirects=True)
-        resp.raise_for_status()
-
-        return resp.headers.get("Content-Type", "")
 
     @property
     def links(self):
@@ -838,24 +833,24 @@ class HTMLPage(object):
             namespaceHTMLElements=False,
         )
         base_url = parse_base_url(document, self.url)
+
+        def _clean_link(url):
+            """Makes sure a link is fully encoded.  That is, if a ' ' shows up
+            in the link, it will be rewritten to %20 (while not over-quoting
+            % or other characters)."""
+            return LINK_CLEAN_RE.sub(
+                lambda match: '%%%2x' % ord(match.group(0)), url)
+
         for anchor in document.findall(".//a"):
             if anchor.get("href"):
                 href = anchor.get("href")
-                url = self.clean_link(
-                    urllib_parse.urljoin(base_url, href)
-                )
+                url = _clean_link(urllib_parse.urljoin(base_url, href))
                 pyrequire = anchor.get('data-requires-python')
                 pyrequire = unescape(pyrequire) if pyrequire else None
                 yield Link(url, self, requires_python=pyrequire)
 
-    _clean_re = re.compile(r'[^a-z0-9$&+,/:;=?@.#%_\\|-]', re.I)
 
-    def clean_link(self, url):
-        """Makes sure a link is fully encoded.  That is, if a ' ' shows up in
-        the link, it will be rewritten to %20 (while not over-quoting
-        % or other characters)."""
-        return self._clean_re.sub(
-            lambda match: '%%%2x' % ord(match.group(0)), url)
+LINK_CLEAN_RE = re.compile(r'[^a-z0-9$&+,/:;=?@.#%_\\|-]', re.I)
 
 
 Search = namedtuple('Search', 'supplied canonical formats')
