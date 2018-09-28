@@ -4,7 +4,7 @@ import pytest
 from pip._vendor import html5lib
 
 from pip._internal.download import PipSession
-from pip._internal.index import Link, PackageFinder, _parse_base_url
+from pip._internal.index import Link, PackageFinder, _determine_base_url
 
 
 def test_sort_locations_file_expand_dir(data):
@@ -108,11 +108,11 @@ class TestLink(object):
         ),
     ],
 )
-def test_parse_base_url(html, url, expected):
+def test_determine_base_url(html, url, expected):
     document = html5lib.parse(
         html, transport_encoding=None, namespaceHTMLElements=False,
     )
-    assert _parse_base_url(document, url) == expected
+    assert _determine_base_url(document, url) == expected
 
 
 class MockLogger(object):

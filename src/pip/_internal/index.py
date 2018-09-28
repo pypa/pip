@@ -706,8 +706,8 @@ def egg_info_matches(
         return None
 
 
-def _parse_base_url(document, page_url):
-    """Get the base URL of this document.
+def _determine_base_url(document, page_url):
+    """Determine the HTML document's base URL.
 
     This looks for a ``<base>`` tag in the HTML document. If present, its href
     attribute denotes the base URL of anchor tags in the document. If there is
@@ -873,7 +873,7 @@ class HTMLPage(object):
             transport_encoding=_get_encoding_from_headers(self.headers),
             namespaceHTMLElements=False,
         )
-        base_url = _parse_base_url(document, self.url)
+        base_url = _determine_base_url(document, self.url)
         for anchor in document.findall(".//a"):
             if anchor.get("href"):
                 href = anchor.get("href")
