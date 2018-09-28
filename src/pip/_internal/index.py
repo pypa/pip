@@ -745,11 +745,6 @@ class HTMLPage(object):
 
     def __init__(self, content, url, headers=None):
         self.content = content
-        self.parsed = html5lib.parse(
-            self.content,
-            transport_encoding=_get_encoding_from_headers(headers),
-            namespaceHTMLElements=False,
-        )
         self.url = url
         self.headers = headers
 
@@ -878,8 +873,13 @@ class HTMLPage(object):
     @property
     def links(self):
         """Yields all links in the page"""
-        base_url = _parse_base_url(self.parsed, self.url)
-        for anchor in self.parsed.findall(".//a"):
+        document = html5lib.parse(
+            self.content,
+            transport_encoding=_get_encoding_from_headers(self.headers),
+            namespaceHTMLElements=False,
+        )
+        base_url = _parse_base_url(document, self.url)
+        for anchor in document.findall(".//a"):
             if anchor.get("href"):
                 href = anchor.get("href")
                 url = self.clean_link(
