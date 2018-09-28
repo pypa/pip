@@ -34,7 +34,7 @@ from pip._internal.utils.compat import ipaddress
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
-    ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, cached_property, normalize_path,
+    ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, normalize_path,
     remove_auth_from_url,
 )
 from pip._internal.utils.packaging import check_requires_python
@@ -873,18 +873,15 @@ class HTMLPage(object):
 
         return resp.headers.get("Content-Type", "")
 
-    @cached_property
-    def base_url(self):
-        return _parse_base_url(self.parsed, self.url)
-
     @property
     def links(self):
         """Yields all links in the page"""
+        base_url = _parse_base_url(self.parsed, self.url)
         for anchor in self.parsed.findall(".//a"):
             if anchor.get("href"):
                 href = anchor.get("href")
                 url = self.clean_link(
-                    urllib_parse.urljoin(self.base_url, href)
+                    urllib_parse.urljoin(base_url, href)
                 )
                 pyrequire = anchor.get('data-requires-python')
                 pyrequire = unescape(pyrequire) if pyrequire else None
