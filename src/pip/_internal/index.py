@@ -730,22 +730,24 @@ def _parse_base_url(document, page_url):
     return page_url
 
 
+def _get_encoding_from_headers(headers):
+    """Determine if we have any encoding information in our headers.
+    """
+    if headers and "Content-Type" in headers:
+        content_type, params = cgi.parse_header(headers["Content-Type"])
+        if "charset" in params:
+            return params['charset']
+    return None
+
+
 class HTMLPage(object):
     """Represents one page, along with its URL"""
 
     def __init__(self, content, url, headers=None):
-        # Determine if we have any encoding information in our headers
-        encoding = None
-        if headers and "Content-Type" in headers:
-            content_type, params = cgi.parse_header(headers["Content-Type"])
-
-            if "charset" in params:
-                encoding = params['charset']
-
         self.content = content
         self.parsed = html5lib.parse(
             self.content,
-            transport_encoding=encoding,
+            transport_encoding=_get_encoding_from_headers(headers),
             namespaceHTMLElements=False,
         )
         self.url = url
