@@ -718,15 +718,10 @@ def _parse_base_url(document, page_url):
         implementation expects the result of ``html5lib.parse()``.
     :param page_url: The URL of the HTML document.
     """
-    bases = [
-        x for x in document.findall(".//base")
-        if x.get("href") is not None
-    ]
-    if not bases:
-        return page_url
-    parsed_url = bases[0].get("href")
-    if parsed_url:
-        return parsed_url
+    for base in document.findall(".//base"):
+        href = base.get("href")
+        if href is not None:
+            return href
     return page_url
 
 
