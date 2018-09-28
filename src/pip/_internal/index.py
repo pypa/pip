@@ -415,7 +415,7 @@ class PackageFinder(object):
             logger.debug('Analyzing links from page %s', page.url)
             with indent_log():
                 page_versions.extend(
-                    self._package_versions(page.links, search)
+                    self._package_versions(page.iter_links(), search)
                 )
 
         dependency_versions = self._package_versions(
@@ -865,8 +865,7 @@ class HTMLPage(object):
 
         return resp.headers.get("Content-Type", "")
 
-    @property
-    def links(self):
+    def iter_links(self):
         """Yields all links in the page"""
         document = html5lib.parse(
             self.content,
