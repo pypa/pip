@@ -706,6 +706,30 @@ def egg_info_matches(
         return None
 
 
+def _parse_base_url(document, page_url):
+    """Get the base URL of this document.
+
+    This looks for a ``<base>`` tag in the HTML document. If present, its href
+    attribute denotes the base URL of anchor tags in the document. If there is
+    no such tag (or if it does not have a valid href attribute), the HTML
+    file's URL is used as the base URL.
+
+    :param document: An HTML document representation. The current
+        implementation expects the result of ``html5lib.parse()``.
+    :param page_url: The URL of the HTML document.
+    """
+    bases = [
+        x for x in document.findall(".//base")
+        if x.get("href") is not None
+    ]
+    if not bases:
+        return page_url
+    parsed_url = bases[0].get("href")
+    if parsed_url:
+        return parsed_url
+    return page_url
+
+
 class HTMLPage(object):
     """Represents one page, along with its URL"""
 
@@ -851,14 +875,7 @@ class HTMLPage(object):
 
     @cached_property
     def base_url(self):
-        bases = [
-            x for x in self.parsed.findall(".//base")
-            if x.get("href") is not None
-        ]
-        if bases and bases[0].get("href"):
-            return bases[0].get("href")
-        else:
-            return self.url
+        return _parse_base_url(self.parsed, self.url)
 
     @property
     def links(self):
