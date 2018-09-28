@@ -735,6 +735,16 @@ def _get_encoding_from_headers(headers):
     return None
 
 
+_CLEAN_LINK_RE = re.compile(r'[^a-z0-9$&+,/:;=?@.#%_\\|-]', re.I)
+
+
+def _clean_link(url):
+    """Makes sure a link is fully encoded.  That is, if a ' ' shows up in
+    the link, it will be rewritten to %20 (while not over-quoting
+    % or other characters)."""
+    return _CLEAN_LINK_RE.sub(lambda match: '%%%2x' % ord(match.group(0)), url)
+
+
 class HTMLPage(object):
     """Represents one page, along with its URL"""
 
@@ -876,21 +886,10 @@ class HTMLPage(object):
         for anchor in document.findall(".//a"):
             if anchor.get("href"):
                 href = anchor.get("href")
-                url = self.clean_link(
-                    urllib_parse.urljoin(base_url, href)
-                )
+                url = _clean_link(urllib_parse.urljoin(base_url, href))
                 pyrequire = anchor.get('data-requires-python')
                 pyrequire = unescape(pyrequire) if pyrequire else None
                 yield Link(url, self, requires_python=pyrequire)
-
-    _clean_re = re.compile(r'[^a-z0-9$&+,/:;=?@.#%_\\|-]', re.I)
-
-    def clean_link(self, url):
-        """Makes sure a link is fully encoded.  That is, if a ' ' shows up in
-        the link, it will be rewritten to %20 (while not over-quoting
-        % or other characters)."""
-        return self._clean_re.sub(
-            lambda match: '%%%2x' % ord(match.group(0)), url)
 
 
 Search = namedtuple('Search', 'supplied canonical formats')
