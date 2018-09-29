@@ -19,5 +19,5 @@ requests==2.19.1
     idna==2.7
     urllib3==1.23
     certifi==2018.4.16
-setuptools==39.2.0
+setuptools==40.4.3
 webencodings==0.5.1
