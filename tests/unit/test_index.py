@@ -1,3 +1,4 @@
+import logging
 import os.path
 
 import pytest
@@ -201,6 +202,7 @@ def test_egg_info_matches(egg_info, search_name, expected):
     ],
 )
 def test_request_retries(exception, message, caplog):
+    caplog.set_level(logging.DEBUG)
     link = Link('http://localhost')
     session = Mock(PipSession)
     session.get.return_value = resp = Mock()
