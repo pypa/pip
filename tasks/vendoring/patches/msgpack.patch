@@ -11,15 +11,20 @@ index c0e5fd6..177a748 100644
      BufferFull,
      OutOfData,
      UnpackValueError,
-@@ -57,7 +57,7 @@
-     PackOverflowError,
-     ExtraData)
- 
--from msgpack import ExtType
-+from pip._vendor.msgpack import ExtType
- 
- 
- EX_SKIP                 = 0
+@@ -205,7 +205,12 @@ class Unpacker(object):
+             for o in unpacker:
+                 process(o)
+     """
+-
++    # Some old pythons don't support `self._unpack_from()` `bytearray`. 
++    _unpack_from = staticmethod(
++        struct.unpack_from if sys.version_info >= (2, 7, 6)
++        else lambda f,b,o=0: struct.unpack_from(f, b[:o+2].tobytes(),o)
++    )
++    
+     def __init__(self, file_like=None, read_size=0, use_list=True, raw=True,
+                  object_hook=None, object_pairs_hook=None, list_hook=None,
+                  encoding=None, unicode_errors=None, max_buffer_size=0,
 @@ -289,7 +294,7 @@ class Unpacker(object):
              self._buff_i -= self._buf_checkpoint
              self._buf_checkpoint = 0
