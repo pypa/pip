@@ -9,7 +9,7 @@ msgpack-python==0.5.6
 lockfile==0.12.2
 progress==1.4
 ipaddress==1.0.22  # Only needed on 2.6 and 2.7
-packaging==17.1
+packaging==18.0
 pep517==0.2
 pyparsing==2.2.1
 pytoml==0.1.16
