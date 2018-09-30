@@ -188,15 +188,17 @@ class FrozenRequirement(object):
                     "falling back to uneditable format", exc
                 )
                 req = None
-            if req is None:
-                logger.warning(
-                    'Could not determine repository location of %s', location
-                )
-                comments.append(
-                    '## !! Could not determine repository location'
-                )
-                req = dist.as_requirement()
-                editable = False
+            if req is not None:
+                return (req, editable, comments)
+
+            logger.warning(
+                'Could not determine repository location of %s', location
+            )
+            comments.append(
+                '## !! Could not determine repository location'
+            )
+            req = dist.as_requirement()
+            editable = False
 
             return (req, editable, comments)
 
