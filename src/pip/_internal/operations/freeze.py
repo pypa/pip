@@ -186,9 +186,9 @@ class FrozenRequirement(object):
                     "Error when trying to get requirement for VCS system %s, "
                     "falling back to uneditable format", exc
                 )
-                req = None
-            if req is not None:
-                return (req, True, comments)
+            else:
+                if req is not None:
+                    return (req, True, comments)
 
             logger.warning(
                 'Could not determine repository location of %s', location
