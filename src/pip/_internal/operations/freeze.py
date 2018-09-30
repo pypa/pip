@@ -16,7 +16,7 @@ from pip._internal.req.constructors import (
 from pip._internal.req.req_file import COMMENT_RE
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.misc import (
-    dist_is_editable, get_installed_distributions,
+    dist_is_editable, get_installed_distributions, make_vcs_requirement_url,
 )
 
 logger = logging.getLogger(__name__)
@@ -233,11 +233,8 @@ class FrozenRequirement(object):
                     else:
                         rev = '{%s}' % date_match.group(1)
                     editable = True
-                    req = '%s@%s#egg=%s' % (
-                        svn_location,
-                        rev,
-                        cls.egg_name(dist)
-                    )
+                    egg_name = cls.egg_name(dist)
+                    req = make_vcs_requirement_url(svn_location, rev, egg_name)
         return cls(dist.project_name, req, editable, comments)
 
     @staticmethod

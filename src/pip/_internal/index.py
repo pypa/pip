@@ -34,7 +34,7 @@ from pip._internal.utils.compat import ipaddress
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
-    ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, cached_property, normalize_path,
+    ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, normalize_path,
     remove_auth_from_url,
 )
 from pip._internal.utils.packaging import check_requires_python
@@ -415,7 +415,7 @@ class PackageFinder(object):
             logger.debug('Analyzing links from page %s', page.url)
             with indent_log():
                 page_versions.extend(
-                    self._package_versions(page.links, search)
+                    self._package_versions(page.iter_links(), search)
                 )
 
         dependency_versions = self._package_versions(
@@ -694,7 +694,7 @@ def egg_info_matches(
         return None
     if search_name is None:
         full_match = match.group(0)
-        return full_match[full_match.index('-'):]
+        return full_match.split('-', 1)[-1]
     name = match.group(0).lower()
     # To match the "safe" name that pkg_resources creates:
     name = name.replace('_', '-')
@@ -706,24 +706,50 @@ def egg_info_matches(
         return None
 
 
+def _determine_base_url(document, page_url):
+    """Determine the HTML document's base URL.
+
+    This looks for a ``<base>`` tag in the HTML document. If present, its href
+    attribute denotes the base URL of anchor tags in the document. If there is
+    no such tag (or if it does not have a valid href attribute), the HTML
+    file's URL is used as the base URL.
+
+    :param document: An HTML document representation. The current
+        implementation expects the result of ``html5lib.parse()``.
+    :param page_url: The URL of the HTML document.
+    """
+    for base in document.findall(".//base"):
+        href = base.get("href")
+        if href is not None:
+            return href
+    return page_url
+
+
+def _get_encoding_from_headers(headers):
+    """Determine if we have any encoding information in our headers.
+    """
+    if headers and "Content-Type" in headers:
+        content_type, params = cgi.parse_header(headers["Content-Type"])
+        if "charset" in params:
+            return params['charset']
+    return None
+
+
+_CLEAN_LINK_RE = re.compile(r'[^a-z0-9$&+,/:;=?@.#%_\\|-]', re.I)
+
+
+def _clean_link(url):
+    """Makes sure a link is fully encoded.  That is, if a ' ' shows up in
+    the link, it will be rewritten to %20 (while not over-quoting
+    % or other characters)."""
+    return _CLEAN_LINK_RE.sub(lambda match: '%%%2x' % ord(match.group(0)), url)
+
+
 class HTMLPage(object):
     """Represents one page, along with its URL"""
 
     def __init__(self, content, url, headers=None):
-        # Determine if we have any encoding information in our headers
-        encoding = None
-        if headers and "Content-Type" in headers:
-            content_type, params = cgi.parse_header(headers["Content-Type"])
-
-            if "charset" in params:
-                encoding = params['charset']
-
         self.content = content
-        self.parsed = html5lib.parse(
-            self.content,
-            transport_encoding=encoding,
-            namespaceHTMLElements=False,
-        )
         self.url = url
         self.headers = headers
 
@@ -731,7 +757,7 @@ class HTMLPage(object):
         return self.url
 
     @classmethod
-    def get_page(cls, link, skip_archives=True, session=None):
+    def get_page(cls, link, session=None):
         if session is None:
             raise TypeError(
                 "get_page() missing 1 required keyword argument: 'session'"
@@ -748,22 +774,21 @@ class HTMLPage(object):
                 return None
 
         try:
-            if skip_archives:
-                filename = link.filename
-                for bad_ext in ARCHIVE_EXTENSIONS:
-                    if filename.endswith(bad_ext):
-                        content_type = cls._get_content_type(
-                            url, session=session,
+            filename = link.filename
+            for bad_ext in ARCHIVE_EXTENSIONS:
+                if filename.endswith(bad_ext):
+                    content_type = cls._get_content_type(
+                        url, session=session,
+                    )
+                    if content_type.lower().startswith('text/html'):
+                        break
+                    else:
+                        logger.debug(
+                            'Skipping page %s because of Content-Type: %s',
+                            link,
+                            content_type,
                         )
-                        if content_type.lower().startswith('text/html'):
-                            break
-                        else:
-                            logger.debug(
-                                'Skipping page %s because of Content-Type: %s',
-                                link,
-                                content_type,
-                            )
-                            return
+                        return
 
             logger.debug('Getting page %s', url)
 
@@ -850,38 +875,21 @@ class HTMLPage(object):
 
         return resp.headers.get("Content-Type", "")
 
-    @cached_property
-    def base_url(self):
-        bases = [
-            x for x in self.parsed.findall(".//base")
-            if x.get("href") is not None
-        ]
-        if bases and bases[0].get("href"):
-            return bases[0].get("href")
-        else:
-            return self.url
-
-    @property
-    def links(self):
+    def iter_links(self):
         """Yields all links in the page"""
-        for anchor in self.parsed.findall(".//a"):
+        document = html5lib.parse(
+            self.content,
+            transport_encoding=_get_encoding_from_headers(self.headers),
+            namespaceHTMLElements=False,
+        )
+        base_url = _determine_base_url(document, self.url)
+        for anchor in document.findall(".//a"):
             if anchor.get("href"):
                 href = anchor.get("href")
-                url = self.clean_link(
-                    urllib_parse.urljoin(self.base_url, href)
-                )
+                url = _clean_link(urllib_parse.urljoin(base_url, href))
                 pyrequire = anchor.get('data-requires-python')
                 pyrequire = unescape(pyrequire) if pyrequire else None
                 yield Link(url, self, requires_python=pyrequire)
-
-    _clean_re = re.compile(r'[^a-z0-9$&+,/:;=?@.#%_\\|-]', re.I)
-
-    def clean_link(self, url):
-        """Makes sure a link is fully encoded.  That is, if a ' ' shows up in
-        the link, it will be rewritten to %20 (while not over-quoting
-        % or other characters)."""
-        return self._clean_re.sub(
-            lambda match: '%%%2x' % ord(match.group(0)), url)
 
 
 Search = namedtuple('Search', 'supplied canonical formats')
