@@ -193,9 +193,7 @@ class FrozenRequirement(object):
             logger.warning(
                 'Could not determine repository location of %s', location
             )
-            comments.append(
-                '## !! Could not determine repository location'
-            )
+            comments.append('## !! Could not determine repository location')
             req = dist.as_requirement()
 
             return (req, False, comments)
@@ -213,14 +211,9 @@ class FrozenRequirement(object):
 
         svn_backend = vcs.get_backend('svn')
         if svn_backend:
-            svn_location = svn_backend().get_location(
-                dist,
-                dependency_links,
-            )
+            svn_location = svn_backend().get_location(dist, dependency_links)
         if not svn_location:
-            logger.warning(
-                'Warning: cannot find svn location for %s', req,
-            )
+            logger.warning('Warning: cannot find svn location for %s', req)
             comments.append(
                 '## FIXME: could not find svn URL in dependency_links '
                 'for this package:'
@@ -235,8 +228,7 @@ class FrozenRequirement(object):
             issue=4187,
         )
         comments.append(
-            '# Installing as editable to satisfy requirement %s:' %
-            req
+            '# Installing as editable to satisfy requirement %s:' % req
         )
         if ver_match:
             rev = ver_match.group(1)
