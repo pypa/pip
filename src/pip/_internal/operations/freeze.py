@@ -179,7 +179,6 @@ class FrozenRequirement(object):
         comments = []
         from pip._internal.vcs import vcs, get_src_requirement
         if dist_is_editable(dist) and vcs.get_backend_name(location):
-            editable = True
             try:
                 req = get_src_requirement(dist, location)
             except InstallationError as exc:
@@ -189,7 +188,7 @@ class FrozenRequirement(object):
                 )
                 req = None
             if req is not None:
-                return (req, editable, comments)
+                return (req, True, comments)
 
             logger.warning(
                 'Could not determine repository location of %s', location
@@ -198,11 +197,9 @@ class FrozenRequirement(object):
                 '## !! Could not determine repository location'
             )
             req = dist.as_requirement()
-            editable = False
 
-            return (req, editable, comments)
+            return (req, False, comments)
 
-        editable = False
         req = dist.as_requirement()
         specs = req.specs
         assert len(specs) == 1 and specs[0][0] in ["==", "==="], \
@@ -212,7 +209,7 @@ class FrozenRequirement(object):
         ver_match = cls._rev_re.search(version)
         date_match = cls._date_re.search(version)
         if not (ver_match or date_match):
-            return (req, editable, comments)
+            return (req, False, comments)
 
         svn_backend = vcs.get_backend('svn')
         if svn_backend:
@@ -228,7 +225,7 @@ class FrozenRequirement(object):
                 '## FIXME: could not find svn URL in dependency_links '
                 'for this package:'
             )
-            return (req, editable, comments)
+            return (req, False, comments)
 
         deprecated(
             "SVN editable detection based on dependency links "
@@ -245,11 +242,10 @@ class FrozenRequirement(object):
             rev = ver_match.group(1)
         else:
             rev = '{%s}' % date_match.group(1)
-        editable = True
         egg_name = cls.egg_name(dist)
         req = make_vcs_requirement_url(svn_location, rev, egg_name)
 
-        return (req, editable, comments)
+        return (req, True, comments)
 
     @classmethod
     def from_dist(cls, dist, dependency_links):
