@@ -168,7 +168,13 @@ class FrozenRequirement(object):
     _date_re = re.compile(r'-(20\d\d\d\d\d\d)$')
 
     @classmethod
-    def from_dist(cls, dist, dependency_links):
+    def _init_args_from_dist(cls, dist, dependency_links):
+        """
+        Compute and return arguments (req, editable, comments) to pass to
+        FrozenRequirement.__init__().
+
+        This method is for use in FrozenRequirement.from_dist().
+        """
         location = os.path.normcase(os.path.abspath(dist.location))
         comments = []
         from pip._internal.vcs import vcs, get_src_requirement
@@ -235,7 +241,13 @@ class FrozenRequirement(object):
                     editable = True
                     egg_name = cls.egg_name(dist)
                     req = make_vcs_requirement_url(svn_location, rev, egg_name)
-        return cls(dist.project_name, req, editable, comments)
+
+        return (req, editable, comments)
+
+    @classmethod
+    def from_dist(cls, dist, dependency_links):
+        args = cls._init_args_from_dist(dist, dependency_links)
+        return cls(dist.project_name, *args)
 
     @staticmethod
     def egg_name(dist):
