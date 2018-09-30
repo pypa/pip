@@ -126,6 +126,7 @@ class BetterRotatingFileHandler(logging.handlers.RotatingFileHandler):
 class MaxLevelFilter(logging.Filter):
 
     def __init__(self, level):
+        super(MaxLevelFilter, self).__init__()
         self.level = level
 
     def filter(self, record):
