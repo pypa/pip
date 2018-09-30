@@ -228,25 +228,26 @@ class FrozenRequirement(object):
                 '## FIXME: could not find svn URL in dependency_links '
                 'for this package:'
             )
+            return (req, editable, comments)
+
+        deprecated(
+            "SVN editable detection based on dependency links "
+            "will be dropped in the future.",
+            replacement=None,
+            gone_in="19.0",
+            issue=4187,
+        )
+        comments.append(
+            '# Installing as editable to satisfy requirement %s:' %
+            req
+        )
+        if ver_match:
+            rev = ver_match.group(1)
         else:
-            deprecated(
-                "SVN editable detection based on dependency links "
-                "will be dropped in the future.",
-                replacement=None,
-                gone_in="19.0",
-                issue=4187,
-            )
-            comments.append(
-                '# Installing as editable to satisfy requirement %s:' %
-                req
-            )
-            if ver_match:
-                rev = ver_match.group(1)
-            else:
-                rev = '{%s}' % date_match.group(1)
-            editable = True
-            egg_name = cls.egg_name(dist)
-            req = make_vcs_requirement_url(svn_location, rev, egg_name)
+            rev = '{%s}' % date_match.group(1)
+        editable = True
+        egg_name = cls.egg_name(dist)
+        req = make_vcs_requirement_url(svn_location, rev, egg_name)
 
         return (req, editable, comments)
 
