@@ -176,7 +176,6 @@ class FrozenRequirement(object):
         This method is for use in FrozenRequirement.from_dist().
         """
         location = os.path.normcase(os.path.abspath(dist.location))
-        comments = []
         from pip._internal.vcs import vcs, get_src_requirement
         if dist_is_editable(dist) and vcs.get_backend_name(location):
             try:
@@ -188,12 +187,12 @@ class FrozenRequirement(object):
                 )
             else:
                 if req is not None:
-                    return (req, True, comments)
+                    return (req, True, [])
 
             logger.warning(
                 'Could not determine repository location of %s', location
             )
-            comments.append('## !! Could not determine repository location')
+            comments = ['## !! Could not determine repository location']
             req = dist.as_requirement()
 
             return (req, False, comments)
@@ -207,17 +206,17 @@ class FrozenRequirement(object):
         ver_match = cls._rev_re.search(version)
         date_match = cls._date_re.search(version)
         if not (ver_match or date_match):
-            return (req, False, comments)
+            return (req, False, [])
 
         svn_backend = vcs.get_backend('svn')
         if svn_backend:
             svn_location = svn_backend().get_location(dist, dependency_links)
         if not svn_location:
             logger.warning('Warning: cannot find svn location for %s', req)
-            comments.append(
+            comments = [
                 '## FIXME: could not find svn URL in dependency_links '
                 'for this package:'
-            )
+            ]
             return (req, False, comments)
 
         deprecated(
@@ -227,9 +226,9 @@ class FrozenRequirement(object):
             gone_in="19.0",
             issue=4187,
         )
-        comments.append(
+        comments = [
             '# Installing as editable to satisfy requirement %s:' % req
-        )
+        ]
         if ver_match:
             rev = ver_match.group(1)
         else:
