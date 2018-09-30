@@ -75,7 +75,8 @@ def rewrite_file_imports(item, vendored_libs):
     """Rewrite 'import xxx' and 'from xxx import' for vendored_libs"""
     text = item.read_text(encoding='utf-8')
     # Revendor pkg_resources.extern first
-    text = re.sub(r'pkg_resources.extern', r'pip._vendor', text)
+    text = re.sub(r'pkg_resources\.extern', r'pip._vendor', text)
+    text = re.sub(r'from \.extern', r'from pip._vendor', text)
     for lib in vendored_libs:
         text = re.sub(
             r'(\n\s*|^)import %s(\n\s*)' % lib,
