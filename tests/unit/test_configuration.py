@@ -78,9 +78,9 @@ class TestConfigurationLoading(ConfigurationMixin):
             with pytest.raises(ConfigurationError) as err:
                 self.configuration.load()
 
-        assert "section header" in str(err.value)
-        assert "1" in str(err.value)
-        assert config_file in str(err.value)
+        assert "section header" in str(err.value)  # error kind
+        assert "1" in str(err.value)  # line number
+        assert repr(config_file) in str(err.value)  # file name
 
 
 class TestConfigurationPrecedence(ConfigurationMixin):
