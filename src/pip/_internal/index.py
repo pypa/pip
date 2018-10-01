@@ -85,6 +85,91 @@ def _get_content_type(url, session):
     return resp.headers.get("Content-Type", "")
 
 
+class _SchemeIsVCS(Exception):
+    pass
+
+
+class _NotHTML(Exception):
+    pass
+
+
+def _get_html_data(url, filename, session):
+    """Access an HTML page with GET to retrieve data.
+
+    Returns a 3-tuple `(content, url, headers)`. `content` should be binary
+    containing the body; `url` is the response URL, and `headers` a mapping
+    containing response headers.
+
+    This consists of five parts:
+
+    1. Check whether the scheme is supported (non-VCS). Raises `_SchemeIsVCS`
+       on failure.
+    2. Check whether the URL looks like an archive. If it does, make a HEAD
+       request to check the Content-Type header is indeed HTML, and raise
+       `_NotHTML` if it's not. Raise HTTP exceptions on network failures.
+    3. If URL scheme is file: and points to a directory, make it point to
+       index.html instead.
+    4. Actually perform the request. Raise HTTP exceptions on network failures.
+    5. Check whether Content-Type header to make sure the thing we got is HTML,
+       and raise `_NotHTML` if it's not.
+    """
+    # Check for VCS schemes that do not support lookup as web pages.
+    vcs_scheme = _match_vcs_scheme(url)
+    if vcs_scheme:
+        raise _SchemeIsVCS(vcs_scheme)
+
+    for bad_ext in ARCHIVE_EXTENSIONS:
+        if filename.endswith(bad_ext):
+            content_type = _get_content_type(url, session=session)
+            if not content_type.lower().startswith('text/html'):
+                raise _NotHTML(content_type)
+
+    logger.debug('Getting page %s', url)
+
+    # Tack index.html onto file:// URLs that point to directories
+    scheme, _, path, _, _, _ = urllib_parse.urlparse(url)
+    if (scheme == 'file' and os.path.isdir(urllib_request.url2pathname(path))):
+        # add trailing slash if not present so urljoin doesn't trim
+        # final segment
+        if not url.endswith('/'):
+            url += '/'
+        url = urllib_parse.urljoin(url, 'index.html')
+        logger.debug(' file: URL is directory, getting %s', url)
+
+    resp = session.get(
+        url,
+        headers={
+            "Accept": "text/html",
+            # We don't want to blindly returned cached data for
+            # /simple/, because authors generally expecting that
+            # twine upload && pip install will function, but if
+            # they've done a pip install in the last ~10 minutes
+            # it won't. Thus by setting this to zero we will not
+            # blindly use any cached data, however the benefit of
+            # using max-age=0 instead of no-cache, is that we will
+            # still support conditional requests, so we will still
+            # minimize traffic sent in cases where the page hasn't
+            # changed at all, we will just always incur the round
+            # trip for the conditional GET now instead of only
+            # once per 10 minutes.
+            # For more information, please see pypa/pip#5670.
+            "Cache-Control": "max-age=0",
+        },
+    )
+    resp.raise_for_status()
+
+    # The check for archives above only works if the url ends with
+    # something that looks like an archive. However that is not a
+    # requirement of an url. Unless we issue a HEAD request on every
+    # url we cannot know ahead of time for sure if something is HTML
+    # or not. However we can check after we've downloaded it.
+    content_type = resp.headers.get('Content-Type', 'unknown')
+    if not content_type.lower().startswith("text/html"):
+        raise _NotHTML(content_type)
+
+    return resp.content, resp.url, resp.headers
+
+
 def _handle_get_page_fail(link, reason, url, meth=None):
     if meth is None:
         meth = logger.debug
@@ -97,81 +182,20 @@ def _get_html_page(link, session=None):
             "_get_html_page() missing 1 required keyword argument: 'session'"
         )
 
-    url = link.url
-    url = url.split('#', 1)[0]
-
-    # Check for VCS schemes that do not support lookup as web pages.
-    vcs_scheme = _match_vcs_scheme(url)
-    if vcs_scheme is not None:
-        logger.debug('Cannot look at %s URL %s', vcs_scheme, link)
-        return None
+    url = link.url.split('#', 1)[0]
 
     try:
-        filename = link.filename
-        for bad_ext in ARCHIVE_EXTENSIONS:
-            if filename.endswith(bad_ext):
-                content_type = _get_content_type(url, session=session)
-                if content_type.lower().startswith('text/html'):
-                    break
-                else:
-                    logger.debug(
-                        'Skipping page %s because of Content-Type: %s',
-                        link,
-                        content_type,
-                    )
-                    return
-
-        logger.debug('Getting page %s', url)
-
-        # Tack index.html onto file:// URLs that point to directories
-        (scheme, netloc, path, params, query, fragment) = \
-            urllib_parse.urlparse(url)
-        if (scheme == 'file' and
-                os.path.isdir(urllib_request.url2pathname(path))):
-            # add trailing slash if not present so urljoin doesn't trim
-            # final segment
-            if not url.endswith('/'):
-                url += '/'
-            url = urllib_parse.urljoin(url, 'index.html')
-            logger.debug(' file: URL is directory, getting %s', url)
-
-        resp = session.get(
-            url,
-            headers={
-                "Accept": "text/html",
-                # We don't want to blindly returned cached data for
-                # /simple/, because authors generally expecting that
-                # twine upload && pip install will function, but if
-                # they've done a pip install in the last ~10 minutes
-                # it won't. Thus by setting this to zero we will not
-                # blindly use any cached data, however the benefit of
-                # using max-age=0 instead of no-cache, is that we will
-                # still support conditional requests, so we will still
-                # minimize traffic sent in cases where the page hasn't
-                # changed at all, we will just always incur the round
-                # trip for the conditional GET now instead of only
-                # once per 10 minutes.
-                # For more information, please see pypa/pip#5670.
-                "Cache-Control": "max-age=0",
-            },
+        content, resp_url, headers = _get_html_data(
+            url, link.filename, session=session,
         )
-        resp.raise_for_status()
-
-        # The check for archives above only works if the url ends with
-        # something that looks like an archive. However that is not a
-        # requirement of an url. Unless we issue a HEAD request on every
-        # url we cannot know ahead of time for sure if something is HTML
-        # or not. However we can check after we've downloaded it.
-        content_type = resp.headers.get('Content-Type', 'unknown')
-        if not content_type.lower().startswith("text/html"):
-            logger.debug(
-                'Skipping page %s because of Content-Type: %s',
-                link,
-                content_type,
-            )
-            return
-
-        inst = HTMLPage(resp.content, resp.url, resp.headers)
+        inst = HTMLPage(content, resp_url, headers)
+    except _SchemeIsVCS as exc:
+        logger.debug('Cannot look at %s URL %s', exc, link)
+    except _NotHTML as exc:
+        logger.debug(
+            'Skipping page %s because of Content-Type: %s',
+            link, exc,
+        )
     except requests.HTTPError as exc:
         _handle_get_page_fail(link, exc, url)
     except SSLError as exc:
