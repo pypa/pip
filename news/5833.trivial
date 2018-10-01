@@ -1,0 +1,1 @@
+Move static and class methods out of HTMLPage for prepare for refactoring.
