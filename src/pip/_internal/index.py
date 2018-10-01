@@ -85,10 +85,6 @@ def _get_content_type(url, session):
     return resp.headers.get("Content-Type", "")
 
 
-class _SchemeIsVCS(Exception):
-    pass
-
-
 class _NotHTML(Exception):
     pass
 
@@ -98,22 +94,15 @@ def _get_html_response(url, filename, session):
 
     This consists of five parts:
 
-    1. Check whether the scheme is supported (non-VCS). Raises `_SchemeIsVCS`
-       on failure.
-    2. Check whether the URL looks like an archive. If it does, make a HEAD
+    1. Check whether the URL looks like an archive. If it does, make a HEAD
        request to check the Content-Type header is indeed HTML, and raise
        `_NotHTML` if it's not. Raise HTTP exceptions on network failures.
-    3. If URL scheme is file: and points to a directory, make it point to
+    2. If URL scheme is file: and points to a directory, make it point to
        index.html instead.
-    4. Actually perform the request. Raise HTTP exceptions on network failures.
-    5. Check whether Content-Type header to make sure the thing we got is HTML,
+    3. Actually perform the request. Raise HTTP exceptions on network failures.
+    4. Check whether Content-Type header to make sure the thing we got is HTML,
        and raise `_NotHTML` if it's not.
     """
-    # Check for VCS schemes that do not support lookup as web pages.
-    vcs_scheme = _match_vcs_scheme(url)
-    if vcs_scheme:
-        raise _SchemeIsVCS(vcs_scheme)
-
     for bad_ext in ARCHIVE_EXTENSIONS:
         if filename.endswith(bad_ext):
             content_type = _get_content_type(url, session=session)
@@ -180,10 +169,14 @@ def _get_html_page(link, session=None):
 
     url = link.url.split('#', 1)[0]
 
+    # Check for VCS schemes that do not support lookup as web pages.
+    vcs_scheme = _match_vcs_scheme(url)
+    if vcs_scheme:
+        logger.debug('Cannot look at %s URL %s', vcs_scheme, link)
+        return None
+
     try:
         resp = _get_html_response(url, link.filename, session=session)
-    except _SchemeIsVCS as exc:
-        logger.debug('Cannot look at %s URL %s', exc, link)
     except _NotHTML as exc:
         logger.debug(
             'Skipping page %s because of Content-Type: %s',
