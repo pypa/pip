@@ -707,7 +707,7 @@ class PackageFinder(object):
                 continue
             seen.add(location)
 
-            page = self._get_page(location)
+            page = _get_html_page(location, session=self.session)
             if page is None:
                 continue
 
@@ -823,9 +823,6 @@ class PackageFinder(object):
         logger.debug('Found link %s, version: %s', link, version)
 
         return InstallationCandidate(search.supplied, version, link)
-
-    def _get_page(self, link):
-        return _get_html_page(link, session=self.session)
 
 
 def egg_info_matches(
