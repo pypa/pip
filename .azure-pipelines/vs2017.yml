@@ -1,5 +1,5 @@
 jobs:
-- template: jobs/run-tests-windows.yml
+- template: jobs/test-windows.yml
   parameters:
     vmImage: vs2017-win2017
 
