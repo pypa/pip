@@ -1,8 +1,8 @@
 jobs:
 - template: jobs/test.yml
   parameters:
-    vmImage: Hosted Mac Internal
+    vmImage: Hosted Linux Preview
 
 - template: jobs/package.yml
   parameters:
-    vmImage: Hosted Mac Internal
+    vmImage: Hosted Linux Preview
