@@ -93,12 +93,8 @@ class _NotHTML(Exception):
     pass
 
 
-def _get_html_data(url, filename, session):
-    """Access an HTML page with GET to retrieve data.
-
-    Returns a 3-tuple `(content, url, headers)`. `content` should be binary
-    containing the body; `url` is the response URL, and `headers` a mapping
-    containing response headers.
+def _get_html_response(url, filename, session):
+    """Access an HTML page with GET, and return the response.
 
     This consists of five parts:
 
@@ -167,7 +163,7 @@ def _get_html_data(url, filename, session):
     if not content_type.lower().startswith("text/html"):
         raise _NotHTML(content_type)
 
-    return resp.content, resp.url, resp.headers
+    return resp
 
 
 def _handle_get_page_fail(link, reason, url, meth=None):
@@ -185,10 +181,7 @@ def _get_html_page(link, session=None):
     url = link.url.split('#', 1)[0]
 
     try:
-        content, resp_url, headers = _get_html_data(
-            url, link.filename, session=session,
-        )
-        inst = HTMLPage(content, resp_url, headers)
+        resp = _get_html_response(url, link.filename, session=session)
     except _SchemeIsVCS as exc:
         logger.debug('Cannot look at %s URL %s', exc, link)
     except _NotHTML as exc:
@@ -207,7 +200,7 @@ def _get_html_page(link, session=None):
     except requests.Timeout:
         _handle_get_page_fail(link, "timed out", url)
     else:
-        return inst
+        return HTMLPage(resp.content, resp.url, resp.headers)
 
 
 class PackageFinder(object):
