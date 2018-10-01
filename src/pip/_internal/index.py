@@ -216,6 +216,11 @@ class PackageFinder(object):
                             sort_path(os.path.join(path, item))
                     elif is_file_url:
                         urls.append(url)
+                    else:
+                        logger.warning(
+                            "Path '{0}' is ignored: "
+                            "it is a directory.".format(path),
+                        )
                 elif os.path.isfile(path):
                     sort_path(path)
                 else:
