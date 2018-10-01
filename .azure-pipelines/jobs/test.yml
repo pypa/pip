@@ -32,7 +32,8 @@ jobs:
     inputs:
       versionSpec: '$(python.version)'
 
-  - template: install-dependencies.yml
+  - bash: pip install --upgrade setuptools tox
+    displayName: Install Tox
 
   - script: tox -e py -- -m unit --junit-xml=junit/unit-test.xml
     displayName: Tox run unit tests

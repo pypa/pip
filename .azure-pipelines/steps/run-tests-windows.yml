@@ -8,7 +8,8 @@ steps:
     versionSpec: '$(python.version)'
     architecture: '$(python.architecture)'
 
-- template: install-dependencies.yml
+- bash: pip install --upgrade setuptools tox
+  displayName: Install Tox
 
 - script: tox -e py -- -m unit -n 3 --junit-xml=junit/unit-test.xml
   displayName: Tox run unit tests
