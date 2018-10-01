@@ -59,6 +59,18 @@ SECURE_ORIGINS = [
 logger = logging.getLogger(__name__)
 
 
+def _match_vcs_scheme(url):
+    """Look for VCS schemes in the URL.
+
+    Returns the matched VCS scheme, or None if there's no match.
+    """
+    from pip._internal.vcs import VcsSupport
+    for scheme in VcsSupport.schemes:
+        if url.lower().startswith(scheme) and url[len(scheme)] in '+:':
+            return scheme
+    return None
+
+
 def _get_content_type(url, session):
     """Get the Content-Type of the given url, using a HEAD request"""
     scheme, netloc, path, query, fragment = urllib_parse.urlsplit(url)
@@ -89,11 +101,10 @@ def _get_html_page(link, session=None):
     url = url.split('#', 1)[0]
 
     # Check for VCS schemes that do not support lookup as web pages.
-    from pip._internal.vcs import VcsSupport
-    for scheme in VcsSupport.schemes:
-        if url.lower().startswith(scheme) and url[len(scheme)] in '+:':
-            logger.debug('Cannot look at %s URL %s', scheme, link)
-            return None
+    vcs_scheme = _match_vcs_scheme(url)
+    if vcs_scheme is not None:
+        logger.debug('Cannot look at %s URL %s', vcs_scheme, link)
+        return None
 
     try:
         filename = link.filename
