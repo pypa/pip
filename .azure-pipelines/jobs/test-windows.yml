@@ -2,7 +2,7 @@ parameters:
   vmImage:
 
 jobs:
-- job: Test_Primary
+- job: Test
   displayName: Test Primary
 
   pool:
@@ -26,7 +26,7 @@ jobs:
   displayName: Test Secondary
   # Don't run integration tests for these runs
   # Run after Test_Primary so we don't devour time and jobs if tests are going to fail
-  dependsOn: Test_Primary
+  dependsOn: Test
 
   pool:
     vmImage: ${{ parameters.vmImage }}

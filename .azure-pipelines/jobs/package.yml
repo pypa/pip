@@ -4,8 +4,7 @@ parameters:
 jobs:
 - job: Package
   dependsOn:
-    - Test_Primary
-    - Test_Secondary
+    - Test
   pool:
     vmImage: ${{ parameters.vmImage }}
 
