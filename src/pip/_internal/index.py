@@ -71,9 +71,10 @@ def _match_vcs_scheme(url):
     return None
 
 
-def _is_filename_like_archive(filename):
-    """Check whether the filename looks like an archive.
+def _is_url_like_archive(url):
+    """Check whether the URL looks like an archive.
     """
+    filename = Link(url).filename
     for bad_ext in ARCHIVE_EXTENSIONS:
         if filename.endswith(bad_ext):
             return True
@@ -85,13 +86,19 @@ class _NotHTML(Exception):
 
 
 def _ensure_html_header(headers):
+    """Check the Content-Type header to ensure the response contains HTML.
+
+    Raises `_NotHTML` is the content type is not text/html.
+    """
     content_type = headers.get("Content-Type", "")
     if not content_type.lower().startswith("text/html"):
         raise _NotHTML(content_type)
 
 
 def _ensure_html_response(url, session):
-    """Send a HEAD request to the URL, and ensure the Content-Type is HTML.
+    """Send a HEAD request to the URL, and ensure the response contains HTML.
+
+    Raises `_NotHTML` is the content type is not text/html.
     """
     scheme, netloc, path, query, fragment = urllib_parse.urlsplit(url)
     if scheme not in {'http', 'https'}:
@@ -110,12 +117,17 @@ def _get_html_response(url, session):
 
     This consists of three parts:
 
-    1. If URL scheme is file: and points to a directory, make it point to
+    1. If the URL looks suspiciously like an archive, send a HEAD first to
+       check the Content-Type is HTML, to avoid downloading a large file.
+    2. If URL scheme is file: and points to a directory, make it point to
        index.html instead.
-    2. Actually perform the request. Raise HTTP exceptions on network failures.
-    3. Check whether Content-Type header to make sure the thing we got is HTML,
+    3. Actually perform the request. Raise HTTP exceptions on network failures.
+    4. Check whether Content-Type header to make sure the thing we got is HTML,
        and raise `_NotHTML` if it's not.
     """
+    if _is_url_like_archive(url):
+        _ensure_html_response(url, session=session)
+
     logger.debug('Getting page %s', url)
 
     # Tack index.html onto file:// URLs that point to directories
@@ -181,10 +193,6 @@ def _get_html_page(link, session=None):
         return None
 
     try:
-        # If the URL looks suspiciously like an archive, send a HEAD first to
-        # check the Content-Type is HTML, to avoid downloading a large file.
-        if _is_filename_like_archive(link.filename):
-            _ensure_html_response(url, session=session)
         resp = _get_html_response(url, session=session)
     except _NotHTML as exc:
         logger.debug(
