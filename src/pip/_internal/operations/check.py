@@ -32,7 +32,7 @@ PackageDetails = namedtuple('PackageDetails', ['version', 'requires'])
 
 
 def create_package_set_from_installed(**kwargs):
-    # type: (**Any) -> PackageSet
+    # type: (**Any) -> Tuple[PackageSet, bool]
     """Converts a list of distributions into a PackageSet.
     """
     # Default to using all packages installed on the system
@@ -40,6 +40,7 @@ def create_package_set_from_installed(**kwargs):
         kwargs = {"local_only": False, "skip": ()}
 
     package_set = {}
+    problems = False
     for dist in get_installed_distributions(**kwargs):
         name = canonicalize_name(dist.project_name)
         try:
@@ -47,7 +48,8 @@ def create_package_set_from_installed(**kwargs):
         except RequirementParseError as e:
             # Don't crash on broken metadata
             logging.warning("Error parsing requirements for %s: %s", name, e)
-    return package_set
+            problems = True
+    return package_set, problems
 
 
 def check_package_set(package_set, should_ignore=None):
@@ -103,7 +105,7 @@ def check_install_conflicts(to_install):
     installing given requirements
     """
     # Start from the current state
-    package_set = create_package_set_from_installed()
+    package_set, _ = create_package_set_from_installed()
     # Install packages
     would_be_installed = _simulate_installation_of(to_install, package_set)
 
