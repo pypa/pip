@@ -98,16 +98,19 @@ def _ensure_html_header(response):
         raise _NotHTML(content_type, response.request.method)
 
 
+class _NotHTTP(Exception):
+    pass
+
+
 def _ensure_html_response(url, session):
     """Send a HEAD request to the URL, and ensure the response contains HTML.
 
-    Raises `_NotHTML` if the content type is not text/html.
+    Raises `_NotHTTP` if the URL is not available for a HEAD request, or
+    `_NotHTML` if the content type is not text/html.
     """
     scheme, netloc, path, query, fragment = urllib_parse.urlsplit(url)
     if scheme not in {'http', 'https'}:
-        # FIXME: some warning or something?
-        # assertion error?
-        return ''
+        raise _NotHTTP()
 
     resp = session.head(url, allow_redirects=True)
     resp.raise_for_status()
@@ -122,7 +125,8 @@ def _get_html_response(url, session):
 
     1. If the URL looks suspiciously like an archive, send a HEAD first to
        check the Content-Type is HTML, to avoid downloading a large file.
-       Raise `_NotHTML` if it is not.
+       Raise `_NotHTTP` if the content type cannot be determined, or
+       `_NotHTML` if it is not HTML.
     2. Actually perform the request. Raise HTTP exceptions on network failures.
     3. Check whether Content-Type header to make sure the thing we got is HTML,
        and raise `_NotHTML` if it's not.
@@ -196,6 +200,11 @@ def _get_html_page(link, session=None):
 
     try:
         resp = _get_html_response(url, session=session)
+    except _NotHTTP as exc:
+        logger.debug(
+            'Skipping page %s because it looks like an archive, and cannot '
+            'be checked by HEAD.', link,
+        )
     except _NotHTML as exc:
         logger.debug(
             'Skipping page %s because the %s request got Content-Type: %s',
