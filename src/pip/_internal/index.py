@@ -82,10 +82,10 @@ def _is_url_like_archive(url):
 
 
 class _NotHTML(Exception):
-    def __init__(self, content_type, response):
-        super(_NotHTML, self).__init__(content_type, response)
+    def __init__(self, content_type, request_desc):
+        super(_NotHTML, self).__init__(content_type, request_desc)
         self.content_type = content_type
-        self.response = response
+        self.request_desc = request_desc
 
 
 def _ensure_html_header(response):
@@ -95,7 +95,7 @@ def _ensure_html_header(response):
     """
     content_type = response.headers.get("Content-Type", "")
     if not content_type.lower().startswith("text/html"):
-        raise _NotHTML(content_type, response)
+        raise _NotHTML(content_type, response.request.method)
 
 
 def _ensure_html_response(url, session):
@@ -199,7 +199,7 @@ def _get_html_page(link, session=None):
     except _NotHTML as exc:
         logger.debug(
             'Skipping page %s because the %s request got Content-Type: %s',
-            link, exc.response.request.method, exc.content_type,
+            link, exc.request_desc, exc.content_type,
         )
     except requests.HTTPError as exc:
         _handle_get_page_fail(link, exc, url)
