@@ -82,23 +82,26 @@ def _is_url_like_archive(url):
 
 
 class _NotHTML(Exception):
-    pass
+    def __init__(self, content_type, response):
+        super(_NotHTML, self).__init__(content_type, response)
+        self.content_type = content_type
+        self.response = response
 
 
-def _ensure_html_header(headers):
+def _ensure_html_header(response):
     """Check the Content-Type header to ensure the response contains HTML.
 
-    Raises `_NotHTML` is the content type is not text/html.
+    Raises `_NotHTML` if the content type is not text/html.
     """
-    content_type = headers.get("Content-Type", "")
+    content_type = response.headers.get("Content-Type", "")
     if not content_type.lower().startswith("text/html"):
-        raise _NotHTML(content_type)
+        raise _NotHTML(content_type, response)
 
 
 def _ensure_html_response(url, session):
     """Send a HEAD request to the URL, and ensure the response contains HTML.
 
-    Raises `_NotHTML` is the content type is not text/html.
+    Raises `_NotHTML` if the content type is not text/html.
     """
     scheme, netloc, path, query, fragment = urllib_parse.urlsplit(url)
     if scheme not in {'http', 'https'}:
@@ -109,7 +112,7 @@ def _ensure_html_response(url, session):
     resp = session.head(url, allow_redirects=True)
     resp.raise_for_status()
 
-    _ensure_html_header(resp.headers)
+    _ensure_html_header(resp)
 
 
 def _get_html_response(url, session):
@@ -119,10 +122,9 @@ def _get_html_response(url, session):
 
     1. If the URL looks suspiciously like an archive, send a HEAD first to
        check the Content-Type is HTML, to avoid downloading a large file.
-    2. If URL scheme is file: and points to a directory, make it point to
-       index.html instead.
-    3. Actually perform the request. Raise HTTP exceptions on network failures.
-    4. Check whether Content-Type header to make sure the thing we got is HTML,
+       Raise `_NotHTML` if it is not.
+    2. Actually perform the request. Raise HTTP exceptions on network failures.
+    3. Check whether Content-Type header to make sure the thing we got is HTML,
        and raise `_NotHTML` if it's not.
     """
     if _is_url_like_archive(url):
@@ -157,7 +159,7 @@ def _get_html_response(url, session):
     # requirement of an url. Unless we issue a HEAD request on every
     # url we cannot know ahead of time for sure if something is HTML
     # or not. However we can check after we've downloaded it.
-    _ensure_html_header(resp.headers)
+    _ensure_html_header(resp)
 
     return resp
 
@@ -196,8 +198,8 @@ def _get_html_page(link, session=None):
         resp = _get_html_response(url, session=session)
     except _NotHTML as exc:
         logger.debug(
-            'Skipping page %s because of Content-Type: %s',
-            link, exc,
+            'Skipping page %s because the %s request got Content-Type: %s',
+            link, exc.response.request.method, exc.content_type,
         )
     except requests.HTTPError as exc:
         _handle_get_page_fail(link, exc, url)
