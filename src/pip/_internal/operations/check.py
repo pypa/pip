@@ -1,8 +1,8 @@
 """Validation of dependencies of packages
 """
 
-from collections import namedtuple
 import logging
+from collections import namedtuple
 
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.pkg_resources import RequirementParseError
