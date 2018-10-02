@@ -130,16 +130,6 @@ def _get_html_response(url, session):
 
     logger.debug('Getting page %s', url)
 
-    # Tack index.html onto file:// URLs that point to directories
-    scheme, _, path, _, _, _ = urllib_parse.urlparse(url)
-    if (scheme == 'file' and os.path.isdir(urllib_request.url2pathname(path))):
-        # add trailing slash if not present so urljoin doesn't trim
-        # final segment
-        if not url.endswith('/'):
-            url += '/'
-        url = urllib_parse.urljoin(url, 'index.html')
-        logger.debug(' file: URL is directory, getting %s', url)
-
     resp = session.get(
         url,
         headers={
@@ -191,6 +181,16 @@ def _get_html_page(link, session=None):
     if vcs_scheme:
         logger.debug('Cannot look at %s URL %s', vcs_scheme, link)
         return None
+
+    # Tack index.html onto file:// URLs that point to directories
+    scheme, _, path, _, _, _ = urllib_parse.urlparse(url)
+    if (scheme == 'file' and os.path.isdir(urllib_request.url2pathname(path))):
+        # add trailing slash if not present so urljoin doesn't trim
+        # final segment
+        if not url.endswith('/'):
+            url += '/'
+        url = urllib_parse.urljoin(url, 'index.html')
+        logger.debug(' file: URL is directory, getting %s', url)
 
     try:
         resp = _get_html_response(url, session=session)
