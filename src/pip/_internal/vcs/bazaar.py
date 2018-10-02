@@ -9,7 +9,6 @@ from pip._internal.download import path_to_url
 from pip._internal.utils.misc import (
     display_path, make_vcs_requirement_url, rmtree,
 )
-from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.vcs import VersionControl, vcs
 
 logger = logging.getLogger(__name__)
