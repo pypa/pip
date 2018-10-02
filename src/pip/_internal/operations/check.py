@@ -4,6 +4,7 @@
 from collections import namedtuple
 
 from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.pkg_resources import RequirementParseError
 
 from pip._internal.operations.prepare import make_abstract_dist
 from pip._internal.utils.misc import get_installed_distributions
@@ -38,7 +39,11 @@ def create_package_set_from_installed(**kwargs):
     package_set = {}
     for dist in get_installed_distributions(**kwargs):
         name = canonicalize_name(dist.project_name)
-        package_set[name] = PackageDetails(dist.version, dist.requires())
+        try:
+            package_set[name] = PackageDetails(dist.version, dist.requires())
+        except RequirementParseError:
+            # Don't crash on broken metadata
+            pass  # TODO: log a warning?
     return package_set
 
 
