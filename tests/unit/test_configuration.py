@@ -80,7 +80,10 @@ class TestConfigurationLoading(ConfigurationMixin):
 
         assert "section header" in str(err.value)  # error kind
         assert "1" in str(err.value)  # line number
-        assert repr(config_file) in str(err.value)  # file name
+        assert (  # file name
+            config_file in str(err.value) or
+            repr(config_file) in str(err.value)
+        )
 
 
 class TestConfigurationPrecedence(ConfigurationMixin):
