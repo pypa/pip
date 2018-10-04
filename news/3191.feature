@@ -1,2 +1,2 @@
-Have pip abort if --no-binary or --only-binary receives an argument that starts
-with a -.
+Print a better error message when ``--no-binary`` or ``--only-binary`` is given
+an argument starting with ``-``.

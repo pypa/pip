@@ -1,3 +1,4 @@
+from pip._internal.exceptions import CommandError
 from pip._vendor.packaging.utils import canonicalize_name
 
 
@@ -27,6 +28,10 @@ class FormatControl(object):
 
     @staticmethod
     def handle_mutual_excludes(value, target, other):
+        if value.startswith('-'):
+            raise CommandError(
+                "--no-binary / --only-binary option requires 1 argument."
+            )
         new = value.split(',')
         while ':all:' in new:
             other.clear()

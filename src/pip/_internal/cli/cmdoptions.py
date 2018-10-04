@@ -403,8 +403,6 @@ def _get_format_control(values, option):
 
 
 def _handle_no_binary(option, opt_str, value, parser):
-    if value[0] == '-':
-        raise CommandError("--no-binary requires an argument.")
     existing = _get_format_control(parser.values, option)
     FormatControl.handle_mutual_excludes(
         value, existing.no_binary, existing.only_binary,
@@ -412,8 +410,6 @@ def _handle_no_binary(option, opt_str, value, parser):
 
 
 def _handle_only_binary(option, opt_str, value, parser):
-    if value[0] == '-':
-        raise CommandError("--only-binary requries an argument.")
     existing = _get_format_control(parser.values, option)
     FormatControl.handle_mutual_excludes(
         value, existing.only_binary, existing.no_binary,
