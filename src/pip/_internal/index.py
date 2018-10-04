@@ -34,7 +34,7 @@ from pip._internal.utils.compat import ipaddress
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
-    ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, cached_property, normalize_path,
+    ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, normalize_path,
     remove_auth_from_url,
 )
 from pip._internal.utils.packaging import check_requires_python
@@ -57,6 +57,122 @@ SECURE_ORIGINS = [
 
 
 logger = logging.getLogger(__name__)
+
+
+def _get_content_type(url, session):
+    """Get the Content-Type of the given url, using a HEAD request"""
+    scheme, netloc, path, query, fragment = urllib_parse.urlsplit(url)
+    if scheme not in {'http', 'https'}:
+        # FIXME: some warning or something?
+        # assertion error?
+        return ''
+
+    resp = session.head(url, allow_redirects=True)
+    resp.raise_for_status()
+
+    return resp.headers.get("Content-Type", "")
+
+
+def _handle_get_page_fail(link, reason, url, meth=None):
+    if meth is None:
+        meth = logger.debug
+    meth("Could not fetch URL %s: %s - skipping", link, reason)
+
+
+def _get_html_page(link, session=None):
+    if session is None:
+        raise TypeError(
+            "_get_html_page() missing 1 required keyword argument: 'session'"
+        )
+
+    url = link.url
+    url = url.split('#', 1)[0]
+
+    # Check for VCS schemes that do not support lookup as web pages.
+    from pip._internal.vcs import VcsSupport
+    for scheme in VcsSupport.schemes:
+        if url.lower().startswith(scheme) and url[len(scheme)] in '+:':
+            logger.debug('Cannot look at %s URL %s', scheme, link)
+            return None
+
+    try:
+        filename = link.filename
+        for bad_ext in ARCHIVE_EXTENSIONS:
+            if filename.endswith(bad_ext):
+                content_type = _get_content_type(url, session=session)
+                if content_type.lower().startswith('text/html'):
+                    break
+                else:
+                    logger.debug(
+                        'Skipping page %s because of Content-Type: %s',
+                        link,
+                        content_type,
+                    )
+                    return
+
+        logger.debug('Getting page %s', url)
+
+        # Tack index.html onto file:// URLs that point to directories
+        (scheme, netloc, path, params, query, fragment) = \
+            urllib_parse.urlparse(url)
+        if (scheme == 'file' and
+                os.path.isdir(urllib_request.url2pathname(path))):
+            # add trailing slash if not present so urljoin doesn't trim
+            # final segment
+            if not url.endswith('/'):
+                url += '/'
+            url = urllib_parse.urljoin(url, 'index.html')
+            logger.debug(' file: URL is directory, getting %s', url)
+
+        resp = session.get(
+            url,
+            headers={
+                "Accept": "text/html",
+                # We don't want to blindly returned cached data for
+                # /simple/, because authors generally expecting that
+                # twine upload && pip install will function, but if
+                # they've done a pip install in the last ~10 minutes
+                # it won't. Thus by setting this to zero we will not
+                # blindly use any cached data, however the benefit of
+                # using max-age=0 instead of no-cache, is that we will
+                # still support conditional requests, so we will still
+                # minimize traffic sent in cases where the page hasn't
+                # changed at all, we will just always incur the round
+                # trip for the conditional GET now instead of only
+                # once per 10 minutes.
+                # For more information, please see pypa/pip#5670.
+                "Cache-Control": "max-age=0",
+            },
+        )
+        resp.raise_for_status()
+
+        # The check for archives above only works if the url ends with
+        # something that looks like an archive. However that is not a
+        # requirement of an url. Unless we issue a HEAD request on every
+        # url we cannot know ahead of time for sure if something is HTML
+        # or not. However we can check after we've downloaded it.
+        content_type = resp.headers.get('Content-Type', 'unknown')
+        if not content_type.lower().startswith("text/html"):
+            logger.debug(
+                'Skipping page %s because of Content-Type: %s',
+                link,
+                content_type,
+            )
+            return
+
+        inst = HTMLPage(resp.content, resp.url, resp.headers)
+    except requests.HTTPError as exc:
+        _handle_get_page_fail(link, exc, url)
+    except SSLError as exc:
+        reason = "There was a problem confirming the ssl certificate: "
+        reason += str(exc)
+        _handle_get_page_fail(link, reason, url, meth=logger.info)
+    except requests.ConnectionError as exc:
+        _handle_get_page_fail(link, "connection error: %s" % exc, url)
+    except requests.Timeout:
+        _handle_get_page_fail(link, "timed out", url)
+    else:
+        return inst
 
 
 class PackageFinder(object):
@@ -415,7 +531,7 @@ class PackageFinder(object):
             logger.debug('Analyzing links from page %s', page.url)
             with indent_log():
                 page_versions.extend(
-                    self._package_versions(page.links, search)
+                    self._package_versions(page.iter_links(), search)
                 )
 
         dependency_versions = self._package_versions(
@@ -674,7 +790,7 @@ class PackageFinder(object):
         return InstallationCandidate(search.supplied, version, link)
 
     def _get_page(self, link):
-        return HTMLPage.get_page(link, session=self.session)
+        return _get_html_page(link, session=self.session)
 
 
 def egg_info_matches(
@@ -706,181 +822,71 @@ def egg_info_matches(
         return None
 
 
+def _determine_base_url(document, page_url):
+    """Determine the HTML document's base URL.
+
+    This looks for a ``<base>`` tag in the HTML document. If present, its href
+    attribute denotes the base URL of anchor tags in the document. If there is
+    no such tag (or if it does not have a valid href attribute), the HTML
+    file's URL is used as the base URL.
+
+    :param document: An HTML document representation. The current
+        implementation expects the result of ``html5lib.parse()``.
+    :param page_url: The URL of the HTML document.
+    """
+    for base in document.findall(".//base"):
+        href = base.get("href")
+        if href is not None:
+            return href
+    return page_url
+
+
+def _get_encoding_from_headers(headers):
+    """Determine if we have any encoding information in our headers.
+    """
+    if headers and "Content-Type" in headers:
+        content_type, params = cgi.parse_header(headers["Content-Type"])
+        if "charset" in params:
+            return params['charset']
+    return None
+
+
+_CLEAN_LINK_RE = re.compile(r'[^a-z0-9$&+,/:;=?@.#%_\\|-]', re.I)
+
+
+def _clean_link(url):
+    """Makes sure a link is fully encoded.  That is, if a ' ' shows up in
+    the link, it will be rewritten to %20 (while not over-quoting
+    % or other characters)."""
+    return _CLEAN_LINK_RE.sub(lambda match: '%%%2x' % ord(match.group(0)), url)
+
+
 class HTMLPage(object):
     """Represents one page, along with its URL"""
 
     def __init__(self, content, url, headers=None):
-        # Determine if we have any encoding information in our headers
-        encoding = None
-        if headers and "Content-Type" in headers:
-            content_type, params = cgi.parse_header(headers["Content-Type"])
-
-            if "charset" in params:
-                encoding = params['charset']
-
         self.content = content
-        self.parsed = html5lib.parse(
-            self.content,
-            transport_encoding=encoding,
-            namespaceHTMLElements=False,
-        )
         self.url = url
         self.headers = headers
 
     def __str__(self):
         return self.url
 
-    @classmethod
-    def get_page(cls, link, session=None):
-        if session is None:
-            raise TypeError(
-                "get_page() missing 1 required keyword argument: 'session'"
-            )
-
-        url = link.url
-        url = url.split('#', 1)[0]
-
-        # Check for VCS schemes that do not support lookup as web pages.
-        from pip._internal.vcs import VcsSupport
-        for scheme in VcsSupport.schemes:
-            if url.lower().startswith(scheme) and url[len(scheme)] in '+:':
-                logger.debug('Cannot look at %s URL %s', scheme, link)
-                return None
-
-        try:
-            filename = link.filename
-            for bad_ext in ARCHIVE_EXTENSIONS:
-                if filename.endswith(bad_ext):
-                    content_type = cls._get_content_type(
-                        url, session=session,
-                    )
-                    if content_type.lower().startswith('text/html'):
-                        break
-                    else:
-                        logger.debug(
-                            'Skipping page %s because of Content-Type: %s',
-                            link,
-                            content_type,
-                        )
-                        return
-
-            logger.debug('Getting page %s', url)
-
-            # Tack index.html onto file:// URLs that point to directories
-            (scheme, netloc, path, params, query, fragment) = \
-                urllib_parse.urlparse(url)
-            if (scheme == 'file' and
-                    os.path.isdir(urllib_request.url2pathname(path))):
-                # add trailing slash if not present so urljoin doesn't trim
-                # final segment
-                if not url.endswith('/'):
-                    url += '/'
-                url = urllib_parse.urljoin(url, 'index.html')
-                logger.debug(' file: URL is directory, getting %s', url)
-
-            resp = session.get(
-                url,
-                headers={
-                    "Accept": "text/html",
-                    # We don't want to blindly returned cached data for
-                    # /simple/, because authors generally expecting that
-                    # twine upload && pip install will function, but if
-                    # they've done a pip install in the last ~10 minutes
-                    # it won't. Thus by setting this to zero we will not
-                    # blindly use any cached data, however the benefit of
-                    # using max-age=0 instead of no-cache, is that we will
-                    # still support conditional requests, so we will still
-                    # minimize traffic sent in cases where the page hasn't
-                    # changed at all, we will just always incur the round
-                    # trip for the conditional GET now instead of only
-                    # once per 10 minutes.
-                    # For more information, please see pypa/pip#5670.
-                    "Cache-Control": "max-age=0",
-                },
-            )
-            resp.raise_for_status()
-
-            # The check for archives above only works if the url ends with
-            # something that looks like an archive. However that is not a
-            # requirement of an url. Unless we issue a HEAD request on every
-            # url we cannot know ahead of time for sure if something is HTML
-            # or not. However we can check after we've downloaded it.
-            content_type = resp.headers.get('Content-Type', 'unknown')
-            if not content_type.lower().startswith("text/html"):
-                logger.debug(
-                    'Skipping page %s because of Content-Type: %s',
-                    link,
-                    content_type,
-                )
-                return
-
-            inst = cls(resp.content, resp.url, resp.headers)
-        except requests.HTTPError as exc:
-            cls._handle_fail(link, exc, url)
-        except SSLError as exc:
-            reason = "There was a problem confirming the ssl certificate: "
-            reason += str(exc)
-            cls._handle_fail(link, reason, url, meth=logger.info)
-        except requests.ConnectionError as exc:
-            cls._handle_fail(link, "connection error: %s" % exc, url)
-        except requests.Timeout:
-            cls._handle_fail(link, "timed out", url)
-        else:
-            return inst
-
-    @staticmethod
-    def _handle_fail(link, reason, url, meth=None):
-        if meth is None:
-            meth = logger.debug
-
-        meth("Could not fetch URL %s: %s - skipping", link, reason)
-
-    @staticmethod
-    def _get_content_type(url, session):
-        """Get the Content-Type of the given url, using a HEAD request"""
-        scheme, netloc, path, query, fragment = urllib_parse.urlsplit(url)
-        if scheme not in {'http', 'https'}:
-            # FIXME: some warning or something?
-            # assertion error?
-            return ''
-
-        resp = session.head(url, allow_redirects=True)
-        resp.raise_for_status()
-
-        return resp.headers.get("Content-Type", "")
-
-    @cached_property
-    def base_url(self):
-        bases = [
-            x for x in self.parsed.findall(".//base")
-            if x.get("href") is not None
-        ]
-        if bases and bases[0].get("href"):
-            return bases[0].get("href")
-        else:
-            return self.url
-
-    @property
-    def links(self):
+    def iter_links(self):
         """Yields all links in the page"""
-        for anchor in self.parsed.findall(".//a"):
+        document = html5lib.parse(
+            self.content,
+            transport_encoding=_get_encoding_from_headers(self.headers),
+            namespaceHTMLElements=False,
+        )
+        base_url = _determine_base_url(document, self.url)
+        for anchor in document.findall(".//a"):
             if anchor.get("href"):
                 href = anchor.get("href")
-                url = self.clean_link(
-                    urllib_parse.urljoin(self.base_url, href)
-                )
+                url = _clean_link(urllib_parse.urljoin(base_url, href))
                 pyrequire = anchor.get('data-requires-python')
                 pyrequire = unescape(pyrequire) if pyrequire else None
-                yield Link(url, self, requires_python=pyrequire)
-
-    _clean_re = re.compile(r'[^a-z0-9$&+,/:;=?@.#%_\\|-]', re.I)
-
-    def clean_link(self, url):
-        """Makes sure a link is fully encoded.  That is, if a ' ' shows up in
-        the link, it will be rewritten to %20 (while not over-quoting
-        % or other characters)."""
-        return self._clean_re.sub(
-            lambda match: '%%%2x' % ord(match.group(0)), url)
+                yield Link(url, self.url, requires_python=pyrequire)
 
 
 Search = namedtuple('Search', 'supplied canonical formats')
