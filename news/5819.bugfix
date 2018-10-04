@@ -1,1 +1,0 @@
-Fix incorrect parsing of egg names if pip needs to guess the package name.
