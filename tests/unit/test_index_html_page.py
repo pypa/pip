@@ -6,8 +6,7 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip._internal.download import PipSession
 from pip._internal.index import (
-    Link, PackageFinder, _determine_base_url, _get_html_page,
-    _get_html_response, _NotHTML, _NotHTTP, egg_info_matches,
+    Link, _get_html_page, _get_html_response, _NotHTML, _NotHTTP,
 )
 
 
@@ -36,8 +35,8 @@ def test_get_html_response_archive_to_naive_scheme(url):
 )
 def test_get_html_response_archive_to_http_scheme(url, content_type):
     """
-    `_get_html_response()` should send a HEAD request on and archive-like URL
-    if the scheme supports it.
+    `_get_html_response()` should send a HEAD request on an archive-like URL
+    if the scheme supports it, and raise `_NotHTML` if the response isn't HTML.
     """
     session = mock.Mock(PipSession)
     session.head.return_value = mock.Mock(**{
@@ -52,6 +51,71 @@ def test_get_html_response_archive_to_http_scheme(url, content_type):
         mock.call.head(url, allow_redirects=True),
     ])
     assert ctx.value.args == (content_type, "HEAD")
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://python.org/python-3.7.1.zip",
+        "https://pypi.org/pip-18.0.tar.gz",
+    ],
+)
+def test_get_html_response_archive_to_http_scheme_is_html(url):
+    """
+    `_get_html_response()` should work with archive-like URLs if the HEAD
+    request is responded with text/html.
+    """
+    session = mock.Mock(PipSession)
+    session.head.return_value = mock.Mock(**{
+        "request.method": "HEAD",
+        "headers": {"Content-Type": "text/html"},
+    })
+    session.get.return_value = mock.Mock(headers={"Content-Type": "text/html"})
+
+    resp = _get_html_response(url, session=session)
+
+    assert resp is not None
+    assert session.mock_calls == [
+        mock.call.head(url, allow_redirects=True),
+        mock.call.head().raise_for_status(),
+        mock.call.get(url, headers={
+            "Accept": "text/html", "Cache-Control": "max-age=0",
+        }),
+        mock.call.get().raise_for_status(),
+    ]
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://pypi.org/simple/pip",
+        "https://pypi.org/simple/pip/",
+        "https://python.org/sitemap.xml",
+    ],
+)
+def test_get_html_response_no_head(url):
+    """
+    `_get_html_response()` shouldn't send a HEAD request if the URL does not
+    look like an archive, only the GET request that retrieves data.
+    """
+    session = mock.Mock(PipSession)
+
+    # Mock the headers dict to ensure it is accessed.
+    session.get.return_value = mock.Mock(headers=mock.Mock(**{
+        "get.return_value": "text/html",
+    }))
+
+    resp = _get_html_response(url, session=session)
+
+    assert resp is not None
+    assert session.head.call_count == 0
+    assert session.get.mock_calls == [
+        mock.call(url, headers={
+            "Accept": "text/html", "Cache-Control": "max-age=0",
+        }),
+        mock.call().raise_for_status(),
+        mock.call().headers.get("Content-Type", ""),
+    ]
 
 
 @pytest.mark.parametrize(

@@ -72,7 +72,7 @@ def _match_vcs_scheme(url):
 
 
 def _is_url_like_archive(url):
-    """Check whether the URL looks like an archive.
+    """Return whether the URL looks like an archive.
     """
     filename = Link(url).filename
     for bad_ext in ARCHIVE_EXTENSIONS:
@@ -128,8 +128,8 @@ def _get_html_response(url, session):
        Raise `_NotHTTP` if the content type cannot be determined, or
        `_NotHTML` if it is not HTML.
     2. Actually perform the request. Raise HTTP exceptions on network failures.
-    3. Check whether Content-Type header to make sure the thing we got is HTML,
-       and raise `_NotHTML` if it's not.
+    3. Check the Content-Type header to make sure we got HTML, and raise
+       `_NotHTML` otherwise.
     """
     if _is_url_like_archive(url):
         _ensure_html_response(url, session=session)
