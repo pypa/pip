@@ -126,6 +126,14 @@ def unpackb(packed, **kwargs):
     return ret
 
 
+if sys.version_info < (2, 7, 6):
+    def _unpack_from(f, b, o=0):
+        """Explicit typcast for legacy struct.unpack_from"""
+        return struct.unpack_from(f, bytes(b), o)
+else:
+    _unpack_from = struct.unpack_from
+
+
 class Unpacker(object):
     """Streaming unpacker.
 
@@ -205,12 +213,7 @@ class Unpacker(object):
             for o in unpacker:
                 process(o)
     """
-    # Some old pythons don't support `self._unpack_from()` `bytearray`. 
-    _unpack_from = staticmethod(
-        struct.unpack_from if sys.version_info >= (2, 7, 6)
-        else lambda f,b,o=0: struct.unpack_from(f, b[:o+2].tobytes(),o)
-    )
-    
+
     def __init__(self, file_like=None, read_size=0, use_list=True, raw=True,
                  object_hook=None, object_pairs_hook=None, list_hook=None,
                  encoding=None, unicode_errors=None, max_buffer_size=0,
@@ -294,7 +297,8 @@ class Unpacker(object):
             self._buff_i -= self._buf_checkpoint
             self._buf_checkpoint = 0
 
-        self._buffer += bytearray(view)
+        # Use extend here: INPLACE_ADD += doesn't reliably typecast memoryview in jython
+        self._buffer.extend(view)
 
     def _consume(self):
         """ Gets rid of the used parts of the buffer. """
@@ -393,7 +397,7 @@ class Unpacker(object):
         elif b == 0xc5:
             typ = TYPE_BIN
             self._reserve(2)
-            n = self._unpack_from(">H", self._buffer, self._buff_i)[0]
+            n = _unpack_from(">H", self._buffer, self._buff_i)[0]
             self._buff_i += 2
             if n > self._max_bin_len:
                 raise UnpackValueError("%s exceeds max_bin_len(%s)" % (n, self._max_bin_len))
@@ -401,7 +405,7 @@ class Unpacker(object):
         elif b == 0xc6:
             typ = TYPE_BIN
             self._reserve(4)
-            n = self._unpack_from(">I", self._buffer, self._buff_i)[0]
+            n = _unpack_from(">I", self._buffer, self._buff_i)[0]
             self._buff_i += 4
             if n > self._max_bin_len:
                 raise UnpackValueError("%s exceeds max_bin_len(%s)" % (n, self._max_bin_len))
@@ -409,7 +413,7 @@ class Unpacker(object):
         elif b == 0xc7:  # ext 8
             typ = TYPE_EXT
             self._reserve(2)
-            L, n = self._unpack_from('Bb', self._buffer, self._buff_i)
+            L, n = _unpack_from('Bb', self._buffer, self._buff_i)
             self._buff_i += 2
             if L > self._max_ext_len:
                 raise UnpackValueError("%s exceeds max_ext_len(%s)" % (L, self._max_ext_len))
@@ -417,7 +421,7 @@ class Unpacker(object):
         elif b == 0xc8:  # ext 16
             typ = TYPE_EXT
             self._reserve(3)
-            L, n = self._unpack_from('>Hb', self._buffer, self._buff_i)
+            L, n = _unpack_from('>Hb', self._buffer, self._buff_i)
             self._buff_i += 3
             if L > self._max_ext_len:
                 raise UnpackValueError("%s exceeds max_ext_len(%s)" % (L, self._max_ext_len))
@@ -425,18 +429,18 @@ class Unpacker(object):
         elif b == 0xc9:  # ext 32
             typ = TYPE_EXT
             self._reserve(5)
-            L, n = self._unpack_from('>Ib', self._buffer, self._buff_i)
+            L, n = _unpack_from('>Ib', self._buffer, self._buff_i)
             self._buff_i += 5
             if L > self._max_ext_len:
                 raise UnpackValueError("%s exceeds max_ext_len(%s)" % (L, self._max_ext_len))
             obj = self._read(L)
         elif b == 0xca:
             self._reserve(4)
-            obj = self._unpack_from(">f", self._buffer, self._buff_i)[0]
+            obj = _unpack_from(">f", self._buffer, self._buff_i)[0]
             self._buff_i += 4
         elif b == 0xcb:
             self._reserve(8)
-            obj = self._unpack_from(">d", self._buffer, self._buff_i)[0]
+            obj = _unpack_from(">d", self._buffer, self._buff_i)[0]
             self._buff_i += 8
         elif b == 0xcc:
             self._reserve(1)
@@ -444,66 +448,66 @@ class Unpacker(object):
             self._buff_i += 1
         elif b == 0xcd:
             self._reserve(2)
-            obj = self._unpack_from(">H", self._buffer, self._buff_i)[0]
+            obj = _unpack_from(">H", self._buffer, self._buff_i)[0]
             self._buff_i += 2
         elif b == 0xce:
             self._reserve(4)
-            obj = self._unpack_from(">I", self._buffer, self._buff_i)[0]
+            obj = _unpack_from(">I", self._buffer, self._buff_i)[0]
             self._buff_i += 4
         elif b == 0xcf:
             self._reserve(8)
-            obj = self._unpack_from(">Q", self._buffer, self._buff_i)[0]
+            obj = _unpack_from(">Q", self._buffer, self._buff_i)[0]
             self._buff_i += 8
         elif b == 0xd0:
             self._reserve(1)
-            obj = self._unpack_from("b", self._buffer, self._buff_i)[0]
+            obj = _unpack_from("b", self._buffer, self._buff_i)[0]
             self._buff_i += 1
         elif b == 0xd1:
             self._reserve(2)
-            obj = self._unpack_from(">h", self._buffer, self._buff_i)[0]
+            obj = _unpack_from(">h", self._buffer, self._buff_i)[0]
             self._buff_i += 2
         elif b == 0xd2:
             self._reserve(4)
-            obj = self._unpack_from(">i", self._buffer, self._buff_i)[0]
+            obj = _unpack_from(">i", self._buffer, self._buff_i)[0]
             self._buff_i += 4
         elif b == 0xd3:
             self._reserve(8)
-            obj = self._unpack_from(">q", self._buffer, self._buff_i)[0]
+            obj = _unpack_from(">q", self._buffer, self._buff_i)[0]
             self._buff_i += 8
         elif b == 0xd4:  # fixext 1
             typ = TYPE_EXT
             if self._max_ext_len < 1:
                 raise UnpackValueError("%s exceeds max_ext_len(%s)" % (1, self._max_ext_len))
             self._reserve(2)
-            n, obj = self._unpack_from("b1s", self._buffer, self._buff_i)
+            n, obj = _unpack_from("b1s", self._buffer, self._buff_i)
             self._buff_i += 2
         elif b == 0xd5:  # fixext 2
             typ = TYPE_EXT
             if self._max_ext_len < 2:
                 raise UnpackValueError("%s exceeds max_ext_len(%s)" % (2, self._max_ext_len))
             self._reserve(3)
-            n, obj = self._unpack_from("b2s", self._buffer, self._buff_i)
+            n, obj = _unpack_from("b2s", self._buffer, self._buff_i)
             self._buff_i += 3
         elif b == 0xd6:  # fixext 4
             typ = TYPE_EXT
             if self._max_ext_len < 4:
                 raise UnpackValueError("%s exceeds max_ext_len(%s)" % (4, self._max_ext_len))
             self._reserve(5)
-            n, obj = self._unpack_from("b4s", self._buffer, self._buff_i)
+            n, obj = _unpack_from("b4s", self._buffer, self._buff_i)
             self._buff_i += 5
         elif b == 0xd7:  # fixext 8
             typ = TYPE_EXT
             if self._max_ext_len < 8:
                 raise UnpackValueError("%s exceeds max_ext_len(%s)" % (8, self._max_ext_len))
             self._reserve(9)
-            n, obj = self._unpack_from("b8s", self._buffer, self._buff_i)
+            n, obj = _unpack_from("b8s", self._buffer, self._buff_i)
             self._buff_i += 9
         elif b == 0xd8:  # fixext 16
             typ = TYPE_EXT
             if self._max_ext_len < 16:
                 raise UnpackValueError("%s exceeds max_ext_len(%s)" % (16, self._max_ext_len))
             self._reserve(17)
-            n, obj = self._unpack_from("b16s", self._buffer, self._buff_i)
+            n, obj = _unpack_from("b16s", self._buffer, self._buff_i)
             self._buff_i += 17
         elif b == 0xd9:
             typ = TYPE_RAW
@@ -516,7 +520,7 @@ class Unpacker(object):
         elif b == 0xda:
             typ = TYPE_RAW
             self._reserve(2)
-            n, = self._unpack_from(">H", self._buffer, self._buff_i)
+            n, = _unpack_from(">H", self._buffer, self._buff_i)
             self._buff_i += 2
             if n > self._max_str_len:
                 raise UnpackValueError("%s exceeds max_str_len(%s)", n, self._max_str_len)
@@ -524,7 +528,7 @@ class Unpacker(object):
         elif b == 0xdb:
             typ = TYPE_RAW
             self._reserve(4)
-            n, = self._unpack_from(">I", self._buffer, self._buff_i)
+            n, = _unpack_from(">I", self._buffer, self._buff_i)
             self._buff_i += 4
             if n > self._max_str_len:
                 raise UnpackValueError("%s exceeds max_str_len(%s)", n, self._max_str_len)
@@ -532,27 +536,27 @@ class Unpacker(object):
         elif b == 0xdc:
             typ = TYPE_ARRAY
             self._reserve(2)
-            n, = self._unpack_from(">H", self._buffer, self._buff_i)
+            n, = _unpack_from(">H", self._buffer, self._buff_i)
             self._buff_i += 2
             if n > self._max_array_len:
                 raise UnpackValueError("%s exceeds max_array_len(%s)", n, self._max_array_len)
         elif b == 0xdd:
             typ = TYPE_ARRAY
             self._reserve(4)
-            n, = self._unpack_from(">I", self._buffer, self._buff_i)
+            n, = _unpack_from(">I", self._buffer, self._buff_i)
             self._buff_i += 4
             if n > self._max_array_len:
                 raise UnpackValueError("%s exceeds max_array_len(%s)", n, self._max_array_len)
         elif b == 0xde:
             self._reserve(2)
-            n, = self._unpack_from(">H", self._buffer, self._buff_i)
+            n, = _unpack_from(">H", self._buffer, self._buff_i)
             self._buff_i += 2
             if n > self._max_map_len:
                 raise UnpackValueError("%s exceeds max_map_len(%s)", n, self._max_map_len)
             typ = TYPE_MAP
         elif b == 0xdf:
             self._reserve(4)
-            n, = self._unpack_from(">I", self._buffer, self._buff_i)
+            n, = _unpack_from(">I", self._buffer, self._buff_i)
             self._buff_i += 4
             if n > self._max_map_len:
                 raise UnpackValueError("%s exceeds max_map_len(%s)", n, self._max_map_len)
