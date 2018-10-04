@@ -1,8 +1,10 @@
 import logging
+import os.path
 import sys
 
 import pytest
 from mock import Mock, patch
+from pip._vendor.six.moves.urllib import request as urllib_request
 from pkg_resources import Distribution, parse_version
 
 import pip._internal.pep425tags
@@ -552,3 +554,53 @@ def test_find_all_candidates_find_links_and_index(data):
     versions = finder.find_all_candidates('simple')
     # first the find-links versions then the page versions
     assert [str(v.version) for v in versions] == ['3.0', '2.0', '1.0', '1.0']
+
+
+def test_find_link_path(data):
+    """A find-links path pointing to an HTML file should be used.
+    """
+    find_links = os.path.join(data.packages3, "dinner", "index.html")
+    finder = PackageFinder.create([find_links], [], [], session=PipSession())
+    req = install_req_from_line('dinner', None)
+    link = finder.find_requirement(req, False)
+    assert link.url.endswith("Dinner-2.0.tar.gz")
+
+
+def test_find_link_url(data):
+    """A find-links URL pointing to an HTML file should be used.
+    """
+    find_links = "{}/dinner/index.html".format(data.find_links3.rstrip("/"))
+    finder = PackageFinder.create([find_links], [], [], session=PipSession())
+    req = install_req_from_line('dinner', None)
+    link = finder.find_requirement(req, False)
+    assert link.url.endswith("Dinner-2.0.tar.gz")
+
+
+def test_find_link_url_not_exist(caplog, tmpdir, data):
+    """A find-links file: URL that does not exist should be ignored.
+    """
+    find_links_exist = "{}/dinner/index.html".format(
+        data.find_links3.rstrip("/"),
+    )
+    find_links_notexist = "file:///{}".format(
+        urllib_request.pathname2url(tmpdir.join("doesnotexist")).lstrip("/"),
+    )
+    finder = PackageFinder.create(
+        [find_links_notexist, find_links_exist], [], [],
+        session=PipSession(),
+    )
+    req = install_req_from_line('dinner', None)
+
+    with caplog.at_level(logging.WARNING):
+        link = finder.find_requirement(req, False)
+
+    assert link.url.endswith("Dinner-2.0.tar.gz")
+
+    record_tuple = (
+        "pip._internal.index",
+        logging.WARNING,
+        "Url '{}' is ignored: it is neither a file nor a directory.".format(
+            find_links_notexist,
+        ),
+    )
+    assert record_tuple in caplog.record_tuples

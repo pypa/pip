@@ -1,5 +1,4 @@
 import logging
-import os.path
 import sys
 
 import pytest
@@ -36,38 +35,6 @@ class TestCandidateEvaluator:
         # Get the index of the second dot.
         index = sys.version.find('.', 2)
         assert evaluator._py_version == sys.version[:index]
-
-
-def test_sort_locations_file_expand_dir(data):
-    """
-    Test that a file:// dir gets listdir run with expand_dir
-    """
-    finder = PackageFinder.create([data.find_links], [], session=PipSession())
-    files, urls = finder._sort_locations([data.find_links], expand_dir=True)
-    assert files and not urls, (
-        "files and not urls should have been found at find-links url: %s" %
-        data.find_links
-    )
-
-
-def test_sort_locations_file_not_find_link(data):
-    """
-    Test that a file:// url dir that's not a find-link, doesn't get a listdir
-    run
-    """
-    finder = PackageFinder.create([], [], session=PipSession())
-    files, urls = finder._sort_locations([data.index_url("empty_with_pkg")])
-    assert urls and not files, "urls, but not files should have been found"
-
-
-def test_sort_locations_non_existing_path():
-    """
-    Test that a non-existing path is ignored.
-    """
-    finder = PackageFinder.create([], [], session=PipSession())
-    files, urls = finder._sort_locations(
-        [os.path.join('this', 'doesnt', 'exist')])
-    assert not urls and not files, "nothing should have been found"
 
 
 class TestLink(object):
