@@ -20,6 +20,10 @@ class RequirementTracker(object):
             self._temp_dir.create()
             self._root = os.environ['PIP_REQ_TRACKER'] = self._temp_dir.path
             logger.debug('Created requirements tracker %r', self._root)
+            # Ensure the directory is not left empty, so it does not get
+            # deleted behind our backs by Windows' SilentCleanup task
+            # (while pip is busy with a big download).
+            open(os.path.join(self._root, 'not_empty'), 'w').close()
         else:
             self._temp_dir = None
             logger.debug('Re-using requirements tracker %r', self._root)
