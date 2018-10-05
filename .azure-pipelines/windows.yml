@@ -1,8 +1,8 @@
 jobs:
 - template: jobs/test.yml
   parameters:
-    vmImage: vs2017-win2017
+    vmImage: vs2017-win2016
 
 - template: jobs/package.yml
   parameters:
-    vmImage: vs2017-win2017
+    vmImage: vs2017-win2016
