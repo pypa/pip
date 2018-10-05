@@ -1,8 +1,8 @@
 jobs:
 - template: jobs/test.yml
   parameters:
-    vmImage: Hosted Linux Preview
+    pool: Hosted Linux Preview
 
 - template: jobs/package.yml
   parameters:
-    vmImage: Hosted Linux Preview
+    pool: Hosted Linux Preview

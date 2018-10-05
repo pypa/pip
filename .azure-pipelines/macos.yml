@@ -1,8 +1,8 @@
 jobs:
 - template: jobs/test.yml
   parameters:
-    vmImage: Hosted Mac Internal
+    pool: Hosted Mac Internal
 
 - template: jobs/package.yml
   parameters:
-    vmImage: Hosted Mac Internal
+    pool: Hosted Mac Internal

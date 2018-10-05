@@ -1,12 +1,11 @@
 parameters:
-  vmImage:
+  pool:
 
 jobs:
 - job: Test
   displayName: Test
 
-  pool:
-    vmImage: ${{ parameters.vmImage }}
+  pool: ${{ parameters.pool }}
   strategy:
     matrix:
       Python27:

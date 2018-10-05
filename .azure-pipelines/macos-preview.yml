@@ -1,8 +1,8 @@
 jobs:
 - template: jobs/test.yml
   parameters:
-    vmImage: Hosted macOS Preview
+    pool: Hosted macOS Preview
 
 - template: jobs/package.yml
   parameters:
-    vmImage: Hosted macOS Preview
+    pool: Hosted macOS Preview

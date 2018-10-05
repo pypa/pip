@@ -1,12 +1,11 @@
 parameters:
-  vmImage:
+  pool:
 
 jobs:
 - job: Package
   dependsOn:
     - Test
-  pool:
-    vmImage: ${{ parameters.vmImage }}
+  pool: ${{ parameters.pool }}
 
   steps:
   - task: UsePythonVersion@0

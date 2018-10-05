@@ -1,12 +1,11 @@
 parameters:
-  vmImage:
+  pool:
 
 jobs:
 - job: Test
   displayName: Test Primary
 
-  pool:
-    vmImage: ${{ parameters.vmImage }}
+  pool: ${{ parameters.pool }}
   strategy:
     matrix:
       Python27:
@@ -28,8 +27,7 @@ jobs:
   # Run after Test_Primary so we don't devour time and jobs if tests are going to fail
   dependsOn: Test
 
-  pool:
-    vmImage: ${{ parameters.vmImage }}
+  pool: ${{ parameters.pool }}
   strategy:
     matrix:
       Python34:
