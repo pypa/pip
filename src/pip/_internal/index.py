@@ -504,8 +504,8 @@ class PackageFinder(object):
         # We want to filter out any thing which does not have a secure origin.
         url_locations = [
             link for link in itertools.chain(
-                (Link(url) for url in index_url_loc),
                 (Link(url) for url in fl_url_loc),
+                (Link(url) for url in index_url_loc),
                 (Link(url) for url in dep_url_loc),
             )
             if self._validate_secure_origin(logger, link)
