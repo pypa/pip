@@ -1,3 +1,0 @@
-steps:
-- bash: pip install --upgrade setuptools tox
-  displayName: Install dependencies

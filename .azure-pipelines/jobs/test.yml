@@ -18,13 +18,7 @@ jobs:
     maxParallel: 2
 
   steps:
-  - ${{ if eq(parameters.vmImage, 'vs2017-win2017') }}:
-    - template: ../steps/run-tests-windows.yml
-      parameters:
-        runIntegrationTests: true
-
-  - ${{ if ne(parameters.vmImage, 'vs2017-win2017') }}:
-    - template: ../steps/run-tests.yml
+  - template: ../steps/run-tests.yml
 
 - job: Test_Secondary
   displayName: Test Secondary
@@ -44,30 +38,7 @@ jobs:
       Python37:
         python.version: '3.7'
         python.architecture: x64
-      # On Windows, test x86 builds
-      ${{ if eq(parameters.vmImage, 'vs2017-win2017') }}:
-        Python27-x86:
-          python.version: '2.7'
-          python.architecture: x86
-        Python34-x86:
-          python.version: '3.4'
-          python.architecture: x86
-        Python35-x86:
-          python.version: '3.5'
-          python.architecture: x86
-        Python36-x86:
-          python.version: '3.6'
-          python.architecture: x86
-        Python37-x86:
-          python.version: '3.7'
-          python.architecture: x86
-    maxParallel: 5
+    maxParallel: 3
 
   steps:
-  - ${{ if eq(parameters.vmImage, 'vs2017-win2017') }}:
-    - template: ../steps/run-tests-windows.yml
-      parameters:
-        runIntegrationTests: false
-
-  - ${{ if ne(parameters.vmImage, 'vs2017-win2017') }}:
-    - template: ../steps/run-tests.yml
+  - template: ../steps/run-tests.yml
