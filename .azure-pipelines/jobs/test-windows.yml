@@ -2,7 +2,7 @@ parameters:
   vmImage:
 
 jobs:
-- job: Test
+- job: Test_Primary
   displayName: Test Primary
 
   pool:
