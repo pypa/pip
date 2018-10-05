@@ -1,8 +1,8 @@
 jobs:
 - template: jobs/test-windows.yml
   parameters:
-    pool: { vmImage: vs2017-win2017 }
+    pool: { vmImage: vs2017-win2016 }
 
 - template: jobs/package.yml
   parameters:
-    pool: { vmImage: vs2017-win2017 }
+    pool: { vmImage: vs2017-win2016 }
