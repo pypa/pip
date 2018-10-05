@@ -520,15 +520,11 @@ def untar_file(filename, location):
         mode = 'r:*'
     tar = tarfile.open(filename, mode)
     try:
-        # note: python<=2.5 doesn't seem to know about pax headers, filter them
         leading = has_leading_dir([
             member.name for member in tar.getmembers()
-            if member.name != 'pax_global_header'
         ])
         for member in tar.getmembers():
             fn = member.name
-            if fn == 'pax_global_header':
-                continue
             if leading:
                 fn = split_leading_dir(fn)[1]
             path = os.path.join(location, fn)
