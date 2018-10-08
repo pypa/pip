@@ -1,11 +1,13 @@
+import logging
 import os.path
 
 import pytest
-from pip._vendor import html5lib
+from mock import Mock
+from pip._vendor import html5lib, requests
 
 from pip._internal.download import PipSession
 from pip._internal.index import (
-    Link, PackageFinder, _determine_base_url, egg_info_matches,
+    Link, PackageFinder, _determine_base_url, _get_html_page, egg_info_matches,
 )
 
 
@@ -190,3 +192,28 @@ def test_egg_info_matches(egg_info, search_name, expected):
     link = None     # Only used for reporting.
     version = egg_info_matches(egg_info, search_name, link)
     assert version == expected
+
+
+def test_request_http_error(caplog):
+    caplog.set_level(logging.DEBUG)
+    link = Link('http://localhost')
+    session = Mock(PipSession)
+    session.get.return_value = resp = Mock()
+    resp.raise_for_status.side_effect = requests.HTTPError('Http error')
+    assert _get_html_page(link, session=session) is None
+    assert (
+        'Could not fetch URL http://localhost: Http error - skipping'
+        in caplog.text
+    )
+
+
+def test_request_retries(caplog):
+    caplog.set_level(logging.DEBUG)
+    link = Link('http://localhost')
+    session = Mock(PipSession)
+    session.get.side_effect = requests.exceptions.RetryError('Retry error')
+    assert _get_html_page(link, session=session) is None
+    assert (
+        'Could not fetch URL http://localhost: Retry error - skipping'
+        in caplog.text
+    )
