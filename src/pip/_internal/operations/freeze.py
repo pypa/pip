@@ -176,10 +176,8 @@ class FrozenRequirement(object):
         This method is for use in FrozenRequirement.from_dist().
         """
         location = os.path.normcase(os.path.abspath(dist.location))
-        comments = []
         from pip._internal.vcs import vcs, get_src_requirement
         if dist_is_editable(dist) and vcs.get_backend_name(location):
-            editable = True
             try:
                 req = get_src_requirement(dist, location)
             except InstallationError as exc:
@@ -187,62 +185,58 @@ class FrozenRequirement(object):
                     "Error when trying to get requirement for VCS system %s, "
                     "falling back to uneditable format", exc
                 )
-                req = None
-            if req is None:
-                logger.warning(
-                    'Could not determine repository location of %s', location
-                )
-                comments.append(
-                    '## !! Could not determine repository location'
-                )
-                req = dist.as_requirement()
-                editable = False
-        else:
-            editable = False
-            req = dist.as_requirement()
-            specs = req.specs
-            assert len(specs) == 1 and specs[0][0] in ["==", "==="], \
-                'Expected 1 spec with == or ===; specs = %r; dist = %r' % \
-                (specs, dist)
-            version = specs[0][1]
-            ver_match = cls._rev_re.search(version)
-            date_match = cls._date_re.search(version)
-            if ver_match or date_match:
-                svn_backend = vcs.get_backend('svn')
-                if svn_backend:
-                    svn_location = svn_backend().get_location(
-                        dist,
-                        dependency_links,
-                    )
-                if not svn_location:
-                    logger.warning(
-                        'Warning: cannot find svn location for %s', req,
-                    )
-                    comments.append(
-                        '## FIXME: could not find svn URL in dependency_links '
-                        'for this package:'
-                    )
-                else:
-                    deprecated(
-                        "SVN editable detection based on dependency links "
-                        "will be dropped in the future.",
-                        replacement=None,
-                        gone_in="19.0",
-                        issue=4187,
-                    )
-                    comments.append(
-                        '# Installing as editable to satisfy requirement %s:' %
-                        req
-                    )
-                    if ver_match:
-                        rev = ver_match.group(1)
-                    else:
-                        rev = '{%s}' % date_match.group(1)
-                    editable = True
-                    egg_name = cls.egg_name(dist)
-                    req = make_vcs_requirement_url(svn_location, rev, egg_name)
+            else:
+                if req is not None:
+                    return (req, True, [])
 
-        return (req, editable, comments)
+            logger.warning(
+                'Could not determine repository location of %s', location
+            )
+            comments = ['## !! Could not determine repository location']
+            req = dist.as_requirement()
+
+            return (req, False, comments)
+
+        req = dist.as_requirement()
+        specs = req.specs
+        assert len(specs) == 1 and specs[0][0] in ["==", "==="], \
+            'Expected 1 spec with == or ===; specs = %r; dist = %r' % \
+            (specs, dist)
+        version = specs[0][1]
+        ver_match = cls._rev_re.search(version)
+        date_match = cls._date_re.search(version)
+        if not (ver_match or date_match):
+            return (req, False, [])
+
+        svn_backend = vcs.get_backend('svn')
+        if svn_backend:
+            svn_location = svn_backend().get_location(dist, dependency_links)
+        if not svn_location:
+            logger.warning('Warning: cannot find svn location for %s', req)
+            comments = [
+                '## FIXME: could not find svn URL in dependency_links '
+                'for this package:'
+            ]
+            return (req, False, comments)
+
+        deprecated(
+            "SVN editable detection based on dependency links "
+            "will be dropped in the future.",
+            replacement=None,
+            gone_in="19.0",
+            issue=4187,
+        )
+        comments = [
+            '# Installing as editable to satisfy requirement %s:' % req
+        ]
+        if ver_match:
+            rev = ver_match.group(1)
+        else:
+            rev = '{%s}' % date_match.group(1)
+        egg_name = cls.egg_name(dist)
+        req = make_vcs_requirement_url(svn_location, rev, egg_name)
+
+        return (req, True, comments)
 
     @classmethod
     def from_dist(cls, dist, dependency_links):
