@@ -293,7 +293,7 @@ class PackageFinder(object):
                 "Dependency Links processing has been deprecated and will be "
                 "removed in a future release.",
                 replacement="PEP 508 URL dependencies",
-                gone_in="18.2",
+                gone_in="19.0",
                 issue=4187,
             )
             self.dependency_links.extend(links)
