@@ -26,15 +26,14 @@ def test_pep518_uses_build_env(script, data, common_wheels, command, variant):
     if variant == 'missing_setuptools':
         script.pip("uninstall", "-y", "setuptools")
     elif variant == 'bad_setuptools':
-        setuptools_init_path = script.site_packages_path.join(
-            "setuptools", "__init__.py")
-        with open(setuptools_init_path, 'a') as f:
+        setuptools_mod = script.site_packages_path.join("setuptools.py")
+        with open(setuptools_mod, 'a') as f:
             f.write('\nraise ImportError("toto")')
     else:
         raise ValueError(variant)
     script.pip(
         command, '--no-index', '-f', common_wheels, '-f', data.packages,
-        data.src.join("pep518-3.0"), use_module=True
+        data.src.join("pep518-3.0"),
     )
 
 
@@ -74,11 +73,8 @@ def test_pep518_allows_missing_requires(script, data, common_wheels):
     assert result.files_created
 
 
-def test_pep518_with_user_pip(script, virtualenv, pip_src,
-                              data, common_wheels):
-    virtualenv.system_site_packages = True
-    script.pip("install", "--ignore-installed", "--user", pip_src,
-               use_module=True)
+def test_pep518_with_user_pip(script, pip_src, data, common_wheels):
+    script.pip("install", "--ignore-installed", "--user", pip_src)
     system_pip_dir = script.site_packages_path / 'pip'
     system_pip_dir.rmtree()
     system_pip_dir.mkdir()
@@ -86,7 +82,7 @@ def test_pep518_with_user_pip(script, virtualenv, pip_src,
         fp.write('raise ImportError\n')
     script.pip(
         'wheel', '--no-index', '-f', common_wheels, '-f', data.packages,
-        data.src.join("pep518-3.0"), use_module=True,
+        data.src.join("pep518-3.0"),
     )
 
 
@@ -96,7 +92,6 @@ def test_pep518_with_extra_and_markers(script, data, common_wheels):
         '-f', common_wheels,
         '-f', data.find_links,
         data.src.join("pep518_with_extra_and_markers-1.0"),
-        use_module=True,
     )
 
 
@@ -130,10 +125,12 @@ def test_pep518_forkbombs(script, data, common_wheels, command, package):
 
 
 @pytest.mark.network
-def test_pip_second_command_line_interface_works(script, data):
+def test_pip_second_command_line_interface_works(script, data, pip_src):
     """
     Check if ``pip<PYVERSION>`` commands behaves equally
     """
+    # Re-install pip so we get the launchers.
+    script.pip_install_local('--no-build-isolation', pip_src)
     # On old versions of Python, urllib3/requests will raise a warning about
     # the lack of an SSLContext.
     kwargs = {}
@@ -226,10 +223,8 @@ def test_basic_install_editable_from_git(script, tmpdir):
     _test_install_editable_from_git(script, tmpdir)
 
 
-@pytest.mark.network
 def test_install_editable_from_git_autobuild_wheel(
-        script, tmpdir, common_wheels):
-    script.pip('install', 'wheel', '--no-index', '-f', common_wheels)
+        script, tmpdir, with_wheel):
     _test_install_editable_from_git(script, tmpdir)
 
 
@@ -742,14 +737,11 @@ def test_install_nonlocal_compatible_wheel_path(script, data):
     assert result.returncode == ERROR
 
 
-def test_install_with_target_and_scripts_no_warning(script, common_wheels):
+def test_install_with_target_and_scripts_no_warning(script, with_wheel):
     """
     Test that installing with --target does not trigger the "script not
     in PATH" warning (issue #5201)
     """
-    # We need to have wheel installed so that the project builds via a wheel,
-    # which is the only execution path that has the script warning.
-    script.pip('install', 'wheel', '--no-index', '-f', common_wheels)
     target_dir = script.scratch_path / 'target'
     pkga_path = script.scratch_path / 'pkga'
     pkga_path.mkdir()
@@ -1093,23 +1085,13 @@ def test_install_topological_sort(script, data):
     assert order1 in res or order2 in res, res
 
 
-@pytest.mark.network
-def test_install_wheel_broken(script, data, common_wheels):
-    script.pip('install', 'wheel', '--no-index', '-f', common_wheels)
-    res = script.pip(
-        'install', '--no-index', '-f', data.find_links, '-f', common_wheels,
-        'wheelbroken',
-        expect_stderr=True)
+def test_install_wheel_broken(script, with_wheel):
+    res = script.pip_install_local('wheelbroken', expect_stderr=True)
     assert "Successfully installed wheelbroken-0.1" in str(res), str(res)
 
 
-@pytest.mark.network
-def test_cleanup_after_failed_wheel(script, data, common_wheels):
-    script.pip('install', 'wheel', '--no-index', '-f', common_wheels)
-    res = script.pip(
-        'install', '--no-index', '-f', data.find_links, '-f', common_wheels,
-        'wheelbrokenafter',
-        expect_stderr=True)
+def test_cleanup_after_failed_wheel(script, with_wheel):
+    res = script.pip_install_local('wheelbrokenafter', expect_stderr=True)
     # One of the effects of not cleaning up is broken scripts:
     script_py = script.bin_path / "script.py"
     assert script_py.exists, script_py
@@ -1119,8 +1101,7 @@ def test_cleanup_after_failed_wheel(script, data, common_wheels):
     assert "Running setup.py clean for wheelbrokenafter" in str(res), str(res)
 
 
-@pytest.mark.network
-def test_install_builds_wheels(script, data, common_wheels):
+def test_install_builds_wheels(script, data, with_wheel):
     # We need to use a subprocess to get the right value on Windows.
     res = script.run('python', '-c', (
         'from pip._internal.utils import appdirs; '
@@ -1130,10 +1111,9 @@ def test_install_builds_wheels(script, data, common_wheels):
     # NB This incidentally tests a local tree + tarball inputs
     # see test_install_editable_from_git_autobuild_wheel for editable
     # vcs coverage.
-    script.pip('install', 'wheel', '--no-index', '-f', common_wheels)
     to_install = data.packages.join('requires_wheelbroken_upper')
     res = script.pip(
-        'install', '--no-index', '-f', data.find_links, '-f', common_wheels,
+        'install', '--no-index', '-f', data.find_links,
         to_install, expect_stderr=True)
     expected = ("Successfully installed requires-wheelbroken-upper-0"
                 " upper-2.0 wheelbroken-0.1")
@@ -1162,14 +1142,10 @@ def test_install_builds_wheels(script, data, common_wheels):
     ]
 
 
-@pytest.mark.network
-def test_install_no_binary_disables_building_wheels(
-        script, data, common_wheels):
-    script.pip('install', 'wheel', '--no-index', '-f', common_wheels)
+def test_install_no_binary_disables_building_wheels(script, data, with_wheel):
     to_install = data.packages.join('requires_wheelbroken_upper')
     res = script.pip(
         'install', '--no-index', '--no-binary=upper', '-f', data.find_links,
-        '-f', common_wheels,
         to_install, expect_stderr=True)
     expected = ("Successfully installed requires-wheelbroken-upper-0"
                 " upper-2.0 wheelbroken-0.1")
@@ -1188,12 +1164,10 @@ def test_install_no_binary_disables_building_wheels(
     assert "Running setup.py install for upper" in str(res), str(res)
 
 
-@pytest.mark.network
-def test_install_no_binary_disables_cached_wheels(script, data, common_wheels):
-    script.pip('install', 'wheel', '--no-index', '-f', common_wheels)
+def test_install_no_binary_disables_cached_wheels(script, data, with_wheel):
     # Seed the cache
     script.pip(
-        'install', '--no-index', '-f', data.find_links, '-f', common_wheels,
+        'install', '--no-index', '-f', data.find_links,
         'upper')
     script.pip('uninstall', 'upper', '-y')
     res = script.pip(
@@ -1246,7 +1220,6 @@ def test_double_install(script):
     Test double install passing with two same version requirements
     """
     result = script.pip('install', 'pip', 'pip',
-                        use_module=True,
                         expect_error=False)
     msg = "Double requirement given: pip (already in pip, name='pip')"
     assert msg not in result.stderr
@@ -1262,7 +1235,7 @@ def test_double_install_fail(script):
     assert msg in result.stderr
 
 
-def test_install_incompatible_python_requires(script, common_wheels):
+def test_install_incompatible_python_requires(script):
     script.scratch_path.join("pkga").mkdir()
     pkga_path = script.scratch_path / 'pkga'
     pkga_path.join("setup.py").write(textwrap.dedent("""
@@ -1271,16 +1244,12 @@ def test_install_incompatible_python_requires(script, common_wheels):
               python_requires='<1.0',
               version='0.1')
     """))
-    script.pip(
-        'install', 'setuptools>24.2',  # This should not be needed
-        '--no-index', '-f', common_wheels,
-    )
     result = script.pip('install', pkga_path, expect_error=True)
     assert ("pkga requires Python '<1.0' "
             "but the running Python is ") in result.stderr, str(result)
 
 
-def test_install_incompatible_python_requires_editable(script, common_wheels):
+def test_install_incompatible_python_requires_editable(script):
     script.scratch_path.join("pkga").mkdir()
     pkga_path = script.scratch_path / 'pkga'
     pkga_path.join("setup.py").write(textwrap.dedent("""
@@ -1289,18 +1258,13 @@ def test_install_incompatible_python_requires_editable(script, common_wheels):
               python_requires='<1.0',
               version='0.1')
     """))
-    script.pip(
-        'install', 'setuptools>24.2',  # This should not be needed
-        '--no-index', '-f', common_wheels,
-    )
     result = script.pip(
         'install', '--editable=%s' % pkga_path, expect_error=True)
     assert ("pkga requires Python '<1.0' "
             "but the running Python is ") in result.stderr, str(result)
 
 
-@pytest.mark.network
-def test_install_incompatible_python_requires_wheel(script, common_wheels):
+def test_install_incompatible_python_requires_wheel(script, with_wheel):
     script.scratch_path.join("pkga").mkdir()
     pkga_path = script.scratch_path / 'pkga'
     pkga_path.join("setup.py").write(textwrap.dedent("""
@@ -1309,11 +1273,6 @@ def test_install_incompatible_python_requires_wheel(script, common_wheels):
               python_requires='<1.0',
               version='0.1')
     """))
-    script.pip(
-        'install', 'setuptools>24.2',  # This should not be needed
-        '--no-index', '-f', common_wheels,
-    )
-    script.pip('install', 'wheel', '--no-index', '-f', common_wheels)
     script.run(
         'python', 'setup.py', 'bdist_wheel', '--universal', cwd=pkga_path)
     result = script.pip('install', './pkga/dist/pkga-0.1-py2.py3-none-any.whl',
@@ -1322,7 +1281,7 @@ def test_install_incompatible_python_requires_wheel(script, common_wheels):
             "but the running Python is ") in result.stderr
 
 
-def test_install_compatible_python_requires(script, common_wheels):
+def test_install_compatible_python_requires(script):
     script.scratch_path.join("pkga").mkdir()
     pkga_path = script.scratch_path / 'pkga'
     pkga_path.join("setup.py").write(textwrap.dedent("""
@@ -1331,10 +1290,6 @@ def test_install_compatible_python_requires(script, common_wheels):
               python_requires='>1.0',
               version='0.1')
     """))
-    script.pip(
-        'install', 'setuptools>24.2',  # This should not be needed
-        '--no-index', '-f', common_wheels,
-    )
     res = script.pip('install', pkga_path, expect_error=True)
     assert "Successfully installed pkga-0.1" in res.stdout, res
 

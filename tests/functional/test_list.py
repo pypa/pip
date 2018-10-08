@@ -99,12 +99,11 @@ def test_local_columns_flag(script, data):
 
 
 @pytest.mark.network
-def test_user_flag(script, data, virtualenv):
+def test_user_flag(script, data):
     """
     Test the behavior of --user flag in the list command
 
     """
-    virtualenv.system_site_packages = True
     script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
     script.pip('install', '-f', data.find_links, '--no-index',
@@ -116,12 +115,11 @@ def test_user_flag(script, data, virtualenv):
 
 
 @pytest.mark.network
-def test_user_columns_flag(script, data, virtualenv):
+def test_user_columns_flag(script, data):
     """
     Test the behavior of --user --format=columns flags in the list command
 
     """
-    virtualenv.system_site_packages = True
     script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
     script.pip('install', '-f', data.find_links, '--no-index',

@@ -1,3 +1,4 @@
+import compileall
 import io
 import os
 import shutil
@@ -6,9 +7,10 @@ import sys
 
 import pytest
 import six
+from setuptools.wheel import Wheel
 
 import pip._internal
-from tests.lib import SRC_DIR, TestData
+from tests.lib import DATA_DIR, SRC_DIR, TestData
 from tests.lib.path import Path
 from tests.lib.scripttest import PipTestEnvironment
 from tests.lib.venv import VirtualEnvironment
@@ -163,62 +165,69 @@ def pip_src(tmpdir_factory):
     return pip_src
 
 
+def _common_wheel_editable_install(tmpdir_factory, common_wheels, package):
+    wheel_candidates = list(common_wheels.glob('%s-*.whl' % package))
+    assert len(wheel_candidates) == 1, wheel_candidates
+    install_dir = Path(str(tmpdir_factory.mktemp(package))) / 'install'
+    Wheel(wheel_candidates[0]).install_as_egg(install_dir)
+    (install_dir / 'EGG-INFO').rename(install_dir / '%s.egg-info' % package)
+    assert compileall.compile_dir(str(install_dir), quiet=1)
+    return install_dir
+
+
+@pytest.fixture(scope='session')
+def setuptools_install(tmpdir_factory, common_wheels):
+    return _common_wheel_editable_install(tmpdir_factory,
+                                          common_wheels,
+                                          'setuptools')
+
+
+@pytest.fixture(scope='session')
+def wheel_install(tmpdir_factory, common_wheels):
+    return _common_wheel_editable_install(tmpdir_factory,
+                                          common_wheels,
+                                          'wheel')
+
+
+def install_egg_link(venv, project_name, egg_info_dir):
+    with open(venv.site / 'easy-install.pth', 'a') as fp:
+        fp.write(str(egg_info_dir.abspath) + '\n')
+    with open(venv.site / (project_name + '.egg-link'), 'w') as fp:
+        fp.write(str(egg_info_dir) + '\n.')
+
+
 @pytest.yield_fixture(scope='session')
-def virtualenv_template(tmpdir_factory, pip_src):
-    tmpdir = Path(str(tmpdir_factory.mktemp('virtualenv')))
+def virtualenv_template(tmpdir_factory, pip_src,
+                        setuptools_install, common_wheels):
+
     # Create the virtual environment
-    venv = VirtualEnvironment.create(
-        tmpdir.join("venv_orig"),
-        pip_source_dir=pip_src,
-        relocatable=True,
-    )
-    # Fix `site.py`.
-    site_py = venv.lib / 'site.py'
-    with open(site_py) as fp:
-        site_contents = fp.read()
-    for pattern, replace in (
-        (
-            # Ensure `virtualenv.system_site_packages = True` (needed
-            # for testing `--user`) does not result in adding the real
-            # site-packages' directory to `sys.path`.
-            (
-                '\ndef virtual_addsitepackages(known_paths):\n'
-            ),
-            (
-                '\ndef virtual_addsitepackages(known_paths):\n'
-                '    return known_paths\n'
-            ),
-        ),
-        (
-            # Fix sites ordering: user site must be added before system site.
-            (
-                '\n    paths_in_sys = addsitepackages(paths_in_sys)'
-                '\n    paths_in_sys = addusersitepackages(paths_in_sys)\n'
-            ),
-            (
-                '\n    paths_in_sys = addusersitepackages(paths_in_sys)'
-                '\n    paths_in_sys = addsitepackages(paths_in_sys)\n'
-            ),
-        ),
-    ):
-        assert pattern in site_contents
-        site_contents = site_contents.replace(pattern, replace)
-    with open(site_py, 'w') as fp:
-        fp.write(site_contents)
-    if sys.platform == 'win32':
-        # Work around setuptools' easy_install.exe
-        # not working properly after relocation.
-        for exe in os.listdir(venv.bin):
-            if exe.startswith('easy_install'):
-                (venv.bin / exe).remove()
-        with open(venv.bin / 'easy_install.bat', 'w') as fp:
-            fp.write('python.exe -m easy_install %*\n')
+    tmpdir = Path(str(tmpdir_factory.mktemp('virtualenv')))
+    venv = VirtualEnvironment(tmpdir.join("venv_orig"))
+
+    # Install setuptools and pip.
+    install_egg_link(venv, 'setuptools', setuptools_install)
+    pip_editable = Path(str(tmpdir_factory.mktemp('pip'))) / 'pip'
+    pip_src.copytree(pip_editable)
+    assert compileall.compile_dir(str(pip_editable), quiet=1)
+    subprocess.check_call([venv.bin / 'python', 'setup.py', '-q', 'develop'],
+                          cwd=pip_editable)
+
+    # Drop (non-relocatable) launchers.
+    for exe in os.listdir(venv.bin):
+        if not (
+            exe.startswith('python') or
+            exe.startswith('libpy')  # Don't remove libpypy-c.so...
+        ):
+            (venv.bin / exe).remove()
+
+    # Enable user site packages.
+    venv.user_site_packages = True
 
     # Rename original virtualenv directory to make sure
     # it's not reused by mistake from one of the copies.
     venv_template = tmpdir / "venv_template"
-    os.rename(venv.location, venv_template)
-    yield venv_template
+    venv.move(venv_template)
+    yield venv
     tmpdir.rmtree(noerrors=True)
 
 
@@ -231,10 +240,13 @@ def virtualenv(virtualenv_template, tmpdir, isolate):
     ``tests.lib.venv.VirtualEnvironment`` object.
     """
     venv_location = tmpdir.join("workspace", "venv")
-    shutil.copytree(virtualenv_template, venv_location, symlinks=True)
-    venv = VirtualEnvironment(venv_location)
-    yield venv
+    yield VirtualEnvironment(venv_location, virtualenv_template)
     venv_location.rmtree(noerrors=True)
+
+
+@pytest.fixture
+def with_wheel(virtualenv, wheel_install):
+    install_egg_link(virtualenv, 'wheel', wheel_install)
 
 
 @pytest.fixture
@@ -250,7 +262,7 @@ def script(tmpdir, virtualenv):
         tmpdir.join("workspace"),
 
         # Tell the Test Environment where our virtualenv is located
-        virtualenv=virtualenv.location,
+        virtualenv=virtualenv,
 
         # Do not ignore hidden files, they need to be checked as well
         ignore_hidden=False,
@@ -266,15 +278,9 @@ def script(tmpdir, virtualenv):
 
 
 @pytest.fixture(scope="session")
-def common_wheels(tmpdir_factory):
+def common_wheels():
     """Provide a directory with latest setuptools and wheel wheels"""
-    wheels_dir = tmpdir_factory.mktemp('common_wheels')
-    subprocess.check_call([
-        'pip', 'download', 'wheel', 'setuptools',
-        '-d', str(wheels_dir),
-    ])
-    yield wheels_dir
-    wheels_dir.remove(ignore_errors=True)
+    return DATA_DIR.join('common_wheels')
 
 
 @pytest.fixture

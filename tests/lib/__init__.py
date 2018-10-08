@@ -11,8 +11,6 @@ import subprocess
 
 import pytest
 import scripttest
-import six
-import virtualenv
 
 from tests.lib.path import Path, curdir
 
@@ -38,15 +36,6 @@ def path_to_url(path):
         # behavior: uppercase the drive letter.
         return 'file:///' + drive.upper() + url
     return 'file://' + url
-
-
-# workaround for https://github.com/pypa/virtualenv/issues/306
-def virtualenv_lib_path(venv_home, venv_lib):
-    if not hasattr(sys, "pypy_version_info"):
-        return venv_lib
-    version_fmt = '{0}' if six.PY3 else '{0}.{1}'
-    version_dir = version_fmt.format(*sys.version_info)
-    return os.path.join(venv_home, 'lib-python', version_dir)
 
 
 def create_file(path, contents=None):
@@ -281,19 +270,11 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
         base_path = Path(base_path)
 
         # Store paths related to the virtual environment
-        _virtualenv = kwargs.pop("virtualenv")
-        path_locations = virtualenv.path_locations(_virtualenv)
-        # Make sure we have test.lib.path.Path objects
-        venv, lib, include, bin = map(Path, path_locations)
-        self.venv_path = venv
-        self.lib_path = virtualenv_lib_path(venv, lib)
-        self.include_path = include
-        self.bin_path = bin
-
-        if hasattr(sys, "pypy_version_info"):
-            self.site_packages_path = self.venv_path.join("site-packages")
-        else:
-            self.site_packages_path = self.lib_path.join("site-packages")
+        venv = kwargs.pop("virtualenv")
+        self.venv_path = venv.location
+        self.lib_path = venv.lib
+        self.site_packages_path = venv.site
+        self.bin_path = venv.bin
 
         self.user_base_path = self.venv_path.join("user")
         self.user_site_path = self.venv_path.join(
@@ -336,7 +317,7 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
         super(PipTestEnvironment, self).__init__(base_path, *args, **kwargs)
 
         # Expand our absolute path directories into relative
-        for name in ["base", "venv", "lib", "include", "bin", "site_packages",
+        for name in ["base", "venv", "bin", "lib", "site_packages",
                      "user_base", "user_site", "user_bin", "scratch"]:
             real_name = "%s_path" % name
             setattr(self, name, getattr(self, real_name) - self.base_path)
@@ -380,7 +361,7 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
         if (pyversion_tuple < (2, 7, 9) and
                 args and args[0] in ('search', 'install', 'download')):
             kwargs['expect_stderr'] = True
-        if kwargs.pop('use_module', False):
+        if kwargs.pop('use_module', True):
             exe = 'python'
             args = ('-m', 'pip') + args
         else:
@@ -393,6 +374,10 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
             "--find-links", path_to_url(os.path.join(DATA_DIR, "packages")),
             *args, **kwargs
         )
+
+    def easy_install(self, *args, **kwargs):
+        args = ('-m', 'easy_install') + args
+        return self.run('python', *args, **kwargs)
 
 
 # FIXME ScriptTest does something similar, but only within a single
