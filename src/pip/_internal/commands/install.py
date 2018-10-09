@@ -152,6 +152,8 @@ class InstallCommand(RequirementCommand):
 
         cmd_opts.add_option(cmdoptions.ignore_requires_python())
         cmd_opts.add_option(cmdoptions.no_build_isolation())
+        cmd_opts.add_option(cmdoptions.use_pep517())
+        cmd_opts.add_option(cmdoptions.no_use_pep517())
 
         cmd_opts.add_option(cmdoptions.install_options())
         cmd_opts.add_option(cmdoptions.global_options())

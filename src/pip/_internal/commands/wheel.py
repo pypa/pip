@@ -67,6 +67,8 @@ class WheelCommand(RequirementCommand):
             help="Extra arguments to be supplied to 'setup.py bdist_wheel'.",
         )
         cmd_opts.add_option(cmdoptions.no_build_isolation())
+        cmd_opts.add_option(cmdoptions.use_pep517())
+        cmd_opts.add_option(cmdoptions.no_use_pep517())
         cmd_opts.add_option(cmdoptions.constraints())
         cmd_opts.add_option(cmdoptions.editable())
         cmd_opts.add_option(cmdoptions.requirements())
