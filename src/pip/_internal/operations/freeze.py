@@ -173,29 +173,28 @@ class FrozenRequirement(object):
         """
         location = os.path.normcase(os.path.abspath(dist.location))
         from pip._internal.vcs import vcs, get_src_requirement
-        if dist_is_editable(dist) and vcs.get_backend_name(location):
-            try:
-                req = get_src_requirement(dist, location)
-            except InstallationError as exc:
-                logger.warning(
-                    "Error when trying to get requirement for VCS system %s, "
-                    "falling back to uneditable format", exc
-                )
-            else:
-                if req is not None:
-                    return (req, True, [])
-
-            logger.warning(
-                'Could not determine repository location of %s', location
-            )
-            comments = ['## !! Could not determine repository location']
+        if not dist_is_editable(dist) or not vcs.get_backend_name(location):
             req = dist.as_requirement()
+            return (req, False, [])
 
-            return (req, False, comments)
+        try:
+            req = get_src_requirement(dist, location)
+        except InstallationError as exc:
+            logger.warning(
+                "Error when trying to get requirement for VCS system %s, "
+                "falling back to uneditable format", exc
+            )
+        else:
+            if req is not None:
+                return (req, True, [])
 
+        logger.warning(
+            'Could not determine repository location of %s', location
+        )
+        comments = ['## !! Could not determine repository location']
         req = dist.as_requirement()
 
-        return (req, False, [])
+        return (req, False, comments)
 
     @classmethod
     def from_dist(cls, dist, dependency_links):
