@@ -131,6 +131,19 @@ class IsSDist(DistAbstraction):
                     "pip cannot fall back to setuptools without %s.",
                     " and ".join(map(repr, sorted(missing)))
                 )
+            # Install any extra build dependencies that the backend requests.
+            # This must be done in a second pass, as the pyproject.toml
+            # dependencies must be installed before we can call the backend.
+            with self.req.build_env:
+                # We need to have the env active when calling the hook.
+                reqs = self.req.pep517_backend.get_requires_for_build_wheel()
+            conflicting, missing = self.req.build_env.check_requirements(reqs)
+            if conflicting:
+                _raise_conflicts("the backend dependencies", conflicting)
+            self.req.build_env.install_requirements(
+                finder, missing, 'normal',
+                "Installing backend dependencies"
+            )
 
         self.req.prepare_metadata()
         self.req.assert_source_matches_version()
