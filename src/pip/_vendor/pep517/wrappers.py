@@ -18,6 +18,9 @@ def tempdir():
     finally:
         shutil.rmtree(td)
 
+class BackendUnavailable(Exception):
+    """Will be raised if the backend cannot be imported in the hook process."""
+
 class UnsupportedOperation(Exception):
     """May be raised by build_sdist if the backend indicates that it can't."""
 
@@ -148,5 +151,7 @@ class Pep517HookCaller(object):
             data = compat.read_json(pjoin(td, 'output.json'))
             if data.get('unsupported'):
                 raise UnsupportedOperation
+            if data.get('no_backend'):
+                raise BackendUnavailable
             return data['return_val']
 

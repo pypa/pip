@@ -21,11 +21,17 @@ import sys
 # This is run as a script, not a module, so it can't do a relative import
 import compat
 
+class BackendUnavailable(Exception):
+    """Raised if we cannot import the backend"""
+
 def _build_backend():
     """Find and load the build backend"""
     ep = os.environ['PEP517_BUILD_BACKEND']
     mod_path, _, obj_path = ep.partition(':')
-    obj = import_module(mod_path)
+    try:
+        obj = import_module(mod_path)
+    except ImportError:
+        raise BackendUnavailable
     if obj_path:
         for path_part in obj_path.split('.'):
             obj = getattr(obj, path_part)
@@ -173,6 +179,8 @@ def main():
     json_out = {'unsupported': False, 'return_val': None}
     try:
         json_out['return_val'] = hook(**hook_input['kwargs'])
+    except BackendUnavailable:
+        json_out['no_backend'] = True
     except GotUnsupportedOperation:
         json_out['unsupported'] = True
     
