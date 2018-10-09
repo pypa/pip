@@ -14,9 +14,8 @@ from pip._internal.req.constructors import (
     install_req_from_editable, install_req_from_line,
 )
 from pip._internal.req.req_file import COMMENT_RE
-from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.misc import (
-    dist_is_editable, get_installed_distributions, make_vcs_requirement_url,
+    dist_is_editable, get_installed_distributions,
 )
 
 logger = logging.getLogger(__name__)
@@ -164,9 +163,6 @@ class FrozenRequirement(object):
         self.editable = editable
         self.comments = comments
 
-    _rev_re = re.compile(r'-r(\d+)$')
-    _date_re = re.compile(r'-(20\d\d\d\d\d\d)$')
-
     @classmethod
     def _init_args_from_dist(cls, dist, dependency_links):
         """
@@ -177,79 +173,33 @@ class FrozenRequirement(object):
         """
         location = os.path.normcase(os.path.abspath(dist.location))
         from pip._internal.vcs import vcs, get_src_requirement
-        if dist_is_editable(dist) and vcs.get_backend_name(location):
-            try:
-                req = get_src_requirement(dist, location)
-            except InstallationError as exc:
-                logger.warning(
-                    "Error when trying to get requirement for VCS system %s, "
-                    "falling back to uneditable format", exc
-                )
-            else:
-                if req is not None:
-                    return (req, True, [])
-
-            logger.warning(
-                'Could not determine repository location of %s', location
-            )
-            comments = ['## !! Could not determine repository location']
+        if not dist_is_editable(dist) or not vcs.get_backend_name(location):
             req = dist.as_requirement()
-
-            return (req, False, comments)
-
-        req = dist.as_requirement()
-        specs = req.specs
-        assert len(specs) == 1 and specs[0][0] in ["==", "==="], \
-            'Expected 1 spec with == or ===; specs = %r; dist = %r' % \
-            (specs, dist)
-        version = specs[0][1]
-        ver_match = cls._rev_re.search(version)
-        date_match = cls._date_re.search(version)
-        if not (ver_match or date_match):
             return (req, False, [])
 
-        svn_backend = vcs.get_backend('svn')
-        if svn_backend:
-            svn_location = svn_backend().get_location(dist, dependency_links)
-        if not svn_location:
-            logger.warning('Warning: cannot find svn location for %s', req)
-            comments = [
-                '## FIXME: could not find svn URL in dependency_links '
-                'for this package:'
-            ]
-            return (req, False, comments)
-
-        deprecated(
-            "SVN editable detection based on dependency links "
-            "will be dropped in the future.",
-            replacement=None,
-            gone_in="19.0",
-            issue=4187,
-        )
-        comments = [
-            '# Installing as editable to satisfy requirement %s:' % req
-        ]
-        if ver_match:
-            rev = ver_match.group(1)
+        try:
+            req = get_src_requirement(dist, location)
+        except InstallationError as exc:
+            logger.warning(
+                "Error when trying to get requirement for VCS system %s, "
+                "falling back to uneditable format", exc
+            )
         else:
-            rev = '{%s}' % date_match.group(1)
-        egg_name = cls.egg_name(dist)
-        req = make_vcs_requirement_url(svn_location, rev, egg_name)
+            if req is not None:
+                return (req, True, [])
 
-        return (req, True, comments)
+        logger.warning(
+            'Could not determine repository location of %s', location
+        )
+        comments = ['## !! Could not determine repository location']
+        req = dist.as_requirement()
+
+        return (req, False, comments)
 
     @classmethod
     def from_dist(cls, dist, dependency_links):
         args = cls._init_args_from_dist(dist, dependency_links)
         return cls(dist.project_name, *args)
-
-    @staticmethod
-    def egg_name(dist):
-        name = dist.egg_name()
-        match = re.search(r'-py\d\.\d$', name)
-        if match:
-            name = name[:match.start()]
-        return name
 
     def __str__(self):
         req = self.req
