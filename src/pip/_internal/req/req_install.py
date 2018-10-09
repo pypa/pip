@@ -50,7 +50,7 @@ class InstallRequirement(object):
     """
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
-                 link=None, update=True, markers=None,
+                 link=None, update=True, markers=None, use_pep517=None,
                  isolated=False, options=None, wheel_cache=None,
                  constraint=False, extras=()):
         assert req is None or isinstance(req, Requirement), req
@@ -128,7 +128,7 @@ class InstallRequirement(object):
         # and False. Before loading, None is valid (meaning "use the default").
         # Setting an explicit value before loading pyproject.toml is supported,
         # but after loading this flag should be treated as read only.
-        self.use_pep517 = None
+        self.use_pep517 = use_pep517
 
     def __str__(self):
         if self.req:

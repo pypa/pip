@@ -146,8 +146,8 @@ def deduce_helpful_msg(req):
 
 
 def install_req_from_editable(
-    editable_req, comes_from=None, isolated=False, options=None,
-    wheel_cache=None, constraint=False
+    editable_req, comes_from=None, use_pep517=None, isolated=False,
+    options=None, wheel_cache=None, constraint=False
 ):
     name, url, extras_override = parse_editable(editable_req)
     if url.startswith('file:'):
@@ -167,6 +167,7 @@ def install_req_from_editable(
         editable=True,
         link=Link(url),
         constraint=constraint,
+        use_pep517=use_pep517,
         isolated=isolated,
         options=options if options else {},
         wheel_cache=wheel_cache,
@@ -175,8 +176,8 @@ def install_req_from_editable(
 
 
 def install_req_from_line(
-    name, comes_from=None, isolated=False, options=None, wheel_cache=None,
-    constraint=False
+    name, comes_from=None, use_pep517=None, isolated=False, options=None,
+    wheel_cache=None, constraint=False
 ):
     """Creates an InstallRequirement from a name, which might be a
     requirement, directory containing 'setup.py', filename, or URL.
@@ -265,7 +266,7 @@ def install_req_from_line(
 
     return InstallRequirement(
         req, comes_from, link=link, markers=markers,
-        isolated=isolated,
+        use_pep517=use_pep517, isolated=isolated,
         options=options if options else {},
         wheel_cache=wheel_cache,
         constraint=constraint,
@@ -293,6 +294,7 @@ def install_req_from_req(
             "%s depends on %s " % (comes_from.name, req)
         )
 
+    # TODO: use_pep517?
     return InstallRequirement(
         req, comes_from, isolated=isolated, wheel_cache=wheel_cache
     )

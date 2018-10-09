@@ -214,6 +214,7 @@ class RequirementCommand(Command):
         for req in args:
             req_to_add = install_req_from_line(
                 req, None, isolated=options.isolated_mode,
+                use_pep517=options.use_pep517,
                 wheel_cache=wheel_cache
             )
             req_to_add.is_direct = True
@@ -223,6 +224,7 @@ class RequirementCommand(Command):
             req_to_add = install_req_from_editable(
                 req,
                 isolated=options.isolated_mode,
+                use_pep517=options.use_pep517,
                 wheel_cache=wheel_cache
             )
             req_to_add.is_direct = True
@@ -232,7 +234,8 @@ class RequirementCommand(Command):
             for req_to_add in parse_requirements(
                     filename,
                     finder=finder, options=options, session=session,
-                    wheel_cache=wheel_cache):
+                    wheel_cache=wheel_cache,
+                    use_pep517=options.use_pep517):
                 req_to_add.is_direct = True
                 requirement_set.add_requirement(req_to_add)
         # If --require-hashes was a line in a requirements file, tell
