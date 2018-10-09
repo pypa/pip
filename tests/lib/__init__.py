@@ -10,7 +10,7 @@ import shutil
 import subprocess
 
 import pytest
-import scripttest
+from scripttest import FoundDir, TestFileEnvironment
 
 from tests.lib.path import Path, curdir
 
@@ -248,7 +248,7 @@ class TestPipResult(object):
                 )
 
 
-class PipTestEnvironment(scripttest.TestFileEnvironment):
+class PipTestEnvironment(TestFileEnvironment):
     """
     A specialized TestFileEnvironment for testing pip
     """
@@ -338,6 +338,16 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
         else:
             result = super(PipTestEnvironment, self)._ignore_file(fn)
         return result
+
+    def _find_traverse(self, path, result):
+        # Ignore symlinked directories to avoid duplicates in `run()`
+        # results because of venv `lib64 -> lib/` symlink on Linux.
+        full = os.path.join(self.base_path, path)
+        if os.path.isdir(full) and os.path.islink(full):
+            if not self.temp_path or path != 'tmp':
+                result[path] = FoundDir(self.base_path, path)
+        else:
+            super(PipTestEnvironment, self)._find_traverse(path, result)
 
     def run(self, *args, **kw):
         if self.verbose:

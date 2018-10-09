@@ -8,6 +8,7 @@ import shutil
 import sys
 import tempfile
 
+import pytest
 from mock import Mock
 
 from pip._internal.locations import distutils_scheme
@@ -90,6 +91,7 @@ class TestDisutilsScheme:
             expected = os.path.join(root, path[1:])
             assert os.path.abspath(root_scheme[key]) == expected
 
+    @pytest.mark.incompatible_with_venv
     def test_distutils_config_file_read(self, tmpdir, monkeypatch):
         # This deals with nt/posix path differences
         install_scripts = os.path.normcase(os.path.abspath(
@@ -106,6 +108,7 @@ class TestDisutilsScheme:
         scheme = distutils_scheme('example')
         assert scheme['scripts'] == install_scripts
 
+    @pytest.mark.incompatible_with_venv
     # when we request install-lib, we should install everything (.py &
     # .so) into that path; i.e. ensure platlib & purelib are set to
     # this path

@@ -77,6 +77,7 @@ class Tests_UserSite:
         )
         assert dist_info_folder in result.files_created
 
+    @pytest.mark.incompatible_with_test_venv
     def test_install_user_venv_nositepkgs_fails(self, virtualenv,
                                                 script, data):
         """

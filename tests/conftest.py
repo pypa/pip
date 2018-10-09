@@ -21,9 +21,11 @@ def pytest_addoption(parser):
         "--keep-tmpdir", action="store_true",
         default=False, help="keep temporary test directories"
     )
+    parser.addoption("--use-venv", action="store_true",
+                     help="use venv for virtual environment creation")
 
 
-def pytest_collection_modifyitems(items):
+def pytest_collection_modifyitems(config, items):
     for item in items:
         if not hasattr(item, 'module'):  # e.g.: DoctestTextfile
             continue
@@ -31,6 +33,16 @@ def pytest_collection_modifyitems(items):
         # Mark network tests as flaky
         if item.get_marker('network') is not None and "CI" in os.environ:
             item.add_marker(pytest.mark.flaky(reruns=3))
+
+        if six.PY3:
+            if (item.get_marker('incompatible_with_test_venv') and
+                    config.getoption("--use-venv")):
+                item.add_marker(pytest.mark.skip(
+                    'Incompatible with test venv'))
+            if (item.get_marker('incompatible_with_venv') and
+                    sys.prefix != sys.base_prefix):
+                item.add_marker(pytest.mark.skip(
+                    'Incompatible with venv'))
 
         module_path = os.path.relpath(
             item.module.__file__,
@@ -197,12 +209,17 @@ def install_egg_link(venv, project_name, egg_info_dir):
 
 
 @pytest.yield_fixture(scope='session')
-def virtualenv_template(tmpdir_factory, pip_src,
+def virtualenv_template(request, tmpdir_factory, pip_src,
                         setuptools_install, common_wheels):
+
+    if six.PY3 and request.config.getoption('--use-venv'):
+        venv_type = 'venv'
+    else:
+        venv_type = 'virtualenv'
 
     # Create the virtual environment
     tmpdir = Path(str(tmpdir_factory.mktemp('virtualenv')))
-    venv = VirtualEnvironment(tmpdir.join("venv_orig"))
+    venv = VirtualEnvironment(tmpdir.join("venv_orig"), venv_type=venv_type)
 
     # Install setuptools and pip.
     install_egg_link(venv, 'setuptools', setuptools_install)
