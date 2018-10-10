@@ -704,7 +704,7 @@ def test_remove_auth_from_url(auth_url, expected_url):
 
 
 @pytest.mark.parametrize('auth_url,expected_url', [
-    ('https://user@example.com/abc',' https://user@example.com/abc'),
+    ('https://user@example.com/abc', 'https://user@example.com/abc'),
     ('https://user:password@example.com', 'https://user:****@example.com'),
     ('https://user:@example.com', 'https://user:****@example.com'),
     ('https://example.com', 'https://example.com')
