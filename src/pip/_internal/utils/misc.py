@@ -892,7 +892,7 @@ def split_auth_from_netloc(netloc):
 
 def redact_netloc(netloc):
     netloc, (user, passw) = split_auth_from_netloc(netloc)
-    if not user:
+    if user is None:
         return netloc
     passw = '' if passw is None else ':****'
     return '{user}{passw}@{netloc}'.format(user=user,
@@ -912,6 +912,7 @@ def transform_url(url, transform_netloc):
 
 
 def redact_password_from_url(url):
+    """Replace the password in a given url with ****"""
     return transform_url(url, redact_netloc)
 
 

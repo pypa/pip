@@ -661,6 +661,25 @@ def test_split_auth_from_netloc(netloc, expected):
     assert actual == expected
 
 
+@pytest.mark.parametrize('netloc, expected', [
+    # Test a basic case.
+    ('example.com', 'example.com'),
+    # Test with username and no password.
+    ('user@example.com', 'user@example.com'),
+    # Test with username and password.
+    ('user:pass@example.com', 'user:****@example.com'),
+    # Test with username and empty password.
+    ('user:@example.com', 'user:****@example.com'),
+    # Test the password containing an @ symbol.
+    ('user:pass@word@example.com', 'user:****@example.com'),
+    # Test the password containing a : symbol.
+    ('user:pass:word@example.com', 'user:****@example.com'),
+])
+def test_redact_netloc(netloc, expected):
+    result = redact_netloc(netloc)
+    assert result == expected
+
+
 @pytest.mark.parametrize('auth_url, expected_url', [
     ('https://user:pass@domain.tld/project/tags/v0.2',
      'https://domain.tld/project/tags/v0.2'),
@@ -680,25 +699,6 @@ def test_split_auth_from_netloc(netloc, expected):
 def test_remove_auth_from_url(auth_url, expected_url):
     url = remove_auth_from_url(auth_url)
     assert url == expected_url
-
-
-@pytest.mark.parametrize('netloc, expected', [
-    # Test a basic case.
-    ('example.com', 'example.com'),
-    # Test with username and no password.
-    ('user@example.com', 'user@example.com'),
-    # Test with username and password.
-    ('user:pass@example.com', 'user:****@example.com'),
-    # Test with username and empty password.
-    ('user:@example.com', 'user:****@example.com'),
-    # Test the password containing an @ symbol.
-    ('user:pass@word@example.com', 'user:****@example.com'),
-    # Test the password containing a : symbol.
-    ('user:pass:word@example.com', 'user:****@example.com'),
-])
-def test_redact_netloc(netloc, expected):
-    result = redact_netloc(netloc)
-    assert result == expected
 
 
 @patch('pip._internal.utils.misc.transform_url')
