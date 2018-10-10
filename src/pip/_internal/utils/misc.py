@@ -895,9 +895,9 @@ def redact_netloc(netloc):
     if user is None:
         return netloc
     password = '' if password is None else ':****'
-    return '{user}{passw}@{netloc}'.format(user=user,
-                                           passw=password,
-                                           netloc=netloc)
+    return '{user}{password}@{netloc}'.format(user=user,
+                                              password=password,
+                                              netloc=netloc)
 
 
 def transform_url(url, transform_netloc):

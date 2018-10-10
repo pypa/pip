@@ -703,7 +703,12 @@ def test_remove_auth_from_url(auth_url, expected_url):
     assert url == expected_url
 
 
-def test_redact_password_from_url():
-    with patch('pip._internal.utils.misc.transform_url') as mocked_transform_url:
-        redact_password_from_url('https://user@example.com/abc')
-    mocked_transform_url.assert_called_with('https://user@example.com/abc', redact_netloc)
+@pytest.mark.parametrize('auth_url,expected_url', [
+    ('https://user@example.com/abc',' https://user@example.com/abc'),
+    ('https://user:password@example.com', 'https://user:****@example.com'),
+    ('https://user:@example.com', 'https://user:****@example.com'),
+    ('https://example.com', 'https://example.com')
+])
+def test_redact_password_from_url(auth_url, expected_url):
+    result = redact_password_from_url(auth_url)
+    assert result == expected_url
