@@ -64,7 +64,7 @@ Process
 - Formally document our deprecation process as a minimum of 6 months of deprecation
   warnings.
 - Adopt and document NEWS fragment writing style.
-- Switch to releasing a new, non bug fix version of pip every 3 months.
+- Switch to releasing a new, non-bug fix version of pip every 3 months.
 
 Deprecations and Removals
 -------------------------
@@ -165,7 +165,7 @@ Bug Fixes
 ---------
 
 - Prevent false-positive installation warnings due to incomplete name
-  normalizaton. (#5134)
+  normalization. (#5134)
 - Fix issue where installing from Git with a short SHA would fail. (#5140)
 - Accept pre-release versions when checking for conflicts with pip check or pip
   install. (#5141)
