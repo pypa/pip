@@ -374,6 +374,8 @@ class Test_normalize_path(object):
     # it's easiest just to skip this test on Windows altogether.
     @pytest.mark.skipif("sys.platform == 'win32'")
     def test_resolve_symlinks(self, tmpdir):
+        print(type(tmpdir))
+        print(dir(tmpdir))
         orig_working_dir = os.getcwd()
         os.chdir(tmpdir)
         try:
@@ -701,7 +703,7 @@ def test_remove_auth_from_url(auth_url, expected_url):
     assert url == expected_url
 
 
-@patch('pip._internal.utils.misc.transform_url')
-def test_redact_password_from_url(mocked_transform_url):
-    redact_password_from_url('user@example.com')
-    mocked_transform_url.assert_called_with('user@example.com', redact_netloc)
+def test_redact_password_from_url():
+    with patch('pip._internal.utils.misc.transform_url') as mocked_transform_url:
+        redact_password_from_url('https://user@example.com/abc')
+    mocked_transform_url.assert_called_with('https://user@example.com/abc', redact_netloc)
