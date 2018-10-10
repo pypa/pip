@@ -133,16 +133,16 @@ class VcsSupport(object):
         else:
             logger.warning('Cannot unregister because no class or name given')
 
-    def get_backend_name(self, location):
+    def get_backend_type(self, location):
         """
-        Return the name of the version control backend if found at given
-        location, e.g. vcs.get_backend_name('/path/to/vcs/checkout')
+        Return the type of the version control backend if found at given
+        location, e.g. vcs.get_backend_type('/path/to/vcs/checkout')
         """
         for vc_type in self._registry.values():
             if vc_type.controls_location(location):
                 logger.debug('Determine that %s uses VCS: %s',
                              location, vc_type.name)
-                return vc_type.name
+                return vc_type
         return None
 
     def get_backend(self, name):
@@ -481,23 +481,14 @@ class VersionControl(object):
         return cls.is_repository_directory(location)
 
 
-def get_src_requirement(vc_name, dist, location):
-    version_control = vcs.get_backend(vc_name)
-    if version_control:
-        try:
-            return version_control().get_src_requirement(dist,
-                                                         location)
-        except BadCommand:
-            logger.warning(
-                'cannot determine version of editable source in %s '
-                '(%s command not found in path)',
-                location,
-                version_control.name,
-            )
-            return dist.as_requirement()
-    logger.warning(
-        'cannot determine version of editable source in %s (is not SVN '
-        'checkout, Git clone, Mercurial clone or Bazaar branch)',
-        location,
-    )
-    return dist.as_requirement()
+def get_src_requirement(vc_type, dist, location):
+    try:
+        return vc_type().get_src_requirement(dist, location)
+    except BadCommand:
+        logger.warning(
+            'cannot determine version of editable source in %s '
+            '(%s command not found in path)',
+            location,
+            vc_type.name,
+        )
+        return dist.as_requirement()
