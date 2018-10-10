@@ -150,12 +150,6 @@ class VcsSupport(object):
         if name in self._registry:
             return self._registry[name]
 
-    def get_backend_from_location(self, location):
-        vc_type = self.get_backend_name(location)
-        if vc_type:
-            return self.get_backend(vc_type)
-        return None
-
 
 vcs = VcsSupport()
 
@@ -487,8 +481,8 @@ class VersionControl(object):
         return cls.is_repository_directory(location)
 
 
-def get_src_requirement(dist, location):
-    version_control = vcs.get_backend_from_location(location)
+def get_src_requirement(vc_name, dist, location):
+    version_control = vcs.get_backend(vc_name)
     if version_control:
         try:
             return version_control().get_src_requirement(dist,
