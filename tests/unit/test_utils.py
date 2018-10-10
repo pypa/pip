@@ -24,9 +24,9 @@ from pip._internal.utils.glibc import check_glibc_version
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.misc import (
     call_subprocess, egg_link_path, ensure_dir, get_installed_distributions,
-    get_prog, make_vcs_requirement_url, normalize_path, redact_netloc, redact_password_from_url,
-    remove_auth_from_url, rmtree, split_auth_from_netloc, untar_file,
-    unzip_file,
+    get_prog, make_vcs_requirement_url, normalize_path, redact_netloc,
+    redact_password_from_url, remove_auth_from_url, rmtree,
+    split_auth_from_netloc, untar_file, unzip_file,
 )
 from pip._internal.utils.packaging import check_dist_requires_python
 from pip._internal.utils.temp_dir import TempDirectory

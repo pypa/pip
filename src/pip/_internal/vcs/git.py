@@ -10,7 +10,9 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip._internal.exceptions import BadCommand
 from pip._internal.utils.compat import samefile
-from pip._internal.utils.misc import display_path, make_vcs_requirement_url, redact_password_from_url
+from pip._internal.utils.misc import (
+    display_path, make_vcs_requirement_url, redact_password_from_url,
+)
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.vcs import VersionControl, vcs
 
