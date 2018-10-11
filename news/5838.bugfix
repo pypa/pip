@@ -1,0 +1,1 @@
+Fix content type detection if a directory named like an archive is used as a package source.
