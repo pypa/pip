@@ -76,13 +76,6 @@ except ImportError:
     logger.debug('lzma module is not available')
 
 
-def import_or_raise(pkg_or_module_string, ExceptionType, *args, **kwargs):
-    try:
-        return __import__(pkg_or_module_string)
-    except ImportError:
-        raise ExceptionType(*args, **kwargs)
-
-
 def ensure_dir(path):
     """os.path.makedirs without EEXIST."""
     try:
