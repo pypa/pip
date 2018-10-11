@@ -223,6 +223,7 @@ def test_check_development_versions_are_also_considered(script):
     assert matches_expected_lines(result.stdout, expected_lines)
     assert result.returncode == 0
 
+
 def test_basic_check_broken_metadata(script):
     # Create some corrupt metadata
     dist_info_dir = script.site_packages_path / 'pkga-1.0.dist-info'
@@ -231,8 +232,8 @@ def test_basic_check_broken_metadata(script):
         f.write('Metadata-Version: 2.1\n'
                 'Name: pkga\n'
                 'Version: 1.0\n'
-                'Requires-Dist: requests; python_version == "3.4"; extra == "test"\n'
-               )
+                'Requires-Dist: pip; python_version == "3.4"; extra == "test"\n'
+                )
 
     result = script.pip('check', expect_error=True)
 
