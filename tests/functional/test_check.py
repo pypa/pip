@@ -232,7 +232,7 @@ def test_basic_check_broken_metadata(script):
         f.write('Metadata-Version: 2.1\n'
                 'Name: pkga\n'
                 'Version: 1.0\n'
-                'Requires-Dist: pip; python_version == "3.4"; extra == "test"\n'
+                'Requires-Dist: pip; python_version == "3.4";extra == "test"\n'
                 )
 
     result = script.pip('check', expect_error=True)
