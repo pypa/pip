@@ -620,6 +620,15 @@ class Wheel(object):
         return bool(set(tags).intersection(self.file_tags))
 
 
+def _contains_egg_info(
+        s, _egg_info_re=re.compile(r'([a-z0-9_.]+)-([a-z0-9_.!+-]+)', re.I)):
+    """Determine whether the string looks like an egg_info.
+
+    :param s: The string to parse. E.g. foo-2.1
+    """
+    return bool(_egg_info_re.search(s))
+
+
 class WheelBuilder(object):
     """Build wheels from a RequirementSet."""
 
@@ -712,7 +721,6 @@ class WheelBuilder(object):
             newly built wheel, in preparation for installation.
         :return: True if all the wheels built correctly.
         """
-        from pip._internal import index
         from pip._internal.models.link import Link
 
         building_is_possible = self._wheel_dir or (
@@ -742,7 +750,7 @@ class WheelBuilder(object):
                 if autobuilding:
                     link = req.link
                     base, ext = link.splitext()
-                    if index.egg_info_matches(base, None, link) is None:
+                    if not _contains_egg_info(base):
                         # E.g. local directory. Build wheel just for this run.
                         ephem_cache = True
                     if "binary" not in format_control.get_allowed_formats(

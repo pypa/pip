@@ -7,7 +7,8 @@ from pip._vendor import html5lib, requests
 
 from pip._internal.download import PipSession
 from pip._internal.index import (
-    Link, PackageFinder, _determine_base_url, _get_html_page, egg_info_matches,
+    Link, PackageFinder, _determine_base_url, _egg_info_matches,
+    _get_html_page,
 )
 
 
@@ -165,32 +166,29 @@ def test_get_formatted_locations_basic_auth():
 
 
 @pytest.mark.parametrize(
-    ("egg_info", "search_name", "expected"),
+    ("egg_info", "canonical_name", "expected"),
     [
         # Trivial.
         ("pip-18.0", "pip", "18.0"),
-        ("pip-18.0", None, "18.0"),
+        ("zope-interface-4.5.0", "zope-interface", "4.5.0"),
 
-        # Non-canonical names.
+        # Canonicalized name match non-canonicalized egg info. (pypa/pip#5870)
         ("Jinja2-2.10", "jinja2", "2.10"),
-        ("jinja2-2.10", "Jinja2", "2.10"),
+        ("zope.interface-4.5.0", "zope-interface", "4.5.0"),
+        ("zope_interface-4.5.0", "zope-interface", "4.5.0"),
 
-        # Ambiguous names. Should be smart enough if the package name is
-        # provided, otherwise make a guess.
+        # Should be smart enough to parse ambiguous names from the provided
+        # package name.
         ("foo-2-2", "foo", "2-2"),
         ("foo-2-2", "foo-2", "2"),
-        ("foo-2-2", None, "2-2"),
-        ("im-valid", None, "valid"),
 
-        # Invalid names.
-        ("invalid", None, None),
-        ("im_invalid", None, None),
+        # Invalid.
         ("the-package-name-8.19", "does-not-match", None),
     ],
 )
-def test_egg_info_matches(egg_info, search_name, expected):
+def test_egg_info_matches(egg_info, canonical_name, expected):
     link = None     # Only used for reporting.
-    version = egg_info_matches(egg_info, search_name, link)
+    version = _egg_info_matches(egg_info, canonical_name, link)
     assert version == expected
 
 
