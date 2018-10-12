@@ -1,6 +1,2 @@
-Extract files from wheel archives in chunks, instead of decompressing the
-entire file content into memory before writing it to disk. For the vast
-majority of cases (PCs with ample RAM and/or small wheels) this makes no
-difference. But there are some circumstances (e.g. a Raspberry Pi with no swap,
-the default config, plus a wheel containing huge libraries like Tensorflow) in
-which this leads to a failure to unpack and a crash with a MemoryError.
+Extract files from wheels in chunks, to avoid memory issues on smaller
+platforms when handling wheels containing large files.

@@ -478,9 +478,8 @@ def unzip_file(filename, location, flatten=True):
                 ensure_dir(fn)
             else:
                 ensure_dir(dir)
-                # Open the archive member as a file-like-object so we can
-                # copy it in chunks with copyfileobj; using read() instead
-                # potentially allocates an arbitrarily large amount of memory
+                # Don't use read() to avoid allocating an arbitrarily large
+                # chunk of memory for the file's content
                 fp = zip.open(name)
                 try:
                     with open(fn, 'wb') as destfp:
