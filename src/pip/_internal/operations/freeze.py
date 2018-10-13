@@ -181,16 +181,15 @@ class FrozenRequirement(object):
             return (None, False, [])
 
         try:
-            try:
-                req = vc_type().get_src_requirement(dist, location)
-            except BadCommand:
-                logger.warning(
-                    'cannot determine version of editable source in %s '
-                    '(%s command not found in path)',
-                    location,
-                    vc_type.name,
-                )
-                return (None, True, [])
+            req = vc_type().get_src_requirement(dist, location)
+        except BadCommand:
+            logger.warning(
+                'cannot determine version of editable source in %s '
+                '(%s command not found in path)',
+                location,
+                vc_type.name,
+            )
+            return (None, True, [])
 
         except InstallationError as exc:
             logger.warning(
