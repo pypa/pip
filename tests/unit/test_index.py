@@ -8,7 +8,7 @@ from pip._vendor import html5lib, requests
 from pip._internal.download import PipSession
 from pip._internal.index import (
     Link, PackageFinder, _determine_base_url, _egg_info_matches,
-    _get_html_page,
+    _find_name_version_sep, _get_html_page,
 )
 
 
@@ -169,6 +169,33 @@ def test_get_formatted_locations_basic_auth():
     ("egg_info", "canonical_name", "expected"),
     [
         # Trivial.
+        ("pip-18.0", "pip", 3),
+        ("zope-interface-4.5.0", "zope-interface", 14),
+
+        # Canonicalized name match non-canonicalized egg info. (pypa/pip#5870)
+        ("Jinja2-2.10", "jinja2", 6),
+        ("zope.interface-4.5.0", "zope-interface", 14),
+        ("zope_interface-4.5.0", "zope-interface", 14),
+
+        # Should be smart enough to parse ambiguous names from the provided
+        # package name.
+        ("foo-2-2", "foo", 3),
+        ("foo-2-2", "foo-2", 5),
+
+        # Should be able to detect collapsed characters in the egg info.
+        ("foo--bar-1.0", "foo-bar", 8),
+        ("foo-_bar-1.0", "foo-bar", 8),
+    ],
+)
+def test_find_name_version_sep(egg_info, canonical_name, expected):
+    index = _find_name_version_sep(egg_info, canonical_name)
+    assert index == expected
+
+
+@pytest.mark.parametrize(
+    ("egg_info", "canonical_name", "expected"),
+    [
+        # Trivial.
         ("pip-18.0", "pip", "18.0"),
         ("zope-interface-4.5.0", "zope-interface", "4.5.0"),
 
@@ -182,13 +209,16 @@ def test_get_formatted_locations_basic_auth():
         ("foo-2-2", "foo", "2-2"),
         ("foo-2-2", "foo-2", "2"),
 
+        # Should be able to detect collapsed characters in the egg info.
+        ("foo--bar-1.0", "foo-bar", "1.0"),
+        ("foo-_bar-1.0", "foo-bar", "1.0"),
+
         # Invalid.
         ("the-package-name-8.19", "does-not-match", None),
     ],
 )
 def test_egg_info_matches(egg_info, canonical_name, expected):
-    link = None     # Only used for reporting.
-    version = _egg_info_matches(egg_info, canonical_name, link)
+    version = _egg_info_matches(egg_info, canonical_name)
     assert version == expected
 
 

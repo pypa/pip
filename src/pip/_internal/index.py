@@ -815,7 +815,7 @@ class PackageFinder(object):
             return
 
         if not version:
-            version = _egg_info_matches(egg_info, search.canonical, link)
+            version = _egg_info_matches(egg_info, search.canonical)
         if version is None:
             self._log_skipped_link(
                 link, 'Missing project version for %s' % search.supplied)
@@ -846,20 +846,43 @@ class PackageFinder(object):
         return InstallationCandidate(search.supplied, version, link)
 
 
-def _egg_info_matches(egg_info, canonical_name, link):
+def _find_name_version_sep(egg_info, canonical_name):
+    """Find the separator's index based on the package's canonical name.
+
+    `egg_info` must be an egg info string for the given package, and
+    `canonical_name` must be the package's canonical name.
+
+    This function is needed since the canonicalized name does not necessarily
+    have the same length as the egg info's name part. An example::
+
+    >>> egg_info = 'foo__bar-1.0'
+    >>> canonical_name = 'foo-bar'
+    >>> _find_name_version_sep(egg_info, canonical_name)
+    8
+    """
+    # Project name and version must be separated by one single dash. Find all
+    # occurrences of dashes; if the string in front of it matches the canonical
+    # name, this is the one separating the name and version parts.
+    for i, c in enumerate(egg_info):
+        if c != "-":
+            continue
+        if canonicalize_name(egg_info[:i]) == canonical_name:
+            return i
+    raise ValueError("{} does not match {}".format(egg_info, canonical_name))
+
+
+def _egg_info_matches(egg_info, canonical_name):
     """Pull the version part out of a string.
 
     :param egg_info: The string to parse. E.g. foo-2.1
     :param canonical_name: The canonicalized name of the package this
         belongs to.
-    :param link: The link the string came from, for logging on failure.
     """
-    if not canonicalize_name(egg_info).startswith(canonical_name):
+    try:
+        version_start = _find_name_version_sep(egg_info, canonical_name) + 1
+    except ValueError:
         return None
-    # Project name and version must be separated by a dash.
-    if egg_info[len(canonical_name)] != "-":
-        return None
-    return egg_info[(len(canonical_name) + 1):]
+    return egg_info[version_start:]
 
 
 def _determine_base_url(document, page_url):
