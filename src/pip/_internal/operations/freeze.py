@@ -9,7 +9,7 @@ from pip._vendor import pkg_resources, six
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.pkg_resources import RequirementParseError
 
-from pip._internal.exceptions import InstallationError
+from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.req.constructors import (
     install_req_from_editable, install_req_from_line,
 )
@@ -164,27 +164,34 @@ class FrozenRequirement(object):
         self.comments = comments
 
     @classmethod
-    def _init_args_from_dist(cls, dist, dependency_links):
+    def get_requirement_info(cls, dist, dependency_links):
         """
-        Compute and return arguments (req, editable, comments) to pass to
-        FrozenRequirement.__init__().
-
-        This method is for use in FrozenRequirement.from_dist().
+        Compute and return values (req, editable, comments) for use in
+        FrozenRequirement.from_dist().
         """
-        location = os.path.normcase(os.path.abspath(dist.location))
-        from pip._internal.vcs import vcs, get_src_requirement
         if not dist_is_editable(dist):
-            req = dist.as_requirement()
-            return (req, False, [])
+            return (None, False, [])
 
+        location = os.path.normcase(os.path.abspath(dist.location))
+
+        from pip._internal.vcs import vcs
         vc_type = vcs.get_backend_type(location)
 
         if not vc_type:
-            req = dist.as_requirement()
-            return (req, False, [])
+            return (None, False, [])
 
         try:
-            req = get_src_requirement(vc_type, dist, location)
+            try:
+                req = vc_type().get_src_requirement(dist, location)
+            except BadCommand:
+                logger.warning(
+                    'cannot determine version of editable source in %s '
+                    '(%s command not found in path)',
+                    location,
+                    vc_type.name,
+                )
+                return (None, True, [])
+
         except InstallationError as exc:
             logger.warning(
                 "Error when trying to get requirement for VCS system %s, "
@@ -198,14 +205,18 @@ class FrozenRequirement(object):
             'Could not determine repository location of %s', location
         )
         comments = ['## !! Could not determine repository location']
-        req = dist.as_requirement()
 
-        return (req, False, comments)
+        return (None, False, comments)
 
     @classmethod
     def from_dist(cls, dist, dependency_links):
-        args = cls._init_args_from_dist(dist, dependency_links)
-        return cls(dist.project_name, *args)
+        req, editable, comments = cls.get_requirement_info(
+            dist, dependency_links
+        )
+        if req is None:
+            req = dist.as_requirement()
+
+        return cls(dist.project_name, req, editable, comments=comments)
 
     def __str__(self):
         req = self.req
