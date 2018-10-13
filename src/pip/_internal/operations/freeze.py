@@ -173,12 +173,18 @@ class FrozenRequirement(object):
         """
         location = os.path.normcase(os.path.abspath(dist.location))
         from pip._internal.vcs import vcs, get_src_requirement
-        if not dist_is_editable(dist) or not vcs.get_backend_name(location):
+        if not dist_is_editable(dist):
+            req = dist.as_requirement()
+            return (req, False, [])
+
+        vc_type = vcs.get_backend_type(location)
+
+        if not vc_type:
             req = dist.as_requirement()
             return (req, False, [])
 
         try:
-            req = get_src_requirement(dist, location)
+            req = get_src_requirement(vc_type, dist, location)
         except InstallationError as exc:
             logger.warning(
                 "Error when trying to get requirement for VCS system %s, "
