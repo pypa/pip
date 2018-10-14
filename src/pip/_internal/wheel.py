@@ -204,6 +204,13 @@ def message_about_scripts_not_on_PATH(scripts):
     return "\n".join(msg_lines)
 
 
+# We need this to avoid TypeError because values at a given tuple index
+# can be strings in some rows and integers in others.
+def sorted_outrows(outrows):
+    """Return the given "outrows" in sorted order."""
+    return sorted(outrows, key=lambda row: tuple(str(x) for x in row))
+
+
 def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
                      pycompile=True, scheme=None, isolated=False, prefix=None,
                      warn_script_location=True):
@@ -511,7 +518,8 @@ if __name__ == '__main__':
                 outrows.append((normpath(f, lib_dir), digest, length))
             for f in installed:
                 outrows.append((installed[f], '', ''))
-            for row in sorted(outrows):
+            # Sort to simplify testing.
+            for row in sorted_outrows(outrows):
                 writer.writerow(row)
     shutil.move(temp_record, record)
 

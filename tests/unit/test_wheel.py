@@ -33,6 +33,29 @@ def test_get_entrypoints(tmpdir, console_scripts):
     )
 
 
+@pytest.mark.parametrize("outrows, expected", [
+    ([
+        ('', '', 'a'),
+        ('', '', ''),
+    ], [
+        ('', '', ''),
+        ('', '', 'a'),
+    ]),
+    ([
+        # Include an int to check avoiding the following error:
+        # > TypeError: '<' not supported between instances of 'str' and 'int'
+        ('', '', 1),
+        ('', '', ''),
+    ], [
+        ('', '', ''),
+        ('', '', 1),
+    ]),
+])
+def test_sorted_outrows(outrows, expected):
+    actual = wheel.sorted_outrows(outrows)
+    assert actual == expected
+
+
 def test_wheel_version(tmpdir, data):
     future_wheel = 'futurewheel-1.9-py2.py3-none-any.whl'
     broken_wheel = 'brokenwheel-1.0-py2.py3-none-any.whl'
