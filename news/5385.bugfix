@@ -1,0 +1,1 @@
+Setting ``PIP_NO_CACHE_DIR=yes`` no longer causes pip to crash.
