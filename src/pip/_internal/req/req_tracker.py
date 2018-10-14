@@ -22,6 +22,10 @@ class RequirementTracker(object):
 
     def __init__(self):
         # type: () -> None
+        self._entries = set()  # type: Set[InstallRequirement]
+
+    def __enter__(self):
+        # type: () -> RequirementTracker
         self._root = os.environ.get('PIP_REQ_TRACKER')
         if self._root is None:
             self._temp_dir = TempDirectory(delete=False, kind='req-tracker')
@@ -31,10 +35,6 @@ class RequirementTracker(object):
         else:
             self._temp_dir = None
             logger.debug('Re-using requirements tracker %r', self._root)
-        self._entries = set()  # type: Set[InstallRequirement]
-
-    def __enter__(self):
-        # type: () -> RequirementTracker
         return self
 
     def __exit__(
@@ -84,6 +84,7 @@ class RequirementTracker(object):
         remove = self._temp_dir is not None
         if remove:
             self._temp_dir.cleanup()
+            del os.environ['PIP_REQ_TRACKER']
         logger.debug('%s build tracker %r',
                      'Removed' if remove else 'Cleaned',
                      self._root)
