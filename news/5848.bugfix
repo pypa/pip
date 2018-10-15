@@ -1,2 +1,1 @@
-Extract files from wheels in chunks, to avoid memory issues on smaller
-platforms when handling wheels containing large files.
+Greatly reduce memory usage when installing wheels containing large files.
