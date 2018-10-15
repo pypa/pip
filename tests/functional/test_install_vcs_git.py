@@ -10,15 +10,32 @@ from tests.lib.git_submodule_helpers import (
 from tests.lib.local_repos import local_checkout
 
 
+def _get_editable_repo_dir(script, package_name):
+    """
+    Return the repository directory for an editable install.
+    """
+    return script.venv_path / 'src' / package_name
+
+
 def _get_editable_branch(script, package_name):
     """
     Return the current branch of an editable install.
     """
-    repo_dir = script.venv_path / 'src' / package_name
+    repo_dir = _get_editable_repo_dir(script, package_name)
     result = script.run(
         'git', 'rev-parse', '--abbrev-ref', 'HEAD', cwd=repo_dir
     )
+    return result.stdout.strip()
 
+
+def _get_branch_remote(script, package_name, branch):
+    """
+
+    """
+    repo_dir = _get_editable_repo_dir(script, package_name)
+    result = script.run(
+        'git', 'config', 'branch.{}.remote'.format(branch), cwd=repo_dir
+    )
     return result.stdout.strip()
 
 
@@ -363,7 +380,69 @@ def test_git_works_with_editable_non_origin_repo(script):
     assert "version-pkg==0.1" in result.stdout
 
 
-def test_editable_non_master_default_branch(script):
+def test_editable__no_revision(script):
+    """
+    Test a basic install in editable mode specifying no revision.
+    """
+    version_pkg_path = _create_test_package(script)
+    _install_version_pkg_only(script, version_pkg_path)
+
+    branch = _get_editable_branch(script, 'version-pkg')
+    assert branch == 'master'
+
+    remote = _get_branch_remote(script, 'version-pkg', 'master')
+    assert remote == 'origin'
+
+
+def test_editable__branch_with_sha_same_as_default(script):
+    """
+    Test installing in editable mode a branch whose sha matches the sha
+    of the default branch, but is different from the default branch.
+    """
+    version_pkg_path = _create_test_package(script)
+    # Create a second branch with the same SHA.
+    script.run(
+        'git', 'branch', 'develop', expect_stderr=True,
+        cwd=version_pkg_path,
+    )
+    _install_version_pkg_only(
+        script, version_pkg_path, rev='develop', expect_stderr=True
+    )
+
+    branch = _get_editable_branch(script, 'version-pkg')
+    assert branch == 'develop'
+
+    remote = _get_branch_remote(script, 'version-pkg', 'develop')
+    assert remote == 'origin'
+
+
+def test_editable__branch_with_sha_different_from_default(script):
+    """
+    Test installing in editable mode a branch whose sha is different from
+    the sha of the default branch.
+    """
+    version_pkg_path = _create_test_package(script)
+    # Create a second branch.
+    script.run(
+        'git', 'branch', 'develop', expect_stderr=True,
+        cwd=version_pkg_path,
+    )
+    # Add another commit to the master branch to give it a different sha.
+    _change_test_package_version(script, version_pkg_path)
+
+    version = _install_version_pkg(
+        script, version_pkg_path, rev='develop', expect_stderr=True
+    )
+    assert version == '0.1'
+
+    branch = _get_editable_branch(script, 'version-pkg')
+    assert branch == 'develop'
+
+    remote = _get_branch_remote(script, 'version-pkg', 'develop')
+    assert remote == 'origin'
+
+
+def test_editable__non_master_default_branch(script):
     """
     Test the branch you get after an editable install from a remote repo
     with a non-master default branch.
@@ -376,8 +455,9 @@ def test_editable_non_master_default_branch(script):
         cwd=version_pkg_path,
     )
     _install_version_pkg_only(script, version_pkg_path)
+
     branch = _get_editable_branch(script, 'version-pkg')
-    assert 'release' == branch
+    assert branch == 'release'
 
 
 def test_reinstalling_works_with_editable_non_master_branch(script):

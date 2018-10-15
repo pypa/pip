@@ -116,7 +116,8 @@ def get_path_completion_type(cwords, cword, opts):
             continue
         for o in str(opt).split('/'):
             if cwords[cword - 2].split('=')[0] == o:
-                if any(x in ('path', 'file', 'dir')
+                if not opt.metavar or any(
+                        x in ('path', 'file', 'dir')
                         for x in opt.metavar.split('/')):
                     return opt.metavar
 

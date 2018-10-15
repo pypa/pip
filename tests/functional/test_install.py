@@ -522,13 +522,6 @@ def test_install_global_option(script):
     assert '0.1\n' in result.stdout
 
 
-def test_install_with_pax_header(script, data):
-    """
-    test installing from a tarball with pax header for python<2.6
-    """
-    script.pip('install', 'paxpkg.tar.bz2', cwd=data.packages)
-
-
 def test_install_with_hacked_egg_info(script, data):
     """
     test installing a package which defines its own egg_info class
@@ -629,7 +622,7 @@ def test_install_folder_using_relative_path(script):
 @pytest.mark.network
 def test_install_package_which_contains_dev_in_name(script):
     """
-    Test installing package from pypi which contains 'dev' in name
+    Test installing package from PyPI which contains 'dev' in name
     """
     result = script.pip('install', 'django-devserver==0.0.4')
     devserver_folder = script.site_packages / 'devserver'

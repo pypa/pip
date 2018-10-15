@@ -23,8 +23,6 @@ To install pip, securely download `get-pip.py
 
  curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
 
-As when running any script downloaded from the web, ensure that you have
-reviewed the code and are happy that it works as you expect.
 Then run the following::
 
  python get-pip.py

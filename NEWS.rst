@@ -7,6 +7,53 @@
 
 .. towncrier release notes start
 
+18.1 (2018-10-05)
+=================
+
+Features
+--------
+
+- Allow PEP 508 URL requirements to be used as dependencies.
+
+  As a security measure, pip will raise an exception when installing packages from
+  PyPI if those packages depend on packages not also hosted on PyPI.
+  In the future, PyPI will block uploading packages with such external URL dependencies directly. (`#4187 <https://github.com/pypa/pip/issues/4187>`_)
+- Upgrade pyparsing to 2.2.1. (`#5013 <https://github.com/pypa/pip/issues/5013>`_)
+- Allows dist options (--abi, --python-version, --platform, --implementation) when installing with --target (`#5355 <https://github.com/pypa/pip/issues/5355>`_)
+- Support passing ``svn+ssh`` URLs with a username to ``pip install -e``. (`#5375 <https://github.com/pypa/pip/issues/5375>`_)
+- pip now ensures that the RECORD file is sorted when installing from a wheel file. (`#5525 <https://github.com/pypa/pip/issues/5525>`_)
+- Add support for Python 3.7. (`#5561 <https://github.com/pypa/pip/issues/5561>`_)
+- Malformed configuration files now show helpful error messages, instead of tracebacks. (`#5798 <https://github.com/pypa/pip/issues/5798>`_)
+
+Bug Fixes
+---------
+
+- Checkout the correct branch when doing an editable Git install. (`#2037 <https://github.com/pypa/pip/issues/2037>`_)
+- Run self-version-check only on commands that may access the index, instead of
+  trying on every run and failing to do so due to missing options. (`#5433 <https://github.com/pypa/pip/issues/5433>`_)
+- Allow a Git ref to be installed over an existing installation. (`#5624 <https://github.com/pypa/pip/issues/5624>`_)
+- Show a better error message when a configuration option has an invalid value. (`#5644 <https://github.com/pypa/pip/issues/5644>`_)
+- Always revalidate cached simple API pages instead of blindly caching them for up to 10
+  minutes. (`#5670 <https://github.com/pypa/pip/issues/5670>`_)
+- Avoid caching self-version-check information when cache is disabled. (`#5679 <https://github.com/pypa/pip/issues/5679>`_)
+- Avoid traceback printing on autocomplete after flags in the CLI. (`#5751 <https://github.com/pypa/pip/issues/5751>`_)
+- Fix incorrect parsing of egg names if pip needs to guess the package name. (`#5819 <https://github.com/pypa/pip/issues/5819>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade certifi to 2018.8.24
+- Upgrade packaging to 18.0
+- Add pep517 version 0.2
+- Upgrade pytoml to 0.1.19
+- Upgrade pkg_resources to 40.4.3 (via setuptools)
+
+Improved Documentation
+----------------------
+
+- Fix "Requirements Files" reference in User Guide (`#user_guide_fix_requirements_file_ref <https://github.com/pypa/pip/issues/user_guide_fix_requirements_file_ref>`_)
+
+
 18.0 (2018-07-22)
 =================
 
@@ -17,7 +64,7 @@ Process
 - Formally document our deprecation process as a minimum of 6 months of deprecation
   warnings.
 - Adopt and document NEWS fragment writing style.
-- Switch to releasing a new, non bug fix version of pip every 3 months.
+- Switch to releasing a new, non-bug fix version of pip every 3 months.
 
 Deprecations and Removals
 -------------------------
@@ -118,7 +165,7 @@ Bug Fixes
 ---------
 
 - Prevent false-positive installation warnings due to incomplete name
-  normalizaton. (#5134)
+  normalization. (#5134)
 - Fix issue where installing from Git with a short SHA would fail. (#5140)
 - Accept pre-release versions when checking for conflicts with pip check or pip
   install. (#5141)
@@ -1207,7 +1254,7 @@ Improved Documentation
 
 - **Dropped support for Python 2.4** The minimum supported Python version is
   now Python 2.5.
-- Fixed pypi mirror support being broken on some DNS responses. Thanks
+- Fixed PyPI mirror support being broken on some DNS responses. Thanks
   philwhin. (#605)
 - Fixed pip uninstall removing files it didn't install. Thanks pjdelport.
   (#355)

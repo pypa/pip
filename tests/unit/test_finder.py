@@ -95,7 +95,7 @@ def test_finder_detects_latest_already_satisfied_find_links(data):
 def test_finder_detects_latest_already_satisfied_pypi_links():
     """Test PackageFinder detects latest already satisfied using pypi links"""
     req = install_req_from_line('initools', None)
-    # the latest initools on pypi is 0.3.1
+    # the latest initools on PyPI is 0.3.1
     latest_version = "0.3.1"
     satisfied_by = Mock(
         location="/path",
