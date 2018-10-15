@@ -7,7 +7,7 @@ import re
 from pip._internal.models.link import Link
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
-    display_path, rmtree, split_auth_from_netloc,
+    display_path, make_vcs_requirement_url, rmtree, split_auth_from_netloc,
 )
 from pip._internal.vcs import VersionControl, vcs
 
@@ -199,10 +199,11 @@ class Subversion(VersionControl):
         repo = self.get_url(location)
         if repo is None:
             return None
+        repo = 'svn+' + repo
+        rev = self.get_revision(location)
         # FIXME: why not project name?
         egg_project_name = dist.egg_name().split('-', 1)[0]
-        rev = self.get_revision(location)
-        return 'svn+%s@%s#egg=%s' % (repo, rev, egg_project_name)
+        return make_vcs_requirement_url(repo, rev, egg_project_name)
 
     def is_commit_id_equal(self, dest, name):
         """Always assume the versions don't match"""

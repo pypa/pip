@@ -1,2 +1,0 @@
-Run self-version-check only on commands that may access the index, instead of
-trying on every run and failing to do so due to missing options.

@@ -9,6 +9,7 @@ from distutils.util import strtobool
 
 from pip._vendor.six import string_types
 
+from pip._internal.cli.status_codes import UNKNOWN_ERROR
 from pip._internal.configuration import Configuration, ConfigurationError
 from pip._internal.utils.compat import get_terminal_size
 
@@ -232,7 +233,7 @@ class ConfigOptionParser(CustomOptionParser):
         try:
             self.config.load()
         except ConfigurationError as err:
-            self.exit(2, err.args[0])
+            self.exit(UNKNOWN_ERROR, str(err))
 
         defaults = self._update_defaults(self.defaults.copy())  # ours
         for option in self._get_all_options():
@@ -244,7 +245,7 @@ class ConfigOptionParser(CustomOptionParser):
 
     def error(self, msg):
         self.print_usage(sys.stderr)
-        self.exit(2, "%s\n" % msg)
+        self.exit(UNKNOWN_ERROR, "%s\n" % msg)
 
 
 def invalid_config_error_message(action, key, val):

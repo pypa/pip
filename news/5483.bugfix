@@ -1,0 +1,2 @@
+Handle `requests.exceptions.RetryError` raised in `PackageFinder` that was
+causing pip to fail silently when some indexes were unreachable.

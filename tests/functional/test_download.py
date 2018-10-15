@@ -57,7 +57,7 @@ def test_download_wheel(script, data):
 @pytest.mark.network
 def test_single_download_from_requirements_file(script):
     """
-    It should support download (in the scratch path) from PyPi from a
+    It should support download (in the scratch path) from PyPI from a
     requirements file
     """
     script.scratch_path.join("test-req.txt").write(textwrap.dedent("""

@@ -204,6 +204,30 @@ def test_completion_not_files_after_option(script, data):
     )
 
 
+@pytest.mark.parametrize("cl_opts", ["-U", "--user", "-h"])
+def test_completion_not_files_after_nonexpecting_option(script, data, cl_opts):
+    """
+    Test not getting completion files after options which not applicable
+    (e.g. ``pip install``)
+    """
+    res, env = setup_completion(
+        script=script,
+        words=('pip install %s r' % cl_opts),
+        cword='2',
+        cwd=data.completion_paths,
+    )
+    assert not any(out in res.stdout for out in
+                   ('requirements.txt', 'readme.txt',)), (
+        "autocomplete function completed <file> when "
+        "it should not complete"
+    )
+    assert not any(os.path.join(out, '') in res.stdout
+                   for out in ('replay', 'resources')), (
+        "autocomplete function completed <dir> when "
+        "it should not complete"
+    )
+
+
 def test_completion_directories_after_option(script, data):
     """
     Test getting completion <dir> after options in command

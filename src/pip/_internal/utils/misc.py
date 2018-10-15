@@ -520,15 +520,11 @@ def untar_file(filename, location):
         mode = 'r:*'
     tar = tarfile.open(filename, mode)
     try:
-        # note: python<=2.5 doesn't seem to know about pax headers, filter them
         leading = has_leading_dir([
             member.name for member in tar.getmembers()
-            if member.name != 'pax_global_header'
         ])
         for member in tar.getmembers():
             fn = member.name
-            if fn == 'pax_global_header':
-                continue
             if leading:
                 fn = split_leading_dir(fn)[1]
             path = os.path.join(location, fn)
@@ -854,6 +850,20 @@ def enum(*sequential, **named):
     reverse = {value: key for key, value in enums.items()}
     enums['reverse_mapping'] = reverse
     return type('Enum', (), enums)
+
+
+def make_vcs_requirement_url(repo_url, rev, egg_project_name, subdir=None):
+    """
+    Return the URL for a VCS requirement.
+
+    Args:
+      repo_url: the remote VCS url, with any needed VCS prefix (e.g. "git+").
+    """
+    req = '{}@{}#egg={}'.format(repo_url, rev, egg_project_name)
+    if subdir:
+        req += '&subdirectory={}'.format(subdir)
+
+    return req
 
 
 def split_auth_from_netloc(netloc):

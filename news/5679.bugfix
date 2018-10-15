@@ -1,1 +1,0 @@
-Avoid caching self-version-check information when cache is disabled.
