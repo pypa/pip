@@ -156,6 +156,50 @@ def freeze(
             yield str(installation).rstrip()
 
 
+def get_requirement_info(dist, dependency_links):
+    """
+    Compute and return values (req, editable, comments) for use in
+    FrozenRequirement.from_dist().
+    """
+    if not dist_is_editable(dist):
+        return (None, False, [])
+
+    location = os.path.normcase(os.path.abspath(dist.location))
+
+    from pip._internal.vcs import vcs
+    vc_type = vcs.get_backend_type(location)
+
+    if not vc_type:
+        return (None, False, [])
+
+    try:
+        req = vc_type().get_src_requirement(dist, location)
+    except BadCommand:
+        logger.warning(
+            'cannot determine version of editable source in %s '
+            '(%s command not found in path)',
+            location,
+            vc_type.name,
+        )
+        return (None, True, [])
+
+    except InstallationError as exc:
+        logger.warning(
+            "Error when trying to get requirement for VCS system %s, "
+            "falling back to uneditable format", exc
+        )
+    else:
+        if req is not None:
+            return (req, True, [])
+
+    logger.warning(
+        'Could not determine repository location of %s', location
+    )
+    comments = ['## !! Could not determine repository location']
+
+    return (None, False, comments)
+
+
 class FrozenRequirement(object):
     def __init__(self, name, req, editable, comments=()):
         self.name = name
@@ -164,54 +208,8 @@ class FrozenRequirement(object):
         self.comments = comments
 
     @classmethod
-    def get_requirement_info(cls, dist, dependency_links):
-        """
-        Compute and return values (req, editable, comments) for use in
-        FrozenRequirement.from_dist().
-        """
-        if not dist_is_editable(dist):
-            return (None, False, [])
-
-        location = os.path.normcase(os.path.abspath(dist.location))
-
-        from pip._internal.vcs import vcs
-        vc_type = vcs.get_backend_type(location)
-
-        if not vc_type:
-            return (None, False, [])
-
-        try:
-            req = vc_type().get_src_requirement(dist, location)
-        except BadCommand:
-            logger.warning(
-                'cannot determine version of editable source in %s '
-                '(%s command not found in path)',
-                location,
-                vc_type.name,
-            )
-            return (None, True, [])
-
-        except InstallationError as exc:
-            logger.warning(
-                "Error when trying to get requirement for VCS system %s, "
-                "falling back to uneditable format", exc
-            )
-        else:
-            if req is not None:
-                return (req, True, [])
-
-        logger.warning(
-            'Could not determine repository location of %s', location
-        )
-        comments = ['## !! Could not determine repository location']
-
-        return (None, False, comments)
-
-    @classmethod
     def from_dist(cls, dist, dependency_links):
-        req, editable, comments = cls.get_requirement_info(
-            dist, dependency_links
-        )
+        req, editable, comments = get_requirement_info(dist, dependency_links)
         if req is None:
             req = dist.as_requirement()
 
