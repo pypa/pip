@@ -70,6 +70,21 @@ def test_wheel_version(tmpdir, data):
     assert not wheel.wheel_version(tmpdir + 'broken')
 
 
+def test_python_tag():
+    wheelnames = [
+        'simplewheel-1.0-py2.py3-none-any.whl',
+        'simplewheel-1.0-py27-none-any.whl',
+        'simplewheel-2.0-1-py2.py3-none-any.whl',
+    ]
+    newnames = [
+        'simplewheel-1.0-py37-none-any.whl',
+        'simplewheel-1.0-py37-none-any.whl',
+        'simplewheel-2.0-1-py37-none-any.whl',
+    ]
+    for name, new in zip(wheelnames, newnames):
+        assert wheel.replace_python_tag(name, 'py37') == new
+
+
 def test_check_compatibility():
     name = 'test'
     vc = wheel.VERSION_COMPATIBLE

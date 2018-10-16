@@ -74,6 +74,14 @@ def open_for_csv(name, mode):
     return open(name, mode + bin, **nl)
 
 
+def replace_python_tag(wheelname, new_tag):
+    """Replace the Python tag in a wheel file name with a new value.
+    """
+    parts = wheelname.split('-')
+    parts[-3] = new_tag
+    return '-'.join(parts)
+
+
 def fix_script(path):
     """Replace #!python with #!/path/to/python
     Return True if file was changed."""
@@ -713,9 +721,18 @@ class WheelBuilder(object):
                         spinner=spinner
                     )
                 with req.pep517_backend.subprocess_runner(runner):
-                    req.pep517_backend.build_wheel(
+                    wheelname = req.pep517_backend.build_wheel(
                         tempd,
                         metadata_directory=req.metadata_directory
+                    )
+                if python_tag:
+                    # General PEP 517 backends don't necessarily support
+                    # a "--python-tag" option, so we rename the wheel
+                    # file directly.
+                    newname = replace_python_tag(wheelname, python_tag)
+                    os.rename(
+                        os.path.join(tempd, wheelname),
+                        os.path.join(tempd, newname)
                     )
                 return True
             except Exception:
