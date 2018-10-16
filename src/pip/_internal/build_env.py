@@ -4,6 +4,7 @@
 import logging
 import os
 import sys
+import textwrap
 from distutils.sysconfig import get_python_lib
 from sysconfig import get_paths
 
@@ -60,6 +61,15 @@ class BuildEnvironment(object):
             os.environ['PYTHONPATH'] = lib_dirs
 
         os.environ['PYTHONNOUSERSITE'] = '1'
+
+        # Ensure .pth files are honored.
+        with open(os.path.join(purelib, 'sitecustomize.py'), 'w') as fp:
+            fp.write(textwrap.dedent(
+                '''
+                import site
+                site.addsitedir({!r})
+                '''
+            ).format(purelib))
 
         return self.path
 

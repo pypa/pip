@@ -1,0 +1,1 @@
+- Improve PEP 518 build isolation: handle .pth files, so namespace packages are correctly supported under Python 3.2 and earlier.
