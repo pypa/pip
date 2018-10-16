@@ -5,7 +5,7 @@ import logging
 import os
 import re
 
-from pip._vendor import pkg_resources, six
+from pip._vendor import six
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.pkg_resources import RequirementParseError
 
@@ -34,16 +34,6 @@ def freeze(
     if skip_regex:
         skip_match = re.compile(skip_regex).search
 
-    dependency_links = []
-
-    for dist in pkg_resources.working_set:
-        if dist.has_metadata('dependency_links.txt'):
-            dependency_links.extend(
-                dist.get_metadata_lines('dependency_links.txt')
-            )
-    for link in find_links:
-        if '#egg=' in link:
-            dependency_links.append(link)
     for link in find_links:
         yield '-f %s' % link
     installations = {}
@@ -51,10 +41,7 @@ def freeze(
                                             skip=(),
                                             user_only=user_only):
         try:
-            req = FrozenRequirement.from_dist(
-                dist,
-                dependency_links
-            )
+            req = FrozenRequirement.from_dist(dist)
         except RequirementParseError:
             logger.warning(
                 "Could not parse requirement: %s",
@@ -156,7 +143,7 @@ def freeze(
             yield str(installation).rstrip()
 
 
-def get_requirement_info(dist, dependency_links):
+def get_requirement_info(dist):
     """
     Compute and return values (req, editable, comments) for use in
     FrozenRequirement.from_dist().
@@ -208,8 +195,8 @@ class FrozenRequirement(object):
         self.comments = comments
 
     @classmethod
-    def from_dist(cls, dist, dependency_links):
-        req, editable, comments = get_requirement_info(dist, dependency_links)
+    def from_dist(cls, dist):
+        req, editable, comments = get_requirement_info(dist)
         if req is None:
             req = dist.as_requirement()
 
