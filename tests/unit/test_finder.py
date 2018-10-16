@@ -105,12 +105,22 @@ def test_finder_detects_latest_already_satisfied_pypi_links():
     req.satisfied_by = satisfied_by
     finder = PackageFinder(
         [],
-        ["http://pypi.org/simple/"],
+        ["https://pypi.org/simple/"],
         session=PipSession(),
     )
+    finder_get_pages = finder._get_pages
 
-    with pytest.raises(BestVersionAlreadyInstalled):
-        finder.find_requirement(req, True)
+    def get_pages(locations, project_name):
+        assert locations == [Link('https://pypi.org/simple/initools/')]
+        for page in finder_get_pages(locations, project_name):
+            get_pages.page_found = True
+            yield page
+    get_pages.page_found = False
+
+    with patch.object(finder, "_get_pages", get_pages):
+        with pytest.raises(BestVersionAlreadyInstalled):
+            finder.find_requirement(req, True)
+    assert get_pages.page_found
 
 
 class TestWheel:
