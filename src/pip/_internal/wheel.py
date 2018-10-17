@@ -8,6 +8,7 @@ import compileall
 import csv
 import hashlib
 import logging
+import operator
 import os.path
 import re
 import shutil
@@ -511,7 +512,7 @@ if __name__ == '__main__':
                 outrows.append((normpath(f, lib_dir), digest, length))
             for f in installed:
                 outrows.append((installed[f], '', ''))
-            for row in sorted(outrows):
+            for row in sorted(outrows, key=operator.itemgetter(0, 1)):
                 writer.writerow(row)
     shutil.move(temp_record, record)
 

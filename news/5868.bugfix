@@ -1,0 +1,1 @@
+Fix sorting `TypeError` in `move_wheel_files()` when installing packages containing record entries conflicting with generated files.
