@@ -891,6 +891,11 @@ def split_auth_from_netloc(netloc):
 
 
 def redact_netloc(netloc):
+    """
+    Replace the password in a netloc with "****", if it exists.
+
+    For example, "user:pass@example.com" returns "user:****@example.com".
+    """
     netloc, (user, password) = split_auth_from_netloc(netloc)
     if user is None:
         return netloc
@@ -900,7 +905,7 @@ def redact_netloc(netloc):
                                               netloc=netloc)
 
 
-def transform_url(url, transform_netloc):
+def _transform_url(url, transform_netloc):
     purl = urllib_parse.urlsplit(url)
     netloc = transform_netloc(purl.netloc)
     # stripped url
@@ -915,12 +920,13 @@ def remove_auth_from_url(url):
     # Return a copy of url with 'username:password@' removed.
     # username/pass params are passed to subversion through flags
     # and are not recognized in the url.
-    return transform_url(url, lambda netloc: split_auth_from_netloc(netloc)[0])
+    transform_netloc = lambda netloc: split_auth_from_netloc(netloc)[0]
+    return _transform_url(url, transform_netloc)
 
 
 def redact_password_from_url(url):
     """Replace the password in a given url with ****."""
-    return transform_url(url, redact_netloc)
+    return _transform_url(url, redact_netloc)
 
 
 def protect_pip_from_modification_on_windows(modifying_pip):

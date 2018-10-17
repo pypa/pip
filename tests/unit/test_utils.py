@@ -678,8 +678,8 @@ def test_split_auth_from_netloc(netloc, expected):
     ('user:pass:word@example.com', 'user:****@example.com'),
 ])
 def test_redact_netloc(netloc, expected):
-    result = redact_netloc(netloc)
-    assert result == expected
+    actual = redact_netloc(netloc)
+    assert actual == expected
 
 
 @pytest.mark.parametrize('auth_url, expected_url', [
@@ -703,12 +703,12 @@ def test_remove_auth_from_url(auth_url, expected_url):
     assert url == expected_url
 
 
-@pytest.mark.parametrize('auth_url,expected_url', [
+@pytest.mark.parametrize('auth_url, expected_url', [
     ('https://user@example.com/abc', 'https://user@example.com/abc'),
     ('https://user:password@example.com', 'https://user:****@example.com'),
     ('https://user:@example.com', 'https://user:****@example.com'),
     ('https://example.com', 'https://example.com')
 ])
 def test_redact_password_from_url(auth_url, expected_url):
-    result = redact_password_from_url(auth_url)
-    assert result == expected_url
+    url = redact_password_from_url(auth_url)
+    assert url == expected_url
