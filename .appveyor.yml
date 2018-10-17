@@ -18,6 +18,7 @@ environment:
 install:
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - "python --version"
+  - "python -m pip install --upgrade --disable-pip-version-check pip setuptools wheel"
   - "pip install --upgrade certifi tox tox-venv"
   - "pip freeze --all"
   # Fix git SSL errors.
