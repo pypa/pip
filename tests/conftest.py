@@ -70,6 +70,16 @@ def pytest_collection_modifyitems(config, items):
             )
 
 
+@pytest.fixture(scope='session')
+def tmpdir_factory(request, tmpdir_factory):
+    """ Modified `tmpdir_factory` session fixture
+    that will automatically cleanup after itself.
+    """
+    yield tmpdir_factory
+    if not request.config.getoption("--keep-tmpdir"):
+        tmpdir_factory.getbasetemp().remove(ignore_errors=True)
+
+
 @pytest.yield_fixture
 def tmpdir(request, tmpdir):
     """
@@ -245,7 +255,6 @@ def virtualenv_template(request, tmpdir_factory, pip_src,
     venv_template = tmpdir / "venv_template"
     venv.move(venv_template)
     yield venv
-    tmpdir.rmtree(noerrors=True)
 
 
 @pytest.yield_fixture
@@ -258,7 +267,6 @@ def virtualenv(virtualenv_template, tmpdir, isolate):
     """
     venv_location = tmpdir.join("workspace", "venv")
     yield VirtualEnvironment(venv_location, virtualenv_template)
-    venv_location.rmtree(noerrors=True)
 
 
 @pytest.fixture
