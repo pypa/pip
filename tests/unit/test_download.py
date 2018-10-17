@@ -127,7 +127,12 @@ def test_path_to_url_unix():
 
 @pytest.mark.skipif("sys.platform == 'win32'")
 def test_url_to_path_unix():
+    assert url_to_path('file:tmp') == 'tmp'
     assert url_to_path('file:///tmp/file') == '/tmp/file'
+    assert url_to_path('file:/path/to/file') == '/path/to/file'
+    assert url_to_path('file://localhost/tmp/file') == '/tmp/file'
+    with pytest.raises(ValueError):
+        url_to_path('file://somehost/tmp/file')
 
 
 @pytest.mark.skipif("sys.platform != 'win32'")
@@ -141,8 +146,11 @@ def test_path_to_url_win():
 
 @pytest.mark.skipif("sys.platform != 'win32'")
 def test_url_to_path_win():
-    assert url_to_path('file:///c:/tmp/file') == 'C:\\tmp\\file'
+    assert url_to_path('file:tmp') == 'tmp'
+    assert url_to_path('file:///c:/tmp/file') == r'C:\tmp\file'
     assert url_to_path('file://unc/as/path') == r'\\unc\as\path'
+    assert url_to_path('file:c:/path/to/file') == r'C:\path\to\file'
+    assert url_to_path('file://localhost/c:/tmp/file') == r'C:\tmp\file'
 
 
 @pytest.mark.skipif("sys.platform != 'win32'")
