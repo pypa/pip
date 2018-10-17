@@ -920,8 +920,8 @@ def remove_auth_from_url(url):
     # Return a copy of url with 'username:password@' removed.
     # username/pass params are passed to subversion through flags
     # and are not recognized in the url.
-    transform_netloc = lambda netloc: split_auth_from_netloc(netloc)[0]
-    return _transform_url(url, transform_netloc)
+    return _transform_url(url,
+                          lambda netloc: split_auth_from_netloc(netloc)[0])
 
 
 def redact_password_from_url(url):
