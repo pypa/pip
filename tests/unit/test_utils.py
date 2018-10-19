@@ -280,6 +280,8 @@ class TestUnpackArchives(object):
        script_world.sh  601 script where world can execute
        dir              744 directory
        dir/dirfile      622 regular file
+     4) the file contents are extracted correctly (though the content of
+        each file isn't currently unique)
 
     """
 
@@ -298,19 +300,25 @@ class TestUnpackArchives(object):
     def confirm_files(self):
         # expectations based on 022 umask set above and the unpack logic that
         # sets execute permissions, not preservation
-        for fname, expected_mode, test in [
-                ('file.txt', 0o644, os.path.isfile),
-                ('symlink.txt', 0o644, os.path.isfile),
-                ('script_owner.sh', 0o755, os.path.isfile),
-                ('script_group.sh', 0o755, os.path.isfile),
-                ('script_world.sh', 0o755, os.path.isfile),
-                ('dir', 0o755, os.path.isdir),
-                (os.path.join('dir', 'dirfile'), 0o644, os.path.isfile)]:
+        for fname, expected_mode, test, expected_contents in [
+                ('file.txt', 0o644, os.path.isfile, b'file\n'),
+                # We don't test the "symlink.txt" contents for now.
+                ('symlink.txt', 0o644, os.path.isfile, None),
+                ('script_owner.sh', 0o755, os.path.isfile, b'file\n'),
+                ('script_group.sh', 0o755, os.path.isfile, b'file\n'),
+                ('script_world.sh', 0o755, os.path.isfile, b'file\n'),
+                ('dir', 0o755, os.path.isdir, None),
+                (os.path.join('dir', 'dirfile'), 0o644, os.path.isfile, b''),
+        ]:
             path = os.path.join(self.tempdir, fname)
             if path.endswith('symlink.txt') and sys.platform == 'win32':
                 # no symlinks created on windows
                 continue
             assert test(path), path
+            if expected_contents is not None:
+                with open(path, mode='rb') as f:
+                    contents = f.read()
+                assert contents == expected_contents, 'fname: {}'.format(fname)
             if sys.platform == 'win32':
                 # the permissions tests below don't apply in windows
                 # due to os.chmod being a noop
