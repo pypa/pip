@@ -300,14 +300,14 @@ class TestUnpackArchives(object):
         # expectations based on 022 umask set above and the unpack logic that
         # sets execute permissions, not preservation
         for fname, expected_mode, test, expected_contents in [
-                ('file.txt', 0o644, os.path.isfile, 'file\n'),
+                ('file.txt', 0o644, os.path.isfile, b'file\n'),
                 # We don't test the "symlink.txt" contents for now.
                 ('symlink.txt', 0o644, os.path.isfile, None),
-                ('script_owner.sh', 0o755, os.path.isfile, 'file\n'),
-                ('script_group.sh', 0o755, os.path.isfile, 'file\n'),
-                ('script_world.sh', 0o755, os.path.isfile, 'file\n'),
+                ('script_owner.sh', 0o755, os.path.isfile, b'file\n'),
+                ('script_group.sh', 0o755, os.path.isfile, b'file\n'),
+                ('script_world.sh', 0o755, os.path.isfile, b'file\n'),
                 ('dir', 0o755, os.path.isdir, None),
-                (os.path.join('dir', 'dirfile'), 0o644, os.path.isfile, ''),
+                (os.path.join('dir', 'dirfile'), 0o644, os.path.isfile, b''),
         ]:
             path = os.path.join(self.tempdir, fname)
             if path.endswith('symlink.txt') and sys.platform == 'win32':
@@ -315,7 +315,7 @@ class TestUnpackArchives(object):
                 continue
             assert test(path), path
             if expected_contents is not None:
-                with open(path) as f:
+                with open(path, mode='rb') as f:
                     contents = f.read()
                 assert contents == expected_contents, 'fname: {}'.format(fname)
             if sys.platform == 'win32':
