@@ -161,7 +161,9 @@ def test_get_formatted_locations_basic_auth():
     finder = PackageFinder([], index_urls, session=[])
 
     result = finder.get_formatted_locations()
-    assert 'user' not in result and 'pass' not in result
+    assert 'user' in result
+    assert '****' in result
+    assert 'pass' not in result
 
 
 @pytest.mark.parametrize(
