@@ -468,7 +468,6 @@ def unzip_file(filename, location, flatten=True):
         leading = has_leading_dir(zip.namelist()) and flatten
         for info in zip.infolist():
             name = info.filename
-            data = zip.read(name)
             fn = name
             if leading:
                 fn = split_leading_dir(name)[1]
@@ -479,9 +478,12 @@ def unzip_file(filename, location, flatten=True):
                 ensure_dir(fn)
             else:
                 ensure_dir(dir)
-                fp = open(fn, 'wb')
+                # Don't use read() to avoid allocating an arbitrarily large
+                # chunk of memory for the file's content
+                fp = zip.open(name)
                 try:
-                    fp.write(data)
+                    with open(fn, 'wb') as destfp:
+                        shutil.copyfileobj(fp, destfp)
                 finally:
                     fp.close()
                     mode = info.external_attr >> 16
