@@ -451,6 +451,22 @@ class InstallRequirement(object):
             self.pyproject_requires = requires
             self.pep517_backend = Pep517HookCaller(self.setup_py_dir, backend)
 
+            # Use a custom function to call subprocesses
+            self.spin_message = ""
+
+            def runner(cmd, cwd=None, extra_environ=None):
+                with open_spinner(self.spin_message) as spinner:
+                    call_subprocess(
+                        cmd,
+                        cwd=cwd,
+                        extra_environ=extra_environ,
+                        show_stdout=False,
+                        spinner=spinner
+                    )
+                self.spin_message = ""
+
+            self.pep517_backend._subprocess_runner = runner
+
     def prepare_metadata(self):
         """Ensure that project metadata is available.
 
@@ -513,6 +529,7 @@ class InstallRequirement(object):
             # prepare_metadata_for_build_wheel, so we don't have to
             # consider the possibility that this hook doesn't exist.
             backend = self.pep517_backend
+            self.spin_message = "Preparing wheel metadata"
             distinfo_dir = backend.prepare_metadata_for_build_wheel(
                 metadata_dir
             )

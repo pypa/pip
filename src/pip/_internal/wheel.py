@@ -706,39 +706,27 @@ class WheelBuilder(object):
         ] + list(self.global_options)
 
     def _build_one_pep517(self, req, tempd, python_tag=None):
-        # TODO: Cannot support python_tag
-        spin_message = 'Building wheel for %s (PEP 517)' % (req.name,)
-        with open_spinner(spin_message) as spinner:
+        assert req.metadata_directory is not None
+        try:
+            req.spin_message = 'Building wheel for %s (PEP 517)' % (req.name,)
             logger.debug('Destination directory: %s', tempd)
-            assert req.metadata_directory is not None
-            try:
-                def runner(cmd, cwd=None, extra_environ=None):
-                    call_subprocess(
-                        cmd,
-                        cwd=cwd,
-                        extra_environ=extra_environ,
-                        show_stdout=False,
-                        spinner=spinner
-                    )
-                with req.pep517_backend.subprocess_runner(runner):
-                    wheelname = req.pep517_backend.build_wheel(
-                        tempd,
-                        metadata_directory=req.metadata_directory
-                    )
-                if python_tag:
-                    # General PEP 517 backends don't necessarily support
-                    # a "--python-tag" option, so we rename the wheel
-                    # file directly.
-                    newname = replace_python_tag(wheelname, python_tag)
-                    os.rename(
-                        os.path.join(tempd, wheelname),
-                        os.path.join(tempd, newname)
-                    )
-                return True
-            except Exception:
-                spinner.finish("error")
-                logger.error('Failed building wheel for %s', req.name)
-                return False
+            wheelname = req.pep517_backend.build_wheel(
+                tempd,
+                metadata_directory=req.metadata_directory
+            )
+            if python_tag:
+                # General PEP 517 backends don't necessarily support
+                # a "--python-tag" option, so we rename the wheel
+                # file directly.
+                newname = replace_python_tag(wheelname, python_tag)
+                os.rename(
+                    os.path.join(tempd, wheelname),
+                    os.path.join(tempd, newname)
+                )
+            return True
+        except Exception:
+            logger.error('Failed building wheel for %s', req.name)
+            return False
 
     def _build_one_legacy(self, req, tempd, python_tag=None):
         base_args = self._base_setup_args(req)

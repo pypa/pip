@@ -136,6 +136,7 @@ class IsSDist(DistAbstraction):
             # dependencies must be installed before we can call the backend.
             with self.req.build_env:
                 # We need to have the env active when calling the hook.
+                self.req.spin_message = "Getting requirements to build wheel"
                 reqs = self.req.pep517_backend.get_requires_for_build_wheel()
             conflicting, missing = self.req.build_env.check_requirements(reqs)
             if conflicting:
