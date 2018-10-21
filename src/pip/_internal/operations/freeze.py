@@ -157,7 +157,15 @@ def get_requirement_info(dist):
     vc_type = vcs.get_backend_type(location)
 
     if not vc_type:
-        return (None, False, [])
+        req = dist.as_requirement()
+        logger.info(
+            'Editable requirement {!r} not in VCS directory: {!r}', req,
+            location,
+        )
+        comments = [
+            '# Editable, no version control detected ({})'.format(req)
+        ]
+        return (location, True, comments)
 
     try:
         req = vc_type().get_src_requirement(dist, location)
