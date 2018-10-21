@@ -83,14 +83,14 @@ def test_get_remote_url(script, tmpdir):
     assert remote_url == source_url
 
 
-def test_get_branch(script):
+def test_get_current_branch(script):
     repo_dir = str(script.scratch_path)
 
     script.run('git', 'init', cwd=repo_dir)
     sha = do_commit(script, repo_dir)
 
     git = Git()
-    assert git.get_branch(repo_dir) == 'master'
+    assert git.get_current_branch(repo_dir) == 'master'
 
     # Switch to a branch with the same SHA as "master" but whose name
     # is alphabetically after.
@@ -98,11 +98,11 @@ def test_get_branch(script):
         'git', 'checkout', '-b', 'release', cwd=repo_dir,
         expect_stderr=True,
     )
-    assert git.get_branch(repo_dir) == 'release'
+    assert git.get_current_branch(repo_dir) == 'release'
 
     # Also test the detached HEAD case.
     script.run('git', 'checkout', sha, cwd=repo_dir, expect_stderr=True)
-    assert git.get_branch(repo_dir) is None
+    assert git.get_current_branch(repo_dir) is None
 
 
 def test_get_revision_sha(script):

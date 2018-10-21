@@ -79,7 +79,7 @@ class Git(VersionControl):
         version = '.'.join(version.split('.')[:3])
         return parse_version(version)
 
-    def get_branch(self, location):
+    def get_current_branch(self, location):
         """
         Return the current branch, or None if HEAD isn't at a branch
         (e.g. detached HEAD).
@@ -210,7 +210,7 @@ class Git(VersionControl):
                 if not self.is_commit_id_equal(dest, rev_options.rev):
                     cmd_args = ['checkout', '-q'] + rev_options.to_args()
                     self.run_command(cmd_args, cwd=dest)
-            elif self.get_branch(dest) != branch_name:
+            elif self.get_current_branch(dest) != branch_name:
                 # Then a specific branch was requested, and that branch
                 # is not yet checked out.
                 track_branch = 'origin/{}'.format(branch_name)
