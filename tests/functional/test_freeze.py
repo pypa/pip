@@ -116,6 +116,27 @@ def test_freeze_with_invalid_names(script):
         )
 
 
+@pytest.mark.git
+def test_freeze_editable_not_vcs(script, tmpdir):
+    """
+    Test an editable install that is not version controlled.
+    """
+    pkg_path = _create_test_package(script)
+    # Rename the .git directory so the directory is no longer recognized
+    # as a VCS directory.
+    os.rename(os.path.join(pkg_path, '.git'), os.path.join(pkg_path, '.bak'))
+    script.pip('install', '-e', pkg_path)
+    result = script.pip('freeze', expect_stderr=True)
+
+    # We need to apply os.path.normcase() to the path since that is what
+    # the freeze code does.
+    expected = textwrap.dedent("""\
+    ...# Editable, no version control detected (version-pkg==0.1)
+    -e {}
+    ...""".format(os.path.normcase(pkg_path)))
+    _check_output(result.stdout, expected)
+
+
 @pytest.mark.svn
 def test_freeze_svn(script, tmpdir):
     """Test freezing a svn checkout"""
