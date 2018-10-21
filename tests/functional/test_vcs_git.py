@@ -16,6 +16,16 @@ def get_head_sha(script, dest):
     return sha
 
 
+def checkout_ref(script, repo_dir, ref):
+    script.run('git', 'checkout', ref, cwd=repo_dir, expect_stderr=True)
+
+
+def checkout_new_branch(script, repo_dir, branch):
+    script.run(
+        'git', 'checkout', '-b', branch, cwd=repo_dir, expect_stderr=True,
+    )
+
+
 def do_commit(script, dest):
     _git_commit(script, dest, message='test commit', args=['--allow-empty'])
     return get_head_sha(script, dest)
@@ -94,14 +104,31 @@ def test_get_current_branch(script):
 
     # Switch to a branch with the same SHA as "master" but whose name
     # is alphabetically after.
-    script.run(
-        'git', 'checkout', '-b', 'release', cwd=repo_dir,
-        expect_stderr=True,
-    )
+    checkout_new_branch(script, repo_dir, 'release')
     assert git.get_current_branch(repo_dir) == 'release'
 
     # Also test the detached HEAD case.
-    script.run('git', 'checkout', sha, cwd=repo_dir, expect_stderr=True)
+    checkout_ref(script, repo_dir, sha)
+    assert git.get_current_branch(repo_dir) is None
+
+
+def test_get_current_branch__branch_and_tag_same_name(script, tmpdir):
+    """
+    Check calling get_current_branch() from a branch or tag when the branch
+    and tag have the same name.
+    """
+    repo_dir = str(tmpdir)
+    script.run('git', 'init', cwd=repo_dir)
+    do_commit(script, repo_dir)
+    checkout_new_branch(script, repo_dir, 'dev')
+    # Create a tag with the same name as the branch.
+    script.run('git', 'tag', 'dev', cwd=repo_dir)
+
+    git = Git()
+    assert git.get_current_branch(repo_dir) == 'dev'
+
+    # Now try with the tag checked out.
+    checkout_ref(script, repo_dir, 'refs/tags/dev')
     assert git.get_current_branch(repo_dir) is None
 
 
