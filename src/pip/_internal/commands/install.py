@@ -472,7 +472,11 @@ class InstallCommand(RequirementCommand):
                     )
 
     def _warn_about_conflicts(self, to_install):
-        package_set, _dep_info = check_install_conflicts(to_install)
+        try:
+            package_set, _dep_info = check_install_conflicts(to_install)
+        except Exception:
+            logger.error("Error checking for conflicts.", exc_info=True)
+            return
         missing, conflicting = _dep_info
 
         # NOTE: There is some duplication here from pip check
