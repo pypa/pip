@@ -185,6 +185,10 @@ def test_get_formatted_locations_basic_auth():
         # Should be able to detect collapsed characters in the egg info.
         ("foo--bar-1.0", "foo-bar", 8),
         ("foo-_bar-1.0", "foo-bar", 8),
+
+        # The package name must not ends with a dash (PEP 508), so the first
+        # dash would be the separator, not the second.
+        ("zope.interface--4.5.0", "zope-interface", 14),
     ],
 )
 def test_find_name_version_sep(egg_info, canonical_name, expected):
@@ -215,6 +219,7 @@ def test_find_name_version_sep(egg_info, canonical_name, expected):
 
         # Invalid.
         ("the-package-name-8.19", "does-not-match", None),
+        ("zope.interface.-4.5.0", "zope.interface", None),
     ],
 )
 def test_egg_info_matches(egg_info, canonical_name, expected):
