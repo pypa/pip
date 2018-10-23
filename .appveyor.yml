@@ -18,7 +18,8 @@ environment:
 install:
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - "python --version"
-  - "pip install certifi tox"
+  - "pip install --upgrade certifi tox tox-venv"
+  - "pip freeze --all"
   # Fix git SSL errors.
   - "python -m certifi >cacert.txt"
   - "set /p GIT_SSL_CAINFO=<cacert.txt"
@@ -61,7 +62,7 @@ test_script:
             $env:TEMP = "T:\"
             $env:TMP = "T:\"
             if ($env:RUN_INTEGRATION_TESTS -eq "True") {
-                tox -e py -- -m integration -n 3 --duration=5
+                tox -e py -- --use-venv -m integration -n 3 --duration=5
             }
             else {
                 tox -e py -- -m unit -n 3

@@ -479,16 +479,3 @@ class VersionControl(object):
         the Git override checks that Git is actually available.
         """
         return cls.is_repository_directory(location)
-
-
-def get_src_requirement(vc_type, dist, location):
-    try:
-        return vc_type().get_src_requirement(dist, location)
-    except BadCommand:
-        logger.warning(
-            'cannot determine version of editable source in %s '
-            '(%s command not found in path)',
-            location,
-            vc_type.name,
-        )
-        return dist.as_requirement()

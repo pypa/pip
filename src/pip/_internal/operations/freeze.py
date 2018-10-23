@@ -5,11 +5,11 @@ import logging
 import os
 import re
 
-from pip._vendor import pkg_resources, six
+from pip._vendor import six
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.pkg_resources import RequirementParseError
 
-from pip._internal.exceptions import InstallationError
+from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.req.constructors import (
     install_req_from_editable, install_req_from_line,
 )
@@ -34,16 +34,6 @@ def freeze(
     if skip_regex:
         skip_match = re.compile(skip_regex).search
 
-    dependency_links = []
-
-    for dist in pkg_resources.working_set:
-        if dist.has_metadata('dependency_links.txt'):
-            dependency_links.extend(
-                dist.get_metadata_lines('dependency_links.txt')
-            )
-    for link in find_links:
-        if '#egg=' in link:
-            dependency_links.append(link)
     for link in find_links:
         yield '-f %s' % link
     installations = {}
@@ -51,10 +41,7 @@ def freeze(
                                             skip=(),
                                             user_only=user_only):
         try:
-            req = FrozenRequirement.from_dist(
-                dist,
-                dependency_links
-            )
+            req = FrozenRequirement.from_dist(dist)
         except RequirementParseError:
             logger.warning(
                 "Could not parse requirement: %s",
@@ -156,6 +143,50 @@ def freeze(
             yield str(installation).rstrip()
 
 
+def get_requirement_info(dist):
+    """
+    Compute and return values (req, editable, comments) for use in
+    FrozenRequirement.from_dist().
+    """
+    if not dist_is_editable(dist):
+        return (None, False, [])
+
+    location = os.path.normcase(os.path.abspath(dist.location))
+
+    from pip._internal.vcs import vcs
+    vc_type = vcs.get_backend_type(location)
+
+    if not vc_type:
+        return (None, False, [])
+
+    try:
+        req = vc_type().get_src_requirement(dist, location)
+    except BadCommand:
+        logger.warning(
+            'cannot determine version of editable source in %s '
+            '(%s command not found in path)',
+            location,
+            vc_type.name,
+        )
+        return (None, True, [])
+
+    except InstallationError as exc:
+        logger.warning(
+            "Error when trying to get requirement for VCS system %s, "
+            "falling back to uneditable format", exc
+        )
+    else:
+        if req is not None:
+            return (req, True, [])
+
+    logger.warning(
+        'Could not determine repository location of %s', location
+    )
+    comments = ['## !! Could not determine repository location']
+
+    return (None, False, comments)
+
+
 class FrozenRequirement(object):
     def __init__(self, name, req, editable, comments=()):
         self.name = name
@@ -164,48 +195,12 @@ class FrozenRequirement(object):
         self.comments = comments
 
     @classmethod
-    def _init_args_from_dist(cls, dist, dependency_links):
-        """
-        Compute and return arguments (req, editable, comments) to pass to
-        FrozenRequirement.__init__().
-
-        This method is for use in FrozenRequirement.from_dist().
-        """
-        location = os.path.normcase(os.path.abspath(dist.location))
-        from pip._internal.vcs import vcs, get_src_requirement
-        if not dist_is_editable(dist):
+    def from_dist(cls, dist):
+        req, editable, comments = get_requirement_info(dist)
+        if req is None:
             req = dist.as_requirement()
-            return (req, False, [])
 
-        vc_type = vcs.get_backend_type(location)
-
-        if not vc_type:
-            req = dist.as_requirement()
-            return (req, False, [])
-
-        try:
-            req = get_src_requirement(vc_type, dist, location)
-        except InstallationError as exc:
-            logger.warning(
-                "Error when trying to get requirement for VCS system %s, "
-                "falling back to uneditable format", exc
-            )
-        else:
-            if req is not None:
-                return (req, True, [])
-
-        logger.warning(
-            'Could not determine repository location of %s', location
-        )
-        comments = ['## !! Could not determine repository location']
-        req = dist.as_requirement()
-
-        return (req, False, comments)
-
-    @classmethod
-    def from_dist(cls, dist, dependency_links):
-        args = cls._init_args_from_dist(dist, dependency_links)
-        return cls(dist.project_name, *args)
+        return cls(dist.project_name, req, editable, comments=comments)
 
     def __str__(self):
         req = self.req
