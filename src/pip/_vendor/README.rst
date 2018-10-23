@@ -11,7 +11,7 @@ Policy
   ``pip/_vendor/vendor.txt``.
 
 * Vendored libraries **MUST** function without any build steps such as ``2to3`` or
-  compilation of C code, pratically this limits to single source 2.x/3.x and
+  compilation of C code, practically this limits to single source 2.x/3.x and
   pure Python.
 
 * Any modifications made to libraries **MUST** be noted in
