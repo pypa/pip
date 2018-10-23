@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 import textwrap
 
+from tests.lib import _create_main_file
+
 
 def _create_test_package_submodule(env):
     env.scratch_path.join("version_pkg_submodule").mkdir()
@@ -45,10 +47,7 @@ def _create_test_package_with_submodule(env):
     pkg_path = version_pkg_path / 'testpkg'
 
     pkg_path.join("__init__.py").write("# hello there")
-    pkg_path.join("version_pkg.py").write(textwrap.dedent('''\
-                                def main():
-                                    print('0.1')
-                                '''))
+    _create_main_file(pkg_path, name="version_pkg", output="0.1")
     version_pkg_path.join("setup.py").write(textwrap.dedent('''\
                         from setuptools import setup, find_packages
                         setup(name='version_pkg',
