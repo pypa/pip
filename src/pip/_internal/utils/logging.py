@@ -26,6 +26,13 @@ _log_state = threading.local()
 _log_state.indentation = 0
 
 
+class BrokenStdoutLoggingError(Exception):
+    """
+    Raised if BrokenPipeError occurs for the stdout stream while logging.
+    """
+    pass
+
+
 @contextlib.contextmanager
 def indent_log(num=2):
     """
