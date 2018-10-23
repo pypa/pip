@@ -11,9 +11,9 @@ include docs/docutils.conf
 
 exclude .coveragerc
 exclude .mailmap
+exclude .appveyor.yml
 exclude .travis.yml
 exclude tox.ini
-exclude appveyor.yml
 
 recursive-include src/pip/_vendor *.pem
 recursive-include docs Makefile *.rst *.py *.bat

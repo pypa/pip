@@ -38,7 +38,7 @@ Automated Testing
 =================
 
 All pull requests and merges to 'master' branch are tested using `Travis CI`_
-and `Appveyor CI`_ based on our `.travis.yml`_ and `appveyor.yml`_ files.
+and `Appveyor CI`_ based on our `.travis.yml`_ and `.appveyor.yml`_ files.
 
 You can find the status and results to the CI runs for your PR on GitHub's Web
 UI for the pull request. You can also find links to the CI services' pages for
@@ -245,5 +245,5 @@ and they will initiate a vote.
 .. _`Travis CI`: https://travis-ci.org/
 .. _`Appveyor CI`: https://www.appveyor.com/
 .. _`.travis.yml`: https://github.com/pypa/pip/blob/master/.travis.yml
-.. _`appveyor.yml`: https://github.com/pypa/pip/blob/master/appveyor.yml
+.. _`.appveyor.yml`: https://github.com/pypa/pip/blob/master/.appveyor.yml
 .. _`towncrier`: https://pypi.org/project/towncrier/
