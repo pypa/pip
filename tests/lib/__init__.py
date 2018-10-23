@@ -474,13 +474,26 @@ def assert_all_changes(start_state, end_state, expected_changes):
     return diff
 
 
+def _create_main_file(dir_path, name=None, output=None):
+    """
+    Create a module with a main() function that prints the given output.
+    """
+    if name is None:
+        name = 'version_pkg'
+    if output is None:
+        output = '0.1'
+    text = textwrap.dedent("""\
+    def main():
+        print({!r})
+    """.format(output))
+    filename = '{}.py'.format(name)
+    dir_path.join(filename).write(text)
+
+
 def _create_test_package_with_subdirectory(script, subdirectory):
     script.scratch_path.join("version_pkg").mkdir()
     version_pkg_path = script.scratch_path / 'version_pkg'
-    version_pkg_path.join("version_pkg.py").write(textwrap.dedent("""
-                                def main():
-                                    print('0.1')
-                                """))
+    _create_main_file(version_pkg_path, name="version_pkg", output="0.1")
     version_pkg_path.join("setup.py").write(
         textwrap.dedent("""
     from setuptools import setup, find_packages
@@ -493,10 +506,7 @@ def _create_test_package_with_subdirectory(script, subdirectory):
 
     subdirectory_path = version_pkg_path.join(subdirectory)
     subdirectory_path.mkdir()
-    subdirectory_path.join('version_subpkg.py').write(textwrap.dedent("""
-                                def main():
-                                    print('0.1')
-                                """))
+    _create_main_file(subdirectory_path, name="version_subpkg", output="0.1")
 
     subdirectory_path.join('setup.py').write(
         textwrap.dedent("""
@@ -544,10 +554,7 @@ def _create_test_package_with_srcdir(script, name='version_pkg', vcs='git'):
 def _create_test_package(script, name='version_pkg', vcs='git'):
     script.scratch_path.join(name).mkdir()
     version_pkg_path = script.scratch_path / name
-    version_pkg_path.join("%s.py" % name).write(textwrap.dedent("""
-        def main():
-            print('0.1')
-    """))
+    _create_main_file(version_pkg_path, name=name, output='0.1')
     version_pkg_path.join("setup.py").write(textwrap.dedent("""
         from setuptools import setup, find_packages
         setup(
@@ -622,9 +629,9 @@ def _create_svn_repo(script, version_pkg_path):
 
 
 def _change_test_package_version(script, version_pkg_path):
-    version_pkg_path.join("version_pkg.py").write(textwrap.dedent('''\
-        def main():
-            print("some different version")'''))
+    _create_main_file(
+        version_pkg_path, name='version_pkg', output='some different version'
+    )
     script.run(
         'git', 'clean', '-qfdx',
         cwd=version_pkg_path,
