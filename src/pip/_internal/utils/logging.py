@@ -1,9 +1,13 @@
 from __future__ import absolute_import
 
 import contextlib
+import errno
 import logging
 import logging.handlers
 import os
+import sys
+
+from pip._vendor.six import PY2
 
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import ensure_dir
@@ -31,6 +35,23 @@ class BrokenStdoutLoggingError(Exception):
     Raised if BrokenPipeError occurs for the stdout stream while logging.
     """
     pass
+
+
+if PY2:
+    # BrokenPipeError does not exist in Python 2.
+    def _is_broken_pipe_error(exc_class, exc):
+        """
+        Return whether an exception is a broken pipe error.
+
+        Args:
+          exc_class: an exception class.
+          exc: an exception instance.
+        """
+        return (exc_class is IOError and exc.errno == errno.EPIPE)
+
+else:
+    def _is_broken_pipe_error(exc_class, exc):
+        return (exc_class is BrokenPipeError)  # noqa: F821
 
 
 @contextlib.contextmanager
@@ -90,6 +111,16 @@ class ColorizedStreamHandler(logging.StreamHandler):
         if WINDOWS and colorama:
             self.stream = colorama.AnsiToWin32(self.stream)
 
+    def _using_stdout(self):
+        """
+        Return whether the handler is using sys.stdout.
+        """
+        if WINDOWS and colorama:
+            # Then self.stream is an AnsiToWin32 object.
+            return self.stream.wrapped is sys.stdout
+
+        return self.stream is sys.stdout
+
     def should_color(self):
         # Don't colorize things if we do not have colorama or if told not to
         if not colorama or self._no_color:
@@ -121,6 +152,19 @@ class ColorizedStreamHandler(logging.StreamHandler):
                     break
 
         return msg
+
+    # The logging module says handleError() can be customized.
+    def handleError(self, record):
+        exc_class, exc = sys.exc_info()[:2]
+        # If a broken pipe occurred while calling write() or flush() on the
+        # stdout stream in logging's Handler.emit(), then raise our special
+        # exception so we can handle it in main() instead of logging the
+        # broken pipe error and continuing.
+        if (exc_class and self._using_stdout() and
+                _is_broken_pipe_error(exc_class, exc)):
+            raise BrokenStdoutLoggingError()
+
+        return super(ColorizedStreamHandler, self).handleError(record)
 
 
 class BetterRotatingFileHandler(logging.handlers.RotatingFileHandler):

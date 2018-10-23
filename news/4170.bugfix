@@ -1,0 +1,1 @@
+Handle ``BrokenPipeError`` gracefully by logging a message to ``stderr``.

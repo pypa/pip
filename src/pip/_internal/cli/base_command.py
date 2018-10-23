@@ -1,11 +1,12 @@
 """Base Command class, and related routines"""
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 import logging
 import logging.config
 import optparse
 import os
 import sys
+import traceback
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.parser import (
@@ -27,7 +28,7 @@ from pip._internal.req.constructors import (
 )
 from pip._internal.req.req_file import parse_requirements
 from pip._internal.utils.deprecation import deprecated
-from pip._internal.utils.logging import setup_logging
+from pip._internal.utils.logging import BrokenStdoutLoggingError, setup_logging
 from pip._internal.utils.misc import (
     get_prog, normalize_path, redact_password_from_url,
 )
@@ -181,6 +182,14 @@ class Command(object):
         except CommandError as exc:
             logger.critical('ERROR: %s', exc)
             logger.debug('Exception information:', exc_info=True)
+
+            return ERROR
+        except BrokenStdoutLoggingError:
+            # Bypass our logger and write any remaining messages to stderr
+            # because stdout no longer works.
+            print('ERROR: Pipe to stdout was broken', file=sys.stderr)
+            if logger.getEffectiveLevel() <= logging.DEBUG:
+                traceback.print_exc(file=sys.stderr)
 
             return ERROR
         except KeyboardInterrupt:
