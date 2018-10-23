@@ -864,6 +864,13 @@ def captured_stdout():
     return captured_output('stdout')
 
 
+def captured_stderr():
+    """
+    See captured_stdout().
+    """
+    return captured_output('stderr')
+
+
 class cached_property(object):
     """A property that is only computed once per instance and then replaces
        itself with an ordinary attribute. Deleting the attribute resets the
