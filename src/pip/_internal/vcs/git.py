@@ -84,14 +84,18 @@ class Git(VersionControl):
         Return the current branch, or None if HEAD isn't at a branch
         (e.g. detached HEAD).
         """
-        args = ['rev-parse', '--abbrev-ref', 'HEAD']
-        output = self.run_command(args, show_stdout=False, cwd=location)
-        branch = output.strip()
+        # The -q causes the command to exit with status code 1 instead of
+        # 128 if "HEAD" is not a symbolic ref but a detached HEAD.
+        args = ['symbolic-ref', '-q', 'HEAD']
+        output = self.run_command(
+            args, returncodes=(1, ), show_stdout=False, cwd=location,
+        )
+        ref = output.strip()
 
-        if branch == 'HEAD':
-            return None
+        if ref.startswith('refs/heads/'):
+            return ref[len('refs/heads/'):]
 
-        return branch
+        return None
 
     def export(self, location):
         """Export the Git repository at the url to the destination location"""
