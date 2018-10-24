@@ -26,22 +26,24 @@ def _change_test_package_submodule(env, submodule_path):
             '-m', 'submodule change', cwd=submodule_path)
 
 
-def _pull_in_submodule_changes_to_module(env, module_path):
-    env.run(
-        'git',
-        'pull',
-        '-q',
-        'origin',
-        'master',
-        cwd=module_path / 'testpkg/static/',
-    )
+def _pull_in_submodule_changes_to_module(env, module_path, rel_path):
+    """
+    Args:
+      rel_path: the location of the submodule relative to the superproject.
+    """
+    submodule_path = module_path / rel_path
+    env.run('git', 'pull', '-q', 'origin', 'master', cwd=submodule_path)
     # Pass -a to stage the submodule changes that were just pulled in.
     env.run('git', 'commit', '-q',
             '--author', 'pip <pypa-dev@googlegroups.com>',
             '-am', 'submodule change', cwd=module_path)
 
 
-def _create_test_package_with_submodule(env):
+def _create_test_package_with_submodule(env, rel_path):
+    """
+    Args:
+      rel_path: the location of the submodule relative to the superproject.
+    """
     env.scratch_path.join("version_pkg").mkdir()
     version_pkg_path = env.scratch_path / 'version_pkg'
     version_pkg_path.join("testpkg").mkdir()
@@ -69,7 +71,7 @@ def _create_test_package_with_submodule(env):
         'submodule',
         'add',
         submodule_path,
-        'testpkg/static',
+        rel_path,
         cwd=version_pkg_path,
         expect_error=True,
     )
