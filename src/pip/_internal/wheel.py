@@ -204,10 +204,23 @@ def message_about_scripts_not_on_PATH(scripts):
     return "\n".join(msg_lines)
 
 
-# We need this to avoid TypeError because values at a given tuple index
-# can be strings in some rows and integers in others.
 def sorted_outrows(outrows):
-    """Return the given "outrows" in sorted order."""
+    """
+    Return the given rows of a RECORD file in sorted order.
+
+    Each row is a 3-tuple (path, hash, size) and corresponds to a record of
+    a RECORD file (see PEP 376 and PEP 427 for details).  For the rows
+    passed to this function, the size can be an integer as an int or string,
+    or the empty string.
+    """
+    # Normally, there should only be one row per path, in which case the
+    # second and third elements don't come into play when sorting.
+    # However, in cases in the wild where a path might happen to occur twice,
+    # we don't want the sort operation to trigger an error (but still want
+    # determinism).  Since the third element can be an int or string, we
+    # coerce each element to a string to avoid a TypeError in this case.
+    # For additional background, see--
+    # https://github.com/pypa/pip/issues/5868
     return sorted(outrows, key=lambda row: tuple(str(x) for x in row))
 
 
