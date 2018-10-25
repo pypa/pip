@@ -12,9 +12,9 @@ from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.utils.misc import rmtree
 from tests.lib import (
-    _create_svn_repo, _create_test_package, create_test_package_with_setup,
-    need_bzr, need_mercurial, path_to_url, pyversion, pyversion_tuple,
-    requirements_file,
+    _create_svn_repo, _create_test_package, create_basic_wheel_for_package,
+    create_test_package_with_setup, need_bzr, need_mercurial, path_to_url,
+    pyversion, pyversion_tuple, requirements_file,
 )
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
@@ -48,6 +48,20 @@ def test_pep518_build_env_uses_same_pip(script, data, pip_src, common_wheels):
         '-f', common_wheels, '-f', data.packages,
         data.src.join("pep518-3.0"),
     )
+
+
+def test_pep518_refuses_conflicting_requires(script, data):
+    create_basic_wheel_for_package(script, 'setuptools', '1.0')
+    create_basic_wheel_for_package(script, 'wheel', '1.0')
+    project_dir = data.src.join("pep518_conflicting_requires")
+    result = script.pip_install_local('-f', script.scratch_path,
+                                      project_dir, expect_error=True)
+    assert (
+        result.returncode != 0 and
+        ('Some build dependencies for %s conflict with PEP 517/518 supported '
+         'requirements: setuptools==1.0 is incompatible with '
+         'setuptools>=38.2.5.' % path_to_url(project_dir)) in result.stderr
+    ), str(result)
 
 
 def test_pep518_refuses_invalid_requires(script, data, common_wheels):

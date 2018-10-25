@@ -65,6 +65,6 @@ test_script:
                 tox -e py -- --use-venv -m integration -n 3 --duration=5
             }
             else {
-                tox -e py -- -m unit -n 3
+                tox -e py -- --use-venv -m unit -n 3
             }
         }

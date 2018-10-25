@@ -22,8 +22,9 @@ def test_backend(tmpdir, data):
     req.load_pyproject_toml()
     env = BuildEnvironment()
     finder = PackageFinder([data.backends], [], session=PipSession())
-    env.install_requirements(finder, ["dummy_backend"], "Installing")
-    assert not env.missing_requirements(["dummy_backend"])
+    env.install_requirements(finder, ["dummy_backend"], 'normal', "Installing")
+    conflicting, missing = env.check_requirements(["dummy_backend"])
+    assert not conflicting and not missing
     assert hasattr(req.pep517_backend, 'build_wheel')
     with env:
         assert req.pep517_backend.build_wheel("dir") == "Backend called"
