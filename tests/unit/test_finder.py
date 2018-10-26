@@ -483,7 +483,7 @@ def test_finder_does_not_candidate_pre_releases(data):
     links = ["https://foo/bar-1.0.tar.gz", "https://foo/bar-2.0b1.tar.gz"]
     finder = PackageFinder(
         links, [],
-        allow_all_prereleases=True,
+        allow_all_prereleases=False,
         session=PipSession(),
     )
 

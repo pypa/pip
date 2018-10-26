@@ -626,8 +626,10 @@ class PackageFinder(object):
         Returns a Link if found,
         Raises DistributionNotFound or BestVersionAlreadyInstalled otherwise
         """
-        all_candidates = self.find_all_candidates(req.name)
-
+        all_candidates = self.find_all_candidates(
+            req.name, 
+            allow_all_prereleases=req.specifier.prereleases
+        )
         # Filter out anything which doesn't match our specifier
         compatible_versions = set(
             req.specifier.filter(
