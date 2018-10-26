@@ -463,7 +463,7 @@ def test_finder_installs_pre_releases(data):
         link = finder.find_requirement(req, False)
         assert link.url == "https://foo/bar-2.0b1.tar.gz"
 
-def test_finder_does_not_return_pre_release_candidates(data):
+def test_finder_does_not_candidate_pre_releases(data):
     """
     Test PackageFinder finds pre-releases if asked to.
     """
@@ -483,7 +483,7 @@ def test_finder_does_not_return_pre_release_candidates(data):
     links = ["https://foo/bar-1.0.tar.gz", "https://foo/bar-2.0b1.tar.gz"]
     finder = PackageFinder(
         links, [],
-        allow_all_prereleases=False,
+        allow_all_prereleases=True,
         session=PipSession(),
     )
 
@@ -530,14 +530,14 @@ def test_finder_installs_pre_releases_with_version_spec():
 
     with patch.object(finder, "_get_pages", lambda x, y: []):
         link = finder.find_requirement(req, False)
-        assert link.url == "https://foo/bar-1.0.tar.gz"
+        assert link.url == "https://foo/bar-2.0b1.tar.gz"
 
     links.reverse()
     finder = PackageFinder(links, [], session=PipSession())
 
     with patch.object(finder, "_get_pages", lambda x, y: []):
         link = finder.find_requirement(req, False)
-        assert link.url == "https://foo/bar-1.0.tar.gz"
+        assert link.url == "https://foo/bar-2.0b1.tar.gz"
 
 
 class test_link_package_versions(object):
