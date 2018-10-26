@@ -1,0 +1,1 @@
+Fix `PackageFinder.find_all_candidates` to enforce `allow_all_prereleases` option 
