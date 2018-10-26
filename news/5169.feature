@@ -1,0 +1,1 @@
+Display hint on installing with --pre when search results include pre-release versions.
