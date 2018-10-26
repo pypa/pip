@@ -110,11 +110,8 @@ def test_pep518_with_user_pip(script, pip_src, data, common_wheels):
     non-isolated environment, and break pip in the system site-packages,
     so that isolated uses of pip will fail.
     """
-    # Set expect_stderr, not so much because we expect output on stderr,
-    # rather we simply don't care (setuptools can write warnings to stderr
-    # which we'll ignore).
-    script.pip("install", "--ignore-installed", "--user", pip_src,
-               expect_stderr=True)
+    script.pip("install", "--ignore-installed",
+               "-f", common_wheels, "--user", pip_src)
     system_pip_dir = script.site_packages_path / 'pip'
     system_pip_dir.rmtree()
     system_pip_dir.mkdir()
@@ -165,12 +162,13 @@ def test_pep518_forkbombs(script, data, common_wheels, command, package):
 
 
 @pytest.mark.network
-def test_pip_second_command_line_interface_works(script, data, pip_src):
+def test_pip_second_command_line_interface_works(script, pip_src, data,
+                                                 common_wheels):
     """
     Check if ``pip<PYVERSION>`` commands behaves equally
     """
     # Re-install pip so we get the launchers.
-    script.pip_install_local('--no-build-isolation', pip_src)
+    script.pip_install_local('-f', common_wheels, pip_src)
     # On old versions of Python, urllib3/requests will raise a warning about
     # the lack of an SSLContext.
     kwargs = {}
