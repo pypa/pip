@@ -466,11 +466,17 @@ class InstallRequirement(object):
                 ensure_dir(egg_info_dir)
                 egg_base_option = ['--egg-base', 'pip-egg-info']
             with self.build_env:
-                call_subprocess(
-                    egg_info_cmd + egg_base_option,
-                    cwd=self.setup_py_dir,
-                    show_stdout=False,
-                    command_desc='python setup.py egg_info')
+                try:
+                    call_subprocess(
+                        egg_info_cmd + egg_base_option,
+                        cwd=self.setup_py_dir,
+                        show_stdout=False,
+                        command_desc='python setup.py egg_info')
+                except InstallationError:
+                    raise InstallationError(
+                        'Package %s has no setup.py so it cannot be installed.'
+                        % self.link.filename
+                    )
 
         if not self.req:
             if isinstance(parse_version(self.metadata["Version"]), Version):

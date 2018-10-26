@@ -15,6 +15,7 @@ from pip._internal.exceptions import (
     HashErrors, InstallationError, InvalidWheelFilename, PreviousBuildDirError,
 )
 from pip._internal.index import PackageFinder
+from pip._internal.models.link import Link
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import InstallRequirement, RequirementSet
 from pip._internal.req.constructors import (
@@ -635,4 +636,20 @@ def test_mismatched_versions(caplog, tmpdir):
     assert caplog.records[-1].message == (
         'Requested simplewheel==2.0, '
         'but installing version 1.0'
+    )
+
+
+def test_missing_setup_py(caplog, tmpdir):
+    original_source = os.path.join(
+        DATA_DIR, 'src', 'simplewheel-no-setup.tar.gz')
+    source_dir = os.path.join(tmpdir, 'simplewheel.tar.gz')
+    shutil.copyfile(original_source, source_dir)
+    link = Link(source_dir)
+    req = InstallRequirement(req=Requirement('simplewheel==1.0'),
+                             comes_from=None, link=link, source_dir=tmpdir)
+    with pytest.raises(InstallationError) as e:
+        req.run_egg_info()
+
+    assert str(e.value) == (
+        "Package simplewheel has no setup.py so it cannot be installed."
     )
