@@ -9,7 +9,7 @@ _pip_completion()
 {
     COMPREPLY=( $( COMP_WORDS="${COMP_WORDS[*]}" \\
                    COMP_CWORD=$COMP_CWORD \\
-                   PIP_AUTO_COMPLETE=1 $1 ) )
+                   PIP_AUTO_COMPLETE=1 $1 2>/dev/null ) )
 }
 complete -o default -F _pip_completion pip"""),
     ('fish', """\
@@ -29,7 +29,7 @@ function _pip_completion {
   read -cn cword
   reply=( $( COMP_WORDS="$words[*]" \\
              COMP_CWORD=$(( cword-1 )) \\
-             PIP_AUTO_COMPLETE=1 $words[1] ) )
+             PIP_AUTO_COMPLETE=1 $words[1] 2>/dev/null ))
 }
 compctl -K _pip_completion pip"""),
 )
