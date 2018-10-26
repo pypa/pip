@@ -463,6 +463,7 @@ def test_finder_installs_pre_releases(data):
         link = finder.find_requirement(req, False)
         assert link.url == "https://foo/bar-2.0b1.tar.gz"
 
+
 def test_finder_does_not_candidate_pre_releases(data):
     """
     Test PackageFinder finds pre-releases if asked to.
@@ -476,7 +477,7 @@ def test_finder_does_not_candidate_pre_releases(data):
         allow_all_prereleases=False,
         session=PipSession(),
     )
-    for candidate in finder.find_all_candidates("bar"):
+    for candidate in finder.find_all_candidates(req):
         assert not candidate.version.is_prerelease
 
     # using find-links
@@ -501,6 +502,7 @@ def test_finder_does_not_candidate_pre_releases(data):
     with patch.object(finder, "_get_pages", lambda x, y: []):
         for candidate in finder.find_all_candidates("bar"):
             assert not candidate.version.is_prerelease
+
 
 def test_finder_installs_dev_releases(data):
     """
