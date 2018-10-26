@@ -1,5 +1,6 @@
 import logging
 
+import pretend
 import pytest
 
 from pip._internal.cli.status_codes import NO_MATCHES_FOUND, SUCCESS
@@ -142,6 +143,33 @@ def test_search_exit_status_code_when_finds_no_package(script):
     """
     result = script.pip('search', 'nonexistentpackage', expect_error=True)
     assert result.returncode == NO_MATCHES_FOUND, result.returncode
+
+
+def test_latest_prerelease_install_message(caplog, monkeypatch):
+    """
+    Test documentation for installing pre-release packages is displayed
+    """
+    hits = [
+        {
+            'name': 'ni',
+            'summary': 'For knights who say Ni!',
+            'versions': ['1.0.0', '1.0.1a']
+        }
+    ]
+
+    installed_package = pretend.stub(project_name="ni")
+    monkeypatch.setattr("pip._vendor.pkg_resources.working_set",
+                        [installed_package])
+
+    dist = pretend.stub(version="1.0.0")
+    get_dist = pretend.call_recorder(lambda x: dist)
+    monkeypatch.setattr("pip._vendor.pkg_resources.get_distribution", get_dist)
+    with caplog.at_level(logging.INFO):
+        print_results(hits)
+
+    message = caplog.records[-1].getMessage()
+    assert 'pre-release; install with "pip install --pre"' in message
+    assert get_dist.calls == [pretend.call('ni')]
 
 
 def test_search_print_results_should_contain_latest_versions(caplog):
