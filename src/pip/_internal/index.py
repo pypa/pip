@@ -613,10 +613,11 @@ class PackageFinder(object):
             )
 
         # This is an intentional priority ordering
-        return (
-            file_versions + find_links_versions + page_versions +
-            dependency_versions
-        )
+        all_candidates = file_versions + find_links_versions + page_versions + dependency_versions
+        if (not self.allow_all_prereleases):
+            all_candidates = [candidate for candidate in all_candidates
+                              if not candidate.version.is_prerelease]
+        return (all_candidates)
 
     def find_requirement(self, req, upgrade):
         """Try to find a Link matching req
