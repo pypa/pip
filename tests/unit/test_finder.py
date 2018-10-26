@@ -476,8 +476,8 @@ def test_finder_does_not_candidate_pre_releases(data):
         allow_all_prereleases=False,
         session=PipSession(),
     )
-    for link in finder.find_all_candidates("bar"):
-        assert not link.version.is_prerelease
+    for candidate in finder.find_all_candidates("bar"):
+        assert not candidate.version.is_prerelease
 
     # using find-links
     links = ["https://foo/bar-1.0.tar.gz", "https://foo/bar-2.0b1.tar.gz"]
@@ -488,8 +488,8 @@ def test_finder_does_not_candidate_pre_releases(data):
     )
 
     with patch.object(finder, "_get_pages", lambda x, y: []):
-        for link in finder.find_all_candidates("bar"):
-            assert not link.version.is_prerelease
+        for candidate in finder.find_all_candidates("bar"):
+            assert not candidate.version.is_prerelease
 
     links.reverse()
     finder = PackageFinder(
@@ -499,8 +499,8 @@ def test_finder_does_not_candidate_pre_releases(data):
     )
 
     with patch.object(finder, "_get_pages", lambda x, y: []):
-        for link in finder.find_all_candidates("bar"):
-            assert not link.version.is_prerelease
+        for candidate in finder.find_all_candidates("bar"):
+            assert not candidate.version.is_prerelease
 
 def test_finder_installs_dev_releases(data):
     """
