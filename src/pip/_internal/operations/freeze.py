@@ -39,7 +39,8 @@ def freeze(
     installations = {}
     for dist in get_installed_distributions(local_only=local_only,
                                             skip=(),
-                                            user_only=user_only):
+                                            user_only=user_only,
+                                            include_curr_dir=False):
         try:
             req = FrozenRequirement.from_dist(dist)
         except RequirementParseError:

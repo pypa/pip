@@ -330,11 +330,20 @@ def dist_is_editable(dist):
     return False
 
 
+def dist_in_curr_dir(dist):
+    '''
+    Return True if given Distribution is installed in the current directory.
+    '''
+    norm_path = normalize_path(dist_location(dist))
+    return norm_path.startswith(normalize_path(os.getcwd()))
+
+
 def get_installed_distributions(local_only=True,
                                 skip=stdlib_pkgs,
                                 include_editables=True,
                                 editables_only=False,
-                                user_only=False):
+                                user_only=False,
+                                include_curr_dir=True):
     """
     Return a list of installed Distribution objects.
 
@@ -350,6 +359,9 @@ def get_installed_distributions(local_only=True,
 
     If ``user_only`` is True , only report installations in the user
     site directory.
+
+    If ``include_curr_dir`` is False, ignore the current directory when
+    looking for installations.
 
     """
     if local_only:
@@ -378,12 +390,20 @@ def get_installed_distributions(local_only=True,
         def user_test(d):
             return True
 
+    if include_curr_dir:
+        def curr_dir_test(d):
+            return True
+    else:
+        def curr_dir_test(d):
+            return not dist_in_curr_dir(d)
+
     return [d for d in pkg_resources.working_set
             if local_test(d) and
             d.key not in skip and
             editable_test(d) and
             editables_only_test(d) and
-            user_test(d)
+            user_test(d) and
+            curr_dir_test(d)
             ]
 
 

@@ -42,6 +42,25 @@ def _check_output(result, expected):
     )
 
 
+def _fake_install(pkgname, dest):
+    egg_info_path = os.path.join(
+        dest, '{}-1.0-py{}.{}.egg-info'.format(
+            pkgname.replace('-', '_'),
+            sys.version_info[0],
+            sys.version_info[1]
+        )
+    )
+    with open(egg_info_path, 'w') as egg_info_file:
+        egg_info_file.write(textwrap.dedent("""\
+            Metadata-Version: 1.0
+            Name: {}
+            Version: 1.0
+            """.format(pkgname)
+        ))
+
+    return egg_info_path
+
+
 def test_basic_freeze(script):
     """
     Some tests of freeze, first we have to install some stuff.  Note that
@@ -73,26 +92,22 @@ def test_freeze_with_pip(script):
     assert 'pip==' in result.stdout
 
 
+def test_freeze_skip_curr_dir(script):
+    '''
+    Test that 'pip freeze' skips current directory by default.
+    '''
+
+    curr_dir = os.getcwd()
+    egg_info_path = _fake_install("local-package", curr_dir)
+    result = script.pip('freeze')
+    os.remove(egg_info_path)
+    assert 'local-package==' not in result.stdout
+
+
 def test_freeze_with_invalid_names(script):
     """
     Test that invalid names produce warnings and are passed over gracefully.
     """
-
-    def fake_install(pkgname, dest):
-        egg_info_path = os.path.join(
-            dest, '{}-1.0-py{}.{}.egg-info'.format(
-                pkgname.replace('-', '_'),
-                sys.version_info[0],
-                sys.version_info[1]
-            )
-        )
-        with open(egg_info_path, 'w') as egg_info_file:
-            egg_info_file.write(textwrap.dedent("""\
-                Metadata-Version: 1.0
-                Name: {}
-                Version: 1.0
-                """.format(pkgname)
-            ))
 
     valid_pkgnames = ('middle-dash', 'middle_underscore', 'middle.dot')
     invalid_pkgnames = (
@@ -100,7 +115,7 @@ def test_freeze_with_invalid_names(script):
         'trailingdash-', 'trailingunderscore_', 'trailingdot.'
     )
     for pkgname in valid_pkgnames + invalid_pkgnames:
-        fake_install(pkgname, script.site_packages_path)
+        _fake_install(pkgname, script.site_packages_path)
     result = script.pip('freeze', expect_stderr=True)
     for pkgname in valid_pkgnames:
         _check_output(
