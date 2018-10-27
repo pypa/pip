@@ -114,10 +114,10 @@ def freeze(
                         # but has been processed already
                         if not req_files[line_req.name]:
                             logger.warning(
-                                "Requirement file [%s] contains %s, but that "
-                                "package is not installed",
+                                "Requirement file [%s] contains %s, but "
+                                "package %r is not installed",
                                 req_file_path,
-                                COMMENT_RE.sub('', line).strip(),
+                                COMMENT_RE.sub('', line).strip(), line_req.name
                             )
                         else:
                             req_files[line_req.name].append(req_file_path)
