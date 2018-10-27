@@ -775,6 +775,11 @@ def need_bzr(fn):
         'Bazaar', ('bzr', 'version', '--short')
     )(fn))
 
+def need_svn(fn):
+    return pytest.mark.svn(need_executable(
+        'Subversion', ('svn', 'version')
+    )(fn))
+
 
 def need_mercurial(fn):
     return pytest.mark.mercurial(need_executable(

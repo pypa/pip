@@ -8,7 +8,7 @@ import pytest
 
 from tests.lib import (
     _create_test_package, _create_test_package_with_srcdir, need_bzr,
-    need_mercurial,
+    need_mercurial, need_svn,
 )
 
 distribute_re = re.compile('^distribute==[0-9.]+\n', re.MULTILINE)
@@ -115,8 +115,7 @@ def test_freeze_with_invalid_names(script):
             )
         )
 
-
-@pytest.mark.svn
+@need_svn
 def test_freeze_svn(script, tmpdir):
     """Test freezing a svn checkout"""
 

@@ -13,7 +13,7 @@ import pytest
 
 from pip._internal.req.constructors import install_req_from_line
 from pip._internal.utils.misc import rmtree
-from tests.lib import assert_all_changes, create_test_package_with_setup
+from tests.lib import assert_all_changes, create_test_package_with_setup, need_svn
 from tests.lib.local_repos import local_checkout, local_repo
 
 
@@ -287,6 +287,7 @@ def test_uninstall_easy_installed_console_scripts(script):
 
 
 @pytest.mark.network
+@need_svn
 def test_uninstall_editable_from_svn(script, tmpdir):
     """
     Test uninstalling an editable installation from svn.

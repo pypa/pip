@@ -13,7 +13,7 @@ from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.utils.misc import rmtree
 from tests.lib import (
     _create_svn_repo, _create_test_package, create_test_package_with_setup,
-    need_bzr, need_mercurial, path_to_url, pyversion, pyversion_tuple,
+    need_bzr, need_mercurial, need_svn, path_to_url, pyversion, pyversion_tuple,
     requirements_file,
 )
 from tests.lib.local_repos import local_checkout
@@ -197,7 +197,7 @@ def test_basic_editable_install(script):
     assert not result.files_updated
 
 
-@pytest.mark.svn
+@need_svn
 def test_basic_install_editable_from_svn(script):
     """
     Test checking out from svn.
@@ -307,6 +307,14 @@ def test_install_editable_from_bazaar(script, tmpdir):
     result = script.pip(*args, **{"expect_error": True})
     result.assert_installed('testpackage', with_files=['.bzr'])
 
+# @need_svn
+# def test_install_editable_from_svn(script, tmpdir):
+#     """Test checking out from Subversion."""
+#     pkg_path = _create_test_package(script, name='testpackage', vcs='subversion')
+#     args = ['install', '-e', 'bzr+%s/#egg=testpackage' % path_to_url(pkg_path)]
+#     result = script.pip(*args, **{"expect_error": True})
+#     result.assert_installed('testpackage', with_files=['.svn'])
+    
 
 @pytest.mark.network
 @need_bzr
