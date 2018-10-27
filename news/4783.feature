@@ -1,0 +1,1 @@
+Add ``--deps-only`` option to ``pip install`` to install dependencies only.
