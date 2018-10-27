@@ -1431,3 +1431,40 @@ def test_install_conflict_warning_can_be_suppressed(script, data):
         'install', '--no-index', pkgB_path, '--no-warn-conflicts'
     )
     assert "Successfully installed pkgB-2.0" in result2.stdout, str(result2)
+
+
+def test_install_deps_only(script):
+    result = script.pip_install_local(
+        'require_simple',
+        '--deps-only')
+
+    assert result.returncode == 0
+    assert "Successfully installed simple-3.0" in result.stdout
+    assert "require-simple" not in result.stdout
+
+
+def test_install_deps_only_no_packages_installed(script):
+    result = script.pip_install_local('simple', '--deps-only',
+                                      expect_error=True)
+    assert result.returncode == 1
+    assert "Nothing to install" in result.stderr
+
+
+def test_install_deps_only_editable(script, data):
+    to_install = data.packages.join("FSPkg")
+    result = script.pip('install', '--deps-only', '-e', to_install,
+                        expect_error=True)
+    assert result.returncode == 1
+    assert "Cannot use --deps-only with " \
+           "editable installations" in result.stderr
+
+
+def test_install_deps_only_requirments_file(script, tmpdir):
+    with requirements_file('simple2\n', tmpdir) as reqs_file:
+        result = script.pip_install_local('-r',
+                                          reqs_file.abspath,
+                                          '--deps-only',
+                                          expect_error=True)
+
+        assert result.returncode == 1
+        assert "Cannot use --deps-only with requirements file" in result.stderr

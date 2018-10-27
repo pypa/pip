@@ -198,6 +198,12 @@ class InstallCommand(RequirementCommand):
         cmd_opts.add_option(cmdoptions.no_clean())
         cmd_opts.add_option(cmdoptions.require_hashes())
         cmd_opts.add_option(cmdoptions.progress_bar())
+        cmd_opts.add_option(
+            "--deps-only",
+            action="store_true",
+            default=False,
+            help="Only install dependencies"
+        )
 
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
@@ -315,7 +321,21 @@ class InstallCommand(RequirementCommand):
                         ignore_installed=options.ignore_installed,
                         isolated=options.isolated_mode,
                     )
+                    top_level_reqs = list(requirement_set.requirements.keys())
                     resolver.resolve(requirement_set)
+                    if options.deps_only:
+                        if options.editables:
+                            raise CommandError("Cannot use --deps-only "
+                                               "with editable installations")
+                        if options.requirements:
+                            raise CommandError("Cannot use --deps-only with "
+                                               "requirements files")
+
+                        for target in top_level_reqs:
+                            del requirement_set.requirements[target]
+
+                        if not requirement_set.requirements:
+                            raise CommandError("Nothing to install")
 
                     protect_pip_from_modification_on_windows(
                         modifying_pip=requirement_set.has_requirement("pip")
