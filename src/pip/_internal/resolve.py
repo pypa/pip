@@ -35,7 +35,7 @@ class Resolver(object):
 
     def __init__(self, preparer, session, finder, wheel_cache, use_user_site,
                  ignore_dependencies, ignore_installed, ignore_requires_python,
-                 force_reinstall, isolated, upgrade_strategy):
+                 force_reinstall, isolated, upgrade_strategy, no_info_already):
         super(Resolver, self).__init__()
         assert upgrade_strategy in self._allowed_strategies
 
@@ -56,6 +56,7 @@ class Resolver(object):
         self.ignore_installed = ignore_installed
         self.ignore_requires_python = ignore_requires_python
         self.use_user_site = use_user_site
+        self.no_info_already = no_info_already
 
         self._discovered_dependencies = defaultdict(list)
 
@@ -200,7 +201,7 @@ class Resolver(object):
 
         if req.satisfied_by:
             return self.preparer.prepare_installed_requirement(
-                req, self.require_hashes, skip_reason
+                req, self.require_hashes, skip_reason, self.no_info_already
             )
 
         upgrade_allowed = self._is_upgrade_allowed(req)

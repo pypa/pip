@@ -153,6 +153,7 @@ class WheelCommand(RequirementCommand):
                         use_user_site=False,
                         upgrade_strategy="to-satisfy-only",
                         force_reinstall=False,
+                        no_msg_for_doing_nothing=False,
                         ignore_dependencies=options.ignore_dependencies,
                         ignore_requires_python=options.ignore_requires_python,
                         ignore_installed=True,

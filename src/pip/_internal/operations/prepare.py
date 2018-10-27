@@ -330,7 +330,8 @@ class RequirementPreparer(object):
 
         return abstract_dist
 
-    def prepare_installed_requirement(self, req, require_hashes, skip_reason):
+    def prepare_installed_requirement(
+            self, req, require_hashes, skip_reason, no_info_already):
         """Prepare an already-installed requirement
         """
         assert req.satisfied_by, "req should have been satisfied but isn't"
@@ -338,10 +339,11 @@ class RequirementPreparer(object):
             "did not get skip reason skipped but req.satisfied_by "
             "is set to %r" % (req.satisfied_by,)
         )
-        logger.info(
-            'Requirement %s: %s (%s)',
-            skip_reason, req, req.satisfied_by.version
-        )
+        if skip_reason and not no_info_already:
+            logger.info(
+                'Requirement %s: %s (%s)',
+                skip_reason, req, req.satisfied_by.version
+            )
         with indent_log():
             if require_hashes:
                 logger.debug(

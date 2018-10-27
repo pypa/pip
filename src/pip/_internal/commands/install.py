@@ -192,6 +192,14 @@ class InstallCommand(RequirementCommand):
             help="Do not warn about broken dependencies",
         )
 
+        cmd_opts.add_option(
+            "--no-info-already-installed",
+            dest="no_info_already",
+            action='store_true',
+            default=False,
+            help="Do not print message if nothing is done",
+        )
+
         cmd_opts.add_option(cmdoptions.no_binary())
         cmd_opts.add_option(cmdoptions.only_binary())
         cmd_opts.add_option(cmdoptions.prefer_binary())
@@ -310,6 +318,7 @@ class InstallCommand(RequirementCommand):
                         use_user_site=options.use_user_site,
                         upgrade_strategy=upgrade_strategy,
                         force_reinstall=options.force_reinstall,
+                        no_info_already=options.no_info_already,
                         ignore_dependencies=options.ignore_dependencies,
                         ignore_requires_python=options.ignore_requires_python,
                         ignore_installed=options.ignore_installed,
