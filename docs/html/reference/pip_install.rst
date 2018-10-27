@@ -192,6 +192,10 @@ runtime.
    There is no support for other variable expansion syntaxes such as
    ``$VARIABLE`` and ``%VARIABLE%``.
 
+.. note::
+   Environment variables set to be empty string will be ignored instead 
+   of being treated as false. Please use ``no``, ``false`` or ``0`` 
+   instead.
 
 .. _`Example Requirements File`:
 
