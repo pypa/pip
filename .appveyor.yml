@@ -13,6 +13,9 @@ environment:
     - PYTHON: "C:\\Python35-x64"
     - PYTHON: "C:\\Python36"
 
+matrix:
+    fast_finish: true
+
 clone_depth: 50
 
 install:
