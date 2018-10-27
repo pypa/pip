@@ -357,6 +357,7 @@ def _test_uninstall_editable_with_source_outside_venv(
 
 
 @pytest.mark.network
+@pytest.mark.svn
 def test_uninstall_from_reqs_file(script, tmpdir):
     """
     Test uninstall from a requirements file.

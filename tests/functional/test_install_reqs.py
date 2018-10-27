@@ -95,6 +95,7 @@ def test_relative_requirements_file(script, data):
 
 
 @pytest.mark.network
+@pytest.mark.svn
 def test_multiple_requirements_files(script, tmpdir):
     """
     Test installing from multiple nested requirements files.
