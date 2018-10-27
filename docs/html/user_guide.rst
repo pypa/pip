@@ -443,6 +443,10 @@ is the same as calling::
 
     pip install --find-links=http://mirror1.example.com --find-links=http://mirror2.example.com
 
+.. note::
+
+   Environment variables set to be empty string will be ignored instead 
+   of being treated as false. Please use ``no``, ``false`` or ``0`` instead.
 
 Config Precedence
 -----------------
