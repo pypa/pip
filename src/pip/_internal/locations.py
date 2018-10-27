@@ -28,6 +28,7 @@ PIP_DELETE_MARKER_FILENAME = 'pip-delete-this-directory.txt'
 
 
 def write_delete_marker_file(directory):
+    # type: (str) -> None
     """
     Write the pip delete marker file into this directory.
     """
@@ -37,6 +38,7 @@ def write_delete_marker_file(directory):
 
 
 def running_under_virtualenv():
+    # type: () -> bool
     """
     Return True if we're running inside a virtualenv, False otherwise.
 
@@ -50,6 +52,7 @@ def running_under_virtualenv():
 
 
 def virtualenv_no_global():
+    # type: () -> bool 
     """
     Return True if in a venv and no system site packages.
     """
@@ -59,6 +62,8 @@ def virtualenv_no_global():
     no_global_file = os.path.join(site_mod_dir, 'no-global-site-packages.txt')
     if running_under_virtualenv() and os.path.isfile(no_global_file):
         return True
+    else:
+        return False
 
 
 if running_under_virtualenv():
