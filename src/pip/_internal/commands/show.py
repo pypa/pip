@@ -2,6 +2,9 @@ from __future__ import absolute_import
 
 import logging
 import os
+import json
+from collections import OrderedDict
+from configparser import  RawConfigParser
 from email.parser import FeedParser  # type: ignore
 
 from pip._vendor import pkg_resources
@@ -33,6 +36,11 @@ class ShowCommand(Command):
             action='store_true',
             default=False,
             help='Show the full list of installed files for each package.')
+        self.cmd_opts.add_option(
+            '--json',
+            action='store_true',
+            default=False,
+            help='Show in JSON format the full list of installed files for each package.')
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
@@ -44,7 +52,7 @@ class ShowCommand(Command):
 
         results = search_packages_info(query)
         if not print_results(
-                results, list_files=options.files, verbose=options.verbose):
+                results, list_files=options.files, verbose=options.verbose, json=options.json):
             return ERROR
         return SUCCESS
 
@@ -122,10 +130,14 @@ def search_packages_info(query):
         yield package
 
 
-def print_results(distributions, list_files=False, verbose=False):
+
+def print_results(distributions, list_files=False, verbose=False, json=False):
     """
     Print the informations from installed distributions found.
     """
+    if json:
+        print_json(distributions, list_files, verbose)
+        return
     results_printed = False
     for i, dist in enumerate(distributions):
         results_printed = True
@@ -165,4 +177,58 @@ def print_results(distributions, list_files=False, verbose=False):
                 logger.info("  %s", line.strip())
             if "files" not in dist:
                 logger.info("Cannot locate installed-files.txt")
+    return results_printed
+
+def print_json(distributions, list_files=False, verbose=False):
+    """
+    Print in JSON format the information from installed distributions found.
+    """
+    results_printed = False
+    for i, dist in enumerate(distributions):
+        results_printed = True
+        if i > 0:
+            logger.info("---")
+
+        name = dist.get('name', '')
+        required_by = [
+            pkg.project_name for pkg in pkg_resources.working_set
+            if name in [required.name for required in pkg.requires()]
+        ]
+
+        results = [
+        ("Name", name),
+        ("Version", dist.get('version', '')),
+        ("Summary", dist.get('summary', '')),
+        ("HomePage", dist.get('home-page', '')),
+        ("Author", dist.get('author', '')),
+        ("AuthorEmail", dist.get('author-email', '')),
+        ("License", dist.get('license', '')),
+        ("Location", dist.get('location', '')),
+        ("Requires", ','.join(dist.get('requires', [])).split(',')),
+        ("RequiredBy", ','.join(required_by).split(','))
+        ]
+
+        if verbose:
+            classifiers = []
+            for classifier in dist.get('classifiers', []):
+                classifiers.append(str(classifier))
+            parser = RawConfigParser()
+            parser.read_string('\n'.join(dist.get('entry_points', [])))
+            entry_points ={ section: dict(parser[section]) for section in parser.sections() }
+            results.extend([
+            ("MetadataVersion", dist.get('metadata-version', '')),
+            ("Installer", dist.get('installer', '')),
+            ("Classifiers", classifiers),
+            ("EntryPoints", entry_points)
+            ])
+
+        if list_files:
+            files = []
+            for line in dist.get('files', []):
+                files.append(str(line.strip()))
+            results.extend([
+            ("Files", files)
+            ])
+
+        print(json.dumps(OrderedDict(results), indent=4))
     return results_printed
