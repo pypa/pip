@@ -320,14 +320,6 @@ def test_install_editable_from_bazaar(script, tmpdir):
     result = script.pip(*args, **{"expect_error": True})
     result.assert_installed('testpackage', with_files=['.bzr'])
 
-# @need_svn
-# def test_install_editable_from_svn(script, tmpdir):
-#     """Test checking out from Subversion."""
-#     pkg_path = _create_test_package(script, name='testpackage', vcs='subversion')
-#     args = ['install', '-e', 'bzr+%s/#egg=testpackage' % path_to_url(pkg_path)]
-#     result = script.pip(*args, **{"expect_error": True})
-#     result.assert_installed('testpackage', with_files=['.svn'])
-    
 
 @pytest.mark.network
 @need_bzr
