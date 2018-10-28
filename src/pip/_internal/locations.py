@@ -16,7 +16,7 @@ from pip._internal.utils.compat import WINDOWS, expanduser
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Union, Dict, List, Optional # noqa: F401
+    from typing import Union, Dict, List, Optional  # noqa: F401
 
 # Application Directories
 USER_CACHE_DIR = appdirs.user_cache_dir("pip")
