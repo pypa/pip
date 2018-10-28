@@ -1,14 +1,14 @@
 from __future__ import absolute_import
 
+import json
 import logging
 import os
-import json
 from collections import OrderedDict
-from configparser import  RawConfigParser
 from email.parser import FeedParser  # type: ignore
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.six.moves import configparser
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
@@ -40,7 +40,7 @@ class ShowCommand(Command):
             '--json',
             action='store_true',
             default=False,
-            help='Show in JSON format the full list of installed files for each package.')
+            help='Show full output in JSON format.')
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
@@ -52,7 +52,9 @@ class ShowCommand(Command):
 
         results = search_packages_info(query)
         if not print_results(
-                results, list_files=options.files, verbose=options.verbose, json=options.json):
+                results, list_files=options.files,
+                verbose=options.verbose,
+                json=options.json):
             return ERROR
         return SUCCESS
 
@@ -129,13 +131,14 @@ def search_packages_info(query):
             package['files'] = sorted(file_list)
         yield package
 
+
 def print_results(distributions, list_files=False, verbose=False, json=False):
     """
     Print the informations from installed distributions found.
     """
     if json:
-        print_json(distributions, list_files, verbose)
-        return
+        return print_json(distributions, list_files, verbose)
+
     results_printed = False
     for i, dist in enumerate(distributions):
         results_printed = True
@@ -177,6 +180,7 @@ def print_results(distributions, list_files=False, verbose=False, json=False):
                 logger.info("Cannot locate installed-files.txt")
     return results_printed
 
+
 def print_json(distributions, list_files=False, verbose=False):
     """
     Print in JSON format the information from installed distributions found.
@@ -204,21 +208,22 @@ def print_json(distributions, list_files=False, verbose=False):
             ("Location", dist.get('location', '')),
             ("Requires", ','.join(dist.get('requires', [])).split(',')),
             ("RequiredBy", ','.join(required_by).split(','))
-            ]
+        ]
 
         if verbose:
             classifiers = []
             for classifier in dist.get('classifiers', []):
                 classifiers.append(str(classifier))
-            parser = RawConfigParser()
+            parser = configparser.RawConfigParser()
             parser.read_string('\n'.join(dist.get('entry_points', [])))
-            entry_points = {section: dict(parser[section]) for section in parser.sections()}
+            entry_points = {section: dict(parser[section])
+                            for section in parser.sections()}
             results.extend([
                 ("MetadataVersion", dist.get('metadata-version', '')),
                 ("Installer", dist.get('installer', '')),
                 ("Classifiers", classifiers),
                 ("EntryPoints", entry_points)
-                ])
+            ])
 
         if list_files:
             files = []
@@ -226,7 +231,8 @@ def print_json(distributions, list_files=False, verbose=False):
                 files.append(str(line.strip()))
             results.extend([("Files", files)])
             if "files" not in dist:
-                results.extend([("Files", "Cannot locate installed-files.txt")])
+                results.extend([("Files",
+                                 "Cannot locate installed-files.txt")])
 
         print(json.dumps(OrderedDict(results), indent=4))
     return results_printed
