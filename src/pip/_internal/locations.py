@@ -16,7 +16,7 @@ from pip._internal.utils.compat import WINDOWS, expanduser
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Union, Dict, List, Optional
+    from typing import Union, Dict, List, Optional # noqa: F401
 
 # Application Directories
 USER_CACHE_DIR = appdirs.user_cache_dir("pip")
@@ -57,7 +57,7 @@ def running_under_virtualenv():
 
 
 def virtualenv_no_global():
-    # type: () -> bool 
+    # type: () -> bool
     """
     Return True if in a venv and no system site packages.
     """
@@ -184,7 +184,7 @@ def distutils_scheme(dist_name, user=False, home=None, root=None,
     # platlib).  Note, i.install_lib is *always* set after
     # finalize_options(); we only want to override here if the user
     # has explicitly requested it hence going back to the config
-    
+
     # Ignoring, typeshed issue reported python/typeshed/issues/2567
     if 'install_lib' in d.get_option_dict('install'):  # type: ignore
         scheme.update(dict(purelib=i.install_lib, platlib=i.install_lib))
