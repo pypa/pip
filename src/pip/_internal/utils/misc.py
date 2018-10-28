@@ -322,7 +322,9 @@ def dist_in_site_packages(dist):
 
 
 def dist_is_editable(dist):
-    """Is distribution an editable install?"""
+    """
+    Return True if given Distribution is an editable install.
+    """
     for path_item in sys.path:
         egg_link = os.path.join(path_item, dist.project_name + '.egg-link')
         if os.path.isfile(egg_link):
