@@ -1,4 +1,10 @@
 from __future__ import absolute_import
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from typing import (  # noqa: F401
+        Optional, Tuple
+    )
 
 import ctypes
 import re
@@ -6,6 +12,7 @@ import warnings
 
 
 def glibc_version_string():
+    # type: () -> str
     "Returns glibc version string, or None if not using glibc."
 
     # ctypes.CDLL(None) internally calls dlopen(NULL), and as the dlopen
@@ -32,6 +39,7 @@ def glibc_version_string():
 
 # Separated out from have_compatible_glibc for easier unit testing
 def check_glibc_version(version_str, required_major, minimum_minor):
+    # type: (str, int, int) -> bool
     # Parse string and check against requested version.
     #
     # We use a regexp instead of str.split because we want to discard any
@@ -48,7 +56,8 @@ def check_glibc_version(version_str, required_major, minimum_minor):
 
 
 def have_compatible_glibc(required_major, minimum_minor):
-    version_str = glibc_version_string()
+    # type: (int, int) -> bool
+    version_str = glibc_version_string()        # type: Optional[str]
     if version_str is None:
         return False
     return check_glibc_version(version_str, required_major, minimum_minor)
@@ -72,6 +81,7 @@ def have_compatible_glibc(required_major, minimum_minor):
 # misleading. Solution: instead of using platform, use our code that actually
 # works.
 def libc_ver():
+    # type: () -> Tuple[str, str]
     """Try to determine the glibc version
 
     Returns a tuple of strings (lib, version) which default to empty strings
