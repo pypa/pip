@@ -20,8 +20,8 @@ just do ``python -m pip install tox`` to install and use it.
 Running pip From Source Tree
 ----------------------------
 
-To run the pip executable from your source tree using the currently active
-virtualenv during development, run pip from the ``src`` directory:
+To run the pip executable from your source tree during development, run pip
+from the ``src`` directory:
 
 .. code-block:: console
 
