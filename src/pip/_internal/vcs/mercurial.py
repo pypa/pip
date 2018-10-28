@@ -22,7 +22,9 @@ class Mercurial(VersionControl):
     name = 'hg'
     dirname = '.hg'
     repo_name = 'clone'
-    schemes = ('hg', 'hg+http', 'hg+https', 'hg+ssh', 'hg+static-http')
+    schemes = (
+        'hg', 'hg+http', 'hg+https', 'hg+ssh', 'hg+static-http', 'hg+file'
+    )
 
     @staticmethod
     def get_base_rev_args(rev):
