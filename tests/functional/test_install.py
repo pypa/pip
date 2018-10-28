@@ -342,7 +342,6 @@ def test_basic_install_editable_from_hg(script, tmpdir):
     assert path_to_url(pkg_path).startswith("file://")
 
 
-
 @need_mercurial
 def test_vcs_url_final_slash_normalization(script, tmpdir):
     """
