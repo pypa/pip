@@ -1,0 +1,2 @@
+Not a feature because the ``hg+file`` scheme was already functioning implicitly but inconsistently documented.
+This change is to make the scheme support explicit, including tests and docs.

@@ -404,7 +404,7 @@ Mercurial
 ~~~~~~~~~
 
 The supported schemes are: ``hg+http``, ``hg+https``,
-``hg+static-http`` and ``hg+ssh``.
+``hg+static-http``, ``hg+ssh`` and ``hg+file``.
 
 Here are the supported forms::
 
