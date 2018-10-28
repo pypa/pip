@@ -13,6 +13,11 @@ from distutils.command.install import SCHEME_KEYS  # type: ignore
 from pip._internal.utils import appdirs
 from pip._internal.utils.compat import WINDOWS, expanduser
 
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from typing import Union, Dict, List
+
 # Application Directories
 USER_CACHE_DIR = appdirs.user_cache_dir("pip")
 
@@ -85,7 +90,8 @@ src_prefix = os.path.abspath(src_prefix)
 
 # FIXME doesn't account for venv linked to global site-packages
 
-site_packages = sysconfig.get_path("purelib")
+site_packages = sysconfig.get_path("purelib")  # type: Union[str, None]
+
 # This is because of a bug in PyPy's sysconfig module, see
 # https://bitbucket.org/pypy/pypy/issues/2506/sysconfig-returns-incorrect-paths
 # for more information.
@@ -140,6 +146,7 @@ new_config_file = os.path.join(appdirs.user_config_dir("pip"), config_basename)
 
 def distutils_scheme(dist_name, user=False, home=None, root=None,
                      isolated=False, prefix=None):
+    # type:(str, bool, str, str, bool, str) -> dict
     """
     Return a distutils install scheme
     """
@@ -151,12 +158,12 @@ def distutils_scheme(dist_name, user=False, home=None, root=None,
         extra_dist_args = {"script_args": ["--no-user-cfg"]}
     else:
         extra_dist_args = {}
-    dist_args = {'name': dist_name}
+    dist_args = {'name': dist_name}  # type: Dict[str, Union[str, List[str]]]
     dist_args.update(extra_dist_args)
 
     d = Distribution(dist_args)
-    d.parse_config_files()
-    i = d.get_command_obj('install', create=True)
+    d.parse_config_files()  # type: ignore
+    i = d.get_command_obj('install', create=True)  # type: ignore
     # NOTE: setting user or home has the side-effect of creating the home dir
     # or user base for installations during finalize_options()
     # ideally, we'd prefer a scheme class that has no side-effects.
@@ -176,7 +183,7 @@ def distutils_scheme(dist_name, user=False, home=None, root=None,
     # platlib).  Note, i.install_lib is *always* set after
     # finalize_options(); we only want to override here if the user
     # has explicitly requested it hence going back to the config
-    if 'install_lib' in d.get_option_dict('install'):
+    if 'install_lib' in d.get_option_dict('install'):  # type: ignore
         scheme.update(dict(purelib=i.install_lib, platlib=i.install_lib))
 
     if running_under_virtualenv():
