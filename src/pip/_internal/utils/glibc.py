@@ -58,7 +58,7 @@ def check_glibc_version(version_str, required_major, minimum_minor):
 
 def have_compatible_glibc(required_major, minimum_minor):
     # type: (int, int) -> bool
-    version_str = glibc_version_string()        # type: Optional[str]
+    version_str = glibc_version_string()  # type: Optional[str]
     if version_str is None:
         return False
     return check_glibc_version(version_str, required_major, minimum_minor)
