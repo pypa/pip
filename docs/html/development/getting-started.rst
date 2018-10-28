@@ -20,12 +20,27 @@ just do ``python -m pip install tox`` to install and use it.
 Running pip From Source Tree
 ----------------------------
 
-To run the pip executable from your source tree during development, run the
-executable from a ``tox`` environment, after having run the tests:
+To run the pip executable from your source tree using the currently active
+virtualenv (or conda environment) during development, run from a ``tox``
+environment, after having run the tests at least once:
 
 .. code-block:: console
 
     $ .tox/py36/bin/pip --version
+
+.. note::
+    You need to do run ``tox -e py36 --recreate`` after any changes to your
+    virtualenv if using pip like this.
+
+.. note::
+    You can use any other tox environment instead of ``py36``.
+
+.. note::
+    ``tox -e py36 --notest`` can be used, if running tests is not a concern.
+
+.. note::
+    An easier alternative is running ``python src/pip``, however there are
+    `edge cases <https://github.com/pypa/pip/pull/5841>`_ that may not work.
 
 Running Tests
 -------------
