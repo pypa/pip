@@ -1,5 +1,5 @@
-Policy
-======
+Vendoring Policy
+================
 
 * Vendored libraries **MUST** not be modified except as required to
   successfully vendor them.
