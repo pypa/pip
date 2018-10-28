@@ -129,8 +129,6 @@ def search_packages_info(query):
             package['files'] = sorted(file_list)
         yield package
 
-
-
 def print_results(distributions, list_files=False, verbose=False, json=False):
     """
     Print the informations from installed distributions found.
@@ -196,17 +194,17 @@ def print_json(distributions, list_files=False, verbose=False):
         ]
 
         results = [
-        ("Name", name),
-        ("Version", dist.get('version', '')),
-        ("Summary", dist.get('summary', '')),
-        ("HomePage", dist.get('home-page', '')),
-        ("Author", dist.get('author', '')),
-        ("AuthorEmail", dist.get('author-email', '')),
-        ("License", dist.get('license', '')),
-        ("Location", dist.get('location', '')),
-        ("Requires", ','.join(dist.get('requires', [])).split(',')),
-        ("RequiredBy", ','.join(required_by).split(','))
-        ]
+            ("Name", name),
+            ("Version", dist.get('version', '')),
+            ("Summary", dist.get('summary', '')),
+            ("HomePage", dist.get('home-page', '')),
+            ("Author", dist.get('author', '')),
+            ("AuthorEmail", dist.get('author-email', '')),
+            ("License", dist.get('license', '')),
+            ("Location", dist.get('location', '')),
+            ("Requires", ','.join(dist.get('requires', [])).split(',')),
+            ("RequiredBy", ','.join(required_by).split(','))
+            ]
 
         if verbose:
             classifiers = []
@@ -214,21 +212,21 @@ def print_json(distributions, list_files=False, verbose=False):
                 classifiers.append(str(classifier))
             parser = RawConfigParser()
             parser.read_string('\n'.join(dist.get('entry_points', [])))
-            entry_points ={ section: dict(parser[section]) for section in parser.sections() }
+            entry_points = {section: dict(parser[section]) for section in parser.sections()}
             results.extend([
-            ("MetadataVersion", dist.get('metadata-version', '')),
-            ("Installer", dist.get('installer', '')),
-            ("Classifiers", classifiers),
-            ("EntryPoints", entry_points)
-            ])
+                ("MetadataVersion", dist.get('metadata-version', '')),
+                ("Installer", dist.get('installer', '')),
+                ("Classifiers", classifiers),
+                ("EntryPoints", entry_points)
+                ])
 
         if list_files:
             files = []
             for line in dist.get('files', []):
                 files.append(str(line.strip()))
-            results.extend([
-            ("Files", files)
-            ])
+            results.extend([("Files", files)])
+            if "files" not in dist:
+                results.extend([("Files", "Cannot locate installed-files.txt")])
 
         print(json.dumps(OrderedDict(results), indent=4))
     return results_printed
