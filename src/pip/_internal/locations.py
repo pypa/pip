@@ -16,7 +16,7 @@ from pip._internal.utils.compat import WINDOWS, expanduser
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Union, Dict, List
+    from typing import Union, Dict, List, Optional
 
 # Application Directories
 USER_CACHE_DIR = appdirs.user_cache_dir("pip")
@@ -90,7 +90,7 @@ src_prefix = os.path.abspath(src_prefix)
 
 # FIXME doesn't account for venv linked to global site-packages
 
-site_packages = sysconfig.get_path("purelib")  # type: Union[str, None]
+site_packages = sysconfig.get_path("purelib")  # type: Optional[str]
 
 # This is because of a bug in PyPy's sysconfig module, see
 # https://bitbucket.org/pypy/pypy/issues/2506/sysconfig-returns-incorrect-paths
@@ -162,6 +162,7 @@ def distutils_scheme(dist_name, user=False, home=None, root=None,
     dist_args.update(extra_dist_args)
 
     d = Distribution(dist_args)
+    # Ignoring, typeshed issue reported python/typeshed/issues/2567
     d.parse_config_files()  # type: ignore
     i = d.get_command_obj('install', create=True)  # type: ignore
     # NOTE: setting user or home has the side-effect of creating the home dir
@@ -183,6 +184,8 @@ def distutils_scheme(dist_name, user=False, home=None, root=None,
     # platlib).  Note, i.install_lib is *always* set after
     # finalize_options(); we only want to override here if the user
     # has explicitly requested it hence going back to the config
+    
+    # Ignoring, typeshed issue reported python/typeshed/issues/2567
     if 'install_lib' in d.get_option_dict('install'):  # type: ignore
         scheme.update(dict(purelib=i.install_lib, platlib=i.install_lib))
 
