@@ -189,11 +189,32 @@ def test_get_formatted_locations_basic_auth():
         # The package name must not ends with a dash (PEP 508), so the first
         # dash would be the separator, not the second.
         ("zope.interface--4.5.0", "zope-interface", 14),
+        ("zope.interface--", "zope-interface", 14),
+
+        # The version part is missing, but the split function does not care.
+        ("zope.interface-", "zope-interface", 14),
     ],
 )
 def test_find_name_version_sep(egg_info, canonical_name, expected):
     index = _find_name_version_sep(egg_info, canonical_name)
     assert index == expected
+
+
+@pytest.mark.parametrize(
+    ("egg_info", "canonical_name"),
+    [
+        # A dash must follow the package name.
+        ("zope.interface4.5.0", "zope-interface"),
+        ("zope.interface.4.5.0", "zope-interface"),
+        ("zope.interface.-4.5.0", "zope-interface"),
+        ("zope.interface", "zope-interface"),
+    ],
+)
+def test_find_name_version_sep_failure(egg_info, canonical_name):
+    with pytest.raises(ValueError) as ctx:
+        _find_name_version_sep(egg_info, canonical_name)
+    message = "{} does not match {}".format(egg_info, canonical_name)
+    assert str(ctx.value) == message
 
 
 @pytest.mark.parametrize(
@@ -212,6 +233,8 @@ def test_find_name_version_sep(egg_info, canonical_name, expected):
         # package name.
         ("foo-2-2", "foo", "2-2"),
         ("foo-2-2", "foo-2", "2"),
+        ("zope.interface--4.5.0", "zope-interface", "-4.5.0"),
+        ("zope.interface--", "zope-interface", "-"),
 
         # Should be able to detect collapsed characters in the egg info.
         ("foo--bar-1.0", "foo-bar", "1.0"),
@@ -220,6 +243,11 @@ def test_find_name_version_sep(egg_info, canonical_name, expected):
         # Invalid.
         ("the-package-name-8.19", "does-not-match", None),
         ("zope.interface.-4.5.0", "zope.interface", None),
+        ("zope.interface-", "zope-interface", None),
+        ("zope.interface4.5.0", "zope-interface", None),
+        ("zope.interface.4.5.0", "zope-interface", None),
+        ("zope.interface.-4.5.0", "zope-interface", None),
+        ("zope.interface", "zope-interface", None),
     ],
 )
 def test_egg_info_matches(egg_info, canonical_name, expected):
