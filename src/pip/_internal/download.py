@@ -26,7 +26,6 @@ from pip._vendor.requests.utils import get_netrc_auth
 from pip._vendor.six.moves import xmlrpc_client  # type: ignore
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
-from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
 from pip._vendor.urllib3.util import IS_PYOPENSSL
 
 import pip
@@ -39,8 +38,8 @@ from pip._internal.utils.glibc import libc_ver
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     ARCHIVE_EXTENSIONS, ask_path_exists, backup_dir, call_subprocess, consume,
-    display_path, format_size, get_installed_version, rmtree, splitext,
-    unpack_file,
+    display_path, format_size, get_installed_version, rmtree,
+    split_auth_from_netloc, splitext, unpack_file,
 )
 from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._internal.utils.temp_dir import TempDirectory
@@ -153,7 +152,7 @@ class MultiDomainBasicAuth(AuthBase):
 
         # Extract credentials embedded in the url if we have none stored
         if username is None:
-            username, password = self.parse_credentials(parsed.netloc)
+            username, password = split_auth_from_netloc(parsed.netloc)[1]
 
         # Get creds from netrc if we still don't have them
         if username is None and password is None:
@@ -212,15 +211,6 @@ class MultiDomainBasicAuth(AuthBase):
         if resp.status_code == 401:
             logger.warning('401 Error, Credentials not correct for %s',
                            resp.request.url)
-
-    def parse_credentials(self, netloc):
-        if "@" in netloc:
-            userinfo = netloc.rsplit("@", 1)[0]
-            if ":" in userinfo:
-                user, pwd = userinfo.split(":", 1)
-                return (urllib_unquote(user), urllib_unquote(pwd))
-            return urllib_unquote(userinfo), None
-        return None, None
 
 
 class LocalFSAdapter(BaseAdapter):
