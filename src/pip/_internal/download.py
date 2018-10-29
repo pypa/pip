@@ -141,8 +141,8 @@ class MultiDomainBasicAuth(AuthBase):
     def __call__(self, req):
         parsed = urllib_parse.urlparse(req.url)
 
-        # Get the netloc without any embedded credentials
-        netloc = parsed.netloc.rsplit("@", 1)[-1]
+        # Split the credentials from the netloc.
+        netloc, url_user_password = split_auth_from_netloc(parsed.netloc)
 
         # Set the url of the request to the url without any credentials
         req.url = urllib_parse.urlunparse(parsed[:1] + (netloc,) + parsed[2:])
@@ -150,9 +150,9 @@ class MultiDomainBasicAuth(AuthBase):
         # Use any stored credentials that we have for this netloc
         username, password = self.passwords.get(netloc, (None, None))
 
-        # Extract credentials embedded in the url if we have none stored
+        # Use the credentials embedded in the url if we have none stored
         if username is None:
-            username, password = split_auth_from_netloc(parsed.netloc)[1]
+            username, password = url_user_password
 
         # Get creds from netrc if we still don't have them
         if username is None and password is None:
