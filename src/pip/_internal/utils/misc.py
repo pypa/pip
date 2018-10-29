@@ -900,7 +900,7 @@ def redact_netloc(netloc):
     if user is None:
         return netloc
     password = '' if password is None else ':****'
-    return '{user}{password}@{netloc}'.format(user=user,
+    return '{user}{password}@{netloc}'.format(user=urllib_parse.quote(user),
                                               password=password,
                                               netloc=netloc)
 
