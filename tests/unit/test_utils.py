@@ -687,6 +687,8 @@ def test_split_auth_from_netloc(netloc, expected):
     ('user:pass@word@example.com', 'user:****@example.com'),
     # Test the password containing a : symbol.
     ('user:pass:word@example.com', 'user:****@example.com'),
+    # Test URL-encoded reserved characters.
+    ('user%3Aname:%23%40%5E@example.com', 'user%3Aname:****@example.com'),
 ])
 def test_redact_netloc(netloc, expected):
     actual = redact_netloc(netloc)
@@ -718,7 +720,10 @@ def test_remove_auth_from_url(auth_url, expected_url):
     ('https://user@example.com/abc', 'https://user@example.com/abc'),
     ('https://user:password@example.com', 'https://user:****@example.com'),
     ('https://user:@example.com', 'https://user:****@example.com'),
-    ('https://example.com', 'https://example.com')
+    ('https://example.com', 'https://example.com'),
+    # Test URL-encoded reserved characters.
+    ('https://user%3Aname:%23%40%5E@example.com',
+     'https://user%3Aname:****@example.com'),
 ])
 def test_redact_password_from_url(auth_url, expected_url):
     url = redact_password_from_url(auth_url)
