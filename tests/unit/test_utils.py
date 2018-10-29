@@ -665,6 +665,9 @@ def test_make_vcs_requirement_url(args, expected):
     ('user:pass@word@example.com', ('example.com', ('user', 'pass@word'))),
     # Test the password containing a : symbol.
     ('user:pass:word@example.com', ('example.com', ('user', 'pass:word'))),
+    # Test URL-encoded reserved characters.
+    ('user%3Aname:%23%40%5E@example.com',
+     ('example.com', ('user:name', '#@^'))),
 ])
 def test_split_auth_from_netloc(netloc, expected):
     actual = split_auth_from_netloc(netloc)
