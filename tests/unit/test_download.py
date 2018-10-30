@@ -10,8 +10,8 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 
 import pip
 from pip._internal.download import (
-    MultiDomainBasicAuth, PipSession, SafeFileCache, path_to_url,
-    unpack_file_url, unpack_http_url, url_to_path,
+    PipSession, SafeFileCache, path_to_url, unpack_file_url, unpack_http_url,
+    url_to_path,
 )
 from pip._internal.exceptions import HashMismatch
 from pip._internal.models.link import Link
@@ -328,14 +328,3 @@ class TestPipSession:
         )
 
         assert not hasattr(session.adapters["https://example.com/"], "cache")
-
-
-def test_parse_credentials():
-    auth = MultiDomainBasicAuth()
-    assert auth.parse_credentials("foo:bar@example.com") == ('foo', 'bar')
-    assert auth.parse_credentials("foo@example.com") == ('foo', None)
-    assert auth.parse_credentials("example.com") == (None, None)
-
-    # URL-encoded reserved characters:
-    assert auth.parse_credentials("user%3Aname:%23%40%5E@example.com") \
-        == ("user:name", "#@^")
