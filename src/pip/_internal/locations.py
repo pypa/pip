@@ -12,11 +12,11 @@ from distutils.command.install import SCHEME_KEYS  # type: ignore
 
 from pip._internal.utils import appdirs
 from pip._internal.utils.compat import WINDOWS, expanduser
-
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import Union, Dict, List, Optional  # noqa: F401
+
 
 # Application Directories
 USER_CACHE_DIR = appdirs.user_cache_dir("pip")
