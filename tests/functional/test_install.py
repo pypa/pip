@@ -37,6 +37,19 @@ def test_pep518_uses_build_env(script, data, common_wheels, command, variant):
     )
 
 
+def test_pep518_build_env_uses_same_pip(script, data, pip_src, common_wheels):
+    """Ensure the subprocess call to pip for installing the
+    build dependencies is using the same version of pip.
+    """
+    with open(script.scratch_path / 'pip.py', 'w') as fp:
+        fp.write('raise ImportError')
+    script.run(
+        'python', pip_src / 'src/pip', 'install', '--no-index',
+        '-f', common_wheels, '-f', data.packages,
+        data.src.join("pep518-3.0"),
+    )
+
+
 def test_pep518_refuses_invalid_requires(script, data, common_wheels):
     result = script.pip(
         'install', '-f', common_wheels,

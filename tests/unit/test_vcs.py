@@ -192,6 +192,9 @@ def test_git__get_netloc_and_auth(args, expected):
     (('user@example.com', 'https'), ('example.com', ('user', None))),
     # Test https with username and password.
     (('user:pass@example.com', 'https'), ('example.com', ('user', 'pass'))),
+    # Test https with URL-encoded reserved characters.
+    (('user%3Aname:%23%40%5E@example.com', 'https'),
+     ('example.com', ('user:name', '#@^'))),
     # Test ssh with username and password.
     (('user:pass@example.com', 'ssh'),
      ('user:pass@example.com', (None, None))),

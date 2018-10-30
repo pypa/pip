@@ -25,6 +25,7 @@ from pip._vendor.retrying import retry  # type: ignore
 from pip._vendor.six import PY2
 from pip._vendor.six.moves import input
 from pip._vendor.six.moves.urllib import parse as urllib_parse
+from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
 
 from pip._internal.exceptions import CommandError, InstallationError
 from pip._internal.locations import (
@@ -322,7 +323,9 @@ def dist_in_site_packages(dist):
 
 
 def dist_is_editable(dist):
-    """Is distribution an editable install?"""
+    """
+    Return True if given Distribution is an editable install.
+    """
     for path_item in sys.path:
         egg_link = os.path.join(path_item, dist.project_name + '.egg-link')
         if os.path.isfile(egg_link):
@@ -878,9 +881,13 @@ def split_auth_from_netloc(netloc):
         # Split from the left because that's how urllib.parse.urlsplit()
         # behaves if more than one : is present (which again can be checked
         # using the password attribute of the return value)
-        user_pass = tuple(auth.split(':', 1))
+        user_pass = auth.split(':', 1)
     else:
         user_pass = auth, None
+
+    user_pass = tuple(
+        None if x is None else urllib_unquote(x) for x in user_pass
+    )
 
     return netloc, user_pass
 
@@ -895,7 +902,7 @@ def redact_netloc(netloc):
     if user is None:
         return netloc
     password = '' if password is None else ':****'
-    return '{user}{password}@{netloc}'.format(user=user,
+    return '{user}{password}@{netloc}'.format(user=urllib_parse.quote(user),
                                               password=password,
                                               netloc=netloc)
 

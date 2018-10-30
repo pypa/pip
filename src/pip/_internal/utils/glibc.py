@@ -7,13 +7,11 @@ import warnings
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import (  # noqa: F401
-        Optional, Tuple
-    )
+    from typing import Optional, Tuple  # noqa: F401
 
 
 def glibc_version_string():
-    # type: () -> str
+    # type: () -> Optional[str]
     "Returns glibc version string, or None if not using glibc."
 
     # ctypes.CDLL(None) internally calls dlopen(NULL), and as the dlopen

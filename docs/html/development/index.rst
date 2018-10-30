@@ -15,6 +15,7 @@ or the `pypa-dev mailing list`_, to ask questions or get involved.
     getting-started
     contributing
     release-process
+    vendoring-policy
 
 .. note::
 
