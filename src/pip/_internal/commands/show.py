@@ -215,7 +215,7 @@ def print_json(distributions, list_files=False, verbose=False):
             for classifier in dist.get('classifiers', []):
                 classifiers.append(str(classifier))
             parser = configparser.ConfigParser()
-            parser.read_string('\n'.join(dist.get('entry_points', [])))
+            parser.readfp(list(dist.get('entry_points', [])))
             entry_points = {section: dict(parser[section])
                             for section in parser.sections()}
             results.extend([
