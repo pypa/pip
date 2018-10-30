@@ -1,8 +1,8 @@
+import json
 import os
 import re
 
 import pytest
-import json
 
 from pip import __version__
 from pip._internal.commands.show import search_packages_info
@@ -32,6 +32,7 @@ def test_basic_json_show(script):
     assert parsed_json["Version"] == __version__
     assert "Location" in parsed_json
     assert "Requires" in parsed_json
+
 
 def test_show_with_files_not_found(script, data):
     """
@@ -186,6 +187,7 @@ def test_show_json_verbose(script):
     assert "Installer" in parsed_json
     assert "EntryPoints" in parsed_json
     assert "Classifiers" in parsed_json
+
 
 def test_all_fields(script):
     """
