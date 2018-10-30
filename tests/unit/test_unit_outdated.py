@@ -1,3 +1,4 @@
+import collections
 import datetime
 import os
 import sys
@@ -28,8 +29,10 @@ class MockPackageFinder(object):
     def __init__(self, *args, **kwargs):
         pass
 
-    def find_all_candidates(self, project_name):
-        return self.INSTALLATION_CANDIDATES
+    def find_candidates(self, project_name, specifier):
+        return collections.namedtuple("FoundCandidates", "best")(
+            best=self.INSTALLATION_CANDIDATES[0],
+        )
 
 
 class MockDistribution(object):

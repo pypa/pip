@@ -55,7 +55,8 @@ if MYPY_CHECK_RUNNING:
     BuildTag = Tuple[Any, ...]  # either empty tuple or Tuple[int, str]
     CandidateSortingKey = Tuple[int, _BaseVersion, BuildTag, Optional[int]]
 
-__all__ = ['FormatControl', 'PackageFinder']
+
+__all__ = ['FormatControl', 'FoundCandidates', 'PackageFinder']
 
 
 SECURE_ORIGINS = [
@@ -252,6 +253,63 @@ def _get_html_page(link, session=None):
     else:
         return HTMLPage(resp.content, resp.url, resp.headers)
     return None
+
+
+class FoundCandidates(object):
+    """A collection of candidates, returned by `PackageFinder.find_candidates`.
+
+    Arguments:
+
+    * `candidates`: A sequence of all available candidates found.
+    * `specifier`: Specifier to filter applicable versions.
+    * `prereleases`: Whether prereleases should be accounted. Pass None to
+        infer from the specifier.
+    * `sort_key`: A callable used as the key function when choosing the best
+        candidate.
+    """
+    def __init__(
+        self,
+        candidates,     # type: List[InstallationCandidate]
+        specifier,      # type: specifiers.BaseSpecifier
+        prereleases,    # type: Optional[bool]
+        sort_key,       # type: Callable[[InstallationCandidate], Any]
+    ):
+        # type: (...) -> None
+        self._candidates = candidates
+        self._specifier = specifier
+        self._prereleases = prereleases
+        self._sort_key = sort_key
+
+    @property
+    def all(self):
+        # type: () -> Iterable[InstallationCandidate]
+        return iter(self._candidates)
+
+    @property
+    def applicable(self):
+        # type: () -> Iterable[InstallationCandidate]
+        # Filter out anything which doesn't match our specifier.
+        versions = set(self._specifier.filter(
+            # We turn the version object into a str here because otherwise
+            # when we're debundled but setuptools isn't, Python will see
+            # packaging.version.Version and
+            # pkg_resources._vendor.packaging.version.Version as different
+            # types. This way we'll use a str as a common data interchange
+            # format. If we stop using the pkg_resources provided specifier
+            # and start using our own, we can drop the cast to str().
+            [str(c.version) for c in self._candidates],
+            prereleases=self._prereleases,
+        ))
+        # Again, converting to str to deal with debundling.
+        return (c for c in self._candidates if str(c.version) in versions)
+
+    @property
+    def best(self):
+        # type: () -> Optional[InstallationCandidate]
+        try:
+            return max(self.applicable, key=self._sort_key)
+        except ValueError:  # Raised by max() if self.applicable is empty.
+            return None
 
 
 class PackageFinder(object):
@@ -628,6 +686,27 @@ class PackageFinder(object):
         # This is an intentional priority ordering
         return file_versions + find_links_versions + page_versions
 
+    def find_candidates(self, project_name, specifier):
+        """Find matches for the given project and specifier.
+
+        `specifier` should implement `filter` to allow version filtering (e.g.
+        ``packaging.specifiers.SpecifierSet``).
+
+        Returns a FoundCandidates instance that contains the following
+        properties:
+
+        * `all`: All candidates matching `project_name` found on the index.
+        * `applicable`: Candidates matching `project_name` and `specifier`.
+        * `best`: The best candidate available. This may be None if no
+            applicable candidates are found.
+        """
+        return FoundCandidates(
+            self.find_all_candidates(project_name),
+            specifier=specifier,
+            prereleases=(self.allow_all_prereleases or None),
+            sort_key=self._candidate_sort_key,
+        )
+
     def find_requirement(self, req, upgrade):
         # type: (InstallRequirement, bool) -> Optional[Link]
         """Try to find a Link matching req
@@ -636,35 +715,8 @@ class PackageFinder(object):
         Returns a Link if found,
         Raises DistributionNotFound or BestVersionAlreadyInstalled otherwise
         """
-        all_candidates = self.find_all_candidates(req.name)
-
-        # Filter out anything which doesn't match our specifier
-        compatible_versions = set(
-            req.specifier.filter(
-                # We turn the version object into a str here because otherwise
-                # when we're debundled but setuptools isn't, Python will see
-                # packaging.version.Version and
-                # pkg_resources._vendor.packaging.version.Version as different
-                # types. This way we'll use a str as a common data interchange
-                # format. If we stop using the pkg_resources provided specifier
-                # and start using our own, we can drop the cast to str().
-                [str(c.version) for c in all_candidates],
-                prereleases=(
-                    self.allow_all_prereleases
-                    if self.allow_all_prereleases else None
-                ),
-            )
-        )
-        applicable_candidates = [
-            # Again, converting to str to deal with debundling.
-            c for c in all_candidates if str(c.version) in compatible_versions
-        ]
-
-        if applicable_candidates:
-            best_candidate = max(applicable_candidates,
-                                 key=self._candidate_sort_key)
-        else:
-            best_candidate = None
+        candidates = self.find_candidates(req.name, req.specifier)
+        best_candidate = candidates.best
 
         if req.satisfied_by is not None:
             installed_version = parse_version(req.satisfied_by.version)
@@ -678,7 +730,7 @@ class PackageFinder(object):
                 req,
                 ', '.join(
                     sorted(
-                        {str(c.version) for c in all_candidates},
+                        {str(c.version) for c in candidates.all},
                         key=parse_version,
                     )
                 )
@@ -710,21 +762,24 @@ class PackageFinder(object):
                 )
             return None
 
+        compatible_version_display = ", ".join(
+            str(v) for v in sorted({c.version for c in candidates.applicable})
+        ) or "none"
+
         if best_installed:
             # We have an existing version, and its the best version
             logger.debug(
                 'Installed version (%s) is most up-to-date (past versions: '
                 '%s)',
                 installed_version,
-                ', '.join(sorted(compatible_versions, key=parse_version)) or
-                "none",
+                compatible_version_display,
             )
             raise BestVersionAlreadyInstalled
 
         logger.debug(
             'Using version %s (newest of versions: %s)',
             best_candidate.version,
-            ', '.join(sorted(compatible_versions, key=parse_version))
+            compatible_version_display,
         )
         return best_candidate.location
 

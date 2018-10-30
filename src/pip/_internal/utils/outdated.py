@@ -8,6 +8,7 @@ import sys
 
 from pip._vendor import lockfile, pkg_resources
 from pip._vendor.packaging import version as packaging_version
+from pip._vendor.packaging.specifiers import SpecifierSet
 
 from pip._internal.index import PackageFinder
 from pip._internal.utils.compat import WINDOWS
@@ -129,12 +130,10 @@ def pip_version_check(session, options):
                 trusted_hosts=options.trusted_hosts,
                 session=session,
             )
-            all_candidates = finder.find_all_candidates("pip")
-            if not all_candidates:
+            candidate = finder.find_candidates("pip", SpecifierSet()).best
+            if candidate is None:
                 return
-            pypi_version = str(
-                max(all_candidates, key=lambda c: c.version).version
-            )
+            pypi_version = str(candidate.version)
 
             # save that we've performed a check
             state.save(pypi_version, current_time)
