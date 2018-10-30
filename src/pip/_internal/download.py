@@ -43,8 +43,12 @@ from pip._internal.utils.misc import (
 )
 from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._internal.utils.temp_dir import TempDirectory
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import DownloadProgressProvider
 from pip._internal.vcs import vcs
+
+if MYPY_CHECK_RUNNING:
+    from typing import Optional  # noqa: F401
 
 try:
     import ssl  # noqa
@@ -321,7 +325,7 @@ class InsecureHTTPAdapter(HTTPAdapter):
 
 class PipSession(requests.Session):
 
-    timeout = None
+    timeout = None  # type: Optional[int]
 
     def __init__(self, *args, **kwargs):
         retries = kwargs.pop("retries", 0)
