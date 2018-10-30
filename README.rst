@@ -22,8 +22,8 @@ The `PyPA recommended`_ tool for installing Python packages.
 * `Issue Tracking`_
 * `User mailing list`_
 * `Dev mailing list`_
-* `User IRC`_: #pypa on Freenode.
-* `Dev IRC`_: #pypa-dev on Freenode.
+* `User IRC`_: #pypa on Freenode
+* `Dev IRC`_: #pypa-dev on Freenode
 
 Code of Conduct
 ---------------
