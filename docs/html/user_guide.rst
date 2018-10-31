@@ -445,8 +445,8 @@ is the same as calling::
 
 .. note::
 
-   Environment variables set to be empty string will be ignored instead 
-   of being treated as false. Please use ``no``, ``false`` or ``0`` instead.
+   Environment variables set to be empty string will not be treated as false. Please use ``no``,
+   ``false`` or ``0`` instead.
 
 
 Config Precedence
