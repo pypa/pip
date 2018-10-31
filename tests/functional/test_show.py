@@ -28,10 +28,11 @@ def test_basic_json_show(script):
     result = script.pip('show', '--json', 'pip')
     parsed_json = json.loads(result.stdout)
     assert parsed_json
-    assert parsed_json["Name"] == "pip"
-    assert parsed_json["Version"] == __version__
-    assert "Location" in parsed_json
-    assert "Requires" in parsed_json
+    assert parsed_json[0]
+    assert parsed_json[0]["Name"] == "pip"
+    assert parsed_json[0]["Version"] == __version__
+    assert "Location" in parsed_json[0]
+    assert "Requires" in parsed_json[0]
 
 
 def test_show_with_files_not_found(script, data):
@@ -61,13 +62,13 @@ def test_show_json_with_files_not_found(script, data):
     script.pip('install', '-e', editable)
     result = script.pip('show', '--json', '-f', 'SetupPyUTF8')
     parsed_json = json.loads(result.stdout)
-    assert parsed_json
-    assert parsed_json["Name"] == "SetupPyUTF8"
-    assert parsed_json["Version"] == "0.0.0"
-    assert "Location" in parsed_json
-    assert "Requires" in parsed_json
-    assert "Files" in parsed_json
-    assert parsed_json["Files"] == "Cannot locate installed-files.txt"
+    assert parsed_json[0]
+    assert parsed_json[0]["Name"] == "SetupPyUTF8"
+    assert parsed_json[0]["Version"] == "0.0.0"
+    assert "Location" in parsed_json[0]
+    assert "Requires" in parsed_json[0]
+    assert "Files" in parsed_json[0]
+    assert parsed_json[0]["Files"] == "Cannot locate installed-files.txt"
 
 
 def test_show_with_files_from_wheel(script, data):
@@ -101,7 +102,7 @@ def test_show_json_with_all_files(script):
     """
     script.pip('install', 'initools==0.2')
     result = script.pip('show', '--json', '--files', 'initools')
-    parsed_json = json.loads(result.stdout)
+    parsed_json = json.loads(result.stdout)[0]
     assert parsed_json
     assert parsed_json["Files"] != "Cannot locate installed-files.txt"
 
@@ -182,11 +183,11 @@ def test_show_json_verbose(script):
     """
     result = script.pip('show', '--json', '--verbose', 'pip')
     parsed_json = json.loads(result.stdout)
-    assert parsed_json
-    assert "MetadataVersion" in parsed_json
-    assert "Installer" in parsed_json
-    assert "EntryPoints" in parsed_json
-    assert "Classifiers" in parsed_json
+    assert parsed_json[0]
+    assert "MetadataVersion" in parsed_json[0]
+    assert "Installer" in parsed_json[0]
+    assert "EntryPoints" in parsed_json[0]
+    assert "Classifiers" in parsed_json[0]
 
 
 def test_all_fields(script):
