@@ -185,11 +185,11 @@ def print_json(distributions, list_files=False, verbose=False):
     """
     Print in JSON format the information from installed distributions found.
     """
+    all_results = []
+
     results_printed = False
     for i, dist in enumerate(distributions):
         results_printed = True
-        if i > 0:
-            logger.info("---")
 
         name = dist.get('name', '')
         required_by = [
@@ -233,7 +233,8 @@ def print_json(distributions, list_files=False, verbose=False):
 
             parser = configparser.ConfigParser()
 
-            entry_points_wrapper = ReadlineWrapper(dist.get('entry_points', []))
+            entry_points_wrapper = ReadlineWrapper(
+                dist.get('entry_points', []))
             parser.readfp(entry_points_wrapper)
 
             entry_points = {section: dict(parser.items(section))
@@ -254,5 +255,7 @@ def print_json(distributions, list_files=False, verbose=False):
                 results.extend([("Files",
                                  "Cannot locate installed-files.txt")])
 
-        print(json.dumps(OrderedDict(results), indent=4))
+        all_results.append(OrderedDict(results))
+    print(json.dumps(all_results, indent=4))
+
     return results_printed
