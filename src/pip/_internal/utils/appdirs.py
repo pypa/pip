@@ -253,7 +253,6 @@ if WINDOWS:
 
 
 def _win_path_to_bytes(path):
-    # type: (str) -> Union[bytes, str]
     """Encode Windows paths to bytes. Only used on Python 2.
 
     Motivation is to be consistent with other operating systems where paths
