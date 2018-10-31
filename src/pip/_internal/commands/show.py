@@ -214,9 +214,29 @@ def print_json(distributions, list_files=False, verbose=False):
             classifiers = []
             for classifier in dist.get('classifiers', []):
                 classifiers.append(str(classifier))
+
+            # 2.7/3.x compatibility
+            class ReadlineWrapper:
+                def __init__(self, collection):
+                    self.collection = list(collection)
+                    self.i = 0
+
+                def readline(self):
+                    if self.i >= len(self.collection):
+                        return None
+                    val = self.collection[self.i]
+                    self.i += 1
+                    return val
+
+                def __iter__(self):
+                    return iter(self.collection)
+
             parser = configparser.ConfigParser()
-            parser.readfp(list(dist.get('entry_points', [])))
-            entry_points = {section: dict(parser[section])
+
+            entry_points_wrapper = ReadlineWrapper(dist.get('entry_points', []))
+            parser.readfp(entry_points_wrapper)
+
+            entry_points = {section: dict(parser.items(section))
                             for section in parser.sections()}
             results.extend([
                 ("MetadataVersion", dist.get('metadata-version', '')),
