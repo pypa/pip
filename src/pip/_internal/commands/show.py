@@ -51,10 +51,15 @@ class ShowCommand(Command):
         query = args
 
         results = search_packages_info(query)
+
+        if options.json:
+            print_results = print_json
+        else:
+            print_results = print_header_format
+
         if not print_results(
                 results, list_files=options.files,
-                verbose=options.verbose,
-                json=options.json):
+                verbose=options.verbose):
             return ERROR
         return SUCCESS
 
@@ -132,12 +137,10 @@ def search_packages_info(query):
         yield package
 
 
-def print_results(distributions, list_files=False, verbose=False, json=False):
+def print_header_format(distributions, list_files=False, verbose=False):
     """
     Print the informations from installed distributions found.
     """
-    if json:
-        return print_json(distributions, list_files, verbose)
 
     results_printed = False
     for i, dist in enumerate(distributions):
