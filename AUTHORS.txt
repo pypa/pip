@@ -3,6 +3,7 @@ Adam Wentz <awentz@theonion.com>
 Adrien Morison <adrien.morison@gmail.com>
 Alan Yee <alyee@ucsd.edu>
 Aleks Bunin <github@compuix.com>
+Alethea Flowers <magicalgirl@google.com>
 Alex Gaynor <alex.gaynor@gmail.com>
 Alex Grönholm <alex.gronholm@nextday.fi>
 Alex Morega <alex@grep.ro>
@@ -199,7 +200,6 @@ John-Scott Atlakson <john.scott.atlakson@gmail.com>
 Jon Banafato <jon@jonafato.com>
 Jon Dufresne <jon.dufresne@gmail.com>
 Jon Parise <jon@indelible.org>
-Jon Wayne Parrott <jjramone13@gmail.com>
 Jonas Nockert <jonasnockert@gmail.com>
 Jonathan Herbert <foohyfooh@gmail.com>
 Joost Molenaar <j.j.molenaar@gmail.com>
