@@ -226,7 +226,7 @@ def sorted_outrows(outrows):
 
 def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
                      pycompile=True, scheme=None, isolated=False, prefix=None,
-                     warn_script_location=True):
+                     warn_script_location=True, scripts_target_dir=None):
     """Install a wheel"""
 
     if not scheme:
@@ -234,6 +234,9 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
             name, user=user, home=home, root=root, isolated=isolated,
             prefix=prefix,
         )
+
+    if scripts_target_dir is not None:
+        scheme['scripts'] = scripts_target_dir
 
     if root_is_purelib(name, wheeldir):
         lib_dir = scheme['purelib']

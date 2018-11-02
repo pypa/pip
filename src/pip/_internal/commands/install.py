@@ -83,6 +83,13 @@ class InstallCommand(RequirementCommand):
                  '<dir>. Use --upgrade to replace existing packages in <dir> '
                  'with new versions.'
         )
+        cmd_opts.add_option(
+            '--scripts-target',
+            dest='scripts_target_dir',
+            metavar='dir',
+            default=None,
+            help='Install binaries into <dir>. Used only when \'--target\' is used.'
+        )
         cmd_opts.add_option(cmdoptions.platform())
         cmd_opts.add_option(cmdoptions.python_version())
         cmd_opts.add_option(cmdoptions.implementation())
@@ -254,6 +261,26 @@ class InstallCommand(RequirementCommand):
             target_temp_dir.create()
             install_options.append('--home=' + target_temp_dir.path)
 
+        if options.target_dir and options.scripts_target_dir:
+            options.scripts_target_dir = os.path.abspath(options.scripts_target_dir)
+            if (os.path.exists(options.target_dir) and not
+                    os.path.isdir(options.target_dir)):
+                raise CommandError(
+                    "Target path for scripts exists but is not a directory, "
+                    "will not continue."
+                )
+            if any(map(lambda x: x.startswith("--install-scripts"), install_options)):
+                raise CommandError(
+                    "Can not use '--scripts-target' and '--install-scripts' install "
+                    "command at the same time."
+                )
+            else:
+                install_options.append("--install-scripts="+options.scripts_target_dir)
+        elif options.scripts_target_dir:
+            raise CommandError(
+                "Can not use '--scripts-target' without '--target'."
+            )
+
         global_options = options.global_options or []
 
         with self._build_session(options) as session:
@@ -364,6 +391,7 @@ class InstallCommand(RequirementCommand):
                         pycompile=options.compile,
                         warn_script_location=warn_script_location,
                         use_user_site=options.use_user_site,
+                        scripts_target_dir=options.scripts_target_dir
                     )
 
                     lib_locations = get_lib_location_guesses(

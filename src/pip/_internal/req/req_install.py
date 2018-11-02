@@ -370,7 +370,7 @@ class InstallRequirement(object):
 
     def move_wheel_files(self, wheeldir, root=None, home=None, prefix=None,
                          warn_script_location=True, use_user_site=False,
-                         pycompile=True):
+                         pycompile=True, scripts_target_dir=None):
         move_wheel_files(
             self.name, self.req, wheeldir,
             user=use_user_site,
@@ -380,6 +380,7 @@ class InstallRequirement(object):
             pycompile=pycompile,
             isolated=self.isolated,
             warn_script_location=warn_script_location,
+            scripts_target_dir=scripts_target_dir
         )
 
     # Things valid for sdists
@@ -743,7 +744,7 @@ class InstallRequirement(object):
 
     def install(self, install_options, global_options=None, root=None,
                 home=None, prefix=None, warn_script_location=True,
-                use_user_site=False, pycompile=True):
+                use_user_site=False, pycompile=True, scripts_target_dir=None):
         global_options = global_options if global_options is not None else []
         if self.editable:
             self.install_editable(
@@ -753,11 +754,11 @@ class InstallRequirement(object):
         if self.is_wheel:
             version = wheel.wheel_version(self.source_dir)
             wheel.check_compatibility(version, self.name)
-
             self.move_wheel_files(
                 self.source_dir, root=root, prefix=prefix, home=home,
                 warn_script_location=warn_script_location,
                 use_user_site=use_user_site, pycompile=pycompile,
+                scripts_target_dir=scripts_target_dir
             )
             self.install_succeeded = True
             return
