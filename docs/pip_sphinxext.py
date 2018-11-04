@@ -17,7 +17,7 @@ class PipCommandUsage(rst.Directive):
 
     def run(self):
         cmd = commands[self.arguments[0]]
-        usage = dedent(cmd.usage.replace('%prog', 'pip')).strip()
+        usage = dedent(cmd.usage.replace('%prog', 'pip {}'.format(cmd.name))).strip()
         node = nodes.literal_block(usage, usage)
         return [node]
 
