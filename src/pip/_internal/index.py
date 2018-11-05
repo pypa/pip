@@ -781,15 +781,15 @@ class PackageFinder(object):
                     link, 'unsupported archive format: %s' % ext,
                 )
                 return
-            if "binary" not in search.formats and ext == wheel_ext:
-                self._log_skipped_link(
-                    link, 'No binaries permitted for %s' % search.supplied,
-                )
-                return
             if "macosx10" in link.path and ext == '.zip':
                 self._log_skipped_link(link, 'macosx10 one')
                 return
             if ext == wheel_ext:
+                if "binary" not in search.formats:
+                    self._log_skipped_link(
+                        link, 'No binaries permitted for %s' % search.supplied,
+                    )
+                    return
                 try:
                     wheel = Wheel(link.filename)
                 except InvalidWheelFilename:
