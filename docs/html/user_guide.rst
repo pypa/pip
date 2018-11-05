@@ -493,10 +493,10 @@ to PyPI.
 
 First, download the archives that fulfill your requirements::
 
-$ pip install --download DIR -r requirements.txt
+$ pip download --destination-directory DIR -r requirements.txt
 
 
-Note that ``pip install --download`` will look in your wheel cache first, before
+Note that ``pip download`` will look in your wheel cache first, before
 trying to download from PyPI.  If you've never installed your requirements
 before, you won't have a wheel cache for those items.  In that case, if some of
 your requirements don't come as wheels from PyPI, and you want wheels, then run
