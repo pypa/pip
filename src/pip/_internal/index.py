@@ -226,6 +226,57 @@ def _get_html_page(link, session=None):
         return HTMLPage(resp.content, resp.url, resp.headers)
 
 
+class _SkippedLink(Exception):
+    """Base class for all exceptions raised by `_parse_package_version()`.
+
+    The callee is expected to catch this, and inspect attributes `link` or
+    `search`, or convert the exception to a string for logging.
+    """
+    def __init__(self, link, search):
+        super(_SkippedLink, self).__init__(link, search)
+        self.link = link
+        self.search = search
+
+    def __str__(self):
+        return self._template.format(link=self.link, search=self.search)
+
+
+class _BinaryLinkNotPermitted(_SkippedLink):
+    _template = "No binaries permitted for {search.supplied}"
+
+
+class _InvalidWheelFilename(_SkippedLink):
+    _template = "invalid wheel filename"
+
+
+class _IncorrectProjectName(_SkippedLink):
+    _template = "wrong project name (not {search.supplied})"
+
+
+class _PythonNotSupported(_SkippedLink):
+    _template = "it is not compatible with this Python"
+
+
+def _parse_binary_package_version(link, search, valid_tags):
+    """Parse package version from a wheel link.
+
+    This is a helper function for `_link_package_versions()`. A wheel instance
+    is constructed to parse the wheel's file name, and check against user-
+    supplied criteria to see if it is valid.
+    """
+    if "binary" not in search.formats:
+        raise _BinaryLinkNotPermitted(link, search)
+    try:
+        wheel = Wheel(link.filename)
+    except InvalidWheelFilename:
+        raise _InvalidWheelFilename(link, search)
+    if canonicalize_name(wheel.name) != search.canonical:
+        raise _IncorrectProjectName(link, search)
+    if not wheel.supported(valid_tags):
+        raise _PythonNotSupported(link, search)
+    return wheel.version
+
+
 class PackageFinder(object):
     """This finds packages.
 
@@ -785,27 +836,13 @@ class PackageFinder(object):
                 self._log_skipped_link(link, 'macosx10 one')
                 return
             if ext == wheel_ext:
-                if "binary" not in search.formats:
-                    self._log_skipped_link(
-                        link, 'No binaries permitted for %s' % search.supplied,
-                    )
-                    return
                 try:
-                    wheel = Wheel(link.filename)
-                except InvalidWheelFilename:
-                    self._log_skipped_link(link, 'invalid wheel filename')
+                    version = _parse_binary_package_version(
+                        link, search, self.valid_tags,
+                    )
+                except _SkippedLink as e:
+                    self._log_skipped_link(e.link, str(e))
                     return
-                if canonicalize_name(wheel.name) != search.canonical:
-                    self._log_skipped_link(
-                        link, 'wrong project name (not %s)' % search.supplied)
-                    return
-
-                if not wheel.supported(self.valid_tags):
-                    self._log_skipped_link(
-                        link, 'it is not compatible with this Python')
-                    return
-
-                version = wheel.version
 
         # This should be up by the search.ok_binary check, but see issue 2700.
         if "source" not in search.formats and ext != wheel_ext:
