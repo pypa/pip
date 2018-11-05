@@ -11,7 +11,9 @@ from pip._internal.download import PipSession
 from pip._internal.exceptions import (
     BestVersionAlreadyInstalled, DistributionNotFound,
 )
-from pip._internal.index import InstallationCandidate, Link, PackageFinder
+from pip._internal.index import (
+    InstallationCandidate, Link, PackageFinder, Search,
+)
 from pip._internal.req.constructors import install_req_from_line
 
 
@@ -511,41 +513,52 @@ class TestLinkPackageVersions(object):
     )
     def setup(self):
         self.version = '1.0'
-        self.parsed_version = parse_version(self.version)
         self.search_name = 'pytest'
+        self.canonical_name = 'pytest'
         self.finder = PackageFinder(
             [],
             [],
             session=PipSession(),
         )
 
-    def test_link_package_versions_match_wheel(self):
+    @pytest.mark.parametrize(
+        'url',
+        [
+            'http:/yo/pytest-1.0.tar.gz',
+            'http:/yo/pytest-1.0-py2.py3-none-any.whl',
+        ],
+    )
+    def test_link_package_versions_match(self, url):
         """Test that 'pytest' archives match for 'pytest'"""
+        link = Link(url)
+        search = Search(
+            supplied=self.search_name,
+            canonical=self.canonical_name,
+            formats=['source', 'binary'],
+        )
+        result = self.finder._link_package_versions(link, search)
+        expected = InstallationCandidate(self.search_name, self.version, link)
+        assert result == expected, result
 
-        # TODO: Uncomment these, when #1217 is fixed
-        # link = Link('http:/yo/pytest-1.0.tar.gz')
-        # result = self.finder._link_package_versions(link, self.search_name)
-        # assert result == [(self.parsed_version, link, self.version)], result
-
-        link = Link('http:/yo/pytest-1.0-py2.py3-none-any.whl')
-        result = self.finder._link_package_versions(link, self.search_name)
-        assert result == [(self.parsed_version, link, self.version)], result
-
-    def test_link_package_versions_substring_fails(self):
-        """Test that 'pytest<something> archives won't match for 'pytest'"""
-
-        # TODO: Uncomment these, when #1217 is fixed
-        # link = Link('http:/yo/pytest-xdist-1.0.tar.gz')
-        # result = self.finder._link_package_versions(link, self.search_name)
-        # assert result == [], result
-
-        # link = Link('http:/yo/pytest2-1.0.tar.gz')
-        # result = self.finder._link_package_versions(link, self.search_name)
-        # assert result == [], result
-
-        link = Link('http:/yo/pytest_xdist-1.0-py2.py3-none-any.whl')
-        result = self.finder._link_package_versions(link, self.search_name)
-        assert result == [], result
+    @pytest.mark.parametrize(
+        'url',
+        [
+            # TODO: Uncomment this test case when #1217 is fixed.
+            # 'http:/yo/pytest-xdist-1.0.tar.gz',
+            'http:/yo/pytest2-1.0.tar.gz',
+            'http:/yo/pytest_xdist-1.0-py2.py3-none-any.whl',
+        ],
+    )
+    def est_link_package_versions_substring_fails(self, url):
+        """Test that 'pytest<something> archives won't match for 'pytest'."""
+        link = Link(url)
+        search = Search(
+            supplied=self.search_name,
+            canonical=self.canonical_name,
+            formats=['source', 'binary'],
+        )
+        result = self.finder._link_package_versions(link, search)
+        assert result is None, result
 
 
 def test_get_index_urls_locations():
