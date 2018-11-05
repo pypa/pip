@@ -340,11 +340,9 @@ def _parse_package_version(link, search, valid_tags):
     signify parsing errors, or an unsupported environment. Te callee should
     catch the exception, and convert it to string for logging.
     """
-    if link.egg_fragment:
-        egg_info = link.egg_fragment
-        ext = link.ext
-    else:
-        egg_info, ext = link.splitext()
+    egg_info = link.egg_fragment or link.splitext()[0]
+    ext = link.ext
+    if not link.egg_fragment:
         if not ext:
             raise _LinkNotAFile(link, search)
         if ext not in SUPPORTED_EXTENSIONS:
