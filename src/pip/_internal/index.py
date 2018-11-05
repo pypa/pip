@@ -55,6 +55,8 @@ SECURE_ORIGINS = [
     ("ssh", "*", "*"),
 ]
 
+_PYTHON_VERSION_RE = re.compile(r'-py([123]\.?[0-9]?)$')
+
 
 logger = logging.getLogger(__name__)
 
@@ -257,6 +259,14 @@ class _PythonNotSupported(_SkippedLink):
     _template = "it is not compatible with this Python"
 
 
+class _InvalidEggInfo(_SkippedLink):
+    _template = "Missing project version for {search.supplied}"
+
+
+class _PythonIncorrect(_SkippedLink):
+    _template = "Python version is incorrect"
+
+
 def _parse_binary_package_version(link, search, valid_tags):
     """Parse package version from a wheel link.
 
@@ -275,6 +285,30 @@ def _parse_binary_package_version(link, search, valid_tags):
     if not wheel.supported(valid_tags):
         raise _PythonNotSupported(link, search)
     return wheel.version
+
+
+def _parse_source_package_version(link, egg_info, search):
+    """Parse package version from a source link.
+
+    This is a helper function for `_link_package_versions()`. The egg-info
+    string is checked against user-supplied criteria to see if it is valid,
+    and parsed with `_PYTHON_VERSION_RE` to ensure it is compatible with the
+    current environment.
+    """
+    try:
+        info = _egg_info_matches(egg_info, search.canonical)
+    except ValueError:
+        raise _InvalidEggInfo(link, search)
+
+    # Split out the optional "pyX.Y" specifier, and make sure it matches the
+    # current environment.
+    match = _PYTHON_VERSION_RE.search(info)
+    if not match:
+        return info
+    if match.group(1) != sys.version[:3]:
+        raise _PythonIncorrect(link, search)
+
+    return info[:match.start()]
 
 
 class PackageFinder(object):
@@ -785,8 +819,6 @@ class PackageFinder(object):
 
             yield page
 
-    _py_version_re = re.compile(r'-py([123]\.?[0-9]?)$')
-
     def _sort_links(self, links):
         """
         Returns elements of links in order, non-egg links first, egg links
@@ -853,22 +885,11 @@ class PackageFinder(object):
 
         if not version:
             try:
-                version = _egg_info_matches(egg_info, search.canonical)
-            except ValueError:
-                version = None
-        if not version:
-            self._log_skipped_link(
-                link, 'Missing project version for %s' % search.supplied)
-            return
-
-        match = self._py_version_re.search(version)
-        if match:
-            version = version[:match.start()]
-            py_version = match.group(1)
-            if py_version != sys.version[:3]:
-                self._log_skipped_link(
-                    link, 'Python version is incorrect')
+                version = _parse_source_package_version(link, egg_info, search)
+            except _SkippedLink as e:
+                self._log_skipped_link(e.link, str(e))
                 return
+
         try:
             support_this_python = check_requires_python(link.requires_python)
         except specifiers.InvalidSpecifier:
