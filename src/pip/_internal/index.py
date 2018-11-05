@@ -340,7 +340,6 @@ def _parse_package_version(link, search, valid_tags):
     signify parsing errors, or an unsupported environment. Te callee should
     catch the exception, and convert it to string for logging.
     """
-    version = None
     if link.egg_fragment:
         egg_info = link.egg_fragment
         ext = link.ext
@@ -353,16 +352,13 @@ def _parse_package_version(link, search, valid_tags):
         if "macosx10" in link.path and ext == '.zip':
             raise _MacOSXZip(link, search)
         if ext == wheel_ext:
-            version = _parse_binary_package_version(link, search, valid_tags)
+            return _parse_binary_package_version(link, search, valid_tags)
 
     # This should be up by the search.ok_binary check, but see issue 2700.
     if "source" not in search.formats and ext != wheel_ext:
         raise _SourceLinkNotPermitted(link, search)
 
-    if not version:
-        version = _parse_source_package_version(link, egg_info, search)
-
-    return version
+    return _parse_source_package_version(link, egg_info, search)
 
 
 class PackageFinder(object):
