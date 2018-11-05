@@ -493,7 +493,7 @@ to PyPI.
 
 First, download the archives that fulfill your requirements::
 
-$ pip download DIR -r requirements.txt
+$ pip download --destination-directory DIR -r requirements.txt
 
 
 Note that ``pip download`` will look in your wheel cache first, before
