@@ -243,6 +243,22 @@ class _SkippedLink(Exception):
         return self._template.format(link=self.link, search=self.search)
 
 
+class _LinkNotAFile(_SkippedLink):
+    _template = "not a file"
+
+
+class _LinkFormatUnsupported(_SkippedLink):
+    _template = "unsupported archive format: {link.ext}"
+
+
+class _MacOSXZip(_SkippedLink):
+    _template = "macosx10 one"
+
+
+class _SourceLinkNotPermitted(_SkippedLink):
+    _template = "No sources permitted for {search.supplied}"
+
+
 class _BinaryLinkNotPermitted(_SkippedLink):
     _template = "No binaries permitted for {search.supplied}"
 
@@ -270,7 +286,7 @@ class _PythonIncorrect(_SkippedLink):
 def _parse_binary_package_version(link, search, valid_tags):
     """Parse package version from a wheel link.
 
-    This is a helper function for `_link_package_versions()`. A wheel instance
+    This is a helper function for `_parse_package_version()`. A wheel instance
     is constructed to parse the wheel's file name, and check against user-
     supplied criteria to see if it is valid.
     """
@@ -290,7 +306,7 @@ def _parse_binary_package_version(link, search, valid_tags):
 def _parse_source_package_version(link, egg_info, search):
     """Parse package version from a source link.
 
-    This is a helper function for `_link_package_versions()`. The egg-info
+    This is a helper function for `_parse_package_version()`. The egg-info
     string is checked against user-supplied criteria to see if it is valid,
     and parsed with `_PYTHON_VERSION_RE` to ensure it is compatible with the
     current environment.
@@ -309,6 +325,44 @@ def _parse_source_package_version(link, egg_info, search):
         raise _PythonIncorrect(link, search)
 
     return info[:match.start()]
+
+
+def _parse_package_version(link, search, valid_tags):
+    """Parse package version from a source link.
+
+    This is a helper function for `_link_package_versions()`. The link is
+    parsed as either sdist or wheel to get its version and environment support,
+
+    The support part is checked against the current environment. If the package
+    supports this environment, the version is returned.
+
+    Various `_SkippedLink` subclasses may be raised along the process to
+    signify parsing errors, or an unsupported environment. Te callee should
+    catch the exception, and convert it to string for logging.
+    """
+    version = None
+    if link.egg_fragment:
+        egg_info = link.egg_fragment
+        ext = link.ext
+    else:
+        egg_info, ext = link.splitext()
+        if not ext:
+            raise _LinkNotAFile(link, search)
+        if ext not in SUPPORTED_EXTENSIONS:
+            raise _LinkFormatUnsupported(link, search)
+        if "macosx10" in link.path and ext == '.zip':
+            raise _MacOSXZip(link, search)
+        if ext == wheel_ext:
+            version = _parse_binary_package_version(link, search, valid_tags)
+
+    # This should be up by the search.ok_binary check, but see issue 2700.
+    if "source" not in search.formats and ext != wheel_ext:
+        raise _SourceLinkNotPermitted(link, search)
+
+    if not version:
+        version = _parse_source_package_version(link, egg_info, search)
+
+    return version
 
 
 class PackageFinder(object):
@@ -850,45 +904,11 @@ class PackageFinder(object):
 
     def _link_package_versions(self, link, search):
         """Return an InstallationCandidate or None"""
-        version = None
-        if link.egg_fragment:
-            egg_info = link.egg_fragment
-            ext = link.ext
-        else:
-            egg_info, ext = link.splitext()
-            if not ext:
-                self._log_skipped_link(link, 'not a file')
-                return
-            if ext not in SUPPORTED_EXTENSIONS:
-                self._log_skipped_link(
-                    link, 'unsupported archive format: %s' % ext,
-                )
-                return
-            if "macosx10" in link.path and ext == '.zip':
-                self._log_skipped_link(link, 'macosx10 one')
-                return
-            if ext == wheel_ext:
-                try:
-                    version = _parse_binary_package_version(
-                        link, search, self.valid_tags,
-                    )
-                except _SkippedLink as e:
-                    self._log_skipped_link(e.link, str(e))
-                    return
-
-        # This should be up by the search.ok_binary check, but see issue 2700.
-        if "source" not in search.formats and ext != wheel_ext:
-            self._log_skipped_link(
-                link, 'No sources permitted for %s' % search.supplied,
-            )
+        try:
+            version = _parse_package_version(link, search, self.valid_tags)
+        except _SkippedLink as e:
+            self._log_skipped_link(e.link, str(e))
             return
-
-        if not version:
-            try:
-                version = _parse_source_package_version(link, egg_info, search)
-            except _SkippedLink as e:
-                self._log_skipped_link(e.link, str(e))
-                return
 
         try:
             support_this_python = check_requires_python(link.requires_python)
