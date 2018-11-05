@@ -303,7 +303,7 @@ def _parse_binary_package_version(link, search, valid_tags):
     return wheel.version
 
 
-def _parse_source_package_version(link, egg_info, search):
+def _parse_source_package_version(link, search):
     """Parse package version from a source link.
 
     This is a helper function for `_parse_package_version()`. The egg-info
@@ -311,6 +311,8 @@ def _parse_source_package_version(link, egg_info, search):
     and parsed with `_PYTHON_VERSION_RE` to ensure it is compatible with the
     current environment.
     """
+    egg_info = link.egg_fragment or link.splitext()[0]
+
     try:
         info = _egg_info_matches(egg_info, search.canonical)
     except ValueError:
@@ -340,7 +342,6 @@ def _parse_package_version(link, search, valid_tags):
     signify parsing errors, or an unsupported environment. Te callee should
     catch the exception, and convert it to string for logging.
     """
-    egg_info = link.egg_fragment or link.splitext()[0]
     ext = link.ext
     if not link.egg_fragment:
         if not ext:
@@ -356,7 +357,7 @@ def _parse_package_version(link, search, valid_tags):
     if "source" not in search.formats and ext != wheel_ext:
         raise _SourceLinkNotPermitted(link, search)
 
-    return _parse_source_package_version(link, egg_info, search)
+    return _parse_source_package_version(link, search)
 
 
 class PackageFinder(object):
