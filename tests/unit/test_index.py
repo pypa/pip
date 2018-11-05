@@ -241,20 +241,30 @@ def test_find_name_version_sep_failure(egg_info, canonical_name):
         # Should be able to detect collapsed characters in the egg info.
         ("foo--bar-1.0", "foo-bar", "1.0"),
         ("foo-_bar-1.0", "foo-bar", "1.0"),
-
-        # Invalid.
-        ("the-package-name-8.19", "does-not-match", None),
-        ("zope.interface.-4.5.0", "zope.interface", None),
-        ("zope.interface-", "zope-interface", None),
-        ("zope.interface4.5.0", "zope-interface", None),
-        ("zope.interface.4.5.0", "zope-interface", None),
-        ("zope.interface.-4.5.0", "zope-interface", None),
-        ("zope.interface", "zope-interface", None),
     ],
 )
 def test_egg_info_matches(egg_info, canonical_name, expected):
     version = _egg_info_matches(egg_info, canonical_name)
     assert version == expected
+
+
+@pytest.mark.parametrize(
+    ("egg_info", "canonical_name"),
+    [
+        ("the-package-name-8.19", "does-not-match"),
+        ("zope.interface.-4.5.0", "zope.interface"),
+        ("zope.interface-", "zope-interface"),
+        ("zope.interface4.5.0", "zope-interface"),
+        ("zope.interface.4.5.0", "zope-interface"),
+        ("zope.interface.-4.5.0", "zope-interface"),
+        ("zope.interface", "zope-interface"),
+    ],
+)
+def test_egg_info_matches_fails(egg_info, canonical_name):
+    with pytest.raises(ValueError) as ctx:
+        _egg_info_matches(egg_info, canonical_name)
+    error = "{} does not match {}".format(egg_info, canonical_name)
+    assert str(ctx.value) == error
 
 
 def test_request_http_error(caplog):

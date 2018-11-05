@@ -815,7 +815,10 @@ class PackageFinder(object):
             return
 
         if not version:
-            version = _egg_info_matches(egg_info, search.canonical)
+            try:
+                version = _egg_info_matches(egg_info, search.canonical)
+            except ValueError:
+                version = None
         if not version:
             self._log_skipped_link(
                 link, 'Missing project version for %s' % search.supplied)
@@ -877,15 +880,15 @@ def _egg_info_matches(egg_info, canonical_name):
     :param egg_info: The string to parse. E.g. foo-2.1
     :param canonical_name: The canonicalized name of the package this
         belongs to.
+
+    Returns the version part as a string. The string is never empty. Raises
+    ValueError if parsing fails, or if the version part is empty.
     """
-    try:
-        version_start = _find_name_version_sep(egg_info, canonical_name) + 1
-    except ValueError:
-        return None
+    version_start = _find_name_version_sep(egg_info, canonical_name) + 1
     version = egg_info[version_start:]
-    if not version:
-        return None
-    return version
+    if version:
+        return version
+    raise ValueError("{} does not match {}".format(egg_info, canonical_name))
 
 
 def _determine_base_url(document, page_url):
