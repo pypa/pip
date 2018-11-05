@@ -502,7 +502,7 @@ def test_finder_installs_pre_releases_with_version_spec():
         assert link.url == "https://foo/bar-2.0b1.tar.gz"
 
 
-class test_link_package_versions(object):
+class TestLinkPackageVersions(object):
 
     # patch this for travis which has distribute in its base env for now
     @patch(
