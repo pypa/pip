@@ -518,7 +518,7 @@ setup(name='version_subpkg',
     script.run(
         'git', 'commit', '-q',
         '--author', 'pip <pypa-dev@googlegroups.com>',
-        '-am', 'initial version', cwd=version_pkg_path
+        '-m', 'initial version', cwd=version_pkg_path
     )
 
     return version_pkg_path
@@ -570,7 +570,7 @@ def _vcs_add(script, version_pkg_path, vcs='git'):
         script.run(
             'git', 'commit', '-q',
             '--author', 'pip <pypa-dev@googlegroups.com>',
-            '-am', 'initial version', cwd=version_pkg_path,
+            '-m', 'initial version', cwd=version_pkg_path,
         )
     elif vcs == 'hg':
         script.run('hg', 'init', cwd=version_pkg_path)
@@ -627,11 +627,7 @@ def _change_test_package_version(script, version_pkg_path):
     _create_main_file(
         version_pkg_path, name='version_pkg', output='some different version'
     )
-    script.run(
-        'git', 'clean', '-qfdx',
-        cwd=version_pkg_path,
-        expect_stderr=True,
-    )
+    # Pass -a to stage the change to the main file.
     script.run(
         'git', 'commit', '-q',
         '--author', 'pip <pypa-dev@googlegroups.com>',
