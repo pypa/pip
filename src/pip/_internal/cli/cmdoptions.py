@@ -10,6 +10,7 @@ pass on state. To be consistent, all options will follow this design.
 from __future__ import absolute_import
 
 import warnings
+from distutils.util import strtobool
 from functools import partial
 from optparse import SUPPRESS_HELP, Option, OptionGroup
 
@@ -537,11 +538,37 @@ cache_dir = partial(
     help="Store the cache data in <dir>."
 )  # type: partial[Option]
 
+
+def no_cache_dir_callback(option, opt, value, parser):
+    """
+    Process a value provided for the --no-cache-dir option.
+
+    This is an optparse.Option callback for the --no-cache-dir option.
+    """
+    # The value argument will be None if --no-cache-dir is passed via the
+    # command-line, since the option doesn't accept arguments.  However,
+    # the value can be non-None if the option is triggered e.g. by an
+    # environment variable, like PIP_NO_CACHE_DIR=true.
+    if value is not None:
+        # Then parse the string value to get argument error-checking.
+        strtobool(value)
+
+    # Originally, setting PIP_NO_CACHE_DIR to a value that strtobool()
+    # converted to 0 (like "false" or "no") caused cache_dir to be disabled
+    # rather than enabled (logic would say the latter).  Thus, we disable
+    # the cache directory not just on values that parse to True, but (for
+    # backwards compatibility reasons) also on values that parse to False.
+    # In other words, always set it to False if the option is provided in
+    # some (valid) form.
+    parser.values.cache_dir = False
+
+
 no_cache = partial(
     Option,
     "--no-cache-dir",
     dest="cache_dir",
-    action="store_false",
+    action="callback",
+    callback=no_cache_dir_callback,
     help="Disable the cache.",
 )  # type: partial[Option]
 
