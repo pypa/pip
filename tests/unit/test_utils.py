@@ -646,6 +646,9 @@ def test_call_subprocess_closes_stdin():
     # Test with None subdir.
     (('git+https://example.com/pkg', 'dev', 'myproj', None),
      'git+https://example.com/pkg@dev#egg=myproj'),
+    # Test an unescaped project name.
+    (('git+https://example.com/pkg', 'dev', 'zope-interface'),
+     'git+https://example.com/pkg@dev#egg=zope_interface'),
 ])
 def test_make_vcs_requirement_url(args, expected):
     actual = make_vcs_requirement_url(*args)

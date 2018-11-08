@@ -293,14 +293,13 @@ class Git(VersionControl):
             return None
         return os.path.relpath(location, root_dir)
 
-    def get_src_requirement(self, dist, location):
+    def get_src_requirement(self, location, project_name):
         repo = self.get_url(location)
         if not repo.lower().startswith('git:'):
             repo = 'git+' + repo
         current_rev = self.get_revision(location)
-        egg_project_name = dist.egg_name().split('-', 1)[0]
         subdir = self._get_subdirectory(location)
-        req = make_vcs_requirement_url(repo, current_rev, egg_project_name,
+        req = make_vcs_requirement_url(repo, current_rev, project_name,
                                        subdir=subdir)
 
         return req

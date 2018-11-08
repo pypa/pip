@@ -195,15 +195,13 @@ class Subversion(VersionControl):
 
         return url, rev
 
-    def get_src_requirement(self, dist, location):
+    def get_src_requirement(self, location, project_name):
         repo = self.get_url(location)
         if repo is None:
             return None
         repo = 'svn+' + repo
         rev = self.get_revision(location)
-        # FIXME: why not project name?
-        egg_project_name = dist.egg_name().split('-', 1)[0]
-        return make_vcs_requirement_url(repo, rev, egg_project_name)
+        return make_vcs_requirement_url(repo, rev, project_name)
 
     def is_commit_id_equal(self, dest, name):
         """Always assume the versions don't match"""
