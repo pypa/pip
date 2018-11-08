@@ -19,7 +19,7 @@ if MYPY_CHECK_RUNNING:
     from typing import Dict, Optional, Tuple  # noqa: F401
     from pip._internal.cli.base_command import Command  # noqa: F401
 
-__all__ = ['vcs', 'get_src_requirement']
+__all__ = ['vcs']
 
 
 logger = logging.getLogger(__name__)
