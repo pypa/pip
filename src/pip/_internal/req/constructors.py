@@ -11,7 +11,6 @@ InstallRequirement.
 import logging
 import os
 import re
-import traceback
 
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
@@ -258,7 +257,7 @@ def install_req_from_line(
             elif '=' in req and not any(op in req for op in operators):
                 add_msg = "= is not a valid operator. Did you mean == ?"
             else:
-                add_msg = traceback.format_exc()
+                add_msg = ""
             raise InstallationError(
                 "Invalid requirement: '%s'\n%s" % (req, add_msg)
             )
