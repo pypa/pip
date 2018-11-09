@@ -1,1 +1,1 @@
-This works around an issue with Jython's `re` implementation that would otherwise result in `RuntimeError: maximum recursion depth exceeded (Java StackOverflowError)`
+Work around an issue with Jython's `re` implementation that resulted in a Java StackOverflowError.
