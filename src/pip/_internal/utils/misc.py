@@ -25,6 +25,7 @@ from pip._vendor.retrying import retry  # type: ignore
 from pip._vendor.six import PY2
 from pip._vendor.six.moves import input
 from pip._vendor.six.moves.urllib import parse as urllib_parse
+from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
 
 from pip._internal.exceptions import CommandError, InstallationError
 from pip._internal.locations import (
@@ -74,13 +75,6 @@ try:
     SUPPORTED_EXTENSIONS += XZ_EXTENSIONS
 except ImportError:
     logger.debug('lzma module is not available')
-
-
-def import_or_raise(pkg_or_module_string, ExceptionType, *args, **kwargs):
-    try:
-        return __import__(pkg_or_module_string)
-    except ImportError:
-        raise ExceptionType(*args, **kwargs)
 
 
 def ensure_dir(path):
@@ -329,7 +323,9 @@ def dist_in_site_packages(dist):
 
 
 def dist_is_editable(dist):
-    """Is distribution an editable install?"""
+    """
+    Return True if given Distribution is an editable install.
+    """
     for path_item in sys.path:
         egg_link = os.path.join(path_item, dist.project_name + '.egg-link')
         if os.path.isfile(egg_link):
@@ -468,7 +464,6 @@ def unzip_file(filename, location, flatten=True):
         leading = has_leading_dir(zip.namelist()) and flatten
         for info in zip.infolist():
             name = info.filename
-            data = zip.read(name)
             fn = name
             if leading:
                 fn = split_leading_dir(name)[1]
@@ -479,9 +474,12 @@ def unzip_file(filename, location, flatten=True):
                 ensure_dir(fn)
             else:
                 ensure_dir(dir)
-                fp = open(fn, 'wb')
+                # Don't use read() to avoid allocating an arbitrarily large
+                # chunk of memory for the file's content
+                fp = zip.open(name)
                 try:
-                    fp.write(data)
+                    with open(fn, 'wb') as destfp:
+                        shutil.copyfileobj(fp, destfp)
                 finally:
                     fp.close()
                     mode = info.external_attr >> 16
@@ -520,15 +518,11 @@ def untar_file(filename, location):
         mode = 'r:*'
     tar = tarfile.open(filename, mode)
     try:
-        # note: python<=2.5 doesn't seem to know about pax headers, filter them
         leading = has_leading_dir([
             member.name for member in tar.getmembers()
-            if member.name != 'pax_global_header'
         ])
         for member in tar.getmembers():
             fn = member.name
-            if fn == 'pax_global_header':
-                continue
             if leading:
                 fn = split_leading_dir(fn)[1]
             path = os.path.join(location, fn)
@@ -887,28 +881,57 @@ def split_auth_from_netloc(netloc):
         # Split from the left because that's how urllib.parse.urlsplit()
         # behaves if more than one : is present (which again can be checked
         # using the password attribute of the return value)
-        user_pass = tuple(auth.split(':', 1))
+        user_pass = auth.split(':', 1)
     else:
         user_pass = auth, None
+
+    user_pass = tuple(
+        None if x is None else urllib_unquote(x) for x in user_pass
+    )
 
     return netloc, user_pass
 
 
-def remove_auth_from_url(url):
-    # Return a copy of url with 'username:password@' removed.
-    # username/pass params are passed to subversion through flags
-    # and are not recognized in the url.
+def redact_netloc(netloc):
+    """
+    Replace the password in a netloc with "****", if it exists.
 
-    # parsed url
+    For example, "user:pass@example.com" returns "user:****@example.com".
+    """
+    netloc, (user, password) = split_auth_from_netloc(netloc)
+    if user is None:
+        return netloc
+    password = '' if password is None else ':****'
+    return '{user}{password}@{netloc}'.format(user=urllib_parse.quote(user),
+                                              password=password,
+                                              netloc=netloc)
+
+
+def _transform_url(url, transform_netloc):
     purl = urllib_parse.urlsplit(url)
-    netloc, user_pass = split_auth_from_netloc(purl.netloc)
-
+    netloc = transform_netloc(purl.netloc)
     # stripped url
     url_pieces = (
         purl.scheme, netloc, purl.path, purl.query, purl.fragment
     )
     surl = urllib_parse.urlunsplit(url_pieces)
     return surl
+
+
+def _get_netloc(netloc):
+    return split_auth_from_netloc(netloc)[0]
+
+
+def remove_auth_from_url(url):
+    # Return a copy of url with 'username:password@' removed.
+    # username/pass params are passed to subversion through flags
+    # and are not recognized in the url.
+    return _transform_url(url, _get_netloc)
+
+
+def redact_password_from_url(url):
+    """Replace the password in a given url with ****."""
+    return _transform_url(url, redact_netloc)
 
 
 def protect_pip_from_modification_on_windows(modifying_pip):

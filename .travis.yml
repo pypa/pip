@@ -1,7 +1,7 @@
 language: python
-sudo: false
 cache: pip
 dist: trusty
+python: 3.6
 
 stages:
 - primary
@@ -13,8 +13,8 @@ jobs:
     - stage: primary
       env: TOXENV=docs
     - env: TOXENV=lint-py2
+      python: 2.7
     - env: TOXENV=lint-py3
-      python: 3.6
     - env: TOXENV=mypy
     - env: TOXENV=packaging
     # Latest CPython
@@ -41,11 +41,9 @@ jobs:
     - env: GROUP=1
       python: 3.7
       dist: xenial
-      sudo: required
     - env: GROUP=2
       python: 3.7
       dist: xenial
-      sudo: required
     - env: GROUP=1
       python: 3.5
     - env: GROUP=2
@@ -58,11 +56,9 @@ jobs:
     - env: GROUP=1
       python: 3.8-dev
       dist: xenial
-      sudo: required
     - env: GROUP=2
       python: 3.8-dev
       dist: xenial
-      sudo: required
 
   # It's okay to fail on the in-development CPython version.
   fast_finish: true

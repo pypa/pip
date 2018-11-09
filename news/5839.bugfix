@@ -1,0 +1,1 @@
+Fix crashes from unparseable requirements when checking installed packages.

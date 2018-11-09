@@ -4,11 +4,13 @@
 import logging
 import os
 import sys
+import textwrap
 from distutils.sysconfig import get_python_lib
 from sysconfig import get_paths
 
 from pip._vendor.pkg_resources import Requirement, VersionConflict, WorkingSet
 
+from pip import __file__ as pip_location
 from pip._internal.utils.misc import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.ui import open_spinner
@@ -61,6 +63,15 @@ class BuildEnvironment(object):
 
         os.environ['PYTHONNOUSERSITE'] = '1'
 
+        # Ensure .pth files are honored.
+        with open(os.path.join(purelib, 'sitecustomize.py'), 'w') as fp:
+            fp.write(textwrap.dedent(
+                '''
+                import site
+                site.addsitedir({!r})
+                '''
+            ).format(purelib))
+
         return self.path
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -93,8 +104,9 @@ class BuildEnvironment(object):
 
     def install_requirements(self, finder, requirements, message):
         args = [
-            sys.executable, '-m', 'pip', 'install', '--ignore-installed',
-            '--no-user', '--prefix', self.path, '--no-warn-script-location',
+            sys.executable, os.path.dirname(pip_location), 'install',
+            '--ignore-installed', '--no-user', '--prefix', self.path,
+            '--no-warn-script-location',
         ]
         if logger.getEffectiveLevel() <= logging.DEBUG:
             args.append('-v')

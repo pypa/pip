@@ -1,6 +1,10 @@
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.exceptions import CommandError
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from typing import Optional, Set  # noqa: F401
 
 
 class FormatControl(object):
@@ -11,6 +15,7 @@ class FormatControl(object):
     are listed, with any given package only showing up in one field at a time.
     """
     def __init__(self, no_binary=None, only_binary=None):
+        # type: (Optional[Set], Optional[Set]) -> None
         self.no_binary = set() if no_binary is None else no_binary
         self.only_binary = set() if only_binary is None else only_binary
 
@@ -29,6 +34,7 @@ class FormatControl(object):
 
     @staticmethod
     def handle_mutual_excludes(value, target, other):
+        # type: (str, Optional[Set], Optional[Set]) -> None
         if value.startswith('-'):
             raise CommandError(
                 "--no-binary / --only-binary option requires 1 argument."

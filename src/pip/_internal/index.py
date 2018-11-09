@@ -16,7 +16,7 @@ from pip._vendor.distlib.compat import unescape
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import parse as parse_version
-from pip._vendor.requests.exceptions import SSLError
+from pip._vendor.requests.exceptions import RetryError, SSLError
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
@@ -35,7 +35,7 @@ from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, normalize_path,
-    remove_auth_from_url,
+    redact_password_from_url,
 )
 from pip._internal.utils.packaging import check_requires_python
 from pip._internal.wheel import Wheel, wheel_ext
@@ -59,18 +59,113 @@ SECURE_ORIGINS = [
 logger = logging.getLogger(__name__)
 
 
-def _get_content_type(url, session):
-    """Get the Content-Type of the given url, using a HEAD request"""
+def _match_vcs_scheme(url):
+    """Look for VCS schemes in the URL.
+
+    Returns the matched VCS scheme, or None if there's no match.
+    """
+    from pip._internal.vcs import VcsSupport
+    for scheme in VcsSupport.schemes:
+        if url.lower().startswith(scheme) and url[len(scheme)] in '+:':
+            return scheme
+    return None
+
+
+def _is_url_like_archive(url):
+    """Return whether the URL looks like an archive.
+    """
+    filename = Link(url).filename
+    for bad_ext in ARCHIVE_EXTENSIONS:
+        if filename.endswith(bad_ext):
+            return True
+    return False
+
+
+class _NotHTML(Exception):
+    def __init__(self, content_type, request_desc):
+        super(_NotHTML, self).__init__(content_type, request_desc)
+        self.content_type = content_type
+        self.request_desc = request_desc
+
+
+def _ensure_html_header(response):
+    """Check the Content-Type header to ensure the response contains HTML.
+
+    Raises `_NotHTML` if the content type is not text/html.
+    """
+    content_type = response.headers.get("Content-Type", "")
+    if not content_type.lower().startswith("text/html"):
+        raise _NotHTML(content_type, response.request.method)
+
+
+class _NotHTTP(Exception):
+    pass
+
+
+def _ensure_html_response(url, session):
+    """Send a HEAD request to the URL, and ensure the response contains HTML.
+
+    Raises `_NotHTTP` if the URL is not available for a HEAD request, or
+    `_NotHTML` if the content type is not text/html.
+    """
     scheme, netloc, path, query, fragment = urllib_parse.urlsplit(url)
     if scheme not in {'http', 'https'}:
-        # FIXME: some warning or something?
-        # assertion error?
-        return ''
+        raise _NotHTTP()
 
     resp = session.head(url, allow_redirects=True)
     resp.raise_for_status()
 
-    return resp.headers.get("Content-Type", "")
+    _ensure_html_header(resp)
+
+
+def _get_html_response(url, session):
+    """Access an HTML page with GET, and return the response.
+
+    This consists of three parts:
+
+    1. If the URL looks suspiciously like an archive, send a HEAD first to
+       check the Content-Type is HTML, to avoid downloading a large file.
+       Raise `_NotHTTP` if the content type cannot be determined, or
+       `_NotHTML` if it is not HTML.
+    2. Actually perform the request. Raise HTTP exceptions on network failures.
+    3. Check the Content-Type header to make sure we got HTML, and raise
+       `_NotHTML` otherwise.
+    """
+    if _is_url_like_archive(url):
+        _ensure_html_response(url, session=session)
+
+    logger.debug('Getting page %s', url)
+
+    resp = session.get(
+        url,
+        headers={
+            "Accept": "text/html",
+            # We don't want to blindly returned cached data for
+            # /simple/, because authors generally expecting that
+            # twine upload && pip install will function, but if
+            # they've done a pip install in the last ~10 minutes
+            # it won't. Thus by setting this to zero we will not
+            # blindly use any cached data, however the benefit of
+            # using max-age=0 instead of no-cache, is that we will
+            # still support conditional requests, so we will still
+            # minimize traffic sent in cases where the page hasn't
+            # changed at all, we will just always incur the round
+            # trip for the conditional GET now instead of only
+            # once per 10 minutes.
+            # For more information, please see pypa/pip#5670.
+            "Cache-Control": "max-age=0",
+        },
+    )
+    resp.raise_for_status()
+
+    # The check for archives above only works if the url ends with
+    # something that looks like an archive. However that is not a
+    # requirement of an url. Unless we issue a HEAD request on every
+    # url we cannot know ahead of time for sure if something is HTML
+    # or not. However we can check after we've downloaded it.
+    _ensure_html_header(resp)
+
+    return resp
 
 
 def _handle_get_page_fail(link, reason, url, meth=None):
@@ -85,83 +180,39 @@ def _get_html_page(link, session=None):
             "_get_html_page() missing 1 required keyword argument: 'session'"
         )
 
-    url = link.url
-    url = url.split('#', 1)[0]
+    url = link.url.split('#', 1)[0]
 
     # Check for VCS schemes that do not support lookup as web pages.
-    from pip._internal.vcs import VcsSupport
-    for scheme in VcsSupport.schemes:
-        if url.lower().startswith(scheme) and url[len(scheme)] in '+:':
-            logger.debug('Cannot look at %s URL %s', scheme, link)
-            return None
+    vcs_scheme = _match_vcs_scheme(url)
+    if vcs_scheme:
+        logger.debug('Cannot look at %s URL %s', vcs_scheme, link)
+        return None
+
+    # Tack index.html onto file:// URLs that point to directories
+    scheme, _, path, _, _, _ = urllib_parse.urlparse(url)
+    if (scheme == 'file' and os.path.isdir(urllib_request.url2pathname(path))):
+        # add trailing slash if not present so urljoin doesn't trim
+        # final segment
+        if not url.endswith('/'):
+            url += '/'
+        url = urllib_parse.urljoin(url, 'index.html')
+        logger.debug(' file: URL is directory, getting %s', url)
 
     try:
-        filename = link.filename
-        for bad_ext in ARCHIVE_EXTENSIONS:
-            if filename.endswith(bad_ext):
-                content_type = _get_content_type(url, session=session)
-                if content_type.lower().startswith('text/html'):
-                    break
-                else:
-                    logger.debug(
-                        'Skipping page %s because of Content-Type: %s',
-                        link,
-                        content_type,
-                    )
-                    return
-
-        logger.debug('Getting page %s', url)
-
-        # Tack index.html onto file:// URLs that point to directories
-        (scheme, netloc, path, params, query, fragment) = \
-            urllib_parse.urlparse(url)
-        if (scheme == 'file' and
-                os.path.isdir(urllib_request.url2pathname(path))):
-            # add trailing slash if not present so urljoin doesn't trim
-            # final segment
-            if not url.endswith('/'):
-                url += '/'
-            url = urllib_parse.urljoin(url, 'index.html')
-            logger.debug(' file: URL is directory, getting %s', url)
-
-        resp = session.get(
-            url,
-            headers={
-                "Accept": "text/html",
-                # We don't want to blindly returned cached data for
-                # /simple/, because authors generally expecting that
-                # twine upload && pip install will function, but if
-                # they've done a pip install in the last ~10 minutes
-                # it won't. Thus by setting this to zero we will not
-                # blindly use any cached data, however the benefit of
-                # using max-age=0 instead of no-cache, is that we will
-                # still support conditional requests, so we will still
-                # minimize traffic sent in cases where the page hasn't
-                # changed at all, we will just always incur the round
-                # trip for the conditional GET now instead of only
-                # once per 10 minutes.
-                # For more information, please see pypa/pip#5670.
-                "Cache-Control": "max-age=0",
-            },
+        resp = _get_html_response(url, session=session)
+    except _NotHTTP as exc:
+        logger.debug(
+            'Skipping page %s because it looks like an archive, and cannot '
+            'be checked by HEAD.', link,
         )
-        resp.raise_for_status()
-
-        # The check for archives above only works if the url ends with
-        # something that looks like an archive. However that is not a
-        # requirement of an url. Unless we issue a HEAD request on every
-        # url we cannot know ahead of time for sure if something is HTML
-        # or not. However we can check after we've downloaded it.
-        content_type = resp.headers.get('Content-Type', 'unknown')
-        if not content_type.lower().startswith("text/html"):
-            logger.debug(
-                'Skipping page %s because of Content-Type: %s',
-                link,
-                content_type,
-            )
-            return
-
-        inst = HTMLPage(resp.content, resp.url, resp.headers)
+    except _NotHTML as exc:
+        logger.debug(
+            'Skipping page %s because the %s request got Content-Type: %s',
+            link, exc.request_desc, exc.content_type,
+        )
     except requests.HTTPError as exc:
+        _handle_get_page_fail(link, exc, url)
+    except RetryError as exc:
         _handle_get_page_fail(link, exc, url)
     except SSLError as exc:
         reason = "There was a problem confirming the ssl certificate: "
@@ -172,7 +223,7 @@ def _get_html_page(link, session=None):
     except requests.Timeout:
         _handle_get_page_fail(link, "timed out", url)
     else:
-        return inst
+        return HTMLPage(resp.content, resp.url, resp.headers)
 
 
 class PackageFinder(object):
@@ -275,7 +326,7 @@ class PackageFinder(object):
         if self.index_urls and self.index_urls != [PyPI.simple_url]:
             lines.append(
                 "Looking in indexes: {}".format(", ".join(
-                    remove_auth_from_url(url) for url in self.index_urls))
+                    redact_password_from_url(url) for url in self.index_urls))
             )
         if self.find_links:
             lines.append(
@@ -293,7 +344,7 @@ class PackageFinder(object):
                 "Dependency Links processing has been deprecated and will be "
                 "removed in a future release.",
                 replacement="PEP 508 URL dependencies",
-                gone_in="18.2",
+                gone_in="19.0",
                 issue=4187,
             )
             self.dependency_links.extend(links)
@@ -332,6 +383,11 @@ class PackageFinder(object):
                             sort_path(os.path.join(path, item))
                     elif is_file_url:
                         urls.append(url)
+                    else:
+                        logger.warning(
+                            "Path '{0}' is ignored: "
+                            "it is a directory.".format(path),
+                        )
                 elif os.path.isfile(path):
                     sort_path(path)
                 else:
@@ -672,7 +728,7 @@ class PackageFinder(object):
                 continue
             seen.add(location)
 
-            page = self._get_page(location)
+            page = _get_html_page(location, session=self.session)
             if page is None:
                 continue
 
@@ -759,8 +815,8 @@ class PackageFinder(object):
             return
 
         if not version:
-            version = egg_info_matches(egg_info, search.supplied, link)
-        if version is None:
+            version = _egg_info_matches(egg_info, search.canonical)
+        if not version:
             self._log_skipped_link(
                 link, 'Missing project version for %s' % search.supplied)
             return
@@ -781,45 +837,55 @@ class PackageFinder(object):
             support_this_python = True
 
         if not support_this_python:
-            logger.debug("The package %s is incompatible with the python"
-                         "version in use. Acceptable python versions are:%s",
+            logger.debug("The package %s is incompatible with the python "
+                         "version in use. Acceptable python versions are: %s",
                          link, link.requires_python)
             return
         logger.debug('Found link %s, version: %s', link, version)
 
         return InstallationCandidate(search.supplied, version, link)
 
-    def _get_page(self, link):
-        return _get_html_page(link, session=self.session)
+
+def _find_name_version_sep(egg_info, canonical_name):
+    """Find the separator's index based on the package's canonical name.
+
+    `egg_info` must be an egg info string for the given package, and
+    `canonical_name` must be the package's canonical name.
+
+    This function is needed since the canonicalized name does not necessarily
+    have the same length as the egg info's name part. An example::
+
+    >>> egg_info = 'foo__bar-1.0'
+    >>> canonical_name = 'foo-bar'
+    >>> _find_name_version_sep(egg_info, canonical_name)
+    8
+    """
+    # Project name and version must be separated by one single dash. Find all
+    # occurrences of dashes; if the string in front of it matches the canonical
+    # name, this is the one separating the name and version parts.
+    for i, c in enumerate(egg_info):
+        if c != "-":
+            continue
+        if canonicalize_name(egg_info[:i]) == canonical_name:
+            return i
+    raise ValueError("{} does not match {}".format(egg_info, canonical_name))
 
 
-def egg_info_matches(
-        egg_info, search_name, link,
-        _egg_info_re=re.compile(r'([a-z0-9_.]+)-([a-z0-9_.!+-]+)', re.I)):
+def _egg_info_matches(egg_info, canonical_name):
     """Pull the version part out of a string.
 
     :param egg_info: The string to parse. E.g. foo-2.1
-    :param search_name: The name of the package this belongs to. None to
-        infer the name. Note that this cannot unambiguously parse strings
-        like foo-2-2 which might be foo, 2-2 or foo-2, 2.
-    :param link: The link the string came from, for logging on failure.
+    :param canonical_name: The canonicalized name of the package this
+        belongs to.
     """
-    match = _egg_info_re.search(egg_info)
-    if not match:
-        logger.debug('Could not parse version from link: %s', link)
+    try:
+        version_start = _find_name_version_sep(egg_info, canonical_name) + 1
+    except ValueError:
         return None
-    if search_name is None:
-        full_match = match.group(0)
-        return full_match.split('-', 1)[-1]
-    name = match.group(0).lower()
-    # To match the "safe" name that pkg_resources creates:
-    name = name.replace('_', '-')
-    # project name and version must be separated by a dash
-    look_for = search_name.lower() + "-"
-    if name.startswith(look_for):
-        return match.group(0)[len(look_for):]
-    else:
+    version = egg_info[version_start:]
+    if not version:
         return None
+    return version
 
 
 def _determine_base_url(document, page_url):
@@ -870,7 +936,7 @@ class HTMLPage(object):
         self.headers = headers
 
     def __str__(self):
-        return self.url
+        return redact_password_from_url(self.url)
 
     def iter_links(self):
         """Yields all links in the page"""

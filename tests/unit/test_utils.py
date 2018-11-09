@@ -11,10 +11,10 @@ import sys
 import tempfile
 import time
 import warnings
+from io import BytesIO
 
 import pytest
 from mock import Mock, patch
-from pip._vendor.six import BytesIO
 
 from pip._internal.exceptions import (
     HashMismatch, HashMissing, InstallationError, UnsupportedPythonVersion,
@@ -24,8 +24,9 @@ from pip._internal.utils.glibc import check_glibc_version
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.misc import (
     call_subprocess, egg_link_path, ensure_dir, get_installed_distributions,
-    get_prog, make_vcs_requirement_url, normalize_path, remove_auth_from_url,
-    rmtree, split_auth_from_netloc, untar_file, unzip_file,
+    get_prog, make_vcs_requirement_url, normalize_path, redact_netloc,
+    redact_password_from_url, remove_auth_from_url, rmtree,
+    split_auth_from_netloc, untar_file, unzip_file,
 )
 from pip._internal.utils.packaging import check_dist_requires_python
 from pip._internal.utils.temp_dir import TempDirectory
@@ -279,6 +280,8 @@ class TestUnpackArchives(object):
        script_world.sh  601 script where world can execute
        dir              744 directory
        dir/dirfile      622 regular file
+     4) the file contents are extracted correctly (though the content of
+        each file isn't currently unique)
 
     """
 
@@ -297,19 +300,25 @@ class TestUnpackArchives(object):
     def confirm_files(self):
         # expectations based on 022 umask set above and the unpack logic that
         # sets execute permissions, not preservation
-        for fname, expected_mode, test in [
-                ('file.txt', 0o644, os.path.isfile),
-                ('symlink.txt', 0o644, os.path.isfile),
-                ('script_owner.sh', 0o755, os.path.isfile),
-                ('script_group.sh', 0o755, os.path.isfile),
-                ('script_world.sh', 0o755, os.path.isfile),
-                ('dir', 0o755, os.path.isdir),
-                (os.path.join('dir', 'dirfile'), 0o644, os.path.isfile)]:
+        for fname, expected_mode, test, expected_contents in [
+                ('file.txt', 0o644, os.path.isfile, b'file\n'),
+                # We don't test the "symlink.txt" contents for now.
+                ('symlink.txt', 0o644, os.path.isfile, None),
+                ('script_owner.sh', 0o755, os.path.isfile, b'file\n'),
+                ('script_group.sh', 0o755, os.path.isfile, b'file\n'),
+                ('script_world.sh', 0o755, os.path.isfile, b'file\n'),
+                ('dir', 0o755, os.path.isdir, None),
+                (os.path.join('dir', 'dirfile'), 0o644, os.path.isfile, b''),
+        ]:
             path = os.path.join(self.tempdir, fname)
             if path.endswith('symlink.txt') and sys.platform == 'win32':
                 # no symlinks created on windows
                 continue
             assert test(path), path
+            if expected_contents is not None:
+                with open(path, mode='rb') as f:
+                    contents = f.read()
+                assert contents == expected_contents, 'fname: {}'.format(fname)
             if sys.platform == 'win32':
                 # the permissions tests below don't apply in windows
                 # due to os.chmod being a noop
@@ -656,9 +665,33 @@ def test_make_vcs_requirement_url(args, expected):
     ('user:pass@word@example.com', ('example.com', ('user', 'pass@word'))),
     # Test the password containing a : symbol.
     ('user:pass:word@example.com', ('example.com', ('user', 'pass:word'))),
+    # Test URL-encoded reserved characters.
+    ('user%3Aname:%23%40%5E@example.com',
+     ('example.com', ('user:name', '#@^'))),
 ])
 def test_split_auth_from_netloc(netloc, expected):
     actual = split_auth_from_netloc(netloc)
+    assert actual == expected
+
+
+@pytest.mark.parametrize('netloc, expected', [
+    # Test a basic case.
+    ('example.com', 'example.com'),
+    # Test with username and no password.
+    ('user@example.com', 'user@example.com'),
+    # Test with username and password.
+    ('user:pass@example.com', 'user:****@example.com'),
+    # Test with username and empty password.
+    ('user:@example.com', 'user:****@example.com'),
+    # Test the password containing an @ symbol.
+    ('user:pass@word@example.com', 'user:****@example.com'),
+    # Test the password containing a : symbol.
+    ('user:pass:word@example.com', 'user:****@example.com'),
+    # Test URL-encoded reserved characters.
+    ('user%3Aname:%23%40%5E@example.com', 'user%3Aname:****@example.com'),
+])
+def test_redact_netloc(netloc, expected):
+    actual = redact_netloc(netloc)
     assert actual == expected
 
 
@@ -680,4 +713,18 @@ def test_split_auth_from_netloc(netloc, expected):
 ])
 def test_remove_auth_from_url(auth_url, expected_url):
     url = remove_auth_from_url(auth_url)
+    assert url == expected_url
+
+
+@pytest.mark.parametrize('auth_url, expected_url', [
+    ('https://user@example.com/abc', 'https://user@example.com/abc'),
+    ('https://user:password@example.com', 'https://user:****@example.com'),
+    ('https://user:@example.com', 'https://user:****@example.com'),
+    ('https://example.com', 'https://example.com'),
+    # Test URL-encoded reserved characters.
+    ('https://user%3Aname:%23%40%5E@example.com',
+     'https://user%3Aname:****@example.com'),
+])
+def test_redact_password_from_url(auth_url, expected_url):
+    url = redact_password_from_url(auth_url)
     assert url == expected_url

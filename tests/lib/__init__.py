@@ -10,9 +10,7 @@ import shutil
 import subprocess
 
 import pytest
-import scripttest
-import six
-import virtualenv
+from scripttest import FoundDir, TestFileEnvironment
 
 from tests.lib.path import Path, curdir
 
@@ -38,15 +36,6 @@ def path_to_url(path):
         # behavior: uppercase the drive letter.
         return 'file:///' + drive.upper() + url
     return 'file://' + url
-
-
-# workaround for https://github.com/pypa/virtualenv/issues/306
-def virtualenv_lib_path(venv_home, venv_lib):
-    if not hasattr(sys, "pypy_version_info"):
-        return venv_lib
-    version_fmt = '{0}' if six.PY3 else '{0}.{1}'
-    version_dir = version_fmt.format(*sys.version_info)
-    return os.path.join(venv_home, 'lib-python', version_dir)
 
 
 def create_file(path, contents=None):
@@ -259,7 +248,7 @@ class TestPipResult(object):
                 )
 
 
-class PipTestEnvironment(scripttest.TestFileEnvironment):
+class PipTestEnvironment(TestFileEnvironment):
     """
     A specialized TestFileEnvironment for testing pip
     """
@@ -281,19 +270,11 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
         base_path = Path(base_path)
 
         # Store paths related to the virtual environment
-        _virtualenv = kwargs.pop("virtualenv")
-        path_locations = virtualenv.path_locations(_virtualenv)
-        # Make sure we have test.lib.path.Path objects
-        venv, lib, include, bin = map(Path, path_locations)
-        self.venv_path = venv
-        self.lib_path = virtualenv_lib_path(venv, lib)
-        self.include_path = include
-        self.bin_path = bin
-
-        if hasattr(sys, "pypy_version_info"):
-            self.site_packages_path = self.venv_path.join("site-packages")
-        else:
-            self.site_packages_path = self.lib_path.join("site-packages")
+        venv = kwargs.pop("virtualenv")
+        self.venv_path = venv.location
+        self.lib_path = venv.lib
+        self.site_packages_path = venv.site
+        self.bin_path = venv.bin
 
         self.user_base_path = self.venv_path.join("user")
         self.user_site_path = self.venv_path.join(
@@ -336,7 +317,7 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
         super(PipTestEnvironment, self).__init__(base_path, *args, **kwargs)
 
         # Expand our absolute path directories into relative
-        for name in ["base", "venv", "lib", "include", "bin", "site_packages",
+        for name in ["base", "venv", "bin", "lib", "site_packages",
                      "user_base", "user_site", "user_bin", "scratch"]:
             real_name = "%s_path" % name
             setattr(self, name, getattr(self, real_name) - self.base_path)
@@ -357,6 +338,16 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
         else:
             result = super(PipTestEnvironment, self)._ignore_file(fn)
         return result
+
+    def _find_traverse(self, path, result):
+        # Ignore symlinked directories to avoid duplicates in `run()`
+        # results because of venv `lib64 -> lib/` symlink on Linux.
+        full = os.path.join(self.base_path, path)
+        if os.path.isdir(full) and os.path.islink(full):
+            if not self.temp_path or path != 'tmp':
+                result[path] = FoundDir(self.base_path, path)
+        else:
+            super(PipTestEnvironment, self)._find_traverse(path, result)
 
     def run(self, *args, **kw):
         if self.verbose:
@@ -380,7 +371,7 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
         if (pyversion_tuple < (2, 7, 9) and
                 args and args[0] in ('search', 'install', 'download')):
             kwargs['expect_stderr'] = True
-        if kwargs.pop('use_module', False):
+        if kwargs.pop('use_module', True):
             exe = 'python'
             args = ('-m', 'pip') + args
         else:
@@ -393,6 +384,10 @@ class PipTestEnvironment(scripttest.TestFileEnvironment):
             "--find-links", path_to_url(os.path.join(DATA_DIR, "packages")),
             *args, **kwargs
         )
+
+    def easy_install(self, *args, **kwargs):
+        args = ('-m', 'easy_install') + args
+        return self.run('python', *args, **kwargs)
 
 
 # FIXME ScriptTest does something similar, but only within a single
@@ -474,13 +469,26 @@ def assert_all_changes(start_state, end_state, expected_changes):
     return diff
 
 
+def _create_main_file(dir_path, name=None, output=None):
+    """
+    Create a module with a main() function that prints the given output.
+    """
+    if name is None:
+        name = 'version_pkg'
+    if output is None:
+        output = '0.1'
+    text = textwrap.dedent("""\
+    def main():
+        print({!r})
+    """.format(output))
+    filename = '{}.py'.format(name)
+    dir_path.join(filename).write(text)
+
+
 def _create_test_package_with_subdirectory(script, subdirectory):
     script.scratch_path.join("version_pkg").mkdir()
     version_pkg_path = script.scratch_path / 'version_pkg'
-    version_pkg_path.join("version_pkg.py").write(textwrap.dedent("""
-                                def main():
-                                    print('0.1')
-                                """))
+    _create_main_file(version_pkg_path, name="version_pkg", output="0.1")
     version_pkg_path.join("setup.py").write(
         textwrap.dedent("""
     from setuptools import setup, find_packages
@@ -493,10 +501,7 @@ def _create_test_package_with_subdirectory(script, subdirectory):
 
     subdirectory_path = version_pkg_path.join(subdirectory)
     subdirectory_path.mkdir()
-    subdirectory_path.join('version_subpkg.py').write(textwrap.dedent("""
-                                def main():
-                                    print('0.1')
-                                """))
+    _create_main_file(subdirectory_path, name="version_subpkg", output="0.1")
 
     subdirectory_path.join('setup.py').write(
         textwrap.dedent("""
@@ -513,7 +518,7 @@ setup(name='version_subpkg',
     script.run(
         'git', 'commit', '-q',
         '--author', 'pip <pypa-dev@googlegroups.com>',
-        '-am', 'initial version', cwd=version_pkg_path
+        '-m', 'initial version', cwd=version_pkg_path
     )
 
     return version_pkg_path
@@ -544,10 +549,7 @@ def _create_test_package_with_srcdir(script, name='version_pkg', vcs='git'):
 def _create_test_package(script, name='version_pkg', vcs='git'):
     script.scratch_path.join(name).mkdir()
     version_pkg_path = script.scratch_path / name
-    version_pkg_path.join("%s.py" % name).write(textwrap.dedent("""
-        def main():
-            print('0.1')
-    """))
+    _create_main_file(version_pkg_path, name=name, output='0.1')
     version_pkg_path.join("setup.py").write(textwrap.dedent("""
         from setuptools import setup, find_packages
         setup(
@@ -568,7 +570,7 @@ def _vcs_add(script, version_pkg_path, vcs='git'):
         script.run(
             'git', 'commit', '-q',
             '--author', 'pip <pypa-dev@googlegroups.com>',
-            '-am', 'initial version', cwd=version_pkg_path,
+            '-m', 'initial version', cwd=version_pkg_path,
         )
     elif vcs == 'hg':
         script.run('hg', 'init', cwd=version_pkg_path)
@@ -622,14 +624,10 @@ def _create_svn_repo(script, version_pkg_path):
 
 
 def _change_test_package_version(script, version_pkg_path):
-    version_pkg_path.join("version_pkg.py").write(textwrap.dedent('''\
-        def main():
-            print("some different version")'''))
-    script.run(
-        'git', 'clean', '-qfdx',
-        cwd=version_pkg_path,
-        expect_stderr=True,
+    _create_main_file(
+        version_pkg_path, name='version_pkg', output='some different version'
     )
+    # Pass -a to stage the change to the main file.
     script.run(
         'git', 'commit', '-q',
         '--author', 'pip <pypa-dev@googlegroups.com>',

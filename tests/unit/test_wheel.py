@@ -13,6 +13,26 @@ from pip._internal.utils.misc import unpack_file
 from tests.lib import DATA_DIR
 
 
+@pytest.mark.parametrize(
+    "s, expected",
+    [
+        # Trivial.
+        ("pip-18.0", True),
+
+        # Ambiguous.
+        ("foo-2-2", True),
+        ("im-valid", True),
+
+        # Invalid.
+        ("invalid", False),
+        ("im_invalid", False),
+    ],
+)
+def test_contains_egg_info(s, expected):
+    result = wheel._contains_egg_info(s)
+    assert result == expected
+
+
 @pytest.mark.parametrize("console_scripts",
                          ["pip = pip._internal.main:pip",
                           "pip:pip = pip._internal.main:pip"])
@@ -31,6 +51,29 @@ def test_get_entrypoints(tmpdir, console_scripts):
         dict([console_scripts.split(' = ')]),
         {},
     )
+
+
+@pytest.mark.parametrize("outrows, expected", [
+    ([
+        ('', '', 'a'),
+        ('', '', ''),
+    ], [
+        ('', '', ''),
+        ('', '', 'a'),
+    ]),
+    ([
+        # Include an int to check avoiding the following error:
+        # > TypeError: '<' not supported between instances of 'str' and 'int'
+        ('', '', 1),
+        ('', '', ''),
+    ], [
+        ('', '', ''),
+        ('', '', 1),
+    ]),
+])
+def test_sorted_outrows(outrows, expected):
+    actual = wheel.sorted_outrows(outrows)
+    assert actual == expected
 
 
 def test_wheel_version(tmpdir, data):

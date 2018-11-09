@@ -6,14 +6,16 @@ include pyproject.toml
 
 include src/pip/_vendor/README.rst
 include src/pip/_vendor/vendor.txt
+recursive-include  src/pip/_vendor *LICENSE*
+recursive-include  src/pip/_vendor *COPYING*
 
 include docs/docutils.conf
 
 exclude .coveragerc
 exclude .mailmap
+exclude .appveyor.yml
 exclude .travis.yml
 exclude tox.ini
-exclude appveyor.yml
 
 recursive-include src/pip/_vendor *.pem
 recursive-include docs Makefile *.rst *.py *.bat

@@ -1,0 +1,1 @@
+Include the package name in a freeze warning if the package is not installed.

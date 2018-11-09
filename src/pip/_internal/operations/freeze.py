@@ -5,18 +5,17 @@ import logging
 import os
 import re
 
-from pip._vendor import pkg_resources, six
+from pip._vendor import six
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.pkg_resources import RequirementParseError
 
-from pip._internal.exceptions import InstallationError
+from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.req.constructors import (
     install_req_from_editable, install_req_from_line,
 )
 from pip._internal.req.req_file import COMMENT_RE
-from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.misc import (
-    dist_is_editable, get_installed_distributions, make_vcs_requirement_url,
+    dist_is_editable, get_installed_distributions,
 )
 
 logger = logging.getLogger(__name__)
@@ -35,16 +34,6 @@ def freeze(
     if skip_regex:
         skip_match = re.compile(skip_regex).search
 
-    dependency_links = []
-
-    for dist in pkg_resources.working_set:
-        if dist.has_metadata('dependency_links.txt'):
-            dependency_links.extend(
-                dist.get_metadata_lines('dependency_links.txt')
-            )
-    for link in find_links:
-        if '#egg=' in link:
-            dependency_links.append(link)
     for link in find_links:
         yield '-f %s' % link
     installations = {}
@@ -52,10 +41,7 @@ def freeze(
                                             skip=(),
                                             user_only=user_only):
         try:
-            req = FrozenRequirement.from_dist(
-                dist,
-                dependency_links
-            )
+            req = FrozenRequirement.from_dist(dist)
         except RequirementParseError:
             logger.warning(
                 "Could not parse requirement: %s",
@@ -128,10 +114,10 @@ def freeze(
                         # but has been processed already
                         if not req_files[line_req.name]:
                             logger.warning(
-                                "Requirement file [%s] contains %s, but that "
-                                "package is not installed",
+                                "Requirement file [%s] contains %s, but "
+                                "package %r is not installed",
                                 req_file_path,
-                                COMMENT_RE.sub('', line).strip(),
+                                COMMENT_RE.sub('', line).strip(), line_req.name
                             )
                         else:
                             req_files[line_req.name].append(req_file_path)
@@ -157,6 +143,58 @@ def freeze(
             yield str(installation).rstrip()
 
 
+def get_requirement_info(dist):
+    """
+    Compute and return values (req, editable, comments) for use in
+    FrozenRequirement.from_dist().
+    """
+    if not dist_is_editable(dist):
+        return (None, False, [])
+
+    location = os.path.normcase(os.path.abspath(dist.location))
+
+    from pip._internal.vcs import vcs
+    vc_type = vcs.get_backend_type(location)
+
+    if not vc_type:
+        req = dist.as_requirement()
+        logger.debug(
+            'No VCS found for editable requirement {!r} in: {!r}', req,
+            location,
+        )
+        comments = [
+            '# Editable, no version control detected ({})'.format(req)
+        ]
+        return (location, True, comments)
+
+    try:
+        req = vc_type().get_src_requirement(dist, location)
+    except BadCommand:
+        logger.warning(
+            'cannot determine version of editable source in %s '
+            '(%s command not found in path)',
+            location,
+            vc_type.name,
+        )
+        return (None, True, [])
+
+    except InstallationError as exc:
+        logger.warning(
+            "Error when trying to get requirement for VCS system %s, "
+            "falling back to uneditable format", exc
+        )
+    else:
+        if req is not None:
+            return (req, True, [])
+
+    logger.warning(
+        'Could not determine repository location of %s', location
+    )
+    comments = ['## !! Could not determine repository location']
+
+    return (None, False, comments)
+
+
 class FrozenRequirement(object):
     def __init__(self, name, req, editable, comments=()):
         self.name = name
@@ -164,98 +202,13 @@ class FrozenRequirement(object):
         self.editable = editable
         self.comments = comments
 
-    _rev_re = re.compile(r'-r(\d+)$')
-    _date_re = re.compile(r'-(20\d\d\d\d\d\d)$')
-
     @classmethod
-    def _init_args_from_dist(cls, dist, dependency_links):
-        """
-        Compute and return arguments (req, editable, comments) to pass to
-        FrozenRequirement.__init__().
-
-        This method is for use in FrozenRequirement.from_dist().
-        """
-        location = os.path.normcase(os.path.abspath(dist.location))
-        comments = []
-        from pip._internal.vcs import vcs, get_src_requirement
-        if dist_is_editable(dist) and vcs.get_backend_name(location):
-            editable = True
-            try:
-                req = get_src_requirement(dist, location)
-            except InstallationError as exc:
-                logger.warning(
-                    "Error when trying to get requirement for VCS system %s, "
-                    "falling back to uneditable format", exc
-                )
-                req = None
-            if req is None:
-                logger.warning(
-                    'Could not determine repository location of %s', location
-                )
-                comments.append(
-                    '## !! Could not determine repository location'
-                )
-                req = dist.as_requirement()
-                editable = False
-        else:
-            editable = False
+    def from_dist(cls, dist):
+        req, editable, comments = get_requirement_info(dist)
+        if req is None:
             req = dist.as_requirement()
-            specs = req.specs
-            assert len(specs) == 1 and specs[0][0] in ["==", "==="], \
-                'Expected 1 spec with == or ===; specs = %r; dist = %r' % \
-                (specs, dist)
-            version = specs[0][1]
-            ver_match = cls._rev_re.search(version)
-            date_match = cls._date_re.search(version)
-            if ver_match or date_match:
-                svn_backend = vcs.get_backend('svn')
-                if svn_backend:
-                    svn_location = svn_backend().get_location(
-                        dist,
-                        dependency_links,
-                    )
-                if not svn_location:
-                    logger.warning(
-                        'Warning: cannot find svn location for %s', req,
-                    )
-                    comments.append(
-                        '## FIXME: could not find svn URL in dependency_links '
-                        'for this package:'
-                    )
-                else:
-                    deprecated(
-                        "SVN editable detection based on dependency links "
-                        "will be dropped in the future.",
-                        replacement=None,
-                        gone_in="18.2",
-                        issue=4187,
-                    )
-                    comments.append(
-                        '# Installing as editable to satisfy requirement %s:' %
-                        req
-                    )
-                    if ver_match:
-                        rev = ver_match.group(1)
-                    else:
-                        rev = '{%s}' % date_match.group(1)
-                    editable = True
-                    egg_name = cls.egg_name(dist)
-                    req = make_vcs_requirement_url(svn_location, rev, egg_name)
 
-        return (req, editable, comments)
-
-    @classmethod
-    def from_dist(cls, dist, dependency_links):
-        args = cls._init_args_from_dist(dist, dependency_links)
-        return cls(dist.project_name, *args)
-
-    @staticmethod
-    def egg_name(dist):
-        name = dist.egg_name()
-        match = re.search(r'-py\d\.\d$', name)
-        if match:
-            name = name[:match.start()]
-        return name
+        return cls(dist.project_name, req, editable, comments=comments)
 
     def __str__(self):
         req = self.req

@@ -204,6 +204,26 @@ def message_about_scripts_not_on_PATH(scripts):
     return "\n".join(msg_lines)
 
 
+def sorted_outrows(outrows):
+    """
+    Return the given rows of a RECORD file in sorted order.
+
+    Each row is a 3-tuple (path, hash, size) and corresponds to a record of
+    a RECORD file (see PEP 376 and PEP 427 for details).  For the rows
+    passed to this function, the size can be an integer as an int or string,
+    or the empty string.
+    """
+    # Normally, there should only be one row per path, in which case the
+    # second and third elements don't come into play when sorting.
+    # However, in cases in the wild where a path might happen to occur twice,
+    # we don't want the sort operation to trigger an error (but still want
+    # determinism).  Since the third element can be an int or string, we
+    # coerce each element to a string to avoid a TypeError in this case.
+    # For additional background, see--
+    # https://github.com/pypa/pip/issues/5868
+    return sorted(outrows, key=lambda row: tuple(str(x) for x in row))
+
+
 def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
                      pycompile=True, scheme=None, isolated=False, prefix=None,
                      warn_script_location=True):
@@ -511,7 +531,8 @@ if __name__ == '__main__':
                 outrows.append((normpath(f, lib_dir), digest, length))
             for f in installed:
                 outrows.append((installed[f], '', ''))
-            for row in sorted(outrows):
+            # Sort to simplify testing.
+            for row in sorted_outrows(outrows):
                 writer.writerow(row)
     shutil.move(temp_record, record)
 
@@ -620,6 +641,15 @@ class Wheel(object):
         return bool(set(tags).intersection(self.file_tags))
 
 
+def _contains_egg_info(
+        s, _egg_info_re=re.compile(r'([a-z0-9_.]+)-([a-z0-9_.!+-]+)', re.I)):
+    """Determine whether the string looks like an egg_info.
+
+    :param s: The string to parse. E.g. foo-2.1
+    """
+    return bool(_egg_info_re.search(s))
+
+
 class WheelBuilder(object):
     """Build wheels from a RequirementSet."""
 
@@ -712,7 +742,6 @@ class WheelBuilder(object):
             newly built wheel, in preparation for installation.
         :return: True if all the wheels built correctly.
         """
-        from pip._internal import index
         from pip._internal.models.link import Link
 
         building_is_possible = self._wheel_dir or (
@@ -742,7 +771,7 @@ class WheelBuilder(object):
                 if autobuilding:
                     link = req.link
                     base, ext = link.splitext()
-                    if index.egg_info_matches(base, None, link) is None:
+                    if not _contains_egg_info(base):
                         # E.g. local directory. Build wheel just for this run.
                         ephem_cache = True
                     if "binary" not in format_control.get_allowed_formats(

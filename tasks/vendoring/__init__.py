@@ -1,11 +1,14 @@
-""""Vendoring script, python 3.5 needed"""
+""""Vendoring script, python 3.5 with requests needed"""
 
 from pathlib import Path
 import os
 import re
 import shutil
+import tarfile
+import zipfile
 
 import invoke
+import requests
 
 TASK_NAME = 'update'
 
@@ -15,6 +18,19 @@ FILE_WHITE_LIST = (
     '__init__.py',
     'README.rst',
 )
+
+# libraries that have directories with different names
+LIBRARY_DIRNAMES = {
+    'setuptools': 'pkg_resources',
+    'msgpack-python': 'msgpack',
+}
+
+# from time to time, remove the no longer needed ones
+HARDCODED_LICENSE_URLS = {
+    'pytoml': 'https://github.com/avakar/pytoml/raw/master/LICENSE',
+    'webencodings': 'https://github.com/SimonSapin/python-webencodings/raw/'
+                    'master/LICENSE',
+}
 
 
 def drop_dir(path, **kwargs):
@@ -57,6 +73,8 @@ def detect_vendored_libs(vendor_dir):
         if item.is_dir():
             retval.append(item.name)
         elif item.name.endswith(".pyi"):
+            continue
+        elif "LICENSE" in item.name or "COPYING" in item.name:
             continue
         elif item.name not in FILE_WHITE_LIST:
             retval.append(item.name[:-3])
@@ -142,6 +160,107 @@ def vendor(ctx, vendor_dir):
         apply_patch(ctx, patch)
 
 
+def download_licenses(ctx, vendor_dir):
+    log('Downloading licenses')
+    tmp_dir = vendor_dir / '__tmp__'
+    ctx.run(
+        'pip download -r {0}/vendor.txt --no-binary '
+        ':all: --no-deps -d {1}'.format(
+            str(vendor_dir),
+            str(tmp_dir),
+        )
+    )
+    for sdist in tmp_dir.iterdir():
+        extract_license(vendor_dir, sdist)
+    drop_dir(tmp_dir)
+
+
+def extract_license(vendor_dir, sdist):
+    if sdist.suffixes[-2] == '.tar':
+        ext = sdist.suffixes[-1][1:]
+        with tarfile.open(sdist, mode='r:{}'.format(ext)) as tar:
+            found = find_and_extract_license(vendor_dir, tar, tar.getmembers())
+    elif sdist.suffixes[-1] == '.zip':
+        with zipfile.ZipFile(sdist) as zip:
+            found = find_and_extract_license(vendor_dir, zip, zip.infolist())
+    else:
+        raise NotImplementedError('new sdist type!')
+
+    if not found:
+        log('License not found in {}, will download'.format(sdist.name))
+        license_fallback(vendor_dir, sdist.name)
+
+
+def find_and_extract_license(vendor_dir, tar, members):
+    found = False
+    for member in members:
+        try:
+            name = member.name
+        except AttributeError:  # zipfile
+            name = member.filename
+        if 'LICENSE' in name or 'COPYING' in name:
+            if '/test' in name:
+                # some testing licenses in html5lib and distlib
+                log('Ignoring {}'.format(name))
+                continue
+            found = True
+            extract_license_member(vendor_dir, tar, member, name)
+    return found
+
+
+def license_fallback(vendor_dir, sdist_name):
+    """Hardcoded license URLs. Check when updating if those are still needed"""
+    libname = libname_from_dir(sdist_name)
+    if libname not in HARDCODED_LICENSE_URLS:
+        raise ValueError('No hardcoded URL for {} license'.format(libname))
+
+    url = HARDCODED_LICENSE_URLS[libname]
+    _, _, name = url.rpartition('/')
+    dest = license_destination(vendor_dir, libname, name)
+    log('Downloading {}'.format(url))
+    r = requests.get(url, allow_redirects=True)
+    r.raise_for_status()
+    dest.write_bytes(r.content)
+
+
+def libname_from_dir(dirname):
+    """Reconstruct the library name without it's version"""
+    parts = []
+    for part in dirname.split('-'):
+        if part[0].isdigit():
+            break
+        parts.append(part)
+    return '-'.join(parts)
+
+
+def license_destination(vendor_dir, libname, filename):
+    """Given the (reconstructed) library name, find appropriate destination"""
+    normal = vendor_dir / libname
+    if normal.is_dir():
+        return normal / filename
+    lowercase = vendor_dir / libname.lower()
+    if lowercase.is_dir():
+        return lowercase / filename
+    if libname in LIBRARY_DIRNAMES:
+        return vendor_dir / LIBRARY_DIRNAMES[libname] / filename
+    # fallback to libname.LICENSE (used for nondirs)
+    return vendor_dir / '{}.{}'.format(libname, filename)
+
+
+def extract_license_member(vendor_dir, tar, member, name):
+    mpath = Path(name)  # relative path inside the sdist
+    dirname = list(mpath.parents)[-2].name  # -1 is .
+    libname = libname_from_dir(dirname)
+    dest = license_destination(vendor_dir, libname, mpath.name)
+    dest_relative = dest.relative_to(Path.cwd())
+    log('Extracting {} into {}'.format(name, dest_relative))
+    try:
+        fileobj = tar.extractfile(member)
+        dest.write_bytes(fileobj.read())
+    except AttributeError:  # zipfile
+        dest.write_bytes(tar.read(member))
+
+
 @invoke.task
 def update_stubs(ctx):
     vendor_dir = _get_vendor_dir(ctx)
@@ -182,4 +301,5 @@ def main(ctx):
     log('Using vendor dir: %s' % vendor_dir)
     clean_vendor(ctx, vendor_dir)
     vendor(ctx, vendor_dir)
+    download_licenses(ctx, vendor_dir)
     log('Revendoring complete')

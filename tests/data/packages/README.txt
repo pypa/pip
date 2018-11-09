@@ -59,10 +59,6 @@ parent/child-0.1.tar.gz
 The parent-0.1.tar.gz and child-0.1.tar.gz packages are used by
 test_uninstall:test_uninstall_overlapping_package.
 
-paxpkg.tar.bz2
---------------
-tar with pax headers
-
 pkgwithmpkg-1.0.tar.gz; pkgwithmpkg-1.0-py2.7-macosx10.7.mpkg.zip
 -----------------------------------------------------------------
 used for osx test case (tests.test_finder:test_no_mpkg)

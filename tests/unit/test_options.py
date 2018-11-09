@@ -1,10 +1,28 @@
 import os
+from contextlib import contextmanager
 
 import pytest
 
 import pip._internal.configuration
 from pip._internal import main
 from tests.lib.options_helpers import AddFakeCommandMixin
+
+
+@contextmanager
+def assert_raises_message(exc_class, expected):
+    """
+    Assert that an exception with the given type and message is raised.
+    """
+    with pytest.raises(exc_class) as excinfo:
+        yield
+
+    assert str(excinfo.value) == expected
+
+
+def assert_is_default_cache_dir(value):
+    # This path looks different on different platforms, but the path always
+    # has the substring "pip".
+    assert 'pip' in value
 
 
 class TestOptionPrecedence(AddFakeCommandMixin):
@@ -81,6 +99,63 @@ class TestOptionPrecedence(AddFakeCommandMixin):
         options, args = main(['fake', '--timeout', '-2'])
         assert options.timeout == -2
 
+    @pytest.mark.parametrize('pip_no_cache_dir', [
+        # Enabling --no-cache-dir means no cache directory.
+        '1',
+        'true',
+        'on',
+        'yes',
+        # For historical / backwards compatibility reasons, we also disable
+        # the cache directory if provided a value that translates to 0.
+        '0',
+        'false',
+        'off',
+        'no',
+    ])
+    def test_cache_dir__PIP_NO_CACHE_DIR(self, pip_no_cache_dir):
+        """
+        Test setting the PIP_NO_CACHE_DIR environment variable without
+        passing any command-line flags.
+        """
+        os.environ['PIP_NO_CACHE_DIR'] = pip_no_cache_dir
+        options, args = main(['fake'])
+        assert options.cache_dir is False
+
+    @pytest.mark.parametrize('pip_no_cache_dir', ['yes', 'no'])
+    def test_cache_dir__PIP_NO_CACHE_DIR__with_cache_dir(
+        self, pip_no_cache_dir
+    ):
+        """
+        Test setting PIP_NO_CACHE_DIR while also passing an explicit
+        --cache-dir value.
+        """
+        os.environ['PIP_NO_CACHE_DIR'] = pip_no_cache_dir
+        options, args = main(['--cache-dir', '/cache/dir', 'fake'])
+        # The command-line flag takes precedence.
+        assert options.cache_dir == '/cache/dir'
+
+    @pytest.mark.parametrize('pip_no_cache_dir', ['yes', 'no'])
+    def test_cache_dir__PIP_NO_CACHE_DIR__with_no_cache_dir(
+        self, pip_no_cache_dir
+    ):
+        """
+        Test setting PIP_NO_CACHE_DIR while also passing --no-cache-dir.
+        """
+        os.environ['PIP_NO_CACHE_DIR'] = pip_no_cache_dir
+        options, args = main(['--no-cache-dir', 'fake'])
+        # The command-line flag should take precedence (which has the same
+        # value in this case).
+        assert options.cache_dir is False
+
+    def test_cache_dir__PIP_NO_CACHE_DIR_invalid__with_no_cache_dir(self):
+        """
+        Test setting PIP_NO_CACHE_DIR to an invalid value while also passing
+        --no-cache-dir.
+        """
+        os.environ['PIP_NO_CACHE_DIR'] = 'maybe'
+        with assert_raises_message(ValueError, "invalid truth value 'maybe'"):
+            main(['--no-cache-dir', 'fake'])
+
 
 class TestOptionsInterspersed(AddFakeCommandMixin):
 
@@ -105,6 +180,19 @@ class TestGeneralOptions(AddFakeCommandMixin):
 
     # the reason to specifically test general options is due to the
     # extra processing they receive, and the number of bugs we've had
+
+    def test_cache_dir__default(self):
+        options, args = main(['fake'])
+        # With no options the default cache dir should be used.
+        assert_is_default_cache_dir(options.cache_dir)
+
+    def test_cache_dir__provided(self):
+        options, args = main(['--cache-dir', '/cache/dir', 'fake'])
+        assert options.cache_dir == '/cache/dir'
+
+    def test_no_cache_dir__provided(self):
+        options, args = main(['--no-cache-dir', 'fake'])
+        assert options.cache_dir is False
 
     def test_require_virtualenv(self):
         options1, args1 = main(['--require-virtualenv', 'fake'])

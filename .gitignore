@@ -26,6 +26,7 @@ htmlcov/
 nosetests.xml
 coverage.xml
 *.cover
+tests/data/common_wheels/
 
 # Misc
 *~

@@ -30,7 +30,7 @@ from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     _make_build_dir, ask_path_exists, backup_dir, call_subprocess,
     display_path, dist_in_site_packages, dist_in_usersite, ensure_dir,
-    get_installed_version, rmtree,
+    get_installed_version, redact_password_from_url, rmtree,
 )
 from pip._internal.utils.packaging import get_metadata
 from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
@@ -128,9 +128,9 @@ class InstallRequirement(object):
         if self.req:
             s = str(self.req)
             if self.link:
-                s += ' from %s' % self.link.url
+                s += ' from %s' % redact_password_from_url(self.link.url)
         elif self.link:
-            s = self.link.url
+            s = redact_password_from_url(self.link.url)
         else:
             s = '<InstallRequirement>'
         if self.satisfied_by is not None:
