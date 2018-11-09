@@ -80,13 +80,6 @@ def git():
     return git
 
 
-@pytest.fixture
-def dist():
-    dist = Mock()
-    dist.egg_name = Mock(return_value='pip_test_package')
-    return dist
-
-
 def test_looks_like_hash():
     assert looks_like_hash(40 * 'a')
     assert looks_like_hash(40 * 'A')
@@ -97,14 +90,13 @@ def test_looks_like_hash():
 
 
 @pytest.mark.network
-def test_git_get_src_requirements(git, dist):
-    ret = git.get_src_requirement(dist, location='.')
+def test_git_get_src_requirements(git):
+    ret = git.get_src_requirement('.', 'pip-test-package')
 
-    assert ret == ''.join([
-        'git+https://github.com/pypa/pip-test-package',
-        '@5547fa909e83df8bd743d3978d6667497983a4b7',
-        '#egg=pip_test_package'
-    ])
+    assert ret == (
+        'git+https://github.com/pypa/pip-test-package'
+        '@5547fa909e83df8bd743d3978d6667497983a4b7#egg=pip_test_package'
+    )
 
 
 @patch('pip._internal.vcs.git.Git.get_revision_sha')

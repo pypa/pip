@@ -84,14 +84,12 @@ class Mercurial(VersionControl):
             show_stdout=False, cwd=location).strip()
         return current_rev_hash
 
-    def get_src_requirement(self, dist, location):
+    def get_src_requirement(self, location, project_name):
         repo = self.get_url(location)
         if not repo.lower().startswith('hg:'):
             repo = 'hg+' + repo
         current_rev_hash = self.get_revision_hash(location)
-        egg_project_name = dist.egg_name().split('-', 1)[0]
-        return make_vcs_requirement_url(repo, current_rev_hash,
-                                        egg_project_name)
+        return make_vcs_requirement_url(repo, current_rev_hash, project_name)
 
     def is_commit_id_equal(self, dest, name):
         """Always assume the versions don't match"""

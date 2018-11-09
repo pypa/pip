@@ -850,13 +850,15 @@ def enum(*sequential, **named):
     return type('Enum', (), enums)
 
 
-def make_vcs_requirement_url(repo_url, rev, egg_project_name, subdir=None):
+def make_vcs_requirement_url(repo_url, rev, project_name, subdir=None):
     """
     Return the URL for a VCS requirement.
 
     Args:
       repo_url: the remote VCS url, with any needed VCS prefix (e.g. "git+").
+      project_name: the (unescaped) project name.
     """
+    egg_project_name = pkg_resources.to_filename(project_name)
     req = '{}@{}#egg={}'.format(repo_url, rev, egg_project_name)
     if subdir:
         req += '&subdirectory={}'.format(subdir)
