@@ -70,8 +70,7 @@ class HashErrors(InstallationError):
         for cls, errors_of_cls in groupby(self.errors, lambda e: e.__class__):
             lines.append(cls.head)
             lines.extend(e.body() for e in errors_of_cls)
-        if lines:
-            return '\n'.join(lines)
+        return '\n'.join(lines)
 
     def __nonzero__(self):
         return bool(self.errors)

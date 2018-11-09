@@ -110,7 +110,7 @@ def get_path_completion_type(cwords, cword, opts):
     :return: path completion type (``file``, ``dir``, ``path`` or None)
     """
     if cword < 2 or not cwords[cword - 2].startswith('-'):
-        return
+        return None
     for opt in opts:
         if opt.help == optparse.SUPPRESS_HELP:
             continue

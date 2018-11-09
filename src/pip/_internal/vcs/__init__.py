@@ -148,6 +148,7 @@ class VcsSupport(object):
         name = name.lower()
         if name in self._registry:
             return self._registry[name]
+        return None
 
 
 vcs = VcsSupport()

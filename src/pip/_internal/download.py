@@ -279,7 +279,7 @@ class SafeFileCache(FileCache):
     def get(self, *args, **kwargs):
         # If we don't have a directory, then the cache should be a no-op.
         if self.directory is None:
-            return
+            return None
 
         try:
             return super(SafeFileCache, self).get(*args, **kwargs)
@@ -292,7 +292,7 @@ class SafeFileCache(FileCache):
     def set(self, *args, **kwargs):
         # If we don't have a directory, then the cache should be a no-op.
         if self.directory is None:
-            return
+            return None
 
         try:
             return super(SafeFileCache, self).set(*args, **kwargs)
@@ -305,7 +305,7 @@ class SafeFileCache(FileCache):
     def delete(self, *args, **kwargs):
         # If we don't have a directory, then the cache should be a no-op.
         if self.directory is None:
-            return
+            return None
 
         try:
             return super(SafeFileCache, self).delete(*args, **kwargs)
@@ -500,6 +500,8 @@ def _get_used_vcs_backend(link):
         if link.scheme in backend.schemes:
             vcs_backend = backend(link.url)
             return vcs_backend
+    # If we can't find anything, we explicitly return None
+    return None
 
 
 def is_vcs_url(link):

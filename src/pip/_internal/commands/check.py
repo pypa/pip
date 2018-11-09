@@ -1,6 +1,7 @@
 import logging
 
 from pip._internal.cli.base_command import Command
+from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.operations.check import (
     check_package_set, create_package_set_from_installed,
 )
@@ -36,6 +37,7 @@ class CheckCommand(Command):
                 )
 
         if missing or conflicting or parsing_probs:
-            return 1
+            return ERROR
         else:
             logger.info("No broken requirements found.")
+            return SUCCESS
