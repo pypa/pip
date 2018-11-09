@@ -837,8 +837,8 @@ class PackageFinder(object):
             support_this_python = True
 
         if not support_this_python:
-            logger.debug("The package %s is incompatible with the python"
-                         "version in use. Acceptable python versions are:%s",
+            logger.debug("The package %s is incompatible with the python "
+                         "version in use. Acceptable python versions are: %s",
                          link, link.requires_python)
             return
         logger.debug('Found link %s, version: %s', link, version)
