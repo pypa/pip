@@ -133,15 +133,16 @@ class ConfigurationCommand(Command):
             kinds.VENV: options.venv_file
         }
 
-        if sum(file_options.values()) == 0:
+        file_options_given = sum(file_options.values())
+        if not file_options_given:
             if not need_value:
                 return None
             # Default to user, unless there's a virtualenv file.
-            elif os.path.exists(venv_config_file):
+            if os.path.exists(venv_config_file):
                 return kinds.VENV
-            else:
-                return kinds.USER
-        elif sum(file_options.values()) == 1:
+            return kinds.USER
+
+        if file_options_given == 1:
             # There's probably a better expression for this.
             return [key for key in file_options if file_options[key]][0]
 
@@ -201,8 +202,7 @@ class ConfigurationCommand(Command):
 
         if n == 1:
             return args[0]
-        else:
-            return args
+        return args
 
     def _save_configuration(self):
         # We successfully ran a modifying command. Need to save the
@@ -219,9 +219,8 @@ class ConfigurationCommand(Command):
     def _determine_editor(self, options):
         if options.editor is not None:
             return options.editor
-        elif "VISUAL" in os.environ:
+        if "VISUAL" in os.environ:
             return os.environ["VISUAL"]
-        elif "EDITOR" in os.environ:
+        if "EDITOR" in os.environ:
             return os.environ["EDITOR"]
-        else:
-            raise PipError("Could not determine editor to use.")
+        raise PipError("Could not determine editor to use.")

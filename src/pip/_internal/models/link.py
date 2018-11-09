@@ -46,8 +46,7 @@ class Link(KeyBasedCompareMixin):
         if self.comes_from:
             return '%s (from %s)%s' % (redact_password_from_url(self.url),
                                        self.comes_from, rp)
-        else:
-            return redact_password_from_url(str(self.url))
+        return redact_password_from_url(str(self.url))
 
     def __repr__(self):
         return '<Link %s>' % self

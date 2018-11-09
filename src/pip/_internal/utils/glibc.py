@@ -89,5 +89,5 @@ def libc_ver():
     glibc_version = glibc_version_string()
     if glibc_version is None:
         return ("", "")
-    else:
-        return ("glibc", glibc_version)
+
+    return ("glibc", glibc_version)

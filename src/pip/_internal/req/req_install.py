@@ -207,8 +207,8 @@ class InstallRequirement(object):
             return any(
                 self.markers.evaluate({'extra': extra})
                 for extra in extras_requested)
-        else:
-            return True
+
+        return True
 
     @property
     def has_hash_options(self):
@@ -870,8 +870,8 @@ class InstallRequirement(object):
             def prepend_root(path):
                 if root is None or not os.path.isabs(path):
                     return path
-                else:
-                    return change_root(root, path)
+
+                return change_root(root, path)
 
             with open(record_filename) as f:
                 for line in f:

@@ -278,8 +278,8 @@ BAR_TYPES = {
 def DownloadProgressProvider(progress_bar, max=None):
     if max is None or max == 0:
         return BAR_TYPES[progress_bar][1]().iter
-    else:
-        return BAR_TYPES[progress_bar][0](max=max).iter
+
+    return BAR_TYPES[progress_bar][0](max=max).iter
 
 
 ################################################################

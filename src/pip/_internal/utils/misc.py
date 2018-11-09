@@ -91,11 +91,10 @@ def get_prog():
         prog = os.path.basename(sys.argv[0])
         if prog in ('__main__.py', '-c'):
             return "%s -m pip" % sys.executable
-        else:
-            return prog
     except (AttributeError, TypeError, IndexError):
-        pass
-    return 'pip'
+        return 'pip'
+    else:
+        return prog
 
 
 # Retry every half second for up to 3 seconds
@@ -109,15 +108,14 @@ def rmtree_errorhandler(func, path, exc_info):
     """On Windows, the files in .svn are read-only, so when rmtree() tries to
     remove them, an exception is thrown.  We catch that here, remove the
     read-only attribute, and hopefully continue without problems."""
-    # if file type currently read only
-    if os.stat(path).st_mode & stat.S_IREAD:
-        # convert to read/write
-        os.chmod(path, stat.S_IWRITE)
-        # use the original function to repeat the operation
-        func(path)
-        return
-    else:
+    # if file type is not currently read only
+    if not os.stat(path).st_mode & stat.S_IREAD:
         raise
+
+    # convert to read/write
+    os.chmod(path, stat.S_IWRITE)
+    # use the original function to repeat the operation
+    func(path)
 
 
 def display_path(path):
@@ -169,15 +167,15 @@ def ask(message, options):
             return response
 
 
-def format_size(bytes):
-    if bytes > 1000 * 1000:
-        return '%.1fMB' % (bytes / 1000.0 / 1000)
-    elif bytes > 10 * 1000:
-        return '%ikB' % (bytes / 1000)
-    elif bytes > 1000:
-        return '%.1fkB' % (bytes / 1000.0)
-    else:
-        return '%ibytes' % bytes
+def format_size(byte_count):
+    if byte_count > 1000 * 1000:
+        return '%.1fMB' % (byte_count / 1000.0 / 1000)
+    if byte_count > 10 * 1000:
+        return '%ikB' % (byte_count / 1000)
+    if byte_count > 1000:
+        return '%.1fkB' % (byte_count / 1000.0)
+
+    return '%ibytes' % byte_count
 
 
 def is_installable_dir(path):
@@ -221,10 +219,10 @@ def split_leading_dir(path):
     if '/' in path and (('\\' in path and path.find('/') < path.find('\\')) or
                         '\\' not in path):
         return path.split('/', 1)
-    elif '\\' in path:
+    if '\\' in path:
         return path.split('\\', 1)
-    else:
-        return path, ''
+
+    return path, ''
 
 
 def has_leading_dir(paths):
@@ -235,7 +233,8 @@ def has_leading_dir(paths):
         prefix, rest = split_leading_dir(path)
         if not prefix:
             return False
-        elif common_prefix is None:
+
+        if common_prefix is None:
             common_prefix = prefix
         elif prefix != common_prefix:
             return False
@@ -425,6 +424,8 @@ def egg_link_path(dist):
         egglink = os.path.join(site, dist.project_name) + '.egg-link'
         if os.path.isfile(egglink):
             return egglink
+
+    return None
 
 
 def dist_location(dist):
@@ -709,6 +710,7 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
                              repr(on_returncode))
     if not show_stdout:
         return ''.join(all_output)
+    return None
 
 
 def read_text_file(filename):

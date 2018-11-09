@@ -31,12 +31,10 @@ def make_abstract_dist(req):
 
     :return: A concrete DistAbstraction.
     """
-    if req.editable:
-        return IsSDist(req)
-    elif req.link and req.link.is_wheel:
+    if not req.editable and req.link and req.link.is_wheel:
         return IsWheel(req)
-    else:
-        return IsSDist(req)
+
+    return IsSDist(req)
 
 
 class DistAbstraction(object):
@@ -199,11 +197,11 @@ class RequirementPreparer(object):
             self.download_dir = expanduser(self.download_dir)
             if os.path.exists(self.download_dir):
                 return True
-            else:
-                logger.critical('Could not find download directory')
-                raise InstallationError(
-                    "Could not find or access download directory '%s'"
-                    % display_path(self.download_dir))
+
+            logger.critical('Could not find download directory')
+            raise InstallationError(
+                "Could not find or access download directory '%s'"
+                % display_path(self.download_dir))
         return False
 
     def prepare_linked_requirement(self, req, session, finder,

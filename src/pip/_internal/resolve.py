@@ -112,11 +112,11 @@ class Resolver(object):
     def _is_upgrade_allowed(self, req):
         if self.upgrade_strategy == "to-satisfy-only":
             return False
-        elif self.upgrade_strategy == "eager":
+        if self.upgrade_strategy == "eager":
             return True
-        else:
-            assert self.upgrade_strategy == "only-if-needed"
-            return req.is_direct
+
+        assert self.upgrade_strategy == "only-if-needed"
+        return req.is_direct
 
     def _set_req_to_reinstall(self, req):
         """

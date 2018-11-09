@@ -85,10 +85,9 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
 
     def format_epilog(self, epilog):
         # leave full control over epilog to us
-        if epilog:
-            return epilog
-        else:
+        if not epilog:
             return ''
+        return epilog
 
     def indent_lines(self, text, indent):
         new_lines = [indent + line for line in text.split('\n')]

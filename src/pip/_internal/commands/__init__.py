@@ -64,8 +64,7 @@ def get_similar_commands(name):
 
     if close_commands:
         return close_commands[0]
-    else:
-        return False
+    return False
 
 
 def _sort_commands(cmddict, order):

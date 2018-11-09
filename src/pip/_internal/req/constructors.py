@@ -82,8 +82,8 @@ def parse_editable(editable_req):
                 url_no_extras,
                 Requirement("placeholder" + extras.lower()).extras,
             )
-        else:
-            return package_name, url_no_extras, None
+
+        return package_name, url_no_extras, None
 
     for version_control in vcs:
         if url.lower().startswith('%s:' % version_control):

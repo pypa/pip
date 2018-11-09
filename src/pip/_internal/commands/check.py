@@ -38,6 +38,6 @@ class CheckCommand(Command):
 
         if missing or conflicting or parsing_probs:
             return ERROR
-        else:
-            logger.info("No broken requirements found.")
-            return SUCCESS
+
+        logger.info("No broken requirements found.")
+        return SUCCESS
