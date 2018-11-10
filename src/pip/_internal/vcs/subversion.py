@@ -131,7 +131,7 @@ class Subversion(VersionControl):
 
         return extra_args
 
-    def get_url(self, location):
+    def get_remote_url(self, location):
         # In cases where the source is in a subdirectory, not alongside
         # setup.py we have to look up in the location until we find a real
         # setup.py
@@ -196,7 +196,7 @@ class Subversion(VersionControl):
         return url, rev
 
     def get_src_requirement(self, location, project_name):
-        repo = self.get_url(location)
+        repo = self.get_remote_url(location)
         if repo is None:
             return None
         repo = 'svn+' + repo

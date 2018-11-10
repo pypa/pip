@@ -64,7 +64,7 @@ class Mercurial(VersionControl):
         cmd_args = ['update', '-q'] + rev_options.to_args()
         self.run_command(cmd_args, cwd=dest)
 
-    def get_url(self, location):
+    def get_remote_url(self, location):
         url = self.run_command(
             ['showconfig', 'paths.default'],
             show_stdout=False, cwd=location).strip()
@@ -85,7 +85,7 @@ class Mercurial(VersionControl):
         return current_rev_hash
 
     def get_src_requirement(self, location, project_name):
-        repo = self.get_url(location)
+        repo = self.get_remote_url(location)
         if not repo.lower().startswith('hg:'):
             repo = 'hg+' + repo
         current_rev_hash = self.get_revision_hash(location)

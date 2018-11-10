@@ -327,7 +327,7 @@ class VersionControl(object):
 
         rev_display = rev_options.to_display()
         if self.is_repository_directory(dest):
-            existing_url = self.get_url(dest)
+            existing_url = self.get_remote_url(dest)
             if self.compare_urls(existing_url, url):
                 logger.debug(
                     '%s in %s exists, and has correct URL (%s)',
@@ -419,7 +419,7 @@ class VersionControl(object):
         """
         raise NotImplementedError
 
-    def get_url(self, location):
+    def get_remote_url(self, location):
         """
         Return the url used at location
         """

@@ -1,7 +1,8 @@
 import pytest
 
 from tests.lib import (
-    _change_test_package_version, _create_test_package, pyversion,
+    _change_test_package_version, _create_test_package, _test_path_to_file_url,
+    pyversion,
 )
 from tests.lib.git_submodule_helpers import (
     _change_test_package_submodule, _create_test_package_with_submodule,
@@ -70,9 +71,9 @@ def _make_version_pkg_url(path, rev=None):
         containing the version_pkg package.
       rev: an optional revision to install like a branch name, tag, or SHA.
     """
-    path = path.abspath.replace('\\', '/')
+    file_url = _test_path_to_file_url(path)
     url_rev = '' if rev is None else '@{}'.format(rev)
-    url = 'git+file://{}{}#egg=version_pkg'.format(path, url_rev)
+    url = 'git+{}{}#egg=version_pkg'.format(file_url, url_rev)
 
     return url
 
