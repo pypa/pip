@@ -65,10 +65,9 @@ def virtualenv_no_global():
     # no-global-site-packages.txt file
     site_mod_dir = os.path.dirname(os.path.abspath(site.__file__))
     no_global_file = os.path.join(site_mod_dir, 'no-global-site-packages.txt')
-    if running_under_virtualenv() and os.path.isfile(no_global_file):
-        return True
-    else:
-        return False
+    return (
+        running_under_virtualenv() and os.path.isfile(no_global_file)
+    )
 
 
 if running_under_virtualenv():
