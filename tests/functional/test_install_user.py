@@ -41,6 +41,7 @@ class Tests_UserSite:
         assert 'INITools' == project_name, project_name
 
     @pytest.mark.network
+    @pytest.mark.svn
     def test_install_subversion_usersite_editable_with_distribute(
             self, script, tmpdir):
         """
