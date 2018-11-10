@@ -84,20 +84,28 @@ def replace_python_tag(wheelname, new_tag):
 
 def fix_script(path):
     """Replace #!python with #!/path/to/python
-    Return True if file was changed."""
+
+    Returns whether the file was changed.
+    """
     # XXX RECORD hashes will need to be updated
-    if os.path.isfile(path):
-        with open(path, 'rb') as script:
-            firstline = script.readline()
-            if not firstline.startswith(b'#!python'):
-                return False
-            exename = sys.executable.encode(sys.getfilesystemencoding())
-            firstline = b'#!' + exename + os.linesep.encode("ascii")
-            rest = script.read()
-        with open(path, 'wb') as script:
-            script.write(firstline)
-            script.write(rest)
-        return True
+    if not os.path.isfile(path):
+        return False
+
+    with open(path, 'rb') as script:
+        firstline = script.readline()
+        if not firstline.startswith(b'#!python'):
+            return False
+
+        exename = sys.executable.encode(sys.getfilesystemencoding())
+        firstline = b'#!' + exename + os.linesep.encode("ascii")
+
+        rest = script.read()
+
+    with open(path, 'wb') as script:
+        script.write(firstline)
+        script.write(rest)
+
+    return True
 
 
 dist_info_re = re.compile(r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>.+?))?)
@@ -177,7 +185,8 @@ def message_about_scripts_not_on_PATH(scripts):
     #     This covers the case of venv invocations without activating the venv.
     not_warn_dirs.append(os.path.normcase(os.path.dirname(sys.executable)))
     warn_for = {
-        parent_dir: scripts for parent_dir, scripts in grouped_by_dir.items()
+        parent_dir: dir_scripts
+        for parent_dir, dir_scripts in grouped_by_dir.items()
         if os.path.normcase(parent_dir) not in not_warn_dirs
     }
     if not warn_for:
@@ -185,13 +194,13 @@ def message_about_scripts_not_on_PATH(scripts):
 
     # Format a message
     msg_lines = []
-    for parent_dir, scripts in warn_for.items():
-        scripts = sorted(scripts)
-        if len(scripts) == 1:
-            start_text = "script {} is".format(scripts[0])
+    for parent_dir, dir_scripts in warn_for.items():
+        sorted_scripts = sorted(dir_scripts)
+        if len(sorted_scripts) == 1:
+            start_text = "script {} is".format(sorted_scripts[0])
         else:
             start_text = "scripts {} are".format(
-                ", ".join(scripts[:-1]) + " and " + scripts[-1]
+                ", ".join(sorted_scripts[:-1]) + " and " + sorted_scripts[-1]
             )
 
         msg_lines.append(
