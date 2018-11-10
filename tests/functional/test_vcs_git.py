@@ -8,7 +8,7 @@ import pytest
 
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.vcs.git import Git
-from tests.lib import _create_test_package
+from tests.lib import _create_test_package, _test_path_to_file_url
 
 
 def get_head_sha(script, dest):
@@ -68,6 +68,22 @@ def test_git_work_tree_ignored():
         # with: "fatal: This operation must be run in a work tree".
         env = {'GIT_WORK_TREE': 'foo'}
         git.run_command(['status', temp_dir], extra_environ=env, cwd=temp_dir)
+
+
+def test_get_remote_url(script, tmpdir):
+    source_dir = tmpdir / 'source'
+    source_dir.mkdir()
+    source_url = _test_path_to_file_url(source_dir)
+
+    source_dir = str(source_dir)
+    script.run('git', 'init', cwd=source_dir)
+    do_commit(script, source_dir)
+
+    repo_dir = str(tmpdir / 'repo')
+    script.run('git', 'clone', source_url, repo_dir, expect_stderr=True)
+
+    remote_url = Git().get_remote_url(repo_dir)
+    assert remote_url == source_url
 
 
 def test_get_branch(script, tmpdir):

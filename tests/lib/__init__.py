@@ -38,6 +38,16 @@ def path_to_url(path):
     return 'file://' + url
 
 
+def _test_path_to_file_url(path):
+    """
+    Convert a test Path to a "file://" URL.
+
+    Args:
+      path: a tests.lib.path.Path object.
+    """
+    return 'file://' + path.abspath.replace('\\', '/')
+
+
 def create_file(path, contents=None):
     """Create a file on the path, with the given contents
     """

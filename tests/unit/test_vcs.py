@@ -75,7 +75,7 @@ def git():
     git_url = 'https://github.com/pypa/pip-test-package'
     sha = '5547fa909e83df8bd743d3978d6667497983a4b7'
     git = Git()
-    git.get_url = Mock(return_value=git_url)
+    git.get_remote_url = Mock(return_value=git_url)
     git.get_revision = Mock(return_value=sha)
     return git
 
