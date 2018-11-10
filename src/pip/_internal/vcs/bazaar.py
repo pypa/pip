@@ -75,7 +75,7 @@ class Bazaar(VersionControl):
             url = 'bzr+' + url
         return url, rev, user_pass
 
-    def get_url(self, location):
+    def get_remote_url(self, location):
         urls = self.run_command(['info'], show_stdout=False, cwd=location)
         for line in urls.splitlines():
             line = line.strip()
@@ -95,7 +95,7 @@ class Bazaar(VersionControl):
         return revision.splitlines()[-1]
 
     def get_src_requirement(self, location, project_name):
-        repo = self.get_url(location)
+        repo = self.get_remote_url(location)
         if not repo:
             return None
         if not repo.lower().startswith('bzr:'):

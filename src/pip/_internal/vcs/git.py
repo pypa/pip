@@ -243,7 +243,7 @@ class Git(VersionControl):
         #: update submodules
         self.update_submodules(dest)
 
-    def get_url(self, location):
+    def get_remote_url(self, location):
         """Return URL of the first remote encountered."""
         remotes = self.run_command(
             ['config', '--get-regexp', r'remote\..*\.url'],
@@ -294,7 +294,7 @@ class Git(VersionControl):
         return os.path.relpath(location, root_dir)
 
     def get_src_requirement(self, location, project_name):
-        repo = self.get_url(location)
+        repo = self.get_remote_url(location)
         if not repo.lower().startswith('git:'):
             repo = 'git+' + repo
         current_rev = self.get_revision(location)
