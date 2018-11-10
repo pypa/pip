@@ -2,8 +2,6 @@ environment:
   matrix:
     # Unit and integration tests.
     - PYTHON: "C:\\Python27"
-    - PYTHON: "C:\\Python36-x64"
-    - PYTHON: "C:\\Python27"
       RUN_INTEGRATION_TESTS: "True"
     - PYTHON: "C:\\Python36-x64"
       RUN_INTEGRATION_TESTS: "True"
@@ -15,9 +13,15 @@ environment:
     - PYTHON: "C:\\Python35-x64"
     - PYTHON: "C:\\Python36"
 
+matrix:
+    fast_finish: true
+
+clone_depth: 50
+
 install:
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - "python --version"
+  - "python -m pip install --upgrade --disable-pip-version-check pip setuptools wheel"
   - "pip install --upgrade certifi tox tox-venv"
   - "pip freeze --all"
   # Fix git SSL errors.
@@ -32,6 +36,8 @@ cache:
 
 test_script:
     - ps: |
+        $ErrorActionPreference = "Stop"
+
         function should_run_tests {
             if ("$env:APPVEYOR_PULL_REQUEST_NUMBER" -eq "") {
                 Write-Host "Not a pull request - running tests"
@@ -61,10 +67,8 @@ test_script:
             subst T: $env:TEMP
             $env:TEMP = "T:\"
             $env:TMP = "T:\"
-            if ($env:RUN_INTEGRATION_TESTS -eq "True") {
-                tox -e py -- --use-venv -m integration -n 3 --duration=5
-            }
-            else {
-                tox -e py -- -m unit -n 3
+            tox -e py -- -m unit
+            if ($LastExitCode -eq 0 -and $env:RUN_INTEGRATION_TESTS -eq "True") {
+                tox -e py -- --use-venv -m integration -n2 --durations=20
             }
         }
