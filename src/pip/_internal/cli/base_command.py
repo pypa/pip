@@ -32,7 +32,10 @@ from pip._internal.utils.outdated import pip_version_check
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional  # noqa: F401
+    from typing import Optional, List, Union, Tuple, Any  # noqa: F401
+    from optparse import Values  # noqa: F401
+    from pip._internal.cache import WheelCache  # noqa: F401
+    from pip._internal.req.req_set import RequirementSet  # noqa: F401
 
 __all__ = ['Command']
 
@@ -46,6 +49,7 @@ class Command(object):
     ignore_require_venv = False  # type: bool
 
     def __init__(self, isolated=False):
+        # type: (bool) -> None
         parser_kw = {
             'usage': self.usage,
             'prog': '%s %s' % (get_prog(), self.name),
@@ -69,7 +73,12 @@ class Command(object):
         )
         self.parser.add_option_group(gen_opts)
 
+    def run(self, options, args):
+        # type: (Values, List[Any]) -> Any
+        raise NotImplementedError
+
     def _build_session(self, options, retries=None, timeout=None):
+        # type: (Values, Optional[int], Optional[int]) -> PipSession
         session = PipSession(
             cache=(
                 normalize_path(os.path.join(options.cache_dir, "http"))
@@ -106,10 +115,12 @@ class Command(object):
         return session
 
     def parse_args(self, args):
+        # type: (List[str]) -> Tuple
         # factored out for testability
         return self.parser.parse_args(args)
 
     def main(self, args):
+        # type: (List[str]) -> int
         options, args = self.parse_args(args)
 
         # Set verbosity so that it can be used elsewhere.
@@ -195,8 +206,15 @@ class Command(object):
 class RequirementCommand(Command):
 
     @staticmethod
-    def populate_requirement_set(requirement_set, args, options, finder,
-                                 session, name, wheel_cache):
+    def populate_requirement_set(requirement_set,  # type: RequirementSet
+                                 args,             # type: List[str]
+                                 options,          # type: Values
+                                 finder,           # type: PackageFinder
+                                 session,          # type: PipSession
+                                 name,             # type: str
+                                 wheel_cache       # type: Optional[WheelCache]
+                                 ):
+        # type: (...) -> None
         """
         Marshal cmd line args into a requirement set.
         """
@@ -254,9 +272,16 @@ class RequirementCommand(Command):
                     'You must give at least one requirement to %(name)s '
                     '(see "pip help %(name)s")' % opts)
 
-    def _build_package_finder(self, options, session,
-                              platform=None, python_versions=None,
-                              abi=None, implementation=None):
+    def _build_package_finder(
+        self,
+        options,               # type: Values
+        session,               # type: PipSession
+        platform=None,         # type: Optional[str]
+        python_versions=None,  # type: Optional[List[str]]
+        abi=None,              # type: Optional[str]
+        implementation=None    # type: Optional[str]
+    ):
+        # type: (...) -> PackageFinder
         """
         Create a package finder appropriate to this requirement command.
         """

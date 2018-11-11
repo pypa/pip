@@ -75,7 +75,7 @@ class Bazaar(VersionControl):
             url = 'bzr+' + url
         return url, rev, user_pass
 
-    def get_url(self, location):
+    def get_remote_url(self, location):
         urls = self.run_command(['info'], show_stdout=False, cwd=location)
         for line in urls.splitlines():
             line = line.strip()
@@ -94,15 +94,14 @@ class Bazaar(VersionControl):
         )
         return revision.splitlines()[-1]
 
-    def get_src_requirement(self, dist, location):
-        repo = self.get_url(location)
+    def get_src_requirement(self, location, project_name):
+        repo = self.get_remote_url(location)
         if not repo:
             return None
         if not repo.lower().startswith('bzr:'):
             repo = 'bzr+' + repo
         current_rev = self.get_revision(location)
-        egg_project_name = dist.egg_name().split('-', 1)[0]
-        return make_vcs_requirement_url(repo, current_rev, egg_project_name)
+        return make_vcs_requirement_url(repo, current_rev, project_name)
 
     def is_commit_id_equal(self, dest, name):
         """Always assume the versions don't match"""

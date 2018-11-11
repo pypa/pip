@@ -13,7 +13,7 @@ def _create_test_package_submodule(env):
     env.run('git', 'add', '.', cwd=submodule_path)
     env.run('git', 'commit', '-q',
             '--author', 'pip <pypa-dev@googlegroups.com>',
-            '-am', 'initial version / submodule', cwd=submodule_path)
+            '-m', 'initial version / submodule', cwd=submodule_path)
     return submodule_path
 
 
@@ -23,7 +23,7 @@ def _change_test_package_submodule(env, submodule_path):
     env.run('git', 'add', '.', cwd=submodule_path)
     env.run('git', 'commit', '-q',
             '--author', 'pip <pypa-dev@googlegroups.com>',
-            '-am', 'submodule change', cwd=submodule_path)
+            '-m', 'submodule change', cwd=submodule_path)
 
 
 def _pull_in_submodule_changes_to_module(env, module_path):
@@ -35,6 +35,7 @@ def _pull_in_submodule_changes_to_module(env, module_path):
         'master',
         cwd=module_path / 'testpkg/static/',
     )
+    # Pass -a to stage the submodule changes that were just pulled in.
     env.run('git', 'commit', '-q',
             '--author', 'pip <pypa-dev@googlegroups.com>',
             '-am', 'submodule change', cwd=module_path)
@@ -59,8 +60,7 @@ def _create_test_package_with_submodule(env):
     env.run('git', 'add', '.', cwd=version_pkg_path, expect_error=True)
     env.run('git', 'commit', '-q',
             '--author', 'pip <pypa-dev@googlegroups.com>',
-            '-am', 'initial version', cwd=version_pkg_path,
-            expect_error=True)
+            '-m', 'initial version', cwd=version_pkg_path)
 
     submodule_path = _create_test_package_submodule(env)
 
@@ -75,7 +75,6 @@ def _create_test_package_with_submodule(env):
     )
     env.run('git', 'commit', '-q',
             '--author', 'pip <pypa-dev@googlegroups.com>',
-            '-am', 'initial version w submodule', cwd=version_pkg_path,
-            expect_error=True)
+            '-m', 'initial version w submodule', cwd=version_pkg_path)
 
     return version_pkg_path, submodule_path

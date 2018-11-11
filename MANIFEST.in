@@ -6,6 +6,8 @@ include pyproject.toml
 
 include src/pip/_vendor/README.rst
 include src/pip/_vendor/vendor.txt
+recursive-include  src/pip/_vendor *LICENSE*
+recursive-include  src/pip/_vendor *COPYING*
 
 include docs/docutils.conf
 

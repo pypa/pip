@@ -17,9 +17,8 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import Dict, Optional, Tuple  # noqa: F401
-    from pip._internal.cli.base_command import Command  # noqa: F401
 
-__all__ = ['vcs', 'get_src_requirement']
+__all__ = ['vcs']
 
 
 logger = logging.getLogger(__name__)
@@ -87,7 +86,7 @@ class RevOptions(object):
 
 
 class VcsSupport(object):
-    _registry = {}  # type: Dict[str, Command]
+    _registry = {}  # type: Dict[str, VersionControl]
     schemes = ['ssh', 'git', 'hg', 'bzr', 'sftp', 'svn']
 
     def __init__(self):
@@ -328,7 +327,7 @@ class VersionControl(object):
 
         rev_display = rev_options.to_display()
         if self.is_repository_directory(dest):
-            existing_url = self.get_url(dest)
+            existing_url = self.get_remote_url(dest)
             if self.compare_urls(existing_url, url):
                 logger.debug(
                     '%s in %s exists, and has correct URL (%s)',
@@ -411,7 +410,7 @@ class VersionControl(object):
             rmtree(location)
         self.obtain(location)
 
-    def get_src_requirement(self, dist, location):
+    def get_src_requirement(self, location, project_name):
         """
         Return a string representing the requirement needed to
         redownload the files currently present in location, something
@@ -420,7 +419,7 @@ class VersionControl(object):
         """
         raise NotImplementedError
 
-    def get_url(self, location):
+    def get_remote_url(self, location):
         """
         Return the url used at location
         """

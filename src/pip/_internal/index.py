@@ -815,8 +815,8 @@ class PackageFinder(object):
             return
 
         if not version:
-            version = egg_info_matches(egg_info, search.supplied, link)
-        if version is None:
+            version = _egg_info_matches(egg_info, search.canonical)
+        if not version:
             self._log_skipped_link(
                 link, 'Missing project version for %s' % search.supplied)
             return
@@ -837,8 +837,8 @@ class PackageFinder(object):
             support_this_python = True
 
         if not support_this_python:
-            logger.debug("The package %s is incompatible with the python"
-                         "version in use. Acceptable python versions are:%s",
+            logger.debug("The package %s is incompatible with the python "
+                         "version in use. Acceptable python versions are: %s",
                          link, link.requires_python)
             return
         logger.debug('Found link %s, version: %s', link, version)
@@ -846,33 +846,46 @@ class PackageFinder(object):
         return InstallationCandidate(search.supplied, version, link)
 
 
-def egg_info_matches(
-        egg_info, search_name, link,
-        _egg_info_re=re.compile(r'([a-z0-9_.]+)-([a-z0-9_.!+-]+)', re.I)):
+def _find_name_version_sep(egg_info, canonical_name):
+    """Find the separator's index based on the package's canonical name.
+
+    `egg_info` must be an egg info string for the given package, and
+    `canonical_name` must be the package's canonical name.
+
+    This function is needed since the canonicalized name does not necessarily
+    have the same length as the egg info's name part. An example::
+
+    >>> egg_info = 'foo__bar-1.0'
+    >>> canonical_name = 'foo-bar'
+    >>> _find_name_version_sep(egg_info, canonical_name)
+    8
+    """
+    # Project name and version must be separated by one single dash. Find all
+    # occurrences of dashes; if the string in front of it matches the canonical
+    # name, this is the one separating the name and version parts.
+    for i, c in enumerate(egg_info):
+        if c != "-":
+            continue
+        if canonicalize_name(egg_info[:i]) == canonical_name:
+            return i
+    raise ValueError("{} does not match {}".format(egg_info, canonical_name))
+
+
+def _egg_info_matches(egg_info, canonical_name):
     """Pull the version part out of a string.
 
     :param egg_info: The string to parse. E.g. foo-2.1
-    :param search_name: The name of the package this belongs to. None to
-        infer the name. Note that this cannot unambiguously parse strings
-        like foo-2-2 which might be foo, 2-2 or foo-2, 2.
-    :param link: The link the string came from, for logging on failure.
+    :param canonical_name: The canonicalized name of the package this
+        belongs to.
     """
-    match = _egg_info_re.search(egg_info)
-    if not match:
-        logger.debug('Could not parse version from link: %s', link)
+    try:
+        version_start = _find_name_version_sep(egg_info, canonical_name) + 1
+    except ValueError:
         return None
-    if search_name is None:
-        full_match = match.group(0)
-        return full_match.split('-', 1)[-1]
-    name = match.group(0).lower()
-    # To match the "safe" name that pkg_resources creates:
-    name = name.replace('_', '-')
-    # project name and version must be separated by a dash
-    look_for = search_name.lower() + "-"
-    if name.startswith(look_for):
-        return match.group(0)[len(look_for):]
-    else:
+    version = egg_info[version_start:]
+    if not version:
         return None
+    return version
 
 
 def _determine_base_url(document, page_url):

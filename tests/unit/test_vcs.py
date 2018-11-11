@@ -75,16 +75,9 @@ def git():
     git_url = 'https://github.com/pypa/pip-test-package'
     sha = '5547fa909e83df8bd743d3978d6667497983a4b7'
     git = Git()
-    git.get_url = Mock(return_value=git_url)
+    git.get_remote_url = Mock(return_value=git_url)
     git.get_revision = Mock(return_value=sha)
     return git
-
-
-@pytest.fixture
-def dist():
-    dist = Mock()
-    dist.egg_name = Mock(return_value='pip_test_package')
-    return dist
 
 
 def test_looks_like_hash():
@@ -97,14 +90,13 @@ def test_looks_like_hash():
 
 
 @pytest.mark.network
-def test_git_get_src_requirements(git, dist):
-    ret = git.get_src_requirement(dist, location='.')
+def test_git_get_src_requirements(git):
+    ret = git.get_src_requirement('.', 'pip-test-package')
 
-    assert ret == ''.join([
-        'git+https://github.com/pypa/pip-test-package',
-        '@5547fa909e83df8bd743d3978d6667497983a4b7',
-        '#egg=pip_test_package'
-    ])
+    assert ret == (
+        'git+https://github.com/pypa/pip-test-package'
+        '@5547fa909e83df8bd743d3978d6667497983a4b7#egg=pip_test_package'
+    )
 
 
 @patch('pip._internal.vcs.git.Git.get_revision_sha')
@@ -192,6 +184,9 @@ def test_git__get_netloc_and_auth(args, expected):
     (('user@example.com', 'https'), ('example.com', ('user', None))),
     # Test https with username and password.
     (('user:pass@example.com', 'https'), ('example.com', ('user', 'pass'))),
+    # Test https with URL-encoded reserved characters.
+    (('user%3Aname:%23%40%5E@example.com', 'https'),
+     ('example.com', ('user:name', '#@^'))),
     # Test ssh with username and password.
     (('user:pass@example.com', 'ssh'),
      ('user:pass@example.com', (None, None))),

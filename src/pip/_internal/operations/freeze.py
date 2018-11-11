@@ -157,10 +157,18 @@ def get_requirement_info(dist):
     vc_type = vcs.get_backend_type(location)
 
     if not vc_type:
-        return (None, False, [])
+        req = dist.as_requirement()
+        logger.debug(
+            'No VCS found for editable requirement {!r} in: {!r}', req,
+            location,
+        )
+        comments = [
+            '# Editable, no version control detected ({})'.format(req)
+        ]
+        return (location, True, comments)
 
     try:
-        req = vc_type().get_src_requirement(dist, location)
+        req = vc_type().get_src_requirement(location, dist.project_name)
     except BadCommand:
         logger.warning(
             'cannot determine version of editable source in %s '

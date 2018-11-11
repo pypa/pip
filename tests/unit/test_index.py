@@ -7,7 +7,8 @@ from pip._vendor import html5lib, requests
 
 from pip._internal.download import PipSession
 from pip._internal.index import (
-    Link, PackageFinder, _determine_base_url, _get_html_page, egg_info_matches,
+    Link, PackageFinder, _determine_base_url, _egg_info_matches,
+    _find_name_version_sep, _get_html_page,
 )
 
 
@@ -167,32 +168,92 @@ def test_get_formatted_locations_basic_auth():
 
 
 @pytest.mark.parametrize(
-    ("egg_info", "search_name", "expected"),
+    ("egg_info", "canonical_name", "expected"),
+    [
+        # Trivial.
+        ("pip-18.0", "pip", 3),
+        ("zope-interface-4.5.0", "zope-interface", 14),
+
+        # Canonicalized name match non-canonicalized egg info. (pypa/pip#5870)
+        ("Jinja2-2.10", "jinja2", 6),
+        ("zope.interface-4.5.0", "zope-interface", 14),
+        ("zope_interface-4.5.0", "zope-interface", 14),
+
+        # Should be smart enough to parse ambiguous names from the provided
+        # package name.
+        ("foo-2-2", "foo", 3),
+        ("foo-2-2", "foo-2", 5),
+
+        # Should be able to detect collapsed characters in the egg info.
+        ("foo--bar-1.0", "foo-bar", 8),
+        ("foo-_bar-1.0", "foo-bar", 8),
+
+        # The package name must not ends with a dash (PEP 508), so the first
+        # dash would be the separator, not the second.
+        ("zope.interface--4.5.0", "zope-interface", 14),
+        ("zope.interface--", "zope-interface", 14),
+
+        # The version part is missing, but the split function does not care.
+        ("zope.interface-", "zope-interface", 14),
+    ],
+)
+def test_find_name_version_sep(egg_info, canonical_name, expected):
+    index = _find_name_version_sep(egg_info, canonical_name)
+    assert index == expected
+
+
+@pytest.mark.parametrize(
+    ("egg_info", "canonical_name"),
+    [
+        # A dash must follow the package name.
+        ("zope.interface4.5.0", "zope-interface"),
+        ("zope.interface.4.5.0", "zope-interface"),
+        ("zope.interface.-4.5.0", "zope-interface"),
+        ("zope.interface", "zope-interface"),
+    ],
+)
+def test_find_name_version_sep_failure(egg_info, canonical_name):
+    with pytest.raises(ValueError) as ctx:
+        _find_name_version_sep(egg_info, canonical_name)
+    message = "{} does not match {}".format(egg_info, canonical_name)
+    assert str(ctx.value) == message
+
+
+@pytest.mark.parametrize(
+    ("egg_info", "canonical_name", "expected"),
     [
         # Trivial.
         ("pip-18.0", "pip", "18.0"),
-        ("pip-18.0", None, "18.0"),
+        ("zope-interface-4.5.0", "zope-interface", "4.5.0"),
 
-        # Non-canonical names.
+        # Canonicalized name match non-canonicalized egg info. (pypa/pip#5870)
         ("Jinja2-2.10", "jinja2", "2.10"),
-        ("jinja2-2.10", "Jinja2", "2.10"),
+        ("zope.interface-4.5.0", "zope-interface", "4.5.0"),
+        ("zope_interface-4.5.0", "zope-interface", "4.5.0"),
 
-        # Ambiguous names. Should be smart enough if the package name is
-        # provided, otherwise make a guess.
+        # Should be smart enough to parse ambiguous names from the provided
+        # package name.
         ("foo-2-2", "foo", "2-2"),
         ("foo-2-2", "foo-2", "2"),
-        ("foo-2-2", None, "2-2"),
-        ("im-valid", None, "valid"),
+        ("zope.interface--4.5.0", "zope-interface", "-4.5.0"),
+        ("zope.interface--", "zope-interface", "-"),
 
-        # Invalid names.
-        ("invalid", None, None),
-        ("im_invalid", None, None),
+        # Should be able to detect collapsed characters in the egg info.
+        ("foo--bar-1.0", "foo-bar", "1.0"),
+        ("foo-_bar-1.0", "foo-bar", "1.0"),
+
+        # Invalid.
         ("the-package-name-8.19", "does-not-match", None),
+        ("zope.interface.-4.5.0", "zope.interface", None),
+        ("zope.interface-", "zope-interface", None),
+        ("zope.interface4.5.0", "zope-interface", None),
+        ("zope.interface.4.5.0", "zope-interface", None),
+        ("zope.interface.-4.5.0", "zope-interface", None),
+        ("zope.interface", "zope-interface", None),
     ],
 )
-def test_egg_info_matches(egg_info, search_name, expected):
-    link = None     # Only used for reporting.
-    version = egg_info_matches(egg_info, search_name, link)
+def test_egg_info_matches(egg_info, canonical_name, expected):
+    version = _egg_info_matches(egg_info, canonical_name)
     assert version == expected
 
 

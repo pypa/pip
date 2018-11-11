@@ -542,12 +542,12 @@ class TestInstallRequirement(object):
         assert "Invalid requirement" in err_msg
         assert "= is not a valid operator. Did you mean == ?" in err_msg
 
-    def test_traceback(self):
+    def test_unidentifiable_name(self):
+        test_name = '-'
         with pytest.raises(InstallationError) as e:
-            install_req_from_line('toto 42')
+            install_req_from_line(test_name)
         err_msg = e.value.args[0]
-        assert "Invalid requirement" in err_msg
-        assert "\nTraceback " in err_msg
+        assert ("Invalid requirement: '%s'\n" % test_name) == err_msg
 
     def test_requirement_file(self):
         req_file_path = os.path.join(self.tempdir, 'test.txt')

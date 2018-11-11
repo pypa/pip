@@ -1,0 +1,1 @@
+Canonicalize sdist file names so they can be matched to a canonicalized package name passed to ``pip install``.
