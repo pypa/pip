@@ -93,8 +93,7 @@ def get_prog():
             return "%s -m pip" % sys.executable
     except (AttributeError, TypeError, IndexError):
         return 'pip'
-    else:
-        return prog
+    return prog
 
 
 # Retry every half second for up to 3 seconds
