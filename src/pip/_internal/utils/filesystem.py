@@ -16,9 +16,8 @@ def check_path_owner(path):
         if os.path.lexists(path):
             break
         previous, path = path, os.path.dirname(path)
-
-    # Assume we don't own the root path, which would make the following True.
-    if path == previous:
+    else:
+        # Assume we don't own the root path
         return False
 
     # Check if path is not writable by current user.
