@@ -603,6 +603,13 @@ class TestCheckRequiresPython(object):
         else:
             check_dist_requires_python(fake_dist)
 
+    def test_no_metadata(self):
+        fake_dist = Mock(
+            has_metadata=lambda _: False,
+            location="foo"
+        )
+        check_dist_requires_python(fake_dist)
+
 
 class TestGetProg(object):
 
