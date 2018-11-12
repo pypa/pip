@@ -1473,3 +1473,19 @@ def test_install_conflict_warning_can_be_suppressed(script, data):
         'install', '--no-index', pkgB_path, '--no-warn-conflicts'
     )
     assert "Successfully installed pkgB-2.0" in result2.stdout, str(result2)
+
+
+def test_target_install_ignores_distutils_config_install_prefix(script):
+    prefix = script.scratch_path / 'prefix'
+    Path(os.environ['HOME'], '.pydistutils.cfg').write(textwrap.dedent(
+        '''
+        [install]
+        prefix=%s
+        ''' % str(prefix)))
+    target = script.scratch_path / 'target'
+    result = script.pip_install_local('simplewheel', '-t', target)
+    assert (
+        "Successfully installed simplewheel" in result.stdout and
+        (target - script.base_path) in result.files_created and
+        (prefix - script.base_path) not in result.files_created
+    ), str(result)
