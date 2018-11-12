@@ -4,8 +4,6 @@ Contains functional tests of the Git class.
 
 import os
 
-import pytest
-
 from pip._internal.vcs.git import Git
 from tests.lib import _create_test_package, _git_commit, _test_path_to_file_url
 
@@ -162,7 +160,6 @@ def test_get_revision_sha(script):
         check_rev(repo_dir, name, (None, False))
 
 
-@pytest.mark.network
 def test_is_commit_id_equal(script):
     """
     Test Git.is_commit_id_equal().
