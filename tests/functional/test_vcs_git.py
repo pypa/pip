@@ -6,7 +6,6 @@ import os
 
 import pytest
 
-from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.vcs.git import Git
 from tests.lib import _create_test_package, _git_commit, _test_path_to_file_url
 
@@ -39,32 +38,35 @@ def check_rev(repo_dir, rev, expected):
     assert git.get_revision_sha(repo_dir, rev) == expected
 
 
-def test_git_dir_ignored():
+def test_git_dir_ignored(tmpdir):
     """
     Test that a GIT_DIR environment variable is ignored.
     """
-    git = Git()
-    with TempDirectory() as temp:
-        temp_dir = temp.path
-        env = {'GIT_DIR': 'foo'}
-        # If GIT_DIR is not ignored, then os.listdir() will return ['foo'].
-        git.run_command(['init', temp_dir], cwd=temp_dir, extra_environ=env)
-        assert os.listdir(temp_dir) == ['.git']
+    repo_path = tmpdir / 'test-repo'
+    repo_path.mkdir()
+    repo_dir = str(repo_path)
+
+    env = {'GIT_DIR': 'foo'}
+    # If GIT_DIR is not ignored, then os.listdir() will return ['foo'].
+    Git().run_command(['init', repo_dir], cwd=repo_dir, extra_environ=env)
+    assert os.listdir(repo_dir) == ['.git']
 
 
-def test_git_work_tree_ignored():
+def test_git_work_tree_ignored(tmpdir):
     """
     Test that a GIT_WORK_TREE environment variable is ignored.
     """
+    repo_path = tmpdir / 'test-repo'
+    repo_path.mkdir()
+    repo_dir = str(repo_path)
+
     git = Git()
-    with TempDirectory() as temp:
-        temp_dir = temp.path
-        git.run_command(['init', temp_dir], cwd=temp_dir)
-        # Choose a directory relative to the cwd that does not exist.
-        # If GIT_WORK_TREE is not ignored, then the command will error out
-        # with: "fatal: This operation must be run in a work tree".
-        env = {'GIT_WORK_TREE': 'foo'}
-        git.run_command(['status', temp_dir], extra_environ=env, cwd=temp_dir)
+    git.run_command(['init', repo_dir], cwd=repo_dir)
+    # Choose a directory relative to the cwd that does not exist.
+    # If GIT_WORK_TREE is not ignored, then the command will error out
+    # with: "fatal: This operation must be run in a work tree".
+    env = {'GIT_WORK_TREE': 'foo'}
+    git.run_command(['status', repo_dir], extra_environ=env, cwd=repo_dir)
 
 
 def test_get_remote_url(script, tmpdir):
@@ -83,8 +85,9 @@ def test_get_remote_url(script, tmpdir):
     assert remote_url == source_url
 
 
-def test_get_branch(script, tmpdir):
-    repo_dir = str(tmpdir)
+def test_get_branch(script):
+    repo_dir = str(script.scratch_path)
+
     script.run('git', 'init', cwd=repo_dir)
     sha = do_commit(script, repo_dir)
 
@@ -105,58 +108,58 @@ def test_get_branch(script, tmpdir):
 
 
 def test_get_revision_sha(script):
-    with TempDirectory(kind="testing") as temp:
-        repo_dir = temp.path
-        script.run('git', 'init', cwd=repo_dir)
-        shas = add_commits(script, repo_dir, count=3)
+    repo_dir = str(script.scratch_path)
 
-        tag_sha = shas[0]
-        origin_sha = shas[1]
-        head_sha = shas[2]
-        assert head_sha == shas[-1]
+    script.run('git', 'init', cwd=repo_dir)
+    shas = add_commits(script, repo_dir, count=3)
 
-        origin_ref = 'refs/remotes/origin/origin-branch'
-        generic_ref = 'refs/generic-ref'
+    tag_sha = shas[0]
+    origin_sha = shas[1]
+    head_sha = shas[2]
+    assert head_sha == shas[-1]
 
-        script.run(
-            'git', 'branch', 'local-branch', head_sha, cwd=repo_dir
-        )
-        script.run('git', 'tag', 'v1.0', tag_sha, cwd=repo_dir)
-        script.run('git', 'update-ref', origin_ref, origin_sha, cwd=repo_dir)
-        script.run(
-            'git', 'update-ref', 'refs/remotes/upstream/upstream-branch',
-            head_sha, cwd=repo_dir
-        )
-        script.run('git', 'update-ref', generic_ref, head_sha, cwd=repo_dir)
+    origin_ref = 'refs/remotes/origin/origin-branch'
+    generic_ref = 'refs/generic-ref'
 
-        # Test two tags pointing to the same sha.
-        script.run('git', 'tag', 'v2.0', tag_sha, cwd=repo_dir)
-        # Test tags sharing the same suffix as another tag, both before and
-        # after the suffix alphabetically.
-        script.run('git', 'tag', 'aaa/v1.0', head_sha, cwd=repo_dir)
-        script.run('git', 'tag', 'zzz/v1.0', head_sha, cwd=repo_dir)
+    script.run(
+        'git', 'branch', 'local-branch', head_sha, cwd=repo_dir
+    )
+    script.run('git', 'tag', 'v1.0', tag_sha, cwd=repo_dir)
+    script.run('git', 'update-ref', origin_ref, origin_sha, cwd=repo_dir)
+    script.run(
+        'git', 'update-ref', 'refs/remotes/upstream/upstream-branch',
+        head_sha, cwd=repo_dir
+    )
+    script.run('git', 'update-ref', generic_ref, head_sha, cwd=repo_dir)
 
-        check_rev(repo_dir, 'v1.0', (tag_sha, False))
-        check_rev(repo_dir, 'v2.0', (tag_sha, False))
-        check_rev(repo_dir, 'origin-branch', (origin_sha, True))
+    # Test two tags pointing to the same sha.
+    script.run('git', 'tag', 'v2.0', tag_sha, cwd=repo_dir)
+    # Test tags sharing the same suffix as another tag, both before and
+    # after the suffix alphabetically.
+    script.run('git', 'tag', 'aaa/v1.0', head_sha, cwd=repo_dir)
+    script.run('git', 'tag', 'zzz/v1.0', head_sha, cwd=repo_dir)
 
-        ignored_names = [
-            # Local branches should be ignored.
-            'local-branch',
-            # Non-origin remote branches should be ignored.
-            'upstream-branch',
-            # Generic refs should be ignored.
-            'generic-ref',
-            # Fully spelled-out refs should be ignored.
-            origin_ref,
-            generic_ref,
-            # Test passing a valid commit hash.
-            tag_sha,
-            # Test passing a non-existent name.
-            'does-not-exist',
-        ]
-        for name in ignored_names:
-            check_rev(repo_dir, name, (None, False))
+    check_rev(repo_dir, 'v1.0', (tag_sha, False))
+    check_rev(repo_dir, 'v2.0', (tag_sha, False))
+    check_rev(repo_dir, 'origin-branch', (origin_sha, True))
+
+    ignored_names = [
+        # Local branches should be ignored.
+        'local-branch',
+        # Non-origin remote branches should be ignored.
+        'upstream-branch',
+        # Generic refs should be ignored.
+        'generic-ref',
+        # Fully spelled-out refs should be ignored.
+        origin_ref,
+        generic_ref,
+        # Test passing a valid commit hash.
+        tag_sha,
+        # Test passing a non-existent name.
+        'does-not-exist',
+    ]
+    for name in ignored_names:
+        check_rev(repo_dir, name, (None, False))
 
 
 @pytest.mark.network
