@@ -8,7 +8,7 @@ import pytest
 
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.vcs.git import Git
-from tests.lib import _create_test_package, _test_path_to_file_url
+from tests.lib import _create_test_package, _git_commit, _test_path_to_file_url
 
 
 def get_head_sha(script, dest):
@@ -20,10 +20,7 @@ def get_head_sha(script, dest):
 
 
 def do_commit(script, dest):
-    script.run(
-        'git', 'commit', '-q', '--author', 'pip <pypa-dev@googlegroups.com>',
-        '--allow-empty', '-m', 'test commit', cwd=dest
-    )
+    _git_commit(script, dest, message='test commit', args=['--allow-empty'])
     return get_head_sha(script, dest)
 
 
