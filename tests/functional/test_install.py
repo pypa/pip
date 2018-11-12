@@ -1477,7 +1477,10 @@ def test_install_conflict_warning_can_be_suppressed(script, data):
 
 def test_target_install_ignores_distutils_config_install_prefix(script):
     prefix = script.scratch_path / 'prefix'
-    Path(os.environ['HOME'], '.pydistutils.cfg').write(textwrap.dedent(
+    distutils_config = Path(os.path.expanduser('~'),
+                            'pydistutils.cfg' if sys.platform == 'win32'
+                            else '.pydistutils.cfg')
+    distutils_config.write(textwrap.dedent(
         '''
         [install]
         prefix=%s
