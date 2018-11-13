@@ -17,6 +17,16 @@ and ensuring reproducible environments for linting and building documentation.
 For developing pip, you need to install ``tox`` on your system. Often, you can
 just do ``python -m pip install tox`` to install and use it.
 
+Running pip From Source Tree
+----------------------------
+
+To run the pip executable from your source tree during development, run pip
+from the ``src`` directory:
+
+.. code-block:: console
+
+    $ python src/pip --version
+
 Running Tests
 -------------
 
