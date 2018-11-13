@@ -3,9 +3,9 @@ import sys
 
 import pytest
 from mock import Mock, patch
+from pip._vendor import requests
 from pkg_resources import Distribution, parse_version
 
-from pip._vendor import requests
 import pip._internal.pep425tags
 import pip._internal.wheel
 from pip._internal.download import PipSession
@@ -13,10 +13,7 @@ from pip._internal.exceptions import (
     BestVersionAlreadyInstalled, DistributionNotFound,
 )
 from pip._internal.index import (
-    InstallationCandidate,
-    HostTracker,
-    Link,
-    PackageFinder,
+    HostTracker, InstallationCandidate, Link, PackageFinder,
 )
 from pip._internal.req.constructors import install_req_from_line
 
@@ -291,10 +288,12 @@ class TestHostTracker:
         tracker = HostTracker()
         tracker.track('oy')
         assert tracker.is_tracked('oy')
+        assert not tracker.is_tracked('yo')
 
     def test_not_tracked(self):
         tracker = HostTracker()
         assert not tracker.is_tracked('oy')
+        assert not tracker.is_tracked('yo')
 
 
 def _request_patcher(session, side_effect):

@@ -177,11 +177,8 @@ def _handle_get_page_fail(link, reason, url, meth=None):
 def _get_html_page(link, session=None, unresponsive_hosts=None):
     if session is None:
         raise TypeError(
-            "_get_html_page() missing required keyword argument: 'session'"
-        )
-    if unresponsive_hosts is None:
-        raise TypeError(
-            "_get_html_page() missing required keyword argument: 'unresponsive_hosts'"
+            "_get_html_page() missing required keyword argument: "
+            "'session'"
         )
 
     url = link.url.split('#', 1)[0]
@@ -201,7 +198,11 @@ def _get_html_page(link, session=None, unresponsive_hosts=None):
             url += '/'
         url = urllib_parse.urljoin(url, 'index.html')
         logger.debug(' file: URL is directory, getting %s', url)
-    if scheme != 'file' and unresponsive_hosts.is_tracked(netloc):
+    if (
+        scheme != 'file' and
+        unresponsive_hosts and
+        unresponsive_hosts.is_tracked(netloc)
+    ):
         logger.debug(
             'Skipping page %s because host %s is ignored '
             'due to a previous connection error',
@@ -232,8 +233,13 @@ def _get_html_page(link, session=None, unresponsive_hosts=None):
         _handle_get_page_fail(link, reason, url, meth=logger.info)
     except requests.ConnectionError as exc:
         # connection failures are not retried
-        _handle_get_page_fail(link, "connection error: %s" % exc, url, logger.warning)
-        unresponsive_hosts.track(netloc)
+        _handle_get_page_fail(
+            link,
+            "connection error: %s" % exc,
+            url,
+            logger.warning,
+        )
+        unresponsive_hosts and unresponsive_hosts.track(netloc)
     except requests.Timeout:
         _handle_get_page_fail(link, "timed out", url)
     else:
@@ -762,7 +768,11 @@ class PackageFinder(object):
                 continue
             seen.add(location)
 
-            page = _get_html_page(location, session=self.session, unresponsive_hosts=self.unresponsive_hosts)
+            page = _get_html_page(
+                link=location,
+                session=self.session,
+                unresponsive_hosts=self.unresponsive_hosts,
+            )
             if page is None:
                 continue
 
