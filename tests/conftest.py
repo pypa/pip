@@ -236,7 +236,8 @@ def virtualenv_template(request, tmpdir_factory, pip_src,
     pip_editable = Path(str(tmpdir_factory.mktemp('pip'))) / 'pip'
     pip_src.copytree(pip_editable)
     assert compileall.compile_dir(str(pip_editable), quiet=1)
-    subprocess.check_call([venv.bin / 'python', 'setup.py', '-q', 'develop'],
+    subprocess.check_call([venv.bin / 'python', 'setup.py',
+                          '--no-user-cfg', '--quiet', 'develop'],
                           cwd=pip_editable)
 
     # Drop (non-relocatable) launchers.
