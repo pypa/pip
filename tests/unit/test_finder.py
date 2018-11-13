@@ -5,13 +5,19 @@ import pytest
 from mock import Mock, patch
 from pkg_resources import Distribution, parse_version
 
+from pip._vendor import requests
 import pip._internal.pep425tags
 import pip._internal.wheel
 from pip._internal.download import PipSession
 from pip._internal.exceptions import (
     BestVersionAlreadyInstalled, DistributionNotFound,
 )
-from pip._internal.index import InstallationCandidate, Link, PackageFinder
+from pip._internal.index import (
+    InstallationCandidate,
+    HostTracker,
+    Link,
+    PackageFinder,
+)
 from pip._internal.req.constructors import install_req_from_line
 
 
@@ -278,6 +284,49 @@ class TestWheel:
         results2 = sorted(reversed(links), key=finder._candidate_sort_key,
                           reverse=True)
         assert links == results == results2, results2
+
+
+class TestHostTracker:
+    def test_tracked(self):
+        tracker = HostTracker()
+        tracker.track('oy')
+        assert tracker.is_tracked('oy')
+
+    def test_not_tracked(self):
+        tracker = HostTracker()
+        assert not tracker.is_tracked('oy')
+
+
+def _request_patcher(session, side_effect):
+    _fake_failed_request = Mock()
+    _fake_failed_request.side_effect = side_effect
+    return patch.object(session, "request", _fake_failed_request)
+
+
+class TestFinderHostUnreachable:
+    def test_invalid_url(self):
+        """Check we skip hosts that have connection problems"""
+        session = PipSession()
+        finder = PackageFinder(
+            [],
+            # two matching hosts, and other
+            ["http://foo/path1/", "http://bar/path2/", "http://foo/path3/"],
+            session=session,
+            trusted_hosts=["foo", "bar"],
+        )
+        req = install_req_from_line('gmpy==1.15', None)
+
+        with _request_patcher(session, requests.Timeout) as requester:
+            finder.find_all_candidates(req.name)
+            assert requester.call_count == 3
+            assert not finder.unresponsive_hosts.is_tracked("foo")
+            assert not finder.unresponsive_hosts.is_tracked("bar")
+
+        with _request_patcher(session, requests.ConnectionError) as requester:
+            finder.find_all_candidates(req.name)
+            assert requester.call_count == 2
+            assert finder.unresponsive_hosts.is_tracked("foo")
+            assert finder.unresponsive_hosts.is_tracked("bar")
 
 
 def test_finder_priority_file_over_page(data):
