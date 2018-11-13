@@ -174,10 +174,14 @@ def _handle_get_page_fail(link, reason, url, meth=None):
     meth("Could not fetch URL %s: %s - skipping", link, reason)
 
 
-def _get_html_page(link, session=None):
+def _get_html_page(link, session=None, unresponsive_hosts=None):
     if session is None:
         raise TypeError(
-            "_get_html_page() missing 1 required keyword argument: 'session'"
+            "_get_html_page() missing required keyword argument: 'session'"
+        )
+    if unresponsive_hosts is None:
+        raise TypeError(
+            "_get_html_page() missing required keyword argument: 'unresponsive_hosts'"
         )
 
     url = link.url.split('#', 1)[0]
@@ -189,7 +193,7 @@ def _get_html_page(link, session=None):
         return None
 
     # Tack index.html onto file:// URLs that point to directories
-    scheme, _, path, _, _, _ = urllib_parse.urlparse(url)
+    scheme, netloc, path, _, _, _ = urllib_parse.urlparse(url)
     if (scheme == 'file' and os.path.isdir(urllib_request.url2pathname(path))):
         # add trailing slash if not present so urljoin doesn't trim
         # final segment
@@ -197,6 +201,14 @@ def _get_html_page(link, session=None):
             url += '/'
         url = urllib_parse.urljoin(url, 'index.html')
         logger.debug(' file: URL is directory, getting %s', url)
+    if scheme != 'file' and unresponsive_hosts.is_tracked(netloc):
+        logger.debug(
+            'Skipping page %s because host %s is ignored '
+            'due to a previous connection error',
+            link,
+            netloc,
+        )
+        return None
 
     try:
         resp = _get_html_response(url, session=session)
@@ -219,11 +231,30 @@ def _get_html_page(link, session=None):
         reason += str(exc)
         _handle_get_page_fail(link, reason, url, meth=logger.info)
     except requests.ConnectionError as exc:
-        _handle_get_page_fail(link, "connection error: %s" % exc, url)
+        # connection failures are not retried
+        _handle_get_page_fail(link, "connection error: %s" % exc, url, logger.warning)
+        unresponsive_hosts.track(netloc)
     except requests.Timeout:
         _handle_get_page_fail(link, "timed out", url)
     else:
         return HTMLPage(resp.content, resp.url, resp.headers)
+
+
+class HostTracker(object):
+    """This tracks any hosts that appear unresponsive
+
+    This would allow link resolution to attempt other,
+    working hosts instead.
+    """
+
+    def __init__(self):
+        self._store = set()
+
+    def track(self, host):
+        self._store.add(host)
+
+    def is_tracked(self, host):
+        return host in self._store
 
 
 class PackageFinder(object):
@@ -320,6 +351,9 @@ class PackageFinder(object):
                         "available."
                     )
                     break
+
+        # Tracking for unresponsive hosts
+        self.unresponsive_hosts = HostTracker()
 
     def get_formatted_locations(self):
         lines = []
@@ -728,7 +762,7 @@ class PackageFinder(object):
                 continue
             seen.add(location)
 
-            page = _get_html_page(location, session=self.session)
+            page = _get_html_page(location, session=self.session, unresponsive_hosts=self.unresponsive_hosts)
             if page is None:
                 continue
 
