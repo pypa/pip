@@ -180,6 +180,8 @@ def _get_html_page(link, session=None, unresponsive_hosts=None):
             "_get_html_page() missing required keyword argument: "
             "'session'"
         )
+    if unresponsive_hosts is None:
+        unresponsive_hosts = set()
 
     url = link.url.split('#', 1)[0]
 
@@ -198,16 +200,12 @@ def _get_html_page(link, session=None, unresponsive_hosts=None):
             url += '/'
         url = urllib_parse.urljoin(url, 'index.html')
         logger.debug(' file: URL is directory, getting %s', url)
-    if (
-        scheme != 'file' and
-        unresponsive_hosts and
-        unresponsive_hosts.is_tracked(netloc)
-    ):
+
+    # Skip links where the host has previously been unreachable
+    if netloc in unresponsive_hosts:
         logger.debug(
             'Skipping page %s because host %s is ignored '
-            'due to a previous connection error',
-            link,
-            netloc,
+            'due to a previous connection error', link, netloc,
         )
         return None
 
@@ -232,35 +230,17 @@ def _get_html_page(link, session=None, unresponsive_hosts=None):
         reason += str(exc)
         _handle_get_page_fail(link, reason, url, meth=logger.info)
     except requests.ConnectionError as exc:
-        # connection failures are not retried
+        unresponsive_hosts.add(netloc)
         _handle_get_page_fail(
             link,
             "connection error: %s" % exc,
             url,
             logger.warning,
         )
-        unresponsive_hosts and unresponsive_hosts.track(netloc)
     except requests.Timeout:
         _handle_get_page_fail(link, "timed out", url)
     else:
         return HTMLPage(resp.content, resp.url, resp.headers)
-
-
-class HostTracker(object):
-    """This tracks any hosts that appear unresponsive
-
-    This would allow link resolution to attempt other,
-    working hosts instead.
-    """
-
-    def __init__(self):
-        self._store = set()
-
-    def track(self, host):
-        self._store.add(host)
-
-    def is_tracked(self, host):
-        return host in self._store
 
 
 class PackageFinder(object):
@@ -358,8 +338,8 @@ class PackageFinder(object):
                     )
                     break
 
-        # Tracking for unresponsive hosts
-        self.unresponsive_hosts = HostTracker()
+        # Tracking unresponsive hosts - avoids repeated connection failures
+        self.unresponsive_hosts = set()
 
     def get_formatted_locations(self):
         lines = []
