@@ -131,7 +131,7 @@ def test_get_html_page_invalid_scheme(caplog, url, vcs_scheme):
     Only file:, http:, https:, and ftp: are allowed.
     """
     with caplog.at_level(logging.DEBUG):
-        page = _get_html_page(Link(url), session=mock.Mock(PipSession))
+        page = _get_html_page(Link(url), mock.Mock(PipSession), set())
 
     assert page is None
     assert caplog.record_tuples == [
@@ -153,7 +153,7 @@ def test_get_html_page_directory_append_index(tmpdir):
 
     session = mock.Mock(PipSession)
     with mock.patch("pip._internal.index._get_html_response") as mock_func:
-        _get_html_page(Link(dir_url), session=session)
+        _get_html_page(Link(dir_url), session, set())
         assert mock_func.mock_calls == [
             mock.call(
                 "{}/index.html".format(dir_url.rstrip("/")),

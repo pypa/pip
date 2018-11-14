@@ -168,21 +168,21 @@ def _get_html_response(url, session):
     return resp
 
 
-def _handle_get_page_fail(link, reason, url, meth=None):
-    if meth is None:
-        meth = logger.debug
-    meth("Could not fetch URL %s: %s - skipping", link, reason)
+def _handle_get_page_fail(link, reason, log_level=logging.DEBUG):
+    logger.log(log_level,
+               "Could not fetch URL %s: %s - skipping", link, reason)
 
 
-def _get_html_page(link, session=None, unresponsive_hosts=None):
-    if session is None:
-        raise TypeError(
-            "_get_html_page() missing required keyword argument: "
-            "'session'"
-        )
-    if unresponsive_hosts is None:
-        unresponsive_hosts = set()
+def _get_html_page(link, session, unresponsive_hosts):
+    """Fetches a HTMLPage from the given link, or None
 
+    :type link: pip._internal.models.link.Link
+    :type session: pip._internal.download.PipSession
+    :param unresponsive_hosts:
+        A mutable set of hosts to skip; added to if a ConnectionError occurs
+    :type unresponsive_hosts: set
+    :rtype: HTMLPage, None
+    """
     url = link.url.split('#', 1)[0]
 
     # Check for VCS schemes that do not support lookup as web pages.
@@ -193,7 +193,7 @@ def _get_html_page(link, session=None, unresponsive_hosts=None):
 
     # Tack index.html onto file:// URLs that point to directories
     scheme, netloc, path, _, _, _ = urllib_parse.urlparse(url)
-    if (scheme == 'file' and os.path.isdir(urllib_request.url2pathname(path))):
+    if scheme == 'file' and os.path.isdir(urllib_request.url2pathname(path)):
         # add trailing slash if not present so urljoin doesn't trim
         # final segment
         if not url.endswith('/'):
@@ -211,7 +211,7 @@ def _get_html_page(link, session=None, unresponsive_hosts=None):
 
     try:
         resp = _get_html_response(url, session=session)
-    except _NotHTTP as exc:
+    except _NotHTTP:
         logger.debug(
             'Skipping page %s because it looks like an archive, and cannot '
             'be checked by HEAD.', link,
@@ -222,23 +222,19 @@ def _get_html_page(link, session=None, unresponsive_hosts=None):
             link, exc.request_desc, exc.content_type,
         )
     except requests.HTTPError as exc:
-        _handle_get_page_fail(link, exc, url)
+        _handle_get_page_fail(link, exc)
     except RetryError as exc:
-        _handle_get_page_fail(link, exc, url)
+        _handle_get_page_fail(link, exc)
     except SSLError as exc:
         reason = "There was a problem confirming the ssl certificate: "
         reason += str(exc)
-        _handle_get_page_fail(link, reason, url, meth=logger.info)
+        _handle_get_page_fail(link, reason, log_level=logging.INFO)
     except requests.ConnectionError as exc:
         unresponsive_hosts.add(netloc)
         _handle_get_page_fail(
-            link,
-            "connection error: %s" % exc,
-            url,
-            logger.warning,
-        )
+            link, "connection error: %s" % exc, logging.WARN)
     except requests.Timeout:
-        _handle_get_page_fail(link, "timed out", url)
+        _handle_get_page_fail(link, "timed out")
     else:
         return HTMLPage(resp.content, resp.url, resp.headers)
 
