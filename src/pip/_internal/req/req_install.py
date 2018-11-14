@@ -473,16 +473,6 @@ class InstallRequirement(object):
         Under legacy processing, call setup.py egg-info.
         """
         assert self.source_dir
-        if self.name:
-            logger.debug(
-                'Running setup.py (path:%s) egg_info for package %s',
-                self.setup_py, self.name,
-            )
-        else:
-            logger.debug(
-                'Running setup.py (path:%s) egg_info for package from %s',
-                self.setup_py, self.link,
-            )
 
         with indent_log():
             if self.use_pep517:
@@ -536,6 +526,16 @@ class InstallRequirement(object):
         self.metadata_directory = os.path.join(metadata_dir, distinfo_dir)
 
     def run_egg_info(self):
+        if self.name:
+            logger.debug(
+                'Running setup.py (path:%s) egg_info for package %s',
+                self.setup_py, self.name,
+            )
+        else:
+            logger.debug(
+                'Running setup.py (path:%s) egg_info for package from %s',
+                self.setup_py, self.link,
+            )
         script = SETUPTOOLS_SHIM % self.setup_py
         base_cmd = [sys.executable, '-c', script]
         if self.isolated:
