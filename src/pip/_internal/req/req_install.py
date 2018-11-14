@@ -117,7 +117,6 @@ class InstallRequirement(object):
         self.pyproject_requires = None
 
         # Build requirements that we will check are available
-        # TODO: We don't do this for --no-build-isolation. Should we?
         self.requirements_to_check = []
 
         # The PEP 517 backend we should use to build the project
