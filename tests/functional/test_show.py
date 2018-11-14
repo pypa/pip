@@ -25,7 +25,7 @@ def test_basic_json_show(script):
     """
     Test end to end test for show command with JSON option.
     """
-    result = script.pip('show', '--json', 'pip')
+    result = script.pip('show', '--format=json', 'pip')
     parsed_json = json.loads(result.stdout)
     assert parsed_json
     assert len(parsed_json) == 1
@@ -60,7 +60,7 @@ def test_show_json_with_files_not_found(script, data):
     """
     editable = data.packages.join('SetupPyUTF8')
     script.pip('install', '-e', editable)
-    result = script.pip('show', '--json', '-f', 'SetupPyUTF8')
+    result = script.pip('show', '--format=json', '-f', 'SetupPyUTF8')
     parsed_json = json.loads(result.stdout)
     assert len(parsed_json) == 1
     assert parsed_json[0]["Name"] == "SetupPyUTF8"
@@ -101,7 +101,7 @@ def test_show_json_with_all_files(script):
     Test listing all files in the show command with JSON option enabled.
     """
     script.pip('install', 'initools==0.2')
-    result = script.pip('show', '--json', '--files', 'initools')
+    result = script.pip('show', '--format=json', '--files', 'initools')
     parsed_json = json.loads(result.stdout)[0]
     assert parsed_json
     assert parsed_json["Files"] != "Cannot locate installed-files.txt"
@@ -181,7 +181,7 @@ def test_show_json_verbose(script):
     """
     Test end to end test for verbose show command with JSON option enabled.
     """
-    result = script.pip('show', '--json', '--verbose', 'pip')
+    result = script.pip('show', '--format=json', '--verbose', 'pip')
     parsed_json = json.loads(result.stdout)
     assert len(parsed_json) == 1
     assert "MetadataVersion" in parsed_json[0]

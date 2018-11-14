@@ -20,7 +20,7 @@ class ShowCommand(Command):
     """
     Show information about one or more installed packages.
 
-    The output is in RFC-compliant mail header format.
+    The default output is in RFC-compliant mail header format.
     """
     name = 'show'
     usage = """
@@ -30,19 +30,25 @@ class ShowCommand(Command):
 
     def __init__(self, *args, **kw):
         super(ShowCommand, self).__init__(*args, **kw)
-        self.cmd_opts.add_option(
+
+        cmd_opts = self.cmd_opts
+
+        cmd_opts.add_option(
             '-f', '--files',
             dest='files',
             action='store_true',
             default=False,
             help='Show the full list of installed files for each package.')
-        self.cmd_opts.add_option(
-            '--json',
-            action='store_true',
-            default=False,
-            help='Show full output in JSON format.')
+        cmd_opts.add_option(
+            '--format',
+            action='store',
+            dest='show_format',
+            default="header",
+            choices=('header', 'json'),
+            help="Select the output format among: header (default) or json",
+        )
 
-        self.parser.insert_option_group(0, self.cmd_opts)
+        self.parser.insert_option_group(0, cmd_opts)
 
     def run(self, options, args):
         if not args:
@@ -52,7 +58,7 @@ class ShowCommand(Command):
 
         results = search_packages_info(query)
 
-        if options.json:
+        if options.show_format == 'json':
             print_results = print_json
         else:
             print_results = print_header_format
