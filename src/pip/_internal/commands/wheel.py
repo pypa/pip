@@ -159,6 +159,7 @@ class WheelCommand(RequirementCommand):
                         ignore_requires_python=options.ignore_requires_python,
                         ignore_installed=True,
                         isolated=options.isolated_mode,
+                        use_pep517=options.use_pep517
                     )
                     resolver.resolve(requirement_set)
 
