@@ -28,7 +28,7 @@ def test_basic_json_show(script):
     result = script.pip('show', '--json', 'pip')
     parsed_json = json.loads(result.stdout)
     assert parsed_json
-    assert parsed_json[0]
+    assert len(parsed_json) == 1
     assert parsed_json[0]["Name"] == "pip"
     assert parsed_json[0]["Version"] == __version__
     assert "Location" in parsed_json[0]
@@ -62,7 +62,7 @@ def test_show_json_with_files_not_found(script, data):
     script.pip('install', '-e', editable)
     result = script.pip('show', '--json', '-f', 'SetupPyUTF8')
     parsed_json = json.loads(result.stdout)
-    assert parsed_json[0]
+    assert len(parsed_json) == 1
     assert parsed_json[0]["Name"] == "SetupPyUTF8"
     assert parsed_json[0]["Version"] == "0.0.0"
     assert "Location" in parsed_json[0]
@@ -183,7 +183,7 @@ def test_show_json_verbose(script):
     """
     result = script.pip('show', '--json', '--verbose', 'pip')
     parsed_json = json.loads(result.stdout)
-    assert parsed_json[0]
+    assert len(parsed_json) == 1
     assert "MetadataVersion" in parsed_json[0]
     assert "Installer" in parsed_json[0]
     assert "EntryPoints" in parsed_json[0]

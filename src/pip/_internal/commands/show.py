@@ -259,6 +259,6 @@ def print_json(distributions, list_files=False, verbose=False):
                                  "Cannot locate installed-files.txt")])
 
         all_results.append(OrderedDict(results))
-    print(json.dumps(all_results, indent=4))
+    logger.info(json.dumps(all_results, indent=4))
 
     return results_printed
