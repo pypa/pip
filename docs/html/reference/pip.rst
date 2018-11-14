@@ -157,8 +157,12 @@ will be assumed to have the following backend settings::
     requires = ["setuptools>=40.2.0", "wheel"]
     build-backend = "setuptools.build_meta"
 
-(``setuptools`` 40.2.0 is the first version with full :pep:`517` support). If
-a project has ``[build-system]``, but no ``build-backend``, pip will use
+.. note::
+
+    ``setuptools`` 40.2.0 is the first version of setuptools with full
+    :pep:`517` support.
+    
+If a project has ``[build-system]``, but no ``build-backend``, pip will use
 ``setuptools.build_meta``, but will assume the project requirements include
 ``setuptools>=40.2.0`` and ``wheel`` (and will report an error if not).
 
