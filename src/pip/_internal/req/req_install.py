@@ -765,7 +765,6 @@ class InstallRequirement(object):
 
     # TODO: Investigate if this should be kept in InstallRequirement
     #       Seems to be used only when VCS + downloads
-    # TODO: Consider PEP 517 implications
     def archive(self, build_dir):
         assert self.source_dir
         create_archive = True
