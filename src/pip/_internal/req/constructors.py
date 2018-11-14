@@ -274,7 +274,8 @@ def install_req_from_line(
 
 
 def install_req_from_req(
-    req, comes_from=None, isolated=False, wheel_cache=None
+    req, comes_from=None, isolated=False, wheel_cache=None,
+    use_pep517=None
 ):
     try:
         req = Requirement(req)
@@ -293,7 +294,7 @@ def install_req_from_req(
             "%s depends on %s " % (comes_from.name, req)
         )
 
-    # TODO: use_pep517?
     return InstallRequirement(
-        req, comes_from, isolated=isolated, wheel_cache=wheel_cache
+        req, comes_from, isolated=isolated, wheel_cache=wheel_cache,
+        use_pep517=use_pep517
     )

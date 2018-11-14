@@ -35,7 +35,7 @@ class Resolver(object):
 
     def __init__(self, preparer, session, finder, wheel_cache, use_user_site,
                  ignore_dependencies, ignore_installed, ignore_requires_python,
-                 force_reinstall, isolated, upgrade_strategy):
+                 force_reinstall, isolated, upgrade_strategy, use_pep517=None):
         super(Resolver, self).__init__()
         assert upgrade_strategy in self._allowed_strategies
 
@@ -56,6 +56,7 @@ class Resolver(object):
         self.ignore_installed = ignore_installed
         self.ignore_requires_python = ignore_requires_python
         self.use_user_site = use_user_site
+        self.use_pep517 = use_pep517
 
         self._discovered_dependencies = defaultdict(list)
 
@@ -273,6 +274,7 @@ class Resolver(object):
                 req_to_install,
                 isolated=self.isolated,
                 wheel_cache=self.wheel_cache,
+                use_pep517=self.use_pep517
             )
             parent_req_name = req_to_install.name
             to_scan_again, add_to_parent = requirement_set.add_requirement(
