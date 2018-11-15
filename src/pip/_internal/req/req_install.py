@@ -568,30 +568,30 @@ class InstallRequirement(object):
             if self.editable:
                 filenames = []
                 for root, dirs, files in os.walk(base):
-                    for dir in vcs.dirnames:
-                        if dir in dirs:
-                            dirs.remove(dir)
+                    for dir_ in vcs.dirnames:
+                        if dir_ in dirs:
+                            dirs.remove(dir_)
                     # Iterate over a copy of ``dirs``, since mutating
                     # a list while iterating over it can cause trouble.
                     # (See https://github.com/pypa/pip/pull/462.)
-                    for dir in list(dirs):
+                    for dir_ in list(dirs):
                         # Don't search in anything that looks like a virtualenv
                         # environment
                         if (
                                 os.path.lexists(
-                                    os.path.join(root, dir, 'bin', 'python')
+                                    os.path.join(root, dir_, 'bin', 'python')
                                 ) or
                                 os.path.exists(
                                     os.path.join(
-                                        root, dir, 'Scripts', 'Python.exe'
+                                        root, dir_, 'Scripts', 'Python.exe'
                                     )
                                 )):
-                            dirs.remove(dir)
+                            dirs.remove(dir_)
                         # Also don't search through tests
-                        elif dir == 'test' or dir == 'tests':
-                            dirs.remove(dir)
-                    filenames.extend([os.path.join(root, dir)
-                                      for dir in dirs])
+                        elif dir_ == 'test' or dir_ == 'tests':
+                            dirs.remove(dir_)
+                    filenames.extend([os.path.join(root, dir_)
+                                      for dir_ in dirs])
                 filenames = [f for f in filenames if f.endswith('.egg-info')]
 
             if not filenames:
