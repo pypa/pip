@@ -88,7 +88,7 @@ def load_pyproject_toml(use_pep517, pyproject_toml, setup_py, req_name):
         # assume the setuptools backend, and require wheel and a version
         # of setuptools that supports that backend.
         build_system = {
-            "requires": ["setuptools>=38.2.5", "wheel"],
+            "requires": ["setuptools>=40.2.0", "wheel"],
             "build-backend": "setuptools.build_meta",
         }
 
@@ -131,14 +131,13 @@ def load_pyproject_toml(use_pep517, pyproject_toml, setup_py, req_name):
         # (which is neede by the backend) in their requirements. So we
         # make a note to check that those requirements are present once
         # we have set up the environment.
-        # TODO: Review this - it's quite a lot of work to check for a very
-        # specific case. The problem is, that case is potentially quite
-        # common - projects that adopted PEP 518 early for the ability to
-        # specify requirements to execute setup.py, but never considered
-        # needing to mention the build tools themselves. The original PEP
-        # 518 code had a similar check (but implemented in a different
-        # way).
+        # This is quite a lot of work to check for a very specific case. But
+        # the problem is, that case is potentially quite common - projects that
+        # adopted PEP 518 early for the ability to specify requirements to
+        # execute setup.py, but never considered needing to mention the build
+        # tools themselves. The original PEP 518 code had a similar check (but
+        # implemented in a different way).
         backend = "setuptools.build_meta"
-        check = ["setuptools>=38.2.5", "wheel"]
+        check = ["setuptools>=40.2.0", "wheel"]
 
     return (requires, backend, check)

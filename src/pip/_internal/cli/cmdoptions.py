@@ -612,6 +612,25 @@ no_build_isolation = partial(
          'if this option is used.'
 )  # type: partial[Option]
 
+use_pep517 = partial(
+    Option,
+    '--use-pep517',
+    dest='use_pep517',
+    action='store_true',
+    default=None,
+    help='Use PEP 517 for building source distributions '
+         '(use --no-use-pep517 to force legacy behaviour).'
+)  # type: Any
+
+no_use_pep517 = partial(
+    Option,
+    '--no-use-pep517',
+    dest='use_pep517',
+    action='store_false',
+    default=None,
+    help=SUPPRESS_HELP
+)  # type: Any
+
 install_options = partial(
     Option,
     '--install-option',

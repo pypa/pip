@@ -687,9 +687,15 @@ def create_test_package_with_setup(script, **setup_kwargs):
     return pkg_path
 
 
-def create_basic_wheel_for_package(script, name, version, depends, extras):
+def create_basic_wheel_for_package(script, name, version,
+                                   depends=None, extras=None):
+    if depends is None:
+        depends = []
+    if extras is None:
+        extras = {}
     files = {
         "{name}/__init__.py": """
+            __version__ = {version}
             def hello():
                 return "Hello From {name}"
         """,

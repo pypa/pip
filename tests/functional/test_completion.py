@@ -40,12 +40,13 @@ compctl -K _pip_completion pip"""),
     COMPLETION_FOR_SUPPORTED_SHELLS_TESTS,
     ids=[t[0] for t in COMPLETION_FOR_SUPPORTED_SHELLS_TESTS],
 )
-def test_completion_for_supported_shells(script, pip_src, shell, completion):
+def test_completion_for_supported_shells(script, pip_src, common_wheels,
+                                         shell, completion):
     """
     Test getting completion for bash shell
     """
     # Re-install pip so we get the launchers.
-    script.pip_install_local('--no-build-isolation', pip_src)
+    script.pip_install_local('-f', common_wheels, pip_src)
 
     result = script.pip('completion', '--' + shell, use_module=False)
     assert completion in result.stdout, str(result.stdout)

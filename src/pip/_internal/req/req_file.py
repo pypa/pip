@@ -60,7 +60,8 @@ SUPPORTED_OPTIONS_REQ_DEST = [o().dest for o in SUPPORTED_OPTIONS_REQ]
 
 
 def parse_requirements(filename, finder=None, comes_from=None, options=None,
-                       session=None, constraint=False, wheel_cache=None):
+                       session=None, constraint=False, wheel_cache=None,
+                       use_pep517=None):
     """Parse a requirements file and yield InstallRequirement instances.
 
     :param filename:    Path or url of requirements file.
@@ -71,6 +72,7 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
     :param constraint:  If true, parsing a constraint file rather than
         requirements file.
     :param wheel_cache: Instance of pip.wheel.WheelCache
+    :param use_pep517:  Value of the --use-pep517 option.
     """
     if session is None:
         raise TypeError(
@@ -87,7 +89,7 @@ def parse_requirements(filename, finder=None, comes_from=None, options=None,
     for line_number, line in lines_enum:
         req_iter = process_line(line, filename, line_number, finder,
                                 comes_from, options, session, wheel_cache,
-                                constraint=constraint)
+                                use_pep517=use_pep517, constraint=constraint)
         for req in req_iter:
             yield req
 
@@ -108,7 +110,7 @@ def preprocess(content, options):
 
 def process_line(line, filename, line_number, finder=None, comes_from=None,
                  options=None, session=None, wheel_cache=None,
-                 constraint=False):
+                 use_pep517=None, constraint=False):
     """Process a single requirements line; This can result in creating/yielding
     requirements, or updating the finder.
 
@@ -155,6 +157,7 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
                 req_options[dest] = opts.__dict__[dest]
         yield install_req_from_line(
             args_str, line_comes_from, constraint=constraint,
+            use_pep517=use_pep517,
             isolated=isolated, options=req_options, wheel_cache=wheel_cache
         )
 
@@ -163,6 +166,7 @@ def process_line(line, filename, line_number, finder=None, comes_from=None,
         isolated = options.isolated_mode if options else False
         yield install_req_from_editable(
             opts.editables[0], comes_from=line_comes_from,
+            use_pep517=use_pep517,
             constraint=constraint, isolated=isolated, wheel_cache=wheel_cache
         )
 

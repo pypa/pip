@@ -74,6 +74,14 @@ def open_for_csv(name, mode):
     return open(name, mode + bin, **nl)
 
 
+def replace_python_tag(wheelname, new_tag):
+    """Replace the Python tag in a wheel file name with a new value.
+    """
+    parts = wheelname.split('-')
+    parts[-3] = new_tag
+    return '-'.join(parts)
+
+
 def fix_script(path):
     """Replace #!python with #!/path/to/python
     Return True if file was changed."""
@@ -677,7 +685,11 @@ class WheelBuilder(object):
 
     def _build_one_inside_env(self, req, output_dir, python_tag=None):
         with TempDirectory(kind="wheel") as temp_dir:
-            if self.__build_one(req, temp_dir.path, python_tag=python_tag):
+            if req.use_pep517:
+                builder = self._build_one_pep517
+            else:
+                builder = self._build_one_legacy
+            if builder(req, temp_dir.path, python_tag=python_tag):
                 try:
                     wheel_name = os.listdir(temp_dir.path)[0]
                     wheel_path = os.path.join(output_dir, wheel_name)
@@ -702,10 +714,33 @@ class WheelBuilder(object):
             SETUPTOOLS_SHIM % req.setup_py
         ] + list(self.global_options)
 
-    def __build_one(self, req, tempd, python_tag=None):
+    def _build_one_pep517(self, req, tempd, python_tag=None):
+        assert req.metadata_directory is not None
+        try:
+            req.spin_message = 'Building wheel for %s (PEP 517)' % (req.name,)
+            logger.debug('Destination directory: %s', tempd)
+            wheelname = req.pep517_backend.build_wheel(
+                tempd,
+                metadata_directory=req.metadata_directory
+            )
+            if python_tag:
+                # General PEP 517 backends don't necessarily support
+                # a "--python-tag" option, so we rename the wheel
+                # file directly.
+                newname = replace_python_tag(wheelname, python_tag)
+                os.rename(
+                    os.path.join(tempd, wheelname),
+                    os.path.join(tempd, newname)
+                )
+            return True
+        except Exception:
+            logger.error('Failed building wheel for %s', req.name)
+            return False
+
+    def _build_one_legacy(self, req, tempd, python_tag=None):
         base_args = self._base_setup_args(req)
 
-        spin_message = 'Running setup.py bdist_wheel for %s' % (req.name,)
+        spin_message = 'Building wheel for %s (setup.py)' % (req.name,)
         with open_spinner(spin_message) as spinner:
             logger.debug('Destination directory: %s', tempd)
             wheel_args = base_args + ['bdist_wheel', '-d', tempd] \
@@ -744,6 +779,8 @@ class WheelBuilder(object):
         """
         from pip._internal.models.link import Link
 
+        # TODO: This check fails if --no-cache-dir is set. And yet we
+        #       might be able to build into the ephemeral cache, surely?
         building_is_possible = self._wheel_dir or (
             autobuilding and self.wheel_cache.cache_dir
         )
@@ -784,7 +821,7 @@ class WheelBuilder(object):
                 buildset.append((req, ephem_cache))
 
         if not buildset:
-            return True
+            return []
 
         # Build the wheels.
         logger.info(
@@ -856,5 +893,5 @@ class WheelBuilder(object):
                 'Failed to build %s',
                 ' '.join([req.name for req in build_failure]),
             )
-        # Return True if all builds were successful
-        return len(build_failure) == 0
+        # Return a list of requirements that failed to build
+        return build_failure

@@ -18,8 +18,19 @@ def tempdir():
     finally:
         shutil.rmtree(td)
 
+class BackendUnavailable(Exception):
+    """Will be raised if the backend cannot be imported in the hook process."""
+
 class UnsupportedOperation(Exception):
     """May be raised by build_sdist if the backend indicates that it can't."""
+
+def default_subprocess_runner(cmd, cwd=None, extra_environ=None):
+    """The default method of calling the wrapper subprocess."""
+    env = os.environ.copy()
+    if extra_environ:
+        env.update(extra_environ)
+
+    check_call(cmd, cwd=cwd, env=env)
 
 class Pep517HookCaller(object):
     """A wrapper around a source directory to be built with a PEP 517 backend.
@@ -30,6 +41,16 @@ class Pep517HookCaller(object):
     def __init__(self, source_dir, build_backend):
         self.source_dir = abspath(source_dir)
         self.build_backend = build_backend
+        self._subprocess_runner = default_subprocess_runner
+
+    # TODO: Is this over-engineered? Maybe frontends only need to
+    #       set this when creating the wrapper, not on every call.
+    @contextmanager
+    def subprocess_runner(self, runner):
+        prev = self._subprocess_runner
+        self._subprocess_runner = runner
+        yield
+        self._subprocess_runner = prev
 
     def get_requires_for_build_wheel(self, config_settings=None):
         """Identify packages required for building a wheel
@@ -105,8 +126,6 @@ class Pep517HookCaller(object):
 
 
     def _call_hook(self, hook_name, kwargs):
-        env = os.environ.copy()
-
         # On Python 2, pytoml returns Unicode values (which is correct) but the
         # environment passed to check_call needs to contain string values. We
         # convert here by encoding using ASCII (the backend can only contain
@@ -118,17 +137,21 @@ class Pep517HookCaller(object):
         else:
             build_backend = self.build_backend
 
-        env['PEP517_BUILD_BACKEND'] = build_backend
         with tempdir() as td:
             compat.write_json({'kwargs': kwargs}, pjoin(td, 'input.json'),
                               indent=2)
 
             # Run the hook in a subprocess
-            check_call([sys.executable, _in_proc_script, hook_name, td],
-                       cwd=self.source_dir, env=env)
+            self._subprocess_runner(
+                [sys.executable, _in_proc_script, hook_name, td],
+                cwd=self.source_dir,
+                extra_environ={'PEP517_BUILD_BACKEND': build_backend}
+            )
 
             data = compat.read_json(pjoin(td, 'output.json'))
             if data.get('unsupported'):
                 raise UnsupportedOperation
+            if data.get('no_backend'):
+                raise BackendUnavailable
             return data['return_val']
 

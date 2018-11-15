@@ -216,6 +216,6 @@ def test_install_no_binary_via_config_disables_cached_wheels(
         os.unlink(config_file.name)
     assert "Successfully installed upper-2.0" in str(res), str(res)
     # No wheel building for upper, which was blacklisted
-    assert "Running setup.py bdist_wheel for upper" not in str(res), str(res)
+    assert "Building wheel for upper" not in str(res), str(res)
     # Must have used source, not a cached wheel to install upper.
     assert "Running setup.py install for upper" in str(res), str(res)

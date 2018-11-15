@@ -41,7 +41,7 @@ echo "TOXENV=${TOXENV}"
 set -x
 if [[ "$GROUP" == "1" ]]; then
     # Unit tests
-    tox -- -m unit
+    tox -- --use-venv -m unit
     # Integration tests (not the ones for 'pip install')
     tox -- --use-venv -m integration -n 4 --duration=5 -k "not test_install"
 elif [[ "$GROUP" == "2" ]]; then

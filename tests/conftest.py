@@ -56,14 +56,6 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(pytest.mark.integration)
         elif module_root_dir.startswith("unit"):
             item.add_marker(pytest.mark.unit)
-
-            # We don't want to allow using the script resource if this is a
-            # unit test, as unit tests should not need all that heavy lifting
-            if set(getattr(item, "funcargnames", [])) & {"script"}:
-                raise RuntimeError(
-                    "Cannot use the ``script`` funcarg in a unit test: "
-                    "(filename = {}, item = {})".format(module_path, item)
-                )
         else:
             raise RuntimeError(
                 "Unknown test type (filename = {})".format(module_path)
@@ -180,7 +172,7 @@ def pip_src(tmpdir_factory):
         SRC_DIR,
         pip_src.abspath,
         ignore=shutil.ignore_patterns(
-            "*.pyc", "__pycache__", "contrib", "docs", "tasks", "*.txt",
+            "*.pyc", "__pycache__", "contrib", "docs", "tasks",
             "tests", "pip.egg-info", "build", "dist", ".tox", ".git",
         ),
     )

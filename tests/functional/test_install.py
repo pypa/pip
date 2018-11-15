@@ -12,9 +12,9 @@ from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.utils.misc import rmtree
 from tests.lib import (
-    _create_svn_repo, _create_test_package, create_test_package_with_setup,
-    need_bzr, need_mercurial, path_to_url, pyversion, pyversion_tuple,
-    requirements_file,
+    _create_svn_repo, _create_test_package, create_basic_wheel_for_package,
+    create_test_package_with_setup, need_bzr, need_mercurial, path_to_url,
+    pyversion, pyversion_tuple, requirements_file,
 )
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
@@ -48,6 +48,20 @@ def test_pep518_build_env_uses_same_pip(script, data, pip_src, common_wheels):
         '-f', common_wheels, '-f', data.packages,
         data.src.join("pep518-3.0"),
     )
+
+
+def test_pep518_refuses_conflicting_requires(script, data):
+    create_basic_wheel_for_package(script, 'setuptools', '1.0')
+    create_basic_wheel_for_package(script, 'wheel', '1.0')
+    project_dir = data.src.join("pep518_conflicting_requires")
+    result = script.pip_install_local('-f', script.scratch_path,
+                                      project_dir, expect_error=True)
+    assert (
+        result.returncode != 0 and
+        ('Some build dependencies for %s conflict with PEP 517/518 supported '
+         'requirements: setuptools==1.0 is incompatible with '
+         'setuptools>=40.2.0.' % path_to_url(project_dir)) in result.stderr
+    ), str(result)
 
 
 def test_pep518_refuses_invalid_requires(script, data, common_wheels):
@@ -87,7 +101,17 @@ def test_pep518_allows_missing_requires(script, data, common_wheels):
 
 
 def test_pep518_with_user_pip(script, pip_src, data, common_wheels):
-    script.pip("install", "--ignore-installed", "--user", pip_src)
+    """
+    Check that build dependencies are installed into the build
+    environment without using build isolation for the pip invocation.
+
+    To ensure that we're not using build isolation when installing
+    the build dependencies, we install a user copy of pip in the
+    non-isolated environment, and break pip in the system site-packages,
+    so that isolated uses of pip will fail.
+    """
+    script.pip("install", "--ignore-installed",
+               "-f", common_wheels, "--user", pip_src)
     system_pip_dir = script.site_packages_path / 'pip'
     system_pip_dir.rmtree()
     system_pip_dir.mkdir()
@@ -138,12 +162,13 @@ def test_pep518_forkbombs(script, data, common_wheels, command, package):
 
 
 @pytest.mark.network
-def test_pip_second_command_line_interface_works(script, data, pip_src):
+def test_pip_second_command_line_interface_works(script, pip_src, data,
+                                                 common_wheels):
     """
     Check if ``pip<PYVERSION>`` commands behaves equally
     """
     # Re-install pip so we get the launchers.
-    script.pip_install_local('--no-build-isolation', pip_src)
+    script.pip_install_local('-f', common_wheels, pip_src)
     # On old versions of Python, urllib3/requests will raise a warning about
     # the lack of an SSLContext.
     kwargs = {}
@@ -1136,10 +1161,10 @@ def test_install_builds_wheels(script, data, with_wheel):
     for top, dirs, files in os.walk(wheels_cache):
         wheels.extend(files)
     # and built wheels for upper and wheelbroken
-    assert "Running setup.py bdist_wheel for upper" in str(res), str(res)
-    assert "Running setup.py bdist_wheel for wheelb" in str(res), str(res)
+    assert "Building wheel for upper" in str(res), str(res)
+    assert "Building wheel for wheelb" in str(res), str(res)
     # Wheels are built for local directories, but not cached.
-    assert "Running setup.py bdist_wheel for requir" in str(res), str(res)
+    assert "Building wheel for requir" in str(res), str(res)
     # wheelbroken has to run install
     # into the cache
     assert wheels != [], str(res)
@@ -1165,11 +1190,11 @@ def test_install_no_binary_disables_building_wheels(script, data, with_wheel):
     # Must have installed it all
     assert expected in str(res), str(res)
     # and built wheels for wheelbroken only
-    assert "Running setup.py bdist_wheel for wheelb" in str(res), str(res)
+    assert "Building wheel for wheelb" in str(res), str(res)
     # Wheels are built for local directories, but not cached across runs
-    assert "Running setup.py bdist_wheel for requir" in str(res), str(res)
+    assert "Building wheel for requir" in str(res), str(res)
     # Don't build wheel for upper which was blacklisted
-    assert "Running setup.py bdist_wheel for upper" not in str(res), str(res)
+    assert "Building wheel for upper" not in str(res), str(res)
     # Wheels are built for local directories, but not cached across runs
     assert "Running setup.py install for requir" not in str(res), str(res)
     # And these two fell back to sdist based installed.
@@ -1188,7 +1213,7 @@ def test_install_no_binary_disables_cached_wheels(script, data, with_wheel):
         'upper', expect_stderr=True)
     assert "Successfully installed upper-2.0" in str(res), str(res)
     # No wheel building for upper, which was blacklisted
-    assert "Running setup.py bdist_wheel for upper" not in str(res), str(res)
+    assert "Building wheel for upper" not in str(res), str(res)
     # Must have used source, not a cached wheel to install upper.
     assert "Running setup.py install for upper" in str(res), str(res)
 
@@ -1204,7 +1229,7 @@ def test_install_editable_with_wrong_egg_name(script):
     result = script.pip(
         'install', '--editable', 'file://%s#egg=pkgb' % pkga_path,
         expect_error=True)
-    assert ("egg_info for package pkgb produced metadata "
+    assert ("Generating metadata for package pkgb produced metadata "
             "for project name pkga. Fix your #egg=pkgb "
             "fragments.") in result.stderr
     assert "Successfully installed pkga" in str(result), str(result)
