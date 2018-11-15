@@ -588,7 +588,7 @@ class InstallRequirement(object):
                                 )):
                             dirs.remove(dir_)
                         # Also don't search through tests
-                        elif dir_ == 'test' or dir_ == 'tests':
+                        elif dir_ in ('test', 'tests'):
                             dirs.remove(dir_)
                     filenames.extend([os.path.join(root, dir_)
                                       for dir_ in dirs])
