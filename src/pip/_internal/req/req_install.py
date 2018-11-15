@@ -577,21 +577,18 @@ class InstallRequirement(object):
                     for dir_ in list(dirs):
                         # Don't search in anything that looks like a virtualenv
                         # environment
-                        if (
-                                os.path.lexists(
-                                    os.path.join(root, dir_, 'bin', 'python')
-                                ) or
-                                os.path.exists(
-                                    os.path.join(
-                                        root, dir_, 'Scripts', 'Python.exe'
-                                    )
-                                )):
+                        if os.path.lexists(
+                            os.path.join(root, dir_, 'bin', 'python')
+                        ) or os.path.exists(
+                            os.path.join(root, dir_, 'Scripts', 'Python.exe')
+                        ):
                             dirs.remove(dir_)
                         # Also don't search through tests
                         elif dir_ in ('test', 'tests'):
                             dirs.remove(dir_)
-                    filenames.extend([os.path.join(root, dir_)
-                                      for dir_ in dirs])
+                    filenames.extend(
+                        [os.path.join(root, dir_) for dir_ in dirs]
+                    )
                 filenames = [f for f in filenames if f.endswith('.egg-info')]
 
             if not filenames:
