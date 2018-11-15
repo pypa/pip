@@ -747,7 +747,7 @@ class InstallRequirement(object):
         """
         if not self.check_if_exists(use_user_site):
             logger.warning("Skipping %s as it is not installed.", self.name)
-            return
+            return None
         dist = self.satisfied_by or self.conflicts_with
 
         uninstalled_pathset = UninstallPathSet.from_dist(dist)
