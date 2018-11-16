@@ -780,6 +780,25 @@ No other build system commands are invoked by the ``pip install`` command.
 
 Installing a package from a wheel does not invoke the build system at all.
 
+Dependency-only installations
++++++++++++++++++++++++++++++
+
+In some situations it can be useful to only install the dependencies of a
+package and avoid installing the package itself. An example would be setting up
+a development environment with all development dependencies but not the
+package itself. This can be done with the `--no-deps` option:
+
+$ pip install --deps-only .[test]
+
+Note that there can be cases when not all dependencies will be installed when
+using this option. Consider an example where package A is a dependency of B
+and the following command is issued:
+
+$ pip install --deps-only A B
+
+Pip will skip the installation of A and B, but because B depends on A a
+dependency won't be satisfied.
+
 .. _PyPI: https://pypi.org/
 .. _setuptools extras: https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies
 
