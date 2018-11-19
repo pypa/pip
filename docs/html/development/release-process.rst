@@ -83,6 +83,9 @@ Creating a new release
 #. Push all of the changes including the tag.
 #. Regenerate the ``get-pip.py`` script in the `get-pip repository`_ (as
    documented there) and commit the results.
+#. Submit a Pull Request to `CPython`_ adding the new version of pip (and upgrading
+   setuptools) to ``Lib/ensurepip/_bundled``, removing the existing version, and
+   adjusting the versions listed in ``Lib/ensurepip/__init__.py``.
 
 Creating a bug-fix release
 --------------------------
@@ -102,3 +105,4 @@ order to create one of these the changes should already be merged into the
    the above release process starting with step 4.
 
 .. _`get-pip repository`: https://github.com/pypa/get-pip
+.. _`CPython`: https://github.com/pypa/cpython
