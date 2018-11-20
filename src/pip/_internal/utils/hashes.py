@@ -16,9 +16,9 @@ if MYPY_CHECK_RUNNING:
     )
     from pip._vendor.six import PY3
     if PY3:
-        from hashlib import _Hash
+        from hashlib import _Hash  # noqa: F401
     else:
-        from hashlib import _hash as _Hash
+        from hashlib import _hash as _Hash  # noqa: F401
 
 
 # The recommended hash algo of the moment. Change this whenever the state of
