@@ -237,7 +237,7 @@ class PackageFinder(object):
                  trusted_hosts=None, process_dependency_links=False,
                  session=None, format_control=None, platform=None,
                  versions=None, abi=None, implementation=None,
-                 prefer_binary=False):
+                 prefer_binary=False, prefer_local_compatible=False):
         """Create a PackageFinder.
 
         :param format_control: A FormatControl object or None. Used to control
@@ -254,6 +254,10 @@ class PackageFinder(object):
             to pep425tags.py in the get_supported() method.
         :param implementation: A string or None. This is passed directly
             to pep425tags.py in the get_supported() method.
+        :param prefer_local_compatible: A bool. If True, remote URLs will
+            not be checked for newer package versions as long as a local
+            package is found that satisfies the requested package version.
+
         """
         if session is None:
             raise TypeError(
@@ -307,6 +311,10 @@ class PackageFinder(object):
 
         # Do we prefer old, but valid, binary dist over new source dist
         self.prefer_binary = prefer_binary
+
+        # Do we prefer compatible packages found locally or do we want to
+        # check for updates on remote URLs
+        self.prefer_local_compatible = prefer_local_compatible
 
         # If we don't have TLS enabled, then WARN if anyplace we're looking
         # relies on TLS.
@@ -535,13 +543,17 @@ class PackageFinder(object):
 
         return [mkurl_pypi_url(url) for url in self.index_urls]
 
-    def find_all_candidates(self, project_name):
+    def find_all_candidates(self, project_name, check_remotely=True):
         """Find all available InstallationCandidate for project_name
 
         This checks index_urls, find_links and dependency_links.
         All versions found are returned as an InstallationCandidate list.
 
         See _link_package_versions for details on which files are accepted
+
+        :param check_remotely: A bool. If False, only check for available
+            packages locally.
+
         """
         index_locations = self._get_index_urls_locations(project_name)
         index_file_loc, index_url_loc = self._sort_locations(index_locations)
@@ -553,7 +565,6 @@ class PackageFinder(object):
         file_locations = (Link(url) for url in itertools.chain(
             index_file_loc, fl_file_loc, dep_file_loc,
         ))
-
         # We trust every url that the user has given us whether it was given
         #   via --index-url or --find-links
         # We explicitly do not trust links that came from dependency_links
@@ -576,19 +587,29 @@ class PackageFinder(object):
         canonical_name = canonicalize_name(project_name)
         formats = self.format_control.get_allowed_formats(canonical_name)
         search = Search(project_name, canonical_name, formats)
+
+        def use_find_links_link(url):
+            if check_remotely:
+                return True
+            is_local_path = os.path.exists(url)
+            is_file_url = url.startswith('file:')
+            return is_local_path or is_file_url
+
         find_links_versions = self._package_versions(
             # We trust every directly linked archive in find_links
-            (Link(url, '-f') for url in self.find_links),
+            (Link(url, '-f') for url in self.find_links
+             if use_find_links_link(url)),
             search
         )
 
         page_versions = []
-        for page in self._get_pages(url_locations, project_name):
-            logger.debug('Analyzing links from page %s', page.url)
-            with indent_log():
-                page_versions.extend(
-                    self._package_versions(page.iter_links(), search)
-                )
+        if check_remotely:
+            for page in self._get_pages(url_locations, project_name):
+                logger.debug('Analyzing links from page %s', page.url)
+                with indent_log():
+                    page_versions.extend(
+                        self._package_versions(page.iter_links(), search)
+                    )
 
         dependency_versions = self._package_versions(
             (Link(url) for url in self.dependency_links), search
@@ -602,6 +623,7 @@ class PackageFinder(object):
             )
 
         file_versions = self._package_versions(file_locations, search)
+
         if file_versions:
             file_versions.sort(reverse=True)
             logger.debug(
@@ -625,11 +647,9 @@ class PackageFinder(object):
         Returns a Link if found,
         Raises DistributionNotFound or BestVersionAlreadyInstalled otherwise
         """
-        all_candidates = self.find_all_candidates(req.name)
-
-        # Filter out anything which doesn't match our specifier
-        compatible_versions = set(
-            req.specifier.filter(
+        def get_candidates(candidates):
+            # Filter out anything which doesn't match our specifier
+            compatible_versions = set(
                 # We turn the version object into a str here because otherwise
                 # when we're debundled but setuptools isn't, Python will see
                 # packaging.version.Version and
@@ -637,23 +657,46 @@ class PackageFinder(object):
                 # types. This way we'll use a str as a common data interchange
                 # format. If we stop using the pkg_resources provided specifier
                 # and start using our own, we can drop the cast to str().
-                [str(c.version) for c in all_candidates],
-                prereleases=(
-                    self.allow_all_prereleases
-                    if self.allow_all_prereleases else None
-                ),
+                req.specifier.filter(
+                    [str(c.version) for c in candidates],
+                    prereleases=(
+                        self.allow_all_prereleases
+                        if self.allow_all_prereleases else None
+                    ),
+                )
             )
-        )
-        applicable_candidates = [
-            # Again, converting to str to deal with debundling.
-            c for c in all_candidates if str(c.version) in compatible_versions
-        ]
+            applicable_candidates = [
+                # Again, converting to str to deal with debundling.
+                c for c in candidates if str(c.version) in compatible_versions
+            ]
+            return compatible_versions, applicable_candidates
 
-        if applicable_candidates:
+        applicable_candidates = None
+
+        if self.prefer_local_compatible:
+            candidates = self.find_all_candidates(req.name,
+                                                  check_remotely=False)
+
+            compat_versions, applicable_candidates = get_candidates(candidates)
+
+        if not applicable_candidates:
+            candidates = self.find_all_candidates(req.name,
+                                                  check_remotely=True)
+            compat_versions, applicable_candidates = get_candidates(candidates)
+
+        best_candidate = None
+
+        # See if there are any candidates found locally provided by find_links
+        if self.prefer_local_compatible and self.find_links:
+            file_candidates = [cand for cand in applicable_candidates
+                               if cand.location.scheme == "file"]
+            if file_candidates:
+                best_candidate = max(file_candidates,
+                                     key=self._candidate_sort_key)
+
+        if applicable_candidates and best_candidate is None:
             best_candidate = max(applicable_candidates,
                                  key=self._candidate_sort_key)
-        else:
-            best_candidate = None
 
         if req.satisfied_by is not None:
             installed_version = parse_version(req.satisfied_by.version)
@@ -667,7 +710,7 @@ class PackageFinder(object):
                 req,
                 ', '.join(
                     sorted(
-                        {str(c.version) for c in all_candidates},
+                        {str(c.version) for c in candidates},
                         key=parse_version,
                     )
                 )
@@ -705,7 +748,7 @@ class PackageFinder(object):
                 'Installed version (%s) is most up-to-date (past versions: '
                 '%s)',
                 installed_version,
-                ', '.join(sorted(compatible_versions, key=parse_version)) or
+                ', '.join(sorted(compat_versions, key=parse_version)) or
                 "none",
             )
             raise BestVersionAlreadyInstalled
@@ -713,7 +756,7 @@ class PackageFinder(object):
         logger.debug(
             'Using version %s (newest of versions: %s)',
             best_candidate.version,
-            ', '.join(sorted(compatible_versions, key=parse_version))
+            ', '.join(sorted(compat_versions, key=parse_version))
         )
         return best_candidate.location
 

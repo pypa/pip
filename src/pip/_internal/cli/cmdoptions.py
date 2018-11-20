@@ -529,6 +529,19 @@ def prefer_binary():
     )
 
 
+def prefer_local_compatible():
+    return Option(
+        '--prefer-local-compatible',
+        dest='prefer_local_compatible',
+        action="store_true",
+        default=False,
+        help=("Prefer local packages (e.g. through --find-links) that "
+              "satisfies the version specifier. This option delays checking "
+              "remote URLs for newer available packages until no local "
+              "compatible package is found."),
+    )
+
+
 cache_dir = partial(
     Option,
     "--cache-dir",

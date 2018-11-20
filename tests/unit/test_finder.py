@@ -294,8 +294,47 @@ def test_finder_priority_file_over_page(data):
     assert all(version.location.scheme == 'https'
                for version in all_versions[1:]), all_versions
 
-    link = finder.find_requirement(req, False)
-    assert link.url.startswith("file://")
+
+def test_finder_pefer_local_compatible_no_remote_call(data):
+    """
+    Test that PackageFinder prefers local compatible package and does
+    not check remote URLs.
+    """
+    links = [data.find_links, 'https://foo/gmpy-1.16.tar.gz']
+
+    with patch.object(PackageFinder, '_get_pages') as mock_method:
+        finder = PackageFinder(
+            links,
+            ["http://pypi.org/simple/"],
+            session=PipSession(),
+            prefer_local_compatible=True,
+        )
+        req = install_req_from_line("gmpy>=1.15")
+        link = finder.find_requirement(req, False)
+        assert link.url.startswith("file://")
+        assert link.filename == "gmpy-1.15.tar.gz"
+        assert mock_method.call_count == 0
+
+
+def test_finder_prefer_local_compatible_checks_remotely(data):
+    """
+    Test PackageFinder with prefer-local-compatible, that package from
+    remote URL is used when no local compatible package found.
+    """
+    links = [data.find_links, 'https://foo/gmpy-1.16.tar.gz']
+
+    with patch.object(PackageFinder, '_get_pages') as mock_method:
+        finder = PackageFinder(
+            links,
+            ["http://pypi.org/simple/"],
+            session=PipSession(),
+            prefer_local_compatible=True,
+        )
+        req = install_req_from_line("gmpy==1.16")
+        link = finder.find_requirement(req, False)
+        assert mock_method.call_count == 1
+        assert link.url.startswith("https://")
+        assert link.filename == "gmpy-1.16.tar.gz"
 
 
 def test_finder_deplink():

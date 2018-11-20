@@ -303,4 +303,5 @@ class RequirementCommand(Command):
             abi=abi,
             implementation=implementation,
             prefer_binary=options.prefer_binary,
+            prefer_local_compatible=options.prefer_local_compatible,
         )
