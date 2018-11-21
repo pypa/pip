@@ -378,7 +378,6 @@ class Configuration(object):
             else:
                 # This should not happen if everything works correctly.
                 errorMsg = "Fatal Internal error [id=2]. Please report as a bug."
-                
             raise ConfigurationError(
                 errorMsg
             )
