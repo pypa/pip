@@ -120,7 +120,6 @@ class AdjacentTempDirectory(TempDirectory):
 
     def create(self):
         root, name = os.path.split(self.original)
-        os.makedirs(root, exist_ok=True)
         for candidate in self._generate_names(name):
             path = os.path.join(root, candidate)
             try:
