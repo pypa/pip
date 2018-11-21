@@ -17,7 +17,7 @@ from pip._internal.utils.misc import (
     FakeFile, ask, dist_in_usersite, dist_is_local, egg_link_path, is_local,
     normalize_path, renames,
 )
-from pip._internal.utils.temp_dir import TempDirectory, AdjacentTempDirectory
+from pip._internal.utils.temp_dir import AdjacentTempDirectory
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +105,7 @@ def compress_for_rename(paths):
     remaining = set(paths)
     unchecked = sorted(set(os.path.split(p)[0] for p in remaining), key=len)
     wildcards = set()
-    
+
     def norm_join(*a):
         return os.path.normcase(os.path.join(*a))
 

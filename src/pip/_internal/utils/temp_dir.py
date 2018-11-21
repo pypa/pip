@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import itertools
 import logging
 import os.path
-import shutil
 import tempfile
 
 from pip._internal.utils.misc import rmtree
@@ -115,8 +114,12 @@ class AdjacentTempDirectory(TempDirectory):
         package).
         """
         for i in range(1, len(name)):
-            for candidate in itertools.permutations(cls.LEADING_CHARS, i):
-                yield ''.join(candidate) + name[i:]
+            if name[i] in cls.LEADING_CHARS:
+                continue
+            for candidate in itertools.combinations_with_replacement(cls.LEADING_CHARS, i):
+                new_name = ''.join(candidate) + name[i:]
+                if new_name != name:
+                    yield new_name
 
     def create(self):
         root, name = os.path.split(self.original)
@@ -136,4 +139,3 @@ class AdjacentTempDirectory(TempDirectory):
                 tempfile.mkdtemp(prefix="pip-{}-".format(self.kind))
             )
         logger.debug("Created temporary directory: {}".format(self.path))
-
