@@ -47,6 +47,8 @@ class InstallRequirement(object):
     Represents something that may be installed later on, may have information
     about where to fetch the relavant requirement and also contains logic for
     installing the said requirement.
+
+    Silly change to test PR CI.
     """
 
     def __init__(self, req, comes_from, source_dir=None, editable=False,
