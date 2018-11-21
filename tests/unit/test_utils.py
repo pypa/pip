@@ -30,7 +30,7 @@ from pip._internal.utils.misc import (
     split_auth_from_netloc, untar_file, unzip_file,
 )
 from pip._internal.utils.packaging import check_dist_requires_python
-from pip._internal.utils.temp_dir import TempDirectory, AdjacentTempDirectory
+from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
 
 
 class Tests_EgglinkPath:
