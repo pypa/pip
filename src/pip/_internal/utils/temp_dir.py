@@ -116,7 +116,8 @@ class AdjacentTempDirectory(TempDirectory):
         for i in range(1, len(name)):
             if name[i] in cls.LEADING_CHARS:
                 continue
-            for candidate in itertools.combinations_with_replacement(cls.LEADING_CHARS, i):
+            for candidate in itertools.combinations_with_replacement(
+                    cls.LEADING_CHARS, i):
                 new_name = ''.join(candidate) + name[i:]
                 if new_name != name:
                     yield new_name

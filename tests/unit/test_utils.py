@@ -548,15 +548,16 @@ class TestTempDirectory(object):
         assert tmp_dir.path is None
         assert not os.path.exists(created_path)
 
-    @pytest.mark.parametrize("name",
-        [
-            "ABC",
-            "ABC.dist-info",
-            "_+-",
-            "_package",
-        ])
+    @pytest.mark.parametrize("name", [
+        "ABC",
+        "ABC.dist-info",
+        "_+-",
+        "_package",
+    ])
     def test_adjacent_directory_names(self, name):
-        names = lambda: AdjacentTempDirectory._generate_names(name)
+        def names():
+            return AdjacentTempDirectory._generate_names(name)
+
         chars = AdjacentTempDirectory.LEADING_CHARS
 
         # Ensure many names are unique
@@ -572,7 +573,8 @@ class TestTempDirectory(object):
         assert not any(n == name for n in names())
 
         # Check the first group are correct
-        assert all(x == y for x, y in zip(some_names, [c + name[1:] for c in chars]))
+        assert all(x == y for x, y in
+                   zip(some_names, [c + name[1:] for c in chars]))
 
 
 class TestGlibc(object):
