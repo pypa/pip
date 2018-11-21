@@ -370,10 +370,14 @@ class Configuration(object):
         # type: () -> Tuple[str, RawConfigParser]
         # Determine which parser to modify
         parsers = self._parsers[self.load_only]
+        
         if not parsers:
+            errorMsg = "Fatal Internal error [id=2]. Please report as a bug."
+            if (self.load_only == kinds.VENV and not running_under_virtualenv()):
+                errorMsg = "Please use --venv option under virtual env."
             # This should not happen if everything works correctly.
             raise ConfigurationError(
-                "Fatal Internal error [id=2]. Please report as a bug."
+                errorMsg
             )
 
         # Use the highest priority parser.
