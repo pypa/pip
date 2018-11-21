@@ -58,10 +58,12 @@ class ShowCommand(Command):
 
         results = search_packages_info(query)
 
-        if options.show_format == 'json':
-            print_results = print_json
-        else:
-            print_results = print_header_format
+        format_options = {
+            'json': print_json,
+            'header': print_header_format,
+        }
+
+        print_results = format_options[options.show_format]
 
         if not print_results(
                 results, list_files=options.files,
@@ -244,6 +246,7 @@ def print_json(distributions, list_files=False, verbose=False):
 
             entry_points_wrapper = ReadlineWrapper(
                 dist.get('entry_points', []))
+
             parser.readfp(entry_points_wrapper)
 
             entry_points = {section: dict(parser.items(section))
