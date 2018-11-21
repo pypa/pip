@@ -102,7 +102,7 @@ def compress_for_rename(paths):
     This set may include directories when the original sequence of paths
     included every file on disk.
     """
-    case_map =  dict((os.path.normcase(p), p) for p in paths)
+    case_map = dict((os.path.normcase(p), p) for p in paths)
     remaining = set(case_map)
     unchecked = sorted(set(os.path.split(p)[0]
                            for p in case_map.values()), key=len)
