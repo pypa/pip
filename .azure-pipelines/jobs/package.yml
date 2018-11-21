@@ -15,7 +15,7 @@ jobs:
     inputs:
       versionSpec: '3'
 
-  - bash: pip install setuptools tox wheel invoke towncrier
+  - bash: pip install setuptools tox wheel invoke towncrier requests
     displayName: Install dependencies
 
   - bash: invoke generate.authors
