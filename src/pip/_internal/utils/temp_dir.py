@@ -1,7 +1,9 @@
 from __future__ import absolute_import
 
+import itertools
 import logging
 import os.path
+import shutil
 import tempfile
 
 from pip._internal.utils.misc import rmtree
@@ -58,7 +60,7 @@ class TempDirectory(object):
             self.cleanup()
 
     def create(self):
-        """Create a temporary directory and store it's path in self.path
+        """Create a temporary directory and store its path in self.path
         """
         if self.path is not None:
             logger.debug(
@@ -80,3 +82,59 @@ class TempDirectory(object):
         if self.path is not None and os.path.exists(self.path):
             rmtree(self.path)
         self.path = None
+
+
+class AdjacentTempDirectory(TempDirectory):
+    """Helper class that creates a temporary directory adjacent to a real one.
+
+    Attributes:
+        original
+            The original directory to create a temp directory for.
+        path
+            After calling create() or entering, contains the full
+            path to the temporary directory.
+        delete
+            Whether the directory should be deleted when exiting
+            (when used as a contextmanager)
+
+    """
+    # The characters that may be used to name the temp directory
+    LEADING_CHARS = "-~.+=%0123456789"
+
+    def __init__(self, original, delete=None):
+        super(AdjacentTempDirectory, self).__init__(delete=delete)
+        self.original = original.rstrip('/\\')
+
+    @classmethod
+    def _generate_names(cls, name):
+        """Generates a series of temporary names.
+
+        The algorithm replaces the leading characters in the name
+        with ones that are valid filesystem characters, but are not
+        valid package names (for both Python and pip definitions of
+        package).
+        """
+        for i in range(1, len(name)):
+            for candidate in itertools.permutations(cls.LEADING_CHARS, i):
+                yield ''.join(candidate) + name[i:]
+
+    def create(self):
+        root, name = os.path.split(self.original)
+        os.makedirs(root, exist_ok=True)
+        for candidate in self._generate_names(name):
+            path = os.path.join(root, candidate)
+            try:
+                os.mkdir(path)
+            except OSError:
+                pass
+            else:
+                self.path = os.path.realpath(path)
+                break
+
+        if not self.path:
+            # Final fallback on the default behavior.
+            self.path = os.path.realpath(
+                tempfile.mkdtemp(prefix="pip-{}-".format(self.kind))
+            )
+        logger.debug("Created temporary directory: {}".format(self.path))
+
