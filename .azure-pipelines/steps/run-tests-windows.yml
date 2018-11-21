@@ -1,0 +1,38 @@
+parameters:
+  runIntegrationTests:
+
+steps:
+- task: UsePythonVersion@0
+  displayName: Use Python $(python.version)
+  inputs:
+    versionSpec: '$(python.version)'
+    architecture: '$(python.architecture)'
+
+- bash: pip install --upgrade setuptools tox
+  displayName: Install Tox
+
+- script: tox -e py -- -m unit -n 3 --junit-xml=junit/unit-test.xml
+  displayName: Tox run unit tests
+
+- ${{ if eq(parameters.runIntegrationTests, 'true') }}:
+  - powershell: |
+      # Fix Git SSL errors
+      pip install certifi tox
+      python -m certifi > cacert.txt
+      $env:GIT_SSL_CAINFO = $(Get-Content cacert.txt)
+
+      # Shorten paths to get under MAX_PATH or else integration tests will fail
+      # https://bugs.python.org/issue18199
+      subst T: $env:TEMP
+      $env:TEMP = "T:\"
+      $env:TMP = "T:\"
+
+      tox -e py -- -m integration -n 3 --duration=5 --junit-xml=junit/integration-test.xml
+    displayName: Tox run integration tests
+
+- task: PublishTestResults@2
+  displayName: Publish Test Results
+  inputs:
+    testResultsFiles: junit/*.xml
+    testRunTitle: 'Python $(python.version)'
+  condition: succeededOrFailed()

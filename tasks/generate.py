@@ -35,11 +35,13 @@ def authors(ctx):
 
 
 @invoke.task
-def news(ctx, draft=False):
+def news(ctx, draft=False, yes=False):
     print("[generate.news] Generating NEWS")
 
     args = []
     if draft:
         args.append("--draft")
+    if yes:
+        args.append("--yes")
 
     ctx.run("towncrier {}".format(" ".join(args)))
