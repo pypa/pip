@@ -370,7 +370,6 @@ class Configuration(object):
         # type: () -> Tuple[str, RawConfigParser]
         # Determine which parser to modify
         parsers = self._parsers[self.load_only]
-        
         if not parsers:
             if (self.load_only == kinds.VENV and not running_under_virtualenv()):
                 errorMsg = "Please use --venv option under virtual environment."
