@@ -321,54 +321,71 @@ def test_download_specify_platform(script, data):
     )
 
 
-def test_download_platform_manylinux(script, data):
+class TestDownloadPlatformManylinuxes(object):
     """
-    Test using "pip download --platform" to download a .whl archive
-    supported for a specific platform.
+    "pip download --platform" downloads a .whl archive supported for
+    manylinux platforms.
     """
-    fake_wheel(data, 'fake-1.0-py2.py3-none-any.whl')
-    # Confirm that universal wheels are returned even for specific
-    # platforms.
-    result = script.pip(
-        'download', '--no-index', '--find-links', data.find_links,
-        '--only-binary=:all:',
-        '--dest', '.',
-        '--platform', 'linux_x86_64',
-        'fake',
-    )
-    assert (
-        Path('scratch') / 'fake-1.0-py2.py3-none-any.whl'
-        in result.files_created
-    )
 
-    data.reset()
-    fake_wheel(data, 'fake-1.0-py2.py3-none-manylinux1_x86_64.whl')
-    result = script.pip(
-        'download', '--no-index', '--find-links', data.find_links,
-        '--only-binary=:all:',
-        '--dest', '.',
-        '--platform', 'manylinux1_x86_64',
-        'fake',
-    )
-    assert (
-        Path('scratch') /
-        'fake-1.0-py2.py3-none-manylinux1_x86_64.whl'
-        in result.files_created
-    )
+    @pytest.mark.parametrize("platform", [
+        "linux_x86_64",
+        "manylinux1_x86_64",
+        "manylinux2010_x86_64",
+    ])
+    def test_download_universal(self, platform, script, data):
+        """
+        Universal wheels are returned even for specific platforms.
+        """
+        fake_wheel(data, 'fake-1.0-py2.py3-none-any.whl')
+        result = script.pip(
+            'download', '--no-index', '--find-links', data.find_links,
+            '--only-binary=:all:',
+            '--dest', '.',
+            '--platform', platform,
+            'fake',
+        )
+        assert (
+            Path('scratch') / 'fake-1.0-py2.py3-none-any.whl'
+            in result.files_created
+        )
 
-    # When specifying the platform, manylinux1 needs to be the
-    # explicit platform--it won't ever be added to the compatible
-    # tags.
-    data.reset()
-    fake_wheel(data, 'fake-1.0-py2.py3-none-linux_x86_64.whl')
-    result = script.pip(
-        'download', '--no-index', '--find-links', data.find_links,
-        '--only-binary=:all:',
-        '--dest', '.',
-        '--platform', 'linux_x86_64',
-        'fake',
-        expect_error=True,
-    )
+    @pytest.mark.parametrize("wheel_abi,platform", [
+        ("manylinux1_x86_64", "manylinux1_x86_64"),
+        ("manylinux1_x86_64", "manylinux2010_x86_64"),
+        ("manylinux2010_x86_64", "manylinux2010_x86_64"),
+    ])
+    def test_download_compatible_manylinuxes(
+            self, wheel_abi, platform, script, data,
+    ):
+        """
+        Earlier manylinuxes are compatible with later manylinuxes.
+        """
+        wheel = 'fake-1.0-py2.py3-none-{}.whl'.format(wheel_abi)
+        fake_wheel(data, wheel)
+        result = script.pip(
+            'download', '--no-index', '--find-links', data.find_links,
+            '--only-binary=:all:',
+            '--dest', '.',
+            '--platform', platform,
+            'fake',
+        )
+        assert Path('scratch') / wheel in result.files_created
+
+    def test_explicit_platform_only(self, data, script):
+        """
+        When specifying the platform, manylinux1 needs to be the
+        explicit platform--it won't ever be added to the compatible
+        tags.
+        """
+        fake_wheel(data, 'fake-1.0-py2.py3-none-linux_x86_64.whl')
+        script.pip(
+            'download', '--no-index', '--find-links', data.find_links,
+            '--only-binary=:all:',
+            '--dest', '.',
+            '--platform', 'linux_x86_64',
+            'fake',
+            expect_error=True,
+        )
 
 
 def test_download_specify_python_version(script, data):

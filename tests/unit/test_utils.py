@@ -549,7 +549,7 @@ class TestTempDirectory(object):
 
 
 class TestGlibc(object):
-    def test_manylinux1_check_glibc_version(self):
+    def test_manylinux_check_glibc_version(self):
         """
         Test that the check_glibc_version function is robust against weird
         glibc version strings.
