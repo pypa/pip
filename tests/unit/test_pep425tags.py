@@ -1,6 +1,8 @@
 import sys
+
 import pytest
 from mock import patch
+
 from pip._internal import pep425tags
 
 
