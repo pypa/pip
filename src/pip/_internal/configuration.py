@@ -371,13 +371,16 @@ class Configuration(object):
         # Determine which parser to modify
         parsers = self._parsers[self.load_only]
         if not parsers:
-            if (self.load_only == kinds.VENV and not running_under_virtualenv()):
-                errorMsg = "Please use --venv option under virtual environment."
-            elif (self.load_only == kinds.USER and self.isolated):
-                errorMsg = "User configuration can not be changed in isolated mode."
+            if self.load_only == kinds.VENV and not running_under_virtualenv():
+                errorMsg = "Please use --venv option " \
+                           "under virtual environment."
+            elif self.load_only == kinds.USER and self.isolated:
+                errorMsg = "User configuration " \
+                           "can not be set in isolated mode."
             else:
                 # This should not happen if everything works correctly.
-                errorMsg = "Fatal Internal error [id=2]. Please report as a bug."
+                errorMsg = "Fatal Internal error [id=2]. " \
+                           "Please report as a bug."
             raise ConfigurationError(
                 errorMsg
             )
