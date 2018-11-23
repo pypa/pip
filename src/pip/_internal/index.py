@@ -271,7 +271,7 @@ class PackageFinder(object):
             session=None,  # type: Optional[PipSession]
             format_control=None,  # type: Optional[FormatControl]
             platform=None,  # type: Optional[str]
-            versions=None,  # type: Optional[Iterable[str]]
+            versions=None,  # type: Optional[List[str]]
             abi=None,  # type: Optional[str]
             implementation=None,  # type: Optional[str]
             prefer_binary=False  # type: bool
