@@ -16,7 +16,9 @@ from pip._internal.utils.misc import (
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Dict, Optional, Tuple  # noqa: F401
+    from typing import (Dict, Optional, Tuple,  # noqa: F401
+                        List, Type, Any, Mapping, Text)
+    from pip._internal.utils.ui import SpinnerInterface  # noqa: F401
 
 __all__ = ['vcs']
 
@@ -86,10 +88,11 @@ class RevOptions(object):
 
 
 class VcsSupport(object):
-    _registry = {}  # type: Dict[str, VersionControl]
+    _registry = {}  # type: Dict[str, Type[VersionControl]]
     schemes = ['ssh', 'git', 'hg', 'bzr', 'sftp', 'svn']
 
     def __init__(self):
+        # type: () -> None
         # Register more schemes with urlparse for various version control
         # systems
         urllib_parse.uses_netloc.extend(self.schemes)
@@ -103,20 +106,24 @@ class VcsSupport(object):
 
     @property
     def backends(self):
+        # type: () -> List[Type[VersionControl]]
         return list(self._registry.values())
 
     @property
     def dirnames(self):
+        # type: () -> List[str]
         return [backend.dirname for backend in self.backends]
 
     @property
     def all_schemes(self):
-        schemes = []
+        # type: () -> List[str]
+        schemes = []  # type: List[str]
         for backend in self.backends:
             schemes.extend(backend.schemes)
         return schemes
 
     def register(self, cls):
+        # type: (Type[VersionControl]) -> None
         if not hasattr(cls, 'name'):
             logger.warning('Cannot register VCS %s', cls.__name__)
             return
@@ -125,6 +132,7 @@ class VcsSupport(object):
             logger.debug('Registered VCS backend: %s', cls.name)
 
     def unregister(self, cls=None, name=None):
+        # type: (Optional[Type[VersionControl]], Optional[str]) -> None
         if name in self._registry:
             del self._registry[name]
         elif cls in self._registry.values():
@@ -133,6 +141,7 @@ class VcsSupport(object):
             logger.warning('Cannot unregister because no class or name given')
 
     def get_backend_type(self, location):
+        # type: (str) -> Optional[Type[VersionControl]]
         """
         Return the type of the version control backend if found at given
         location, e.g. vcs.get_backend_type('/path/to/vcs/checkout')
@@ -402,6 +411,7 @@ class VersionControl(object):
             self.switch(dest, url, rev_options)
 
     def unpack(self, location):
+        # type: (str) -> None
         """
         Clean up current location and download the url repository
         (and vcs infos) into location
@@ -431,10 +441,17 @@ class VersionControl(object):
         """
         raise NotImplementedError
 
-    def run_command(self, cmd, show_stdout=True, cwd=None,
-                    on_returncode='raise',
-                    command_desc=None,
-                    extra_environ=None, spinner=None):
+    def run_command(
+            self,
+            cmd,  # type: List[str]
+            show_stdout=True,  # type: bool
+            cwd=None,  # type: Optional[str]
+            on_returncode='raise',  # type: str
+            command_desc=None,  # type: Optional[str]
+            extra_environ=None,  # type: Optional[Mapping[str, Any]]
+            spinner=None  # type: Optional[SpinnerInterface]
+    ):
+        # type: (...) -> Optional[Text]
         """
         Run a VCS subcommand
         This is simply a wrapper around call_subprocess that adds the VCS
@@ -460,6 +477,7 @@ class VersionControl(object):
 
     @classmethod
     def is_repository_directory(cls, path):
+        # type: (str) -> bool
         """
         Return whether a directory path is a repository directory.
         """
@@ -469,6 +487,7 @@ class VersionControl(object):
 
     @classmethod
     def controls_location(cls, location):
+        # type: (str) -> bool
         """
         Check if a location is controlled by the vcs.
         It is meant to be overridden to implement smarter detection

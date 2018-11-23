@@ -35,9 +35,20 @@ from pip._internal.utils.misc import (
 from pip._internal.utils.packaging import get_metadata
 from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._internal.utils.temp_dir import TempDirectory
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import open_spinner
 from pip._internal.vcs import vcs
 from pip._internal.wheel import move_wheel_files
+
+if MYPY_CHECK_RUNNING:
+    from typing import (Optional, Iterable, List,  # noqa: F401
+                        Union, Any, Mapping, Text)
+    from pip._vendor.pkg_resources import Distribution  # noqa: F401
+    from pip._internal.index import PackageFinder  # noqa: F401
+    from pip._internal.cache import WheelCache  # noqa: F401
+    from pip._vendor.packaging.specifiers import SpecifierSet  # noqa: F401
+    from pip._vendor.packaging.markers import Marker  # noqa: F401
+
 
 logger = logging.getLogger(__name__)
 
@@ -49,10 +60,23 @@ class InstallRequirement(object):
     installing the said requirement.
     """
 
-    def __init__(self, req, comes_from, source_dir=None, editable=False,
-                 link=None, update=True, markers=None, use_pep517=None,
-                 isolated=False, options=None, wheel_cache=None,
-                 constraint=False, extras=()):
+    def __init__(
+            self,
+            req,  # type: Optional[Requirement]
+            comes_from,  # type: Optional[Union[str, InstallRequirement]]
+            source_dir=None,  # type: Optional[str]
+            editable=False,  # type: bool
+            link=None,  # type: Optional[Link]
+            update=True,  # type: bool
+            markers=None,  # type: Optional[Marker]
+            use_pep517=None,  # type: Optional[bool]
+            isolated=False,  # type: bool
+            options=None,  # type: Optional[Mapping[Text, Any]]
+            wheel_cache=None,  # type: Optional[WheelCache]
+            constraint=False,  # type: bool
+            extras=()  # type: Iterable[str]
+    ):
+        # type: (...) -> None
         assert req is None or isinstance(req, Requirement), req
         self.req = req
         self.comes_from = comes_from
@@ -67,7 +91,8 @@ class InstallRequirement(object):
         if link is not None:
             self.link = self.original_link = link
         else:
-            self.link = self.original_link = req and req.url and Link(req.url)
+            # https://github.com/python/mypy/issues/5540
+            self.link = self.original_link = req and req.url and Link(req.url)  # type: ignore  # noqa: E501
 
         if extras:
             self.extras = extras
@@ -80,7 +105,8 @@ class InstallRequirement(object):
         if markers is not None:
             self.markers = markers
         else:
-            self.markers = req and req.marker
+            # https://github.com/python/mypy/issues/5540
+            self.markers = req and req.marker  # type: ignore
         self._egg_info_path = None
         # This holds the pkg_resources.Distribution object if this requirement
         # is already available:
@@ -92,7 +118,7 @@ class InstallRequirement(object):
         self._temp_build_dir = TempDirectory(kind="req-build")
         # Used to store the global directory where the _temp_build_dir should
         # have been created. Cf _correct_build_location method.
-        self._ideal_build_dir = None
+        self._ideal_build_dir = None  # type: Optional[str]
         # True if the editable should be updated:
         self.update = update
         # Set to True after successful installation
@@ -117,7 +143,7 @@ class InstallRequirement(object):
         self.pyproject_requires = None
 
         # Build requirements that we will check are available
-        self.requirements_to_check = []
+        self.requirements_to_check = []  # type: List[str]
 
         # The PEP 517 backend we should use to build the project
         self.pep517_backend = None
@@ -139,7 +165,7 @@ class InstallRequirement(object):
         else:
             s = '<InstallRequirement>'
         if self.satisfied_by is not None:
-            s += ' in %s' % display_path(self.satisfied_by.location)
+            s += ' in %s' % display_path(self.satisfied_by.location)  # type: ignore  # noqa: E501
         if self.comes_from:
             if isinstance(self.comes_from, six.string_types):
                 comes_from = self.comes_from
@@ -154,6 +180,7 @@ class InstallRequirement(object):
             self.__class__.__name__, str(self), self.editable)
 
     def populate_link(self, finder, upgrade, require_hashes):
+        # type: (PackageFinder, bool, bool) -> None
         """Ensure that if a link can be found for this, that it is found.
 
         Note that self.link may still be None - if Upgrade is False and the
@@ -176,16 +203,19 @@ class InstallRequirement(object):
     # Things that are valid for all kinds of requirements?
     @property
     def name(self):
+        # type: () -> Optional[str]
         if self.req is None:
             return None
         return native_str(pkg_resources.safe_name(self.req.name))
 
     @property
     def specifier(self):
+        # type: () -> SpecifierSet
         return self.req.specifier
 
     @property
     def is_pinned(self):
+        # type: () -> bool
         """Return whether I am pinned to an exact version.
 
         For example, some-package==1.2 is pinned; some-package>1.2 is not.
@@ -199,6 +229,7 @@ class InstallRequirement(object):
         return get_installed_version(self.name)
 
     def match_markers(self, extras_requested=None):
+        # type: (Optional[Iterable[str]]) -> bool
         if not extras_requested:
             # Provide an extra to safely evaluate the markers
             # without matching any extra
@@ -212,6 +243,7 @@ class InstallRequirement(object):
 
     @property
     def has_hash_options(self):
+        # type: () -> bool
         """Return whether any known-good hashes are specified as options.
 
         These activate --require-hashes mode; hashes specified as part of a
@@ -221,6 +253,7 @@ class InstallRequirement(object):
         return bool(self.options.get('hashes', {}))
 
     def hashes(self, trust_internet=True):
+        # type: (bool) -> Hashes
         """Return a hash-comparer that considers my option- and URL-based
         hashes to be known-good.
 
@@ -242,6 +275,7 @@ class InstallRequirement(object):
         return Hashes(good_hashes)
 
     def from_path(self):
+        # type: () -> Optional[str]
         """Format a nice indicator to show where this "comes from"
         """
         if self.req is None:
@@ -257,6 +291,7 @@ class InstallRequirement(object):
         return s
 
     def build_location(self, build_dir):
+        # type: (str) -> Optional[str]
         assert build_dir is not None
         if self._temp_build_dir.path is not None:
             return self._temp_build_dir.path
@@ -284,6 +319,7 @@ class InstallRequirement(object):
         return os.path.join(build_dir, name)
 
     def _correct_build_location(self):
+        # type: () -> None
         """Move self._temp_build_dir to self._ideal_build_dir/self.req.name
 
         For some requirements (e.g. a path to a directory), the name of the
@@ -297,7 +333,8 @@ class InstallRequirement(object):
             return
         assert self.req is not None
         assert self._temp_build_dir.path
-        assert self._ideal_build_dir.path
+        # remove ignore after update to latest (0.650) mypy
+        assert self._ideal_build_dir is not None and self._ideal_build_dir.path  # type: ignore  # noqa: E501
         old_location = self._temp_build_dir.path
         self._temp_build_dir.path = None
 
@@ -325,6 +362,7 @@ class InstallRequirement(object):
             self.metadata_directory = new_meta
 
     def remove_temporary_source(self):
+        # type: () -> None
         """Remove the source files from this requirement, if they are marked
         for deletion"""
         if self.source_dir and os.path.exists(
@@ -336,6 +374,7 @@ class InstallRequirement(object):
         self.build_env.cleanup()
 
     def check_if_exists(self, use_user_site):
+        # type: (bool) -> bool
         """Find an installed distribution that satisfies or conflicts
         with this requirement, and set self.satisfied_by or
         self.conflicts_with appropriately.
@@ -379,11 +418,21 @@ class InstallRequirement(object):
     # Things valid for wheels
     @property
     def is_wheel(self):
-        return self.link and self.link.is_wheel
+        # type: () -> bool
+        # https://github.com/python/mypy/issues/5540
+        return self.link and self.link.is_wheel  # type: ignore
 
-    def move_wheel_files(self, wheeldir, root=None, home=None, prefix=None,
-                         warn_script_location=True, use_user_site=False,
-                         pycompile=True):
+    def move_wheel_files(
+            self,
+            wheeldir,  # type: str
+            root=None,  # type: Optional[str]
+            home=None,  # type: Optional[str]
+            prefix=None,  # type: Optional[str]
+            warn_script_location=True,  # type: bool
+            use_user_site=False,  # type: bool
+            pycompile=True  # type: bool
+    ):
+        # type: (...) -> None
         move_wheel_files(
             self.name, self.req, wheeldir,
             user=use_user_site,
@@ -398,6 +447,7 @@ class InstallRequirement(object):
     # Things valid for sdists
     @property
     def setup_py_dir(self):
+        # type: () -> str
         return os.path.join(
             self.source_dir,
             self.link and self.link.subdirectory_fragment or '')
@@ -617,6 +667,7 @@ class InstallRequirement(object):
         return self._metadata
 
     def get_dist(self):
+        # type: () -> Distribution
         """Return a pkg_resources.Distribution for this requirement"""
         if self.metadata_directory:
             base_dir, distinfo = os.path.split(self.metadata_directory)

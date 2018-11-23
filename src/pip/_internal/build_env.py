@@ -14,7 +14,12 @@ from pip._vendor.pkg_resources import Requirement, VersionConflict, WorkingSet
 from pip import __file__ as pip_location
 from pip._internal.utils.misc import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import open_spinner
+
+if MYPY_CHECK_RUNNING:
+    from typing import Tuple, Set, Iterable, Optional, List  # noqa: F401
+    from pip._internal.index import PackageFinder  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +27,7 @@ logger = logging.getLogger(__name__)
 class _Prefix:
 
     def __init__(self, path):
+        # type: (str) -> None
         self.path = path
         self.setup = False
         self.bin_dir = get_paths(
@@ -30,8 +36,8 @@ class _Prefix:
         )['scripts']
         # Note: prefer distutils' sysconfig to get the
         # library paths so PyPy is correctly supported.
-        purelib = get_python_lib(plat_specific=0, prefix=path)
-        platlib = get_python_lib(plat_specific=1, prefix=path)
+        purelib = get_python_lib(plat_specific=False, prefix=path)
+        platlib = get_python_lib(plat_specific=True, prefix=path)
         if purelib == platlib:
             self.lib_dirs = [purelib]
         else:
@@ -43,6 +49,7 @@ class BuildEnvironment(object):
     """
 
     def __init__(self):
+        # type: () -> None
         self._temp_dir = TempDirectory(kind="build-env")
         self._temp_dir.create()
 
@@ -51,8 +58,8 @@ class BuildEnvironment(object):
             for name in ('normal', 'overlay')
         ))
 
-        self._bin_dirs = []
-        self._lib_dirs = []
+        self._bin_dirs = []  # type: List[str]
+        self._lib_dirs = []  # type: List[str]
         for prefix in reversed(list(self._prefixes.values())):
             self._bin_dirs.append(prefix.bin_dir)
             self._lib_dirs.extend(prefix.lib_dirs)
@@ -62,8 +69,8 @@ class BuildEnvironment(object):
         # - prevent access to system site packages
         system_sites = {
             os.path.normcase(site) for site in (
-                get_python_lib(plat_specific=0),
-                get_python_lib(plat_specific=1),
+                get_python_lib(plat_specific=False),
+                get_python_lib(plat_specific=True),
             )
         }
         self._site_dir = os.path.join(self._temp_dir.path, 'site')
@@ -124,9 +131,11 @@ class BuildEnvironment(object):
                 os.environ[varname] = old_value
 
     def cleanup(self):
+        # type: () -> None
         self._temp_dir.cleanup()
 
     def check_requirements(self, reqs):
+        # type: (Iterable[str]) -> Tuple[Set[Tuple[str, str]], Set[str]]
         """Return 2 sets:
             - conflicting requirements: set of (installed, wanted) reqs tuples
             - missing requirements: set of reqs
@@ -144,8 +153,15 @@ class BuildEnvironment(object):
                                      str(e.args[1])))
         return conflicting, missing
 
-    def install_requirements(self, finder, requirements, prefix, message):
-        prefix = self._prefixes[prefix]
+    def install_requirements(
+            self,
+            finder,  # type: PackageFinder
+            requirements,  # type: Iterable[str]
+            prefix_as_string,  # type: str
+            message  # type: Optional[str]
+    ):
+        # type: (...) -> None
+        prefix = self._prefixes[prefix_as_string]
         assert not prefix.setup
         prefix.setup = True
         if not requirements:
@@ -154,7 +170,7 @@ class BuildEnvironment(object):
             sys.executable, os.path.dirname(pip_location), 'install',
             '--ignore-installed', '--no-user', '--prefix', prefix.path,
             '--no-warn-script-location',
-        ]
+        ]  # type: List[str]
         if logger.getEffectiveLevel() <= logging.DEBUG:
             args.append('-v')
         for format_control in ('no_binary', 'only_binary'):

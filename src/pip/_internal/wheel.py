@@ -40,7 +40,9 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import open_spinner
 
 if MYPY_CHECK_RUNNING:
-    from typing import Dict, List, Optional  # noqa: F401
+    from typing import Dict, List, Optional, Sequence, Mapping  # noqa: F401
+    from pip._vendor.packaging.requirements import Requirement  # noqa: F401
+
 
 wheel_ext = '.whl'
 
@@ -152,7 +154,7 @@ def get_entrypoints(filename):
 
 
 def message_about_scripts_not_on_PATH(scripts):
-    # type: (List[str]) -> Optional[str]
+    # type: (Sequence[str]) -> Optional[str]
     """Determine if any scripts are not on PATH and format a warning.
 
     Returns a warning message if one or more scripts are not on PATH,
@@ -232,9 +234,20 @@ def sorted_outrows(outrows):
     return sorted(outrows, key=lambda row: tuple(str(x) for x in row))
 
 
-def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
-                     pycompile=True, scheme=None, isolated=False, prefix=None,
-                     warn_script_location=True):
+def move_wheel_files(
+        name,  # type: str
+        req,  # type: Requirement
+        wheeldir,  # type: str
+        user=False,  # type: bool
+        home=None,  # type: Optional[str]
+        root=None,  # type: Optional[str]
+        pycompile=True,  # type: bool
+        scheme=None,  # type: Optional[Mapping[str, str]]
+        isolated=False,  # type: bool
+        prefix=None,  # type: Optional[str]
+        warn_script_location=True  # type: bool
+):
+    # type: (...) -> None
     """Install a wheel"""
 
     if not scheme:
@@ -248,7 +261,7 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
     else:
         lib_dir = scheme['platlib']
 
-    info_dir = []
+    info_dir = []  # type: List[str]
     data_dirs = []
     source = wheeldir.rstrip(os.path.sep) + os.path.sep
 
@@ -258,7 +271,7 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
     #   generated = files newly generated during the install (script wrappers)
     installed = {}
     changed = set()
-    generated = []
+    generated = []  # type: List[str]
 
     # Compile all of the pyc files that we're going to be installing
     if pycompile:
@@ -416,8 +429,9 @@ def move_wheel_files(name, req, wheeldir, user=False, home=None, root=None,
             "import_name": entry.suffix.split(".")[0],
             "func": entry.suffix,
         }
-
-    maker._get_script_text = _get_script_text
+    # ignore type, because mypy disallows assigning to a method,
+    # see https://github.com/python/mypy/issues/2427
+    maker._get_script_text = _get_script_text  # type: ignore
     maker.script_template = r"""# -*- coding: utf-8 -*-
 import re
 import sys

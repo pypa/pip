@@ -35,11 +35,20 @@ from pip._internal.locations import (
 from pip._internal.utils.compat import (
     WINDOWS, console_to_str, expanduser, stdlib_pkgs,
 )
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if PY2:
     from io import BytesIO as StringIO
 else:
     from io import StringIO
+
+if MYPY_CHECK_RUNNING:
+    from typing import (Optional, Tuple, Iterable, List,  # noqa: F401
+                        Match, Union, Set, Any, Mapping, Text, AnyStr)
+    from pip._vendor.pkg_resources import Distribution  # noqa: F401
+    from pip._internal.models.link import Link  # noqa: F401
+    from pip._internal.utils.ui import SpinnerInterface  # noqa: F401
+
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
            'ask', 'splitext',
@@ -78,6 +87,7 @@ except ImportError:
 
 
 def ensure_dir(path):
+    # type: (AnyStr) -> None
     """os.path.makedirs without EEXIST."""
     try:
         os.makedirs(path)
@@ -87,6 +97,7 @@ def ensure_dir(path):
 
 
 def get_prog():
+    # type: () -> str
     try:
         prog = os.path.basename(sys.argv[0])
         if prog in ('__main__.py', '-c'):
@@ -101,6 +112,7 @@ def get_prog():
 # Retry every half second for up to 3 seconds
 @retry(stop_max_delay=3000, wait_fixed=500)
 def rmtree(dir, ignore_errors=False):
+    # type: (str, bool) -> None
     shutil.rmtree(dir, ignore_errors=ignore_errors,
                   onerror=rmtree_errorhandler)
 
@@ -121,6 +133,7 @@ def rmtree_errorhandler(func, path, exc_info):
 
 
 def display_path(path):
+    # type: (Union[str, Text]) -> str
     """Gives the display value for a given path, making it relative to cwd
     if possible."""
     path = os.path.normcase(os.path.abspath(path))
@@ -133,6 +146,7 @@ def display_path(path):
 
 
 def backup_dir(dir, ext='.bak'):
+    # type: (str, str) -> str
     """Figure out the name of a directory to back up the given dir to
     (adding .bak, .bak2, etc)"""
     n = 1
@@ -144,6 +158,7 @@ def backup_dir(dir, ext='.bak'):
 
 
 def ask_path_exists(message, options):
+    # type: (str, Iterable[str]) -> str
     for action in os.environ.get('PIP_EXISTS_ACTION', '').split():
         if action in options:
             return action
@@ -151,6 +166,7 @@ def ask_path_exists(message, options):
 
 
 def ask(message, options):
+    # type: (str, Iterable[str]) -> str
     """Ask the message interactively, with the given possible responses"""
     while 1:
         if os.environ.get('PIP_NO_INPUT'):
@@ -170,6 +186,7 @@ def ask(message, options):
 
 
 def format_size(bytes):
+    # type: (float) -> str
     if bytes > 1000 * 1000:
         return '%.1fMB' % (bytes / 1000.0 / 1000)
     elif bytes > 10 * 1000:
@@ -181,6 +198,7 @@ def format_size(bytes):
 
 
 def is_installable_dir(path):
+    # type: (str) -> bool
     """Is path is a directory containing setup.py or pyproject.toml?
     """
     if not os.path.isdir(path):
@@ -195,6 +213,7 @@ def is_installable_dir(path):
 
 
 def is_svn_page(html):
+    # type: (Union[str, Text]) -> Optional[Match[Union[str, Text]]]
     """
     Returns true if the page appears to be the index page of an svn repository
     """
@@ -203,6 +222,7 @@ def is_svn_page(html):
 
 
 def file_contents(filename):
+    # type: (str) -> Text
     with open(filename, 'rb') as fp:
         return fp.read().decode('utf-8')
 
@@ -217,6 +237,7 @@ def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):
 
 
 def split_leading_dir(path):
+    # type: (Union[str, Text]) -> List[Union[str, Text]]
     path = path.lstrip('/').lstrip('\\')
     if '/' in path and (('\\' in path and path.find('/') < path.find('\\')) or
                         '\\' not in path):
@@ -224,10 +245,11 @@ def split_leading_dir(path):
     elif '\\' in path:
         return path.split('\\', 1)
     else:
-        return path, ''
+        return [path, '']
 
 
 def has_leading_dir(paths):
+    # type: (Iterable[Union[str, Text]]) -> bool
     """Returns true if all the paths have the same leading path name
     (i.e., everything is in one subdirectory in an archive)"""
     common_prefix = None
@@ -243,6 +265,7 @@ def has_leading_dir(paths):
 
 
 def normalize_path(path, resolve_symlinks=True):
+    # type: (str, bool) -> str
     """
     Convert a path to its canonical, case-normalized, absolute version.
 
@@ -256,6 +279,7 @@ def normalize_path(path, resolve_symlinks=True):
 
 
 def splitext(path):
+    # type: (str) -> Tuple[str, str]
     """Like os.path.splitext, but take off .tar too"""
     base, ext = posixpath.splitext(path)
     if base.lower().endswith('.tar'):
@@ -265,6 +289,7 @@ def splitext(path):
 
 
 def renames(old, new):
+    # type: (str, str) -> None
     """Like os.renames(), but handles renaming across devices."""
     # Implementation borrowed from os.renames().
     head, tail = os.path.split(new)
@@ -282,6 +307,7 @@ def renames(old, new):
 
 
 def is_local(path):
+    # type: (str) -> bool
     """
     Return True if path is within sys.prefix, if we're running in a virtualenv.
 
@@ -294,6 +320,7 @@ def is_local(path):
 
 
 def dist_is_local(dist):
+    # type: (Distribution) -> bool
     """
     Return True if given Distribution object is installed locally
     (i.e. within current virtualenv).
@@ -305,6 +332,7 @@ def dist_is_local(dist):
 
 
 def dist_in_usersite(dist):
+    # type: (Distribution) -> bool
     """
     Return True if given Distribution is installed in user site.
     """
@@ -313,6 +341,7 @@ def dist_in_usersite(dist):
 
 
 def dist_in_site_packages(dist):
+    # type: (Distribution) -> bool
     """
     Return True if given Distribution is installed in
     sysconfig.get_python_lib().
@@ -323,6 +352,7 @@ def dist_in_site_packages(dist):
 
 
 def dist_is_editable(dist):
+    # type: (Distribution) -> bool
     """
     Return True if given Distribution is an editable install.
     """
@@ -338,6 +368,7 @@ def get_installed_distributions(local_only=True,
                                 include_editables=True,
                                 editables_only=False,
                                 user_only=False):
+    # type: (bool, Set[str], bool, bool, bool) -> List[Distribution]
     """
     Return a list of installed Distribution objects.
 
@@ -381,7 +412,7 @@ def get_installed_distributions(local_only=True,
         def user_test(d):
             return True
 
-    return [d for d in pkg_resources.working_set
+    return [d for d in pkg_resources.working_set  # type: ignore
             if local_test(d) and
             d.key not in skip and
             editable_test(d) and
@@ -391,6 +422,7 @@ def get_installed_distributions(local_only=True,
 
 
 def egg_link_path(dist):
+    # type: (Distribution) -> Optional[str]
     """
     Return the path for the .egg-link file if it exists, otherwise, None.
 
@@ -425,9 +457,11 @@ def egg_link_path(dist):
         egglink = os.path.join(site, dist.project_name) + '.egg-link'
         if os.path.isfile(egglink):
             return egglink
+    return None
 
 
 def dist_location(dist):
+    # type: (Distribution) -> str
     """
     Get the site-packages location of this distribution. Generally
     this is dist.location, except in the case of develop-installed
@@ -449,6 +483,7 @@ def current_umask():
 
 
 def unzip_file(filename, location, flatten=True):
+    # type: (str, str, bool) -> None
     """
     Unzip the file (with path `filename`) to the destination `location`.  All
     files are written based on system defaults and umask (i.e. permissions are
@@ -494,6 +529,7 @@ def unzip_file(filename, location, flatten=True):
 
 
 def untar_file(filename, location):
+    # type: (str, str) -> None
     """
     Untar the file (with path `filename`) to the destination `location`.
     All files are written based on system defaults and umask (i.e. permissions
@@ -524,13 +560,14 @@ def untar_file(filename, location):
         for member in tar.getmembers():
             fn = member.name
             if leading:
-                fn = split_leading_dir(fn)[1]
+                # https://github.com/python/mypy/issues/1174
+                fn = split_leading_dir(fn)[1]  # type: ignore
             path = os.path.join(location, fn)
             if member.isdir():
                 ensure_dir(path)
             elif member.issym():
                 try:
-                    tar._extract_member(member, path)
+                    tar._extract_member(member, path)  # type: ignore
                 except Exception as exc:
                     # Some corrupt tar files seem to produce this
                     # (specifically bad symlinks)
@@ -555,7 +592,7 @@ def untar_file(filename, location):
                     shutil.copyfileobj(fp, destfp)
                 fp.close()
                 # Update the timestamp (useful for cython compiled files)
-                tar.utime(member, path)
+                tar.utime(member, path)  # type: ignore
                 # member have any execute permissions for user/group/world?
                 if member.mode & 0o111:
                     # make dest file have execute for user/group/world
@@ -565,7 +602,13 @@ def untar_file(filename, location):
         tar.close()
 
 
-def unpack_file(filename, location, content_type, link):
+def unpack_file(
+        filename,  # type: str
+        location,  # type: str
+        content_type,  # type: str
+        link  # type: Link
+):
+    # type: (...) -> None
     filename = os.path.realpath(filename)
     if (content_type == 'application/zip' or
             filename.lower().endswith(ZIP_EXTENSIONS) or
@@ -598,10 +641,17 @@ def unpack_file(filename, location, content_type, link):
         )
 
 
-def call_subprocess(cmd, show_stdout=True, cwd=None,
-                    on_returncode='raise',
-                    command_desc=None,
-                    extra_environ=None, unset_environ=None, spinner=None):
+def call_subprocess(
+        cmd,  # type: List[str]
+        show_stdout=True,  # type: bool
+        cwd=None,  # type: Optional[str]
+        on_returncode='raise',  # type: str
+        command_desc=None,  # type: Optional[str]
+        extra_environ=None,  # type: Optional[Mapping[str, Any]]
+        unset_environ=None,  # type: Optional[Iterable[str]]
+        spinner=None  # type: Optional[SpinnerInterface]
+):
+    # type: (...) -> Optional[Text]
     """
     Args:
       unset_environ: an iterable of environment variable names to unset
@@ -709,9 +759,11 @@ def call_subprocess(cmd, show_stdout=True, cwd=None,
                              repr(on_returncode))
     if not show_stdout:
         return ''.join(all_output)
+    return None
 
 
 def read_text_file(filename):
+    # type: (str) -> str
     """Return the contents of *filename*.
 
     Try to decode the file contents with utf-8, the preferred system encoding
@@ -726,13 +778,15 @@ def read_text_file(filename):
     encodings = ['utf-8', locale.getpreferredencoding(False), 'latin1']
     for enc in encodings:
         try:
-            data = data.decode(enc)
+            # https://github.com/python/mypy/issues/1174
+            data = data.decode(enc)  # type: ignore
         except UnicodeDecodeError:
             continue
         break
 
     assert type(data) != bytes  # Latin1 should have worked.
-    return data
+    # https://github.com/python/mypy/issues/4445
+    return data  # type: ignore
 
 
 def _make_build_dir(build_dir):
@@ -895,6 +949,7 @@ def split_auth_from_netloc(netloc):
 
 
 def redact_netloc(netloc):
+    # type: (str) -> str
     """
     Replace the password in a netloc with "****", if it exists.
 
@@ -925,6 +980,7 @@ def _get_netloc(netloc):
 
 
 def remove_auth_from_url(url):
+    # type: (str) -> str
     # Return a copy of url with 'username:password@' removed.
     # username/pass params are passed to subversion through flags
     # and are not recognized in the url.
@@ -932,6 +988,7 @@ def remove_auth_from_url(url):
 
 
 def redact_password_from_url(url):
+    # type: (str) -> str
     """Replace the password in a given url with ****."""
     return _transform_url(url, redact_netloc)
 

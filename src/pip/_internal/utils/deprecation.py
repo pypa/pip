@@ -56,10 +56,10 @@ def deprecated(reason, replacement, gone_in, issue=None):
     """Helper to deprecate existing functionality.
 
     reason:
-        Textual reason shown to the user about why this functionality has
+        strual reason shown to the user about why this functionality has
         been deprecated.
     replacement:
-        Textual suggestion shown to the user about what alternative
+        strual suggestion shown to the user about what alternative
         functionality they can use.
     gone_in:
         The version of pip does this functionality should get removed in.

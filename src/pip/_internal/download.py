@@ -48,7 +48,9 @@ from pip._internal.utils.ui import DownloadProgressProvider
 from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional  # noqa: F401
+    from typing import Optional, Tuple, Dict  # noqa: F401
+    from pip._internal.models.link import Link  # noqa: F401
+    from pip._internal.utils.hashes import Hashes  # noqa: F401
 
 try:
     import ssl  # noqa
@@ -139,8 +141,9 @@ def user_agent():
 class MultiDomainBasicAuth(AuthBase):
 
     def __init__(self, prompting=True):
+        # type: (bool) -> None
         self.prompting = prompting
-        self.passwords = {}
+        self.passwords = {}  # type: Dict[str, Tuple[Optional[str], Optional[str]]]  # noqa: E501
 
     def __call__(self, req):
         parsed = urllib_parse.urlparse(req.url)
@@ -398,6 +401,7 @@ class PipSession(requests.Session):
 
 
 def get_file_content(url, comes_from=None, session=None):
+    # type: (str, Optional[str], Optional[PipSession]) -> Tuple[str, str]
     """Gets the content of a file; it may be a filename, file: URL, or
     http: URL.  Returns (location, content).  Content is unicode.
 
@@ -448,6 +452,7 @@ _url_slash_drive_re = re.compile(r'/*([a-z])\|', re.I)
 
 
 def is_url(name):
+    # type: (str) -> bool
     """Returns true if the name looks like a URL"""
     if ':' not in name:
         return False
@@ -456,6 +461,7 @@ def is_url(name):
 
 
 def url_to_path(url):
+    # type: (str) -> str
     """
     Convert a file: URL to a path.
     """
@@ -473,6 +479,7 @@ def url_to_path(url):
 
 
 def path_to_url(path):
+    # type: (str) -> str
     """
     Convert a path to a file: URL.  The path will be made absolute and have
     quoted path parts.
@@ -483,6 +490,7 @@ def path_to_url(path):
 
 
 def is_archive_file(name):
+    # type: (str) -> bool
     """Return True if `name` is a considered as an archive file."""
     ext = splitext(name)[1].lower()
     if ext in ARCHIVE_EXTENSIONS:
@@ -503,14 +511,17 @@ def _get_used_vcs_backend(link):
 
 
 def is_vcs_url(link):
+    # type: (Link) -> bool
     return bool(_get_used_vcs_backend(link))
 
 
 def is_file_url(link):
+    # type: (Link) -> bool
     return link.url.lower().startswith('file:')
 
 
 def is_dir_url(link):
+    # type: (Link) -> bool
     """Return whether a file:// Link points to a directory.
 
     ``link`` must not have any other scheme but file://. Call is_file_url()
@@ -525,7 +536,13 @@ def _progress_indicator(iterable, *args, **kwargs):
     return iterable
 
 
-def _download_url(resp, link, content_file, hashes, progress_bar):
+def _download_url(
+        resp,
+        link,
+        content_file,
+        hashes,
+        progress_bar
+):
     try:
         total_length = int(resp.headers['content-length'])
     except (ValueError, KeyError, TypeError):
@@ -647,8 +664,15 @@ def _copy_file(filename, location, link):
         logger.info('Saved %s', display_path(download_location))
 
 
-def unpack_http_url(link, location, download_dir=None,
-                    session=None, hashes=None, progress_bar="on"):
+def unpack_http_url(
+        link,  # type: Link
+        location,  # type: str
+        download_dir=None,  # type: Optional[str]
+        session=None,  # type: Optional[PipSession]
+        hashes=None,  # type: Optional[Hashes]
+        progress_bar="on"  # type: str
+):
+    # type: (...) -> None
     if session is None:
         raise TypeError(
             "unpack_http_url() missing 1 required keyword argument: 'session'"
@@ -685,7 +709,13 @@ def unpack_http_url(link, location, download_dir=None,
             os.unlink(from_path)
 
 
-def unpack_file_url(link, location, download_dir=None, hashes=None):
+def unpack_file_url(
+        link,  # type: Link
+        location,  # type: str
+        download_dir=None,  # type: Optional[str]
+        hashes=None  # type: Optional[Hashes]
+):
+    # type: (...) -> None
     """Unpack link into location.
 
     If download_dir is provided and link points to a file, make a copy
@@ -798,9 +828,16 @@ class PipXmlrpcTransport(xmlrpc_client.Transport):
             raise
 
 
-def unpack_url(link, location, download_dir=None,
-               only_download=False, session=None, hashes=None,
-               progress_bar="on"):
+def unpack_url(
+        link,  # type: Optional[Link]
+        location,  # type: Optional[str]
+        download_dir=None,  # type: Optional[str]
+        only_download=False,  # type: bool
+        session=None,  # type: Optional[PipSession]
+        hashes=None,  # type: Optional[Hashes]
+        progress_bar="on"  # type: str
+):
+    # type: (...) -> None
     """Unpack link.
        If link is a VCS link:
          if only_download, export into download_dir and ignore location
@@ -840,7 +877,14 @@ def unpack_url(link, location, download_dir=None,
         write_delete_marker_file(location)
 
 
-def _download_http_url(link, session, temp_dir, hashes, progress_bar):
+def _download_http_url(
+        link,  # type: Link
+        session,  # type: PipSession
+        temp_dir,  # type: str
+        hashes,  # type: Hashes
+        progress_bar  # type: str
+):
+    # type: (...) -> Tuple[str, str]
     """Download link url into temp_dir using provided session"""
     target_url = link.url.split('#', 1)[0]
     try:
@@ -900,6 +944,7 @@ def _download_http_url(link, session, temp_dir, hashes, progress_bar):
 
 
 def _check_download_dir(link, download_dir, hashes):
+    # type: (Link, str, Hashes) -> Optional[str]
     """ Check download_dir for previously downloaded file with correct hash
         If a correct file is found return its path else None
     """
