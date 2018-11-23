@@ -48,7 +48,7 @@ from pip._internal.utils.ui import DownloadProgressProvider
 from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, Tuple, Dict  # noqa: F401
+    from typing import Optional, Tuple, Dict, IO  # noqa: F401
     from pip._internal.models.link import Link  # noqa: F401
     from pip._internal.utils.hashes import Hashes  # noqa: F401
 
@@ -537,11 +537,11 @@ def _progress_indicator(iterable, *args, **kwargs):
 
 
 def _download_url(
-        resp,
-        link,
-        content_file,
-        hashes,
-        progress_bar
+        resp,  # type: Response
+        link,  # type: Link
+        content_file,  # type: IO
+        hashes,  # type: Hashes
+        progress_bar  # type: str
 ):
     try:
         total_length = int(resp.headers['content-length'])
