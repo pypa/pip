@@ -543,6 +543,7 @@ def _download_url(
         hashes,  # type: Hashes
         progress_bar  # type: str
 ):
+    # type: (...) -> None
     try:
         total_length = int(resp.headers['content-length'])
     except (ValueError, KeyError, TypeError):
