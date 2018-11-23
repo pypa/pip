@@ -48,7 +48,7 @@ from pip._internal.utils.ui import DownloadProgressProvider
 from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, Tuple, Dict, IO  # noqa: F401
+    from typing import Optional, Tuple, Dict, IO, Text  # noqa: F401
     from pip._internal.models.link import Link  # noqa: F401
     from pip._internal.utils.hashes import Hashes  # noqa: F401
 
@@ -401,7 +401,7 @@ class PipSession(requests.Session):
 
 
 def get_file_content(url, comes_from=None, session=None):
-    # type: (str, Optional[str], Optional[PipSession]) -> Tuple[str, str]
+    # type: (str, Optional[str], Optional[PipSession]) -> Tuple[str, Text]
     """Gets the content of a file; it may be a filename, file: URL, or
     http: URL.  Returns (location, content).  Content is unicode.
 
