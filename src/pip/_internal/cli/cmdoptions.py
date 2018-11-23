@@ -432,7 +432,7 @@ def _handle_only_binary(option, opt_str, value, parser):
 
 
 def no_binary():
-    # type: (...) -> Option
+    # type: () -> Option
     format_control = FormatControl(set(), set())
     return Option(
         "--no-binary", dest="format_control", action="callback",
@@ -448,7 +448,7 @@ def no_binary():
 
 
 def only_binary():
-    # type: (...) -> Option
+    # type: () -> Option
     format_control = FormatControl(set(), set())
     return Option(
         "--only-binary", dest="format_control", action="callback",

@@ -44,7 +44,7 @@ else:
 
 if MYPY_CHECK_RUNNING:
     from typing import (Optional, Tuple, Iterable, List,  # noqa: F401
-                        Match, Union, Set, Any, Mapping, Text, AnyStr)
+                        Match, Union, Any, Mapping, Text, AnyStr, Container)
     from pip._vendor.pkg_resources import Distribution  # noqa: F401
     from pip._internal.models.link import Link  # noqa: F401
     from pip._internal.utils.ui import SpinnerInterface  # noqa: F401
@@ -368,7 +368,7 @@ def get_installed_distributions(local_only=True,
                                 include_editables=True,
                                 editables_only=False,
                                 user_only=False):
-    # type: (bool, Set[str], bool, bool, bool) -> List[Distribution]
+    # type: (bool, Container[str], bool, bool, bool) -> List[Distribution]
     """
     Return a list of installed Distribution objects.
 
@@ -605,8 +605,8 @@ def untar_file(filename, location):
 def unpack_file(
         filename,  # type: str
         location,  # type: str
-        content_type,  # type: str
-        link  # type: Link
+        content_type,  # type: Optional[str]
+        link  # type: Optional[Link]
 ):
     # type: (...) -> None
     filename = os.path.realpath(filename)

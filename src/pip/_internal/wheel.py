@@ -40,8 +40,12 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import open_spinner
 
 if MYPY_CHECK_RUNNING:
-    from typing import Dict, List, Optional, Sequence, Mapping  # noqa: F401
+    from typing import (Dict, List, Optional,  # noqa: F401
+                        Sequence, Mapping, Tuple, IO, Text,
+                        Any, Union, Iterable)
     from pip._vendor.packaging.requirements import Requirement  # noqa: F401
+
+    OutRow = Tuple[str, Union[str, Text], Union[str, int]]
 
 
 wheel_ext = '.whl'
@@ -53,6 +57,7 @@ logger = logging.getLogger(__name__)
 
 
 def rehash(path, blocksize=1 << 20):
+    # type: (str, int) -> Tuple[Text, int]
     """Return (hash, length) for path using hashlib.sha256()"""
     h = hashlib.sha256()
     length = 0
@@ -67,16 +72,18 @@ def rehash(path, blocksize=1 << 20):
 
 
 def open_for_csv(name, mode):
+    # type: (str, Text) -> IO
     if sys.version_info[0] < 3:
-        nl = {}
+        nl = {}  # type: Dict[str, Any]
         bin = 'b'
     else:
-        nl = {'newline': ''}
+        nl = {'newline': ''}  # type: Dict[str, Any]
         bin = ''
     return open(name, mode + bin, **nl)
 
 
 def replace_python_tag(wheelname, new_tag):
+    # type: (str, str) -> str
     """Replace the Python tag in a wheel file name with a new value.
     """
     parts = wheelname.split('-')
@@ -85,6 +92,7 @@ def replace_python_tag(wheelname, new_tag):
 
 
 def fix_script(path):
+    # type: (str) -> Optional[bool]
     """Replace #!python with #!/path/to/python
     Return True if file was changed."""
     # XXX RECORD hashes will need to be updated
@@ -100,6 +108,7 @@ def fix_script(path):
             script.write(firstline)
             script.write(rest)
         return True
+    return None
 
 
 dist_info_re = re.compile(r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>.+?))?)
@@ -107,6 +116,7 @@ dist_info_re = re.compile(r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>.+?))?)
 
 
 def root_is_purelib(name, wheeldir):
+    # type: (str, str) -> bool
     """
     Return True if the extracted wheel in wheeldir should go into purelib.
     """
@@ -123,6 +133,7 @@ def root_is_purelib(name, wheeldir):
 
 
 def get_entrypoints(filename):
+    # type: (str) -> Tuple[Dict[str, str], Dict[str, str]]
     if not os.path.exists(filename):
         return {}, {}
 
@@ -215,6 +226,7 @@ def message_about_scripts_not_on_PATH(scripts):
 
 
 def sorted_outrows(outrows):
+    # type: (Iterable[OutRow]) -> List[OutRow]
     """
     Return the given rows of a RECORD file in sorted order.
 
@@ -542,19 +554,20 @@ if __name__ == '__main__':
         with open_for_csv(temp_record, 'w+') as record_out:
             reader = csv.reader(record_in)
             writer = csv.writer(record_out)
-            outrows = []
+            outrows = []  # type: List[OutRow]
             for row in reader:
                 row[0] = installed.pop(row[0], row[0])
                 if row[0] in changed:
-                    row[1], row[2] = rehash(row[0])
-                outrows.append(tuple(row))
+                    row[1], row[2] = rehash(row[0])  # type: ignore
+                outrows.append(tuple(row))  # type: ignore
             for f in generated:
                 digest, length = rehash(f)
                 outrows.append((normpath(f, lib_dir), digest, length))
             for f in installed:
                 outrows.append((installed[f], '', ''))
             # Sort to simplify testing.
-            for row in sorted_outrows(outrows):
+            # https://github.com/python/mypy/issues/1174
+            for row in sorted_outrows(outrows):  # type: ignore
                 writer.writerow(row)
     shutil.move(temp_record, record)
 

@@ -10,7 +10,8 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.wheel import wheel_ext
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, Tuple  # noqa: F401
+    from typing import Optional, Tuple, Union  # noqa: F401
+    from pip._internal.index import HTMLPage  # noqa: F401
 
 
 class Link(KeyBasedCompareMixin):
@@ -18,6 +19,7 @@ class Link(KeyBasedCompareMixin):
     """
 
     def __init__(self, url, comes_from=None, requires_python=None):
+        # type: (str, Optional[Union[str, HTMLPage]], Optional[str]) -> None
         """
         url:
             url of the resource pointed to (href of the link)
