@@ -51,9 +51,9 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.req import InstallRequirement  # noqa: F401
     from pip._internal.download import PipSession  # noqa: F401
 
-    _SecureOrigin = Tuple[str, str, Optional[str]]
-    _BuildTag = Tuple[Any, ...]  # possibly empty Tuple[int, str]
-    _CandidateSortingKey = Tuple[int, _BaseVersion, _BuildTag, Optional[int]]
+    SecureOrigin = Tuple[str, str, Optional[str]]
+    BuildTag = Tuple[Any, ...]  # possibly empty Tuple[int, str]
+    CandidateSortingKey = Tuple[int, _BaseVersion, BuildTag, Optional[int]]
 
 __all__ = ['FormatControl', 'PackageFinder']
 
@@ -68,7 +68,7 @@ SECURE_ORIGINS = [
     ("file", "*", None),
     # ssh is always secure.
     ("ssh", "*", "*"),
-]  # type: List[_SecureOrigin]
+]  # type: List[SecureOrigin]
 
 
 logger = logging.getLogger(__name__)
@@ -325,7 +325,7 @@ class PackageFinder(object):
         self.secure_origins = [
             ("*", host, "*")
             for host in (trusted_hosts if trusted_hosts else [])
-        ]  # type: List[_SecureOrigin]
+        ]  # type: List[SecureOrigin]
 
         # Do we want to allow _all_ pre-releases?
         self.allow_all_prereleases = allow_all_prereleases
@@ -449,7 +449,7 @@ class PackageFinder(object):
         return files, urls
 
     def _candidate_sort_key(self, candidate):
-        # type: (InstallationCandidate) -> _CandidateSortingKey
+        # type: (InstallationCandidate) -> CandidateSortingKey
         """
         Function used to generate link sort key for link tuples.
         The greater the return value, the more preferred it is.
@@ -464,7 +464,7 @@ class PackageFinder(object):
               with the same version, would have to be considered equal
         """
         support_num = len(self.valid_tags)
-        build_tag = tuple()  # type: _BuildTag
+        build_tag = tuple()  # type: BuildTag
         binary_preference = 0
         if candidate.location.is_wheel:
             # can raise InvalidWheelFilename
