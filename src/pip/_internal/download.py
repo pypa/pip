@@ -48,7 +48,7 @@ from pip._internal.utils.ui import DownloadProgressProvider
 from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, Tuple, Dict, IO, Text  # noqa: F401
+    from typing import Optional, Tuple, Dict, IO, Text, Union  # noqa: F401
     from pip._internal.models.link import Link  # noqa: F401
     from pip._internal.utils.hashes import Hashes  # noqa: F401
 
@@ -452,7 +452,7 @@ _url_slash_drive_re = re.compile(r'/*([a-z])\|', re.I)
 
 
 def is_url(name):
-    # type: (str) -> bool
+    # type: (Union[str, Text]) -> bool
     """Returns true if the name looks like a URL"""
     if ':' not in name:
         return False
@@ -479,7 +479,7 @@ def url_to_path(url):
 
 
 def path_to_url(path):
-    # type: (str) -> str
+    # type: (Union[str, Text]) -> str
     """
     Convert a path to a file: URL.  The path will be made absolute and have
     quoted path parts.

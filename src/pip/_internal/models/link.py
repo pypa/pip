@@ -10,7 +10,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.wheel import wheel_ext
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, Tuple, Union  # noqa: F401
+    from typing import Optional, Tuple, Union, Text  # noqa: F401
     from pip._internal.index import HTMLPage  # noqa: F401
 
 

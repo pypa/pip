@@ -22,7 +22,7 @@ from pip._internal.req.constructors import (
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Iterator, Tuple, Optional, List, Callable  # noqa: F401
+    from typing import Iterator, Tuple, Optional, List, Callable, Text  # noqa: F401
     from pip._internal.req import InstallRequirement  # noqa: F401
     from pip._internal.cache import WheelCache  # noqa: F401
     from pip._internal.index import PackageFinder  # noqa: F401
@@ -111,12 +111,13 @@ def parse_requirements(
 
 
 def preprocess(content, options):
+    # type: (Text, Optional[optparse.Values]) -> Iterator[Tuple[int, Text]]
     """Split, filter, and join lines, and return a line iterator
 
     :param content: the content of the requirements file
     :param options: cli options
     """
-    lines_enum = enumerate(content.splitlines(), start=1)
+    lines_enum = enumerate(content.splitlines(), start=1)  # type: Iterator[Tuple[int, Text]]  # noqa: E501
     lines_enum = join_lines(lines_enum)
     lines_enum = ignore_comments(lines_enum)
     lines_enum = skip_regex(lines_enum, options)
@@ -125,7 +126,7 @@ def preprocess(content, options):
 
 
 def process_line(
-        line,  # type: str
+        line,  # type: Text
         filename,  # type: str
         line_number,  # type: int
         finder=None,  # type: Optional[PackageFinder]
@@ -165,7 +166,8 @@ def process_line(
         # Prior to 2.7.3, shlex cannot deal with unicode entries
         # https://github.com/python/mypy/issues/1174
         options_str = options_str.encode('utf8')  # type: ignore
-    opts, _ = parser.parse_args(shlex.split(options_str), defaults)
+    # https://github.com/python/mypy/issues/1174
+    opts, _ = parser.parse_args(shlex.split(options_str), defaults)  # type: ignore  # noqa: E501
 
     # preserve for the nested code path
     line_comes_from = '%s %s (line %s)' % (
@@ -253,7 +255,7 @@ def process_line(
 
 
 def break_args_options(line):
-    # type: (str) -> Tuple[str, str]
+    # type: (Text) -> Tuple[str, Text]
     """Break up the line into an args and options string.  We only want to shlex
     (and then optparse) the options, not the args.  args can contain markers
     which are corrupted by shlex.
@@ -267,11 +269,11 @@ def break_args_options(line):
         else:
             args.append(token)
             options.pop(0)
-    return ' '.join(args), ' '.join(options)
+    return ' '.join(args), ' '.join(options)  # type: ignore
 
 
 def build_parser(line):
-    # type: (str) -> optparse.OptionParser
+    # type: (Text) -> optparse.OptionParser
     """
     Return a parser for parsing requirement lines
     """
@@ -296,12 +298,12 @@ def build_parser(line):
 
 
 def join_lines(lines_enum):
-    # type: (Iterator[Tuple[int, str]]) -> Iterator[Tuple[int, str]]
+    # type: (Iterator[Tuple[int, Text]]) -> Iterator[Tuple[int, Text]]
     """Joins a line ending in '\' with the previous line (except when following
     comments).  The joined line takes on the index of the first line.
     """
     primary_line_number = None
-    new_line = []  # type: List[str]
+    new_line = []  # type: List[Text]
     for line_number, line in lines_enum:
         if not line.endswith('\\') or COMMENT_RE.match(line):
             if COMMENT_RE.match(line):
@@ -326,7 +328,7 @@ def join_lines(lines_enum):
 
 
 def ignore_comments(lines_enum):
-    # type: (Iterator[Tuple[int, str]]) -> Iterator[Tuple[int, str]]
+    # type: (Iterator[Tuple[int, Text]]) -> Iterator[Tuple[int, Text]]
     """
     Strips comments and filter empty lines.
     """
@@ -338,10 +340,10 @@ def ignore_comments(lines_enum):
 
 
 def skip_regex(
-        lines_enum,  # type: Iterator[Tuple[int, str]]
+        lines_enum,  # type: Iterator[Tuple[int, Text]]
         options  # type: Optional[optparse.Values]
 ):
-    # type: (...) -> Iterator[Tuple[int, str]]
+    # type: (...) -> Iterator[Tuple[int, Text]]
     """
     Skip lines that match '--skip-requirements-regex' pattern
 
@@ -355,7 +357,7 @@ def skip_regex(
 
 
 def expand_env_variables(lines_enum):
-    # type: (Iterator[Tuple[int, str]]) -> Iterator[Tuple[int, str]]
+    # type: (Iterator[Tuple[int, Text]]) -> Iterator[Tuple[int, Text]]
     """Replace all environment variables that can be retrieved via `os.getenv`.
 
     The only allowed format for environment variables defined in the
