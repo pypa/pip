@@ -22,7 +22,8 @@ from pip._internal.req.constructors import (
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Iterator, Tuple, Optional, List, Callable, Text  # noqa: F401
+    from typing import (Iterator, Tuple, Optional,  # noqa: F401
+                        List, Callable, Text)
     from pip._internal.req import InstallRequirement  # noqa: F401
     from pip._internal.cache import WheelCache  # noqa: F401
     from pip._internal.index import PackageFinder  # noqa: F401
@@ -305,8 +306,9 @@ def join_lines(lines_enum):
     primary_line_number = None
     new_line = []  # type: List[Text]
     for line_number, line in lines_enum:
-        if not line.endswith('\\') or COMMENT_RE.match(line):
-            if COMMENT_RE.match(line):
+        # fixed in mypy==0.641
+        if not line.endswith('\\') or COMMENT_RE.match(line):  # type: ignore
+            if COMMENT_RE.match(line):  # type: ignore
                 # this ensures comments are always matched later
                 line = ' ' + line
             if new_line:
@@ -333,7 +335,8 @@ def ignore_comments(lines_enum):
     Strips comments and filter empty lines.
     """
     for line_number, line in lines_enum:
-        line = COMMENT_RE.sub('', line)
+        # fixed in mypy==0.641
+        line = COMMENT_RE.sub('', line)  # type: ignore
         line = line.strip()
         if line:
             yield line_number, line
@@ -372,9 +375,10 @@ def expand_env_variables(lines_enum):
     Valid characters in variable names follow the `POSIX standard
     <http://pubs.opengroup.org/onlinepubs/9699919799/>`_ and are limited
     to uppercase letter, digits and the `_` (underscore).
-    """
+        """
     for line_number, line in lines_enum:
-        for env_var, var_name in ENV_VAR_RE.findall(line):
+        # fixed in mypy==0.641
+        for env_var, var_name in ENV_VAR_RE.findall(line):  # type: ignore
             value = os.getenv(var_name)
             if not value:
                 continue
