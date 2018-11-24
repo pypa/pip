@@ -28,7 +28,12 @@ from pip._internal.utils.misc import (
     protect_pip_from_modification_on_windows,
 )
 from pip._internal.utils.temp_dir import TempDirectory
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.wheel import WheelBuilder
+
+if MYPY_CHECK_RUNNING:
+    from typing import List  # noqa: F401
+    from pip._internal.req import InstallRequirement  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -499,6 +504,7 @@ class InstallCommand(RequirementCommand):
                     )
 
     def _warn_about_conflicts(self, to_install):
+        # type: (List[InstallRequirement]) -> None
         try:
             package_set, _dep_info = check_install_conflicts(to_install)
         except Exception:

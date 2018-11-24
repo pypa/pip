@@ -6,16 +6,27 @@ import os
 from pip._vendor import pytoml, six
 
 from pip._internal.exceptions import InstallationError
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from typing import Any, Tuple, Optional, List  # noqa: F401
 
 
 def _is_list_of_str(obj):
+    # type: (Any) -> bool
     return (
         isinstance(obj, list) and
         all(isinstance(item, six.string_types) for item in obj)
     )
 
 
-def load_pyproject_toml(use_pep517, pyproject_toml, setup_py, req_name):
+def load_pyproject_toml(
+        use_pep517,  # type: Optional[bool]
+        pyproject_toml,  # type: str
+        setup_py,  # type: str
+        req_name  # type: str
+):
+    # type: (...) -> Optional[Tuple[List[str], str, List[str]]]
     """Load the pyproject.toml file.
 
     Parameters:
@@ -123,7 +134,7 @@ def load_pyproject_toml(use_pep517, pyproject_toml, setup_py, req_name):
         ))
 
     backend = build_system.get("build-backend")
-    check = []
+    check = []  # type: List[str]
     if backend is None:
         # If the user didn't specify a backend, we assume they want to use
         # the setuptools backend. But we can't be sure they have included
