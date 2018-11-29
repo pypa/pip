@@ -606,6 +606,18 @@ class InstallRequirement(object):
                     key=lambda x: x.count(os.path.sep) +
                     (os.path.altsep and x.count(os.path.altsep) or 0)
                 )
+                logger.warning(
+                    (
+                        'Multiple "*.egg-info/" in "%(base)s" found: %(filenames)s. '  # noqa: E501
+                        'In most cases, You should delete them except one which corresponding to the package. '  # noqa: E501
+                        'pip is going to refer %(chosen)s to install the package.'  # noqa: E501
+                    ),
+                    {
+                        "filenames": filenames,
+                        "chosen": filenames[0],
+                        "base": base
+                    }
+                )
             self._egg_info_path = os.path.join(base, filenames[0])
         return self._egg_info_path
 
