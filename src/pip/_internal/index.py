@@ -34,11 +34,11 @@ from pip._internal.utils.compat import ipaddress
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
-    ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, normalize_path,
+    ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, WHEEL_EXTENSION, normalize_path,
     redact_password_from_url,
 )
 from pip._internal.utils.packaging import check_requires_python
-from pip._internal.wheel import Wheel, wheel_ext
+from pip._internal.wheel import Wheel
 
 __all__ = ['FormatControl', 'PackageFinder']
 
@@ -781,7 +781,7 @@ class PackageFinder(object):
                     link, 'unsupported archive format: %s' % ext,
                 )
                 return
-            if "binary" not in search.formats and ext == wheel_ext:
+            if "binary" not in search.formats and ext == WHEEL_EXTENSION:
                 self._log_skipped_link(
                     link, 'No binaries permitted for %s' % search.supplied,
                 )
@@ -789,7 +789,7 @@ class PackageFinder(object):
             if "macosx10" in link.path and ext == '.zip':
                 self._log_skipped_link(link, 'macosx10 one')
                 return
-            if ext == wheel_ext:
+            if ext == WHEEL_EXTENSION:
                 try:
                     wheel = Wheel(link.filename)
                 except InvalidWheelFilename:
@@ -808,7 +808,7 @@ class PackageFinder(object):
                 version = wheel.version
 
         # This should be up by the search.ok_binary check, but see issue 2700.
-        if "source" not in search.formats and ext != wheel_ext:
+        if "source" not in search.formats and ext != WHEEL_EXTENSION:
             self._log_skipped_link(
                 link, 'No sources permitted for %s' % search.supplied,
             )
