@@ -37,7 +37,6 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import open_spinner
 from pip._internal.utils.virtualenv import running_under_virtualenv
 from pip._internal.vcs import vcs
-from pip._internal.wheel import move_wheel_files
 
 if MYPY_CHECK_RUNNING:
     from typing import (
@@ -451,7 +450,7 @@ class InstallRequirement(object):
         pycompile=True  # type: bool
     ):
         # type: (...) -> None
-        move_wheel_files(
+        wheel.move_wheel_files(
             self.name, self.req, wheeldir,
             user=use_user_site,
             home=home,
