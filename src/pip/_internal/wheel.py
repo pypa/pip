@@ -43,8 +43,6 @@ from pip._internal.utils.ui import open_spinner
 if MYPY_CHECK_RUNNING:
     from typing import Dict, List, Optional  # noqa: F401
 
-wheel_ext = '.whl'
-
 VERSION_COMPATIBLE = (1, 0)
 
 
