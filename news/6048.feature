@@ -1,0 +1,1 @@
+A warning message is emitted when multiple '.egg-info/' directories are found on `pip install -e .`.
