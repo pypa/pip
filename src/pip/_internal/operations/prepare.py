@@ -74,12 +74,12 @@ class DistAbstraction(object):
     def dist(self):
         # type: () -> Any
         """Return a setuptools Dist object."""
-        raise NotImplementedError(self.dist)
+        raise NotImplementedError
 
     def prep_for_dist(self, finder, build_isolation):
         # type: (PackageFinder, bool) -> Any
         """Ensure that we can get a Dist for this requirement."""
-        raise NotImplementedError(self.dist)
+        raise NotImplementedError
 
 
 class IsWheel(DistAbstraction):
