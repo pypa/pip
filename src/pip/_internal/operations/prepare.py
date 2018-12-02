@@ -71,8 +71,8 @@ class DistAbstraction(object):
         # type: (InstallRequirement) -> None
         self.req = req  # type: InstallRequirement
 
-    def dist(self, finder):
-        # type: (PackageFinder) -> Any
+    def dist(self):
+        # type: () -> Any
         """Return a setuptools Dist object."""
         raise NotImplementedError(self.dist)
 
@@ -84,8 +84,8 @@ class DistAbstraction(object):
 
 class IsWheel(DistAbstraction):
 
-    def dist(self, finder):
-        # type: (PackageFinder) -> pkg_resources.Distribution
+    def dist(self):
+        # type: () -> pkg_resources.Distribution
         return list(pkg_resources.find_distributions(
             self.req.source_dir))[0]
 
@@ -97,8 +97,7 @@ class IsWheel(DistAbstraction):
 
 class IsSDist(DistAbstraction):
 
-    # TODO: Remove 'finder' and the note in operations/check.py
-    def dist(self, finder):
+    def dist(self):
         return self.req.get_dist()
 
     def prep_for_dist(self, finder, build_isolation):
@@ -162,8 +161,8 @@ class IsSDist(DistAbstraction):
 
 class Installed(DistAbstraction):
 
-    def dist(self, finder):
-        # type: (PackageFinder) -> pkg_resources.Distribution
+    def dist(self):
+        # type: () -> pkg_resources.Distribution
         return self.req.satisfied_by
 
     def prep_for_dist(self, finder, build_isolation):
