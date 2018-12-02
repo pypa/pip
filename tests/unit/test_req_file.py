@@ -413,11 +413,6 @@ class TestProcessLine(object):
         call = mock_parse.mock_calls[0]
         assert call[1][0] == 'http://me.com/me/reqs.txt'
 
-    def test_set_finder_process_dependency_links(self, finder):
-        list(process_line(
-            "--process-dependency-links", "file", 1, finder=finder))
-        assert finder.process_dependency_links
-
 
 class TestBreakOptionsArgs(object):
 

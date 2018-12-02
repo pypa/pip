@@ -97,15 +97,9 @@ class IsWheel(DistAbstraction):
 
 class IsSDist(DistAbstraction):
 
+    # TODO: Remove 'finder' and the note in operations/check.py
     def dist(self, finder):
-        # type: (PackageFinder) -> pkg_resources.Distribution
-        dist = self.req.get_dist()
-        # FIXME: shouldn't be globally added.
-        if finder and dist.has_metadata('dependency_links.txt'):
-            finder.add_dependency_links(
-                dist.get_metadata_lines('dependency_links.txt')
-            )
-        return dist
+        return self.req.get_dist()
 
     def prep_for_dist(self, finder, build_isolation):
         # type: (PackageFinder, bool) -> None

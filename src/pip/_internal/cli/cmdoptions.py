@@ -347,17 +347,6 @@ def trusted_host():
     )
 
 
-# Remove after 1.5
-process_dependency_links = partial(
-    Option,
-    "--process-dependency-links",
-    dest="process_dependency_links",
-    action="store_true",
-    default=False,
-    help="Enable the processing of dependency links.",
-)  # type: Callable[..., Option]
-
-
 def constraints():
     # type: () -> Option
     return Option(
@@ -773,6 +762,5 @@ index_group = {
         extra_index_url,
         no_index,
         find_links,
-        process_dependency_links,
     ]
 }  # type: Dict[str, Any]

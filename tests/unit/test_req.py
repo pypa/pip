@@ -82,6 +82,7 @@ class TestRequirementSet(object):
             reqset,
         )
 
+    # TODO: Update test when Python 2.7 or Python 3.4 is dropped.
     def test_environment_marker_extras(self, data):
         """
         Test that the environment marker extras are used with

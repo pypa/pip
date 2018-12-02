@@ -61,6 +61,7 @@ class Subversion(VersionControl):
         cmd_args = ['update'] + rev_options.to_args() + [dest]
         self.run_command(cmd_args)
 
+    # TODO: Remove
     def get_location(self, dist, dependency_links):
         for url in dependency_links:
             egg_fragment = Link(url).egg_fragment
