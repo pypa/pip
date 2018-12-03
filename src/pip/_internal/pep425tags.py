@@ -12,6 +12,11 @@ from collections import OrderedDict
 
 import pip._internal.utils.glibc
 from pip._internal.utils.compat import get_extension_suffixes
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from typing import (Tuple, Callable, List,  # noqa: F401
+                        Optional, Union, Dict)
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +24,7 @@ _osx_arch_pat = re.compile(r'(.+)_(\d+)_(\d+)_(.+)')
 
 
 def get_config_var(var):
+    # type: (str) -> Optional[str]
     try:
         return sysconfig.get_config_var(var)
     except IOError as e:  # Issue #1074
@@ -27,6 +33,7 @@ def get_config_var(var):
 
 
 def get_abbr_impl():
+    # type: () -> str
     """Return abbreviated implementation name."""
     if hasattr(sys, 'pypy_version_info'):
         pyimpl = 'pp'
@@ -40,6 +47,7 @@ def get_abbr_impl():
 
 
 def get_impl_ver():
+    # type: () -> str
     """Return implementation version."""
     impl_ver = get_config_var("py_version_nodot")
     if not impl_ver or get_abbr_impl() == 'pp':
@@ -48,17 +56,21 @@ def get_impl_ver():
 
 
 def get_impl_version_info():
+    # type: () -> Tuple[int, ...]
     """Return sys.version_info-like tuple for use in decrementing the minor
     version."""
     if get_abbr_impl() == 'pp':
         # as per https://github.com/pypa/pip/issues/2882
-        return (sys.version_info[0], sys.pypy_version_info.major,
-                sys.pypy_version_info.minor)
+        # attrs exist only on pypy
+        return (sys.version_info[0],
+                sys.pypy_version_info.major,  # type: ignore
+                sys.pypy_version_info.minor)  # type: ignore
     else:
         return sys.version_info[0], sys.version_info[1]
 
 
 def get_impl_tag():
+    # type: () -> str
     """
     Returns the Tag for this specific implementation.
     """
@@ -66,6 +78,7 @@ def get_impl_tag():
 
 
 def get_flag(var, fallback, expected=True, warn=True):
+    # type: (str, Callable[..., bool], Union[bool, int], bool) -> bool
     """Use a fallback method for determining SOABI flags if the needed config
     var is unset or unavailable."""
     val = get_config_var(var)
@@ -78,6 +91,7 @@ def get_flag(var, fallback, expected=True, warn=True):
 
 
 def get_abi_tag():
+    # type: () -> Optional[str]
     """Return the ABI tag based on SOABI (if available) or emulate SOABI
     (CPython 2, PyPy)."""
     soabi = get_config_var('SOABI')
@@ -112,10 +126,12 @@ def get_abi_tag():
 
 
 def _is_running_32bit():
+    # type: () -> bool
     return sys.maxsize == 2147483647
 
 
 def get_platform():
+    # type: () -> str
     """Return our platform name 'win32', 'linux_x86_64'"""
     if sys.platform == 'darwin':
         # distutils.util.get_platform() returns the release based on the value
@@ -142,6 +158,7 @@ def get_platform():
 
 
 def is_manylinux1_compatible():
+    # type: () -> bool
     # Only Linux, and only x86-64 / i686
     if get_platform() not in {"linux_x86_64", "linux_i686"}:
         return False
@@ -159,6 +176,7 @@ def is_manylinux1_compatible():
 
 
 def is_manylinux2010_compatible():
+    # type: () -> bool
     # Only Linux, and only x86-64 / i686
     if get_platform() not in {"linux_x86_64", "linux_i686"}:
         return False
@@ -176,12 +194,14 @@ def is_manylinux2010_compatible():
 
 
 def get_darwin_arches(major, minor, machine):
+    # type: (int, int, str) -> List[str]
     """Return a list of supported arches (including group arches) for
     the given major, minor and machine architecture of an macOS machine.
     """
     arches = []
 
     def _supports_arch(major, minor, arch):
+        # type: (int, int, str) -> bool
         # Looking at the application support for macOS versions in the chart
         # provided by https://en.wikipedia.org/wiki/OS_X#Versions it appears
         # our timeline looks roughly like:
@@ -222,7 +242,7 @@ def get_darwin_arches(major, minor, machine):
         ("intel", ("x86_64", "i386")),
         ("fat64", ("x86_64", "ppc64")),
         ("fat32", ("x86_64", "i386", "ppc")),
-    ])
+    ])  # type: Dict[str, Tuple[str, ...]]
 
     if _supports_arch(major, minor, machine):
         arches.append(machine)
@@ -236,8 +256,14 @@ def get_darwin_arches(major, minor, machine):
     return arches
 
 
-def get_supported(versions=None, noarch=False, platform=None,
-                  impl=None, abi=None):
+def get_supported(
+        versions=None,  # type: Optional[List[str]]
+        noarch=False,  # type: bool
+        platform=None,  # type: Optional[str]
+        impl=None,  # type: Optional[str]
+        abi=None  # type: Optional[str]
+):
+    # type: (...) -> List[Tuple[str, str, str]]
     """Return a list of supported tags for each version specified in
     `versions`.
 
@@ -263,7 +289,7 @@ def get_supported(versions=None, noarch=False, platform=None,
 
     impl = impl or get_abbr_impl()
 
-    abis = []
+    abis = []  # type: List[str]
 
     abi = abi or get_abi_tag()
     if abi:
@@ -285,11 +311,13 @@ def get_supported(versions=None, noarch=False, platform=None,
             # support macosx-10.6-intel on macosx-10.9-x86_64
             match = _osx_arch_pat.match(arch)
             if match:
-                name, major, minor, actual_arch = match.groups()
+                # # https://github.com/python/mypy/issues/1174
+                name, major, minor, actual_arch = match.groups()  # type: ignore  # noqa: E501
                 tpl = '{}_{}_%i_%s'.format(name, major)
                 arches = []
                 for m in reversed(range(int(minor) + 1)):
-                    for a in get_darwin_arches(int(major), m, actual_arch):
+                    # https://github.com/python/mypy/issues/1174
+                    for a in get_darwin_arches(int(major), m, actual_arch):  # type: ignore  # noqa: E501
                         arches.append(tpl % (m, a))
             else:
                 # arch pattern didn't match (?!)
