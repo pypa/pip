@@ -18,7 +18,7 @@ from pip._internal.exceptions import (
     BestVersionAlreadyInstalled, DistributionNotFound, HashError, HashErrors,
     UnsupportedPythonVersion,
 )
-from pip._internal.req.constructors import install_req_from_req
+from pip._internal.req.constructors import install_req_from_req_string
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import dist_in_usersite, ensure_dir
 from pip._internal.utils.packaging import check_dist_requires_python
@@ -269,7 +269,7 @@ class Resolver(object):
         more_reqs = []
 
         def add_req(subreq, extras_requested):
-            sub_install_req = install_req_from_req(
+            sub_install_req = install_req_from_req_string(
                 str(subreq),
                 req_to_install,
                 isolated=self.isolated,
