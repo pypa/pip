@@ -27,11 +27,12 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 if MYPY_CHECK_RUNNING:
     from typing import Optional, DefaultDict, List, Set  # noqa: F401
     from pip._internal.download import PipSession  # noqa: F401
+    from pip._internal.distributions import AbstractDistribution  # noqa: F401
     from pip._internal.req.req_install import InstallRequirement  # noqa: F401
     from pip._internal.index import PackageFinder  # noqa: F401
     from pip._internal.req.req_set import RequirementSet  # noqa: F401
     from pip._internal.operations.prepare import (  # noqa: F401
-        DistAbstraction, RequirementPreparer
+        RequirementPreparer
     )
     from pip._internal.cache import WheelCache  # noqa: F401
 
@@ -213,7 +214,7 @@ class Resolver(object):
         return None
 
     def _get_abstract_dist_for(self, req):
-        # type: (InstallRequirement) -> DistAbstraction
+        # type: (InstallRequirement) -> AbstractDistribution
         """Takes a InstallRequirement and returns a single AbstractDist \
         representing a prepared variant of the same.
         """
@@ -294,7 +295,7 @@ class Resolver(object):
         abstract_dist = self._get_abstract_dist_for(req_to_install)
 
         # Parse and return dependencies
-        dist = abstract_dist.dist()
+        dist = abstract_dist.get_dist()
         try:
             check_dist_requires_python(dist)
         except UnsupportedPythonVersion as err:
