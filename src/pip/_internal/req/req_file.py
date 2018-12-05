@@ -376,7 +376,7 @@ def expand_env_variables(lines_enum):
     Valid characters in variable names follow the `POSIX standard
     <http://pubs.opengroup.org/onlinepubs/9699919799/>`_ and are limited
     to uppercase letter, digits and the `_` (underscore).
-        """
+    """
     for line_number, line in lines_enum:
         # fixed in mypy==0.641
         for env_var, var_name in ENV_VAR_RE.findall(line):  # type: ignore
