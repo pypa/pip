@@ -344,8 +344,8 @@ def ignore_comments(lines_enum):
 
 
 def skip_regex(
-        lines_enum,  # type: Iterator[Tuple[int, Text]]
-        options  # type: Optional[optparse.Values]
+    lines_enum,  # type: Iterator[Tuple[int, Text]]
+    options  # type: Optional[optparse.Values]
 ):
     # type: (...) -> Iterator[Tuple[int, Text]]
     """
