@@ -43,8 +43,10 @@ else:
     from io import StringIO
 
 if MYPY_CHECK_RUNNING:
-    from typing import (Optional, Tuple, Iterable, List,  # noqa: F401
-                        Match, Union, Any, Mapping, Text, AnyStr, Container)
+    from typing import (  # noqa: F401
+        Optional, Tuple, Iterable, List, Match, Union, Any, Mapping, Text,
+        AnyStr, Container
+    )
     from pip._vendor.pkg_resources import Distribution  # noqa: F401
     from pip._internal.models.link import Link  # noqa: F401
     from pip._internal.utils.ui import SpinnerInterface  # noqa: F401
@@ -605,10 +607,10 @@ def untar_file(filename, location):
 
 
 def unpack_file(
-        filename,  # type: str
-        location,  # type: str
-        content_type,  # type: Optional[str]
-        link  # type: Optional[Link]
+    filename,  # type: str
+    location,  # type: str
+    content_type,  # type: Optional[str]
+    link  # type: Optional[Link]
 ):
     # type: (...) -> None
     filename = os.path.realpath(filename)
@@ -644,14 +646,14 @@ def unpack_file(
 
 
 def call_subprocess(
-        cmd,  # type: List[str]
-        show_stdout=True,  # type: bool
-        cwd=None,  # type: Optional[str]
-        on_returncode='raise',  # type: str
-        command_desc=None,  # type: Optional[str]
-        extra_environ=None,  # type: Optional[Mapping[str, Any]]
-        unset_environ=None,  # type: Optional[Iterable[str]]
-        spinner=None  # type: Optional[SpinnerInterface]
+    cmd,  # type: List[str]
+    show_stdout=True,  # type: bool
+    cwd=None,  # type: Optional[str]
+    on_returncode='raise',  # type: str
+    command_desc=None,  # type: Optional[str]
+    extra_environ=None,  # type: Optional[Mapping[str, Any]]
+    unset_environ=None,  # type: Optional[Iterable[str]]
+    spinner=None  # type: Optional[SpinnerInterface]
 ):
     # type: (...) -> Optional[Text]
     """

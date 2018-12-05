@@ -16,8 +16,9 @@ from pip._internal.utils.misc import (
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import (Dict, Optional, Tuple,  # noqa: F401
-                        List, Type, Any, Mapping, Text)
+    from typing import (  # noqa: F401
+        Dict, Optional, Tuple, List, Type, Any, Mapping, Text
+    )
     from pip._internal.utils.ui import SpinnerInterface  # noqa: F401
 
 __all__ = ['vcs']
@@ -388,7 +389,7 @@ class VersionControl(object):
                 self.repo_name,
             )
             # https://github.com/python/mypy/issues/1174
-            prompt = ('(i)gnore, (w)ipe, (b)ackup ', ('i', 'w', 'b'))  # type: ignore
+            prompt = ('(i)gnore, (w)ipe, (b)ackup ', ('i', 'w', 'b'))  # type: ignore  # noqa: E501
 
         logger.warning(
             'The plan is to install the %s repository %s',
@@ -458,14 +459,14 @@ class VersionControl(object):
         raise NotImplementedError
 
     def run_command(
-            self,
-            cmd,  # type: List[str]
-            show_stdout=True,  # type: bool
-            cwd=None,  # type: Optional[str]
-            on_returncode='raise',  # type: str
-            command_desc=None,  # type: Optional[str]
-            extra_environ=None,  # type: Optional[Mapping[str, Any]]
-            spinner=None  # type: Optional[SpinnerInterface]
+        self,
+        cmd,  # type: List[str]
+        show_stdout=True,  # type: bool
+        cwd=None,  # type: Optional[str]
+        on_returncode='raise',  # type: str
+        command_desc=None,  # type: Optional[str]
+        extra_environ=None,  # type: Optional[Mapping[str, Any]]
+        spinner=None  # type: Optional[SpinnerInterface]
     ):
         # type: (...) -> Optional[Text]
         """
