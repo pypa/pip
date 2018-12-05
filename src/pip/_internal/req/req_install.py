@@ -41,8 +41,9 @@ from pip._internal.vcs import vcs
 from pip._internal.wheel import move_wheel_files
 
 if MYPY_CHECK_RUNNING:
-    from typing import (Optional, Iterable, List,  # noqa: F401
-                        Union, Any, Mapping, Text, Sequence)
+    from typing import (  # noqa: F401
+        Optional, Iterable, List, Union, Any, Mapping, Text, Sequence
+    )
     from pip._vendor.pkg_resources import Distribution  # noqa: F401
     from pip._internal.index import PackageFinder  # noqa: F401
     from pip._internal.cache import WheelCache  # noqa: F401
@@ -61,20 +62,20 @@ class InstallRequirement(object):
     """
 
     def __init__(
-            self,
-            req,  # type: Optional[Requirement]
-            comes_from,  # type: Optional[Union[str, InstallRequirement]]
-            source_dir=None,  # type: Optional[str]
-            editable=False,  # type: bool
-            link=None,  # type: Optional[Link]
-            update=True,  # type: bool
-            markers=None,  # type: Optional[Marker]
-            use_pep517=None,  # type: Optional[bool]
-            isolated=False,  # type: bool
-            options=None,  # type: Optional[Mapping[Text, Any]]
-            wheel_cache=None,  # type: Optional[WheelCache]
-            constraint=False,  # type: bool
-            extras=()  # type: Iterable[str]
+        self,
+        req,  # type: Optional[Requirement]
+        comes_from,  # type: Optional[Union[str, InstallRequirement]]
+        source_dir=None,  # type: Optional[str]
+        editable=False,  # type: bool
+        link=None,  # type: Optional[Link]
+        update=True,  # type: bool
+        markers=None,  # type: Optional[Marker]
+        use_pep517=None,  # type: Optional[bool]
+        isolated=False,  # type: bool
+        options=None,  # type: Optional[Mapping[Text, Any]]
+        wheel_cache=None,  # type: Optional[WheelCache]
+        constraint=False,  # type: bool
+        extras=()  # type: Iterable[str]
     ):
         # type: (...) -> None
         assert req is None or isinstance(req, Requirement), req
@@ -423,14 +424,14 @@ class InstallRequirement(object):
         return self.link and self.link.is_wheel  # type: ignore
 
     def move_wheel_files(
-            self,
-            wheeldir,  # type: str
-            root=None,  # type: Optional[str]
-            home=None,  # type: Optional[str]
-            prefix=None,  # type: Optional[str]
-            warn_script_location=True,  # type: bool
-            use_user_site=False,  # type: bool
-            pycompile=True  # type: bool
+        self,
+        wheeldir,  # type: str
+        root=None,  # type: Optional[str]
+        home=None,  # type: Optional[str]
+        prefix=None,  # type: Optional[str]
+        warn_script_location=True,  # type: bool
+        use_user_site=False,  # type: bool
+        pycompile=True  # type: bool
     ):
         # type: (...) -> None
         move_wheel_files(
@@ -883,15 +884,15 @@ class InstallRequirement(object):
             logger.info('Saved %s', display_path(archive_path))
 
     def install(
-            self,
-            install_options,  # type: List[str]
-            global_options=None,  # type: Optional[Sequence[str]]
-            root=None,  # type: Optional[str]
-            home=None,  # type: Optional[str]
-            prefix=None,  # type: Optional[str]
-            warn_script_location=True,  # type: bool
-            use_user_site=False,  # type: bool
-            pycompile=True  # type: bool
+        self,
+        install_options,  # type: List[str]
+        global_options=None,  # type: Optional[Sequence[str]]
+        root=None,  # type: Optional[str]
+        home=None,  # type: Optional[str]
+        prefix=None,  # type: Optional[str]
+        warn_script_location=True,  # type: bool
+        use_user_site=False,  # type: bool
+        pycompile=True  # type: bool
     ):
         # type: (...) -> None
         global_options = global_options if global_options is not None else []
@@ -984,12 +985,12 @@ class InstallRequirement(object):
                 f.write('\n'.join(new_lines) + '\n')
 
     def get_install_args(
-            self,
-            global_options,  # type: Sequence[str]
-            record_filename,  # type: str
-            root,  # type: Optional[str]
-            prefix,  # type: Optional[str]
-            pycompile  # type: bool
+        self,
+        global_options,  # type: Sequence[str]
+        record_filename,  # type: str
+        root,  # type: Optional[str]
+        prefix,  # type: Optional[str]
+        pycompile  # type: bool
     ):
         # type: (...) -> List[str]
         install_args = [sys.executable, "-u"]

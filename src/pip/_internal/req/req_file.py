@@ -22,8 +22,9 @@ from pip._internal.req.constructors import (
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import (Iterator, Tuple, Optional,  # noqa: F401
-                        List, Callable, Text)
+    from typing import (  # noqa: F401
+        Iterator, Tuple, Optional, List, Callable, Text
+    )
     from pip._internal.req import InstallRequirement  # noqa: F401
     from pip._internal.cache import WheelCache  # noqa: F401
     from pip._internal.index import PackageFinder  # noqa: F401
@@ -69,14 +70,14 @@ SUPPORTED_OPTIONS_REQ_DEST = [o().dest for o in SUPPORTED_OPTIONS_REQ]
 
 
 def parse_requirements(
-        filename,  # type: str
-        finder=None,  # type: Optional[PackageFinder]
-        comes_from=None,  # type: Optional[str]
-        options=None,  # type: Optional[optparse.Values]
-        session=None,  # type: Optional[PipSession]
-        constraint=False,  # type: bool
-        wheel_cache=None,  # type: Optional[WheelCache]
-        use_pep517=None  # type: Optional[bool]
+    filename,  # type: str
+    finder=None,  # type: Optional[PackageFinder]
+    comes_from=None,  # type: Optional[str]
+    options=None,  # type: Optional[optparse.Values]
+    session=None,  # type: Optional[PipSession]
+    constraint=False,  # type: bool
+    wheel_cache=None,  # type: Optional[WheelCache]
+    use_pep517=None  # type: Optional[bool]
 ):
     # type: (...) -> Iterator[InstallRequirement]
     """Parse a requirements file and yield InstallRequirement instances.
@@ -127,16 +128,16 @@ def preprocess(content, options):
 
 
 def process_line(
-        line,  # type: Text
-        filename,  # type: str
-        line_number,  # type: int
-        finder=None,  # type: Optional[PackageFinder]
-        comes_from=None,  # type: Optional[str]
-        options=None,  # type: Optional[optparse.Values]
-        session=None,  # type: Optional[PipSession]
-        wheel_cache=None,  # type: Optional[WheelCache]
-        use_pep517=None,  # type: Optional[bool]
-        constraint=False  # type: bool
+    line,  # type: Text
+    filename,  # type: str
+    line_number,  # type: int
+    finder=None,  # type: Optional[PackageFinder]
+    comes_from=None,  # type: Optional[str]
+    options=None,  # type: Optional[optparse.Values]
+    session=None,  # type: Optional[PipSession]
+    wheel_cache=None,  # type: Optional[WheelCache]
+    use_pep517=None,  # type: Optional[bool]
+    constraint=False  # type: bool
 ):
     # type: (...) -> Iterator[InstallRequirement]
     """Process a single requirements line; This can result in creating/yielding

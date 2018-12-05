@@ -47,10 +47,10 @@ class RequirementSet(object):
                 % (self.__class__.__name__, len(reqs), reqs_str))
 
     def add_requirement(
-            self,
-            install_req,  # type: InstallRequirement
-            parent_req_name=None,  # type: Optional[str]
-            extras_requested=None  # type: Optional[Iterable[str]]
+        self,
+        install_req,  # type: InstallRequirement
+        parent_req_name=None,  # type: Optional[str]
+        extras_requested=None  # type: Optional[Iterable[str]]
     ):
         # type: (...) -> Tuple[List[InstallRequirement], Optional[InstallRequirement]]  # noqa: E501
         """Add install_req as a requirement to install.

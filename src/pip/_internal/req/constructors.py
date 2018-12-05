@@ -30,8 +30,9 @@ from pip._internal.vcs import vcs
 from pip._internal.wheel import Wheel
 
 if MYPY_CHECK_RUNNING:
-    from typing import (Optional, Tuple, Set, Any,  # noqa: F401
-                        Mapping, Union, Text)
+    from typing import (   # noqa: F401
+        Optional, Tuple, Set, Any, Mapping, Union, Text
+    )
     from pip._internal.cache import WheelCache  # noqa: F401
 
 
@@ -155,13 +156,13 @@ def deduce_helpful_msg(req):
 
 
 def install_req_from_editable(
-        editable_req,  # type: str
-        comes_from=None,  # type: Optional[str]
-        use_pep517=None,  # type: Optional[bool]
-        isolated=False,  # type: bool
-        options=None,  # type: Optional[Mapping[Text, Any]]
-        wheel_cache=None,  # type: Optional[WheelCache]
-        constraint=False  # type: bool
+    editable_req,  # type: str
+    comes_from=None,  # type: Optional[str]
+    use_pep517=None,  # type: Optional[bool]
+    isolated=False,  # type: bool
+    options=None,  # type: Optional[Mapping[Text, Any]]
+    wheel_cache=None,  # type: Optional[WheelCache]
+    constraint=False  # type: bool
 ):
     # type: (...) -> InstallRequirement
     name, url, extras_override = parse_editable(editable_req)
@@ -191,13 +192,13 @@ def install_req_from_editable(
 
 
 def install_req_from_line(
-        name,  # type: str
-        comes_from=None,  # type: Optional[Union[str, InstallRequirement]]
-        use_pep517=None,  # type: Optional[bool]
-        isolated=False,  # type: bool
-        options=None,  # type: Optional[Mapping[Text, Any]]
-        wheel_cache=None,  # type: Optional[WheelCache]
-        constraint=False  # type: bool
+    name,  # type: str
+    comes_from=None,  # type: Optional[Union[str, InstallRequirement]]
+    use_pep517=None,  # type: Optional[bool]
+    isolated=False,  # type: bool
+    options=None,  # type: Optional[Mapping[Text, Any]]
+    wheel_cache=None,  # type: Optional[WheelCache]
+    constraint=False  # type: bool
 ):
     # type: (...) -> InstallRequirement
     """Creates an InstallRequirement from a name, which might be a
@@ -299,11 +300,11 @@ def install_req_from_line(
 
 
 def install_req_from_req_string(
-        req_string,  # type: str
-        comes_from=None,  # type: Optional[InstallRequirement]
-        isolated=False,  # type: bool
-        wheel_cache=None,  # type: Optional[WheelCache]
-        use_pep517=None  # type: Optional[bool]
+    req_string,  # type: str
+    comes_from=None,  # type: Optional[InstallRequirement]
+    isolated=False,  # type: bool
+    wheel_cache=None,  # type: Optional[WheelCache]
+    use_pep517=None  # type: Optional[bool]
 ):
     # type: (...) -> InstallRequirement
     try:
