@@ -495,6 +495,71 @@ def _create_main_file(dir_path, name=None, output=None):
     dir_path.join(filename).write(text)
 
 
+def _git_commit(env_or_script, repo_dir, message=None, args=None,
+                expect_stderr=False):
+    """
+    Run git-commit.
+
+    Args:
+      env_or_script: pytest's `script` or `env` argument.
+      repo_dir: a path to a Git repository.
+      message: an optional commit message.
+      args: optional additional options to pass to git-commit.
+    """
+    if message is None:
+        message = 'test commit'
+    if args is None:
+        args = []
+
+    new_args = [
+        'git', 'commit', '-q', '--author', 'pip <pypa-dev@googlegroups.com>',
+    ]
+    new_args.extend(args)
+    new_args.extend(['-m', message])
+    env_or_script.run(*new_args, cwd=repo_dir, expect_stderr=expect_stderr)
+
+
+def _vcs_add(script, version_pkg_path, vcs='git'):
+    if vcs == 'git':
+        script.run('git', 'init', cwd=version_pkg_path)
+        script.run('git', 'add', '.', cwd=version_pkg_path)
+        _git_commit(script, version_pkg_path, message='initial version')
+    elif vcs == 'hg':
+        script.run('hg', 'init', cwd=version_pkg_path)
+        script.run('hg', 'add', '.', cwd=version_pkg_path)
+        script.run(
+            'hg', 'commit', '-q',
+            '--user', 'pip <pypa-dev@googlegroups.com>',
+            '-m', 'initial version', cwd=version_pkg_path,
+        )
+    elif vcs == 'svn':
+        repo_url = _create_svn_repo(script, version_pkg_path)
+        script.run(
+            'svn', 'checkout', repo_url, 'pip-test-package',
+            cwd=script.scratch_path
+        )
+        checkout_path = script.scratch_path / 'pip-test-package'
+
+        # svn internally stores windows drives as uppercase; we'll match that.
+        checkout_path = checkout_path.replace('c:', 'C:')
+
+        version_pkg_path = checkout_path
+    elif vcs == 'bazaar':
+        script.run('bzr', 'init', cwd=version_pkg_path)
+        script.run('bzr', 'add', '.', cwd=version_pkg_path)
+        script.run(
+            'bzr', 'whoami', 'pip <pypa-dev@googlegroups.com>',
+            cwd=version_pkg_path)
+        script.run(
+            'bzr', 'commit', '-q',
+            '--author', 'pip <pypa-dev@googlegroups.com>',
+            '-m', 'initial version', cwd=version_pkg_path,
+        )
+    else:
+        raise ValueError('Unknown vcs: %r' % vcs)
+    return version_pkg_path
+
+
 def _create_test_package_with_subdirectory(script, subdirectory):
     script.scratch_path.join("version_pkg").mkdir()
     version_pkg_path = script.scratch_path / 'version_pkg'
@@ -525,11 +590,7 @@ setup(name='version_subpkg',
 
     script.run('git', 'init', cwd=version_pkg_path)
     script.run('git', 'add', '.', cwd=version_pkg_path)
-    script.run(
-        'git', 'commit', '-q',
-        '--author', 'pip <pypa-dev@googlegroups.com>',
-        '-m', 'initial version', cwd=version_pkg_path
-    )
+    _git_commit(script, version_pkg_path, message='initial version')
 
     return version_pkg_path
 
@@ -573,51 +634,6 @@ def _create_test_package(script, name='version_pkg', vcs='git'):
     return _vcs_add(script, version_pkg_path, vcs)
 
 
-def _vcs_add(script, version_pkg_path, vcs='git'):
-    if vcs == 'git':
-        script.run('git', 'init', cwd=version_pkg_path)
-        script.run('git', 'add', '.', cwd=version_pkg_path)
-        script.run(
-            'git', 'commit', '-q',
-            '--author', 'pip <pypa-dev@googlegroups.com>',
-            '-m', 'initial version', cwd=version_pkg_path,
-        )
-    elif vcs == 'hg':
-        script.run('hg', 'init', cwd=version_pkg_path)
-        script.run('hg', 'add', '.', cwd=version_pkg_path)
-        script.run(
-            'hg', 'commit', '-q',
-            '--user', 'pip <pypa-dev@googlegroups.com>',
-            '-m', 'initial version', cwd=version_pkg_path,
-        )
-    elif vcs == 'svn':
-        repo_url = _create_svn_repo(script, version_pkg_path)
-        script.run(
-            'svn', 'checkout', repo_url, 'pip-test-package',
-            cwd=script.scratch_path
-        )
-        checkout_path = script.scratch_path / 'pip-test-package'
-
-        # svn internally stores windows drives as uppercase; we'll match that.
-        checkout_path = checkout_path.replace('c:', 'C:')
-
-        version_pkg_path = checkout_path
-    elif vcs == 'bazaar':
-        script.run('bzr', 'init', cwd=version_pkg_path)
-        script.run('bzr', 'add', '.', cwd=version_pkg_path)
-        script.run(
-            'bzr', 'whoami', 'pip <pypa-dev@googlegroups.com>',
-            cwd=version_pkg_path)
-        script.run(
-            'bzr', 'commit', '-q',
-            '--author', 'pip <pypa-dev@googlegroups.com>',
-            '-m', 'initial version', cwd=version_pkg_path,
-        )
-    else:
-        raise ValueError('Unknown vcs: %r' % vcs)
-    return version_pkg_path
-
-
 def _create_svn_repo(script, version_pkg_path):
     repo_url = path_to_url(
         script.scratch_path / 'pip-test-package-repo' / 'trunk')
@@ -638,11 +654,8 @@ def _change_test_package_version(script, version_pkg_path):
         version_pkg_path, name='version_pkg', output='some different version'
     )
     # Pass -a to stage the change to the main file.
-    script.run(
-        'git', 'commit', '-q',
-        '--author', 'pip <pypa-dev@googlegroups.com>',
-        '-am', 'messed version',
-        cwd=version_pkg_path,
+    _git_commit(
+        script, version_pkg_path, message='messed version', args=['-a'],
         expect_stderr=True,
     )
 
