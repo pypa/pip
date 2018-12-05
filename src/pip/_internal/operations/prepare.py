@@ -184,14 +184,14 @@ class RequirementPreparer(object):
     """
 
     def __init__(
-            self,
-            build_dir,  # type: str
-            download_dir,  # type: Optional[str]
-            src_dir,  # type: str
-            wheel_download_dir,  # type: Optional[str]
-            progress_bar,  # type: str
-            build_isolation,  # type: bool
-            req_tracker  # type: RequirementTracker
+        self,
+        build_dir,  # type: str
+        download_dir,  # type: Optional[str]
+        src_dir,  # type: str
+        wheel_download_dir,  # type: Optional[str]
+        progress_bar,  # type: str
+        build_isolation,  # type: bool
+        req_tracker  # type: RequirementTracker
     ):
         # type: (...) -> None
         super(RequirementPreparer, self).__init__()
@@ -237,12 +237,12 @@ class RequirementPreparer(object):
         return False
 
     def prepare_linked_requirement(
-            self,
-            req,  # type: InstallRequirement
-            session,  # type: PipSession
-            finder,  # type: PackageFinder
-            upgrade_allowed,  # type: bool
-            require_hashes  # type: bool
+        self,
+        req,  # type: InstallRequirement
+        session,  # type: PipSession
+        finder,  # type: PackageFinder
+        upgrade_allowed,  # type: bool
+        require_hashes  # type: bool
     ):
         # type: (...) -> DistAbstraction
         """Prepare a requirement that would be obtained from req.link
@@ -363,11 +363,11 @@ class RequirementPreparer(object):
         return abstract_dist
 
     def prepare_editable_requirement(
-            self,
-            req,  # type: InstallRequirement
-            require_hashes,  # type: bool
-            use_user_site,  # type: bool
-            finder  # type: PackageFinder
+        self,
+        req,  # type: InstallRequirement
+        require_hashes,  # type: bool
+        use_user_site,  # type: bool
+        finder  # type: PackageFinder
     ):
         # type: (...) -> DistAbstraction
         """Prepare an editable requirement

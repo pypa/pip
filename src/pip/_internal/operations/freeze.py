@@ -20,8 +20,9 @@ from pip._internal.utils.misc import (
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import (Iterator, Optional, List,  # noqa: F401
-                        Container, Set, Dict, Tuple, Iterable, Union)
+    from typing import (  # noqa: F401
+        Iterator, Optional, List, Container, Set, Dict, Tuple, Iterable, Union
+    )
     from pip._internal.cache import WheelCache  # noqa: F401
     from pip._vendor.pkg_resources import (Distribution,  # noqa: F401
                                            Requirement)
@@ -31,15 +32,15 @@ logger = logging.getLogger(__name__)
 
 
 def freeze(
-        requirement=None,  # type: Optional[List[str]]
-        find_links=None,  # type: Optional[List[str]]
-        local_only=None,  # type: Optional[bool]
-        user_only=None,  # type: Optional[bool]
-        skip_regex=None,  # type: Optional[str]
-        isolated=False,  # type: bool
-        wheel_cache=None,  # type: Optional[WheelCache]
-        exclude_editable=False,  # type: bool
-        skip=()  # type: Container[str]
+    requirement=None,  # type: Optional[List[str]]
+    find_links=None,  # type: Optional[List[str]]
+    local_only=None,  # type: Optional[bool]
+    user_only=None,  # type: Optional[bool]
+    skip_regex=None,  # type: Optional[str]
+    isolated=False,  # type: bool
+    wheel_cache=None,  # type: Optional[WheelCache]
+    exclude_editable=False,  # type: bool
+    skip=()  # type: Container[str]
 ):
     # type: (...) -> Iterator[str]
     find_links = find_links or []
