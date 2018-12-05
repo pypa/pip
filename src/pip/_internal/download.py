@@ -537,11 +537,11 @@ def _progress_indicator(iterable, *args, **kwargs):
 
 
 def _download_url(
-        resp,  # type: Response
-        link,  # type: Link
-        content_file,  # type: IO
-        hashes,  # type: Hashes
-        progress_bar  # type: str
+    resp,  # type: Response
+    link,  # type: Link
+    content_file,  # type: IO
+    hashes,  # type: Hashes
+    progress_bar  # type: str
 ):
     # type: (...) -> None
     try:
@@ -666,12 +666,12 @@ def _copy_file(filename, location, link):
 
 
 def unpack_http_url(
-        link,  # type: Link
-        location,  # type: str
-        download_dir=None,  # type: Optional[str]
-        session=None,  # type: Optional[PipSession]
-        hashes=None,  # type: Optional[Hashes]
-        progress_bar="on"  # type: str
+    link,  # type: Link
+    location,  # type: str
+    download_dir=None,  # type: Optional[str]
+    session=None,  # type: Optional[PipSession]
+    hashes=None,  # type: Optional[Hashes]
+    progress_bar="on"  # type: str
 ):
     # type: (...) -> None
     if session is None:
@@ -711,10 +711,10 @@ def unpack_http_url(
 
 
 def unpack_file_url(
-        link,  # type: Link
-        location,  # type: str
-        download_dir=None,  # type: Optional[str]
-        hashes=None  # type: Optional[Hashes]
+    link,  # type: Link
+    location,  # type: str
+    download_dir=None,  # type: Optional[str]
+    hashes=None  # type: Optional[Hashes]
 ):
     # type: (...) -> None
     """Unpack link into location.
@@ -830,13 +830,13 @@ class PipXmlrpcTransport(xmlrpc_client.Transport):
 
 
 def unpack_url(
-        link,  # type: Optional[Link]
-        location,  # type: Optional[str]
-        download_dir=None,  # type: Optional[str]
-        only_download=False,  # type: bool
-        session=None,  # type: Optional[PipSession]
-        hashes=None,  # type: Optional[Hashes]
-        progress_bar="on"  # type: str
+    link,  # type: Optional[Link]
+    location,  # type: Optional[str]
+    download_dir=None,  # type: Optional[str]
+    only_download=False,  # type: bool
+    session=None,  # type: Optional[PipSession]
+    hashes=None,  # type: Optional[Hashes]
+    progress_bar="on"  # type: str
 ):
     # type: (...) -> None
     """Unpack link.
@@ -879,11 +879,11 @@ def unpack_url(
 
 
 def _download_http_url(
-        link,  # type: Link
-        session,  # type: PipSession
-        temp_dir,  # type: str
-        hashes,  # type: Hashes
-        progress_bar  # type: str
+    link,  # type: Link
+    session,  # type: PipSession
+    temp_dir,  # type: str
+    hashes,  # type: Hashes
+    progress_bar  # type: str
 ):
     # type: (...) -> Tuple[str, str]
     """Download link url into temp_dir using provided session"""

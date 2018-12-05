@@ -41,9 +41,10 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import open_spinner
 
 if MYPY_CHECK_RUNNING:
-    from typing import (Dict, List, Optional,  # noqa: F401
-                        Sequence, Mapping, Tuple, IO, Text,
-                        Any, Union, Iterable)
+    from typing import (  # noqa: F401
+        Dict, List, Optional, Sequence, Mapping, Tuple, IO, Text, Any,
+        Union, Iterable
+    )
     from pip._vendor.packaging.requirements import Requirement  # noqa: F401
     from pip._internal.req.req_install import InstallRequirement  # noqa: F401
     from pip._internal.download import PipSession  # noqa: F401
@@ -251,17 +252,17 @@ def sorted_outrows(outrows):
 
 
 def move_wheel_files(
-        name,  # type: str
-        req,  # type: Requirement
-        wheeldir,  # type: str
-        user=False,  # type: bool
-        home=None,  # type: Optional[str]
-        root=None,  # type: Optional[str]
-        pycompile=True,  # type: bool
-        scheme=None,  # type: Optional[Mapping[str, str]]
-        isolated=False,  # type: bool
-        prefix=None,  # type: Optional[str]
-        warn_script_location=True  # type: bool
+    name,  # type: str
+    req,  # type: Requirement
+    wheeldir,  # type: str
+    user=False,  # type: bool
+    home=None,  # type: Optional[str]
+    root=None,  # type: Optional[str]
+    pycompile=True,  # type: bool
+    scheme=None,  # type: Optional[Mapping[str, str]]
+    isolated=False,  # type: bool
+    prefix=None,  # type: Optional[str]
+    warn_script_location=True  # type: bool
 ):
     # type: (...) -> None
     """Install a wheel"""
@@ -702,13 +703,13 @@ class WheelBuilder(object):
     """Build wheels from a RequirementSet."""
 
     def __init__(
-            self,
-            finder,  # type: PackageFinder
-            preparer,  # type: RequirementPreparer
-            wheel_cache,  # type: WheelCache
-            build_options=None,  # type: Optional[List[str]]
-            global_options=None,  # type: Optional[List[str]]
-            no_clean=False  # type: bool
+        self,
+        finder,  # type: PackageFinder
+        preparer,  # type: RequirementPreparer
+        wheel_cache,  # type: WheelCache
+        build_options=None,  # type: Optional[List[str]]
+        global_options=None,  # type: Optional[List[str]]
+        no_clean=False  # type: bool
     ):
         # type: (...) -> None
         self.finder = finder
@@ -819,10 +820,10 @@ class WheelBuilder(object):
             return False
 
     def build(
-            self,
-            requirements,  # type: Iterable[InstallRequirement]
-            session,  # type: PipSession
-            autobuilding=False  # type: bool
+        self,
+        requirements,  # type: Iterable[InstallRequirement]
+        session,  # type: PipSession
+        autobuilding=False  # type: bool
     ):
         # type: (...) -> List[InstallRequirement]
         """Build wheels.

@@ -15,8 +15,9 @@ from pip._internal.utils.compat import get_extension_suffixes
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import (Tuple, Callable, List,  # noqa: F401
-                        Optional, Union, Dict)
+    from typing import (  # noqa: F401
+        Tuple, Callable, List, Optional, Union, Dict
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -257,11 +258,11 @@ def get_darwin_arches(major, minor, machine):
 
 
 def get_supported(
-        versions=None,  # type: Optional[List[str]]
-        noarch=False,  # type: bool
-        platform=None,  # type: Optional[str]
-        impl=None,  # type: Optional[str]
-        abi=None  # type: Optional[str]
+    versions=None,  # type: Optional[List[str]]
+    noarch=False,  # type: bool
+    platform=None,  # type: Optional[str]
+    impl=None,  # type: Optional[str]
+    abi=None  # type: Optional[str]
 ):
     # type: (...) -> List[Tuple[str, str, str]]
     """Return a list of supported tags for each version specified in
