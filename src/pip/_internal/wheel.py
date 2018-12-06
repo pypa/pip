@@ -53,6 +53,7 @@ if MYPY_CHECK_RUNNING:
         RequirementPreparer
     )
     from pip._internal.cache import WheelCache  # noqa: F401
+    from pip._internal.pep425tags import Pep425Tag
 
     InstalledCSVRow = Tuple[str, Union[str, Text], str]
 
@@ -64,7 +65,7 @@ logger = logging.getLogger(__name__)
 
 
 def rehash(path, blocksize=1 << 20):
-    # type: (str, int) -> Tuple[str, str]
+    g# type: (str, int) -> Tuple[str, str]
     """Return (hash, length) for path using hashlib.sha256()"""
     h = hashlib.sha256()
     length = 0
@@ -677,7 +678,7 @@ class Wheel(object):
         }
 
     def support_index_min(self, tags=None):
-        # type: (Optional[List[Tuple[str, str, str]]]) -> Optional[int]
+        # type: (Optional[List[Pep425Tag]]) -> Optional[int]
         """
         Return the lowest index that one of the wheel's file_tag combinations
         achieves in the supported_tags list e.g. if there are 8 supported tags,
@@ -690,7 +691,7 @@ class Wheel(object):
         return min(indexes) if indexes else None
 
     def supported(self, tags=None):
-        # type: (Optional[List[Tuple[str, str, str]]]) -> bool
+        # type: (Optional[List[Pep425Tag]]) -> bool
         """Is this wheel supported on this system?"""
         if tags is None:  # for mock
             tags = pep425tags.get_supported()

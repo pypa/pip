@@ -19,6 +19,8 @@ if MYPY_CHECK_RUNNING:
         Tuple, Callable, List, Optional, Union, Dict
     )
 
+    Pep425Tag = Tuple[str, str, str]
+
 logger = logging.getLogger(__name__)
 
 _osx_arch_pat = re.compile(r'(.+)_(\d+)_(\d+)_(.+)')
@@ -274,7 +276,7 @@ def get_supported(
     impl=None,  # type: Optional[str]
     abi=None  # type: Optional[str]
 ):
-    # type: (...) -> List[Tuple[str, str, str]]
+    # type: (...) -> List[Pep425Tag]
     """Return a list of supported tags for each version specified in
     `versions`.
 
