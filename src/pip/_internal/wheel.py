@@ -563,7 +563,7 @@ if __name__ == '__main__':
         # type: (Iterable[List[str]]) -> List[InstalledCSVRow]
         installed_rows = []  # type: List[InstalledCSVRow]
         for fpath, digest, length in old_csv_rows:
-            fpath = installed.pop(fpath, default=fpath)
+            fpath = installed.pop(fpath, fpath)
             if fpath in changed:
                 digest, length = rehash(fpath)
             installed_rows.append((fpath, digest, str(length)))
