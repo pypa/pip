@@ -425,10 +425,9 @@ def open_spinner(message):
     # Non-interactive spinner goes through the logging system, so it is always
     # in sync with logging configuration.
     if sys.stdout.isatty() and logger.getEffectiveLevel() <= logging.INFO:
-        spinner = InteractiveSpinner(message)
+        spinner = InteractiveSpinner(message)  # type: SpinnerInterface
     else:
-        # https://github.com/python/mypy/issues/1174
-        spinner = NonInteractiveSpinner(message)  # type: ignore
+        spinner = NonInteractiveSpinner(message)
     try:
         with hidden_cursor(sys.stdout):
             yield spinner

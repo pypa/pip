@@ -416,6 +416,7 @@ def get_installed_distributions(local_only=True,
         def user_test(d):
             return True
 
+    # because of pkg_resources vendoring, mypy cannot find stub in typeshed
     return [d for d in pkg_resources.working_set  # type: ignore
             if local_test(d) and
             d.key not in skip and
@@ -571,6 +572,7 @@ def untar_file(filename, location):
                 ensure_dir(path)
             elif member.issym():
                 try:
+                    # https://github.com/python/typeshed/issues/2673
                     tar._extract_member(member, path)  # type: ignore
                 except Exception as exc:
                     # Some corrupt tar files seem to produce this
@@ -596,6 +598,7 @@ def untar_file(filename, location):
                     shutil.copyfileobj(fp, destfp)
                 fp.close()
                 # Update the timestamp (useful for cython compiled files)
+                # https://github.com/python/typeshed/issues/2673
                 tar.utime(member, path)  # type: ignore
                 # member have any execute permissions for user/group/world?
                 if member.mode & 0o111:
@@ -788,9 +791,8 @@ def read_text_file(filename):
             continue
         break
 
-    assert type(data) != bytes  # Latin1 should have worked.
-    # https://github.com/python/mypy/issues/4445
-    return data  # type: ignore
+    assert not isinstance(data, bytes)  # Latin1 should have worked.
+    return data
 
 
 def _make_build_dir(build_dir):

@@ -21,6 +21,8 @@ if MYPY_CHECK_RUNNING:
     )
     from pip._internal.utils.ui import SpinnerInterface  # noqa: F401
 
+    AuthInfo = Tuple[Optional[str], Optional[str]]
+
 __all__ = ['vcs']
 
 
@@ -239,7 +241,7 @@ class VersionControl(object):
         return netloc, (None, None)
 
     def get_url_rev_and_auth(self, url):
-        # type: (str) -> Tuple[str, Optional[str], Tuple[Optional[str], Optional[str]]]  # noqa: E501
+        # type: (str) -> Tuple[str, Optional[str], AuthInfo]
         """
         Parse the repository URL to use, and return the URL, revision,
         and auth info to use.
@@ -389,7 +391,8 @@ class VersionControl(object):
                 self.repo_name,
             )
             # https://github.com/python/mypy/issues/1174
-            prompt = ('(i)gnore, (w)ipe, (b)ackup ', ('i', 'w', 'b'))  # type: ignore  # noqa: E501
+            prompt = ('(i)gnore, (w)ipe, (b)ackup ',  # type: ignore
+                      ('i', 'w', 'b'))
 
         logger.warning(
             'The plan is to install the %s repository %s',
