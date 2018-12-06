@@ -65,7 +65,7 @@ logger = logging.getLogger(__name__)
 
 
 def rehash(path, blocksize=1 << 20):
-    g# type: (str, int) -> Tuple[str, str]
+    # type: (str, int) -> Tuple[str, str]
     """Return (hash, length) for path using hashlib.sha256()"""
     h = hashlib.sha256()
     length = 0
@@ -559,7 +559,7 @@ if __name__ == '__main__':
     shutil.move(temp_installer, installer)
     generated.append(installer)
 
-    def get_installed_csv_rows(old_csv_rows):
+    def get_csv_rows_for_installed(old_csv_rows):
         # type: (Iterable[List[str]]) -> List[InstalledCSVRow]
         installed_rows = []  # type: List[InstalledCSVRow]
         for fpath, digest, length in old_csv_rows:
@@ -580,7 +580,7 @@ if __name__ == '__main__':
     with open_for_csv(record, 'r') as record_in:
         with open_for_csv(temp_record, 'w+') as record_out:
             reader = csv.reader(record_in)
-            outrows = get_installed_csv_rows(reader)
+            outrows = get_csv_rows_for_installed(reader)
             writer = csv.writer(record_out)
             # Sort to simplify testing.
             for row in sorted_outrows(outrows):
