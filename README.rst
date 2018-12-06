@@ -15,14 +15,14 @@ The `PyPA recommended`_ tool for installing Python packages.
 .. image:: https://readthedocs.org/projects/pip/badge/?version=latest
    :target: https://pip.pypa.io/en/latest
 
-.. image:: https://pypa.visualstudio.com/pip/_apis/build/status/Pip%20CI%20(Windows)
-   :target: https://pypa.visualstudio.com/pip/_build/latest?definitionId=6
+.. image:: https://dev.azure.com/pypa/pip/_apis/build/status/Linux?branchName=master&label=Windows
+   :target: https://dev.azure.com/pypa/pip/_build/latest?definitionId=6
 
-.. image:: https://pypa.visualstudio.com/pip/_apis/build/status/Pip%20CI%20(macOS)
-   :target: https://pypa.visualstudio.com/pip/_build/latest?definitionId=7
+.. image:: https://dev.azure.com/pypa/pip/_apis/build/status/macOS?branchName=master&label=macOS
+   :target: https://dev.azure.com/pypa/pip/_build/latest?definitionId=7
 
-.. image:: https://pypa.visualstudio.com/pip/_apis/build/status/Pip%20CI%20(Linux)
-   :target: https://pypa.visualstudio.com/pip/_build/latest?definitionId=4
+.. image:: https://dev.azure.com/pypa/pip/_apis/build/status/Linux?branchName=master&label=Linux
+   :target: https://dev.azure.com/pypa/pip/_build/latest?definitionId=4
 
 * `Installation`_
 * `Documentation`_
