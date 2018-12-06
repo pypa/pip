@@ -318,12 +318,10 @@ def get_supported(
             # support macosx-10.6-intel on macosx-10.9-x86_64
             match = _osx_arch_pat.match(arch)
             if match:
-                # # https://github.com/python/mypy/issues/1174
                 name, major, minor, actual_arch = match.groups()
                 tpl = '{}_{}_%i_%s'.format(name, major)
                 arches = []
                 for m in reversed(range(int(minor) + 1)):
-                    # https://github.com/python/mypy/issues/1174
                     for a in get_darwin_arches(int(major), m, actual_arch):
                         arches.append(tpl % (m, a))
             else:
