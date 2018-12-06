@@ -30,6 +30,8 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.index import PackageFinder  # noqa: F401
     from pip._internal.download import PipSession  # noqa: F401
 
+    ReqFileLines = Iterator[Tuple[int, Text]]
+
 __all__ = ['parse_requirements']
 
 SCHEME_RE = re.compile(r'^(http|https|file):', re.I)
@@ -113,13 +115,13 @@ def parse_requirements(
 
 
 def preprocess(content, options):
-    # type: (Text, Optional[optparse.Values]) -> Iterator[Tuple[int, Text]]
+    # type: (Text, Optional[optparse.Values]) -> ReqFileLines
     """Split, filter, and join lines, and return a line iterator
 
     :param content: the content of the requirements file
     :param options: cli options
     """
-    lines_enum = enumerate(content.splitlines(), start=1)  # type: Iterator[Tuple[int, Text]]  # noqa: E501
+    lines_enum = enumerate(content.splitlines(), start=1)  # type: ReqFileLines
     lines_enum = join_lines(lines_enum)
     lines_enum = ignore_comments(lines_enum)
     lines_enum = skip_regex(lines_enum, options)
@@ -169,7 +171,8 @@ def process_line(
         # https://github.com/python/mypy/issues/1174
         options_str = options_str.encode('utf8')  # type: ignore
     # https://github.com/python/mypy/issues/1174
-    opts, _ = parser.parse_args(shlex.split(options_str), defaults)  # type: ignore  # noqa: E501
+    opts, _ = parser.parse_args(shlex.split(options_str),  # type: ignore
+                                defaults)
 
     # preserve for the nested code path
     line_comes_from = '%s %s (line %s)' % (
@@ -300,7 +303,7 @@ def build_parser(line):
 
 
 def join_lines(lines_enum):
-    # type: (Iterator[Tuple[int, Text]]) -> Iterator[Tuple[int, Text]]
+    # type: (ReqFileLines) -> ReqFileLines
     """Joins a line ending in '\' with the previous line (except when following
     comments).  The joined line takes on the index of the first line.
     """
@@ -331,7 +334,7 @@ def join_lines(lines_enum):
 
 
 def ignore_comments(lines_enum):
-    # type: (Iterator[Tuple[int, Text]]) -> Iterator[Tuple[int, Text]]
+    # type: (ReqFileLines) -> ReqFileLines
     """
     Strips comments and filter empty lines.
     """
@@ -343,11 +346,8 @@ def ignore_comments(lines_enum):
             yield line_number, line
 
 
-def skip_regex(
-    lines_enum,  # type: Iterator[Tuple[int, Text]]
-    options  # type: Optional[optparse.Values]
-):
-    # type: (...) -> Iterator[Tuple[int, Text]]
+def skip_regex(lines_enum, options):
+    # type: (ReqFileLines, Optional[optparse.Values]) -> ReqFileLines
     """
     Skip lines that match '--skip-requirements-regex' pattern
 
@@ -361,7 +361,7 @@ def skip_regex(
 
 
 def expand_env_variables(lines_enum):
-    # type: (Iterator[Tuple[int, Text]]) -> Iterator[Tuple[int, Text]]
+    # type: (ReqFileLines) -> ReqFileLines
     """Replace all environment variables that can be retrieved via `os.getenv`.
 
     The only allowed format for environment variables defined in the

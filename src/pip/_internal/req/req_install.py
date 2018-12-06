@@ -733,10 +733,10 @@ class InstallRequirement(object):
 
     # For editable installations
     def install_editable(
-            self,
-            install_options,  # type: List[str]
-            global_options=(),  # type: Sequence[str]
-            prefix=None  # type: Optional[str]
+        self,
+        install_options,  # type: List[str]
+        global_options=(),  # type: Sequence[str]
+        prefix=None  # type: Optional[str]
     ):
         # type: (...) -> None
         logger.info('Running setup.py develop for %s', self.name)
@@ -830,6 +830,12 @@ class InstallRequirement(object):
         name = name.replace(os.path.sep, '/')
         return name
 
+    def _get_archive_name(self, path, parentdir, rootdir):
+        # type: (str, str, str) -> str
+        path = os.path.join(parentdir, path)
+        name = self._clean_zip_name(path, rootdir)
+        return self.name + '/' + name
+
     # TODO: Investigate if this should be kept in InstallRequirement
     #       Seems to be used only when VCS + downloads
     def archive(self, build_dir):
@@ -867,19 +873,22 @@ class InstallRequirement(object):
                 if 'pip-egg-info' in dirnames:
                     dirnames.remove('pip-egg-info')
                 for dirname in dirnames:
-                    dirname = os.path.join(dirpath, dirname)
-                    name = self._clean_zip_name(dirname, dir)
+                    dir_arcname = self._get_archive_name(dirname,
+                                                         parentdir=dirpath,
+                                                         rootdir=dir)
                     # should be fixed in mypy==0.650
                     # see https://github.com/python/typeshed/pull/2628
-                    zipdir = zipfile.ZipInfo(self.name + '/' + name + '/')  # type: ignore  # noqa: E501
+                    zipdir = zipfile.ZipInfo(dir_arcname + '/')  # type: ignore
                     zipdir.external_attr = 0x1ED << 16  # 0o755
                     zip.writestr(zipdir, '')
                 for filename in filenames:
                     if filename == PIP_DELETE_MARKER_FILENAME:
                         continue
+                    file_arcname = self._get_archive_name(filename,
+                                                          parentdir=dirpath,
+                                                          rootdir=dir)
                     filename = os.path.join(dirpath, filename)
-                    name = self._clean_zip_name(filename, dir)
-                    zip.write(filename, self.name + '/' + name)
+                    zip.write(filename, file_arcname)
             zip.close()
             logger.info('Saved %s', display_path(archive_path))
 
