@@ -49,10 +49,12 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.req.req_install import InstallRequirement  # noqa: F401
     from pip._internal.download import PipSession  # noqa: F401
     from pip._internal.index import PackageFinder  # noqa: F401
-    from pip._internal.operations.prepare import RequirementPreparer  # noqa: F401, E501
+    from pip._internal.operations.prepare import (  # noqa: F401
+        RequirementPreparer
+    )
     from pip._internal.cache import WheelCache  # noqa: F401
 
-    OutRow = Tuple[str, Union[str, Text], Union[str, int]]
+    InstalledCSVRow = Tuple[str, Union[str, Text], str]
 
 
 VERSION_COMPATIBLE = (1, 0)
@@ -62,7 +64,7 @@ logger = logging.getLogger(__name__)
 
 
 def rehash(path, blocksize=1 << 20):
-    # type: (str, int) -> Tuple[Text, int]
+    # type: (str, int) -> Tuple[str, str]
     """Return (hash, length) for path using hashlib.sha256()"""
     h = hashlib.sha256()
     length = 0
@@ -73,7 +75,8 @@ def rehash(path, blocksize=1 << 20):
     digest = 'sha256=' + urlsafe_b64encode(
         h.digest()
     ).decode('latin1').rstrip('=')
-    return (digest, length)
+    # unicode/str python2 issues
+    return (digest, str(length))  # type: ignore
 
 
 def open_for_csv(name, mode):
@@ -231,7 +234,7 @@ def message_about_scripts_not_on_PATH(scripts):
 
 
 def sorted_outrows(outrows):
-    # type: (Iterable[OutRow]) -> List[OutRow]
+    # type: (Iterable[InstalledCSVRow]) -> List[InstalledCSVRow]
     """
     Return the given rows of a RECORD file in sorted order.
 
@@ -289,7 +292,7 @@ def move_wheel_files(
     #   installed = files copied from the wheel to the destination
     #   changed = files changed while installing (scripts #! line typically)
     #   generated = files newly generated during the install (script wrappers)
-    installed = {}
+    installed = {}  # type: Dict[str, str]
     changed = set()
     generated = []  # type: List[str]
 
@@ -555,27 +558,31 @@ if __name__ == '__main__':
     shutil.move(temp_installer, installer)
     generated.append(installer)
 
+    def get_installed_csv_rows(old_csv_rows):
+        # type: (Iterable[List[str]]) -> List[InstalledCSVRow]
+        installed_rows = []  # type: List[InstalledCSVRow]
+        for fpath, digest, length in old_csv_rows:
+            fpath = installed.pop(fpath, default=fpath)
+            if fpath in changed:
+                digest, length = rehash(fpath)
+            installed_rows.append((fpath, digest, str(length)))
+        for f in generated:
+            digest, length = rehash(f)
+            installed_rows.append((normpath(f, lib_dir), digest, str(length)))
+        for f in installed:
+            installed_rows.append((installed[f], '', ''))
+        return installed_rows
+
     # Record details of all files installed
     record = os.path.join(info_dir[0], 'RECORD')
     temp_record = os.path.join(info_dir[0], 'RECORD.pip')
     with open_for_csv(record, 'r') as record_in:
         with open_for_csv(temp_record, 'w+') as record_out:
             reader = csv.reader(record_in)
+            outrows = get_installed_csv_rows(reader)
             writer = csv.writer(record_out)
-            outrows = []  # type: List[OutRow]
-            for row in reader:
-                row[0] = installed.pop(row[0], row[0])
-                if row[0] in changed:
-                    row[1], row[2] = rehash(row[0])  # type: ignore
-                outrows.append(tuple(row))  # type: ignore
-            for f in generated:
-                digest, length = rehash(f)
-                outrows.append((normpath(f, lib_dir), digest, length))
-            for f in installed:
-                outrows.append((installed[f], '', ''))
             # Sort to simplify testing.
-            # https://github.com/python/mypy/issues/1174
-            for row in sorted_outrows(outrows):  # type: ignore
+            for row in sorted_outrows(outrows):
                 writer.writerow(row)
     shutil.move(temp_record, record)
 
