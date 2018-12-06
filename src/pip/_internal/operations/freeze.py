@@ -24,7 +24,9 @@ if MYPY_CHECK_RUNNING:
         Iterator, Optional, List, Container, Set, Dict, Tuple, Iterable, Union
     )
     from pip._internal.cache import WheelCache  # noqa: F401
-    from pip._vendor.pkg_resources import (Distribution,  # noqa: F401
+    from pip._vendor.pkg_resources import (  # noqa: F401
+        Distribution, Requirement,
+    )
                                            Requirement)
 
 
