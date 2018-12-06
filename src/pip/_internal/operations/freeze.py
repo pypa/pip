@@ -25,9 +25,8 @@ if MYPY_CHECK_RUNNING:
     )
     from pip._internal.cache import WheelCache  # noqa: F401
     from pip._vendor.pkg_resources import (  # noqa: F401
-        Distribution, Requirement,
+        Distribution, Requirement
     )
-                                           Requirement)
 
 
 logger = logging.getLogger(__name__)
