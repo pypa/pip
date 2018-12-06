@@ -48,7 +48,9 @@ from pip._internal.utils.ui import DownloadProgressProvider
 from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, Tuple, Dict, IO, Text, Union  # noqa: F401
+    from typing import (  # noqa: F401
+        Optional, Tuple, Dict, IO, Text, Union, Any
+    )
     from pip._internal.models.link import Link  # noqa: F401
     from pip._internal.utils.hashes import Hashes  # noqa: F401
 
@@ -143,7 +145,9 @@ class MultiDomainBasicAuth(AuthBase):
     def __init__(self, prompting=True):
         # type: (bool) -> None
         self.prompting = prompting
-        self.passwords = {}  # type: Dict[str, Tuple[Optional[str], Optional[str]]]  # noqa: E501
+        # Any here should be replaced with utils.ui.AuthInfo, after
+        # https://github.com/pypa/pip/pull/6061 is merged
+        self.passwords = {}  # type: Dict[str, Any]
 
     def __call__(self, req):
         parsed = urllib_parse.urlparse(req.url)

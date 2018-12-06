@@ -257,6 +257,16 @@ def get_darwin_arches(major, minor, machine):
     return arches
 
 
+def get_all_minor_versions_as_strings(version_info):
+    # type: (Tuple[int, ...]) -> List[str]
+    versions = []
+    major = version_info[:-1]
+    # Support all previous minor Python versions.
+    for minor in range(version_info[-1], -1, -1):
+        versions.append(''.join(map(str, major + (minor,))))
+    return versions
+
+
 def get_supported(
     versions=None,  # type: Optional[List[str]]
     noarch=False,  # type: bool
@@ -281,12 +291,8 @@ def get_supported(
 
     # Versions must be given with respect to the preference
     if versions is None:
-        versions = []
         version_info = get_impl_version_info()
-        major = version_info[:-1]
-        # Support all previous minor Python versions.
-        for minor in range(version_info[-1], -1, -1):
-            versions.append(''.join(map(str, major + (minor,))))
+        versions = get_all_minor_versions_as_strings(version_info)
 
     impl = impl or get_abbr_impl()
 
@@ -313,12 +319,12 @@ def get_supported(
             match = _osx_arch_pat.match(arch)
             if match:
                 # # https://github.com/python/mypy/issues/1174
-                name, major, minor, actual_arch = match.groups()  # type: ignore  # noqa: E501
+                name, major, minor, actual_arch = match.groups()
                 tpl = '{}_{}_%i_%s'.format(name, major)
                 arches = []
                 for m in reversed(range(int(minor) + 1)):
                     # https://github.com/python/mypy/issues/1174
-                    for a in get_darwin_arches(int(major), m, actual_arch):  # type: ignore  # noqa: E501
+                    for a in get_darwin_arches(int(major), m, actual_arch):
                         arches.append(tpl % (m, a))
             else:
                 # arch pattern didn't match (?!)
