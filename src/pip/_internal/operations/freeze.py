@@ -28,6 +28,8 @@ if MYPY_CHECK_RUNNING:
         Distribution, Requirement
     )
 
+    RequirementInfo = Tuple[Optional[Union[str, Requirement]], bool, List[str]]
+
 
 logger = logging.getLogger(__name__)
 
@@ -160,7 +162,7 @@ def freeze(
 
 
 def get_requirement_info(dist):
-    # type: (Distribution) -> Tuple[Optional[Union[str, Requirement]], bool, List[str]]  # noqa: E501
+    # type: (Distribution) -> RequirementInfo
     """
     Compute and return values (req, editable, comments) for use in
     FrozenRequirement.from_dist().

@@ -126,8 +126,7 @@ class IsSDist(DistAbstraction):
         if should_isolate:
             # Isolate in a BuildEnvironment and install the build-time
             # requirements.
-            # type depends on other stubs, remove ignore later
-            self.req.build_env = BuildEnvironment()  # type: ignore
+            self.req.build_env = BuildEnvironment()
             self.req.build_env.install_requirements(
                 finder, self.req.pyproject_requires, 'overlay',
                 "Installing build dependencies"
@@ -154,8 +153,7 @@ class IsSDist(DistAbstraction):
             with self.req.build_env:
                 # We need to have the env active when calling the hook.
                 self.req.spin_message = "Getting requirements to build wheel"
-                # type depends on other stubs, remove ignore later
-                reqs = self.req.pep517_backend.get_requires_for_build_wheel()  # type: ignore  # noqa: E501
+                reqs = self.req.pep517_backend.get_requires_for_build_wheel()
             conflicting, missing = self.req.build_env.check_requirements(reqs)
             if conflicting:
                 _raise_conflicts("the backend dependencies", conflicting)
