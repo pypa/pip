@@ -84,7 +84,8 @@ class Resolver(object):
         self.use_user_site = use_user_site
         self.use_pep517 = use_pep517
 
-        self._discovered_dependencies = defaultdict(list)  # type: DefaultDict[str, List]  # noqa: E501
+        self._discovered_dependencies = \
+            defaultdict(list)  # type: DefaultDict[str, List]
 
     def resolve(self, requirement_set):
         # type: (RequirementSet) -> None
@@ -269,8 +270,12 @@ class Resolver(object):
 
         return abstract_dist
 
-    def _resolve_one(self, requirement_set, req_to_install):
-        # type: (RequirementSet, InstallRequirement) -> List[InstallRequirement]  # noqa: E501
+    def _resolve_one(
+        self,
+        requirement_set,  # type: RequirementSet
+        req_to_install  # type: InstallRequirement
+    ):
+        # type: (...) -> List[InstallRequirement]
         """Prepare a single requirements file.
 
         :return: A list of additional InstallRequirements to also install.

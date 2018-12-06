@@ -53,7 +53,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.download import PipSession  # noqa: F401
 
     SecureOrigin = Tuple[str, str, Optional[str]]
-    BuildTag = Tuple[Any, ...]  # possibly empty Tuple[int, str]
+    BuildTag = Tuple[Any, ...]  # either emply tuple or Tuple[int, str]
     CandidateSortingKey = Tuple[int, _BaseVersion, BuildTag, Optional[int]]
 
 __all__ = ['FormatControl', 'PackageFinder']
@@ -519,6 +519,8 @@ class PackageFinder(object):
                 network = ipaddress.ip_network(
                     secure_origin[1]
                     if isinstance(secure_origin[1], six.text_type)
+                    # setting secure_origin[1] to proper Union[bytes, str]
+                    # creates problems in other places
                     else secure_origin[1].decode("utf8")  # type: ignore
                 )
             except ValueError:
@@ -705,7 +707,8 @@ class PackageFinder(object):
 
         if req.satisfied_by is not None:
             # type error fixed in mypy==0.641, remove after update
-            installed_version = parse_version(req.satisfied_by.version)  # type: ignore  # noqa: E501
+            installed_version = parse_version(
+                req.satisfied_by.version)  # type: ignore
         else:
             installed_version = None
 
@@ -986,7 +989,8 @@ def _clean_link(url):
     the link, it will be rewritten to %20 (while not over-quoting
     % or other characters)."""
     # type error fixed in mypy==0.641, remove after update
-    return _CLEAN_LINK_RE.sub(lambda match: '%%%2x' % ord(match.group(0)), url)  # type: ignore  # noqa: E501
+    return _CLEAN_LINK_RE.sub(
+        lambda match: '%%%2x' % ord(match.group(0)), url)  # type: ignore
 
 
 class HTMLPage(object):
