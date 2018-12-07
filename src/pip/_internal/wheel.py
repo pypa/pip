@@ -53,7 +53,7 @@ if MYPY_CHECK_RUNNING:
         RequirementPreparer
     )
     from pip._internal.cache import WheelCache  # noqa: F401
-    from pip._internal.pep425tags import Pep425Tag
+    from pip._internal.pep425tags import Pep425Tag  # noqa: F401
 
     InstalledCSVRow = Tuple[str, Union[str, Text], str]
 
