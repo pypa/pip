@@ -6,7 +6,7 @@ from mock import Mock
 import pip._internal.req.req_uninstall
 from pip._internal.req.req_uninstall import (
     UninstallPathSet, compact, compress_for_output_listing,
-    uninstallation_paths,
+    compress_for_rename, uninstallation_paths,
 )
 from tests.lib import create_file
 
@@ -90,9 +90,24 @@ def test_compressed_listing(tmpdir):
         "lib/mypkg/support/would_be_skipped.skip.py",
     ])
 
+    expected_rename = in_tmpdir([
+        "bin/",
+        "lib/mypkg.dist-info/",
+        "lib/mypkg/would_be_removed.txt",
+        "lib/mypkg/__init__.py",
+        "lib/mypkg/my_awesome_code.py",
+        "lib/mypkg/__pycache__/",
+        "lib/mypkg/support/support_file.py",
+        "lib/mypkg/support/more_support.py",
+        "lib/mypkg/support/__pycache__/",
+        "lib/random_other_place/",
+    ])
+
     will_remove, will_skip = compress_for_output_listing(sample)
+    will_rename = compress_for_rename(sample)
     assert sorted(expected_skip) == sorted(compact(will_skip))
     assert sorted(expected_remove) == sorted(compact(will_remove))
+    assert sorted(expected_rename) == sorted(compact(will_rename))
 
 
 class TestUninstallPathSet(object):

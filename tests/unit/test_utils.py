@@ -4,6 +4,7 @@
 util tests
 
 """
+import itertools
 import os
 import shutil
 import stat
@@ -29,7 +30,7 @@ from pip._internal.utils.misc import (
     split_auth_from_netloc, untar_file, unzip_file,
 )
 from pip._internal.utils.packaging import check_dist_requires_python
-from pip._internal.utils.temp_dir import TempDirectory
+from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
 
 
 class Tests_EgglinkPath:
@@ -547,9 +548,37 @@ class TestTempDirectory(object):
         assert tmp_dir.path is None
         assert not os.path.exists(created_path)
 
+    @pytest.mark.parametrize("name", [
+        "ABC",
+        "ABC.dist-info",
+        "_+-",
+        "_package",
+    ])
+    def test_adjacent_directory_names(self, name):
+        def names():
+            return AdjacentTempDirectory._generate_names(name)
+
+        chars = AdjacentTempDirectory.LEADING_CHARS
+
+        # Ensure many names are unique
+        # (For long *name*, this sequence can be extremely long.
+        # However, since we're only ever going to take the first
+        # result that works, provided there are many of those
+        # and that shorter names result in totally unique sets,
+        # it's okay to skip part of the test.)
+        some_names = list(itertools.islice(names(), 10000))
+        assert len(some_names) == len(set(some_names))
+
+        # Ensure original name does not appear
+        assert not any(n == name for n in names())
+
+        # Check the first group are correct
+        assert all(x == y for x, y in
+                   zip(some_names, [c + name[1:] for c in chars]))
+
 
 class TestGlibc(object):
-    def test_manylinux1_check_glibc_version(self):
+    def test_manylinux_check_glibc_version(self):
         """
         Test that the check_glibc_version function is robust against weird
         glibc version strings.

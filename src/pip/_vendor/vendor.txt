@@ -5,7 +5,7 @@ html5lib==1.0.1
 six==1.11.0
 colorama==0.3.9
 CacheControl==0.12.5
-msgpack-python==0.5.6
+msgpack==0.5.6
 lockfile==0.12.2
 progress==1.4
 ipaddress==1.0.22  # Only needed on 2.6 and 2.7

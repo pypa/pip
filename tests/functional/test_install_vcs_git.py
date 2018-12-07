@@ -485,7 +485,9 @@ def test_check_submodule_addition(script):
     """
     Submodules are pulled in on install and updated on upgrade.
     """
-    module_path, submodule_path = _create_test_package_with_submodule(script)
+    module_path, submodule_path = (
+        _create_test_package_with_submodule(script, rel_path='testpkg/static')
+    )
 
     install_result = script.pip(
         'install', '-e', 'git+' + module_path + '#egg=version_pkg'
@@ -496,7 +498,9 @@ def test_check_submodule_addition(script):
     )
 
     _change_test_package_submodule(script, submodule_path)
-    _pull_in_submodule_changes_to_module(script, module_path)
+    _pull_in_submodule_changes_to_module(
+        script, module_path, rel_path='testpkg/static',
+    )
 
     # expect error because git may write to stderr
     update_result = script.pip(

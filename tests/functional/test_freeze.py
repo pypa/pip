@@ -7,8 +7,8 @@ from doctest import ELLIPSIS, OutputChecker
 import pytest
 
 from tests.lib import (
-    _create_test_package, _create_test_package_with_srcdir, need_bzr,
-    need_mercurial, path_to_url,
+    _create_test_package, _create_test_package_with_srcdir, _git_commit,
+    need_bzr, need_mercurial, path_to_url,
 )
 
 distribute_re = re.compile('^distribute==[0-9.]+\n', re.MULTILINE)
@@ -236,7 +236,7 @@ def test_freeze_git_clone(script, tmpdir):
     # in issue #1867).
     script.run('touch', 'newfile', cwd=repo_dir)
     script.run('git', 'add', 'newfile', cwd=repo_dir)
-    script.run('git', 'commit', '-m', '...', cwd=repo_dir)
+    _git_commit(script, repo_dir, message='...')
     result = script.pip('freeze', expect_stderr=True)
     expected = textwrap.dedent(
         """

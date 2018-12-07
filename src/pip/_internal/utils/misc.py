@@ -50,19 +50,21 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'renames', 'get_prog',
            'unzip_file', 'untar_file', 'unpack_file', 'call_subprocess',
            'captured_stdout', 'ensure_dir',
-           'ARCHIVE_EXTENSIONS', 'SUPPORTED_EXTENSIONS',
+           'ARCHIVE_EXTENSIONS', 'SUPPORTED_EXTENSIONS', 'WHEEL_EXTENSION',
            'get_installed_version', 'remove_auth_from_url']
 
 
 logger = std_logging.getLogger(__name__)
 
+WHEEL_EXTENSION = '.whl'
 BZ2_EXTENSIONS = ('.tar.bz2', '.tbz')
 XZ_EXTENSIONS = ('.tar.xz', '.txz', '.tlz', '.tar.lz', '.tar.lzma')
-ZIP_EXTENSIONS = ('.zip', '.whl')
+ZIP_EXTENSIONS = ('.zip', WHEEL_EXTENSION)
 TAR_EXTENSIONS = ('.tar.gz', '.tgz', '.tar')
 ARCHIVE_EXTENSIONS = (
     ZIP_EXTENSIONS + BZ2_EXTENSIONS + TAR_EXTENSIONS + XZ_EXTENSIONS)
 SUPPORTED_EXTENSIONS = ZIP_EXTENSIONS + TAR_EXTENSIONS
+
 try:
     import bz2  # noqa
     SUPPORTED_EXTENSIONS += BZ2_EXTENSIONS

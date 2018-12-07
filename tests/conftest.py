@@ -1,4 +1,5 @@
 import compileall
+import fnmatch
 import io
 import os
 import shutil
@@ -166,15 +167,24 @@ def isolate(tmpdir):
 
 @pytest.fixture(scope='session')
 def pip_src(tmpdir_factory):
+    def not_code_files_and_folders(path, names):
+        # In the root directory, ignore all folders except "src"
+        if path == SRC_DIR:
+            folders = {name for name in names if os.path.isdir(path / name)}
+            return folders - {"src"}
+
+        # Ignore all compiled files and egg-info.
+        ignored = list()
+        for pattern in ["__pycache__", "*.pyc", "pip.egg-info"]:
+            ignored.extend(fnmatch.filter(names, pattern))
+        return set(ignored)
+
     pip_src = Path(str(tmpdir_factory.mktemp('pip_src'))).join('pip_src')
     # Copy over our source tree so that each use is self contained
     shutil.copytree(
         SRC_DIR,
         pip_src.abspath,
-        ignore=shutil.ignore_patterns(
-            "*.pyc", "__pycache__", "contrib", "docs", "tasks",
-            "tests", "pip.egg-info", "build", "dist", ".tox", ".git",
-        ),
+        ignore=not_code_files_and_folders,
     )
     return pip_src
 
