@@ -89,11 +89,10 @@ class InstallRequirement(object):
         self.editable = editable
 
         self._wheel_cache = wheel_cache
-        if link is not None:
-            self.link = self.original_link = link
-        else:
-            # https://github.com/python/mypy/issues/5540
-            self.link = self.original_link = req and req.url and Link(req.url)  # type: ignore  # noqa: E501
+        if link is None and req and req.url:
+            # PEP 508 URL requirement
+            link = Link(req.url)
+        self.link = self.original_link = link
 
         if extras:
             self.extras = extras
@@ -103,11 +102,10 @@ class InstallRequirement(object):
             }
         else:
             self.extras = set()
-        if markers is not None:
-            self.markers = markers
-        else:
-            # https://github.com/python/mypy/issues/5540
-            self.markers = req and req.marker  # type: ignore
+        if markers is None and req:
+            markers = req.marker
+        self.markers = markers
+
         self._egg_info_path = None  # type: Optional[str]
         # This holds the pkg_resources.Distribution object if this requirement
         # is already available:
@@ -166,7 +164,7 @@ class InstallRequirement(object):
         else:
             s = '<InstallRequirement>'
         if self.satisfied_by is not None:
-            s += ' in %s' % display_path(self.satisfied_by.location)  # type: ignore  # noqa: E501
+            s += ' in %s' % display_path(self.satisfied_by.location)
         if self.comes_from:
             if isinstance(self.comes_from, six.string_types):
                 comes_from = self.comes_from
@@ -334,8 +332,8 @@ class InstallRequirement(object):
             return
         assert self.req is not None
         assert self._temp_build_dir.path
-        # remove ignore after update to latest (0.650) mypy
-        assert self._ideal_build_dir is not None and self._ideal_build_dir.path  # type: ignore  # noqa: E501
+        assert (self._ideal_build_dir is not None and
+                self._ideal_build_dir.path)  # type: ignore
         old_location = self._temp_build_dir.path
         self._temp_build_dir.path = None
 
@@ -420,8 +418,9 @@ class InstallRequirement(object):
     @property
     def is_wheel(self):
         # type: () -> bool
-        # https://github.com/python/mypy/issues/5540
-        return self.link and self.link.is_wheel  # type: ignore
+        if not self.link:
+            return False
+        return self.link.is_wheel
 
     def move_wheel_files(
         self,
@@ -718,6 +717,7 @@ class InstallRequirement(object):
 
     # For both source distributions and editables
     def ensure_has_source_dir(self, parent_dir):
+        # type: (str) -> str
         """Ensure that a source_dir is set.
 
         This will create a temporary build dir if the name of the requirement

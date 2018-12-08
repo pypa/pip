@@ -161,9 +161,11 @@ def process_line(
     """
     parser = build_parser(line)
     defaults = parser.get_default_values()
+    # fixed in mypy==0.650
     defaults.index_url = None  # type: ignore
     if finder:
         # `finder.format_control` will be updated during parsing
+        # fixed in mypy==0.650
         defaults.format_control = finder.format_control  # type: ignore
     args_str, options_str = break_args_options(line)
     if sys.version_info < (2, 7, 3):
@@ -187,8 +189,8 @@ def process_line(
         # get the options that apply to requirements
         req_options = {}
         for dest in SUPPORTED_OPTIONS_REQ_DEST:
-            if dest in opts.__dict__ and opts.__dict__[dest]:  # type: ignore
-                req_options[dest] = opts.__dict__[dest]  # type: ignore
+            if dest in opts.__dict__ and opts.__dict__[dest]:
+                req_options[dest] = opts.__dict__[dest]
         yield install_req_from_line(
             args_str, line_comes_from, constraint=constraint,
             use_pep517=use_pep517,
@@ -230,6 +232,7 @@ def process_line(
 
     # percolate hash-checking option upward
     elif opts.require_hashes:
+        # fixed in mypy==0.650
         options.require_hashes = opts.require_hashes  # type: ignore
 
     # set finder options
@@ -312,6 +315,7 @@ def join_lines(lines_enum):
     for line_number, line in lines_enum:
         # fixed in mypy==0.641
         if not line.endswith('\\') or COMMENT_RE.match(line):  # type: ignore
+            # fixed in mypy==0.641
             if COMMENT_RE.match(line):  # type: ignore
                 # this ensures comments are always matched later
                 line = ' ' + line
