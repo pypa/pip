@@ -305,7 +305,7 @@ class UninstallPathSet(object):
 
         Returns whether the rollback was successful.
         """
-        if not self.save_dirs:
+        if not self._save_dirs:
             logger.error(
                 "Can't roll back %s; was not uninstalled",
                 self.dist.project_name,
