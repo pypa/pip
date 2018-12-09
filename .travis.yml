@@ -30,13 +30,13 @@ jobs:
     # PyPy
     - stage: secondary
       env: GROUP=1
-      python: pypy3
+      python: pypy3.5-6.0
     - env: GROUP=2
-      python: pypy3
+      python: pypy3.5-6.0
     - env: GROUP=1
-      python: pypy
+      python: pypy2.7-6.0
     - env: GROUP=2
-      python: pypy
+      python: pypy2.7-6.0
     # Other Supported CPython
     - env: GROUP=1
       python: 3.7
