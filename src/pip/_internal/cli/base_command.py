@@ -32,7 +32,7 @@ from pip._internal.utils.outdated import pip_version_check
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, List, Union, Tuple, Any  # noqa: F401
+    from typing import Optional, List, Tuple, Any  # noqa: F401
     from optparse import Values  # noqa: F401
     from pip._internal.cache import WheelCache  # noqa: F401
     from pip._internal.req.req_set import RequirementSet  # noqa: F401

@@ -114,7 +114,7 @@ help_ = partial(
     dest='help',
     action='help',
     help='Show help.',
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 isolated_mode = partial(
     Option,
@@ -126,7 +126,7 @@ isolated_mode = partial(
         "Run pip in an isolated mode, ignoring environment variables and user "
         "configuration."
     ),
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 require_virtualenv = partial(
     Option,
@@ -136,7 +136,7 @@ require_virtualenv = partial(
     action='store_true',
     default=False,
     help=SUPPRESS_HELP
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 verbose = partial(
     Option,
@@ -145,7 +145,7 @@ verbose = partial(
     action='count',
     default=0,
     help='Give more output. Option is additive, and can be used up to 3 times.'
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 no_color = partial(
     Option,
@@ -154,7 +154,7 @@ no_color = partial(
     action='store_true',
     default=False,
     help="Suppress colored output",
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 version = partial(
     Option,
@@ -162,7 +162,7 @@ version = partial(
     dest='version',
     action='store_true',
     help='Show version and exit.',
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 quiet = partial(
     Option,
@@ -175,7 +175,7 @@ quiet = partial(
         ' times (corresponding to WARNING, ERROR, and CRITICAL logging'
         ' levels).'
     ),
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 progress_bar = partial(
     Option,
@@ -188,7 +188,7 @@ progress_bar = partial(
         'Specify type of progress to be displayed [' +
         '|'.join(BAR_TYPES.keys()) + '] (default: %default)'
     ),
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 log = partial(
     Option,
@@ -196,7 +196,7 @@ log = partial(
     dest="log",
     metavar="path",
     help="Path to a verbose appending log."
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 no_input = partial(
     Option,
@@ -206,7 +206,7 @@ no_input = partial(
     action='store_true',
     default=False,
     help=SUPPRESS_HELP
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 proxy = partial(
     Option,
@@ -215,7 +215,7 @@ proxy = partial(
     type='str',
     default='',
     help="Specify a proxy in the form [user:passwd@]proxy.server:port."
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 retries = partial(
     Option,
@@ -225,7 +225,7 @@ retries = partial(
     default=5,
     help="Maximum number of retries each connection should attempt "
          "(default %default times).",
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 timeout = partial(
     Option,
@@ -235,7 +235,7 @@ timeout = partial(
     type='float',
     default=15,
     help='Set the socket timeout (default %default seconds).',
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 skip_requirements_regex = partial(
     Option,
@@ -245,7 +245,7 @@ skip_requirements_regex = partial(
     type='str',
     default='',
     help=SUPPRESS_HELP,
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 
 def exists_action():
@@ -271,7 +271,7 @@ cert = partial(
     type='str',
     metavar='path',
     help="Path to alternate CA bundle.",
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 client_cert = partial(
     Option,
@@ -282,7 +282,7 @@ client_cert = partial(
     metavar='path',
     help="Path to SSL client certificate, a single file containing the "
          "private key and the certificate in PEM format.",
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 index_url = partial(
     Option,
@@ -294,7 +294,7 @@ index_url = partial(
          "This should point to a repository compliant with PEP 503 "
          "(the simple repository API) or a local directory laid out "
          "in the same format.",
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 
 def extra_index_url():
@@ -317,7 +317,7 @@ no_index = partial(
     action='store_true',
     default=False,
     help='Ignore package index (only looking at --find-links URLs instead).',
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 
 def find_links():
@@ -355,7 +355,7 @@ process_dependency_links = partial(
     action="store_true",
     default=False,
     help="Enable the processing of dependency links.",
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 
 def constraints():
@@ -406,7 +406,7 @@ src = partial(
     help='Directory to check out editable projects into. '
     'The default in a virtualenv is "<venv path>/src". '
     'The default for global installs is "<current dir>/src".'
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 
 def _get_format_control(values, option):
@@ -471,7 +471,7 @@ platform = partial(
     default=None,
     help=("Only use wheels compatible with <platform>. "
           "Defaults to the platform of the running system."),
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 
 python_version = partial(
@@ -486,7 +486,7 @@ python_version = partial(
           "version (e.g. '2') can be specified to match all "
           "minor revs of that major version.  A minor version "
           "(e.g. '34') can also be specified."),
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 
 implementation = partial(
@@ -500,7 +500,7 @@ implementation = partial(
           " or 'ip'. If not specified, then the current "
           "interpreter implementation is used.  Use 'py' to force "
           "implementation-agnostic wheels."),
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 
 abi = partial(
@@ -515,7 +515,7 @@ abi = partial(
           "you will need to specify --implementation, "
           "--platform, and --python-version when using "
           "this option."),
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 
 def prefer_binary():
@@ -536,7 +536,7 @@ cache_dir = partial(
     default=USER_CACHE_DIR,
     metavar="dir",
     help="Store the cache data in <dir>."
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 
 def no_cache_dir_callback(option, opt, value, parser):
@@ -570,7 +570,7 @@ no_cache = partial(
     action="callback",
     callback=no_cache_dir_callback,
     help="Disable the cache.",
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 no_deps = partial(
     Option,
@@ -579,7 +579,7 @@ no_deps = partial(
     action='store_true',
     default=False,
     help="Don't install package dependencies.",
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 build_dir = partial(
     Option,
@@ -591,7 +591,7 @@ build_dir = partial(
          'The location of temporary directories can be controlled by setting '
          'the TMPDIR environment variable (TEMP on Windows) appropriately. '
          'When passed, build directories are not cleaned in case of failures.'
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 ignore_requires_python = partial(
     Option,
@@ -599,7 +599,7 @@ ignore_requires_python = partial(
     dest='ignore_requires_python',
     action='store_true',
     help='Ignore the Requires-Python information.'
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 no_build_isolation = partial(
     Option,
@@ -610,7 +610,7 @@ no_build_isolation = partial(
     help='Disable isolation when building a modern source distribution. '
          'Build dependencies specified by PEP 518 must be already installed '
          'if this option is used.'
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 use_pep517 = partial(
     Option,
@@ -642,7 +642,7 @@ install_options = partial(
          "bin\"). Use multiple --install-option options to pass multiple "
          "options to setup.py install. If you are using an option with a "
          "directory path, be sure to use absolute path.",
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 global_options = partial(
     Option,
@@ -652,7 +652,7 @@ global_options = partial(
     metavar='options',
     help="Extra global options to be supplied to the setup.py "
          "call before the install command.",
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 no_clean = partial(
     Option,
@@ -660,7 +660,7 @@ no_clean = partial(
     action='store_true',
     default=False,
     help="Don't clean up build directories."
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 pre = partial(
     Option,
@@ -669,7 +669,7 @@ pre = partial(
     default=False,
     help="Include pre-release and development versions. By default, "
          "pip only finds stable versions.",
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 disable_pip_version_check = partial(
     Option,
@@ -679,7 +679,7 @@ disable_pip_version_check = partial(
     default=False,
     help="Don't periodically check PyPI to determine whether a new version "
          "of pip is available for download. Implied with --no-index.",
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 
 # Deprecated, Remove later
@@ -689,7 +689,7 @@ always_unzip = partial(
     dest='always_unzip',
     action='store_true',
     help=SUPPRESS_HELP,
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 
 def _merge_hash(option, opt_str, value, parser):
@@ -697,7 +697,7 @@ def _merge_hash(option, opt_str, value, parser):
     """Given a value spelled "algo:digest", append the digest to a list
     pointed to in a dict by the algo name."""
     if not parser.values.hashes:
-        parser.values.hashes = {}
+        parser.values.hashes = {}  # type: ignore
     try:
         algo, digest = value.split(':', 1)
     except ValueError:
@@ -721,7 +721,7 @@ hash = partial(
     type='string',
     help="Verify that the package's archive matches this "
          'hash before installing. Example: --hash=sha256:abcdef...',
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 
 require_hashes = partial(
@@ -733,7 +733,7 @@ require_hashes = partial(
     help='Require a hash to check each requirement against, for '
          'repeatable installs. This option is implied when any package in a '
          'requirements file has a --hash option.',
-)  # type: partial[Option]
+)  # type: Callable[..., Option]
 
 
 ##########
