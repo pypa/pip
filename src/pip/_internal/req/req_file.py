@@ -161,12 +161,10 @@ def process_line(
     """
     parser = build_parser(line)
     defaults = parser.get_default_values()
-    # fixed in mypy==0.650
-    defaults.index_url = None  # type: ignore
+    defaults.index_url = None
     if finder:
         # `finder.format_control` will be updated during parsing
-        # fixed in mypy==0.650
-        defaults.format_control = finder.format_control  # type: ignore
+        defaults.format_control = finder.format_control
     args_str, options_str = break_args_options(line)
     if sys.version_info < (2, 7, 3):
         # Prior to 2.7.3, shlex cannot deal with unicode entries
@@ -189,8 +187,9 @@ def process_line(
         # get the options that apply to requirements
         req_options = {}
         for dest in SUPPORTED_OPTIONS_REQ_DEST:
-            if dest in opts.__dict__ and opts.__dict__[dest]:
-                req_options[dest] = opts.__dict__[dest]
+            # opts.__dict__ is Dict[str, Any], but dest is unicode (py2 only)
+            if dest in opts.__dict__ and opts.__dict__[dest]:  # type: ignore
+                req_options[dest] = opts.__dict__[dest]  # type: ignore
         yield install_req_from_line(
             args_str, line_comes_from, constraint=constraint,
             use_pep517=use_pep517,
@@ -232,8 +231,7 @@ def process_line(
 
     # percolate hash-checking option upward
     elif opts.require_hashes:
-        # fixed in mypy==0.650
-        options.require_hashes = opts.require_hashes  # type: ignore
+        options.require_hashes = opts.require_hashes
 
     # set finder options
     elif finder:
@@ -313,10 +311,8 @@ def join_lines(lines_enum):
     primary_line_number = None
     new_line = []  # type: List[Text]
     for line_number, line in lines_enum:
-        # fixed in mypy==0.641
-        if not line.endswith('\\') or COMMENT_RE.match(line):  # type: ignore
-            # fixed in mypy==0.641
-            if COMMENT_RE.match(line):  # type: ignore
+        if not line.endswith('\\') or COMMENT_RE.match(line):
+            if COMMENT_RE.match(line):
                 # this ensures comments are always matched later
                 line = ' ' + line
             if new_line:
@@ -343,8 +339,7 @@ def ignore_comments(lines_enum):
     Strips comments and filter empty lines.
     """
     for line_number, line in lines_enum:
-        # fixed in mypy==0.641
-        line = COMMENT_RE.sub('', line)  # type: ignore
+        line = COMMENT_RE.sub('', line)
         line = line.strip()
         if line:
             yield line_number, line
@@ -382,8 +377,7 @@ def expand_env_variables(lines_enum):
     to uppercase letter, digits and the `_` (underscore).
     """
     for line_number, line in lines_enum:
-        # fixed in mypy==0.641
-        for env_var, var_name in ENV_VAR_RE.findall(line):  # type: ignore
+        for env_var, var_name in ENV_VAR_RE.findall(line):
             value = os.getenv(var_name)
             if not value:
                 continue

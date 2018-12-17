@@ -49,6 +49,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.cache import WheelCache  # noqa: F401
     from pip._vendor.packaging.specifiers import SpecifierSet  # noqa: F401
     from pip._vendor.packaging.markers import Marker  # noqa: F401
+    from pip._internal.build_env import BuildEnvironment  # noqa: F401
 
 
 logger = logging.getLogger(__name__)
@@ -130,7 +131,7 @@ class InstallRequirement(object):
         self.is_direct = False
 
         self.isolated = isolated
-        self.build_env = NoOpBuildEnvironment()
+        self.build_env = NoOpBuildEnvironment()  # type: BuildEnvironment
 
         # For PEP 517, the directory where we request the project metadata
         # gets stored. We need this to pass to build_wheel, so the backend
@@ -876,9 +877,7 @@ class InstallRequirement(object):
                     dir_arcname = self._get_archive_name(dirname,
                                                          parentdir=dirpath,
                                                          rootdir=dir)
-                    # should be fixed in mypy==0.650
-                    # see https://github.com/python/typeshed/pull/2628
-                    zipdir = zipfile.ZipInfo(dir_arcname + '/')  # type: ignore
+                    zipdir = zipfile.ZipInfo(dir_arcname + '/')
                     zipdir.external_attr = 0x1ED << 16  # 0o755
                     zip.writestr(zipdir, '')
                 for filename in filenames:

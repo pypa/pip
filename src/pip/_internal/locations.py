@@ -9,6 +9,8 @@ import sys
 import sysconfig
 from distutils import sysconfig as distutils_sysconfig
 from distutils.command.install import SCHEME_KEYS  # type: ignore
+from distutils.command.install import install
+from typing import cast
 
 from pip._internal.utils import appdirs
 from pip._internal.utils.compat import WINDOWS, expanduser
@@ -162,9 +164,8 @@ def distutils_scheme(dist_name, user=False, home=None, root=None,
     dist_args.update(extra_dist_args)
 
     d = Distribution(dist_args)
-    # Ignoring, typeshed issue reported python/typeshed/issues/2567
-    d.parse_config_files()  # type: ignore
-    i = d.get_command_obj('install', create=True)  # type: ignore
+    d.parse_config_files()
+    i = cast(install, d.get_command_obj('install', create=True))
     # NOTE: setting user or home has the side-effect of creating the home dir
     # or user base for installations during finalize_options()
     # ideally, we'd prefer a scheme class that has no side-effects.
@@ -185,8 +186,7 @@ def distutils_scheme(dist_name, user=False, home=None, root=None,
     # finalize_options(); we only want to override here if the user
     # has explicitly requested it hence going back to the config
 
-    # Ignoring, typeshed issue reported python/typeshed/issues/2567
-    if 'install_lib' in d.get_option_dict('install'):  # type: ignore
+    if 'install_lib' in d.get_option_dict('install'):
         scheme.update(dict(purelib=i.install_lib, platlib=i.install_lib))
 
     if running_under_virtualenv():

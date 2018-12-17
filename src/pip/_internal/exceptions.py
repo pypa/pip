@@ -5,6 +5,12 @@ from itertools import chain, groupby, repeat
 
 from pip._vendor.six import iteritems
 
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from typing import Optional  # noqa: F401
+    from pip._internal.req.req_install import InstallRequirement  # noqa: F401
+
 
 class PipError(Exception):
     """Base pip exception"""
@@ -96,7 +102,7 @@ class HashError(InstallationError):
         typically available earlier.
 
     """
-    req = None
+    req = None  # type: Optional[InstallRequirement]
     head = ''
 
     def body(self):
