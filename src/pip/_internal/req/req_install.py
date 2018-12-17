@@ -44,9 +44,10 @@ if MYPY_CHECK_RUNNING:
     from typing import (  # noqa: F401
         Optional, Iterable, List, Union, Any, Mapping, Text, Sequence
     )
-    from pip._vendor.pkg_resources import Distribution  # noqa: F401
-    from pip._internal.index import PackageFinder  # noqa: F401
+    from pip._internal.build_env import BuildEnvironment  # noqa: F401
     from pip._internal.cache import WheelCache  # noqa: F401
+    from pip._internal.index import PackageFinder  # noqa: F401
+    from pip._vendor.pkg_resources import Distribution  # noqa: F401
     from pip._vendor.packaging.specifiers import SpecifierSet  # noqa: F401
     from pip._vendor.packaging.markers import Marker  # noqa: F401
 
@@ -130,7 +131,7 @@ class InstallRequirement(object):
         self.is_direct = False
 
         self.isolated = isolated
-        self.build_env = NoOpBuildEnvironment()
+        self.build_env = NoOpBuildEnvironment()  # type: BuildEnvironment
 
         # For PEP 517, the directory where we request the project metadata
         # gets stored. We need this to pass to build_wheel, so the backend
