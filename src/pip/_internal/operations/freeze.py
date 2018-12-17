@@ -17,17 +17,35 @@ from pip._internal.req.req_file import COMMENT_RE
 from pip._internal.utils.misc import (
     dist_is_editable, get_installed_distributions,
 )
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from typing import (  # noqa: F401
+        Iterator, Optional, List, Container, Set, Dict, Tuple, Iterable, Union
+    )
+    from pip._internal.cache import WheelCache  # noqa: F401
+    from pip._vendor.pkg_resources import (  # noqa: F401
+        Distribution, Requirement
+    )
+
+    RequirementInfo = Tuple[Optional[Union[str, Requirement]], bool, List[str]]
+
 
 logger = logging.getLogger(__name__)
 
 
 def freeze(
-        requirement=None,
-        find_links=None, local_only=None, user_only=None, skip_regex=None,
-        isolated=False,
-        wheel_cache=None,
-        exclude_editable=False,
-        skip=()):
+    requirement=None,  # type: Optional[List[str]]
+    find_links=None,  # type: Optional[List[str]]
+    local_only=None,  # type: Optional[bool]
+    user_only=None,  # type: Optional[bool]
+    skip_regex=None,  # type: Optional[str]
+    isolated=False,  # type: bool
+    wheel_cache=None,  # type: Optional[WheelCache]
+    exclude_editable=False,  # type: bool
+    skip=()  # type: Container[str]
+):
+    # type: (...) -> Iterator[str]
     find_links = find_links or []
     skip_match = None
 
@@ -36,7 +54,7 @@ def freeze(
 
     for link in find_links:
         yield '-f %s' % link
-    installations = {}
+    installations = {}  # type: Dict[str, FrozenRequirement]
     for dist in get_installed_distributions(local_only=local_only,
                                             skip=(),
                                             user_only=user_only):
@@ -57,10 +75,10 @@ def freeze(
         # should only be emitted once, even if the same option is in multiple
         # requirements files, so we need to keep track of what has been emitted
         # so that we don't emit it again if it's seen again
-        emitted_options = set()
+        emitted_options = set()  # type: Set[str]
         # keep track of which files a requirement is in so that we can
         # give an accurate warning if a requirement appears multiple times.
-        req_files = collections.defaultdict(list)
+        req_files = collections.defaultdict(list)  # type: Dict[str, List[str]]
         for req_file_path in requirement:
             with open(req_file_path) as req_file:
                 for line in req_file:
@@ -144,6 +162,7 @@ def freeze(
 
 
 def get_requirement_info(dist):
+    # type: (Distribution) -> RequirementInfo
     """
     Compute and return values (req, editable, comments) for use in
     FrozenRequirement.from_dist().
@@ -197,6 +216,7 @@ def get_requirement_info(dist):
 
 class FrozenRequirement(object):
     def __init__(self, name, req, editable, comments=()):
+        # type: (str, Union[str, Requirement], bool, Iterable[str]) -> None
         self.name = name
         self.req = req
         self.editable = editable
@@ -204,6 +224,7 @@ class FrozenRequirement(object):
 
     @classmethod
     def from_dist(cls, dist):
+        # type: (Distribution) -> FrozenRequirement
         req, editable, comments = get_requirement_info(dist)
         if req is None:
             req = dist.as_requirement()

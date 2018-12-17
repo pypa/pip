@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 if MYPY_CHECK_RUNNING:
     from pip._internal.req.req_install import InstallRequirement  # noqa: F401
     from typing import (  # noqa: F401
-        Any, Callable, Dict, Iterator, Optional, Set, Tuple, List
+        Any, Callable, Dict, Optional, Set, Tuple, List
     )
 
     # Shorthands
