@@ -15,7 +15,7 @@ from pip._internal.utils.compat import WINDOWS, expanduser
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Union, Dict, List, Optional  # noqa: F401
+    from typing import Any, Union, Dict, List, Optional  # noqa: F401
 
 
 # Application Directories
@@ -163,8 +163,10 @@ def distutils_scheme(dist_name, user=False, home=None, root=None,
 
     d = Distribution(dist_args)
     # Ignoring, typeshed issue reported python/typeshed/issues/2567
-    d.parse_config_files()  # type: ignore
-    i = d.get_command_obj('install', create=True)  # type: ignore
+    d.parse_config_files()
+    # NOTE: Ignoring type since mypy can't find attributes on 'Command'
+    i = d.get_command_obj('install', create=True)  # type: Any
+    assert i is not None
     # NOTE: setting user or home has the side-effect of creating the home dir
     # or user base for installations during finalize_options()
     # ideally, we'd prefer a scheme class that has no side-effects.

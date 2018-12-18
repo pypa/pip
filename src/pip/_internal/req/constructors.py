@@ -31,7 +31,7 @@ from pip._internal.wheel import Wheel
 
 if MYPY_CHECK_RUNNING:
     from typing import (   # noqa: F401
-        Optional, Tuple, Set, Any, Mapping, Union, Text
+        Optional, Tuple, Set, Any, Union, Text, Dict,
     )
     from pip._internal.cache import WheelCache  # noqa: F401
 
@@ -160,7 +160,7 @@ def install_req_from_editable(
     comes_from=None,  # type: Optional[str]
     use_pep517=None,  # type: Optional[bool]
     isolated=False,  # type: bool
-    options=None,  # type: Optional[Mapping[Text, Any]]
+    options=None,  # type: Optional[Dict[str, Any]]
     wheel_cache=None,  # type: Optional[WheelCache]
     constraint=False  # type: bool
 ):
@@ -196,7 +196,7 @@ def install_req_from_line(
     comes_from=None,  # type: Optional[Union[str, InstallRequirement]]
     use_pep517=None,  # type: Optional[bool]
     isolated=False,  # type: bool
-    options=None,  # type: Optional[Mapping[Text, Any]]
+    options=None,  # type: Optional[Dict[str, Any]]
     wheel_cache=None,  # type: Optional[WheelCache]
     constraint=False  # type: bool
 ):

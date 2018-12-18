@@ -42,7 +42,7 @@ from pip._internal.wheel import move_wheel_files
 
 if MYPY_CHECK_RUNNING:
     from typing import (  # noqa: F401
-        Optional, Iterable, List, Union, Any, Mapping, Text, Sequence
+        Optional, Iterable, List, Union, Any, Text, Sequence, Dict
     )
     from pip._internal.build_env import BuildEnvironment  # noqa: F401
     from pip._internal.cache import WheelCache  # noqa: F401
@@ -73,7 +73,7 @@ class InstallRequirement(object):
         markers=None,  # type: Optional[Marker]
         use_pep517=None,  # type: Optional[bool]
         isolated=False,  # type: bool
-        options=None,  # type: Optional[Mapping[Text, Any]]
+        options=None,  # type: Optional[Dict[str, Any]]
         wheel_cache=None,  # type: Optional[WheelCache]
         constraint=False,  # type: bool
         extras=()  # type: Iterable[str]

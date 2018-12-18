@@ -68,7 +68,7 @@ SUPPORTED_OPTIONS_REQ = [
 ]  # type: List[Callable[..., optparse.Option]]
 
 # the 'dest' string values
-SUPPORTED_OPTIONS_REQ_DEST = [o().dest for o in SUPPORTED_OPTIONS_REQ]
+SUPPORTED_OPTIONS_REQ_DEST = [str(o().dest) for o in SUPPORTED_OPTIONS_REQ]
 
 
 def parse_requirements(
