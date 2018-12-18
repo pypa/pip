@@ -877,9 +877,7 @@ class InstallRequirement(object):
                     dir_arcname = self._get_archive_name(dirname,
                                                          parentdir=dirpath,
                                                          rootdir=dir)
-                    # should be fixed in mypy==0.650
-                    # see https://github.com/python/typeshed/pull/2628
-                    zipdir = zipfile.ZipInfo(dir_arcname + '/')  # type: ignore
+                    zipdir = zipfile.ZipInfo(dir_arcname + '/')
                     zipdir.external_attr = 0x1ED << 16  # 0o755
                     zip.writestr(zipdir, '')
                 for filename in filenames:

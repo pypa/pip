@@ -161,20 +161,17 @@ def process_line(
     """
     parser = build_parser(line)
     defaults = parser.get_default_values()
-    # fixed in mypy==0.650
-    defaults.index_url = None  # type: ignore
+    defaults.index_url = None
     if finder:
-        # `finder.format_control` will be updated during parsing
-        # fixed in mypy==0.650
-        defaults.format_control = finder.format_control  # type: ignore
+        defaults.format_control = finder.format_control
     args_str, options_str = break_args_options(line)
+    # Prior to 2.7.3, shlex cannot deal with unicode entries
     if sys.version_info < (2, 7, 3):
-        # Prior to 2.7.3, shlex cannot deal with unicode entries
         # https://github.com/python/mypy/issues/1174
         options_str = options_str.encode('utf8')  # type: ignore
     # https://github.com/python/mypy/issues/1174
-    opts, _ = parser.parse_args(shlex.split(options_str),  # type: ignore
-                                defaults)
+    opts, _ = parser.parse_args(
+        shlex.split(options_str), defaults)  # type: ignore
 
     # preserve for the nested code path
     line_comes_from = '%s %s (line %s)' % (
@@ -232,8 +229,7 @@ def process_line(
 
     # percolate hash-checking option upward
     elif opts.require_hashes:
-        # fixed in mypy==0.650
-        options.require_hashes = opts.require_hashes  # type: ignore
+        options.require_hashes = opts.require_hashes
 
     # set finder options
     elif finder:
@@ -298,8 +294,8 @@ def build_parser(line):
         # add offending line
         msg = 'Invalid requirement: %s\n%s' % (line, msg)
         raise RequirementsFileParseError(msg)
-    # ignore type, because mypy disallows assigning to a method,
-    # see https://github.com/python/mypy/issues/2427
+    # NOTE: mypy disallows assigning to a method
+    #       https://github.com/python/mypy/issues/2427
     parser.exit = parser_exit  # type: ignore
 
     return parser
@@ -313,10 +309,8 @@ def join_lines(lines_enum):
     primary_line_number = None
     new_line = []  # type: List[Text]
     for line_number, line in lines_enum:
-        # fixed in mypy==0.641
-        if not line.endswith('\\') or COMMENT_RE.match(line):  # type: ignore
-            # fixed in mypy==0.641
-            if COMMENT_RE.match(line):  # type: ignore
+        if not line.endswith('\\') or COMMENT_RE.match(line):
+            if COMMENT_RE.match(line):
                 # this ensures comments are always matched later
                 line = ' ' + line
             if new_line:
@@ -343,8 +337,7 @@ def ignore_comments(lines_enum):
     Strips comments and filter empty lines.
     """
     for line_number, line in lines_enum:
-        # fixed in mypy==0.641
-        line = COMMENT_RE.sub('', line)  # type: ignore
+        line = COMMENT_RE.sub('', line)
         line = line.strip()
         if line:
             yield line_number, line
@@ -382,8 +375,7 @@ def expand_env_variables(lines_enum):
     to uppercase letter, digits and the `_` (underscore).
     """
     for line_number, line in lines_enum:
-        # fixed in mypy==0.641
-        for env_var, var_name in ENV_VAR_RE.findall(line):  # type: ignore
+        for env_var, var_name in ENV_VAR_RE.findall(line):
             value = os.getenv(var_name)
             if not value:
                 continue
