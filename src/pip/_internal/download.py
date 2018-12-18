@@ -53,8 +53,7 @@ if MYPY_CHECK_RUNNING:
     )
     from pip._internal.models.link import Link  # noqa: F401
     from pip._internal.utils.hashes import Hashes  # noqa: F401
-    # cannot import alias directly here, fixed in mypy==0.641
-    import pip._internal.vcs as vcs_type_aliases  # noqa: F401
+    from pip._internal.vcs import AuthInfo  # noqa: F401
 
 try:
     import ssl  # noqa
@@ -147,7 +146,7 @@ class MultiDomainBasicAuth(AuthBase):
     def __init__(self, prompting=True):
         # type: (bool) -> None
         self.prompting = prompting
-        self.passwords = {}  # type: Dict[str, vcs_type_aliases.AuthInfo]
+        self.passwords = {}  # type: Dict[str, AuthInfo]
 
     def __call__(self, req):
         parsed = urllib_parse.urlparse(req.url)

@@ -706,9 +706,7 @@ class PackageFinder(object):
             best_candidate = None
 
         if req.satisfied_by is not None:
-            # type error fixed in mypy==0.641, remove after update
-            installed_version = parse_version(
-                req.satisfied_by.version)  # type: ignore
+            installed_version = parse_version(req.satisfied_by.version)
         else:
             installed_version = None
 
@@ -988,9 +986,7 @@ def _clean_link(url):
     """Makes sure a link is fully encoded.  That is, if a ' ' shows up in
     the link, it will be rewritten to %20 (while not over-quoting
     % or other characters)."""
-    # type error fixed in mypy==0.641, remove after update
-    return _CLEAN_LINK_RE.sub(
-        lambda match: '%%%2x' % ord(match.group(0)), url)  # type: ignore
+    return _CLEAN_LINK_RE.sub(lambda match: '%%%2x' % ord(match.group(0)), url)
 
 
 class HTMLPage(object):

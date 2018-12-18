@@ -42,11 +42,12 @@ from pip._internal.wheel import move_wheel_files
 
 if MYPY_CHECK_RUNNING:
     from typing import (  # noqa: F401
-        Optional, Iterable, List, Union, Any, Mapping, Text, Sequence
+        Optional, Iterable, List, Union, Any, Text, Sequence, Dict
     )
-    from pip._vendor.pkg_resources import Distribution  # noqa: F401
-    from pip._internal.index import PackageFinder  # noqa: F401
+    from pip._internal.build_env import BuildEnvironment  # noqa: F401
     from pip._internal.cache import WheelCache  # noqa: F401
+    from pip._internal.index import PackageFinder  # noqa: F401
+    from pip._vendor.pkg_resources import Distribution  # noqa: F401
     from pip._vendor.packaging.specifiers import SpecifierSet  # noqa: F401
     from pip._vendor.packaging.markers import Marker  # noqa: F401
 
@@ -72,7 +73,7 @@ class InstallRequirement(object):
         markers=None,  # type: Optional[Marker]
         use_pep517=None,  # type: Optional[bool]
         isolated=False,  # type: bool
-        options=None,  # type: Optional[Mapping[Text, Any]]
+        options=None,  # type: Optional[Dict[str, Any]]
         wheel_cache=None,  # type: Optional[WheelCache]
         constraint=False,  # type: bool
         extras=()  # type: Iterable[str]
@@ -130,7 +131,7 @@ class InstallRequirement(object):
         self.is_direct = False
 
         self.isolated = isolated
-        self.build_env = NoOpBuildEnvironment()
+        self.build_env = NoOpBuildEnvironment()  # type: BuildEnvironment
 
         # For PEP 517, the directory where we request the project metadata
         # gets stored. We need this to pass to build_wheel, so the backend
@@ -876,9 +877,7 @@ class InstallRequirement(object):
                     dir_arcname = self._get_archive_name(dirname,
                                                          parentdir=dirpath,
                                                          rootdir=dir)
-                    # should be fixed in mypy==0.650
-                    # see https://github.com/python/typeshed/pull/2628
-                    zipdir = zipfile.ZipInfo(dir_arcname + '/')  # type: ignore
+                    zipdir = zipfile.ZipInfo(dir_arcname + '/')
                     zipdir.external_attr = 0x1ED << 16  # 0o755
                     zip.writestr(zipdir, '')
                 for filename in filenames:
