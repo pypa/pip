@@ -34,12 +34,14 @@ class RequirementSet(object):
         self.reqs_to_cleanup = []  # type: List[InstallRequirement]
 
     def __str__(self):
+        # type: () -> str
         reqs = [req for req in self.requirements.values()
                 if not req.comes_from]
         reqs.sort(key=lambda req: req.name.lower())
         return ' '.join([str(req.req) for req in reqs])
 
     def __repr__(self):
+        # type: () -> str
         reqs = [req for req in self.requirements.values()]
         reqs.sort(key=lambda req: req.name.lower())
         reqs_str = ', '.join([str(req.req) for req in reqs])

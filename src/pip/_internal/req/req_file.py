@@ -23,7 +23,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import (  # noqa: F401
-        Iterator, Tuple, Optional, List, Callable, Text
+        Iterator, Tuple, Optional, List, Callable, Text, NoReturn, Any
     )
     from pip._internal.req import InstallRequirement  # noqa: F401
     from pip._internal.cache import WheelCache  # noqa: F401
@@ -291,6 +291,7 @@ def build_parser(line):
     # By default optparse sys.exits on parsing errors. We want to wrap
     # that in our own exception.
     def parser_exit(self, msg):
+        # type: (Any, str) -> NoReturn
         # add offending line
         msg = 'Invalid requirement: %s\n%s' % (line, msg)
         raise RequirementsFileParseError(msg)
