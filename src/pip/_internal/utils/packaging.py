@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import logging
 import sys
+from email.header import Header
 from email.parser import FeedParser
 
 from pip._vendor import pkg_resources
@@ -58,8 +59,11 @@ def get_metadata(dist):
 
 
 def check_dist_requires_python(dist):
+    # type: (Distribution) -> None
     pkg_info_dict = get_metadata(dist)
     requires_python = pkg_info_dict.get('Requires-Python')
+    if isinstance(requires_python, Header):
+        requires_python = str(requires_python)
     try:
         if not check_requires_python(requires_python):
             raise exceptions.UnsupportedPythonVersion(
