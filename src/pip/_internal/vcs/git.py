@@ -14,7 +14,7 @@ from pip._internal.utils.misc import (
     display_path, make_vcs_requirement_url, redact_password_from_url,
 )
 from pip._internal.utils.temp_dir import TempDirectory
-from pip._internal.vcs import VersionControl, vcs
+from pip._internal.vcs import RemoteNotFoundError, VersionControl, vcs
 
 urlsplit = urllib_parse.urlsplit
 urlunsplit = urllib_parse.urlunsplit
@@ -250,13 +250,24 @@ class Git(VersionControl):
         self.update_submodules(dest)
 
     def get_remote_url(self, location):
-        """Return URL of the first remote encountered."""
-        remotes = self.run_command(
+        """
+        Return URL of the first remote encountered.
+
+        Raises RemoteNotFoundError if the repository does not have a remote
+        url configured.
+        """
+        # We need to pass 1 for extra_ok_returncodes since the command
+        # exits with return code 1 if there are no matching lines.
+        stdout = self.run_command(
             ['config', '--get-regexp', r'remote\..*\.url'],
-            show_stdout=False, cwd=location,
+            extra_ok_returncodes=(1, ), show_stdout=False, cwd=location,
         )
-        remotes = remotes.splitlines()
-        found_remote = remotes[0]
+        remotes = stdout.splitlines()
+        try:
+            found_remote = remotes[0]
+        except IndexError:
+            raise RemoteNotFoundError
+
         for remote in remotes:
             if remote.startswith('remote.origin.url '):
                 found_remote = remote
