@@ -467,7 +467,7 @@ class VersionControl(object):
         show_stdout=True,  # type: bool
         cwd=None,  # type: Optional[str]
         on_returncode='raise',  # type: str
-        returncodes=None,  # type: Optional[Iterable[int]]
+        extra_ok_returncodes=None,  # type: Optional[Iterable[int]]
         command_desc=None,  # type: Optional[str]
         extra_environ=None,  # type: Optional[Mapping[str, Any]]
         spinner=None  # type: Optional[SpinnerInterface]
@@ -482,7 +482,7 @@ class VersionControl(object):
         try:
             return call_subprocess(cmd, show_stdout, cwd,
                                    on_returncode=on_returncode,
-                                   returncodes=returncodes,
+                                   extra_ok_returncodes=extra_ok_returncodes,
                                    command_desc=command_desc,
                                    extra_environ=extra_environ,
                                    unset_environ=self.unset_environ,

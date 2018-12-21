@@ -84,11 +84,13 @@ class Git(VersionControl):
         Return the current branch, or None if HEAD isn't at a branch
         (e.g. detached HEAD).
         """
-        # The -q causes the command to exit with status code 1 instead of
-        # 128 if "HEAD" is not a symbolic ref but a detached HEAD.
+        # git-symbolic-ref exits with empty stdout if "HEAD" is a detached
+        # HEAD rather than a symbolic ref.  In addition, the -q causes the
+        # command to exit with status code 1 instead of 128 in this case
+        # and to suppress the message to stderr.
         args = ['symbolic-ref', '-q', 'HEAD']
         output = self.run_command(
-            args, returncodes=(1, ), show_stdout=False, cwd=location,
+            args, extra_ok_returncodes=(1, ), show_stdout=False, cwd=location,
         )
         ref = output.strip()
 
