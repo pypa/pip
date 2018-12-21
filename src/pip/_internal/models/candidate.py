@@ -1,6 +1,12 @@
 from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.utils.models import KeyBasedCompareMixin
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from pip._vendor.packaging.version import _BaseVersion  # noqa: F401
+    from pip._internal.models.link import Link  # noqa: F401
+    from typing import Any, Union  # noqa: F401
 
 
 class InstallationCandidate(KeyBasedCompareMixin):
@@ -8,8 +14,9 @@ class InstallationCandidate(KeyBasedCompareMixin):
     """
 
     def __init__(self, project, version, location):
+        # type: (Any, str, Link) -> None
         self.project = project
-        self.version = parse_version(version)
+        self.version = parse_version(version)  # type: _BaseVersion
         self.location = location
 
         super(InstallationCandidate, self).__init__(
@@ -18,6 +25,7 @@ class InstallationCandidate(KeyBasedCompareMixin):
         )
 
     def __repr__(self):
+        # type: () -> str
         return "<InstallationCandidate({!r}, {!r}, {!r})>".format(
             self.project, self.version, self.location,
         )

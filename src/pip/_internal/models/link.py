@@ -8,6 +8,11 @@ from pip._internal.utils.misc import (
     WHEEL_EXTENSION, redact_password_from_url, splitext,
 )
 from pip._internal.utils.models import KeyBasedCompareMixin
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from typing import Optional, Tuple, Union, Text  # noqa: F401
+    from pip._internal.index import HTMLPage  # noqa: F401
 
 
 class Link(KeyBasedCompareMixin):
@@ -15,6 +20,7 @@ class Link(KeyBasedCompareMixin):
     """
 
     def __init__(self, url, comes_from=None, requires_python=None):
+        # type: (str, Optional[Union[str, HTMLPage]], Optional[str]) -> None
         """
         url:
             url of the resource pointed to (href of the link)
@@ -54,6 +60,7 @@ class Link(KeyBasedCompareMixin):
 
     @property
     def filename(self):
+        # type: () -> str
         _, netloc, path, _, _ = urllib_parse.urlsplit(self.url)
         name = posixpath.basename(path.rstrip('/')) or netloc
         name = urllib_parse.unquote(name)
@@ -62,25 +69,31 @@ class Link(KeyBasedCompareMixin):
 
     @property
     def scheme(self):
+        # type: () -> str
         return urllib_parse.urlsplit(self.url)[0]
 
     @property
     def netloc(self):
+        # type: () -> str
         return urllib_parse.urlsplit(self.url)[1]
 
     @property
     def path(self):
+        # type: () -> str
         return urllib_parse.unquote(urllib_parse.urlsplit(self.url)[2])
 
     def splitext(self):
+        # type: () -> Tuple[str, str]
         return splitext(posixpath.basename(self.path.rstrip('/')))
 
     @property
     def ext(self):
+        # type: () -> str
         return self.splitext()[1]
 
     @property
     def url_without_fragment(self):
+        # type: () -> str
         scheme, netloc, path, query, fragment = urllib_parse.urlsplit(self.url)
         return urllib_parse.urlunsplit((scheme, netloc, path, query, None))
 
@@ -88,6 +101,7 @@ class Link(KeyBasedCompareMixin):
 
     @property
     def egg_fragment(self):
+        # type: () -> Optional[str]
         match = self._egg_fragment_re.search(self.url)
         if not match:
             return None
@@ -97,6 +111,7 @@ class Link(KeyBasedCompareMixin):
 
     @property
     def subdirectory_fragment(self):
+        # type: () -> Optional[str]
         match = self._subdirectory_fragment_re.search(self.url)
         if not match:
             return None
@@ -108,6 +123,7 @@ class Link(KeyBasedCompareMixin):
 
     @property
     def hash(self):
+        # type: () -> Optional[str]
         match = self._hash_re.search(self.url)
         if match:
             return match.group(2)
@@ -115,6 +131,7 @@ class Link(KeyBasedCompareMixin):
 
     @property
     def hash_name(self):
+        # type: () -> Optional[str]
         match = self._hash_re.search(self.url)
         if match:
             return match.group(1)
@@ -122,14 +139,17 @@ class Link(KeyBasedCompareMixin):
 
     @property
     def show_url(self):
+        # type: () -> Optional[str]
         return posixpath.basename(self.url.split('#', 1)[0].split('?', 1)[0])
 
     @property
     def is_wheel(self):
+        # type: () -> bool
         return self.ext == WHEEL_EXTENSION
 
     @property
     def is_artifact(self):
+        # type: () -> bool
         """
         Determines if this points to an actual artifact (e.g. a tarball) or if
         it points to an "abstract" thing like a path or a VCS location.

@@ -1,6 +1,6 @@
 language: python
 cache: pip
-dist: trusty
+dist: xenial
 python: 3.6
 
 stages:
@@ -26,24 +26,23 @@ jobs:
       python: 3.6
     - env: GROUP=2
       python: 3.6
+
     # Complete checking for ensuring compatibility
     # PyPy
     - stage: secondary
       env: GROUP=1
-      python: pypy3
+      python: pypy3.5-6.0
     - env: GROUP=2
-      python: pypy3
+      python: pypy3.5-6.0
     - env: GROUP=1
-      python: pypy
+      python: pypy2.7-6.0
     - env: GROUP=2
-      python: pypy
+      python: pypy2.7-6.0
     # Other Supported CPython
     - env: GROUP=1
       python: 3.7
-      dist: xenial
     - env: GROUP=2
       python: 3.7
-      dist: xenial
     - env: GROUP=1
       python: 3.5
     - env: GROUP=2
@@ -55,13 +54,11 @@ jobs:
 
     - env: GROUP=1
       python: 3.8-dev
-      dist: xenial
     - env: GROUP=2
       python: 3.8-dev
-      dist: xenial
 
-  # It's okay to fail on the in-development CPython version.
   fast_finish: true
+  # It's okay to fail on the in-development CPython version.
   allow_failures:
     - python: 3.8-dev
 

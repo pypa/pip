@@ -79,19 +79,25 @@ class Git(VersionControl):
         version = '.'.join(version.split('.')[:3])
         return parse_version(version)
 
-    def get_branch(self, location):
+    def get_current_branch(self, location):
         """
         Return the current branch, or None if HEAD isn't at a branch
         (e.g. detached HEAD).
         """
-        args = ['rev-parse', '--abbrev-ref', 'HEAD']
-        output = self.run_command(args, show_stdout=False, cwd=location)
-        branch = output.strip()
+        # git-symbolic-ref exits with empty stdout if "HEAD" is a detached
+        # HEAD rather than a symbolic ref.  In addition, the -q causes the
+        # command to exit with status code 1 instead of 128 in this case
+        # and to suppress the message to stderr.
+        args = ['symbolic-ref', '-q', 'HEAD']
+        output = self.run_command(
+            args, extra_ok_returncodes=(1, ), show_stdout=False, cwd=location,
+        )
+        ref = output.strip()
 
-        if branch == 'HEAD':
-            return None
+        if ref.startswith('refs/heads/'):
+            return ref[len('refs/heads/'):]
 
-        return branch
+        return None
 
     def export(self, location):
         """Export the Git repository at the url to the destination location"""
@@ -210,7 +216,7 @@ class Git(VersionControl):
                 if not self.is_commit_id_equal(dest, rev_options.rev):
                     cmd_args = ['checkout', '-q'] + rev_options.to_args()
                     self.run_command(cmd_args, cwd=dest)
-            elif self.get_branch(dest) != branch_name:
+            elif self.get_current_branch(dest) != branch_name:
                 # Then a specific branch was requested, and that branch
                 # is not yet checked out.
                 track_branch = 'origin/{}'.format(branch_name)

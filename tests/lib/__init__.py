@@ -802,13 +802,6 @@ def need_bzr(fn):
 
 
 def need_mercurial(fn):
-    # Remove once things get fixed properly.
-    if os.environ.get("TRAVIS") == "true":
-        return pytest.mark.skip(reason=(
-            "Travis CI's mercurial is outdated: "
-            "https://github.com/pypa/pip/issues/6057"
-        ))
-
     return pytest.mark.mercurial(need_executable(
         'Mercurial', ('hg', 'version')
     )(fn))

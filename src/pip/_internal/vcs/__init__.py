@@ -17,7 +17,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import (  # noqa: F401
-        Dict, Optional, Tuple, List, Type, Any, Mapping, Text
+        Any, Dict, Iterable, List, Mapping, Optional, Text, Tuple, Type
     )
     from pip._internal.utils.ui import SpinnerInterface  # noqa: F401
 
@@ -467,6 +467,7 @@ class VersionControl(object):
         show_stdout=True,  # type: bool
         cwd=None,  # type: Optional[str]
         on_returncode='raise',  # type: str
+        extra_ok_returncodes=None,  # type: Optional[Iterable[int]]
         command_desc=None,  # type: Optional[str]
         extra_environ=None,  # type: Optional[Mapping[str, Any]]
         spinner=None  # type: Optional[SpinnerInterface]
@@ -480,8 +481,10 @@ class VersionControl(object):
         cmd = [self.name] + cmd
         try:
             return call_subprocess(cmd, show_stdout, cwd,
-                                   on_returncode,
-                                   command_desc, extra_environ,
+                                   on_returncode=on_returncode,
+                                   extra_ok_returncodes=extra_ok_returncodes,
+                                   command_desc=command_desc,
+                                   extra_environ=extra_environ,
                                    unset_environ=self.unset_environ,
                                    spinner=spinner)
         except OSError as e:
