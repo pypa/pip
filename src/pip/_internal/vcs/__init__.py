@@ -29,6 +29,10 @@ __all__ = ['vcs']
 logger = logging.getLogger(__name__)
 
 
+class RemoteNotFoundError(Exception):
+    pass
+
+
 class RevOptions(object):
 
     """

@@ -137,6 +137,24 @@ def test_freeze_editable_not_vcs(script, tmpdir):
     _check_output(result.stdout, expected)
 
 
+@pytest.mark.git
+def test_freeze_editable_git_with_no_remote(script, tmpdir):
+    """
+    Test an editable install that is not version controlled.
+    """
+    pkg_path = _create_test_package(script)
+    script.pip('install', '-e', pkg_path)
+    result = script.pip('freeze')
+
+    # We need to apply os.path.normcase() to the path since that is what
+    # the freeze code does.
+    expected = textwrap.dedent("""\
+    ...# Editable, version-controlled with no remote (version-pkg==0.1)
+    -e {}
+    ...""".format(os.path.normcase(pkg_path)))
+    _check_output(result.stdout, expected)
+
+
 @pytest.mark.svn
 def test_freeze_svn(script, tmpdir):
     """Test freezing a svn checkout"""
