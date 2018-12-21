@@ -146,6 +146,8 @@ def test_freeze_editable_git_with_no_remote(script, tmpdir):
     script.pip('install', '-e', pkg_path)
     result = script.pip('freeze')
 
+    assert result.stderr == ''
+
     # We need to apply os.path.normcase() to the path since that is what
     # the freeze code does.
     expected = textwrap.dedent("""\
