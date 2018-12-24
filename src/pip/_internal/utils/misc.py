@@ -23,6 +23,7 @@ from pip._vendor import pkg_resources
 #       why we ignore the type on this import.
 from pip._vendor.retrying import retry  # type: ignore
 from pip._vendor.six import PY2
+from pip._vendor.six import next as six_next
 from pip._vendor.six.moves import input
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
@@ -45,11 +46,12 @@ else:
 if MYPY_CHECK_RUNNING:
     from typing import (  # noqa: F401
         Optional, Tuple, Iterable, List, Match, Union, Any, Mapping, Text,
-        AnyStr, Container
+        AnyStr, Container, IO, Iterator, Callable, ContextManager, Type
     )
     from pip._vendor.pkg_resources import Distribution  # noqa: F401
     from pip._internal.models.link import Link  # noqa: F401
     from pip._internal.utils.ui import SpinnerInterface  # noqa: F401
+    from pip._internal.vcs import AuthInfo  # noqa: F401
 
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
@@ -122,6 +124,7 @@ def rmtree(dir, ignore_errors=False):
 
 
 def rmtree_errorhandler(func, path, exc_info):
+    # type: (Any, Any, Any) -> None
     """On Windows, the files in .svn are read-only, so when rmtree() tries to
     remove them, an exception is thrown.  We catch that here, remove the
     read-only attribute, and hopefully continue without problems."""
@@ -232,6 +235,7 @@ def file_contents(filename):
 
 
 def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):
+    # type: (IO[bytes], int) -> Iterator[bytes]
     """Yield pieces of data from a file-like object until EOF."""
     while True:
         chunk = file.read(size)
@@ -393,27 +397,33 @@ def get_installed_distributions(local_only=True,
     if local_only:
         local_test = dist_is_local
     else:
-        def local_test(d):
+        def local_test(dist):
+            # type: (Distribution) -> bool
             return True
 
     if include_editables:
-        def editable_test(d):
+        def editable_test(dist):
+            # type: (Distribution) -> bool
             return True
     else:
-        def editable_test(d):
-            return not dist_is_editable(d)
+        def editable_test(dist):
+            # type: (Distribution) -> bool
+            return not dist_is_editable(dist)
 
     if editables_only:
-        def editables_only_test(d):
-            return dist_is_editable(d)
+        def editables_only_test(dist):
+            # type: (Distribution) -> bool
+            return dist_is_editable(dist)
     else:
-        def editables_only_test(d):
+        def editables_only_test(dist):
+            # type: (Distribution) -> bool
             return True
 
     if user_only:
         user_test = dist_in_usersite
     else:
-        def user_test(d):
+        def user_test(dist):
+            # type: (Distribution) -> bool
             return True
 
     # because of pkg_resources vendoring, mypy cannot find stub in typeshed
@@ -481,6 +491,7 @@ def dist_location(dist):
 
 
 def current_umask():
+    # type: () -> int
     """Get the current umask which involves having to set it temporarily."""
     mask = os.umask(0)
     os.umask(mask)
@@ -801,6 +812,7 @@ def read_text_file(filename):
 
 
 def _make_build_dir(build_dir):
+    # type: (str) -> None
     os.makedirs(build_dir)
     write_delete_marker_file(build_dir)
 
@@ -809,43 +821,48 @@ class FakeFile(object):
     """Wrap a list of lines in an object with readline() to make
     ConfigParser happy."""
     def __init__(self, lines):
+        # type: (Iterable[str]) -> None
         self._gen = (l for l in lines)
 
     def readline(self):
+        # type: () -> str
         try:
-            try:
-                return next(self._gen)
-            except NameError:
-                return self._gen.next()
+            return six_next(self._gen)
         except StopIteration:
             return ''
 
     def __iter__(self):
+        # type: () -> Iterator[str]
         return self._gen
 
 
 class StreamWrapper(StringIO):
 
-    @classmethod
-    def from_stream(cls, orig_stream):
-        cls.orig_stream = orig_stream
-        return cls()
+    def __init__(self, *args, **kwargs):
+        # type: (Any, Any) -> None
+        if 'orig_stream' in kwargs:
+            self.orig_stream = kwargs.pop('orig_stream')
+        super(StreamWrapper, self).__init__(*args, **kwargs)
 
     # compileall.compile_dir() needs stdout.encoding to print to stdout
+    # originally defined as instance variable, redefined as property, seems
+    # that mypy does not support this usecase
     @property
-    def encoding(self):
+    def encoding(self):  # type: ignore
+        # type: () -> str
         return self.orig_stream.encoding
 
 
 @contextlib.contextmanager
 def captured_output(stream_name):
+    # type: (str) -> Iterator[StringIO]
     """Return a context manager used by captured_stdout/stdin/stderr
     that temporarily replaces the sys stream *stream_name* with a StringIO.
 
     Taken from Lib/support/__init__.py in the CPython repo.
     """
     orig_stdout = getattr(sys, stream_name)
-    setattr(sys, stream_name, StreamWrapper.from_stream(orig_stdout))
+    setattr(sys, stream_name, StreamWrapper(orig_stream=orig_stdout))
     try:
         yield getattr(sys, stream_name)
     finally:
@@ -853,6 +870,7 @@ def captured_output(stream_name):
 
 
 def captured_stdout():
+    # type: () -> ContextManager[StringIO]
     """Capture the output of sys.stdout:
 
        with captured_stdout() as stdout:
@@ -873,10 +891,12 @@ class cached_property(object):
     """
 
     def __init__(self, func):
+        # type: (Callable) -> None
         self.__doc__ = getattr(func, '__doc__')
         self.func = func
 
     def __get__(self, obj, cls):
+        # type: (Any, Any) -> Any
         if obj is None:
             # We're being accessed from the class itself, not from an object
             return self
@@ -884,7 +904,11 @@ class cached_property(object):
         return value
 
 
-def get_installed_version(dist_name, working_set=None):
+def get_installed_version(
+    dist_name,  # type: str
+    working_set=None  # type: Optional[pkg_resources.WorkingSet]
+):
+    # type: (...) -> Optional[str]
     """Get the installed version of dist_name avoiding pkg_resources cache"""
     # Create a requirement that we'll look for inside of setuptools.
     req = pkg_resources.Requirement.parse(dist_name)
@@ -903,19 +927,27 @@ def get_installed_version(dist_name, working_set=None):
 
 
 def consume(iterator):
+    # type: (Iterator[Any]) -> None
     """Consume an iterable at C speed."""
     deque(iterator, maxlen=0)
 
 
 # Simulates an enum
 def enum(*sequential, **named):
+    # type: (Any, Any) -> Type[Any]
     enums = dict(zip(sequential, range(len(sequential))), **named)
     reverse = {value: key for key, value in enums.items()}
     enums['reverse_mapping'] = reverse
     return type('Enum', (), enums)
 
 
-def make_vcs_requirement_url(repo_url, rev, project_name, subdir=None):
+def make_vcs_requirement_url(
+    repo_url,  # type: str
+    rev,  # type: str
+    project_name,  # type: str
+    subdir=None  # type: Optional[str]
+):
+    # type: (...) -> str
     """
     Return the URL for a VCS requirement.
 
@@ -932,6 +964,7 @@ def make_vcs_requirement_url(repo_url, rev, project_name, subdir=None):
 
 
 def split_auth_from_netloc(netloc):
+    # type: (str) -> Tuple[str, AuthInfo]
     """
     Parse out and remove the auth information from a netloc.
 
@@ -948,15 +981,18 @@ def split_auth_from_netloc(netloc):
         # Split from the left because that's how urllib.parse.urlsplit()
         # behaves if more than one : is present (which again can be checked
         # using the password attribute of the return value)
-        user_pass = auth.split(':', 1)
+        user, passw = auth.split(':', 1)
     else:
-        user_pass = auth, None
+        user, passw = auth, None
 
-    user_pass = tuple(
-        None if x is None else urllib_unquote(x) for x in user_pass
-    )
+    def urllib_unquote_or_none(s):
+        # type: (Optional[str]) -> Optional[str]
+        if s is None:
+            return None
+        return urllib_unquote(s)
 
-    return netloc, user_pass
+    auth_info = (urllib_unquote_or_none(user), urllib_unquote_or_none(passw))
+    return netloc, auth_info
 
 
 def redact_netloc(netloc):
@@ -976,6 +1012,7 @@ def redact_netloc(netloc):
 
 
 def _transform_url(url, transform_netloc):
+    # type: (str, Callable) -> str
     purl = urllib_parse.urlsplit(url)
     netloc = transform_netloc(purl.netloc)
     # stripped url
@@ -987,6 +1024,7 @@ def _transform_url(url, transform_netloc):
 
 
 def _get_netloc(netloc):
+    # type: (str) -> str
     return split_auth_from_netloc(netloc)[0]
 
 
@@ -1005,6 +1043,7 @@ def redact_password_from_url(url):
 
 
 def protect_pip_from_modification_on_windows(modifying_pip):
+    # type: (bool) -> None
     """Protection of pip.exe from modification on Windows
 
     On Windows, any operation modifying pip should be run as:
