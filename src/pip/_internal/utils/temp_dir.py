@@ -6,6 +6,11 @@ import os.path
 import tempfile
 
 from pip._internal.utils.misc import rmtree
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    import types  # noqa: F401
+    from typing import Iterator, Optional, Type  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +40,13 @@ class TempDirectory(object):
     context the created directory is deleted.
     """
 
-    def __init__(self, path=None, delete=None, kind="temp"):
+    def __init__(
+        self,
+        path=None,  # type: Optional[str]
+        delete=None,  # type: Optional[bool]
+        kind="temp"  # type: str
+    ):
+        # type: (...) -> None
         super(TempDirectory, self).__init__()
 
         if path is None and delete is None:
@@ -48,17 +59,26 @@ class TempDirectory(object):
         self.kind = kind
 
     def __repr__(self):
+        # type: () -> str
         return "<{} {!r}>".format(self.__class__.__name__, self.path)
 
     def __enter__(self):
+        # type: () -> TempDirectory
         self.create()
         return self
 
-    def __exit__(self, exc, value, tb):
+    def __exit__(
+        self,
+        exc,  # type: Optional[Type[BaseException]]
+        value,  # type: Optional[BaseException]
+        tb  # type: Optional[types.TracebackType]
+    ):
+        # type: (...) -> None
         if self.delete:
             self.cleanup()
 
     def create(self):
+        # type: () -> None
         """Create a temporary directory and store its path in self.path
         """
         if self.path is not None:
@@ -76,6 +96,7 @@ class TempDirectory(object):
         logger.debug("Created temporary directory: {}".format(self.path))
 
     def cleanup(self):
+        # type: () -> None
         """Remove the temporary directory created and reset state
         """
         if self.path is not None and os.path.exists(self.path):
@@ -100,12 +121,18 @@ class AdjacentTempDirectory(TempDirectory):
     # The characters that may be used to name the temp directory
     LEADING_CHARS = "-~.+=%0123456789"
 
-    def __init__(self, original, delete=None):
+    def __init__(
+        self,
+        original,  # type: str
+        delete=None  # type: Optional[bool]
+    ):
+        # type: (...) -> None
         super(AdjacentTempDirectory, self).__init__(delete=delete)
         self.original = original.rstrip('/\\')
 
     @classmethod
     def _generate_names(cls, name):
+        # type: (str) -> Iterator[str]
         """Generates a series of temporary names.
 
         The algorithm replaces the leading characters in the name
@@ -123,6 +150,7 @@ class AdjacentTempDirectory(TempDirectory):
                     yield new_name
 
     def create(self):
+        # type: () -> None
         root, name = os.path.split(self.original)
         for candidate in self._generate_names(name):
             path = os.path.join(root, candidate)
