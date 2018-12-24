@@ -12,7 +12,7 @@ from pip import __version__ as current_version
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Optional  # noqa: F401
+    from typing import Any, Optional, TextIO, Type  # noqa: F401
 
 
 class PipDeprecationWarning(Warning):
@@ -23,7 +23,15 @@ _original_showwarning = None  # type: Any
 
 
 # Warnings <-> Logging Integration
-def _showwarning(message, category, filename, lineno, file=None, line=None):
+def _showwarning(
+    message,  # type: str
+    category,  # type: Type[Warning]
+    filename,  # type: str
+    lineno,  # type: int
+    file=None,  # type: Optional[TextIO]
+    line=None  # type: Optional[str]
+):
+    # type: (...) -> None
     if file is not None:
         if _original_showwarning is not None:
             _original_showwarning(

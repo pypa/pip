@@ -616,8 +616,10 @@ def _download_url(
         url = link.url_without_fragment
 
     if show_progress:  # We don't show progress on cached responses
-        progress_indicator = DownloadProgressProvider(progress_bar,
-                                                      max=total_length)
+        # https://github.com/python/mypy/issues/5876
+        progress_indicator = DownloadProgressProvider(  # type: ignore
+            progress_bar, max=total_length)
+
         if total_length:
             logger.info("Downloading %s (%s)", url, format_size(total_length))
         else:
