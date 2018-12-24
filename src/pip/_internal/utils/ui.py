@@ -21,8 +21,13 @@ from pip._internal.utils.misc import format_size
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Iterator, IO  # noqa: F401
+    from types import FrameType  # noqa: F401
 
+    from typing import (  # noqa: F401
+        Any, Iterator, IO, Optional, Callable, Mapping, Tuple, Type, Text
+    )
+
+    ProgressBarType = Type['BaseProgressIndicator']
 try:
     from pip._vendor import colorama
 # Lots of different errors can come from this, including SystemError and
@@ -34,6 +39,7 @@ logger = logging.getLogger(__name__)
 
 
 def _select_progress_class(preferred, fallback):
+    # type: (Type[Bar], Type[Bar]) -> Type[Bar]
     encoding = getattr(preferred.file, "encoding", None)
 
     # If we don't know what encoding this file is in, then we'll just assume
@@ -82,10 +88,12 @@ class InterruptibleMixin(object):
     """
 
     def __init__(self, *args, **kwargs):
+        # type: (Any, Any) -> None
         """
         Save the original SIGINT handler for later.
         """
-        super(InterruptibleMixin, self).__init__(*args, **kwargs)
+        super(InterruptibleMixin, self).__init__(  # type: ignore
+            *args, **kwargs)
 
         self.original_handler = signal(SIGINT, self.handle_sigint)
 
@@ -98,16 +106,18 @@ class InterruptibleMixin(object):
             self.original_handler = default_int_handler
 
     def finish(self):
+        # type: () -> None
         """
         Restore the original SIGINT handler after finishing.
 
         This should happen regardless of whether the progress display finishes
         normally, or gets interrupted.
         """
-        super(InterruptibleMixin, self).finish()
+        super(InterruptibleMixin, self).finish()  # type: ignore
         signal(SIGINT, self.original_handler)
 
     def handle_sigint(self, signum, frame):
+        # type: (Any, FrameType) -> None
         """
         Call self.finish() before delegating to the original SIGINT handler.
 
@@ -115,12 +125,14 @@ class InterruptibleMixin(object):
         active.
         """
         self.finish()
-        self.original_handler(signum, frame)
+        if callable(self.original_handler):
+            self.original_handler(signum, frame)
 
 
 class SilentBar(Bar):
 
     def update(self):
+        # type: () -> None
         pass
 
 
@@ -135,66 +147,80 @@ class BlueEmojiBar(IncrementalBar):
 class DownloadProgressMixin(object):
 
     def __init__(self, *args, **kwargs):
-        super(DownloadProgressMixin, self).__init__(*args, **kwargs)
-        self.message = (" " * (get_indentation() + 2)) + self.message
+        # type: (Any, Any) -> None
+        super(DownloadProgressMixin, self).__init__(  # type: ignore
+            *args, **kwargs)
+        _indentation = (" " * (get_indentation() + 2))
+        self.message = _indentation + self.message  # type: str
 
     @property
     def downloaded(self):
-        return format_size(self.index)
+        # type: () -> str
+        return format_size(self.index)  # type: ignore
 
     @property
     def download_speed(self):
+        # type: () -> str
         # Avoid zero division errors...
-        if self.avg == 0.0:
+        if self.avg == 0.0:  # type: ignore
             return "..."
-        return format_size(1 / self.avg) + "/s"
+        return format_size(1 / self.avg) + "/s"  # type: ignore
 
     @property
     def pretty_eta(self):
-        if self.eta:
-            return "eta %s" % self.eta_td
+        # type: () -> str
+        if self.eta:  # type: ignore
+            return "eta %s" % self.eta_td  # type: ignore
         return ""
 
     def iter(self, it, n=1):
+        # type: (Iterator[bytes], int) -> Iterator[bytes]
         for x in it:
             yield x
-            self.next(n)
-        self.finish()
+            self.next(n)  # type: ignore
+        self.finish()  # type: ignore
 
 
-class WindowsMixin(object):
+class StdoutEmitterMixin:
+
+    file = sys.stdout
 
     def __init__(self, *args, **kwargs):
+        # type: (Any, Any) -> None
         # The Windows terminal does not support the hide/show cursor ANSI codes
         # even with colorama. So we'll ensure that hide_cursor is False on
         # Windows.
-        # This call neds to go before the super() call, so that hide_cursor
+        # This call needs to go before the super() call, so that hide_cursor
         # is set in time. The base progress bar class writes the "hide cursor"
         # code to the terminal in its init, so if we don't set this soon
         # enough, we get a "hide" with no corresponding "show"...
-        if WINDOWS and self.hide_cursor:
+        if WINDOWS and self.hide_cursor:  # type: ignore
             self.hide_cursor = False
 
-        super(WindowsMixin, self).__init__(*args, **kwargs)
-
+        super(StdoutEmitterMixin, self).__init__(  # type: ignore
+            *args, **kwargs)
         # Check if we are running on Windows and we have the colorama module,
         # if we do then wrap our file with it.
         if WINDOWS and colorama:
-            self.file = colorama.AnsiToWin32(self.file)
+            self.file = colorama.AnsiToWin32(self.file)  # type: ignore
             # The progress code expects to be able to call self.file.isatty()
             # but the colorama.AnsiToWin32() object doesn't have that, so we'll
             # add it.
-            self.file.isatty = lambda: self.file.wrapped.isatty()
+            wrapped_stdout = self.file.wrapped  # type: ignore
+            self.file.isatty = lambda: wrapped_stdout.isatty()  # type: ignore
             # The progress code expects to be able to call self.file.flush()
             # but the colorama.AnsiToWin32() object doesn't have that, so we'll
             # add it.
-            self.file.flush = lambda: self.file.wrapped.flush()
+            self.file.flush = lambda: wrapped_stdout.flush()  # type: ignore
 
 
-class BaseDownloadProgressBar(WindowsMixin, InterruptibleMixin,
-                              DownloadProgressMixin):
+class BaseProgressIndicator(StdoutEmitterMixin,  # type: ignore
+                            InterruptibleMixin, DownloadProgressMixin):
+    pass
 
-    file = sys.stdout
+
+class BaseDownloadProgressBar(BaseProgressIndicator):
+
     message = "%(percent)d%%"
     suffix = "%(downloaded)s %(download_speed)s %(pretty_eta)s"
 
@@ -240,18 +266,19 @@ class DownloadBlueEmojiProgressBar(BaseDownloadProgressBar,  # type: ignore
     pass
 
 
-class DownloadProgressSpinner(WindowsMixin, InterruptibleMixin,
-                              DownloadProgressMixin, WritelnMixin, Spinner):
+class DownloadProgressSpinner(BaseProgressIndicator,  # type: ignore
+                              WritelnMixin, Spinner):
 
-    file = sys.stdout
     suffix = "%(downloaded)s %(download_speed)s"
 
     def next_phase(self):
+        # type: () -> Text
         if not hasattr(self, "_phaser"):
             self._phaser = itertools.cycle(self.phases)
         return next(self._phaser)
 
     def update(self):
+        # type: () -> None
         message = self.message % self
         phase = self.next_phase()
         suffix = self.suffix % self
@@ -272,10 +299,14 @@ BAR_TYPES = {
     "ascii": (DownloadIncrementalBar, DownloadProgressSpinner),
     "pretty": (DownloadFillingCirclesBar, DownloadProgressSpinner),
     "emoji": (DownloadBlueEmojiProgressBar, DownloadProgressSpinner)
-}
+}  # type: Mapping[str, Tuple[ProgressBarType, ProgressBarType]]
 
 
-def DownloadProgressProvider(progress_bar, max=None):
+def DownloadProgressProvider(
+    progress_bar,  # type: str
+    max=None  # type: Optional[int]
+):
+    # type: (...) -> Callable[[Iterator[bytes], int], Iterator[bytes]]
     if max is None or max == 0:
         return BAR_TYPES[progress_bar][1]().iter
     else:
@@ -338,9 +369,15 @@ class SpinnerInterface(object):
 
 
 class InteractiveSpinner(SpinnerInterface):
-    def __init__(self, message, file=None, spin_chars="-\\|/",
-                 # Empirically, 8 updates/second looks nice
-                 min_update_interval_seconds=0.125):
+    def __init__(
+        self,
+        message,  # type: str
+        file=None,  # type: IO[str]
+        spin_chars="-\\|/",  # type: str
+        # Empirically, 8 updates/second looks nice
+        min_update_interval_seconds=0.125  # type: float
+    ):
+        # type: (...) -> None
         self._message = message
         if file is None:
             file = sys.stdout
@@ -354,6 +391,7 @@ class InteractiveSpinner(SpinnerInterface):
         self._width = 0
 
     def _write(self, status):
+        # type: (str) -> None
         assert not self._finished
         # Erase what we wrote before by backspacing to the beginning, writing
         # spaces to overwrite the old text, and then backspacing again
@@ -396,6 +434,7 @@ class NonInteractiveSpinner(SpinnerInterface):
         self._update("started")
 
     def _update(self, status):
+        # type: (str) -> None
         assert not self._finished
         self._rate_limiter.reset()
         logger.info("%s: %s", self._message, status)
