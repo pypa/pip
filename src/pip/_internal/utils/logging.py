@@ -7,6 +7,10 @@ import os
 
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import ensure_dir
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from typing import Iterator, Any, Callable, Optional, IO  # noqa: F401
 
 try:
     import threading
@@ -28,6 +32,7 @@ _log_state.indentation = 0
 
 @contextlib.contextmanager
 def indent_log(num=2):
+    # type: (int) -> Iterator[None]
     """
     A context manager which will cause the log output to be indented for any
     log messages emitted inside it.
@@ -40,12 +45,14 @@ def indent_log(num=2):
 
 
 def get_indentation():
+    # type: () -> int
     return getattr(_log_state, 'indentation', 0)
 
 
 class IndentingFormatter(logging.Formatter):
 
     def format(self, record):
+        # type: (logging.LogRecord) -> str
         """
         Calls the standard formatter, but will indent all of the log messages
         by our current indentation level.
@@ -59,7 +66,9 @@ class IndentingFormatter(logging.Formatter):
 
 
 def _color_wrap(*colors):
+    # type: (Any) -> Callable[[str], str]
     def wrapped(inp):
+        # type: (str) -> str
         return "".join(list(colors) + [inp, colorama.Style.RESET_ALL])
     return wrapped
 
@@ -77,21 +86,24 @@ class ColorizedStreamHandler(logging.StreamHandler):
         COLORS = []
 
     def __init__(self, stream=None, no_color=None):
+        # type: (Optional[IO[str]], Optional[bool]) -> None
         logging.StreamHandler.__init__(self, stream)
         self._no_color = no_color
 
         if WINDOWS and colorama:
-            self.stream = colorama.AnsiToWin32(self.stream)
+            # https://github.com/python/mypy/issues/1174
+            self.stream = colorama.AnsiToWin32(self.stream)  # type: ignore
 
     def should_color(self):
+        # type: () -> bool
         # Don't colorize things if we do not have colorama or if told not to
         if not colorama or self._no_color:
             return False
 
-        real_stream = (
-            self.stream if not isinstance(self.stream, colorama.AnsiToWin32)
-            else self.stream.wrapped
-        )
+        if isinstance(self.stream, colorama.AnsiToWin32):
+            real_stream = self.stream.wrapped
+        else:
+            real_stream = self.stream
 
         # If the stream is a tty we should color it
         if hasattr(real_stream, "isatty") and real_stream.isatty():
@@ -105,6 +117,7 @@ class ColorizedStreamHandler(logging.StreamHandler):
         return False
 
     def format(self, record):
+        # type: (logging.LogRecord) -> str
         msg = logging.StreamHandler.format(self, record)
 
         if self.should_color():
@@ -119,20 +132,26 @@ class ColorizedStreamHandler(logging.StreamHandler):
 class BetterRotatingFileHandler(logging.handlers.RotatingFileHandler):
 
     def _open(self):
-        ensure_dir(os.path.dirname(self.baseFilename))
-        return logging.handlers.RotatingFileHandler._open(self)
+        # type: () -> Any
+        # https://github.com/python/typeshed/issues/2713
+        ensure_dir(os.path.dirname(self.baseFilename))  # type: ignore
+        # private API
+        return logging.handlers.RotatingFileHandler._open(self)  # type: ignore
 
 
 class MaxLevelFilter(logging.Filter):
 
     def __init__(self, level):
+        # type: (int) -> None
         self.level = level
 
     def filter(self, record):
+        # type: (logging.LogRecord) -> bool
         return record.levelno < self.level
 
 
 def setup_logging(verbosity, no_color, user_log_file):
+    # type: (int, bool, str) -> None
     """Configures and sets up all of the logging
     """
 
