@@ -14,7 +14,7 @@ from pip._vendor.six import text_type
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Tuple, Text  # noqa: F401
+    from typing import Tuple, Text, List, Optional, Any  # noqa: F401
 
 try:
     import ipaddress
@@ -60,6 +60,7 @@ else:
     # situation, so that we can consistently use
     # backslash replacement for all versions.
     def backslashreplace_decode_fn(err):
+        # type: (Any) -> Any
         raw_bytes = (err.object[i] for i in range(err.start, err.end))
         if sys.version_info[0] == 2:
             # Python 2 gave us characters - convert to numeric bytes
@@ -177,11 +178,13 @@ if sys.version_info >= (3, 4):
     from importlib.machinery import EXTENSION_SUFFIXES
 
     def get_extension_suffixes():
+        # type: () -> List[str]
         return EXTENSION_SUFFIXES
 else:
     from imp import get_suffixes
 
     def get_extension_suffixes():
+        # type: () -> List[str]
         return [suffix[0] for suffix in get_suffixes()]
 
 
@@ -238,13 +241,14 @@ else:
         in characters of the terminal window.
         """
         def ioctl_GWINSZ(fd):
+            # type: (Any) -> Optional[Tuple[Any, ...]]
             try:
                 import fcntl
                 import termios
                 import struct
                 cr = struct.unpack_from(
                     'hh',
-                    fcntl.ioctl(fd, termios.TIOCGWINSZ, '12345678')
+                    fcntl.ioctl(fd, termios.TIOCGWINSZ, b'12345678')
                 )
             except Exception:
                 return None
