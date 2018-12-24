@@ -181,7 +181,7 @@ class DownloadProgressMixin(object):
         self.finish()  # type: ignore
 
 
-class StdoutEmitterMixin:
+class StdoutEmitterMixin(object):
 
     file = sys.stdout
 
