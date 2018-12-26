@@ -192,6 +192,23 @@ def print_header_format(distributions, list_files=False, verbose=False):
     return results_printed
 
 
+# 2.7/3.x compatibility
+class ReadlineWrapper:
+    def __init__(self, collection):
+        self.collection = list(collection)
+        self.i = 0
+
+    def readline(self):
+        if self.i >= len(self.collection):
+            return None
+        val = self.collection[self.i]
+        self.i += 1
+        return val
+
+    def __iter__(self):
+        return iter(self.collection)
+
+
 def print_json(distributions, list_files=False, verbose=False):
     """
     Print in JSON format the information from installed distributions found.
@@ -222,25 +239,8 @@ def print_json(distributions, list_files=False, verbose=False):
         ]
 
         if verbose:
-            classifiers = []
-            for classifier in dist.get('classifiers', []):
-                classifiers.append(str(classifier))
-
-            # 2.7/3.x compatibility
-            class ReadlineWrapper:
-                def __init__(self, collection):
-                    self.collection = list(collection)
-                    self.i = 0
-
-                def readline(self):
-                    if self.i >= len(self.collection):
-                        return None
-                    val = self.collection[self.i]
-                    self.i += 1
-                    return val
-
-                def __iter__(self):
-                    return iter(self.collection)
+            classifiers = [str(classifier)
+                           for classifier in dist.get('classifiers', [])]
 
             parser = configparser.ConfigParser()
 
@@ -259,9 +259,8 @@ def print_json(distributions, list_files=False, verbose=False):
             ])
 
         if list_files:
-            files = []
-            for line in dist.get('files', []):
-                files.append(str(line.strip()))
+            files = [str(line.strip()) for line in dist.get('files ', [])]
+
             results.extend([("Files", files)])
             if "files" not in dist:
                 results.extend([("Files",

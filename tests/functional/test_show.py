@@ -21,20 +21,6 @@ def test_basic_show(script):
     assert 'Requires: ' in lines
 
 
-def test_basic_json_show(script):
-    """
-    Test end to end test for show command with JSON option.
-    """
-    result = script.pip('show', '--format=json', 'pip')
-    parsed_json = json.loads(result.stdout)
-    assert parsed_json
-    assert len(parsed_json) == 1
-    assert parsed_json[0]["Name"] == "pip"
-    assert parsed_json[0]["Version"] == __version__
-    assert "Location" in parsed_json[0]
-    assert "Requires" in parsed_json[0]
-
-
 def test_show_with_files_not_found(script, data):
     """
     Test for show command with installed files listing enabled and
@@ -51,24 +37,6 @@ def test_show_with_files_not_found(script, data):
     assert 'Requires: ' in lines
     assert 'Files:' in lines
     assert 'Cannot locate installed-files.txt' in lines
-
-
-def test_show_json_with_files_not_found(script, data):
-    """
-    Test for show command with installed files listing enabled
-    and JSON option enabled and installed-files.txt not found.
-    """
-    editable = data.packages.join('SetupPyUTF8')
-    script.pip('install', '-e', editable)
-    result = script.pip('show', '--format=json', '-f', 'SetupPyUTF8')
-    parsed_json = json.loads(result.stdout)
-    assert len(parsed_json) == 1
-    assert parsed_json[0]["Name"] == "SetupPyUTF8"
-    assert parsed_json[0]["Version"] == "0.0.0"
-    assert "Location" in parsed_json[0]
-    assert "Requires" in parsed_json[0]
-    assert "Files" in parsed_json[0]
-    assert parsed_json[0]["Files"] == "Cannot locate installed-files.txt"
 
 
 def test_show_with_files_from_wheel(script, data):
@@ -94,6 +62,38 @@ def test_show_with_all_files(script):
     lines = result.stdout.splitlines()
     assert 'Cannot locate installed-files.txt' not in lines[6], lines[6]
     assert re.search(r"Files:\n(  .+\n)+", result.stdout)
+
+
+def test_basic_json_show(script):
+    """
+    Test end to end test for show command with JSON option.
+    """
+    result = script.pip('show', '--format=json', 'pip')
+    parsed_json = json.loads(result.stdout)
+    assert parsed_json
+    assert len(parsed_json) == 1
+    assert parsed_json[0]["Name"] == "pip"
+    assert parsed_json[0]["Version"] == __version__
+    assert "Location" in parsed_json[0]
+    assert "Requires" in parsed_json[0]
+
+
+def test_show_json_with_files_not_found(script, data):
+    """
+    Test for show command with installed files listing enabled
+    and JSON option enabled and installed-files.txt not found.
+    """
+    editable = data.packages.join('SetupPyUTF8')
+    script.pip('install', '-e', editable)
+    result = script.pip('show', '--format=json', '-f', 'SetupPyUTF8')
+    parsed_json = json.loads(result.stdout)
+    assert len(parsed_json) == 1
+    assert parsed_json[0]["Name"] == "SetupPyUTF8"
+    assert parsed_json[0]["Version"] == "0.0.0"
+    assert "Location" in parsed_json[0]
+    assert "Requires" in parsed_json[0]
+    assert "Files" in parsed_json[0]
+    assert parsed_json[0]["Files"] == "Cannot locate installed-files.txt"
 
 
 def test_show_json_with_all_files(script):
