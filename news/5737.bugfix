@@ -1,0 +1,1 @@
+`pip list --outdated --not-required` should list only outdated packages that are not dependencies of installed packages

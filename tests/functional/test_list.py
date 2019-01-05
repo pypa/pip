@@ -384,6 +384,22 @@ def test_outdated_editables_columns_flag(script, data):
     )
 
 
+@pytest.mark.network
+def test_outdated_not_required_flag(script, data):
+    """
+    test the behavior of --outdated --not-required flag in the list command
+    """
+    script.pip(
+        'install', '-f', data.find_links, '--no-index',
+        'simple==2.0', 'require_simple==1.0'
+    )
+    result = script.pip(
+        'list', '-f', data.find_links, '--no-index', '--outdated',
+        '--not-required', '--format=json',
+    )
+    assert [] == json.loads(result.stdout)
+
+
 def test_outdated_pre(script, data):
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
 

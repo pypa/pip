@@ -134,13 +134,13 @@ class ListCommand(Command):
             include_editables=options.include_editable,
         )
 
+        if options.not_required:
+            packages = self.get_not_required(packages, options)
+
         if options.outdated:
             packages = self.get_outdated(packages, options)
         elif options.uptodate:
             packages = self.get_uptodate(packages, options)
-
-        if options.not_required:
-            packages = self.get_not_required(packages, options)
 
         self.output_package_listing(packages, options)
 
