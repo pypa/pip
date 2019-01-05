@@ -20,6 +20,8 @@ Vendoring Policy
   ``pip/_vendor/README.rst`` and their corresponding patches **MUST** be
   included ``tasks/vendoring/patches``.
 
+* Vendored libraries should have corresponding ``vendored()`` entries in
+  ``pip/_vendor/__init__.py``.
 
 Rationale
 ---------
