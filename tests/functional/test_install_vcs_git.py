@@ -367,20 +367,6 @@ def test_git_with_ambiguous_revs(script):
     result.assert_installed('version-pkg', with_files=['.git'])
 
 
-def test_git_works_with_editable_non_origin_repo(script):
-    # set up, create a git repo and install it as editable from a local
-    # directory path
-    version_pkg_path = _create_test_package(script)
-    script.pip('install', '-e', version_pkg_path.abspath)
-
-    # 'freeze'ing this should not fall over, but should result in stderr output
-    # warning
-    result = script.pip('freeze', expect_stderr=True)
-    assert "Error when trying to get requirement" in result.stderr
-    assert "Could not determine repository location" in result.stdout
-    assert "version-pkg==0.1" in result.stdout
-
-
 def test_editable__no_revision(script):
     """
     Test a basic install in editable mode specifying no revision.

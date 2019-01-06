@@ -4,7 +4,9 @@ Contains functional tests of the Git class.
 
 import os
 
-from pip._internal.vcs.git import Git
+import pytest
+
+from pip._internal.vcs.git import Git, RemoteNotFoundError
 from tests.lib import _create_test_package, _git_commit, _test_path_to_file_url
 
 
@@ -91,6 +93,20 @@ def test_get_remote_url(script, tmpdir):
 
     remote_url = Git().get_remote_url(repo_dir)
     assert remote_url == source_url
+
+
+def test_get_remote_url__no_remote(script, tmpdir):
+    """
+    Test a repo with no remote.
+    """
+    repo_dir = tmpdir / 'temp-repo'
+    repo_dir.mkdir()
+    repo_dir = str(repo_dir)
+
+    script.run('git', 'init', cwd=repo_dir)
+
+    with pytest.raises(RemoteNotFoundError):
+        Git().get_remote_url(repo_dir)
 
 
 def test_get_current_branch(script):

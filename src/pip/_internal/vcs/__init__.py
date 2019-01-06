@@ -29,6 +29,10 @@ __all__ = ['vcs']
 logger = logging.getLogger(__name__)
 
 
+class RemoteNotFoundError(Exception):
+    pass
+
+
 class RevOptions(object):
 
     """
@@ -452,6 +456,9 @@ class VersionControl(object):
     def get_remote_url(self, location):
         """
         Return the url used at location
+
+        Raises RemoteNotFoundError if the repository does not have a remote
+        url configured.
         """
         raise NotImplementedError
 
