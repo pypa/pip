@@ -9,7 +9,6 @@ from pip._internal.download import path_to_url
 from pip._internal.utils.misc import (
     display_path, make_vcs_requirement_url, rmtree,
 )
-from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.vcs import VersionControl, vcs
 
 logger = logging.getLogger(__name__)
@@ -42,13 +41,11 @@ class Bazaar(VersionControl):
         if os.path.exists(location):
             rmtree(location)
 
-        with TempDirectory(kind="export") as temp_dir:
-            self.unpack(temp_dir.path)
-
-            self.run_command(
-                ['export', location],
-                cwd=temp_dir.path, show_stdout=False,
-            )
+        url, rev_options = self.get_url_rev_options(self.url)
+        self.run_command(
+            ['export', location, url] + rev_options.to_args(),
+            show_stdout=False,
+        )
 
     def fetch_new(self, dest, url, rev_options):
         rev_display = rev_options.to_display()
