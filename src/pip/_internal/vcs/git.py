@@ -249,7 +249,8 @@ class Git(VersionControl):
         #: update submodules
         self.update_submodules(dest)
 
-    def get_remote_url(self, location):
+    @classmethod
+    def get_remote_url(cls, location):
         """
         Return URL of the first remote encountered.
 
@@ -258,7 +259,7 @@ class Git(VersionControl):
         """
         # We need to pass 1 for extra_ok_returncodes since the command
         # exits with return code 1 if there are no matching lines.
-        stdout = self.run_command(
+        stdout = cls.run_command(
             ['config', '--get-regexp', r'remote\..*\.url'],
             extra_ok_returncodes=(1, ), show_stdout=False, cwd=location,
         )

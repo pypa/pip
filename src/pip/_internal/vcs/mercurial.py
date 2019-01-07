@@ -64,11 +64,12 @@ class Mercurial(VersionControl):
         cmd_args = ['update', '-q'] + rev_options.to_args()
         self.run_command(cmd_args, cwd=dest)
 
-    def get_remote_url(self, location):
-        url = self.run_command(
+    @classmethod
+    def get_remote_url(cls, location):
+        url = cls.run_command(
             ['showconfig', 'paths.default'],
             show_stdout=False, cwd=location).strip()
-        if self._is_local_repository(url):
+        if cls._is_local_repository(url):
             url = path_to_url(url)
         return url.strip()
 

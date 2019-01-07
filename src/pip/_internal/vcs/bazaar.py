@@ -75,15 +75,16 @@ class Bazaar(VersionControl):
             url = 'bzr+' + url
         return url, rev, user_pass
 
-    def get_remote_url(self, location):
-        urls = self.run_command(['info'], show_stdout=False, cwd=location)
+    @classmethod
+    def get_remote_url(cls, location):
+        urls = cls.run_command(['info'], show_stdout=False, cwd=location)
         for line in urls.splitlines():
             line = line.strip()
             for x in ('checkout of branch: ',
                       'parent branch: '):
                 if line.startswith(x):
                     repo = line.split(x)[1]
-                    if self._is_local_repository(repo):
+                    if cls._is_local_repository(repo):
                         return path_to_url(repo)
                     return repo
         return None

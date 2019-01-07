@@ -116,7 +116,8 @@ class Subversion(VersionControl):
 
         return extra_args
 
-    def get_remote_url(self, location):
+    @classmethod
+    def get_remote_url(cls, location):
         # In cases where the source is in a subdirectory, not alongside
         # setup.py we have to look up in the location until we find a real
         # setup.py
@@ -134,7 +135,7 @@ class Subversion(VersionControl):
                 )
                 return None
 
-        return self._get_svn_url_rev(location)[0]
+        return cls._get_svn_url_rev(location)[0]
 
     @classmethod
     def _get_svn_url_rev(cls, location):

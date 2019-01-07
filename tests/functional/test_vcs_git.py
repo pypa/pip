@@ -90,7 +90,7 @@ def test_get_remote_url(script, tmpdir):
     repo_dir = str(tmpdir / 'repo')
     script.run('git', 'clone', source_url, repo_dir, expect_stderr=True)
 
-    remote_url = Git().get_remote_url(repo_dir)
+    remote_url = Git.get_remote_url(repo_dir)
     assert remote_url == source_url
 
 
@@ -105,7 +105,7 @@ def test_get_remote_url__no_remote(script, tmpdir):
     script.run('git', 'init', cwd=repo_dir)
 
     with pytest.raises(RemoteNotFoundError):
-        Git().get_remote_url(repo_dir)
+        Git.get_remote_url(repo_dir)
 
 
 def test_get_current_branch(script):

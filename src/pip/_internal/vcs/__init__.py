@@ -454,7 +454,8 @@ class VersionControl(object):
         """
         raise NotImplementedError
 
-    def get_remote_url(self, location):
+    @classmethod
+    def get_remote_url(cls, location):
         """
         Return the url used at location
 
