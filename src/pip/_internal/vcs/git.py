@@ -283,11 +283,12 @@ class Git(VersionControl):
         )
         return current_rev.strip()
 
-    def _get_subdirectory(self, location):
+    @classmethod
+    def _get_subdirectory(cls, location):
         """Return the relative path of setup.py to the git repo root."""
         # find the repo root
-        git_dir = self.run_command(['rev-parse', '--git-dir'],
-                                   show_stdout=False, cwd=location).strip()
+        git_dir = cls.run_command(['rev-parse', '--git-dir'],
+                                  show_stdout=False, cwd=location).strip()
         if not os.path.isabs(git_dir):
             git_dir = os.path.join(location, git_dir)
         root_dir = os.path.join(git_dir, '..')

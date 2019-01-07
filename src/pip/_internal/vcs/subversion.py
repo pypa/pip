@@ -136,10 +136,11 @@ class Subversion(VersionControl):
 
         return self._get_svn_url_rev(location)[0]
 
-    def _get_svn_url_rev(self, location):
+    @classmethod
+    def _get_svn_url_rev(cls, location):
         from pip._internal.exceptions import InstallationError
 
-        entries_path = os.path.join(location, self.dirname, 'entries')
+        entries_path = os.path.join(location, cls.dirname, 'entries')
         if os.path.exists(entries_path):
             with open(entries_path) as f:
                 data = f.read()
@@ -162,7 +163,7 @@ class Subversion(VersionControl):
         else:
             try:
                 # subversion >= 1.7
-                xml = self.run_command(
+                xml = cls.run_command(
                     ['info', '--xml', location],
                     show_stdout=False,
                 )

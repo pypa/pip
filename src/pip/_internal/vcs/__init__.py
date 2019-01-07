@@ -210,7 +210,8 @@ class VersionControl(object):
         """
         return RevOptions(self, rev, extra_args=extra_args)
 
-    def _is_local_repository(self, repo):
+    @classmethod
+    def _is_local_repository(cls, repo):
         # type: (str) -> bool
         """
            posix absolute paths start with os.path.sep,
