@@ -351,10 +351,10 @@ class Git(VersionControl):
         if super(Git, cls).controls_location(location):
             return True
         try:
-            r = cls().run_command(['rev-parse'],
-                                  cwd=location,
-                                  show_stdout=False,
-                                  on_returncode='ignore')
+            r = cls.run_command(['rev-parse'],
+                                cwd=location,
+                                show_stdout=False,
+                                on_returncode='ignore')
             return not r
         except BadCommand:
             logger.debug("could not determine if %s is under git control "
