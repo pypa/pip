@@ -73,14 +73,16 @@ class Mercurial(VersionControl):
             url = path_to_url(url)
         return url.strip()
 
-    def get_revision(self, location):
-        current_revision = self.run_command(
+    @classmethod
+    def get_revision(cls, location):
+        current_revision = cls.run_command(
             ['parents', '--template={rev}'],
             show_stdout=False, cwd=location).strip()
         return current_revision
 
-    def get_revision_hash(self, location):
-        current_rev_hash = self.run_command(
+    @classmethod
+    def get_revision_hash(cls, location):
+        current_rev_hash = cls.run_command(
             ['parents', '--template={node}'],
             show_stdout=False, cwd=location).strip()
         return current_rev_hash

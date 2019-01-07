@@ -464,7 +464,8 @@ class VersionControl(object):
         """
         raise NotImplementedError
 
-    def get_revision(self, location):
+    @classmethod
+    def get_revision(cls, location):
         """
         Return the current commit id of the files at the given location.
         """

@@ -276,10 +276,11 @@ class Git(VersionControl):
         url = found_remote.split(' ')[1]
         return url.strip()
 
-    def get_revision(self, location, rev=None):
+    @classmethod
+    def get_revision(cls, location, rev=None):
         if rev is None:
             rev = 'HEAD'
-        current_rev = self.run_command(
+        current_rev = cls.run_command(
             ['rev-parse', rev], show_stdout=False, cwd=location,
         )
         return current_rev.strip()

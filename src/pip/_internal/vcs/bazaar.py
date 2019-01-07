@@ -89,8 +89,9 @@ class Bazaar(VersionControl):
                     return repo
         return None
 
-    def get_revision(self, location):
-        revision = self.run_command(
+    @classmethod
+    def get_revision(cls, location):
+        revision = cls.run_command(
             ['revno'], show_stdout=False, cwd=location,
         )
         return revision.splitlines()[-1]

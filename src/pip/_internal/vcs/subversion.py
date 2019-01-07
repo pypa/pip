@@ -60,7 +60,8 @@ class Subversion(VersionControl):
         cmd_args = ['update'] + rev_options.to_args() + [dest]
         self.run_command(cmd_args)
 
-    def get_revision(self, location):
+    @classmethod
+    def get_revision(cls, location):
         """
         Return the maximum revision for all files under a given location
         """
@@ -68,16 +69,16 @@ class Subversion(VersionControl):
         revision = 0
 
         for base, dirs, files in os.walk(location):
-            if self.dirname not in dirs:
+            if cls.dirname not in dirs:
                 dirs[:] = []
                 continue    # no sense walking uncontrolled subdirs
-            dirs.remove(self.dirname)
-            entries_fn = os.path.join(base, self.dirname, 'entries')
+            dirs.remove(cls.dirname)
+            entries_fn = os.path.join(base, cls.dirname, 'entries')
             if not os.path.exists(entries_fn):
                 # FIXME: should we warn?
                 continue
 
-            dirurl, localrev = self._get_svn_url_rev(base)
+            dirurl, localrev = cls._get_svn_url_rev(base)
 
             if base == location:
                 base = dirurl + '/'   # save the root url
