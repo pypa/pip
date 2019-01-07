@@ -134,6 +134,10 @@ class ListCommand(Command):
             include_editables=options.include_editable,
         )
 
+        # get_not_required must be called firstly in order to find and
+        # filter out all dependencies correctly. Otherwise a package
+        # can't be identified as requirement because some parent packages
+        # could be filtered out before.
         if options.not_required:
             packages = self.get_not_required(packages, options)
 

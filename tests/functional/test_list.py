@@ -384,7 +384,6 @@ def test_outdated_editables_columns_flag(script, data):
     )
 
 
-@pytest.mark.network
 def test_outdated_not_required_flag(script, data):
     """
     test the behavior of --outdated --not-required flag in the list command
