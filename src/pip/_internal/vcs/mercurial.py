@@ -87,11 +87,12 @@ class Mercurial(VersionControl):
             show_stdout=False, cwd=location).strip()
         return current_rev_hash
 
-    def get_src_requirement(self, location, project_name):
-        repo = self.get_remote_url(location)
+    @classmethod
+    def get_src_requirement(cls, location, project_name):
+        repo = cls.get_remote_url(location)
         if not repo.lower().startswith('hg:'):
             repo = 'hg+' + repo
-        current_rev_hash = self.get_revision_hash(location)
+        current_rev_hash = cls.get_revision_hash(location)
         return make_vcs_requirement_url(repo, current_rev_hash, project_name)
 
     def is_commit_id_equal(self, dest, name):

@@ -445,7 +445,8 @@ class VersionControl(object):
             rmtree(location)
         self.obtain(location)
 
-    def get_src_requirement(self, location, project_name):
+    @classmethod
+    def get_src_requirement(cls, location, project_name):
         """
         Return a string representing the requirement needed to
         redownload the files currently present in location, something

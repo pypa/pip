@@ -183,12 +183,13 @@ class Subversion(VersionControl):
 
         return url, rev
 
-    def get_src_requirement(self, location, project_name):
-        repo = self.get_remote_url(location)
+    @classmethod
+    def get_src_requirement(cls, location, project_name):
+        repo = cls.get_remote_url(location)
         if repo is None:
             return None
         repo = 'svn+' + repo
-        rev = self.get_revision(location)
+        rev = cls.get_revision(location)
         return make_vcs_requirement_url(repo, rev, project_name)
 
     def is_commit_id_equal(self, dest, name):

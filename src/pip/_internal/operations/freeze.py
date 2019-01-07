@@ -187,7 +187,7 @@ def get_requirement_info(dist):
         return (location, True, comments)
 
     try:
-        req = vc_type().get_src_requirement(location, dist.project_name)
+        req = vc_type.get_src_requirement(location, dist.project_name)
     except RemoteNotFoundError:
         req = dist.as_requirement()
         comments = [
