@@ -4,7 +4,6 @@ import logging
 import os
 import re
 
-from pip._internal.models.link import Link
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     display_path, make_vcs_requirement_url, rmtree, split_auth_from_netloc,
@@ -60,20 +59,6 @@ class Subversion(VersionControl):
     def update(self, dest, url, rev_options):
         cmd_args = ['update'] + rev_options.to_args() + [dest]
         self.run_command(cmd_args)
-
-    def get_location(self, dist, dependency_links):
-        for url in dependency_links:
-            egg_fragment = Link(url).egg_fragment
-            if not egg_fragment:
-                continue
-            if '-' in egg_fragment:
-                # FIXME: will this work when a package has - in the name?
-                key = '-'.join(egg_fragment.split('-')[:-1]).lower()
-            else:
-                key = egg_fragment
-            if key == dist.key:
-                return url.split('#', 1)[0]
-        return None
 
     def get_revision(self, location):
         """

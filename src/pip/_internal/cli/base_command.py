@@ -296,7 +296,6 @@ class RequirementCommand(Command):
             index_urls=index_urls,
             trusted_hosts=options.trusted_hosts,
             allow_all_prereleases=options.pre,
-            process_dependency_links=options.process_dependency_links,
             session=session,
             platform=platform,
             versions=python_versions,

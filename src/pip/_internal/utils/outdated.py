@@ -127,7 +127,6 @@ def pip_version_check(session, options):
                 index_urls=[options.index_url] + options.extra_index_urls,
                 allow_all_prereleases=False,  # Explicitly set to False
                 trusted_hosts=options.trusted_hosts,
-                process_dependency_links=options.process_dependency_links,
                 session=session,
             )
             all_candidates = finder.find_all_candidates("pip")

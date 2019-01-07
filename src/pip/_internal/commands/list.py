@@ -118,7 +118,6 @@ class ListCommand(Command):
             index_urls=index_urls,
             allow_all_prereleases=options.pre,
             trusted_hosts=options.trusted_hosts,
-            process_dependency_links=options.process_dependency_links,
             session=session,
         )
 
@@ -168,16 +167,8 @@ class ListCommand(Command):
             logger.debug('Ignoring indexes: %s', ','.join(index_urls))
             index_urls = []
 
-        dependency_links = []
-        for dist in packages:
-            if dist.has_metadata('dependency_links.txt'):
-                dependency_links.extend(
-                    dist.get_metadata_lines('dependency_links.txt'),
-                )
-
         with self._build_session(options) as session:
             finder = self._build_package_finder(options, index_urls, session)
-            finder.add_dependency_links(dependency_links)
 
             for dist in packages:
                 typ = 'unknown'
