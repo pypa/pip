@@ -25,6 +25,9 @@ try:
 except Exception:
     colorama = None
 
+INDEX_MSG_ID = 'index'
+BUILD_MSG_ID = 'build'
+
 
 _log_state = threading.local()
 _log_state.indentation = 0
@@ -214,7 +217,19 @@ class MaxLevelFilter(logging.Filter):
         return record.levelno < self.level
 
 
-def setup_logging(verbosity, no_color, user_log_file):
+class IgnoreMessageFilter(logging.Filter):
+
+    def __init__(self, ignored_message_ids):
+        self.ignored_message_ids = ignored_message_ids
+
+    def filter(self, record):
+        record_id = getattr(record, 'id', None)
+        if not record_id:
+            return True
+        return record_id not in self.ignored_message_ids
+
+
+def setup_logging(verbosity, no_color, user_log_file, ignored_message_ids):
     """Configures and sets up all of the logging
 
     Returns the requested logging level, as its integer value.
@@ -266,6 +281,10 @@ def setup_logging(verbosity, no_color, user_log_file):
                 "()": "pip._internal.utils.logging.MaxLevelFilter",
                 "level": logging.WARNING,
             },
+            "ignore_messages": {
+                "()": "pip._internal.utils.logging.IgnoreMessageFilter",
+                "ignored_message_ids": ignored_message_ids,
+            },
         },
         "formatters": {
             "indent": {
@@ -284,7 +303,7 @@ def setup_logging(verbosity, no_color, user_log_file):
                 "class": handler_classes["stream"],
                 "no_color": no_color,
                 "stream": log_streams["stdout"],
-                "filters": ["exclude_warnings"],
+                "filters": ["exclude_warnings", "ignore_messages"],
                 "formatter": "indent",
             },
             "console_errors": {

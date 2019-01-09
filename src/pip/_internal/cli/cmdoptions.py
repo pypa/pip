@@ -262,6 +262,16 @@ skip_requirements_regex = partial(
     help=SUPPRESS_HELP,
 )  # type: Callable[..., Option]
 
+ignore_messages = partial(
+    Option,
+    '--ignore-messages',
+    dest='ignored_message_ids',
+    metavar='MESSAGE_ID',
+    action='append',
+    default=[],
+    help="Ignore some logging message based on their internal ids",
+)
+
 
 def exists_action():
     # type: () -> Option
@@ -795,6 +805,7 @@ general_group = {
         no_cache,
         disable_pip_version_check,
         no_color,
+        ignore_messages,
     ]
 }  # type: Dict[str, Any]
 

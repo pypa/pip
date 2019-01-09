@@ -29,7 +29,9 @@ from pip._internal.req.constructors import (
 )
 from pip._internal.req.req_file import parse_requirements
 from pip._internal.utils.deprecation import deprecated
-from pip._internal.utils.logging import BrokenStdoutLoggingError, setup_logging
+from pip._internal.utils.logging import (
+    BrokenStdoutLoggingError, setup_logging, INDEX_MSG_ID,
+)
 from pip._internal.utils.misc import (
     get_prog, normalize_path, redact_password_from_url,
 )
@@ -134,6 +136,7 @@ class Command(object):
             verbosity=self.verbosity,
             no_color=options.no_color,
             user_log_file=options.log,
+            ignored_message_ids=options.ignored_message_ids,
         )
 
         if sys.version_info[:2] == (3, 4):
@@ -322,6 +325,7 @@ class RequirementCommand(Command):
             logger.debug(
                 'Ignoring indexes: %s',
                 ','.join(redact_password_from_url(url) for url in index_urls),
+                extra={'id': INDEX_MSG_ID},
             )
             index_urls = []
 
