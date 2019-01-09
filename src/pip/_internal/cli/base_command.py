@@ -27,7 +27,9 @@ from pip._internal.req.constructors import (
 )
 from pip._internal.req.req_file import parse_requirements
 from pip._internal.utils.logging import setup_logging
-from pip._internal.utils.misc import get_prog, normalize_path
+from pip._internal.utils.misc import (
+    get_prog, normalize_path, redact_password_from_url,
+)
 from pip._internal.utils.outdated import pip_version_check
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -287,7 +289,10 @@ class RequirementCommand(Command):
         """
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:
-            logger.debug('Ignoring indexes: %s', ','.join(index_urls))
+            logger.debug(
+                'Ignoring indexes: %s',
+                ','.join(redact_password_from_url(url) for url in index_urls),
+            )
             index_urls = []
 
         return PackageFinder(
