@@ -58,7 +58,7 @@ def test_git_dir_ignored(tmpdir):
 
     env = {'GIT_DIR': 'foo'}
     # If GIT_DIR is not ignored, then os.listdir() will return ['foo'].
-    Git().run_command(['init', repo_dir], cwd=repo_dir, extra_environ=env)
+    Git.run_command(['init', repo_dir], cwd=repo_dir, extra_environ=env)
     assert os.listdir(repo_dir) == ['.git']
 
 
@@ -70,13 +70,12 @@ def test_git_work_tree_ignored(tmpdir):
     repo_path.mkdir()
     repo_dir = str(repo_path)
 
-    git = Git()
-    git.run_command(['init', repo_dir], cwd=repo_dir)
+    Git.run_command(['init', repo_dir], cwd=repo_dir)
     # Choose a directory relative to the cwd that does not exist.
     # If GIT_WORK_TREE is not ignored, then the command will error out
     # with: "fatal: This operation must be run in a work tree".
     env = {'GIT_WORK_TREE': 'foo'}
-    git.run_command(['status', repo_dir], extra_environ=env, cwd=repo_dir)
+    Git.run_command(['status', repo_dir], extra_environ=env, cwd=repo_dir)
 
 
 def test_get_remote_url(script, tmpdir):
@@ -91,7 +90,7 @@ def test_get_remote_url(script, tmpdir):
     repo_dir = str(tmpdir / 'repo')
     script.run('git', 'clone', source_url, repo_dir, expect_stderr=True)
 
-    remote_url = Git().get_remote_url(repo_dir)
+    remote_url = Git.get_remote_url(repo_dir)
     assert remote_url == source_url
 
 
@@ -106,7 +105,7 @@ def test_get_remote_url__no_remote(script, tmpdir):
     script.run('git', 'init', cwd=repo_dir)
 
     with pytest.raises(RemoteNotFoundError):
-        Git().get_remote_url(repo_dir)
+        Git.get_remote_url(repo_dir)
 
 
 def test_get_current_branch(script):

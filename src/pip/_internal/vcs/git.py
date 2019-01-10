@@ -249,7 +249,8 @@ class Git(VersionControl):
         #: update submodules
         self.update_submodules(dest)
 
-    def get_remote_url(self, location):
+    @classmethod
+    def get_remote_url(cls, location):
         """
         Return URL of the first remote encountered.
 
@@ -258,7 +259,7 @@ class Git(VersionControl):
         """
         # We need to pass 1 for extra_ok_returncodes since the command
         # exits with return code 1 if there are no matching lines.
-        stdout = self.run_command(
+        stdout = cls.run_command(
             ['config', '--get-regexp', r'remote\..*\.url'],
             extra_ok_returncodes=(1, ), show_stdout=False, cwd=location,
         )
@@ -275,19 +276,21 @@ class Git(VersionControl):
         url = found_remote.split(' ')[1]
         return url.strip()
 
-    def get_revision(self, location, rev=None):
+    @classmethod
+    def get_revision(cls, location, rev=None):
         if rev is None:
             rev = 'HEAD'
-        current_rev = self.run_command(
+        current_rev = cls.run_command(
             ['rev-parse', rev], show_stdout=False, cwd=location,
         )
         return current_rev.strip()
 
-    def _get_subdirectory(self, location):
+    @classmethod
+    def _get_subdirectory(cls, location):
         """Return the relative path of setup.py to the git repo root."""
         # find the repo root
-        git_dir = self.run_command(['rev-parse', '--git-dir'],
-                                   show_stdout=False, cwd=location).strip()
+        git_dir = cls.run_command(['rev-parse', '--git-dir'],
+                                  show_stdout=False, cwd=location).strip()
         if not os.path.isabs(git_dir):
             git_dir = os.path.join(location, git_dir)
         root_dir = os.path.join(git_dir, '..')
@@ -310,12 +313,13 @@ class Git(VersionControl):
             return None
         return os.path.relpath(location, root_dir)
 
-    def get_src_requirement(self, location, project_name):
-        repo = self.get_remote_url(location)
+    @classmethod
+    def get_src_requirement(cls, location, project_name):
+        repo = cls.get_remote_url(location)
         if not repo.lower().startswith('git:'):
             repo = 'git+' + repo
-        current_rev = self.get_revision(location)
-        subdir = self._get_subdirectory(location)
+        current_rev = cls.get_revision(location)
+        subdir = cls._get_subdirectory(location)
         req = make_vcs_requirement_url(repo, current_rev, project_name,
                                        subdir=subdir)
 
@@ -351,10 +355,10 @@ class Git(VersionControl):
         if super(Git, cls).controls_location(location):
             return True
         try:
-            r = cls().run_command(['rev-parse'],
-                                  cwd=location,
-                                  show_stdout=False,
-                                  on_returncode='ignore')
+            r = cls.run_command(['rev-parse'],
+                                cwd=location,
+                                show_stdout=False,
+                                on_returncode='ignore')
             return not r
         except BadCommand:
             logger.debug("could not determine if %s is under git control "
