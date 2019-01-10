@@ -145,53 +145,6 @@ def search_packages_info(query):
         yield package
 
 
-def print_header_format(distributions, list_files=False, verbose=False):
-    """
-    Print the informations from installed distributions found.
-    """
-
-    results_printed = False
-    for i, dist in enumerate(distributions):
-        results_printed = True
-        if i > 0:
-            logger.info("---")
-
-        name = dist.get('name', '')
-        required_by = [
-            pkg.project_name for pkg in pkg_resources.working_set
-            if name in [required.name for required in pkg.requires()]
-        ]
-
-        logger.info("Name: %s", name)
-        logger.info("Version: %s", dist.get('version', ''))
-        logger.info("Summary: %s", dist.get('summary', ''))
-        logger.info("Home-page: %s", dist.get('home-page', ''))
-        logger.info("Author: %s", dist.get('author', ''))
-        logger.info("Author-email: %s", dist.get('author-email', ''))
-        logger.info("License: %s", dist.get('license', ''))
-        logger.info("Location: %s", dist.get('location', ''))
-        logger.info("Requires: %s", ', '.join(dist.get('requires', [])))
-        logger.info("Required-by: %s", ', '.join(required_by))
-
-        if verbose:
-            logger.info("Metadata-Version: %s",
-                        dist.get('metadata-version', ''))
-            logger.info("Installer: %s", dist.get('installer', ''))
-            logger.info("Classifiers:")
-            for classifier in dist.get('classifiers', []):
-                logger.info("  %s", classifier)
-            logger.info("Entry-points:")
-            for entry in dist.get('entry_points', []):
-                logger.info("  %s", entry.strip())
-        if list_files:
-            logger.info("Files:")
-            for line in dist.get('files', []):
-                logger.info("  %s", line.strip())
-            if "files" not in dist:
-                logger.info("Cannot locate installed-files.txt")
-    return results_printed
-
-
 # 2.7/3.x compatibility
 class ReadlineWrapper:
     def __init__(self, collection):
@@ -209,64 +162,108 @@ class ReadlineWrapper:
         return iter(self.collection)
 
 
+def get_package_info(dist, list_files, verbose):
+    """
+    Gather details from an installed distribution.
+    """
+    name = dist.get('name', '')
+    required_by = [
+        pkg.project_name for pkg in pkg_resources.working_set
+        if name in [required.name for required in pkg.requires()]
+    ]
+    info = [
+        ("Name", name),
+        ("Version", dist.get('version', '')),
+        ("Summary", dist.get('summary', '')),
+        ("HomePage", dist.get('home-page', '')),
+        ("Author", dist.get('author', '')),
+        ("AuthorEmail", dist.get('author-email', '')),
+        ("License", dist.get('license', '')),
+        ("Location", dist.get('location', '')),
+        ("Requires", ','.join(dist.get('requires', [])).split(',')),
+        ("RequiredBy", ','.join(required_by).split(','))
+    ]
+
+    if verbose:
+        classifiers = [str(classifier)
+                       for classifier in dist.get('classifiers', [])]
+
+        parser = configparser.ConfigParser()
+
+        entry_points_wrapper = ReadlineWrapper(
+            dist.get('entry_points', []))
+
+        parser.readfp(entry_points_wrapper)
+
+        entry_points = {section: dict(parser.items(section))
+                        for section in parser.sections()}
+        info.extend([
+            ("MetadataVersion", dist.get('metadata-version', '')),
+            ("Installer", dist.get('installer', '')),
+            ("Classifiers", classifiers),
+            ("EntryPoints", entry_points)
+        ])
+
+    if list_files:
+        if "files" not in dist:
+            info.extend([("Files",
+                          "Cannot locate installed-files.txt")])
+        else:
+            files = [str(line.strip()) for line in dist.get('files ', [])]
+            info.extend([("Files", files)])
+    return info
+
+
+def print_header_format(distributions, list_files=False, verbose=False):
+    """
+    Print the information from installed distributions found.
+    """
+    information = []
+    results_printed = False
+
+    for dist in distributions:
+        results_printed = True
+
+        package_info = get_package_info(dist, list_files, verbose)
+
+        information.append(OrderedDict(package_info))
+
+    for package in information:
+        for key, value in package.items():
+            if key == 'Classifiers':
+                logger.info("%s:", key)
+                for classifier in value:
+                    logger.info("  %s", classifier)
+            elif key == 'EntryPoints':
+                logger.info("%s:", key)
+                for entry_point, entry_point_info in value.items():
+                    logger.info("  [%s]", entry_point)
+                    for x, y in entry_point_info.items():
+                        logger.info("  %s = %s", x, y)
+            elif isinstance(value, list):
+                logger.info("%s: %s", key, ", ".join(value))
+            else:
+                logger.info("%s: %s", key, value)
+        if information.index(package) < (len(information) - 1):
+            logger.info("---")
+
+    return results_printed
+
+
 def print_json(distributions, list_files=False, verbose=False):
     """
     Print in JSON format the information from installed distributions found.
     """
-    all_results = []
-
+    information = []
     results_printed = False
-    for i, dist in enumerate(distributions):
+
+    for dist in distributions:
         results_printed = True
 
-        name = dist.get('name', '')
-        required_by = [
-            pkg.project_name for pkg in pkg_resources.working_set
-            if name in [required.name for required in pkg.requires()]
-        ]
+        package_info = get_package_info(dist, list_files, verbose)
 
-        results = [
-            ("Name", name),
-            ("Version", dist.get('version', '')),
-            ("Summary", dist.get('summary', '')),
-            ("HomePage", dist.get('home-page', '')),
-            ("Author", dist.get('author', '')),
-            ("AuthorEmail", dist.get('author-email', '')),
-            ("License", dist.get('license', '')),
-            ("Location", dist.get('location', '')),
-            ("Requires", ','.join(dist.get('requires', [])).split(',')),
-            ("RequiredBy", ','.join(required_by).split(','))
-        ]
+        information.append(OrderedDict(package_info))
 
-        if verbose:
-            classifiers = [str(classifier)
-                           for classifier in dist.get('classifiers', [])]
-
-            parser = configparser.ConfigParser()
-
-            entry_points_wrapper = ReadlineWrapper(
-                dist.get('entry_points', []))
-
-            parser.readfp(entry_points_wrapper)
-
-            entry_points = {section: dict(parser.items(section))
-                            for section in parser.sections()}
-            results.extend([
-                ("MetadataVersion", dist.get('metadata-version', '')),
-                ("Installer", dist.get('installer', '')),
-                ("Classifiers", classifiers),
-                ("EntryPoints", entry_points)
-            ])
-
-        if list_files:
-            files = [str(line.strip()) for line in dist.get('files ', [])]
-
-            results.extend([("Files", files)])
-            if "files" not in dist:
-                results.extend([("Files",
-                                 "Cannot locate installed-files.txt")])
-
-        all_results.append(OrderedDict(results))
-    logger.info(json.dumps(all_results, indent=4))
+    logger.info(json.dumps(information, indent=4))
 
     return results_printed

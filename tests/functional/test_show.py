@@ -30,13 +30,13 @@ def test_show_with_files_not_found(script, data):
     script.pip('install', '-e', editable)
     result = script.pip('show', '-f', 'SetupPyUTF8')
     lines = result.stdout.splitlines()
-    assert len(lines) == 12
+    assert len(lines) == 11
     assert 'Name: SetupPyUTF8' in lines
     assert 'Version: 0.0.0' in lines
     assert any(line.startswith('Location: ') for line in lines)
     assert 'Requires: ' in lines
-    assert 'Files:' in lines
-    assert 'Cannot locate installed-files.txt' in lines
+    assert re.search(r"Files:", result.stdout)
+    assert re.search(r"Cannot locate installed-files.txt", result.stdout)
 
 
 def test_show_with_files_from_wheel(script, data):
@@ -49,7 +49,7 @@ def test_show_with_files_from_wheel(script, data):
     lines = result.stdout.splitlines()
     assert 'Name: simple.dist' in lines
     assert 'Cannot locate installed-files.txt' not in lines[6], lines[6]
-    assert re.search(r"Files:\n(  .+\n)+", result.stdout)
+    assert re.search(r"Files: ", result.stdout)
 
 
 @pytest.mark.network
@@ -61,7 +61,7 @@ def test_show_with_all_files(script):
     result = script.pip('show', '--files', 'initools')
     lines = result.stdout.splitlines()
     assert 'Cannot locate installed-files.txt' not in lines[6], lines[6]
-    assert re.search(r"Files:\n(  .+\n)+", result.stdout)
+    assert re.search(r"Files: ", result.stdout)
 
 
 def test_basic_json_show(script):
@@ -171,9 +171,9 @@ def test_show_verbose(script):
     """
     result = script.pip('show', '--verbose', 'pip')
     lines = result.stdout.splitlines()
-    assert any(line.startswith('Metadata-Version: ') for line in lines)
+    assert any(line.startswith('MetadataVersion: ') for line in lines)
     assert any(line.startswith('Installer: ') for line in lines)
-    assert 'Entry-points:' in lines
+    assert 'EntryPoints:' in lines
     assert 'Classifiers:' in lines
 
 
@@ -196,9 +196,9 @@ def test_all_fields(script):
     """
     result = script.pip('show', 'pip')
     lines = result.stdout.splitlines()
-    expected = {'Name', 'Version', 'Summary', 'Home-page', 'Author',
-                'Author-email', 'License', 'Location', 'Requires',
-                'Required-by'}
+    expected = {'Name', 'Version', 'Summary', 'HomePage', 'Author',
+                'AuthorEmail', 'License', 'Location', 'Requires',
+                'RequiredBy'}
     actual = {re.sub(':.*$', '', line) for line in lines}
     assert actual == expected
 
@@ -247,4 +247,4 @@ def test_show_required_by_packages(script, data):
     lines = result.stdout.splitlines()
 
     assert 'Name: simple' in lines
-    assert 'Required-by: requires-simple' in lines
+    assert 'RequiredBy: requires-simple' in lines
