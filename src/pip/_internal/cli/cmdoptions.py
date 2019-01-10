@@ -272,6 +272,16 @@ ignore_messages = partial(
     help="Ignore some logging message based on their internal ids",
 )
 
+show_message_ids = partial(
+    Option,
+    '--show-message-ids',
+    dest='show_message_ids',
+    action='store_true',
+    default=False,
+    help="Prefix all logging messages with their internal ids",
+)
+
+
 
 def exists_action():
     # type: () -> Option
@@ -806,6 +816,7 @@ general_group = {
         disable_pip_version_check,
         no_color,
         ignore_messages,
+        show_message_ids,
     ]
 }  # type: Dict[str, Any]
 

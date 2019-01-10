@@ -137,6 +137,7 @@ class Command(object):
             no_color=options.no_color,
             user_log_file=options.log,
             ignored_message_ids=options.ignored_message_ids,
+            show_message_ids=options.show_message_ids,
         )
 
         if sys.version_info[:2] == (3, 4):

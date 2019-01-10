@@ -25,6 +25,7 @@ try:
 except Exception:
     colorama = None
 
+DEFAULT_MSG_ID = 'default'
 INDEX_MSG_ID = 'index'
 BUILD_MSG_ID = 'build'
 
@@ -103,6 +104,10 @@ class IndentingFormatter(logging.Formatter):
         self.add_timestamp = kwargs.pop("add_timestamp", False)
         super(IndentingFormatter, self).__init__(*args, **kwargs)
 
+    def __init__(self, *args, **kwargs):
+        self.show_message_ids = kwargs.pop('show_message_ids', False)
+        super(IndentingFormatter, self).__init__( *args, **kwargs)
+
     def format(self, record):
         """
         Calls the standard formatter, but will indent all of the log messages
@@ -112,6 +117,10 @@ class IndentingFormatter(logging.Formatter):
         prefix = ''
         if self.add_timestamp:
             prefix = self.formatTime(record, "%Y-%m-%dT%H:%M:%S ")
+        if self.show_message_ids:
+            msg_id = getattr(record, 'id', DEFAULT_MSG_ID)
+            # 7 is the longest of our message ids
+            prefix += 'message_id={:<7}'.format(msg_id)
         prefix += " " * get_indentation()
         formatted = "".join([
             prefix + line
@@ -223,13 +232,14 @@ class IgnoreMessageFilter(logging.Filter):
         self.ignored_message_ids = ignored_message_ids
 
     def filter(self, record):
-        record_id = getattr(record, 'id', None)
+        record_id = getattr(record, 'id', DEFAULT_MSG_ID)
         if not record_id:
             return True
         return record_id not in self.ignored_message_ids
 
 
-def setup_logging(verbosity, no_color, user_log_file, ignored_message_ids):
+def setup_logging(
+        verbosity, no_color, user_log_file, ignored_message_ids, show_message_ids):
     """Configures and sets up all of the logging
 
     Returns the requested logging level, as its integer value.
@@ -289,7 +299,8 @@ def setup_logging(verbosity, no_color, user_log_file, ignored_message_ids):
         "formatters": {
             "indent": {
                 "()": IndentingFormatter,
-                "format": "%(message)s",
+                "fmt": "%(message)s",
+                "show_message_ids": show_message_ids,
             },
             "indent_with_timestamp": {
                 "()": IndentingFormatter,
