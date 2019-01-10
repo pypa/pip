@@ -209,6 +209,33 @@ class VersionControl(object):
         """
         return cls.get_revision(repo_dir)
 
+    @classmethod
+    def get_src_requirement(cls, repo_dir, project_name):
+        """
+        Return the requirement string to use to redownload the files
+        currently at the given repository directory.
+
+        Args:
+          project_name: the (unescaped) project name.
+
+        The return value has a form similar to the following:
+
+            {repository_url}@{revision}#egg={project_name}
+        """
+        repo_url = cls.get_remote_url(repo_dir)
+        if repo_url is None:
+            return None
+
+        if cls.should_add_vcs_url_prefix(repo_url):
+            repo_url = '{}+{}'.format(cls.name, repo_url)
+
+        revision = cls.get_requirement_revision(repo_dir)
+        subdir = cls.get_subdirectory(repo_dir)
+        req = make_vcs_requirement_url(repo_url, revision, project_name,
+                                       subdir=subdir)
+
+        return req
+
     def __init__(self, url=None, *args, **kwargs):
         self.url = url
         super(VersionControl, self).__init__(*args, **kwargs)
@@ -467,33 +494,6 @@ class VersionControl(object):
         if os.path.exists(location):
             rmtree(location)
         self.obtain(location)
-
-    @classmethod
-    def get_src_requirement(cls, repo_dir, project_name):
-        """
-        Return the requirement string to use to redownload the files
-        currently at the given repository directory.
-
-        Args:
-          project_name: the (unescaped) project name.
-
-        The return value has a form similar to the following:
-
-            {repository_url}@{revision}#egg={project_name}
-        """
-        repo_url = cls.get_remote_url(repo_dir)
-        if repo_url is None:
-            return None
-
-        if cls.should_add_vcs_url_prefix(repo_url):
-            repo_url = '{}+{}'.format(cls.name, repo_url)
-
-        revision = cls.get_requirement_revision(repo_dir)
-        subdir = cls.get_subdirectory(repo_dir)
-        req = make_vcs_requirement_url(repo_url, revision, project_name,
-                                       subdir=subdir)
-
-        return req
 
     @classmethod
     def get_remote_url(cls, location):
