@@ -131,7 +131,7 @@ def test_freeze_editable_not_vcs(script, tmpdir):
     # We need to apply os.path.normcase() to the path since that is what
     # the freeze code does.
     expected = textwrap.dedent("""\
-    ...# Editable, no version control detected (version-pkg==0.1)
+    ...# Editable install with no version control (version-pkg==0.1)
     -e {}
     ...""".format(os.path.normcase(pkg_path)))
     _check_output(result.stdout, expected)

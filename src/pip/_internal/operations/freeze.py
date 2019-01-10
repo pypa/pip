@@ -182,7 +182,7 @@ def get_requirement_info(dist):
             location,
         )
         comments = [
-            '# Editable, no version control detected ({})'.format(req)
+            '# Editable install with no version control ({})'.format(req)
         ]
         return (location, True, comments)
 
