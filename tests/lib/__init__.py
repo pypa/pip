@@ -323,6 +323,10 @@ class PipTestEnvironment(TestFileEnvironment):
         environ["PYTHONIOENCODING"] = "UTF-8"
         kwargs["environ"] = environ
 
+        # Whether all pip invocations should expect stderr
+        # (useful for Python version deprecation)
+        self.pip_expect_stderr = kwargs.pop('pip_expect_stderr', None)
+
         # Call the TestFileEnvironment __init__
         super(PipTestEnvironment, self).__init__(base_path, *args, **kwargs)
 
@@ -375,6 +379,8 @@ class PipTestEnvironment(TestFileEnvironment):
         )
 
     def pip(self, *args, **kwargs):
+        if self.pip_expect_stderr:
+            kwargs['expect_stderr'] = True
         # On old versions of Python, urllib3/requests will raise a warning
         # about the lack of an SSLContext. Expect it when running commands
         # that will touch the outside world.
