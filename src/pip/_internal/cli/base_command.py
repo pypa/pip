@@ -26,6 +26,7 @@ from pip._internal.req.constructors import (
     install_req_from_editable, install_req_from_line,
 )
 from pip._internal.req.req_file import parse_requirements
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.logging import setup_logging
 from pip._internal.utils.misc import (
     get_prog, normalize_path, redact_password_from_url,
@@ -133,6 +134,15 @@ class Command(object):
             no_color=options.no_color,
             user_log_file=options.log,
         )
+
+        if sys.version_info[:2] == (3, 4):
+            deprecated(
+                "Python 3.4 support has been deprecated. pip 19.1 will be the "
+                "last one supporting it. Please upgrade your Python as Python "
+                "3.4 won't be maintained after March 2019 (cf PEP 429).",
+                replacement=None,
+                gone_in='19.2',
+            )
 
         # TODO: Try to get these passing down from the command?
         #       without resorting to os.environ to hold these.
