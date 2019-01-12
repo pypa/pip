@@ -173,12 +173,6 @@ class RequirementSet(object):
             return True
         return False
 
-    @property
-    def has_requirements(self):
-        # type: () -> List[InstallRequirement]
-        return list(req for req in self.requirements.values() if not
-                    req.constraint) or self.unnamed_requirements
-
     def get_requirement(self, project_name):
         # type: (str) -> InstallRequirement
         for name in project_name, project_name.lower():
