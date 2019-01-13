@@ -555,7 +555,10 @@ def no_cache_dir_callback(option, opt, value, parser):
     # environment variable, like PIP_NO_CACHE_DIR=true.
     if value is not None:
         # Then parse the string value to get argument error-checking.
-        strtobool(value)
+        try:
+            strtobool(value)
+        except ValueError as exc:
+            raise_option_error(parser, option=option, msg=str(exc))
 
     # Originally, setting PIP_NO_CACHE_DIR to a value that strtobool()
     # converted to 0 (like "false" or "no") caused cache_dir to be disabled

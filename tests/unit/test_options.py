@@ -27,17 +27,6 @@ def temp_environment_variable(name, value):
 
 
 @contextmanager
-def assert_raises_message(exc_class, expected):
-    """
-    Assert that an exception with the given type and message is raised.
-    """
-    with pytest.raises(exc_class) as excinfo:
-        yield
-
-    assert str(excinfo.value) == expected
-
-
-@contextmanager
 def assert_option_error(capsys, expected):
     """
     Assert that a SystemExit occurred because of a parsing error.
@@ -181,13 +170,16 @@ class TestOptionPrecedence(AddFakeCommandMixin):
         # value in this case).
         assert options.cache_dir is False
 
-    def test_cache_dir__PIP_NO_CACHE_DIR_invalid__with_no_cache_dir(self):
+    def test_cache_dir__PIP_NO_CACHE_DIR_invalid__with_no_cache_dir(
+            self, capsys,
+    ):
         """
         Test setting PIP_NO_CACHE_DIR to an invalid value while also passing
         --no-cache-dir.
         """
         os.environ['PIP_NO_CACHE_DIR'] = 'maybe'
-        with assert_raises_message(ValueError, "invalid truth value 'maybe'"):
+        expected_err = "--no-cache-dir error: invalid truth value 'maybe'"
+        with assert_option_error(capsys, expected=expected_err):
             main(['--no-cache-dir', 'fake'])
 
 
