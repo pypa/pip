@@ -277,7 +277,7 @@ def with_wheel(virtualenv, wheel_install):
 
 
 @pytest.fixture
-def script(tmpdir, virtualenv):
+def script(tmpdir, virtualenv, deprecated_python):
     """
     Return a PipTestEnvironment which is unique to each test function and
     will execute all commands inside of the unique virtual environment for this
@@ -301,6 +301,9 @@ def script(tmpdir, virtualenv):
         # PipTestEnvironment needs to capture and assert against temp
         capture_temp=True,
         assert_no_temp=True,
+
+        # Deprecated python versions produce an extra deprecation warning
+        pip_expect_stderr=deprecated_python,
     )
 
 
@@ -341,3 +344,9 @@ class InMemoryPip(object):
 @pytest.fixture
 def in_memory_pip():
     return InMemoryPip()
+
+
+@pytest.fixture
+def deprecated_python():
+    """Used to indicate wheither pip deprecated this python version"""
+    return sys.version_info[:2] == (3, 4)

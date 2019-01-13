@@ -283,10 +283,10 @@ def test_completion_path_after_option(script, data):
 
 
 @pytest.mark.parametrize('flag', ['--bash', '--zsh', '--fish'])
-def test_completion_uses_same_executable_name(script, flag):
-    expect_stderr = sys.version_info[:2] == (3, 3)
+def test_completion_uses_same_executable_name(script, flag, deprecated_python):
     executable_name = 'pip{}'.format(sys.version_info[0])
+    # Deprecated python versions produce an extra deprecation warning
     result = script.run(
-        executable_name, 'completion', flag, expect_stderr=expect_stderr
+        executable_name, 'completion', flag, expect_stderr=deprecated_python,
     )
     assert executable_name in result.stdout

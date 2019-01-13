@@ -138,7 +138,7 @@ def test_freeze_editable_not_vcs(script, tmpdir):
 
 
 @pytest.mark.git
-def test_freeze_editable_git_with_no_remote(script, tmpdir):
+def test_freeze_editable_git_with_no_remote(script, tmpdir, deprecated_python):
     """
     Test an editable Git install with no remote url.
     """
@@ -146,7 +146,8 @@ def test_freeze_editable_git_with_no_remote(script, tmpdir):
     script.pip('install', '-e', pkg_path)
     result = script.pip('freeze')
 
-    assert result.stderr == ''
+    if not deprecated_python:
+        assert result.stderr == ''
 
     # We need to apply os.path.normcase() to the path since that is what
     # the freeze code does.
@@ -460,7 +461,8 @@ _freeze_req_opts = textwrap.dedent("""\
 """)
 
 
-def test_freeze_with_requirement_option_file_url_egg_not_installed(script):
+def test_freeze_with_requirement_option_file_url_egg_not_installed(
+        script, deprecated_python):
     """
     Test "freeze -r requirements.txt" with a local file URL whose egg name
     is not installed.
@@ -477,7 +479,10 @@ def test_freeze_with_requirement_option_file_url_egg_not_installed(script):
         'Requirement file [requirements.txt] contains {}, but package '
         "'Does.Not-Exist' is not installed\n"
     ).format(url)
-    assert result.stderr == expected_err
+    if deprecated_python:
+        assert expected_err in result.stderr
+    else:
+        assert expected_err == result.stderr
 
 
 def test_freeze_with_requirement_option(script):
