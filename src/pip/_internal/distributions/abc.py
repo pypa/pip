@@ -1,6 +1,5 @@
 class AbstractDistribution(object):
-    """A base class that abstracts information about
-
+    """A base class for handling installable artifacts.
 
     The requirements for anything installable are as follows:
 
