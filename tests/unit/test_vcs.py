@@ -79,6 +79,18 @@ def test_looks_like_hash():
     assert not looks_like_hash(39 * 'a')
 
 
+@pytest.mark.parametrize('vcs_cls, remote_url, expected', [
+    # Git is one of the subclasses using the base class implementation.
+    (Git, 'git://example.com/MyProject', False),
+    (Git, 'http://example.com/MyProject', True),
+    # Subversion is the only subclass overriding the base class implementation.
+    (Subversion, 'svn://example.com/MyProject', True),
+])
+def test_should_add_vcs_url_prefix(vcs_cls, remote_url, expected):
+    actual = vcs_cls.should_add_vcs_url_prefix(remote_url)
+    assert actual == expected
+
+
 @patch('pip._internal.vcs.git.Git.get_revision')
 @patch('pip._internal.vcs.git.Git.get_remote_url')
 @pytest.mark.network

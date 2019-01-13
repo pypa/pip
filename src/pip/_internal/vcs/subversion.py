@@ -6,7 +6,7 @@ import re
 
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
-    display_path, make_vcs_requirement_url, rmtree, split_auth_from_netloc,
+    display_path, rmtree, split_auth_from_netloc,
 )
 from pip._internal.vcs import VersionControl, vcs
 
@@ -24,6 +24,10 @@ class Subversion(VersionControl):
     dirname = '.svn'
     repo_name = 'checkout'
     schemes = ('svn', 'svn+ssh', 'svn+http', 'svn+https', 'svn+svn')
+
+    @classmethod
+    def should_add_vcs_url_prefix(cls, remote_url):
+        return True
 
     def get_base_rev_args(self, rev):
         return ['-r', rev]
@@ -182,15 +186,6 @@ class Subversion(VersionControl):
             rev = 0
 
         return url, rev
-
-    @classmethod
-    def get_src_requirement(cls, location, project_name):
-        repo = cls.get_remote_url(location)
-        if repo is None:
-            return None
-        repo = 'svn+' + repo
-        rev = cls.get_revision(location)
-        return make_vcs_requirement_url(repo, rev, project_name)
 
     def is_commit_id_equal(self, dest, name):
         """Always assume the versions don't match"""
