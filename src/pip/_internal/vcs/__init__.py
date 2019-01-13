@@ -7,12 +7,12 @@ import os
 import shutil
 import sys
 
+from pip._vendor import pkg_resources
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip._internal.exceptions import BadCommand
 from pip._internal.utils.misc import (
-    ask_path_exists, backup_dir, call_subprocess, display_path,
-    make_vcs_requirement_url, rmtree,
+    ask_path_exists, backup_dir, call_subprocess, display_path, rmtree,
 )
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -28,6 +28,22 @@ __all__ = ['vcs']
 
 
 logger = logging.getLogger(__name__)
+
+
+def make_vcs_requirement_url(repo_url, rev, project_name, subdir=None):
+    """
+    Return the URL for a VCS requirement.
+
+    Args:
+      repo_url: the remote VCS url, with any needed VCS prefix (e.g. "git+").
+      project_name: the (unescaped) project name.
+    """
+    egg_project_name = pkg_resources.to_filename(project_name)
+    req = '{}@{}#egg={}'.format(repo_url, rev, egg_project_name)
+    if subdir:
+        req += '&subdirectory={}'.format(subdir)
+
+    return req
 
 
 class RemoteNotFoundError(Exception):

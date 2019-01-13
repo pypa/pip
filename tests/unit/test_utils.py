@@ -25,10 +25,9 @@ from pip._internal.utils.glibc import check_glibc_version
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.misc import (
     call_subprocess, egg_link_path, ensure_dir, format_command_args,
-    get_installed_distributions, get_prog, make_vcs_requirement_url,
-    normalize_path, redact_netloc, redact_password_from_url,
-    remove_auth_from_url, rmtree, split_auth_from_netloc, untar_file,
-    unzip_file,
+    get_installed_distributions, get_prog, normalize_path, redact_netloc,
+    redact_password_from_url, remove_auth_from_url, rmtree,
+    split_auth_from_netloc, untar_file, unzip_file,
 )
 from pip._internal.utils.packaging import check_dist_requires_python
 from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
@@ -756,25 +755,6 @@ def test_call_subprocess_closes_stdin():
             [sys.executable, '-c', 'input()'],
             show_stdout=True,
         )
-
-
-@pytest.mark.parametrize('args, expected', [
-    # Test without subdir.
-    (('git+https://example.com/pkg', 'dev', 'myproj'),
-     'git+https://example.com/pkg@dev#egg=myproj'),
-    # Test with subdir.
-    (('git+https://example.com/pkg', 'dev', 'myproj', 'sub/dir'),
-     'git+https://example.com/pkg@dev#egg=myproj&subdirectory=sub/dir'),
-    # Test with None subdir.
-    (('git+https://example.com/pkg', 'dev', 'myproj', None),
-     'git+https://example.com/pkg@dev#egg=myproj'),
-    # Test an unescaped project name.
-    (('git+https://example.com/pkg', 'dev', 'zope-interface'),
-     'git+https://example.com/pkg@dev#egg=zope_interface'),
-])
-def test_make_vcs_requirement_url(args, expected):
-    actual = make_vcs_requirement_url(*args)
-    assert actual == expected
 
 
 @pytest.mark.parametrize('netloc, expected', [

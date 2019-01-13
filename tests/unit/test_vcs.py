@@ -2,7 +2,9 @@ import pytest
 from mock import patch
 from pip._vendor.packaging.version import parse as parse_version
 
-from pip._internal.vcs import RevOptions, VersionControl
+from pip._internal.vcs import (
+    RevOptions, VersionControl, make_vcs_requirement_url,
+)
 from pip._internal.vcs.bazaar import Bazaar
 from pip._internal.vcs.git import Git, looks_like_hash
 from pip._internal.vcs.mercurial import Mercurial
@@ -13,6 +15,25 @@ if pyversion >= '3':
     VERBOSE_FALSE = False
 else:
     VERBOSE_FALSE = 0
+
+
+@pytest.mark.parametrize('args, expected', [
+    # Test without subdir.
+    (('git+https://example.com/pkg', 'dev', 'myproj'),
+     'git+https://example.com/pkg@dev#egg=myproj'),
+    # Test with subdir.
+    (('git+https://example.com/pkg', 'dev', 'myproj', 'sub/dir'),
+     'git+https://example.com/pkg@dev#egg=myproj&subdirectory=sub/dir'),
+    # Test with None subdir.
+    (('git+https://example.com/pkg', 'dev', 'myproj', None),
+     'git+https://example.com/pkg@dev#egg=myproj'),
+    # Test an unescaped project name.
+    (('git+https://example.com/pkg', 'dev', 'zope-interface'),
+     'git+https://example.com/pkg@dev#egg=zope_interface'),
+])
+def test_make_vcs_requirement_url(args, expected):
+    actual = make_vcs_requirement_url(*args)
+    assert actual == expected
 
 
 def test_rev_options_repr():
