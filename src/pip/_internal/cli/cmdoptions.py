@@ -9,6 +9,7 @@ pass on state. To be consistent, all options will follow this design.
 """
 from __future__ import absolute_import
 
+import textwrap
 import warnings
 from distutils.util import strtobool
 from functools import partial
@@ -26,6 +27,20 @@ if MYPY_CHECK_RUNNING:
     from typing import Any, Callable, Dict, List, Optional, Union  # noqa: F401
     from optparse import OptionParser, Values  # noqa: F401
     from pip._internal.cli.parser import ConfigOptionParser  # noqa: F401
+
+
+def raise_option_error(parser, option, msg):
+    """
+    Raise an option parsing error using parser.error().
+
+    Args:
+      parser: an OptionParser instance.
+      option: an Option instance.
+      msg: the error text.
+    """
+    msg = '{} error: {}'.format(option, msg)
+    msg = textwrap.fill(' '.join(msg.split()))
+    parser.error(msg)
 
 
 def make_option_group(group, parser):
@@ -601,6 +616,30 @@ no_build_isolation = partial(
          'if this option is used.'
 )  # type: Callable[..., Option]
 
+
+def no_use_pep517_callback(option, opt, value, parser):
+    """
+    Process a value provided for the --no-use-pep517 option.
+
+    This is an optparse.Option callback for the no_use_pep517 option.
+    """
+    # Since --no-use-pep517 doesn't accept arguments, the value argument
+    # will be None if --no-use-pep517 is passed via the command-line.
+    # However, the value can be non-None if the option is triggered e.g.
+    # by an environment variable, for example "PIP_NO_USE_PEP517=true".
+    if value is not None:
+        msg = """A value was passed for --no-use-pep517,
+        probably using either the PIP_NO_USE_PEP517 environment variable
+        or the "no-use-pep517" config file option. Use an appropriate value
+        of the PIP_USE_PEP517 environment variable or the "use-pep517"
+        config file option instead.
+        """
+        raise_option_error(parser, option=option, msg=msg)
+
+    # Otherwise, --no-use-pep517 was passed via the command-line.
+    parser.values.use_pep517 = False
+
+
 use_pep517 = partial(
     Option,
     '--use-pep517',
@@ -615,7 +654,8 @@ no_use_pep517 = partial(
     Option,
     '--no-use-pep517',
     dest='use_pep517',
-    action='store_false',
+    action='callback',
+    callback=no_use_pep517_callback,
     default=None,
     help=SUPPRESS_HELP
 )  # type: Any
