@@ -1,10 +1,6 @@
 import subprocess
 import sys
 
-import pytest
-
-from pip._internal.utils.compat import WINDOWS
-
 if sys.version_info < (3, 6):
     _BROKEN_STDOUT_RETURN_CODE = 1
 else:
@@ -19,7 +15,6 @@ def setup_broken_stdout_test(args, deprecated_python):
     )
     # Call close() on stdout to cause a broken pipe.
     proc.stdout.close()
-    # This line causes a timeout on Windows.
     returncode = proc.wait()
     stderr = proc.stderr.read().decode('utf-8')
 
@@ -32,7 +27,6 @@ def setup_broken_stdout_test(args, deprecated_python):
     return stderr, returncode
 
 
-@pytest.mark.skipif(WINDOWS, reason="test times out on Windows")
 def test_broken_stdout_pipe(deprecated_python):
     """
     Test a broken pipe to stdout.
@@ -48,7 +42,6 @@ def test_broken_stdout_pipe(deprecated_python):
     assert returncode == _BROKEN_STDOUT_RETURN_CODE
 
 
-@pytest.mark.skipif(WINDOWS, reason="test times out on Windows")
 def test_broken_stdout_pipe__verbose(deprecated_python):
     """
     Test a broken pipe to stdout with verbose logging enabled.
