@@ -1,6 +1,5 @@
 import errno
 import logging
-import sys
 
 import pytest
 from mock import patch
@@ -17,10 +16,10 @@ logger = logging.getLogger(__name__)
 # This is a Python 2/3 compatibility helper.
 def _make_broken_pipe_error():
     """
-    Return an exception object for a broken pipe.
+    Return an exception object corresponding to a broken pipe.
     """
-    if sys.version_info[0] == 2:
-        # This is how BrokenPipeError shows up in Python 2.
+    if PY2:
+        # This is how BrokenPipeError shows up in (non-Windows) Python 2.
         return IOError(errno.EPIPE, 'Broken pipe')
 
     return BrokenPipeError()  # noqa: F821

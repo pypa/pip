@@ -1,10 +1,8 @@
 import subprocess
 import sys
 
-import pytest
-
-from pip._internal.utils.compat import WINDOWS
-
+# import pytest
+# from pip._internal.utils.compat import WINDOWS
 if sys.version_info < (3, 6):
     _BROKEN_STDOUT_RETURN_CODE = 1
 else:
@@ -31,7 +29,7 @@ def setup_broken_stdout_test(args):
     return stderr, returncode
 
 
-@pytest.mark.skipif(WINDOWS, reason="test times out on Windows")
+# @pytest.mark.skipif(WINDOWS, reason="test times out on Windows")
 def test_broken_stdout_pipe():
     """
     Test a broken pipe to stdout.
@@ -45,7 +43,7 @@ def test_broken_stdout_pipe():
     assert returncode == _BROKEN_STDOUT_RETURN_CODE
 
 
-@pytest.mark.skipif(WINDOWS, reason="test times out on Windows")
+# @pytest.mark.skipif(WINDOWS, reason="test times out on Windows")
 def test_broken_stdout_pipe__verbose():
     """
     Test a broken pipe to stdout with verbose logging enabled.

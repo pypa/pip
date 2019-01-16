@@ -37,8 +37,27 @@ class BrokenStdoutLoggingError(Exception):
     pass
 
 
-if PY2:
-    # BrokenPipeError does not exist in Python 2.
+# BrokenPipeError does not exist in Python 2 and in addition manifests
+# differently in Windows and non-Windows.
+if WINDOWS:
+    # In Windows, a broken pipe can show up as EINVAL rather than EPIPE:
+    # https://bugs.python.org/issue19612
+    # https://bugs.python.org/issue30418
+    if PY2:
+        def _is_broken_pipe_error(exc_class, exc):
+            return (exc_class is IOError and
+                    exc.errno in (errno.EINVAL, errno.EPIPE))
+    else:
+        # In Windows, a broken pipe IOError became OSError in Python 3.
+        def _is_broken_pipe_error(exc_class, exc):
+            return ((exc_class is BrokenPipeError) or  # noqa: F821
+                    (exc_class is OSError and
+                     exc.errno in (errno.EINVAL, errno.EPIPE)))
+elif PY2:
+    def _is_broken_pipe_error(exc_class, exc):
+        return (exc_class is IOError and exc.errno == errno.EPIPE)
+else:
+    # Then we are handling Python 3 (non-Windows case).
     def _is_broken_pipe_error(exc_class, exc):
         """
         Return whether an exception is a broken pipe error.
@@ -47,10 +66,6 @@ if PY2:
           exc_class: an exception class.
           exc: an exception instance.
         """
-        return (exc_class is IOError and exc.errno == errno.EPIPE)
-
-else:
-    def _is_broken_pipe_error(exc_class, exc):
         return (exc_class is BrokenPipeError)  # noqa: F821
 
 
