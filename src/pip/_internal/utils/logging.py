@@ -59,7 +59,8 @@ class IndentingFormatter(logging.Formatter):
         by our current indentation level.
         """
         formatted = logging.Formatter.format(self, record)
-        timestamp_prefix = self.timestamper.format(record) if self.timestamper else ''
+        timestamp_prefix = (self.timestamper.format(record) if self.timestamper
+                            else '')
         formatted = "".join([
             timestamp_prefix + (" " * get_indentation()) + line
             for line in formatted.splitlines(True)
