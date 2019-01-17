@@ -8,14 +8,9 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 from pip._internal.vcs import bazaar, git, mercurial, subversion
 from tests.lib import path_to_url
 
-if hasattr(subprocess, "check_call"):
-    subprocess_call = subprocess.check_call
-else:
-    subprocess_call = subprocess.call
-
 
 def _create_initools_repository(directory):
-    subprocess_call('svnadmin create INITools'.split(), cwd=directory)
+    subprocess.check_call('svnadmin create INITools'.split(), cwd=directory)
 
 
 def _dump_initools_repository(directory):
@@ -26,7 +21,7 @@ def _dump_initools_repository(directory):
     initools_folder = os.path.join(directory, 'INITools')
     devnull = open(os.devnull, 'w')
     dump = open(filename)
-    subprocess_call(
+    subprocess.check_call(
         ['svnadmin', 'load', initools_folder],
         stdin=dump,
         stdout=devnull,
