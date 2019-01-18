@@ -4,6 +4,7 @@ import time
 
 from pip._internal.utils.logging import IndentingFormatter
 
+
 class Test_IndentingFormatter(object):
     """
     Test `pip._internal.utils.logging.IndentingFormatter`
@@ -13,7 +14,7 @@ class Test_IndentingFormatter(object):
         self.old_tz = getattr(os.environ, 'TZ', None)
         os.environ['TZ'] = 'UTC'
         if 'tzset' in dir(time):
-          time.tzset()
+            time.tzset()
 
     def teardown(self):
         if self.old_tz:
@@ -21,7 +22,7 @@ class Test_IndentingFormatter(object):
         else:
             del os.environ['TZ']
         if 'tzset' in dir(time):
-          time.tzset()
+            time.tzset()
 
     def test_formatter_with_timestamp(self, tmpdir):
         record = logging.makeLogRecord(dict(
@@ -29,7 +30,8 @@ class Test_IndentingFormatter(object):
             msg='hello\nworld',
         ))
         f = IndentingFormatter(fmt="%(message)s", timestamp=True)
-        assert f.format(record) == '2019-01-17T06:00:37 hello\n2019-01-17T06:00:37 world'
+        assert (f.format(record) ==
+                '2019-01-17T06:00:37 hello\n2019-01-17T06:00:37 world')
 
     def test_formatter_without_timestamp(self, tmpdir):
         record = logging.makeLogRecord(dict(

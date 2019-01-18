@@ -1,5 +1,4 @@
 import logging
-import re
 import os
 import time
 
@@ -47,7 +46,7 @@ class Test_base_command_logging(object):
         self.old_tz = getattr(os.environ, 'TZ', None)
         os.environ['TZ'] = 'UTC'
         if 'tzset' in dir(time):
-          time.tzset()
+            time.tzset()
 
     def teardown(self):
         if self.old_tz:
@@ -55,7 +54,7 @@ class Test_base_command_logging(object):
         else:
             del os.environ['TZ']
         if 'tzset' in dir(time):
-          time.tzset()
+            time.tzset()
         time.time = self.old_time
 
     def test_log_command_success(self, tmpdir):
