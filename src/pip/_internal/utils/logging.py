@@ -45,12 +45,7 @@ def get_indentation():
 
 class IndentingFormatter(logging.Formatter):
     def __init__(self, *args, **kwargs):
-        if kwargs.pop("timestamp", False):
-            self.timestamper = logging.Formatter(
-                fmt="%(asctime)s ",
-                datefmt=kwargs.get("datefmt", "%Y-%m-%dT%H:%M:%S"))
-        else:
-            self.timestamper = None
+        self.timestamp = kwargs.pop("timestamp", False)
         super(IndentingFormatter, self).__init__(*args, **kwargs)
 
     def format(self, record):
@@ -59,10 +54,13 @@ class IndentingFormatter(logging.Formatter):
         by our current indentation level.
         """
         formatted = logging.Formatter.format(self, record)
-        timestamp_prefix = (self.timestamper.format(record) if self.timestamper
-                            else '')
+        prefix = ''
+        if self.timestamp:
+          prefix = logging.Formatter.formatTime(
+              self, record, "%Y-%m-%dT%H:%M:%S ")
+        prefix += " " * get_indentation()
         formatted = "".join([
-            timestamp_prefix + (" " * get_indentation()) + line
+            prefix + line
             for line in formatted.splitlines(True)
         ])
         return formatted
@@ -196,7 +194,7 @@ def setup_logging(verbosity, no_color, user_log_file):
                 "()": IndentingFormatter,
                 "format": "%(message)s",
             },
-            "indent_and_timestamp": {
+            "indent_with_timestamp": {
                 "()": IndentingFormatter,
                 "format": "%(message)s",
                 "timestamp": True,
@@ -223,7 +221,7 @@ def setup_logging(verbosity, no_color, user_log_file):
                 "class": handler_classes["file"],
                 "filename": additional_log_file,
                 "delay": True,
-                "formatter": "indent_and_timestamp",
+                "formatter": "indent_with_timestamp",
             },
         },
         "root": {

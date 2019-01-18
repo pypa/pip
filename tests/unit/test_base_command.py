@@ -1,5 +1,6 @@
 import logging
 import re
+import time
 
 from pip._internal.cli.base_command import Command
 
@@ -39,9 +40,12 @@ class Test_base_command_logging(object):
     options
     """
 
-    def _remove_timestamp(self, l):
-        timestamp_prefix_length = len('2019-01-16T22:00:37 ')
-        return l[timestamp_prefix_length:]
+    def setup(self):
+        self.old_time = time.time
+        time.time = lambda: 1547704837.4
+
+    def teardown(self):
+        time.time = self.old_time
 
     def test_log_command_success(self, tmpdir):
         """
@@ -51,7 +55,7 @@ class Test_base_command_logging(object):
         log_path = tmpdir.join('log')
         cmd.main(['fake', '--log', log_path])
         with open(log_path) as f:
-            assert 'fake' == self._remove_timestamp(f.read().strip())[:4]
+            assert f.read().startswith('2019-01-16T22:00:37 fake')
 
     def test_log_command_error(self, tmpdir):
         """
@@ -61,7 +65,7 @@ class Test_base_command_logging(object):
         log_path = tmpdir.join('log')
         cmd.main(['fake', '--log', log_path])
         with open(log_path) as f:
-            assert 'fake' == self._remove_timestamp(f.read().strip())[:4]
+            assert f.read().startswith('2019-01-16T22:00:37 fake')
 
     def test_log_file_command_error(self, tmpdir):
         """
@@ -71,18 +75,7 @@ class Test_base_command_logging(object):
         log_file_path = tmpdir.join('log_file')
         cmd.main(['fake', '--log-file', log_file_path])
         with open(log_file_path) as f:
-            assert 'fake' == self._remove_timestamp(f.read().strip())[:4]
-
-    def test_log_command_is_timestamped(self, tmpdir):
-        """
-        Test the --log option logs a timestamp
-        """
-        cmd = FakeCommand()
-        log_path = tmpdir.join('log')
-        cmd.main(['fake', '--log', log_path])
-        with open(log_path) as f:
-            assert re.match('^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2} ',
-                            f.read().strip())
+            assert f.read().startswith('2019-01-16T22:00:37 fake')
 
     def test_unicode_messages(self, tmpdir):
         """
