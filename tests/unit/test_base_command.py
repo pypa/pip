@@ -1,5 +1,6 @@
 import logging
 import re
+import os
 import time
 
 from pip._internal.cli.base_command import Command
@@ -43,8 +44,16 @@ class Test_base_command_logging(object):
     def setup(self):
         self.old_time = time.time
         time.time = lambda: 1547704837.4
+        self.old_tz = getattr(os.environ, 'TZ', None)
+        os.environ['TZ'] = 'UTC'
+        time.tzset()
 
     def teardown(self):
+        if self.old_tz:
+            os.environ['TZ'] = self.old_tz
+        else:
+            del os.environ['TZ']
+        time.tzset()
         time.time = self.old_time
 
     def test_log_command_success(self, tmpdir):
@@ -55,7 +64,7 @@ class Test_base_command_logging(object):
         log_path = tmpdir.join('log')
         cmd.main(['fake', '--log', log_path])
         with open(log_path) as f:
-            assert f.read().startswith('2019-01-16T22:00:37 fake')
+            assert f.read().startswith('2019-01-17T06:00:37 fake')
 
     def test_log_command_error(self, tmpdir):
         """
@@ -65,7 +74,7 @@ class Test_base_command_logging(object):
         log_path = tmpdir.join('log')
         cmd.main(['fake', '--log', log_path])
         with open(log_path) as f:
-            assert f.read().startswith('2019-01-16T22:00:37 fake')
+            assert f.read().startswith('2019-01-17T06:00:37 fake')
 
     def test_log_file_command_error(self, tmpdir):
         """
@@ -75,7 +84,7 @@ class Test_base_command_logging(object):
         log_file_path = tmpdir.join('log_file')
         cmd.main(['fake', '--log-file', log_file_path])
         with open(log_file_path) as f:
-            assert f.read().startswith('2019-01-16T22:00:37 fake')
+            assert f.read().startswith('2019-01-17T06:00:37 fake')
 
     def test_unicode_messages(self, tmpdir):
         """
