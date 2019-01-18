@@ -46,14 +46,16 @@ class Test_base_command_logging(object):
         time.time = lambda: 1547704837.4
         self.old_tz = getattr(os.environ, 'TZ', None)
         os.environ['TZ'] = 'UTC'
-        time.tzset()
+        if 'tzset' in dir(time):
+          time.tzset()
 
     def teardown(self):
         if self.old_tz:
             os.environ['TZ'] = self.old_tz
         else:
             del os.environ['TZ']
-        time.tzset()
+        if 'tzset' in dir(time):
+          time.tzset()
         time.time = self.old_time
 
     def test_log_command_success(self, tmpdir):

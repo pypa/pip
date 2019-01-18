@@ -12,14 +12,16 @@ class Test_IndentingFormatter(object):
     def setup(self):
         self.old_tz = getattr(os.environ, 'TZ', None)
         os.environ['TZ'] = 'UTC'
-        time.tzset()
+        if 'tzset' in dir(time):
+          time.tzset()
 
     def teardown(self):
         if self.old_tz:
             os.environ['TZ'] = self.old_tz
         else:
             del os.environ['TZ']
-        time.tzset()
+        if 'tzset' in dir(time):
+          time.tzset()
 
     def test_formatter_with_timestamp(self, tmpdir):
         record = logging.makeLogRecord(dict(
