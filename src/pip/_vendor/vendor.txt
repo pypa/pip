@@ -11,7 +11,7 @@ packaging==18.0
 pep517==0.5.0
 progress==1.4
 pyparsing==2.3.1
-pytoml==0.1.19
+pytoml==0.1.20
 requests==2.19.1
     certifi==2018.11.29
     chardet==3.0.4
