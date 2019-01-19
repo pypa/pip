@@ -5,9 +5,9 @@ import time
 from pip._internal.utils.logging import IndentingFormatter
 
 
-class Test_IndentingFormatter(object):
+class TestIndentingFormatter(object):
     """
-    Test `pip._internal.utils.logging.IndentingFormatter`
+    Test `pip._internal.utils.logging.IndentingFormatter`.
     """
 
     def setup(self):
