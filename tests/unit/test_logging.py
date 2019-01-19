@@ -11,9 +11,12 @@ class Test_IndentingFormatter(object):
     """
 
     def setup(self):
+        # Robustify the tests below to the ambient timezone by setting it
+        # explicitly here.
         self.old_tz = getattr(os.environ, 'TZ', None)
         os.environ['TZ'] = 'UTC'
-        if 'tzset' in dir(time):
+        # time.tzset() is not implemented on some platforms (notably, Windows).
+        if hasattr(time, 'tzset'):
             time.tzset()
 
     def teardown(self):
@@ -24,19 +27,19 @@ class Test_IndentingFormatter(object):
         if 'tzset' in dir(time):
             time.tzset()
 
-    def test_formatter_with_timestamp(self, tmpdir):
+    def test_format_with_timestamp(self, tmpdir):
         record = logging.makeLogRecord(dict(
             created=1547704837.4,
             msg='hello\nworld',
         ))
-        f = IndentingFormatter(fmt="%(message)s", timestamp=True)
-        assert (f.format(record) ==
-                '2019-01-17T06:00:37 hello\n2019-01-17T06:00:37 world')
+        f = IndentingFormatter(fmt="%(message)s", add_timestamp=True)
+        expected = '2019-01-17T06:00:37 hello\n2019-01-17T06:00:37 world'
+        assert f.format(record) == expected
 
-    def test_formatter_without_timestamp(self, tmpdir):
+    def test_format(self, tmpdir):
         record = logging.makeLogRecord(dict(
             created=1547704837.4,
             msg='hello\nworld',
         ))
-        f = IndentingFormatter(fmt="%(message)s", timestamp=False)
+        f = IndentingFormatter(fmt="%(message)s", add_timestamp=False)
         assert f.format(record) == 'hello\nworld'

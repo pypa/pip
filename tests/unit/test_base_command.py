@@ -43,9 +43,12 @@ class Test_base_command_logging(object):
     def setup(self):
         self.old_time = time.time
         time.time = lambda: 1547704837.4
+        # Robustify the tests below to the ambient timezone by setting it
+        # explicitly here.
         self.old_tz = getattr(os.environ, 'TZ', None)
         os.environ['TZ'] = 'UTC'
-        if 'tzset' in dir(time):
+        # time.tzset() is not implemented on some platforms (notably, Windows).
+        if hasattr(time, 'tzset'):
             time.tzset()
 
     def teardown(self):
@@ -65,7 +68,7 @@ class Test_base_command_logging(object):
         log_path = tmpdir.join('log')
         cmd.main(['fake', '--log', log_path])
         with open(log_path) as f:
-            assert f.read().startswith('2019-01-17T06:00:37 fake')
+            assert f.read().rstrip() == '2019-01-17T06:00:37 fake'
 
     def test_log_command_error(self, tmpdir):
         """

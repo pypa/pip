@@ -45,7 +45,13 @@ def get_indentation():
 
 class IndentingFormatter(logging.Formatter):
     def __init__(self, *args, **kwargs):
-        self.timestamp = kwargs.pop("timestamp", False)
+        """
+        A logging.Formatter obeying containing indent_log contexts.
+
+        :param add_timestamp: A bool indicating output lines should be prefixed
+            with their record's timestamp.
+        """
+        self.add_timestamp = kwargs.pop("add_timestamp", False)
         super(IndentingFormatter, self).__init__(*args, **kwargs)
 
     def format(self, record):
@@ -53,11 +59,11 @@ class IndentingFormatter(logging.Formatter):
         Calls the standard formatter, but will indent all of the log messages
         by our current indentation level.
         """
-        formatted = logging.Formatter.format(self, record)
+        formatted = super(IndentingFormatter, self).format(record)
         prefix = ''
-        if self.timestamp:
-            prefix = logging.Formatter.formatTime(
-                self, record, "%Y-%m-%dT%H:%M:%S ")
+        if self.add_timestamp:
+            prefix = super(IndentingFormatter, self).formatTime(
+                record, "%Y-%m-%dT%H:%M:%S ")
         prefix += " " * get_indentation()
         formatted = "".join([
             prefix + line
@@ -197,7 +203,7 @@ def setup_logging(verbosity, no_color, user_log_file):
             "indent_with_timestamp": {
                 "()": IndentingFormatter,
                 "format": "%(message)s",
-                "timestamp": True,
+                "add_timestamp": True,
             },
         },
         "handlers": {
