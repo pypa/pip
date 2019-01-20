@@ -7,7 +7,7 @@ html5lib==1.0.1
 ipaddress==1.0.22  # Only needed on 2.6 and 2.7
 lockfile==0.12.2
 msgpack==0.5.6
-packaging==18.0
+packaging==19.0
 pep517==0.5.0
 progress==1.4
 pyparsing==2.3.1
