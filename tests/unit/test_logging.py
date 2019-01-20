@@ -27,6 +27,14 @@ class TestIndentingFormatter(object):
         if 'tzset' in dir(time):
             time.tzset()
 
+    def test_format(self, tmpdir):
+        record = logging.makeLogRecord(dict(
+            created=1547704837.4,
+            msg='hello\nworld',
+        ))
+        f = IndentingFormatter(fmt="%(message)s")
+        assert f.format(record) == 'hello\nworld'
+
     def test_format_with_timestamp(self, tmpdir):
         record = logging.makeLogRecord(dict(
             created=1547704837.4,
@@ -35,11 +43,3 @@ class TestIndentingFormatter(object):
         f = IndentingFormatter(fmt="%(message)s", add_timestamp=True)
         expected = '2019-01-17T06:00:37 hello\n2019-01-17T06:00:37 world'
         assert f.format(record) == expected
-
-    def test_format(self, tmpdir):
-        record = logging.makeLogRecord(dict(
-            created=1547704837.4,
-            msg='hello\nworld',
-        ))
-        f = IndentingFormatter(fmt="%(message)s", add_timestamp=False)
-        assert f.format(record) == 'hello\nworld'

@@ -62,8 +62,7 @@ class IndentingFormatter(logging.Formatter):
         formatted = super(IndentingFormatter, self).format(record)
         prefix = ''
         if self.add_timestamp:
-            prefix = super(IndentingFormatter, self).formatTime(
-                record, "%Y-%m-%dT%H:%M:%S ")
+            prefix = self.formatTime(record, "%Y-%m-%dT%H:%M:%S ")
         prefix += " " * get_indentation()
         formatted = "".join([
             prefix + line
