@@ -10,6 +10,7 @@ from . import compat
 
 _in_proc_script = pjoin(dirname(abspath(__file__)), '_in_process.py')
 
+
 @contextmanager
 def tempdir():
     td = mkdtemp()
@@ -18,11 +19,14 @@ def tempdir():
     finally:
         shutil.rmtree(td)
 
+
 class BackendUnavailable(Exception):
     """Will be raised if the backend cannot be imported in the hook process."""
 
+
 class UnsupportedOperation(Exception):
     """May be raised by build_sdist if the backend indicates that it can't."""
+
 
 def default_subprocess_runner(cmd, cwd=None, extra_environ=None):
     """The default method of calling the wrapper subprocess."""
@@ -31,6 +35,7 @@ def default_subprocess_runner(cmd, cwd=None, extra_environ=None):
         env.update(extra_environ)
 
     check_call(cmd, cwd=cwd, env=env)
+
 
 class Pep517HookCaller(object):
     """A wrapper around a source directory to be built with a PEP 517 backend.
@@ -66,7 +71,8 @@ class Pep517HookCaller(object):
             'config_settings': config_settings
         })
 
-    def prepare_metadata_for_build_wheel(self, metadata_directory, config_settings=None):
+    def prepare_metadata_for_build_wheel(
+            self, metadata_directory, config_settings=None):
         """Prepare a *.dist-info folder with metadata for this project.
 
         Returns the name of the newly created folder.
@@ -80,7 +86,9 @@ class Pep517HookCaller(object):
             'config_settings': config_settings,
         })
 
-    def build_wheel(self, wheel_directory, config_settings=None, metadata_directory=None):
+    def build_wheel(
+            self, wheel_directory, config_settings=None,
+            metadata_directory=None):
         """Build a wheel from this project.
 
         Returns the name of the newly created file.
@@ -124,7 +132,6 @@ class Pep517HookCaller(object):
             'config_settings': config_settings,
         })
 
-
     def _call_hook(self, hook_name, kwargs):
         # On Python 2, pytoml returns Unicode values (which is correct) but the
         # environment passed to check_call needs to contain string values. We
@@ -154,4 +161,3 @@ class Pep517HookCaller(object):
             if data.get('no_backend'):
                 raise BackendUnavailable
             return data['return_val']
-
