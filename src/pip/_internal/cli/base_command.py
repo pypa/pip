@@ -130,7 +130,7 @@ class Command(object):
         # Set verbosity so that it can be used elsewhere.
         self.verbosity = options.verbose - options.quiet
 
-        setup_logging(
+        level_number = setup_logging(
             verbosity=self.verbosity,
             no_color=options.no_color,
             user_log_file=options.log,
@@ -197,7 +197,7 @@ class Command(object):
             # Bypass our logger and write any remaining messages to stderr
             # because stdout no longer works.
             print('ERROR: Pipe to stdout was broken', file=sys.stderr)
-            if logger.getEffectiveLevel() <= logging.DEBUG:
+            if level_number <= logging.DEBUG:
                 traceback.print_exc(file=sys.stderr)
 
             return ERROR

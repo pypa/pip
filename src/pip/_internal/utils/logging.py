@@ -216,6 +216,8 @@ class MaxLevelFilter(logging.Filter):
 
 def setup_logging(verbosity, no_color, user_log_file):
     """Configures and sets up all of the logging
+
+    Returns the requested logging level, as its integer value.
     """
 
     # Determine the level to be logging at.
@@ -229,6 +231,8 @@ def setup_logging(verbosity, no_color, user_log_file):
         level = "CRITICAL"
     else:
         level = "INFO"
+
+    level_number = getattr(logging, level)
 
     # The "root" logger should match the "console" level *unless* we also need
     # to log to a user log file.
@@ -310,3 +314,5 @@ def setup_logging(verbosity, no_color, user_log_file):
             }
         },
     })
+
+    return level_number
