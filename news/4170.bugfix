@@ -1,0 +1,1 @@
+Handle a broken stdout pipe more gracefully (e.g. when running ``pip list | head``).

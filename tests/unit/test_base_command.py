@@ -3,14 +3,19 @@ import os
 import time
 
 from pip._internal.cli.base_command import Command
+from pip._internal.utils.logging import BrokenStdoutLoggingError
 
 
 class FakeCommand(Command):
     name = 'fake'
     summary = name
 
-    def __init__(self, error=False):
-        self.error = error
+    def __init__(self, run_func=None, error=False):
+        if error:
+            def run_func():
+                raise SystemExit(1)
+
+        self.run_func = run_func
         super(FakeCommand, self).__init__()
 
     def main(self, args):
@@ -19,8 +24,8 @@ class FakeCommand(Command):
 
     def run(self, options, args):
         logging.getLogger("pip.tests").info("fake")
-        if self.error:
-            raise SystemExit(1)
+        if self.run_func:
+            return self.run_func()
 
 
 class FakeCommandWithUnicode(FakeCommand):
@@ -32,6 +37,40 @@ class FakeCommandWithUnicode(FakeCommand):
         logging.getLogger("pip.tests").info(
             b"unicode here \xC3\xA9".decode("utf-8")
         )
+
+
+class TestCommand(object):
+
+    def call_main(self, capsys, args):
+        """
+        Call command.main(), and return the command's stderr.
+        """
+        def raise_broken_stdout():
+            raise BrokenStdoutLoggingError()
+
+        cmd = FakeCommand(run_func=raise_broken_stdout)
+        status = cmd.main(args)
+        assert status == 1
+        stderr = capsys.readouterr().err
+
+        return stderr
+
+    def test_raise_broken_stdout(self, capsys):
+        """
+        Test raising BrokenStdoutLoggingError.
+        """
+        stderr = self.call_main(capsys, [])
+
+        assert stderr.rstrip() == 'ERROR: Pipe to stdout was broken'
+
+    def test_raise_broken_stdout__debug_logging(self, capsys):
+        """
+        Test raising BrokenStdoutLoggingError with debug logging enabled.
+        """
+        stderr = self.call_main(capsys, ['-v'])
+
+        assert 'ERROR: Pipe to stdout was broken' in stderr
+        assert 'Traceback (most recent call last):' in stderr
 
 
 class Test_base_command_logging(object):
