@@ -4,8 +4,20 @@ Contains functional tests of the Bazaar class.
 
 import os
 
+import pytest
+
 from pip._internal.vcs.bazaar import Bazaar
-from tests.lib import _test_path_to_file_url, _vcs_add, create_file, need_bzr
+from tests.lib import (
+    _test_path_to_file_url, _vcs_add, create_file, is_bzr_installed, need_bzr,
+)
+
+
+@pytest.mark.skipif(
+    'TRAVIS' not in os.environ,
+    reason='Bazaar is only required under Travis')
+def test_ensure_bzr_available():
+    """Make sure that bzr is available when running in Travis."""
+    assert is_bzr_installed()
 
 
 @need_bzr
