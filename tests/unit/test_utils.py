@@ -726,14 +726,20 @@ class TestGetProg(object):
 
 def test_call_subprocess_works_okay_when_just_given_nothing():
     try:
-        call_subprocess([sys.executable, '-c', 'print("Hello")'])
+        call_subprocess(
+            [sys.executable, '-c', 'print("Hello")'],
+            show_stdout=True,
+        )
     except Exception:
         assert False, "Expected subprocess call to succeed"
 
 
 def test_call_subprocess_closes_stdin():
     with pytest.raises(InstallationError):
-        call_subprocess([sys.executable, '-c', 'input()'])
+        call_subprocess(
+            [sys.executable, '-c', 'input()'],
+            show_stdout=True,
+        )
 
 
 @pytest.mark.parametrize('args, expected', [

@@ -795,7 +795,7 @@ def _copy_dist_from_dir(link_path, location):
     logger.info('Running setup.py sdist for %s', link_path)
 
     with indent_log():
-        call_subprocess(sdist_args, cwd=link_path, show_stdout=False)
+        call_subprocess(sdist_args, cwd=link_path)
 
     # unpack sdist into `location`
     sdist = os.path.join(location, os.listdir(location)[0])
