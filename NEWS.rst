@@ -7,6 +7,82 @@
 
 .. towncrier release notes start
 
+19.0 (2019-01-22)
+=================
+
+Deprecations and Removals
+-------------------------
+
+- Remove the deprecated SVN editable detection based on dependency links
+  during freeze. (`#5866 <https://github.com/pypa/pip/issues/5866>`_)
+- Remove the deprecated --process-dependency-links option. (`#6060 <https://github.com/pypa/pip/issues/6060>`_)
+- Deprecate support for Python 3.4 (`#6106 <https://github.com/pypa/pip/issues/6106>`_)
+- Start printing a warning for Python 2.7 to warn of impending Python 2.7 End-of-life and
+  prompt users to start migrating to Python 3. (`#6148 <https://github.com/pypa/pip/issues/6148>`_)
+
+Features
+--------
+
+- Include the package name in a freeze warning if the package is not installed. (`#13D1F422-0CB9-450F-B4DD-9486524712E5 <https://github.com/pypa/pip/issues/13D1F422-0CB9-450F-B4DD-9486524712E5>`_)
+- Implement manylinux2010 platform tag support.  manylinux2010 is the successor
+  to manylinux1.  It allows carefully compiled binary wheels to be installed
+  on compatible Linux platforms. (`#5008 <https://github.com/pypa/pip/issues/5008>`_)
+- Editable, non-VCS installs now freeze as editable. (`#5031 <https://github.com/pypa/pip/issues/5031>`_)
+- Pip now includes license text of 3rd party libraries. (`#5213 <https://github.com/pypa/pip/issues/5213>`_)
+- Make ``PIP_NO_CACHE_DIR`` disable the cache also for truthy values like
+  ``"true"``, ``"yes"``, ``"1"``, etc. (`#5735 <https://github.com/pypa/pip/issues/5735>`_)
+- Implement PEP 517 (allow projects to specify a build backend via pyproject.toml). (`#5743 <https://github.com/pypa/pip/issues/5743>`_)
+- A warning message is emitted when dropping an ``--[extra-]index-url`` value that points to an existing local directory. (`#5827 <https://github.com/pypa/pip/issues/5827>`_)
+- Prefix pip's ``--log`` file lines with their timestamp. (`#6141 <https://github.com/pypa/pip/issues/6141>`_)
+
+Bug Fixes
+---------
+
+- Handle a broken stdout pipe more gracefully (e.g. when running ``pip list | head``). (`#4170 <https://github.com/pypa/pip/issues/4170>`_)
+- Avoids creating excessively long temporary paths when uninstalling packages. (`#3055 <https://github.com/pypa/pip/issues/3055>`_)
+- Redact the password from the URL in various log messages. (`#4746 <https://github.com/pypa/pip/issues/4746>`_)
+- Editable Git installs without a remote now freeze as editable. (`#4759 <https://github.com/pypa/pip/issues/4759>`_)
+- give 401 warning if username/password do not work for URL (`#4833 <https://github.com/pypa/pip/issues/4833>`_)
+- Invalid requirement no longer causes stack trace to be printed. (`#5147 <https://github.com/pypa/pip/issues/5147>`_)
+- Handle `requests.exceptions.RetryError` raised in `PackageFinder` that was
+  causing pip to fail silently when some indexes were unreachable. (`#5270 <https://github.com/pypa/pip/issues/5270>`_, `#5483 <https://github.com/pypa/pip/issues/5483>`_)
+- Setting ``PIP_NO_CACHE_DIR=yes`` no longer causes pip to crash. (`#5385 <https://github.com/pypa/pip/issues/5385>`_)
+- - Improve PEP 518 build isolation: handle .pth files, so namespace packages are correctly supported under Python 3.2 and earlier. (`#5656 <https://github.com/pypa/pip/issues/5656>`_)
+- `pip list --outdated --not-required` should list only outdated packages that are not dependencies of installed packages (`#5737 <https://github.com/pypa/pip/issues/5737>`_)
+- Fix content type detection if a directory named like an archive is used as a package source. (`#5838 <https://github.com/pypa/pip/issues/5838>`_)
+- Fix crashes from unparseable requirements when checking installed packages. (`#5839 <https://github.com/pypa/pip/issues/5839>`_)
+- Fix support for invoking pip using `python src/pip ...`. (`#5841 <https://github.com/pypa/pip/issues/5841>`_)
+- Greatly reduce memory usage when installing wheels containing large files. (`#5848 <https://github.com/pypa/pip/issues/5848>`_)
+- Fix sorting `TypeError` in `move_wheel_files()` when installing some packages. (`#5868 <https://github.com/pypa/pip/issues/5868>`_)
+- Canonicalize sdist file names so they can be matched to a canonicalized package name passed to ``pip install``. (`#5870 <https://github.com/pypa/pip/issues/5870>`_)
+- Percent-decode special characters in SVN URL credentials. (`#5968 <https://github.com/pypa/pip/issues/5968>`_)
+- Redact the password from index urls in a debug message (using --no-index & --verbose options together) (`#6124 <https://github.com/pypa/pip/issues/6124>`_)
+
+Vendored Libraries
+------------------
+
+- Update certifi to 2018.11.29
+- Update colorama to 0.4.1
+- Update distlib to 0.2.8
+- Update idna to 2.8
+- Update packaging to 19.0
+- Update pep517 to 0.5.0
+- Update pkg_resources to 40.6.3 (via setuptools)
+- Update pyparsing to 2.3.1
+- Update pytoml to 0.1.20
+- Update requests to 2.21.0
+- Update six to 1.12.0
+- Update urllib3 to 1.24.1
+
+Improved Documentation
+----------------------
+
+- Remove references to removed #egg=<name>-<version> functionality (`#5888 <https://github.com/pypa/pip/issues/5888>`_)
+- Adds instructions for running pip from source to Development documentation. (`#5949 <https://github.com/pypa/pip/issues/5949>`_)
+- Include the Vendoring Policy in the documentation. (`#5958 <https://github.com/pypa/pip/issues/5958>`_)
+- Add command information in usage document for pip cmd (`#5984 <https://github.com/pypa/pip/issues/5984>`_)
+
+
 18.1 (2018-10-05)
 =================
 

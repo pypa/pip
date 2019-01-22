@@ -1,1 +1,0 @@
-Redact the password from index urls in a debug message (using --no-index & --verbose options together)
