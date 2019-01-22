@@ -1,3 +1,4 @@
+import os
 import subprocess
 import sys
 
@@ -33,6 +34,23 @@ def test_broken_stdout_pipe(deprecated_python):
     """
     stderr, returncode = setup_broken_stdout_test(
         ['pip', 'list'], deprecated_python=deprecated_python,
+    )
+
+    # Check that no traceback occurs.
+    assert 'raise BrokenStdoutLoggingError()' not in stderr
+    assert stderr.count('Traceback') == 0
+
+    assert returncode == _BROKEN_STDOUT_RETURN_CODE
+
+
+def test_broken_stdout_pipe__log_option(deprecated_python, tmpdir):
+    """
+    Test a broken pipe to stdout when --log is passed.
+    """
+    log_path = os.path.join(str(tmpdir), 'log.txt')
+    stderr, returncode = setup_broken_stdout_test(
+        ['pip', '--log', log_path, 'list'],
+        deprecated_python=deprecated_python,
     )
 
     # Check that no traceback occurs.
