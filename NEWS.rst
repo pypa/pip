@@ -40,7 +40,7 @@ Bug Fixes
 
 - Handle a broken stdout pipe more gracefully (e.g. when running ``pip list | head``). (`#4170 <https://github.com/pypa/pip/issues/4170>`_)
 - Avoid creating excessively long temporary paths when uninstalling packages. (`#3055 <https://github.com/pypa/pip/issues/3055>`_)
-- Redact the password from the URL in various log messages. (`#4746 <https://github.com/pypa/pip/issues/4746>`_)
+- Redact the password from the URL in various log messages. (`#4746 <https://github.com/pypa/pip/issues/4746>`_, `#6124 <https://github.com/pypa/pip/issues/6124>`_)
 - Editable Git installs without a remote now freeze as editable. (`#4759 <https://github.com/pypa/pip/issues/4759>`_)
 - Present 401 warning if username/password do not work for URL (`#4833 <https://github.com/pypa/pip/issues/4833>`_)
 - Avoid printing a stack trace when given an invalid requirement. (`#5147 <https://github.com/pypa/pip/issues/5147>`_)
@@ -55,7 +55,6 @@ Bug Fixes
 - Fix sorting ``TypeError`` in ``move_wheel_files()`` when installing some packages. (`#5868 <https://github.com/pypa/pip/issues/5868>`_)
 - Canonicalize sdist file names so they can be matched to a canonicalized package name passed to ``pip install``. (`#5870 <https://github.com/pypa/pip/issues/5870>`_)
 - Properly decode special characters in SVN URL credentials. (`#5968 <https://github.com/pypa/pip/issues/5968>`_)
-- Redact the password from index urls in a debug message (using --no-index & --verbose options together) (`#6124 <https://github.com/pypa/pip/issues/6124>`_)
 
 Vendored Libraries
 ------------------
