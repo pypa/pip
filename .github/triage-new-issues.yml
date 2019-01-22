@@ -4,4 +4,4 @@
 # While this file is currently a no-op, it serves the purpose of
 # documenting that this bot is indeed being used, since this is a
 # non-standard probot bot.
-label: triage
+label: "needs triage"
