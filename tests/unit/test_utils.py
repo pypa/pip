@@ -724,14 +724,19 @@ class TestGetProg(object):
         assert get_prog() == expected
 
 
-def test_call_subprocess_works_okay_when_just_given_nothing():
-    try:
-        call_subprocess(
-            [sys.executable, '-c', 'print("Hello")'],
-            show_stdout=True,
-        )
-    except Exception:
-        assert False, "Expected subprocess call to succeed"
+def test_call_subprocess_works__no_keyword_arguments():
+    result = call_subprocess(
+        [sys.executable, '-c', 'print("Hello")'],
+    )
+    assert result.rstrip() == 'Hello'
+
+
+def test_call_subprocess_works__show_stdout_true():
+    result = call_subprocess(
+        [sys.executable, '-c', 'print("Hello")'],
+        show_stdout=True,
+    )
+    assert result is None
 
 
 def test_call_subprocess_closes_stdin():
