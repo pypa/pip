@@ -7,6 +7,15 @@
 
 .. towncrier release notes start
 
+19.0.1 (2019-01-23)
+===================
+
+Bug Fixes
+---------
+
+- Fix a crash when using --no-cache-dir with PEP 517 distributions (`#6158 <https://github.com/pypa/pip/issues/6158>`_, `#6171 <https://github.com/pypa/pip/issues/6171>`_)
+
+
 19.0 (2019-01-22)
 =================
 
