@@ -232,11 +232,6 @@ def setup_logging(verbosity, no_color, user_log_file):
     else:
         level = "INFO"
 
-    if level in ["INFO", "ERROR"]:
-        log_level_kerberos = logging.CRITICAL + 1
-    else:
-        log_level_kerberos = logging.DEBUG
-
     level_number = getattr(logging, level)
 
     # The "root" logger should match the "console" level *unless* we also need
@@ -255,7 +250,10 @@ def setup_logging(verbosity, no_color, user_log_file):
 
     # Similar for vendored Kerberos, which is a bit trigger happy.
     logging.addLevelName(logging.CRITICAL + 1, "SUPERCRITICAL")
-    kerberos_log_level = "SUPERCRITICAL" if level in ["INFO", "ERROR"] else "DEBUG"
+    kerberos_log_level = (
+        "SUPERCRITICAL" if level in ["INFO", "ERROR"] else
+        "DEBUG"
+    )
 
     # Shorthands for clarity
     log_streams = {
@@ -320,9 +318,7 @@ def setup_logging(verbosity, no_color, user_log_file):
         "loggers": {
             "pip._vendor": {
                 "level": vendored_log_level
-            }
-        },
-        "loggers": {
+            },
             "pip._vendor.requests_kerberos.kerberos_": {
                 "level": kerberos_log_level
             }
