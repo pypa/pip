@@ -68,6 +68,23 @@ class TestConfigurationLoading(ConfigurationMixin):
         with pytest.raises(ConfigurationError):
             self.configuration.get_value(":env:.version")
 
+    def test_environment_config_errors_if_malformed(self):
+        contents = """
+            test]
+            hello = 4
+        """
+        with self.tmpfile(contents) as config_file:
+            os.environ["PIP_CONFIG_FILE"] = config_file
+            with pytest.raises(ConfigurationError) as err:
+                self.configuration.load()
+
+        assert "section header" in str(err.value)  # error kind
+        assert "1" in str(err.value)  # line number
+        assert (  # file name
+            config_file in str(err.value) or
+            repr(config_file) in str(err.value)
+        )
+
 
 class TestConfigurationPrecedence(ConfigurationMixin):
     # Tests for methods to that determine the order of precedence of

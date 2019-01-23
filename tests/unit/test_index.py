@@ -1,9 +1,15 @@
+import logging
 import os.path
 
 import pytest
+from mock import Mock
+from pip._vendor import html5lib, requests
 
 from pip._internal.download import PipSession
-from pip._internal.index import HTMLPage, Link, PackageFinder
+from pip._internal.index import (
+    Link, PackageFinder, _determine_base_url, _egg_info_matches,
+    _find_name_version_sep, _get_html_page,
+)
 
 
 def test_sort_locations_file_expand_dir(data):
@@ -107,8 +113,11 @@ class TestLink(object):
         ),
     ],
 )
-def test_base_url(html, url, expected):
-    assert HTMLPage(html, url).base_url == expected
+def test_determine_base_url(html, url, expected):
+    document = html5lib.parse(
+        html, transport_encoding=None, namespaceHTMLElements=False,
+    )
+    assert _determine_base_url(document, url) == expected
 
 
 class MockLogger(object):
@@ -153,4 +162,121 @@ def test_get_formatted_locations_basic_auth():
     finder = PackageFinder([], index_urls, session=[])
 
     result = finder.get_formatted_locations()
-    assert 'user' not in result and 'pass' not in result
+    assert 'user' in result
+    assert '****' in result
+    assert 'pass' not in result
+
+
+@pytest.mark.parametrize(
+    ("egg_info", "canonical_name", "expected"),
+    [
+        # Trivial.
+        ("pip-18.0", "pip", 3),
+        ("zope-interface-4.5.0", "zope-interface", 14),
+
+        # Canonicalized name match non-canonicalized egg info. (pypa/pip#5870)
+        ("Jinja2-2.10", "jinja2", 6),
+        ("zope.interface-4.5.0", "zope-interface", 14),
+        ("zope_interface-4.5.0", "zope-interface", 14),
+
+        # Should be smart enough to parse ambiguous names from the provided
+        # package name.
+        ("foo-2-2", "foo", 3),
+        ("foo-2-2", "foo-2", 5),
+
+        # Should be able to detect collapsed characters in the egg info.
+        ("foo--bar-1.0", "foo-bar", 8),
+        ("foo-_bar-1.0", "foo-bar", 8),
+
+        # The package name must not ends with a dash (PEP 508), so the first
+        # dash would be the separator, not the second.
+        ("zope.interface--4.5.0", "zope-interface", 14),
+        ("zope.interface--", "zope-interface", 14),
+
+        # The version part is missing, but the split function does not care.
+        ("zope.interface-", "zope-interface", 14),
+    ],
+)
+def test_find_name_version_sep(egg_info, canonical_name, expected):
+    index = _find_name_version_sep(egg_info, canonical_name)
+    assert index == expected
+
+
+@pytest.mark.parametrize(
+    ("egg_info", "canonical_name"),
+    [
+        # A dash must follow the package name.
+        ("zope.interface4.5.0", "zope-interface"),
+        ("zope.interface.4.5.0", "zope-interface"),
+        ("zope.interface.-4.5.0", "zope-interface"),
+        ("zope.interface", "zope-interface"),
+    ],
+)
+def test_find_name_version_sep_failure(egg_info, canonical_name):
+    with pytest.raises(ValueError) as ctx:
+        _find_name_version_sep(egg_info, canonical_name)
+    message = "{} does not match {}".format(egg_info, canonical_name)
+    assert str(ctx.value) == message
+
+
+@pytest.mark.parametrize(
+    ("egg_info", "canonical_name", "expected"),
+    [
+        # Trivial.
+        ("pip-18.0", "pip", "18.0"),
+        ("zope-interface-4.5.0", "zope-interface", "4.5.0"),
+
+        # Canonicalized name match non-canonicalized egg info. (pypa/pip#5870)
+        ("Jinja2-2.10", "jinja2", "2.10"),
+        ("zope.interface-4.5.0", "zope-interface", "4.5.0"),
+        ("zope_interface-4.5.0", "zope-interface", "4.5.0"),
+
+        # Should be smart enough to parse ambiguous names from the provided
+        # package name.
+        ("foo-2-2", "foo", "2-2"),
+        ("foo-2-2", "foo-2", "2"),
+        ("zope.interface--4.5.0", "zope-interface", "-4.5.0"),
+        ("zope.interface--", "zope-interface", "-"),
+
+        # Should be able to detect collapsed characters in the egg info.
+        ("foo--bar-1.0", "foo-bar", "1.0"),
+        ("foo-_bar-1.0", "foo-bar", "1.0"),
+
+        # Invalid.
+        ("the-package-name-8.19", "does-not-match", None),
+        ("zope.interface.-4.5.0", "zope.interface", None),
+        ("zope.interface-", "zope-interface", None),
+        ("zope.interface4.5.0", "zope-interface", None),
+        ("zope.interface.4.5.0", "zope-interface", None),
+        ("zope.interface.-4.5.0", "zope-interface", None),
+        ("zope.interface", "zope-interface", None),
+    ],
+)
+def test_egg_info_matches(egg_info, canonical_name, expected):
+    version = _egg_info_matches(egg_info, canonical_name)
+    assert version == expected
+
+
+def test_request_http_error(caplog):
+    caplog.set_level(logging.DEBUG)
+    link = Link('http://localhost')
+    session = Mock(PipSession)
+    session.get.return_value = resp = Mock()
+    resp.raise_for_status.side_effect = requests.HTTPError('Http error')
+    assert _get_html_page(link, session=session) is None
+    assert (
+        'Could not fetch URL http://localhost: Http error - skipping'
+        in caplog.text
+    )
+
+
+def test_request_retries(caplog):
+    caplog.set_level(logging.DEBUG)
+    link = Link('http://localhost')
+    session = Mock(PipSession)
+    session.get.side_effect = requests.exceptions.RetryError('Retry error')
+    assert _get_html_page(link, session=session) is None
+    assert (
+        'Could not fetch URL http://localhost: Retry error - skipping'
+        in caplog.text
+    )

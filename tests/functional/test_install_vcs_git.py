@@ -1,7 +1,8 @@
 import pytest
 
 from tests.lib import (
-    _change_test_package_version, _create_test_package, pyversion,
+    _change_test_package_version, _create_test_package, _test_path_to_file_url,
+    pyversion,
 )
 from tests.lib.git_submodule_helpers import (
     _change_test_package_submodule, _create_test_package_with_submodule,
@@ -70,9 +71,9 @@ def _make_version_pkg_url(path, rev=None):
         containing the version_pkg package.
       rev: an optional revision to install like a branch name, tag, or SHA.
     """
-    path = path.abspath.replace('\\', '/')
+    file_url = _test_path_to_file_url(path)
     url_rev = '' if rev is None else '@{}'.format(rev)
-    url = 'git+file://{}{}#egg=version_pkg'.format(path, url_rev)
+    url = 'git+{}{}#egg=version_pkg'.format(file_url, url_rev)
 
     return url
 
@@ -366,20 +367,6 @@ def test_git_with_ambiguous_revs(script):
     result.assert_installed('version-pkg', with_files=['.git'])
 
 
-def test_git_works_with_editable_non_origin_repo(script):
-    # set up, create a git repo and install it as editable from a local
-    # directory path
-    version_pkg_path = _create_test_package(script)
-    script.pip('install', '-e', version_pkg_path.abspath)
-
-    # 'freeze'ing this should not fall over, but should result in stderr output
-    # warning
-    result = script.pip('freeze', expect_stderr=True)
-    assert "Error when trying to get requirement" in result.stderr
-    assert "Could not determine repository location" in result.stdout
-    assert "version-pkg==0.1" in result.stdout
-
-
 def test_editable__no_revision(script):
     """
     Test a basic install in editable mode specifying no revision.
@@ -484,7 +471,9 @@ def test_check_submodule_addition(script):
     """
     Submodules are pulled in on install and updated on upgrade.
     """
-    module_path, submodule_path = _create_test_package_with_submodule(script)
+    module_path, submodule_path = (
+        _create_test_package_with_submodule(script, rel_path='testpkg/static')
+    )
 
     install_result = script.pip(
         'install', '-e', 'git+' + module_path + '#egg=version_pkg'
@@ -495,7 +484,9 @@ def test_check_submodule_addition(script):
     )
 
     _change_test_package_submodule(script, submodule_path)
-    _pull_in_submodule_changes_to_module(script, module_path)
+    _pull_in_submodule_changes_to_module(
+        script, module_path, rel_path='testpkg/static',
+    )
 
     # expect error because git may write to stderr
     update_result = script.pip(

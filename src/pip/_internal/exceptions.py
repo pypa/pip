@@ -5,6 +5,12 @@ from itertools import chain, groupby, repeat
 
 from pip._vendor.six import iteritems
 
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from typing import Optional  # noqa: F401
+    from pip._internal.req.req_install import InstallRequirement  # noqa: F401
+
 
 class PipError(Exception):
     """Base pip exception"""
@@ -96,7 +102,7 @@ class HashError(InstallationError):
         typically available earlier.
 
     """
-    req = None
+    req = None  # type: Optional[InstallRequirement]
     head = ''
 
     def body(self):
@@ -247,3 +253,22 @@ class HashMismatch(HashError):
 class UnsupportedPythonVersion(InstallationError):
     """Unsupported python version according to Requires-Python package
     metadata."""
+
+
+class ConfigurationFileCouldNotBeLoaded(ConfigurationError):
+    """When there are errors while loading a configuration file
+    """
+
+    def __init__(self, reason="could not be loaded", fname=None, error=None):
+        super(ConfigurationFileCouldNotBeLoaded, self).__init__(error)
+        self.reason = reason
+        self.fname = fname
+        self.error = error
+
+    def __str__(self):
+        if self.fname is not None:
+            message_part = " in {}.".format(self.fname)
+        else:
+            assert self.error is not None
+            message_part = ".\n{}\n".format(self.error.message)
+        return "Configuration file {}{}".format(self.reason, message_part)

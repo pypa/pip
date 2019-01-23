@@ -27,7 +27,7 @@ fi
 echo "Determining correct TOXENV..."
 if [[ -z "$TOXENV" ]]; then
     if [[ ${TRAVIS_PYTHON_VERSION} == pypy* ]]; then
-        export TOXENV=${TRAVIS_PYTHON_VERSION}
+        export TOXENV=pypy
     else
         # We use the syntax ${string:index:length} to make 2.7 -> py27
         _major=${TRAVIS_PYTHON_VERSION:0:1}
@@ -41,12 +41,12 @@ echo "TOXENV=${TOXENV}"
 set -x
 if [[ "$GROUP" == "1" ]]; then
     # Unit tests
-    tox -- -m unit
+    tox -- --use-venv -m unit
     # Integration tests (not the ones for 'pip install')
-    tox -- -m integration -n 4 --duration=5 -k "not test_install"
+    tox -- --use-venv -m integration -n 4 --duration=5 -k "not test_install"
 elif [[ "$GROUP" == "2" ]]; then
     # Separate Job for running integration tests for 'pip install'
-    tox -- -m integration -n 4 --duration=5 -k "test_install"
+    tox -- --use-venv -m integration -n 4 --duration=5 -k "test_install"
 else
     # Non-Testing Jobs should run once
     tox

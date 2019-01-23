@@ -18,10 +18,22 @@ from pip._internal.exceptions import (
     BestVersionAlreadyInstalled, DistributionNotFound, HashError, HashErrors,
     UnsupportedPythonVersion,
 )
-from pip._internal.req.constructors import install_req_from_req
+from pip._internal.req.constructors import install_req_from_req_string
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import dist_in_usersite, ensure_dir
 from pip._internal.utils.packaging import check_dist_requires_python
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from typing import Optional, DefaultDict, List, Set  # noqa: F401
+    from pip._internal.download import PipSession  # noqa: F401
+    from pip._internal.req.req_install import InstallRequirement  # noqa: F401
+    from pip._internal.index import PackageFinder  # noqa: F401
+    from pip._internal.req.req_set import RequirementSet  # noqa: F401
+    from pip._internal.operations.prepare import (  # noqa: F401
+        DistAbstraction, RequirementPreparer
+    )
+    from pip._internal.cache import WheelCache  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -33,9 +45,22 @@ class Resolver(object):
 
     _allowed_strategies = {"eager", "only-if-needed", "to-satisfy-only"}
 
-    def __init__(self, preparer, session, finder, wheel_cache, use_user_site,
-                 ignore_dependencies, ignore_installed, ignore_requires_python,
-                 force_reinstall, isolated, upgrade_strategy):
+    def __init__(
+        self,
+        preparer,  # type: RequirementPreparer
+        session,  # type: PipSession
+        finder,  # type: PackageFinder
+        wheel_cache,  # type: Optional[WheelCache]
+        use_user_site,  # type: bool
+        ignore_dependencies,  # type: bool
+        ignore_installed,  # type: bool
+        ignore_requires_python,  # type: bool
+        force_reinstall,  # type: bool
+        isolated,  # type: bool
+        upgrade_strategy,  # type: str
+        use_pep517=None  # type: Optional[bool]
+    ):
+        # type: (...) -> None
         super(Resolver, self).__init__()
         assert upgrade_strategy in self._allowed_strategies
 
@@ -47,7 +72,8 @@ class Resolver(object):
         #       information about both sdist and wheels transparently.
         self.wheel_cache = wheel_cache
 
-        self.require_hashes = None  # This is set in resolve
+        # This is set in resolve
+        self.require_hashes = None  # type: Optional[bool]
 
         self.upgrade_strategy = upgrade_strategy
         self.force_reinstall = force_reinstall
@@ -56,10 +82,13 @@ class Resolver(object):
         self.ignore_installed = ignore_installed
         self.ignore_requires_python = ignore_requires_python
         self.use_user_site = use_user_site
+        self.use_pep517 = use_pep517
 
-        self._discovered_dependencies = defaultdict(list)
+        self._discovered_dependencies = \
+            defaultdict(list)  # type: DefaultDict[str, List]
 
     def resolve(self, requirement_set):
+        # type: (RequirementSet) -> None
         """Resolve what operations need to be done
 
         As a side-effect of this method, the packages (and their dependencies)
@@ -94,7 +123,7 @@ class Resolver(object):
         # exceptions cannot be checked ahead of time, because
         # req.populate_link() needs to be called before we can make decisions
         # based on link type.
-        discovered_reqs = []
+        discovered_reqs = []  # type: List[InstallRequirement]
         hash_errors = HashErrors()
         for req in chain(root_reqs, discovered_reqs):
             try:
@@ -109,6 +138,7 @@ class Resolver(object):
             raise hash_errors
 
     def _is_upgrade_allowed(self, req):
+        # type: (InstallRequirement) -> bool
         if self.upgrade_strategy == "to-satisfy-only":
             return False
         elif self.upgrade_strategy == "eager":
@@ -118,6 +148,7 @@ class Resolver(object):
             return req.is_direct
 
     def _set_req_to_reinstall(self, req):
+        # type: (InstallRequirement) -> None
         """
         Set a requirement to be installed.
         """
@@ -129,6 +160,7 @@ class Resolver(object):
 
     # XXX: Stop passing requirement_set for options
     def _check_skip_installed(self, req_to_install):
+        # type: (InstallRequirement) -> Optional[str]
         """Check if req_to_install should be skipped.
 
         This will check if the req is installed, and whether we should upgrade
@@ -181,6 +213,7 @@ class Resolver(object):
         return None
 
     def _get_abstract_dist_for(self, req):
+        # type: (InstallRequirement) -> DistAbstraction
         """Takes a InstallRequirement and returns a single AbstractDist \
         representing a prepared variant of the same.
         """
@@ -237,7 +270,12 @@ class Resolver(object):
 
         return abstract_dist
 
-    def _resolve_one(self, requirement_set, req_to_install):
+    def _resolve_one(
+        self,
+        requirement_set,  # type: RequirementSet
+        req_to_install  # type: InstallRequirement
+    ):
+        # type: (...) -> List[InstallRequirement]
         """Prepare a single requirements file.
 
         :return: A list of additional InstallRequirements to also install.
@@ -256,7 +294,7 @@ class Resolver(object):
         abstract_dist = self._get_abstract_dist_for(req_to_install)
 
         # Parse and return dependencies
-        dist = abstract_dist.dist(self.finder)
+        dist = abstract_dist.dist()
         try:
             check_dist_requires_python(dist)
         except UnsupportedPythonVersion as err:
@@ -265,14 +303,15 @@ class Resolver(object):
             else:
                 raise
 
-        more_reqs = []
+        more_reqs = []  # type: List[InstallRequirement]
 
         def add_req(subreq, extras_requested):
-            sub_install_req = install_req_from_req(
+            sub_install_req = install_req_from_req_string(
                 str(subreq),
                 req_to_install,
                 isolated=self.isolated,
                 wheel_cache=self.wheel_cache,
+                use_pep517=self.use_pep517
             )
             parent_req_name = req_to_install.name
             to_scan_again, add_to_parent = requirement_set.add_requirement(
@@ -326,6 +365,7 @@ class Resolver(object):
         return more_reqs
 
     def get_installation_order(self, req_set):
+        # type: (RequirementSet) -> List[InstallRequirement]
         """Create the installation order.
 
         The installation order is topological - requirements are installed
@@ -336,7 +376,7 @@ class Resolver(object):
         # installs the user specified things in the order given, except when
         # dependencies must come earlier to achieve topological order.
         order = []
-        ordered_reqs = set()
+        ordered_reqs = set()  # type: Set[InstallRequirement]
 
         def schedule(req):
             if req.satisfied_by or req in ordered_reqs:

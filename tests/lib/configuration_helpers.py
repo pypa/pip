@@ -34,13 +34,13 @@ class ConfigurationMixin(object):
         old = self.configuration._load_config_files
 
         @functools.wraps(old)
-        def overidden():
+        def overridden():
             # Manual Overload
             self.configuration._config[variant].update(di)
             self.configuration._parsers[variant].append((None, None))
             return old()
 
-        self.configuration._load_config_files = overidden
+        self.configuration._load_config_files = overridden
 
     @contextlib.contextmanager
     def tmpfile(self, contents):

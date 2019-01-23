@@ -15,6 +15,15 @@ The `PyPA recommended`_ tool for installing Python packages.
 .. image:: https://readthedocs.org/projects/pip/badge/?version=latest
    :target: https://pip.pypa.io/en/latest
 
+.. image:: https://dev.azure.com/pypa/pip/_apis/build/status/Linux?branchName=master&label=Windows
+   :target: https://dev.azure.com/pypa/pip/_build/latest?definitionId=6
+
+.. image:: https://dev.azure.com/pypa/pip/_apis/build/status/macOS?branchName=master&label=macOS
+   :target: https://dev.azure.com/pypa/pip/_build/latest?definitionId=7
+
+.. image:: https://dev.azure.com/pypa/pip/_apis/build/status/Linux?branchName=master&label=Linux
+   :target: https://dev.azure.com/pypa/pip/_build/latest?definitionId=4
+
 * `Installation`_
 * `Documentation`_
 * `Changelog`_
@@ -22,8 +31,8 @@ The `PyPA recommended`_ tool for installing Python packages.
 * `Issue Tracking`_
 * `User mailing list`_
 * `Dev mailing list`_
-* User IRC: #pypa on Freenode.
-* Dev IRC: #pypa-dev on Freenode.
+* `User IRC`_
+* `Dev IRC`_
 
 Code of Conduct
 ---------------
@@ -39,4 +48,6 @@ rooms and mailing lists is expected to follow the `PyPA Code of Conduct`_.
 .. _Issue Tracking: https://github.com/pypa/pip/issues
 .. _User mailing list: https://groups.google.com/forum/#!forum/python-virtualenv
 .. _Dev mailing list: https://groups.google.com/forum/#!forum/pypa-dev
+.. _User IRC: https://webchat.freenode.net/?channels=%23pypa
+.. _Dev IRC: https://webchat.freenode.net/?channels=%23pypa-dev
 .. _PyPA Code of Conduct: https://www.pypa.io/en/latest/code-of-conduct/

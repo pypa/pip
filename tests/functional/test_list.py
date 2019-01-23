@@ -99,12 +99,11 @@ def test_local_columns_flag(script, data):
 
 
 @pytest.mark.network
-def test_user_flag(script, data, virtualenv):
+def test_user_flag(script, data):
     """
     Test the behavior of --user flag in the list command
 
     """
-    virtualenv.system_site_packages = True
     script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
     script.pip('install', '-f', data.find_links, '--no-index',
@@ -116,12 +115,11 @@ def test_user_flag(script, data, virtualenv):
 
 
 @pytest.mark.network
-def test_user_columns_flag(script, data, virtualenv):
+def test_user_columns_flag(script, data):
     """
     Test the behavior of --user --format=columns flags in the list command
 
     """
-    virtualenv.system_site_packages = True
     script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
     script.pip('install', '-f', data.find_links, '--no-index',
@@ -384,6 +382,21 @@ def test_outdated_editables_columns_flag(script, data):
     assert os.path.join('src', 'pip-test-package') in result.stdout, (
         str(result)
     )
+
+
+def test_outdated_not_required_flag(script, data):
+    """
+    test the behavior of --outdated --not-required flag in the list command
+    """
+    script.pip(
+        'install', '-f', data.find_links, '--no-index',
+        'simple==2.0', 'require_simple==1.0'
+    )
+    result = script.pip(
+        'list', '-f', data.find_links, '--no-index', '--outdated',
+        '--not-required', '--format=json',
+    )
+    assert [] == json.loads(result.stdout)
 
 
 def test_outdated_pre(script, data):

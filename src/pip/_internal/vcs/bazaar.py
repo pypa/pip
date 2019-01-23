@@ -6,7 +6,9 @@ import os
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip._internal.download import path_to_url
-from pip._internal.utils.misc import display_path, rmtree
+from pip._internal.utils.misc import (
+    display_path, make_vcs_requirement_url, rmtree,
+)
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.vcs import VersionControl, vcs
 
@@ -73,34 +75,36 @@ class Bazaar(VersionControl):
             url = 'bzr+' + url
         return url, rev, user_pass
 
-    def get_url(self, location):
-        urls = self.run_command(['info'], show_stdout=False, cwd=location)
+    @classmethod
+    def get_remote_url(cls, location):
+        urls = cls.run_command(['info'], show_stdout=False, cwd=location)
         for line in urls.splitlines():
             line = line.strip()
             for x in ('checkout of branch: ',
                       'parent branch: '):
                 if line.startswith(x):
                     repo = line.split(x)[1]
-                    if self._is_local_repository(repo):
+                    if cls._is_local_repository(repo):
                         return path_to_url(repo)
                     return repo
         return None
 
-    def get_revision(self, location):
-        revision = self.run_command(
+    @classmethod
+    def get_revision(cls, location):
+        revision = cls.run_command(
             ['revno'], show_stdout=False, cwd=location,
         )
         return revision.splitlines()[-1]
 
-    def get_src_requirement(self, dist, location):
-        repo = self.get_url(location)
+    @classmethod
+    def get_src_requirement(cls, location, project_name):
+        repo = cls.get_remote_url(location)
         if not repo:
             return None
         if not repo.lower().startswith('bzr:'):
             repo = 'bzr+' + repo
-        egg_project_name = dist.egg_name().split('-', 1)[0]
-        current_rev = self.get_revision(location)
-        return '%s@%s#egg=%s' % (repo, current_rev, egg_project_name)
+        current_rev = cls.get_revision(location)
+        return make_vcs_requirement_url(repo, current_rev, project_name)
 
     def is_commit_id_equal(self, dest, name):
         """Always assume the versions don't match"""

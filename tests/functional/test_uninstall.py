@@ -67,7 +67,7 @@ def test_basic_uninstall_with_scripts(script):
     Uninstall an easy_installed package with scripts.
 
     """
-    result = script.run('easy_install', 'PyLogo', expect_stderr=True)
+    result = script.easy_install('PyLogo', expect_stderr=True)
     easy_install_pth = script.site_packages / 'easy-install.pth'
     pylogo = sys.platform == 'win32' and 'pylogo' or 'PyLogo'
     assert(pylogo in result.files_updated[easy_install_pth].bytes)
@@ -85,7 +85,8 @@ def test_uninstall_easy_install_after_import(script):
     Uninstall an easy_installed package after it's been imported
 
     """
-    result = script.run('easy_install', 'INITools==0.2', expect_stderr=True)
+    result = script.easy_install('--always-unzip', 'INITools==0.2',
+                                 expect_stderr=True)
     # the import forces the generation of __pycache__ if the version of python
     # supports it
     script.run('python', '-c', "import initools")
@@ -108,8 +109,8 @@ def test_uninstall_trailing_newline(script):
     lacks a trailing newline
 
     """
-    script.run('easy_install', 'INITools==0.2', expect_stderr=True)
-    script.run('easy_install', 'PyLogo', expect_stderr=True)
+    script.easy_install('INITools==0.2', expect_stderr=True)
+    script.easy_install('PyLogo', expect_stderr=True)
     easy_install_pth = script.site_packages_path / 'easy-install.pth'
 
     # trim trailing newline from easy-install.pth
@@ -269,9 +270,7 @@ def test_uninstall_easy_installed_console_scripts(script):
     """
     Test uninstalling package with console_scripts that is easy_installed.
     """
-    args = ['easy_install']
-    args.append('discover')
-    result = script.run(*args, **{"expect_stderr": True})
+    result = script.easy_install('discover', expect_error=True)
     assert script.bin / 'discover' + script.exe in result.files_created, (
         sorted(result.files_created.keys())
     )
@@ -358,6 +357,7 @@ def _test_uninstall_editable_with_source_outside_venv(
 
 
 @pytest.mark.network
+@pytest.mark.svn
 def test_uninstall_from_reqs_file(script, tmpdir):
     """
     Test uninstall from a requirements file.

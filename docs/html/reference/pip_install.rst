@@ -351,11 +351,9 @@ the :ref:`--editable <install_--editable>` option) or not.
   (referencing a specific commit) if and only if the install is done using the
   editable option.
 
-The "project name" component of the url suffix "egg=<project name>-<version>"
+The "project name" component of the url suffix "egg=<project name>"
 is used by pip in its dependency logic to identify the project prior
-to pip downloading and analyzing the metadata.  The optional "version"
-component of the egg name is not functionally important.  It merely
-provides a human-readable clue as to what version is in use. For projects
+to pip downloading and analyzing the metadata. For projects
 where setup.py is not in the root of project, "subdirectory" component
 is used. Value of "subdirectory" component should be a path starting from root
 of the project to where setup.py is located.

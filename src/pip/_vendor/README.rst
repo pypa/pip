@@ -1,5 +1,5 @@
-Policy
-======
+Vendoring Policy
+================
 
 * Vendored libraries **MUST** not be modified except as required to
   successfully vendor them.
@@ -7,17 +7,21 @@ Policy
 * Vendored libraries **MUST** be released copies of libraries available on
   PyPI.
 
+* Vendored libraries **MUST** be accompanied with LICENSE files.
+
 * The versions of libraries vendored in pip **MUST** be reflected in
   ``pip/_vendor/vendor.txt``.
 
 * Vendored libraries **MUST** function without any build steps such as ``2to3`` or
-  compilation of C code, pratically this limits to single source 2.x/3.x and
+  compilation of C code, practically this limits to single source 2.x/3.x and
   pure Python.
 
 * Any modifications made to libraries **MUST** be noted in
   ``pip/_vendor/README.rst`` and their corresponding patches **MUST** be
   included ``tasks/vendoring/patches``.
 
+* Vendored libraries should have corresponding ``vendored()`` entries in
+  ``pip/_vendor/__init__.py``.
 
 Rationale
 ---------

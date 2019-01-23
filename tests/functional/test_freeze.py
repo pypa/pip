@@ -7,8 +7,8 @@ from doctest import ELLIPSIS, OutputChecker
 import pytest
 
 from tests.lib import (
-    _create_test_package, _create_test_package_with_srcdir, need_bzr,
-    need_mercurial,
+    _create_test_package, _create_test_package_with_srcdir, _git_commit,
+    need_bzr, need_mercurial, path_to_url,
 )
 
 distribute_re = re.compile('^distribute==[0-9.]+\n', re.MULTILINE)
@@ -116,6 +116,48 @@ def test_freeze_with_invalid_names(script):
         )
 
 
+@pytest.mark.git
+def test_freeze_editable_not_vcs(script, tmpdir):
+    """
+    Test an editable install that is not version controlled.
+    """
+    pkg_path = _create_test_package(script)
+    # Rename the .git directory so the directory is no longer recognized
+    # as a VCS directory.
+    os.rename(os.path.join(pkg_path, '.git'), os.path.join(pkg_path, '.bak'))
+    script.pip('install', '-e', pkg_path)
+    result = script.pip('freeze', expect_stderr=True)
+
+    # We need to apply os.path.normcase() to the path since that is what
+    # the freeze code does.
+    expected = textwrap.dedent("""\
+    ...# Editable install with no version control (version-pkg==0.1)
+    -e {}
+    ...""".format(os.path.normcase(pkg_path)))
+    _check_output(result.stdout, expected)
+
+
+@pytest.mark.git
+def test_freeze_editable_git_with_no_remote(script, tmpdir, deprecated_python):
+    """
+    Test an editable Git install with no remote url.
+    """
+    pkg_path = _create_test_package(script)
+    script.pip('install', '-e', pkg_path)
+    result = script.pip('freeze')
+
+    if not deprecated_python:
+        assert result.stderr == ''
+
+    # We need to apply os.path.normcase() to the path since that is what
+    # the freeze code does.
+    expected = textwrap.dedent("""\
+    ...# Editable Git install with no remote (version-pkg==0.1)
+    -e {}
+    ...""".format(os.path.normcase(pkg_path)))
+    _check_output(result.stdout, expected)
+
+
 @pytest.mark.svn
 def test_freeze_svn(script, tmpdir):
     """Test freezing a svn checkout"""
@@ -215,7 +257,7 @@ def test_freeze_git_clone(script, tmpdir):
     # in issue #1867).
     script.run('touch', 'newfile', cwd=repo_dir)
     script.run('git', 'add', 'newfile', cwd=repo_dir)
-    script.run('git', 'commit', '-m', '...', cwd=repo_dir)
+    _git_commit(script, repo_dir, message='...')
     result = script.pip('freeze', expect_stderr=True)
     expected = textwrap.dedent(
         """
@@ -419,6 +461,30 @@ _freeze_req_opts = textwrap.dedent("""\
 """)
 
 
+def test_freeze_with_requirement_option_file_url_egg_not_installed(
+        script, deprecated_python):
+    """
+    Test "freeze -r requirements.txt" with a local file URL whose egg name
+    is not installed.
+    """
+
+    url = path_to_url('my-package.tar.gz') + '#egg=Does.Not-Exist'
+    requirements_path = script.scratch_path.join('requirements.txt')
+    requirements_path.write(url + '\n')
+
+    result = script.pip(
+        'freeze', '--requirement', 'requirements.txt', expect_stderr=True,
+    )
+    expected_err = (
+        'Requirement file [requirements.txt] contains {}, but package '
+        "'Does.Not-Exist' is not installed\n"
+    ).format(url)
+    if deprecated_python:
+        assert expected_err in result.stderr
+    else:
+        assert expected_err == result.stderr
+
+
 def test_freeze_with_requirement_option(script):
     """
     Test that new requirements are created correctly with --requirement hints
@@ -444,8 +510,8 @@ def test_freeze_with_requirement_option(script):
     expected += "## The following requirements were added by pip freeze:..."
     _check_output(result.stdout, expected)
     assert (
-        "Requirement file [hint.txt] contains NoExist==4.2, but that package "
-        "is not installed"
+        "Requirement file [hint.txt] contains NoExist==4.2, but package "
+        "'NoExist' is not installed"
     ) in result.stderr
 
 
@@ -486,12 +552,12 @@ def test_freeze_with_requirement_option_multiple(script):
     """)
     _check_output(result.stdout, expected)
     assert (
-        "Requirement file [hint1.txt] contains NoExist==4.2, but that "
-        "package is not installed"
+        "Requirement file [hint1.txt] contains NoExist==4.2, but package "
+        "'NoExist' is not installed"
     ) in result.stderr
     assert (
-        "Requirement file [hint2.txt] contains NoExist2==2.0, but that "
-        "package is not installed"
+        "Requirement file [hint2.txt] contains NoExist2==2.0, but package "
+        "'NoExist2' is not installed"
     ) in result.stderr
     # any options like '--index-url http://ignore' should only be emitted once
     # even if they are listed in multiple requirements files
@@ -524,7 +590,7 @@ def test_freeze_with_requirement_option_package_repeated_one_file(script):
     """)
     _check_output(result.stdout, expected_out)
     err1 = ("Requirement file [hint1.txt] contains NoExist, "
-            "but that package is not installed\n")
+            "but package 'NoExist' is not installed\n")
     err2 = "Requirement simple2 included multiple times [hint1.txt]\n"
     assert err1 in result.stderr
     assert err2 in result.stderr
@@ -560,8 +626,8 @@ def test_freeze_with_requirement_option_package_repeated_multi_file(script):
     """)
     _check_output(result.stdout, expected_out)
 
-    err1 = ("Requirement file [hint2.txt] contains NoExist, but that "
-            "package is not installed\n")
+    err1 = ("Requirement file [hint2.txt] contains NoExist, but package "
+            "'NoExist' is not installed\n")
     err2 = ("Requirement simple included multiple times "
             "[hint1.txt, hint2.txt]\n")
     assert err1 in result.stderr
@@ -576,7 +642,6 @@ def test_freeze_user(script, virtualenv, data):
     Testing freeze with --user, first we have to install some stuff.
     """
     script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
-    virtualenv.system_site_packages = True
     script.pip_install_local('--find-links', data.find_links,
                              '--user', 'simple==2.0')
     script.pip_install_local('--find-links', data.find_links,

@@ -82,6 +82,7 @@ class TestRequirementSet(object):
             reqset,
         )
 
+    # TODO: Update test when Python 2.7 or Python 3.4 is dropped.
     def test_environment_marker_extras(self, data):
         """
         Test that the environment marker extras are used with
@@ -542,12 +543,12 @@ class TestInstallRequirement(object):
         assert "Invalid requirement" in err_msg
         assert "= is not a valid operator. Did you mean == ?" in err_msg
 
-    def test_traceback(self):
+    def test_unidentifiable_name(self):
+        test_name = '-'
         with pytest.raises(InstallationError) as e:
-            install_req_from_line('toto 42')
+            install_req_from_line(test_name)
         err_msg = e.value.args[0]
-        assert "Invalid requirement" in err_msg
-        assert "\nTraceback " in err_msg
+        assert ("Invalid requirement: '%s'\n" % test_name) == err_msg
 
     def test_requirement_file(self):
         req_file_path = os.path.join(self.tempdir, 'test.txt')
@@ -630,7 +631,7 @@ def test_mismatched_versions(caplog, tmpdir):
     shutil.copytree(original_source, source_dir)
     req = InstallRequirement(req=Requirement('simplewheel==2.0'),
                              comes_from=None, source_dir=source_dir)
-    req.run_egg_info()
+    req.prepare_metadata()
     req.assert_source_matches_version()
     assert caplog.records[-1].message == (
         'Requested simplewheel==2.0, '

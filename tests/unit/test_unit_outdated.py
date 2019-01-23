@@ -50,8 +50,7 @@ def _options():
     ''' Some default options that we pass to outdated.pip_version_check '''
     return pretend.stub(
         find_links=False, extra_index_urls=[], index_url='default_url',
-        pre=False, trusted_hosts=False, process_dependency_links=False,
-        cache_dir='',
+        pre=False, trusted_hosts=False, cache_dir='',
     )
 
 

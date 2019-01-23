@@ -3,48 +3,16 @@ import sys
 
 import pytest
 
-
-def test_completion_for_bash(script):
-    """
-    Test getting completion for bash shell
-    """
-    bash_completion = """\
+COMPLETION_FOR_SUPPORTED_SHELLS_TESTS = (
+    ('bash', """\
 _pip_completion()
 {
     COMPREPLY=( $( COMP_WORDS="${COMP_WORDS[*]}" \\
                    COMP_CWORD=$COMP_CWORD \\
                    PIP_AUTO_COMPLETE=1 $1 ) )
 }
-complete -o default -F _pip_completion pip"""
-
-    result = script.pip('completion', '--bash')
-    assert bash_completion in result.stdout, 'bash completion is wrong'
-
-
-def test_completion_for_zsh(script):
-    """
-    Test getting completion for zsh shell
-    """
-    zsh_completion = """\
-function _pip_completion {
-  local words cword
-  read -Ac words
-  read -cn cword
-  reply=( $( COMP_WORDS="$words[*]" \\
-             COMP_CWORD=$(( cword-1 )) \\
-             PIP_AUTO_COMPLETE=1 $words[1] ) )
-}
-compctl -K _pip_completion pip"""
-
-    result = script.pip('completion', '--zsh')
-    assert zsh_completion in result.stdout, 'zsh completion is wrong'
-
-
-def test_completion_for_fish(script):
-    """
-    Test getting completion for fish shell
-    """
-    fish_completion = """\
+complete -o default -F _pip_completion pip"""),
+    ('fish', """\
 function __fish_complete_pip
     set -lx COMP_WORDS (commandline -o) ""
     set -lx COMP_CWORD ( \\
@@ -53,10 +21,35 @@ function __fish_complete_pip
     set -lx PIP_AUTO_COMPLETE 1
     string split \\  -- (eval $COMP_WORDS[1])
 end
-complete -fa "(__fish_complete_pip)" -c pip"""
+complete -fa "(__fish_complete_pip)" -c pip"""),
+    ('zsh', """\
+function _pip_completion {
+  local words cword
+  read -Ac words
+  read -cn cword
+  reply=( $( COMP_WORDS="$words[*]" \\
+             COMP_CWORD=$(( cword-1 )) \\
+             PIP_AUTO_COMPLETE=1 $words[1] ) )
+}
+compctl -K _pip_completion pip"""),
+)
 
-    result = script.pip('completion', '--fish')
-    assert fish_completion in result.stdout, 'fish completion is wrong'
+
+@pytest.mark.parametrize(
+    'shell, completion',
+    COMPLETION_FOR_SUPPORTED_SHELLS_TESTS,
+    ids=[t[0] for t in COMPLETION_FOR_SUPPORTED_SHELLS_TESTS],
+)
+def test_completion_for_supported_shells(script, pip_src, common_wheels,
+                                         shell, completion):
+    """
+    Test getting completion for bash shell
+    """
+    # Re-install pip so we get the launchers.
+    script.pip_install_local('-f', common_wheels, pip_src)
+
+    result = script.pip('completion', '--' + shell, use_module=False)
+    assert completion in result.stdout, str(result.stdout)
 
 
 def test_completion_for_unknown_shell(script):
@@ -290,10 +283,10 @@ def test_completion_path_after_option(script, data):
 
 
 @pytest.mark.parametrize('flag', ['--bash', '--zsh', '--fish'])
-def test_completion_uses_same_executable_name(script, flag):
-    expect_stderr = sys.version_info[:2] == (3, 3)
+def test_completion_uses_same_executable_name(script, flag, deprecated_python):
     executable_name = 'pip{}'.format(sys.version_info[0])
+    # Deprecated python versions produce an extra deprecation warning
     result = script.run(
-        executable_name, 'completion', flag, expect_stderr=expect_stderr
+        executable_name, 'completion', flag, expect_stderr=deprecated_python,
     )
     assert executable_name in result.stdout

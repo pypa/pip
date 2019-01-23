@@ -1,2 +1,0 @@
-Always revalidate cached simple API pages instead of blindly caching them for up to 10
-minutes.
