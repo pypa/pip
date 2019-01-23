@@ -371,7 +371,7 @@ def test_basic_install_from_local_directory_with_no_cache_dir(script, data):
     """
     to_install = data.packages.join("FSPkg")
     result = script.pip(
-        'install', to_install, '--no-cache-dir',  expect_error=False)
+        'install', to_install, '--no-cache-dir', expect_error=False)
     fspkg_folder = script.site_packages / 'fspkg'
     egg_info_folder = (
         script.site_packages / 'FSPkg-0.1.dev0-py%s.egg-info' % pyversion
