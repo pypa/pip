@@ -103,8 +103,7 @@ Modifications
 * ``CacheControl`` has been modified to import its dependencies from ``pip._vendor``
 * ``requests`` has been modified to import its other dependencies from ``pip._vendor``
   and to *not* load ``simplejson`` (all platforms) and ``pyopenssl`` (Windows).
-* ``requests_kerberos`` has been modified to import its dependencies from ``pip
-._vendor``
+* ``requests_kerberos`` has been modified to import its dependencies from ``pip._vendor``
 
 
 Automatic Vendoring
