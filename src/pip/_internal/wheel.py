@@ -840,12 +840,6 @@ class WheelBuilder(object):
             newly built wheel, in preparation for installation.
         :return: True if all the wheels built correctly.
         """
-        # TODO: This check fails if --no-cache-dir is set. And yet we
-        #       might be able to build into the ephemeral cache, surely?
-        building_is_possible = self._wheel_dir or (
-            autobuilding and self.wheel_cache.cache_dir
-        )
-        assert building_is_possible
 
         buildset = []
         format_control = self.finder.format_control
@@ -883,6 +877,13 @@ class WheelBuilder(object):
 
         if not buildset:
             return []
+
+        # Is any wheel build not using the ephemeral cache?
+        if any(not ephem_cache for _, ephem_cache in buildset):
+            have_directory_for_build = self._wheel_dir or (
+                autobuilding and self.wheel_cache.cache_dir
+            )
+            assert have_directory_for_build
 
         # TODO by @pradyunsg
         # Should break up this method into 2 separate methods.

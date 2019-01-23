@@ -109,3 +109,17 @@ def test_pep517_backend_requirements_already_satisfied(script, tmpdir, data):
         project_dir,
     )
     assert 'Installing backend dependencies:' not in result.stdout
+
+
+def test_pep517_install_with_no_cache_dir(script, tmpdir, data):
+    """Check builds with a custom backends work, even with no cache.
+    """
+    project_dir = make_project(
+        tmpdir, requires=['test_backend'],
+        backend="test_backend"
+    )
+    result = script.pip(
+        'install', '--no-cache-dir', '--no-index', '-f', data.backends,
+        project_dir,
+    )
+    result.assert_installed('project', editable=False)
