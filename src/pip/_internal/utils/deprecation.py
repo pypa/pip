@@ -83,8 +83,10 @@ def deprecated(reason, replacement, gone_in, issue=None):
     if issue is not None:
         url = "https://github.com/pypa/pip/issues/" + str(issue)
         message += " You can find discussion regarding this at {}.".format(url)
+    if gone_in is not None:
+        message += " pip {} will remove this functionality.".format(gone_in)
+        # Raise as an error if it has to be removed.
+        if parse(current_version) >= parse(gone_in):
+            raise PipDeprecationWarning(message)
 
-    # Raise as an error if it has to be removed.
-    if gone_in is not None and parse(current_version) >= parse(gone_in):
-        raise PipDeprecationWarning(message)
     warnings.warn(message, category=PipDeprecationWarning, stacklevel=2)
