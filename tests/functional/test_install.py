@@ -365,6 +365,21 @@ def test_vcs_url_urlquote_normalization(script, tmpdir):
     )
 
 
+def test_basic_install_from_local_directory_with_no_cache_dir(script, data):
+    """
+    Test installing with --no-cache-dir, so wheels can't be built there.
+    """
+    to_install = data.packages.join("FSPkg")
+    result = script.pip(
+        'install', to_install, '--no-cache-dir',  expect_error=False)
+    fspkg_folder = script.site_packages / 'fspkg'
+    egg_info_folder = (
+        script.site_packages / 'FSPkg-0.1.dev0-py%s.egg-info' % pyversion
+    )
+    assert fspkg_folder in result.files_created, str(result.stdout)
+    assert egg_info_folder in result.files_created, str(result)
+
+
 def test_basic_install_from_local_directory(script, data):
     """
     Test installing from a local directory.
