@@ -96,7 +96,7 @@ def call_get_csv_rows_for_installed(tmpdir, text):
     return outrows
 
 
-def test_get_csv_rows_for_installed(tmpdir):
+def test_get_csv_rows_for_installed(tmpdir, caplog):
     text = textwrap.dedent("""\
     a,b,c
     d,e,f
@@ -108,14 +108,31 @@ def test_get_csv_rows_for_installed(tmpdir):
         ('d', 'e', 'f'),
     ]
     assert outrows == expected
+    # Check there were no warnings.
+    assert len(caplog.records) == 0
 
 
-def test_get_csv_rows_for_installed__long_lines(tmpdir):
+def test_get_csv_rows_for_installed__long_lines(tmpdir, caplog):
     text = textwrap.dedent("""\
     a,b,c,d
-    e,f,g,h
+    e,f,g
+    h,i,j,k
     """)
     outrows = call_get_csv_rows_for_installed(tmpdir, text)
+
+    expected = [
+        ('a', 'b', 'c', 'd'),
+        ('e', 'f', 'g'),
+        ('h', 'i', 'j', 'k'),
+    ]
+    assert outrows == expected
+
+    messages = [rec.message for rec in caplog.records]
+    expected = [
+        "RECORD line has more than three elements: ['a', 'b', 'c', 'd']",
+        "RECORD line has more than three elements: ['h', 'i', 'j', 'k']"
+    ]
+    assert messages == expected
 
 
 def test_wheel_version(tmpdir, data):

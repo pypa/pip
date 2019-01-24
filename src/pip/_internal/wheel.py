@@ -262,17 +262,24 @@ def sorted_outrows(outrows):
 def get_csv_rows_for_installed(
     old_csv_rows,  # type: Iterable[List[str]]
     installed,  # type: Dict[str, str]
-    changed,  # set
+    changed,  # type: set
     generated,  # type: List[str]
-    lib_dir,
+    lib_dir,  # type: str
 ):
     # type: (...) -> List[InstalledCSVRow]
     installed_rows = []  # type: List[InstalledCSVRow]
-    for fpath, digest, length in old_csv_rows:
+    for row in old_csv_rows:
+        if len(row) > 3:
+            logger.warning(
+                'RECORD line has more than three elements: {}'.format(row)
+            )
+        fpath = row[0]
         fpath = installed.pop(fpath, fpath)
         if fpath in changed:
             digest, length = rehash(fpath)
-        installed_rows.append((fpath, digest, str(length)))
+            row[1] = digest
+            row[2] = length
+        installed_rows.append(tuple(row))
     for f in generated:
         digest, length = rehash(f)
         installed_rows.append((normpath(f, lib_dir), digest, str(length)))
