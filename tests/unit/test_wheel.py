@@ -1,6 +1,8 @@
 """Tests for wheel binary packages and .dist-info."""
+import csv
 import logging
 import os
+import textwrap
 
 import pytest
 from mock import Mock, patch
@@ -74,6 +76,46 @@ def test_get_entrypoints(tmpdir, console_scripts):
 def test_sorted_outrows(outrows, expected):
     actual = wheel.sorted_outrows(outrows)
     assert actual == expected
+
+
+def call_get_csv_rows_for_installed(tmpdir, text):
+    path = tmpdir.join('temp.txt')
+    path.write(text)
+
+    installed = {}
+    changed = set()
+    generated = []
+    lib_dir = '/lib/dir'
+
+    with wheel.open_for_csv(path, 'r') as f:
+        reader = csv.reader(f)
+        outrows = wheel.get_csv_rows_for_installed(
+            reader, installed=installed, changed=changed,
+            generated=generated, lib_dir=lib_dir,
+        )
+    return outrows
+
+
+def test_get_csv_rows_for_installed(tmpdir):
+    text = textwrap.dedent("""\
+    a,b,c
+    d,e,f
+    """)
+    outrows = call_get_csv_rows_for_installed(tmpdir, text)
+
+    expected = [
+        ('a', 'b', 'c'),
+        ('d', 'e', 'f'),
+    ]
+    assert outrows == expected
+
+
+def test_get_csv_rows_for_installed__long_lines(tmpdir):
+    text = textwrap.dedent("""\
+    a,b,c,d
+    e,f,g,h
+    """)
+    outrows = call_get_csv_rows_for_installed(tmpdir, text)
 
 
 def test_wheel_version(tmpdir, data):
