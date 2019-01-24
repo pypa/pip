@@ -55,13 +55,17 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.cache import WheelCache  # noqa: F401
     from pip._internal.pep425tags import Pep425Tag  # noqa: F401
 
-    InstalledCSVRow = Tuple[str, Union[str, Text], str]
+    InstalledCSVRow = Tuple[str, ...]
 
 
 VERSION_COMPATIBLE = (1, 0)
 
 
 logger = logging.getLogger(__name__)
+
+
+def normpath(src, p):
+    return os.path.relpath(src, p).replace(os.path.sep, '/')
 
 
 def rehash(path, blocksize=1 << 20):
@@ -255,6 +259,35 @@ def sorted_outrows(outrows):
     return sorted(outrows, key=lambda row: tuple(str(x) for x in row))
 
 
+def get_csv_rows_for_installed(
+    old_csv_rows,  # type: Iterable[List[str]]
+    installed,  # type: Dict[str, str]
+    changed,  # type: set
+    generated,  # type: List[str]
+    lib_dir,  # type: str
+):
+    # type: (...) -> List[InstalledCSVRow]
+    installed_rows = []  # type: List[InstalledCSVRow]
+    for row in old_csv_rows:
+        if len(row) > 3:
+            logger.warning(
+                'RECORD line has more than three elements: {}'.format(row)
+            )
+        fpath = row[0]
+        fpath = installed.pop(fpath, fpath)
+        if fpath in changed:
+            digest, length = rehash(fpath)
+            row[1] = digest
+            row[2] = length
+        installed_rows.append(tuple(row))
+    for f in generated:
+        digest, length = rehash(f)
+        installed_rows.append((normpath(f, lib_dir), digest, str(length)))
+    for f in installed:
+        installed_rows.append((installed[f], '', ''))
+    return installed_rows
+
+
 def move_wheel_files(
     name,  # type: str
     req,  # type: Requirement
@@ -304,9 +337,6 @@ def move_wheel_files(
                 warnings.filterwarnings('ignore')
                 compileall.compile_dir(source, force=True, quiet=True)
         logger.debug(stdout.getvalue())
-
-    def normpath(src, p):
-        return os.path.relpath(src, p).replace(os.path.sep, '/')
 
     def record_installed(srcfile, destfile, modified=False):
         """Map archive RECORD paths to installation RECORD paths."""
@@ -559,28 +589,16 @@ if __name__ == '__main__':
     shutil.move(temp_installer, installer)
     generated.append(installer)
 
-    def get_csv_rows_for_installed(old_csv_rows):
-        # type: (Iterable[List[str]]) -> List[InstalledCSVRow]
-        installed_rows = []  # type: List[InstalledCSVRow]
-        for fpath, digest, length in old_csv_rows:
-            fpath = installed.pop(fpath, fpath)
-            if fpath in changed:
-                digest, length = rehash(fpath)
-            installed_rows.append((fpath, digest, str(length)))
-        for f in generated:
-            digest, length = rehash(f)
-            installed_rows.append((normpath(f, lib_dir), digest, str(length)))
-        for f in installed:
-            installed_rows.append((installed[f], '', ''))
-        return installed_rows
-
     # Record details of all files installed
     record = os.path.join(info_dir[0], 'RECORD')
     temp_record = os.path.join(info_dir[0], 'RECORD.pip')
     with open_for_csv(record, 'r') as record_in:
         with open_for_csv(temp_record, 'w+') as record_out:
             reader = csv.reader(record_in)
-            outrows = get_csv_rows_for_installed(reader)
+            outrows = get_csv_rows_for_installed(
+                reader, installed=installed, changed=changed,
+                generated=generated, lib_dir=lib_dir,
+            )
             writer = csv.writer(record_out)
             # Sort to simplify testing.
             for row in sorted_outrows(outrows):
