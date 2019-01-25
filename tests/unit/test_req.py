@@ -335,6 +335,33 @@ class TestInstallRequirement(object):
         req = install_req_from_line(url + fragment)
         assert req.link.url == url + fragment, req.link
 
+    def test_pep440_wheel_link_requirement(self):
+        url = 'https://whatever.com/test-0.4-py2.py3-bogus-any.whl'
+        line = 'test @ https://whatever.com/test-0.4-py2.py3-bogus-any.whl'
+        req = install_req_from_line(line)
+        parts = str(req.req).split('@', 1)
+        assert len(parts) == 2
+        assert parts[0].strip() == 'test'
+        assert parts[1].strip() == url
+
+    def test_pep440_url_link_requirement(self):
+        url = 'git+http://foo.com@ref#egg=foo'
+        line = 'foo @ git+http://foo.com@ref#egg=foo'
+        req = install_req_from_line(line)
+        parts = str(req.req).split('@', 1)
+        assert len(parts) == 2
+        assert parts[0].strip() == 'foo'
+        assert parts[1].strip() == url
+
+    def test_url_with_authentication_link_requirement(self):
+        url = 'https://what@whatever.com/test-0.4-py2.py3-bogus-any.whl'
+        line = 'https://what@whatever.com/test-0.4-py2.py3-bogus-any.whl'
+        req = install_req_from_line(line)
+        assert req.link is not None
+        assert req.link.is_wheel
+        assert req.link.scheme == "https"
+        assert req.link.url == url
+
     def test_unsupported_wheel_link_requirement_raises(self):
         reqset = RequirementSet()
         req = install_req_from_line(
