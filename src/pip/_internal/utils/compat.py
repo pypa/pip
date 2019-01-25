@@ -14,7 +14,7 @@ from pip._vendor.six import text_type
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Tuple, Text, List, Optional, Any  # noqa: F401
+    from typing import Any, List, Optional, Text, Tuple  # noqa: F401
 
 try:
     import ipaddress

@@ -22,9 +22,8 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from types import FrameType  # noqa: F401
-
     from typing import (  # noqa: F401
-        Any, Iterator, IO, Optional, Callable, Mapping, Tuple, Type, Text
+        Any, Callable, IO, Iterator, Mapping, Optional, Text, Tuple, Type
     )
 
     ProgressBarType = Type['BaseProgressIndicator']

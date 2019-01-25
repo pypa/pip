@@ -45,8 +45,8 @@ else:
 
 if MYPY_CHECK_RUNNING:
     from typing import (  # noqa: F401
-        Optional, Tuple, Iterable, List, Match, Union, Any, Mapping, Text,
-        AnyStr, Container, IO, Iterator, Callable, ContextManager, Type
+        Any, AnyStr, Callable, Container, ContextManager, IO, Iterable,
+        Iterator, List, Mapping, Match, Optional, Text, Tuple, Type, Union
     )
     from pip._vendor.pkg_resources import Distribution  # noqa: F401
     from pip._internal.models.link import Link  # noqa: F401

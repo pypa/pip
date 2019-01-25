@@ -6,7 +6,7 @@ import operator
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Type, Callable  # noqa: F401
+    from typing import Any, Callable, Type  # noqa: F401
 
 
 class KeyBasedCompareMixin(object):

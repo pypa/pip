@@ -14,7 +14,7 @@ from pip._internal.utils.misc import ensure_dir
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Iterator, Any, Callable, Optional, IO  # noqa: F401
+    from typing import Any, Callable, IO, Iterator, Optional  # noqa: F401
 
 try:
     import threading

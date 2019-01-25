@@ -12,7 +12,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import (  # noqa: F401
-        Dict, List, BinaryIO, NoReturn, Iterator
+        BinaryIO, Dict, Iterator, List, NoReturn
     )
     from pip._vendor.six import PY3
     if PY3:
