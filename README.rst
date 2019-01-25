@@ -1,46 +1,40 @@
-pip
-===
-
-The `PyPA recommended`_ tool for installing Python packages.
+pip - The Python Package Installer
+==================================
 
 .. image:: https://img.shields.io/pypi/v/pip.svg
    :target: https://pypi.org/project/pip/
 
-.. image:: https://img.shields.io/travis/pypa/pip/master.svg?label=travis-ci
-   :target: https://travis-ci.org/pypa/pip
-
-.. image:: https://img.shields.io/appveyor/ci/pypa/pip.svg?label=appveyor-ci
-   :target: https://ci.appveyor.com/project/pypa/pip/history
-
 .. image:: https://readthedocs.org/projects/pip/badge/?version=latest
    :target: https://pip.pypa.io/en/latest
 
-.. image:: https://dev.azure.com/pypa/pip/_apis/build/status/Linux?branchName=master&label=Windows
-   :target: https://dev.azure.com/pypa/pip/_build/latest?definitionId=6
+pip is the `package installer`_ for Python. You can use pip to install packages from the `Python Package Index`_ and other indexes.
 
-.. image:: https://dev.azure.com/pypa/pip/_apis/build/status/macOS?branchName=master&label=macOS
-   :target: https://dev.azure.com/pypa/pip/_build/latest?definitionId=7
-
-.. image:: https://dev.azure.com/pypa/pip/_apis/build/status/Linux?branchName=master&label=Linux
-   :target: https://dev.azure.com/pypa/pip/_build/latest?definitionId=4
+Please take a look at our documentation for how to install and use pip:
 
 * `Installation`_
 * `Documentation`_
 * `Changelog`_
-* `GitHub Page`_
+
+If you find bugs, need help, or want to talk to the developers please use our mailing lists or chat rooms:
+
 * `Issue Tracking`_
 * `User mailing list`_
-* `Dev mailing list`_
 * `User IRC`_
+
+If you want to get involved head over to GitHub to get the source code and feel free to jump on the developer mailing lists and chat rooms:
+
+* `GitHub Page`_
+* `Dev mailing list`_
 * `Dev IRC`_
 
 Code of Conduct
 ---------------
 
 Everyone interacting in the pip project's codebases, issue trackers, chat
-rooms and mailing lists is expected to follow the `PyPA Code of Conduct`_.
+rooms, and mailing lists is expected to follow the `PyPA Code of Conduct`_.
 
-.. _PyPA recommended: https://packaging.python.org/en/latest/current/
+.. _package installer: https://packaging.python.org/en/latest/current/
+.. _Python Package Index: https://pypi.org
 .. _Installation: https://pip.pypa.io/en/stable/installing.html
 .. _Documentation: https://pip.pypa.io/en/stable/
 .. _Changelog: https://pip.pypa.io/en/stable/news.html
