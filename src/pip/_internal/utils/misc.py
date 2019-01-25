@@ -883,6 +883,7 @@ def captured_stdout():
 
 
 def captured_stderr():
+    # type: () -> ContextManager[StringIO]
     """
     See captured_stdout().
     """

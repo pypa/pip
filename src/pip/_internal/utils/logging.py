@@ -14,7 +14,9 @@ from pip._internal.utils.misc import ensure_dir
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Callable, IO, Iterator, Optional  # noqa: F401
+    from typing import (  # noqa: F401
+        Any, Callable, IO, Iterator, Optional, Type
+    )
 
 try:
     import threading
@@ -49,23 +51,31 @@ if WINDOWS:
     # https://bugs.python.org/issue30418
     if PY2:
         def _is_broken_pipe_error(exc_class, exc):
+            # type: (Type[BaseException], BaseException) -> bool
             """See the docstring for non-Windows Python 3 below."""
+            # mypy doesn't know that exc is IOError
             return (exc_class is IOError and
-                    exc.errno in (errno.EINVAL, errno.EPIPE))
+                    exc.errno in (errno.EINVAL, errno.EPIPE))  # type: ignore
     else:
         # In Windows, a broken pipe IOError became OSError in Python 3.
         def _is_broken_pipe_error(exc_class, exc):
+            # type: (Type[BaseException], BaseException) -> bool
             """See the docstring for non-Windows Python 3 below."""
+            # mypy doesn't know that exc is OSError
             return ((exc_class is BrokenPipeError) or  # noqa: F821
                     (exc_class is OSError and
-                     exc.errno in (errno.EINVAL, errno.EPIPE)))
+                     exc.errno in (errno.EINVAL, errno.EPIPE)))  # type: ignore
 elif PY2:
     def _is_broken_pipe_error(exc_class, exc):
+        # type: (Type[BaseException], BaseException) -> bool
         """See the docstring for non-Windows Python 3 below."""
-        return (exc_class is IOError and exc.errno == errno.EPIPE)
+        # mypy doesn't know that exc is IOError
+        return (exc_class is IOError
+                and exc.errno == errno.EPIPE)  # type: ignore
 else:
     # Then we are in the non-Windows Python 3 case.
     def _is_broken_pipe_error(exc_class, exc):
+        # type: (Type[BaseException], BaseException) -> bool
         """
         Return whether an exception is a broken pipe error.
 
@@ -97,6 +107,7 @@ def get_indentation():
 
 class IndentingFormatter(logging.Formatter):
     def __init__(self, *args, **kwargs):
+        # type: (Any, Any) -> None
         """
         A logging.Formatter obeying containing indent_log contexts.
 
@@ -154,12 +165,14 @@ class ColorizedStreamHandler(logging.StreamHandler):
             self.stream = colorama.AnsiToWin32(self.stream)  # type: ignore
 
     def _using_stdout(self):
+        # type: () -> bool
         """
         Return whether the handler is using sys.stdout.
         """
         if WINDOWS and colorama:
             # Then self.stream is an AnsiToWin32 object.
-            return self.stream.wrapped is sys.stdout
+            # mypy does not know that
+            return self.stream.wrapped is sys.stdout  # type: ignore
 
         return self.stream is sys.stdout
 
@@ -199,6 +212,7 @@ class ColorizedStreamHandler(logging.StreamHandler):
 
     # The logging module says handleError() can be customized.
     def handleError(self, record):
+        # type: (logging.LogRecord) -> None
         exc_class, exc = sys.exc_info()[:2]
         # If a broken pipe occurred while calling write() or flush() on the
         # stdout stream in logging's Handler.emit(), then raise our special
@@ -233,7 +247,7 @@ class MaxLevelFilter(logging.Filter):
 
 
 def setup_logging(verbosity, no_color, user_log_file):
-    # type: (int, bool, str) -> None
+    # type: (int, bool, str) -> int
     """Configures and sets up all of the logging
 
     Returns the requested logging level, as its integer value.
