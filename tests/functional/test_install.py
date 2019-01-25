@@ -37,7 +37,8 @@ def test_pep518_uses_build_env(script, data, common_wheels, command, variant):
     )
 
 
-def test_pep518_build_env_uses_same_pip(script, data, pip_src, common_wheels):
+def test_pep518_build_env_uses_same_pip(
+        script, data, pip_src, common_wheels, deprecated_python):
     """Ensure the subprocess call to pip for installing the
     build dependencies is using the same version of pip.
     """
@@ -47,6 +48,7 @@ def test_pep518_build_env_uses_same_pip(script, data, pip_src, common_wheels):
         'python', pip_src / 'src/pip', 'install', '--no-index',
         '-f', common_wheels, '-f', data.packages,
         data.src.join("pep518-3.0"),
+        expect_stderr=deprecated_python,
     )
 
 
@@ -162,8 +164,8 @@ def test_pep518_forkbombs(script, data, common_wheels, command, package):
 
 
 @pytest.mark.network
-def test_pip_second_command_line_interface_works(script, pip_src, data,
-                                                 common_wheels):
+def test_pip_second_command_line_interface_works(
+        script, pip_src, data, common_wheels, deprecated_python):
     """
     Check if ``pip<PYVERSION>`` commands behaves equally
     """
@@ -171,7 +173,7 @@ def test_pip_second_command_line_interface_works(script, pip_src, data,
     script.pip_install_local('-f', common_wheels, pip_src)
     # On old versions of Python, urllib3/requests will raise a warning about
     # the lack of an SSLContext.
-    kwargs = {}
+    kwargs = {'expect_stderr': deprecated_python}
     if pyversion_tuple < (2, 7, 9):
         kwargs['expect_stderr'] = True
 

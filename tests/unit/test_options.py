@@ -5,18 +5,41 @@ import pytest
 
 import pip._internal.configuration
 from pip._internal import main
+from pip._internal.commands import DownloadCommand
 from tests.lib.options_helpers import AddFakeCommandMixin
 
 
 @contextmanager
-def assert_raises_message(exc_class, expected):
+def temp_environment_variable(name, value):
+    not_set = object()
+    original = os.environ[name] if name in os.environ else not_set
+    os.environ[name] = value
+
+    try:
+        yield
+    finally:
+        # Return the environment variable to its original state.
+        if original is not_set:
+            if name in os.environ:
+                del os.environ[name]
+        else:
+            os.environ[name] = original
+
+
+@contextmanager
+def assert_option_error(capsys, expected):
     """
-    Assert that an exception with the given type and message is raised.
+    Assert that a SystemExit occurred because of a parsing error.
+
+    Args:
+      expected: an expected substring of stderr.
     """
-    with pytest.raises(exc_class) as excinfo:
+    with pytest.raises(SystemExit) as excinfo:
         yield
 
-    assert str(excinfo.value) == expected
+    assert excinfo.value.code == 2
+    stderr = capsys.readouterr().err
+    assert expected in stderr
 
 
 def assert_is_default_cache_dir(value):
@@ -147,14 +170,100 @@ class TestOptionPrecedence(AddFakeCommandMixin):
         # value in this case).
         assert options.cache_dir is False
 
-    def test_cache_dir__PIP_NO_CACHE_DIR_invalid__with_no_cache_dir(self):
+    def test_cache_dir__PIP_NO_CACHE_DIR_invalid__with_no_cache_dir(
+            self, capsys,
+    ):
         """
         Test setting PIP_NO_CACHE_DIR to an invalid value while also passing
         --no-cache-dir.
         """
         os.environ['PIP_NO_CACHE_DIR'] = 'maybe'
-        with assert_raises_message(ValueError, "invalid truth value 'maybe'"):
+        expected_err = "--no-cache-dir error: invalid truth value 'maybe'"
+        with assert_option_error(capsys, expected=expected_err):
             main(['--no-cache-dir', 'fake'])
+
+
+class TestUsePEP517Options(object):
+
+    """
+    Test options related to using --use-pep517.
+    """
+
+    def parse_args(self, args):
+        # We use DownloadCommand since that is one of the few Command
+        # classes with the use_pep517 options.
+        command = DownloadCommand()
+        options, args = command.parse_args(args)
+
+        return options
+
+    def test_no_option(self):
+        """
+        Test passing no option.
+        """
+        options = self.parse_args([])
+        assert options.use_pep517 is None
+
+    def test_use_pep517(self):
+        """
+        Test passing --use-pep517.
+        """
+        options = self.parse_args(['--use-pep517'])
+        assert options.use_pep517 is True
+
+    def test_no_use_pep517(self):
+        """
+        Test passing --no-use-pep517.
+        """
+        options = self.parse_args(['--no-use-pep517'])
+        assert options.use_pep517 is False
+
+    def test_PIP_USE_PEP517_true(self):
+        """
+        Test setting PIP_USE_PEP517 to "true".
+        """
+        with temp_environment_variable('PIP_USE_PEP517', 'true'):
+            options = self.parse_args([])
+        # This is an int rather than a boolean because strtobool() in pip's
+        # configuration code returns an int.
+        assert options.use_pep517 == 1
+
+    def test_PIP_USE_PEP517_false(self):
+        """
+        Test setting PIP_USE_PEP517 to "false".
+        """
+        with temp_environment_variable('PIP_USE_PEP517', 'false'):
+            options = self.parse_args([])
+        # This is an int rather than a boolean because strtobool() in pip's
+        # configuration code returns an int.
+        assert options.use_pep517 == 0
+
+    def test_use_pep517_and_PIP_USE_PEP517_false(self):
+        """
+        Test passing --use-pep517 and setting PIP_USE_PEP517 to "false".
+        """
+        with temp_environment_variable('PIP_USE_PEP517', 'false'):
+            options = self.parse_args(['--use-pep517'])
+        assert options.use_pep517 is True
+
+    def test_no_use_pep517_and_PIP_USE_PEP517_true(self):
+        """
+        Test passing --no-use-pep517 and setting PIP_USE_PEP517 to "true".
+        """
+        with temp_environment_variable('PIP_USE_PEP517', 'true'):
+            options = self.parse_args(['--no-use-pep517'])
+        assert options.use_pep517 is False
+
+    def test_PIP_NO_USE_PEP517(self, capsys):
+        """
+        Test setting PIP_NO_USE_PEP517, which isn't allowed.
+        """
+        expected_err = (
+            '--no-use-pep517 error: A value was passed for --no-use-pep517,\n'
+        )
+        with temp_environment_variable('PIP_NO_USE_PEP517', 'true'):
+            with assert_option_error(capsys, expected=expected_err):
+                self.parse_args([])
 
 
 class TestOptionsInterspersed(AddFakeCommandMixin):

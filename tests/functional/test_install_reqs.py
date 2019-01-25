@@ -175,8 +175,8 @@ def test_respect_order_in_requirements_file(script, data):
 
 def test_install_local_editable_with_extras(script, data):
     to_install = data.packages.join("LocalExtras")
-    res = script.pip(
-        'install', '-e', to_install + '[bar]', '--process-dependency-links',
+    res = script.pip_install_local(
+        '-e', to_install + '[bar]',
         expect_error=False,
         expect_stderr=True,
     )

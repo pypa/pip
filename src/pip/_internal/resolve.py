@@ -294,7 +294,7 @@ class Resolver(object):
         abstract_dist = self._get_abstract_dist_for(req_to_install)
 
         # Parse and return dependencies
-        dist = abstract_dist.dist(self.finder)
+        dist = abstract_dist.dist()
         try:
             check_dist_requires_python(dist)
         except UnsupportedPythonVersion as err:

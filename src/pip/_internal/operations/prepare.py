@@ -71,21 +71,21 @@ class DistAbstraction(object):
         # type: (InstallRequirement) -> None
         self.req = req  # type: InstallRequirement
 
-    def dist(self, finder):
-        # type: (PackageFinder) -> Any
+    def dist(self):
+        # type: () -> Any
         """Return a setuptools Dist object."""
-        raise NotImplementedError(self.dist)
+        raise NotImplementedError
 
     def prep_for_dist(self, finder, build_isolation):
         # type: (PackageFinder, bool) -> Any
         """Ensure that we can get a Dist for this requirement."""
-        raise NotImplementedError(self.dist)
+        raise NotImplementedError
 
 
 class IsWheel(DistAbstraction):
 
-    def dist(self, finder):
-        # type: (PackageFinder) -> pkg_resources.Distribution
+    def dist(self):
+        # type: () -> pkg_resources.Distribution
         return list(pkg_resources.find_distributions(
             self.req.source_dir))[0]
 
@@ -97,15 +97,8 @@ class IsWheel(DistAbstraction):
 
 class IsSDist(DistAbstraction):
 
-    def dist(self, finder):
-        # type: (PackageFinder) -> pkg_resources.Distribution
-        dist = self.req.get_dist()
-        # FIXME: shouldn't be globally added.
-        if finder and dist.has_metadata('dependency_links.txt'):
-            finder.add_dependency_links(
-                dist.get_metadata_lines('dependency_links.txt')
-            )
-        return dist
+    def dist(self):
+        return self.req.get_dist()
 
     def prep_for_dist(self, finder, build_isolation):
         # type: (PackageFinder, bool) -> None
@@ -168,8 +161,8 @@ class IsSDist(DistAbstraction):
 
 class Installed(DistAbstraction):
 
-    def dist(self, finder):
-        # type: (PackageFinder) -> pkg_resources.Distribution
+    def dist(self):
+        # type: () -> pkg_resources.Distribution
         return self.req.satisfied_by
 
     def prep_for_dist(self, finder, build_isolation):

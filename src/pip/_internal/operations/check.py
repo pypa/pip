@@ -120,9 +120,6 @@ def check_install_conflicts(to_install):
     )
 
 
-# NOTE from @pradyunsg
-# This required a minor update in dependency link handling logic over at
-# operations.prepare.IsSDist.dist() to get it working
 def _simulate_installation_of(to_install, package_set):
     # type: (List[InstallRequirement], PackageSet) -> Set[str]
     """Computes the version of packages after installing to_install.
@@ -133,7 +130,7 @@ def _simulate_installation_of(to_install, package_set):
 
     # Modify it as installing requirement_set would (assuming no errors)
     for inst_req in to_install:
-        dist = make_abstract_dist(inst_req).dist(finder=None)
+        dist = make_abstract_dist(inst_req).dist()
         name = canonicalize_name(dist.key)
         package_set[name] = PackageDetails(dist.version, dist.requires())
 
