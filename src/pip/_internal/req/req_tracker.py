@@ -11,7 +11,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from types import TracebackType  # noqa: F401
-    from typing import Set, Iterator, Optional, Type  # noqa: F401
+    from typing import Iterator, Optional, Set, Type  # noqa: F401
     from pip._internal.req.req_install import InstallRequirement  # noqa: F401
     from pip._internal.models.link import Link  # noqa: F401
 

@@ -22,8 +22,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import (  # noqa: F401
-        List, Callable, Any, Iterator, Set, Iterable, Tuple, Dict,
-        Optional
+        Any, Callable, Dict, Iterable, Iterator, List, Optional, Set, Tuple
     )
     from pip._vendor.pkg_resources import Distribution  # noqa: F401
 

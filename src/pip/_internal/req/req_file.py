@@ -23,7 +23,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import (  # noqa: F401
-        Iterator, Tuple, Optional, List, Callable, Text, NoReturn, Any
+        Any, Callable, Iterator, List, NoReturn, Optional, Text, Tuple
     )
     from pip._internal.req import InstallRequirement  # noqa: F401
     from pip._internal.cache import WheelCache  # noqa: F401

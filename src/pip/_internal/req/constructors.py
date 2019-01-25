@@ -31,7 +31,7 @@ from pip._internal.wheel import Wheel
 
 if MYPY_CHECK_RUNNING:
     from typing import (   # noqa: F401
-        Optional, Tuple, Set, Any, Union, Text, Dict,
+        Any, Dict, Optional, Set, Tuple, Union
     )
     from pip._internal.cache import WheelCache  # noqa: F401
 

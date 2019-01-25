@@ -42,7 +42,7 @@ from pip._internal.wheel import move_wheel_files
 
 if MYPY_CHECK_RUNNING:
     from typing import (  # noqa: F401
-        Optional, Iterable, List, Union, Any, Mapping, Sequence, Dict
+        Any, Dict, Iterable, List, Mapping, Optional, Sequence, Union
     )
     from pip._internal.build_env import BuildEnvironment  # noqa: F401
     from pip._internal.cache import WheelCache  # noqa: F401
