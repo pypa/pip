@@ -653,6 +653,7 @@ def call_subprocess(
     show_stdout=True,  # type: bool
     cwd=None,  # type: Optional[str]
     on_returncode='raise',  # type: str
+    extra_ok_returncodes=None,  # type: Optional[Iterable[int]]
     command_desc=None,  # type: Optional[str]
     extra_environ=None,  # type: Optional[Mapping[str, Any]]
     unset_environ=None,  # type: Optional[Iterable[str]]
@@ -661,9 +662,13 @@ def call_subprocess(
     # type: (...) -> Optional[Text]
     """
     Args:
+      extra_ok_returncodes: an iterable of integer return codes that are
+        acceptable, in addition to 0. Defaults to None, which means [].
       unset_environ: an iterable of environment variable names to unset
         prior to calling subprocess.Popen().
     """
+    if extra_ok_returncodes is None:
+        extra_ok_returncodes = []
     if unset_environ is None:
         unset_environ = []
     # This function's handling of subprocess output is confusing and I
@@ -740,7 +745,7 @@ def call_subprocess(
             spinner.finish("error")
         else:
             spinner.finish("done")
-    if proc.returncode:
+    if proc.returncode and proc.returncode not in extra_ok_returncodes:
         if on_returncode == 'raise':
             if (logger.getEffectiveLevel() > std_logging.DEBUG and
                     not show_stdout):
@@ -857,6 +862,13 @@ def captured_stdout():
     Taken from Lib/support/__init__.py in the CPython repo.
     """
     return captured_output('stdout')
+
+
+def captured_stderr():
+    """
+    See captured_stdout().
+    """
+    return captured_output('stderr')
 
 
 class cached_property(object):

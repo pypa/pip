@@ -189,8 +189,6 @@ class BuildEnvironment(object):
             args.extend(['--trusted-host', host])
         if finder.allow_all_prereleases:
             args.append('--pre')
-        if finder.process_dependency_links:
-            args.append('--process-dependency-links')
         args.append('--')
         args.extend(requirements)
         with open_spinner(message) as spinner:

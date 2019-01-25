@@ -1,5 +1,5 @@
 import pytest
-from mock import Mock, patch
+from mock import patch
 from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.vcs import RevOptions, VersionControl
@@ -70,16 +70,6 @@ def test_rev_options_make_new():
     assert new_options.vcs is vcs
 
 
-@pytest.fixture
-def git():
-    git_url = 'https://github.com/pypa/pip-test-package'
-    sha = '5547fa909e83df8bd743d3978d6667497983a4b7'
-    git = Git()
-    git.get_remote_url = Mock(return_value=git_url)
-    git.get_revision = Mock(return_value=sha)
-    return git
-
-
 def test_looks_like_hash():
     assert looks_like_hash(40 * 'a')
     assert looks_like_hash(40 * 'A')
@@ -89,9 +79,17 @@ def test_looks_like_hash():
     assert not looks_like_hash(39 * 'a')
 
 
+@patch('pip._internal.vcs.git.Git.get_revision')
+@patch('pip._internal.vcs.git.Git.get_remote_url')
 @pytest.mark.network
-def test_git_get_src_requirements(git):
-    ret = git.get_src_requirement('.', 'pip-test-package')
+def test_git_get_src_requirements(mock_get_remote_url, mock_get_revision):
+    git_url = 'https://github.com/pypa/pip-test-package'
+    sha = '5547fa909e83df8bd743d3978d6667497983a4b7'
+
+    mock_get_remote_url.return_value = git_url
+    mock_get_revision.return_value = sha
+
+    ret = Git.get_src_requirement('.', 'pip-test-package')
 
     assert ret == (
         'git+https://github.com/pypa/pip-test-package'
@@ -152,11 +150,13 @@ def test_git_resolve_revision_not_found_warning(get_sha_mock, caplog):
     ('foo', False),
     (None, False),
 ))
-def test_git_is_commit_id_equal(git, rev_name, result):
+@patch('pip._internal.vcs.git.Git.get_revision')
+def test_git_is_commit_id_equal(mock_get_revision, rev_name, result):
     """
     Test Git.is_commit_id_equal().
     """
-    assert git.is_commit_id_equal('/path', rev_name) is result
+    mock_get_revision.return_value = '5547fa909e83df8bd743d3978d6667497983a4b7'
+    assert Git().is_commit_id_equal('/path', rev_name) is result
 
 
 # The non-SVN backends all use the same get_netloc_and_auth(), so only test

@@ -55,7 +55,6 @@ SUPPORTED_OPTIONS = [
     cmdoptions.no_binary,
     cmdoptions.only_binary,
     cmdoptions.pre,
-    cmdoptions.process_dependency_links,
     cmdoptions.trusted_host,
     cmdoptions.require_hashes,
 ]  # type: List[Callable[..., optparse.Option]]
@@ -251,8 +250,6 @@ def process_line(
             finder.find_links.append(value)
         if opts.pre:
             finder.allow_all_prereleases = True
-        if opts.process_dependency_links:
-            finder.process_dependency_links = True
         if opts.trusted_hosts:
             finder.secure_origins.extend(
                 ("*", host, "*") for host in opts.trusted_hosts)

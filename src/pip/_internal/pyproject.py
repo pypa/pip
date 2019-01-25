@@ -57,17 +57,20 @@ def load_pyproject_toml(
         build_system = None
 
     # The following cases must use PEP 517
-    # We check for use_pep517 equalling False because that
-    # means the user explicitly requested --no-use-pep517
+    # We check for use_pep517 being non-None and falsey because that means
+    # the user explicitly requested --no-use-pep517.  The value 0 as
+    # opposed to False can occur when the value is provided via an
+    # environment variable or config file option (due to the quirk of
+    # strtobool() returning an integer in pip's configuration code).
     if has_pyproject and not has_setup:
-        if use_pep517 is False:
+        if use_pep517 is not None and not use_pep517:
             raise InstallationError(
                 "Disabling PEP 517 processing is invalid: "
                 "project does not have a setup.py"
             )
         use_pep517 = True
     elif build_system and "build-backend" in build_system:
-        if use_pep517 is False:
+        if use_pep517 is not None and not use_pep517:
             raise InstallationError(
                 "Disabling PEP 517 processing is invalid: "
                 "project specifies a build backend of {} "

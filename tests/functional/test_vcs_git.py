@@ -4,7 +4,9 @@ Contains functional tests of the Git class.
 
 import os
 
-from pip._internal.vcs.git import Git
+import pytest
+
+from pip._internal.vcs.git import Git, RemoteNotFoundError
 from tests.lib import _create_test_package, _git_commit, _test_path_to_file_url
 
 
@@ -14,6 +16,16 @@ def get_head_sha(script, dest):
     sha = result.stdout.strip()
 
     return sha
+
+
+def checkout_ref(script, repo_dir, ref):
+    script.run('git', 'checkout', ref, cwd=repo_dir, expect_stderr=True)
+
+
+def checkout_new_branch(script, repo_dir, branch):
+    script.run(
+        'git', 'checkout', '-b', branch, cwd=repo_dir, expect_stderr=True,
+    )
 
 
 def do_commit(script, dest):
@@ -46,7 +58,7 @@ def test_git_dir_ignored(tmpdir):
 
     env = {'GIT_DIR': 'foo'}
     # If GIT_DIR is not ignored, then os.listdir() will return ['foo'].
-    Git().run_command(['init', repo_dir], cwd=repo_dir, extra_environ=env)
+    Git.run_command(['init', repo_dir], cwd=repo_dir, extra_environ=env)
     assert os.listdir(repo_dir) == ['.git']
 
 
@@ -58,13 +70,12 @@ def test_git_work_tree_ignored(tmpdir):
     repo_path.mkdir()
     repo_dir = str(repo_path)
 
-    git = Git()
-    git.run_command(['init', repo_dir], cwd=repo_dir)
+    Git.run_command(['init', repo_dir], cwd=repo_dir)
     # Choose a directory relative to the cwd that does not exist.
     # If GIT_WORK_TREE is not ignored, then the command will error out
     # with: "fatal: This operation must be run in a work tree".
     env = {'GIT_WORK_TREE': 'foo'}
-    git.run_command(['status', repo_dir], extra_environ=env, cwd=repo_dir)
+    Git.run_command(['status', repo_dir], extra_environ=env, cwd=repo_dir)
 
 
 def test_get_remote_url(script, tmpdir):
@@ -79,30 +90,61 @@ def test_get_remote_url(script, tmpdir):
     repo_dir = str(tmpdir / 'repo')
     script.run('git', 'clone', source_url, repo_dir, expect_stderr=True)
 
-    remote_url = Git().get_remote_url(repo_dir)
+    remote_url = Git.get_remote_url(repo_dir)
     assert remote_url == source_url
 
 
-def test_get_branch(script):
+def test_get_remote_url__no_remote(script, tmpdir):
+    """
+    Test a repo with no remote.
+    """
+    repo_dir = tmpdir / 'temp-repo'
+    repo_dir.mkdir()
+    repo_dir = str(repo_dir)
+
+    script.run('git', 'init', cwd=repo_dir)
+
+    with pytest.raises(RemoteNotFoundError):
+        Git.get_remote_url(repo_dir)
+
+
+def test_get_current_branch(script):
     repo_dir = str(script.scratch_path)
 
     script.run('git', 'init', cwd=repo_dir)
     sha = do_commit(script, repo_dir)
 
     git = Git()
-    assert git.get_branch(repo_dir) == 'master'
+    assert git.get_current_branch(repo_dir) == 'master'
 
     # Switch to a branch with the same SHA as "master" but whose name
     # is alphabetically after.
-    script.run(
-        'git', 'checkout', '-b', 'release', cwd=repo_dir,
-        expect_stderr=True,
-    )
-    assert git.get_branch(repo_dir) == 'release'
+    checkout_new_branch(script, repo_dir, 'release')
+    assert git.get_current_branch(repo_dir) == 'release'
 
     # Also test the detached HEAD case.
-    script.run('git', 'checkout', sha, cwd=repo_dir, expect_stderr=True)
-    assert git.get_branch(repo_dir) is None
+    checkout_ref(script, repo_dir, sha)
+    assert git.get_current_branch(repo_dir) is None
+
+
+def test_get_current_branch__branch_and_tag_same_name(script, tmpdir):
+    """
+    Check calling get_current_branch() from a branch or tag when the branch
+    and tag have the same name.
+    """
+    repo_dir = str(tmpdir)
+    script.run('git', 'init', cwd=repo_dir)
+    do_commit(script, repo_dir)
+    checkout_new_branch(script, repo_dir, 'dev')
+    # Create a tag with the same name as the branch.
+    script.run('git', 'tag', 'dev', cwd=repo_dir)
+
+    git = Git()
+    assert git.get_current_branch(repo_dir) == 'dev'
+
+    # Now try with the tag checked out.
+    checkout_ref(script, repo_dir, 'refs/tags/dev')
+    assert git.get_current_branch(repo_dir) is None
 
 
 def test_get_revision_sha(script):

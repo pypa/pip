@@ -1,11 +1,12 @@
 """Base Command class, and related routines"""
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 import logging
 import logging.config
 import optparse
 import os
 import sys
+import traceback
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.parser import (
@@ -26,8 +27,11 @@ from pip._internal.req.constructors import (
     install_req_from_editable, install_req_from_line,
 )
 from pip._internal.req.req_file import parse_requirements
-from pip._internal.utils.logging import setup_logging
-from pip._internal.utils.misc import get_prog, normalize_path
+from pip._internal.utils.deprecation import deprecated
+from pip._internal.utils.logging import BrokenStdoutLoggingError, setup_logging
+from pip._internal.utils.misc import (
+    get_prog, normalize_path, redact_password_from_url,
+)
 from pip._internal.utils.outdated import pip_version_check
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -126,11 +130,29 @@ class Command(object):
         # Set verbosity so that it can be used elsewhere.
         self.verbosity = options.verbose - options.quiet
 
-        setup_logging(
+        level_number = setup_logging(
             verbosity=self.verbosity,
             no_color=options.no_color,
             user_log_file=options.log,
         )
+
+        if sys.version_info[:2] == (3, 4):
+            deprecated(
+                "Python 3.4 support has been deprecated. pip 19.1 will be the "
+                "last one supporting it. Please upgrade your Python as Python "
+                "3.4 won't be maintained after March 2019 (cf PEP 429).",
+                replacement=None,
+                gone_in='19.2',
+            )
+        elif sys.version_info[:2] == (2, 7):
+            deprecated(
+                "Python 2.7 will reach the end of its life on January 1st, "
+                "2020. Please upgrade your Python as Python 2.7 won't be "
+                "maintained after that date. A future version of pip will "
+                "drop support for Python 2.7.",
+                replacement=None,
+                gone_in=None,
+            )
 
         # TODO: Try to get these passing down from the command?
         #       without resorting to os.environ to hold these.
@@ -169,6 +191,14 @@ class Command(object):
         except CommandError as exc:
             logger.critical('ERROR: %s', exc)
             logger.debug('Exception information:', exc_info=True)
+
+            return ERROR
+        except BrokenStdoutLoggingError:
+            # Bypass our logger and write any remaining messages to stderr
+            # because stdout no longer works.
+            print('ERROR: Pipe to stdout was broken', file=sys.stderr)
+            if level_number <= logging.DEBUG:
+                traceback.print_exc(file=sys.stderr)
 
             return ERROR
         except KeyboardInterrupt:
@@ -287,7 +317,10 @@ class RequirementCommand(Command):
         """
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:
-            logger.debug('Ignoring indexes: %s', ','.join(index_urls))
+            logger.debug(
+                'Ignoring indexes: %s',
+                ','.join(redact_password_from_url(url) for url in index_urls),
+            )
             index_urls = []
 
         return PackageFinder(
@@ -296,7 +329,6 @@ class RequirementCommand(Command):
             index_urls=index_urls,
             trusted_hosts=options.trusted_hosts,
             allow_all_prereleases=options.pre,
-            process_dependency_links=options.process_dependency_links,
             session=session,
             platform=platform,
             versions=python_versions,

@@ -17,7 +17,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import (  # noqa: F401
-        Dict, Optional, Tuple, List, Type, Any, Mapping, Text
+        Any, Dict, Iterable, List, Mapping, Optional, Text, Tuple, Type
     )
     from pip._internal.utils.ui import SpinnerInterface  # noqa: F401
 
@@ -27,6 +27,10 @@ __all__ = ['vcs']
 
 
 logger = logging.getLogger(__name__)
+
+
+class RemoteNotFoundError(Exception):
+    pass
 
 
 class RevOptions(object):
@@ -206,7 +210,8 @@ class VersionControl(object):
         """
         return RevOptions(self, rev, extra_args=extra_args)
 
-    def _is_local_repository(self, repo):
+    @classmethod
+    def _is_local_repository(cls, repo):
         # type: (str) -> bool
         """
            posix absolute paths start with os.path.sep,
@@ -440,7 +445,8 @@ class VersionControl(object):
             rmtree(location)
         self.obtain(location)
 
-    def get_src_requirement(self, location, project_name):
+    @classmethod
+    def get_src_requirement(cls, location, project_name):
         """
         Return a string representing the requirement needed to
         redownload the files currently present in location, something
@@ -449,24 +455,31 @@ class VersionControl(object):
         """
         raise NotImplementedError
 
-    def get_remote_url(self, location):
+    @classmethod
+    def get_remote_url(cls, location):
         """
         Return the url used at location
+
+        Raises RemoteNotFoundError if the repository does not have a remote
+        url configured.
         """
         raise NotImplementedError
 
-    def get_revision(self, location):
+    @classmethod
+    def get_revision(cls, location):
         """
         Return the current commit id of the files at the given location.
         """
         raise NotImplementedError
 
+    @classmethod
     def run_command(
-        self,
+        cls,
         cmd,  # type: List[str]
         show_stdout=True,  # type: bool
         cwd=None,  # type: Optional[str]
         on_returncode='raise',  # type: str
+        extra_ok_returncodes=None,  # type: Optional[Iterable[int]]
         command_desc=None,  # type: Optional[str]
         extra_environ=None,  # type: Optional[Mapping[str, Any]]
         spinner=None  # type: Optional[SpinnerInterface]
@@ -477,12 +490,14 @@ class VersionControl(object):
         This is simply a wrapper around call_subprocess that adds the VCS
         command name, and checks that the VCS is available
         """
-        cmd = [self.name] + cmd
+        cmd = [cls.name] + cmd
         try:
             return call_subprocess(cmd, show_stdout, cwd,
-                                   on_returncode,
-                                   command_desc, extra_environ,
-                                   unset_environ=self.unset_environ,
+                                   on_returncode=on_returncode,
+                                   extra_ok_returncodes=extra_ok_returncodes,
+                                   command_desc=command_desc,
+                                   extra_environ=extra_environ,
+                                   unset_environ=cls.unset_environ,
                                    spinner=spinner)
         except OSError as e:
             # errno.ENOENT = no such file or directory
@@ -491,7 +506,7 @@ class VersionControl(object):
                 raise BadCommand(
                     'Cannot find command %r - do you have '
                     '%r installed and in your '
-                    'PATH?' % (self.name, self.name))
+                    'PATH?' % (cls.name, cls.name))
             else:
                 raise  # re-raise exception if a different error occurred
 

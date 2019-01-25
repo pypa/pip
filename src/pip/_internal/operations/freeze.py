@@ -172,7 +172,7 @@ def get_requirement_info(dist):
 
     location = os.path.normcase(os.path.abspath(dist.location))
 
-    from pip._internal.vcs import vcs
+    from pip._internal.vcs import vcs, RemoteNotFoundError
     vc_type = vcs.get_backend_type(location)
 
     if not vc_type:
@@ -182,12 +182,21 @@ def get_requirement_info(dist):
             location,
         )
         comments = [
-            '# Editable, no version control detected ({})'.format(req)
+            '# Editable install with no version control ({})'.format(req)
         ]
         return (location, True, comments)
 
     try:
-        req = vc_type().get_src_requirement(location, dist.project_name)
+        req = vc_type.get_src_requirement(location, dist.project_name)
+    except RemoteNotFoundError:
+        req = dist.as_requirement()
+        comments = [
+            '# Editable {} install with no remote ({})'.format(
+                vc_type.__name__, req,
+            )
+        ]
+        return (location, True, comments)
+
     except BadCommand:
         logger.warning(
             'cannot determine version of editable source in %s '

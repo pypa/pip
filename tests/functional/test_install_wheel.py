@@ -420,3 +420,11 @@ def test_wheel_compile_syntax_error(script, data):
     result = script.pip('install', '--compile', package, '--no-index')
     assert 'yield from' not in result.stdout
     assert 'SyntaxError: ' not in result.stdout
+
+
+def test_wheel_install_with_no_cache_dir(script, tmpdir, data):
+    """Check wheel installations work, even with no cache.
+    """
+    package = data.packages.join("simple.dist-0.1-py2.py3-none-any.whl")
+    result = script.pip('install', '--no-cache-dir', '--no-index', package)
+    result.assert_installed('simpledist', editable=False)
