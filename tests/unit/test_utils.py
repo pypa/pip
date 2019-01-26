@@ -6,6 +6,7 @@ util tests
 """
 import codecs
 import itertools
+import logging
 import os
 import shutil
 import stat
@@ -33,6 +34,7 @@ from pip._internal.utils.misc import (
 )
 from pip._internal.utils.packaging import check_dist_requires_python
 from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
+from pip._internal.utils.ui import SpinnerInterface
 
 
 class Tests_EgglinkPath:
@@ -750,27 +752,235 @@ def test_format_command_args(args, expected):
     assert actual == expected
 
 
-def test_call_subprocess_works__no_keyword_arguments():
-    result = call_subprocess(
-        [sys.executable, '-c', 'print("Hello")'],
-    )
-    assert result.rstrip() == 'Hello'
+class FakeSpinner(SpinnerInterface):
+
+    def __init__(self):
+        self.spin_count = 0
+        self.final_status = None
+
+    def spin(self):
+        self.spin_count += 1
+
+    def finish(self, final_status):
+        self.final_status = final_status
 
 
-def test_call_subprocess_works__show_stdout_true():
-    result = call_subprocess(
-        [sys.executable, '-c', 'print("Hello")'],
-        show_stdout=True,
-    )
-    assert result is None
+class TestCallSubprocess(object):
 
+    """
+    Test call_subprocess().
+    """
 
-def test_call_subprocess_closes_stdin():
-    with pytest.raises(InstallationError):
-        call_subprocess(
-            [sys.executable, '-c', 'input()'],
-            show_stdout=True,
+    def check_result(
+        self, capfd, caplog, log_level, spinner, result, expected,
+        expected_spinner,
+    ):
+        """
+        Check the result of calling call_subprocess().
+
+        :param log_level: the logging level that caplog was set to.
+        :param spinner: the FakeSpinner object passed to call_subprocess()
+            to be checked.
+        :param result: the call_subprocess() return value to be checked.
+        :param expected: a 3-tuple (expected_proc, expected_out,
+            expected_records), where
+            1) `expected_proc` is the expected return value of
+              call_subprocess() as a list of lines, or None if the return
+              value is expected to be None;
+            2) `expected_out` is the expected stdout captured from the
+              subprocess call, as a list of lines; and
+            3) `expected_records` is the expected value of
+              caplog.record_tuples.
+        :param expected_spinner: a 2-tuple of the spinner's expected
+            (spin_count, final_status).
+        """
+        expected_proc, expected_out, expected_records = expected
+
+        if expected_proc is None:
+            assert result is expected_proc
+        else:
+            assert result.splitlines() == expected_proc
+
+        captured = capfd.readouterr()
+        stdout, stderr = captured.out, captured.err
+
+        assert stdout.splitlines() == expected_out
+        assert stderr == ''
+
+        records = caplog.record_tuples
+        if len(records) != len(expected_records):
+            raise RuntimeError('{} != {}'.format(records, expected_records))
+
+        for record, expected_record in zip(records, expected_records):
+            # Check the logger_name and log level parts exactly.
+            assert record[:2] == expected_record[:2]
+            # For the message portion, check only a substring.  Also, we
+            # can't use startswith() since the order of stdout and stderr
+            # isn't guaranteed in cases where stderr is also present.
+            # For example, we observed the stderr lines coming before stdout
+            # in CI for PyPy 2.7 even though stdout happens first
+            # chronologically.
+            assert expected_record[2] in record[2]
+
+        assert (spinner.spin_count, spinner.final_status) == expected_spinner
+
+    def prepare_call(self, caplog, log_level, command=None):
+        if command is None:
+            command = 'print("Hello"); print("world")'
+
+        caplog.set_level(log_level)
+        spinner = FakeSpinner()
+        args = [sys.executable, '-c', command]
+
+        return (args, spinner)
+
+    def test_debug_logging(self, capfd, caplog):
+        """
+        Test DEBUG logging (and without passing show_stdout=True).
+        """
+        log_level = logging.DEBUG
+        args, spinner = self.prepare_call(caplog, log_level)
+        result = call_subprocess(args, spinner=spinner)
+
+        expected = (['Hello', 'world'], [], [
+            ('pip._internal.utils.misc', 10, 'Running command '),
+            ('pip._internal.utils.misc', 10, 'Hello'),
+            ('pip._internal.utils.misc', 10, 'world'),
+        ])
+        # The spinner shouldn't spin in this case since the subprocess
+        # output is already being logged to the console.
+        self.check_result(
+            capfd, caplog, log_level, spinner, result, expected,
+            expected_spinner=(0, 'done'),
         )
+
+    def test_info_logging(self, capfd, caplog):
+        """
+        Test INFO logging (and without passing show_stdout=True).
+        """
+        log_level = logging.INFO
+        args, spinner = self.prepare_call(caplog, log_level)
+        result = call_subprocess(args, spinner=spinner)
+
+        expected = (['Hello', 'world'], [], [])
+        # The spinner should spin twice in this case since the subprocess
+        # output isn't being written to the console.
+        self.check_result(
+            capfd, caplog, log_level, spinner, result, expected,
+            expected_spinner=(2, 'done'),
+        )
+
+    def test_info_logging__subprocess_error(self, capfd, caplog):
+        """
+        Test INFO logging of a subprocess with an error (and without passing
+        show_stdout=True).
+        """
+        log_level = logging.INFO
+        command = 'print("Hello"); print("world"); exit("fail")'
+        args, spinner = self.prepare_call(caplog, log_level, command=command)
+
+        with pytest.raises(InstallationError):
+            call_subprocess(args, spinner=spinner)
+        result = None
+
+        expected = (None, [], [
+            ('pip._internal.utils.misc', 20, 'Complete output from command '),
+            # The "failed" portion is later on in this "Hello" string.
+            ('pip._internal.utils.misc', 20, 'Hello'),
+        ])
+        # The spinner should spin three times in this case since the
+        # subprocess output isn't being written to the console.
+        self.check_result(
+            capfd, caplog, log_level, spinner, result, expected,
+            expected_spinner=(3, 'error'),
+        )
+
+        # Do some further checking on the captured log records to confirm
+        # that the subprocess output was logged.
+        last_record = caplog.record_tuples[-1]
+        last_message = last_record[2]
+        lines = last_message.splitlines()
+
+        # We have to sort before comparing the lines because we can't
+        # guarantee the order in which stdout and stderr will appear.
+        # For example, we observed the stderr lines coming before stdout
+        # in CI for PyPy 2.7 even though stdout happens first chronologically.
+        assert sorted(lines) == [
+            '----------------------------------------',
+            'Hello',
+            'fail',
+            'world',
+        ], 'lines: {}'.format(lines)  # Show the full output on failure.
+
+    def test_info_logging_with_show_stdout_true(self, capfd, caplog):
+        """
+        Test INFO logging with show_stdout=True.
+        """
+        log_level = logging.INFO
+        args, spinner = self.prepare_call(caplog, log_level)
+        result = call_subprocess(args, spinner=spinner, show_stdout=True)
+
+        expected = (None, ['Hello', 'world'], [])
+        # The spinner shouldn't spin in this case since the subprocess
+        # output is already being written to the console.
+        self.check_result(
+            capfd, caplog, log_level, spinner, result, expected,
+            expected_spinner=(0, 'done'),
+        )
+
+    @pytest.mark.parametrize((
+        'exit_status', 'show_stdout', 'extra_ok_returncodes', 'log_level',
+        'expected'),
+        [
+            (0, False, None, logging.INFO, (None, 'done', 2)),
+            # Test some cases that should result in show_spinner false.
+            (0, False, None, logging.DEBUG, (None, 'done', 0)),
+            # Test show_stdout=True.
+            (0, True, None, logging.DEBUG, (None, 'done', 0)),
+            (0, True, None, logging.INFO, (None, 'done', 0)),
+            (0, True, None, logging.WARNING, (None, 'done', 0)),
+            # Test a non-zero exit status.
+            (3, False, None, logging.INFO, (InstallationError, 'error', 2)),
+            # Test a non-zero exit status also in extra_ok_returncodes.
+            (3, False, (3, ), logging.INFO, (None, 'error', 2)),
+    ])
+    def test_spinner_finish(
+        self, exit_status, show_stdout, extra_ok_returncodes, log_level,
+        caplog, expected,
+    ):
+        """
+        Test that the spinner finishes correctly.
+        """
+        expected_exc_type = expected[0]
+        expected_final_status = expected[1]
+        expected_spin_count = expected[2]
+
+        command = (
+            'print("Hello"); print("world"); exit({})'.format(exit_status)
+        )
+        args, spinner = self.prepare_call(caplog, log_level, command=command)
+        try:
+            call_subprocess(
+                args,
+                show_stdout=show_stdout,
+                extra_ok_returncodes=extra_ok_returncodes,
+                spinner=spinner,
+            )
+        except Exception as exc:
+            exc_type = type(exc)
+        else:
+            exc_type = None
+
+        assert exc_type == expected_exc_type
+        assert spinner.final_status == expected_final_status
+        assert spinner.spin_count == expected_spin_count
+
+    def test_closes_stdin(self):
+        with pytest.raises(InstallationError):
+            call_subprocess(
+                [sys.executable, '-c', 'input()'],
+                show_stdout=True,
+            )
 
 
 @pytest.mark.parametrize('args, expected', [
