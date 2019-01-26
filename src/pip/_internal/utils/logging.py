@@ -10,6 +10,7 @@ import sys
 from pip._vendor.six import PY2
 
 from pip._internal.utils.compat import WINDOWS
+from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
 from pip._internal.utils.misc import ensure_dir
 
 try:
@@ -92,7 +93,7 @@ def get_indentation():
 class IndentingFormatter(logging.Formatter):
     def __init__(self, *args, **kwargs):
         """
-        A logging.Formatter obeying containing indent_log contexts.
+        A logging.Formatter that obeys the indent_log() context manager.
 
         :param add_timestamp: A bool indicating output lines should be prefixed
             with their record's timestamp.
@@ -100,12 +101,31 @@ class IndentingFormatter(logging.Formatter):
         self.add_timestamp = kwargs.pop("add_timestamp", False)
         super(IndentingFormatter, self).__init__(*args, **kwargs)
 
+    def get_message_start(self, formatted, levelno):
+        """
+        Return the start of the formatted log message (not counting the
+        prefix to add to each line).
+        """
+        if levelno < logging.WARNING:
+            return ''
+        if formatted.startswith(DEPRECATION_MSG_PREFIX):
+            # Then the message already has a prefix.  We don't want it to
+            # look like "WARNING: DEPRECATION: ...."
+            return ''
+        if levelno < logging.ERROR:
+            return 'WARNING: '
+
+        return 'ERROR: '
+
     def format(self, record):
         """
         Calls the standard formatter, but will indent all of the log messages
         by our current indentation level.
         """
         formatted = super(IndentingFormatter, self).format(record)
+        message_start = self.get_message_start(formatted, record.levelno)
+        formatted = message_start + formatted
+
         prefix = ''
         if self.add_timestamp:
             prefix = self.formatTime(record, "%Y-%m-%dT%H:%M:%S ")

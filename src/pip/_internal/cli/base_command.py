@@ -191,7 +191,7 @@ class Command(object):
 
             return ERROR
         except CommandError as exc:
-            logger.critical('ERROR: %s', exc)
+            logger.critical('%s', exc)
             logger.debug('Exception information:', exc_info=True)
 
             return ERROR

@@ -15,6 +15,9 @@ if MYPY_CHECK_RUNNING:
     from typing import Any, Optional
 
 
+DEPRECATION_MSG_PREFIX = "DEPRECATION: "
+
+
 class PipDeprecationWarning(Warning):
     pass
 
@@ -77,7 +80,7 @@ def deprecated(reason, replacement, gone_in, issue=None):
     # Construct a nice message.
     # This is purposely eagerly formatted as we want it to appear as if someone
     # typed this entire message out.
-    message = "DEPRECATION: " + reason
+    message = DEPRECATION_MSG_PREFIX + reason
     if replacement is not None:
         message += " A possible replacement is {}.".format(replacement)
     if issue is not None:
