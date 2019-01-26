@@ -22,7 +22,7 @@ from pip._internal.locations import (
     PIP_DELETE_MARKER_FILENAME, running_under_virtualenv,
 )
 from pip._internal.models.link import Link
-from pip._internal.pyproject import load_pyproject_toml
+from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.compat import native_str
 from pip._internal.utils.hashes import Hashes
@@ -471,13 +471,7 @@ class InstallRequirement(object):
         # type: () -> str
         assert self.source_dir, "No source dir for %s" % self
 
-        pp_toml = os.path.join(self.setup_py_dir, 'pyproject.toml')
-
-        # Python2 __file__ should not be unicode
-        if six.PY2 and isinstance(pp_toml, six.text_type):
-            pp_toml = pp_toml.encode(sys.getfilesystemencoding())
-
-        return pp_toml
+        return make_pyproject_path(self.setup_py_dir)
 
     def load_pyproject_toml(self):
         # type: () -> None
