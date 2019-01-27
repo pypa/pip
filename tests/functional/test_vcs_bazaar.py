@@ -23,15 +23,40 @@ def test_ensure_bzr_available():
 @need_bzr
 def test_export(script, tmpdir):
     """Test that a Bazaar branch can be exported."""
-    branch_path = tmpdir / 'test-branch'
-    branch_path.mkdir()
+    source_dir = tmpdir / 'test-source'
+    source_dir.mkdir()
 
-    create_file(branch_path / 'test_file', 'something')
+    create_file(source_dir / 'test_file', 'something')
 
-    _vcs_add(script, str(branch_path), vcs='bazaar')
+    _vcs_add(script, str(source_dir), vcs='bazaar')
 
-    bzr = Bazaar('bzr+' + _test_path_to_file_url(branch_path))
+    bzr = Bazaar('bzr+' + _test_path_to_file_url(source_dir))
     export_dir = str(tmpdir / 'export')
     bzr.export(export_dir)
 
     assert os.listdir(export_dir) == ['test_file']
+
+
+@need_bzr
+def test_export_rev(script, tmpdir):
+    """Test that a Bazaar branch can be exported, specifying a rev."""
+    source_dir = tmpdir / 'test-source'
+    source_dir.mkdir()
+
+    # Create a single file that is changed by two revisions.
+    create_file(source_dir / 'test_file', 'something initial')
+    _vcs_add(script, str(source_dir), vcs='bazaar')
+
+    create_file(source_dir / 'test_file', 'something new')
+    script.run(
+        'bzr', 'commit', '-q',
+        '--author', 'pip <pypa-dev@googlegroups.com>',
+        '-m', 'change test file', cwd=source_dir,
+    )
+
+    bzr = Bazaar('bzr+' + _test_path_to_file_url(source_dir) + '@1')
+    export_dir = tmpdir / 'export'
+    bzr.export(str(export_dir))
+
+    with open(export_dir / 'test_file', 'r') as f:
+        assert f.read() == 'something initial'
