@@ -159,23 +159,25 @@ def make_project_with_setup(tmpdir, explicit_backend):
     return project_dir
 
 
-def test_pep517_implicit_setuptools_backend(script, tmpdir, data):
+def test_implicit_setuptools_backend(script, tmpdir, data, common_wheels):
     """Check builds with setup.py, pyproject.toml, but no build-system entry.
     """
     project_dir = make_project_with_setup(tmpdir, explicit_backend=False)
     result = script.pip(
-        'install', '--no-cache-dir', '-f', data.backends,
+        'install', '--no-cache-dir', '--no-index',
+        '-f', common_wheels, '-f', data.backends,
         project_dir,
     )
     result.assert_installed('project', editable=False)
 
 
-def test_pep517_explicit_setuptools_backend(script, tmpdir, data):
+def test_explicit_setuptools_backend(script, tmpdir, data, common_wheels):
     """Check builds with setup.py, pyproject.toml, and a build-system entry.
     """
     project_dir = make_project_with_setup(tmpdir, explicit_backend=True)
     result = script.pip(
-        'install', '--no-cache-dir', '-f', data.backends,
+        'install', '--no-cache-dir', '--no-index',
+        '-f', common_wheels, '-f', data.backends,
         project_dir,
     )
     result.assert_installed('project', editable=False)
