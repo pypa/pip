@@ -130,6 +130,7 @@ def make_project_with_setup_script(tmpdir, explicit_backend):
     setup_script = (
         'import sys, os.path\n'
         'script_dir = os.path.dirname(os.path.abspath(__file__))\n'
+        'from setuptools import setup\n'
     )
     if explicit_backend:
         buildsys = {
@@ -141,8 +142,12 @@ def make_project_with_setup_script(tmpdir, explicit_backend):
     else:
         project_data = ''
         setup_script += 'if script_dir not in sys.path: raise RuntimeError("Missing path entry")\n'
+    setup_script += 'setup(name="project", version="0.1", packages=["project"])'
+
     project_dir.join('pyproject.toml').write(project_data)
     project_dir.join('setup.py').write(setup_script)
+    package_dir = (project_dir / "project").mkdir()
+    package_dir.join('__init__.py').write('')
     return project_dir
 
 def test_pep517_implicit_setuptools_backend(script, tmpdir, data):
@@ -150,7 +155,7 @@ def test_pep517_implicit_setuptools_backend(script, tmpdir, data):
     """
     project_dir = make_project_with_setup_script(tmpdir, explicit_backend=False)
     result = script.pip(
-        'install', '--no-cache-dir', '--no-index', '-f', data.backends,
+        'install', '--no-cache-dir', '-f', data.backends,
         project_dir,
     )
     result.assert_installed('project', editable=False)
@@ -160,7 +165,7 @@ def test_pep517_explicit_setuptools_backend(script, tmpdir, data):
     """
     project_dir = make_project_with_setup_script(tmpdir, explicit_backend=True)
     result = script.pip(
-        'install', '--no-cache-dir', '--no-index', '-f', data.backends,
+        'install', '--no-cache-dir', '-f', data.backends,
         project_dir,
     )
     result.assert_installed('project', editable=False)
