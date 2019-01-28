@@ -164,8 +164,7 @@ def test_implicit_setuptools_backend(script, tmpdir, data, common_wheels):
     """
     project_dir = make_project_with_setup(tmpdir, explicit_backend=False)
     result = script.pip(
-        'install', '--no-cache-dir', '--no-index',
-        '-f', common_wheels, '-f', data.backends,
+        'install', '--no-cache-dir', '--no-index', '-f', common_wheels,
         project_dir,
     )
     result.assert_installed('project', editable=False)
@@ -176,8 +175,7 @@ def test_explicit_setuptools_backend(script, tmpdir, data, common_wheels):
     """
     project_dir = make_project_with_setup(tmpdir, explicit_backend=True)
     result = script.pip(
-        'install', '--no-cache-dir', '--no-index',
-        '-f', common_wheels, '-f', data.backends,
+        'install', '--no-cache-dir', '--no-index', '-f', common_wheels,
         project_dir,
     )
     result.assert_installed('project', editable=False)
