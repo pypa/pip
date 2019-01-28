@@ -1,0 +1,3 @@
+When using the setuptools PEP 517 backend as an implicit default fallback,
+inject the source directory as sys.path[0] to more closely match the
+historical direct execution of setup.py scripts.
