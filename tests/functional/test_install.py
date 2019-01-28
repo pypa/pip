@@ -62,7 +62,7 @@ def test_pep518_refuses_conflicting_requires(script, data):
         result.returncode != 0 and
         ('Some build dependencies for %s conflict with PEP 517/518 supported '
          'requirements: setuptools==1.0 is incompatible with '
-         'setuptools>=40.2.0.' % path_to_url(project_dir)) in result.stderr
+         'setuptools>=40.8.0.' % path_to_url(project_dir)) in result.stderr
     ), str(result)
 
 

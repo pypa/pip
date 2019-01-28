@@ -111,11 +111,13 @@ def load_pyproject_toml(
         # section, or the user has no pyproject.toml, but has opted in
         # explicitly via --use-pep517.
         # In the absence of any explicit backend specification, we
-        # assume the setuptools backend, and require wheel and a version
-        # of setuptools that supports that backend.
+        # assume the setuptools backend that most closely emulates the
+        # traditional direct setup.py execution, and require wheel and
+        # a version of setuptools that supports that backend.
+
         build_system = {
-            "requires": ["setuptools>=40.2.0", "wheel"],
-            "build-backend": "setuptools.build_meta",
+            "requires": ["setuptools>=40.8.0", "wheel"],
+            "build-backend": "setuptools.build_meta:__legacy__",
         }
 
     # If we're using PEP 517, we have build system information (either
@@ -154,7 +156,7 @@ def load_pyproject_toml(
         # If the user didn't specify a backend, we assume they want to use
         # the setuptools backend. But we can't be sure they have included
         # a version of setuptools which supplies the backend, or wheel
-        # (which is neede by the backend) in their requirements. So we
+        # (which is needed by the backend) in their requirements. So we
         # make a note to check that those requirements are present once
         # we have set up the environment.
         # This is quite a lot of work to check for a very specific case. But
@@ -163,7 +165,7 @@ def load_pyproject_toml(
         # execute setup.py, but never considered needing to mention the build
         # tools themselves. The original PEP 518 code had a similar check (but
         # implemented in a different way).
-        backend = "setuptools.build_meta"
-        check = ["setuptools>=40.2.0", "wheel"]
+        backend = "setuptools.build_meta:__legacy__"
+        check = ["setuptools>=40.8.0", "wheel"]
 
     return (requires, backend, check)

@@ -27,6 +27,7 @@ nosetests.xml
 coverage.xml
 *.cover
 tests/data/common_wheels/
+pip-wheel-metadata
 
 # Misc
 *~

@@ -1,0 +1,5 @@
+The implicit default backend used for projects that provide a ``pyproject.toml``
+file without explicitly specifying ``build-backend`` now behaves more like direct
+execution of ``setup.py``, and hence should restore compatibility with projects
+that were unable to be installed with ``pip`` 19.0. This raised the minimum
+required version of ``setuptools`` for such builds to 40.8.0.
