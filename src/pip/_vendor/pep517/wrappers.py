@@ -45,14 +45,16 @@ class Pep517HookCaller(object):
     """
     def __init__(self, source_dir, build_backend):
         self.source_dir = abspath(source_dir)
-        __, implicit, build_backend = build_backend.rpartition("pip._implicit.")
-        assert not __ # The implicit marker should only ever be a prefix
-        self.build_backend = build_backend
-        self._subprocess_runner = default_subprocess_runner
+        # Issue #6163 workaround:
         # For backwards compatibility with older setup.py scripts that assume
         # the source directory will be on sys.path, this amends the hook
         # execution environment in the implicit case
+        __, implicit, build_backend = build_backend.rpartition("pip._implicit.")
+        assert not __ # The implicit marker should only ever be a prefix
         self._add_source_dir_to_sys_path = implicit
+        # End issue #6163 workaround
+        self.build_backend = build_backend
+        self._subprocess_runner = default_subprocess_runner
 
     # TODO: Is this over-engineered? Maybe frontends only need to
     #       set this when creating the wrapper, not on every call.
@@ -156,8 +158,11 @@ class Pep517HookCaller(object):
 
             # Run the hook in a subprocess
             env = {'PEP517_BUILD_BACKEND': build_backend}
+            # Issue #6163 workaround:
+            # Tell the in-process wrapper to amend sys.path
             if self._add_source_dir_to_sys_path:
                 env['PEP517_SYS_PATH_0'] = self.source_dir
+            # End issue #6163 workaround
             self._subprocess_runner(
                 [sys.executable, _in_proc_script, hook_name, td],
                 cwd=self.source_dir,

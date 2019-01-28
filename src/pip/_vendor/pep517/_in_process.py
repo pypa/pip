@@ -25,12 +25,6 @@ import sys
 # This is run as a script, not a module, so it can't do a relative import
 import compat
 
-def _check_and_apply_sys_path_adjustment():
-    """Insert a new sys.path[0] if requested by the build front end"""
-    path_entry = os.environ.get('PEP517_SYS_PATH_0')
-    if path_entry:
-        sys.path.insert(0, path_entry)
-
 class BackendUnavailable(Exception):
     """Raised if we cannot import the backend"""
 
@@ -199,8 +193,12 @@ def main():
         sys.exit("Unknown hook: %s" % hook_name)
     hook = globals()[hook_name]
 
-    # Apply the workaround for https://github.com/pypa/pip/issues/6163
-    _check_and_apply_sys_path_adjustment()
+    # Issue #6163 workaround:
+    # Amend sys.path if the front end has asked the wrapper to do so
+    _path_entry = os.environ.get('PEP517_SYS_PATH_0')
+    if _path_entry:
+        sys.path.insert(0, _path_entry)
+    # End issue #6163 workaround
 
     hook_input = compat.read_json(pjoin(control_dir, 'input.json'))
 

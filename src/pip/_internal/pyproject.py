@@ -101,8 +101,30 @@ def load_pyproject_toml(
         # In the absence of any explicit backend specification, we
         # assume the setuptools backend, and require wheel and a version
         # of setuptools that supports that backend.
-        # However, we also add a prefix to the name so other parts of the
-        # system can handle the implicit case separately from the explicit one
+
+        # Issue #6163 workaround:
+        # A lot of setup.py scripts assume the setup.py directory will be
+        # on sys.path, but the standard setuptools PEP 517 backend doesn't
+        # ensure that. As a temporary workaround, the following changes have
+        # been made to pip:
+        #
+        #   1. The prefix "pip._implicit." is added to the build backend name
+        #      when the backend has been chosen as a fallback by pip rather
+        #      than explicitly by the package developer
+        #   2. The vendored pep517 code has been patched to get the hook
+        #      invocation script to amend sys.path[0] in that case
+        #
+        # These changes can be found by searching for "Issue #6163 workaround"
+        #
+        # To replace the workaround with the real fix once a new version of
+        # setuptools is available with the updated hook:
+        #
+        # 1. Revert all the local changes made to the vendored pep517 code
+        # 2. Change the two references to pip._implicit.setuptools.build_meta
+        #    in this file to instead be to setuptools.build_meta_legacy
+        # 3. Change the minimum setuptools version checks to whichever
+        #    release provides build_meta_legacy
+
         build_system = {
             "requires": ["setuptools>=40.2.0", "wheel"],
             "build-backend": "pip._implicit.setuptools.build_meta",
@@ -153,6 +175,8 @@ def load_pyproject_toml(
         # execute setup.py, but never considered needing to mention the build
         # tools themselves. The original PEP 518 code had a similar check (but
         # implemented in a different way).
+
+        # Issue #6163 workaround:
         # As above, we add a prefix to the backend name so other parts of the
         # system can handle the implicit case separately from the explicit one
         backend = "pip._implicit.setuptools.build_meta"
