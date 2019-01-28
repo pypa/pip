@@ -17,13 +17,13 @@ Please take a look at our documentation for how to install and use pip:
 
 If you find bugs, need help, or want to talk to the developers please use our mailing lists or chat rooms:
 
-* `Issue Tracking`_
+* `Issue tracking`_
 * `User mailing list`_
 * `User IRC`_
 
 If you want to get involved head over to GitHub to get the source code and feel free to jump on the developer mailing lists and chat rooms:
 
-* `GitHub Page`_
+* `GitHub page`_
 * `Dev mailing list`_
 * `Dev IRC`_
 
@@ -38,8 +38,8 @@ rooms, and mailing lists is expected to follow the `PyPA Code of Conduct`_.
 .. _Installation: https://pip.pypa.io/en/stable/installing.html
 .. _Documentation: https://pip.pypa.io/en/stable/
 .. _Changelog: https://pip.pypa.io/en/stable/news.html
-.. _GitHub Page: https://github.com/pypa/pip
-.. _Issue Tracking: https://github.com/pypa/pip/issues
+.. _GitHub page: https://github.com/pypa/pip
+.. _Issue tracking: https://github.com/pypa/pip/issues
 .. _User mailing list: https://groups.google.com/forum/#!forum/python-virtualenv
 .. _Dev mailing list: https://groups.google.com/forum/#!forum/pypa-dev
 .. _User IRC: https://webchat.freenode.net/?channels=%23pypa
