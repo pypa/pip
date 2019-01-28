@@ -1,0 +1,3 @@
+Pending compatibility improvements for setup.py files that expect their
+directory to be on sys.path, revert to installing packages that don't
+specify a build backend with the legacy `setup.py` path.

@@ -96,7 +96,11 @@ def load_pyproject_toml(
     # and the user hasn't explicitly stated a preference,
     # we do so if the project has a pyproject.toml file.
     elif use_pep517 is None:
-        use_pep517 = has_pyproject
+        # use_pep517 = has_pyproject
+        # Issue #6163 workaround: override this logic for now, and use
+        # the legacy setup.py code path even if pyproject.toml exists
+        use_pep517 = False
+        # End issue #6163 workaround
 
     # At this point, we know whether we're going to use PEP 517.
     assert use_pep517 is not None
@@ -113,6 +117,7 @@ def load_pyproject_toml(
         # In the absence of any explicit backend specification, we
         # assume the setuptools backend, and require wheel and a version
         # of setuptools that supports that backend.
+
         build_system = {
             "requires": ["setuptools>=40.2.0", "wheel"],
             "build-backend": "setuptools.build_meta",
@@ -154,7 +159,7 @@ def load_pyproject_toml(
         # If the user didn't specify a backend, we assume they want to use
         # the setuptools backend. But we can't be sure they have included
         # a version of setuptools which supplies the backend, or wheel
-        # (which is neede by the backend) in their requirements. So we
+        # (which is needed by the backend) in their requirements. So we
         # make a note to check that those requirements are present once
         # we have set up the environment.
         # This is quite a lot of work to check for a very specific case. But
