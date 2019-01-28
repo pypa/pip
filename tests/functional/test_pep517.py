@@ -123,3 +123,44 @@ def test_pep517_install_with_no_cache_dir(script, tmpdir, data):
         project_dir,
     )
     result.assert_installed('project', editable=False)
+
+
+def make_project_with_setup_script(tmpdir, explicit_backend):
+    project_dir = (tmpdir / 'project').mkdir()
+    setup_script = (
+        'import sys, os.path\n'
+        'script_dir = os.path.dirname(os.path.abspath(__file__))\n'
+    )
+    if explicit_backend:
+        buildsys = {
+            'requires': ['setuptools', 'wheel'],
+            'build-backend': 'setuptools.build_meta'
+        }
+        project_data = pytoml.dumps({'build-system': buildsys})
+        setup_script += 'if script_dir in sys.path: raise RuntimeError("Unwanted path entry")\n'
+    else:
+        project_data = ''
+        setup_script += 'if script_dir not in sys.path: raise RuntimeError("Missing path entry")\n'
+    project_dir.join('pyproject.toml').write(project_data)
+    project_dir.join('setup.py').write(setup_script)
+    return project_dir
+
+def test_pep517_implicit_setuptools_backend(script, tmpdir, data):
+    """Check builds with setup.py, pyproject.toml, but no build-system entry.
+    """
+    project_dir = make_project_with_setup_script(tmpdir, explicit_backend=False)
+    result = script.pip(
+        'install', '--no-cache-dir', '--no-index', '-f', data.backends,
+        project_dir,
+    )
+    result.assert_installed('project', editable=False)
+
+def test_pep517_explicit_setuptools_backend(script, tmpdir, data):
+    """Check builds with setup.py, pyproject.toml, and a build-system entry.
+    """
+    project_dir = make_project_with_setup_script(tmpdir, explicit_backend=True)
+    result = script.pip(
+        'install', '--no-cache-dir', '--no-index', '-f', data.backends,
+        project_dir,
+    )
+    result.assert_installed('project', editable=False)
