@@ -6,6 +6,10 @@ It expects:
 - control_dir/input.json:
   - {"kwargs": {...}}
 
+As an interim workaround for https://github.com/pypa/pip/issues/6163, the
+vendored version in pip currently also accepts a PEP517_SYS_PATH_0 environment
+variable, which the wrapper will then insert as sys.path[0]
+
 Results:
 - control_dir/output.json
   - {"return_val": ...}
@@ -21,6 +25,11 @@ import sys
 # This is run as a script, not a module, so it can't do a relative import
 import compat
 
+def _check_and_apply_sys_path_adjustment():
+    """Insert a new sys.path[0] if requested by the build front end"""
+    path_entry = os.environ.get('PEP517_SYS_PATH_0')
+    if path_entry:
+        sys.path.insert(0, path_entry)
 
 class BackendUnavailable(Exception):
     """Raised if we cannot import the backend"""
@@ -189,6 +198,9 @@ def main():
     if hook_name not in HOOK_NAMES:
         sys.exit("Unknown hook: %s" % hook_name)
     hook = globals()[hook_name]
+
+    # Apply the workaround for https://github.com/pypa/pip/issues/6163
+    _check_and_apply_sys_path_adjustment()
 
     hook_input = compat.read_json(pjoin(control_dir, 'input.json'))
 

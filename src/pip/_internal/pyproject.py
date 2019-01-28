@@ -101,9 +101,11 @@ def load_pyproject_toml(
         # In the absence of any explicit backend specification, we
         # assume the setuptools backend, and require wheel and a version
         # of setuptools that supports that backend.
+        # However, we also add a prefix to the name so other parts of the
+        # system can handle the implicit case separately from the explicit one
         build_system = {
             "requires": ["setuptools>=40.2.0", "wheel"],
-            "build-backend": "setuptools.build_meta",
+            "build-backend": "pip._implicit.setuptools.build_meta",
         }
 
     # If we're using PEP 517, we have build system information (either
@@ -151,7 +153,9 @@ def load_pyproject_toml(
         # execute setup.py, but never considered needing to mention the build
         # tools themselves. The original PEP 518 code had a similar check (but
         # implemented in a different way).
-        backend = "setuptools.build_meta"
+        # As above, we add a prefix to the backend name so other parts of the
+        # system can handle the implicit case separately from the explicit one
+        backend = "pip._implicit.setuptools.build_meta"
         check = ["setuptools>=40.2.0", "wheel"]
 
     return (requires, backend, check)
