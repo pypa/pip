@@ -18,7 +18,7 @@ Please take a look at our documentation for how to install and use pip:
 If you find bugs, need help, or want to talk to the developers please use our mailing lists or chat rooms:
 
 * `Issue tracking`_
-* `User mailing list`_
+* `Discourse channel`_
 * `User IRC`_
 
 If you want to get involved head over to GitHub to get the source code and feel free to jump on the developer mailing lists and chat rooms:
@@ -40,7 +40,7 @@ rooms, and mailing lists is expected to follow the `PyPA Code of Conduct`_.
 .. _Release notes: https://pip.pypa.io/en/stable/news.html
 .. _GitHub page: https://github.com/pypa/pip
 .. _Issue tracking: https://github.com/pypa/pip/issues
-.. _User mailing list: https://groups.google.com/forum/#!forum/python-virtualenv
+.. _Discourse channel: https://discuss.python.org/c/packaging
 .. _Dev mailing list: https://groups.google.com/forum/#!forum/pypa-dev
 .. _User IRC: https://webchat.freenode.net/?channels=%23pypa
 .. _Dev IRC: https://webchat.freenode.net/?channels=%23pypa-dev
