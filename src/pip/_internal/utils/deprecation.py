@@ -81,6 +81,11 @@ def deprecated(reason, replacement, gone_in, issue=None):
     # This is purposely eagerly formatted as we want it to appear as if someone
     # typed this entire message out.
     message = DEPRECATION_MSG_PREFIX + reason
+
+    if gone_in is not None:
+        message += (
+            " pip {} will remove support for this functionality".format(gone_in)
+        )
     if replacement is not None:
         message += " A possible replacement is {}.".format(replacement)
     if issue is not None:
