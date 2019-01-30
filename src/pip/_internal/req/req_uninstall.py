@@ -241,7 +241,10 @@ class UninstallPathSet(object):
             best = AdjacentTempDirectory(os.path.dirname(path))
             best.create()
             self._save_dirs.append(best)
-        return os.path.join(best.path, os.path.relpath(path, best.original))
+        relpath = os.path.relpath(path, best.original)
+        if not relpath or relpath == os.path.curdir:
+            return best.path
+        return os.path.join(best.path, relpath)
 
     def remove(self, auto_confirm=False, verbose=False):
         """Remove paths in ``self.paths`` with confirmation (unless
