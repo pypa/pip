@@ -98,7 +98,7 @@ class AdjacentTempDirectory(TempDirectory):
 
     """
     # The characters that may be used to name the temp directory
-    LEADING_CHARS = "-~.+=%0123456789"
+    LEADING_CHARS = "~.+=%0123456789"
 
     def __init__(self, original, delete=None):
         super(AdjacentTempDirectory, self).__init__(delete=delete)
