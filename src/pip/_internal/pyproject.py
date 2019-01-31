@@ -10,7 +10,7 @@ from pip._internal.exceptions import InstallationError
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Tuple, Optional, List  # noqa: F401
+    from typing import Any, Tuple, Optional, List
 
 
 def _is_list_of_str(obj):

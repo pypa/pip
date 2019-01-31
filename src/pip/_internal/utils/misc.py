@@ -43,13 +43,13 @@ else:
     from io import StringIO
 
 if MYPY_CHECK_RUNNING:
-    from typing import (  # noqa: F401
+    from typing import (
         Optional, Tuple, Iterable, List, Match, Union, Any, Mapping, Text,
         AnyStr, Container
     )
-    from pip._vendor.pkg_resources import Distribution  # noqa: F401
-    from pip._internal.models.link import Link  # noqa: F401
-    from pip._internal.utils.ui import SpinnerInterface  # noqa: F401
+    from pip._vendor.pkg_resources import Distribution
+    from pip._internal.models.link import Link
+    from pip._internal.utils.ui import SpinnerInterface
 
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',

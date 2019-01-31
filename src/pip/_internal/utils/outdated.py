@@ -16,9 +16,9 @@ from pip._internal.utils.misc import ensure_dir, get_installed_version
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    import optparse  # noqa: F401
-    from typing import Any, Dict  # noqa: F401
-    from pip._internal.download import PipSession  # noqa: F401
+    import optparse
+    from typing import Any, Dict
+    from pip._internal.download import PipSession
 
 
 SELFCHECK_DATE_FMT = "%Y-%m-%dT%H:%M:%SZ"

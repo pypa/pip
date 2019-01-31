@@ -12,9 +12,9 @@ from pip._internal.utils.misc import display_path
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional  # noqa: F401
-    from email.message import Message  # noqa: F401
-    from pip._vendor.pkg_resources import Distribution  # noqa: F401
+    from typing import Optional
+    from email.message import Message
+    from pip._vendor.pkg_resources import Distribution
 
 
 logger = logging.getLogger(__name__)

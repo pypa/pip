@@ -20,11 +20,11 @@ from pip._internal.utils.misc import (
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import (  # noqa: F401
+    from typing import (
         Iterator, Optional, List, Container, Set, Dict, Tuple, Iterable, Union
     )
-    from pip._internal.cache import WheelCache  # noqa: F401
-    from pip._vendor.pkg_resources import (  # noqa: F401
+    from pip._internal.cache import WheelCache
+    from pip._vendor.pkg_resources import (
         Distribution, Requirement
     )
 

@@ -48,12 +48,12 @@ from pip._internal.utils.ui import DownloadProgressProvider
 from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
-    from typing import (  # noqa: F401
+    from typing import (
         Optional, Tuple, Dict, IO, Text, Union
     )
-    from pip._internal.models.link import Link  # noqa: F401
-    from pip._internal.utils.hashes import Hashes  # noqa: F401
-    from pip._internal.vcs import AuthInfo  # noqa: F401
+    from pip._internal.models.link import Link
+    from pip._internal.utils.hashes import Hashes
+    from pip._internal.vcs import AuthInfo
 
 try:
     import ssl  # noqa

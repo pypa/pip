@@ -11,14 +11,14 @@ from pip._internal.utils.misc import read_chunks
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import (  # noqa: F401
+    from typing import (
         Dict, List, BinaryIO, NoReturn, Iterator
     )
     from pip._vendor.six import PY3
     if PY3:
-        from hashlib import _Hash  # noqa: F401
+        from hashlib import _Hash
     else:
-        from hashlib import _hash as _Hash  # noqa: F401
+        from hashlib import _hash as _Hash
 
 
 # The recommended hash algo of the moment. Change this whenever the state of
