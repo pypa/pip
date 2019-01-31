@@ -116,6 +116,25 @@ def test_freeze_with_invalid_names(script):
         )
 
 
+def test_freeze_with_corrupt_metadata(script):
+    """
+    Test that invalid names produce warnings and are passed over gracefully.
+    """
+
+    egg_info_path = os.path.join(
+        script.site_packages_path,
+        '-corrupt-1.0-py{}.{}.egg-info'.format(
+            sys.version_info[0],
+            sys.version_info[1]
+        )
+    )
+    with open(egg_info_path, 'w') as egg_info_file:
+        egg_info_file.write("")
+
+    result = script.pip('freeze', expect_stderr=True)
+    _check_output(result.stderr, 'Could not parse unknown requirement...')
+
+
 @pytest.mark.git
 def test_freeze_editable_not_vcs(script, tmpdir):
     """
