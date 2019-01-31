@@ -66,12 +66,6 @@ def freeze(
                 dist.project_name
             )
             continue
-        except ValueError as ex:
-            # Handle non-empty .dist-info directories that do not
-            # include valid metadata.
-            logger.warning("Could not parse unknown requirement")
-            logger.debug("Error from pkg_resources: %s", ex)
-            continue
         if exclude_editable and req.editable:
             continue
         installations[req.name] = req

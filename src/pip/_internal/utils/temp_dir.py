@@ -98,7 +98,11 @@ class AdjacentTempDirectory(TempDirectory):
 
     """
     # The characters that may be used to name the temp directory
-    LEADING_CHARS = "~.=%0123456789"
+    # We always prepend a ~ and then rotate through these until
+    # a usable name is found.
+    # pkg_resources raises a different error for .dist-info folder
+    # with leading '-' and invalid metadata
+    LEADING_CHARS = "-~.=%0123456789"
 
     def __init__(self, original, delete=None):
         super(AdjacentTempDirectory, self).__init__(delete=delete)
@@ -117,8 +121,8 @@ class AdjacentTempDirectory(TempDirectory):
             if name[i] in cls.LEADING_CHARS:
                 continue
             for candidate in itertools.combinations_with_replacement(
-                    cls.LEADING_CHARS, i):
-                new_name = ''.join(candidate) + name[i:]
+                    cls.LEADING_CHARS, i - 1):
+                new_name = '~' + ''.join(candidate) + name[i:]
                 if new_name != name:
                     yield new_name
 

@@ -573,7 +573,8 @@ class TestTempDirectory(object):
         assert not any(n == name for n in names())
 
         # Check the first group are correct
-        for x, y in zip(some_names, [c + name[1:] for c in chars]):
+        for x, y in zip(some_names, ['~' + name[1:]] +
+                ['~' + c + name[2:] for c in chars]):
             assert x == y
 
 
