@@ -750,17 +750,15 @@ def should_use_ephemeral_cache(
                 'Skipping %s, due to already being wheel.', req.name,
             )
         return None
-    if autobuilding and req.editable:
-        return None
-    if autobuilding and not req.source_dir:
-        return None
-
-    if autobuilding and req.link and not req.link.is_artifact:
-        # VCS checkout. Build wheel just for this run.
-        return True
-
     if not autobuilding:
         return False
+
+    if req.editable or not req.source_dir:
+        return None
+
+    if req.link and not req.link.is_artifact:
+        # VCS checkout. Build wheel just for this run.
+        return True
 
     if "binary" not in format_control.get_allowed_formats(
             canonicalize_name(req.name)):
