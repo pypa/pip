@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import io
 import os
+import sys
 
 from pip._vendor import pytoml, six
 
@@ -18,6 +19,17 @@ def _is_list_of_str(obj):
         isinstance(obj, list) and
         all(isinstance(item, six.string_types) for item in obj)
     )
+
+
+def make_pyproject_path(setup_py_dir):
+    # type: (str) -> str
+    path = os.path.join(setup_py_dir, 'pyproject.toml')
+
+    # Python2 __file__ should not be unicode
+    if six.PY2 and isinstance(path, six.text_type):
+        path = path.encode(sys.getfilesystemencoding())
+
+    return path
 
 
 def load_pyproject_toml(
