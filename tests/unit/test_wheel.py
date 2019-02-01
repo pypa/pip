@@ -38,16 +38,31 @@ def test_contains_egg_info(s, expected):
     assert result == expected
 
 
-def test_should_use_ephemeral_cache__issue_6197():
+@pytest.mark.parametrize(
+    "base_name, autobuilding, cache_available, expected",
+    [
+        ('pendulum-2.0.4', False, False, False),
+        # The following cases test autobuilding=True.
+        # Test _contains_egg_info() returning True.
+        ('pendulum-2.0.4', True, True, False),
+        ('pendulum-2.0.4', True, False, True),
+        # Test _contains_egg_info() returning False.
+        ('pendulum', True, True, True),
+        ('pendulum', True, False, True),
+    ],
+)
+def test_should_use_ephemeral_cache__issue_6197(
+    base_name, autobuilding, cache_available, expected,
+):
     """
     Regression test for: https://github.com/pypa/pip/issues/6197
     """
     req = Requirement('pendulum')
     link_url = (
-        'https://files.pythonhosted.org/packages/aa/pendulum-2.0.4.tar.gz'
+        'https://files.pythonhosted.org/packages/aa/{base_name}.tar.gz'
         '#sha256=cf535d36c063575d4752af36df928882b2e0e31541b4482c97d637527'
         '85f9fcb'
-    )
+    ).format(base_name=base_name)
     link = Link(
         url=link_url,
         comes_from='https://pypi.org/simple/pendulum/',
@@ -65,13 +80,11 @@ def test_should_use_ephemeral_cache__issue_6197():
     assert req.link.is_artifact
 
     format_control = FormatControl()
-    autobuilding = True
-    cache_available = False
     ephem_cache = wheel.should_use_ephemeral_cache(
         req, format_control=format_control, autobuilding=autobuilding,
         cache_available=cache_available,
     )
-    assert ephem_cache is True
+    assert ephem_cache is expected
 
 
 @pytest.mark.parametrize("console_scripts",
