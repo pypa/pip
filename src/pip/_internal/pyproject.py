@@ -100,7 +100,7 @@ def load_pyproject_toml(
         # Issue #6163 workaround: override this logic for now, and also use
         # the legacy setup.py code path for pyproject.toml files that don't
         # have a build-system section
-        use_pep517 = bool(build_system)
+        use_pep517 = build_system is not None
         # End issue #6163 workaround
 
     # At this point, we know whether we're going to use PEP 517.
