@@ -10,6 +10,9 @@ from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal import pep425tags, wheel
 from pip._internal.exceptions import InvalidWheelFilename, UnsupportedWheel
+from pip._internal.index import FormatControl
+from pip._internal.models.link import Link
+from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import unpack_file
 from tests.lib import DATA_DIR
@@ -33,6 +36,40 @@ from tests.lib import DATA_DIR
 def test_contains_egg_info(s, expected):
     result = wheel._contains_egg_info(s)
     assert result == expected
+
+
+def test_should_use_ephemeral_cache__issue_6197():
+    """
+    Regression test for: https://github.com/pypa/pip/issues/6197
+    """
+    req = Requirement('pendulum')
+    link_url = (
+        'https://files.pythonhosted.org/packages/aa/pendulum-2.0.4.tar.gz'
+        '#sha256=cf535d36c063575d4752af36df928882b2e0e31541b4482c97d637527'
+        '85f9fcb'
+    )
+    link = Link(
+        url=link_url,
+        comes_from='https://pypi.org/simple/pendulum/',
+        requires_python='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*',
+    )
+    req = InstallRequirement(
+        req=req,
+        comes_from=None,
+        constraint=False,
+        editable=False,
+        link=link,
+        source_dir='/tmp/pip-install-9py5m2z1/pendulum',
+    )
+    assert not req.is_wheel
+    assert req.link.is_artifact
+
+    format_control = FormatControl()
+    autobuilding = True
+    ephem_cache = wheel.should_use_ephemeral_cache(
+        req, format_control=format_control, autobuilding=autobuilding,
+    )
+    assert ephem_cache is False
 
 
 @pytest.mark.parametrize("console_scripts",
