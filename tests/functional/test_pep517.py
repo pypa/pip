@@ -130,17 +130,17 @@ def make_pyproject_with_setup(tmpdir, build_system=True, set_backend=True):
     setup_script = (
         'from setuptools import setup\n'
     )
-    expect_script_dir_on_path = True
     if build_system:
         buildsys = {
             'requires': ['setuptools', 'wheel'],
         }
         if set_backend:
             buildsys['build-backend'] = 'setuptools.build_meta'
-            expect_script_dir_on_path = False
         project_data = pytoml.dumps({'build-system': buildsys})
+        expect_script_dir_on_path = False
     else:
         project_data = ''
+        expect_script_dir_on_path = True
 
     if expect_script_dir_on_path:
         setup_script += (

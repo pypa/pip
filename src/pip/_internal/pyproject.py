@@ -97,9 +97,10 @@ def load_pyproject_toml(
     # we do so if the project has a pyproject.toml file.
     elif use_pep517 is None:
         # use_pep517 = has_pyproject
-        # Issue #6163 workaround: override this logic for now, and use
-        # the legacy setup.py code path even if pyproject.toml exists
-        use_pep517 = False
+        # Issue #6163 workaround: override this logic for now, and also use
+        # the legacy setup.py code path for pyproject.toml files that don't
+        # have a build-system section
+        use_pep517 = bool(build_system)
         # End issue #6163 workaround
 
     # At this point, we know whether we're going to use PEP 517.
