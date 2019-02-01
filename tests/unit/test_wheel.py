@@ -66,10 +66,12 @@ def test_should_use_ephemeral_cache__issue_6197():
 
     format_control = FormatControl()
     autobuilding = True
+    cache_available = False
     ephem_cache = wheel.should_use_ephemeral_cache(
         req, format_control=format_control, autobuilding=autobuilding,
+        cache_available=cache_available,
     )
-    assert ephem_cache is False
+    assert ephem_cache is True
 
 
 @pytest.mark.parametrize("console_scripts",
