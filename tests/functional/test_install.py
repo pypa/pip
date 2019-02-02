@@ -66,6 +66,8 @@ def test_pep518_refuses_conflicting_requires(script, data):
     ), str(result)
 
 
+# Issue #6163 workaround means this next case doesn't use isolated builds
+@pytest.mark.xfail(strict=True)
 def test_pep518_refuses_invalid_requires(script, data, common_wheels):
     result = script.pip(
         'install', '-f', common_wheels,
@@ -76,6 +78,8 @@ def test_pep518_refuses_invalid_requires(script, data, common_wheels):
     assert "does not comply with PEP 518" in result.stderr
 
 
+# Issue #6163 workaround means this next case doesn't use isolated builds
+@pytest.mark.xfail(strict=True)
 def test_pep518_refuses_invalid_build_system(script, data, common_wheels):
     result = script.pip(
         'install', '-f', common_wheels,
@@ -86,7 +90,7 @@ def test_pep518_refuses_invalid_build_system(script, data, common_wheels):
     assert "does not comply with PEP 518" in result.stderr
 
 
-# Issue #6163 workaround means this next case doesn't actually use PEP 518
+# Issue #6163 workaround means this next case doesn't use isolated builds
 @pytest.mark.xfail(strict=True)
 def test_pep518_allows_missing_requires(script, data, common_wheels):
     result = script.pip(

@@ -1,4 +1,4 @@
 Pending compatibility improvements for setup.py files that expect their
 directory to be on sys.path, revert to using the legacy direct `setup.py`
-invocation approach to install packages that don't have a `build-system`
-section in their `pyproject.toml` file.
+invocation approach to install packages that don't have
+`build-system.build-backend` explicitly set in their `pyproject.toml` file.
