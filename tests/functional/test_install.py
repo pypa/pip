@@ -491,13 +491,41 @@ def test_install_from_local_directory_with_no_setup_py(script, data):
     assert "Neither 'setup.py' nor 'pyproject.toml' found." in result.stderr
 
 
-def test_editable_install_from_local_directory_with_no_setup_py(script, data):
+def test_editable_install__local_dir_no_setup_py(
+        script, data, deprecated_python):
     """
-    Test installing from a local directory with no 'setup.py'.
+    Test installing in editable mode from a local directory with no setup.py.
     """
     result = script.pip('install', '-e', data.root, expect_error=True)
     assert not result.files_created
-    assert "is not installable. File 'setup.py' not found." in result.stderr
+
+    msg = result.stderr
+    if deprecated_python:
+        assert 'File "setup.py" not found. ' in msg
+    else:
+        assert msg.startswith('File "setup.py" not found. ')
+    assert 'pyproject.toml' not in msg
+
+
+def test_editable_install__local_dir_no_setup_py_with_pyproject(
+        script, deprecated_python):
+    """
+    Test installing in editable mode from a local directory with no setup.py
+    but that does have pyproject.toml.
+    """
+    local_dir = script.scratch_path.join('temp').mkdir()
+    pyproject_path = local_dir.join('pyproject.toml')
+    pyproject_path.write('')
+
+    result = script.pip('install', '-e', local_dir, expect_error=True)
+    assert not result.files_created
+
+    msg = result.stderr
+    if deprecated_python:
+        assert 'File "setup.py" not found. ' in msg
+    else:
+        assert msg.startswith('File "setup.py" not found. ')
+    assert 'A "pyproject.toml" file was found' in msg
 
 
 @pytest.mark.skipif("sys.version_info >= (3,4)")

@@ -48,7 +48,7 @@ if MYPY_CHECK_RUNNING:
     from pip._vendor.packaging.requirements import Requirement  # noqa: F401
     from pip._internal.req.req_install import InstallRequirement  # noqa: F401
     from pip._internal.download import PipSession  # noqa: F401
-    from pip._internal.index import PackageFinder  # noqa: F401
+    from pip._internal.index import FormatControl, PackageFinder  # noqa: F401
     from pip._internal.operations.prepare import (  # noqa: F401
         RequirementPreparer
     )
@@ -725,6 +725,60 @@ def _contains_egg_info(
     return bool(_egg_info_re.search(s))
 
 
+def should_use_ephemeral_cache(
+    req,  # type: InstallRequirement
+    format_control,  # type: FormatControl
+    autobuilding,  # type: bool
+    cache_available  # type: bool
+):
+    # type: (...) -> Optional[bool]
+    """
+    Return whether to build an InstallRequirement object using the
+    ephemeral cache.
+
+    :param cache_available: whether a cache directory is available for the
+        autobuilding=True case.
+
+    :return: True or False to build the requirement with ephem_cache=True
+        or False, respectively; or None not to build the requirement.
+    """
+    if req.constraint:
+        return None
+    if req.is_wheel:
+        if not autobuilding:
+            logger.info(
+                'Skipping %s, due to already being wheel.', req.name,
+            )
+        return None
+    if not autobuilding:
+        return False
+
+    if req.editable or not req.source_dir:
+        return None
+
+    if req.link and not req.link.is_artifact:
+        # VCS checkout. Build wheel just for this run.
+        return True
+
+    if "binary" not in format_control.get_allowed_formats(
+            canonicalize_name(req.name)):
+        logger.info(
+            "Skipping bdist_wheel for %s, due to binaries "
+            "being disabled for it.", req.name,
+        )
+        return None
+
+    link = req.link
+    base, ext = link.splitext()
+    if cache_available and _contains_egg_info(base):
+        return False
+
+    # Otherwise, build the wheel just for this run using the ephemeral
+    # cache since we are either in the case of e.g. a local directory, or
+    # no cache directory is available to use.
+    return True
+
+
 class WheelBuilder(object):
     """Build wheels from a RequirementSet."""
 
@@ -858,40 +912,20 @@ class WheelBuilder(object):
             newly built wheel, in preparation for installation.
         :return: True if all the wheels built correctly.
         """
-
         buildset = []
         format_control = self.finder.format_control
+        # Whether a cache directory is available for autobuilding=True.
+        cache_available = bool(self._wheel_dir or self.wheel_cache.cache_dir)
+
         for req in requirements:
-            if req.constraint:
+            ephem_cache = should_use_ephemeral_cache(
+                req, format_control=format_control, autobuilding=autobuilding,
+                cache_available=cache_available,
+            )
+            if ephem_cache is None:
                 continue
-            if req.is_wheel:
-                if not autobuilding:
-                    logger.info(
-                        'Skipping %s, due to already being wheel.', req.name,
-                    )
-            elif autobuilding and req.editable:
-                pass
-            elif autobuilding and not req.source_dir:
-                pass
-            elif autobuilding and req.link and not req.link.is_artifact:
-                # VCS checkout. Build wheel just for this run.
-                buildset.append((req, True))
-            else:
-                ephem_cache = False
-                if autobuilding:
-                    link = req.link
-                    base, ext = link.splitext()
-                    if not _contains_egg_info(base):
-                        # E.g. local directory. Build wheel just for this run.
-                        ephem_cache = True
-                    if "binary" not in format_control.get_allowed_formats(
-                            canonicalize_name(req.name)):
-                        logger.info(
-                            "Skipping bdist_wheel for %s, due to binaries "
-                            "being disabled for it.", req.name,
-                        )
-                        continue
-                buildset.append((req, ephem_cache))
+
+            buildset.append((req, ephem_cache))
 
         if not buildset:
             return []
