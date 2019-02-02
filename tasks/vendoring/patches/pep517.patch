@@ -1,0 +1,74 @@
+diff --git a/src/pip/_vendor/pep517/_in_process.py b/src/pip/_vendor/pep517/_in_process.py
+index d6524b66..e1fb1a14 100644
+--- a/src/pip/_vendor/pep517/_in_process.py
++++ b/src/pip/_vendor/pep517/_in_process.py
+@@ -6,6 +6,10 @@ It expects:
+ - control_dir/input.json:
+   - {"kwargs": {...}}
+ 
++As an interim workaround for https://github.com/pypa/pip/issues/6163, the
++vendored version in pip currently also accepts a PEP517_SYS_PATH_0 environment
++variable, which the wrapper will then insert as sys.path[0]
++
+ Results:
+ - control_dir/output.json
+   - {"return_val": ...}
+@@ -21,7 +25,6 @@ import sys
+ # This is run as a script, not a module, so it can't do a relative import
+ import compat
+ 
+-
+ class BackendUnavailable(Exception):
+     """Raised if we cannot import the backend"""
+ 
+@@ -190,6 +193,13 @@ def main():
+         sys.exit("Unknown hook: %s" % hook_name)
+     hook = globals()[hook_name]
+ 
++    # Issue #6163 workaround:
++    # Amend sys.path if the front end has asked the wrapper to do so
++    _path_entry = os.environ.get('PEP517_SYS_PATH_0')
++    if _path_entry:
++        sys.path.insert(0, _path_entry)
++    # End issue #6163 workaround
++
+     hook_input = compat.read_json(pjoin(control_dir, 'input.json'))
+ 
+     json_out = {'unsupported': False, 'return_val': None}
+diff --git a/src/pip/_vendor/pep517/wrappers.py b/src/pip/_vendor/pep517/wrappers.py
+index b14b8991..e256f7c2 100644
+--- a/src/pip/_vendor/pep517/wrappers.py
++++ b/src/pip/_vendor/pep517/wrappers.py
+@@ -45,6 +45,14 @@ class Pep517HookCaller(object):
+     """
+     def __init__(self, source_dir, build_backend):
+         self.source_dir = abspath(source_dir)
++        # Issue #6163 workaround:
++        # For backwards compatibility with older setup.py scripts that assume
++        # the source directory will be on sys.path, this amends the hook
++        # execution environment in the implicit case
++        __, implicit, build_backend = build_backend.rpartition("pip._implicit.")
++        assert not __ # The implicit marker should only ever be a prefix
++        self._add_source_dir_to_sys_path = implicit
++        # End issue #6163 workaround
+         self.build_backend = build_backend
+         self._subprocess_runner = default_subprocess_runner
+ 
+@@ -149,10 +157,16 @@ class Pep517HookCaller(object):
+                               indent=2)
+ 
+             # Run the hook in a subprocess
++            env = {'PEP517_BUILD_BACKEND': build_backend}
++            # Issue #6163 workaround:
++            # Tell the in-process wrapper to amend sys.path
++            if self._add_source_dir_to_sys_path:
++                env['PEP517_SYS_PATH_0'] = self.source_dir
++            # End issue #6163 workaround
+             self._subprocess_runner(
+                 [sys.executable, _in_proc_script, hook_name, td],
+                 cwd=self.source_dir,
+-                extra_environ={'PEP517_BUILD_BACKEND': build_backend}
++                extra_environ=env
+             )
+ 
+             data = compat.read_json(pjoin(td, 'output.json'))
