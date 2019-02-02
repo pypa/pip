@@ -1,0 +1,2 @@
+The Python 2 end of life warning now only shows on CPython, which is the
+implementation that has announced end of life plans.
