@@ -82,9 +82,7 @@ class Test_base_command_logging(object):
     def setup(self):
         self.old_time = time.time
         time.time = lambda: 1547704837.4
-        # Robustify the tests below to the ambient timezone by setting it
-        # explicitly here.
-        self.old_tz = getattr(os.environ, 'TZ', None)
+        self.old_tz = os.environ.get('TZ')
         os.environ['TZ'] = 'UTC'
         # time.tzset() is not implemented on some platforms (notably, Windows).
         if hasattr(time, 'tzset'):
