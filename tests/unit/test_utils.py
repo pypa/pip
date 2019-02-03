@@ -578,6 +578,36 @@ class TestTempDirectory(object):
         for x, y in zip(some_names, expected_names):
             assert x == y
 
+    def test_adjacent_directory_exists(self):
+        name = "ABC"
+        block_name, expect_name = itertools.islice(
+            AdjacentTempDirectory._generate_names(name), 2)
+        with TempDirectory() as tmp_dir:
+            original = os.path.join(tmp_dir.path, name)
+            blocker = os.path.join(tmp_dir.path, block_name)
+
+            ensure_dir(original)
+            ensure_dir(blocker)
+
+            with AdjacentTempDirectory(original) as atmp_dir:
+                assert expect_name == os.path.split(atmp_dir.path)[1]
+
+    def test_adjacent_directory_permission_error(self, monkeypatch):
+        name = "ABC"
+
+        def raising_mkdir(*args, **kwargs):
+            raise OSError("Unknown OSError")
+
+        with TempDirectory() as tmp_dir:
+            original = os.path.join(tmp_dir.path, name)
+
+            ensure_dir(original)
+            monkeypatch.setattr("os.mkdir", raising_mkdir)
+
+            with pytest.raises(OSError):
+                with AdjacentTempDirectory(original):
+                    pass
+
 
 class TestGlibc(object):
     def test_manylinux_check_glibc_version(self):

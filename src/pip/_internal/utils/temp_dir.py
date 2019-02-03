@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import errno
 import itertools
 import logging
 import os.path
@@ -132,8 +133,10 @@ class AdjacentTempDirectory(TempDirectory):
             path = os.path.join(root, candidate)
             try:
                 os.mkdir(path)
-            except OSError:
-                pass
+            except OSError as ex:
+                # Continue if the name exists already
+                if ex.errno != errno.EEXIST:
+                    raise
             else:
                 self.path = os.path.realpath(path)
                 break
