@@ -6,6 +6,7 @@ import os
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
 from pip._internal.commands import commands_dict
+from tests.lib.configuration_helpers import reset_os_environ
 
 
 class FakeCommand(Command):
@@ -28,5 +29,5 @@ class AddFakeCommandMixin(object):
         commands_dict[FakeCommand.name] = FakeCommand
 
     def teardown(self):
-        os.environ = self.environ_before
+        reset_os_environ(self.environ_before)
         commands_dict.pop(FakeCommand.name)

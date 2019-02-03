@@ -34,9 +34,7 @@ class TestIndentingFormatter(object):
     """
 
     def setup(self):
-        # Robustify the tests below to the ambient timezone by setting it
-        # explicitly here.
-        self.old_tz = getattr(os.environ, 'TZ', None)
+        self.old_tz = os.environ.get('TZ')
         os.environ['TZ'] = 'UTC'
         # time.tzset() is not implemented on some platforms (notably, Windows).
         if hasattr(time, 'tzset'):
