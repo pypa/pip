@@ -1,0 +1,1 @@
+Make failed uninstalls roll back more reliably and better at avoiding naming conflicts.

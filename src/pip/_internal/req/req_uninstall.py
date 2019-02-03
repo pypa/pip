@@ -15,7 +15,7 @@ from pip._internal.utils.compat import WINDOWS, cache_from_source, uses_pycache
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     FakeFile, ask, dist_in_usersite, dist_is_local, egg_link_path, is_local,
-    normalize_path, renames,
+    normalize_path, renames, rmtree,
 )
 from pip._internal.utils.temp_dir import AdjacentTempDirectory
 
@@ -241,7 +241,10 @@ class UninstallPathSet(object):
             best = AdjacentTempDirectory(os.path.dirname(path))
             best.create()
             self._save_dirs.append(best)
-        return os.path.join(best.path, os.path.relpath(path, best.original))
+        relpath = os.path.relpath(path, best.original)
+        if not relpath or relpath == os.path.curdir:
+            return best.path
+        return os.path.join(best.path, relpath)
 
     def remove(self, auto_confirm=False, verbose=False):
         """Remove paths in ``self.paths`` with confirmation (unless
@@ -265,6 +268,13 @@ class UninstallPathSet(object):
                     new_path = self._stash(path)
                     logger.debug('Removing file or directory %s', path)
                     self._moved_paths.append((path, new_path))
+                    if os.path.isdir(path) and os.path.isdir(new_path):
+                        # If we're moving a directory, we need to
+                        # remove the destination first or else it will be
+                        # moved to inside the existing directory.
+                        # We just created new_path ourselves, so it will
+                        # be removable.
+                        os.rmdir(new_path)
                     renames(path, new_path)
                 for pth in self.pth.values():
                     pth.remove()
@@ -311,9 +321,13 @@ class UninstallPathSet(object):
         logger.info('Rolling back uninstall of %s', self.dist.project_name)
         for path, tmp_path in self._moved_paths:
             logger.debug('Replacing %s', path)
+            if os.path.isdir(tmp_path) and os.path.isdir(path):
+                rmtree(path)
             renames(tmp_path, path)
         for pth in self.pth.values():
             pth.rollback()
+        for save_dir in self._save_dirs:
+            save_dir.cleanup()
 
     def commit(self):
         """Remove temporary save dir: rollback will no longer be possible."""
