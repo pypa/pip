@@ -171,9 +171,9 @@ def test_show_verbose(script):
     """
     result = script.pip('show', '--verbose', 'pip')
     lines = result.stdout.splitlines()
-    assert any(line.startswith('MetadataVersion: ') for line in lines)
+    assert any(line.startswith('Metadata-Version: ') for line in lines)
     assert any(line.startswith('Installer: ') for line in lines)
-    assert 'EntryPoints:' in lines
+    assert 'Entry-points:' in lines
     assert 'Classifiers:' in lines
 
 
@@ -184,9 +184,9 @@ def test_show_json_verbose(script):
     result = script.pip('show', '--format=json', '--verbose', 'pip')
     parsed_json = json.loads(result.stdout)
     assert len(parsed_json) == 1
-    assert "MetadataVersion" in parsed_json[0]
+    assert "Metadata-Version" in parsed_json[0]
     assert "Installer" in parsed_json[0]
-    assert "EntryPoints" in parsed_json[0]
+    assert "Entry-points" in parsed_json[0]
     assert "Classifiers" in parsed_json[0]
 
 
@@ -196,9 +196,9 @@ def test_all_fields(script):
     """
     result = script.pip('show', 'pip')
     lines = result.stdout.splitlines()
-    expected = {'Name', 'Version', 'Summary', 'HomePage', 'Author',
-                'AuthorEmail', 'License', 'Location', 'Requires',
-                'RequiredBy'}
+    expected = {'Name', 'Version', 'Summary', 'Home-page', 'Author',
+                'Author-email', 'License', 'Location', 'Requires',
+                'Required-by'}
     actual = {re.sub(':.*$', '', line) for line in lines}
     assert actual == expected
 
@@ -247,4 +247,4 @@ def test_show_required_by_packages(script, data):
     lines = result.stdout.splitlines()
 
     assert 'Name: simple' in lines
-    assert 'RequiredBy: requires-simple' in lines
+    assert 'Required-by: requires-simple' in lines

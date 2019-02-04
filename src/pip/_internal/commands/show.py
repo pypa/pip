@@ -175,13 +175,13 @@ def get_package_info(dist, list_files, verbose):
         ("Name", name),
         ("Version", dist.get('version', '')),
         ("Summary", dist.get('summary', '')),
-        ("HomePage", dist.get('home-page', '')),
+        ("Home-page", dist.get('home-page', '')),
         ("Author", dist.get('author', '')),
-        ("AuthorEmail", dist.get('author-email', '')),
+        ("Author-email", dist.get('author-email', '')),
         ("License", dist.get('license', '')),
         ("Location", dist.get('location', '')),
-        ("Requires", ','.join(dist.get('requires', [])).split(',')),
-        ("RequiredBy", ','.join(required_by).split(','))
+        ("Requires", dist.get('requires', [])),
+        ("Required-by", required_by)
     ]
 
     if verbose:
@@ -198,16 +198,15 @@ def get_package_info(dist, list_files, verbose):
         entry_points = {section: dict(parser.items(section))
                         for section in parser.sections()}
         info.extend([
-            ("MetadataVersion", dist.get('metadata-version', '')),
+            ("Metadata-Version", dist.get('metadata-version', '')),
             ("Installer", dist.get('installer', '')),
             ("Classifiers", classifiers),
-            ("EntryPoints", entry_points)
+            ("Entry-points", entry_points)
         ])
 
     if list_files:
         if "files" not in dist:
-            info.extend([("Files",
-                          "Cannot locate installed-files.txt")])
+            info.extend([("Files", None)])
         else:
             files = [str(line.strip()) for line in dist.get('files ', [])]
             info.extend([("Files", files)])
@@ -234,7 +233,7 @@ def print_header_format(distributions, list_files=False, verbose=False):
                 logger.info("%s:", key)
                 for classifier in value:
                     logger.info("  %s", classifier)
-            elif key == 'EntryPoints':
+            elif key == 'Entry-points':
                 logger.info("%s:", key)
                 for entry_point, entry_point_info in value.items():
                     logger.info("  [%s]", entry_point)
