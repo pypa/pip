@@ -36,7 +36,7 @@ def test_show_with_files_not_found(script, data):
     assert any(line.startswith('Location: ') for line in lines)
     assert 'Requires: ' in lines
     assert re.search(r"Files:", result.stdout)
-    assert re.search(r"Cannot locate installed-files.txt", result.stdout)
+    assert re.search(r"Files: None", result.stdout)
 
 
 def test_show_with_files_from_wheel(script, data):
@@ -48,7 +48,7 @@ def test_show_with_files_from_wheel(script, data):
     result = script.pip('show', '-f', 'simple.dist')
     lines = result.stdout.splitlines()
     assert 'Name: simple.dist' in lines
-    assert 'Cannot locate installed-files.txt' not in lines[6], lines[6]
+    assert "None" not in lines
     assert re.search(r"Files: ", result.stdout)
 
 
@@ -60,7 +60,7 @@ def test_show_with_all_files(script):
     script.pip('install', 'initools==0.2')
     result = script.pip('show', '--files', 'initools')
     lines = result.stdout.splitlines()
-    assert 'Cannot locate installed-files.txt' not in lines[6], lines[6]
+    assert "None" not in lines
     assert re.search(r"Files: ", result.stdout)
 
 
@@ -93,7 +93,7 @@ def test_show_json_with_files_not_found(script, data):
     assert "Location" in parsed_json[0]
     assert "Requires" in parsed_json[0]
     assert "Files" in parsed_json[0]
-    assert parsed_json[0]["Files"] == "Cannot locate installed-files.txt"
+    assert parsed_json[0]["Files"] is None
 
 
 def test_show_json_with_all_files(script):
@@ -104,7 +104,7 @@ def test_show_json_with_all_files(script):
     result = script.pip('show', '--format=json', '--files', 'initools')
     parsed_json = json.loads(result.stdout)[0]
     assert parsed_json
-    assert parsed_json["Files"] != "Cannot locate installed-files.txt"
+    assert parsed_json["Files"] is not None
 
 
 def test_missing_argument(script):
