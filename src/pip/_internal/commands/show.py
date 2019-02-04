@@ -5,6 +5,7 @@ import logging
 import os
 from collections import OrderedDict
 from email.parser import FeedParser  # type: ignore
+from io import StringIO
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.utils import canonicalize_name
@@ -145,23 +146,6 @@ def search_packages_info(query):
         yield package
 
 
-# 2.7/3.x compatibility
-class ReadlineWrapper:
-    def __init__(self, collection):
-        self.collection = list(collection)
-        self.i = 0
-
-    def readline(self):
-        if self.i >= len(self.collection):
-            return None
-        val = self.collection[self.i]
-        self.i += 1
-        return val
-
-    def __iter__(self):
-        return iter(self.collection)
-
-
 def get_package_info(dist, list_files, verbose):
     """
     Gather details from an installed distribution.
@@ -190,10 +174,7 @@ def get_package_info(dist, list_files, verbose):
 
         parser = configparser.ConfigParser()
 
-        entry_points_wrapper = ReadlineWrapper(
-            dist.get('entry_points', []))
-
-        parser.readfp(entry_points_wrapper)
+        parser.readfp(StringIO(u'\n'.join(dist.get('entry_points', []))))
 
         entry_points = {section: dict(parser.items(section))
                         for section in parser.sections()}
