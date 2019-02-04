@@ -411,8 +411,6 @@ class UninstallPathSet(object):
         self._moved_paths.rollback()
         for pth in self.pth.values():
             pth.rollback()
-        for save_dir in self._save_dirs:
-            save_dir.cleanup()
 
     def commit(self):
         """Remove temporary save dir: rollback will no longer be possible."""
