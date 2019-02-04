@@ -127,7 +127,7 @@ def compress_for_rename(paths):
         # If all the files we found are in our remaining set of files to
         # remove, then remove them from the latter set and add a wildcard
         # for the directory.
-        if len(all_files - remaining) == 0:
+        if not (all_files - remaining):
             remaining.difference_update(all_files)
             wildcards.add(root + os.sep)
 
@@ -194,60 +194,58 @@ class StashedUninstallPathSet(object):
         # to be undone.
         self._moves = []
 
-    def _add_root(self, path):
-        """Create or return the stash directory for a given path.
+    def _get_directory_stash(self, path):
+        """Stashes a directory.
 
-        For internal use only. External users should call add_root()"""
-        key = os.path.normcase(path).rstrip("/\\")
+        Directories are stashed adjacent to their original location if
+        possible, or else moved/copied into the user's temp dir."""
 
-        if key in self._save_dirs:
-            return key, self._save_dirs[key]
-
-        save_dir = AdjacentTempDirectory(path)
         try:
+            save_dir = AdjacentTempDirectory(path)
             save_dir.create()
         except OSError:
-            save_dir = TempDirectory(kind='uninstall')
+            save_dir = TempDirectory(kind="uninstall")
             save_dir.create()
+        self._save_dirs[os.path.normcase(path)] = save_dir
 
-        self._save_dirs[key] = save_dir
-        return key, save_dir
+        return save_dir.path
 
-    def add_root(self, path):
-        """Adds a root directory that we will be moving files from."""
-        if not os.path.isdir(path):
-            raise ValueError("Roots must be directories")
-
-        # Keep return values internal
-        self._add_root(path)
-
-    def _get_stash_path(self, path):
-        """Finds a place to stash the path
+    def _get_file_stash(self, path):
+        """Stashes a file.
 
         If no root has been provided, one will be created for the directory
-        passed."""
+        in the user's temp directory."""
         path = os.path.normcase(path)
         head, old_head = os.path.dirname(path), None
-        best_head, best_save_dir = None, None
+        save_dir = None
 
         while head != old_head:
-            save_dir = self._save_dirs.get(head)
-            if save_dir:
+            try:
+                save_dir = self._save_dirs[head]
                 break
+            except KeyError:
+                pass
             head, old_head = os.path.dirname(head), head
+        else:
+            # Did not find any suitable root
+            head = os.path.dirname(path)
+            save_dir = TempDirectory(kind='uninstall')
+            save_dir.create()
+            self._save_dirs[head] = save_dir
 
-        if not best_save_dir:
-            head = path if os.path.isdir(path) else os.path.dirname(path)
-            best_head, best_save_dir = self._add_root(head)
-
-        relpath = os.path.relpath(path, best_head)
-        if not relpath or relpath == os.path.curdir:
-            return best_save_dir.path
-        return os.path.join(best_save_dir.path, relpath)
+        relpath = os.path.relpath(path, head)
+        if relpath and relpath != os.path.curdir:
+            return os.path.join(save_dir.path, relpath)
+        return save_dir.path
 
     def stash(self, path):
-        """Stashes a file somewhere out of the way."""
-        new_path = self._get_stash_path(path)
+        """Stashes the directory or file and returns its new location.
+        """
+        if os.path.isdir(path):
+            new_path = self._get_directory_stash(path)
+        else:
+            new_path = self._get_file_stash(path)
+
         self._moves.append((path, new_path))
         if os.path.isdir(path) and os.path.isdir(new_path):
             # If we're moving a directory, we need to
@@ -257,6 +255,7 @@ class StashedUninstallPathSet(object):
             # be removable.
             os.rmdir(new_path)
         renames(path, new_path)
+        return new_path
 
     def commit(self):
         """Commits the uninstall by removing stashed files."""
