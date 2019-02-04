@@ -17,7 +17,8 @@ def auto_with_wheel(with_wheel):
 def add_files_to_dist_directory(folder):
     (folder / 'dist').makedirs()
     (folder / 'dist' / 'a_name-0.0.1.tar.gz').write("hello")
-    (folder / 'dist' / 'a_name-0.0.1-py2.py3-none-any.whl').write("hello")
+    # Not adding a wheel file since that confuses setuptools' backend.
+    # (folder / 'dist' / 'a_name-0.0.1-py2.py3-none-any.whl').write("hello")
 
 
 def test_wheel_exit_status_code_when_no_requirements(script):
