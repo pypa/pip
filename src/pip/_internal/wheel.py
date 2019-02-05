@@ -818,15 +818,14 @@ class WheelBuilder(object):
                 builder = self._build_one_pep517
             else:
                 builder = self._build_one_legacy
-            if builder(req, temp_dir.path, python_tag=python_tag):
+            wheel_path = builder(req, temp_dir.path, python_tag=python_tag)
+            if wheel_path is not None:
+                wheel_name = os.path.basename(wheel_path)
+                dest_path = os.path.join(output_dir, wheel_name)
                 try:
-                    wheel_name = os.listdir(temp_dir.path)[0]
-                    wheel_path = os.path.join(output_dir, wheel_name)
-                    shutil.move(
-                        os.path.join(temp_dir.path, wheel_name), wheel_path
-                    )
+                    shutil.move(wheel_path, dest_path)
                     logger.info('Stored in directory: %s', output_dir)
-                    return wheel_path
+                    return dest_path
                 except Exception:
                     pass
             # Ignore return, we can't do anything else useful.
@@ -844,11 +843,15 @@ class WheelBuilder(object):
         ] + list(self.global_options)
 
     def _build_one_pep517(self, req, tempd, python_tag=None):
+        """Build one InstallRequirement using the PEP 517 build process.
+
+        Returns path to wheel if successfully built. Otherwise, returns None.
+        """
         assert req.metadata_directory is not None
         try:
             req.spin_message = 'Building wheel for %s (PEP 517)' % (req.name,)
             logger.debug('Destination directory: %s', tempd)
-            wheelname = req.pep517_backend.build_wheel(
+            wheel_name = req.pep517_backend.build_wheel(
                 tempd,
                 metadata_directory=req.metadata_directory
             )
@@ -856,17 +859,23 @@ class WheelBuilder(object):
                 # General PEP 517 backends don't necessarily support
                 # a "--python-tag" option, so we rename the wheel
                 # file directly.
-                newname = replace_python_tag(wheelname, python_tag)
+                new_name = replace_python_tag(wheel_name, python_tag)
                 os.rename(
-                    os.path.join(tempd, wheelname),
-                    os.path.join(tempd, newname)
+                    os.path.join(tempd, wheel_name),
+                    os.path.join(tempd, new_name)
                 )
-            return True
+                # Reassign to simplify the return at the end of function
+                wheel_name = new_name
         except Exception:
             logger.error('Failed building wheel for %s', req.name)
-            return False
+            return None
+        return os.path.join(tempd, wheel_name)
 
     def _build_one_legacy(self, req, tempd, python_tag=None):
+        """Build one InstallRequirement using the "legacy" build process.
+
+        Returns path to wheel if successfully built. Otherwise, returns None.
+        """
         base_args = self._base_setup_args(req)
 
         spin_message = 'Building wheel for %s (setup.py)' % (req.name,)
@@ -881,11 +890,12 @@ class WheelBuilder(object):
             try:
                 call_subprocess(wheel_args, cwd=req.setup_py_dir,
                                 show_stdout=False, spinner=spinner)
-                return True
             except Exception:
                 spinner.finish("error")
                 logger.error('Failed building wheel for %s', req.name)
-                return False
+                return None
+            # listdir's return value is sorted to be deterministic
+            return os.path.join(tempd, sorted(os.listdir(tempd))[0])
 
     def _clean_one(self, req):
         base_args = self._base_setup_args(req)
