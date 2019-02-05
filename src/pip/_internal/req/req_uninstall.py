@@ -356,10 +356,6 @@ class UninstallPathSet(object):
 
                 for_rename = compress_for_rename(self.paths)
 
-                for path in for_rename:
-                    if os.path.isdir(path):
-                        moved.add_root(path)
-
                 for path in sorted(compact(for_rename)):
                     moved.stash(path)
                     logger.debug('Removing file or directory %s', path)
