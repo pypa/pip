@@ -5,9 +5,8 @@ from mock import Mock
 
 import pip._internal.req.req_uninstall
 from pip._internal.req.req_uninstall import (
-    UninstallPathSet, compact, compress_for_output_listing,
-    compress_for_rename, uninstallation_paths,
-    StashedUninstallPathSet,
+    StashedUninstallPathSet, UninstallPathSet, compact,
+    compress_for_output_listing, compress_for_rename, uninstallation_paths,
 )
 from tests.lib import create_file
 
