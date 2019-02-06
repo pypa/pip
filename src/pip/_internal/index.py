@@ -781,7 +781,10 @@ class PackageFinder(object):
     def _log_skipped_link(self, link, reason):
         # type: (Link, str) -> None
         if link not in self.logged_links:
-            logger.debug('Skipping link %s; %s', link, reason)
+            logger.debug(
+                'Skipping link %s; %s', link, reason,
+                extra={'id': 'index-skipping-link'},
+            )
             self.logged_links.add(link)
 
     def _link_package_versions(self, link, search):
@@ -861,7 +864,10 @@ class PackageFinder(object):
                          "version in use. Acceptable python versions are: %s",
                          link, link.requires_python)
             return None
-        logger.debug('Found link %s, version: %s', link, version)
+        logger.debug(
+            'Found link %s, version: %s', link, version,
+            extra={'id': 'index-found-link'},
+        )
 
         return InstallationCandidate(search.supplied, version, link)
 

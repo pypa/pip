@@ -198,7 +198,10 @@ class InstallRequirement(object):
             old_link = self.link
             self.link = self._wheel_cache.get(self.link, self.name)
             if old_link != self.link:
-                logger.debug('Using cached wheel link: %s', self.link)
+                logger.debug(
+                    'Using cached wheel link: %s', self.link,
+                    extra={'id': 'using-cached-wheel'},
+                )
 
     # Things that are valid for all kinds of requirements?
     @property

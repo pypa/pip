@@ -26,8 +26,6 @@ except Exception:
     colorama = None
 
 DEFAULT_MSG_ID = 'default'
-INDEX_MSG_ID = 'index'
-BUILD_MSG_ID = 'build'
 DEPRECATION_MSG_ID = 'deprecation'
 
 

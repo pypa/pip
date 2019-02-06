@@ -30,7 +30,7 @@ from pip._internal.req.constructors import (
 from pip._internal.req.req_file import parse_requirements
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.logging import (
-    BrokenStdoutLoggingError, setup_logging, INDEX_MSG_ID,
+    BrokenStdoutLoggingError, setup_logging,
 )
 from pip._internal.utils.misc import (
     get_prog, normalize_path, redact_password_from_url,
@@ -326,7 +326,6 @@ class RequirementCommand(Command):
             logger.debug(
                 'Ignoring indexes: %s',
                 ','.join(redact_password_from_url(url) for url in index_urls),
-                extra={'id': INDEX_MSG_ID},
             )
             index_urls = []
 
