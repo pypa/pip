@@ -359,7 +359,7 @@ class InstallCommand(RequirementCommand):
                     # so we fail here.
                     if build_failures:
                         raise InstallationError(
-                            "Could not build wheels for {} which use" +
+                            "Could not build wheels for {} which use"
                             " PEP 517 and cannot be installed directly".format(
                                 ", ".join(r.name for r in build_failures)))
 
