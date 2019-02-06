@@ -9,6 +9,7 @@ import warnings
 from pip._vendor.packaging.version import parse
 
 from pip import __version__ as current_version
+from pip._internal.utils.logging import DEPRECATION_MSG_ID
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -33,7 +34,7 @@ def _showwarning(message, category, filename, lineno, file=None, line=None):
         # We use a specially named logger which will handle all of the
         # deprecation messages for pip.
         logger = logging.getLogger("pip._internal.deprecations")
-        logger.warning(message)
+        logger.warning(message, extra={'id': DEPRECATION_MSG_ID})
     else:
         _original_showwarning(
             message, category, filename, lineno, file, line,

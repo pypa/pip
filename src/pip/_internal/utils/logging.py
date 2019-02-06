@@ -28,6 +28,7 @@ except Exception:
 DEFAULT_MSG_ID = 'default'
 INDEX_MSG_ID = 'index'
 BUILD_MSG_ID = 'build'
+DEPRECATION_MSG_ID = 'deprecation'
 
 
 _log_state = threading.local()
@@ -100,13 +101,12 @@ class IndentingFormatter(logging.Formatter):
 
         :param add_timestamp: A bool indicating output lines should be prefixed
             with their record's timestamp.
+        :param show_message_ids: A bool indicating output lines should be prefixed
+            with their record's message_id.
         """
         self.add_timestamp = kwargs.pop("add_timestamp", False)
-        super(IndentingFormatter, self).__init__(*args, **kwargs)
-
-    def __init__(self, *args, **kwargs):
         self.show_message_ids = kwargs.pop('show_message_ids', False)
-        super(IndentingFormatter, self).__init__( *args, **kwargs)
+        super(IndentingFormatter, self).__init__(*args, **kwargs)
 
     def format(self, record):
         """
@@ -119,8 +119,8 @@ class IndentingFormatter(logging.Formatter):
             prefix = self.formatTime(record, "%Y-%m-%dT%H:%M:%S ")
         if self.show_message_ids:
             msg_id = getattr(record, 'id', DEFAULT_MSG_ID)
-            # 7 is the longest of our message ids
-            prefix += 'message_id={:<7}'.format(msg_id)
+            # 11 is the longest of our message ids
+            prefix += 'message_id={} '.format(msg_id)
         prefix += " " * get_indentation()
         formatted = "".join([
             prefix + line
@@ -322,6 +322,7 @@ def setup_logging(
                 "class": handler_classes["stream"],
                 "no_color": no_color,
                 "stream": log_streams["stderr"],
+                "filters": ["ignore_messages"],
                 "formatter": "indent",
             },
             "user_log": {
