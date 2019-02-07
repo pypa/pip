@@ -316,6 +316,21 @@ class TestRequirementSet(object):
             lineno=2
         ))
 
+    def test_add_requirement_extend_extra(self):
+        """Make sure adding a requirement with extra merges it with
+        an existing one with the same name (if exists).
+
+        See pypa/pip#6239.
+        """
+        reqset = RequirementSet()
+        reqset.add_requirement(get_processed_req_from_line(
+            'boxsdk', lineno=1,
+        ))
+        reqset.add_requirement(get_processed_req_from_line(
+            'boxsdk[jwt]', lineno=2,
+        ))
+        assert set(reqset.get_requirement('boxsdk').extras) == {'jwt'}
+
 
 @pytest.mark.parametrize(('file_contents', 'expected'), [
     (b'\xf6\x80', b'\xc3\xb6\xe2\x82\xac'),  # cp1252
