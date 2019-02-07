@@ -316,20 +316,32 @@ class TestRequirementSet(object):
             lineno=2
         ))
 
-    def test_add_requirement_extend_extra(self):
+    @pytest.mark.parametrize(
+        ('req1_constraint', 'req2_constraint', 'expected_extras'),
+        [
+            (False, False, ['jwt']),
+            (True, False, ['jwt']),
+            (False, True, []),
+            (True, True, []),
+        ],
+    )
+    def test_add_requirement_extend_extra(
+            self, req1_constraint, req2_constraint, expected_extras):
         """Make sure adding a requirement with extra merges it with
         an existing one with the same name (if exists).
 
         See pypa/pip#6239.
         """
+        req1 = get_processed_req_from_line('boxsdk', lineno=1)
+        req1.constraint = req1_constraint
+
+        req2 = get_processed_req_from_line('boxsdk[jwt]', lineno=1)
+        req2.constraint = req2_constraint
+
         reqset = RequirementSet()
-        reqset.add_requirement(get_processed_req_from_line(
-            'boxsdk', lineno=1,
-        ))
-        reqset.add_requirement(get_processed_req_from_line(
-            'boxsdk[jwt]', lineno=2,
-        ))
-        assert set(reqset.get_requirement('boxsdk').extras) == {'jwt'}
+        reqset.add_requirement(req1)
+        reqset.add_requirement(req2)
+        assert list(reqset.get_requirement('boxsdk').extras) == expected_extras
 
 
 @pytest.mark.parametrize(('file_contents', 'expected'), [

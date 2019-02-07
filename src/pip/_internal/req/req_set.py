@@ -130,9 +130,27 @@ class RequirementSet(object):
             # We'd want to rescan this requirements later
             return [install_req], install_req
 
-        # Assume there's no need to scan, and that we've already
-        # encountered this for scanning.
-        if install_req.constraint or not existing_req.constraint:
+        # If the incoming requirement is a constraint, its job is done.
+        if install_req.constraint:
+            return [], existing_req
+
+        # Merge extras from existing and incoming requirements. This needs to
+        # be done always to avoid an existing req "swallowing" new extras given
+        # by a new req. (pypa/pip#6239)
+        cur_extras = set(existing_req.extras)
+        new_extras = set(install_req.extras) | cur_extras
+        if new_extras != cur_extras:
+            existing_req.extras = tuple(sorted(new_extras))
+            logger.debug(
+                "Setting %s extras to: %s",
+                existing_req, existing_req.extras,
+            )
+
+        # If the existing requirement is NOT a constraint, we're done.
+        # Otherwise the incoming one needs to be checked against it.
+        if not existing_req.constraint:
+            if new_extras != cur_extras:
+                return [existing_req], existing_req
             return [], existing_req
 
         does_not_satisfy_constraint = (
@@ -152,13 +170,7 @@ class RequirementSet(object):
         # If we're now installing a constraint, mark the existing
         # object for real installation.
         existing_req.constraint = False
-        existing_req.extras = tuple(sorted(
-            set(existing_req.extras) | set(install_req.extras)
-        ))
-        logger.debug(
-            "Setting %s extras to: %s",
-            existing_req, existing_req.extras,
-        )
+
         # Return the existing requirement for addition to the parent and
         # scanning again.
         return [existing_req], existing_req
