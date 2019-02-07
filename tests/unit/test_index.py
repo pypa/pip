@@ -7,7 +7,7 @@ from pip._vendor import html5lib, requests
 
 from pip._internal.download import PipSession
 from pip._internal.index import (
-    Link, PackageFinder, _determine_base_url, _egg_info_matches,
+    Link, PackageFinder, _clean_link, _determine_base_url, _egg_info_matches,
     _find_name_version_sep, _get_html_page,
 )
 
@@ -280,3 +280,65 @@ def test_request_retries(caplog):
         'Could not fetch URL http://localhost: Retry error - skipping'
         in caplog.text
     )
+
+
+@pytest.mark.parametrize(
+    ("url", "clean_url"),
+    [
+        # URL with hostname and port. Port separator should not be quoted.
+        ("https://localhost.localdomain:8181/path/with space/",
+         "https://localhost.localdomain:8181/path/with%20space/"),
+        # URL that is already properly quoted. The quoting `%`
+        # characters should not be quoted again.
+        ("https://localhost.localdomain:8181/path/with%20quoted%20space/",
+         "https://localhost.localdomain:8181/path/with%20quoted%20space/"),
+        # URL with IPv4 address and port.
+        ("https://127.0.0.1:8181/path/with space/",
+         "https://127.0.0.1:8181/path/with%20space/"),
+        # URL with IPv6 address and port. The `[]` brackets around the
+        # IPv6 address should not be quoted.
+        ("https://[fd00:0:0:236::100]:8181/path/with space/",
+         "https://[fd00:0:0:236::100]:8181/path/with%20space/"),
+        # URL with query. The leading `?` should not be quoted.
+        ("https://localhost.localdomain:8181/path/with/query?request=test",
+         "https://localhost.localdomain:8181/path/with/query?request=test"),
+        # URL with colon in the path portion.
+        ("https://localhost.localdomain:8181/path:/with:/colon",
+         "https://localhost.localdomain:8181/path%3A/with%3A/colon"),
+        # URL with something that looks like a drive letter, but is
+        # not. The `:` should be quoted.
+        ("https://localhost.localdomain/T:/path/",
+         "https://localhost.localdomain/T%3A/path/")
+    ]
+)
+def test_clean_link(url, clean_url):
+    assert(_clean_link(url) == clean_url)
+
+
+@pytest.mark.parametrize(
+    ("url", "clean_url"),
+    [
+        # URL with Windows drive letter. The `:` after the drive
+        # letter should not be quoted. The trailing `/` should be
+        # removed.
+        ("file:///T:/path/with spaces/",
+         "file:///T:/path/with%20spaces")
+    ]
+)
+@pytest.mark.skipif("sys.platform != 'win32'")
+def test_clean_link_windows(url, clean_url):
+    assert(_clean_link(url) == clean_url)
+
+
+@pytest.mark.parametrize(
+    ("url", "clean_url"),
+    [
+        # URL with Windows drive letter, running on non-windows
+        # platform. The `:` after the drive should be quoted.
+        ("file:///T:/path/with spaces/",
+         "file:///T%3A/path/with%20spaces/")
+    ]
+)
+@pytest.mark.skipif("sys.platform == 'win32'")
+def test_clean_link_non_windows(url, clean_url):
+    assert(_clean_link(url) == clean_url)

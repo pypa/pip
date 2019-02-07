@@ -939,15 +939,28 @@ def _get_encoding_from_headers(headers):
     return None
 
 
-_CLEAN_LINK_RE = re.compile(r'[^a-z0-9$&+,/:;=?@.#%_\\|-]', re.I)
-
-
 def _clean_link(url):
     # type: (str) -> str
     """Makes sure a link is fully encoded.  That is, if a ' ' shows up in
     the link, it will be rewritten to %20 (while not over-quoting
     % or other characters)."""
-    return _CLEAN_LINK_RE.sub(lambda match: '%%%2x' % ord(match.group(0)), url)
+    # Split the URL into parts according to the general structure
+    # `scheme://netloc/path;parameters?query#fragment`. Note that the
+    # `netloc` can be empty and the URI will then refer to a local
+    # filesystem path.
+    result = urllib_parse.urlparse(url)
+    # In both cases below we unquote prior to quoting to make sure
+    # nothing is double quoted.
+    if result.netloc == "":
+        # On Windows the path part might contain a drive letter which
+        # should not be quoted. On Linux where drive letters do not
+        # exist, the colon should be quoted. We rely on urllib.request
+        # to do the right thing here.
+        path = urllib_request.pathname2url(
+            urllib_request.url2pathname(result.path))
+    else:
+        path = urllib_parse.quote(urllib_parse.unquote(result.path))
+    return urllib_parse.urlunparse(result._replace(path=path))
 
 
 class HTMLPage(object):
