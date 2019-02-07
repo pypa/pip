@@ -1,0 +1,2 @@
+Always try to merge extras from same-named requirements to prevent ``package``
+from shadowing ``package[extra]``.
