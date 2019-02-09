@@ -66,10 +66,10 @@ class ShowCommand(Command):
 
         print_results = format_options[options.show_format]
 
-        info, have_distributions_info = get_distributions_info(
-            distributions, list_files=options.files, verbose=options.verbose)
+        info = get_distributions_info(distributions, list_files=options.files,
+                                      verbose=options.verbose)
 
-        if not have_distributions_info:
+        if len(info) == 0:
             return ERROR
         print_results(info)
         return SUCCESS
@@ -148,7 +148,7 @@ def search_packages_info(query):
         yield package
 
 
-def get_package_info(dist, list_files, verbose):
+def get_package_info(dist, list_files=False, verbose=False):
     """
     Gather details from an installed distribution.
     """
@@ -201,15 +201,11 @@ def get_distributions_info(distributions, list_files=False, verbose=False):
     Gather information for all installed distributions.
     """
     info = []
-    have_distributions_info = False
 
     for dist in distributions:
-        have_distributions_info = True
-
         package_info = get_package_info(dist, list_files, verbose)
-
         info.append(OrderedDict(package_info))
-    return info, have_distributions_info
+    return info
 
 
 def print_header_format(info):
