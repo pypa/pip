@@ -1,3 +1,0 @@
-Fix a crash where PEP 517-based builds using ``--no-cache-dir`` would fail in
-some circumstances with an ``AssertionError`` due to not finalizing a build
-directory internally.

@@ -7,6 +7,39 @@
 
 .. towncrier release notes start
 
+19.0.2 (2019-02-09)
+===================
+
+Features
+--------
+
+- Provide a better error message if attempting an editable install of a
+  directory with a ``pyproject.toml`` but no ``setup.py``. (`#6170 <https://github.com/pypa/pip/issues/6170>`_)
+
+Bug Fixes
+---------
+
+- The implicit default backend used for projects that provide a ``pyproject.toml``
+  file without explicitly specifying ``build-backend`` now behaves more like direct
+  execution of ``setup.py``, and hence should restore compatibility with projects
+  that were unable to be installed with ``pip`` 19.0. This raised the minimum
+  required version of ``setuptools`` for such builds to 40.8.0. (`#6163 <https://github.com/pypa/pip/issues/6163>`_)
+- Allow ``RECORD`` lines with more than three elements, and display a warning. (`#6165 <https://github.com/pypa/pip/issues/6165>`_)
+- ``AdjacentTempDirectory`` fails on unwritable directory instead of locking up the uninstall command. (`#6169 <https://github.com/pypa/pip/issues/6169>`_)
+- Make failed uninstalls roll back more reliably and better at avoiding naming conflicts. (`#6194 <https://github.com/pypa/pip/issues/6194>`_)
+- Ensure the correct wheel file is copied when building PEP 517 distribution is built. (`#6196 <https://github.com/pypa/pip/issues/6196>`_)
+- Fix a crash where PEP 517-based builds using ``--no-cache-dir`` would fail in
+  some circumstances with an ``AssertionError`` due to not finalizing a build
+  directory internally. (`#6197 <https://github.com/pypa/pip/issues/6197>`_)
+- The Python 2 end of life warning now only shows on CPython, which is the
+  implementation that has announced end of life plans. (`#6207 <https://github.com/pypa/pip/issues/6207>`_)
+
+Improved Documentation
+----------------------
+
+- Re-write README and documentation index (`#5815 <https://github.com/pypa/pip/issues/5815>`_)
+
+
 19.0.1 (2019-01-23)
 ===================
 

@@ -1,1 +1,0 @@
-``AdjacentTempDirectory`` fails on unwritable directory instead of locking up the uninstall command.
