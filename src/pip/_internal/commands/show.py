@@ -191,7 +191,7 @@ def get_package_info(dist, list_files=False, verbose=False):
         if "files" not in dist:
             info.extend([("Files", None)])
         else:
-            files = [str(line.strip()) for line in dist.get('files ', [])]
+            files = [str(file) for file in dist.get('files', [])]
             info.extend([("Files", files)])
     return info
 
@@ -225,7 +225,7 @@ def print_header_format(info):
                     for x, y in entry_point_info.items():
                         logger.info("  %s = %s", x, y)
             elif isinstance(value, list):
-                logger.info("%s: %s", key, ", ".join(value))
+                logger.info("%s:\n  %s", key, "\n  ".join(value))
             else:
                 logger.info("%s: %s", key, value)
         if info.index(package) < (len(info) - 1):

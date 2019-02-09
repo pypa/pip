@@ -14,11 +14,11 @@ def test_basic_show(script):
     """
     result = script.pip('show', 'pip')
     lines = result.stdout.splitlines()
-    assert len(lines) == 10
+    assert len(lines) == 12
     assert 'Name: pip' in lines
     assert 'Version: %s' % __version__ in lines
-    assert any(line.startswith('Location: ') for line in lines)
-    assert 'Requires: ' in lines
+    assert any(line.startswith('Location:') for line in lines)
+    assert any(line.startswith('Requires:') for line in lines)
 
 
 def test_show_with_files_not_found(script, data):
@@ -30,12 +30,12 @@ def test_show_with_files_not_found(script, data):
     script.pip('install', '-e', editable)
     result = script.pip('show', '-f', 'SetupPyUTF8')
     lines = result.stdout.splitlines()
-    assert len(lines) == 11
+    assert len(lines) == 13
     assert 'Name: SetupPyUTF8' in lines
     assert 'Version: 0.0.0' in lines
-    assert any(line.startswith('Location: ') for line in lines)
-    assert 'Requires: ' in lines
-    assert re.search(r"Files:", result.stdout)
+    assert any(line.startswith('Location:') for line in lines)
+    assert any(line.startswith('Requires:') for line in lines)
+    assert any(line.startswith('Files:') for line in lines)
     assert re.search(r"Files: None", result.stdout)
 
 
@@ -48,8 +48,8 @@ def test_show_with_files_from_wheel(script, data):
     result = script.pip('show', '-f', 'simple.dist')
     lines = result.stdout.splitlines()
     assert 'Name: simple.dist' in lines
-    assert "None" not in lines
-    assert re.search(r"Files: ", result.stdout)
+    assert None not in lines
+    assert any(line.startswith('Files:') for line in lines)
 
 
 @pytest.mark.network
@@ -60,8 +60,8 @@ def test_show_with_all_files(script):
     script.pip('install', 'initools==0.2')
     result = script.pip('show', '--files', 'initools')
     lines = result.stdout.splitlines()
-    assert "None" not in lines
-    assert re.search(r"Files: ", result.stdout)
+    assert None not in lines
+    assert any(line.startswith('Files:') for line in lines)
 
 
 def test_basic_json_show(script):
@@ -196,10 +196,10 @@ def test_all_fields(script):
     """
     result = script.pip('show', 'pip')
     lines = result.stdout.splitlines()
-    expected = {'Name', 'Version', 'Summary', 'Home-page', 'Author',
+    expected = {'', 'Name', 'Version', 'Summary', 'Home-page', 'Author',
                 'Author-email', 'License', 'Location', 'Requires',
                 'Required-by'}
-    actual = {re.sub(':.*$', '', line) for line in lines}
+    actual = {re.sub(':.*$', '', line).strip() for line in lines}
     assert actual == expected
 
 
@@ -209,7 +209,7 @@ def test_pip_show_is_short(script):
     """
     result = script.pip('show', 'pip')
     lines = result.stdout.splitlines()
-    assert len(lines) <= 10
+    assert len(lines) <= 12
 
 
 def test_pip_show_divider(script, data):
@@ -247,4 +247,5 @@ def test_show_required_by_packages(script, data):
     lines = result.stdout.splitlines()
 
     assert 'Name: simple' in lines
-    assert 'Required-by: requires-simple' in lines
+    assert any(line.startswith('Required-by:') for line in lines)
+    assert any('requires-simple' in line for line in lines)
