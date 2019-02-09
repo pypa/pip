@@ -57,7 +57,7 @@ class ShowCommand(Command):
             return ERROR
         query = args
 
-        results = search_packages_info(query)
+        distributions = search_packages_info(query)
 
         format_options = {
             'json': print_json,
@@ -66,10 +66,12 @@ class ShowCommand(Command):
 
         print_results = format_options[options.show_format]
 
-        if not print_results(
-                results, list_files=options.files,
-                verbose=options.verbose):
+        info, have_distributions_info = get_distributions_info(
+            distributions, list_files=options.files, verbose=options.verbose)
+
+        if not have_distributions_info:
             return ERROR
+        print_results(info)
         return SUCCESS
 
 
@@ -194,21 +196,27 @@ def get_package_info(dist, list_files, verbose):
     return info
 
 
-def print_header_format(distributions, list_files=False, verbose=False):
+def get_distributions_info(distributions, list_files=False, verbose=False):
     """
-    Print the information from installed distributions found.
+    Gather information for all installed distributions.
     """
-    information = []
-    results_printed = False
+    info = []
+    have_distributions_info = False
 
     for dist in distributions:
-        results_printed = True
+        have_distributions_info = True
 
         package_info = get_package_info(dist, list_files, verbose)
 
-        information.append(OrderedDict(package_info))
+        info.append(OrderedDict(package_info))
+    return info, have_distributions_info
 
-    for package in information:
+
+def print_header_format(info):
+    """
+    Print the information from installed distributions found.
+    """
+    for package in info:
         for key, value in package.items():
             if key == 'Classifiers':
                 logger.info("%s:", key)
@@ -224,26 +232,12 @@ def print_header_format(distributions, list_files=False, verbose=False):
                 logger.info("%s: %s", key, ", ".join(value))
             else:
                 logger.info("%s: %s", key, value)
-        if information.index(package) < (len(information) - 1):
+        if info.index(package) < (len(info) - 1):
             logger.info("---")
 
-    return results_printed
 
-
-def print_json(distributions, list_files=False, verbose=False):
+def print_json(info):
     """
     Print in JSON format the information from installed distributions found.
     """
-    information = []
-    results_printed = False
-
-    for dist in distributions:
-        results_printed = True
-
-        package_info = get_package_info(dist, list_files, verbose)
-
-        information.append(OrderedDict(package_info))
-
-    logger.info(json.dumps(information, indent=4))
-
-    return results_printed
+    logger.info(json.dumps(info, indent=4))
