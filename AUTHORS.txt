@@ -226,6 +226,7 @@ Joseph Long <jdl@fastmail.fm>
 Josh Bronson <jabronson@gmail.com>
 Josh Hansen <josh@skwash.net>
 Josh Schneier <josh.schneier@gmail.com>
+Julian Berman <Julian@GrayVines.com>
 Julien Demoor <julien@jdemoor.com>
 jwg4 <jack.grahl@yahoo.co.uk>
 Jyrki Pulliainen <jyrki@spotify.com>
@@ -306,6 +307,7 @@ Nathaniel J. Smith <njs@pobox.com>
 Nehal J Wani <nehaljw.kkd1@gmail.com>
 Nick Coghlan <ncoghlan@gmail.com>
 Nick Stenning <nick@whiteink.com>
+Nick Timkovich <prometheus235@gmail.com>
 Nikhil Benesch <nikhil.benesch@gmail.com>
 Nitesh Sharma <nbsharma@outlook.com>
 Nowell Strite <nowell@strite.org>
@@ -340,6 +342,7 @@ Phaneendra Chiruvella <hi@pcx.io>
 Phil Freo <phil@philfreo.com>
 Phil Pennock <phil@pennock-tech.com>
 Phil Whelan <phil123@gmail.com>
+Philip Jägenstedt <philip@foolip.org>
 Philip Molloy <pamolloy@users.noreply.github.com>
 Philippe Ombredanne <pombredanne@gmail.com>
 Pi Delport <pjdelport@gmail.com>
