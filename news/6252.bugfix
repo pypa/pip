@@ -1,0 +1,1 @@
+Fix an ``IndexError`` crash when a legacy build of a wheel fails.
