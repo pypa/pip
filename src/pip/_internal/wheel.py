@@ -786,7 +786,7 @@ def should_use_ephemeral_cache(
     return True
 
 
-def format_command(
+def format_command_result(
     command_args,  # type: List[str]
     command_output,  # type: str
 ):
@@ -825,7 +825,7 @@ def get_legacy_build_wheel_path(
         msg = (
             'Legacy build of wheel for {!r} created no files.\n'
         ).format(req.name)
-        msg += format_command(command_args, command_output)
+        msg += format_command_result(command_args, command_output)
         logger.warning(msg)
         return None
 
@@ -834,7 +834,7 @@ def get_legacy_build_wheel_path(
             'Legacy build of wheel for {!r} created more than one file.\n'
             'Filenames (choosing first): {}\n'
         ).format(req.name, names)
-        msg += format_command(command_args, command_output)
+        msg += format_command_result(command_args, command_output)
         logger.warning(msg)
 
     return os.path.join(temp_dir, names[0])

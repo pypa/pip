@@ -99,9 +99,9 @@ def test_should_use_ephemeral_cache__issue_6197(
     assert ephem_cache is expected
 
 
-def test_format_command__INFO(caplog):
+def test_format_command_result__INFO(caplog):
     caplog.set_level(logging.INFO)
-    actual = wheel.format_command(
+    actual = wheel.format_command_result(
         command_args=['arg1', 'arg2'],
         command_output='output line 1\noutput line 2\n',
     )
@@ -117,9 +117,9 @@ def test_format_command__INFO(caplog):
     # Test no trailing newline.
     'output line 1\noutput line 2',
 ])
-def test_format_command__DEBUG(caplog, command_output):
+def test_format_command_result__DEBUG(caplog, command_output):
     caplog.set_level(logging.DEBUG)
-    actual = wheel.format_command(
+    actual = wheel.format_command_result(
         command_args=['arg1', 'arg2'],
         command_output=command_output,
     )
@@ -133,9 +133,9 @@ def test_format_command__DEBUG(caplog, command_output):
 
 
 @pytest.mark.parametrize('log_level', ['DEBUG', 'INFO'])
-def test_format_command__empty_output(caplog, log_level):
+def test_format_command_result__empty_output(caplog, log_level):
     caplog.set_level(log_level)
-    actual = wheel.format_command(
+    actual = wheel.format_command_result(
         command_args=['arg1', 'arg2'],
         command_output='',
     )

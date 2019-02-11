@@ -24,10 +24,11 @@ from pip._internal.utils.encoding import auto_decode
 from pip._internal.utils.glibc import check_glibc_version
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.misc import (
-    call_subprocess, egg_link_path, ensure_dir, get_installed_distributions,
-    get_prog, make_vcs_requirement_url, normalize_path, redact_netloc,
-    redact_password_from_url, remove_auth_from_url, rmtree,
-    split_auth_from_netloc, untar_file, unzip_file,
+    call_subprocess, egg_link_path, ensure_dir, format_command_args,
+    get_installed_distributions, get_prog, make_vcs_requirement_url,
+    normalize_path, redact_netloc, redact_password_from_url,
+    remove_auth_from_url, rmtree, split_auth_from_netloc, untar_file,
+    unzip_file,
 )
 from pip._internal.utils.packaging import check_dist_requires_python
 from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
@@ -722,6 +723,16 @@ class TestGetProg(object):
             executable
         )
         assert get_prog() == expected
+
+
+@pytest.mark.parametrize('args, expected', [
+    (['pip', 'list'], 'pip list'),
+    (['foo', 'space space', 'new\nline', 'double"quote', "single'quote"],
+     'foo "space space" "new\nline" "double\\"quote" "single\'quote"'),
+])
+def test_format_command_args(args, expected):
+    actual = format_command_args(args)
+    assert actual == expected
 
 
 def test_call_subprocess_works__no_keyword_arguments():

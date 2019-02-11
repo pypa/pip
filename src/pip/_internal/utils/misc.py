@@ -650,6 +650,21 @@ def unpack_file(
         )
 
 
+def format_command_args(args):
+    # type: (List[str]) -> str
+    """
+    Format command arguments for display.
+    """
+    parts = []
+    for arg in args:
+        if ' ' in arg or '\n' in arg or '"' in arg or "'" in arg:
+            arg = '"%s"' % arg.replace('"', '\\"')
+        parts.append(arg)
+    command = ' '.join(parts)
+
+    return command
+
+
 def call_subprocess(
     cmd,  # type: List[str]
     show_stdout=False,  # type: bool
@@ -699,12 +714,8 @@ def call_subprocess(
     else:
         stdout = subprocess.PIPE
     if command_desc is None:
-        cmd_parts = []
-        for part in cmd:
-            if ' ' in part or '\n' in part or '"' in part or "'" in part:
-                part = '"%s"' % part.replace('"', '\\"')
-            cmd_parts.append(part)
-        command_desc = ' '.join(cmd_parts)
+        command_desc = format_command_args(cmd)
+
     logger.debug("Running command %s", command_desc)
     env = os.environ.copy()
     if extra_environ:
