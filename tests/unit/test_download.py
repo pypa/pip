@@ -1,5 +1,6 @@
 import hashlib
 import os
+import sys
 from io import BytesIO
 from shutil import copy, rmtree
 from tempfile import mkdtemp
@@ -125,16 +126,6 @@ def test_path_to_url_unix():
     assert path_to_url('file') == 'file://' + urllib_request.pathname2url(path)
 
 
-@pytest.mark.skipif("sys.platform == 'win32'")
-def test_url_to_path_unix():
-    assert url_to_path('file:tmp') == 'tmp'
-    assert url_to_path('file:///tmp/file') == '/tmp/file'
-    assert url_to_path('file:/path/to/file') == '/path/to/file'
-    assert url_to_path('file://localhost/tmp/file') == '/tmp/file'
-    with pytest.raises(ValueError):
-        url_to_path('file://somehost/tmp/file')
-
-
 @pytest.mark.skipif("sys.platform != 'win32'")
 def test_path_to_url_win():
     assert path_to_url('c:/tmp/file') == 'file:///C:/tmp/file'
@@ -144,13 +135,27 @@ def test_path_to_url_win():
     assert path_to_url('file') == 'file:' + urllib_request.pathname2url(path)
 
 
-@pytest.mark.skipif("sys.platform != 'win32'")
-def test_url_to_path_win():
-    assert url_to_path('file:tmp') == 'tmp'
-    assert url_to_path('file:///c:/tmp/file') == r'C:\tmp\file'
-    assert url_to_path('file://unc/as/path') == r'\\unc\as\path'
-    assert url_to_path('file:c:/path/to/file') == r'C:\path\to\file'
-    assert url_to_path('file://localhost/c:/tmp/file') == r'C:\tmp\file'
+@pytest.mark.parametrize("url,win_expected,non_win_expected", [
+    ('file:tmp', 'tmp', 'tmp'),
+    ('file:c:/path/to/file', r'C:\path\to\file', 'c:/path/to/file'),
+    ('file:/path/to/file', r'\path\to\file', '/path/to/file'),
+    ('file://localhost/tmp/file', r'\tmp\file', '/tmp/file'),
+    ('file://localhost/c:/tmp/file', r'C:\tmp\file', '/c:/tmp/file'),
+    ('file://somehost/tmp/file', r'\\somehost\tmp\file', None),
+    ('file:///tmp/file', r'\tmp\file', '/tmp/file'),
+    ('file:///c:/tmp/file', r'C:\tmp\file', '/c:/tmp/file'),
+])
+def test_url_to_path(url, win_expected, non_win_expected):
+    if sys.platform == 'win32':
+        expected_path = win_expected
+    else:
+        expected_path = non_win_expected
+
+    if expected_path is None:
+        with pytest.raises(ValueError):
+            url_to_path(url)
+    else:
+        assert url_to_path(url) == expected_path
 
 
 @pytest.mark.skipif("sys.platform != 'win32'")

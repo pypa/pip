@@ -473,18 +473,17 @@ def url_to_path(url):
 
     _, netloc, path, _, _ = urllib_parse.urlsplit(url)
 
-    if netloc:
-        if netloc == 'localhost':
-            # According to RFC 8089, same as empty authority.
-            netloc = ''
-        elif sys.platform == 'win32':
-            # If we have a UNC path, prepend UNC share notation.
-            netloc = '\\\\' + netloc
-        else:
-            raise ValueError(
-                'non-local file URIs are not supported on this platform: %r'
-                % url
-            )
+    if not netloc or netloc == 'localhost':
+        # According to RFC 8089, same as empty authority.
+        netloc = ''
+    elif sys.platform == 'win32':
+        # If we have a UNC path, prepend UNC share notation.
+        netloc = '\\\\' + netloc
+    else:
+        raise ValueError(
+            'non-local file URIs are not supported on this platform: %r'
+            % url
+        )
 
     path = urllib_request.url2pathname(netloc + path)
     return path
