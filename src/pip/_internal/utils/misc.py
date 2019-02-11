@@ -23,7 +23,7 @@ from pip._vendor import pkg_resources
 #       why we ignore the type on this import.
 from pip._vendor.retrying import retry  # type: ignore
 from pip._vendor.six import PY2
-from pip._vendor.six.moves import input
+from pip._vendor.six.moves import input, shlex_quote
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
 
@@ -655,14 +655,7 @@ def format_command_args(args):
     """
     Format command arguments for display.
     """
-    parts = []
-    for arg in args:
-        if ' ' in arg or '\n' in arg or '"' in arg or "'" in arg:
-            arg = '"%s"' % arg.replace('"', '\\"')
-        parts.append(arg)
-    command = ' '.join(parts)
-
-    return command
+    return ' '.join(shlex_quote(arg) for arg in args)
 
 
 def call_subprocess(

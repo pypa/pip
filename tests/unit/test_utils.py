@@ -728,7 +728,7 @@ class TestGetProg(object):
 @pytest.mark.parametrize('args, expected', [
     (['pip', 'list'], 'pip list'),
     (['foo', 'space space', 'new\nline', 'double"quote', "single'quote"],
-     'foo "space space" "new\nline" "double\\"quote" "single\'quote"'),
+     """foo 'space space' 'new\nline' 'double"quote' 'single'"'"'quote'"""),
 ])
 def test_format_command_args(args, expected):
     actual = format_command_args(args)
