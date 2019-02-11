@@ -779,6 +779,42 @@ def should_use_ephemeral_cache(
     return True
 
 
+def get_legacy_build_wheel_path(
+    names,  # type: List[str]
+    temp_dir,  # type: str
+    req,  # type: InstallRequirement
+    command_args,  # type: List[str]
+    command_output,  # type: str
+):
+    # type: (...) -> Optional[str]
+    """
+    Return the path to the wheel in the temporary build directory.
+    """
+    # Sort for determinism.
+    names = sorted(names)
+    if not names:
+        # call_subprocess() ensures that the command output ends in a newline.
+        msg = (
+            'Failed building wheel for {} with args: {}\n'
+            'Command output:\n{}'
+            '-----------------------------------------'
+        ).format(req.name, command_args, command_output)
+        logger.error(msg)
+        return None
+    if len(names) > 1:
+        # call_subprocess() ensures that the command output ends in a newline.
+        msg = (
+            'Found more than one file after building wheel for {} '
+            'with args: {}\n'
+            'Names: {}\n'
+            'Command output:\n{}'
+            '-----------------------------------------'
+        ).format(req.name, command_args, names, command_output)
+        logger.warning(msg)
+
+    return os.path.join(temp_dir, names[0])
+
+
 class WheelBuilder(object):
     """Build wheels from a RequirementSet."""
 
@@ -888,14 +924,21 @@ class WheelBuilder(object):
                 wheel_args += ["--python-tag", python_tag]
 
             try:
-                call_subprocess(wheel_args, cwd=req.setup_py_dir,
-                                show_stdout=False, spinner=spinner)
+                output = call_subprocess(wheel_args, cwd=req.setup_py_dir,
+                                         show_stdout=False, spinner=spinner)
             except Exception:
                 spinner.finish("error")
                 logger.error('Failed building wheel for %s', req.name)
                 return None
-            # listdir's return value is sorted to be deterministic
-            return os.path.join(tempd, sorted(os.listdir(tempd))[0])
+            names = os.listdir(tempd)
+            wheel_path = get_legacy_build_wheel_path(
+                names=names,
+                temp_dir=tempd,
+                req=req,
+                command_args=wheel_args,
+                command_output=output,
+            )
+            return wheel_path
 
     def _clean_one(self, req):
         base_args = self._base_setup_args(req)
