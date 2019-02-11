@@ -100,7 +100,6 @@ def test_should_use_ephemeral_cache__issue_6197(
 
 
 def test_format_command__INFO(caplog):
-
     caplog.set_level(logging.INFO)
     actual = wheel.format_command(
         command_args=['arg1', 'arg2'],
@@ -129,7 +128,7 @@ def test_format_command__DEBUG(caplog, command_output):
         'Command output:',
         'output line 1',
         'output line 2',
-        '-----------------------------------------',
+        '----------------------------------------',
     ]
 
 

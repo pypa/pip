@@ -67,6 +67,8 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
 
 logger = std_logging.getLogger(__name__)
 
+LOG_DIVIDER = '----------------------------------------'
+
 WHEEL_EXTENSION = '.whl'
 BZ2_EXTENSIONS = ('.tar.bz2', '.tbz')
 XZ_EXTENSIONS = ('.tar.xz', '.txz', '.tlz', '.tar.lz', '.tar.lzma')
@@ -752,10 +754,8 @@ def call_subprocess(
                 logger.info(
                     'Complete output from command %s:', command_desc,
                 )
-                logger.info(
-                    ''.join(all_output) +
-                    '\n----------------------------------------'
-                )
+                # The all_output value already ends in a newline.
+                logger.info(''.join(all_output) + LOG_DIVIDER)
             raise InstallationError(
                 'Command "%s" failed with error code %s in %s'
                 % (command_desc, proc.returncode, cwd))

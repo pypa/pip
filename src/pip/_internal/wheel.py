@@ -33,7 +33,7 @@ from pip._internal.locations import (
 from pip._internal.models.link import Link
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
-    call_subprocess, captured_stdout, ensure_dir, read_chunks,
+    LOG_DIVIDER, call_subprocess, captured_stdout, ensure_dir, read_chunks,
 )
 from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._internal.utils.temp_dir import TempDirectory
@@ -803,10 +803,7 @@ def format_command(
     else:
         if not command_output.endswith('\n'):
             command_output += '\n'
-        text += (
-            'Command output:\n{}'
-            '-----------------------------------------'
-        ).format(command_output)
+        text += 'Command output:\n{}{}'.format(command_output, LOG_DIVIDER)
 
     return text
 
