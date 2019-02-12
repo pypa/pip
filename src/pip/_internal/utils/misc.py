@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import contextlib
 import errno
+import getpass
 import io
 # we have a submodule named 'logging' which would shadow this if we used the
 # regular name:
@@ -171,15 +172,21 @@ def ask_path_exists(message, options):
     return ask(message, options)
 
 
+def _check_no_input(message):
+    # type: (str) -> None
+    """Raise an error if no input is allowed."""
+    if os.environ.get('PIP_NO_INPUT'):
+        raise Exception(
+            'No input was expected ($PIP_NO_INPUT set); question: %s' %
+            message
+        )
+
+
 def ask(message, options):
     # type: (str, Iterable[str]) -> str
     """Ask the message interactively, with the given possible responses"""
     while 1:
-        if os.environ.get('PIP_NO_INPUT'):
-            raise Exception(
-                'No input was expected ($PIP_NO_INPUT set); question: %s' %
-                message
-            )
+        _check_no_input(message)
         response = input(message)
         response = response.strip().lower()
         if response not in options:
@@ -189,6 +196,20 @@ def ask(message, options):
             )
         else:
             return response
+
+
+def ask_input(message):
+    # type: (str) -> str
+    """Ask for input interactively."""
+    _check_no_input(message)
+    return input(message)
+
+
+def ask_password(message):
+    # type: (str) -> str
+    """Ask for a password interactively."""
+    _check_no_input(message)
+    return getpass.getpass(message)
 
 
 def format_size(bytes):
@@ -954,32 +975,56 @@ def redact_netloc(netloc):
 
 
 def _transform_url(url, transform_netloc):
+    """Transform and replace netloc in a url.
+
+    transform_netloc is a function taking the netloc and returning a
+    tuple. The first element of this tuple is the new netloc. The
+    entire tuple is returned.
+
+    Returns a tuple containing the transformed url as item 0 and the
+    original tuple returned by transform_netloc as item 1.
+    """
     purl = urllib_parse.urlsplit(url)
-    netloc = transform_netloc(purl.netloc)
+    netloc_tuple = transform_netloc(purl.netloc)
     # stripped url
     url_pieces = (
-        purl.scheme, netloc, purl.path, purl.query, purl.fragment
+        purl.scheme, netloc_tuple[0], purl.path, purl.query, purl.fragment
     )
     surl = urllib_parse.urlunsplit(url_pieces)
-    return surl
+    return surl, netloc_tuple
 
 
 def _get_netloc(netloc):
-    return split_auth_from_netloc(netloc)[0]
+    return split_auth_from_netloc(netloc)
+
+
+def _redact_netloc(netloc):
+    return (redact_netloc(netloc),)
+
+
+def split_auth_netloc_from_url(url):
+    # type: (str) -> Tuple[str, str, Tuple[str, str]]
+    """
+    Parse a url into separate netloc, auth, and url with no auth.
+
+    Returns: (url_without_auth, netloc, (username, password))
+    """
+    url_without_auth, (netloc, auth) = _transform_url(url, _get_netloc)
+    return url_without_auth, netloc, auth
 
 
 def remove_auth_from_url(url):
     # type: (str) -> str
-    # Return a copy of url with 'username:password@' removed.
+    """Return a copy of url with 'username:password@' removed."""
     # username/pass params are passed to subversion through flags
     # and are not recognized in the url.
-    return _transform_url(url, _get_netloc)
+    return _transform_url(url, _get_netloc)[0]
 
 
 def redact_password_from_url(url):
     # type: (str) -> str
     """Replace the password in a given url with ****."""
-    return _transform_url(url, redact_netloc)
+    return _transform_url(url, _redact_netloc)[0]
 
 
 def protect_pip_from_modification_on_windows(modifying_pip):
