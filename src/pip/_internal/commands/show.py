@@ -69,7 +69,7 @@ class ShowCommand(Command):
         info = get_distributions_info(distributions, list_files=options.files,
                                       verbose=options.verbose)
 
-        if len(info) == 0:
+        if not info:
             return ERROR
         print_results(info)
         return SUCCESS
@@ -171,11 +171,7 @@ def get_package_info(dist, list_files=False, verbose=False):
     ]
 
     if verbose:
-        classifiers = [str(classifier)
-                       for classifier in dist.get('classifiers', [])]
-
         parser = configparser.ConfigParser()
-
         parser.readfp(StringIO(u'\n'.join(dist.get('entry_points', []))))
 
         entry_points = {section: dict(parser.items(section))
@@ -183,7 +179,7 @@ def get_package_info(dist, list_files=False, verbose=False):
         info.extend([
             ("Metadata-Version", dist.get('metadata-version', '')),
             ("Installer", dist.get('installer', '')),
-            ("Classifiers", classifiers),
+            ("Classifiers", dist.get('classifiers', [])),
             ("Entry-points", entry_points)
         ])
 
@@ -191,8 +187,7 @@ def get_package_info(dist, list_files=False, verbose=False):
         if "files" not in dist:
             info.extend([("Files", None)])
         else:
-            files = [str(file) for file in dist.get('files', [])]
-            info.extend([("Files", files)])
+            info.extend([("Files", dist.get('files', []))])
     return info
 
 
