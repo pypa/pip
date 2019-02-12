@@ -99,6 +99,53 @@ def test_should_use_ephemeral_cache__issue_6197(
     assert ephem_cache is expected
 
 
+def test_format_command__INFO(caplog):
+
+    caplog.set_level(logging.INFO)
+    actual = wheel.format_command(
+        command_args=['arg1', 'arg2'],
+        command_output='output line 1\noutput line 2\n',
+    )
+    assert actual.splitlines() == [
+        "Command arguments: ['arg1', 'arg2']",
+        'Command output: [use --verbose to show]',
+    ]
+
+
+@pytest.mark.parametrize('command_output', [
+    # Test trailing newline.
+    'output line 1\noutput line 2\n',
+    # Test no trailing newline.
+    'output line 1\noutput line 2',
+])
+def test_format_command__DEBUG(caplog, command_output):
+    caplog.set_level(logging.DEBUG)
+    actual = wheel.format_command(
+        command_args=['arg1', 'arg2'],
+        command_output=command_output,
+    )
+    assert actual.splitlines() == [
+        "Command arguments: ['arg1', 'arg2']",
+        'Command output:',
+        'output line 1',
+        'output line 2',
+        '-----------------------------------------',
+    ]
+
+
+@pytest.mark.parametrize('log_level', ['DEBUG', 'INFO'])
+def test_format_command__empty_output(caplog, log_level):
+    caplog.set_level(log_level)
+    actual = wheel.format_command(
+        command_args=['arg1', 'arg2'],
+        command_output='',
+    )
+    assert actual.splitlines() == [
+        "Command arguments: ['arg1', 'arg2']",
+        'Command output: None',
+    ]
+
+
 def call_get_legacy_build_wheel_path(caplog, names):
     req = make_test_install_req()
     wheel_path = wheel.get_legacy_build_wheel_path(
@@ -122,13 +169,11 @@ def test_get_legacy_build_wheel_path__no_names(caplog):
     assert actual is None
     assert len(caplog.records) == 1
     record = caplog.records[0]
-    assert record.levelname == 'ERROR'
+    assert record.levelname == 'WARNING'
     assert record.message.splitlines() == [
-        "Failed building wheel for pendulum with args: ['arg1', 'arg2']",
-        "Command output:",
-        "output line 1",
-        "output line 2",
-        "-----------------------------------------",
+        "Legacy build of wheel for 'pendulum' created no files.",
+        "Command arguments: ['arg1', 'arg2']",
+        'Command output: [use --verbose to show]',
     ]
 
 
@@ -142,13 +187,10 @@ def test_get_legacy_build_wheel_path__multiple_names(caplog):
     record = caplog.records[0]
     assert record.levelname == 'WARNING'
     assert record.message.splitlines() == [
-        ("Found more than one file after building wheel for pendulum "
-         "with args: ['arg1', 'arg2']"),
-        "Names: ['name1', 'name2']",
-        "Command output:",
-        "output line 1",
-        "output line 2",
-        "-----------------------------------------",
+        "Legacy build of wheel for 'pendulum' created more than one file.",
+        "Filenames (choosing first): ['name1', 'name2']",
+        "Command arguments: ['arg1', 'arg2']",
+        'Command output: [use --verbose to show]',
     ]
 
 
