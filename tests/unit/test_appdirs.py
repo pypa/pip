@@ -100,8 +100,8 @@ class TestSiteConfigDirs:
         monkeypatch.setattr(appdirs, "WINDOWS", True)
         monkeypatch.setattr(os, "path", ntpath)
 
-        assert appdirs.site_config_dirs("pip") == ["C:\\ProgramData\\pip",
-                                                   sys.prefix]
+        assert appdirs.site_config_dirs("pip") == [sys.prefix,
+                                                   "C:\\ProgramData\\pip"]
         assert _get_win_folder.calls == [pretend.call("CSIDL_COMMON_APPDATA")]
 
     def test_site_config_dirs_osx(self, monkeypatch):
@@ -111,7 +111,7 @@ class TestSiteConfigDirs:
         monkeypatch.setattr(sys, "platform", "darwin")
 
         assert appdirs.site_config_dirs("pip") == \
-            ["/Library/Application Support/pip", sys.prefix]
+            [sys.prefix, "/Library/Application Support/pip"]
 
     def test_site_config_dirs_linux(self, monkeypatch):
         monkeypatch.setattr(appdirs, "WINDOWS", False)
@@ -120,9 +120,9 @@ class TestSiteConfigDirs:
         monkeypatch.setattr(sys, "platform", "linux2")
 
         assert appdirs.site_config_dirs("pip") == [
+            sys.prefix,
             '/etc/xdg/pip',
             '/etc',
-            sys.prefix
         ]
 
     def test_site_config_dirs_linux_override(self, monkeypatch):
@@ -133,11 +133,11 @@ class TestSiteConfigDirs:
         monkeypatch.setattr(sys, "platform", "linux2")
 
         assert appdirs.site_config_dirs("pip") == [
+            sys.prefix,
             '/spam/pip',
             '/etc/pip',
             '/etc/xdg/pip',
             '/etc',
-            sys.prefix
         ]
 
 
