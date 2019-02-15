@@ -241,7 +241,9 @@ def call_get_csv_rows_for_installed(tmpdir, text):
     path = tmpdir.join('temp.txt')
     path.write(text)
 
-    installed = {}
+    # Test that an installed file appearing in RECORD has its filename
+    # updated in the new RECORD file.
+    installed = {'a': 'z'}
     changed = set()
     generated = []
     lib_dir = '/lib/dir'
@@ -263,7 +265,7 @@ def test_get_csv_rows_for_installed(tmpdir, caplog):
     outrows = call_get_csv_rows_for_installed(tmpdir, text)
 
     expected = [
-        ('a', 'b', 'c'),
+        ('z', 'b', 'c'),
         ('d', 'e', 'f'),
     ]
     assert outrows == expected
@@ -280,7 +282,7 @@ def test_get_csv_rows_for_installed__long_lines(tmpdir, caplog):
     outrows = call_get_csv_rows_for_installed(tmpdir, text)
 
     expected = [
-        ('a', 'b', 'c', 'd'),
+        ('z', 'b', 'c', 'd'),
         ('e', 'f', 'g'),
         ('h', 'i', 'j', 'k'),
     ]

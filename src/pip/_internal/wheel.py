@@ -267,16 +267,23 @@ def get_csv_rows_for_installed(
     lib_dir,  # type: str
 ):
     # type: (...) -> List[InstalledCSVRow]
+    """
+    :param installed: A map from archive RECORD path to installation RECORD
+        path.
+    """
     installed_rows = []  # type: List[InstalledCSVRow]
     for row in old_csv_rows:
         if len(row) > 3:
             logger.warning(
                 'RECORD line has more than three elements: {}'.format(row)
             )
-        fpath = row[0]
-        fpath = installed.pop(fpath, fpath)
-        if fpath in changed:
-            digest, length = rehash(fpath)
+        # Make a copy because we are mutating the row.
+        row = list(row)
+        old_path = row[0]
+        new_path = installed.pop(old_path, old_path)
+        row[0] = new_path
+        if new_path in changed:
+            digest, length = rehash(new_path)
             row[1] = digest
             row[2] = length
         installed_rows.append(tuple(row))
