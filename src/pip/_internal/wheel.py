@@ -779,6 +779,31 @@ def should_use_ephemeral_cache(
     return True
 
 
+def format_command(
+    command_args,  # type: List[str]
+    command_output,  # type: str
+):
+    # type: (...) -> str
+    """
+    Format command information for logging.
+    """
+    text = 'Command arguments: {}\n'.format(command_args)
+
+    if not command_output:
+        text += 'Command output: None'
+    elif logger.getEffectiveLevel() > logging.DEBUG:
+        text += 'Command output: [use --verbose to show]'
+    else:
+        if not command_output.endswith('\n'):
+            command_output += '\n'
+        text += (
+            'Command output:\n{}'
+            '-----------------------------------------'
+        ).format(command_output)
+
+    return text
+
+
 def get_legacy_build_wheel_path(
     names,  # type: List[str]
     temp_dir,  # type: str
@@ -793,23 +818,19 @@ def get_legacy_build_wheel_path(
     # Sort for determinism.
     names = sorted(names)
     if not names:
-        # call_subprocess() ensures that the command output ends in a newline.
         msg = (
-            'Failed building wheel for {} with args: {}\n'
-            'Command output:\n{}'
-            '-----------------------------------------'
-        ).format(req.name, command_args, command_output)
-        logger.error(msg)
+            'Legacy build of wheel for {!r} created no files.\n'
+        ).format(req.name)
+        msg += format_command(command_args, command_output)
+        logger.warning(msg)
         return None
+
     if len(names) > 1:
-        # call_subprocess() ensures that the command output ends in a newline.
         msg = (
-            'Found more than one file after building wheel for {} '
-            'with args: {}\n'
-            'Names: {}\n'
-            'Command output:\n{}'
-            '-----------------------------------------'
-        ).format(req.name, command_args, names, command_output)
+            'Legacy build of wheel for {!r} created more than one file.\n'
+            'Filenames (choosing first): {}\n'
+        ).format(req.name, names)
+        msg += format_command(command_args, command_output)
         logger.warning(msg)
 
     return os.path.join(temp_dir, names[0])
