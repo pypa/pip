@@ -51,7 +51,27 @@ def test_unpack_http_url_with_urllib_response_without_content_type(data):
 
 
 def test_user_agent():
-    PipSession().headers["User-Agent"].startswith("pip/%s" % pip.__version__)
+    user_agent = PipSession().headers["User-Agent"]
+
+    assert user_agent.startswith("pip/%s" % pip.__version__)
+
+
+@pytest.mark.parametrize('name, expected_like_ci', [
+    ('BUILD', False),
+    ('BUILD_BUILDID', True),
+    ('BUILD_ID', True),
+    ('CI', True),
+])
+def test_user_agent__ci(monkeypatch, name, expected_like_ci):
+    # Clear existing names since we can be running under an actual CI.
+    for ci_name in ('BUILD_BUILDID', 'BUILD_ID', 'CI'):
+        monkeypatch.delenv(ci_name, raising=False)
+
+    monkeypatch.setenv(name, 'true')
+    user_agent = PipSession().headers["User-Agent"]
+
+    assert ('"ci":true' in user_agent) == expected_like_ci
+    assert ('"ci":null' in user_agent) == (not expected_like_ci)
 
 
 class FakeStream(object):
