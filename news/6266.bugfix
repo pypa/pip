@@ -1,0 +1,2 @@
+Fix a regression introduced in 19.0.2 where the filename in a RECORD file
+of an installed file would not be updated when installing a wheel.
