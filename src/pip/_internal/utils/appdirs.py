@@ -190,11 +190,6 @@ def site_config_dirs(appname):
         # always look in /etc directly as well
         pathlist.append('/etc')
 
-    # allow configuration in sys.prefix without any appname
-    # but put it first so that it is not preferred for "pip config set"
-    # see <https://github.com/pypa/pip/issues/5060>
-    pathlist.insert(0, sys.prefix)
-
     return pathlist
 
 
