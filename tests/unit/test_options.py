@@ -388,14 +388,6 @@ class TestOptionsConfigFiles(object):
             pip._internal.configuration, 'site_config_files', ['/a/place']
         )
 
-        # If we are running in a virtualenv and all files appear to exist,
-        # we should see two config files.
-        monkeypatch.setattr(
-            pip._internal.configuration,
-            'running_under_virtualenv',
-            lambda: True,
-        )
-        monkeypatch.setattr(os.path, 'exists', lambda filename: True)
         cp = pip._internal.configuration.Configuration(isolated=False)
 
         files = []
