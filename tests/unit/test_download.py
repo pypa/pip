@@ -89,8 +89,8 @@ def test_user_agent__ci(monkeypatch, name, expected_like_ci):
 
 
 def test_user_agent_provisional_string(monkeypatch):
-    monkeypatch.setenv("PIP_USER_AGENT_PROVISIONAL_STRING", "provisional_string")
-    assert "provisional_string" in PipSession().headers["User-Agent"]
+    monkeypatch.setenv("PIP_USER_AGENT_PROVISIONAL_STRING", "some_string")
+    assert "some_string" in PipSession().headers["User-Agent"]
 
 
 class FakeStream(object):
