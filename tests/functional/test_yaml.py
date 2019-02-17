@@ -56,10 +56,12 @@ def handle_install_request(script, requirement):
     result = script.pip(
         "install",
         "--no-index", "--find-links", path_to_url(script.scratch_path),
-        requirement
+        requirement, "--verbose",
     )
 
-    retval = {}
+    retval = {
+        "_result_object": result,
+    }
     if result.returncode == 0:
         # Check which packages got installed
         retval["install"] = []
@@ -140,4 +142,7 @@ def test_yaml_based(script, case):
         # Perform the requested action
         effect = available_actions[action](script, request[action])
 
-        assert effect == expected, "Fixture did not succeed."
+        result = effect["_result_object"]
+        del effect["_result_object"]
+
+        assert effect == expected, str(result)
