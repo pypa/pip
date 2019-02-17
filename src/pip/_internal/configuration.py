@@ -15,7 +15,6 @@ import locale
 import logging
 import os
 
-from pip._vendor import six
 from pip._vendor.six.moves import configparser
 
 from pip._internal.exceptions import (
@@ -188,7 +187,7 @@ class Configuration(object):
                 # name removed from parser, section may now be empty
                 section_iter = iter(parser.items(section))
                 try:
-                    val = six.next(section_iter)
+                    val = next(section_iter)
                 except StopIteration:
                     val = None
 
