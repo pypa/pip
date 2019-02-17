@@ -1,0 +1,30 @@
+# Based on https://github.com/CocoaPods/Resolver-Integration-Specs/blob/53a8e313/case/complex_conflict.json
+base:
+  available:
+    - A 1.0.2; depends D >= 0
+    - A 1.1.4; depends D >= 0
+    - A 1.2.0; depends D >= 0
+    - A 1.4.0; depends D >= 0
+    - B 0.3.3; depends A > 1.0
+    - B 0.3.4; depends A >= 1.5.0
+    - B 0.3.5; depends A >= 1.2
+    - C 3.2; depends A ~= 1.0
+    - C 3.3; depends A ~= 1.0
+    - D 0.9.8
+    - D 1.3.0; depends X >= 0
+    - D 1.4.1; depends X >= 0
+    - my_app 1.1.0; depends B == 0.3.5, C ~= 3.2.0
+    - my_app 1.2.0; depends B == 0.3.4, C ~= 3.3.0
+    - my_app 1.3.0; depends B >= 0, C >= 4.0
+cases:
+-
+  request:
+    - install: my_app
+  transaction:
+    - install:
+      - A 1.4.0
+      - B 0.3.5
+      - C 3.2
+      - D 0.9.8
+      - my_app 1.1.0
+skip: true
