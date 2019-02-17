@@ -110,10 +110,6 @@ def user_agent():
         },
     }
 
-    provisional = os.environ.get("PIP_USER_AGENT_PROVISIONAL_STRING")
-    if provisional:
-        data["provisional"] = provisional
-
     if data["implementation"]["name"] == 'CPython':
         data["implementation"]["version"] = platform.python_version()
     elif data["implementation"]["name"] == 'PyPy':
@@ -170,6 +166,10 @@ def user_agent():
     # inconclusive result.  Also, we include some value rather than no
     # value to make it easier to know that the check has been run.
     data["ci"] = True if looks_like_ci() else None
+
+    provisional = os.environ.get("PIP_USER_AGENT_PROVISIONAL_STRING")
+    if provisional:
+        data["provisional"] = provisional
 
     return "{data[installer][name]}/{data[installer][version]} {json}".format(
         data=data,
