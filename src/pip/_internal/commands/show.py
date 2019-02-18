@@ -51,31 +51,41 @@ class ShowCommand(Command):
 
         self.parser.insert_option_group(0, cmd_opts)
 
-    def run(self, options, args):
-        if not args:
+    def run(self, options, packages_queried):
+        if not packages_queried:
             logger.warning('ERROR: Please provide a package name or names.')
             return ERROR
-        query = args
-
-        distributions = search_packages_info(query)
 
         format_options = {
             'json': print_json,
             'header': print_header_format,
         }
 
-        print_results = format_options[options.show_format]
+        print_with_format = format_options[options.show_format]
 
-        info = get_distributions_info(distributions, list_files=options.files,
-                                      verbose=options.verbose)
-
-        if not info:
-            return ERROR
-        print_results(info)
-        return SUCCESS
+        print_distributions(packages_queried, options, print_with_format)
 
 
-def search_packages_info(query):
+def print_distributions(packages, options, print_with_format):
+    """
+    Gather information for all installed distributions and print the
+    information in either header (default) format or json format.
+    """
+    distributions = search_packages_info(packages)
+    info = []
+
+    for dist in distributions:
+        package_info = get_package_info(dist, list_files=options.files,
+                                        verbose=options.verbose)
+        info.append(OrderedDict(package_info))
+
+    if not info:
+        return ERROR
+    print_with_format(info)
+    return SUCCESS
+
+
+def search_packages_info(packages):
     """
     Gather details from installed distributions. Print distribution name,
     version, location, and installed files. Installed files requires a
@@ -86,9 +96,9 @@ def search_packages_info(query):
     for p in pkg_resources.working_set:
         installed[canonicalize_name(p.project_name)] = p
 
-    query_names = [canonicalize_name(name) for name in query]
+    package_names = [canonicalize_name(name) for name in packages]
 
-    for dist in [installed[pkg] for pkg in query_names if pkg in installed]:
+    for dist in [installed[pkg] for pkg in package_names if pkg in installed]:
         package = {
             'name': dist.project_name,
             'version': dist.version,
@@ -188,18 +198,6 @@ def get_package_info(dist, list_files=False, verbose=False):
             info.extend([("Files", None)])
         else:
             info.extend([("Files", dist.get('files', []))])
-    return info
-
-
-def get_distributions_info(distributions, list_files=False, verbose=False):
-    """
-    Gather information for all installed distributions.
-    """
-    info = []
-
-    for dist in distributions:
-        package_info = get_package_info(dist, list_files, verbose)
-        info.append(OrderedDict(package_info))
     return info
 
 
