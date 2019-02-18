@@ -10,8 +10,8 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 
 import pip
 from pip._internal.download import (
-    PipSession, SafeFileCache, path_to_url, unpack_file_url, unpack_http_url,
-    url_to_path,
+    CI_ENVIRONMENT_VARIABLES, PipSession, SafeFileCache, path_to_url,
+    unpack_file_url, unpack_http_url, url_to_path,
 )
 from pip._internal.exceptions import HashMismatch
 from pip._internal.models.link import Link
@@ -50,26 +50,39 @@ def test_unpack_http_url_with_urllib_response_without_content_type(data):
         rmtree(temp_dir)
 
 
+def get_user_agent():
+    return PipSession().headers["User-Agent"]
+
+
 def test_user_agent():
-    user_agent = PipSession().headers["User-Agent"]
+    user_agent = get_user_agent()
 
     assert user_agent.startswith("pip/%s" % pip.__version__)
 
 
 @pytest.mark.parametrize('name, expected_like_ci', [
-    ('BUILD', False),
     ('BUILD_BUILDID', True),
     ('BUILD_ID', True),
     ('CI', True),
+    # Test a prefix substring of one of the variable names we use.
+    ('BUILD', False),
 ])
 def test_user_agent__ci(monkeypatch, name, expected_like_ci):
-    # Clear existing names since we can be running under an actual CI.
-    for ci_name in ('BUILD_BUILDID', 'BUILD_ID', 'CI'):
+    # Delete the variable names we use to check for CI to prevent the
+    # detection from always returning True in case the tests are being run
+    # under actual CI.  It is okay to depend on CI_ENVIRONMENT_VARIABLES
+    # here (part of the code under test) because this setup step can only
+    # prevent false test failures.  It can't cause a false test passage.
+    for ci_name in CI_ENVIRONMENT_VARIABLES:
         monkeypatch.delenv(ci_name, raising=False)
 
-    monkeypatch.setenv(name, 'true')
-    user_agent = PipSession().headers["User-Agent"]
+    # Confirm the baseline before setting the environment variable.
+    user_agent = get_user_agent()
+    assert '"ci":null' in user_agent
+    assert '"ci":true' not in user_agent
 
+    monkeypatch.setenv(name, 'true')
+    user_agent = get_user_agent()
     assert ('"ci":true' in user_agent) == expected_like_ci
     assert ('"ci":null' in user_agent) == (not expected_like_ci)
 

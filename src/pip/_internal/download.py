@@ -79,14 +79,14 @@ logger = logging.getLogger(__name__)
 # This list is used to provide some indication of and lower bound for
 # CI traffic to PyPI.  Thus, it is okay if the list is not comprehensive.
 # For more background, see: https://github.com/pypa/pip/issues/5499
-CI_ENVIRONMENT_VARIABLES = [
+CI_ENVIRONMENT_VARIABLES = (
     # Azure Pipelines
     'BUILD_BUILDID',
     # Jenkins
     'BUILD_ID',
     # AppVeyor, CircleCI, Codeship, Gitlab CI, Shippable, Travis CI
     'CI',
-]
+)
 
 
 def looks_like_ci():
@@ -94,6 +94,9 @@ def looks_like_ci():
     """
     Return whether it looks like pip is running under CI.
     """
+    # We don't use the method of checking for a tty (e.g. using isatty())
+    # because some CI systems mimic a tty (e.g. Travis CI).  Thus that
+    # method doesn't provide definitive information in either direction.
     return any(name in os.environ for name in CI_ENVIRONMENT_VARIABLES)
 
 
