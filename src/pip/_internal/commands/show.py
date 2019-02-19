@@ -39,14 +39,15 @@ class ShowCommand(Command):
             dest='files',
             action='store_true',
             default=False,
-            help='Show the full list of installed files for each package.')
+            help="Show the full list of installed files for each package."
+        )
         cmd_opts.add_option(
             '--format',
             action='store',
-            dest='show_format',
-            default="header",
+            dest='format_choice',
+            default='header',
             choices=('header', 'json'),
-            help="Select the output format among: header (default) or json",
+            help="Select output format as header (the default format) or json."
         )
 
         self.parser.insert_option_group(0, cmd_opts)
@@ -55,13 +56,12 @@ class ShowCommand(Command):
         if not packages_queried:
             logger.warning('ERROR: Please provide a package name or names.')
             return ERROR
-
         format_options = {
             'json': print_json,
             'header': print_header_format,
         }
 
-        print_with_format = format_options[options.show_format]
+        print_with_format = format_options[options.format_choice]
 
         print_distributions(packages_queried, options, print_with_format)
 
