@@ -135,12 +135,12 @@ else:
     if sys.platform[:6] == 'darwin' and sys.prefix[:16] == '/System/Library/':
         bin_py = '/usr/local/bin'
 
-site_config_files = [
+global_config_files = [
     os.path.join(path, config_basename)
     for path in appdirs.site_config_dirs('pip')
 ]
 
-venv_config_file = os.path.join(sys.prefix, config_basename)
+site_config_file = os.path.join(sys.prefix, config_basename)
 new_config_file = os.path.join(appdirs.user_config_dir("pip"), config_basename)
 
 
