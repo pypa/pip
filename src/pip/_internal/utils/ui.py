@@ -21,7 +21,7 @@ from pip._internal.utils.misc import format_size
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Iterator, IO  # noqa: F401
+    from typing import Any, Iterator, IO
 
 try:
     from pip._vendor import colorama

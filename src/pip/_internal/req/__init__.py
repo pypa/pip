@@ -9,7 +9,7 @@ from pip._internal.utils.logging import indent_log
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import List, Sequence  # noqa: F401
+    from typing import List, Sequence
 
 __all__ = [
     "RequirementSet", "InstallRequirement",
