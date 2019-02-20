@@ -7,6 +7,17 @@
 
 .. towncrier release notes start
 
+19.0.3 (2019-02-20)
+===================
+
+Bug Fixes
+---------
+
+- Fix an ``IndexError`` crash when a legacy build of a wheel fails. (`#6252 <https://github.com/pypa/pip/issues/6252>`_)
+- Fix a regression introduced in 19.0.2 where the filename in a RECORD file
+  of an installed file would not be updated when installing a wheel. (`#6266 <https://github.com/pypa/pip/issues/6266>`_)
+
+
 19.0.2 (2019-02-09)
 ===================
 
