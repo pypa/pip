@@ -192,7 +192,7 @@ class BuildEnvironment(object):
         args.append('--')
         args.extend(requirements)
         with open_spinner(message) as spinner:
-            call_subprocess(args, show_stdout=False, spinner=spinner)
+            call_subprocess(args, spinner=spinner)
 
 
 class NoOpBuildEnvironment(BuildEnvironment):

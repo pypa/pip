@@ -953,7 +953,7 @@ class WheelBuilder(object):
 
             try:
                 output = call_subprocess(wheel_args, cwd=req.setup_py_dir,
-                                         show_stdout=False, spinner=spinner)
+                                         spinner=spinner)
             except Exception:
                 spinner.finish("error")
                 logger.error('Failed building wheel for %s', req.name)
@@ -974,7 +974,7 @@ class WheelBuilder(object):
         logger.info('Running setup.py clean for %s', req.name)
         clean_args = base_args + ['clean', '--all']
         try:
-            call_subprocess(clean_args, cwd=req.source_dir, show_stdout=False)
+            call_subprocess(clean_args, cwd=req.source_dir)
             return True
         except Exception:
             logger.error('Failed cleaning build dir for %s', req.name)

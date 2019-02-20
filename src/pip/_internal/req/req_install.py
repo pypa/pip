@@ -507,7 +507,6 @@ class InstallRequirement(object):
                         cmd,
                         cwd=cwd,
                         extra_environ=extra_environ,
-                        show_stdout=False,
                         spinner=spinner
                     )
                 self.spin_message = ""
@@ -605,7 +604,6 @@ class InstallRequirement(object):
             call_subprocess(
                 egg_info_cmd + egg_base_option,
                 cwd=self.setup_py_dir,
-                show_stdout=False,
                 command_desc='python setup.py egg_info')
 
     @property
@@ -757,7 +755,6 @@ class InstallRequirement(object):
                     list(install_options),
 
                     cwd=self.setup_py_dir,
-                    show_stdout=False,
                 )
 
         self.install_succeeded = True
@@ -941,7 +938,6 @@ class InstallRequirement(object):
                         call_subprocess(
                             install_args + install_options,
                             cwd=self.setup_py_dir,
-                            show_stdout=False,
                             spinner=spinner,
                         )
 
