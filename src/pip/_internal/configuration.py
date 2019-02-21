@@ -216,7 +216,7 @@ class Configuration(object):
             ensure_dir(os.path.dirname(fname))
 
             with open(fname, "w") as f:
-                parser.write(f)  # type: ignore
+                parser.write(f)
 
     #
     # Private routines

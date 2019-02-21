@@ -729,7 +729,7 @@ def _merge_hash(option, opt_str, value, parser):
     """Given a value spelled "algo:digest", append the digest to a list
     pointed to in a dict by the algo name."""
     if not parser.values.hashes:
-        parser.values.hashes = {}  # type: ignore
+        parser.values.hashes = {}
     try:
         algo, digest = value.split(':', 1)
     except ValueError:
