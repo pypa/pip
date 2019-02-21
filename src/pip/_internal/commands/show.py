@@ -52,10 +52,11 @@ class ShowCommand(Command):
 
         self.parser.insert_option_group(0, cmd_opts)
 
-    def run(self, options, packages_queried):
-        if not packages_queried:
+    def run(self, options, args):
+        if not args:
             logger.warning('ERROR: Please provide a package name or names.')
             return ERROR
+
         format_options = {
             'json': print_json,
             'header': print_header_format,
@@ -63,20 +64,21 @@ class ShowCommand(Command):
 
         print_with_format = format_options[options.format_choice]
 
-        print_distributions(packages_queried, options, print_with_format)
+        print_distributions(args, list_files=options.files,
+                            verbose=options.verbose,
+                            print_with_format=print_with_format)
 
 
-def print_distributions(packages, options, print_with_format):
+def print_distributions(packages, list_files, verbose, print_with_format):
     """
-    Gather information for all installed distributions and print the
+    Gather information for all installed packages and print the
     information in either header (default) format or json format.
     """
     distributions = search_packages_info(packages)
     info = []
 
     for dist in distributions:
-        package_info = get_package_info(dist, list_files=options.files,
-                                        verbose=options.verbose)
+        package_info = get_package_info(dist, list_files, verbose)
         info.append(OrderedDict(package_info))
 
     if not info:
