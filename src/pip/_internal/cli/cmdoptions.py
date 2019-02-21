@@ -576,7 +576,8 @@ no_cache = partial(
     dest="cache_dir",
     action="callback",
     callback=no_cache_dir_callback,
-    help="Disable the cache.",
+    help='Disable the cache. Warning: also disables the wheel '
+         'build step (see pip issue #5749).',
 )  # type: Callable[..., Option]
 
 no_deps = partial(
