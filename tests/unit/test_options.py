@@ -1,3 +1,4 @@
+import logging
 import os
 from contextlib import contextmanager
 
@@ -5,7 +6,8 @@ import pytest
 
 import pip._internal.configuration
 from pip._internal import main
-from pip._internal.commands import DownloadCommand
+from pip._internal.commands import ConfigurationCommand, DownloadCommand
+from pip._internal.exceptions import PipError
 from tests.lib.options_helpers import AddFakeCommandMixin
 
 
@@ -395,3 +397,48 @@ class TestOptionsConfigFiles(object):
             files.extend(val)
 
         assert len(files) == 4
+
+    @pytest.mark.parametrize(
+        "args, expect",
+        (
+            ([], None),
+            (["--global"], "global"),
+            (["--site"], "site"),
+            (["--user"], "user"),
+            (["--global", "--user"], PipError),
+            (["--global", "--site"], PipError),
+            (["--global", "--site", "--user"], PipError),
+        )
+    )
+    def test_config_file_options(self, monkeypatch, args, expect):
+        cmd = ConfigurationCommand()
+        # Replace a handler with a no-op to avoid side effects
+        monkeypatch.setattr(cmd, "get_name", lambda *a: None)
+
+        options, args = cmd.parser.parse_args(args + ["get", "name"])
+        if expect is PipError:
+            with pytest.raises(PipError):
+                cmd._determine_file(options, need_value=False)
+        else:
+            assert expect == cmd._determine_file(options, need_value=False)
+
+    def test_config_file_venv_option(self, monkeypatch):
+        cmd = ConfigurationCommand()
+        # Replace a handler with a no-op to avoid side effects
+        monkeypatch.setattr(cmd, "get_name", lambda *a: None)
+
+        warnings = []
+        logger = logging.getLogger("pip._internal.commands.configuration")
+        monkeypatch.setattr(logger, "warning", warnings.append)
+
+        options, args = cmd.parser.parse_args(["--venv", "get", "name"])
+        assert "site" == cmd._determine_file(options, need_value=False)
+        assert warnings
+        assert "Use --site" in warnings[0]
+
+        # No warning or error if both "--venv" and "--site" are specified
+        warnings[:] = []
+        options, args = cmd.parser.parse_args(["--venv", "--site", "get",
+                                               "name"])
+        assert "site" == cmd._determine_file(options, need_value=False)
+        assert not warnings

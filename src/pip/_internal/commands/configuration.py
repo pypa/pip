@@ -139,10 +139,10 @@ class ConfigurationCommand(Command):
 
     def _determine_file(self, options, need_value):
         # Convert legacy venv_file option to site_file or error
-        if options.venv_file:
+        if options.venv_file and not options.site_file:
             if running_under_virtualenv():
                 options.site_file = True
-                logger.warn(
+                logger.warning(
                     "The --venv option is deprecated. Use --site instead."
                 )
             else:
