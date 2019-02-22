@@ -16,10 +16,10 @@ from pip._internal.utils.misc import (
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import (  # noqa: F401
+    from typing import (
         Any, Dict, Iterable, List, Mapping, Optional, Text, Tuple, Type
     )
-    from pip._internal.utils.ui import SpinnerInterface  # noqa: F401
+    from pip._internal.utils.ui import SpinnerInterface
 
     AuthInfo = Tuple[Optional[str], Optional[str]]
 

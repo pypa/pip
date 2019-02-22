@@ -4,9 +4,9 @@ from pip._internal.utils.models import KeyBasedCompareMixin
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from pip._vendor.packaging.version import _BaseVersion  # noqa: F401
-    from pip._internal.models.link import Link  # noqa: F401
-    from typing import Any, Union  # noqa: F401
+    from pip._vendor.packaging.version import _BaseVersion
+    from pip._internal.models.link import Link
+    from typing import Any
 
 
 class InstallationCandidate(KeyBasedCompareMixin):

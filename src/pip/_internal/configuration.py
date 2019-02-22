@@ -29,7 +29,7 @@ from pip._internal.utils.misc import ensure_dir, enum
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import (  # noqa: F401
+    from typing import (
         Any, Dict, Iterable, List, NewType, Optional, Tuple
     )
 

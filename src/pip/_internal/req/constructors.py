@@ -31,10 +31,10 @@ from pip._internal.vcs import vcs
 from pip._internal.wheel import Wheel
 
 if MYPY_CHECK_RUNNING:
-    from typing import (   # noqa: F401
+    from typing import (
         Optional, Tuple, Set, Any, Union, Text, Dict,
     )
-    from pip._internal.cache import WheelCache  # noqa: F401
+    from pip._internal.cache import WheelCache
 
 
 __all__ = [

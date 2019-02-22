@@ -41,15 +41,15 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.wheel import Wheel
 
 if MYPY_CHECK_RUNNING:
-    from logging import Logger  # noqa: F401
-    from typing import (  # noqa: F401
+    from logging import Logger
+    from typing import (
         Tuple, Optional, Any, List, Union, Callable, Set, Sequence,
         Iterable, MutableMapping
     )
-    from pip._vendor.packaging.version import _BaseVersion  # noqa: F401
-    from pip._vendor.requests import Response  # noqa: F401
-    from pip._internal.req import InstallRequirement  # noqa: F401
-    from pip._internal.download import PipSession  # noqa: F401
+    from pip._vendor.packaging.version import _BaseVersion
+    from pip._vendor.requests import Response
+    from pip._internal.req import InstallRequirement
+    from pip._internal.download import PipSession
 
     SecureOrigin = Tuple[str, str, Optional[str]]
     BuildTag = Tuple[Any, ...]  # either emply tuple or Tuple[int, str]

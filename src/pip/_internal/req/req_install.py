@@ -41,15 +41,15 @@ from pip._internal.vcs import vcs
 from pip._internal.wheel import move_wheel_files
 
 if MYPY_CHECK_RUNNING:
-    from typing import (  # noqa: F401
+    from typing import (
         Optional, Iterable, List, Union, Any, Text, Sequence, Dict
     )
-    from pip._internal.build_env import BuildEnvironment  # noqa: F401
-    from pip._internal.cache import WheelCache  # noqa: F401
-    from pip._internal.index import PackageFinder  # noqa: F401
-    from pip._vendor.pkg_resources import Distribution  # noqa: F401
-    from pip._vendor.packaging.specifiers import SpecifierSet  # noqa: F401
-    from pip._vendor.packaging.markers import Marker  # noqa: F401
+    from pip._internal.build_env import BuildEnvironment
+    from pip._internal.cache import WheelCache
+    from pip._internal.index import PackageFinder
+    from pip._vendor.pkg_resources import Distribution
+    from pip._vendor.packaging.specifiers import SpecifierSet
+    from pip._vendor.packaging.markers import Marker
 
 
 logger = logging.getLogger(__name__)

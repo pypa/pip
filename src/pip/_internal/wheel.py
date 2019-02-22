@@ -41,19 +41,19 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import open_spinner
 
 if MYPY_CHECK_RUNNING:
-    from typing import (  # noqa: F401
+    from typing import (
         Dict, List, Optional, Sequence, Mapping, Tuple, IO, Text, Any,
         Union, Iterable
     )
-    from pip._vendor.packaging.requirements import Requirement  # noqa: F401
-    from pip._internal.req.req_install import InstallRequirement  # noqa: F401
-    from pip._internal.download import PipSession  # noqa: F401
-    from pip._internal.index import FormatControl, PackageFinder  # noqa: F401
-    from pip._internal.operations.prepare import (  # noqa: F401
+    from pip._vendor.packaging.requirements import Requirement
+    from pip._internal.req.req_install import InstallRequirement
+    from pip._internal.download import PipSession
+    from pip._internal.index import FormatControl, PackageFinder
+    from pip._internal.operations.prepare import (
         RequirementPreparer
     )
-    from pip._internal.cache import WheelCache  # noqa: F401
-    from pip._internal.pep425tags import Pep425Tag  # noqa: F401
+    from pip._internal.cache import WheelCache
+    from pip._internal.pep425tags import Pep425Tag
 
     InstalledCSVRow = Tuple[str, ...]
 
