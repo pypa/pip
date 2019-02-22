@@ -227,7 +227,7 @@ def _get_html_page(link, session=None):
 
     try:
         resp = _get_html_response(url, session=session)
-    except _NotHTTP as exc:
+    except _NotHTTP:
         logger.debug(
             'Skipping page %s because it looks like an archive, and cannot '
             'be checked by HEAD.', link,
