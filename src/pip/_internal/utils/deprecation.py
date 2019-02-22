@@ -12,7 +12,7 @@ from pip import __version__ as current_version
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Optional  # noqa: F401
+    from typing import Any, Optional
 
 
 class PipDeprecationWarning(Warning):

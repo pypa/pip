@@ -9,8 +9,8 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.wheel import Wheel
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, List, Tuple, Dict, Iterable  # noqa: F401
-    from pip._internal.req.req_install import InstallRequirement  # noqa: F401
+    from typing import Optional, List, Tuple, Dict, Iterable
+    from pip._internal.req.req_install import InstallRequirement
 
 
 logger = logging.getLogger(__name__)
