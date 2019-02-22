@@ -24,7 +24,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import BAR_TYPES
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Callable, Dict, List, Optional, Union
+    from typing import Any, Callable, Dict, Optional
     from optparse import OptionParser, Values
     from pip._internal.cli.parser import ConfigOptionParser
 

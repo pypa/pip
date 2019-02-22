@@ -42,8 +42,7 @@ from pip._internal.utils.ui import open_spinner
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Dict, List, Optional, Sequence, Mapping, Tuple, IO, Text, Any,
-        Union, Iterable
+        Dict, List, Optional, Sequence, Mapping, Tuple, IO, Text, Any, Iterable
     )
     from pip._vendor.packaging.requirements import Requirement
     from pip._internal.req.req_install import InstallRequirement

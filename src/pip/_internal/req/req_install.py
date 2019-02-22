@@ -42,7 +42,7 @@ from pip._internal.wheel import move_wheel_files
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Optional, Iterable, List, Union, Any, Text, Sequence, Dict
+        Optional, Iterable, List, Union, Any, Sequence, Dict
     )
     from pip._internal.build_env import BuildEnvironment
     from pip._internal.cache import WheelCache

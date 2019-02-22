@@ -11,7 +11,7 @@ from pip._internal.utils.models import KeyBasedCompareMixin
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, Tuple, Union, Text
+    from typing import Optional, Tuple, Union
     from pip._internal.index import HTMLPage
 
 
