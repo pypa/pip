@@ -33,7 +33,8 @@ from pip._internal.locations import (
 from pip._internal.models.link import Link
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
-    LOG_DIVIDER, call_subprocess, captured_stdout, ensure_dir, read_chunks,
+    LOG_DIVIDER, call_subprocess, captured_stdout, ensure_dir,
+    format_command_args, read_chunks,
 )
 from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._internal.utils.temp_dir import TempDirectory
@@ -794,7 +795,8 @@ def format_command_result(
     """
     Format command information for logging.
     """
-    text = 'Command arguments: {}\n'.format(command_args)
+    command_desc = format_command_args(command_args)
+    text = 'Command arguments: {}\n'.format(command_desc)
 
     if not command_output:
         text += 'Command output: None'
