@@ -212,12 +212,12 @@ def message_about_scripts_not_on_PATH(scripts):
     # Format a message
     msg_lines = []
     for parent_dir, scripts in warn_for.items():
-        scripts = sorted(scripts)
-        if len(scripts) == 1:
-            start_text = "script {} is".format(scripts[0])
+        sorted_scripts = sorted(scripts)  # type: List[str]
+        if len(sorted_scripts) == 1:
+            start_text = "script {} is".format(sorted_scripts[0])
         else:
             start_text = "scripts {} are".format(
-                ", ".join(scripts[:-1]) + " and " + scripts[-1]
+                ", ".join(sorted_scripts[:-1]) + " and " + sorted_scripts[-1]
             )
 
         msg_lines.append(
