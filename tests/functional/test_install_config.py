@@ -40,6 +40,19 @@ def test_command_line_options_override_env_vars(script, virtualenv):
     assert "Getting page https://download.zope.org/ppix" in result.stdout
 
 
+def test_no_password_in_debug_message(script, virtualenv):
+    """
+    Test that password in the URL is not logged
+    """
+    script.environ['PIP_INDEX_URL'] = 'https://user:my_password@example.com/simple/'
+    result = script.pip('install', '-vvv', 'INITools', expect_error=True)
+    assert (
+        "Getting page https://user:<pwd>@example.com/simple/initools"
+        in result.stdout
+    )
+    virtualenv.clear()
+
+
 @pytest.mark.network
 def test_env_vars_override_config_file(script, virtualenv):
     """

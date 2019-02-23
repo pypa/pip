@@ -74,6 +74,17 @@ SECURE_ORIGINS = [
 logger = logging.getLogger(__name__)
 
 
+def _redacted_url(url):
+    """Redact the URL to remove the basic auth password
+    """
+    parsed = urllib_parse.urlparse(url)
+
+    replaced = parsed._replace(netloc="{}:{}@{}".format(parsed.username, "<pwd>", parsed.hostname))
+    replaced_url = replaced.geturl()
+
+    return replaced_url
+
+
 def _match_vcs_scheme(url):
     # type: (str) -> Optional[str]
     """Look for VCS schemes in the URL.
@@ -155,7 +166,7 @@ def _get_html_response(url, session):
     if _is_url_like_archive(url):
         _ensure_html_response(url, session=session)
 
-    logger.debug('Getting page %s', url)
+    logger.debug('Getting page %s', _redacted_url(url))
 
     resp = session.get(
         url,
