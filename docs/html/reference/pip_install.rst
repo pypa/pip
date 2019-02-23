@@ -244,8 +244,7 @@ pip supports installing from a package index using a :term:`requirement
 specifier <pypug:Requirement Specifier>`. Generally speaking, a requirement
 specifier is composed of a project name followed by optional :term:`version
 specifiers <pypug:Version Specifier>`.  :pep:`508` contains a full specification
-of the format of a requirement (pip does not support the ``url_req`` form
-of specifier at this time).
+of the format of a requirement.
 
 Some examples:
 
@@ -264,6 +263,13 @@ Since version 6.0, pip also supports specifiers containing `environment markers
 
   SomeProject ==5.4 ; python_version < '2.7'
   SomeProject; sys_platform == 'win32'
+
+Since version 19.1, pip also supports `direct references
+<https://www.python.org/dev/peps/pep-0440/#direct-references>`__ like so:
+
+ ::
+
+  SomeProject @ file:///somewhere/...
 
 Environment markers are supported in the command line and in requirements files.
 
@@ -878,6 +884,14 @@ Examples
 
       $ pip install ./downloads/SomePackage-1.0.4.tar.gz
       $ pip install http://my.package.repo/SomePackage-1.0.4.zip
+
+
+#. Install a particular source archive file following :pep:`440` direct references.
+
+    ::
+
+      $ pip install SomeProject==1.0.4@http://my.package.repo//SomeProject-1.2.3-py33-none-any.whl
+      $ pip install "SomeProject==1.0.4 @ http://my.package.repo//SomeProject-1.2.3-py33-none-any.whl"
 
 
 #. Install from alternative package repositories.

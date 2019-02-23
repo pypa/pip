@@ -21,6 +21,8 @@ from pip._internal.legacy_resolve import Resolver
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import InstallRequirement, RequirementSet
 from pip._internal.req.constructors import (
+    _get_url_from_path,
+    _looks_like_path,
     install_req_from_editable,
     install_req_from_line,
     parse_editable,
@@ -653,3 +655,95 @@ def test_mismatched_versions(caplog, tmpdir):
         'Requested simplewheel==2.0, '
         'but installing version 1.0'
     )
+
+
+@pytest.mark.parametrize('args, expected', [
+    # Test UNIX-like paths
+    (('/path/to/installable'), True),
+    # Test relative paths
+    (('./path/to/installable'), True),
+    # Test current path
+    (('.'), True),
+    # Test url paths
+    (('https://whatever.com/test-0.4-py2.py3-bogus-any.whl'), True),
+    # Test pep440 paths
+    (('test @ https://whatever.com/test-0.4-py2.py3-bogus-any.whl'), True),
+    # Test wheel
+    (('simple-0.1-py2.py3-none-any.whl'), False),
+])
+def test_looks_like_path(args, expected):
+    assert _looks_like_path(args) == expected
+
+
+@pytest.mark.skipif(
+    not sys.platform.startswith("win"),
+    reason='Test only available on Windows'
+)
+@pytest.mark.parametrize('args, expected', [
+    # Test relative paths
+    (('.\\path\\to\\installable'), True),
+    (('relative\\path'), True),
+    # Test absolute paths
+    (('C:\\absolute\\path'), True),
+])
+def test_looks_like_path_win(args, expected):
+    assert _looks_like_path(args) == expected
+
+
+@pytest.mark.parametrize('args, mock_returns, expected', [
+    # Test pep440 urls
+    (('/path/to/foo @ git+http://foo.com@ref#egg=foo',
+     'foo @ git+http://foo.com@ref#egg=foo'), (False, False), None),
+    # Test pep440 urls without spaces
+    (('/path/to/foo@git+http://foo.com@ref#egg=foo',
+     'foo @ git+http://foo.com@ref#egg=foo'), (False, False), None),
+    # Test pep440 wheel
+    (('/path/to/test @ https://whatever.com/test-0.4-py2.py3-bogus-any.whl',
+     'test @ https://whatever.com/test-0.4-py2.py3-bogus-any.whl'),
+     (False, False), None),
+    # Test name is not a file
+    (('/path/to/simple==0.1',
+     'simple==0.1'),
+     (False, False), None),
+])
+@patch('pip._internal.req.req_install.os.path.isdir')
+@patch('pip._internal.req.req_install.os.path.isfile')
+def test_get_url_from_path(
+    isdir_mock, isfile_mock, args, mock_returns, expected
+):
+    isdir_mock.return_value = mock_returns[0]
+    isfile_mock.return_value = mock_returns[1]
+    assert _get_url_from_path(*args) is expected
+
+
+@patch('pip._internal.req.req_install.os.path.isdir')
+@patch('pip._internal.req.req_install.os.path.isfile')
+def test_get_url_from_path__archive_file(isdir_mock, isfile_mock):
+    isdir_mock.return_value = False
+    isfile_mock.return_value = True
+    name = 'simple-0.1-py2.py3-none-any.whl'
+    path = os.path.join('/path/to/' + name)
+    url = path_to_url(path)
+    assert _get_url_from_path(path, name) == url
+
+
+@patch('pip._internal.req.req_install.os.path.isdir')
+@patch('pip._internal.req.req_install.os.path.isfile')
+def test_get_url_from_path__installable_dir(isdir_mock, isfile_mock):
+    isdir_mock.return_value = True
+    isfile_mock.return_value = True
+    name = 'some/setuptools/project'
+    path = os.path.join('/path/to/' + name)
+    url = path_to_url(path)
+    assert _get_url_from_path(path, name) == url
+
+
+@patch('pip._internal.req.req_install.os.path.isdir')
+def test_get_url_from_path__installable_error(isdir_mock):
+    isdir_mock.return_value = True
+    name = 'some/setuptools/project'
+    path = os.path.join('/path/to/' + name)
+    with pytest.raises(InstallationError) as e:
+        _get_url_from_path(path, name)
+    err_msg = e.value.args[0]
+    assert "Neither 'setup.py' nor 'pyproject.toml' found" in err_msg
