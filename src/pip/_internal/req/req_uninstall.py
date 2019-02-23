@@ -203,21 +203,23 @@ class StashedUninstallPathSet(object):
     """A set of file rename operations to stash files while
     tentatively uninstalling them."""
     def __init__(self):
+        # type: () -> None
         # Mapping from source file root to [Adjacent]TempDirectory
         # for files under that directory.
-        self._save_dirs = {}
+        self._save_dirs = {}  # type: Dict[str, TempDirectory]
         # (old path, new path) tuples for each move that may need
         # to be undone.
-        self._moves = []
+        self._moves = []  # type: List[Tuple[str, str]]
 
     def _get_directory_stash(self, path):
+        # type: (str) -> str
         """Stashes a directory.
 
         Directories are stashed adjacent to their original location if
         possible, or else moved/copied into the user's temp dir."""
 
         try:
-            save_dir = AdjacentTempDirectory(path)
+            save_dir = AdjacentTempDirectory(path)  # type: TempDirectory
             save_dir.create()
         except OSError:
             save_dir = TempDirectory(kind="uninstall")
@@ -227,6 +229,7 @@ class StashedUninstallPathSet(object):
         return save_dir.path
 
     def _get_file_stash(self, path):
+        # type: (str) -> str
         """Stashes a file.
 
         If no root has been provided, one will be created for the directory
@@ -255,6 +258,7 @@ class StashedUninstallPathSet(object):
         return save_dir.path
 
     def stash(self, path):
+        # type: (str) -> str
         """Stashes the directory or file and returns its new location.
         """
         if os.path.isdir(path):
@@ -274,6 +278,7 @@ class StashedUninstallPathSet(object):
         return new_path
 
     def commit(self):
+        # type: () -> None
         """Commits the uninstall by removing stashed files."""
         for _, save_dir in self._save_dirs.items():
             save_dir.cleanup()
@@ -281,6 +286,7 @@ class StashedUninstallPathSet(object):
         self._save_dirs = {}
 
     def rollback(self):
+        # type: () -> None
         """Undoes the uninstall by moving stashed files back."""
         for p in self._moves:
             logging.info("Moving to %s\n from %s", *p)
@@ -301,6 +307,7 @@ class StashedUninstallPathSet(object):
 
     @property
     def can_rollback(self):
+        # type: () -> bool
         return bool(self._moves)
 
 
