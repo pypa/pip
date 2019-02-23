@@ -48,12 +48,12 @@ from pip._internal.utils.ui import DownloadProgressProvider
 from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
-    from typing import (  # noqa: F401
+    from typing import (
         Optional, Tuple, Dict, IO, Text, Union
     )
-    from pip._internal.models.link import Link  # noqa: F401
-    from pip._internal.utils.hashes import Hashes  # noqa: F401
-    from pip._internal.vcs import AuthInfo  # noqa: F401
+    from pip._internal.models.link import Link
+    from pip._internal.utils.hashes import Hashes
+    from pip._internal.vcs import AuthInfo
 
 try:
     import ssl  # noqa
@@ -795,7 +795,7 @@ def _copy_dist_from_dir(link_path, location):
     logger.info('Running setup.py sdist for %s', link_path)
 
     with indent_log():
-        call_subprocess(sdist_args, cwd=link_path, show_stdout=False)
+        call_subprocess(sdist_args, cwd=link_path)
 
     # unpack sdist into `location`
     sdist = os.path.join(location, os.listdir(location)[0])

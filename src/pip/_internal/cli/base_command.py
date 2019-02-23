@@ -5,6 +5,7 @@ import logging
 import logging.config
 import optparse
 import os
+import platform
 import sys
 import traceback
 
@@ -36,10 +37,10 @@ from pip._internal.utils.outdated import pip_version_check
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, List, Tuple, Any  # noqa: F401
-    from optparse import Values  # noqa: F401
-    from pip._internal.cache import WheelCache  # noqa: F401
-    from pip._internal.req.req_set import RequirementSet  # noqa: F401
+    from typing import Optional, List, Tuple, Any
+    from optparse import Values
+    from pip._internal.cache import WheelCache
+    from pip._internal.req.req_set import RequirementSet
 
 __all__ = ['Command']
 
@@ -145,14 +146,16 @@ class Command(object):
                 gone_in='19.2',
             )
         elif sys.version_info[:2] == (2, 7):
-            deprecated(
-                "Python 2.7 will reach the end of its life on January 1st, "
-                "2020. Please upgrade your Python as Python 2.7 won't be "
-                "maintained after that date. A future version of pip will "
-                "drop support for Python 2.7.",
-                replacement=None,
-                gone_in=None,
+            message = (
+                "A future version of pip will drop support for Python 2.7."
             )
+            if platform.python_implementation() == "CPython":
+                message = (
+                    "Python 2.7 will reach the end of its life on January "
+                    "1st, 2020. Please upgrade your Python as Python 2.7 "
+                    "won't be maintained after that date. "
+                ) + message
+            deprecated(message, replacement=None, gone_in=None)
 
         # TODO: Try to get these passing down from the command?
         #       without resorting to os.environ to hold these.

@@ -22,13 +22,13 @@ from pip._internal.req.constructors import (
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import (  # noqa: F401
+    from typing import (
         Any, Callable, Iterator, List, NoReturn, Optional, Text, Tuple
     )
-    from pip._internal.req import InstallRequirement  # noqa: F401
-    from pip._internal.cache import WheelCache  # noqa: F401
-    from pip._internal.index import PackageFinder  # noqa: F401
-    from pip._internal.download import PipSession  # noqa: F401
+    from pip._internal.req import InstallRequirement
+    from pip._internal.cache import WheelCache
+    from pip._internal.index import PackageFinder
+    from pip._internal.download import PipSession
 
     ReqFileLines = Iterator[Tuple[int, Text]]
 

@@ -22,7 +22,7 @@ from pip._internal.locations import (
     PIP_DELETE_MARKER_FILENAME, running_under_virtualenv,
 )
 from pip._internal.models.link import Link
-from pip._internal.pyproject import load_pyproject_toml
+from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.compat import native_str
 from pip._internal.utils.hashes import Hashes
@@ -41,15 +41,15 @@ from pip._internal.vcs import vcs
 from pip._internal.wheel import move_wheel_files
 
 if MYPY_CHECK_RUNNING:
-    from typing import (  # noqa: F401
+    from typing import (
         Any, Dict, Iterable, List, Mapping, Optional, Sequence, Union
     )
-    from pip._internal.build_env import BuildEnvironment  # noqa: F401
-    from pip._internal.cache import WheelCache  # noqa: F401
-    from pip._internal.index import PackageFinder  # noqa: F401
-    from pip._vendor.pkg_resources import Distribution  # noqa: F401
-    from pip._vendor.packaging.specifiers import SpecifierSet  # noqa: F401
-    from pip._vendor.packaging.markers import Marker  # noqa: F401
+    from pip._internal.build_env import BuildEnvironment
+    from pip._internal.cache import WheelCache
+    from pip._internal.index import PackageFinder
+    from pip._vendor.pkg_resources import Distribution
+    from pip._vendor.packaging.specifiers import SpecifierSet
+    from pip._vendor.packaging.markers import Marker
 
 
 logger = logging.getLogger(__name__)
@@ -474,13 +474,7 @@ class InstallRequirement(object):
         # type: () -> str
         assert self.source_dir, "No source dir for %s" % self
 
-        pp_toml = os.path.join(self.setup_py_dir, 'pyproject.toml')
-
-        # Python2 __file__ should not be unicode
-        if six.PY2 and isinstance(pp_toml, six.text_type):
-            pp_toml = pp_toml.encode(sys.getfilesystemencoding())
-
-        return pp_toml
+        return make_pyproject_path(self.setup_py_dir)
 
     def load_pyproject_toml(self):
         # type: () -> None
@@ -521,7 +515,6 @@ class InstallRequirement(object):
                         cmd,
                         cwd=cwd,
                         extra_environ=extra_environ,
-                        show_stdout=False,
                         spinner=spinner
                     )
                 self.spin_message = ""
@@ -619,7 +612,6 @@ class InstallRequirement(object):
             call_subprocess(
                 egg_info_cmd + egg_base_option,
                 cwd=self.setup_py_dir,
-                show_stdout=False,
                 command_desc='python setup.py egg_info')
 
     @property
@@ -772,7 +764,6 @@ class InstallRequirement(object):
                     list(install_options),
 
                     cwd=self.setup_py_dir,
-                    show_stdout=False,
                 )
 
         self.install_succeeded = True
@@ -957,7 +948,6 @@ class InstallRequirement(object):
                         call_subprocess(
                             install_args + install_options,
                             cwd=self.setup_py_dir,
-                            show_stdout=False,
                             spinner=spinner,
                         )
 

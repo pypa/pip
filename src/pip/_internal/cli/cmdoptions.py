@@ -24,9 +24,9 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import BAR_TYPES
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Callable, Dict, List, Optional, Union  # noqa: F401
-    from optparse import OptionParser, Values  # noqa: F401
-    from pip._internal.cli.parser import ConfigOptionParser  # noqa: F401
+    from typing import Any, Callable, Dict, Optional
+    from optparse import OptionParser, Values
+    from pip._internal.cli.parser import ConfigOptionParser
 
 
 def raise_option_error(parser, option, msg):
@@ -729,7 +729,7 @@ def _merge_hash(option, opt_str, value, parser):
     """Given a value spelled "algo:digest", append the digest to a list
     pointed to in a dict by the algo name."""
     if not parser.values.hashes:
-        parser.values.hashes = {}  # type: ignore
+        parser.values.hashes = {}
     try:
         algo, digest = value.split(':', 1)
     except ValueError:

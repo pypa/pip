@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import io
 import os
+import sys
 
 from pip._vendor import pytoml, six
 
@@ -9,7 +10,7 @@ from pip._internal.exceptions import InstallationError
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Tuple, Optional, List  # noqa: F401
+    from typing import Any, Tuple, Optional, List
 
 
 def _is_list_of_str(obj):
@@ -18,6 +19,17 @@ def _is_list_of_str(obj):
         isinstance(obj, list) and
         all(isinstance(item, six.string_types) for item in obj)
     )
+
+
+def make_pyproject_path(setup_py_dir):
+    # type: (str) -> str
+    path = os.path.join(setup_py_dir, 'pyproject.toml')
+
+    # Python2 __file__ should not be unicode
+    if six.PY2 and isinstance(path, six.text_type):
+        path = path.encode(sys.getfilesystemencoding())
+
+    return path
 
 
 def load_pyproject_toml(
@@ -99,11 +111,13 @@ def load_pyproject_toml(
         # section, or the user has no pyproject.toml, but has opted in
         # explicitly via --use-pep517.
         # In the absence of any explicit backend specification, we
-        # assume the setuptools backend, and require wheel and a version
-        # of setuptools that supports that backend.
+        # assume the setuptools backend that most closely emulates the
+        # traditional direct setup.py execution, and require wheel and
+        # a version of setuptools that supports that backend.
+
         build_system = {
-            "requires": ["setuptools>=40.2.0", "wheel"],
-            "build-backend": "setuptools.build_meta",
+            "requires": ["setuptools>=40.8.0", "wheel"],
+            "build-backend": "setuptools.build_meta:__legacy__",
         }
 
     # If we're using PEP 517, we have build system information (either
@@ -142,7 +156,7 @@ def load_pyproject_toml(
         # If the user didn't specify a backend, we assume they want to use
         # the setuptools backend. But we can't be sure they have included
         # a version of setuptools which supplies the backend, or wheel
-        # (which is neede by the backend) in their requirements. So we
+        # (which is needed by the backend) in their requirements. So we
         # make a note to check that those requirements are present once
         # we have set up the environment.
         # This is quite a lot of work to check for a very specific case. But
@@ -151,7 +165,7 @@ def load_pyproject_toml(
         # execute setup.py, but never considered needing to mention the build
         # tools themselves. The original PEP 518 code had a similar check (but
         # implemented in a different way).
-        backend = "setuptools.build_meta"
-        check = ["setuptools>=40.2.0", "wheel"]
+        backend = "setuptools.build_meta:__legacy__"
+        check = ["setuptools>=40.8.0", "wheel"]
 
     return (requires, backend, check)

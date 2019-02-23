@@ -21,6 +21,10 @@ pyversion = sys.version[:3]
 pyversion_tuple = sys.version_info
 
 
+def assert_paths_equal(actual, expected):
+    os.path.normpath(actual) == os.path.normpath(expected)
+
+
 def path_to_url(path):
     """
     Convert a path to URI. The path will be made absolute and

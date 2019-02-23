@@ -27,13 +27,18 @@ nosetests.xml
 coverage.xml
 *.cover
 tests/data/common_wheels/
+pip-wheel-metadata
 
 # Misc
 *~
 .*.sw?
+.env/
 
 # For IntelliJ IDEs (basically PyCharm)
 .idea/
+
+# For Visual Studio Code
+.vscode/
 
 # Scratch Pad for experiments
 .scratch/

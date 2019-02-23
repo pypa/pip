@@ -145,26 +145,28 @@ explicitly manage the build environment. For such workflows, build isolation
 can be problematic. If this is the case, pip provides a
 ``--no-build-isolation`` flag to disable build isolation. Users supplying this
 flag are responsible for ensuring the build environment is managed
-appropriately.
+appropriately (including ensuring that all required build dependencies are
+installed).
 
-By default, pip will continue to use the legacy (``setuptools`` based) build
-processing for projects that do not have a ``pyproject.toml`` file. Projects
-with a ``pyproject.toml`` file will use a :pep:`517` backend. Projects with
-a ``pyproject.toml`` file, but which don't have a ``build-system`` section,
+By default, pip will continue to use the legacy (direct ``setup.py`` execution
+based) build processing for projects that do not have a ``pyproject.toml`` file.
+Projects with a ``pyproject.toml`` file will use a :pep:`517` backend. Projects
+with a ``pyproject.toml`` file, but which don't have a ``build-system`` section,
 will be assumed to have the following backend settings::
 
     [build-system]
-    requires = ["setuptools>=40.2.0", "wheel"]
-    build-backend = "setuptools.build_meta"
+    requires = ["setuptools>=40.8.0", "wheel"]
+    build-backend = "setuptools.build_meta:__legacy__"
 
 .. note::
 
-    ``setuptools`` 40.2.0 is the first version of setuptools with full
-    :pep:`517` support.
-    
-If a project has ``[build-system]``, but no ``build-backend``, pip will use
-``setuptools.build_meta``, but will assume the project requirements include
-``setuptools>=40.2.0`` and ``wheel`` (and will report an error if not).
+    ``setuptools`` 40.8.0 is the first version of setuptools that offers a
+    :pep:`517` backend that closely mimics directly executing ``setup.py``.
+
+If a project has ``[build-system]``, but no ``build-backend``, pip will also use
+``setuptools.build_meta:__legacy__``, but will expect the project requirements
+to include ``setuptools`` and ``wheel`` (and will report an error if the
+installed version of ``setuptools`` is not recent enough).
 
 If a user wants to explicitly request :pep:`517` handling even though a project
 doesn't have a ``pyproject.toml`` file, this can be done using the

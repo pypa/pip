@@ -14,6 +14,13 @@ def auto_with_wheel(with_wheel):
     pass
 
 
+def add_files_to_dist_directory(folder):
+    (folder / 'dist').makedirs()
+    (folder / 'dist' / 'a_name-0.0.1.tar.gz').write("hello")
+    # Not adding a wheel file since that confuses setuptools' backend.
+    # (folder / 'dist' / 'a_name-0.0.1-py2.py3-none-any.whl').write("hello")
+
+
 def test_wheel_exit_status_code_when_no_requirements(script):
     """
     Test wheel exit status code when no requirements specified
@@ -210,3 +217,31 @@ def test_pip_wheel_with_user_set_in_config(script, data, common_wheels):
         '--no-index', '-f', common_wheels
     )
     assert "Successfully built withpyproject" in result.stdout, result.stdout
+
+
+def test_pep517_wheels_are_not_confused_with_other_files(script, tmpdir, data):
+    """Check correct wheels are copied. (#6196)
+    """
+    pkg_to_wheel = data.src / 'withpyproject'
+    add_files_to_dist_directory(pkg_to_wheel)
+
+    result = script.pip('wheel', pkg_to_wheel, '-w', script.scratch_path)
+    assert "Installing build dependencies" in result.stdout, result.stdout
+
+    wheel_file_name = 'withpyproject-0.0.1-py%s-none-any.whl' % pyversion[0]
+    wheel_file_path = script.scratch / wheel_file_name
+    assert wheel_file_path in result.files_created, result.stdout
+
+
+def test_legacy_wheels_are_not_confused_with_other_files(script, tmpdir, data):
+    """Check correct wheels are copied. (#6196)
+    """
+    pkg_to_wheel = data.src / 'simplewheel-1.0'
+    add_files_to_dist_directory(pkg_to_wheel)
+
+    result = script.pip('wheel', pkg_to_wheel, '-w', script.scratch_path)
+    assert "Installing build dependencies" not in result.stdout, result.stdout
+
+    wheel_file_name = 'simplewheel-1.0-py%s-none-any.whl' % pyversion[0]
+    wheel_file_path = script.scratch / wheel_file_name
+    assert wheel_file_path in result.files_created, result.stdout

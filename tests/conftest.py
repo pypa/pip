@@ -348,5 +348,5 @@ def in_memory_pip():
 
 @pytest.fixture
 def deprecated_python():
-    """Used to indicate wheither pip deprecated this python version"""
+    """Used to indicate whether pip deprecated this python version"""
     return sys.version_info[:2] in [(3, 4), (2, 7)]

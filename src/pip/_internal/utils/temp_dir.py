@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import errno
 import itertools
 import logging
 import os.path
@@ -98,7 +99,11 @@ class AdjacentTempDirectory(TempDirectory):
 
     """
     # The characters that may be used to name the temp directory
-    LEADING_CHARS = "-~.+=%0123456789"
+    # We always prepend a ~ and then rotate through these until
+    # a usable name is found.
+    # pkg_resources raises a different error for .dist-info folder
+    # with leading '-' and invalid metadata
+    LEADING_CHARS = "-~.=%0123456789"
 
     def __init__(self, original, delete=None):
         super(AdjacentTempDirectory, self).__init__(delete=delete)
@@ -114,11 +119,17 @@ class AdjacentTempDirectory(TempDirectory):
         package).
         """
         for i in range(1, len(name)):
-            if name[i] in cls.LEADING_CHARS:
-                continue
+            for candidate in itertools.combinations_with_replacement(
+                    cls.LEADING_CHARS, i - 1):
+                new_name = '~' + ''.join(candidate) + name[i:]
+                if new_name != name:
+                    yield new_name
+
+        # If we make it this far, we will have to make a longer name
+        for i in range(len(cls.LEADING_CHARS)):
             for candidate in itertools.combinations_with_replacement(
                     cls.LEADING_CHARS, i):
-                new_name = ''.join(candidate) + name[i:]
+                new_name = '~' + ''.join(candidate) + name
                 if new_name != name:
                     yield new_name
 
@@ -128,8 +139,10 @@ class AdjacentTempDirectory(TempDirectory):
             path = os.path.join(root, candidate)
             try:
                 os.mkdir(path)
-            except OSError:
-                pass
+            except OSError as ex:
+                # Continue if the name exists already
+                if ex.errno != errno.EEXIST:
+                    raise
             else:
                 self.path = os.path.realpath(path)
                 break

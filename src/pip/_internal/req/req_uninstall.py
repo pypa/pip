@@ -15,16 +15,16 @@ from pip._internal.utils.compat import WINDOWS, cache_from_source, uses_pycache
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     FakeFile, ask, dist_in_usersite, dist_is_local, egg_link_path, is_local,
-    normalize_path, renames,
+    normalize_path, renames, rmtree,
 )
-from pip._internal.utils.temp_dir import AdjacentTempDirectory
+from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import (  # noqa: F401
+    from typing import (
         Any, Callable, Dict, Iterable, Iterator, List, Optional, Set, Tuple
     )
-    from pip._vendor.pkg_resources import Distribution  # noqa: F401
+    from pip._vendor.pkg_resources import Distribution
 
 logger = logging.getLogger(__name__)
 
@@ -141,7 +141,7 @@ def compress_for_rename(paths):
         # If all the files we found are in our remaining set of files to
         # remove, then remove them from the latter set and add a wildcard
         # for the directory.
-        if len(all_files - remaining) == 0:
+        if not (all_files - remaining):
             remaining.difference_update(all_files)
             wildcards.add(root + os.sep)
 
@@ -199,6 +199,111 @@ def compress_for_output_listing(paths):
     return will_remove, will_skip
 
 
+class StashedUninstallPathSet(object):
+    """A set of file rename operations to stash files while
+    tentatively uninstalling them."""
+    def __init__(self):
+        # Mapping from source file root to [Adjacent]TempDirectory
+        # for files under that directory.
+        self._save_dirs = {}
+        # (old path, new path) tuples for each move that may need
+        # to be undone.
+        self._moves = []
+
+    def _get_directory_stash(self, path):
+        """Stashes a directory.
+
+        Directories are stashed adjacent to their original location if
+        possible, or else moved/copied into the user's temp dir."""
+
+        try:
+            save_dir = AdjacentTempDirectory(path)
+            save_dir.create()
+        except OSError:
+            save_dir = TempDirectory(kind="uninstall")
+            save_dir.create()
+        self._save_dirs[os.path.normcase(path)] = save_dir
+
+        return save_dir.path
+
+    def _get_file_stash(self, path):
+        """Stashes a file.
+
+        If no root has been provided, one will be created for the directory
+        in the user's temp directory."""
+        path = os.path.normcase(path)
+        head, old_head = os.path.dirname(path), None
+        save_dir = None
+
+        while head != old_head:
+            try:
+                save_dir = self._save_dirs[head]
+                break
+            except KeyError:
+                pass
+            head, old_head = os.path.dirname(head), head
+        else:
+            # Did not find any suitable root
+            head = os.path.dirname(path)
+            save_dir = TempDirectory(kind='uninstall')
+            save_dir.create()
+            self._save_dirs[head] = save_dir
+
+        relpath = os.path.relpath(path, head)
+        if relpath and relpath != os.path.curdir:
+            return os.path.join(save_dir.path, relpath)
+        return save_dir.path
+
+    def stash(self, path):
+        """Stashes the directory or file and returns its new location.
+        """
+        if os.path.isdir(path):
+            new_path = self._get_directory_stash(path)
+        else:
+            new_path = self._get_file_stash(path)
+
+        self._moves.append((path, new_path))
+        if os.path.isdir(path) and os.path.isdir(new_path):
+            # If we're moving a directory, we need to
+            # remove the destination first or else it will be
+            # moved to inside the existing directory.
+            # We just created new_path ourselves, so it will
+            # be removable.
+            os.rmdir(new_path)
+        renames(path, new_path)
+        return new_path
+
+    def commit(self):
+        """Commits the uninstall by removing stashed files."""
+        for _, save_dir in self._save_dirs.items():
+            save_dir.cleanup()
+        self._moves = []
+        self._save_dirs = {}
+
+    def rollback(self):
+        """Undoes the uninstall by moving stashed files back."""
+        for p in self._moves:
+            logging.info("Moving to %s\n from %s", *p)
+
+        for new_path, path in self._moves:
+            try:
+                logger.debug('Replacing %s from %s', new_path, path)
+                if os.path.isfile(new_path):
+                    os.unlink(new_path)
+                elif os.path.isdir(new_path):
+                    rmtree(new_path)
+                renames(path, new_path)
+            except OSError as ex:
+                logger.error("Failed to restore %s", new_path)
+                logger.debug("Exception: %s", ex)
+
+        self.commit()
+
+    @property
+    def can_rollback(self):
+        return bool(self._moves)
+
+
 class UninstallPathSet(object):
     """A set of file paths to be removed in the uninstallation of a
     requirement."""
@@ -208,8 +313,7 @@ class UninstallPathSet(object):
         self._refuse = set()  # type: Set[str]
         self.pth = {}  # type: Dict[str, UninstallPthEntries]
         self.dist = dist
-        self._save_dirs = []  # type: List[AdjacentTempDirectory]
-        self._moved_paths = []  # type: List[Tuple[str, str]]
+        self._moved_paths = StashedUninstallPathSet()
 
     def _permitted(self, path):
         # type: (str) -> bool
@@ -250,20 +354,6 @@ class UninstallPathSet(object):
         else:
             self._refuse.add(pth_file)
 
-    def _stash(self, path):
-        # type: (str) -> str
-        best = None
-        for save_dir in self._save_dirs:
-            if not path.startswith(save_dir.original + os.sep):
-                continue
-            if not best or len(save_dir.original) > len(best.original):
-                best = save_dir
-        if best is None:
-            best = AdjacentTempDirectory(os.path.dirname(path))
-            best.create()
-            self._save_dirs.append(best)
-        return os.path.join(best.path, os.path.relpath(path, best.original))
-
     def remove(self, auto_confirm=False, verbose=False):
         # type: (bool, bool) -> None
         """Remove paths in ``self.paths`` with confirmation (unless
@@ -283,11 +373,14 @@ class UninstallPathSet(object):
 
         with indent_log():
             if auto_confirm or self._allowed_to_proceed(verbose):
-                for path in sorted(compact(compress_for_rename(self.paths))):
-                    new_path = self._stash(path)
+                moved = self._moved_paths
+
+                for_rename = compress_for_rename(self.paths)
+
+                for path in sorted(compact(for_rename)):
+                    moved.stash(path)
                     logger.debug('Removing file or directory %s', path)
-                    self._moved_paths.append((path, new_path))
-                    renames(path, new_path)
+
                 for pth in self.pth.values():
                     pth.remove()
 
@@ -327,25 +420,21 @@ class UninstallPathSet(object):
     def rollback(self):
         # type: () -> None
         """Rollback the changes previously made by remove()."""
-        if not self._save_dirs:
+        if not self._moved_paths.can_rollback:
             logger.error(
                 "Can't roll back %s; was not uninstalled",
                 self.dist.project_name,
             )
             return
         logger.info('Rolling back uninstall of %s', self.dist.project_name)
-        for path, tmp_path in self._moved_paths:
-            logger.debug('Replacing %s', path)
-            renames(tmp_path, path)
+        self._moved_paths.rollback()
         for pth in self.pth.values():
             pth.rollback()
 
     def commit(self):
         # type: () -> None
         """Remove temporary save dir: rollback will no longer be possible."""
-        for save_dir in self._save_dirs:
-            save_dir.cleanup()
-        self._moved_paths = []
+        self._moved_paths.commit()
 
     @classmethod
     def from_dist(cls, dist):

@@ -10,10 +10,10 @@ from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from types import TracebackType  # noqa: F401
-    from typing import Iterator, Optional, Set, Type  # noqa: F401
-    from pip._internal.req.req_install import InstallRequirement  # noqa: F401
-    from pip._internal.models.link import Link  # noqa: F401
+    from types import TracebackType
+    from typing import Iterator, Optional, Set, Type
+    from pip._internal.req.req_install import InstallRequirement
+    from pip._internal.models.link import Link
 
 logger = logging.getLogger(__name__)
 

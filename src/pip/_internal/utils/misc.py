@@ -43,13 +43,13 @@ else:
     from io import StringIO
 
 if MYPY_CHECK_RUNNING:
-    from typing import (  # noqa: F401
+    from typing import (
         Optional, Tuple, Iterable, List, Match, Union, Any, Mapping, Text,
         AnyStr, Container
     )
-    from pip._vendor.pkg_resources import Distribution  # noqa: F401
-    from pip._internal.models.link import Link  # noqa: F401
-    from pip._internal.utils.ui import SpinnerInterface  # noqa: F401
+    from pip._vendor.pkg_resources import Distribution
+    from pip._internal.models.link import Link
+    from pip._internal.utils.ui import SpinnerInterface
 
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
@@ -650,7 +650,7 @@ def unpack_file(
 
 def call_subprocess(
     cmd,  # type: List[str]
-    show_stdout=True,  # type: bool
+    show_stdout=False,  # type: bool
     cwd=None,  # type: Optional[str]
     on_returncode='raise',  # type: str
     extra_ok_returncodes=None,  # type: Optional[Iterable[int]]
@@ -677,13 +677,13 @@ def call_subprocess(
     #
     # The obvious thing that affects output is the show_stdout=
     # kwarg. show_stdout=True means, let the subprocess write directly to our
-    # stdout. Even though it is nominally the default, it is almost never used
+    # stdout. It is almost never used
     # inside pip (and should not be used in new code without a very good
     # reason); as of 2016-02-22 it is only used in a few places inside the VCS
     # wrapper code. Ideally we should get rid of it entirely, because it
     # creates a lot of complexity here for a rarely used feature.
     #
-    # Most places in pip set show_stdout=False. What this means is:
+    # Most places in pip use show_stdout=False. What this means is:
     # - We connect the child stdout to a pipe, which we read.
     # - By default, we hide the output but show a spinner -- unless the
     #   subprocess exits with an error, in which case we show the output.
