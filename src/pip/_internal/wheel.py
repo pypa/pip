@@ -33,7 +33,8 @@ from pip._internal.locations import (
 from pip._internal.models.link import Link
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
-    call_subprocess, captured_stdout, ensure_dir, read_chunks,
+    LOG_DIVIDER, call_subprocess, captured_stdout, ensure_dir,
+    format_command_args, read_chunks,
 )
 from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._internal.utils.temp_dir import TempDirectory
@@ -785,7 +786,7 @@ def should_use_ephemeral_cache(
     return True
 
 
-def format_command(
+def format_command_result(
     command_args,  # type: List[str]
     command_output,  # type: str
 ):
@@ -793,7 +794,8 @@ def format_command(
     """
     Format command information for logging.
     """
-    text = 'Command arguments: {}\n'.format(command_args)
+    command_desc = format_command_args(command_args)
+    text = 'Command arguments: {}\n'.format(command_desc)
 
     if not command_output:
         text += 'Command output: None'
@@ -802,10 +804,7 @@ def format_command(
     else:
         if not command_output.endswith('\n'):
             command_output += '\n'
-        text += (
-            'Command output:\n{}'
-            '-----------------------------------------'
-        ).format(command_output)
+        text += 'Command output:\n{}{}'.format(command_output, LOG_DIVIDER)
 
     return text
 
@@ -827,7 +826,7 @@ def get_legacy_build_wheel_path(
         msg = (
             'Legacy build of wheel for {!r} created no files.\n'
         ).format(req.name)
-        msg += format_command(command_args, command_output)
+        msg += format_command_result(command_args, command_output)
         logger.warning(msg)
         return None
 
@@ -836,7 +835,7 @@ def get_legacy_build_wheel_path(
             'Legacy build of wheel for {!r} created more than one file.\n'
             'Filenames (choosing first): {}\n'
         ).format(req.name, names)
-        msg += format_command(command_args, command_output)
+        msg += format_command_result(command_args, command_output)
         logger.warning(msg)
 
     return os.path.join(temp_dir, names[0])

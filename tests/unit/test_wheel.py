@@ -99,15 +99,15 @@ def test_should_use_ephemeral_cache__issue_6197(
     assert ephem_cache is expected
 
 
-def test_format_command__INFO(caplog):
-
+def test_format_command_result__INFO(caplog):
     caplog.set_level(logging.INFO)
-    actual = wheel.format_command(
-        command_args=['arg1', 'arg2'],
+    actual = wheel.format_command_result(
+        # Include an argument with a space to test argument quoting.
+        command_args=['arg1', 'second arg'],
         command_output='output line 1\noutput line 2\n',
     )
     assert actual.splitlines() == [
-        "Command arguments: ['arg1', 'arg2']",
+        "Command arguments: arg1 'second arg'",
         'Command output: [use --verbose to show]',
     ]
 
@@ -118,30 +118,30 @@ def test_format_command__INFO(caplog):
     # Test no trailing newline.
     'output line 1\noutput line 2',
 ])
-def test_format_command__DEBUG(caplog, command_output):
+def test_format_command_result__DEBUG(caplog, command_output):
     caplog.set_level(logging.DEBUG)
-    actual = wheel.format_command(
+    actual = wheel.format_command_result(
         command_args=['arg1', 'arg2'],
         command_output=command_output,
     )
     assert actual.splitlines() == [
-        "Command arguments: ['arg1', 'arg2']",
+        "Command arguments: arg1 arg2",
         'Command output:',
         'output line 1',
         'output line 2',
-        '-----------------------------------------',
+        '----------------------------------------',
     ]
 
 
 @pytest.mark.parametrize('log_level', ['DEBUG', 'INFO'])
-def test_format_command__empty_output(caplog, log_level):
+def test_format_command_result__empty_output(caplog, log_level):
     caplog.set_level(log_level)
-    actual = wheel.format_command(
+    actual = wheel.format_command_result(
         command_args=['arg1', 'arg2'],
         command_output='',
     )
     assert actual.splitlines() == [
-        "Command arguments: ['arg1', 'arg2']",
+        "Command arguments: arg1 arg2",
         'Command output: None',
     ]
 
@@ -172,7 +172,7 @@ def test_get_legacy_build_wheel_path__no_names(caplog):
     assert record.levelname == 'WARNING'
     assert record.message.splitlines() == [
         "Legacy build of wheel for 'pendulum' created no files.",
-        "Command arguments: ['arg1', 'arg2']",
+        "Command arguments: arg1 arg2",
         'Command output: [use --verbose to show]',
     ]
 
@@ -189,7 +189,7 @@ def test_get_legacy_build_wheel_path__multiple_names(caplog):
     assert record.message.splitlines() == [
         "Legacy build of wheel for 'pendulum' created more than one file.",
         "Filenames (choosing first): ['name1', 'name2']",
-        "Command arguments: ['arg1', 'arg2']",
+        "Command arguments: arg1 arg2",
         'Command output: [use --verbose to show]',
     ]
 

@@ -22,7 +22,7 @@ from pip._vendor import pkg_resources
 #       why we ignore the type on this import.
 from pip._vendor.retrying import retry  # type: ignore
 from pip._vendor.six import PY2
-from pip._vendor.six.moves import input
+from pip._vendor.six.moves import input, shlex_quote
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
 
@@ -65,6 +65,8 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
 
 
 logger = std_logging.getLogger(__name__)
+
+LOG_DIVIDER = '----------------------------------------'
 
 WHEEL_EXTENSION = '.whl'
 BZ2_EXTENSIONS = ('.tar.bz2', '.tbz')
@@ -647,6 +649,14 @@ def unpack_file(
         )
 
 
+def format_command_args(args):
+    # type: (List[str]) -> str
+    """
+    Format command arguments for display.
+    """
+    return ' '.join(shlex_quote(arg) for arg in args)
+
+
 def call_subprocess(
     cmd,  # type: List[str]
     show_stdout=False,  # type: bool
@@ -696,12 +706,8 @@ def call_subprocess(
     else:
         stdout = subprocess.PIPE
     if command_desc is None:
-        cmd_parts = []
-        for part in cmd:
-            if ' ' in part or '\n' in part or '"' in part or "'" in part:
-                part = '"%s"' % part.replace('"', '\\"')
-            cmd_parts.append(part)
-        command_desc = ' '.join(cmd_parts)
+        command_desc = format_command_args(cmd)
+
     logger.debug("Running command %s", command_desc)
     env = os.environ.copy()
     if extra_environ:
@@ -751,10 +757,8 @@ def call_subprocess(
                 logger.info(
                     'Complete output from command %s:', command_desc,
                 )
-                logger.info(
-                    ''.join(all_output) +
-                    '\n----------------------------------------'
-                )
+                # The all_output value already ends in a newline.
+                logger.info(''.join(all_output) + LOG_DIVIDER)
             raise InstallationError(
                 'Command "%s" failed with error code %s in %s'
                 % (command_desc, proc.returncode, cwd))
