@@ -14,7 +14,11 @@ from pip._internal.utils.misc import (
     display_path, make_vcs_requirement_url, redact_password_from_url,
 )
 from pip._internal.utils.temp_dir import TempDirectory
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs import RemoteNotFoundError, VersionControl, vcs
+
+if MYPY_CHECK_RUNNING:
+    from typing import Text
 
 urlsplit = urllib_parse.urlsplit
 urlunsplit = urllib_parse.urlunsplit
@@ -367,6 +371,7 @@ class Git(VersionControl):
 
     @classmethod
     def is_valid_url(cls, url):
+        # type: (Text) -> bool
         """
         Return whether an URL has a supported scheme for this Version Control.
 

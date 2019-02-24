@@ -173,7 +173,7 @@ class VcsSupport(object):
         return None
 
     def get_backend_by_url(self, url):
-        # type: (str) -> Optional[Type[VersionControl]]
+        # type: (Text) -> Optional[Type[VersionControl]]
         """
         Return the backend class of the version control if found by given
         URL, e.g. vcs.get_backend_by_url('git+https://github.com/pypa/pip.git')
@@ -547,7 +547,7 @@ class VersionControl(object):
 
     @classmethod
     def is_valid_url(cls, url):
-        # type: (str) -> bool
+        # type: (Text) -> bool
         """
         Return whether an URL has a supported scheme for this Version Control.
         """

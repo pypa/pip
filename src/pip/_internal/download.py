@@ -49,7 +49,7 @@ from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Optional, Tuple, Dict, IO, Text, Union, Type
+        Optional, Tuple, Dict, IO, Text, Union
     )
     from pip._internal.models.link import Link
     from pip._internal.utils.hashes import Hashes
@@ -513,15 +513,16 @@ def unpack_vcs_link(link, location):
 
 
 def _get_used_vcs_backend(url):
-    # type: (str) -> Optional[Type[VersionControl]]
+    # type: (Text) -> Optional[VersionControl]
     for backend in vcs.backends:
         if backend.is_valid_url(url):
             vcs_backend = backend(url)
             return vcs_backend
+    return None
 
 
 def is_vcs_url(url):
-    # type: (str) -> bool
+    # type: (Text) -> bool
     return bool(vcs.get_backend_by_url(url))
 
 
