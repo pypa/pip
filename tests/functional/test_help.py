@@ -81,9 +81,6 @@ def test_help_commands_equally_functional(in_memory_pip):
     assert all(len(o) > 0 for o in out)
 
     for name, cls in commands.items():
-        if cls.hidden:
-            continue
-
         assert (
             in_memory_pip.pip('help', name).stdout ==
             in_memory_pip.pip(name, '--help').stdout != ""

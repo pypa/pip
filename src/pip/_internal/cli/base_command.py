@@ -50,7 +50,6 @@ logger = logging.getLogger(__name__)
 class Command(object):
     name = None  # type: Optional[str]
     usage = None  # type: Optional[str]
-    hidden = False  # type: bool
     ignore_require_venv = False  # type: bool
 
     def __init__(self, isolated=False):
