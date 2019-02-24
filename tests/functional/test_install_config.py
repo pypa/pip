@@ -46,10 +46,13 @@ def test_no_password_in_debug_message(script, virtualenv):
     """
     password = "my_password"
 
-    script.environ['PIP_INDEX_URL'] = (
-        'https://user:{}@example.com/simple/'.format(password)
+    result = script.pip(
+        'install',
+        '-vvv',
+        '--index-url', 'https://user:{}@example.com/simple/'.format(password)
+        'INITools',
+        expect_error=True
     )
-    result = script.pip('install', '-vvv', 'INITools', expect_error=True)
 
     assert password not in result.stdout
     assert (
