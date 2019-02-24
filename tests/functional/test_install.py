@@ -542,6 +542,7 @@ def test_install_argparse_shadowed(script):
     assert "Not uninstalling argparse" in result.stdout
 
 
+@pytest.mark.network
 @pytest.mark.skipif("sys.version_info < (3,4)")
 def test_upgrade_argparse_shadowed(script):
     # If argparse is installed - even if shadowed for imported - we support

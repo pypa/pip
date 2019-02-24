@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import contextlib
 import errno
 import io
-import locale
 # we have a submodule named 'logging' which would shadow this if we used the
 # regular name:
 import logging as std_logging
@@ -43,13 +42,13 @@ else:
     from io import StringIO
 
 if MYPY_CHECK_RUNNING:
-    from typing import (  # noqa: F401
+    from typing import (
         Optional, Tuple, Iterable, List, Match, Union, Any, Mapping, Text,
         AnyStr, Container
     )
-    from pip._vendor.pkg_resources import Distribution  # noqa: F401
-    from pip._internal.models.link import Link  # noqa: F401
-    from pip._internal.utils.ui import SpinnerInterface  # noqa: F401
+    from pip._vendor.pkg_resources import Distribution
+    from pip._internal.models.link import Link
+    from pip._internal.utils.ui import SpinnerInterface
 
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
@@ -772,32 +771,6 @@ def call_subprocess(
     if not show_stdout:
         return ''.join(all_output)
     return None
-
-
-def read_text_file(filename):
-    # type: (str) -> str
-    """Return the contents of *filename*.
-
-    Try to decode the file contents with utf-8, the preferred system encoding
-    (e.g., cp1252 on some Windows machines), and latin1, in that order.
-    Decoding a byte string with latin1 will never raise an error. In the worst
-    case, the returned string will contain some garbage characters.
-
-    """
-    with open(filename, 'rb') as fp:
-        data = fp.read()
-
-    encodings = ['utf-8', locale.getpreferredencoding(False), 'latin1']
-    for enc in encodings:
-        try:
-            # https://github.com/python/mypy/issues/1174
-            data = data.decode(enc)  # type: ignore
-        except UnicodeDecodeError:
-            continue
-        break
-
-    assert not isinstance(data, bytes)  # Latin1 should have worked.
-    return data
 
 
 def _make_build_dir(build_dir):

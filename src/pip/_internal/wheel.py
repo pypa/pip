@@ -41,19 +41,18 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import open_spinner
 
 if MYPY_CHECK_RUNNING:
-    from typing import (  # noqa: F401
-        Dict, List, Optional, Sequence, Mapping, Tuple, IO, Text, Any,
-        Union, Iterable
+    from typing import (
+        Dict, List, Optional, Sequence, Mapping, Tuple, IO, Text, Any, Iterable
     )
-    from pip._vendor.packaging.requirements import Requirement  # noqa: F401
-    from pip._internal.req.req_install import InstallRequirement  # noqa: F401
-    from pip._internal.download import PipSession  # noqa: F401
-    from pip._internal.index import FormatControl, PackageFinder  # noqa: F401
-    from pip._internal.operations.prepare import (  # noqa: F401
+    from pip._vendor.packaging.requirements import Requirement
+    from pip._internal.req.req_install import InstallRequirement
+    from pip._internal.download import PipSession
+    from pip._internal.index import FormatControl, PackageFinder
+    from pip._internal.operations.prepare import (
         RequirementPreparer
     )
-    from pip._internal.cache import WheelCache  # noqa: F401
-    from pip._internal.pep425tags import Pep425Tag  # noqa: F401
+    from pip._internal.cache import WheelCache
+    from pip._internal.pep425tags import Pep425Tag
 
     InstalledCSVRow = Tuple[str, ...]
 
@@ -212,12 +211,12 @@ def message_about_scripts_not_on_PATH(scripts):
     # Format a message
     msg_lines = []
     for parent_dir, scripts in warn_for.items():
-        scripts = sorted(scripts)
-        if len(scripts) == 1:
-            start_text = "script {} is".format(scripts[0])
+        sorted_scripts = sorted(scripts)  # type: List[str]
+        if len(sorted_scripts) == 1:
+            start_text = "script {} is".format(sorted_scripts[0])
         else:
             start_text = "scripts {} are".format(
-                ", ".join(scripts[:-1]) + " and " + scripts[-1]
+                ", ".join(sorted_scripts[:-1]) + " and " + sorted_scripts[-1]
             )
 
         msg_lines.append(

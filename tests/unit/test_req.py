@@ -4,7 +4,7 @@ import sys
 import tempfile
 
 import pytest
-from mock import Mock, mock_open, patch
+from mock import patch
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
@@ -23,7 +23,6 @@ from pip._internal.req.constructors import (
 from pip._internal.req.req_file import process_line
 from pip._internal.req.req_tracker import RequirementTracker
 from pip._internal.resolve import Resolver
-from pip._internal.utils.misc import read_text_file
 from tests.lib import DATA_DIR, assert_raises_regexp, requirements_file
 
 
@@ -315,21 +314,6 @@ class TestRequirementSet(object):
             '3d0a6d4e8bfa6',
             lineno=2
         ))
-
-
-@pytest.mark.parametrize(('file_contents', 'expected'), [
-    (b'\xf6\x80', b'\xc3\xb6\xe2\x82\xac'),  # cp1252
-    (b'\xc3\xb6\xe2\x82\xac', b'\xc3\xb6\xe2\x82\xac'),  # utf-8
-    (b'\xc3\xb6\xe2', b'\xc3\x83\xc2\xb6\xc3\xa2'),  # Garbage
-])
-def test_egg_info_data(file_contents, expected):
-    om = mock_open(read_data=file_contents)
-    em = Mock()
-    em.return_value = 'cp1252'
-    with patch('pip._internal.utils.misc.open', om, create=True):
-        with patch('locale.getpreferredencoding', em):
-            ret = read_text_file('foo')
-    assert ret == expected.decode('utf-8')
 
 
 class TestInstallRequirement(object):

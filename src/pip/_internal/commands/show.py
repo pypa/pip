@@ -4,7 +4,7 @@ import json
 import logging
 import os
 from collections import OrderedDict
-from email.parser import FeedParser  # type: ignore
+from email.parser import FeedParser
 from io import StringIO
 
 from pip._vendor import pkg_resources

@@ -25,15 +25,15 @@ from pip._internal.utils.packaging import check_dist_requires_python
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, DefaultDict, List, Set  # noqa: F401
-    from pip._internal.download import PipSession  # noqa: F401
-    from pip._internal.req.req_install import InstallRequirement  # noqa: F401
-    from pip._internal.index import PackageFinder  # noqa: F401
-    from pip._internal.req.req_set import RequirementSet  # noqa: F401
-    from pip._internal.operations.prepare import (  # noqa: F401
+    from typing import Optional, DefaultDict, List, Set
+    from pip._internal.download import PipSession
+    from pip._internal.req.req_install import InstallRequirement
+    from pip._internal.index import PackageFinder
+    from pip._internal.req.req_set import RequirementSet
+    from pip._internal.operations.prepare import (
         DistAbstraction, RequirementPreparer
     )
-    from pip._internal.cache import WheelCache  # noqa: F401
+    from pip._internal.cache import WheelCache
 
 logger = logging.getLogger(__name__)
 

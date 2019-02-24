@@ -35,25 +35,23 @@ from pip._internal.models.index import PyPI
 from pip._internal.utils.encoding import auto_decode
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.glibc import libc_ver
-from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
-    ARCHIVE_EXTENSIONS, ask_path_exists, backup_dir, call_subprocess, consume,
-    display_path, format_size, get_installed_version, rmtree,
-    split_auth_from_netloc, splitext, unpack_file,
+    ARCHIVE_EXTENSIONS, ask_path_exists, backup_dir, consume, display_path,
+    format_size, get_installed_version, rmtree, split_auth_from_netloc,
+    splitext, unpack_file,
 )
-from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import DownloadProgressProvider
 from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
-    from typing import (  # noqa: F401
+    from typing import (
         Optional, Tuple, Dict, IO, Text, Union
     )
-    from pip._internal.models.link import Link  # noqa: F401
-    from pip._internal.utils.hashes import Hashes  # noqa: F401
-    from pip._internal.vcs import AuthInfo  # noqa: F401
+    from pip._internal.models.link import Link
+    from pip._internal.utils.hashes import Hashes
+    from pip._internal.vcs import AuthInfo
 
 try:
     import ssl  # noqa
@@ -765,42 +763,6 @@ def unpack_file_url(
     # a download dir is specified and not already downloaded
     if download_dir and not already_downloaded_path:
         _copy_file(from_path, download_dir, link)
-
-
-def _copy_dist_from_dir(link_path, location):
-    """Copy distribution files in `link_path` to `location`.
-
-    Invoked when user requests to install a local directory. E.g.:
-
-        pip install .
-        pip install ~/dev/git-repos/python-prompt-toolkit
-
-    """
-
-    # Note: This is currently VERY SLOW if you have a lot of data in the
-    # directory, because it copies everything with `shutil.copytree`.
-    # What it should really do is build an sdist and install that.
-    # See https://github.com/pypa/pip/issues/2195
-
-    if os.path.isdir(location):
-        rmtree(location)
-
-    # build an sdist
-    setup_py = 'setup.py'
-    sdist_args = [sys.executable]
-    sdist_args.append('-c')
-    sdist_args.append(SETUPTOOLS_SHIM % setup_py)
-    sdist_args.append('sdist')
-    sdist_args += ['--dist-dir', location]
-    logger.info('Running setup.py sdist for %s', link_path)
-
-    with indent_log():
-        call_subprocess(sdist_args, cwd=link_path)
-
-    # unpack sdist into `location`
-    sdist = os.path.join(location, os.listdir(location)[0])
-    logger.info('Unpacking sdist %s into %s', sdist, location)
-    unpack_file(sdist, location, content_type=None, link=None)
 
 
 class PipXmlrpcTransport(xmlrpc_client.Transport):
