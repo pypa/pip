@@ -297,6 +297,7 @@ def test_constraints_local_editable_install_causes_error(script, data):
     assert 'Could not satisfy constraints for' in result.stderr
 
 
+@pytest.mark.network
 def test_constraints_local_editable_install_pep518(script, data):
     to_install = data.src.join("pep518-3.0")
 

@@ -219,6 +219,7 @@ def test_pip_wheel_with_user_set_in_config(script, data, common_wheels):
     assert "Successfully built withpyproject" in result.stdout, result.stdout
 
 
+@pytest.mark.network
 def test_pep517_wheels_are_not_confused_with_other_files(script, tmpdir, data):
     """Check correct wheels are copied. (#6196)
     """
