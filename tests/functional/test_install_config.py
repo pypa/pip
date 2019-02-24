@@ -44,13 +44,18 @@ def test_no_password_in_debug_message(script, virtualenv):
     """
     Test that password in the URL is not logged
     """
-    script.environ['PIP_INDEX_URL'] = 'https://user:my_password@example.com/simple/'
+    password = "my_password"
+
+    script.environ['PIP_INDEX_URL'] = (
+        'https://user:{}@example.com/simple/'.format(password)
+    )
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
+
+    assert password not in result.stdout
     assert (
-        "Getting page https://user:<pwd>@example.com/simple/initools"
+        "Getting page https://user:***@example.com/simple/initools"
         in result.stdout
     )
-    virtualenv.clear()
 
 
 @pytest.mark.network
