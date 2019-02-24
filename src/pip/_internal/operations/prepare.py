@@ -19,7 +19,6 @@ from pip._internal.utils.hashes import MissingHashes
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import display_path, normalize_path
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
     from typing import Any, Optional
@@ -288,7 +287,7 @@ class RequirementPreparer(object):
                 # we would report less-useful error messages for
                 # unhashable requirements, complaining that there's no
                 # hash provided.
-                if is_vcs_url(link):
+                if is_vcs_url(link.url):
                     raise VcsHashUnsupported()
                 elif is_file_url(link) and is_dir_url(link):
                     raise DirectoryUrlHashUnsupported()
@@ -349,7 +348,7 @@ class RequirementPreparer(object):
                 abstract_dist.prep_for_dist(finder, self.build_isolation)
             if self._download_should_save:
                 # Make a .zip of the source_dir we already created.
-                if req.link.scheme in vcs.all_schemes:
+                if not req.link.is_artifact:
                     req.archive(self.download_dir)
         return abstract_dist
 

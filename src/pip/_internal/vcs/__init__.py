@@ -172,6 +172,18 @@ class VcsSupport(object):
             return self._registry[name]
         return None
 
+    def get_backend_by_url(self, url):
+        # type: (str) -> Optional[Type[VersionControl]]
+        """
+        Return the backend class of the version control if found by given
+        URL, e.g. vcs.get_backend_by_url('git+https://github.com/pypa/pip.git')
+        """
+
+        for backend in self.backends:
+            if backend.is_valid_url(url):
+                return backend
+        return None
+
 
 vcs = VcsSupport()
 
@@ -532,3 +544,14 @@ class VersionControl(object):
         the Git override checks that Git is actually available.
         """
         return cls.is_repository_directory(location)
+
+    @classmethod
+    def is_valid_url(cls, url):
+        # type: (str) -> bool
+        """
+        Return whether an URL has a supported scheme for this Version Control.
+        """
+        scheme = urllib_parse.urlsplit(url)[0]
+        if scheme in cls.schemes:
+            return True
+        return False

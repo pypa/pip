@@ -166,6 +166,22 @@ def test_download_vcs_link(script):
     assert script.site_packages / 'piptestpackage' not in result.files_created
 
 
+@pytest.mark.network
+def test_download_vcs_scp_like_url(script):
+    """
+    It should download a vcs scp-like URL, for example:
+    git+user@hostname:user/repo.git. Test for the issue #6293.
+    """
+    result = script.pip(
+        'download', '-d', '.', 'git+git@github.com:pypa/pip-test-package.git'
+    )
+    assert (
+        Path('scratch') / 'pip-test-package-0.1.1.zip'
+        in result.files_created
+    )
+    assert script.site_packages / 'piptestpackage' not in result.files_created
+
+
 def test_only_binary_set_then_download_specific_platform(script, data):
     """
     Confirm that specifying an interpreter/platform constraint

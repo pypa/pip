@@ -49,11 +49,11 @@ from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Optional, Tuple, Dict, IO, Text, Union
+        Optional, Tuple, Dict, IO, Text, Union, Type
     )
     from pip._internal.models.link import Link
     from pip._internal.utils.hashes import Hashes
-    from pip._internal.vcs import AuthInfo
+    from pip._internal.vcs import AuthInfo, VersionControl
 
 try:
     import ssl  # noqa
@@ -456,11 +456,15 @@ _url_slash_drive_re = re.compile(r'/*([a-z])\|', re.I)
 
 def is_url(name):
     # type: (Union[str, Text]) -> bool
-    """Returns true if the name looks like a URL"""
+    """Returns true if the name looks like a URL or a valid VCS URL"""
+    if is_vcs_url(name):
+        return True
+
     if ':' not in name:
         return False
+
     scheme = name.split(':', 1)[0].lower()
-    return scheme in ['http', 'https', 'file', 'ftp'] + vcs.all_schemes
+    return scheme in ['http', 'https', 'file', 'ftp']
 
 
 def url_to_path(url):
@@ -502,20 +506,23 @@ def is_archive_file(name):
 
 
 def unpack_vcs_link(link, location):
-    vcs_backend = _get_used_vcs_backend(link)
+    # type: (Link, str) -> None
+    backend_cls = vcs.get_backend_by_url(link.url)
+    vcs_backend = backend_cls(link.url)
     vcs_backend.unpack(location)
 
 
-def _get_used_vcs_backend(link):
+def _get_used_vcs_backend(url):
+    # type: (str) -> Optional[Type[VersionControl]]
     for backend in vcs.backends:
-        if link.scheme in backend.schemes:
-            vcs_backend = backend(link.url)
+        if backend.is_valid_url(url):
+            vcs_backend = backend(url)
             return vcs_backend
 
 
-def is_vcs_url(link):
-    # type: (Link) -> bool
-    return bool(_get_used_vcs_backend(link))
+def is_vcs_url(url):
+    # type: (str) -> bool
+    return bool(vcs.get_backend_by_url(url))
 
 
 def is_file_url(link):
@@ -857,7 +864,7 @@ def unpack_url(
         would ordinarily raise HashUnsupported) are allowed.
     """
     # non-editable vcs urls
-    if is_vcs_url(link):
+    if is_vcs_url(link.url):
         unpack_vcs_link(link, location)
 
     # file urls

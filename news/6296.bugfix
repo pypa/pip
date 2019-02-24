@@ -1,0 +1,1 @@
+Fix ``pip download`` scp-like VCS URLs. For example, ``pip download git+git@github.com:pypa/pip``.

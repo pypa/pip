@@ -365,5 +365,19 @@ class Git(VersionControl):
                          "because git is not available", location)
             return False
 
+    @classmethod
+    def is_valid_url(cls, url):
+        """
+        Return whether an URL has a supported scheme for this Version Control.
+
+        This overrided method handles scp-like URLs,
+        e.g. 'user@hostname:user/repo.git'.
+        """
+
+        scheme, _, path, _, _ = urlsplit(url)
+        if not scheme and path.startswith('git+'):
+            return True
+        return super(Git, cls).is_valid_url(url)
+
 
 vcs.register(Git)

@@ -156,8 +156,4 @@ class Link(KeyBasedCompareMixin):
         it points to an "abstract" thing like a path or a VCS location.
         """
         from pip._internal.vcs import vcs
-
-        if self.scheme in vcs.all_schemes:
-            return False
-
-        return True
+        return not bool(vcs.get_backend_by_url(self.url))
