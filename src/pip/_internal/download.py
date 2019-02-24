@@ -70,6 +70,34 @@ __all__ = ['get_file_content',
 logger = logging.getLogger(__name__)
 
 
+# These are environment variables present when running under various
+# CI systems.  For each variable, some CI systems that use the variable
+# are indicated.  The collection was chosen so that for each of a number
+# of popular systems, at least one of the environment variables is used.
+# This list is used to provide some indication of and lower bound for
+# CI traffic to PyPI.  Thus, it is okay if the list is not comprehensive.
+# For more background, see: https://github.com/pypa/pip/issues/5499
+CI_ENVIRONMENT_VARIABLES = (
+    # Azure Pipelines
+    'BUILD_BUILDID',
+    # Jenkins
+    'BUILD_ID',
+    # AppVeyor, CircleCI, Codeship, Gitlab CI, Shippable, Travis CI
+    'CI',
+)
+
+
+def looks_like_ci():
+    # type: () -> bool
+    """
+    Return whether it looks like pip is running under CI.
+    """
+    # We don't use the method of checking for a tty (e.g. using isatty())
+    # because some CI systems mimic a tty (e.g. Travis CI).  Thus that
+    # method doesn't provide definitive information in either direction.
+    return any(name in os.environ for name in CI_ENVIRONMENT_VARIABLES)
+
+
 def user_agent():
     """
     Return a string representing the user agent.
@@ -132,6 +160,12 @@ def user_agent():
     setuptools_version = get_installed_version("setuptools")
     if setuptools_version is not None:
         data["setuptools_version"] = setuptools_version
+
+    # Use None rather than False so as not to give the impression that
+    # pip knows it is not being run under CI.  Rather, it is a null or
+    # inconclusive result.  Also, we include some value rather than no
+    # value to make it easier to know that the check has been run.
+    data["ci"] = True if looks_like_ci() else None
 
     return "{data[installer][name]}/{data[installer][version]} {json}".format(
         data=data,
