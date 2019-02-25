@@ -39,4 +39,3 @@ cases:
       - D 1.0.0
       - E 1.0.0
       - F 1.0.0
-  skip: true
