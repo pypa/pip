@@ -118,6 +118,29 @@ def test_get_html_response_no_head(url):
     ]
 
 
+@mock.patch("pip._internal.index.logger")
+def test_get_html_response_dont_log_clear_text_password(m_logger):
+    """
+    `_get_html_response()` shouldn't send a HEAD request if the URL does not
+    look like an archive, only the GET request that retrieves data.
+    """
+    password = "my_password"
+    url_template = "https://user:{}@example.com/simple/"
+    session = mock.Mock(PipSession)
+
+    # Mock the headers dict to ensure it is accessed.
+    session.get.return_value = mock.Mock(headers=mock.Mock(**{
+        "get.return_value": "text/html",
+    }))
+
+    resp = _get_html_response(url_template.format(password), session=session)
+
+    assert resp is not None
+    assert m_logger.debug.mock_calls == [
+        mock.call("Getting page %s", url_template.format("****"))
+    ]
+
+
 @pytest.mark.parametrize(
     "url, vcs_scheme",
     [
