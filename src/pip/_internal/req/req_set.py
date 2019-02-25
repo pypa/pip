@@ -149,9 +149,7 @@ class RequirementSet(object):
         # If the existing requirement is NOT a constraint, we're done.
         # Otherwise the incoming one needs to be checked against it.
         if not existing_req.constraint:
-            if new_extras != cur_extras:
-                return [existing_req], existing_req
-            return [], existing_req
+            return [existing_req], existing_req
 
         does_not_satisfy_constraint = (
             install_req.link and
