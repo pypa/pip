@@ -282,7 +282,6 @@ show_message_ids = partial(
 )
 
 
-
 def exists_action():
     # type: () -> Option
     return Option(

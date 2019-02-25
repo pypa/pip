@@ -1,5 +1,6 @@
 import pytest
 
+
 def test_show_message_ids(script):
     result = script.pip('show', 'pip', '--show-message-ids')
     assert 'message_id=default' in result.stdout

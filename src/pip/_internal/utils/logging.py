@@ -99,8 +99,8 @@ class IndentingFormatter(logging.Formatter):
 
         :param add_timestamp: A bool indicating output lines should be prefixed
             with their record's timestamp.
-        :param show_message_ids: A bool indicating output lines should be prefixed
-            with their record's message_id.
+        :param show_message_ids: A bool indicating output lines should be
+            prefixed with their record's message_id.
         """
         self.add_timestamp = kwargs.pop("add_timestamp", False)
         self.show_message_ids = kwargs.pop('show_message_ids', False)
@@ -237,7 +237,8 @@ class IgnoreMessageFilter(logging.Filter):
 
 
 def setup_logging(
-        verbosity, no_color, user_log_file, ignored_message_ids, show_message_ids):
+        verbosity, no_color, user_log_file,
+        ignored_message_ids, show_message_ids):
     """Configures and sets up all of the logging
 
     Returns the requested logging level, as its integer value.

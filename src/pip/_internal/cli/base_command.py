@@ -29,9 +29,7 @@ from pip._internal.req.constructors import (
 )
 from pip._internal.req.req_file import parse_requirements
 from pip._internal.utils.deprecation import deprecated
-from pip._internal.utils.logging import (
-    BrokenStdoutLoggingError, setup_logging,
-)
+from pip._internal.utils.logging import BrokenStdoutLoggingError, setup_logging
 from pip._internal.utils.misc import (
     get_prog, normalize_path, redact_password_from_url,
 )
