@@ -1,2 +1,3 @@
-This change enables addition of a string to the User-Agent header
-with the environment variable PIP_USER_AGENT_PROVISIONAL_STRING.
+This change enables addition of data to the User-Agent
+header by means of the key `user_data` and the
+environment variable `PIP_USER_AGENT_USER_DATA`.

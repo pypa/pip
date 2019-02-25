@@ -171,6 +171,10 @@ def user_agent():
     if provisional:
         data["provisional"] = provisional
 
+    user_data = os.environ.get("PIP_USER_AGENT_USER_DATA")
+    if user_data:
+        data["user_data"] = user_data
+
     return "{data[installer][name]}/{data[installer][version]} {json}".format(
         data=data,
         json=json.dumps(data, separators=(",", ":"), sort_keys=True),
