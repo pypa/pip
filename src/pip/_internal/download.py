@@ -167,10 +167,6 @@ def user_agent():
     # value to make it easier to know that the check has been run.
     data["ci"] = True if looks_like_ci() else None
 
-    provisional = os.environ.get("PIP_USER_AGENT_PROVISIONAL_STRING")
-    if provisional:
-        data["provisional"] = provisional
-
     user_data = os.environ.get("PIP_USER_AGENT_USER_DATA")
     if user_data:
         data["user_data"] = user_data
