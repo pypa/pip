@@ -203,7 +203,7 @@ def test_pep517_and_build_options(script, tmpdir, data, common_wheels):
     """Backend generated requirements are installed in the build env"""
     project_dir, name = make_pyproject_with_setup(tmpdir)
     result = script.pip(
-        'wheel', '--wheel-dir', tmpdir
+        'wheel', '--wheel-dir', tmpdir,
         '--build-option', 'foo',
         '-f', common_wheels,
         project_dir,
