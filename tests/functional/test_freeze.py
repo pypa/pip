@@ -476,8 +476,8 @@ def test_freeze_with_requirement_option_file_url_egg_not_installed(
         'freeze', '--requirement', 'requirements.txt', expect_stderr=True,
     )
     expected_err = (
-        'Requirement file [requirements.txt] contains {}, but package '
-        "'Does.Not-Exist' is not installed\n"
+        'WARNING: Requirement file [requirements.txt] contains {}, '
+        "but package 'Does.Not-Exist' is not installed\n"
     ).format(url)
     if deprecated_python:
         assert expected_err in result.stderr

@@ -503,7 +503,7 @@ def test_editable_install__local_dir_no_setup_py(
     if deprecated_python:
         assert 'File "setup.py" not found. ' in msg
     else:
-        assert msg.startswith('File "setup.py" not found. ')
+        assert msg.startswith('ERROR: File "setup.py" not found. ')
     assert 'pyproject.toml' not in msg
 
 
@@ -524,7 +524,7 @@ def test_editable_install__local_dir_no_setup_py_with_pyproject(
     if deprecated_python:
         assert 'File "setup.py" not found. ' in msg
     else:
-        assert msg.startswith('File "setup.py" not found. ')
+        assert msg.startswith('ERROR: File "setup.py" not found. ')
     assert 'A "pyproject.toml" file was found' in msg
 
 
