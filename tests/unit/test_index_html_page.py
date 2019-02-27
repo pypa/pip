@@ -118,8 +118,7 @@ def test_get_html_response_no_head(url):
     ]
 
 
-@mock.patch("pip._internal.index.logger")
-def test_get_html_response_dont_log_clear_text_password(m_logger):
+def test_get_html_response_dont_log_clear_text_password(caplog):
     """
     `_get_html_response()` shouldn't send a HEAD request if the URL does not
     look like an archive, only the GET request that retrieves data.
@@ -133,11 +132,17 @@ def test_get_html_response_dont_log_clear_text_password(m_logger):
         "get.return_value": "text/html",
     }))
 
+    caplog.set_level(logging.DEBUG)
+
     resp = _get_html_response(url_template.format(password), session=session)
 
     assert resp is not None
-    assert m_logger.debug.mock_calls == [
-        mock.call("Getting page %s", url_template.format("****"))
+
+    assert len(caplog.records) == 1
+    record = caplog.records[0]
+    assert record.levelname == 'DEBUG'
+    assert record.message.splitlines() == [
+        "Getting page {}".format(url_template.format("****")),
     ]
 
 
