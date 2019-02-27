@@ -910,6 +910,11 @@ class WheelBuilder(object):
         Returns path to wheel if successfully built. Otherwise, returns None.
         """
         assert req.metadata_directory is not None
+        if self.build_options:
+            # PEP 517 does not support --build-options
+            logger.error('Cannot build wheel for %s using PEP 517 when '
+                         '--build-options is present' % (req.name,))
+            return None
         try:
             req.spin_message = 'Building wheel for %s (PEP 517)' % (req.name,)
             logger.debug('Destination directory: %s', tempd)
