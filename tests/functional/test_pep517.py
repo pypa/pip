@@ -198,3 +198,17 @@ def test_explicit_setuptools_backend(script, tmpdir, data, common_wheels):
         project_dir,
     )
     result.assert_installed(name, editable=False)
+
+
+def test_pep517_and_build_options(script, tmpdir, data, common_wheels):
+    """Backend generated requirements are installed in the build env"""
+    project_dir, name = make_pyproject_with_setup(tmpdir)
+    result = script.pip(
+        'wheel', '--wheel-dir', tmpdir,
+        '--build-option', 'foo',
+        '-f', common_wheels,
+        project_dir,
+        expect_error=True
+    )
+    assert 'Cannot build wheel' in result.stderr
+    assert 'when --build-options is present' in result.stderr
