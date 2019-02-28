@@ -120,11 +120,9 @@ def test_get_html_response_no_head(url):
 
 def test_get_html_response_dont_log_clear_text_password(caplog):
     """
-    `_get_html_response()` shouldn't send a HEAD request if the URL does not
-    look like an archive, only the GET request that retrieves data.
+    `_get_html_response()` shouldn't log the full index's URL includoing the
+    user's password in clear text on DEBUG channel but only the redacted URL
     """
-    password = "my_password"
-    url_template = "https://user:{}@example.com/simple/"
     session = mock.Mock(PipSession)
 
     # Mock the headers dict to ensure it is accessed.
@@ -134,7 +132,9 @@ def test_get_html_response_dont_log_clear_text_password(caplog):
 
     caplog.set_level(logging.DEBUG)
 
-    resp = _get_html_response(url_template.format(password), session=session)
+    resp = _get_html_response(
+        "https://user:my_password@example.com/simple/", session=session
+    )
 
     assert resp is not None
 
@@ -142,7 +142,7 @@ def test_get_html_response_dont_log_clear_text_password(caplog):
     record = caplog.records[0]
     assert record.levelname == 'DEBUG'
     assert record.message.splitlines() == [
-        "Getting page {}".format(url_template.format("****")),
+        "Getting page https://user:****@example.com/simple/",
     ]
 
 
