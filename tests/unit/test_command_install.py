@@ -27,14 +27,13 @@ class TestWheelCache:
             legacy_requirements=legacy_requirements,
             # A session value isn't needed.
             session='<session>',
-            options='<options>'
         )
 
         return (builder.build.mock_calls, build_failures)
 
-    @patch('pip._internal.commands.install.should_build_legacy')
-    def test_build_wheels__should_build_legacy_true(self, should_build_legacy):
-        should_build_legacy.return_value = True
+    @patch('pip._internal.commands.install.is_wheel_installed')
+    def test_build_wheels__wheel_installed(self, is_wheel_installed):
+        is_wheel_installed.return_value = True
 
         mock_calls, build_failures = self.check_build_wheels(
             pep517_requirements=['a', 'b'],
@@ -51,11 +50,9 @@ class TestWheelCache:
         # Legacy build failures are not included in the return value.
         assert build_failures == ['a']
 
-    @patch('pip._internal.commands.install.should_build_legacy')
-    def test_build_wheels__should_build_legacy_false(
-        self, should_build_legacy,
-    ):
-        should_build_legacy.return_value = False
+    @patch('pip._internal.commands.install.is_wheel_installed')
+    def test_build_wheels__wheel_not_installed(self, is_wheel_installed):
+        is_wheel_installed.return_value = False
 
         mock_calls, build_failures = self.check_build_wheels(
             pep517_requirements=['a', 'b'],

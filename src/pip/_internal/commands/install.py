@@ -33,26 +33,24 @@ from pip._internal.wheel import WheelBuilder
 logger = logging.getLogger(__name__)
 
 
-def should_build_legacy(options):
-    # We don't build wheels for legacy requirements if we
-    # don't have wheel installed or we don't have a cache dir
+def is_wheel_installed():
+    """
+    Return whether the wheel package is installed.
+    """
     try:
         import wheel  # noqa: F401
-        build_legacy = bool(options.cache_dir)
     except ImportError:
-        build_legacy = False
+        return False
 
-    return build_legacy
+    return True
 
 
-def build_wheels(
-    builder, pep517_requirements, legacy_requirements, session, options,
-):
+def build_wheels(builder, pep517_requirements, legacy_requirements, session):
     """
     Build wheels for requirements, depending on whether wheel is installed.
     """
     # We don't build wheels for legacy requirements if wheel is not installed.
-    build_legacy = should_build_legacy(options)
+    should_build_legacy = is_wheel_installed()
 
     # Always build PEP 517 requirements
     build_failures = builder.build(
@@ -60,7 +58,7 @@ def build_wheels(
         session=session, autobuilding=True
     )
 
-    if build_legacy:
+    if should_build_legacy:
         # We don't care about failures building legacy
         # requirements, as we'll fall through to a direct
         # install for those.
@@ -376,7 +374,6 @@ class InstallCommand(RequirementCommand):
                         pep517_requirements=pep517_requirements,
                         legacy_requirements=legacy_requirements,
                         session=session,
-                        options=options,
                     )
 
                     # If we're using PEP 517, we cannot do a direct install
