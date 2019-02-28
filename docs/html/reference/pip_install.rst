@@ -247,7 +247,7 @@ Some examples:
 
   SomeProject
   SomeProject == 1.3
-  SomeProject >=1.2,<.2.0
+  SomeProject >=1.2,<2.0
   SomeProject[foo, bar]
   SomeProject~=1.4.2
 
