@@ -33,6 +33,45 @@ from pip._internal.wheel import WheelBuilder
 logger = logging.getLogger(__name__)
 
 
+def should_build_legacy(options):
+    # We don't build wheels for legacy requirements if we
+    # don't have wheel installed or we don't have a cache dir
+    try:
+        import wheel  # noqa: F401
+        build_legacy = bool(options.cache_dir)
+    except ImportError:
+        build_legacy = False
+
+    return build_legacy
+
+
+def build_wheels(
+    builder, pep517_requirements, legacy_requirements, session, options,
+):
+    """
+    Build wheels for requirements, depending on whether wheel is installed.
+    """
+    # We don't build wheels for legacy requirements if wheel is not installed.
+    build_legacy = should_build_legacy(options)
+
+    # Always build PEP 517 requirements
+    build_failures = builder.build(
+        pep517_requirements,
+        session=session, autobuilding=True
+    )
+
+    if build_legacy:
+        # We don't care about failures building legacy
+        # requirements, as we'll fall through to a direct
+        # install for those.
+        builder.build(
+            legacy_requirements,
+            session=session, autobuilding=True
+        )
+
+    return build_failures
+
+
 class InstallCommand(RequirementCommand):
     """
     Install packages from:
@@ -327,33 +366,18 @@ class InstallCommand(RequirementCommand):
                         else:
                             legacy_requirements.append(req)
 
-                    # We don't build wheels for legacy requirements if we
-                    # don't have wheel installed or we don't have a cache dir
-                    try:
-                        import wheel  # noqa: F401
-                        build_legacy = bool(options.cache_dir)
-                    except ImportError:
-                        build_legacy = False
-
-                    wb = WheelBuilder(
+                    wheel_builder = WheelBuilder(
                         finder, preparer, wheel_cache,
                         build_options=[], global_options=[],
                     )
 
-                    # Always build PEP 517 requirements
-                    build_failures = wb.build(
-                        pep517_requirements,
-                        session=session, autobuilding=True
+                    build_failures = build_wheels(
+                        builder=wheel_builder,
+                        pep517_requirements=pep517_requirements,
+                        legacy_requirements=legacy_requirements,
+                        session=session,
+                        options=options,
                     )
-
-                    if build_legacy:
-                        # We don't care about failures building legacy
-                        # requirements, as we'll fall through to a direct
-                        # install for those.
-                        wb.build(
-                            legacy_requirements,
-                            session=session, autobuilding=True
-                        )
 
                     # If we're using PEP 517, we cannot do a direct install
                     # so we fail here.
