@@ -1,0 +1,4 @@
+Fix ``utils.encoding.auto_decode()`` ``LookupError`` with invalid encodings.
+``utils.encoding.auto_decode()`` was broken when decoding Big Endian BOM
+byte-strings on Little Endian or vice versa.
+
