@@ -1,1 +1,1 @@
-Redacts the URL of the extra index when `pip -v` to hide the user's password
+Redact the password from the extra index URL when using ``pip -v``.
