@@ -805,6 +805,14 @@ def need_executable(name, check_cmd):
     return wrapper
 
 
+def is_bzr_installed():
+    try:
+        subprocess.check_output(('bzr', 'version', '--short'))
+    except OSError:
+        return False
+    return True
+
+
 def need_bzr(fn):
     return pytest.mark.bzr(need_executable(
         'Bazaar', ('bzr', 'version', '--short')

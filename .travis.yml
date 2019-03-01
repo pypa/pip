@@ -2,6 +2,10 @@ language: python
 cache: pip
 dist: xenial
 python: 3.6
+addons:
+  apt:
+    packages:
+    - bzr
 
 stages:
 - primary
