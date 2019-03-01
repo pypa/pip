@@ -925,7 +925,7 @@ class TestCallSubprocess(object):
         # output is already being written to the console.
         self.check_result(
             capfd, caplog, log_level, spinner, result, expected,
-            expected_spinner=(0, 'done'),
+            expected_spinner=(0, None),
         )
 
     @pytest.mark.parametrize((
@@ -936,13 +936,13 @@ class TestCallSubprocess(object):
             # Test some cases that should result in show_spinner false.
             (0, False, None, logging.DEBUG, (None, 'done', 0)),
             # Test show_stdout=True.
-            (0, True, None, logging.DEBUG, (None, 'done', 0)),
-            (0, True, None, logging.INFO, (None, 'done', 0)),
-            (0, True, None, logging.WARNING, (None, 'done', 0)),
+            (0, True, None, logging.DEBUG, (None, None, 0)),
+            (0, True, None, logging.INFO, (None, None, 0)),
+            (0, True, None, logging.WARNING, (None, None, 0)),
             # Test a non-zero exit status.
             (3, False, None, logging.INFO, (InstallationError, 'error', 2)),
             # Test a non-zero exit status also in extra_ok_returncodes.
-            (3, False, (3, ), logging.INFO, (None, 'error', 2)),
+            (3, False, (3, ), logging.INFO, (None, 'done', 2)),
     ])
     def test_spinner_finish(
         self, exit_status, show_stdout, extra_ok_returncodes, log_level,

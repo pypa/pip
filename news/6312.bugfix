@@ -1,0 +1,3 @@
+The spinner no longer displays a completion message after subprocess calls
+not needing a spinner. It also no longer incorrectly reports an error after
+certain subprocess calls to Git that succeeded.
