@@ -4,6 +4,7 @@
 util tests
 
 """
+import codecs
 import itertools
 import os
 import shutil
@@ -20,7 +21,7 @@ from mock import Mock, patch
 from pip._internal.exceptions import (
     HashMismatch, HashMissing, InstallationError, UnsupportedPythonVersion,
 )
-from pip._internal.utils.encoding import auto_decode
+from pip._internal.utils.encoding import BOMS, auto_decode
 from pip._internal.utils.glibc import check_glibc_version
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.misc import (
@@ -462,11 +463,20 @@ class TestHashes(object):
 class TestEncoding(object):
     """Tests for pip._internal.utils.encoding"""
 
-    def test_auto_decode_utf16_le(self):
+    def test_auto_decode_utf_16_le(self):
         data = (
             b'\xff\xfeD\x00j\x00a\x00n\x00g\x00o\x00=\x00'
             b'=\x001\x00.\x004\x00.\x002\x00'
         )
+        assert data.startswith(codecs.BOM_UTF16_LE)
+        assert auto_decode(data) == "Django==1.4.2"
+
+    def test_auto_decode_utf_16_be(self):
+        data = (
+            b'\xfe\xff\x00D\x00j\x00a\x00n\x00g\x00o\x00='
+            b'\x00=\x001\x00.\x004\x00.\x002'
+        )
+        assert data.startswith(codecs.BOM_UTF16_BE)
         assert auto_decode(data) == "Django==1.4.2"
 
     def test_auto_decode_no_bom(self):
@@ -485,6 +495,11 @@ class TestEncoding(object):
             with patch('locale.getpreferredencoding', em):
                 ret = auto_decode(data.encode(sys.getdefaultencoding()))
         assert ret == data
+
+    @pytest.mark.parametrize('encoding', [encoding for bom, encoding in BOMS])
+    def test_all_encodings_are_valid(self, encoding):
+        # we really only care that there is no LookupError
+        assert ''.encode(encoding).decode(encoding) == ''
 
 
 class TestTempDirectory(object):
