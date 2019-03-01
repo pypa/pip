@@ -155,7 +155,7 @@ def _get_html_response(url, session):
     if _is_url_like_archive(url):
         _ensure_html_response(url, session=session)
 
-    logger.debug('Getting page %s', url)
+    logger.debug('Getting page %s', redact_password_from_url(url))
 
     resp = session.get(
         url,
