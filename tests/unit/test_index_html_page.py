@@ -120,8 +120,8 @@ def test_get_html_response_no_head(url):
 
 def test_get_html_response_dont_log_clear_text_password(caplog):
     """
-    `_get_html_response()` shouldn't log the full index's URL includoing the
-    user's password in clear text on DEBUG channel but only the redacted URL
+    `_get_html_response()` should redact the password from the index URL
+    in its DEBUG log message.
     """
     session = mock.Mock(PipSession)
 
