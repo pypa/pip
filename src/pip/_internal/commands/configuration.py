@@ -7,6 +7,7 @@ from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.configuration import Configuration, kinds
 from pip._internal.exceptions import PipError
 from pip._internal.locations import running_under_virtualenv, site_config_file
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.misc import get_prog
 
 logger = logging.getLogger(__name__)
@@ -142,8 +143,10 @@ class ConfigurationCommand(Command):
         if options.venv_file and not options.site_file:
             if running_under_virtualenv():
                 options.site_file = True
-                logger.warning(
-                    "The --venv option is deprecated. Use --site instead."
+                deprecated(
+                    "The --venv option has been deprecated.",
+                    replacement="--site",
+                    gone_in="19.3",
                 )
             else:
                 raise PipError(
@@ -151,11 +154,11 @@ class ConfigurationCommand(Command):
                     "Use --site instead."
                 )
 
-        file_options = [key for key in [
-            kinds.USER if options.user_file else None,
-            kinds.GLOBAL if options.global_file else None,
-            kinds.SITE if options.site_file else None,
-        ] if key]
+        file_options = [key for key, value in (
+            (kinds.USER, options.user_file),
+            (kinds.GLOBAL, options.global_file),
+            (kinds.SITE, options.site_file),
+        ) if value]
 
         if not file_options:
             if not need_value:

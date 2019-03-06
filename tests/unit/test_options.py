@@ -1,4 +1,3 @@
-import logging
 import os
 from contextlib import contextmanager
 
@@ -427,18 +426,20 @@ class TestOptionsConfigFiles(object):
         # Replace a handler with a no-op to avoid side effects
         monkeypatch.setattr(cmd, "get_name", lambda *a: None)
 
-        warnings = []
-        logger = logging.getLogger("pip._internal.commands.configuration")
-        monkeypatch.setattr(logger, "warning", warnings.append)
+        collected_warnings = []
+
+        def _warn(message, *a, **kw):
+            collected_warnings.append(message)
+        monkeypatch.setattr("warnings.warn", _warn)
 
         options, args = cmd.parser.parse_args(["--venv", "get", "name"])
         assert "site" == cmd._determine_file(options, need_value=False)
-        assert warnings
-        assert "Use --site" in warnings[0]
+        assert collected_warnings
+        assert "--site" in collected_warnings[0]
 
         # No warning or error if both "--venv" and "--site" are specified
-        warnings[:] = []
+        collected_warnings[:] = []
         options, args = cmd.parser.parse_args(["--venv", "--site", "get",
                                                "name"])
         assert "site" == cmd._determine_file(options, need_value=False)
-        assert not warnings
+        assert not collected_warnings
