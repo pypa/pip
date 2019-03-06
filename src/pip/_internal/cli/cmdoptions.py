@@ -275,7 +275,7 @@ def exists_action():
         action='append',
         metavar='action',
         help="Default action when a path already exists: "
-             "(s)witch, (i)gnore, (w)ipe, (b)ackup, (a)bort).",
+             "(s)witch, (i)gnore, (w)ipe, (b)ackup, (a)bort.",
     )
 
 
