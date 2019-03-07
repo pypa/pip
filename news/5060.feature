@@ -1,0 +1,1 @@
+Configuration files may now also be stored under ``sys.prefix``
