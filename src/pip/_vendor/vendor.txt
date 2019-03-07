@@ -9,7 +9,7 @@ lockfile==0.12.2
 msgpack==0.5.6
 packaging==19.0
 pep517==0.5.0
-progress==1.4
+progress==1.5
 pyparsing==2.3.1
 pytoml==0.1.20
 requests==2.21.0
