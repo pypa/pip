@@ -556,23 +556,24 @@ class InstallRequirement(object):
         # type: () -> None
         assert self.pep517_backend is not None
 
-        metadata_dir = os.path.join(
-            self.setup_py_dir,
-            'pip-wheel-metadata'
-        )
-        ensure_dir(metadata_dir)
-
-        with self.build_env:
-            # Note that Pep517HookCaller implements a fallback for
-            # prepare_metadata_for_build_wheel, so we don't have to
-            # consider the possibility that this hook doesn't exist.
-            backend = self.pep517_backend
-            self.spin_message = "Preparing wheel metadata"
-            distinfo_dir = backend.prepare_metadata_for_build_wheel(
-                metadata_dir
+        with TempDirectory(delete=False) as temp_dir:
+            metadata_dir = os.path.join(
+                temp_dir.path,
+                'pip-wheel-metadata',
             )
+            ensure_dir(metadata_dir)
 
-        self.metadata_directory = os.path.join(metadata_dir, distinfo_dir)
+            with self.build_env:
+                # Note that Pep517HookCaller implements a fallback for
+                # prepare_metadata_for_build_wheel, so we don't have to
+                # consider the possibility that this hook doesn't exist.
+                backend = self.pep517_backend
+                self.spin_message = "Preparing wheel metadata"
+                distinfo_dir = backend.prepare_metadata_for_build_wheel(
+                    metadata_dir
+                )
+
+            self.metadata_directory = os.path.join(metadata_dir, distinfo_dir)
 
     def run_egg_info(self):
         # type: () -> None
