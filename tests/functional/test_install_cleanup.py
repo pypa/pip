@@ -49,7 +49,7 @@ def test_cleanup_after_install_editable_from_hg(script, tmpdir):
         '%s#egg=ScriptTest' %
         local_checkout(
             'hg+https://bitbucket.org/ianb/scripttest',
-            tmpdir.join("cache"),
+            tmpdir.joinpath("cache"),
         ),
         expect_error=True,
     )

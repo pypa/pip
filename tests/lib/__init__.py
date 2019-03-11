@@ -14,8 +14,8 @@ from scripttest import FoundDir, TestFileEnvironment
 
 from tests.lib.path import Path, curdir
 
-DATA_DIR = Path(__file__).folder.folder.join("data").abspath
-SRC_DIR = Path(__file__).abspath.folder.folder.folder
+DATA_DIR = Path(__file__).parent.parent.joinpath("data").absolute()
+SRC_DIR = Path(__file__).absolute().parent.parent.parent
 
 pyversion = sys.version[:3]
 pyversion_tuple = sys.version_info
@@ -79,7 +79,7 @@ class TestData(object):
 
     def __init__(self, root, source=None):
         self.source = source or DATA_DIR
-        self.root = Path(root).abspath
+        self.root = Path(root).absolute()
 
     @classmethod
     def copy(cls, root):
@@ -88,8 +88,8 @@ class TestData(object):
         return obj
 
     def reset(self):
-        self.root.rmtree()
-        self.source.copytree(self.root)
+        shutil.rmtree(str(self.root))
+        shutil.copytree(str(self.source), str(self.root))
 
     @property
     def packages(self):

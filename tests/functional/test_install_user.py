@@ -53,7 +53,7 @@ class Tests_UserSite:
             '%s#egg=initools' %
             local_checkout(
                 'svn+http://svn.colorstudy.com/INITools/trunk',
-                tmpdir.join("cache"),
+                tmpdir.joinpath("cache"),
             )
         )
         result.assert_installed('INITools', use_user_site=True)

@@ -286,7 +286,7 @@ def test_install_editable_uninstalls_existing(data, script, tmpdir):
         '%s#egg=pip-test-package' %
         local_checkout(
             'git+https://github.com/pypa/pip-test-package.git',
-            tmpdir.join("cache"),
+            tmpdir.joinpath("cache"),
         ),
     )
     result.assert_installed('pip-test-package', with_files=['.git'])
@@ -360,7 +360,7 @@ def test_vcs_url_urlquote_normalization(script, tmpdir):
         local_checkout(
             'bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp'
             '/release-0.1',
-            tmpdir.join("cache"),
+            tmpdir.joinpath("cache"),
         ),
     )
 
@@ -615,7 +615,7 @@ def test_install_using_install_option_and_editable(script, tmpdir):
     url = 'git+git://github.com/pypa/pip-test-package'
     result = script.pip(
         'install', '-e', '%s#egg=pip-test-package' %
-        local_checkout(url, tmpdir.join("cache")),
+        local_checkout(url, tmpdir.joinpath("cache")),
         '--install-option=--script-dir=%s' % folder,
         expect_stderr=True)
     script_file = (
@@ -634,7 +634,7 @@ def test_install_global_option_using_editable(script, tmpdir):
     url = 'hg+http://bitbucket.org/runeh/anyjson'
     result = script.pip(
         'install', '--global-option=--version', '-e',
-        '%s@0.2.5#egg=anyjson' % local_checkout(url, tmpdir.join("cache")),
+        '%s@0.2.5#egg=anyjson' % local_checkout(url, tmpdir.joinpath("cache")),
         expect_stderr=True)
     assert 'Successfully installed anyjson' in result.stdout
 
@@ -1136,7 +1136,7 @@ def test_install_subprocess_output_handling(script, data):
 
 def test_install_log(script, data, tmpdir):
     # test that verbose logs go to "--log" file
-    f = tmpdir.join("log.txt")
+    f = tmpdir.joinpath("log.txt")
     args = ['--log=%s' % f,
             'install', data.src.join('chattymodule')]
     result = script.pip(*args)

@@ -25,7 +25,7 @@ def test_get_path_uid_without_NOFOLLOW(monkeypatch):
 @pytest.mark.skipif("sys.platform == 'win32'")
 @pytest.mark.skipif("not hasattr(os, 'symlink')")
 def test_get_path_uid_symlink(tmpdir):
-    f = tmpdir.mkdir("symlink").join("somefile")
+    f = tmpdir / mkdir("symlink").join("somefile")
     f.write("content")
     fs = f + '_link'
     os.symlink(f, fs)

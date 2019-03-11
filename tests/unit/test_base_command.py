@@ -102,7 +102,7 @@ class Test_base_command_logging(object):
         Test the --log option logs when command succeeds
         """
         cmd = FakeCommand()
-        log_path = tmpdir.join('log')
+        log_path = tmpdir.joinpath('log')
         cmd.main(['fake', '--log', log_path])
         with open(log_path) as f:
             assert f.read().rstrip() == '2019-01-17T06:00:37 fake'
@@ -112,7 +112,7 @@ class Test_base_command_logging(object):
         Test the --log option logs when command fails
         """
         cmd = FakeCommand(error=True)
-        log_path = tmpdir.join('log')
+        log_path = tmpdir.joinpath('log')
         cmd.main(['fake', '--log', log_path])
         with open(log_path) as f:
             assert f.read().startswith('2019-01-17T06:00:37 fake')
@@ -122,7 +122,7 @@ class Test_base_command_logging(object):
         Test the --log-file option logs (when there's an error).
         """
         cmd = FakeCommand(error=True)
-        log_file_path = tmpdir.join('log_file')
+        log_file_path = tmpdir.joinpath('log_file')
         cmd.main(['fake', '--log-file', log_file_path])
         with open(log_file_path) as f:
             assert f.read().startswith('2019-01-17T06:00:37 fake')
@@ -132,5 +132,5 @@ class Test_base_command_logging(object):
         Tests that logging bytestrings and unicode objects don't break logging
         """
         cmd = FakeCommandWithUnicode()
-        log_path = tmpdir.join('log')
+        log_path = tmpdir.joinpath('log')
         cmd.main(['fake_unicode', '--log', log_path])

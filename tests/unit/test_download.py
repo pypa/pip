@@ -203,8 +203,8 @@ def test_url_to_path_path_to_url_symmetry_win():
 class Test_unpack_file_url(object):
 
     def prep(self, tmpdir, data):
-        self.build_dir = tmpdir.join('build')
-        self.download_dir = tmpdir.join('download')
+        self.build_dir = str(tmpdir.joinpath('build'))
+        self.download_dir = str(tmpdir.joinpath('download'))
         os.mkdir(self.build_dir)
         os.mkdir(self.download_dir)
         self.dist_file = "simple-1.0.tar.gz"
@@ -306,10 +306,10 @@ class TestSafeFileCache:
     """
 
     def test_cache_roundtrip(self, tmpdir):
-        cache_dir = tmpdir.join("test-cache")
-        cache_dir.makedirs()
+        cache_dir = tmpdir.joinpath("test-cache")
+        cache_dir.mkdir(parents=True)
 
-        cache = SafeFileCache(cache_dir)
+        cache = SafeFileCache(str(cache_dir))
         assert cache.get("test key") is None
         cache.set("test key", b"a test string")
         assert cache.get("test key") == b"a test string"
@@ -318,31 +318,31 @@ class TestSafeFileCache:
 
     @pytest.mark.skipif("sys.platform == 'win32'")
     def test_safe_get_no_perms(self, tmpdir, monkeypatch):
-        cache_dir = tmpdir.join("unreadable-cache")
-        cache_dir.makedirs()
+        cache_dir = tmpdir.joinpath("unreadable-cache")
+        cache_dir.mkdir(parents=True)
         os.chmod(cache_dir, 000)
 
         monkeypatch.setattr(os.path, "exists", lambda x: True)
 
-        cache = SafeFileCache(cache_dir)
+        cache = SafeFileCache(str(cache_dir))
         cache.get("foo")
 
     @pytest.mark.skipif("sys.platform == 'win32'")
     def test_safe_set_no_perms(self, tmpdir):
-        cache_dir = tmpdir.join("unreadable-cache")
-        cache_dir.makedirs()
+        cache_dir = tmpdir.joinpath("unreadable-cache")
+        cache_dir.mkdir(parents=True)
         os.chmod(cache_dir, 000)
 
-        cache = SafeFileCache(cache_dir)
+        cache = SafeFileCache(str(cache_dir))
         cache.set("foo", b"bar")
 
     @pytest.mark.skipif("sys.platform == 'win32'")
     def test_safe_delete_no_perms(self, tmpdir):
-        cache_dir = tmpdir.join("unreadable-cache")
-        cache_dir.makedirs()
+        cache_dir = tmpdir.joinpath("unreadable-cache")
+        cache_dir.mkdir(parents=True)
         os.chmod(cache_dir, 000)
 
-        cache = SafeFileCache(cache_dir)
+        cache = SafeFileCache(str(cache_dir))
         cache.delete("foo")
 
 
@@ -355,21 +355,21 @@ class TestPipSession:
         assert not hasattr(session.adapters["https://"], "cache")
 
     def test_cache_is_enabled(self, tmpdir):
-        session = PipSession(cache=tmpdir.join("test-cache"))
+        session = PipSession(cache=tmpdir.joinpath("test-cache"))
 
         assert hasattr(session.adapters["https://"], "cache")
 
         assert (session.adapters["https://"].cache.directory ==
-                tmpdir.join("test-cache"))
+                tmpdir.joinpath("test-cache"))
 
     def test_http_cache_is_not_enabled(self, tmpdir):
-        session = PipSession(cache=tmpdir.join("test-cache"))
+        session = PipSession(cache=tmpdir.joinpath("test-cache"))
 
         assert not hasattr(session.adapters["http://"], "cache")
 
     def test_insecure_host_cache_is_not_enabled(self, tmpdir):
         session = PipSession(
-            cache=tmpdir.join("test-cache"),
+            cache=tmpdir.joinpath("test-cache"),
             insecure_hosts=["example.com"],
         )
 

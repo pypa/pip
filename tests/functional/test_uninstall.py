@@ -295,7 +295,7 @@ def test_uninstall_editable_from_svn(script, tmpdir):
         'install', '-e',
         '%s#egg=initools' % local_checkout(
             'svn+http://svn.colorstudy.com/INITools/trunk',
-            tmpdir.join("cache"),
+            tmpdir.joinpath("cache"),
         ),
     )
     result.assert_installed('INITools')
@@ -318,7 +318,7 @@ def test_uninstall_editable_with_source_outside_venv(script, tmpdir):
     Test uninstalling editable install from existing source outside the venv.
 
     """
-    cache_dir = tmpdir.join("cache")
+    cache_dir = tmpdir.joinpath("cache")
 
     try:
         temp = mkdtemp()
@@ -371,7 +371,7 @@ def test_uninstall_from_reqs_file(script, tmpdir):
         """) %
         local_checkout(
             'svn+http://svn.colorstudy.com/INITools/trunk',
-            tmpdir.join("cache")
+            tmpdir.joinpath("cache")
         )
     )
     result = script.pip('install', '-r', 'test-req.txt')
@@ -388,7 +388,7 @@ def test_uninstall_from_reqs_file(script, tmpdir):
         """) %
         local_checkout(
             'svn+http://svn.colorstudy.com/INITools/trunk',
-            tmpdir.join("cache")
+            tmpdir.joinpath("cache")
         )
     )
     result2 = script.pip('uninstall', '-r', 'test-req.txt', '-y')
@@ -425,7 +425,7 @@ def test_uninstallpathset_no_paths(caplog):
 
 
 def test_uninstall_non_local_distutils(caplog, monkeypatch, tmpdir):
-    einfo = tmpdir.join("thing-1.0.egg-info")
+    einfo = tmpdir.joinpath("thing-1.0.egg-info")
     with open(einfo, "wb"):
         pass
 

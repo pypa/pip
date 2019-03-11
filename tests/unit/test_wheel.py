@@ -198,7 +198,7 @@ def test_get_legacy_build_wheel_path__multiple_names(caplog):
                          ["pip = pip._internal.main:pip",
                           "pip:pip = pip._internal.main:pip"])
 def test_get_entrypoints(tmpdir, console_scripts):
-    entry_points = tmpdir.join("entry_points.txt")
+    entry_points = tmpdir.joinpath("entry_points.txt")
     with open(str(entry_points), "w") as fp:
         fp.write("""
             [console_scripts]
@@ -238,7 +238,7 @@ def test_sorted_outrows(outrows, expected):
 
 
 def call_get_csv_rows_for_installed(tmpdir, text):
-    path = tmpdir.join('temp.txt')
+    path = tmpdir.joinpath('temp.txt')
     path.write(text)
 
     # Test that an installed file appearing in RECORD has its filename

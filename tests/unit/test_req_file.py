@@ -473,22 +473,22 @@ class TestParseRequirements(object):
             pass
 
     def test_multiple_appending_options(self, tmpdir, finder, options):
-        with open(tmpdir.join("req1.txt"), "w") as fp:
+        with open(tmpdir.joinpath("req1.txt"), "w") as fp:
             fp.write("--extra-index-url url1 \n")
             fp.write("--extra-index-url url2 ")
 
-        list(parse_requirements(tmpdir.join("req1.txt"), finder=finder,
+        list(parse_requirements(tmpdir.joinpath("req1.txt"), finder=finder,
                                 session=PipSession(), options=options))
 
         assert finder.index_urls == ['url1', 'url2']
 
     def test_skip_regex(self, tmpdir, finder, options):
         options.skip_requirements_regex = '.*Bad.*'
-        with open(tmpdir.join("req1.txt"), "w") as fp:
+        with open(tmpdir.joinpath("req1.txt"), "w") as fp:
             fp.write("--extra-index-url Bad \n")
             fp.write("--extra-index-url Good ")
 
-        list(parse_requirements(tmpdir.join("req1.txt"), finder=finder,
+        list(parse_requirements(tmpdir.joinpath("req1.txt"), finder=finder,
                                 options=options, session=PipSession()))
 
         assert finder.index_urls == ['Good']
@@ -503,14 +503,14 @@ class TestParseRequirements(object):
             ('DO_12_FACTOR', 'awwyeah'),
         )
 
-        with open(tmpdir.join('req1.txt'), 'w') as fp:
+        with open(tmpdir.joinpath('req1.txt'), 'w') as fp:
             fp.write(template % tuple(['${%s}' % k for k, _ in env_vars]))
 
         with patch('pip._internal.req.req_file.os.getenv') as getenv:
             getenv.side_effect = lambda n: dict(env_vars)[n]
 
             reqs = list(parse_requirements(
-                tmpdir.join('req1.txt'),
+                tmpdir.joinpath('req1.txt'),
                 finder=finder,
                 session=PipSession()
             ))
@@ -528,14 +528,14 @@ class TestParseRequirements(object):
             '%WINDOWS_FORMAT%github.com/user/repo/archive/master.zip'
         )
 
-        with open(tmpdir.join('req1.txt'), 'w') as fp:
+        with open(tmpdir.joinpath('req1.txt'), 'w') as fp:
             fp.write(req_url)
 
         with patch('pip._internal.req.req_file.os.getenv') as getenv:
             getenv.return_value = ''
 
             reqs = list(parse_requirements(
-                tmpdir.join('req1.txt'),
+                tmpdir.joinpath('req1.txt'),
                 finder=finder,
                 session=PipSession()
             ))
@@ -546,10 +546,10 @@ class TestParseRequirements(object):
                 'ignoring invalid env variable in req file failed'
 
     def test_join_lines(self, tmpdir, finder):
-        with open(tmpdir.join("req1.txt"), "w") as fp:
+        with open(tmpdir.joinpath("req1.txt"), "w") as fp:
             fp.write("--extra-index-url url1 \\\n--extra-index-url url2")
 
-        list(parse_requirements(tmpdir.join("req1.txt"), finder=finder,
+        list(parse_requirements(tmpdir.joinpath("req1.txt"), finder=finder,
                                 session=PipSession()))
 
         assert finder.index_urls == ['url1', 'url2']
@@ -565,10 +565,10 @@ class TestParseRequirements(object):
         """
         Test parsing comments in a requirements file
         """
-        with open(tmpdir.join("req1.txt"), "w") as fp:
+        with open(tmpdir.joinpath("req1.txt"), "w") as fp:
             fp.write("# Comment ")
 
-        reqs = list(parse_requirements(tmpdir.join("req1.txt"), finder,
+        reqs = list(parse_requirements(tmpdir.joinpath("req1.txt"), finder,
                     session=PipSession()))
 
         assert not reqs
@@ -577,10 +577,10 @@ class TestParseRequirements(object):
         """
         Test parsing comments in a requirements file
         """
-        with open(tmpdir.join("req1.txt"), "w") as fp:
+        with open(tmpdir.joinpath("req1.txt"), "w") as fp:
             fp.write("https://example.com/foo.tar.gz # Comment ")
 
-        reqs = list(parse_requirements(tmpdir.join("req1.txt"), finder,
+        reqs = list(parse_requirements(tmpdir.joinpath("req1.txt"), finder,
                     session=PipSession()))
 
         assert len(reqs) == 1
@@ -590,10 +590,10 @@ class TestParseRequirements(object):
         """
         Test parsing comments in a requirements file
         """
-        with open(tmpdir.join("req1.txt"), "w") as fp:
+        with open(tmpdir.joinpath("req1.txt"), "w") as fp:
             fp.write("https://example.com/foo.tar.gz#egg=wat")
 
-        reqs = list(parse_requirements(tmpdir.join("req1.txt"), finder,
+        reqs = list(parse_requirements(tmpdir.joinpath("req1.txt"), finder,
                     session=PipSession()))
 
         assert len(reqs) == 1
@@ -603,7 +603,7 @@ class TestParseRequirements(object):
         """
         Test parsing a requirements file without a finder
         """
-        with open(tmpdir.join("req.txt"), "w") as fp:
+        with open(tmpdir.joinpath("req.txt"), "w") as fp:
             fp.write("""
     --find-links https://example.com/
     --index-url https://example.com/
@@ -612,7 +612,7 @@ class TestParseRequirements(object):
     --no-index
             """)
 
-        parse_requirements(tmpdir.join("req.txt"), session=PipSession())
+        parse_requirements(tmpdir.joinpath("req.txt"), session=PipSession())
 
     def test_install_requirements_with_options(self, tmpdir, finder, session,
                                                options):

@@ -163,9 +163,9 @@ class TestUninstallPathSet(object):
         # construct 2 paths:
         #  tmpdir/dir/file
         #  tmpdir/dirlink/file (where dirlink is a link to dir)
-        d = tmpdir.join('dir')
+        d = tmpdir.joinpath('dir')
         d.mkdir()
-        dlink = tmpdir.join('dirlink')
+        dlink = tmpdir.joinpath('dirlink')
         os.symlink(d, dlink)
         d.join('file').touch()
         path1 = str(d.join('file'))

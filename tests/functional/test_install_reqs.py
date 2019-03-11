@@ -110,7 +110,7 @@ def test_multiple_requirements_files(script, tmpdir):
         (
             local_checkout(
                 'svn+http://svn.colorstudy.com/INITools/trunk',
-                tmpdir.join("cache"),
+                tmpdir.joinpath("cache"),
             ),
             other_lib_name
         ),

@@ -356,7 +356,7 @@ def test_upgrade_vcs_req_with_no_dists_found(script, tmpdir):
     """It can upgrade a VCS requirement that has no distributions otherwise."""
     req = "%s#egg=pip-test-package" % local_checkout(
         "git+https://github.com/pypa/pip-test-package.git",
-        tmpdir.join("cache"),
+        tmpdir.joinpath("cache"),
     )
     script.pip("install", req)
     result = script.pip("install", "-U", req)
