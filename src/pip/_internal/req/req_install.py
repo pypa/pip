@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import atexit
 import logging
 import os
 import shutil
@@ -552,28 +553,36 @@ class InstallRequirement(object):
                 )
                 self.req = Requirement(metadata_name)
 
+    def cleanup(self):
+        # type: () -> None
+        if self._temp_dir is not None:
+            self._temp_dir.cleanup()
+
     def prepare_pep517_metadata(self):
         # type: () -> None
         assert self.pep517_backend is not None
 
-        with TempDirectory(delete=False) as temp_dir:
-            metadata_dir = os.path.join(
-                temp_dir.path,
-                'pip-wheel-metadata',
+        self._temp_dir = TempDirectory(delete=False, kind="req-install")
+        self._temp_dir.create()
+        metadata_dir = os.path.join(
+            self._temp_dir.path,
+            'pip-wheel-metadata',
+        )
+        atexit.register(self.cleanup)
+
+        ensure_dir(metadata_dir)
+
+        with self.build_env:
+            # Note that Pep517HookCaller implements a fallback for
+            # prepare_metadata_for_build_wheel, so we don't have to
+            # consider the possibility that this hook doesn't exist.
+            backend = self.pep517_backend
+            self.spin_message = "Preparing wheel metadata"
+            distinfo_dir = backend.prepare_metadata_for_build_wheel(
+                metadata_dir
             )
-            ensure_dir(metadata_dir)
 
-            with self.build_env:
-                # Note that Pep517HookCaller implements a fallback for
-                # prepare_metadata_for_build_wheel, so we don't have to
-                # consider the possibility that this hook doesn't exist.
-                backend = self.pep517_backend
-                self.spin_message = "Preparing wheel metadata"
-                distinfo_dir = backend.prepare_metadata_for_build_wheel(
-                    metadata_dir
-                )
-
-            self.metadata_directory = os.path.join(metadata_dir, distinfo_dir)
+        self.metadata_directory = os.path.join(metadata_dir, distinfo_dir)
 
     def run_egg_info(self):
         # type: () -> None
