@@ -705,6 +705,10 @@ def call_subprocess(
         stdout = None
     else:
         stdout = subprocess.PIPE
+
+    # Only use the spinner when we're capturing stdout and we have one.
+    use_spinner = not show_stdout and spinner is not None
+
     if command_desc is None:
         command_desc = format_command_args(cmd)
 
@@ -738,19 +742,22 @@ def call_subprocess(
                 logger.debug(line)
             else:
                 # Update the spinner
-                if spinner is not None:
+                if use_spinner:
                     spinner.spin()
     try:
         proc.wait()
     finally:
         if proc.stdout:
             proc.stdout.close()
-    if spinner is not None:
-        if proc.returncode:
+    proc_had_error = (
+        proc.returncode and proc.returncode not in extra_ok_returncodes
+    )
+    if use_spinner:
+        if proc_had_error:
             spinner.finish("error")
         else:
             spinner.finish("done")
-    if proc.returncode and proc.returncode not in extra_ok_returncodes:
+    if proc_had_error:
         if on_returncode == 'raise':
             if (logger.getEffectiveLevel() > std_logging.DEBUG and
                     not show_stdout):
