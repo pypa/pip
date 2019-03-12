@@ -619,7 +619,7 @@ class TestTempDirectory(object):
             # All names are going to be longer than our original
             assert min(len(x) for x in some_names) > 1
 
-            # All names are going to be unqiue
+            # All names are going to be unique
             assert len(some_names) == len(set(some_names))
 
             if len(name) == 2:

@@ -165,7 +165,7 @@ class WindowsMixin(object):
         # The Windows terminal does not support the hide/show cursor ANSI codes
         # even with colorama. So we'll ensure that hide_cursor is False on
         # Windows.
-        # This call neds to go before the super() call, so that hide_cursor
+        # This call needs to go before the super() call, so that hide_cursor
         # is set in time. The base progress bar class writes the "hide cursor"
         # code to the terminal in its init, so if we don't set this soon
         # enough, we get a "hide" with no corresponding "show"...

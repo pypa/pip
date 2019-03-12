@@ -52,7 +52,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.download import PipSession
 
     SecureOrigin = Tuple[str, str, Optional[str]]
-    BuildTag = Tuple[Any, ...]  # either emply tuple or Tuple[int, str]
+    BuildTag = Tuple[Any, ...]  # either empty tuple or Tuple[int, str]
     CandidateSortingKey = Tuple[int, _BaseVersion, BuildTag, Optional[int]]
 
 __all__ = ['FormatControl', 'PackageFinder']

@@ -203,7 +203,7 @@ class Configuration(object):
 
     def save(self):
         # type: () -> None
-        """Save the currentin-memory state.
+        """Save the current in-memory state.
         """
         self._ensure_have_load_only()
 

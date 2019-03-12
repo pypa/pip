@@ -101,7 +101,7 @@ def check_dist_restriction(options, check_target=False):
 
     # Installations or downloads using dist restrictions must not combine
     # source distributions and dist-specific wheels, as they are not
-    # gauranteed to be locally compatible.
+    # guaranteed to be locally compatible.
     if dist_restriction_set and sdist_dependencies_allowed:
         raise CommandError(
             "When restricting platform and interpreter constraints using "

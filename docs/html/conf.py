@@ -83,7 +83,7 @@ with open(pip_init) as f:
             break
 
 # We have this here because readthedocs plays tricks sometimes and there seems
-# to be a hiesenbug, related to the version of pip discovered. This is here to
+# to be a heisenbug, related to the version of pip discovered. This is here to
 # help debug that if someone decides to do that in the future.
 print(version)
 
