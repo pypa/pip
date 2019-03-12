@@ -484,6 +484,7 @@ class InstallRequirement(object):
         """
         pep517_data = load_pyproject_toml(
             self.use_pep517,
+            self.editable,
             self.pyproject_toml,
             self.setup_py,
             str(self)
