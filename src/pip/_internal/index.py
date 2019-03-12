@@ -54,6 +54,7 @@ if MYPY_CHECK_RUNNING:
     SecureOrigin = Tuple[str, str, Optional[str]]
     BuildTag = Tuple[Any, ...]  # either emply tuple or Tuple[int, str]
     CandidateSortingKey = Tuple[int, _BaseVersion, BuildTag, Optional[int]]
+    Anchor = Tuple[str, Link]
 
 __all__ = ['FormatControl', 'PackageFinder']
 
@@ -568,17 +569,13 @@ class PackageFinder(object):
         This checks index_urls and find_links.
         All versions found are returned as an InstallationCandidate list.
 
-        See _link_package_versions for details on which files are accepted
+        See _anchor_package_versions for details on which files are accepted
         """
         index_locations = self._get_index_urls_locations(project_name)
         index_file_loc, index_url_loc = self._sort_locations(index_locations)
         fl_file_loc, fl_url_loc = self._sort_locations(
             self.find_links, expand_dir=True,
         )
-
-        file_locations = (Link(url) for url in itertools.chain(
-            index_file_loc, fl_file_loc,
-        ))
 
         # We trust every url that the user has given us whether it was given
         #   via --index-url or --find-links.
@@ -600,9 +597,11 @@ class PackageFinder(object):
         canonical_name = canonicalize_name(project_name)
         formats = self.format_control.get_allowed_formats(canonical_name)
         search = Search(project_name, canonical_name, formats)
+
+        find_links_locations = (Link(url, '-f') for url in self.find_links)
         find_links_versions = self._package_versions(
             # We trust every directly linked archive in find_links
-            (Link(url, '-f') for url in self.find_links),
+            ((link.filename, link) for link in find_links_locations),
             search
         )
 
@@ -611,10 +610,15 @@ class PackageFinder(object):
             logger.debug('Analyzing links from page %s', page.url)
             with indent_log():
                 page_versions.extend(
-                    self._package_versions(page.iter_links(), search)
+                    self._package_versions(page.iter_anchors(), search)
                 )
 
-        file_versions = self._package_versions(file_locations, search)
+        file_locations = (
+            Link(url) for url in itertools.chain(index_file_loc, fl_file_loc)
+        )
+        file_versions = self._package_versions(
+            ((link.filename, link) for link in file_locations), search,
+        )
         if file_versions:
             file_versions.sort(reverse=True)
             logger.debug(
@@ -748,32 +752,32 @@ class PackageFinder(object):
 
     _py_version_re = re.compile(r'-py([123]\.?[0-9]?)$')
 
-    def _sort_links(self, links):
-        # type: (Iterable[Link]) -> List[Link]
+    def _sort_anchors(self, anchors):
+        # type: (Iterable[Anchor]) -> List[Anchor]
         """
         Returns elements of links in order, non-egg links first, egg links
         second, while eliminating duplicates
         """
         eggs, no_eggs = [], []
         seen = set()  # type: Set[Link]
-        for link in links:
+        for text, link in anchors:
             if link not in seen:
                 seen.add(link)
                 if link.egg_fragment:
-                    eggs.append(link)
+                    eggs.append((text, link))
                 else:
-                    no_eggs.append(link)
+                    no_eggs.append((text, link))
         return no_eggs + eggs
 
     def _package_versions(
         self,
-        links,  # type: Iterable[Link]
+        anchors,# type: Iterable[Anchor]
         search  # type: Search
     ):
         # type: (...) -> List[Optional[InstallationCandidate]]
         result = []
-        for link in self._sort_links(links):
-            v = self._link_package_versions(link, search)
+        for anchor in self._sort_anchors(anchors):
+            v = self._anchor_package_versions(anchor, search)
             if v is not None:
                 result.append(v)
         return result
@@ -784,9 +788,10 @@ class PackageFinder(object):
             logger.debug('Skipping link %s; %s', link, reason)
             self.logged_links.add(link)
 
-    def _link_package_versions(self, link, search):
-        # type: (Link, Search) -> Optional[InstallationCandidate]
+    def _anchor_package_versions(self, anchor, search):
+        # type: (Anchor, Search) -> Optional[InstallationCandidate]
         """Return an InstallationCandidate or None"""
+        text, link = anchor
         version = None
         if link.egg_fragment:
             egg_info = link.egg_fragment
@@ -811,7 +816,7 @@ class PackageFinder(object):
                 return None
             if ext == WHEEL_EXTENSION:
                 try:
-                    wheel = Wheel(link.filename)
+                    wheel = Wheel(text)
                 except InvalidWheelFilename:
                     self._log_skipped_link(link, 'invalid wheel filename')
                     return None
@@ -962,9 +967,9 @@ class HTMLPage(object):
     def __str__(self):
         return redact_password_from_url(self.url)
 
-    def iter_links(self):
-        # type: () -> Iterable[Link]
-        """Yields all links in the page"""
+    def iter_anchors(self):
+        # type: () -> Iterable[Anchor]
+        """Yields all anchor information in the page"""
         document = html5lib.parse(
             self.content,
             transport_encoding=_get_encoding_from_headers(self.headers),
@@ -977,7 +982,8 @@ class HTMLPage(object):
                 url = _clean_link(urllib_parse.urljoin(base_url, href))
                 pyrequire = anchor.get('data-requires-python')
                 pyrequire = unescape(pyrequire) if pyrequire else None
-                yield Link(url, self.url, requires_python=pyrequire)
+                link = Link(url, self.url, requires_python=pyrequire)
+                yield (anchor.text, link)
 
 
 Search = namedtuple('Search', 'supplied canonical formats')

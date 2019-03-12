@@ -1,0 +1,1 @@
+Parse text in HTML anchors when collecting links to conform with PEP 503.
