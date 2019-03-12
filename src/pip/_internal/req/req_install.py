@@ -58,7 +58,7 @@ logger = logging.getLogger(__name__)
 class InstallRequirement(object):
     """
     Represents something that may be installed later on, may have information
-    about where to fetch the relavant requirement and also contains logic for
+    about where to fetch the relevant requirement and also contains logic for
     installing the said requirement.
     """
 

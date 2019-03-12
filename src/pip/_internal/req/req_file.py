@@ -364,7 +364,7 @@ def expand_env_variables(lines_enum):
     1. Strings that contain a `$` aren't accidentally (partially) expanded.
     2. Ensure consistency across platforms for requirement files.
 
-    These points are the result of a discusssion on the `github pull
+    These points are the result of a discussion on the `github pull
     request #3514 <https://github.com/pypa/pip/pull/3514>`_.
 
     Valid characters in variable names follow the `POSIX standard

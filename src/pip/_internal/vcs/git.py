@@ -73,7 +73,7 @@ class Git(VersionControl):
             version = version[len(VERSION_PFX):].split()[0]
         else:
             version = ''
-        # get first 3 positions of the git version becasue
+        # get first 3 positions of the git version because
         # on windows it is x.y.z.windows.t, and this parses as
         # LegacyVersion which always smaller than a Version.
         version = '.'.join(version.split('.')[:3])
