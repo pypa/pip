@@ -7,11 +7,12 @@ import os
 import shutil
 import sys
 
+from pip._vendor import pkg_resources
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip._internal.exceptions import BadCommand
 from pip._internal.utils.misc import (
-    display_path, backup_dir, call_subprocess, rmtree, ask_path_exists,
+    ask_path_exists, backup_dir, call_subprocess, display_path, rmtree,
 )
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -27,6 +28,22 @@ __all__ = ['vcs']
 
 
 logger = logging.getLogger(__name__)
+
+
+def make_vcs_requirement_url(repo_url, rev, project_name, subdir=None):
+    """
+    Return the URL for a VCS requirement.
+
+    Args:
+      repo_url: the remote VCS url, with any needed VCS prefix (e.g. "git+").
+      project_name: the (unescaped) project name.
+    """
+    egg_project_name = pkg_resources.to_filename(project_name)
+    req = '{}@{}#egg={}'.format(repo_url, rev, egg_project_name)
+    if subdir:
+        req += '&subdirectory={}'.format(subdir)
+
+    return req
 
 
 class RemoteNotFoundError(Exception):
@@ -185,6 +202,55 @@ class VersionControl(object):
     # Iterable of environment variable names to pass to call_subprocess().
     unset_environ = ()  # type: Tuple[str, ...]
     default_arg_rev = None  # type: Optional[str]
+
+    @classmethod
+    def should_add_vcs_url_prefix(cls, remote_url):
+        """
+        Return whether the vcs prefix (e.g. "git+") should be added to a
+        repository's remote url when used in a requirement.
+        """
+        return not remote_url.lower().startswith('{}:'.format(cls.name))
+
+    @classmethod
+    def get_subdirectory(cls, repo_dir):
+        """
+        Return the path to setup.py, relative to the repo root.
+        """
+        return None
+
+    @classmethod
+    def get_requirement_revision(cls, repo_dir):
+        """
+        Return the revision string that should be used in a requirement.
+        """
+        return cls.get_revision(repo_dir)
+
+    @classmethod
+    def get_src_requirement(cls, repo_dir, project_name):
+        """
+        Return the requirement string to use to redownload the files
+        currently at the given repository directory.
+
+        Args:
+          project_name: the (unescaped) project name.
+
+        The return value has a form similar to the following:
+
+            {repository_url}@{revision}#egg={project_name}
+        """
+        repo_url = cls.get_remote_url(repo_dir)
+        if repo_url is None:
+            return None
+
+        if cls.should_add_vcs_url_prefix(repo_url):
+            repo_url = '{}+{}'.format(cls.name, repo_url)
+
+        revision = cls.get_requirement_revision(repo_dir)
+        subdir = cls.get_subdirectory(repo_dir)
+        req = make_vcs_requirement_url(repo_url, revision, project_name,
+                                       subdir=subdir)
+
+        return req
 
     def __init__(self, url=None, *args, **kwargs):
         self.url = url
@@ -444,16 +510,6 @@ class VersionControl(object):
         if os.path.exists(location):
             rmtree(location)
         self.obtain(location)
-
-    @classmethod
-    def get_src_requirement(cls, location, project_name):
-        """
-        Return a string representing the requirement needed to
-        redownload the files currently present in location, something
-        like:
-          {repository_url}@{revision}#egg={project_name}-{version_identifier}
-        """
-        raise NotImplementedError
 
     @classmethod
     def get_remote_url(cls, location):

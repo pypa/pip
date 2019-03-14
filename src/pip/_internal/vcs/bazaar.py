@@ -6,9 +6,7 @@ import os
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip._internal.download import path_to_url
-from pip._internal.utils.misc import (
-    display_path, make_vcs_requirement_url, rmtree,
-)
+from pip._internal.utils.misc import display_path, rmtree
 from pip._internal.vcs import VersionControl, vcs
 
 logger = logging.getLogger(__name__)
@@ -92,16 +90,6 @@ class Bazaar(VersionControl):
             ['revno'], show_stdout=False, cwd=location,
         )
         return revision.splitlines()[-1]
-
-    @classmethod
-    def get_src_requirement(cls, location, project_name):
-        repo = cls.get_remote_url(location)
-        if not repo:
-            return None
-        if not repo.lower().startswith('bzr:'):
-            repo = 'bzr+' + repo
-        current_rev = cls.get_revision(location)
-        return make_vcs_requirement_url(repo, current_rev, project_name)
 
     def is_commit_id_equal(self, dest, name):
         """Always assume the versions don't match"""

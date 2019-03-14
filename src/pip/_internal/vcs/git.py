@@ -10,9 +10,7 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip._internal.exceptions import BadCommand
 from pip._internal.utils.compat import samefile
-from pip._internal.utils.misc import (
-    display_path, make_vcs_requirement_url, redact_password_from_url,
-)
+from pip._internal.utils.misc import display_path, redact_password_from_url
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.vcs import RemoteNotFoundError, VersionControl, vcs
 
@@ -286,8 +284,7 @@ class Git(VersionControl):
         return current_rev.strip()
 
     @classmethod
-    def _get_subdirectory(cls, location):
-        """Return the relative path of setup.py to the git repo root."""
+    def get_subdirectory(cls, location):
         # find the repo root
         git_dir = cls.run_command(['rev-parse', '--git-dir'],
                                   show_stdout=False, cwd=location).strip()
@@ -312,18 +309,6 @@ class Git(VersionControl):
         if samefile(root_dir, location):
             return None
         return os.path.relpath(location, root_dir)
-
-    @classmethod
-    def get_src_requirement(cls, location, project_name):
-        repo = cls.get_remote_url(location)
-        if not repo.lower().startswith('git:'):
-            repo = 'git+' + repo
-        current_rev = cls.get_revision(location)
-        subdir = cls._get_subdirectory(location)
-        req = make_vcs_requirement_url(repo, current_rev, project_name,
-                                       subdir=subdir)
-
-        return req
 
     def get_url_rev_and_auth(self, url):
         """
