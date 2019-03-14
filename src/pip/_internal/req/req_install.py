@@ -562,6 +562,7 @@ class InstallRequirement(object):
         # type: () -> None
         assert self.pep517_backend is not None
 
+        # NOTE: This needs to be refactored to stop using atexit
         self._temp_dir = TempDirectory(delete=False, kind="req-install")
         self._temp_dir.create()
         metadata_dir = os.path.join(
