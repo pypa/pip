@@ -146,3 +146,6 @@ extra work on your end in order to solve the problems described above.
 6. *(optional)* Update the ``pip_version_check`` logic to use the
    appropriate logic for determining the latest available version of pip and
    prompt the user with the correct upgrade message.
+
+Note that partial debundling is **NOT** supported. You need to prepare wheels
+for all dependencies for successful debundling.
