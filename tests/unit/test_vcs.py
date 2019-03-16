@@ -340,7 +340,7 @@ def test_git__make_rev_args(username, password, expected):
     """
     Test VersionControl.make_rev_args().
     """
-    actual = Git().make_rev_args(username, password)
+    actual = Git.make_rev_args(username, password)
     assert actual == expected
 
 
@@ -353,7 +353,7 @@ def test_subversion__make_rev_args(username, password, expected):
     """
     Test Subversion.make_rev_args().
     """
-    actual = Subversion().make_rev_args(username, password)
+    actual = Subversion.make_rev_args(username, password)
     assert actual == expected
 
 

@@ -113,7 +113,8 @@ class Subversion(VersionControl):
             url = 'svn+' + url
         return url, rev, user_pass
 
-    def make_rev_args(self, username, password):
+    @classmethod
+    def make_rev_args(cls, username, password):
         extra_args = []
         if username:
             extra_args += ['--username', username]

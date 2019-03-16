@@ -337,7 +337,8 @@ class VersionControl(object):
         url = urllib_parse.urlunsplit((scheme, netloc, path, query, ''))
         return url, rev, user_pass
 
-    def make_rev_args(self, username, password):
+    @classmethod
+    def make_rev_args(cls, username, password):
         """
         Return the RevOptions "extra arguments" to use in obtain().
         """
