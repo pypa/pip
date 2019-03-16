@@ -241,10 +241,8 @@ def test_git__get_url_rev__idempotent():
     Also check that it doesn't change self.url.
     """
     url = 'git+git@git.example.com:MyProject#egg=MyProject'
-    vcs = Git(url)
-    result1 = vcs.get_url_rev_and_auth(url)
-    assert vcs.url == url
-    result2 = vcs.get_url_rev_and_auth(url)
+    result1 = Git.get_url_rev_and_auth(url)
+    result2 = Git.get_url_rev_and_auth(url)
     expected = ('git@git.example.com:MyProject', None, (None, None))
     assert result1 == expected
     assert result2 == expected
@@ -261,7 +259,7 @@ def test_version_control__get_url_rev_and_auth(url, expected):
     """
     Test the basic case of VersionControl.get_url_rev_and_auth().
     """
-    actual = VersionControl().get_url_rev_and_auth(url)
+    actual = VersionControl.get_url_rev_and_auth(url)
     assert actual == expected
 
 
@@ -276,7 +274,7 @@ def test_version_control__get_url_rev_and_auth__missing_plus(url):
     missing from the scheme.
     """
     with pytest.raises(ValueError) as excinfo:
-        VersionControl().get_url_rev_and_auth(url)
+        VersionControl.get_url_rev_and_auth(url)
 
     assert 'malformed VCS url' in str(excinfo.value)
 
@@ -305,8 +303,7 @@ def test_bazaar__get_url_rev_and_auth(url, expected):
     """
     Test Bazaar.get_url_rev_and_auth().
     """
-    bzr = Bazaar(url=url)
-    actual = bzr.get_url_rev_and_auth(url)
+    actual = Bazaar.get_url_rev_and_auth(url)
     assert actual == (expected, None, (None, None))
 
 
@@ -328,7 +325,7 @@ def test_subversion__get_url_rev_and_auth(url, expected):
     """
     Test Subversion.get_url_rev_and_auth().
     """
-    actual = Subversion().get_url_rev_and_auth(url)
+    actual = Subversion.get_url_rev_and_auth(url)
     assert actual == expected
 
 

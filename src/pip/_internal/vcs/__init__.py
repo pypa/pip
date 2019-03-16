@@ -312,7 +312,8 @@ class VersionControl(object):
         """
         return netloc, (None, None)
 
-    def get_url_rev_and_auth(self, url):
+    @classmethod
+    def get_url_rev_and_auth(cls, url):
         # type: (str) -> Tuple[str, Optional[str], AuthInfo]
         """
         Parse the repository URL to use, and return the URL, revision,
@@ -329,7 +330,7 @@ class VersionControl(object):
             )
         # Remove the vcs prefix.
         scheme = scheme.split('+', 1)[1]
-        netloc, user_pass = self.get_netloc_and_auth(netloc, scheme)
+        netloc, user_pass = cls.get_netloc_and_auth(netloc, scheme)
         rev = None
         if '@' in path:
             path, rev = path.rsplit('@', 1)

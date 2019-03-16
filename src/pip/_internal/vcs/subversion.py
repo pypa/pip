@@ -105,9 +105,10 @@ class Subversion(VersionControl):
 
         return split_auth_from_netloc(netloc)
 
-    def get_url_rev_and_auth(self, url):
+    @classmethod
+    def get_url_rev_and_auth(cls, url):
         # hotfix the URL scheme after removing svn+ from svn+ssh:// readd it
-        url, rev, user_pass = super(Subversion, self).get_url_rev_and_auth(url)
+        url, rev, user_pass = super(Subversion, cls).get_url_rev_and_auth(url)
         if url.startswith('ssh://'):
             url = 'svn+' + url
         return url, rev, user_pass

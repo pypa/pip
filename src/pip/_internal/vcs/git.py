@@ -310,7 +310,8 @@ class Git(VersionControl):
             return None
         return os.path.relpath(location, root_dir)
 
-    def get_url_rev_and_auth(self, url):
+    @classmethod
+    def get_url_rev_and_auth(cls, url):
         """
         Prefixes stub URLs like 'user@hostname:user/repo.git' with 'ssh://'.
         That's required because although they use SSH they sometimes don't
@@ -320,10 +321,10 @@ class Git(VersionControl):
         if '://' not in url:
             assert 'file:' not in url
             url = url.replace('git+', 'git+ssh://')
-            url, rev, user_pass = super(Git, self).get_url_rev_and_auth(url)
+            url, rev, user_pass = super(Git, cls).get_url_rev_and_auth(url)
             url = url.replace('ssh://', '')
         else:
-            url, rev, user_pass = super(Git, self).get_url_rev_and_auth(url)
+            url, rev, user_pass = super(Git, cls).get_url_rev_and_auth(url)
 
         return url, rev, user_pass
 
