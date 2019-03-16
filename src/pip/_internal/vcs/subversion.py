@@ -29,7 +29,8 @@ class Subversion(VersionControl):
     def should_add_vcs_url_prefix(cls, remote_url):
         return True
 
-    def get_base_rev_args(self, rev):
+    @classmethod
+    def get_base_rev_args(cls, rev):
         return ['-r', rev]
 
     def export(self, location):

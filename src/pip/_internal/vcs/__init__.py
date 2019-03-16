@@ -256,7 +256,8 @@ class VersionControl(object):
         self.url = url
         super(VersionControl, self).__init__(*args, **kwargs)
 
-    def get_base_rev_args(self, rev):
+    @classmethod
+    def get_base_rev_args(cls, rev):
         """
         Return the base revision arguments for a vcs command.
 

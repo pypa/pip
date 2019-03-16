@@ -61,7 +61,8 @@ class Git(VersionControl):
 
         super(Git, self).__init__(url, *args, **kwargs)
 
-    def get_base_rev_args(self, rev):
+    @classmethod
+    def get_base_rev_args(cls, rev):
         return [rev]
 
     def get_git_version(self):
