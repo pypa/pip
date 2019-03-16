@@ -12,6 +12,7 @@ import subprocess
 import pytest
 from scripttest import FoundDir, TestFileEnvironment
 
+from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
 from tests.lib.path import Path, curdir
 
 DATA_DIR = Path(__file__).folder.folder.join("data").abspath
@@ -262,6 +263,46 @@ class TestPipResult(object):
                 )
 
 
+def check_stderr(
+    stderr, expect_stderr_warning=False, expect_stderr_error=False,
+):
+    """
+    Check the given stderr for logged warnings and errors.
+
+    :param stderr: stderr output as a string.
+    :param expect_stderr_warning: whether a logged warning (or deprecation
+        message) is allowed.
+    :param expect_stderr_error: whether a logged error is allowed.  Passing
+        True for this argument implies `expect_stderr_warning` since warnings
+        are weaker than errors.
+    """
+    if expect_stderr_error:
+        expect_stderr_warning = True
+
+    if expect_stderr_error:
+        # Then any stderr is acceptable.
+        return
+
+    lines = stderr.splitlines()
+    for line in lines:
+        if line.startswith('ERROR: '):
+            raise RuntimeError(
+                'stderr has an unexpected error '
+                '(pass expect_stderr_error=True to permit this): {}'
+                .format(line)
+            )
+        if expect_stderr_warning:
+            continue
+
+        if (line.startswith('WARNING: ') or
+                line.startswith(DEPRECATION_MSG_PREFIX)):
+            raise RuntimeError(
+                'stderr has an unexpected warning '
+                '(pass expect_stderr_warning=True to permit this): {}'
+                .format(line)
+            )
+
+
 class PipTestEnvironment(TestFileEnvironment):
     """
     A specialized TestFileEnvironment for testing pip
@@ -368,6 +409,17 @@ class PipTestEnvironment(TestFileEnvironment):
             super(PipTestEnvironment, self)._find_traverse(path, result)
 
     def run(self, *args, **kw):
+        """
+        :param expect_stderr_warning: whether a logged warning (or
+            deprecation message) is allowed in stderr.
+        :param expect_stderr_error: whether a logged error is allowed in
+            stderr.  Passing True for this argument implies
+            `expect_stderr_warning` since warnings are weaker than errors.
+        :param expect_stderr: allow any stderr (equivalent to passing
+            `expect_stderr_error`).  This argument is an abbreviated version
+            of `expect_stderr_error` and is also kept for backwards
+            compatibility.
+        """
         if self.verbose:
             print('>> running %s %s' % (args, kw))
         cwd = kw.pop('cwd', None)
@@ -377,10 +429,27 @@ class PipTestEnvironment(TestFileEnvironment):
         if sys.platform == 'win32':
             # Partial fix for ScriptTest.run using `shell=True` on Windows.
             args = [str(a).replace('^', '^^').replace('&', '^&') for a in args]
-        return TestPipResult(
-            super(PipTestEnvironment, self).run(cwd=cwd, *args, **kw),
-            verbose=self.verbose,
+
+        # Remove `expect_stderr_error` and `expect_stderr_warning` because
+        # those arguments are not supported by PipTestEnvironment.
+        expect_stderr_error = kw.pop('expect_stderr_error', False)
+        expect_stderr_warning = kw.pop('expect_stderr_warning', False)
+
+        if kw.get('expect_error') or kw.get('expect_stderr'):
+            # Then default to allowing logged errors.
+            expect_stderr_error = True
+
+        # Pass expect_stderr=True to allow any stderr.  We do this because
+        # we do our checking of stderr further on in check_stderr().
+        kw['expect_stderr'] = True
+        result = super(PipTestEnvironment, self).run(cwd=cwd, *args, **kw)
+
+        check_stderr(
+            result.stderr, expect_stderr_error=expect_stderr_error,
+            expect_stderr_warning=expect_stderr_warning,
         )
+
+        return TestPipResult(result, verbose=self.verbose)
 
     def pip(self, *args, **kwargs):
         if self.pip_expect_stderr:
