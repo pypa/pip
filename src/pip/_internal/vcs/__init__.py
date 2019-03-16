@@ -293,7 +293,8 @@ class VersionControl(object):
         """
         raise NotImplementedError
 
-    def get_netloc_and_auth(self, netloc, scheme):
+    @classmethod
+    def get_netloc_and_auth(cls, netloc, scheme):
         """
         Parse the repository URL's netloc, and return the new netloc to use
         along with auth information.

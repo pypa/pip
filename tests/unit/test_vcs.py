@@ -206,7 +206,7 @@ def test_git__get_netloc_and_auth(args, expected):
     Test VersionControl.get_netloc_and_auth().
     """
     netloc, scheme = args
-    actual = Git().get_netloc_and_auth(netloc, scheme)
+    actual = Git.get_netloc_and_auth(netloc, scheme)
     assert actual == expected
 
 
@@ -229,7 +229,7 @@ def test_subversion__get_netloc_and_auth(args, expected):
     Test Subversion.get_netloc_and_auth().
     """
     netloc, scheme = args
-    actual = Subversion().get_netloc_and_auth(netloc, scheme)
+    actual = Subversion.get_netloc_and_auth(netloc, scheme)
     assert actual == expected
 
 
