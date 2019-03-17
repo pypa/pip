@@ -28,8 +28,8 @@ class Bazaar(VersionControl):
         if getattr(urllib_parse, 'uses_fragment', None):
             urllib_parse.uses_fragment.extend(['lp'])
 
-    @classmethod
-    def get_base_rev_args(cls, rev):
+    @staticmethod
+    def get_base_rev_args(rev):
         return ['-r', rev]
 
     def export(self, location):

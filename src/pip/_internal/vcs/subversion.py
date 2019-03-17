@@ -29,8 +29,8 @@ class Subversion(VersionControl):
     def should_add_vcs_url_prefix(cls, remote_url):
         return True
 
-    @classmethod
-    def get_base_rev_args(cls, rev):
+    @staticmethod
+    def get_base_rev_args(rev):
         return ['-r', rev]
 
     def export(self, location):
@@ -114,8 +114,8 @@ class Subversion(VersionControl):
             url = 'svn+' + url
         return url, rev, user_pass
 
-    @classmethod
-    def make_rev_args(cls, username, password):
+    @staticmethod
+    def make_rev_args(username, password):
         extra_args = []
         if username:
             extra_args += ['--username', username]

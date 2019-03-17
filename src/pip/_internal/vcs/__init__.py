@@ -261,8 +261,8 @@ class VersionControl(object):
         self.url = url
         super(VersionControl, self).__init__(*args, **kwargs)
 
-    @classmethod
-    def get_base_rev_args(cls, rev):
+    @staticmethod
+    def get_base_rev_args(rev):
         """
         Return the base revision arguments for a vcs command.
 
@@ -344,8 +344,8 @@ class VersionControl(object):
         url = urllib_parse.urlunsplit((scheme, netloc, path, query, ''))
         return url, rev, user_pass
 
-    @classmethod
-    def make_rev_args(cls, username, password):
+    @staticmethod
+    def make_rev_args(username, password):
         """
         Return the RevOptions "extra arguments" to use in obtain().
         """
