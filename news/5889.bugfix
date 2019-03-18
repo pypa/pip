@@ -1,6 +1,2 @@
-Pip would like to ensure that requirements from pypi do not install dependencies from URLs.
-
-The check for "domains_not_allowed" in the "comes_from" requirement caused an exception if there was no comes from URL,
-or a default comes_from=None was set.  This bug has been removed.
-
-This appears to resolve Issue 5889.
+Fixed crash when installing a requirement from url that comes from a
+dependency without a URL.
