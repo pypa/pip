@@ -132,8 +132,7 @@ def test_git_resolve_revision_rev_exists(get_sha_mock):
     url = 'git+https://git.example.com'
     rev_options = Git.make_rev_options('develop')
 
-    git = Git()
-    new_options = git.resolve_revision('.', url, rev_options)
+    new_options = Git.resolve_revision('.', url, rev_options)
     assert new_options.rev == '123456'
 
 
@@ -143,8 +142,7 @@ def test_git_resolve_revision_rev_not_found(get_sha_mock):
     url = 'git+https://git.example.com'
     rev_options = Git.make_rev_options('develop')
 
-    git = Git()
-    new_options = git.resolve_revision('.', url, rev_options)
+    new_options = Git.resolve_revision('.', url, rev_options)
     assert new_options.rev == 'develop'
 
 
@@ -155,12 +153,11 @@ def test_git_resolve_revision_not_found_warning(get_sha_mock, caplog):
     sha = 40 * 'a'
     rev_options = Git.make_rev_options(sha)
 
-    git = Git()
-    new_options = git.resolve_revision('.', url, rev_options)
+    new_options = Git.resolve_revision('.', url, rev_options)
     assert new_options.rev == sha
 
     rev_options = Git.make_rev_options(sha[:6])
-    new_options = git.resolve_revision('.', url, rev_options)
+    new_options = Git.resolve_revision('.', url, rev_options)
     assert new_options.rev == 'aaaaaa'
 
     # Check that a warning got logged only for the abbreviated hash.

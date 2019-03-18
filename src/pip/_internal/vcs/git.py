@@ -145,7 +145,8 @@ class Git(VersionControl):
 
         return (sha, False)
 
-    def resolve_revision(self, dest, url, rev_options):
+    @classmethod
+    def resolve_revision(cls, dest, url, rev_options):
         """
         Resolve a revision to a new RevOptions object with the SHA1 of the
         branch, tag, or ref if found.
@@ -154,7 +155,7 @@ class Git(VersionControl):
           rev_options: a RevOptions object.
         """
         rev = rev_options.arg_rev
-        sha, is_branch = self.get_revision_sha(dest, rev)
+        sha, is_branch = cls.get_revision_sha(dest, rev)
 
         if sha is not None:
             rev_options = rev_options.make_new(sha)
@@ -174,12 +175,12 @@ class Git(VersionControl):
             return rev_options
 
         # If it looks like a ref, we have to fetch it explicitly.
-        self.run_command(
+        cls.run_command(
             ['fetch', '-q', url] + rev_options.to_args(),
             cwd=dest,
         )
         # Change the revision to the SHA of the ref we fetched
-        sha = self.get_revision(dest, rev='FETCH_HEAD')
+        sha = cls.get_revision(dest, rev='FETCH_HEAD')
         rev_options = rev_options.make_new(sha)
 
         return rev_options
