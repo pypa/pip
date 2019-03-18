@@ -110,7 +110,8 @@ class Git(VersionControl):
                 show_stdout=False, cwd=temp_dir.path
             )
 
-    def get_revision_sha(self, dest, rev):
+    @classmethod
+    def get_revision_sha(cls, dest, rev):
         """
         Return (sha_or_none, is_branch), where sha_or_none is a commit hash
         if the revision names a remote branch or tag, otherwise None.
@@ -120,8 +121,8 @@ class Git(VersionControl):
           rev: the revision name.
         """
         # Pass rev to pre-filter the list.
-        output = self.run_command(['show-ref', rev], cwd=dest,
-                                  show_stdout=False, on_returncode='ignore')
+        output = cls.run_command(['show-ref', rev], cwd=dest,
+                                 show_stdout=False, on_returncode='ignore')
         refs = {}
         for line in output.strip().splitlines():
             try:

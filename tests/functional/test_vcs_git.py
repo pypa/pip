@@ -44,8 +44,7 @@ def add_commits(script, dest, count):
 
 
 def check_rev(repo_dir, rev, expected):
-    git = Git()
-    assert git.get_revision_sha(repo_dir, rev) == expected
+    assert Git.get_revision_sha(repo_dir, rev) == expected
 
 
 def test_git_dir_ignored(tmpdir):
