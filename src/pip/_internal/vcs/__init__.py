@@ -364,7 +364,8 @@ class VersionControl(object):
 
         return url, rev_options
 
-    def normalize_url(self, url):
+    @staticmethod
+    def normalize_url(url):
         # type: (str) -> str
         """
         Normalize a URL for comparison by unquoting it and removing any
@@ -372,12 +373,13 @@ class VersionControl(object):
         """
         return urllib_parse.unquote(url).rstrip('/')
 
-    def compare_urls(self, url1, url2):
+    @classmethod
+    def compare_urls(cls, url1, url2):
         # type: (str, str) -> bool
         """
         Compare two repo URLs for identity, ignoring incidental differences.
         """
-        return (self.normalize_url(url1) == self.normalize_url(url2))
+        return (cls.normalize_url(url1) == cls.normalize_url(url2))
 
     @classmethod
     def fetch_new(cls, dest, url, rev_options):
