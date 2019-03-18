@@ -3,8 +3,6 @@ from __future__ import absolute_import
 
 from itertools import chain, groupby, repeat
 
-from pip._vendor.six import iteritems
-
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -240,6 +238,7 @@ class HashMismatch(HashError):
             return chain([hash_name], repeat('    or'))
 
         lines = []
+        from pip._vendor.six import iteritems
         for hash_name, expecteds in iteritems(self.allowed):
             prefix = hash_then_or(hash_name)
             lines.extend(('        Expected %s %s' % (next(prefix), e))

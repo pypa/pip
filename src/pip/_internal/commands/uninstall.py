@@ -1,12 +1,6 @@
 from __future__ import absolute_import
 
-from pip._vendor.packaging.utils import canonicalize_name
-
 from pip._internal.cli.base_command import Command
-from pip._internal.exceptions import InstallationError
-from pip._internal.req import parse_requirements
-from pip._internal.req.constructors import install_req_from_line
-from pip._internal.utils.misc import protect_pip_from_modification_on_windows
 
 
 class UninstallCommand(Command):
@@ -45,6 +39,13 @@ class UninstallCommand(Command):
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
+        from pip._vendor.packaging.utils import canonicalize_name
+
+        from pip._internal.exceptions import InstallationError
+        from pip._internal.req import parse_requirements
+        from pip._internal.req.constructors import install_req_from_line
+        from pip._internal.utils.misc import protect_pip_from_modification_on_windows
+
         with self._build_session(options) as session:
             reqs_to_uninstall = {}
             for name in args:

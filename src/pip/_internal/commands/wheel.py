@@ -2,18 +2,8 @@
 from __future__ import absolute_import
 
 import logging
-import os
 
-from pip._internal.cache import WheelCache
-from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import RequirementCommand
-from pip._internal.exceptions import CommandError, PreviousBuildDirError
-from pip._internal.operations.prepare import RequirementPreparer
-from pip._internal.req import RequirementSet
-from pip._internal.req.req_tracker import RequirementTracker
-from pip._internal.resolve import Resolver
-from pip._internal.utils.temp_dir import TempDirectory
-from pip._internal.wheel import WheelBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +35,10 @@ class WheelCommand(RequirementCommand):
 
     def __init__(self, *args, **kw):
         super(WheelCommand, self).__init__(*args, **kw)
+
+        import os
+
+        from pip._internal.cli import cmdoptions
 
         cmd_opts = self.cmd_opts
 
@@ -106,6 +100,18 @@ class WheelCommand(RequirementCommand):
         self.parser.insert_option_group(0, cmd_opts)
 
     def run(self, options, args):
+        import os
+
+        from pip._internal.cache import WheelCache
+        from pip._internal.cli import cmdoptions
+        from pip._internal.exceptions import CommandError, PreviousBuildDirError
+        from pip._internal.operations.prepare import RequirementPreparer
+        from pip._internal.req import RequirementSet
+        from pip._internal.req.req_tracker import RequirementTracker
+        from pip._internal.resolve import Resolver
+        from pip._internal.utils.temp_dir import TempDirectory
+        from pip._internal.wheel import WheelBuilder
+
         cmdoptions.check_install_build_global(options)
 
         index_urls = [options.index_url] + options.extra_index_urls

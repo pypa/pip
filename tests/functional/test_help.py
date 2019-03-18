@@ -1,7 +1,7 @@
 import pytest
 from mock import Mock
 
-from pip._internal.cli.base_command import ERROR, SUCCESS
+from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.commands import commands_dict as commands
 from pip._internal.commands.help import HelpCommand
 from pip._internal.exceptions import CommandError

@@ -1,14 +1,8 @@
 from __future__ import absolute_import
 
 import logging
-import os
-from email.parser import FeedParser
-
-from pip._vendor import pkg_resources
-from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.cli.base_command import Command
-from pip._internal.cli.status_codes import ERROR, SUCCESS
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +31,9 @@ class ShowCommand(Command):
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
+
+        from pip._internal.cli.status_codes import ERROR, SUCCESS
+
         if not args:
             logger.warning('ERROR: Please provide a package name or names.')
             return ERROR
@@ -56,6 +53,12 @@ def search_packages_info(query):
     pip generated 'installed-files.txt' in the distributions '.egg-info'
     directory.
     """
+    import os
+    from email.parser import FeedParser
+
+    from pip._vendor import pkg_resources
+    from pip._vendor.packaging.utils import canonicalize_name
+
     installed = {}
     for p in pkg_resources.working_set:
         installed[canonicalize_name(p.project_name)] = p
@@ -126,6 +129,9 @@ def print_results(distributions, list_files=False, verbose=False):
     """
     Print the informations from installed distributions found.
     """
+
+    from pip._vendor import pkg_resources
+
     results_printed = False
     for i, dist in enumerate(distributions):
         results_printed = True

@@ -37,14 +37,13 @@ else:
         else:
             securetransport.inject_into_urllib3()
 
-from pip._internal.cli.autocompletion import autocomplete
 from pip._internal.cli.main_parser import parse_command
 from pip._internal.commands import commands_dict
 from pip._internal.exceptions import PipError
 from pip._internal.utils import deprecation
+
 from pip._internal.vcs import git, mercurial, subversion, bazaar  # noqa
 from pip._vendor.urllib3.exceptions import InsecureRequestWarning
-
 logger = logging.getLogger(__name__)
 
 # Hide the InsecureRequestWarning from urllib3
@@ -58,7 +57,10 @@ def main(args=None):
     # Configure our deprecation warnings to be sent through loggers
     deprecation.install_warning_logger()
 
-    autocomplete()
+    if 'PIP_AUTO_COMPLETE' in os.environ:
+        from pip._internal.cli.autocompletion import autocomplete
+        autocomplete()
+        return 1
 
     try:
         cmd_name, cmd_args = parse_command(args)

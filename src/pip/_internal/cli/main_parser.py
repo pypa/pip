@@ -4,18 +4,7 @@
 import os
 import sys
 
-from pip import __version__
-from pip._internal.cli import cmdoptions
-from pip._internal.cli.parser import (
-    ConfigOptionParser, UpdatingDefaultsHelpFormatter,
-)
-from pip._internal.commands import (
-    commands_dict, get_similar_commands, get_summaries,
-)
-from pip._internal.exceptions import CommandError
-from pip._internal.utils.misc import get_prog
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
 if MYPY_CHECK_RUNNING:
     from typing import Tuple, List
 
@@ -27,6 +16,16 @@ def create_main_parser():
     # type: () -> ConfigOptionParser
     """Creates and returns the main parser for pip's CLI
     """
+
+    from pip import __version__
+    from pip._internal.cli import cmdoptions
+    from pip._internal.cli.parser import (
+        ConfigOptionParser, UpdatingDefaultsHelpFormatter,
+    )
+    from pip._internal.commands import (
+        get_summaries,
+    )
+    from pip._internal.utils.misc_fast_import import get_prog
 
     parser_kw = {
         'usage': '\n%prog <command> [options]',
@@ -63,6 +62,11 @@ def create_main_parser():
 
 def parse_command(args):
     # type: (List[str]) -> Tuple[str, List[str]]
+    from pip._internal.commands import (
+        commands_dict, get_similar_commands,
+    )
+    from pip._internal.exceptions import CommandError
+
     parser = create_main_parser()
 
     # Note: parser calls disable_interspersed_args(), so the result of this

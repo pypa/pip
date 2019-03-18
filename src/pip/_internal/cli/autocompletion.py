@@ -98,7 +98,6 @@ def autocomplete():
                 subcommands = auto_complete_paths(current, completion_type)
 
         print(' '.join([x for x in subcommands if x.startswith(current)]))
-    sys.exit(1)
 
 
 def get_path_completion_type(cwords, cword, opts):

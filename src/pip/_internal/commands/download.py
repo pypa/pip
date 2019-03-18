@@ -3,15 +3,7 @@ from __future__ import absolute_import
 import logging
 import os
 
-from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import RequirementCommand
-from pip._internal.operations.prepare import RequirementPreparer
-from pip._internal.req import RequirementSet
-from pip._internal.req.req_tracker import RequirementTracker
-from pip._internal.resolve import Resolver
-from pip._internal.utils.filesystem import check_path_owner
-from pip._internal.utils.misc import ensure_dir, normalize_path
-from pip._internal.utils.temp_dir import TempDirectory
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +33,8 @@ class DownloadCommand(RequirementCommand):
 
     def __init__(self, *args, **kw):
         super(DownloadCommand, self).__init__(*args, **kw)
+
+        from pip._internal.cli import cmdoptions
 
         cmd_opts = self.cmd_opts
 
@@ -83,6 +77,15 @@ class DownloadCommand(RequirementCommand):
         self.parser.insert_option_group(0, cmd_opts)
 
     def run(self, options, args):
+        from pip._internal.cli import cmdoptions
+        from pip._internal.operations.prepare import RequirementPreparer
+        from pip._internal.req import RequirementSet
+        from pip._internal.req.req_tracker import RequirementTracker
+        from pip._internal.resolve import Resolver
+        from pip._internal.utils.filesystem import check_path_owner
+        from pip._internal.utils.misc import ensure_dir, normalize_path
+        from pip._internal.utils.temp_dir import TempDirectory
+
         options.ignore_installed = True
         # editable doesn't really make sense for `pip download`, but the bowels
         # of the RequirementSet code require that property.

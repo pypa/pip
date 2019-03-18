@@ -3,17 +3,7 @@ from __future__ import absolute_import
 import json
 import logging
 
-from pip._vendor import six
-from pip._vendor.six.moves import zip_longest
-
-from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
-from pip._internal.exceptions import CommandError
-from pip._internal.index import PackageFinder
-from pip._internal.utils.misc import (
-    dist_is_editable, get_installed_distributions,
-)
-from pip._internal.utils.packaging import get_installer
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +21,8 @@ class ListCommand(Command):
 
     def __init__(self, *args, **kw):
         super(ListCommand, self).__init__(*args, **kw)
+
+        from pip._internal.cli import cmdoptions
 
         cmd_opts = self.cmd_opts
 
@@ -113,6 +105,8 @@ class ListCommand(Command):
         """
         Create a package finder appropriate to this list command.
         """
+
+        from pip._internal.index import PackageFinder
         return PackageFinder(
             find_links=options.find_links,
             index_urls=index_urls,
@@ -122,6 +116,12 @@ class ListCommand(Command):
         )
 
     def run(self, options, args):
+
+        from pip._internal.exceptions import CommandError
+        from pip._internal.utils.misc import (
+            get_installed_distributions,
+        )
+
         if options.outdated and options.uptodate:
             raise CommandError(
                 "Options --outdated and --uptodate cannot be combined.")
@@ -230,6 +230,8 @@ class ListCommand(Command):
 
 
 def tabulate(vals):
+    from pip._vendor.six.moves import zip_longest
+
     # From pfmoore on GitHub:
     # https://github.com/pypa/pip/issues/3651#issuecomment-216932564
     assert len(vals) > 0
@@ -252,6 +254,11 @@ def format_for_columns(pkgs, options):
     Convert the package data into something usable
     by output_package_listing_columns.
     """
+
+    from pip._internal.utils.misc import (
+        dist_is_editable, )
+    from pip._internal.utils.packaging import get_installer
+
     running_outdated = options.outdated
     # Adjust the header for the `pip list --outdated` case.
     if running_outdated:
@@ -285,6 +292,10 @@ def format_for_columns(pkgs, options):
 
 
 def format_for_json(packages, options):
+    from pip._vendor import six
+
+    from pip._internal.utils.packaging import get_installer
+
     data = []
     for dist in packages:
         info = {

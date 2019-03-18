@@ -2,38 +2,7 @@
 from __future__ import absolute_import, print_function
 
 import logging
-import logging.config
-import optparse
-import os
-import platform
-import sys
-import traceback
 
-from pip._internal.cli import cmdoptions
-from pip._internal.cli.parser import (
-    ConfigOptionParser, UpdatingDefaultsHelpFormatter,
-)
-from pip._internal.cli.status_codes import (
-    ERROR, PREVIOUS_BUILD_DIR_ERROR, SUCCESS, UNKNOWN_ERROR,
-    VIRTUALENV_NOT_FOUND,
-)
-from pip._internal.download import PipSession
-from pip._internal.exceptions import (
-    BadCommand, CommandError, InstallationError, PreviousBuildDirError,
-    UninstallationError,
-)
-from pip._internal.index import PackageFinder
-from pip._internal.locations import running_under_virtualenv
-from pip._internal.req.constructors import (
-    install_req_from_editable, install_req_from_line,
-)
-from pip._internal.req.req_file import parse_requirements
-from pip._internal.utils.deprecation import deprecated
-from pip._internal.utils.logging import BrokenStdoutLoggingError, setup_logging
-from pip._internal.utils.misc import (
-    get_prog, normalize_path, redact_password_from_url,
-)
-from pip._internal.utils.outdated import pip_version_check
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -54,6 +23,15 @@ class Command(object):
 
     def __init__(self, isolated=False):
         # type: (bool) -> None
+
+        import optparse
+
+        from pip._internal.cli import cmdoptions
+        from pip._internal.cli.parser import (
+            ConfigOptionParser, UpdatingDefaultsHelpFormatter,
+        )
+        from pip._internal.utils.misc_fast_import import get_prog
+
         parser_kw = {
             'usage': self.usage,
             'prog': '%s %s' % (get_prog(), self.name),
@@ -83,6 +61,12 @@ class Command(object):
 
     def _build_session(self, options, retries=None, timeout=None):
         # type: (Values, Optional[int], Optional[int]) -> PipSession
+        import os
+
+        from pip._internal.download import PipSession
+        from pip._internal.utils.misc import (
+            normalize_path, )
+
         session = PipSession(
             cache=(
                 normalize_path(os.path.join(options.cache_dir, "http"))
@@ -125,6 +109,25 @@ class Command(object):
 
     def main(self, args):
         # type: (List[str]) -> int
+        import logging.config
+        import os
+        import platform
+        import sys
+        import traceback
+
+        from pip._internal.cli.status_codes import (
+            ERROR, PREVIOUS_BUILD_DIR_ERROR, SUCCESS, UNKNOWN_ERROR,
+            VIRTUALENV_NOT_FOUND,
+        )
+        from pip._internal.exceptions import (
+            BadCommand, CommandError, InstallationError, PreviousBuildDirError,
+            UninstallationError,
+        )
+        from pip._internal.locations import running_under_virtualenv
+        from pip._internal.utils.deprecation import deprecated
+        from pip._internal.utils.logging import BrokenStdoutLoggingError, setup_logging
+        from pip._internal.utils.outdated import pip_version_check
+
         options, args = self.parse_args(args)
 
         # Set verbosity so that it can be used elsewhere.
@@ -253,6 +256,15 @@ class RequirementCommand(Command):
         # NOTE: As a side-effect, options.require_hashes and
         #       requirement_set.require_hashes may be updated
 
+        from pip._internal.download import PipSession
+        from pip._internal.exceptions import (
+            CommandError, )
+        from pip._internal.index import PackageFinder
+        from pip._internal.req.constructors import (
+            install_req_from_editable, install_req_from_line,
+        )
+        from pip._internal.req.req_file import parse_requirements
+
         for filename in options.constraints:
             for req_to_add in parse_requirements(
                     filename,
@@ -314,6 +326,13 @@ class RequirementCommand(Command):
         implementation=None    # type: Optional[str]
     ):
         # type: (...) -> PackageFinder
+
+        from pip._internal.download import PipSession
+        from pip._internal.index import PackageFinder
+        from pip._internal.utils.misc import (
+            redact_password_from_url,
+        )
+
         """
         Create a package finder appropriate to this requirement command.
         """

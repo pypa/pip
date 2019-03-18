@@ -57,8 +57,7 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'is_svn_page', 'file_contents',
            'split_leading_dir', 'has_leading_dir',
            'normalize_path',
-           'renames', 'get_prog',
-           'unzip_file', 'untar_file', 'unpack_file', 'call_subprocess',
+           'renames', 'unzip_file', 'untar_file', 'unpack_file', 'call_subprocess',
            'captured_stdout', 'ensure_dir',
            'ARCHIVE_EXTENSIONS', 'SUPPORTED_EXTENSIONS', 'WHEEL_EXTENSION',
            'get_installed_version', 'remove_auth_from_url']
@@ -99,19 +98,6 @@ def ensure_dir(path):
     except OSError as e:
         if e.errno != errno.EEXIST:
             raise
-
-
-def get_prog():
-    # type: () -> str
-    try:
-        prog = os.path.basename(sys.argv[0])
-        if prog in ('__main__.py', '-c'):
-            return "%s -m pip" % sys.executable
-        else:
-            return prog
-    except (AttributeError, TypeError, IndexError):
-        pass
-    return 'pip'
 
 
 # Retry every half second for up to 3 seconds

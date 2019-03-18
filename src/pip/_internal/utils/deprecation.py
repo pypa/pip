@@ -6,8 +6,6 @@ from __future__ import absolute_import
 import logging
 import warnings
 
-from pip._vendor.packaging.version import parse
-
 from pip import __version__ as current_version
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -86,6 +84,8 @@ def deprecated(reason, replacement, gone_in, issue=None):
     if issue is not None:
         url = "https://github.com/pypa/pip/issues/" + str(issue)
         message += " You can find discussion regarding this at {}.".format(url)
+
+    from pip._vendor.packaging.version import parse
 
     # Raise as an error if it has to be removed.
     if gone_in is not None and parse(current_version) >= parse(gone_in):

@@ -3,12 +3,7 @@ import os
 import subprocess
 
 from pip._internal.cli.base_command import Command
-from pip._internal.cli.status_codes import ERROR, SUCCESS
-from pip._internal.configuration import Configuration, kinds
-from pip._internal.exceptions import PipError
-from pip._internal.locations import running_under_virtualenv, site_config_file
-from pip._internal.utils.deprecation import deprecated
-from pip._internal.utils.misc import get_prog
+from pip._internal.utils.misc_fast_import import get_prog
 
 logger = logging.getLogger(__name__)
 
@@ -96,6 +91,10 @@ class ConfigurationCommand(Command):
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
+        from pip._internal.cli.status_codes import ERROR, SUCCESS
+        from pip._internal.configuration import Configuration
+        from pip._internal.exceptions import PipError
+
         handlers = {
             "list": self.list_values,
             "edit": self.open_in_editor,
@@ -139,6 +138,11 @@ class ConfigurationCommand(Command):
         return SUCCESS
 
     def _determine_file(self, options, need_value):
+        from pip._internal.configuration import kinds
+        from pip._internal.exceptions import PipError
+        from pip._internal.locations import running_under_virtualenv, site_config_file
+        from pip._internal.utils.deprecation import deprecated
+
         # Convert legacy venv_file option to site_file or error
         if options.venv_file and not options.site_file:
             if running_under_virtualenv():
@@ -201,6 +205,8 @@ class ConfigurationCommand(Command):
         self._save_configuration()
 
     def open_in_editor(self, options, args):
+        from pip._internal.exceptions import PipError
+
         editor = self._determine_editor(options)
 
         fname = self.configuration.get_file_to_edit()
@@ -218,6 +224,7 @@ class ConfigurationCommand(Command):
     def _get_n_args(self, args, example, n):
         """Helper to make sure the command got the right number of arguments
         """
+        from pip._internal.exceptions import PipError
         if len(args) != n:
             msg = (
                 'Got unexpected number of arguments, expected {}. '
@@ -231,6 +238,7 @@ class ConfigurationCommand(Command):
             return args
 
     def _save_configuration(self):
+        from pip._internal.exceptions import PipError
         # We successfully ran a modifying command. Need to save the
         # configuration.
         try:
@@ -243,6 +251,7 @@ class ConfigurationCommand(Command):
             raise PipError("Internal Error.")
 
     def _determine_editor(self, options):
+        from pip._internal.exceptions import PipError
         if options.editor is not None:
             return options.editor
         elif "VISUAL" in os.environ:

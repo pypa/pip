@@ -4,7 +4,8 @@ import sys
 import textwrap
 
 from pip._internal.cli.base_command import Command
-from pip._internal.utils.misc import get_prog
+from pip._internal.utils.misc_fast_import import get_prog
+
 
 BASE_COMPLETION = """
 # pip %(shell)s completion start%(script)s# pip %(shell)s completion end

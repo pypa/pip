@@ -5,9 +5,6 @@ import logging
 import sys
 
 from pip._internal.cli.base_command import Command
-from pip._internal.cli.status_codes import ERROR
-from pip._internal.utils.hashes import FAVORITE_HASH, STRONG_HASHES
-from pip._internal.utils.misc import read_chunks
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +24,8 @@ class HashCommand(Command):
 
     def __init__(self, *args, **kw):
         super(HashCommand, self).__init__(*args, **kw)
+
+        from pip._internal.utils.hashes import FAVORITE_HASH, STRONG_HASHES
         self.cmd_opts.add_option(
             '-a', '--algorithm',
             dest='algorithm',
@@ -38,6 +37,8 @@ class HashCommand(Command):
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
+        from pip._internal.cli.status_codes import ERROR
+
         if not args:
             self.parser.print_usage(sys.stderr)
             return ERROR
@@ -50,6 +51,8 @@ class HashCommand(Command):
 
 def _hash_of_file(path, algorithm):
     """Return the hash digest of a file."""
+    from pip._internal.utils.misc import read_chunks
+
     with open(path, 'rb') as archive:
         hash = hashlib.new(algorithm)
         for chunk in read_chunks(archive):

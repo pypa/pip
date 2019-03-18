@@ -1,34 +1,8 @@
 from __future__ import absolute_import
 
-import errno
 import logging
-import operator
-import os
-import shutil
-from optparse import SUPPRESS_HELP
 
-from pip._vendor import pkg_resources
-
-from pip._internal.cache import WheelCache
-from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import RequirementCommand
-from pip._internal.cli.status_codes import ERROR
-from pip._internal.exceptions import (
-    CommandError, InstallationError, PreviousBuildDirError,
-)
-from pip._internal.locations import distutils_scheme, virtualenv_no_global
-from pip._internal.operations.check import check_install_conflicts
-from pip._internal.operations.prepare import RequirementPreparer
-from pip._internal.req import RequirementSet, install_given_reqs
-from pip._internal.req.req_tracker import RequirementTracker
-from pip._internal.resolve import Resolver
-from pip._internal.utils.filesystem import check_path_owner
-from pip._internal.utils.misc import (
-    ensure_dir, get_installed_version,
-    protect_pip_from_modification_on_windows,
-)
-from pip._internal.utils.temp_dir import TempDirectory
-from pip._internal.wheel import WheelBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -95,6 +69,10 @@ class InstallCommand(RequirementCommand):
 
     def __init__(self, *args, **kw):
         super(InstallCommand, self).__init__(*args, **kw)
+
+        from optparse import SUPPRESS_HELP
+
+        from pip._internal.cli import cmdoptions
 
         cmd_opts = self.cmd_opts
 
@@ -241,6 +219,30 @@ class InstallCommand(RequirementCommand):
         self.parser.insert_option_group(0, cmd_opts)
 
     def run(self, options, args):
+        import operator
+        import os
+
+        from pip._vendor import pkg_resources
+
+        from pip._internal.cache import WheelCache
+        from pip._internal.cli import cmdoptions
+        from pip._internal.cli.status_codes import ERROR
+        from pip._internal.exceptions import (
+            CommandError, InstallationError, PreviousBuildDirError,
+        )
+        from pip._internal.locations import virtualenv_no_global
+        from pip._internal.operations.prepare import RequirementPreparer
+        from pip._internal.req import RequirementSet, install_given_reqs
+        from pip._internal.req.req_tracker import RequirementTracker
+        from pip._internal.resolve import Resolver
+        from pip._internal.utils.filesystem import check_path_owner
+        from pip._internal.utils.misc import (
+            get_installed_version,
+            protect_pip_from_modification_on_windows,
+        )
+        from pip._internal.utils.temp_dir import TempDirectory
+        from pip._internal.wheel import WheelBuilder
+
         cmdoptions.check_install_build_global(options)
         upgrade_strategy = "to-satisfy-only"
         if options.upgrade:
@@ -464,6 +466,13 @@ class InstallCommand(RequirementCommand):
         return requirement_set
 
     def _handle_target_dir(self, target_dir, target_temp_dir, upgrade):
+        import os
+        import shutil
+
+        from pip._internal.locations import distutils_scheme
+        from pip._internal.utils.misc import (
+            ensure_dir, )
+
         ensure_dir(target_dir)
 
         # Checking both purelib and platlib directories for installed
@@ -520,6 +529,9 @@ class InstallCommand(RequirementCommand):
                     )
 
     def _warn_about_conflicts(self, to_install):
+
+        from pip._internal.operations.check import check_install_conflicts
+
         try:
             package_set, _dep_info = check_install_conflicts(to_install)
         except Exception:
@@ -547,6 +559,8 @@ class InstallCommand(RequirementCommand):
 
 
 def get_lib_location_guesses(*args, **kwargs):
+    from pip._internal.locations import distutils_scheme
+
     scheme = distutils_scheme('', *args, **kwargs)
     return [scheme['purelib'], scheme['platlib']]
 
@@ -556,6 +570,8 @@ def create_env_error_message(error, show_traceback, using_user_site):
 
     It may occur anytime during the execution of the install command.
     """
+    import errno
+
     parts = []
 
     # Mention the error if we are not going to show a traceback

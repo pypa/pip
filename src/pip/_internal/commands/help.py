@@ -1,8 +1,6 @@
 from __future__ import absolute_import
 
 from pip._internal.cli.base_command import Command
-from pip._internal.cli.status_codes import SUCCESS
-from pip._internal.exceptions import CommandError
 
 
 class HelpCommand(Command):
@@ -15,6 +13,8 @@ class HelpCommand(Command):
 
     def run(self, options, args):
         from pip._internal.commands import commands_dict, get_similar_commands
+        from pip._internal.cli.status_codes import SUCCESS
+        from pip._internal.exceptions import CommandError
 
         try:
             # 'pip help' with no args is handled by pip.__init__.parseopt()
