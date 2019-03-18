@@ -2,12 +2,12 @@ import os
 import tempfile
 
 import pytest
+from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.req.constructors import (
-    install_req_from_line, install_req_from_req_string
+    install_req_from_line, install_req_from_req_string,
 )
 from pip._internal.req.req_install import InstallRequirement
-from pip._vendor.packaging.requirements import Requirement
 
 
 class TestInstallRequirementBuildDirectory(object):
