@@ -3,9 +3,24 @@ from __future__ import absolute_import
 
 import filecmp
 import re
+import sys
+from contextlib import contextmanager
 from os.path import isdir, join
 
+import pytest
+
 from tests.lib import SRC_DIR
+
+
+@contextmanager
+def assert_error_startswith(exc_type, expected_start):
+    """
+    Assert that an exception is raised starting with a certain message.
+    """
+    with pytest.raises(exc_type) as err:
+        yield
+
+    assert str(err.value).startswith(expected_start)
 
 
 def test_tmp_dir_exists_in_env(script):
@@ -59,3 +74,84 @@ def test_as_import(script):
     """
     import pip._internal.commands.install as inst
     assert inst is not None
+
+
+class TestPipTestEnvironment:
+
+    def run_stderr_with_prefix(self, script, prefix, **kwargs):
+        """
+        Call run() that prints stderr with the given prefix.
+        """
+        text = '{}: hello, world\\n'.format(prefix)
+        command = 'import sys; sys.stderr.write("{}")'.format(text)
+        args = [sys.executable, '-c', command]
+        script.run(*args, **kwargs)
+
+    @pytest.mark.parametrize('prefix', (
+        'DEBUG',
+        'INFO',
+        'FOO',
+    ))
+    def test_run__allowed_stderr(self, script, prefix):
+        """
+        Test calling run() with allowed stderr.
+        """
+        # Check that no error happens.
+        self.run_stderr_with_prefix(script, prefix)
+
+    def test_run__allow_stderr_warning(self, script):
+        """
+        Test passing allow_stderr_warning=True.
+        """
+        # Check that no error happens.
+        self.run_stderr_with_prefix(
+            script, 'WARNING', allow_stderr_warning=True,
+        )
+
+        # Check that an error still happens with ERROR.
+        expected_start = 'stderr has an unexpected error'
+        with assert_error_startswith(RuntimeError, expected_start):
+            self.run_stderr_with_prefix(
+                script, 'ERROR', allow_stderr_warning=True,
+            )
+
+    @pytest.mark.parametrize('prefix', (
+        'DEPRECATION',
+        'WARNING',
+        'ERROR',
+    ))
+    def test_run__allow_stderr_error(self, script, prefix):
+        """
+        Test passing allow_stderr_error=True.
+        """
+        # Check that no error happens.
+        self.run_stderr_with_prefix(script, prefix, allow_stderr_error=True)
+
+    @pytest.mark.parametrize('prefix, expected_start', (
+        ('DEPRECATION', 'stderr has an unexpected warning'),
+        ('WARNING', 'stderr has an unexpected warning'),
+        ('ERROR', 'stderr has an unexpected error'),
+    ))
+    def test_run__unexpected_stderr(self, script, prefix, expected_start):
+        """
+        Test calling run() with unexpected stderr output.
+        """
+        with assert_error_startswith(RuntimeError, expected_start):
+            self.run_stderr_with_prefix(script, prefix)
+
+    @pytest.mark.parametrize('arg_name', (
+        'expect_stderr',
+        'expect_error',
+        'allow_stderr_error',
+    ))
+    def test_run__allow_stderr_warning_false_error(self, script, arg_name):
+        """
+        Test passing allow_stderr_warning=False when it is not allowed.
+        """
+        kwargs = {'allow_stderr_warning': False, arg_name: True}
+        expected_start = (
+            'cannot pass allow_stderr_warning=False with '
+            'allow_stderr_error=True'
+        )
+        with assert_error_startswith(RuntimeError, expected_start):
+            script.run('python', **kwargs)
