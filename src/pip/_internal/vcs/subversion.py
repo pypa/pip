@@ -190,7 +190,8 @@ class Subversion(VersionControl):
 
         return url, rev
 
-    def is_commit_id_equal(self, dest, name):
+    @classmethod
+    def is_commit_id_equal(cls, dest, name):
         """Always assume the versions don't match"""
         return False
 

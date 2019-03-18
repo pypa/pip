@@ -211,10 +211,10 @@ def test_is_commit_id_equal(script):
         'git', 'rev-parse', 'HEAD',
         cwd=version_pkg_path
     ).stdout.strip()
-    git = Git()
-    assert git.is_commit_id_equal(version_pkg_path, commit)
-    assert not git.is_commit_id_equal(version_pkg_path, commit[:7])
-    assert not git.is_commit_id_equal(version_pkg_path, 'branch0.1')
-    assert not git.is_commit_id_equal(version_pkg_path, 'abc123')
+
+    assert Git.is_commit_id_equal(version_pkg_path, commit)
+    assert not Git.is_commit_id_equal(version_pkg_path, commit[:7])
+    assert not Git.is_commit_id_equal(version_pkg_path, 'branch0.1')
+    assert not Git.is_commit_id_equal(version_pkg_path, 'abc123')
     # Also check passing a None value.
-    assert not git.is_commit_id_equal(version_pkg_path, None)
+    assert not Git.is_commit_id_equal(version_pkg_path, None)

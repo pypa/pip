@@ -185,7 +185,8 @@ class Git(VersionControl):
 
         return rev_options
 
-    def is_commit_id_equal(self, dest, name):
+    @classmethod
+    def is_commit_id_equal(cls, dest, name):
         """
         Return whether the current commit hash equals the given name.
 
@@ -197,7 +198,7 @@ class Git(VersionControl):
             # Then avoid an unnecessary subprocess call.
             return False
 
-        return self.get_revision(dest) == name
+        return cls.get_revision(dest) == name
 
     def fetch_new(self, dest, url, rev_options):
         rev_display = rev_options.to_display()

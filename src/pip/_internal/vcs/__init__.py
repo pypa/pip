@@ -408,7 +408,8 @@ class VersionControl(object):
         """
         raise NotImplementedError
 
-    def is_commit_id_equal(self, dest, name):
+    @classmethod
+    def is_commit_id_equal(cls, dest, name):
         """
         Return whether the id of the current commit equals the given name.
 
