@@ -78,7 +78,8 @@ class Git(VersionControl):
         version = '.'.join(version.split('.')[:3])
         return parse_version(version)
 
-    def get_current_branch(self, location):
+    @classmethod
+    def get_current_branch(cls, location):
         """
         Return the current branch, or None if HEAD isn't at a branch
         (e.g. detached HEAD).
@@ -88,7 +89,7 @@ class Git(VersionControl):
         # command to exit with status code 1 instead of 128 in this case
         # and to suppress the message to stderr.
         args = ['symbolic-ref', '-q', 'HEAD']
-        output = self.run_command(
+        output = cls.run_command(
             args, extra_ok_returncodes=(1, ), show_stdout=False, cwd=location,
         )
         ref = output.strip()

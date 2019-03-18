@@ -113,17 +113,16 @@ def test_get_current_branch(script):
     script.run('git', 'init', cwd=repo_dir)
     sha = do_commit(script, repo_dir)
 
-    git = Git()
-    assert git.get_current_branch(repo_dir) == 'master'
+    assert Git.get_current_branch(repo_dir) == 'master'
 
     # Switch to a branch with the same SHA as "master" but whose name
     # is alphabetically after.
     checkout_new_branch(script, repo_dir, 'release')
-    assert git.get_current_branch(repo_dir) == 'release'
+    assert Git.get_current_branch(repo_dir) == 'release'
 
     # Also test the detached HEAD case.
     checkout_ref(script, repo_dir, sha)
-    assert git.get_current_branch(repo_dir) is None
+    assert Git.get_current_branch(repo_dir) is None
 
 
 def test_get_current_branch__branch_and_tag_same_name(script, tmpdir):
@@ -138,12 +137,11 @@ def test_get_current_branch__branch_and_tag_same_name(script, tmpdir):
     # Create a tag with the same name as the branch.
     script.run('git', 'tag', 'dev', cwd=repo_dir)
 
-    git = Git()
-    assert git.get_current_branch(repo_dir) == 'dev'
+    assert Git.get_current_branch(repo_dir) == 'dev'
 
     # Now try with the tag checked out.
     checkout_ref(script, repo_dir, 'refs/tags/dev')
-    assert git.get_current_branch(repo_dir) is None
+    assert Git.get_current_branch(repo_dir) is None
 
 
 def test_get_revision_sha(script):
