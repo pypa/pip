@@ -19,7 +19,8 @@ class Mercurial(VersionControl):
     repo_name = 'clone'
     schemes = ('hg', 'hg+http', 'hg+https', 'hg+ssh', 'hg+static-http')
 
-    def get_base_rev_args(self, rev):
+    @staticmethod
+    def get_base_rev_args(rev):
         return [rev]
 
     def export(self, location):

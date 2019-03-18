@@ -29,7 +29,8 @@ class Subversion(VersionControl):
     def should_add_vcs_url_prefix(cls, remote_url):
         return True
 
-    def get_base_rev_args(self, rev):
+    @staticmethod
+    def get_base_rev_args(rev):
         return ['-r', rev]
 
     def export(self, location):
@@ -92,7 +93,8 @@ class Subversion(VersionControl):
             revision = max(revision, localrev)
         return revision
 
-    def get_netloc_and_auth(self, netloc, scheme):
+    @classmethod
+    def get_netloc_and_auth(cls, netloc, scheme):
         """
         This override allows the auth information to be passed to svn via the
         --username and --password options instead of via the URL.
@@ -100,19 +102,20 @@ class Subversion(VersionControl):
         if scheme == 'ssh':
             # The --username and --password options can't be used for
             # svn+ssh URLs, so keep the auth information in the URL.
-            return super(Subversion, self).get_netloc_and_auth(
-                netloc, scheme)
+            return super(Subversion, cls).get_netloc_and_auth(netloc, scheme)
 
         return split_auth_from_netloc(netloc)
 
-    def get_url_rev_and_auth(self, url):
+    @classmethod
+    def get_url_rev_and_auth(cls, url):
         # hotfix the URL scheme after removing svn+ from svn+ssh:// readd it
-        url, rev, user_pass = super(Subversion, self).get_url_rev_and_auth(url)
+        url, rev, user_pass = super(Subversion, cls).get_url_rev_and_auth(url)
         if url.startswith('ssh://'):
             url = 'svn+' + url
         return url, rev, user_pass
 
-    def make_rev_args(self, username, password):
+    @staticmethod
+    def make_rev_args(username, password):
         extra_args = []
         if username:
             extra_args += ['--username', username]

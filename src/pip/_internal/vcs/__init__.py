@@ -59,11 +59,16 @@ class RevOptions(object):
     Instances of this class should be treated as if immutable.
     """
 
-    def __init__(self, vcs, rev=None, extra_args=None):
-        # type: (VersionControl, Optional[str], Optional[List[str]]) -> None
+    def __init__(
+        self,
+        vc_class,  # type: Type[VersionControl]
+        rev=None,  # type: Optional[str]
+        extra_args=None,  # type: Optional[List[str]]
+    ):
+        # type: (...) -> None
         """
         Args:
-          vcs: a VersionControl object.
+          vc_class: a VersionControl subclass.
           rev: the name of the revision to install.
           extra_args: a list of extra options.
         """
@@ -72,16 +77,16 @@ class RevOptions(object):
 
         self.extra_args = extra_args
         self.rev = rev
-        self.vcs = vcs
+        self.vc_class = vc_class
 
     def __repr__(self):
-        return '<RevOptions {}: rev={!r}>'.format(self.vcs.name, self.rev)
+        return '<RevOptions {}: rev={!r}>'.format(self.vc_class.name, self.rev)
 
     @property
     def arg_rev(self):
         # type: () -> Optional[str]
         if self.rev is None:
-            return self.vcs.default_arg_rev
+            return self.vc_class.default_arg_rev
 
         return self.rev
 
@@ -93,7 +98,7 @@ class RevOptions(object):
         args = []  # type: List[str]
         rev = self.arg_rev
         if rev is not None:
-            args += self.vcs.get_base_rev_args(rev)
+            args += self.vc_class.get_base_rev_args(rev)
         args += self.extra_args
 
         return args
@@ -113,7 +118,7 @@ class RevOptions(object):
         Args:
           rev: the name of the revision for the new object.
         """
-        return self.vcs.make_rev_options(rev, extra_args=self.extra_args)
+        return self.vc_class.make_rev_options(rev, extra_args=self.extra_args)
 
 
 class VcsSupport(object):
@@ -256,7 +261,8 @@ class VersionControl(object):
         self.url = url
         super(VersionControl, self).__init__(*args, **kwargs)
 
-    def get_base_rev_args(self, rev):
+    @staticmethod
+    def get_base_rev_args(rev):
         """
         Return the base revision arguments for a vcs command.
 
@@ -265,7 +271,8 @@ class VersionControl(object):
         """
         raise NotImplementedError
 
-    def make_rev_options(self, rev=None, extra_args=None):
+    @classmethod
+    def make_rev_options(cls, rev=None, extra_args=None):
         # type: (Optional[str], Optional[List[str]]) -> RevOptions
         """
         Return a RevOptions object.
@@ -274,7 +281,7 @@ class VersionControl(object):
           rev: the name of a revision to install.
           extra_args: a list of extra options.
         """
-        return RevOptions(self, rev, extra_args=extra_args)
+        return RevOptions(cls, rev, extra_args=extra_args)
 
     @classmethod
     def _is_local_repository(cls, repo):
@@ -293,7 +300,8 @@ class VersionControl(object):
         """
         raise NotImplementedError
 
-    def get_netloc_and_auth(self, netloc, scheme):
+    @classmethod
+    def get_netloc_and_auth(cls, netloc, scheme):
         """
         Parse the repository URL's netloc, and return the new netloc to use
         along with auth information.
@@ -311,7 +319,8 @@ class VersionControl(object):
         """
         return netloc, (None, None)
 
-    def get_url_rev_and_auth(self, url):
+    @classmethod
+    def get_url_rev_and_auth(cls, url):
         # type: (str) -> Tuple[str, Optional[str], AuthInfo]
         """
         Parse the repository URL to use, and return the URL, revision,
@@ -328,14 +337,15 @@ class VersionControl(object):
             )
         # Remove the vcs prefix.
         scheme = scheme.split('+', 1)[1]
-        netloc, user_pass = self.get_netloc_and_auth(netloc, scheme)
+        netloc, user_pass = cls.get_netloc_and_auth(netloc, scheme)
         rev = None
         if '@' in path:
             path, rev = path.rsplit('@', 1)
         url = urllib_parse.urlunsplit((scheme, netloc, path, query, ''))
         return url, rev, user_pass
 
-    def make_rev_args(self, username, password):
+    @staticmethod
+    def make_rev_args(username, password):
         """
         Return the RevOptions "extra arguments" to use in obtain().
         """

@@ -28,7 +28,8 @@ class Bazaar(VersionControl):
         if getattr(urllib_parse, 'uses_fragment', None):
             urllib_parse.uses_fragment.extend(['lp'])
 
-    def get_base_rev_args(self, rev):
+    @staticmethod
+    def get_base_rev_args(rev):
         return ['-r', rev]
 
     def export(self, location):
@@ -63,9 +64,10 @@ class Bazaar(VersionControl):
         cmd_args = ['pull', '-q'] + rev_options.to_args()
         self.run_command(cmd_args, cwd=dest)
 
-    def get_url_rev_and_auth(self, url):
+    @classmethod
+    def get_url_rev_and_auth(cls, url):
         # hotfix the URL scheme after removing bzr+ from bzr+ssh:// readd it
-        url, rev, user_pass = super(Bazaar, self).get_url_rev_and_auth(url)
+        url, rev, user_pass = super(Bazaar, cls).get_url_rev_and_auth(url)
         if url.startswith('ssh://'):
             url = 'bzr+' + url
         return url, rev, user_pass

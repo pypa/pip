@@ -37,26 +37,26 @@ def test_make_vcs_requirement_url(args, expected):
 
 
 def test_rev_options_repr():
-    rev_options = RevOptions(Git(), 'develop')
+    rev_options = RevOptions(Git, 'develop')
     assert repr(rev_options) == "<RevOptions git: rev='develop'>"
 
 
-@pytest.mark.parametrize(('vcs', 'expected1', 'expected2', 'kwargs'), [
+@pytest.mark.parametrize(('vc_class', 'expected1', 'expected2', 'kwargs'), [
     # First check VCS-specific RevOptions behavior.
-    (Bazaar(), [], ['-r', '123'], {}),
-    (Git(), ['HEAD'], ['123'], {}),
-    (Mercurial(), [], ['123'], {}),
-    (Subversion(), [], ['-r', '123'], {}),
+    (Bazaar, [], ['-r', '123'], {}),
+    (Git, ['HEAD'], ['123'], {}),
+    (Mercurial, [], ['123'], {}),
+    (Subversion, [], ['-r', '123'], {}),
     # Test extra_args.  For this, test using a single VersionControl class.
-    (Git(), ['HEAD', 'opt1', 'opt2'], ['123', 'opt1', 'opt2'],
+    (Git, ['HEAD', 'opt1', 'opt2'], ['123', 'opt1', 'opt2'],
         dict(extra_args=['opt1', 'opt2'])),
 ])
-def test_rev_options_to_args(vcs, expected1, expected2, kwargs):
+def test_rev_options_to_args(vc_class, expected1, expected2, kwargs):
     """
     Test RevOptions.to_args().
     """
-    assert RevOptions(vcs, **kwargs).to_args() == expected1
-    assert RevOptions(vcs, '123', **kwargs).to_args() == expected2
+    assert RevOptions(vc_class, **kwargs).to_args() == expected1
+    assert RevOptions(vc_class, '123', **kwargs).to_args() == expected2
 
 
 def test_rev_options_to_display():
@@ -65,12 +65,10 @@ def test_rev_options_to_display():
     """
     # The choice of VersionControl class doesn't matter here since
     # the implementation is the same for all of them.
-    vcs = Git()
-
-    rev_options = RevOptions(vcs)
+    rev_options = RevOptions(Git)
     assert rev_options.to_display() == ''
 
-    rev_options = RevOptions(vcs, 'master')
+    rev_options = RevOptions(Git, 'master')
     assert rev_options.to_display() == ' (to revision master)'
 
 
@@ -80,15 +78,13 @@ def test_rev_options_make_new():
     """
     # The choice of VersionControl class doesn't matter here since
     # the implementation is the same for all of them.
-    vcs = Git()
-
-    rev_options = RevOptions(vcs, 'master', extra_args=['foo', 'bar'])
+    rev_options = RevOptions(Git, 'master', extra_args=['foo', 'bar'])
     new_options = rev_options.make_new('develop')
 
     assert new_options is not rev_options
     assert new_options.extra_args == ['foo', 'bar']
     assert new_options.rev == 'develop'
-    assert new_options.vcs is vcs
+    assert new_options.vc_class is Git
 
 
 def test_looks_like_hash():
@@ -133,10 +129,10 @@ def test_git_get_src_requirements(mock_get_remote_url, mock_get_revision):
 @patch('pip._internal.vcs.git.Git.get_revision_sha')
 def test_git_resolve_revision_rev_exists(get_sha_mock):
     get_sha_mock.return_value = ('123456', False)
-    git = Git()
-    rev_options = git.make_rev_options('develop')
-
     url = 'git+https://git.example.com'
+    rev_options = Git.make_rev_options('develop')
+
+    git = Git()
     new_options = git.resolve_revision('.', url, rev_options)
     assert new_options.rev == '123456'
 
@@ -144,10 +140,10 @@ def test_git_resolve_revision_rev_exists(get_sha_mock):
 @patch('pip._internal.vcs.git.Git.get_revision_sha')
 def test_git_resolve_revision_rev_not_found(get_sha_mock):
     get_sha_mock.return_value = (None, False)
-    git = Git()
-    rev_options = git.make_rev_options('develop')
-
     url = 'git+https://git.example.com'
+    rev_options = Git.make_rev_options('develop')
+
+    git = Git()
     new_options = git.resolve_revision('.', url, rev_options)
     assert new_options.rev == 'develop'
 
@@ -155,15 +151,15 @@ def test_git_resolve_revision_rev_not_found(get_sha_mock):
 @patch('pip._internal.vcs.git.Git.get_revision_sha')
 def test_git_resolve_revision_not_found_warning(get_sha_mock, caplog):
     get_sha_mock.return_value = (None, False)
-    git = Git()
-
     url = 'git+https://git.example.com'
     sha = 40 * 'a'
-    rev_options = git.make_rev_options(sha)
+    rev_options = Git.make_rev_options(sha)
+
+    git = Git()
     new_options = git.resolve_revision('.', url, rev_options)
     assert new_options.rev == sha
 
-    rev_options = git.make_rev_options(sha[:6])
+    rev_options = Git.make_rev_options(sha[:6])
     new_options = git.resolve_revision('.', url, rev_options)
     assert new_options.rev == 'aaaaaa'
 
@@ -206,7 +202,7 @@ def test_git__get_netloc_and_auth(args, expected):
     Test VersionControl.get_netloc_and_auth().
     """
     netloc, scheme = args
-    actual = Git().get_netloc_and_auth(netloc, scheme)
+    actual = Git.get_netloc_and_auth(netloc, scheme)
     assert actual == expected
 
 
@@ -229,7 +225,7 @@ def test_subversion__get_netloc_and_auth(args, expected):
     Test Subversion.get_netloc_and_auth().
     """
     netloc, scheme = args
-    actual = Subversion().get_netloc_and_auth(netloc, scheme)
+    actual = Subversion.get_netloc_and_auth(netloc, scheme)
     assert actual == expected
 
 
@@ -241,10 +237,8 @@ def test_git__get_url_rev__idempotent():
     Also check that it doesn't change self.url.
     """
     url = 'git+git@git.example.com:MyProject#egg=MyProject'
-    vcs = Git(url)
-    result1 = vcs.get_url_rev_and_auth(url)
-    assert vcs.url == url
-    result2 = vcs.get_url_rev_and_auth(url)
+    result1 = Git.get_url_rev_and_auth(url)
+    result2 = Git.get_url_rev_and_auth(url)
     expected = ('git@git.example.com:MyProject', None, (None, None))
     assert result1 == expected
     assert result2 == expected
@@ -261,7 +255,7 @@ def test_version_control__get_url_rev_and_auth(url, expected):
     """
     Test the basic case of VersionControl.get_url_rev_and_auth().
     """
-    actual = VersionControl().get_url_rev_and_auth(url)
+    actual = VersionControl.get_url_rev_and_auth(url)
     assert actual == expected
 
 
@@ -276,7 +270,7 @@ def test_version_control__get_url_rev_and_auth__missing_plus(url):
     missing from the scheme.
     """
     with pytest.raises(ValueError) as excinfo:
-        VersionControl().get_url_rev_and_auth(url)
+        VersionControl.get_url_rev_and_auth(url)
 
     assert 'malformed VCS url' in str(excinfo.value)
 
@@ -305,8 +299,7 @@ def test_bazaar__get_url_rev_and_auth(url, expected):
     """
     Test Bazaar.get_url_rev_and_auth().
     """
-    bzr = Bazaar(url=url)
-    actual = bzr.get_url_rev_and_auth(url)
+    actual = Bazaar.get_url_rev_and_auth(url)
     assert actual == (expected, None, (None, None))
 
 
@@ -328,7 +321,7 @@ def test_subversion__get_url_rev_and_auth(url, expected):
     """
     Test Subversion.get_url_rev_and_auth().
     """
-    actual = Subversion().get_url_rev_and_auth(url)
+    actual = Subversion.get_url_rev_and_auth(url)
     assert actual == expected
 
 
@@ -343,7 +336,7 @@ def test_git__make_rev_args(username, password, expected):
     """
     Test VersionControl.make_rev_args().
     """
-    actual = Git().make_rev_args(username, password)
+    actual = Git.make_rev_args(username, password)
     assert actual == expected
 
 
@@ -356,7 +349,7 @@ def test_subversion__make_rev_args(username, password, expected):
     """
     Test Subversion.make_rev_args().
     """
-    actual = Subversion().make_rev_args(username, password)
+    actual = Subversion.make_rev_args(username, password)
     assert actual == expected
 
 
