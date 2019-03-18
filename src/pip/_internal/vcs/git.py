@@ -333,10 +333,11 @@ class Git(VersionControl):
 
         return url, rev, user_pass
 
-    def update_submodules(self, location):
+    @classmethod
+    def update_submodules(cls, location):
         if not os.path.exists(os.path.join(location, '.gitmodules')):
             return
-        self.run_command(
+        cls.run_command(
             ['submodule', 'update', '--init', '--recursive', '-q'],
             cwd=location,
         )
