@@ -46,6 +46,9 @@ class TestInstallRequirementBuildDirectory(object):
 
         assert requirement.link is not None
 
+
+class TestInstallRequirementFrom(object):
+
     def test_install_req_from_string_without_comes_from(self):
         """
         Test to make sure that install_req_from_string succeeds
