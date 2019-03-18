@@ -1,2 +1,1 @@
-Fixed crash when installing a requirement from url that comes from a
-dependency without a URL.
+Fixed crash when installing a requirement from url that comes from a dependency without a URL.
