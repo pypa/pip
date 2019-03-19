@@ -67,6 +67,7 @@ class ConfigurationCommand(Command):
         )
 
         self.cmd_opts.add_option(
+            '-u',
             '--user',
             dest='user_file',
             action='store_true',
