@@ -73,7 +73,7 @@ class TestInstallRequirementFrom(object):
         does not have a link.
         """
         # Test with a PEP 508 url install string:
-        wheel_url = ("https://download.pytorch.org/whl/cu90/sds"
+        wheel_url = ("https://download.pytorch.org/whl/cu90/"
                      "torch-1.0.0-cp36-cp36m-win_amd64.whl")
         install_str = "torch@ " + wheel_url
 
