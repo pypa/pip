@@ -423,9 +423,9 @@ class PipTestEnvironment(TestFileEnvironment):
         :param allow_stderr_error: whether a logged error is allowed in
             stderr.  Passing True for this argument implies
             `allow_stderr_warning` since warnings are weaker than errors.
-        :param expect_stderr: allow any stderr (equivalent to passing
-            `allow_stderr_error`).  This argument is an abbreviated version
-            of `allow_stderr_error` and is also kept for backwards
+        :param expect_stderr: whether to allow warnings in stderr (equivalent
+            to `allow_stderr_warning`).  This argument is an abbreviated
+            version of `allow_stderr_warning` and is also kept for backwards
             compatibility.
         """
         if self.verbose:
@@ -443,9 +443,12 @@ class PipTestEnvironment(TestFileEnvironment):
         allow_stderr_error = kw.pop('allow_stderr_error', None)
         allow_stderr_warning = kw.pop('allow_stderr_warning', None)
 
-        if kw.get('expect_error') or kw.get('expect_stderr'):
+        if kw.get('expect_error'):
             # Then default to allowing logged errors.
             allow_stderr_error = True
+        elif kw.get('expect_stderr'):
+            # Then default to allowing logged warnings.
+            allow_stderr_warning = True
 
         # Pass expect_stderr=True to allow any stderr.  We do this because
         # we do our checking of stderr further on in check_stderr().

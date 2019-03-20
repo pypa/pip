@@ -140,7 +140,6 @@ class TestPipTestEnvironment:
             self.run_stderr_with_prefix(script, prefix)
 
     @pytest.mark.parametrize('arg_name', (
-        'expect_stderr',
         'expect_error',
         'allow_stderr_error',
     ))
