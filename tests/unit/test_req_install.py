@@ -55,8 +55,8 @@ class TestInstallRequirementFrom(object):
         when called with URL (PEP 508) but without comes_from.
         """
         # Test with a PEP 508 url install string:
-        wheel_url = ("https://download.pytorch.org/whl/cu90/" +
-                    "torch-1.0.0-cp36-cp36m-win_amd64.whl")
+        wheel_url = ("https://download.pytorch.org/whl/cu90/"
+                     "torch-1.0.0-cp36-cp36m-win_amd64.whl")
         install_str = "torch@ " + wheel_url
         install_req = install_req_from_req_string(install_str)
 
@@ -73,8 +73,8 @@ class TestInstallRequirementFrom(object):
         does not have a link.
         """
         # Test with a PEP 508 url install string:
-        wheel_url = ("https://download.pytorch.org/whl/cu90/" +
-                    "torch-1.0.0-cp36-cp36m-win_amd64.whl")
+        wheel_url = ("https://download.pytorch.org/whl/cu90/sds"
+                     "torch-1.0.0-cp36-cp36m-win_amd64.whl")
         install_str = "torch@ " + wheel_url
 
         # Dummy numpy "comes_from" requirement without link:
