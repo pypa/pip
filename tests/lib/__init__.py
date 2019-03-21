@@ -445,9 +445,19 @@ class PipTestEnvironment(TestFileEnvironment):
 
         if kw.get('expect_error'):
             # Then default to allowing logged errors.
+            if allow_stderr_error is not None and not allow_stderr_error:
+                raise RuntimeError(
+                    'cannot pass allow_stderr_error=False with '
+                    'expect_error=True'
+                )
             allow_stderr_error = True
         elif kw.get('expect_stderr'):
             # Then default to allowing logged warnings.
+            if allow_stderr_warning is not None and not allow_stderr_warning:
+                raise RuntimeError(
+                    'cannot pass allow_stderr_warning=False with '
+                    'expect_stderr=True'
+                )
             allow_stderr_warning = True
 
         # Pass expect_stderr=True to allow any stderr.  We do this because
