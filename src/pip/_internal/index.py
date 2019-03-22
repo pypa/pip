@@ -771,8 +771,8 @@ class PackageFinder(object):
 
     def _package_versions(
         self,
-        anchors,# type: Iterable[Anchor]
-        search  # type: Search
+        anchors,    # type: Iterable[Anchor]
+        search,     # type: Search
     ):
         # type: (...) -> List[Optional[InstallationCandidate]]
         result = []
