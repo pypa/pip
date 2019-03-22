@@ -171,7 +171,8 @@ def install_req_from_editable(
     isolated=False,  # type: bool
     options=None,  # type: Optional[Dict[str, Any]]
     wheel_cache=None,  # type: Optional[WheelCache]
-    constraint=False  # type: bool
+    constraint=False,  # type: bool
+    environment=None  # type: Dict[str, Any]
 ):
     # type: (...) -> InstallRequirement
     name, url, extras_override = parse_editable(editable_req)
@@ -197,6 +198,7 @@ def install_req_from_editable(
         options=options if options else {},
         wheel_cache=wheel_cache,
         extras=extras_override or (),
+        environment=environment,
     )
 
 
@@ -207,7 +209,8 @@ def install_req_from_line(
     isolated=False,  # type: bool
     options=None,  # type: Optional[Dict[str, Any]]
     wheel_cache=None,  # type: Optional[WheelCache]
-    constraint=False  # type: bool
+    constraint=False,  # type: bool
+    environment=None  # type: Dict[str, Any]
 ):
     # type: (...) -> InstallRequirement
     """Creates an InstallRequirement from a name, which might be a
@@ -305,6 +308,7 @@ def install_req_from_line(
         wheel_cache=wheel_cache,
         constraint=constraint,
         extras=extras,
+        environment=environment,
     )
 
 
@@ -313,7 +317,8 @@ def install_req_from_req_string(
     comes_from=None,  # type: Optional[InstallRequirement]
     isolated=False,  # type: bool
     wheel_cache=None,  # type: Optional[WheelCache]
-    use_pep517=None  # type: Optional[bool]
+    use_pep517=None,  # type: Optional[bool]
+    environment=None  # type: Dict[str, Any]
 ):
     # type: (...) -> InstallRequirement
     try:
@@ -336,5 +341,5 @@ def install_req_from_req_string(
 
     return InstallRequirement(
         req, comes_from, isolated=isolated, wheel_cache=wheel_cache,
-        use_pep517=use_pep517
+        use_pep517=use_pep517, environment=environment
     )

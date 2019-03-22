@@ -241,7 +241,8 @@ class TestProcessLine(object):
         import pip._internal.req.req_file
 
         def stub_parse_requirements(req_url, finder, comes_from, options,
-                                    session, wheel_cache, constraint):
+                                    session, wheel_cache, constraint,
+                                    environment):
             return [(req, constraint)]
         parse_requirements_stub = stub(call=stub_parse_requirements)
         monkeypatch.setattr(pip._internal.req.req_file, 'parse_requirements',
@@ -254,7 +255,8 @@ class TestProcessLine(object):
         import pip._internal.req.req_file
 
         def stub_parse_requirements(req_url, finder, comes_from, options,
-                                    session, wheel_cache, constraint):
+                                    session, wheel_cache, constraint,
+                                    environment):
             return [(req, constraint)]
         parse_requirements_stub = stub(call=stub_parse_requirements)
         monkeypatch.setattr(pip._internal.req.req_file, 'parse_requirements',

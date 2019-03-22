@@ -23,7 +23,8 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, Callable, Iterator, List, NoReturn, Optional, Text, Tuple,
+        Any, Callable, Dict, Iterator, List, NoReturn, Optional, Text, 
+        Tuple,
     )
     from pip._internal.req import InstallRequirement
     from pip._internal.cache import WheelCache
@@ -78,7 +79,8 @@ def parse_requirements(
     session=None,  # type: Optional[PipSession]
     constraint=False,  # type: bool
     wheel_cache=None,  # type: Optional[WheelCache]
-    use_pep517=None  # type: Optional[bool]
+    use_pep517=None,  # type: Optional[bool]
+    environment=None  # type: Dict[str, Any]
 ):
     # type: (...) -> Iterator[InstallRequirement]
     """Parse a requirements file and yield InstallRequirement instances.
@@ -108,7 +110,8 @@ def parse_requirements(
     for line_number, line in lines_enum:
         req_iter = process_line(line, filename, line_number, finder,
                                 comes_from, options, session, wheel_cache,
-                                use_pep517=use_pep517, constraint=constraint)
+                                use_pep517=use_pep517, constraint=constraint,
+                                environment=environment)
         for req in req_iter:
             yield req
 
@@ -138,7 +141,8 @@ def process_line(
     session=None,  # type: Optional[PipSession]
     wheel_cache=None,  # type: Optional[WheelCache]
     use_pep517=None,  # type: Optional[bool]
-    constraint=False  # type: bool
+    constraint=False,  # type: bool
+    environment=None  # type: Dict[str, Any]
 ):
     # type: (...) -> Iterator[InstallRequirement]
     """Process a single requirements line; This can result in creating/yielding
@@ -190,7 +194,8 @@ def process_line(
         yield install_req_from_line(
             args_str, line_comes_from, constraint=constraint,
             use_pep517=use_pep517,
-            isolated=isolated, options=req_options, wheel_cache=wheel_cache
+            isolated=isolated, options=req_options, wheel_cache=wheel_cache,
+            environment=environment
         )
 
     # yield an editable requirement
@@ -199,7 +204,8 @@ def process_line(
         yield install_req_from_editable(
             opts.editables[0], comes_from=line_comes_from,
             use_pep517=use_pep517,
-            constraint=constraint, isolated=isolated, wheel_cache=wheel_cache
+            constraint=constraint, isolated=isolated, wheel_cache=wheel_cache,
+            environment=environment
         )
 
     # parse a nested requirements file
@@ -221,7 +227,8 @@ def process_line(
         # TODO: Why not use `comes_from='-r {} (line {})'` here as well?
         parsed_reqs = parse_requirements(
             req_path, finder, comes_from, options, session,
-            constraint=nested_constraint, wheel_cache=wheel_cache
+            constraint=nested_constraint, wheel_cache=wheel_cache,
+            environment=environment
         )
         for req in parsed_reqs:
             yield req

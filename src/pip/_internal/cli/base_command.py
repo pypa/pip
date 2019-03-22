@@ -37,7 +37,7 @@ from pip._internal.utils.outdated import pip_version_check
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, List, Tuple, Any
+    from typing import Optional, List, Tuple, Any, Dict
     from optparse import Values
     from pip._internal.cache import WheelCache
     from pip._internal.req.req_set import RequirementSet
@@ -238,7 +238,19 @@ class Command(object):
 class RequirementCommand(Command):
 
     @staticmethod
-    def populate_requirement_set(requirement_set,  # type: RequirementSet
+    def get_environment(options):
+        # type: (Values) -> Dict[str, Any]
+        environment = {}  # type: Dict[str, Any]
+        version = getattr(options, 'python_version', None)
+        if version:
+            if len(version) >= 2:
+                version = version[0] + '.' + version[1:]
+            environment['python_version'] = version
+        return environment
+
+    @classmethod
+    def populate_requirement_set(cls,
+                                 requirement_set,  # type: RequirementSet
                                  args,             # type: List[str]
                                  options,          # type: Values
                                  finder,           # type: PackageFinder
@@ -253,6 +265,8 @@ class RequirementCommand(Command):
         # NOTE: As a side-effect, options.require_hashes and
         #       requirement_set.require_hashes may be updated
 
+        environment = cls.get_environment(options)
+
         for filename in options.constraints:
             for req_to_add in parse_requirements(
                     filename,
@@ -265,7 +279,8 @@ class RequirementCommand(Command):
             req_to_add = install_req_from_line(
                 req, None, isolated=options.isolated_mode,
                 use_pep517=options.use_pep517,
-                wheel_cache=wheel_cache
+                wheel_cache=wheel_cache,
+                environment=environment
             )
             req_to_add.is_direct = True
             requirement_set.add_requirement(req_to_add)
@@ -275,7 +290,8 @@ class RequirementCommand(Command):
                 req,
                 isolated=options.isolated_mode,
                 use_pep517=options.use_pep517,
-                wheel_cache=wheel_cache
+                wheel_cache=wheel_cache,
+                environment=environment
             )
             req_to_add.is_direct = True
             requirement_set.add_requirement(req_to_add)
@@ -285,7 +301,8 @@ class RequirementCommand(Command):
                     filename,
                     finder=finder, options=options, session=session,
                     wheel_cache=wheel_cache,
-                    use_pep517=options.use_pep517):
+                    use_pep517=options.use_pep517,
+                    environment=environment):
                 req_to_add.is_direct = True
                 requirement_set.add_requirement(req_to_add)
         # If --require-hashes was a line in a requirements file, tell

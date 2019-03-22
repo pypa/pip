@@ -76,7 +76,8 @@ class InstallRequirement(object):
         options=None,  # type: Optional[Dict[str, Any]]
         wheel_cache=None,  # type: Optional[WheelCache]
         constraint=False,  # type: bool
-        extras=()  # type: Iterable[str]
+        extras=(),  # type: Iterable[str]
+        environment=None  # type: Optional[Dict[str, Any]]
     ):
         # type: (...) -> None
         assert req is None or isinstance(req, Requirement), req
@@ -154,6 +155,8 @@ class InstallRequirement(object):
         # Setting an explicit value before loading pyproject.toml is supported,
         # but after loading this flag should be treated as read only.
         self.use_pep517 = use_pep517
+
+        self.environment = environment if environment else {}
 
     def __str__(self):
         # type: () -> str
@@ -233,13 +236,20 @@ class InstallRequirement(object):
 
     def match_markers(self, extras_requested=None):
         # type: (Optional[Iterable[str]]) -> bool
+
+        def env(x):
+            # type: (Dict[str, Any]) -> Dict[str, Any]
+            e = self.environment.copy()
+            e.update(x)
+            return e
+
         if not extras_requested:
             # Provide an extra to safely evaluate the markers
             # without matching any extra
             extras_requested = ('',)
         if self.markers is not None:
             return any(
-                self.markers.evaluate({'extra': extra})
+                self.markers.evaluate(env({'extra': extra}))
                 for extra in extras_requested)
         else:
             return True

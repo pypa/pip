@@ -459,6 +459,29 @@ class TestInstallRequirement(object):
             assert str(req.markers) == str(Marker(markers))
             assert not req.match_markers()
 
+    def test_markers_match_from_line_with_env(self):
+        # match
+        for markers in (
+            'python_version >= "5.0"',
+            'sys_platform == %r' % sys.platform,
+        ):
+            line = 'name; ' + markers
+            req = install_req_from_line(line,
+                                        environment={'python_version': '5.5'})
+            assert str(req.markers) == str(Marker(markers))
+            assert req.match_markers()
+
+        # don't match
+        for markers in (
+            'python_version >= "2.0"',
+            'sys_platform != %r' % sys.platform,
+        ):
+            line = 'name; ' + markers
+            req = install_req_from_line(line,
+                                        environment={'python_version': '1.0'})
+            assert str(req.markers) == str(Marker(markers))
+            assert not req.match_markers()
+
     def test_markers_match(self):
         # match
         for markers in (
