@@ -34,7 +34,7 @@ from pip._internal.utils.compat import ipaddress
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, WHEEL_EXTENSION, normalize_path,
-    redact_password_from_url,
+    splitext, redact_password_from_url,
 )
 from pip._internal.utils.packaging import check_requires_python
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -795,9 +795,9 @@ class PackageFinder(object):
         version = None
         if link.egg_fragment:
             egg_info = link.egg_fragment
-            ext = link.ext
+            _, ext = splitext(text)
         else:
-            egg_info, ext = link.splitext()
+            egg_info, ext = splitext(text)
             if not ext:
                 self._log_skipped_link(link, 'not a file')
                 return None
@@ -811,7 +811,7 @@ class PackageFinder(object):
                     link, 'No binaries permitted for %s' % search.supplied,
                 )
                 return None
-            if "macosx10" in link.path and ext == '.zip':
+            if "macosx10" in text and ext == '.zip':
                 self._log_skipped_link(link, 'macosx10 one')
                 return None
             if ext == WHEEL_EXTENSION:
@@ -858,7 +858,7 @@ class PackageFinder(object):
             support_this_python = check_requires_python(link.requires_python)
         except specifiers.InvalidSpecifier:
             logger.debug("Package %s has an invalid Requires-Python entry: %s",
-                         link.filename, link.requires_python)
+                         text, link.requires_python)
             support_this_python = True
 
         if not support_this_python:

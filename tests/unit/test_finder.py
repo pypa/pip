@@ -478,13 +478,13 @@ class TestLinkPackageVersions(object):
         )
 
     @pytest.mark.parametrize(
-        'url',
+        'name, url',
         [
-            'http:/yo/pytest-1.0.tar.gz',
-            'http:/yo/pytest-1.0-py2.py3-none-any.whl',
+            ('pytest-1.0.tar.gz', 'does-not-matter-tar-gz-url'),
+            ('pytest-1.0-py2.py3-none-any.whl', 'does-not-matter-whl-url'),
         ],
     )
-    def test_link_package_versions_match(self, url):
+    def test_anchor_package_versions_match(self, name, url):
         """Test that 'pytest' archives match for 'pytest'"""
         link = Link(url)
         search = Search(
@@ -492,28 +492,28 @@ class TestLinkPackageVersions(object):
             canonical=self.canonical_name,
             formats=['source', 'binary'],
         )
-        result = self.finder._link_package_versions(link, search)
+        result = self.finder._anchor_package_versions((name, link), search)
         expected = InstallationCandidate(self.search_name, self.version, link)
         assert result == expected, result
 
     @pytest.mark.parametrize(
-        'url',
+        'name',
         [
             # TODO: Uncomment this test case when #1217 is fixed.
-            # 'http:/yo/pytest-xdist-1.0.tar.gz',
-            'http:/yo/pytest2-1.0.tar.gz',
-            'http:/yo/pytest_xdist-1.0-py2.py3-none-any.whl',
+            # 'pytest-xdist-1.0.tar.gz',
+            'pytest2-1.0.tar.gz',
+            'pytest_xdist-1.0-py2.py3-none-any.whl',
         ],
     )
-    def est_link_package_versions_substring_fails(self, url):
+    def test_anchor_package_versions_substring_fails(self, name):
         """Test that 'pytest<something> archives won't match for 'pytest'."""
-        link = Link(url)
+        anchor = (name, Link('does-not-matter'))
         search = Search(
             supplied=self.search_name,
             canonical=self.canonical_name,
             formats=['source', 'binary'],
         )
-        result = self.finder._link_package_versions(link, search)
+        result = self.finder._anchor_package_versions(anchor, search)
         assert result is None, result
 
 
