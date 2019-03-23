@@ -42,7 +42,7 @@ from pip._internal.wheel import move_wheel_files
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Optional, Iterable, List, Union, Any, Sequence, Dict
+        Any, Dict, Iterable, List, Mapping, Optional, Sequence, Union,
     )
     from pip._internal.build_env import BuildEnvironment
     from pip._internal.cache import WheelCache
@@ -156,6 +156,7 @@ class InstallRequirement(object):
         self.use_pep517 = use_pep517
 
     def __str__(self):
+        # type: () -> str
         if self.req:
             s = str(self.req)
             if self.link:
@@ -176,6 +177,7 @@ class InstallRequirement(object):
         return s
 
     def __repr__(self):
+        # type: () -> str
         return '<%s object: %s editable=%r>' % (
             self.__class__.__name__, str(self), self.editable)
 
@@ -226,6 +228,7 @@ class InstallRequirement(object):
 
     @property
     def installed_version(self):
+        # type: () -> Optional[str]
         return get_installed_version(self.name)
 
     def match_markers(self, extras_requested=None):
@@ -501,7 +504,12 @@ class InstallRequirement(object):
             # Use a custom function to call subprocesses
             self.spin_message = ""
 
-            def runner(cmd, cwd=None, extra_environ=None):
+            def runner(
+                cmd,  # type: List[str]
+                cwd=None,  # type: Optional[str]
+                extra_environ=None  # type: Optional[Mapping[str, Any]]
+            ):
+                # type: (...) -> None
                 with open_spinner(self.spin_message) as spinner:
                     call_subprocess(
                         cmd,
@@ -661,6 +669,7 @@ class InstallRequirement(object):
 
     @property
     def metadata(self):
+        # type: () -> Any
         if not hasattr(self, '_metadata'):
             self._metadata = get_metadata(self.get_dist())
 
@@ -815,6 +824,7 @@ class InstallRequirement(object):
         return uninstalled_pathset
 
     def _clean_zip_name(self, name, prefix):  # only used by archive.
+        # type: (str, str) -> str
         assert name.startswith(prefix + os.path.sep), (
             "name %r doesn't start with prefix %r" % (name, prefix)
         )
@@ -947,6 +957,7 @@ class InstallRequirement(object):
             self.install_succeeded = True
 
             def prepend_root(path):
+                # type: (str) -> str
                 if root is None or not os.path.isabs(path):
                     return path
                 else:
