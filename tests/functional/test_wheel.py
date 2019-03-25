@@ -118,7 +118,7 @@ def test_pip_wheel_fail(script, data):
         wheel_file_path,
         result.files_created,
     )
-    assert "FakeError" in result.stdout, result.stdout
+    assert "FakeError" in result.stderr, result.stderr
     assert "Failed to build wheelbroken" in result.stdout, result.stdout
     assert result.returncode != 0
 

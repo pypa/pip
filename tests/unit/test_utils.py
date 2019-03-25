@@ -6,7 +6,6 @@ util tests
 """
 import codecs
 import itertools
-import logging
 import os
 import shutil
 import stat
@@ -15,6 +14,7 @@ import tempfile
 import time
 import warnings
 from io import BytesIO
+from logging import DEBUG, ERROR, INFO, WARNING
 
 import pytest
 from mock import Mock, patch
@@ -781,30 +781,25 @@ class TestCallSubprocess(object):
         :param spinner: the FakeSpinner object passed to call_subprocess()
             to be checked.
         :param result: the call_subprocess() return value to be checked.
-        :param expected: a 3-tuple (expected_proc, expected_out,
-            expected_records), where
+        :param expected: a pair (expected_proc, expected_records), where
             1) `expected_proc` is the expected return value of
               call_subprocess() as a list of lines, or None if the return
               value is expected to be None;
-            2) `expected_out` is the expected stdout captured from the
-              subprocess call, as a list of lines; and
-            3) `expected_records` is the expected value of
+            2) `expected_records` is the expected value of
               caplog.record_tuples.
         :param expected_spinner: a 2-tuple of the spinner's expected
             (spin_count, final_status).
         """
-        expected_proc, expected_out, expected_records = expected
+        expected_proc, expected_records = expected
 
         if expected_proc is None:
-            assert result is expected_proc
+            assert result is None
         else:
             assert result.splitlines() == expected_proc
 
+        # Confirm that stdout and stderr haven't been written to.
         captured = capfd.readouterr()
-        stdout, stderr = captured.out, captured.err
-
-        assert stdout.splitlines() == expected_out
-        assert stderr == ''
+        assert (captured.out, captured.err) == ('', '')
 
         records = caplog.record_tuples
         if len(records) != len(expected_records):
@@ -837,31 +832,31 @@ class TestCallSubprocess(object):
         """
         Test DEBUG logging (and without passing show_stdout=True).
         """
-        log_level = logging.DEBUG
+        log_level = DEBUG
         args, spinner = self.prepare_call(caplog, log_level)
         result = call_subprocess(args, spinner=spinner)
 
-        expected = (['Hello', 'world'], [], [
-            ('pip._internal.utils.misc', 10, 'Running command '),
-            ('pip._internal.utils.misc', 10, 'Hello'),
-            ('pip._internal.utils.misc', 10, 'world'),
+        expected = (['Hello', 'world'], [
+            ('pip.subprocessor', DEBUG, 'Running command '),
+            ('pip.subprocessor', DEBUG, 'Hello'),
+            ('pip.subprocessor', DEBUG, 'world'),
         ])
         # The spinner shouldn't spin in this case since the subprocess
         # output is already being logged to the console.
         self.check_result(
             capfd, caplog, log_level, spinner, result, expected,
-            expected_spinner=(0, 'done'),
+            expected_spinner=(0, None),
         )
 
     def test_info_logging(self, capfd, caplog):
         """
         Test INFO logging (and without passing show_stdout=True).
         """
-        log_level = logging.INFO
+        log_level = INFO
         args, spinner = self.prepare_call(caplog, log_level)
         result = call_subprocess(args, spinner=spinner)
 
-        expected = (['Hello', 'world'], [], [])
+        expected = (['Hello', 'world'], [])
         # The spinner should spin twice in this case since the subprocess
         # output isn't being written to the console.
         self.check_result(
@@ -874,7 +869,7 @@ class TestCallSubprocess(object):
         Test INFO logging of a subprocess with an error (and without passing
         show_stdout=True).
         """
-        log_level = logging.INFO
+        log_level = INFO
         command = 'print("Hello"); print("world"); exit("fail")'
         args, spinner = self.prepare_call(caplog, log_level, command=command)
 
@@ -882,10 +877,10 @@ class TestCallSubprocess(object):
             call_subprocess(args, spinner=spinner)
         result = None
 
-        expected = (None, [], [
-            ('pip._internal.utils.misc', 20, 'Complete output from command '),
+        expected = (None, [
+            ('pip.subprocessor', ERROR, 'Complete output from command '),
             # The "failed" portion is later on in this "Hello" string.
-            ('pip._internal.utils.misc', 20, 'Hello'),
+            ('pip.subprocessor', ERROR, 'Hello'),
         ])
         # The spinner should spin three times in this case since the
         # subprocess output isn't being written to the console.
@@ -915,11 +910,15 @@ class TestCallSubprocess(object):
         """
         Test INFO logging with show_stdout=True.
         """
-        log_level = logging.INFO
+        log_level = INFO
         args, spinner = self.prepare_call(caplog, log_level)
         result = call_subprocess(args, spinner=spinner, show_stdout=True)
 
-        expected = (None, ['Hello', 'world'], [])
+        expected = (['Hello', 'world'], [
+            ('pip.subprocessor', INFO, 'Running command '),
+            ('pip.subprocessor', INFO, 'Hello'),
+            ('pip.subprocessor', INFO, 'world'),
+        ])
         # The spinner shouldn't spin in this case since the subprocess
         # output is already being written to the console.
         self.check_result(
@@ -931,17 +930,23 @@ class TestCallSubprocess(object):
         'exit_status', 'show_stdout', 'extra_ok_returncodes', 'log_level',
         'expected'),
         [
-            (0, False, None, logging.INFO, (None, 'done', 2)),
-            # Test some cases that should result in show_spinner false.
-            (0, False, None, logging.DEBUG, (None, 'done', 0)),
+            # The spinner should show here because show_stdout=False means
+            # the subprocess should get logged at DEBUG level, but the passed
+            # log level is only INFO.
+            (0, False, None, INFO, (None, 'done', 2)),
+            # Test some cases where the spinner should not be shown.
+            (0, False, None, DEBUG, (None, None, 0)),
             # Test show_stdout=True.
-            (0, True, None, logging.DEBUG, (None, None, 0)),
-            (0, True, None, logging.INFO, (None, None, 0)),
-            (0, True, None, logging.WARNING, (None, None, 0)),
+            (0, True, None, DEBUG, (None, None, 0)),
+            (0, True, None, INFO, (None, None, 0)),
+            # The spinner should show here because show_stdout=True means
+            # the subprocess should get logged at INFO level, but the passed
+            # log level is only WARNING.
+            (0, True, None, WARNING, (None, 'done', 2)),
             # Test a non-zero exit status.
-            (3, False, None, logging.INFO, (InstallationError, 'error', 2)),
+            (3, False, None, INFO, (InstallationError, 'error', 2)),
             # Test a non-zero exit status also in extra_ok_returncodes.
-            (3, False, (3, ), logging.INFO, (None, 'done', 2)),
+            (3, False, (3, ), INFO, (None, 'done', 2)),
     ])
     def test_spinner_finish(
         self, exit_status, show_stdout, extra_ok_returncodes, log_level,
