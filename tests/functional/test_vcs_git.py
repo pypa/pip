@@ -44,8 +44,7 @@ def add_commits(script, dest, count):
 
 
 def check_rev(repo_dir, rev, expected):
-    git = Git()
-    assert git.get_revision_sha(repo_dir, rev) == expected
+    assert Git.get_revision_sha(repo_dir, rev) == expected
 
 
 def test_git_dir_ignored(tmpdir):
@@ -114,17 +113,16 @@ def test_get_current_branch(script):
     script.run('git', 'init', cwd=repo_dir)
     sha = do_commit(script, repo_dir)
 
-    git = Git()
-    assert git.get_current_branch(repo_dir) == 'master'
+    assert Git.get_current_branch(repo_dir) == 'master'
 
     # Switch to a branch with the same SHA as "master" but whose name
     # is alphabetically after.
     checkout_new_branch(script, repo_dir, 'release')
-    assert git.get_current_branch(repo_dir) == 'release'
+    assert Git.get_current_branch(repo_dir) == 'release'
 
     # Also test the detached HEAD case.
     checkout_ref(script, repo_dir, sha)
-    assert git.get_current_branch(repo_dir) is None
+    assert Git.get_current_branch(repo_dir) is None
 
 
 def test_get_current_branch__branch_and_tag_same_name(script, tmpdir):
@@ -139,12 +137,11 @@ def test_get_current_branch__branch_and_tag_same_name(script, tmpdir):
     # Create a tag with the same name as the branch.
     script.run('git', 'tag', 'dev', cwd=repo_dir)
 
-    git = Git()
-    assert git.get_current_branch(repo_dir) == 'dev'
+    assert Git.get_current_branch(repo_dir) == 'dev'
 
     # Now try with the tag checked out.
     checkout_ref(script, repo_dir, 'refs/tags/dev')
-    assert git.get_current_branch(repo_dir) is None
+    assert Git.get_current_branch(repo_dir) is None
 
 
 def test_get_revision_sha(script):
@@ -212,10 +209,10 @@ def test_is_commit_id_equal(script):
         'git', 'rev-parse', 'HEAD',
         cwd=version_pkg_path
     ).stdout.strip()
-    git = Git()
-    assert git.is_commit_id_equal(version_pkg_path, commit)
-    assert not git.is_commit_id_equal(version_pkg_path, commit[:7])
-    assert not git.is_commit_id_equal(version_pkg_path, 'branch0.1')
-    assert not git.is_commit_id_equal(version_pkg_path, 'abc123')
+
+    assert Git.is_commit_id_equal(version_pkg_path, commit)
+    assert not Git.is_commit_id_equal(version_pkg_path, commit[:7])
+    assert not Git.is_commit_id_equal(version_pkg_path, 'branch0.1')
+    assert not Git.is_commit_id_equal(version_pkg_path, 'abc123')
     # Also check passing a None value.
-    assert not git.is_commit_id_equal(version_pkg_path, None)
+    assert not Git.is_commit_id_equal(version_pkg_path, None)
