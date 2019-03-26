@@ -240,24 +240,30 @@ class RequirementCommand(Command):
     @staticmethod
     def get_environment(options):
         # type: (Values) -> Dict[str, Any]
+        """
+        Get an environment dictionary compatible with
+        `packaging.markers.Marker`.
+        """
         environment = {}  # type: Dict[str, Any]
         version = getattr(options, 'python_version', None)
         if version:
             if len(version) >= 2:
+                # convert from xyz to x.yz
                 version = version[0] + '.' + version[1:]
             environment['python_version'] = version
         return environment
 
     @staticmethod
-    def populate_requirement_set(requirement_set,  # type: RequirementSet
-                                 args,             # type: List[str]
-                                 options,          # type: Values
-                                 finder,           # type: PackageFinder
-                                 session,          # type: PipSession
-                                 name,             # type: str
-                                 wheel_cache,      # type: Optional[WheelCache]
-                                 environment,      # type: Dict[str, Any]
-                                 ):
+    def populate_requirement_set(
+            requirement_set,   # type: RequirementSet
+            args,              # type: List[str]
+            options,           # type: Values
+            finder,            # type: PackageFinder
+            session,           # type: PipSession
+            name,              # type: str
+            wheel_cache,       # type: Optional[WheelCache]
+            environment=None,  # type: Optional[Dict[str, Any]]
+    ):
         # type: (...) -> None
         """
         Marshal cmd line args into a requirement set.

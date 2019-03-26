@@ -172,7 +172,7 @@ def install_req_from_editable(
     options=None,  # type: Optional[Dict[str, Any]]
     wheel_cache=None,  # type: Optional[WheelCache]
     constraint=False,  # type: bool
-    environment=None  # type: Dict[str, Any]
+    environment=None  # type: Optional[Dict[str, Any]]
 ):
     # type: (...) -> InstallRequirement
     name, url, extras_override = parse_editable(editable_req)
@@ -210,7 +210,7 @@ def install_req_from_line(
     options=None,  # type: Optional[Dict[str, Any]]
     wheel_cache=None,  # type: Optional[WheelCache]
     constraint=False,  # type: bool
-    environment=None  # type: Dict[str, Any]
+    environment=None  # type: Optional[Dict[str, Any]]
 ):
     # type: (...) -> InstallRequirement
     """Creates an InstallRequirement from a name, which might be a
@@ -318,7 +318,7 @@ def install_req_from_req_string(
     isolated=False,  # type: bool
     wheel_cache=None,  # type: Optional[WheelCache]
     use_pep517=None,  # type: Optional[bool]
-    environment=None  # type: Dict[str, Any]
+    environment=None  # type: Optional[Dict[str, Any]]
 ):
     # type: (...) -> InstallRequirement
     try:
