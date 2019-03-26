@@ -25,7 +25,7 @@ from pip._internal.utils.packaging import check_dist_requires_python
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, DefaultDict, List, Set
+    from typing import Any, DefaultDict, Dict, List, Optional, Set
     from pip._internal.download import PipSession
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.index import PackageFinder
@@ -58,7 +58,8 @@ class Resolver(object):
         force_reinstall,  # type: bool
         isolated,  # type: bool
         upgrade_strategy,  # type: str
-        use_pep517=None  # type: Optional[bool]
+        use_pep517=None,  # type: Optional[bool]
+        environment=None,  # type: Dict[str, Any]
     ):
         # type: (...) -> None
         super(Resolver, self).__init__()
@@ -83,6 +84,7 @@ class Resolver(object):
         self.ignore_requires_python = ignore_requires_python
         self.use_user_site = use_user_site
         self.use_pep517 = use_pep517
+        self.environment = environment if environment else {}
 
         self._discovered_dependencies = \
             defaultdict(list)  # type: DefaultDict[str, List]
@@ -311,7 +313,8 @@ class Resolver(object):
                 req_to_install,
                 isolated=self.isolated,
                 wheel_cache=self.wheel_cache,
-                use_pep517=self.use_pep517
+                use_pep517=self.use_pep517,
+                environment=self.environment,
             )
             parent_req_name = req_to_install.name
             to_scan_again, add_to_parent = requirement_set.add_requirement(

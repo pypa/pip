@@ -248,15 +248,15 @@ class RequirementCommand(Command):
             environment['python_version'] = version
         return environment
 
-    @classmethod
-    def populate_requirement_set(cls,
-                                 requirement_set,  # type: RequirementSet
+    @staticmethod
+    def populate_requirement_set(requirement_set,  # type: RequirementSet
                                  args,             # type: List[str]
                                  options,          # type: Values
                                  finder,           # type: PackageFinder
                                  session,          # type: PipSession
                                  name,             # type: str
-                                 wheel_cache       # type: Optional[WheelCache]
+                                 wheel_cache,      # type: Optional[WheelCache]
+                                 environment,      # type: Dict[str, Any]
                                  ):
         # type: (...) -> None
         """
@@ -264,8 +264,6 @@ class RequirementCommand(Command):
         """
         # NOTE: As a side-effect, options.require_hashes and
         #       requirement_set.require_hashes may be updated
-
-        environment = cls.get_environment(options)
 
         for filename in options.constraints:
             for req_to_add in parse_requirements(

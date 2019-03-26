@@ -88,6 +88,8 @@ class DownloadCommand(RequirementCommand):
         # of the RequirementSet code require that property.
         options.editables = []
 
+        environment = self.get_environment(options)
+
         if options.python_version:
             python_versions = [options.python_version]
         else:
@@ -135,7 +137,8 @@ class DownloadCommand(RequirementCommand):
                     finder,
                     session,
                     self.name,
-                    None
+                    None,
+                    environment,
                 )
 
                 preparer = RequirementPreparer(
@@ -160,6 +163,7 @@ class DownloadCommand(RequirementCommand):
                     ignore_requires_python=False,
                     ignore_installed=True,
                     isolated=options.isolated_mode,
+                    environment=environment,
                 )
                 resolver.resolve(requirement_set)
 
