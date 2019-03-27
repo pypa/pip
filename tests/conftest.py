@@ -303,7 +303,7 @@ def script(tmpdir, virtualenv, deprecated_python):
         assert_no_temp=True,
 
         # Deprecated python versions produce an extra deprecation warning
-        pip_expect_stderr=deprecated_python,
+        pip_expect_warning=deprecated_python,
     )
 
 

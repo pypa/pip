@@ -139,8 +139,33 @@ class TestPipTestEnvironment:
         with assert_error_startswith(RuntimeError, expected_start):
             self.run_stderr_with_prefix(script, prefix)
 
+    def test_run__allow_stderr_error_false_error_with_expect_error(
+        self, script,
+    ):
+        """
+        Test passing allow_stderr_error=False with expect_error=True.
+        """
+        expected_start = (
+            'cannot pass allow_stderr_error=False with expect_error=True'
+        )
+        with assert_error_startswith(RuntimeError, expected_start):
+            script.run('python', allow_stderr_error=False, expect_error=True)
+
+    def test_run__allow_stderr_warning_false_error_with_expect_stderr(
+        self, script,
+    ):
+        """
+        Test passing allow_stderr_warning=False with expect_stderr=True.
+        """
+        expected_start = (
+            'cannot pass allow_stderr_warning=False with expect_stderr=True'
+        )
+        with assert_error_startswith(RuntimeError, expected_start):
+            script.run(
+                'python', allow_stderr_warning=False, expect_stderr=True,
+            )
+
     @pytest.mark.parametrize('arg_name', (
-        'expect_stderr',
         'expect_error',
         'allow_stderr_error',
     ))
