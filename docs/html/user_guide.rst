@@ -63,7 +63,7 @@ pip can be configured to connect through a proxy server in various ways:
 * by setting the standard environment-variables ``http_proxy``, ``https_proxy``
   and ``no_proxy``.
 * using the environment variable ``PIP_USER_AGENT_USER_DATA`` to include
-  a JSON-encoded string in the user-agent variable used in Pip's requests.
+  a JSON-encoded string in the user-agent variable used in pip's requests.
 
 
 .. _`Requirements Files`:
