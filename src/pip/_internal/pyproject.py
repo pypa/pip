@@ -12,6 +12,8 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 if MYPY_CHECK_RUNNING:
     from typing import Any, Dict, List, Optional, Tuple
 
+    Pep517Data = Tuple[str, List[str]]
+
 
 def _is_list_of_str(obj):
     # type: (Any) -> bool
@@ -64,6 +66,37 @@ def make_editable_error(req_name, reason):
     return InstallationError(message)
 
 
+def get_build_system_requires(build_system, req_name):
+    if build_system is None:
+        return None
+
+    # Ensure that the build-system section in pyproject.toml conforms
+    # to PEP 518.
+    error_template = (
+        "{package} has a pyproject.toml file that does not comply "
+        "with PEP 518: {reason}"
+    )
+
+    # Specifying the build-system table but not the requires key is invalid
+    if "requires" not in build_system:
+        raise InstallationError(
+            error_template.format(package=req_name, reason=(
+                "it has a 'build-system' table but not "
+                "'build-system.requires' which is mandatory in the table"
+            ))
+        )
+
+    # Error out if requires is not a list of strings
+    requires = build_system["requires"]
+    if not _is_list_of_str(requires):
+        raise InstallationError(error_template.format(
+            package=req_name,
+            reason="'build-system.requires' is not a list of strings.",
+        ))
+
+    return requires
+
+
 def resolve_pyproject_toml(
     build_system,  # type: Optional[Dict[str, Any]]
     has_pyproject,  # type: bool
@@ -72,7 +105,7 @@ def resolve_pyproject_toml(
     editable,  # type: bool
     req_name,  # type: str
 ):
-    # type: (...) -> Optional[Tuple[List[str], str, List[str]]]
+    # type: (...) -> Tuple[Optional[List[str]], Optional[Pep517Data]]
     """
     Return how a pyproject.toml file's contents should be interpreted.
 
@@ -86,6 +119,13 @@ def resolve_pyproject_toml(
     :param editable: whether editable mode was requested for the requirement.
     :param req_name: the name of the requirement we're processing (for
         error reporting).
+
+    :return: a tuple (requires, pep517_data), where `requires` is the list
+      of build requirements from pyproject.toml (or else None).  The value
+      `pep517_data` is None if `use_pep517` is False.  Otherwise, it is the
+      tuple (backend, check), where `backend` is the name of the PEP 517
+      backend and `check` is the list of requirements we should check are
+      installed after setting up the build environment.
     """
     # The following cases must use PEP 517
     # We check for use_pep517 being non-None and falsey because that means
@@ -126,19 +166,34 @@ def resolve_pyproject_toml(
                 req_name, 'PEP 517 processing was explicitly requested'
             )
 
-    # If we haven't worked out whether to use PEP 517 yet,
-    # and the user hasn't explicitly stated a preference,
-    # we do so if the project has a pyproject.toml file.
+    # If we haven't worked out whether to use PEP 517 yet, and the user
+    # hasn't explicitly stated a preference, we do so if the project has
+    # a pyproject.toml file (provided editable mode wasn't requested).
     elif use_pep517 is None:
+        if has_pyproject and editable:
+            message = (
+                'Error installing {!r}: editable mode is not supported for '
+                'pyproject.toml-style projects. pip is processing this '
+                'project as pyproject.toml-style because it has a '
+                'pyproject.toml file. Since the project has a setup.py and '
+                'the pyproject.toml has no "build-backend" key for the '
+                '"build_system" value, you may pass --no-use-pep517 to opt '
+                'out of pyproject.toml-style processing. '
+                'See PEP 517 for details on pyproject.toml-style projects.'
+            ).format(req_name)
+            raise InstallationError(message)
+
         use_pep517 = has_pyproject
 
     # At this point, we know whether we're going to use PEP 517.
     assert use_pep517 is not None
 
+    requires = get_build_system_requires(build_system, req_name=req_name)
+
     # If we're using the legacy code path, there is nothing further
     # for us to do here.
     if not use_pep517:
-        return None
+        return (requires, None)
 
     if build_system is None:
         # Either the user has a pyproject.toml with no build-system
@@ -149,8 +204,8 @@ def resolve_pyproject_toml(
         # traditional direct setup.py execution, and require wheel and
         # a version of setuptools that supports that backend.
 
+        requires = ["setuptools>=40.8.0", "wheel"]
         build_system = {
-            "requires": ["setuptools>=40.8.0", "wheel"],
             "build-backend": "setuptools.build_meta:__legacy__",
         }
 
@@ -159,30 +214,6 @@ def resolve_pyproject_toml(
     # Note that at this point, we do not know if the user has actually
     # specified a backend, though.
     assert build_system is not None
-
-    # Ensure that the build-system section in pyproject.toml conforms
-    # to PEP 518.
-    error_template = (
-        "{package} has a pyproject.toml file that does not comply "
-        "with PEP 518: {reason}"
-    )
-
-    # Specifying the build-system table but not the requires key is invalid
-    if "requires" not in build_system:
-        raise InstallationError(
-            error_template.format(package=req_name, reason=(
-                "it has a 'build-system' table but not "
-                "'build-system.requires' which is mandatory in the table"
-            ))
-        )
-
-    # Error out if requires is not a list of strings
-    requires = build_system["requires"]
-    if not _is_list_of_str(requires):
-        raise InstallationError(error_template.format(
-            package=req_name,
-            reason="'build-system.requires' is not a list of strings.",
-        ))
 
     backend = build_system.get("build-backend")
     check = []  # type: List[str]
@@ -202,7 +233,7 @@ def resolve_pyproject_toml(
         backend = "setuptools.build_meta:__legacy__"
         check = ["setuptools>=40.8.0", "wheel"]
 
-    return (requires, backend, check)
+    return (requires, (backend, check))
 
 
 def load_pyproject_toml(
@@ -212,7 +243,7 @@ def load_pyproject_toml(
     setup_py,  # type: str
     req_name  # type: str
 ):
-    # type: (...) -> Optional[Tuple[List[str], str, List[str]]]
+    # type: (...) -> Tuple[Optional[List[str]], Optional[Pep517Data]]
     """Load the pyproject.toml file.
 
     Parameters:
@@ -224,13 +255,13 @@ def load_pyproject_toml(
         req_name - The name of the requirement we're processing (for
                    error reporting)
 
-    Returns:
-        None if we should use the legacy code path, otherwise a tuple
+    Returns: (requires, pep_517_data)
+      requires: requirements from pyproject.toml (can be None).
+      pep_517_data: None if we should use the legacy code path, otherwise:
         (
-            requirements from pyproject.toml,
             name of PEP 517 backend,
-            requirements we should check are installed after setting
-                up the build environment
+            requirements we should check are installed after setting up
+            the build environment
         )
     """
     has_pyproject = os.path.isfile(pyproject_toml)

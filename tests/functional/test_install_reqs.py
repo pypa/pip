@@ -302,8 +302,12 @@ def test_constraints_local_editable_install_pep518(script, data):
     to_install = data.src.join("pep518-3.0")
 
     script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
+    # --no-use-pep517 has to be passed since a pyproject.toml file is
+    # present but PEP 517 doesn't support editable mode.
     script.pip(
-        'install', '--no-index', '-f', data.find_links, '-e', to_install)
+        'install', '--no-use-pep517', '--no-index', '-f', data.find_links,
+        '-e', to_install,
+    )
 
 
 def test_constraints_local_install_causes_error(script, data):
