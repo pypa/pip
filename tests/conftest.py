@@ -71,6 +71,7 @@ def tmpdir_factory(request, tmpdir_factory):
     """
     yield tmpdir_factory
     if not request.config.getoption("--keep-tmpdir"):
+        print("Removing:", tmpdir_factory.getbasetemp())
         tmpdir_factory.getbasetemp().remove(ignore_errors=True)
 
 
