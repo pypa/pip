@@ -3,7 +3,8 @@ mock
 pretend
 pytest==3.8.2
 pytest-cov
-pytest-rerunfailures
+# Prevent installing 7.0 which has install_requires "pytest >= 3.10".
+pytest-rerunfailures<7.0
 pytest-timeout
 pytest-xdist
 pyyaml
