@@ -178,7 +178,7 @@ def get_requirement_info(dist):
     if not vc_type:
         req = dist.as_requirement()
         logger.debug(
-            'No VCS found for editable requirement {!r} in: {!r}', req,
+            'No VCS found for editable requirement "%s" in: %r', req,
             location,
         )
         comments = [

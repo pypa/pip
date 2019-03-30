@@ -126,7 +126,7 @@ def test_freeze_editable_not_vcs(script, tmpdir):
     # as a VCS directory.
     os.rename(os.path.join(pkg_path, '.git'), os.path.join(pkg_path, '.bak'))
     script.pip('install', '-e', pkg_path)
-    result = script.pip('freeze', expect_stderr=True)
+    result = script.pip('freeze')
 
     # We need to apply os.path.normcase() to the path since that is what
     # the freeze code does.
