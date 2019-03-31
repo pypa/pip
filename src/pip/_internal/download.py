@@ -167,6 +167,10 @@ def user_agent():
     # value to make it easier to know that the check has been run.
     data["ci"] = True if looks_like_ci() else None
 
+    user_data = os.environ.get("PIP_USER_AGENT_USER_DATA")
+    if user_data is not None:
+        data["user_data"] = user_data
+
     return "{data[installer][name]}/{data[installer][version]} {json}".format(
         data=data,
         json=json.dumps(data, separators=(",", ":"), sort_keys=True),
