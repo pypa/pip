@@ -505,7 +505,7 @@ class TestLinkPackageVersions(object):
             'http:/yo/pytest_xdist-1.0-py2.py3-none-any.whl',
         ],
     )
-    def est_link_package_versions_substring_fails(self, url):
+    def test_link_package_versions_substring_fails(self, url):
         """Test that 'pytest<something> archives won't match for 'pytest'."""
         link = Link(url)
         search = Search(
