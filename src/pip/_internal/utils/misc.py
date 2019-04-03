@@ -44,7 +44,7 @@ else:
 if MYPY_CHECK_RUNNING:
     from typing import (
         Optional, Tuple, Iterable, List, Match, Union, Any, Mapping, Text,
-        AnyStr, Container
+        AnyStr, Sized
     )
     from pip._vendor.pkg_resources import Distribution
     from pip._internal.models.link import Link
@@ -374,7 +374,7 @@ def get_installed_distributions(local_only=True,
                                 include_editables=True,
                                 skip=stdlib_pkgs,
                                 keep=()):
-    # type: (bool, Container[str], bool, bool, bool) -> List[Distribution]
+    # type: (bool, bool, bool, bool, Sized, Sized) -> List[Distribution]
     """
     Return a list of installed Distribution objects.
 
