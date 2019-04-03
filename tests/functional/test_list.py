@@ -3,6 +3,8 @@ import os
 
 import pytest
 
+from tests.lib import requirements_file
+
 
 def test_basic_list(script, data):
     """
@@ -364,7 +366,8 @@ def test_outdated_editables_flag(script, data):
 @pytest.mark.network
 def test_outdated_editables_columns_flag(script, data):
     """
-    test the behavior of --editable --outdated flag in the list command
+    test the behavior of --editable --outdated --format=column flag
+    in the list command
     """
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
     result = script.pip(
@@ -382,6 +385,184 @@ def test_outdated_editables_columns_flag(script, data):
     assert os.path.join('src', 'pip-test-package') in result.stdout, (
         str(result)
     )
+
+
+def test_requirements_flag(script, data, tmpdir):
+    """
+    test the behavior of --requirement flag in the list command
+    """
+    script.pip(
+        'install', '-f', data.find_links, '--no-index', 'simple==1.0',
+        'simple2==3.0',
+    )
+    with requirements_file('simple2==3.0\n', tmpdir) as reqs_file:
+        result = script.pip(
+            'list', '--requirement', reqs_file.abspath
+        )
+    assert 'simple2 3.0' in result.stdout, str(result)
+
+
+def test_requirements_columns_flag(script, data, tmpdir):
+    """
+    test the behavior of --requirement flag in the list command
+    """
+    script.pip(
+        'install', '-f', data.find_links, '--no-index', 'simple==1.0',
+        'simple2==3.0',
+    )
+    with requirements_file('simple2==3.0\n', tmpdir) as reqs_file:
+        result = script.pip(
+            'list', '--requirement', reqs_file.abspath,
+            '--format=columns',
+        )
+    assert 'Package' in result.stdout
+    assert 'Version' in result.stdout
+    assert 'simple2 3.0' in result.stdout, str(result)
+
+
+def test_requirements_freeze_flag(script, data, tmpdir):
+    """
+    Test the behavior of --requirement with the freeze formatting
+    """
+    script.pip(
+        'install', '-f', data.find_links, '--no-index', 'simple==1.0',
+        'simple2==3.0',
+    )
+    with requirements_file('simple2~=3.0\n', tmpdir) as reqs_file:
+        result = script.pip(
+            'list', '--requirement', reqs_file.abspath,
+            '--format=freeze',
+        )
+    assert 'simple==1.0' not in result.stdout, str(result)
+    assert 'simple2==3.0' in result.stdout, str(result)
+
+
+@pytest.mark.network
+def test_requirements_editables_flag(script, data, tmpdir):
+    """
+    test the behavior of --requirement --editable flag in the list command
+    """
+    script.pip(
+        'install', '-f', data.find_links, '--no-index', 'simple==1.0',
+        'simple2==3.0',
+    )
+    script.pip(
+        'install', '-e',
+        'git+https://github.com/pypa/pip-test-package.git'
+        '@0.1#egg=pip-test-package'
+    )
+    with requirements_file('simple2==3.0\n'
+                           '-e'
+                           'git+https://github.com/pypa/pip-test-package.git'
+                           '@0.1#egg=pip-test-package\n',
+                           tmpdir) as reqs_file:
+        result = script.pip(
+            'list', '--requirement', reqs_file.abspath,
+            '--editable',
+        )
+    assert 'Package' in result.stdout
+    assert 'Version' in result.stdout
+    assert 'Location' in result.stdout
+    assert 'simple 1.0' not in result.stdout
+    assert 'simple2 3.0' not in result.stdout
+    assert 'pip-test-package 0.1' in result.stdout
+
+
+def test_requirements_uptodate_flag(script, data, tmpdir):
+    """
+    test the behavior of --requirement --uptodate flag in the list command
+    """
+    script.pip(
+        'install', '-f', data.find_links, '--no-index', 'simple==1.0',
+        'simple2==3.0',
+    )
+    script.pip(
+        'install', '-e',
+        'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package'
+    )
+    with requirements_file('simple~=1.0\n'
+                           'simple2==3.0\n', tmpdir) as reqs_file:
+        result = script.pip(
+            'list', '--requirement', reqs_file.abspath,
+            '-f', data.find_links, '--no-index',
+            '--uptodate',
+        )
+    assert 'Package' in result.stdout
+    assert 'Version' in result.stdout
+    assert 'Location' not in result.stdout
+    assert 'simple 1.0' not in result.stdout
+    assert 'simple2 3.0' in result.stdout
+    assert 'pip-test-package 0.1.1' not in result.stdout
+
+
+def test_requirements_outdated_flag(script, data, tmpdir):
+    """
+    test the behavior of --requirement --outdated flag in the list command
+    """
+    script.pip(
+        'install', '-f', data.find_links, '--no-index', 'simple==1.0',
+        'simple2==3.0', 'simplewheel==1.0',
+    )
+    script.pip(
+        'install', '-e',
+        'git+https://github.com/pypa/pip-test-package.git'
+        '@0.1#egg=pip-test-package'
+    )
+    with requirements_file('simple\n'
+                           'simple2\n'
+                           'simplewheel\n'
+                           '-e'
+                           'git+https://github.com/pypa/pip-test-pacakage.git'
+                           '@0.1#egg=pip-test-package\n', tmpdir) as reqs_file:
+        result = script.pip(
+            'list', '--requirement', reqs_file.abspath,
+            '-f', data.find_links, '--no-index', '--outdated',
+            '--format=json',
+        )
+    assert {"name": "simple", "version": "1.0",
+            "latest_version": "3.0", "latest_filetype": "sdist"} \
+        in json.loads(result.stdout)
+    assert {"name": "simplewheel", "version": "1.0",
+            "latest_version": "2.0", "latest_filetype": "wheel"} \
+        in json.loads(result.stdout)
+    assert {"name": "pip-test-package", "version": "0.1",
+            "latest_version": "0.1.1", "latest_filetype": "sdist"} \
+        in json.loads(result.stdout)
+    assert "simple2" not in {p["name"] for p in json.loads(result.stdout)}
+
+
+@pytest.mark.network
+def test_requirements_outdated_editables_flag(script, data, tmpdir):
+    """
+    test the behavior of --requirement --outdated --editable flag
+    in the list command
+    """
+    script.pip(
+        'install', '-f', data.find_links, '--no-index', 'simple==1.0',
+        'simple2==3.0', 'simplewheel==1.0',
+    )
+    script.pip(
+        'install', '-e',
+        'git+https://github.com/pypa/pip-test-package.git'
+        '@0.1#egg=pip-test-package'
+    )
+    with requirements_file('simple\n'
+                           'simple2\n'
+                           'simplewheel\n'
+                           '-e'
+                           'git+https://github.com/pypa/pip-test-pacakage.git'
+                           '@0.1#egg=pip-test-package\n', tmpdir) as reqs_file:
+        result = script.pip(
+            'list', '--requirement', reqs_file.abspath,
+            '-f', data.find_links, '--no-index', '--outdated',
+            '--editable', '--format=json',
+        )
+    assert {"name": "pip-test-package", "version": "0.1",
+            "latest_version": "0.1.1", "latest_filetype": "sdist"} \
+        in json.loads(result.stdout)
+    assert "simple" not in {p["name"] for p in json.loads(result.stdout)}
+    assert "simplewheel" not in {p["name"] for p in json.loads(result.stdout)}
+    assert "simple2" not in {p["name"] for p in json.loads(result.stdout)}
 
 
 def test_outdated_not_required_flag(script, data):
