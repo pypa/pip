@@ -369,10 +369,11 @@ def dist_is_editable(dist):
 
 
 def get_installed_distributions(local_only=True,
-                                skip=stdlib_pkgs,
-                                include_editables=True,
                                 editables_only=False,
-                                user_only=False):
+                                user_only=False,
+                                include_editables=True,
+                                skip=stdlib_pkgs,
+                                keep=()):
     # type: (bool, Container[str], bool, bool, bool) -> List[Distribution]
     """
     Return a list of installed Distribution objects.
@@ -380,29 +381,24 @@ def get_installed_distributions(local_only=True,
     If ``local_only`` is True (default), only return installations
     local to the current virtualenv, if in a virtualenv.
 
-    ``skip`` argument is an iterable of lower-case project names to
-    ignore; defaults to stdlib_pkgs
-
-    If ``include_editables`` is False, don't report editables.
-
     If ``editables_only`` is True , only report editables.
 
     If ``user_only`` is True , only report installations in the user
     site directory.
 
+    If ``include_editables`` is False, don't report editables.
+
+    ``skip`` argument is an iterable of lower-case project names to
+    ignore; defaults to stdlib_pkgs
+
+    ``keep`` argument is an iterable of lower-case project names to only
+    check for; default to ()
     """
     if local_only:
         local_test = dist_is_local
     else:
         def local_test(d):
             return True
-
-    if include_editables:
-        def editable_test(d):
-            return True
-    else:
-        def editable_test(d):
-            return not dist_is_editable(d)
 
     if editables_only:
         def editables_only_test(d):
@@ -417,10 +413,32 @@ def get_installed_distributions(local_only=True,
         def user_test(d):
             return True
 
+    if include_editables:
+        def editable_test(d):
+            return True
+    else:
+        def editable_test(d):
+            return not dist_is_editable(d)
+
+    if len(skip) > 0:
+        def skip_test(d):
+            return d.key not in skip
+    else:
+        def skip_test(d):
+            return True
+
+    if len(keep) > 0:
+        def keep_test(d):
+            return d.key in keep
+    else:
+        def keep_test(d):
+            return True
+
     # because of pkg_resources vendoring, mypy cannot find stub in typeshed
     return [d for d in pkg_resources.working_set  # type: ignore
             if local_test(d) and
-            d.key not in skip and
+            skip_test(d) and
+            keep_test(d) and
             editable_test(d) and
             editables_only_test(d) and
             user_test(d)
