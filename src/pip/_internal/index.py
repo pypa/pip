@@ -16,7 +16,7 @@ from pip._vendor.distlib.compat import unescape
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import parse as parse_version
-from pip._vendor.requests.exceptions import RetryError, SSLError
+from pip._vendor.requests.exceptions import HTTPError, RetryError, SSLError
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
@@ -237,7 +237,7 @@ def _get_html_page(link, session=None):
             'Skipping page %s because the %s request got Content-Type: %s',
             link, exc.request_desc, exc.content_type,
         )
-    except requests.HTTPError as exc:
+    except HTTPError as exc:
         _handle_get_page_fail(link, exc)
     except RetryError as exc:
         _handle_get_page_fail(link, exc)
