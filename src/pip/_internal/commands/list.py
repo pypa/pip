@@ -137,8 +137,8 @@ class ListCommand(Command):
                 'Options --outdated and --uptodate cannot be combined.'
             )
 
+        to_keep = []
         with self._build_session(options) as session:
-            to_keep = []
             for filename in options.requirements:
                 for req in parse_requirements(filename, session=session):
                     if req.name:
