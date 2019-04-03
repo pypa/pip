@@ -947,7 +947,7 @@ def _clean_link(url):
     """Makes sure a link is fully encoded.  That is, if a ' ' shows up in
     the link, it will be rewritten to %20 (while not over-quoting
     % or other characters)."""
-    return _CLEAN_LINK_RE.sub(lambda match: '%%%2x' % ord(match.group(0)), url)
+    return url
 
 
 class HTMLPage(object):
