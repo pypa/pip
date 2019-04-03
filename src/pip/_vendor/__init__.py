@@ -77,6 +77,7 @@ if DEBUNDLED:
     vendored("pytoml")
     vendored("retrying")
     vendored("requests")
+    vendored("requests.exceptions")
     vendored("requests.packages")
     vendored("requests.packages.urllib3")
     vendored("requests.packages.urllib3._collections")
