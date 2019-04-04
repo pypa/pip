@@ -40,7 +40,7 @@ def _get_branch_remote(script, package_name, branch):
     return result.stdout.strip()
 
 
-def _github_checkout(url_path, temp_dir, egg=None, scheme=None):
+def _github_checkout(url_path, temp_dir, rev=None, egg=None, scheme=None):
     """
     Call local_checkout() with a GitHub URL, and return the resulting URL.
 
@@ -56,6 +56,8 @@ def _github_checkout(url_path, temp_dir, egg=None, scheme=None):
         scheme = 'https'
     url = 'git+{}://github.com/{}'.format(scheme, url_path)
     local_url = local_checkout(url, temp_dir.join('cache'))
+    if rev is not None:
+        local_url += '@{}'.format(rev)
     if egg is not None:
         local_url += '#egg={}'.format(egg)
 
@@ -150,7 +152,7 @@ def test_install_editable_from_git_with_https(script, tmpdir):
     """
     url_path = 'pypa/pip-test-package.git'
     local_url = _github_checkout(url_path, tmpdir, egg='pip-test-package')
-    result = script.pip('install', '-e', local_url, expect_error=True)
+    result = script.pip('install', '-e', local_url)
     result.assert_installed('pip-test-package', with_files=['.git'])
 
 
@@ -272,14 +274,13 @@ def test_git_with_tag_name_and_update(script, tmpdir):
     """
     url_path = 'pypa/pip-test-package.git'
     local_url = _github_checkout(url_path, tmpdir, egg='pip-test-package')
-    result = script.pip('install', '-e', local_url, expect_error=True)
+    result = script.pip('install', '-e', local_url)
     result.assert_installed('pip-test-package', with_files=['.git'])
 
     new_local_url = _github_checkout(url_path, tmpdir)
     new_local_url += '@0.1.2#egg=pip-test-package'
     result = script.pip(
         'install', '--global-option=--version', '-e', new_local_url,
-        expect_error=True,
     )
     assert '0.1.2' in result.stdout
 
@@ -292,7 +293,7 @@ def test_git_branch_should_not_be_changed(script, tmpdir):
     """
     url_path = 'pypa/pip-test-package.git'
     local_url = _github_checkout(url_path, tmpdir, egg='pip-test-package')
-    script.pip('install', '-e', local_url, expect_error=True)
+    script.pip('install', '-e', local_url)
     branch = _get_editable_branch(script, 'pip-test-package')
     assert 'master' == branch
 
@@ -302,11 +303,11 @@ def test_git_with_non_editable_unpacking(script, tmpdir):
     """
     Test cloning a git repository from a non-editable URL with a given tag.
     """
-    url_path = 'pypa/pip-test-package.git@0.1.2#egg=pip-test-package'
-    local_url = _github_checkout(url_path, tmpdir)
-    result = script.pip(
-        'install', '--global-option=--version', local_url, expect_error=True,
+    url_path = 'pypa/pip-test-package.git'
+    local_url = _github_checkout(
+        url_path, tmpdir, rev='0.1.2', egg='pip-test-package',
     )
+    result = script.pip('install', '--global-option=--version', local_url)
     assert '0.1.2' in result.stdout
 
 
@@ -465,7 +466,6 @@ def test_check_submodule_addition(script):
     update_result = script.pip(
         'install', '-e', 'git+' + module_path + '#egg=version_pkg',
         '--upgrade',
-        expect_error=True,
     )
 
     assert (
