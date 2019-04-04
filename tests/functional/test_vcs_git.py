@@ -19,12 +19,12 @@ def get_head_sha(script, dest):
 
 
 def checkout_ref(script, repo_dir, ref):
-    script.run('git', 'checkout', ref, cwd=repo_dir, expect_stderr=True)
+    script.run('git', 'checkout', ref, cwd=repo_dir)
 
 
 def checkout_new_branch(script, repo_dir, branch):
     script.run(
-        'git', 'checkout', '-b', branch, cwd=repo_dir, expect_stderr=True,
+        'git', 'checkout', '-b', branch, cwd=repo_dir,
     )
 
 
@@ -87,7 +87,7 @@ def test_get_remote_url(script, tmpdir):
     do_commit(script, source_dir)
 
     repo_dir = str(tmpdir / 'repo')
-    script.run('git', 'clone', source_url, repo_dir, expect_stderr=True)
+    script.run('git', 'clone', source_url, repo_dir)
 
     remote_url = Git.get_remote_url(repo_dir)
     assert remote_url == source_url

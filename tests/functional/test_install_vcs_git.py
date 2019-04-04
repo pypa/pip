@@ -184,9 +184,7 @@ def test_git_with_sha1_revisions(script):
         'git', 'rev-parse', 'HEAD~1',
         cwd=version_pkg_path,
     ).stdout.strip()
-    version = _install_version_pkg(
-        script, version_pkg_path, rev=sha1, expect_stderr=True,
-    )
+    version = _install_version_pkg(script, version_pkg_path, rev=sha1)
     assert '0.1' == version
 
 
@@ -200,9 +198,7 @@ def test_git_with_short_sha1_revisions(script):
         'git', 'rev-parse', 'HEAD~1',
         cwd=version_pkg_path,
     ).stdout.strip()[:7]
-    version = _install_version_pkg(
-        script, version_pkg_path, rev=sha1, expect_stderr=True,
-    )
+    version = _install_version_pkg(script, version_pkg_path, rev=sha1)
     assert '0.1' == version
 
 
@@ -212,11 +208,7 @@ def test_git_with_branch_name_as_revision(script):
     """
     version_pkg_path = _create_test_package(script)
     branch = 'test_branch'
-    script.run(
-        'git', 'checkout', '-b', branch,
-        expect_stderr=True,
-        cwd=version_pkg_path,
-    )
+    script.run('git', 'checkout', '-b', branch, cwd=version_pkg_path)
     _change_test_package_version(script, version_pkg_path)
     version = _install_version_pkg(script, version_pkg_path, rev=branch)
     assert 'some different version' == version
@@ -227,11 +219,7 @@ def test_git_with_tag_name_as_revision(script):
     Git backend should be able to install from tag names
     """
     version_pkg_path = _create_test_package(script)
-    script.run(
-        'git', 'tag', 'test_tag',
-        expect_stderr=True,
-        cwd=version_pkg_path,
-    )
+    script.run('git', 'tag', 'test_tag', cwd=version_pkg_path)
     _change_test_package_version(script, version_pkg_path)
     version = _install_version_pkg(script, version_pkg_path, rev='test_tag')
     assert '0.1' == version
@@ -241,7 +229,7 @@ def _add_ref(script, path, ref):
     """
     Add a new ref to a repository at the given path.
     """
-    script.run('git', 'update-ref', ref, 'HEAD', expect_stderr=True, cwd=path)
+    script.run('git', 'update-ref', ref, 'HEAD', cwd=path)
 
 
 def test_git_install_ref(script):
@@ -253,7 +241,7 @@ def test_git_install_ref(script):
     _change_test_package_version(script, version_pkg_path)
 
     version = _install_version_pkg(
-        script, version_pkg_path, rev='refs/foo/bar', expect_stderr=True,
+        script, version_pkg_path, rev='refs/foo/bar',
     )
     assert '0.1' == version
 
@@ -267,14 +255,12 @@ def test_git_install_then_install_ref(script):
     _add_ref(script, version_pkg_path, 'refs/foo/bar')
     _change_test_package_version(script, version_pkg_path)
 
-    version = _install_version_pkg(
-        script, version_pkg_path, expect_stderr=True,
-    )
+    version = _install_version_pkg(script, version_pkg_path)
     assert 'some different version' == version
 
     # Now install the ref.
     version = _install_version_pkg(
-        script, version_pkg_path, rev='refs/foo/bar', expect_stderr=True,
+        script, version_pkg_path, rev='refs/foo/bar',
     )
     assert '0.1' == version
 
@@ -388,13 +374,8 @@ def test_editable__branch_with_sha_same_as_default(script):
     """
     version_pkg_path = _create_test_package(script)
     # Create a second branch with the same SHA.
-    script.run(
-        'git', 'branch', 'develop', expect_stderr=True,
-        cwd=version_pkg_path,
-    )
-    _install_version_pkg_only(
-        script, version_pkg_path, rev='develop', expect_stderr=True
-    )
+    script.run('git', 'branch', 'develop', cwd=version_pkg_path)
+    _install_version_pkg_only(script, version_pkg_path, rev='develop')
 
     branch = _get_editable_branch(script, 'version-pkg')
     assert branch == 'develop'
@@ -410,16 +391,11 @@ def test_editable__branch_with_sha_different_from_default(script):
     """
     version_pkg_path = _create_test_package(script)
     # Create a second branch.
-    script.run(
-        'git', 'branch', 'develop', expect_stderr=True,
-        cwd=version_pkg_path,
-    )
+    script.run('git', 'branch', 'develop', cwd=version_pkg_path)
     # Add another commit to the master branch to give it a different sha.
     _change_test_package_version(script, version_pkg_path)
 
-    version = _install_version_pkg(
-        script, version_pkg_path, rev='develop', expect_stderr=True
-    )
+    version = _install_version_pkg(script, version_pkg_path, rev='develop')
     assert version == '0.1'
 
     branch = _get_editable_branch(script, 'version-pkg')
@@ -437,10 +413,7 @@ def test_editable__non_master_default_branch(script):
     version_pkg_path = _create_test_package(script)
     # Change the default branch of the remote repo to a name that is
     # alphabetically after "master".
-    script.run(
-        'git', 'checkout', '-b', 'release', expect_stderr=True,
-        cwd=version_pkg_path,
-    )
+    script.run('git', 'checkout', '-b', 'release', cwd=version_pkg_path)
     _install_version_pkg_only(script, version_pkg_path)
 
     branch = _get_editable_branch(script, 'version-pkg')
