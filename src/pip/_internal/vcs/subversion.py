@@ -4,10 +4,14 @@ import logging
 import os
 import re
 
+from pip._vendor.packaging.version import LegacyVersion, Version
+from pip._vendor.packaging.version import parse as parse_version
+
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     display_path, rmtree, split_auth_from_netloc,
 )
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs import VersionControl, vcs
 
 _svn_xml_url_re = re.compile('url="([^"]+)"')
@@ -15,6 +19,9 @@ _svn_rev_re = re.compile(r'committed-rev="(\d+)"')
 _svn_info_xml_rev_re = re.compile(r'\s*revision="(\d+)"')
 _svn_info_xml_url_re = re.compile(r'<url>(.*)</url>')
 
+
+if MYPY_CHECK_RUNNING:
+    from typing import Union
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +39,22 @@ class Subversion(VersionControl):
     @staticmethod
     def get_base_rev_args(rev):
         return ['-r', rev]
+
+    def get_vcs_version(self):
+        # type: (...) -> Union[LegacyVersion, Version]
+        """Gets the version of the currently installed Subversion client."""
+        VERSION_PFX = 'svn, version '
+        version = self.run_command(['--version'], show_stdout=False)
+        if version.startswith(VERSION_PFX):
+            version = version[len(VERSION_PFX):].split()[0]
+        else:
+            version = ''
+
+        # Example versions:
+        #   svn, version 1.10.3 (r1842928)
+        #   svn, version 1.7.14 (r1542130)
+        version = '.'.join(version.split('.')[:3])
+        return parse_version(version)
 
     def export(self, location):
         """Export the svn repository at the url to the destination location"""

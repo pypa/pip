@@ -214,6 +214,7 @@ Jeremy Stanley <fungi@yuggoth.org>
 Jeremy Zafran <jzafran@users.noreply.github.com>
 Jim Garrison <jim@garrison.cc>
 Jivan Amara <Development@JivanAmara.net>
+John Hagen <johnthagen@gmail.com>
 John-Scott Atlakson <john.scott.atlakson@gmail.com>
 Jon Banafato <jon@jonafato.com>
 Jon Dufresne <jon.dufresne@gmail.com>
