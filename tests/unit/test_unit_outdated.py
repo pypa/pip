@@ -1,4 +1,3 @@
-import collections
 import datetime
 import os
 import sys
@@ -11,6 +10,14 @@ from pip._vendor import lockfile, pkg_resources
 
 from pip._internal.index import InstallationCandidate
 from pip._internal.utils import outdated
+
+
+class MockFoundCandidates(object):
+    def __init__(self, best):
+        self._best = best
+
+    def get_best(self):
+        return self._best
 
 
 class MockPackageFinder(object):
@@ -29,10 +36,8 @@ class MockPackageFinder(object):
     def __init__(self, *args, **kwargs):
         pass
 
-    def find_candidates(self, project_name, specifier):
-        return collections.namedtuple("FoundCandidates", "best")(
-            best=self.INSTALLATION_CANDIDATES[0],
-        )
+    def find_candidates(self, project_name):
+        return MockFoundCandidates(self.INSTALLATION_CANDIDATES[0])
 
 
 class MockDistribution(object):
