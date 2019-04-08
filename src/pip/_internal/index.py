@@ -280,14 +280,16 @@ class FoundCandidates(object):
         self._prereleases = prereleases
         self._sort_key = sort_key
 
-    @property
-    def all(self):
+    def iter_all(self):
         # type: () -> Iterable[InstallationCandidate]
+        """Iterate through all candidates.
+        """
         return iter(self._candidates)
 
-    @property
-    def applicable(self):
+    def iter_applicable(self):
         # type: () -> Iterable[InstallationCandidate]
+        """Iterate through candidates matching the given specifier.
+        """
         # Filter out anything which doesn't match our specifier.
         versions = set(self._specifier.filter(
             # We turn the version object into a str here because otherwise
@@ -303,13 +305,15 @@ class FoundCandidates(object):
         # Again, converting to str to deal with debundling.
         return (c for c in self._candidates if str(c.version) in versions)
 
-    @property
-    def best(self):
+    def get_best(self):
         # type: () -> Optional[InstallationCandidate]
-        try:
-            return max(self.applicable, key=self._sort_key)
-        except ValueError:  # Raised by max() if self.applicable is empty.
+        """Return the best candidate available, or None if no applicable
+        candidates are found.
+        """
+        candidates = list(self.iter_applicable())
+        if not candidates:
             return None
+        return max(candidates, key=self._sort_key)
 
 
 class PackageFinder(object):
@@ -692,13 +696,7 @@ class PackageFinder(object):
         `specifier` should implement `filter` to allow version filtering (e.g.
         ``packaging.specifiers.SpecifierSet``).
 
-        Returns a FoundCandidates instance that contains the following
-        properties:
-
-        * `all`: All candidates matching `project_name` found on the index.
-        * `applicable`: Candidates matching `project_name` and `specifier`.
-        * `best`: The best candidate available. This may be None if no
-            applicable candidates are found.
+        Returns a `FoundCandidates` instance.
         """
         return FoundCandidates(
             self.find_all_candidates(project_name),
@@ -716,24 +714,28 @@ class PackageFinder(object):
         Raises DistributionNotFound or BestVersionAlreadyInstalled otherwise
         """
         candidates = self.find_candidates(req.name, req.specifier)
-        best_candidate = candidates.best
+        best_candidate = candidates.get_best()
 
         if req.satisfied_by is not None:
             installed_version = parse_version(req.satisfied_by.version)
         else:
             installed_version = None
 
+        def _format_versions(cand_iter):
+            # This repeated parse_version and str() conversion is needed to
+            # handle different vendoring sources from pip and pkg_resources.
+            # If we stop using the pkg_resources provided specifier.
+            return ", ".join(sorted(
+                {str(c.version) for c in cand_iter},
+                key=parse_version,
+            )) or "none"
+
         if installed_version is None and best_candidate is None:
             logger.critical(
                 'Could not find a version that satisfies the requirement %s '
                 '(from versions: %s)',
                 req,
-                ', '.join(
-                    sorted(
-                        {str(c.version) for c in candidates.all},
-                        key=parse_version,
-                    )
-                )
+                _format_versions(candidates.iter_all()),
             )
 
             raise DistributionNotFound(
@@ -762,24 +764,20 @@ class PackageFinder(object):
                 )
             return None
 
-        compatible_version_display = ", ".join(
-            str(v) for v in sorted({c.version for c in candidates.applicable})
-        ) or "none"
-
         if best_installed:
             # We have an existing version, and its the best version
             logger.debug(
                 'Installed version (%s) is most up-to-date (past versions: '
                 '%s)',
                 installed_version,
-                compatible_version_display,
+                _format_versions(candidates.iter_applicable()),
             )
             raise BestVersionAlreadyInstalled
 
         logger.debug(
             'Using version %s (newest of versions: %s)',
             best_candidate.version,
-            compatible_version_display,
+            _format_versions(candidates.iter_applicable()),
         )
         return best_candidate.location
 

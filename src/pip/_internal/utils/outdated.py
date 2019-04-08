@@ -130,7 +130,7 @@ def pip_version_check(session, options):
                 trusted_hosts=options.trusted_hosts,
                 session=session,
             )
-            candidate = finder.find_candidates("pip", SpecifierSet()).best
+            candidate = finder.find_candidates("pip", SpecifierSet()).get_best()
             if candidate is None:
                 return
             pypi_version = str(candidate.version)
