@@ -1,4 +1,5 @@
 import errno
+import fnmatch
 import os
 import os.path
 import random
@@ -17,7 +18,7 @@ from pip._internal.utils.compat import get_path_uid
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING, cast
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, BinaryIO, Iterator
+    from typing import Any, BinaryIO, Iterator, List
 
     class NamedTemporaryFileResult(BinaryIO):
         @property
@@ -176,3 +177,14 @@ def _test_writable_dir_win(path):
     raise EnvironmentError(
         'Unexpected condition testing for writable directory'
     )
+
+
+def find_files(path, pattern):
+    # type: (str, str) -> List[str]
+    """Returns a list of absolute paths of files beneath path, recursively,
+    with filenames which match the UNIX-style shell glob pattern."""
+    result = []  # type: List[str]
+    for root, dirs, files in os.walk(path):
+        matches = fnmatch.filter(files, pattern)
+        result.extend(os.path.join(root, f) for f in matches)
+    return result
