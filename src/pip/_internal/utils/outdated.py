@@ -8,7 +8,6 @@ import sys
 
 from pip._vendor import lockfile, pkg_resources
 from pip._vendor.packaging import version as packaging_version
-from pip._vendor.packaging.specifiers import SpecifierSet
 
 from pip._internal.index import PackageFinder
 from pip._internal.utils.compat import WINDOWS

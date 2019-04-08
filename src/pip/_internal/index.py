@@ -720,10 +720,9 @@ class PackageFinder(object):
         candidates = self.find_candidates(req.name, req.specifier)
         best_candidate = candidates.get_best()
 
+        installed_version = None    # type: Optional[_BaseVersion]
         if req.satisfied_by is not None:
             installed_version = parse_version(req.satisfied_by.version)
-        else:
-            installed_version = None
 
         def _format_versions(cand_iter):
             # This repeated parse_version and str() conversion is needed to
