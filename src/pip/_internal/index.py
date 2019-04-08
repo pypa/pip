@@ -690,11 +690,15 @@ class PackageFinder(object):
         # This is an intentional priority ordering
         return file_versions + find_links_versions + page_versions
 
-    def find_candidates(self, project_name, specifier):
+    def find_candidates(
+        self,
+        project_name,   # type: str
+        specifier=specifiers.SpecifierSet(),  # type: specifiers.BaseSpecifier
+    ):
         """Find matches for the given project and specifier.
 
-        `specifier` should implement `filter` to allow version filtering (e.g.
-        ``packaging.specifiers.SpecifierSet``).
+        If given, `specifier` should implement `filter` to allow version
+        filtering (e.g. ``packaging.specifiers.SpecifierSet``).
 
         Returns a `FoundCandidates` instance.
         """
