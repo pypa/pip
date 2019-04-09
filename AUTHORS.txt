@@ -113,6 +113,7 @@ Daniel Collins <accounts@dac.io>
 Daniel Hahler <git@thequod.de>
 Daniel Holth <dholth@fastmail.fm>
 Daniel Jost <torpedojost@gmail.com>
+Daniel Katz <katzdm@gmail.com>
 Daniel Shaulov <daniel.shaulov@gmail.com>
 Daniele Procida <daniele@vurt.org>
 Danny Hermes <daniel.j.hermes@gmail.com>

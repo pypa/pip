@@ -1,0 +1,2 @@
+Allow user to pass --prefix="" from command-line to override global prefix settings with an empty
+prefix.

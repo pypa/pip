@@ -174,7 +174,7 @@ def distutils_scheme(dist_name, user=False, home=None, root=None,
     i.user = user or i.user
     if user:
         i.prefix = ""
-    i.prefix = prefix or i.prefix
+    i.prefix = prefix if prefix is not None else i.prefix
     i.home = home or i.home
     i.root = root or i.root
     i.finalize_options()
