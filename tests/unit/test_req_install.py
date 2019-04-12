@@ -78,7 +78,7 @@ class TestInstallRequirementFrom(object):
 
         assert isinstance(install_req, InstallRequirement)
         assert install_req.link.url == wheel_url
-        assert install_req.req.url == wheel_url
+        assert install_req.req.url is None
         assert install_req.comes_from is None
         assert install_req.is_wheel
 
@@ -106,5 +106,5 @@ class TestInstallRequirementFrom(object):
         assert isinstance(install_req, InstallRequirement)
         assert install_req.comes_from.link is None
         assert install_req.link.url == wheel_url
-        assert install_req.req.url == wheel_url
+        assert install_req.req.url is None
         assert install_req.is_wheel
