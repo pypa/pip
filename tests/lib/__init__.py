@@ -907,3 +907,11 @@ def need_mercurial(fn):
     return pytest.mark.mercurial(need_executable(
         'Mercurial', ('hg', 'version')
     )(fn))
+
+
+def is_svn_installed():
+    try:
+        subprocess.check_output(('svn', '--version'))
+    except OSError:
+        return False
+    return True

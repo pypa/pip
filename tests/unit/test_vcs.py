@@ -1,3 +1,5 @@
+import os
+
 import pytest
 from mock import patch
 from pip._vendor.packaging.version import parse as parse_version
@@ -9,12 +11,20 @@ from pip._internal.vcs.bazaar import Bazaar
 from pip._internal.vcs.git import Git, looks_like_hash
 from pip._internal.vcs.mercurial import Mercurial
 from pip._internal.vcs.subversion import Subversion
-from tests.lib import pyversion
+from tests.lib import is_svn_installed, pyversion
 
 if pyversion >= '3':
     VERBOSE_FALSE = False
 else:
     VERBOSE_FALSE = 0
+
+
+@pytest.mark.skipif(
+    'TRAVIS' not in os.environ,
+    reason='Subversion is only required under Travis')
+def test_ensure_svn_available():
+    """Make sure that svn is available when running in Travis."""
+    assert is_svn_installed()
 
 
 @pytest.mark.parametrize('args, expected', [
