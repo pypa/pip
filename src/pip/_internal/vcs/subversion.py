@@ -42,7 +42,12 @@ class Subversion(VersionControl):
 
     def get_vcs_version(self):
         # type: (...) -> Union[LegacyVersion, Version]
-        """Gets the version of the currently installed Subversion client."""
+        """Return the version of the currently installed Subversion client.
+
+        :return Version containing properly parsed version if successful or
+            LegacyVersion if parsing is unsuccessful.
+        :raises BadCommand: If ``svn`` is not installed.
+        """
         version_pfx = 'svn, version '
         version = self.run_command(['--version'], show_stdout=False)
         if version.startswith(version_pfx):
