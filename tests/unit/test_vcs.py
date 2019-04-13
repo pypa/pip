@@ -179,12 +179,12 @@ def test_git_resolve_revision_not_found_warning(get_sha_mock, caplog):
 
 
 @pytest.mark.parametrize('rev_name,result', (
-        ('5547fa909e83df8bd743d3978d6667497983a4b7', True),
-        ('5547fa909', False),
-        ('5678', False),
-        ('abc123', False),
-        ('foo', False),
-        (None, False),
+    ('5547fa909e83df8bd743d3978d6667497983a4b7', True),
+    ('5547fa909', False),
+    ('5678', False),
+    ('abc123', False),
+    ('foo', False),
+    (None, False),
 ))
 @patch('pip._internal.vcs.git.Git.get_revision')
 def test_git_is_commit_id_equal(mock_get_revision, rev_name, result):
