@@ -4,9 +4,6 @@ import logging
 import os
 import re
 
-from pip._vendor.packaging.version import LegacyVersion, Version
-from pip._vendor.packaging.version import parse as parse_version
-
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     display_path, rmtree, split_auth_from_netloc,
