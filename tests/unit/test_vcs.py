@@ -369,6 +369,6 @@ def test_get_git_version():
 
 
 @pytest.mark.svn
-def test_get_vcs_version():
+def test_subversion__get_vcs_version():
     svn_version = Subversion().get_vcs_version()
     assert svn_version >= parse_version('1.0.0')
