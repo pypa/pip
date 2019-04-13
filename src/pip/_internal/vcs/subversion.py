@@ -21,7 +21,7 @@ _svn_info_xml_url_re = re.compile(r'<url>(.*)</url>')
 
 
 if MYPY_CHECK_RUNNING:
-    from typing import Union
+    from typing import Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -41,12 +41,13 @@ class Subversion(VersionControl):
         return ['-r', rev]
 
     def get_vcs_version(self):
-        # type: (...) -> Union[LegacyVersion, Version]
+        # type: () -> Tuple[int, int, int]
         """Return the version of the currently installed Subversion client.
 
-        :return Version containing properly parsed version if successful or
-            LegacyVersion if parsing is unsuccessful.
+        :return Tuple containing the parts of the version information.
         :raises BadCommand: If ``svn`` is not installed.
+            ValueError: If the version returned from ``svn`` could not be
+            parsed.
         """
         version_pfx = 'svn, version '
         version = self.run_command(['--version'], show_stdout=False)
@@ -58,8 +59,8 @@ class Subversion(VersionControl):
         # Example versions:
         #   svn, version 1.10.3 (r1842928)
         #   svn, version 1.7.14 (r1542130)
-        version = '.'.join(version.split('.')[:3])
-        return parse_version(version)
+        version = version.split('.')
+        return tuple(map(int, version))
 
     def export(self, location):
         """Export the svn repository at the url to the destination location"""
