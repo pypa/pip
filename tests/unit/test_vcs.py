@@ -49,7 +49,7 @@ def test_rev_options_repr():
     (Subversion, [], ['-r', '123'], {}),
     # Test extra_args.  For this, test using a single VersionControl class.
     (Git, ['HEAD', 'opt1', 'opt2'], ['123', 'opt1', 'opt2'],
-        dict(extra_args=['opt1', 'opt2'])),
+     dict(extra_args=['opt1', 'opt2'])),
 ])
 def test_rev_options_to_args(vc_class, expected1, expected2, kwargs):
     """
@@ -169,12 +169,12 @@ def test_git_resolve_revision_not_found_warning(get_sha_mock, caplog):
 
 
 @pytest.mark.parametrize('rev_name,result', (
-    ('5547fa909e83df8bd743d3978d6667497983a4b7', True),
-    ('5547fa909', False),
-    ('5678', False),
-    ('abc123', False),
-    ('foo', False),
-    (None, False),
+        ('5547fa909e83df8bd743d3978d6667497983a4b7', True),
+        ('5547fa909', False),
+        ('5678', False),
+        ('abc123', False),
+        ('foo', False),
+        (None, False),
 ))
 @patch('pip._internal.vcs.git.Git.get_revision')
 def test_git_is_commit_id_equal(mock_get_revision, rev_name, result):
@@ -370,6 +370,46 @@ def test_get_git_version():
 
 @pytest.mark.svn
 def test_subversion__get_vcs_version():
-    svn_version = Subversion().get_vcs_version()
-    assert len(svn_version) == 3
-    assert svn_version[0] >= 1
+    """
+    Test Subversion.get_vcs_version() against local ``svn``.
+    """
+    version = Subversion().get_vcs_version()
+    assert len(version) == 3
+    assert version[0] >= 1
+
+
+@pytest.mark.parametrize('svn_output, expected_version', [
+    ('svn, version 1.10.3 (r1842928)\n'
+     '   compiled Feb 25 2019, 14:20:39 on x86_64-apple-darwin17.0.0',
+     (1, 10, 3)),
+    ('svn, version 1.9.7 (r1800392)\n'
+     '   compiled Mar 28 2018, 08:49:13 on x86_64-pc-linux-gnu',
+     (1, 9, 7)),
+])
+@patch('pip._internal.vcs.subversion.Subversion.run_command')
+def test_subversion__get_vcs_version_patched(mock_run_command, svn_output,
+                                             expected_version):
+    """
+    Test Subversion.get_vcs_version() against patched output.
+    """
+    mock_run_command.return_value = svn_output
+    version = Subversion().get_vcs_version()
+    assert version == expected_version
+
+
+@pytest.mark.parametrize('svn_output', [
+    ('svn, version 1.10.z (r1842928)\n'
+     '   compiled Feb 25 2019, 14:20:39 on x86_64-apple-darwin17.0.0'),
+    '',
+    'svn, version . .'
+])
+@patch('pip._internal.vcs.subversion.Subversion.run_command')
+def test_subversion__get_vcs_version_patched_failure(mock_run_command,
+                                                     svn_output):
+    """
+    Test Subversion.get_vcs_version() against patched output designed
+    to test failure cases.
+    """
+    mock_run_command.return_value = svn_output
+    with pytest.raises(ValueError):
+        Subversion().get_vcs_version()
