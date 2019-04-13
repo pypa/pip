@@ -43,10 +43,10 @@ class Subversion(VersionControl):
     def get_vcs_version(self):
         # type: (...) -> Union[LegacyVersion, Version]
         """Gets the version of the currently installed Subversion client."""
-        VERSION_PFX = 'svn, version '
+        version_pfx = 'svn, version '
         version = self.run_command(['--version'], show_stdout=False)
-        if version.startswith(VERSION_PFX):
-            version = version[len(VERSION_PFX):].split()[0]
+        if version.startswith(version_pfx):
+            version = version[len(version_pfx):].split()[0]
         else:
             version = ''
 
