@@ -59,7 +59,7 @@ def test_rev_options_repr():
     (Subversion, [], ['-r', '123'], {}),
     # Test extra_args.  For this, test using a single VersionControl class.
     (Git, ['HEAD', 'opt1', 'opt2'], ['123', 'opt1', 'opt2'],
-     dict(extra_args=['opt1', 'opt2'])),
+        dict(extra_args=['opt1', 'opt2'])),
 ])
 def test_rev_options_to_args(vc_class, expected1, expected2, kwargs):
     """
