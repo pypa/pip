@@ -41,7 +41,7 @@ class Subversion(VersionControl):
         return ['-r', rev]
 
     def get_vcs_version(self):
-        # type: () -> Tuple[int, int, int]
+        # type: () -> Tuple[int, ...]
         """Return the version of the currently installed Subversion client.
 
         :return Tuple containing the parts of the version information.
