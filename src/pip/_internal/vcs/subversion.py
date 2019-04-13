@@ -56,8 +56,8 @@ class Subversion(VersionControl):
         # Example versions:
         #   svn, version 1.10.3 (r1842928)
         #   svn, version 1.7.14 (r1542130)
-        version = version.split('.')
-        return tuple(map(int, version))
+        version_list = version.split('.')
+        return tuple(map(int, version_list))
 
     def export(self, location):
         """Export the svn repository at the url to the destination location"""
