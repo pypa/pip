@@ -2,10 +2,9 @@ import os
 
 import pytest
 from mock import patch
-
-from pip._internal.exceptions import BadCommand
 from pip._vendor.packaging.version import parse as parse_version
 
+from pip._internal.exceptions import BadCommand
 from pip._internal.vcs import (
     RevOptions, VersionControl, make_vcs_requirement_url,
 )
