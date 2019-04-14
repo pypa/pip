@@ -41,8 +41,8 @@ class Subversion(VersionControl):
         # type: () -> Tuple[int, ...]
         """Return the version of the currently installed Subversion client.
 
-        :return Tuple containing the parts of the version information.
-        :raises BadCommand: If ``svn`` is not installed.
+        :return: Tuple containing the parts of the version information.
+        :raises: BadCommand: If ``svn`` is not installed.
             ValueError: If the version returned from ``svn`` could not be
             parsed.
         """
