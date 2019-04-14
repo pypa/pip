@@ -55,7 +55,9 @@ class Subversion(VersionControl):
 
         # Example versions:
         #   svn, version 1.10.3 (r1842928)
+        #      compiled Feb 25 2019, 14:20:39 on x86_64-apple-darwin17.0.0
         #   svn, version 1.7.14 (r1542130)
+        #      compiled Mar 28 2018, 08:49:13 on x86_64-pc-linux-gnu
         version_list = version.split('.')
         return tuple(map(int, version_list))
 
