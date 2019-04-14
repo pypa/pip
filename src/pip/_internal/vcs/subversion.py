@@ -46,10 +46,10 @@ class Subversion(VersionControl):
             ValueError: If the version returned from ``svn`` could not be
             parsed.
         """
-        version_pfx = 'svn, version '
+        version_prefix = 'svn, version '
         version = self.run_command(['--version'], show_stdout=False)
-        if version.startswith(version_pfx):
-            version = version[len(version_pfx):].split()[0]
+        if version.startswith(version_prefix):
+            version = version[len(version_prefix):].split()[0]
         else:
             version = ''
 
