@@ -786,13 +786,13 @@ class InstallRequirement(object):
         if not self.update:
             return
         vc_type, url = self.link.url.split('+', 1)
-        backend = vcs.get_backend(vc_type)
-        if backend:
-            vcs_backend = backend(self.link.url)
+        vcs_backend = vcs.get_backend(vc_type)
+        if vcs_backend:
+            url = self.link.url
             if obtain:
-                vcs_backend.obtain(self.source_dir)
+                vcs_backend.obtain(self.source_dir, url=url)
             else:
-                vcs_backend.export(self.source_dir)
+                vcs_backend.export(self.source_dir, url=url)
         else:
             assert 0, (
                 'Unexpected version control type (in %s): %s'

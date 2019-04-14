@@ -67,9 +67,9 @@ class Subversion(VersionControl):
 
         return parsed_version
 
-    def export(self, location):
+    def export(self, location, url):
         """Export the svn repository at the url to the destination location"""
-        url, rev_options = self.get_url_rev_options(self.url)
+        url, rev_options = self.get_url_rev_options(url)
 
         logger.info('Exporting svn repository %s to %s', url, location)
         with indent_log():
