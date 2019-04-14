@@ -2,6 +2,8 @@ import os
 
 import pytest
 from mock import patch
+
+from pip._internal.exceptions import BadCommand
 from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.vcs import (
@@ -392,9 +394,13 @@ def test_subversion__get_vcs_version():
     ('svn, version 1.10.3 (r1842928)\n'
      '   compiled Feb 25 2019, 14:20:39 on x86_64-apple-darwin17.0.0',
      (1, 10, 3)),
-    ('svn, version 1.9.7 (r1800392)\n'
-     '   compiled Mar 28 2018, 08:49:13 on x86_64-pc-linux-gnu',
-     (1, 9, 7)),
+    ('svn, version 1.9.7 (r1800392)', (1, 9, 7)),
+    ('svn, version 1.9 (r1800392)', None),
+    ('svn, version .9.7 (r1800392)', None),
+    ('svn version 1.9.7 (r1800392)', None),
+    ('svn 1.9.7', None),
+    ('svn, version . .', None),
+    ('', None),
 ])
 @patch('pip._internal.vcs.subversion.Subversion.run_command')
 def test_subversion__get_vcs_version_patched(mock_run_command, svn_output,
@@ -407,19 +413,13 @@ def test_subversion__get_vcs_version_patched(mock_run_command, svn_output,
     assert version == expected_version
 
 
-@pytest.mark.parametrize('svn_output', [
-    ('svn, version 1.10.z (r1842928)\n'
-     '   compiled Feb 25 2019, 14:20:39 on x86_64-apple-darwin17.0.0'),
-    '',
-    'svn, version . .'
-])
 @patch('pip._internal.vcs.subversion.Subversion.run_command')
-def test_subversion__get_vcs_version_patched_failure(mock_run_command,
-                                                     svn_output):
+def test_subversion__get_vcs_version_patched_failure(mock_run_command):
     """
     Test Subversion.get_vcs_version() against patched output designed
-    to test failure cases.
+    to test exception failure cases.
     """
-    mock_run_command.return_value = svn_output
-    with pytest.raises(ValueError):
+    mock_run_command.return_value = 'svn, version 1.10.z (r1842928)'
+    mock_run_command.side_effect = BadCommand
+    with pytest.raises(BadCommand):
         Subversion().get_vcs_version()
