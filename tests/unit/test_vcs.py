@@ -394,7 +394,7 @@ def test_subversion__get_vcs_version():
      '   compiled Feb 25 2019, 14:20:39 on x86_64-apple-darwin17.0.0',
      (1, 10, 3)),
     ('svn, version 1.9.7 (r1800392)', (1, 9, 7)),
-    ('svn, version 1.9 (r1800392)', None),
+    ('svn, version 1.9 (r1800392)', (1, 9)),
     ('svn, version .9.7 (r1800392)', None),
     ('svn version 1.9.7 (r1800392)', None),
     ('svn 1.9.7', None),

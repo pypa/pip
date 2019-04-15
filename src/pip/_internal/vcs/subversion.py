@@ -59,12 +59,13 @@ class Subversion(VersionControl):
         version_list = version.split('.')
         try:
             parsed_version = tuple(map(int, version_list))
-            if len(parsed_version) != 3:
-                return None
-            else:
-                return parsed_version
         except ValueError:
             return None
+
+        if len(parsed_version) == 0:
+            return None
+        else:
+            return parsed_version
 
     def export(self, location):
         """Export the svn repository at the url to the destination location"""
