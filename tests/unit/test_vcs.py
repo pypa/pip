@@ -418,7 +418,6 @@ def test_subversion__get_vcs_version_patched_failure(mock_run_command):
     Test Subversion.get_vcs_version() against patched output designed
     to test exception failure cases.
     """
-    mock_run_command.return_value = 'svn, version 1.10.z (r1842928)'
     mock_run_command.side_effect = BadCommand
     with pytest.raises(BadCommand):
         Subversion().get_vcs_version()
