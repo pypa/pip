@@ -52,11 +52,10 @@ class Subversion(VersionControl):
         #      compiled Mar 28 2018, 08:49:13 on x86_64-pc-linux-gnu
         version_prefix = 'svn, version '
         version = self.run_command(['--version'], show_stdout=False)
-        if version.startswith(version_prefix):
-            version = version[len(version_prefix):].split()[0]
-        else:
+        if not version.startswith(version_prefix):
             return None
 
+        version = version[len(version_prefix):].split()[0]
         version_list = version.split('.')
         try:
             parsed_version = tuple(map(int, version_list))
