@@ -45,6 +45,11 @@ class Subversion(VersionControl):
             ``None`` if the version returned from ``svn`` could not be parsed.
         :raises: BadCommand: If ``svn`` is not installed.
         """
+        # Example versions:
+        #   svn, version 1.10.3 (r1842928)
+        #      compiled Feb 25 2019, 14:20:39 on x86_64-apple-darwin17.0.0
+        #   svn, version 1.7.14 (r1542130)
+        #      compiled Mar 28 2018, 08:49:13 on x86_64-pc-linux-gnu
         version_prefix = 'svn, version '
         version = self.run_command(['--version'], show_stdout=False)
         if version.startswith(version_prefix):
@@ -52,11 +57,6 @@ class Subversion(VersionControl):
         else:
             return None
 
-        # Example versions:
-        #   svn, version 1.10.3 (r1842928)
-        #      compiled Feb 25 2019, 14:20:39 on x86_64-apple-darwin17.0.0
-        #   svn, version 1.7.14 (r1542130)
-        #      compiled Mar 28 2018, 08:49:13 on x86_64-pc-linux-gnu
         version_list = version.split('.')
         try:
             parsed_version = tuple(map(int, version_list))
