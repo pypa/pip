@@ -413,10 +413,9 @@ def test_subversion__get_vcs_version_patched(mock_run_command, svn_output,
 
 
 @patch('pip._internal.vcs.subversion.Subversion.run_command')
-def test_subversion__get_vcs_version_patched_failure(mock_run_command):
+def test_subversion__get_vcs_version_svn_not_installed(mock_run_command):
     """
-    Test Subversion.get_vcs_version() against patched output designed
-    to test exception failure cases.
+    Test Subversion.get_vcs_version() when svn is not installed.
     """
     mock_run_command.side_effect = BadCommand
     with pytest.raises(BadCommand):
