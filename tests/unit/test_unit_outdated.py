@@ -12,6 +12,14 @@ from pip._internal.index import InstallationCandidate
 from pip._internal.utils import outdated
 
 
+class MockFoundCandidates(object):
+    def __init__(self, best):
+        self._best = best
+
+    def get_best(self):
+        return self._best
+
+
 class MockPackageFinder(object):
 
     BASE_URL = 'https://pypi.org/simple/pip-{0}.tar.gz'
@@ -28,8 +36,8 @@ class MockPackageFinder(object):
     def __init__(self, *args, **kwargs):
         pass
 
-    def find_all_candidates(self, project_name):
-        return self.INSTALLATION_CANDIDATES
+    def find_candidates(self, project_name):
+        return MockFoundCandidates(self.INSTALLATION_CANDIDATES[0])
 
 
 class MockDistribution(object):
