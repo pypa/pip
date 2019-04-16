@@ -386,6 +386,8 @@ def test_subversion__get_vcs_version():
     """
     version = Subversion().get_vcs_version()
     assert len(version) == 3
+    for part in version:
+        assert isinstance(part, int)
     assert version[0] >= 1
 
 
