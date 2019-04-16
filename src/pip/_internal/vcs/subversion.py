@@ -62,10 +62,10 @@ class Subversion(VersionControl):
         except ValueError:
             return None
 
-        if len(parsed_version) == 0:
+        if not parsed_version:
             return None
-        else:
-            return parsed_version
+
+        return parsed_version
 
     def export(self, location):
         """Export the svn repository at the url to the destination location"""
