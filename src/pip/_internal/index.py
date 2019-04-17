@@ -727,7 +727,8 @@ class PackageFinder(object):
         def _format_versions(cand_iter):
             # This repeated parse_version and str() conversion is needed to
             # handle different vendoring sources from pip and pkg_resources.
-            # If we stop using the pkg_resources provided specifier.
+            # If we stop using the pkg_resources provided specifier and start
+            # using our own, we can drop the cast to str().
             return ", ".join(sorted(
                 {str(c.version) for c in cand_iter},
                 key=parse_version,
