@@ -8,6 +8,7 @@ from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     display_path, rmtree, split_auth_from_netloc,
 )
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs import VersionControl, vcs
 
 _svn_xml_url_re = re.compile('url="([^"]+)"')
@@ -15,6 +16,9 @@ _svn_rev_re = re.compile(r'committed-rev="(\d+)"')
 _svn_info_xml_rev_re = re.compile(r'\s*revision="(\d+)"')
 _svn_info_xml_url_re = re.compile(r'<url>(.*)</url>')
 
+
+if MYPY_CHECK_RUNNING:
+    from typing import Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +36,36 @@ class Subversion(VersionControl):
     @staticmethod
     def get_base_rev_args(rev):
         return ['-r', rev]
+
+    def get_vcs_version(self):
+        # type: () -> Optional[Tuple[int, ...]]
+        """Return the version of the currently installed Subversion client.
+
+        :return: A tuple containing the parts of the version information or
+            ``None`` if the version returned from ``svn`` could not be parsed.
+        :raises: BadCommand: If ``svn`` is not installed.
+        """
+        # Example versions:
+        #   svn, version 1.10.3 (r1842928)
+        #      compiled Feb 25 2019, 14:20:39 on x86_64-apple-darwin17.0.0
+        #   svn, version 1.7.14 (r1542130)
+        #      compiled Mar 28 2018, 08:49:13 on x86_64-pc-linux-gnu
+        version_prefix = 'svn, version '
+        version = self.run_command(['--version'], show_stdout=False)
+        if not version.startswith(version_prefix):
+            return None
+
+        version = version[len(version_prefix):].split()[0]
+        version_list = version.split('.')
+        try:
+            parsed_version = tuple(map(int, version_list))
+        except ValueError:
+            return None
+
+        if not parsed_version:
+            return None
+
+        return parsed_version
 
     def export(self, location):
         """Export the svn repository at the url to the destination location"""

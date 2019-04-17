@@ -1,7 +1,10 @@
+import os
+
 import pytest
 from mock import patch
 from pip._vendor.packaging.version import parse as parse_version
 
+from pip._internal.exceptions import BadCommand
 from pip._internal.vcs import (
     RevOptions, VersionControl, make_vcs_requirement_url,
 )
@@ -9,12 +12,20 @@ from pip._internal.vcs.bazaar import Bazaar
 from pip._internal.vcs.git import Git, looks_like_hash
 from pip._internal.vcs.mercurial import Mercurial
 from pip._internal.vcs.subversion import Subversion
-from tests.lib import pyversion
+from tests.lib import is_svn_installed, pyversion
 
 if pyversion >= '3':
     VERBOSE_FALSE = False
 else:
     VERBOSE_FALSE = 0
+
+
+@pytest.mark.skipif(
+    'TRAVIS' not in os.environ,
+    reason='Subversion is only required under Travis')
+def test_ensure_svn_available():
+    """Make sure that svn is available when running in Travis."""
+    assert is_svn_installed()
 
 
 @pytest.mark.parametrize('args, expected', [
@@ -366,3 +377,49 @@ def test_subversion__get_url_rev_options():
 def test_get_git_version():
     git_version = Git().get_git_version()
     assert git_version >= parse_version('1.0.0')
+
+
+@pytest.mark.svn
+def test_subversion__get_vcs_version():
+    """
+    Test Subversion.get_vcs_version() against local ``svn``.
+    """
+    version = Subversion().get_vcs_version()
+    assert len(version) == 3
+    for part in version:
+        assert isinstance(part, int)
+    assert version[0] >= 1
+
+
+@pytest.mark.parametrize('svn_output, expected_version', [
+    ('svn, version 1.10.3 (r1842928)\n'
+     '   compiled Feb 25 2019, 14:20:39 on x86_64-apple-darwin17.0.0',
+     (1, 10, 3)),
+    ('svn, version 1.9.7 (r1800392)', (1, 9, 7)),
+    ('svn, version 1.9.7a1 (r1800392)', None),
+    ('svn, version 1.9 (r1800392)', (1, 9)),
+    ('svn, version .9.7 (r1800392)', None),
+    ('svn version 1.9.7 (r1800392)', None),
+    ('svn 1.9.7', None),
+    ('svn, version . .', None),
+    ('', None),
+])
+@patch('pip._internal.vcs.subversion.Subversion.run_command')
+def test_subversion__get_vcs_version_patched(mock_run_command, svn_output,
+                                             expected_version):
+    """
+    Test Subversion.get_vcs_version() against patched output.
+    """
+    mock_run_command.return_value = svn_output
+    version = Subversion().get_vcs_version()
+    assert version == expected_version
+
+
+@patch('pip._internal.vcs.subversion.Subversion.run_command')
+def test_subversion__get_vcs_version_svn_not_installed(mock_run_command):
+    """
+    Test Subversion.get_vcs_version() when svn is not installed.
+    """
+    mock_run_command.side_effect = BadCommand
+    with pytest.raises(BadCommand):
+        Subversion().get_vcs_version()
