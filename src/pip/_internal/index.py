@@ -298,7 +298,7 @@ class FoundCandidates(object):
             [str(c.version) for c in candidates],
             prereleases=prereleases,
         ))
-        cls(candidates, versions, sort_key)
+        return cls(candidates, versions, sort_key)
 
     def iter_all(self):
         # type: () -> Iterable[InstallationCandidate]
