@@ -4,6 +4,7 @@ import tempfile
 import pytest
 from pip._vendor.packaging.requirements import Requirement
 
+from pip._internal.exceptions import InstallationError
 from pip._internal.req.constructors import (
     install_req_from_line, install_req_from_req_string,
 )
@@ -48,6 +49,14 @@ class TestInstallRequirementBuildDirectory(object):
 
 
 class TestInstallRequirementFrom(object):
+
+    def test_install_req_from_string_invalid_requirement(self):
+        """
+        Requirement strings that cannot be parsed by
+        packaging.requirements.Requirement raise an InstallationError.
+        """
+        with pytest.raises(InstallationError):
+            install_req_from_req_string("http:/this/is/invalid")
 
     def test_install_req_from_string_without_comes_from(self):
         """
