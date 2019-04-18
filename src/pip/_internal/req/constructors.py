@@ -437,7 +437,7 @@ def install_req_from_req_string(
     if req.url:
         return install_req_from_line(
             req.url, comes_from=comes_from, isolated=isolated,
-            wheel_cache=wheel_cache
+            wheel_cache=wheel_cache, use_pep517=use_pep517
         )
     return InstallRequirement(
         req, comes_from, isolated=isolated, use_pep517=use_pep517
