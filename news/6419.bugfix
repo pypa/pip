@@ -1,0 +1,1 @@
+Fix NameError when handling InvalidRequirement in install_req_from_req_string.
