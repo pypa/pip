@@ -1592,39 +1592,34 @@ def test_install_pep508_with_url_in_install_requires(script):
     assert "Successfully installed packaging-15.3" in str(res), str(res)
 
 
-@pytest.mark.network
 def test_install_pep508_with_url_in_install_requires_url_change(script):
-    pkga_path = create_test_package_with_setup(
+    dep_v1_path = create_basic_wheel_for_package(
+        script, name='dep', version='1.0',
+    )
+    dep_v2_path = create_basic_wheel_for_package(
+        script, name='dep', version='2.0',
+    )
+
+    pkga_path = create_basic_wheel_for_package(
         script, name='pkga', version='1.0',
-        install_requires=[
-            'packaging@https://files.pythonhosted.org/packages/2f/2b/'
-            'c681de3e1dbcd469537aefb15186b800209aa1f299d933d23b48d85c9d56/'
-            'packaging-15.3-py2.py3-none-any.whl#sha256='
-            'ce1a869fe039fbf7e217df36c4653d1dbe657778b2d41709593a0003584405f4'
-        ],
+        depends=['dep @ file://%s' % dep_v1_path],
     )
     res = script.pip('install', pkga_path)
-    assert "Successfully installed packaging-15.3" in str(res), str(res)
+    assert "Successfully installed dep-1.0" in str(res), str(res)
 
     pkga_path.rmtree()
 
     # Updating the URL to the dependency installs the updated dependency
-    pkga_path = create_test_package_with_setup(
-        script, name='pkga', version='1.0',
-        install_requires=[
-            'packaging@https://files.pythonhosted.org/packages/91/32/'
-            '58bc30e646e55eab8b21abf89e353f59c0cc02c417e42929f4a9546e1b1d/'
-            'packaging-19.0-py2.py3-none-any.whl#sha256='
-            '9e1cbf8c12b1f1ce0bb5344b8d7ecf66a6f8a6e91bcb0c84593ed6d3ab5c4ab3'
-        ],
+    pkga_path = create_basic_wheel_for_package(
+        script, name='pkga', version='2.0',
+        depends=['dep @ file://%s' % dep_v2_path],
     )
     res = script.pip('install', pkga_path)
-    assert "Successfully installed packaging-19.0" in str(res), str(res)
+    assert "Successfully installed dep-2.0" in str(res), str(res)
 
     # The dependency is not reinstalled if the URL doesn't change
     res = script.pip('install', pkga_path)
-    assert "Requirement already satisfied: packaging==19.0" in str(res), \
-        str(res)
+    assert "Requirement already satisfied: dep==2.0" in str(res), str(res)
 
 
 @pytest.mark.network
