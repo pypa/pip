@@ -435,6 +435,8 @@ def install_req_from_req_string(
         )
 
     if req.url:
+        # Create an InstallRequirement for a PEP 508 URL with the same behavior
+        # as 'pip install req.url'
         return install_req_from_line(
             req.url, comes_from=comes_from, isolated=isolated,
             wheel_cache=wheel_cache, use_pep517=use_pep517
