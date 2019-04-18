@@ -700,8 +700,8 @@ class PackageFinder(object):
 
     def find_candidates(
         self,
-        project_name,   # type: str
-        specifier=specifiers.SpecifierSet(),  # type: specifiers.BaseSpecifier
+        project_name,       # type: str
+        specifier=None,     # type: Optional[specifiers.BaseSpecifier]
     ):
         """Find matches for the given project and specifier.
 
@@ -710,6 +710,8 @@ class PackageFinder(object):
 
         Returns a `FoundCandidates` instance.
         """
+        if specifier is None:
+            specifier = specifiers.SpecifierSet()
         return FoundCandidates.from_specifier(
             self.find_all_candidates(project_name),
             specifier=specifier,
