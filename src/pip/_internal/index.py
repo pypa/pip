@@ -270,35 +270,26 @@ class FoundCandidates(object):
     def __init__(
         self,
         candidates,     # type: List[InstallationCandidate]
-        versions,       # type: Set[_BaseVersion]
-        sort_key,       # type: Callable[[InstallationCandidate], Any]
-    ):
-        # type: (...) -> None
-        self._candidates = candidates
-        self._versions = versions
-        self._sort_key = sort_key
-
-    @classmethod
-    def from_specifier(
-        cls,
-        candidates,     # type: List[InstallationCandidate]
         specifier,      # type: specifiers.BaseSpecifier
         prereleases,    # type: Optional[bool]
         sort_key,       # type: Callable[[InstallationCandidate], Any]
     ):
-        # type: (...) -> FoundCandidates
-        versions = set(specifier.filter(
-            # We turn the version object into a str here because otherwise
-            # when we're debundled but setuptools isn't, Python will see
-            # packaging.version.Version and
-            # pkg_resources._vendor.packaging.version.Version as different
-            # types. This way we'll use a str as a common data interchange
-            # format. If we stop using the pkg_resources provided specifier
-            # and start using our own, we can drop the cast to str().
-            [str(c.version) for c in candidates],
-            prereleases=prereleases,
-        ))
-        return cls(candidates, versions, sort_key)
+        # type: (...) -> None
+        self._candidates = candidates
+        self._sort_key = sort_key
+        self._versions = {
+            str(v) for v in specifier.filter(
+                # We turn the version object into a str here because otherwise
+                # when we're debundled but setuptools isn't, Python will see
+                # packaging.version.Version and
+                # pkg_resources._vendor.packaging.version.Version as different
+                # types. This way we'll use a str as a common data interchange
+                # format. If we stop using the pkg_resources provided specifier
+                # and start using our own, we can drop the cast to str().
+                (str(c.version) for c in candidates),
+                prereleases=prereleases,
+            )
+        }
 
     def iter_all(self):
         # type: () -> Iterable[InstallationCandidate]
@@ -308,7 +299,7 @@ class FoundCandidates(object):
 
     def iter_applicable(self):
         # type: () -> Iterable[InstallationCandidate]
-        """Iterate through candidates matching the given specifier.
+        """Iterate through candidates matching the desired versions.
         """
         # Again, converting version to str to deal with debundling.
         return (c for c in self.iter_all() if str(c.version) in self._versions)
@@ -712,7 +703,7 @@ class PackageFinder(object):
         """
         if specifier is None:
             specifier = specifiers.SpecifierSet()
-        return FoundCandidates.from_specifier(
+        return FoundCandidates(
             self.find_all_candidates(project_name),
             specifier=specifier,
             prereleases=(self.allow_all_prereleases or None),
