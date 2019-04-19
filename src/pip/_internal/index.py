@@ -313,7 +313,8 @@ class FoundCandidates(object):
 
     def iter_applicable(self):
         # type: () -> Iterable[InstallationCandidate]
-        """Iterate through candidates matching the desired versions.
+        """Iterate through candidates matching the versions associated with
+        this instance.
         """
         # Again, converting version to str to deal with debundling.
         return (c for c in self.iter_all() if str(c.version) in self._versions)
