@@ -1,0 +1,2 @@
+Make dashes render correctly when displaying long options like
+``--find-links`` in the text.

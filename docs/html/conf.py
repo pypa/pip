@@ -173,9 +173,21 @@ html_static_path = []
 # using the given strftime format.
 html_last_updated_fmt = '%b %d, %Y'
 
-# If true, SmartyPants will be used to convert quotes and dashes to
-# typographically correct entities.
-smart_quotes = False
+# If true, the Docutils Smart Quotes transform (originally based on
+# SmartyPants) will be used to convert characters like quotes and dashes
+# to typographically correct entities.  The default is True.
+smartquotes = True
+
+# This string, for use with Docutils 0.14 or later, customizes the
+# SmartQuotes transform. The default of "qDe" converts normal quote
+# characters ('"' and "'"), en and em dashes ("--" and "---"), and
+# ellipses "...".
+#    For now, we disable the conversion of dashes so that long options
+# like "--find-links" won't render as "-find-links" if included in the
+# text in places where monospaced type can't be used. For example, backticks
+# can't be used inside roles like :ref:`--no-index <--no-index>` because
+# of nesting.
+smartquotes_action = "qe"
 
 # Custom sidebar templates, maps document names to template names.
 html_sidebars = {
