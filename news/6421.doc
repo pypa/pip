@@ -1,0 +1,1 @@
+Add missed `--trusted-host` to supported options in pip install docs.

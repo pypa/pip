@@ -153,6 +153,7 @@ The following options are supported:
   *  :ref:`--no-binary <install_--no-binary>`
   *  :ref:`--only-binary <install_--only-binary>`
   *  :ref:`--require-hashes <--require-hashes>`
+  *  :ref:`--trusted-host <--trusted-host>`
 
 For example, to specify :ref:`--no-index <--no-index>` and 2 :ref:`--find-links <--find-links>` locations:
 
