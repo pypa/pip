@@ -258,6 +258,9 @@ def _get_html_page(link, session=None):
 class FoundCandidates(object):
     """A collection of candidates, returned by `PackageFinder.find_candidates`.
 
+    This class is only intended to be instantiated by PackageFinder through
+    the `from_specifier()` constructor.
+
     Arguments:
 
     * `candidates`: A sequence of all available candidates found.
@@ -270,14 +273,24 @@ class FoundCandidates(object):
     def __init__(
         self,
         candidates,     # type: List[InstallationCandidate]
-        specifier,      # type: specifiers.BaseSpecifier
-        prereleases,    # type: Optional[bool]
+        versions,       # type: Set[str]
         sort_key,       # type: Callable[[InstallationCandidate], Any]
     ):
         # type: (...) -> None
         self._candidates = candidates
         self._sort_key = sort_key
-        self._versions = {
+        self._versions = versions
+
+    @classmethod
+    def from_specifier(
+        cls,
+        candidates,     # type: List[InstallationCandidate]
+        specifier,      # type: specifiers.BaseSpecifier
+        prereleases,    # type: Optional[bool]
+        sort_key,       # type: Callable[[InstallationCandidate], Any]
+    ):
+        # type: (...) -> FoundCandidates
+        versions = {
             str(v) for v in specifier.filter(
                 # We turn the version object into a str here because otherwise
                 # when we're debundled but setuptools isn't, Python will see
@@ -290,6 +303,7 @@ class FoundCandidates(object):
                 prereleases=prereleases,
             )
         }
+        return cls(candidates, versions, sort_key)
 
     def iter_all(self):
         # type: () -> Iterable[InstallationCandidate]
@@ -703,7 +717,7 @@ class PackageFinder(object):
         """
         if specifier is None:
             specifier = specifiers.SpecifierSet()
-        return FoundCandidates(
+        return FoundCandidates.from_specifier(
             self.find_all_candidates(project_name),
             specifier=specifier,
             prereleases=(self.allow_all_prereleases or None),
