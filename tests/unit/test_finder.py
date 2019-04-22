@@ -12,7 +12,7 @@ from pip._internal.exceptions import (
     BestVersionAlreadyInstalled, DistributionNotFound,
 )
 from pip._internal.index import (
-    InstallationCandidate, Link, PackageFinder, Search,
+    CandidateEvaluator, InstallationCandidate, Link, PackageFinder, Search,
 )
 from pip._internal.req.constructors import install_req_from_line
 
@@ -154,7 +154,8 @@ class TestWheel:
             [],
             session=PipSession(),
         )
-        finder.valid_tags = pip._internal.pep425tags.get_supported()
+        valid_tags = pip._internal.pep425tags.get_supported()
+        finder.candidate_evaluator = CandidateEvaluator(valid_tags=valid_tags)
 
         with pytest.raises(DistributionNotFound):
             finder.find_requirement(req, True)
@@ -243,16 +244,15 @@ class TestWheel:
                 Link('simple-1.0.tar.gz'),
             ),
         ]
-        finder = PackageFinder([], [], session=PipSession())
-        finder.valid_tags = [
+        valid_tags = [
             ('pyT', 'none', 'TEST'),
             ('pyT', 'TEST', 'any'),
             ('pyT', 'none', 'any'),
         ]
-        results = sorted(links,
-                         key=finder._candidate_sort_key, reverse=True)
-        results2 = sorted(reversed(links),
-                          key=finder._candidate_sort_key, reverse=True)
+        evaluator = CandidateEvaluator(valid_tags=valid_tags)
+        sort_key = evaluator._sort_key
+        results = sorted(links, key=sort_key, reverse=True)
+        results2 = sorted(reversed(links), key=sort_key, reverse=True)
 
         assert links == results == results2, results2
 
@@ -276,9 +276,9 @@ class TestWheel:
             ),
         ]
         finder = PackageFinder([], [], session=PipSession())
-        results = sorted(links, key=finder._candidate_sort_key, reverse=True)
-        results2 = sorted(reversed(links), key=finder._candidate_sort_key,
-                          reverse=True)
+        sort_key = finder.candidate_evaluator._sort_key
+        results = sorted(links, key=sort_key, reverse=True)
+        results2 = sorted(reversed(links), key=sort_key, reverse=True)
         assert links == results == results2, results2
 
 

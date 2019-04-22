@@ -48,6 +48,7 @@ if MYPY_CHECK_RUNNING:
     )
     from pip._vendor.packaging.version import _BaseVersion
     from pip._vendor.requests import Response
+    from pip._internal.pep425tags import Pep425Tag
     from pip._internal.req import InstallRequirement
     from pip._internal.download import PipSession
 
@@ -255,6 +256,71 @@ def _get_html_page(link, session=None):
     return None
 
 
+class CandidateEvaluator(object):
+
+    def __init__(
+        self,
+        valid_tags,          # type: List[Pep425Tag]
+        prefer_binary=False  # type: bool
+
+    ):
+        # type: (...) -> None
+        self._prefer_binary = prefer_binary
+        self._valid_tags = valid_tags
+
+    def is_wheel_supported(self, wheel):
+        # type: (Wheel) -> bool
+        return wheel.supported(self._valid_tags)
+
+    def _sort_key(self, candidate):
+        # type: (InstallationCandidate) -> CandidateSortingKey
+        """
+        Function used to generate link sort key for link tuples.
+        The greater the return value, the more preferred it is.
+        If not finding wheels, then sorted by version only.
+        If finding wheels, then the sort order is by version, then:
+          1. existing installs
+          2. wheels ordered via Wheel.support_index_min(self._valid_tags)
+          3. source archives
+        If prefer_binary was set, then all wheels are sorted above sources.
+        Note: it was considered to embed this logic into the Link
+              comparison operators, but then different sdist links
+              with the same version, would have to be considered equal
+        """
+        support_num = len(self._valid_tags)
+        build_tag = tuple()  # type: BuildTag
+        binary_preference = 0
+        if candidate.location.is_wheel:
+            # can raise InvalidWheelFilename
+            wheel = Wheel(candidate.location.filename)
+            if not wheel.supported(self._valid_tags):
+                raise UnsupportedWheel(
+                    "%s is not a supported wheel for this platform. It "
+                    "can't be sorted." % wheel.filename
+                )
+            if self._prefer_binary:
+                binary_preference = 1
+            pri = -(wheel.support_index_min(self._valid_tags))
+            if wheel.build_tag is not None:
+                match = re.match(r'^(\d+)(.*)$', wheel.build_tag)
+                build_tag_groups = match.groups()
+                build_tag = (int(build_tag_groups[0]), build_tag_groups[1])
+        else:  # sdist
+            pri = -(support_num)
+        return (binary_preference, candidate.version, build_tag, pri)
+
+    def get_best_candidate(self, candidates):
+        # type: (List[InstallationCandidate]) -> InstallationCandidate
+        """
+        Return the best candidate per the instance's sort order, or None if
+        no candidates are given.
+        """
+        if not candidates:
+            return None
+
+        return max(candidates, key=self._sort_key)
+
+
 class FoundCandidates(object):
     """A collection of candidates, returned by `PackageFinder.find_candidates`.
 
@@ -267,18 +333,18 @@ class FoundCandidates(object):
     * `specifier`: Specifier to filter applicable versions.
     * `prereleases`: Whether prereleases should be accounted. Pass None to
         infer from the specifier.
-    * `sort_key`: A callable used as the key function when choosing the best
-        candidate.
+    * `evaluator`: A CandidateEvaluator object to sort applicable candidates
+        by order of preference.
     """
     def __init__(
         self,
         candidates,     # type: List[InstallationCandidate]
         versions,       # type: Set[str]
-        sort_key,       # type: Callable[[InstallationCandidate], Any]
+        evaluator,      # type: CandidateEvaluator
     ):
         # type: (...) -> None
         self._candidates = candidates
-        self._sort_key = sort_key
+        self._evaluator = evaluator
         self._versions = versions
 
     @classmethod
@@ -287,7 +353,7 @@ class FoundCandidates(object):
         candidates,     # type: List[InstallationCandidate]
         specifier,      # type: specifiers.BaseSpecifier
         prereleases,    # type: Optional[bool]
-        sort_key,       # type: Callable[[InstallationCandidate], Any]
+        evaluator,      # type: CandidateEvaluator
     ):
         # type: (...) -> FoundCandidates
         versions = {
@@ -303,7 +369,7 @@ class FoundCandidates(object):
                 prereleases=prereleases,
             )
         }
-        return cls(candidates, versions, sort_key)
+        return cls(candidates, versions, evaluator)
 
     def iter_all(self):
         # type: () -> Iterable[InstallationCandidate]
@@ -325,9 +391,7 @@ class FoundCandidates(object):
         candidates are found.
         """
         candidates = list(self.iter_applicable())
-        if not candidates:
-            return None
-        return max(candidates, key=self._sort_key)
+        return self._evaluator.get_best_candidate(candidates)
 
 
 class PackageFinder(object):
@@ -368,6 +432,8 @@ class PackageFinder(object):
             to pep425tags.py in the get_supported() method.
         :param implementation: A string or None. This is passed directly
             to pep425tags.py in the get_supported() method.
+        :param prefer_binary: Whether to prefer an old, but valid, binary
+            dist over a new source dist.
         """
         if session is None:
             raise TypeError(
@@ -408,15 +474,15 @@ class PackageFinder(object):
         self.session = session
 
         # The valid tags to check potential found wheel candidates against
-        self.valid_tags = get_supported(
+        valid_tags = get_supported(
             versions=versions,
             platform=platform,
             abi=abi,
             impl=implementation,
         )
-
-        # Do we prefer old, but valid, binary dist over new source dist
-        self.prefer_binary = prefer_binary
+        self.candidate_evaluator = CandidateEvaluator(
+            valid_tags=valid_tags, prefer_binary=prefer_binary,
+        )
 
         # If we don't have TLS enabled, then WARN if anyplace we're looking
         # relies on TLS.
@@ -502,43 +568,6 @@ class PackageFinder(object):
                 )
 
         return files, urls
-
-    def _candidate_sort_key(self, candidate):
-        # type: (InstallationCandidate) -> CandidateSortingKey
-        """
-        Function used to generate link sort key for link tuples.
-        The greater the return value, the more preferred it is.
-        If not finding wheels, then sorted by version only.
-        If finding wheels, then the sort order is by version, then:
-          1. existing installs
-          2. wheels ordered via Wheel.support_index_min(self.valid_tags)
-          3. source archives
-        If prefer_binary was set, then all wheels are sorted above sources.
-        Note: it was considered to embed this logic into the Link
-              comparison operators, but then different sdist links
-              with the same version, would have to be considered equal
-        """
-        support_num = len(self.valid_tags)
-        build_tag = tuple()  # type: BuildTag
-        binary_preference = 0
-        if candidate.location.is_wheel:
-            # can raise InvalidWheelFilename
-            wheel = Wheel(candidate.location.filename)
-            if not wheel.supported(self.valid_tags):
-                raise UnsupportedWheel(
-                    "%s is not a supported wheel for this platform. It "
-                    "can't be sorted." % wheel.filename
-                )
-            if self.prefer_binary:
-                binary_preference = 1
-            pri = -(wheel.support_index_min(self.valid_tags))
-            if wheel.build_tag is not None:
-                match = re.match(r'^(\d+)(.*)$', wheel.build_tag)
-                build_tag_groups = match.groups()
-                build_tag = (int(build_tag_groups[0]), build_tag_groups[1])
-        else:  # sdist
-            pri = -(support_num)
-        return (binary_preference, candidate.version, build_tag, pri)
 
     def _validate_secure_origin(self, logger, location):
         # type: (Logger, Link) -> bool
@@ -722,7 +751,7 @@ class PackageFinder(object):
             self.find_all_candidates(project_name),
             specifier=specifier,
             prereleases=(self.allow_all_prereleases or None),
-            sort_key=self._candidate_sort_key,
+            evaluator=self.candidate_evaluator,
         )
 
     def find_requirement(self, req, upgrade):
@@ -893,7 +922,7 @@ class PackageFinder(object):
                         link, 'wrong project name (not %s)' % search.supplied)
                     return None
 
-                if not wheel.supported(self.valid_tags):
+                if not self.candidate_evaluator.is_wheel_supported(wheel):
                     self._log_skipped_link(
                         link, 'it is not compatible with this Python')
                     return None
