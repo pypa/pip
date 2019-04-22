@@ -471,11 +471,8 @@ class TestLinkPackageVersions(object):
         self.version = '1.0'
         self.search_name = 'pytest'
         self.canonical_name = 'pytest'
-        self.finder = PackageFinder(
-            [],
-            [],
-            session=PipSession(),
-        )
+        valid_tags = pip._internal.pep425tags.get_supported()
+        self.evaluator = CandidateEvaluator(valid_tags=valid_tags)
 
     @pytest.mark.parametrize(
         'url',
@@ -492,7 +489,7 @@ class TestLinkPackageVersions(object):
             canonical=self.canonical_name,
             formats=['source', 'binary'],
         )
-        result = self.finder._link_package_versions(link, search)
+        result = self.evaluator._link_package_versions(link, search)
         expected = InstallationCandidate(self.search_name, self.version, link)
         assert result == expected, result
 
@@ -513,7 +510,7 @@ class TestLinkPackageVersions(object):
             canonical=self.canonical_name,
             formats=['source', 'binary'],
         )
-        result = self.finder._link_package_versions(link, search)
+        result = self.evaluator._link_package_versions(link, search)
         assert result is None, result
 
 

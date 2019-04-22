@@ -258,19 +258,110 @@ def _get_html_page(link, session=None):
 
 class CandidateEvaluator(object):
 
+    _py_version_re = re.compile(r'-py([123]\.?[0-9]?)$')
+
     def __init__(
         self,
         valid_tags,          # type: List[Pep425Tag]
         prefer_binary=False  # type: bool
-
     ):
         # type: (...) -> None
         self._prefer_binary = prefer_binary
         self._valid_tags = valid_tags
 
+        # These are boring links that have already been logged somehow.
+        self._logged_links = set()  # type: Set[Link]
+
+    def _log_skipped_link(self, link, reason):
+        # type: (Link, str) -> None
+        if link not in self._logged_links:
+            logger.debug('Skipping link %s; %s', link, reason)
+            self._logged_links.add(link)
+
     def is_wheel_supported(self, wheel):
         # type: (Wheel) -> bool
         return wheel.supported(self._valid_tags)
+
+    def _link_package_versions(self, link, search):
+        # type: (Link, Search) -> Optional[InstallationCandidate]
+        """Return an InstallationCandidate or None"""
+        version = None
+        if link.egg_fragment:
+            egg_info = link.egg_fragment
+            ext = link.ext
+        else:
+            egg_info, ext = link.splitext()
+            if not ext:
+                self._log_skipped_link(link, 'not a file')
+                return None
+            if ext not in SUPPORTED_EXTENSIONS:
+                self._log_skipped_link(
+                    link, 'unsupported archive format: %s' % ext,
+                )
+                return None
+            if "binary" not in search.formats and ext == WHEEL_EXTENSION:
+                self._log_skipped_link(
+                    link, 'No binaries permitted for %s' % search.supplied,
+                )
+                return None
+            if "macosx10" in link.path and ext == '.zip':
+                self._log_skipped_link(link, 'macosx10 one')
+                return None
+            if ext == WHEEL_EXTENSION:
+                try:
+                    wheel = Wheel(link.filename)
+                except InvalidWheelFilename:
+                    self._log_skipped_link(link, 'invalid wheel filename')
+                    return None
+                if canonicalize_name(wheel.name) != search.canonical:
+                    self._log_skipped_link(
+                        link, 'wrong project name (not %s)' % search.supplied)
+                    return None
+
+                if not self.is_wheel_supported(wheel):
+                    self._log_skipped_link(
+                        link, 'it is not compatible with this Python')
+                    return None
+
+                version = wheel.version
+
+        # This should be up by the search.ok_binary check, but see issue 2700.
+        if "source" not in search.formats and ext != WHEEL_EXTENSION:
+            self._log_skipped_link(
+                link, 'No sources permitted for %s' % search.supplied,
+            )
+            return None
+
+        if not version:
+            version = _egg_info_matches(egg_info, search.canonical)
+        if not version:
+            self._log_skipped_link(
+                link, 'Missing project version for %s' % search.supplied)
+            return None
+
+        match = self._py_version_re.search(version)
+        if match:
+            version = version[:match.start()]
+            py_version = match.group(1)
+            if py_version != sys.version[:3]:
+                self._log_skipped_link(
+                    link, 'Python version is incorrect')
+                return None
+        try:
+            support_this_python = check_requires_python(link.requires_python)
+        except specifiers.InvalidSpecifier:
+            logger.debug("Package %s has an invalid Requires-Python entry: %s",
+                         link.filename, link.requires_python)
+            support_this_python = True
+
+        if not support_this_python:
+            logger.debug("The package %s is incompatible with the python "
+                         "version in use. Acceptable python versions are: %s",
+                         link, link.requires_python)
+            return None
+        logger.debug('Found link %s, version: %s', link, version)
+
+        return InstallationCandidate(search.supplied, version, link)
 
     def _sort_key(self, candidate):
         # type: (InstallationCandidate) -> CandidateSortingKey
@@ -456,9 +547,6 @@ class PackageFinder(object):
             self.find_links.append(link)
 
         self.index_urls = index_urls
-
-        # These are boring links that have already been logged somehow:
-        self.logged_links = set()  # type: Set[Link]
 
         self.format_control = format_control or FormatControl(set(), set())
 
@@ -849,8 +937,6 @@ class PackageFinder(object):
 
             yield page
 
-    _py_version_re = re.compile(r'-py([123]\.?[0-9]?)$')
-
     def _sort_links(self, links):
         # type: (Iterable[Link]) -> List[Link]
         """
@@ -876,97 +962,10 @@ class PackageFinder(object):
         # type: (...) -> List[InstallationCandidate]
         result = []
         for link in self._sort_links(links):
-            v = self._link_package_versions(link, search)
+            v = self.candidate_evaluator._link_package_versions(link, search)
             if v is not None:
                 result.append(v)
         return result
-
-    def _log_skipped_link(self, link, reason):
-        # type: (Link, str) -> None
-        if link not in self.logged_links:
-            logger.debug('Skipping link %s; %s', link, reason)
-            self.logged_links.add(link)
-
-    def _link_package_versions(self, link, search):
-        # type: (Link, Search) -> Optional[InstallationCandidate]
-        """Return an InstallationCandidate or None"""
-        version = None
-        if link.egg_fragment:
-            egg_info = link.egg_fragment
-            ext = link.ext
-        else:
-            egg_info, ext = link.splitext()
-            if not ext:
-                self._log_skipped_link(link, 'not a file')
-                return None
-            if ext not in SUPPORTED_EXTENSIONS:
-                self._log_skipped_link(
-                    link, 'unsupported archive format: %s' % ext,
-                )
-                return None
-            if "binary" not in search.formats and ext == WHEEL_EXTENSION:
-                self._log_skipped_link(
-                    link, 'No binaries permitted for %s' % search.supplied,
-                )
-                return None
-            if "macosx10" in link.path and ext == '.zip':
-                self._log_skipped_link(link, 'macosx10 one')
-                return None
-            if ext == WHEEL_EXTENSION:
-                try:
-                    wheel = Wheel(link.filename)
-                except InvalidWheelFilename:
-                    self._log_skipped_link(link, 'invalid wheel filename')
-                    return None
-                if canonicalize_name(wheel.name) != search.canonical:
-                    self._log_skipped_link(
-                        link, 'wrong project name (not %s)' % search.supplied)
-                    return None
-
-                if not self.candidate_evaluator.is_wheel_supported(wheel):
-                    self._log_skipped_link(
-                        link, 'it is not compatible with this Python')
-                    return None
-
-                version = wheel.version
-
-        # This should be up by the search.ok_binary check, but see issue 2700.
-        if "source" not in search.formats and ext != WHEEL_EXTENSION:
-            self._log_skipped_link(
-                link, 'No sources permitted for %s' % search.supplied,
-            )
-            return None
-
-        if not version:
-            version = _egg_info_matches(egg_info, search.canonical)
-        if not version:
-            self._log_skipped_link(
-                link, 'Missing project version for %s' % search.supplied)
-            return None
-
-        match = self._py_version_re.search(version)
-        if match:
-            version = version[:match.start()]
-            py_version = match.group(1)
-            if py_version != sys.version[:3]:
-                self._log_skipped_link(
-                    link, 'Python version is incorrect')
-                return None
-        try:
-            support_this_python = check_requires_python(link.requires_python)
-        except specifiers.InvalidSpecifier:
-            logger.debug("Package %s has an invalid Requires-Python entry: %s",
-                         link.filename, link.requires_python)
-            support_this_python = True
-
-        if not support_this_python:
-            logger.debug("The package %s is incompatible with the python "
-                         "version in use. Acceptable python versions are: %s",
-                         link, link.requires_python)
-            return None
-        logger.debug('Found link %s, version: %s', link, version)
-
-        return InstallationCandidate(search.supplied, version, link)
 
 
 def _find_name_version_sep(egg_info, canonical_name):
