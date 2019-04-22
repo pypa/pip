@@ -668,7 +668,7 @@ class PackageFinder(object):
         return [mkurl_pypi_url(url) for url in self.index_urls]
 
     def find_all_candidates(self, project_name):
-        # type: (str) -> List[Optional[InstallationCandidate]]
+        # type: (str) -> List[InstallationCandidate]
         """Find all available InstallationCandidate for project_name
 
         This checks index_urls and find_links.
@@ -873,7 +873,7 @@ class PackageFinder(object):
         links,  # type: Iterable[Link]
         search  # type: Search
     ):
-        # type: (...) -> List[Optional[InstallationCandidate]]
+        # type: (...) -> List[InstallationCandidate]
         result = []
         for link in self._sort_links(links):
             v = self._link_package_versions(link, search)
