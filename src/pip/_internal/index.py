@@ -258,7 +258,10 @@ def _get_html_page(link, session=None):
 
 class CandidateEvaluator(object):
 
-    _py_version_re = re.compile(r'-py([123]\.?[0-9]?)$')
+    """
+    Responsible for filtering and sorting candidates for installation based
+    on what tags are valid.
+    """
 
     def __init__(
         self,
@@ -269,6 +272,11 @@ class CandidateEvaluator(object):
         self._prefer_binary = prefer_binary
         self._valid_tags = valid_tags
 
+        # We compile the regex here instead of as a class attribute so as
+        # not to not impact pip start-up time.  This is also okay because
+        # CandidateEvaluator is generally instantiated only once per pip
+        # invocation (when PackageFinder is instantiated).
+        self._py_version_re = re.compile(r'-py([123]\.?[0-9]?)$')
         # These are boring links that have already been logged somehow.
         self._logged_links = set()  # type: Set[Link]
 
@@ -278,13 +286,17 @@ class CandidateEvaluator(object):
             logger.debug('Skipping link %s; %s', link, reason)
             self._logged_links.add(link)
 
-    def is_wheel_supported(self, wheel):
+    def _is_wheel_supported(self, wheel):
         # type: (Wheel) -> bool
         return wheel.supported(self._valid_tags)
 
-    def _link_package_versions(self, link, search):
+    def evaluate_link(self, link, search):
         # type: (Link, Search) -> Optional[InstallationCandidate]
-        """Return an InstallationCandidate or None"""
+        """
+        Determine whether a link is a candidate for installation.
+
+        Returns an InstallationCandidate if so, otherwise None.
+        """
         version = None
         if link.egg_fragment:
             egg_info = link.egg_fragment
@@ -318,7 +330,7 @@ class CandidateEvaluator(object):
                         link, 'wrong project name (not %s)' % search.supplied)
                     return None
 
-                if not self.is_wheel_supported(wheel):
+                if not self._is_wheel_supported(wheel):
                     self._log_skipped_link(
                         link, 'it is not compatible with this Python')
                     return None
@@ -384,7 +396,7 @@ class CandidateEvaluator(object):
         if candidate.location.is_wheel:
             # can raise InvalidWheelFilename
             wheel = Wheel(candidate.location.filename)
-            if not wheel.supported(self._valid_tags):
+            if not self._is_wheel_supported(wheel):
                 raise UnsupportedWheel(
                     "%s is not a supported wheel for this platform. It "
                     "can't be sorted." % wheel.filename
@@ -762,7 +774,7 @@ class PackageFinder(object):
         This checks index_urls and find_links.
         All versions found are returned as an InstallationCandidate list.
 
-        See _link_package_versions for details on which files are accepted
+        See evaluate_link() for details on which files are accepted
         """
         index_locations = self._get_index_urls_locations(project_name)
         index_file_loc, index_url_loc = self._sort_locations(index_locations)
@@ -962,9 +974,9 @@ class PackageFinder(object):
         # type: (...) -> List[InstallationCandidate]
         result = []
         for link in self._sort_links(links):
-            v = self.candidate_evaluator._link_package_versions(link, search)
-            if v is not None:
-                result.append(v)
+            candidate = self.candidate_evaluator.evaluate_link(link, search)
+            if candidate is not None:
+                result.append(candidate)
         return result
 
 
