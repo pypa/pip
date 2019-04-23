@@ -1,0 +1,1 @@
+ensure_dir() should also check for ENOTEMPTY
