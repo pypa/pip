@@ -76,8 +76,8 @@ Install behind a proxy::
 
   python get-pip.py --proxy="http://[user:passwd@]proxy.server:port"
 
-``get-pip.py`` can also be used to install a specified combination of ``pip``,
-``setuptools``, and ``wheel`` using the same requirements syntax as ``pip``::
+``get-pip.py`` can also be used to install a specified combination of pip,
+``setuptools``, and ``wheel`` using the same requirements syntax as pip::
 
   python get-pip.py pip==9.0.2 wheel==0.30.0 setuptools==28.8.0
 
