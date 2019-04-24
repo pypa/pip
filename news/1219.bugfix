@@ -1,2 +1,0 @@
-The stdout and stderr from VCS commands run by pip as subprocesses (e.g.
-``git``, ``hg``, etc.) no longer pollute pip's stdout.

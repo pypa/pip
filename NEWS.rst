@@ -7,6 +7,67 @@
 
 .. towncrier release notes start
 
+19.1 (2019-04-23)
+=================
+
+Features
+--------
+
+- Configuration files may now also be stored under ``sys.prefix`` (`#5060 <https://github.com/pypa/pip/issues/5060>`_)
+- Avoid creating an unnecessary local clone of a Bazaar branch when exporting. (`#5443 <https://github.com/pypa/pip/issues/5443>`_)
+- Include in pip's User-Agent string whether it looks like pip is running
+  under CI. (`#5499 <https://github.com/pypa/pip/issues/5499>`_)
+- A custom (JSON-encoded) string can now be added to pip's User-Agent
+  using the ``PIP_USER_AGENT_USER_DATA`` environment variable. (`#5549 <https://github.com/pypa/pip/issues/5549>`_)
+- For consistency, passing ``--no-cache-dir`` no longer affects whether wheels
+  will be built.  In this case, a temporary directory is used. (`#5749 <https://github.com/pypa/pip/issues/5749>`_)
+- Command arguments in ``subprocess`` log messages are now quoted using
+  ``shlex.quote()``. (`#6290 <https://github.com/pypa/pip/issues/6290>`_)
+- Prefix warning and error messages in log output with `WARNING` and `ERROR`. (`#6298 <https://github.com/pypa/pip/issues/6298>`_)
+- Using ``--build-options`` in a PEP 517 build now fails with an error,
+  rather than silently ignoring the option. (`#6305 <https://github.com/pypa/pip/issues/6305>`_)
+- Error out with an informative message if one tries to install a
+  ``pyproject.toml``-style (PEP 517) source tree using ``--editable`` mode. (`#6314 <https://github.com/pypa/pip/issues/6314>`_)
+- When downloading a package, the ETA and average speed now only update once per second for better legibility. (`#6319 <https://github.com/pypa/pip/issues/6319>`_)
+
+Bug Fixes
+---------
+
+- The stdout and stderr from VCS commands run by pip as subprocesses (e.g.
+  ``git``, ``hg``, etc.) no longer pollute pip's stdout. (`#1219 <https://github.com/pypa/pip/issues/1219>`_)
+- Fix handling of requests exceptions when dependencies are debundled. (`#4195 <https://github.com/pypa/pip/issues/4195>`_)
+- Make pip's self version check avoid recommending upgrades to prereleases if the currently-installed version is stable. (`#5175 <https://github.com/pypa/pip/issues/5175>`_)
+- Fixed crash when installing a requirement from a URL that comes from a dependency without a URL. (`#5889 <https://github.com/pypa/pip/issues/5889>`_)
+- Improve handling of file URIs: correctly handle `file://localhost/...` and don't try to use UNC paths on Unix. (`#5892 <https://github.com/pypa/pip/issues/5892>`_)
+- Fix ``utils.encoding.auto_decode()`` ``LookupError`` with invalid encodings.
+  ``utils.encoding.auto_decode()`` was broken when decoding Big Endian BOM
+  byte-strings on Little Endian or vice versa. (`#6054 <https://github.com/pypa/pip/issues/6054>`_)
+- Fix incorrect URL quoting of IPv6 addresses. (`#6285 <https://github.com/pypa/pip/issues/6285>`_)
+- Redact the password from the extra index URL when using ``pip -v``. (`#6295 <https://github.com/pypa/pip/issues/6295>`_)
+- The spinner no longer displays a completion message after subprocess calls
+  not needing a spinner. It also no longer incorrectly reports an error after
+  certain subprocess calls to Git that succeeded. (`#6312 <https://github.com/pypa/pip/issues/6312>`_)
+- Fix the handling of editable mode during installs when ``pyproject.toml`` is
+  present but PEP 517 doesn't require the source tree to be treated as
+  ``pyproject.toml``-style. (`#6370 <https://github.com/pypa/pip/issues/6370>`_)
+- Fix ``NameError`` when handling an invalid requirement. (`#6419 <https://github.com/pypa/pip/issues/6419>`_)
+
+Vendored Libraries
+------------------
+
+- Updated certifi to 2019.3.9
+- Updated distro to 1.4.0
+- Update progress to 1.5
+- Updated pyparsing to 2.4.0
+- Updated pkg_resources to 41.0.1 (via setuptools)
+
+Improved Documentation
+----------------------
+
+- Make dashes render correctly when displaying long options like
+  ``--find-links`` in the text. (`#6422 <https://github.com/pypa/pip/issues/6422>`_)
+
+
 19.0.3 (2019-02-20)
 ===================
 
