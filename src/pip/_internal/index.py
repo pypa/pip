@@ -336,6 +336,7 @@ class FoundCandidates(object):
     * `evaluator`: A CandidateEvaluator object to sort applicable candidates
         by order of preference.
     """
+
     def __init__(
         self,
         candidates,     # type: List[InstallationCandidate]
@@ -1061,7 +1062,9 @@ def _clean_link(url):
         path = urllib_request.pathname2url(
             urllib_request.url2pathname(result.path))
     else:
-        path = urllib_parse.quote(urllib_parse.unquote(result.path))
+        # In addition to the `/` character we protect `@` so that
+        # revision strings in VCS URLs are properly parsed.
+        path = urllib_parse.quote(urllib_parse.unquote(result.path), safe="/@")
     return urllib_parse.urlunparse(result._replace(path=path))
 
 

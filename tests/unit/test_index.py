@@ -308,7 +308,10 @@ def test_request_retries(caplog):
         # URL with something that looks like a drive letter, but is
         # not. The `:` should be quoted.
         ("https://localhost.localdomain/T:/path/",
-         "https://localhost.localdomain/T%3A/path/")
+         "https://localhost.localdomain/T%3A/path/"),
+        # VCS URL containing revision string.
+        ("git+ssh://example.com/path to/repo.git@1.0#egg=my-package-1.0",
+         "git+ssh://example.com/path%20to/repo.git@1.0#egg=my-package-1.0")
     ]
 )
 def test_clean_link(url, clean_url):
