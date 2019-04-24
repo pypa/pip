@@ -1,1 +1,0 @@
-Make pip's self version check avoid recommending upgrades to prereleases if the currently-installed version is stable.

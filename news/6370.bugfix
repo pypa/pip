@@ -1,3 +1,0 @@
-Fix the handling of editable mode during installs when ``pyproject.toml`` is
-present but PEP 517 doesn't require the source tree to be treated as
-``pyproject.toml``-style.

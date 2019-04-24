@@ -1,1 +1,0 @@
-Improve handling of file URIs: correctly handle `file://localhost/...` and don't try to use UNC paths on Unix.
