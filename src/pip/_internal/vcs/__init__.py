@@ -339,6 +339,7 @@ class VersionControl(object):
         scheme = scheme.split('+', 1)[1]
         netloc, user_pass = cls.get_netloc_and_auth(netloc, scheme)
         rev = None
+        path = urllib_parse.unquote(path)
         if '@' in path:
             path, rev = path.rsplit('@', 1)
         url = urllib_parse.urlunsplit((scheme, netloc, path, query, ''))

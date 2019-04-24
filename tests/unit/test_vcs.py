@@ -258,6 +258,11 @@ def test_git__get_url_rev__idempotent():
     # Test a "+" in the path portion.
     ('svn+https://svn.example.com/My+Project',
      ('https://svn.example.com/My+Project', None, (None, None))),
+    ('hg+https://hg.example.com/MyProject@default',
+     ('https://hg.example.com/MyProject', 'default', (None, None))),
+    # Test with "@" quoted.
+    ('hg+https://hg.example.com/MyProject%40default',
+     ('https://hg.example.com/MyProject', 'default', (None, None))),
 ])
 def test_version_control__get_url_rev_and_auth(url, expected):
     """
