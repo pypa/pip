@@ -1,0 +1,2 @@
+Fix a regression that caused `@` to be quoted in pypiserver links.
+This interfered with parsing the revision string from VCS urls.
