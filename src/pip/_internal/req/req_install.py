@@ -481,9 +481,14 @@ class InstallRequirement(object):
     @property
     def setup_py_dir(self):
         # type: () -> str
-        return os.path.join(
-            self.source_dir,
-            self.link and self.link.subdirectory_fragment or '')
+
+        if self.link and self.link.subdirectory_fragment:
+            return os.path.join(
+                self.source_dir,
+                self.link.subdirectory_fragment
+            )
+        else:
+            return self.source_dir
 
     @property
     def setup_py_path(self):
@@ -851,7 +856,8 @@ class InstallRequirement(object):
     def _clean_zip_name(self, name, prefix):  # only used by archive.
         # type: (str, str) -> str
         assert name.startswith(prefix + os.path.sep), (
-            "name %r doesn't start with prefix %r" % (name, prefix)
+            "name %r doesn't start with prefix %r" %
+            (name, prefix + os.path.sep)
         )
         name = name[len(prefix) + 1:]
         name = name.replace(os.path.sep, '/')
