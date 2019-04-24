@@ -226,6 +226,17 @@ def test_install_local_with_subdirectory(script):
     result.assert_installed('version_subpkg.py', editable=False)
 
 
+@pytest.mark.network
+def test_download_local_with_subdirectory(script):
+    version_pkg_path = _create_test_package_with_subdirectory(script,
+                                                              'version_subdir')
+    script.pip(
+        'download',
+        '%s#egg=version_subpkg&subdirectory=version_subdir' %
+        ('git+' + path_to_url(version_pkg_path),)
+    )
+
+
 def test_wheel_user_with_prefix_in_pydistutils_cfg(
         script, data, with_wheel):
     if os.name == 'posix':
