@@ -115,7 +115,7 @@ def resolve_pyproject_toml(
 
     :param build_system: the "build_system" value specified in a project's
         pyproject.toml file, or None if the project either doesn't have the
-        file or does but the file doesn't have a "build_system" value.
+        file or does but the file doesn't have a [build-system] table.
     :param has_pyproject: whether the project has a pyproject.toml file.
     :param has_setup: whether the project has a setup.py file.
     :param use_pep517: whether the user requested PEP 517 processing.  None
@@ -160,7 +160,7 @@ def resolve_pyproject_toml(
                     'for pyproject.toml-style projects. '
                     'This project is pyproject.toml-style because it has a '
                     'pyproject.toml file and a "build-backend" key for the '
-                    '"build_system" value, but editable mode is undefined '
+                    '[build-system] table, but editable mode is undefined '
                     'for pyproject.toml-style projects. '
                     'Since the project has a setup.py, you may pass '
                     '--no-use-pep517 to opt out of pyproject.toml-style '
@@ -177,7 +177,7 @@ def resolve_pyproject_toml(
                 'for pyproject.toml-style projects: '
                 'this project is pyproject.toml-style because it has a '
                 'pyproject.toml file and a "build-backend" key for the '
-                '"build_system" value, but editable mode is undefined '
+                '[build-system] table, but editable mode is undefined '
                 'for pyproject.toml-style projects. '
                 'See PEP 517 for details on pyproject.toml-style projects.'
             ).format(req_name)
@@ -204,7 +204,7 @@ def resolve_pyproject_toml(
                 'project as pyproject.toml-style because it has a '
                 'pyproject.toml file. Since the project has a setup.py and '
                 'the pyproject.toml has no "build-backend" key for the '
-                '"build_system" value, you may pass --no-use-pep517 to opt '
+                '[build-system] table, you may pass --no-use-pep517 to opt '
                 'out of pyproject.toml-style processing. '
                 'See PEP 517 for details on pyproject.toml-style projects.'
             ).format(req_name)
