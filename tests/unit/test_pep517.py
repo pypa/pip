@@ -84,9 +84,6 @@ def test_resolve_pyproject_toml__editable_without_use_pep517_false():
     'has_pyproject, has_setup, use_pep517, build_system, expected_err', [
         # Test pyproject.toml with no setup.py.
         (True, False, None, None, 'has a pyproject.toml file and no setup.py'),
-        # Test "build-backend" present.
-        (True, True, None, {'build-backend': 'foo'},
-         'has a pyproject.toml file with a "build-backend" key'),
         # Test explicitly requesting PEP 517 processing.
         (True, True, True, None,
          'PEP 517 processing was explicitly requested'),
@@ -113,6 +110,55 @@ def test_resolve_pyproject_toml__editable_and_pep_517_required(
             editable=True,
             req_name='my-package',
         )
+
+
+def test_resolve_pyproject_toml__editable_build_backend_use_pep517_none():
+    """
+    Test editable=True with "build-backend" and use_pep517=None.
+    """
+    expected_start = (
+        "Error installing 'my-package': editable mode is not supported "
+    )
+    expected_substr = 'you may pass --no-use-pep517 to opt out'
+
+    with assert_error_startswith(
+        InstallationError, expected_start, expected_substr=expected_substr,
+    ):
+        resolve_pyproject_toml(
+            build_system={'requires': ['my-package'], 'build-backend': 'foo'},
+            has_pyproject=True,
+            has_setup=True,
+            use_pep517=None,
+            editable=True,
+            req_name='my-package',
+        )
+
+
+def test_resolve_pyproject_toml__editable_build_backend_use_pep517_false(
+    caplog
+):
+    """
+    Test editable=True with "build-backend" and use_pep517=False.
+    """
+    resolve_pyproject_toml(
+        build_system={'requires': ['my-package'], 'build-backend': 'foo'},
+        has_pyproject=True,
+        has_setup=True,
+        use_pep517=False,
+        editable=True,
+        req_name='my-package',
+    )
+
+    records = caplog.records
+    assert len(records) == 1
+    record = records[0]
+    assert record.levelname == 'WARNING'
+    expected_start = (
+        "Installing 'my-package' in editable mode, which is not supported "
+    )
+    assert record.message.startswith(expected_start), (
+        'full message: {}'.format(record.message)
+    )
 
 
 @pytest.mark.parametrize(
