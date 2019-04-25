@@ -342,6 +342,7 @@ class VersionControl(object):
         path = urllib_parse.unquote(path)
         if '@' in path:
             path, rev = path.rsplit('@', 1)
+        path = urllib_parse.quote(path)
         url = urllib_parse.urlunsplit((scheme, netloc, path, query, ''))
         return url, rev, user_pass
 
