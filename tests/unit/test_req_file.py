@@ -222,7 +222,37 @@ class TestProcessLine(object):
         filename = 'filename'
         comes_from = '-r %s (line %s)' % (filename, 1)
         req = install_req_from_editable(url, comes_from=comes_from)
-        assert repr(list(process_line(line, filename, 1))[0]) == repr(req)
+        actual, = process_line(line, filename, 1)
+        assert repr(actual) == repr(req)
+        assert actual.use_pep517 is None
+
+    @pytest.mark.parametrize('use_pep517, line, expected', [
+        # Test passing use_pep517=None.
+        (None, '-e git+https://url#egg=SomeProject', None),
+        (None, '--use-pep517 -e git+https://url#egg=SomeProject', True),
+        (None, '--no-use-pep517 -e git+https://url#egg=SomeProject', False),
+        # Test passing use_pep517=True.
+        (True, '-e git+https://url#egg=SomeProject', True),
+        (True, '--use-pep517 -e git+https://url#egg=SomeProject', True),
+        (True, '--no-use-pep517 -e git+https://url#egg=SomeProject', False),
+        # Test passing use_pep517=False.
+        (False, '-e git+https://url#egg=SomeProject', False),
+        (False, '--use-pep517 -e git+https://url#egg=SomeProject', True),
+        (False, '--no-use-pep517 -e git+https://url#egg=SomeProject', False),
+    ])
+    def test_yield_editable_requirement__pep517_options(
+        self, use_pep517, line, expected,
+    ):
+        """
+        Test --use-pep517 and --no-use-pep517 in a requirements file line.
+        """
+        actual, = process_line(line, 'filename', 1, use_pep517=use_pep517)
+        assert repr(actual) == (
+            '<InstallRequirement object: SomeProject from '
+            'git+https://url#egg=SomeProject (from -r filename (line 1)) '
+            'editable=True>'
+        )
+        assert actual.use_pep517 == expected
 
     def test_yield_editable_constraint(self):
         url = 'git+https://url#egg=SomeProject'

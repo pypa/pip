@@ -46,6 +46,8 @@ ENV_VAR_RE = re.compile(r'(?P<var>\$\{(?P<name>[A-Z0-9_]+)\})')
 SUPPORTED_OPTIONS = [
     cmdoptions.constraints,
     cmdoptions.editable,
+    cmdoptions.use_pep517,
+    cmdoptions.no_use_pep517,
     cmdoptions.requirements,
     cmdoptions.no_index,
     cmdoptions.index_url,
@@ -171,6 +173,10 @@ def process_line(
     # https://github.com/python/mypy/issues/1174
     opts, _ = parser.parse_args(
         shlex.split(options_str), defaults)  # type: ignore
+
+    if opts.use_pep517 is not None:
+        # Then the requirements line value takes precedence.
+        use_pep517 = opts.use_pep517
 
     # preserve for the nested code path
     line_comes_from = '%s %s (line %s)' % (
