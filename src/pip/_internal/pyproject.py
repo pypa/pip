@@ -49,27 +49,11 @@ def read_pyproject_toml(path):
     return build_system
 
 
-def make_editable_error(req_name, reason):
-    """
-    :param req_name: the name of the requirement.
-    :param reason: the reason the requirement is being processed as
-        pyproject.toml-style.
-    """
-    message = (
-        'Error installing {!r}: editable mode is not supported for '
-        'pyproject.toml-style projects. This project is being processed '
-        'as pyproject.toml-style because {}. '
-        'See PEP 517 for the relevant specification.'
-    ).format(req_name, reason)
-    return InstallationError(message)
-
-
 def resolve_pyproject_toml(
-    build_system,  # type: Optional[Dict[str, Any]]
+    build_system,  # type: Optional[Dict[str, str]]
     has_pyproject,  # type: bool
     has_setup,  # type: bool
     use_pep517,  # type: Optional[bool]
-    editable,  # type: bool
     req_name,  # type: str
 ):
     # type: (...) -> Optional[Tuple[List[str], str, List[str]]]
@@ -83,7 +67,6 @@ def resolve_pyproject_toml(
     :param has_setup: whether the project has a setup.py file.
     :param use_pep517: whether the user requested PEP 517 processing.  None
         means the user didn't explicitly specify.
-    :param editable: whether editable mode was requested for the requirement.
     :param req_name: the name of the requirement we're processing (for
         error reporting).
     """
@@ -99,10 +82,6 @@ def resolve_pyproject_toml(
                 "Disabling PEP 517 processing is invalid: "
                 "project does not have a setup.py"
             )
-        if editable:
-            raise make_editable_error(
-                req_name, 'it has a pyproject.toml file and no setup.py'
-            )
         use_pep517 = True
     elif build_system and "build-backend" in build_system:
         if use_pep517 is not None and not use_pep517:
@@ -113,18 +92,7 @@ def resolve_pyproject_toml(
                     build_system["build-backend"]
                 )
             )
-        if editable:
-            reason = (
-                'it has a pyproject.toml file with a "build-backend" key '
-                'in the "build_system" value'
-            )
-            raise make_editable_error(req_name, reason)
         use_pep517 = True
-    elif use_pep517:
-        if editable:
-            raise make_editable_error(
-                req_name, 'PEP 517 processing was explicitly requested'
-            )
 
     # If we haven't worked out whether to use PEP 517 yet,
     # and the user hasn't explicitly stated a preference,
@@ -207,7 +175,6 @@ def resolve_pyproject_toml(
 
 def load_pyproject_toml(
     use_pep517,  # type: Optional[bool]
-    editable,  # type: bool
     pyproject_toml,  # type: str
     setup_py,  # type: str
     req_name  # type: str
@@ -218,7 +185,6 @@ def load_pyproject_toml(
     Parameters:
         use_pep517 - Has the user requested PEP 517 processing? None
                      means the user hasn't explicitly specified.
-        editable - Whether editable mode was requested for the requirement.
         pyproject_toml - Location of the project's pyproject.toml file
         setup_py - Location of the project's setup.py file
         req_name - The name of the requirement we're processing (for
@@ -246,6 +212,5 @@ def load_pyproject_toml(
         has_pyproject=has_pyproject,
         has_setup=has_setup,
         use_pep517=use_pep517,
-        editable=editable,
         req_name=req_name,
     )
