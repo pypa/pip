@@ -1,67 +1,7 @@
 import pytest
 
 from pip._internal.exceptions import InstallationError
-from pip._internal.pyproject import resolve_pyproject_toml
 from pip._internal.req import InstallRequirement
-
-
-@pytest.mark.parametrize('editable', [False, True])
-def test_resolve_pyproject_toml__pep_517_optional(editable):
-    """
-    Test resolve_pyproject_toml() when has_pyproject=True but the source
-    tree isn't pyproject.toml-style per PEP 517.
-    """
-    actual = resolve_pyproject_toml(
-        build_system=None,
-        has_pyproject=True,
-        has_setup=True,
-        use_pep517=None,
-        editable=editable,
-        req_name='my-package',
-    )
-    expected = (
-        ['setuptools>=40.8.0', 'wheel'],
-        'setuptools.build_meta:__legacy__',
-        [],
-    )
-    assert actual == expected
-
-
-@pytest.mark.parametrize(
-    'has_pyproject, has_setup, use_pep517, build_system, expected_err', [
-        # Test pyproject.toml with no setup.py.
-        (True, False, None, None, 'has a pyproject.toml file and no setup.py'),
-        # Test "build-backend" present.
-        (True, True, None, {'build-backend': 'foo'},
-         'has a pyproject.toml file with a "build-backend" key'),
-        # Test explicitly requesting PEP 517 processing.
-        (True, True, True, None,
-         'PEP 517 processing was explicitly requested'),
-    ]
-)
-def test_resolve_pyproject_toml__editable_and_pep_517_required(
-    has_pyproject, has_setup, use_pep517, build_system, expected_err,
-):
-    """
-    Test that passing editable=True raises an error if PEP 517 processing
-    is required.
-    """
-    with pytest.raises(InstallationError) as excinfo:
-        resolve_pyproject_toml(
-            build_system=build_system,
-            has_pyproject=has_pyproject,
-            has_setup=has_setup,
-            use_pep517=use_pep517,
-            editable=True,
-            req_name='my-package',
-        )
-    err_args = excinfo.value.args
-    assert len(err_args) == 1
-    msg = err_args[0]
-    assert msg.startswith(
-        "Error installing 'my-package': editable mode is not supported"
-    )
-    assert expected_err in msg, 'full message: {}'.format(msg)
 
 
 @pytest.mark.parametrize(('source', 'expected'), [
