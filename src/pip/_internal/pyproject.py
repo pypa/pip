@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import io
-import logging
 import os
 import sys
 
@@ -14,9 +13,6 @@ if MYPY_CHECK_RUNNING:
     from typing import Any, Dict, List, Optional, Tuple
 
     Pep517Data = Tuple[str, List[str]]
-
-
-logger = logging.getLogger(__name__)
 
 
 def _is_list_of_str(obj):
@@ -137,11 +133,7 @@ def resolve_pyproject_toml(
     # opposed to False can occur when the value is provided via an
     # environment variable or config file option (due to the quirk of
     # strtobool() returning an integer in pip's configuration code).
-    if editable and use_pep517:
-        raise make_editable_error(
-            req_name, 'PEP 517 processing was explicitly requested'
-        )
-    elif has_pyproject and not has_setup:
+    if has_pyproject and not has_setup:
         if use_pep517 is not None and not use_pep517:
             raise InstallationError(
                 "Disabling PEP 517 processing is invalid: "
@@ -153,36 +145,7 @@ def resolve_pyproject_toml(
             )
         use_pep517 = True
     elif build_system and "build-backend" in build_system:
-        if editable:
-            if use_pep517 is None:
-                message = (
-                    'Error installing {!r}: editable mode is not supported '
-                    'for pyproject.toml-style projects. '
-                    'This project is pyproject.toml-style because it has a '
-                    'pyproject.toml file and a "build-backend" key for the '
-                    '"build_system" value, but editable mode is undefined '
-                    'for pyproject.toml-style projects. '
-                    'Since the project has a setup.py, you may pass '
-                    '--no-use-pep517 to opt out of pyproject.toml-style '
-                    'processing. However, this is an unsupported combination. '
-                    'See PEP 517 for details on pyproject.toml-style projects.'
-                ).format(req_name)
-                raise InstallationError(message)
-
-            # The case of `editable and use_pep517` being true was already
-            # handled above.
-            assert not use_pep517
-            message = (
-                'Installing {!r} in editable mode, which is not supported '
-                'for pyproject.toml-style projects: '
-                'this project is pyproject.toml-style because it has a '
-                'pyproject.toml file and a "build-backend" key for the '
-                '"build_system" value, but editable mode is undefined '
-                'for pyproject.toml-style projects. '
-                'See PEP 517 for details on pyproject.toml-style projects.'
-            ).format(req_name)
-            logger.warning(message)
-        elif use_pep517 is not None and not use_pep517:
+        if use_pep517 is not None and not use_pep517:
             raise InstallationError(
                 "Disabling PEP 517 processing is invalid: "
                 "project specifies a build backend of {} "
@@ -190,8 +153,18 @@ def resolve_pyproject_toml(
                     build_system["build-backend"]
                 )
             )
-        else:
-            use_pep517 = True
+        if editable:
+            reason = (
+                'it has a pyproject.toml file with a "build-backend" key '
+                'in the "build_system" value'
+            )
+            raise make_editable_error(req_name, reason)
+        use_pep517 = True
+    elif use_pep517:
+        if editable:
+            raise make_editable_error(
+                req_name, 'PEP 517 processing was explicitly requested'
+            )
 
     # If we haven't worked out whether to use PEP 517 yet, and the user
     # hasn't explicitly stated a preference, we do so if the project has
