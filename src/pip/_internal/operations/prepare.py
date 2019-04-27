@@ -136,11 +136,7 @@ class IsSDist(DistAbstraction):
         #   2. Set up the build environment
 
         self.req.load_pyproject_toml()
-
-        should_isolate = (
-            (self.req.use_pep517 or self.req.pyproject_requires) and
-            build_isolation
-        )
+        should_isolate = self.req.use_pep517 and build_isolation
 
         if should_isolate:
             # Isolate in a BuildEnvironment and install the build-time
@@ -167,12 +163,10 @@ class IsSDist(DistAbstraction):
                     " and ".join(map(repr, sorted(missing)))
                 )
 
-            if self.req.use_pep517:
-                # If we're using PEP 517, then install any extra build
-                # dependencies that the backend requested.  This must be
-                # done in a second pass, as the pyproject.toml dependencies
-                # must be installed before we can call the backend.
-                self.install_backend_dependencies(finder=finder)
+            # Install any extra build dependencies that the backend requests.
+            # This must be done in a second pass, as the pyproject.toml
+            # dependencies must be installed before we can call the backend.
+            self.install_backend_dependencies(finder=finder)
 
         self.req.prepare_metadata()
         self.req.assert_source_matches_version()
