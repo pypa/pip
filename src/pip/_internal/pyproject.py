@@ -4,7 +4,7 @@ import io
 import os
 import sys
 
-from pip._vendor import pytoml, six
+from pip._vendor import tomlkit, six
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -63,7 +63,7 @@ def load_pyproject_toml(
 
     if has_pyproject:
         with io.open(pyproject_toml, encoding="utf-8") as f:
-            pp_toml = pytoml.load(f)
+            pp_toml = tomlkit.load(f)
         build_system = pp_toml.get("build-system")
     else:
         build_system = None
