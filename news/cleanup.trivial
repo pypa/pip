@@ -1,0 +1,2 @@
+- made conditional in outdated.py as a variable for easier maintenance
+- made local_version_is_older conditional return earlier if condition not metgit
