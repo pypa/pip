@@ -25,7 +25,7 @@ def test_mercurial_switch_updates_config_file_when_found(tmpdir):
     with open(hgrc_path, 'w') as f:
         config.write(f)
     hg.switch(tmpdir, 'new_url', options)
-    
+
     config.read(hgrc_path)
 
     default_path = config.get('paths', 'default')
