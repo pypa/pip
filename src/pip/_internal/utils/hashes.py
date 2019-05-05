@@ -86,6 +86,11 @@ class Hashes(object):
         with open(path, 'rb') as file:
             return self.check_against_file(file)
 
+    def test_against_hash(self, hash_name, hash_value):
+        # type (str, str) -> bool
+        """Return whether a given hash is among the known-good hashes."""
+        return hash_value in self._allowed.get(hash_name, [])
+
     def __nonzero__(self):
         # type: () -> bool
         """Return whether I know any known-good hashes."""

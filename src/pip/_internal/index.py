@@ -51,6 +51,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.pep425tags import Pep425Tag
     from pip._internal.req import InstallRequirement
     from pip._internal.download import PipSession
+    from pip._internal.utils import Hashes
 
     SecureOrigin = Tuple[str, str, Optional[str]]
     BuildTag = Tuple[Any, ...]  # either empty tuple or Tuple[int, str]
@@ -386,12 +387,28 @@ class FoundCandidates(object):
         # Again, converting version to str to deal with debundling.
         return (c for c in self.iter_all() if str(c.version) in self._versions)
 
-    def get_best(self):
-        # type: () -> Optional[InstallationCandidate]
+    def get_best(self, hashes=None):
+        # type: (Optional[Hashes]) -> Optional[InstallationCandidate]
         """Return the best candidate available, or None if no applicable
         candidates are found.
         """
         candidates = list(self.iter_applicable())
+        if hashes:
+            # If we are in hash-checking mode, filter out candidates that will
+            # fail the hash check. This prevents HashMismatch errors when a new
+            # distribution is uploaded for an old release.
+            def test_against_hashes(candidate):
+                link = candidate.location
+                is_match = hashes.test_against_hash(link.hash_name, link.hash)
+                if not is_match:
+                    logger.warning(
+                        "candidate %s ignored: hash %s:%s not among provided "
+                        "hashes",
+                        link.filename, link.hash_name, link.hash,
+                    )
+                return is_match
+
+            candidates = [c for c in candidates if test_against_hashes(c)]
         return self._evaluator.get_best_candidate(candidates)
 
 
@@ -764,7 +781,9 @@ class PackageFinder(object):
         Raises DistributionNotFound or BestVersionAlreadyInstalled otherwise
         """
         candidates = self.find_candidates(req.name, req.specifier)
-        best_candidate = candidates.get_best()
+        # Get any hashes supplied by the user to filter candidates.
+        hashes = req.hashes(trust_internet=False)
+        best_candidate = candidates.get_best(hashes)
 
         installed_version = None    # type: Optional[_BaseVersion]
         if req.satisfied_by is not None:
