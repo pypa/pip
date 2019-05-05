@@ -20,6 +20,13 @@ from pip._internal.utils.hashes import Hashes
 from tests.lib import create_file
 
 
+@pytest.fixture(scope="function")
+def cache_tmpdir(tmpdir):
+    cache_dir = tmpdir.join("cache")
+    cache_dir.makedirs()
+    yield cache_dir
+
+
 def test_unpack_http_url_with_urllib_response_without_content_type(data):
     """
     It should download and unpack files even if no Content-Type header exists
@@ -310,11 +317,9 @@ class TestSafeFileCache:
     os.geteuid which is absent on Windows.
     """
 
-    def test_cache_roundtrip(self, tmpdir):
-        cache_dir = tmpdir.join("test-cache")
-        cache_dir.makedirs()
+    def test_cache_roundtrip(self, cache_tmpdir):
 
-        cache = SafeFileCache(cache_dir)
+        cache = SafeFileCache(cache_tmpdir)
         assert cache.get("test key") is None
         cache.set("test key", b"a test string")
         assert cache.get("test key") == b"a test string"
@@ -322,32 +327,26 @@ class TestSafeFileCache:
         assert cache.get("test key") is None
 
     @pytest.mark.skipif("sys.platform == 'win32'")
-    def test_safe_get_no_perms(self, tmpdir, monkeypatch):
-        cache_dir = tmpdir.join("unreadable-cache")
-        cache_dir.makedirs()
-        os.chmod(cache_dir, 000)
+    def test_safe_get_no_perms(self, cache_tmpdir, monkeypatch):
+        os.chmod(cache_tmpdir, 000)
 
         monkeypatch.setattr(os.path, "exists", lambda x: True)
 
-        cache = SafeFileCache(cache_dir)
+        cache = SafeFileCache(cache_tmpdir)
         cache.get("foo")
 
     @pytest.mark.skipif("sys.platform == 'win32'")
-    def test_safe_set_no_perms(self, tmpdir):
-        cache_dir = tmpdir.join("unreadable-cache")
-        cache_dir.makedirs()
-        os.chmod(cache_dir, 000)
+    def test_safe_set_no_perms(self, cache_tmpdir):
+        os.chmod(cache_tmpdir, 000)
 
-        cache = SafeFileCache(cache_dir)
+        cache = SafeFileCache(cache_tmpdir)
         cache.set("foo", b"bar")
 
     @pytest.mark.skipif("sys.platform == 'win32'")
-    def test_safe_delete_no_perms(self, tmpdir):
-        cache_dir = tmpdir.join("unreadable-cache")
-        cache_dir.makedirs()
-        os.chmod(cache_dir, 000)
+    def test_safe_delete_no_perms(self, cache_tmpdir):
+        os.chmod(cache_tmpdir, 000)
 
-        cache = SafeFileCache(cache_dir)
+        cache = SafeFileCache(cache_tmpdir)
         cache.delete("foo")
 
 
