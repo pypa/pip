@@ -139,10 +139,14 @@ def pip_version_check(session, options):
 
         remote_version = packaging_version.parse(pypi_version)
 
+        local_version_is_older = (
+            pip_version < remote_version and
+            pip_version.base_version != remote_version.base_version and
+            was_installed_by_pip('pip')
+        )
+
         # Determine if our pypi_version is older
-        if (pip_version < remote_version and
-                pip_version.base_version != remote_version.base_version and
-                was_installed_by_pip('pip')):
+        if local_version_is_older:
             # Advise "python -m pip" on Windows to avoid issues
             # with overwriting pip.exe.
             if WINDOWS:
