@@ -395,10 +395,16 @@ class FoundCandidates(object):
         candidates = list(self.iter_applicable())
         if hashes:
             # If we are in hash-checking mode, filter out candidates that will
-            # fail the hash check. This prevents HashMismatch errors when a new
-            # distribution is uploaded for an old release.
+            # fail the hash check per the hash provided in their Link URL.
+            # This prevents HashMismatch errors when a new distribution is
+            # uploaded for an old release.
+            # This is not a security check: after download the contents will
+            # be hashed and compared to the known-good hashes.
             def test_against_hashes(candidate):
                 link = candidate.location
+                if not link.hash:
+                    # We can only filter candidates with hashes in their URLs.
+                    return True
                 is_match = hashes.test_against_hash(link.hash_name, link.hash)
                 if not is_match:
                     logger.warning(
