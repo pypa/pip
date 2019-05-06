@@ -51,7 +51,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.pep425tags import Pep425Tag
     from pip._internal.req import InstallRequirement
     from pip._internal.download import PipSession
-    from pip._internal.utils import Hashes
+    from pip._internal.utils.hashes import Hashes
 
     SecureOrigin = Tuple[str, str, Optional[str]]
     BuildTag = Tuple[Any, ...]  # either empty tuple or Tuple[int, str]
