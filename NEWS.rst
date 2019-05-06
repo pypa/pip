@@ -7,6 +7,22 @@
 
 .. towncrier release notes start
 
+19.1.1 (2019-05-06)
+===================
+
+Features
+--------
+
+- Restore ``pyproject.toml`` handling to how it was with pip 19.0.3 to prevent
+  the need to add ``--no-use-pep517`` when installing in editable mode. (`#6434 <https://github.com/pypa/pip/issues/6434>`_)
+
+Bug Fixes
+---------
+
+- Fix a regression that caused `@` to be quoted in pypiserver links.
+  This interfered with parsing the revision string from VCS urls. (`#6440 <https://github.com/pypa/pip/issues/6440>`_)
+
+
 19.1 (2019-04-23)
 =================
 
