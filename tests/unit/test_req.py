@@ -115,7 +115,9 @@ class TestRequirementSet(object):
         ))
         # This flag activates --require-hashes mode:
         reqset.add_requirement(get_processed_req_from_line(
-            'tracefront==0.1 --hash=sha256:somehash', lineno=2,
+            'tracefront==0.1 --hash=sha256:d74cd6119a883bf15e2bae63ac0fea33b48'
+            '45e1a76b82aad586537d92a25bb51',
+            lineno=2,
         ))
         # This hash should be accepted because it came from the reqs file, not
         # from the internet:
@@ -145,7 +147,8 @@ class TestRequirementSet(object):
             r'    blessings==1.0 --hash=sha256:[0-9a-f]+\n'
             r'THESE PACKAGES DO NOT MATCH THE HASHES.*\n'
             r'    tracefront==0.1 .*:\n'
-            r'        Expected sha256 somehash\n'
+            r'        Expected sha256 d74cd6119a883bf15e2bae63ac0fea33b4845e1a'
+            r'76b82aad586537d92a25bb51\n'
             r'             Got        [0-9a-f]+$',
             resolver.resolve,
             reqset
