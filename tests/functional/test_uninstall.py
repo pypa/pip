@@ -61,6 +61,28 @@ def test_basic_uninstall_distutils(script):
     ) in result.stderr
 
 
+def test_uninstall_not_pip_installed(script):
+    """
+    Test uninstall of package that pip did not install
+    itself raises error.
+
+    """
+    result = script.pip_install_local('simple.dist')
+    found_file = next(
+        ff for path, ff in result.files_created.items()
+        if path.endswith("INSTALLER")
+    )
+    with open(found_file.full, "w") as fh:
+        fh.write("not pip")
+
+    result = script.pip('uninstall', 'simple.dist', '-y',
+                        expect_stderr=True, expect_error=True)
+    assert (
+        "ERROR: Cannot uninstall 'simple.dist'. It was installed by "
+        "'not pip', which should be used to uninstall the package."
+    ) in result.stderr
+
+
 @pytest.mark.network
 def test_basic_uninstall_with_scripts(script):
     """

@@ -526,6 +526,22 @@ class UninstallPathSet(object):
             paths_to_remove.add_pth(easy_install_pth, './' + easy_install_egg)
 
         elif egg_info_exists and dist.egg_info.endswith('.dist-info'):
+            installer = next(dist.get_metadata_lines('INSTALLER'), "").strip()
+            if installer != "pip":
+                reason = (
+                    "Cannot uninstall {!r}. It was installed by {!r}, which "
+                    "should be used to uninstall the package.".format(
+                        dist.project_name, installer
+                    )
+                    if installer else
+                    "Cannot uninstall {!r} because it was not installed by "
+                    "pip. The tool used to install the package should be "
+                    "used to uninstall it.".format(
+                        dist.project_name
+                    )
+                )
+                raise UninstallationError(reason)
+
             for path in uninstallation_paths(dist):
                 paths_to_remove.add(path)
 
