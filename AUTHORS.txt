@@ -145,6 +145,7 @@ Dustin Ingram <di@di.codes>
 Dwayne Bailey <dwayne@translate.org.za>
 Ed Morley <501702+edmorley@users.noreply.github.com>
 Ed Morley <emorley@mozilla.com>
+ekristina <panacejja@gmail.com>
 elainechan <elaine.chan@outlook.com>
 Eli Schwartz <eschwartz93@gmail.com>
 Eli Schwartz <eschwartz@archlinux.org>
