@@ -188,10 +188,14 @@ class VcsSupport(object):
         return None
 
     def get_backend(self, name):
-        # type: (str) -> Optional[Type[VersionControl]]
+        # type: (str) -> Optional[VersionControl]
+        """
+        Return a VersionControl object or None.
+        """
         name = name.lower()
         if name in self._registry:
-            return self._registry[name]
+            vc_type = self._registry[name]
+            return vc_type()
         return None
 
 
@@ -257,10 +261,6 @@ class VersionControl(object):
 
         return req
 
-    def __init__(self, url=None, *args, **kwargs):
-        self.url = url
-        super(VersionControl, self).__init__(*args, **kwargs)
-
     @staticmethod
     def get_base_rev_args(rev):
         """
@@ -293,10 +293,12 @@ class VersionControl(object):
         drive, tail = os.path.splitdrive(repo)
         return repo.startswith(os.path.sep) or bool(drive)
 
-    def export(self, location):
+    def export(self, location, url):
         """
         Export the repository at the url to the destination location
         i.e. only download the files, without vcs informations
+
+        :param url: the repository URL starting with a vcs prefix.
         """
         raise NotImplementedError
 
@@ -422,16 +424,16 @@ class VersionControl(object):
         """
         raise NotImplementedError
 
-    def obtain(self, dest):
-        # type: (str) -> None
+    def obtain(self, dest, url):
+        # type: (str, str) -> None
         """
         Install or update in editable mode the package represented by this
         VersionControl object.
 
-        Args:
-          dest: the repository directory in which to install or update.
+        :param dest: the repository directory in which to install or update.
+        :param url: the repository URL starting with a vcs prefix.
         """
-        url, rev_options = self.get_url_rev_options(self.url)
+        url, rev_options = self.get_url_rev_options(url)
 
         if not os.path.exists(dest):
             self.fetch_new(dest, url, rev_options)
@@ -515,15 +517,17 @@ class VersionControl(object):
             )
             self.switch(dest, url, rev_options)
 
-    def unpack(self, location):
-        # type: (str) -> None
+    def unpack(self, location, url):
+        # type: (str, str) -> None
         """
         Clean up current location and download the url repository
         (and vcs infos) into location
+
+        :param url: the repository URL starting with a vcs prefix.
         """
         if os.path.exists(location):
             rmtree(location)
-        self.obtain(location)
+        self.obtain(location, url=url)
 
     @classmethod
     def get_remote_url(cls, location):

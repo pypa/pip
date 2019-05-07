@@ -547,13 +547,16 @@ def is_archive_file(name):
 
 def unpack_vcs_link(link, location):
     vcs_backend = _get_used_vcs_backend(link)
-    vcs_backend.unpack(location)
+    vcs_backend.unpack(location, url=link.url)
 
 
 def _get_used_vcs_backend(link):
+    """
+    Return a VersionControl object or None.
+    """
     for backend in vcs.backends:
         if link.scheme in backend.schemes:
-            vcs_backend = backend(link.url)
+            vcs_backend = backend()
             return vcs_backend
 
 

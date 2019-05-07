@@ -40,27 +40,6 @@ class Git(VersionControl):
     unset_environ = ('GIT_DIR', 'GIT_WORK_TREE')
     default_arg_rev = 'HEAD'
 
-    def __init__(self, url=None, *args, **kwargs):
-
-        # Works around an apparent Git bug
-        # (see https://article.gmane.org/gmane.comp.version-control.git/146500)
-        if url:
-            scheme, netloc, path, query, fragment = urlsplit(url)
-            if scheme.endswith('file'):
-                initial_slashes = path[:-len(path.lstrip('/'))]
-                newpath = (
-                    initial_slashes +
-                    urllib_request.url2pathname(path)
-                    .replace('\\', '/').lstrip('/')
-                )
-                url = urlunsplit((scheme, netloc, newpath, query, fragment))
-                after_plus = scheme.find('+') + 1
-                url = scheme[:after_plus] + urlunsplit(
-                    (scheme[after_plus:], netloc, newpath, query, fragment),
-                )
-
-        super(Git, self).__init__(url, *args, **kwargs)
-
     @staticmethod
     def get_base_rev_args(rev):
         return [rev]
@@ -99,13 +78,13 @@ class Git(VersionControl):
 
         return None
 
-    def export(self, location):
+    def export(self, location, url):
         """Export the Git repository at the url to the destination location"""
         if not location.endswith('/'):
             location = location + '/'
 
         with TempDirectory(kind="export") as temp_dir:
-            self.unpack(temp_dir.path)
+            self.unpack(temp_dir.path, url=url)
             self.run_command(
                 ['checkout-index', '-a', '-f', '--prefix', location],
                 show_stdout=False, cwd=temp_dir.path
@@ -324,6 +303,22 @@ class Git(VersionControl):
         work with a ssh:// scheme (e.g. GitHub). But we need a scheme for
         parsing. Hence we remove it again afterwards and return it as a stub.
         """
+        # Works around an apparent Git bug
+        # (see https://article.gmane.org/gmane.comp.version-control.git/146500)
+        scheme, netloc, path, query, fragment = urlsplit(url)
+        if scheme.endswith('file'):
+            initial_slashes = path[:-len(path.lstrip('/'))]
+            newpath = (
+                initial_slashes +
+                urllib_request.url2pathname(path)
+                .replace('\\', '/').lstrip('/')
+            )
+            url = urlunsplit((scheme, netloc, newpath, query, fragment))
+            after_plus = scheme.find('+') + 1
+            url = scheme[:after_plus] + urlunsplit(
+                (scheme[after_plus:], netloc, newpath, query, fragment),
+            )
+
         if '://' not in url:
             assert 'file:' not in url
             url = url.replace('git+', 'git+ssh://')

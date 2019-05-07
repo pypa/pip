@@ -23,10 +23,10 @@ class Mercurial(VersionControl):
     def get_base_rev_args(rev):
         return [rev]
 
-    def export(self, location):
+    def export(self, location, url):
         """Export the Hg repository at the url to the destination location"""
         with TempDirectory(kind="export") as temp_dir:
-            self.unpack(temp_dir.path)
+            self.unpack(temp_dir.path, url=url)
 
             self.run_command(
                 ['archive', location], show_stdout=False, cwd=temp_dir.path

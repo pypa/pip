@@ -636,7 +636,8 @@ def unpack_file(
             is_svn_page(file_contents(filename))):
         # We don't really care about this
         from pip._internal.vcs.subversion import Subversion
-        Subversion('svn+' + link.url).unpack(location)
+        url = 'svn+' + link.url
+        Subversion().unpack(location, url=url)
     else:
         # FIXME: handle?
         # FIXME: magic signatures?
