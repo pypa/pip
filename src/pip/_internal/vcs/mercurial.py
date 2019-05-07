@@ -47,7 +47,7 @@ class Mercurial(VersionControl):
 
     def switch(self, dest, url, rev_options):
         repo_config = os.path.join(dest, self.dirname, 'hgrc')
-        config = configparser.SafeConfigParser()
+        config = configparser.RawConfigParser()
         try:
             config.read(repo_config)
             config.set('paths', 'default', url)
