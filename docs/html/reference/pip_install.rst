@@ -348,9 +348,9 @@ the :ref:`--editable <install_--editable>` option) or not.
 * For non-editable installs, the project is built locally in a temp dir and then
   installed normally. Note that if a satisfactory version of the package is
   already installed, the VCS source will not overwrite it without an
-  ``--upgrade``
-  flag. VCS requirements pin the package version (specified in the ``setup.py``
-  file) of the target commit, not necessarily the commit itself.
+  ``--upgrade`` flag. VCS requirements pin the package version (specified
+  in the ``setup.py`` file) of the target commit, not necessarily the commit
+  itself.
 * The :ref:`pip freeze` subcommand will record the VCS requirement specifier
   (referencing a specific commit) if and only if the install is done using the
   editable option.
