@@ -305,7 +305,7 @@ index_url = partial(
     dest='index_url',
     metavar='URL',
     default=PyPI.simple_url,
-    help="Base URL of Python Package Index (default %default). "
+    help="Base URL of the Python Package Index (default %default). "
          "This should point to a repository compliant with PEP 503 "
          "(the simple repository API) or a local directory laid out "
          "in the same format.",

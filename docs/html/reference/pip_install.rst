@@ -72,7 +72,7 @@ Installation Order
 ++++++++++++++++++
 
 As of v6.1.0, pip installs dependencies before their dependents, i.e. in
-"topological order".  This is the only commitment pip currently makes related
+"topological order."  This is the only commitment pip currently makes related
 to order.  While it may be coincidentally true that pip will install things in
 the order of the install arguments or in the order of the items in a
 requirements file, this is not a promise.
@@ -154,7 +154,8 @@ The following options are supported:
   *  :ref:`--only-binary <install_--only-binary>`
   *  :ref:`--require-hashes <--require-hashes>`
 
-For example, to specify :ref:`--no-index <--no-index>` and 2 :ref:`--find-links <--find-links>` locations:
+For example, to specify :ref:`--no-index <--no-index>` and two
+:ref:`--find-links <--find-links>` locations:
 
 ::
 
@@ -238,7 +239,7 @@ pip supports installing from a package index using a :term:`requirement
 specifier <pypug:Requirement Specifier>`. Generally speaking, a requirement
 specifier is composed of a project name followed by optional :term:`version
 specifiers <pypug:Version Specifier>`.  :pep:`508` contains a full specification
-of the format of a requirement (``pip`` does not support the ``url_req`` form
+of the format of a requirement (pip does not support the ``url_req`` form
 of specifier at this time).
 
 Some examples:
@@ -331,32 +332,35 @@ VCS Support
 +++++++++++
 
 pip supports installing from Git, Mercurial, Subversion and Bazaar, and detects
-the type of VCS using url prefixes: "git+", "hg+", "bzr+", "svn+".
+the type of VCS using url prefixes: ``git+``, ``hg+``, ``svn+``, and ``bzr+``.
 
-pip requires a working VCS command on your path: git, hg, svn, or bzr.
+pip requires a working VCS command on your path: ``git``, ``hg``, ``svn``, or
+``bzr``.
 
 VCS projects can be installed in :ref:`editable mode <editable-installs>` (using
 the :ref:`--editable <install_--editable>` option) or not.
 
-* For editable installs, the clone location by default is "<venv
-  path>/src/SomeProject" in virtual environments, and "<cwd>/src/SomeProject"
+* For editable installs, the clone location by default is ``<venv
+  path>/src/SomeProject`` in virtual environments, and
+  ``<cwd>/src/SomeProject``
   for global installs.  The :ref:`--src <install_--src>` option can be used to
   modify this location.
 * For non-editable installs, the project is built locally in a temp dir and then
   installed normally. Note that if a satisfactory version of the package is
-  already installed, the VCS source will not overwrite it without an `--upgrade`
-  flag. VCS requirements pin the package version (specified in the `setup.py`
-  file) of the target commit, not necessarily the commit itself.
+  already installed, the VCS source will not overwrite it without an
+  ``--upgrade`` flag. VCS requirements pin the package version (specified
+  in the ``setup.py`` file) of the target commit, not necessarily the commit
+  itself.
 * The :ref:`pip freeze` subcommand will record the VCS requirement specifier
   (referencing a specific commit) if and only if the install is done using the
   editable option.
 
-The "project name" component of the url suffix "egg=<project name>"
+The "project name" component of the url suffix ``egg=<project name>``
 is used by pip in its dependency logic to identify the project prior
 to pip downloading and analyzing the metadata. For projects
-where setup.py is not in the root of project, "subdirectory" component
-is used. Value of "subdirectory" component should be a path starting from root
-of the project to where setup.py is located.
+where ``setup.py`` is not in the root of project, the "subdirectory" component
+is used. The value of the "subdirectory" component should be a path starting
+from the root of the project to where ``setup.py`` is located.
 
 So if your repository layout is:
 
@@ -482,12 +486,13 @@ pip searches for packages on `PyPI`_ using the
 which is documented `here <https://setuptools.readthedocs.io/en/latest/easy_install.html#package-index-api>`_
 and `there <https://www.python.org/dev/peps/pep-0301/>`_
 
-pip offers a number of Package Index Options for modifying how packages are found.
+pip offers a number of package index options for modifying how packages are
+found.
 
-pip looks for packages in a number of places, on PyPI (if not disabled via
-```--no-index```), in the local filesystem, and in any additional repositories
-specified via ```--find-links``` or ```--index-url```. There is no ordering in
-the locations that are searched, rather they are all checked, and the "best"
+pip looks for packages in a number of places: on PyPI (if not disabled via
+``--no-index``), in the local filesystem, and in any additional repositories
+specified via ``--find-links`` or ``--index-url``. There is no ordering in
+the locations that are searched. Rather they are all checked, and the "best"
 match for the requirements (in terms of version number - see :pep:`440` for
 details) is selected.
 
@@ -711,12 +716,12 @@ Controlling setup_requires
 
 Setuptools offers the ``setup_requires`` `setup() keyword
 <https://setuptools.readthedocs.io/en/latest/setuptools.html#new-and-changed-setup-keywords>`_
-for specifying dependencies that need to be present in order for the `setup.py`
-script to run.  Internally, Setuptools uses ``easy_install`` to fulfill these
-dependencies.
+for specifying dependencies that need to be present in order for the
+``setup.py`` script to run.  Internally, Setuptools uses ``easy_install``
+to fulfill these dependencies.
 
 pip has no way to control how these dependencies are located.  None of the
-Package Index Options have an effect.
+package index options have an effect.
 
 The solution is to configure a "system" or "personal" `Distutils configuration
 file
