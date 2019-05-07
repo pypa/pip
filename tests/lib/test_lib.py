@@ -80,6 +80,15 @@ def test_as_import(script):
 
 class TestPipTestEnvironment:
 
+    def run_stderr_with_prefix(self, script, prefix, **kwargs):
+        """
+        Call run() that prints stderr with the given prefix.
+        """
+        text = '{}: hello, world\\n'.format(prefix)
+        command = 'import sys; sys.stderr.write("{}")'.format(text)
+        args = [sys.executable, '-c', command]
+        script.run(*args, **kwargs)
+
     def run_with_log_command(self, script, sub_string, **kwargs):
         """
         Call run() on a command that logs a "%"-style format string using
@@ -89,15 +98,6 @@ class TestPipTestEnvironment:
             "import logging; logging.basicConfig(level='INFO'); "
             "logging.getLogger().info('sub: {}', 'foo')"
         ).format(sub_string)
-        args = [sys.executable, '-c', command]
-        script.run(*args, **kwargs)
-
-    def run_stderr_with_prefix(self, script, prefix, **kwargs):
-        """
-        Call run() that prints stderr with the given prefix.
-        """
-        text = '{}: hello, world\\n'.format(prefix)
-        command = 'import sys; sys.stderr.write("{}")'.format(text)
         args = [sys.executable, '-c', command]
         script.run(*args, **kwargs)
 
