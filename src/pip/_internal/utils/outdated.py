@@ -139,22 +139,28 @@ def pip_version_check(session, options):
 
         remote_version = packaging_version.parse(pypi_version)
 
+        local_version_is_older = (
+            pip_version < remote_version and
+            pip_version.base_version != remote_version.base_version and
+            was_installed_by_pip('pip')
+        )
+
         # Determine if our pypi_version is older
-        if (pip_version < remote_version and
-                pip_version.base_version != remote_version.base_version and
-                was_installed_by_pip('pip')):
-            # Advise "python -m pip" on Windows to avoid issues
-            # with overwriting pip.exe.
-            if WINDOWS:
-                pip_cmd = "python -m pip"
-            else:
-                pip_cmd = "pip"
-            logger.warning(
-                "You are using pip version %s, however version %s is "
-                "available.\nYou should consider upgrading via the "
-                "'%s install --upgrade pip' command.",
-                pip_version, pypi_version, pip_cmd
-            )
+        if not local_version_is_older:
+            return
+
+        # Advise "python -m pip" on Windows to avoid issues
+        # with overwriting pip.exe.
+        if WINDOWS:
+            pip_cmd = "python -m pip"
+        else:
+            pip_cmd = "pip"
+        logger.warning(
+            "You are using pip version %s, however version %s is "
+            "available.\nYou should consider upgrading via the "
+            "'%s install --upgrade pip' command.",
+            pip_version, pypi_version, pip_cmd
+        )
     except Exception:
         logger.debug(
             "There was an error checking the latest version of pip",
