@@ -20,7 +20,9 @@ def assert_error_startswith(exc_type, expected_start):
     with pytest.raises(exc_type) as err:
         yield
 
-    assert str(err.value).startswith(expected_start)
+    assert str(err.value).startswith(expected_start), (
+        'full message: {}'.format(err.value)
+    )
 
 
 def test_tmp_dir_exists_in_env(script):
@@ -77,6 +79,18 @@ def test_as_import(script):
 
 
 class TestPipTestEnvironment:
+
+    def run_with_log_command(self, script, sub_string):
+        """
+        Call run() on a command that logs a "%"-style format string using
+        the given substring as the string's replacement field.
+        """
+        command = (
+            "import logging; logging.basicConfig(level='INFO'); "
+            "logging.getLogger().info('sub: {}', 'foo')"
+        ).format(sub_string)
+        args = [sys.executable, '-c', command]
+        script.run(*args)
 
     def run_stderr_with_prefix(self, script, prefix, **kwargs):
         """
@@ -138,6 +152,18 @@ class TestPipTestEnvironment:
         """
         with assert_error_startswith(RuntimeError, expected_start):
             self.run_stderr_with_prefix(script, prefix)
+
+    def test_run__logging_error(self, script):
+        """
+        Test calling run() with an unexpected logging error.
+        """
+        # Pass a good substitution string.
+        self.run_with_log_command(script, sub_string='%r')
+
+        expected_start = 'stderr has a logging error, which is never allowed'
+        with assert_error_startswith(RuntimeError, expected_start):
+            # Pass a bad substitution string.
+            self.run_with_log_command(script, sub_string='{!r}')
 
     def test_run__allow_stderr_error_false_error_with_expect_error(
         self, script,
