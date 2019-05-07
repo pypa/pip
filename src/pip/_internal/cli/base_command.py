@@ -84,12 +84,11 @@ class Command(object):
     @classmethod
     def _get_index_urls(cls, options):
         """Return a list of index urls from user-provided options."""
-        if getattr(options, "no_index", False):
-            return None
         index_urls = []
-        url = getattr(options, "index_url", None)
-        if url:
-            index_urls.append(url)
+        if not getattr(options, "no_index", False):
+            url = getattr(options, "index_url", None)
+            if url:
+                index_urls.append(url)
         urls = getattr(options, "extra_index_urls", None)
         if urls:
             index_urls.extend(urls)

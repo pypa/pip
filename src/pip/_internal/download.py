@@ -49,6 +49,7 @@ if MYPY_CHECK_RUNNING:
     from typing import (
         Optional, Tuple, Dict, IO, Text, Union
     )
+    from optparse import Values
     from pip._internal.models.link import Link
     from pip._internal.utils.hashes import Hashes
     from pip._internal.vcs import AuthInfo
@@ -58,10 +59,6 @@ try:
 except ImportError:
     ssl = None
 
-try:
-    import keyring  # noqa
-except ImportError:
-    keyring = None
 
 HAS_TLS = (ssl is not None) or IS_PYOPENSSL
 
@@ -74,6 +71,15 @@ __all__ = ['get_file_content',
 
 logger = logging.getLogger(__name__)
 
+
+try:
+    import keyring  # noqa
+except ImportError:
+    keyring = None
+except Exception as exc:
+    logger.warning("Keyring is skipped due to an exception: %s",
+                   str(exc))
+    keyring = None
 
 # These are environment variables present when running under various
 # CI systems.  For each variable, some CI systems that use the variable
