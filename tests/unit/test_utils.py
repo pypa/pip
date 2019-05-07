@@ -714,11 +714,14 @@ class TestCheckRequiresPython(object):
         fake_dist = Mock(
             has_metadata=lambda _: True,
             get_metadata=lambda _: metadata)
+        version_info = sys.version_info[:3]
         if should_raise:
             with pytest.raises(UnsupportedPythonVersion):
-                check_dist_requires_python(fake_dist)
+                check_dist_requires_python(
+                    fake_dist, version_info=version_info,
+                )
         else:
-            check_dist_requires_python(fake_dist)
+            check_dist_requires_python(fake_dist, version_info=version_info)
 
 
 class TestGetProg(object):
