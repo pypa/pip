@@ -176,23 +176,23 @@ class Tests_EgglinkPath:
 class Tests_get_installed_distributions:
     """test util.get_installed_distributions"""
 
-    workingset = [
+    workingset = Mock(return_value=[
         Mock(test_name="global"),
         Mock(test_name="editable"),
         Mock(test_name="normal"),
         Mock(test_name="user"),
-    ]
+    ])
 
-    workingset_stdlib = [
+    workingset_stdlib = Mock(return_value=[
         Mock(test_name='normal', key='argparse'),
         Mock(test_name='normal', key='wsgiref')
-    ]
+    ])
 
-    workingset_freeze = [
+    workingset_freeze = Mock(return_value=[
         Mock(test_name='normal', key='pip'),
         Mock(test_name='normal', key='setuptools'),
         Mock(test_name='normal', key='distribute')
-    ]
+    ])
 
     def dist_is_editable(self, dist):
         return dist.test_name == "editable"
@@ -203,7 +203,7 @@ class Tests_get_installed_distributions:
     def dist_in_usersite(self, dist):
         return dist.test_name == "user"
 
-    @patch('pip._vendor.pkg_resources.working_set', workingset)
+    @patch('pip._vendor.pkg_resources.WorkingSet', workingset)
     def test_editables_only(self, mock_dist_is_editable,
                             mock_dist_is_local,
                             mock_dist_in_usersite):
@@ -214,7 +214,7 @@ class Tests_get_installed_distributions:
         assert len(dists) == 1, dists
         assert dists[0].test_name == "editable"
 
-    @patch('pip._vendor.pkg_resources.working_set', workingset)
+    @patch('pip._vendor.pkg_resources.WorkingSet', workingset)
     def test_exclude_editables(self, mock_dist_is_editable,
                                mock_dist_is_local,
                                mock_dist_in_usersite):
@@ -225,7 +225,7 @@ class Tests_get_installed_distributions:
         assert len(dists) == 1
         assert dists[0].test_name == "normal"
 
-    @patch('pip._vendor.pkg_resources.working_set', workingset)
+    @patch('pip._vendor.pkg_resources.WorkingSet', workingset)
     def test_include_globals(self, mock_dist_is_editable,
                              mock_dist_is_local,
                              mock_dist_in_usersite):
@@ -235,7 +235,7 @@ class Tests_get_installed_distributions:
         dists = get_installed_distributions(local_only=False)
         assert len(dists) == 4
 
-    @patch('pip._vendor.pkg_resources.working_set', workingset)
+    @patch('pip._vendor.pkg_resources.WorkingSet', workingset)
     def test_user_only(self, mock_dist_is_editable,
                        mock_dist_is_local,
                        mock_dist_in_usersite):
@@ -247,7 +247,17 @@ class Tests_get_installed_distributions:
         assert len(dists) == 1
         assert dists[0].test_name == "user"
 
-    @patch('pip._vendor.pkg_resources.working_set', workingset_stdlib)
+    @patch('pip._vendor.pkg_resources.WorkingSet', workingset_freeze)
+    def test_path_only(self, mock_dist_is_editable,
+                       mock_dist_is_local,
+                       mock_dist_in_usersite):
+        mock_dist_is_editable.side_effect = self.dist_is_editable
+        mock_dist_is_local.side_effect = self.dist_is_local
+        mock_dist_in_usersite.side_effect = self.dist_in_usersite
+        dists = get_installed_distributions(paths=["/fakepath"])
+        assert len(dists) == 3
+
+    @patch('pip._vendor.pkg_resources.WorkingSet', workingset_stdlib)
     def test_gte_py27_excludes(self, mock_dist_is_editable,
                                mock_dist_is_local,
                                mock_dist_in_usersite):
@@ -257,7 +267,7 @@ class Tests_get_installed_distributions:
         dists = get_installed_distributions()
         assert len(dists) == 0
 
-    @patch('pip._vendor.pkg_resources.working_set', workingset_freeze)
+    @patch('pip._vendor.pkg_resources.WorkingSet', workingset_freeze)
     def test_freeze_excludes(self, mock_dist_is_editable,
                              mock_dist_is_local,
                              mock_dist_in_usersite):

@@ -397,10 +397,6 @@ def get_installed_distributions(
     If ``paths`` is set, only report the distributions present at the
     specified list of locations.
     """
-    if paths:
-        working_set = pkg_resources.WorkingSet(paths)
-    else:
-        working_set = pkg_resources.working_set
 
     if local_only:
         local_test = dist_is_local
@@ -429,7 +425,7 @@ def get_installed_distributions(
             return True
 
     # because of pkg_resources vendoring, mypy cannot find stub in typeshed
-    return [d for d in working_set  # type: ignore
+    return [d for d in pkg_resources.WorkingSet(paths)  # type: ignore
             if local_test(d) and
             d.key not in skip and
             editable_test(d) and
