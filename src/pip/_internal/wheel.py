@@ -763,10 +763,6 @@ def should_use_ephemeral_cache(
     if req.editable or not req.source_dir:
         return None
 
-    if req.link and not req.link.is_artifact:
-        # VCS checkout. Build wheel just for this run.
-        return True
-
     if "binary" not in format_control.get_allowed_formats(
             canonicalize_name(req.name)):
         logger.info(
@@ -774,6 +770,10 @@ def should_use_ephemeral_cache(
             "being disabled for it.", req.name,
         )
         return None
+
+    if req.link and not req.link.is_artifact:
+        # VCS checkout. Build wheel just for this run.
+        return True
 
     link = req.link
     base, ext = link.splitext()
