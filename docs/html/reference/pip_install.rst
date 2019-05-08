@@ -332,7 +332,7 @@ VCS Support
 +++++++++++
 
 pip supports installing from Git, Mercurial, Subversion and Bazaar, and detects
-the type of VCS using url prefixes: ``git+``, ``hg+``, ``svn+``, and ``bzr+``.
+the type of VCS using URL prefixes: ``git+``, ``hg+``, ``svn+``, and ``bzr+``.
 
 pip requires a working VCS command on your path: ``git``, ``hg``, ``svn``, or
 ``bzr``.
@@ -355,7 +355,7 @@ the :ref:`--editable <install_--editable>` option) or not.
   (referencing a specific commit) if and only if the install is done using the
   editable option.
 
-The "project name" component of the url suffix ``egg=<project name>``
+The "project name" component of the URL suffix ``egg=<project name>``
 is used by pip in its dependency logic to identify the project prior
 to pip downloading and analyzing the metadata. For projects
 where ``setup.py`` is not in the root of project, the "subdirectory" component
