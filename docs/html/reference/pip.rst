@@ -53,7 +53,7 @@ when decision is needed.
 
 *(s)witch*
     Only relevant to VCS checkout. Attempt to switch the checkout
-    to the appropriate url and/or revision.
+    to the appropriate URL and/or revision.
 *(i)gnore*
     Abort current operation (e.g. don't copy file, don't create archive,
     don't modify a checkout).
