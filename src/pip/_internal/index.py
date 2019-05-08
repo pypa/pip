@@ -273,7 +273,7 @@ class CandidateEvaluator(object):
         self._valid_tags = valid_tags
 
         # We compile the regex here instead of as a class attribute so as
-        # not to not impact pip start-up time.  This is also okay because
+        # not to impact pip start-up time.  This is also okay because
         # CandidateEvaluator is generally instantiated only once per pip
         # invocation (when PackageFinder is instantiated).
         self._py_version_re = re.compile(r'-py([123]\.?[0-9]?)$')
