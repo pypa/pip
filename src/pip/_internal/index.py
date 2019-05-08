@@ -360,7 +360,9 @@ class CandidateEvaluator(object):
                     link, 'Python version is incorrect')
                 return None
         try:
-            support_this_python = check_requires_python(link.requires_python)
+            support_this_python = check_requires_python(
+                link.requires_python, version_info=sys.version_info[:3],
+            )
         except specifiers.InvalidSpecifier:
             logger.debug("Package %s has an invalid Requires-Python entry: %s",
                          link.filename, link.requires_python)

@@ -11,6 +11,7 @@ for sub-dependencies
 """
 
 import logging
+import sys
 from collections import defaultdict
 from itertools import chain
 
@@ -296,7 +297,7 @@ class Resolver(object):
         # Parse and return dependencies
         dist = abstract_dist.dist()
         try:
-            check_dist_requires_python(dist)
+            check_dist_requires_python(dist, version_info=sys.version_info[:3])
         except UnsupportedPythonVersion as err:
             if self.ignore_requires_python:
                 logger.warning(err.args[0])
