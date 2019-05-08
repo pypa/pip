@@ -460,7 +460,7 @@ def test_finder_installs_pre_releases_with_version_spec():
         assert link.url == "https://foo/bar-2.0b1.tar.gz"
 
 
-class TestLinkPackageVersions(object):
+class TestCandidateEvaluator(object):
 
     # patch this for travis which has distribute in its base env for now
     @patch(
@@ -471,11 +471,8 @@ class TestLinkPackageVersions(object):
         self.version = '1.0'
         self.search_name = 'pytest'
         self.canonical_name = 'pytest'
-        self.finder = PackageFinder(
-            [],
-            [],
-            session=PipSession(),
-        )
+        valid_tags = pip._internal.pep425tags.get_supported()
+        self.evaluator = CandidateEvaluator(valid_tags=valid_tags)
 
     @pytest.mark.parametrize(
         'url',
@@ -484,7 +481,7 @@ class TestLinkPackageVersions(object):
             'http:/yo/pytest-1.0-py2.py3-none-any.whl',
         ],
     )
-    def test_link_package_versions_match(self, url):
+    def test_evaluate_link__match(self, url):
         """Test that 'pytest' archives match for 'pytest'"""
         link = Link(url)
         search = Search(
@@ -492,7 +489,7 @@ class TestLinkPackageVersions(object):
             canonical=self.canonical_name,
             formats=['source', 'binary'],
         )
-        result = self.finder._link_package_versions(link, search)
+        result = self.evaluator.evaluate_link(link, search)
         expected = InstallationCandidate(self.search_name, self.version, link)
         assert result == expected, result
 
@@ -505,7 +502,7 @@ class TestLinkPackageVersions(object):
             'http:/yo/pytest_xdist-1.0-py2.py3-none-any.whl',
         ],
     )
-    def test_link_package_versions_substring_fails(self, url):
+    def test_evaluate_link__substring_fails(self, url):
         """Test that 'pytest<something> archives won't match for 'pytest'."""
         link = Link(url)
         search = Search(
@@ -513,7 +510,7 @@ class TestLinkPackageVersions(object):
             canonical=self.canonical_name,
             formats=['source', 'binary'],
         )
-        result = self.finder._link_package_versions(link, search)
+        result = self.evaluator.evaluate_link(link, search)
         assert result is None, result
 
 
