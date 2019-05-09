@@ -310,6 +310,12 @@ class CandidateEvaluator(object):
             pri = -(support_num)
         return (binary_preference, candidate.version, build_tag, pri)
 
+    def get_best_candidates(self, candidates):
+        """
+        Return the candidates in descending order of preference.
+        """
+        return sorted(candidates, key=self._sort_key, reverse=True)
+
     def get_best_candidate(self, candidates):
         # type: (List[InstallationCandidate]) -> InstallationCandidate
         """
@@ -392,12 +398,13 @@ class FoundCandidates(object):
         """Return the best candidate available, or None if no applicable
         candidates are found.
         """
-        candidates = list(self.iter_applicable())
+        iter_candidates = self.iter_applicable()
         if hashes:
             # If we are in hash-checking mode, filter out candidates that will
-            # fail the hash check per the hash provided in their Link URL.
-            # This prevents HashMismatch errors when a new distribution is
-            # uploaded for an old release.
+            # fail the hash check per the hash provided in their Link URL to
+            # prevent HashMismatch errors. However, if no hashes are provided
+            # we don't want to filter out all candidates, but instead let
+            # a HashMissing error get raised later.
             # This is not a security check: after download the contents will
             # be hashed and compared to the known-good hashes.
             def test_against_hashes(candidate):
@@ -414,8 +421,13 @@ class FoundCandidates(object):
                     )
                 return is_match
 
-            candidates = [c for c in candidates if test_against_hashes(c)]
-        return self._evaluator.get_best_candidate(candidates)
+            candidates = self._evaluator.get_best_candidates(iter_candidates)
+            for c in candidates:
+                if test_against_hashes(c):
+                    return c
+        else:
+            candidates = list(iter_candidates)
+            return self._evaluator.get_best_candidate(candidates)
 
 
 class PackageFinder(object):
