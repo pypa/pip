@@ -407,24 +407,19 @@ class FoundCandidates(object):
             # a HashMissing error get raised later.
             # This is not a security check: after download the contents will
             # be hashed and compared to the known-good hashes.
-            def test_against_hashes(candidate):
-                link = candidate.location
-                if not link.hash:
-                    # We can only filter candidates with hashes in their URLs.
-                    return True
-                is_match = hashes.test_against_hash(link.hash_name, link.hash)
-                if not is_match:
-                    logger.warning(
-                        "candidate %s ignored: hash %s:%s not among provided "
-                        "hashes",
-                        link.filename, link.hash_name, link.hash,
-                    )
-                return is_match
-
             candidates = self._evaluator.get_best_candidates(iter_candidates)
             for c in candidates:
-                if test_against_hashes(c):
+                link = c.location
+                if not link.hash:
+                    # We can only filter candidates with hashes in their URLs.
                     return c
+                if hashes.test_against_hash(link.hash_name, link.hash):
+                    return c
+                logger.warning(
+                    "candidate %s ignored: hash %s:%s not among provided "
+                    "hashes",
+                    link.filename, link.hash_name, link.hash,
+                )
         else:
             candidates = list(iter_candidates)
             return self._evaluator.get_best_candidate(candidates)
