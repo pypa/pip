@@ -1,7 +1,7 @@
 import textwrap
 
 
-def test_environ(script, tmpdir):
+def test_deprecation_warning_warns_correctly(script, tmpdir):
     demo = tmpdir.joinpath('warnings_demo.py')
     demo.write_text(textwrap.dedent('''
         from logging import basicConfig
@@ -17,7 +17,7 @@ def test_environ(script, tmpdir):
     expected = 'WARNING:pip._internal.deprecations:DEPRECATION: deprecated!\n'
     assert result.stderr == expected
 
-    # $PYTHONWARNINGS was added in python2.7
+    # NOTE: PYTHONWARNINGS was added in 2.7
     script.environ['PYTHONWARNINGS'] = 'ignore'
     result = script.run('python', demo)
     assert result.stderr == ''
