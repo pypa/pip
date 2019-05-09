@@ -663,7 +663,8 @@ class PackageFinder(object):
             )
         if self.find_links:
             lines.append(
-                "Looking in links: {}".format(", ".join(self.find_links))
+                "Looking in links: {}".format(", ".join(
+                    redact_password_from_url(url) for url in self.find_links))
             )
         return "\n".join(lines)
 
