@@ -290,12 +290,15 @@ class CandidateEvaluator(object):
         # type: (Wheel) -> bool
         return wheel.supported(self._valid_tags)
 
-    def evaluate_link(self, link, search):
-        # type: (Link, Search) -> Optional[InstallationCandidate]
+    def _evaluate_link(self, link, search):
+        # type: (Link, Search) -> Tuple[bool, Optional[str]]
         """
         Determine whether a link is a candidate for installation.
 
-        Returns an InstallationCandidate if so, otherwise None.
+        :return: A tuple (is_candidate, result), where `result` is (1) a
+            version string if `is_candidate` is True, and (2) if
+            `is_candidate` is False, an optional string to log the reason
+            the link fails to qualify.
         """
         version = None
         if link.egg_fragment:
@@ -304,61 +307,43 @@ class CandidateEvaluator(object):
         else:
             egg_info, ext = link.splitext()
             if not ext:
-                self._log_skipped_link(link, 'not a file')
-                return None
+                return (False, 'not a file')
             if ext not in SUPPORTED_EXTENSIONS:
-                self._log_skipped_link(
-                    link, 'unsupported archive format: %s' % ext,
-                )
-                return None
+                return (False, 'unsupported archive format: %s' % ext)
             if "binary" not in search.formats and ext == WHEEL_EXTENSION:
-                self._log_skipped_link(
-                    link, 'No binaries permitted for %s' % search.supplied,
-                )
-                return None
+                reason = 'No binaries permitted for %s' % search.supplied
+                return (False, reason)
             if "macosx10" in link.path and ext == '.zip':
-                self._log_skipped_link(link, 'macosx10 one')
-                return None
+                return (False, 'macosx10 one')
             if ext == WHEEL_EXTENSION:
                 try:
                     wheel = Wheel(link.filename)
                 except InvalidWheelFilename:
-                    self._log_skipped_link(link, 'invalid wheel filename')
-                    return None
+                    return (False, 'invalid wheel filename')
                 if canonicalize_name(wheel.name) != search.canonical:
-                    self._log_skipped_link(
-                        link, 'wrong project name (not %s)' % search.supplied)
-                    return None
+                    reason = 'wrong project name (not %s)' % search.supplied
+                    return (False, reason)
 
                 if not self._is_wheel_supported(wheel):
-                    self._log_skipped_link(
-                        link, 'it is not compatible with this Python')
-                    return None
+                    return (False, 'it is not compatible with this Python')
 
                 version = wheel.version
 
         # This should be up by the search.ok_binary check, but see issue 2700.
         if "source" not in search.formats and ext != WHEEL_EXTENSION:
-            self._log_skipped_link(
-                link, 'No sources permitted for %s' % search.supplied,
-            )
-            return None
+            return (False, 'No sources permitted for %s' % search.supplied)
 
         if not version:
             version = _egg_info_matches(egg_info, search.canonical)
         if not version:
-            self._log_skipped_link(
-                link, 'Missing project version for %s' % search.supplied)
-            return None
+            return (False, 'Missing project version for %s' % search.supplied)
 
         match = self._py_version_re.search(version)
         if match:
             version = version[:match.start()]
             py_version = match.group(1)
             if py_version != sys.version[:3]:
-                self._log_skipped_link(
-                    link, 'Python version is incorrect')
-                return None
+                return (False, 'Python version is incorrect')
         try:
             support_this_python = check_requires_python(
                 link.requires_python, version_info=sys.version_info[:3],
@@ -372,10 +357,29 @@ class CandidateEvaluator(object):
             logger.debug("The package %s is incompatible with the python "
                          "version in use. Acceptable python versions are: %s",
                          link, link.requires_python)
-            return None
+            # Return None for the reason text to suppress calling
+            # _log_skipped_link().
+            return (False, None)
+
         logger.debug('Found link %s, version: %s', link, version)
 
-        return InstallationCandidate(search.supplied, version, link)
+        return (True, version)
+
+    def get_install_candidate(self, link, search):
+        # type: (Link, Search) -> Optional[InstallationCandidate]
+        """
+        If the link is a candidate for install, convert it to an
+        InstallationCandidate and return it. Otherwise, return None.
+        """
+        is_candidate, result = self._evaluate_link(link, search=search)
+        if not is_candidate:
+            if result:
+                self._log_skipped_link(link, reason=result)
+            return None
+
+        return InstallationCandidate(
+            search.supplied, location=link, version=result,
+        )
 
     def _sort_key(self, candidate):
         # type: (InstallationCandidate) -> CandidateSortingKey
@@ -776,7 +780,8 @@ class PackageFinder(object):
         This checks index_urls and find_links.
         All versions found are returned as an InstallationCandidate list.
 
-        See evaluate_link() for details on which files are accepted
+        See CandidateEvaluator._evaluate_link() for details on which files
+        are accepted.
         """
         index_locations = self._get_index_urls_locations(project_name)
         index_file_loc, index_url_loc = self._sort_locations(index_locations)
@@ -976,7 +981,8 @@ class PackageFinder(object):
         # type: (...) -> List[InstallationCandidate]
         result = []
         for link in self._sort_links(links):
-            candidate = self.candidate_evaluator.evaluate_link(link, search)
+            candidate = self.candidate_evaluator.get_install_candidate(
+                link, search)
             if candidate is not None:
                 result.append(candidate)
         return result

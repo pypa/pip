@@ -489,7 +489,7 @@ class TestCandidateEvaluator(object):
             canonical=self.canonical_name,
             formats=['source', 'binary'],
         )
-        result = self.evaluator.evaluate_link(link, search)
+        result = self.evaluator.get_install_candidate(link, search)
         expected = InstallationCandidate(self.search_name, self.version, link)
         assert result == expected, result
 
@@ -510,7 +510,7 @@ class TestCandidateEvaluator(object):
             canonical=self.canonical_name,
             formats=['source', 'binary'],
         )
-        result = self.evaluator.evaluate_link(link, search)
+        result = self.evaluator.get_install_candidate(link, search)
         assert result is None, result
 
 
