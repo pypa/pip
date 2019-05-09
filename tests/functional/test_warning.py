@@ -22,7 +22,8 @@ def test_deprecation_warnings_are_correct(script, warnings_demo):
     expected = 'WARNING:pip._internal.deprecations:DEPRECATION: deprecated!\n'
     assert result.stderr == expected
 
-    # NOTE: PYTHONWARNINGS was added in 2.7
+
+def test_deprecation_warnings_can_be_silenced(script, warnings_demo):
     script.environ['PYTHONWARNINGS'] = 'ignore'
     result = script.run('python', warnings_demo)
     assert result.stderr == ''
