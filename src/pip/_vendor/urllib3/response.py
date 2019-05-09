@@ -311,7 +311,9 @@ class HTTPResponse(io.IOBase):
             if content_encoding in self.CONTENT_DECODERS:
                 self._decoder = _get_decoder(content_encoding)
             elif ',' in content_encoding:
-                encodings = [e.strip() for e in content_encoding.split(',') if e.strip() in self.CONTENT_DECODERS]
+                encodings = [
+                    e.strip() for e in content_encoding.split(',')
+                    if e.strip() in self.CONTENT_DECODERS]
                 if len(encodings):
                     self._decoder = _get_decoder(content_encoding)
 

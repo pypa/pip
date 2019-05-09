@@ -7,6 +7,7 @@ from ._collections import RecentlyUsedContainer
 from .connectionpool import HTTPConnectionPool, HTTPSConnectionPool
 from .connectionpool import port_by_scheme
 from .exceptions import LocationValueError, MaxRetryError, ProxySchemeUnknown
+from .packages import six
 from .packages.six.moves.urllib.parse import urljoin
 from .request import RequestMethods
 from .util.url import parse_url
@@ -47,7 +48,7 @@ _key_fields = (
     'key__socks_options',  # dict
     'key_assert_hostname',  # bool or string
     'key_assert_fingerprint',  # str
-    'key_server_hostname', #str
+    'key_server_hostname',  # str
 )
 
 #: The namedtuple class used to construct keys for the connection pool.
@@ -342,8 +343,10 @@ class PoolManager(RequestMethods):
         # conn.is_same_host() which may use socket.gethostbyname() in the future.
         if (retries.remove_headers_on_redirect
                 and not conn.is_same_host(redirect_location)):
-            for header in retries.remove_headers_on_redirect:
-                kw['headers'].pop(header, None)
+            headers = list(six.iterkeys(kw['headers']))
+            for header in headers:
+                if header.lower() in retries.remove_headers_on_redirect:
+                    kw['headers'].pop(header, None)
 
         try:
             retries = retries.increment(method, url, response=response, _pool=conn)

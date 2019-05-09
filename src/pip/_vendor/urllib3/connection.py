@@ -158,7 +158,7 @@ class HTTPConnection(_HTTPConnection, object):
             conn = connection.create_connection(
                 (self._dns_host, self.port), self.timeout, **extra_kw)
 
-        except SocketTimeout as e:
+        except SocketTimeout:
             raise ConnectTimeoutError(
                 self, "Connection to %s timed out. (connect timeout=%s)" %
                 (self.host, self.timeout))

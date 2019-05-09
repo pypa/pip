@@ -672,7 +672,7 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
                 # released back to the pool once the entire response is read
                 response.read()
             except (TimeoutError, HTTPException, SocketError, ProtocolError,
-                    BaseSSLError, SSLError) as e:
+                    BaseSSLError, SSLError):
                 pass
 
         # Handle redirect?

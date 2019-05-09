@@ -112,8 +112,6 @@ DEFAULT_CIPHERS = ':'.join([
 try:
     from ssl import SSLContext  # Modern SSL?
 except ImportError:
-    import sys
-
     class SSLContext(object):  # Platform-specific: Python 2
         def __init__(self, protocol_version):
             self.protocol = protocol_version
@@ -327,7 +325,10 @@ def ssl_wrap_socket(sock, keyfile=None, certfile=None, cert_reqs=None,
             if e.errno == errno.ENOENT:
                 raise SSLError(e)
             raise
-    elif getattr(context, 'load_default_certs', None) is not None:
+
+    # Don't load system certs unless there were no CA certs or
+    # SSLContext object specified manually.
+    elif ssl_context is None and hasattr(context, 'load_default_certs'):
         # try to load OS default certs; works well on Windows (require Python3.4+)
         context.load_default_certs()
 

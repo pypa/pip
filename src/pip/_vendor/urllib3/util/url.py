@@ -1,7 +1,9 @@
 from __future__ import absolute_import
 from collections import namedtuple
+import re
 
 from ..exceptions import LocationParseError
+from ..packages.six.moves.urllib.parse import quote
 
 
 url_attrs = ['scheme', 'auth', 'host', 'port', 'path', 'query', 'fragment']
@@ -9,6 +11,8 @@ url_attrs = ['scheme', 'auth', 'host', 'port', 'path', 'query', 'fragment']
 # We only want to normalize urls with an HTTP(S) scheme.
 # urllib3 infers URLs without a scheme (None) to be http.
 NORMALIZABLE_SCHEMES = ('http', 'https', None)
+
+_contains_disallowed_url_pchar_re = re.compile('[\x00-\x20\x7f]')
 
 
 class Url(namedtuple('Url', url_attrs)):
@@ -154,6 +158,10 @@ def parse_url(url):
     if not url:
         # Empty
         return Url()
+
+    # Prevent CVE-2019-9740.
+    # adapted from https://github.com/python/cpython/pull/12755
+    url = _contains_disallowed_url_pchar_re.sub(lambda match: quote(match.group()), url)
 
     scheme = None
     auth = None

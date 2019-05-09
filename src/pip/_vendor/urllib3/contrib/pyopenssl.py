@@ -184,6 +184,9 @@ def _dnsname_to_stdlib(name):
         except idna.core.IDNAError:
             return None
 
+    if ':' in name:
+        return name
+
     name = idna_encode(name)
     if name is None:
         return None
@@ -276,7 +279,7 @@ class WrappedSocket(object):
                 return b''
             else:
                 raise SocketError(str(e))
-        except OpenSSL.SSL.ZeroReturnError as e:
+        except OpenSSL.SSL.ZeroReturnError:
             if self.connection.get_shutdown() == OpenSSL.SSL.RECEIVED_SHUTDOWN:
                 return b''
             else:
@@ -297,7 +300,7 @@ class WrappedSocket(object):
                 return 0
             else:
                 raise SocketError(str(e))
-        except OpenSSL.SSL.ZeroReturnError as e:
+        except OpenSSL.SSL.ZeroReturnError:
             if self.connection.get_shutdown() == OpenSSL.SSL.RECEIVED_SHUTDOWN:
                 return 0
             else:

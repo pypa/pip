@@ -88,7 +88,7 @@ class SOCKSConnection(HTTPConnection):
                 **extra_kw
             )
 
-        except SocketTimeout as e:
+        except SocketTimeout:
             raise ConnectTimeoutError(
                 self, "Connection to %s timed out. (connect timeout=%s)" %
                 (self.host, self.timeout))
