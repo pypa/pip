@@ -42,3 +42,6 @@ pip-wheel-metadata
 
 # Scratch Pad for experiments
 .scratch/
+
+# Mac
+.DS_Store
