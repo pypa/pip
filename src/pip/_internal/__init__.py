@@ -1,12 +1,22 @@
 #!/usr/bin/env python
+# flake8: noqa E402
 from __future__ import absolute_import
 
 import locale
 import logging
 import os
+import signal
 import warnings
 
 import sys
+
+
+def signal_handler(sig, frame):
+    sys.exit(0)
+
+
+signal.signal(signal.SIGINT, signal_handler)
+
 
 # 2016-06-17 barry@debian.org: urllib3 1.14 added optional support for socks,
 # but if invoked (i.e. imported), it will issue a warning to stderr if socks

@@ -6,6 +6,7 @@ import logging.config
 import optparse
 import os
 import platform
+import signal
 import sys
 import traceback
 
@@ -135,6 +136,8 @@ class Command(object):
             no_color=options.no_color,
             user_log_file=options.log,
         )
+
+        signal.signal(signal.SIGINT, signal.default_int_handler)
 
         if sys.version_info[:2] == (3, 4):
             deprecated(
