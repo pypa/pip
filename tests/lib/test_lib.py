@@ -80,7 +80,16 @@ def test_as_import(script):
 
 class TestPipTestEnvironment:
 
-    def run_with_log_command(self, script, sub_string):
+    def run_stderr_with_prefix(self, script, prefix, **kwargs):
+        """
+        Call run() that prints stderr with the given prefix.
+        """
+        text = '{}: hello, world\\n'.format(prefix)
+        command = 'import sys; sys.stderr.write("{}")'.format(text)
+        args = [sys.executable, '-c', command]
+        script.run(*args, **kwargs)
+
+    def run_with_log_command(self, script, sub_string, **kwargs):
         """
         Call run() on a command that logs a "%"-style format string using
         the given substring as the string's replacement field.
@@ -89,15 +98,6 @@ class TestPipTestEnvironment:
             "import logging; logging.basicConfig(level='INFO'); "
             "logging.getLogger().info('sub: {}', 'foo')"
         ).format(sub_string)
-        args = [sys.executable, '-c', command]
-        script.run(*args)
-
-    def run_stderr_with_prefix(self, script, prefix, **kwargs):
-        """
-        Call run() that prints stderr with the given prefix.
-        """
-        text = '{}: hello, world\\n'.format(prefix)
-        command = 'import sys; sys.stderr.write("{}")'.format(text)
         args = [sys.executable, '-c', command]
         script.run(*args, **kwargs)
 
@@ -162,8 +162,13 @@ class TestPipTestEnvironment:
 
         expected_start = 'stderr has a logging error, which is never allowed'
         with assert_error_startswith(RuntimeError, expected_start):
-            # Pass a bad substitution string.
-            self.run_with_log_command(script, sub_string='{!r}')
+            # Pass a bad substitution string.  Also, pass
+            # allow_stderr_error=True to check that the RuntimeError occurs
+            # even under the stricter test condition of when we are allowing
+            # other types of errors.
+            self.run_with_log_command(
+                script, sub_string='{!r}', allow_stderr_error=True,
+            )
 
     def test_run__allow_stderr_error_false_error_with_expect_error(
         self, script,

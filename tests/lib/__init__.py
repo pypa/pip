@@ -294,26 +294,28 @@ def check_stderr(
     if allow_stderr_warning is None:
         allow_stderr_warning = allow_stderr_error
 
-    if allow_stderr_error:
-        # Then any stderr is acceptable.
-        if not allow_stderr_warning:
-            raise RuntimeError(
-                'cannot pass allow_stderr_warning=False with '
-                'allow_stderr_error=True'
-            )
-        return
+    if allow_stderr_error and not allow_stderr_warning:
+        raise RuntimeError(
+            'cannot pass allow_stderr_warning=False with '
+            'allow_stderr_error=True'
+        )
 
     lines = stderr.splitlines()
     for line in lines:
-        # First check for logging errors which are sent directly to stderr
-        # and so bypass any configured log formatter.  The
-        # "--- Logging error ---" string is used in Python 3.4+, and
+        # First check for logging errors, which we don't allow during
+        # tests even if allow_stderr_error=True (since a logging error
+        # would signal a bug in pip's code).
+        #    Unlike errors logged with logger.error(), these errors are
+        # sent directly to stderr and so bypass any configured log formatter.
+        # The "--- Logging error ---" string is used in Python 3.4+, and
         # "Logged from file " is used in Python 2.
         if (line.startswith('--- Logging error ---') or
                 line.startswith('Logged from file ')):
             reason = 'stderr has a logging error, which is never allowed'
             msg = make_check_stderr_message(stderr, line=line, reason=reason)
             raise RuntimeError(msg)
+        if allow_stderr_error:
+            continue
 
         if line.startswith('ERROR: '):
             reason = (
