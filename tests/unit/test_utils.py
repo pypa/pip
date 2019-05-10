@@ -29,7 +29,7 @@ from pip._internal.utils.misc import (
     call_subprocess, egg_link_path, ensure_dir, format_command_args,
     get_installed_distributions, get_prog, normalize_path, redact_netloc,
     redact_password_from_url, remove_auth_from_url, rmtree,
-    split_auth_from_netloc, untar_file, unzip_file,
+    split_auth_from_netloc, split_auth_netloc_from_url, untar_file, unzip_file,
 )
 from pip._internal.utils.packaging import check_dist_requires_python
 from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
@@ -1009,6 +1009,34 @@ class TestCallSubprocess(object):
 ])
 def test_split_auth_from_netloc(netloc, expected):
     actual = split_auth_from_netloc(netloc)
+    assert actual == expected
+
+
+@pytest.mark.parametrize('url, expected', [
+    # Test a basic case.
+    ('http://example.com/path#anchor',
+     ('http://example.com/path#anchor', 'example.com', (None, None))),
+    # Test with username and no password.
+    ('http://user@example.com/path#anchor',
+     ('http://example.com/path#anchor', 'example.com', ('user', None))),
+    # Test with username and password.
+    ('http://user:pass@example.com/path#anchor',
+     ('http://example.com/path#anchor', 'example.com', ('user', 'pass'))),
+    # Test with username and empty password.
+    ('http://user:@example.com/path#anchor',
+     ('http://example.com/path#anchor', 'example.com', ('user', ''))),
+    # Test the password containing an @ symbol.
+    ('http://user:pass@word@example.com/path#anchor',
+     ('http://example.com/path#anchor', 'example.com', ('user', 'pass@word'))),
+    # Test the password containing a : symbol.
+    ('http://user:pass:word@example.com/path#anchor',
+     ('http://example.com/path#anchor', 'example.com', ('user', 'pass:word'))),
+    # Test URL-encoded reserved characters.
+    ('http://user%3Aname:%23%40%5E@example.com/path#anchor',
+     ('http://example.com/path#anchor', 'example.com', ('user:name', '#@^'))),
+])
+def test_split_auth_netloc_from_url(url, expected):
+    actual = split_auth_netloc_from_url(url)
     assert actual == expected
 
 
