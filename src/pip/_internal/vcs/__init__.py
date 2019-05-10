@@ -165,14 +165,10 @@ class VcsSupport(object):
             self._registry[cls.name] = cls
             logger.debug('Registered VCS backend: %s', cls.name)
 
-    def unregister(self, cls=None, name=None):
-        # type: (Optional[Type[VersionControl]], Optional[str]) -> None
+    def unregister(self, name):
+        # type: (str) -> None
         if name in self._registry:
             del self._registry[name]
-        elif cls in self._registry.values():
-            del self._registry[cls.name]
-        else:
-            logger.warning('Cannot unregister because no class or name given')
 
     def get_backend_type(self, location):
         # type: (str) -> Optional[Type[VersionControl]]
