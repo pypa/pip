@@ -51,7 +51,7 @@ if MYPY_CHECK_RUNNING:
     )
     from pip._internal.models.link import Link
     from pip._internal.utils.hashes import Hashes
-    from pip._internal.vcs import AuthInfo
+    from pip._internal.vcs import AuthInfo, VersionControl
 
 try:
     import ssl  # noqa
@@ -551,13 +551,14 @@ def unpack_vcs_link(link, location):
 
 
 def _get_used_vcs_backend(link):
+    # type: (Link) -> Optional[VersionControl]
     """
     Return a VersionControl object or None.
     """
-    for backend in vcs.backends:
-        if link.scheme in backend.schemes:
-            vcs_backend = backend()
+    for vcs_backend in vcs.backends:
+        if link.scheme in vcs_backend.schemes:
             return vcs_backend
+    return None
 
 
 def is_vcs_url(link):
