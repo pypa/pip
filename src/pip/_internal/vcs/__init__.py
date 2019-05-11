@@ -34,12 +34,15 @@ def make_vcs_requirement_url(repo_url, rev, project_name, subdir=None):
     """
     Return the URL for a VCS requirement.
 
-    Args:
-      repo_url: the remote VCS url, with any needed VCS prefix (e.g. "git+").
-      project_name: the (unescaped) project name.
+    :repo_url: the remote VCS url, with any needed VCS prefix (e.g. "git+").
+    :rev: the (unquoted) revision name.
+    :project_name: the (unescaped) project name.
     """
     egg_project_name = pkg_resources.to_filename(project_name)
-    req = '{}@{}#egg={}'.format(repo_url, rev, egg_project_name)
+    # Convert the revision to a string before quoting because this can
+    # be e.g. an int in the case of Subversion.
+    quoted_rev = urllib_parse.quote(str(rev))
+    req = '{}@{}#egg={}'.format(repo_url, quoted_rev, egg_project_name)
     if subdir:
         req += '&subdirectory={}'.format(subdir)
 
@@ -340,9 +343,12 @@ class VersionControl(object):
         # Remove the vcs prefix.
         scheme = scheme.split('+', 1)[1]
         netloc, user_pass = cls.get_netloc_and_auth(netloc, scheme)
+
         rev = None
         if '@' in path:
-            path, rev = path.rsplit('@', 1)
+            path, quoted_rev = path.rsplit('@', 1)
+            rev = urllib_parse.unquote(quoted_rev)
+
         url = urllib_parse.urlunsplit((scheme, netloc, path, query, ''))
         return url, rev, user_pass
 

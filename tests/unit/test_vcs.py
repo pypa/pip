@@ -41,6 +41,12 @@ def test_ensure_svn_available():
     # Test an unescaped project name.
     (('git+https://example.com/pkg', 'dev', 'zope-interface'),
      'git+https://example.com/pkg@dev#egg=zope_interface'),
+    # Test a "#" symbol in the revision name.
+    (('git+https://example.com/pkg', 'hash#symbol', 'myproj'),
+     'git+https://example.com/pkg@hash%23symbol#egg=myproj'),
+    # Test an "@" symbol in the revision name.
+    (('git+https://example.com/pkg', 'at@symbol', 'myproj'),
+     'git+https://example.com/pkg@at%40symbol#egg=myproj'),
 ])
 def test_make_vcs_requirement_url(args, expected):
     actual = make_vcs_requirement_url(*args)
@@ -252,12 +258,19 @@ def test_git__get_url_rev__idempotent():
     assert result2 == expected
 
 
+# Each expected value is `(url, rev, (username, password))`.
 @pytest.mark.parametrize('url, expected', [
     ('svn+https://svn.example.com/MyProject',
      ('https://svn.example.com/MyProject', None, (None, None))),
     # Test a "+" in the path portion.
     ('svn+https://svn.example.com/My+Project',
      ('https://svn.example.com/My+Project', None, (None, None))),
+    # Test a quoted "#" symbol in the revision name.
+    ('git+https://example.com/MyProject@hash%23symbol',
+     ('https://example.com/MyProject', 'hash#symbol', (None, None))),
+    # Test a quoted "@" symbol in the revision name.
+    ('git+https://example.com/MyProject@at%40symbol',
+     ('https://example.com/MyProject', 'at@symbol', (None, None))),
 ])
 def test_version_control__get_url_rev_and_auth(url, expected):
     """
