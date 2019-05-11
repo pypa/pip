@@ -7,8 +7,8 @@ from pip._vendor import html5lib, requests
 
 from pip._internal.download import PipSession
 from pip._internal.index import (
-    Link, PackageFinder, _clean_link, _determine_base_url, _egg_info_matches,
-    _find_name_version_sep, _get_html_page,
+    Link, PackageFinder, _clean_link, _clean_url_path, _determine_base_url,
+    _egg_info_matches, _find_name_version_sep, _get_html_page,
 )
 
 
@@ -283,6 +283,59 @@ def test_request_retries(caplog):
 
 
 @pytest.mark.parametrize(
+    ('path', 'expected'),
+    [
+        # Test a character that needs quoting.
+        ('a b', 'a%20b'),
+        # Test an unquoted "@".
+        ('a @ b', 'a%20@%20b'),
+        # Test multiple unquoted "@".
+        ('a @ @ b', 'a%20@%20@%20b'),
+        # Test a quoted "@".
+        ('a %40 b', 'a%20%40%20b'),
+        # Test a quoted "@" before an unquoted "@".
+        ('a %40b@ c', 'a%20%40b@%20c'),
+        # Test a quoted "@" after an unquoted "@".
+        ('a @b%40 c', 'a%20@b%40%20c'),
+        # Test alternating quoted and unquoted "@".
+        ('a %40@b %40@c %40', 'a%20%40@b%20%40@c%20%40'),
+    ]
+)
+def test_clean_url_path(path, expected):
+    for is_local_path in (True, False):
+        actual = _clean_url_path(path, is_local_path=is_local_path)
+        assert actual == expected, 'is_local_path: {}'.format(is_local_path)
+
+
+@pytest.mark.parametrize(
+    ('path', 'expected'),
+    [
+        # Test a VCS path with a Windows drive letter and revision.
+        ('/T:/with space/repo.git@1.0',
+         '///T:/with%20space/repo.git@1.0'),
+    ]
+)
+@pytest.mark.skipif("sys.platform != 'win32'")
+def test_clean_url_path_windows(path, expected):
+    actual = _clean_url_path(path, is_local_path=True)
+    assert actual == expected
+
+
+@pytest.mark.parametrize(
+    ('path', 'expected'),
+    [
+        # Test a VCS path with a Windows drive letter and revision.
+        ('/T:/with space/repo.git@1.0',
+         '/T%3A/with%20space/repo.git@1.0'),
+    ]
+)
+@pytest.mark.skipif("sys.platform == 'win32'")
+def test_clean_url_path_non_windows(path, expected):
+    actual = _clean_url_path(path, is_local_path=True)
+    assert actual == expected
+
+
+@pytest.mark.parametrize(
     ("url", "clean_url"),
     [
         # URL with hostname and port. Port separator should not be quoted.
@@ -311,11 +364,17 @@ def test_request_retries(caplog):
          "https://localhost.localdomain/T%3A/path/"),
         # VCS URL containing revision string.
         ("git+ssh://example.com/path to/repo.git@1.0#egg=my-package-1.0",
-         "git+ssh://example.com/path%20to/repo.git@1.0#egg=my-package-1.0")
+         "git+ssh://example.com/path%20to/repo.git@1.0#egg=my-package-1.0"),
+        # VCS URL with a quoted "#" in the revision string.
+        ("git+https://example.com/repo.git@hash%23symbol#egg=my-package-1.0",
+         "git+https://example.com/repo.git@hash%23symbol#egg=my-package-1.0"),
+        # VCS URL with a quoted "@" in the revision string.
+        ("git+https://example.com/repo.git@at%40 space#egg=my-package-1.0",
+         "git+https://example.com/repo.git@at%40%20space#egg=my-package-1.0"),
     ]
 )
 def test_clean_link(url, clean_url):
-    assert(_clean_link(url) == clean_url)
+    assert _clean_link(url) == clean_url
 
 
 @pytest.mark.parametrize(
