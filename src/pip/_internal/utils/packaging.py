@@ -24,7 +24,7 @@ def check_requires_python(requires_python, version_info):
     """
     Check if the given Python version matches a `requires_python` specifier.
 
-    :param version_info: A tuple of ints representing the Python
+    :param version_info: A 3-tuple of ints representing the Python
         major-minor-micro version to check (e.g. `sys.version_info[:3]`).
 
     Returns `True` if the version of python in use matches the requirement.
@@ -38,8 +38,7 @@ def check_requires_python(requires_python, version_info):
         return True
     requires_python_specifier = specifiers.SpecifierSet(requires_python)
 
-    # We only use major.minor.micro
-    python_version = version.parse('.'.join(map(str, version_info[:3])))
+    python_version = version.parse('.'.join(map(str, version_info)))
     return python_version in requires_python_specifier
 
 
@@ -61,7 +60,7 @@ def get_metadata(dist):
 
 def check_dist_requires_python(dist, version_info):
     """
-    :param version_info: A tuple of ints representing the Python
+    :param version_info: A 3-tuple of ints representing the Python
         major-minor-micro version to check (e.g. `sys.version_info[:3]`).
     """
     pkg_info_dict = get_metadata(dist)
@@ -74,7 +73,7 @@ def check_dist_requires_python(dist, version_info):
                 "%s requires Python '%s' but the running Python is %s" % (
                     dist.project_name,
                     requires_python,
-                    '.'.join(map(str, version_info[:3])),)
+                    '.'.join(map(str, version_info)),)
             )
     except specifiers.InvalidSpecifier as e:
         logger.warning(
