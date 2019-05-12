@@ -122,7 +122,7 @@ class RevOptions(object):
 
 
 class VcsSupport(object):
-    _registry = {}  # type: Dict[str, Type[VersionControl]]
+    _registry = {}  # type: Dict[str, VersionControl]
     schemes = ['ssh', 'git', 'hg', 'bzr', 'sftp', 'svn']
 
     def __init__(self):
@@ -140,7 +140,7 @@ class VcsSupport(object):
 
     @property
     def backends(self):
-        # type: () -> List[Type[VersionControl]]
+        # type: () -> List[VersionControl]
         return list(self._registry.values())
 
     @property
@@ -162,29 +162,25 @@ class VcsSupport(object):
             logger.warning('Cannot register VCS %s', cls.__name__)
             return
         if cls.name not in self._registry:
-            self._registry[cls.name] = cls
+            self._registry[cls.name] = cls()
             logger.debug('Registered VCS backend: %s', cls.name)
 
-    def unregister(self, cls=None, name=None):
-        # type: (Optional[Type[VersionControl]], Optional[str]) -> None
+    def unregister(self, name):
+        # type: (str) -> None
         if name in self._registry:
             del self._registry[name]
-        elif cls in self._registry.values():
-            del self._registry[cls.name]
-        else:
-            logger.warning('Cannot unregister because no class or name given')
 
-    def get_backend_type(self, location):
-        # type: (str) -> Optional[Type[VersionControl]]
+    def get_backend_for_dir(self, location):
+        # type: (str) -> Optional[VersionControl]
         """
-        Return the type of the version control backend if found at given
-        location, e.g. vcs.get_backend_type('/path/to/vcs/checkout')
+        Return a VersionControl object if a repository of that type is found
+        at the given directory.
         """
-        for vc_type in self._registry.values():
-            if vc_type.controls_location(location):
+        for vcs_backend in self._registry.values():
+            if vcs_backend.controls_location(location):
                 logger.debug('Determine that %s uses VCS: %s',
-                             location, vc_type.name)
-                return vc_type
+                             location, vcs_backend.name)
+                return vcs_backend
         return None
 
     def get_backend(self, name):
@@ -193,10 +189,7 @@ class VcsSupport(object):
         Return a VersionControl object or None.
         """
         name = name.lower()
-        if name in self._registry:
-            vc_type = self._registry[name]
-            return vc_type()
-        return None
+        return self._registry.get(name)
 
 
 vcs = VcsSupport()
