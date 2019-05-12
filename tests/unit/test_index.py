@@ -325,7 +325,10 @@ def test_clean_link(url, clean_url):
         # letter should not be quoted. The trailing `/` should be
         # removed.
         ("file:///T:/path/with spaces/",
-         "file:///T:/path/with%20spaces")
+         "file:///T:/path/with%20spaces"),
+        # Test a VCS URL with a Windows drive letter and revision.
+        ("git+file:///T:/with space/repo.git@1.0#egg=my-package-1.0",
+         "git+file:///T:/with%20space/repo.git@1.0#egg=my-package-1.0"),
     ]
 )
 @pytest.mark.skipif("sys.platform != 'win32'")
@@ -339,7 +342,10 @@ def test_clean_link_windows(url, clean_url):
         # URL with Windows drive letter, running on non-windows
         # platform. The `:` after the drive should be quoted.
         ("file:///T:/path/with spaces/",
-         "file:///T%3A/path/with%20spaces/")
+         "file:///T%3A/path/with%20spaces/"),
+        # Test a VCS URL with a Windows drive letter and revision.
+        ("git+file:///T:/with space/repo.git@1.0#egg=my-package-1.0",
+         "git+file:/T%3A/with%20space/repo.git@1.0#egg=my-package-1.0"),
     ]
 )
 @pytest.mark.skipif("sys.platform == 'win32'")
