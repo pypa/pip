@@ -1,5 +1,6 @@
 import logging
 import os.path
+import sys
 
 import pytest
 from mock import Mock
@@ -7,9 +8,34 @@ from pip._vendor import html5lib, requests
 
 from pip._internal.download import PipSession
 from pip._internal.index import (
-    Link, PackageFinder, _clean_link, _determine_base_url, _egg_info_matches,
-    _find_name_version_sep, _get_html_page,
+    CandidateEvaluator, Link, PackageFinder, _clean_link, _determine_base_url,
+    _egg_info_matches, _find_name_version_sep, _get_html_page,
 )
+
+
+class TestCandidateEvaluator:
+
+    @pytest.mark.parametrize("version_info, expected", [
+        ((2, 7, 14), '2.7'),
+        ((3, 6, 5), '3.6'),
+        # Check a minor version with two digits.
+        ((3, 10, 1), '3.10'),
+    ])
+    def test_init__py_version(self, version_info, expected):
+        """
+        Test the _py_version attribute.
+        """
+        evaluator = CandidateEvaluator([], py_version_info=version_info)
+        assert evaluator._py_version == expected
+
+    def test_init__py_version_default(self):
+        """
+        Test the _py_version attribute's default value.
+        """
+        evaluator = CandidateEvaluator([])
+        # Get the index of the second dot.
+        index = sys.version.find('.', 2)
+        assert evaluator._py_version == sys.version[:index]
 
 
 def test_sort_locations_file_expand_dir(data):

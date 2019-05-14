@@ -266,10 +266,24 @@ class CandidateEvaluator(object):
     def __init__(
         self,
         valid_tags,          # type: List[Pep425Tag]
-        prefer_binary=False  # type: bool
+        prefer_binary=False,   # type: bool
+        py_version_info=None,  # type: Optional[Tuple[int, ...]]
     ):
         # type: (...) -> None
+        """
+        :param py_version_info: The Python version, as a 3-tuple of ints
+            representing a major-minor-micro version, to use to check both
+            the Python version embedded in the filename and the package's
+            "Requires-Python" metadata. Defaults to `sys.version_info[:3]`.
+        """
+        if py_version_info is None:
+            py_version_info = sys.version_info[:3]
+
+        py_version = '.'.join(map(str, py_version_info[:2]))
+
         self._prefer_binary = prefer_binary
+        self._py_version = py_version
+        self._py_version_info = py_version_info
         self._valid_tags = valid_tags
 
         # We compile the regex here instead of as a class attribute so as
@@ -342,11 +356,11 @@ class CandidateEvaluator(object):
         if match:
             version = version[:match.start()]
             py_version = match.group(1)
-            if py_version != sys.version[:3]:
+            if py_version != self._py_version:
                 return (False, 'Python version is incorrect')
         try:
             support_this_python = check_requires_python(
-                link.requires_python, version_info=sys.version_info[:3],
+                link.requires_python, version_info=self._py_version_info,
             )
         except specifiers.InvalidSpecifier:
             logger.debug("Package %s has an invalid Requires-Python entry: %s",
