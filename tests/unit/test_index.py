@@ -185,12 +185,14 @@ def test_get_formatted_locations_basic_auth():
         'https://pypi.org/simple',
         'https://user:pass@repo.domain.com',
     ]
-    finder = PackageFinder.create([], index_urls, session=[])
+    find_links = [
+        'https://user:pass@page.domain.com'
+    ]
+    finder = PackageFinder(find_links, index_urls, session=[])
 
     result = finder.get_formatted_locations()
-    assert 'user' in result
-    assert '****' in result
-    assert 'pass' not in result
+    assert 'user:****@repo.domain.com' in result
+    assert 'user:****@page.domain.com' in result
 
 
 @pytest.mark.parametrize(
