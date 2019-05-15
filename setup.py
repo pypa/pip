@@ -2,7 +2,6 @@ import sys
 
 from setuptools import setup
 
-
 setup(
     package_data={
         "pip._vendor.certifi": ["*.pem"],
