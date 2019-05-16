@@ -1,1 +1,1 @@
-Moved most of the setup.py to declarative setup.cfg
+Moved most of the setup.py to declarative setup.cfg.
