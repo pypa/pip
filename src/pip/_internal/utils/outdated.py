@@ -122,7 +122,7 @@ def pip_version_check(session, options):
         # Refresh the version if we need to or just see if we need to warn
         if pypi_version is None:
             # Lets use PackageFinder to see what the latest pip version is
-            finder = PackageFinder(
+            finder = PackageFinder.create(
                 find_links=options.find_links,
                 index_urls=[options.index_url] + options.extra_index_urls,
                 allow_all_prereleases=False,  # Explicitly set to False

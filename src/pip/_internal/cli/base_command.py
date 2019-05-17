@@ -340,7 +340,7 @@ class RequirementCommand(Command):
             )
             index_urls = []
 
-        return PackageFinder(
+        return PackageFinder.create(
             find_links=options.find_links,
             format_control=options.format_control,
             index_urls=index_urls,

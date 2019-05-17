@@ -33,8 +33,9 @@ class MockPackageFinder(object):
                               BASE_URL.format('1.0')),
     ]
 
-    def __init__(self, *args, **kwargs):
-        pass
+    @classmethod
+    def create(cls, *args, **kwargs):
+        return cls()
 
     def find_candidates(self, project_name):
         return MockFoundCandidates(self.INSTALLATION_CANDIDATES[0])
