@@ -593,6 +593,11 @@ class UninstallPthEntries(object):
         # backslashes.  This is correct for entries that describe absolute
         # paths outside of site-packages, but all the others use forward
         # slashes.
+        # os.path.splitdrive is used instead of os.path.isabs because isabs
+        # treats non-absolute paths with drive letter markings like c:foo\bar
+        # as absolute paths. It also does not recognize UNC paths if they don't
+        # have more than "\\sever\share". Valid examples: "\\server\share\" or
+        # "\\server\share\folder". Python 2.7.8+ support UNC in splitdrive.
         if WINDOWS and not os.path.splitdrive(entry)[0]:
             entry = entry.replace('\\', '/')
         self.entries.add(entry)
