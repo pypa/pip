@@ -392,11 +392,12 @@ Here are the supported forms::
     [-e] git+file:///home/user/projects/MyProject#egg=MyProject
     -e git+git@git.example.com:MyProject#egg=MyProject
 
-Passing branch names, a commit hash or a tag name is possible like so::
+Passing a branch name, a commit hash, a tag name or a git ref is possible like so::
 
     [-e] git://git.example.com/MyProject.git@master#egg=MyProject
     [-e] git://git.example.com/MyProject.git@v1.0#egg=MyProject
     [-e] git://git.example.com/MyProject.git@da39a3ee5e6b4b0d3255bfef95601890afd80709#egg=MyProject
+    [-e] git://git.example.com/MyProject.git@refs/pull/123/head#egg=MyProject
 
 When passing a commit hash, specifying a full hash is preferable to a partial
 hash because a full hash allows pip to operate more efficiently (e.g. by
