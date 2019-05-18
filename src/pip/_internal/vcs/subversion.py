@@ -38,48 +38,6 @@ class Subversion(VersionControl):
     def get_base_rev_args(rev):
         return ['-r', rev]
 
-    def __init__(self, use_interactive=None):
-        # type: (bool) -> None
-        if use_interactive is None:
-            use_interactive = sys.stdin.isatty()
-        self.use_interactive = use_interactive
-
-        # This member is used to cache the fetched version of the current
-        # ``svn`` client.
-        # Special value definitions:
-        #   None: Not evaluated yet.
-        #   Empty tuple: Could not parse version.
-        self._vcs_version = None  # type: Optional[Tuple[int, ...]]
-
-        super(Subversion, self).__init__()
-
-    def call_vcs_version(self):
-        # type: () -> Tuple[int, ...]
-        """Query the version of the currently installed Subversion client.
-
-        :return: A tuple containing the parts of the version information or
-            ``()`` if the version returned from ``svn`` could not be parsed.
-        :raises: BadCommand: If ``svn`` is not installed.
-        """
-        # Example versions:
-        #   svn, version 1.10.3 (r1842928)
-        #      compiled Feb 25 2019, 14:20:39 on x86_64-apple-darwin17.0.0
-        #   svn, version 1.7.14 (r1542130)
-        #      compiled Mar 28 2018, 08:49:13 on x86_64-pc-linux-gnu
-        version_prefix = 'svn, version '
-        version = self.run_command(['--version'], show_stdout=False)
-        if not version.startswith(version_prefix):
-            return ()
-
-        version = version[len(version_prefix):].split()[0]
-        version_list = version.split('.')
-        try:
-            parsed_version = tuple(map(int, version_list))
-        except ValueError:
-            return ()
-
-        return parsed_version
-
     def export(self, location, url):
         """Export the svn repository at the url to the destination location"""
         url, rev_options = self.get_url_rev_options(url)
@@ -242,6 +200,48 @@ class Subversion(VersionControl):
     def is_commit_id_equal(cls, dest, name):
         """Always assume the versions don't match"""
         return False
+
+    def __init__(self, use_interactive=None):
+        # type: (bool) -> None
+        if use_interactive is None:
+            use_interactive = sys.stdin.isatty()
+        self.use_interactive = use_interactive
+
+        # This member is used to cache the fetched version of the current
+        # ``svn`` client.
+        # Special value definitions:
+        #   None: Not evaluated yet.
+        #   Empty tuple: Could not parse version.
+        self._vcs_version = None  # type: Optional[Tuple[int, ...]]
+
+        super(Subversion, self).__init__()
+
+    def call_vcs_version(self):
+        # type: () -> Tuple[int, ...]
+        """Query the version of the currently installed Subversion client.
+
+        :return: A tuple containing the parts of the version information or
+            ``()`` if the version returned from ``svn`` could not be parsed.
+        :raises: BadCommand: If ``svn`` is not installed.
+        """
+        # Example versions:
+        #   svn, version 1.10.3 (r1842928)
+        #      compiled Feb 25 2019, 14:20:39 on x86_64-apple-darwin17.0.0
+        #   svn, version 1.7.14 (r1542130)
+        #      compiled Mar 28 2018, 08:49:13 on x86_64-pc-linux-gnu
+        version_prefix = 'svn, version '
+        version = self.run_command(['--version'], show_stdout=False)
+        if not version.startswith(version_prefix):
+            return ()
+
+        version = version[len(version_prefix):].split()[0]
+        version_list = version.split('.')
+        try:
+            parsed_version = tuple(map(int, version_list))
+        except ValueError:
+            return ()
+
+        return parsed_version
 
     def get_vcs_version(self):
         # type: () -> Tuple[int, ...]
