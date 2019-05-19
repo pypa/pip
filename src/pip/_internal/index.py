@@ -365,15 +365,16 @@ class CandidateEvaluator(object):
         except specifiers.InvalidSpecifier:
             logger.debug("Package %s has an invalid Requires-Python entry: %s",
                          link.filename, link.requires_python)
-            support_this_python = True
-
-        if not support_this_python:
-            logger.debug("The package %s is incompatible with the python "
-                         "version in use. Acceptable python versions are: %s",
-                         link, link.requires_python)
-            # Return None for the reason text to suppress calling
-            # _log_skipped_link().
-            return (False, None)
+        else:
+            if not support_this_python:
+                logger.debug(
+                    "The package %s is incompatible with the python "
+                    "version in use. Acceptable python versions are: %s",
+                    link, link.requires_python,
+                )
+                # Return None for the reason text to suppress calling
+                # _log_skipped_link().
+                return (False, None)
 
         logger.debug('Found link %s, version: %s', link, version)
 
