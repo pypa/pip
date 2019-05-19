@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import logging
 import os
 import re
+import sys
 
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
@@ -18,7 +19,7 @@ _svn_info_xml_url_re = re.compile(r'<url>(.*)</url>')
 
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, Tuple
+    from typing import List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -36,36 +37,6 @@ class Subversion(VersionControl):
     @staticmethod
     def get_base_rev_args(rev):
         return ['-r', rev]
-
-    def get_vcs_version(self):
-        # type: () -> Optional[Tuple[int, ...]]
-        """Return the version of the currently installed Subversion client.
-
-        :return: A tuple containing the parts of the version information or
-            ``None`` if the version returned from ``svn`` could not be parsed.
-        :raises: BadCommand: If ``svn`` is not installed.
-        """
-        # Example versions:
-        #   svn, version 1.10.3 (r1842928)
-        #      compiled Feb 25 2019, 14:20:39 on x86_64-apple-darwin17.0.0
-        #   svn, version 1.7.14 (r1542130)
-        #      compiled Mar 28 2018, 08:49:13 on x86_64-pc-linux-gnu
-        version_prefix = 'svn, version '
-        version = self.run_command(['--version'], show_stdout=False)
-        if not version.startswith(version_prefix):
-            return None
-
-        version = version[len(version_prefix):].split()[0]
-        version_list = version.split('.')
-        try:
-            parsed_version = tuple(map(int, version_list))
-        except ValueError:
-            return None
-
-        if not parsed_version:
-            return None
-
-        return parsed_version
 
     def export(self, location, url):
         """Export the svn repository at the url to the destination location"""
@@ -229,6 +200,103 @@ class Subversion(VersionControl):
     def is_commit_id_equal(cls, dest, name):
         """Always assume the versions don't match"""
         return False
+
+    def __init__(self, use_interactive=None):
+        # type: (bool) -> None
+        if use_interactive is None:
+            use_interactive = sys.stdin.isatty()
+        self.use_interactive = use_interactive
+
+        # This member is used to cache the fetched version of the current
+        # ``svn`` client.
+        # Special value definitions:
+        #   None: Not evaluated yet.
+        #   Empty tuple: Could not parse version.
+        self._vcs_version = None  # type: Optional[Tuple[int, ...]]
+
+        super(Subversion, self).__init__()
+
+    def call_vcs_version(self):
+        # type: () -> Tuple[int, ...]
+        """Query the version of the currently installed Subversion client.
+
+        :return: A tuple containing the parts of the version information or
+            ``()`` if the version returned from ``svn`` could not be parsed.
+        :raises: BadCommand: If ``svn`` is not installed.
+        """
+        # Example versions:
+        #   svn, version 1.10.3 (r1842928)
+        #      compiled Feb 25 2019, 14:20:39 on x86_64-apple-darwin17.0.0
+        #   svn, version 1.7.14 (r1542130)
+        #      compiled Mar 28 2018, 08:49:13 on x86_64-pc-linux-gnu
+        version_prefix = 'svn, version '
+        version = self.run_command(['--version'], show_stdout=False)
+        if not version.startswith(version_prefix):
+            return ()
+
+        version = version[len(version_prefix):].split()[0]
+        version_list = version.split('.')
+        try:
+            parsed_version = tuple(map(int, version_list))
+        except ValueError:
+            return ()
+
+        return parsed_version
+
+    def get_vcs_version(self):
+        # type: () -> Tuple[int, ...]
+        """Return the version of the currently installed Subversion client.
+
+        If the version of the Subversion client has already been queried,
+        a cached value will be used.
+
+        :return: A tuple containing the parts of the version information or
+            ``()`` if the version returned from ``svn`` could not be parsed.
+        :raises: BadCommand: If ``svn`` is not installed.
+        """
+        if self._vcs_version is not None:
+            # Use cached version, if available.
+            # If parsing the version failed previously (empty tuple),
+            # do not attempt to parse it again.
+            return self._vcs_version
+
+        vcs_version = self.call_vcs_version()
+        self._vcs_version = vcs_version
+        return vcs_version
+
+    def get_remote_call_options(self):
+        # type: () -> List[str]
+        """Return options to be used on calls to Subversion that contact the server.
+
+        These options are applicable for the following ``svn`` subcommands used
+        in this class.
+
+            - checkout
+            - export
+            - info
+            - switch
+            - update
+
+        :return: A list of command line arguments to pass to ``svn``.
+        """
+        if not self.use_interactive:
+            # --non-interactive switch is available since Subversion 0.14.4.
+            # Subversion < 1.8 runs in interactive mode by default.
+            return ['--non-interactive']
+
+        svn_version = self.get_vcs_version()
+        # By default, Subversion >= 1.8 runs in non-interactive mode if
+        # stdin is not a TTY. Since that is how pip invokes SVN, in
+        # call_subprocess(), pip must pass --force-interactive to ensure
+        # the user can be prompted for a password, if required.
+        #   SVN added the --force-interactive option in SVN 1.8. Since
+        # e.g. RHEL/CentOS 7, which is supported until 2024, ships with
+        # SVN 1.7, pip should continue to support SVN 1.7. Therefore, pip
+        # can't safely add the option if the SVN version is < 1.8 (or unknown).
+        if svn_version >= (1, 8):
+            return ['--force-interactive']
+
+        return []
 
 
 vcs.register(Subversion)
