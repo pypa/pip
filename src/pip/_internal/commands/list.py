@@ -113,7 +113,7 @@ class ListCommand(Command):
         """
         Create a package finder appropriate to this list command.
         """
-        return PackageFinder(
+        return PackageFinder.create(
             find_links=options.find_links,
             index_urls=index_urls,
             allow_all_prereleases=options.pre,

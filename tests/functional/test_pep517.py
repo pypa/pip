@@ -23,7 +23,7 @@ def test_backend(tmpdir, data):
     req = InstallRequirement(None, None, source_dir=project_dir)
     req.load_pyproject_toml()
     env = BuildEnvironment()
-    finder = PackageFinder([data.backends], [], session=PipSession())
+    finder = PackageFinder.create([data.backends], [], session=PipSession())
     env.install_requirements(finder, ["dummy_backend"], 'normal', "Installing")
     conflicting, missing = env.check_requirements(["dummy_backend"])
     assert not conflicting and not missing

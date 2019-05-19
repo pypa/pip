@@ -27,7 +27,7 @@ def run_with_build_env(script, setup_script_contents,
             from pip._internal.download import PipSession
             from pip._internal.index import PackageFinder
 
-            finder = PackageFinder([%r], [], session=PipSession())
+            finder = PackageFinder.create([%r], [], session=PipSession())
             build_env = BuildEnvironment()
 
             try:
@@ -59,7 +59,9 @@ def test_build_env_allow_empty_requirements_install():
 def test_build_env_allow_only_one_install(script):
     create_basic_wheel_for_package(script, 'foo', '1.0')
     create_basic_wheel_for_package(script, 'bar', '1.0')
-    finder = PackageFinder([script.scratch_path], [], session=PipSession())
+    finder = PackageFinder.create(
+        [script.scratch_path], [], session=PipSession(),
+    )
     build_env = BuildEnvironment()
     for prefix in ('normal', 'overlay'):
         build_env.install_requirements(finder, ['foo'], prefix,

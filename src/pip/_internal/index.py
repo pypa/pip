@@ -527,6 +527,39 @@ class PackageFinder(object):
 
     def __init__(
         self,
+        candidate_evaluator,  # type: CandidateEvaluator
+        find_links,  # type: List[str]
+        index_urls,  # type: List[str]
+        secure_origins,  # type: List[SecureOrigin]
+        session,  # type: PipSession
+        allow_all_prereleases=False,  # type: bool
+        format_control=None,  # type: Optional[FormatControl]
+    ):
+        # type: (...) -> None
+        """
+        This constructor is primarily meant to be used by the create() class
+        method and from tests.
+
+        :param candidate_evaluator: A CandidateEvaluator object.
+        :param session: The Session to use to make requests.
+        :param allow_all_prereleases: Whether to allow all pre-releases.
+        :param format_control: A FormatControl object, used to control
+            the selection of source packages / binary packages when consulting
+            the index and links.
+        """
+        format_control = format_control or FormatControl(set(), set())
+
+        self.candidate_evaluator = candidate_evaluator
+        self.find_links = find_links
+        self.index_urls = index_urls
+        self.secure_origins = secure_origins
+        self.session = session
+        self.allow_all_prereleases = allow_all_prereleases
+        self.format_control = format_control
+
+    @classmethod
+    def create(
+        cls,
         find_links,  # type: List[str]
         index_urls,  # type: List[str]
         allow_all_prereleases=False,  # type: bool
@@ -539,9 +572,12 @@ class PackageFinder(object):
         implementation=None,  # type: Optional[str]
         prefer_binary=False  # type: bool
     ):
-        # type: (...) -> None
+        # type: (...) -> PackageFinder
         """Create a PackageFinder.
 
+        :param trusted_hosts: Domains that we won't emit warnings for when
+            not using HTTPS.
+        :param session: The Session to use to make requests.
         :param format_control: A FormatControl object or None. Used to control
             the selection of source packages / binary packages when consulting
             the index and links.
@@ -561,7 +597,7 @@ class PackageFinder(object):
         """
         if session is None:
             raise TypeError(
-                "PackageFinder() missing 1 required keyword argument: "
+                "PackageFinder.create() missing 1 required keyword argument: "
                 "'session'"
             )
 
@@ -570,29 +606,18 @@ class PackageFinder(object):
         # it and if it exists, use the normalized version.
         # This is deliberately conservative - it might be fine just to
         # blindly normalize anything starting with a ~...
-        self.find_links = []  # type: List[str]
+        built_find_links = []  # type: List[str]
         for link in find_links:
             if link.startswith('~'):
                 new_link = normalize_path(link)
                 if os.path.exists(new_link):
                     link = new_link
-            self.find_links.append(link)
+            built_find_links.append(link)
 
-        self.index_urls = index_urls
-
-        self.format_control = format_control or FormatControl(set(), set())
-
-        # Domains that we won't emit warnings for when not using HTTPS
-        self.secure_origins = [
+        secure_origins = [
             ("*", host, "*")
             for host in (trusted_hosts if trusted_hosts else [])
         ]  # type: List[SecureOrigin]
-
-        # Do we want to allow _all_ pre-releases?
-        self.allow_all_prereleases = allow_all_prereleases
-
-        # The Session we'll use to make requests
-        self.session = session
 
         # The valid tags to check potential found wheel candidates against
         valid_tags = get_supported(
@@ -601,14 +626,14 @@ class PackageFinder(object):
             abi=abi,
             impl=implementation,
         )
-        self.candidate_evaluator = CandidateEvaluator(
+        candidate_evaluator = CandidateEvaluator(
             valid_tags=valid_tags, prefer_binary=prefer_binary,
         )
 
         # If we don't have TLS enabled, then WARN if anyplace we're looking
         # relies on TLS.
         if not HAS_TLS:
-            for link in itertools.chain(self.index_urls, self.find_links):
+            for link in itertools.chain(index_urls, built_find_links):
                 parsed = urllib_parse.urlparse(link)
                 if parsed.scheme == "https":
                     logger.warning(
@@ -617,6 +642,16 @@ class PackageFinder(object):
                         "available."
                     )
                     break
+
+        return cls(
+            candidate_evaluator=candidate_evaluator,
+            find_links=built_find_links,
+            index_urls=index_urls,
+            secure_origins=secure_origins,
+            session=session,
+            allow_all_prereleases=allow_all_prereleases,
+            format_control=format_control,
+        )
 
     def get_formatted_locations(self):
         # type: () -> str
