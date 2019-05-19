@@ -249,7 +249,7 @@ def process_line(
                 value = relative_to_reqs_file
             finder.find_links.append(value)
         if opts.pre:
-            finder.allow_all_prereleases = True
+            finder.set_allow_all_prereleases()
         if opts.trusted_hosts:
             finder.secure_origins.extend(
                 ("*", host, "*") for host in opts.trusted_hosts)
