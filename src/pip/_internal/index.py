@@ -291,20 +291,12 @@ class CandidateEvaluator(object):
         # CandidateEvaluator is generally instantiated only once per pip
         # invocation (when PackageFinder is instantiated).
         self._py_version_re = re.compile(r'-py([123]\.?[0-9]?)$')
-        # These are boring links that have already been logged somehow.
-        self._logged_links = set()  # type: Set[Link]
-
-    def _log_skipped_link(self, link, reason):
-        # type: (Link, str) -> None
-        if link not in self._logged_links:
-            logger.debug('Skipping link %s; %s', link, reason)
-            self._logged_links.add(link)
 
     def _is_wheel_supported(self, wheel):
         # type: (Wheel) -> bool
         return wheel.supported(self._valid_tags)
 
-    def _evaluate_link(self, link, search):
+    def evaluate_link(self, link, search):
         # type: (Link, Search) -> Tuple[bool, Optional[str]]
         """
         Determine whether a link is a candidate for installation.
@@ -379,22 +371,6 @@ class CandidateEvaluator(object):
         logger.debug('Found link %s, version: %s', link, version)
 
         return (True, version)
-
-    def get_install_candidate(self, link, search):
-        # type: (Link, Search) -> Optional[InstallationCandidate]
-        """
-        If the link is a candidate for install, convert it to an
-        InstallationCandidate and return it. Otherwise, return None.
-        """
-        is_candidate, result = self._evaluate_link(link, search=search)
-        if not is_candidate:
-            if result:
-                self._log_skipped_link(link, reason=result)
-            return None
-
-        return InstallationCandidate(
-            search.supplied, location=link, version=result,
-        )
 
     def _sort_key(self, candidate):
         # type: (InstallationCandidate) -> CandidateSortingKey
@@ -557,6 +533,9 @@ class PackageFinder(object):
         self.session = session
         self.allow_all_prereleases = allow_all_prereleases
         self.format_control = format_control
+
+        # These are boring links that have already been logged somehow.
+        self._logged_links = set()  # type: Set[Link]
 
     @classmethod
     def create(
@@ -830,7 +809,7 @@ class PackageFinder(object):
         This checks index_urls and find_links.
         All versions found are returned as an InstallationCandidate list.
 
-        See CandidateEvaluator._evaluate_link() for details on which files
+        See CandidateEvaluator.evaluate_link() for details on which files
         are accepted.
         """
         index_locations = self._get_index_urls_locations(project_name)
@@ -1022,6 +1001,30 @@ class PackageFinder(object):
                 else:
                     no_eggs.append(link)
         return no_eggs + eggs
+
+    def _log_skipped_link(self, link, reason):
+        # type: (Link, str) -> None
+        if link not in self._logged_links:
+            logger.debug('Skipping link %s; %s', link, reason)
+            self._logged_links.add(link)
+
+    def get_install_candidate(self, link, search):
+        # type: (Link, Search) -> Optional[InstallationCandidate]
+        """
+        If the link is a candidate for install, convert it to an
+        InstallationCandidate and return it. Otherwise, return None.
+        """
+        is_candidate, result = (
+            self.candidate_evaluator.evaluate_link(link, search=search)
+        )
+        if not is_candidate:
+            if result:
+                self._log_skipped_link(link, reason=result)
+            return None
+
+        return InstallationCandidate(
+            search.supplied, location=link, version=result,
+        )
 
     def _package_versions(
         self,
