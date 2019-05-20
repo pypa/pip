@@ -48,7 +48,8 @@ class Subversion(VersionControl):
                 # Subversion doesn't like to check out over an existing
                 # directory --force fixes this, but was only added in svn 1.5
                 rmtree(location)
-            cmd_args = ['export'] + rev_options.to_args() + [url, location]
+            cmd_args = (['export'] + self.get_remote_call_options() +
+                        rev_options.to_args() + [url, location])
             self.run_command(cmd_args, show_stdout=False)
 
     @classmethod
@@ -60,15 +61,19 @@ class Subversion(VersionControl):
             rev_display,
             display_path(dest),
         )
-        cmd_args = ['checkout', '-q'] + rev_options.to_args() + [url, dest]
+        cmd_args = (['checkout', '-q'] +
+                    Subversion().get_remote_call_options() +
+                    rev_options.to_args() + [url, dest])
         cls.run_command(cmd_args)
 
     def switch(self, dest, url, rev_options):
-        cmd_args = ['switch'] + rev_options.to_args() + [url, dest]
+        cmd_args = (['switch'] + self.get_remote_call_options() +
+                    rev_options.to_args() + [url, dest])
         self.run_command(cmd_args)
 
     def update(self, dest, url, rev_options):
-        cmd_args = ['update'] + rev_options.to_args() + [dest]
+        cmd_args = (['update'] + self.get_remote_call_options() +
+                    rev_options.to_args() + [dest])
         self.run_command(cmd_args)
 
     @classmethod
@@ -179,7 +184,8 @@ class Subversion(VersionControl):
             try:
                 # subversion >= 1.7
                 xml = cls.run_command(
-                    ['info', '--xml', location],
+                    (['info', '--xml', location] +
+                     Subversion().get_remote_call_options()),
                     show_stdout=False,
                 )
                 url = _svn_info_xml_url_re.search(xml).group(1)
