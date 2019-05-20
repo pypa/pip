@@ -180,36 +180,35 @@ class Git(VersionControl):
 
         return cls.get_revision(dest) == name
 
-    @classmethod
-    def fetch_new(cls, dest, url, rev_options):
+    def fetch_new(self, dest, url, rev_options):
         rev_display = rev_options.to_display()
         logger.info(
             'Cloning %s%s to %s', redact_password_from_url(url),
             rev_display, display_path(dest),
         )
-        cls.run_command(['clone', '-q', url, dest])
+        self.run_command(['clone', '-q', url, dest])
 
         if rev_options.rev:
             # Then a specific revision was requested.
-            rev_options = cls.resolve_revision(dest, url, rev_options)
+            rev_options = self.resolve_revision(dest, url, rev_options)
             branch_name = getattr(rev_options, 'branch_name', None)
             if branch_name is None:
                 # Only do a checkout if the current commit id doesn't match
                 # the requested revision.
-                if not cls.is_commit_id_equal(dest, rev_options.rev):
+                if not self.is_commit_id_equal(dest, rev_options.rev):
                     cmd_args = ['checkout', '-q'] + rev_options.to_args()
-                    cls.run_command(cmd_args, cwd=dest)
-            elif cls.get_current_branch(dest) != branch_name:
+                    self.run_command(cmd_args, cwd=dest)
+            elif self.get_current_branch(dest) != branch_name:
                 # Then a specific branch was requested, and that branch
                 # is not yet checked out.
                 track_branch = 'origin/{}'.format(branch_name)
                 cmd_args = [
                     'checkout', '-b', branch_name, '--track', track_branch,
                 ]
-                cls.run_command(cmd_args, cwd=dest)
+                self.run_command(cmd_args, cwd=dest)
 
         #: repo may contain submodules
-        cls.update_submodules(dest)
+        self.update_submodules(dest)
 
     def switch(self, dest, url, rev_options):
         self.run_command(['config', 'remote.origin.url', url], cwd=dest)
