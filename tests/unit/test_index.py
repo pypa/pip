@@ -188,7 +188,7 @@ def test_get_formatted_locations_basic_auth():
     find_links = [
         'https://links-user:links-pass@page.domain.com'
     ]
-    finder = PackageFinder(find_links, index_urls, session=[])
+    finder = PackageFinder.create(find_links, index_urls, session=[])
 
     result = finder.get_formatted_locations()
     assert 'repo-user:****@repo.domain.com' in result
