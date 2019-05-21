@@ -184,8 +184,7 @@ class Subversion(VersionControl):
             try:
                 # subversion >= 1.7
                 xml = cls.run_command(
-                    (['info', '--xml', location] +
-                     Subversion().get_remote_call_options()),
+                    ['info', '--xml', location],
                     show_stdout=False,
                 )
                 url = _svn_info_xml_url_re.search(xml).group(1)
