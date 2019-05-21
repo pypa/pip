@@ -34,20 +34,34 @@ def check_caplog(caplog, expected_level, expected_message):
     assert record.message == expected_message
 
 
-def test_check_link_requires_python__incompatible_python(caplog):
-    """
-    Test the log message for an incompatible Python.
-    """
-    link = Link('https://example.com', requires_python='== 3.6.4')
-    caplog.set_level(logging.DEBUG)
-    actual = _check_link_requires_python(link, version_info=(3, 6, 5))
-    assert actual == False
-
-    expected_message = (
+@pytest.mark.parametrize('ignore_requires_python, expected', [
+    (None, (
+        False, 'DEBUG',
         "Link requires a different Python (3.6.5 not in: '== 3.6.4'): "
         "https://example.com"
+    )),
+    (True, (
+        True, 'DEBUG',
+        "Ignoring failed Requires-Python check (3.6.5 not in: '== 3.6.4') "
+        "for link: https://example.com"
+    )),
+])
+def test_check_link_requires_python__incompatible_python(
+    caplog, ignore_requires_python, expected,
+):
+    """
+    Test an incompatible Python.
+    """
+    expected_return, expected_level, expected_message = expected
+    link = Link('https://example.com', requires_python='== 3.6.4')
+    caplog.set_level(logging.DEBUG)
+    actual = _check_link_requires_python(
+        link, version_info=(3, 6, 5),
+        ignore_requires_python=ignore_requires_python,
     )
-    check_caplog(caplog, 'DEBUG', expected_message)
+    assert actual == expected_return
+
+    check_caplog(caplog, expected_level, expected_message)
 
 
 def test_check_link_requires_python__invalid_requires(caplog):
@@ -57,7 +71,7 @@ def test_check_link_requires_python__invalid_requires(caplog):
     link = Link('https://example.com', requires_python='invalid')
     caplog.set_level(logging.DEBUG)
     actual = _check_link_requires_python(link, version_info=(3, 6, 5))
-    assert actual == True
+    assert actual
 
     expected_message = (
         "Ignoring invalid Requires-Python ('invalid') for link: "

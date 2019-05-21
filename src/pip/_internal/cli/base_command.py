@@ -326,11 +326,15 @@ class RequirementCommand(Command):
         platform=None,         # type: Optional[str]
         python_versions=None,  # type: Optional[List[str]]
         abi=None,              # type: Optional[str]
-        implementation=None    # type: Optional[str]
+        implementation=None,   # type: Optional[str]
+        ignore_requires_python=None,  # type: Optional[bool]
     ):
         # type: (...) -> PackageFinder
         """
         Create a package finder appropriate to this requirement command.
+
+        :param ignore_requires_python: Whether to ignore incompatible
+            "Requires-Python" values in links. Defaults to False.
         """
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:
@@ -352,4 +356,5 @@ class RequirementCommand(Command):
             abi=abi,
             implementation=implementation,
             prefer_binary=options.prefer_binary,
+            ignore_requires_python=ignore_requires_python,
         )
