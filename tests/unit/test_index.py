@@ -8,9 +8,62 @@ from pip._vendor import html5lib, requests
 
 from pip._internal.download import PipSession
 from pip._internal.index import (
-    CandidateEvaluator, Link, PackageFinder, _clean_link, _determine_base_url,
-    _egg_info_matches, _find_name_version_sep, _get_html_page,
+    CandidateEvaluator, Link, PackageFinder, _check_link_requires_python,
+    _clean_link, _determine_base_url, _egg_info_matches,
+    _find_name_version_sep, _get_html_page,
 )
+
+
+@pytest.mark.parametrize('requires_python, expected', [
+    ('== 3.6.4', False),
+    ('== 3.6.5', True),
+    # Test an invalid Requires-Python value.
+    ('invalid', True),
+])
+def test_check_link_requires_python(requires_python, expected):
+    version_info = (3, 6, 5)
+    link = Link('https://example.com', requires_python=requires_python)
+    actual = _check_link_requires_python(link, version_info)
+    assert actual == expected
+
+
+def check_caplog(caplog, expected_level, expected_message):
+    assert len(caplog.records) == 1
+    record = caplog.records[0]
+    assert record.levelname == expected_level
+    assert record.message == expected_message
+
+
+def test_check_link_requires_python__incompatible_python(caplog):
+    """
+    Test the log message for an incompatible Python.
+    """
+    link = Link('https://example.com', requires_python='== 3.6.4')
+    caplog.set_level(logging.DEBUG)
+    actual = _check_link_requires_python(link, version_info=(3, 6, 5))
+    assert actual == False
+
+    expected_message = (
+        "Link requires a different Python (3.6.5 not in: '== 3.6.4'): "
+        "https://example.com"
+    )
+    check_caplog(caplog, 'DEBUG', expected_message)
+
+
+def test_check_link_requires_python__invalid_requires(caplog):
+    """
+    Test the log message for an invalid Requires-Python.
+    """
+    link = Link('https://example.com', requires_python='invalid')
+    caplog.set_level(logging.DEBUG)
+    actual = _check_link_requires_python(link, version_info=(3, 6, 5))
+    assert actual == True
+
+    expected_message = (
+        "Ignoring invalid Requires-Python ('invalid') for link: "
+        "https://example.com"
+    )
+    check_caplog(caplog, 'DEBUG', expected_message)
 
 
 class TestCandidateEvaluator:

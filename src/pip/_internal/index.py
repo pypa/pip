@@ -256,6 +256,32 @@ def _get_html_page(link, session=None):
     return None
 
 
+def _check_link_requires_python(link, version_info):
+    """
+    Return whether the link's Requires-Python supports the given Python
+    version.
+    """
+    try:
+        support_this_python = check_requires_python(
+            link.requires_python, version_info=version_info,
+        )
+    except specifiers.InvalidSpecifier:
+        logger.debug(
+            "Ignoring invalid Requires-Python (%r) for link: %s",
+            link.requires_python, link,
+        )
+    else:
+        if not support_this_python:
+            version = '.'.join(map(str, version_info))
+            logger.debug(
+                'Link requires a different Python (%s not in: %r): %s',
+                version, link.requires_python, link,
+            )
+            return False
+
+    return True
+
+
 class CandidateEvaluator(object):
 
     """
@@ -354,23 +380,14 @@ class CandidateEvaluator(object):
             py_version = match.group(1)
             if py_version != self._py_version:
                 return (False, 'Python version is incorrect')
-        try:
-            support_this_python = check_requires_python(
-                link.requires_python, version_info=self._py_version_info,
-            )
-        except specifiers.InvalidSpecifier:
-            logger.debug("Package %s has an invalid Requires-Python entry: %s",
-                         link.filename, link.requires_python)
-        else:
-            if not support_this_python:
-                logger.debug(
-                    "The package %s is incompatible with the python "
-                    "version in use. Acceptable python versions are: %s",
-                    link, link.requires_python,
-                )
-                # Return None for the reason text to suppress calling
-                # _log_skipped_link().
-                return (False, None)
+
+        supports_python = _check_link_requires_python(
+            link, version_info=self._py_version_info,
+        )
+        if not supports_python:
+            # Return None for the reason text to suppress calling
+            # _log_skipped_link().
+            return (False, None)
 
         logger.debug('Found link %s, version: %s', link, version)
 
