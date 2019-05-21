@@ -8,9 +8,9 @@ from pip._vendor import html5lib, requests
 
 from pip._internal.download import PipSession
 from pip._internal.index import (
-    CandidateEvaluator, Link, PackageFinder, _check_link_requires_python,
-    _clean_link, _determine_base_url, _egg_info_matches,
-    _find_name_version_sep, _get_html_page,
+    CandidateEvaluator, Link, PackageFinder, Search,
+    _check_link_requires_python, _clean_link, _determine_base_url,
+    _egg_info_matches, _find_name_version_sep, _get_html_page,
 )
 
 
@@ -103,6 +103,32 @@ class TestCandidateEvaluator:
         # Get the index of the second dot.
         index = sys.version.find('.', 2)
         assert evaluator._py_version == sys.version[:index]
+
+    @pytest.mark.parametrize(
+        'py_version_info,ignore_requires_python,expected', [
+            ((3, 6, 5), None, (True, '1.12')),
+            # Test an incompatible Python.
+            ((3, 6, 4), None, (False, None)),
+            # Test an incompatible Python with ignore_requires_python=True.
+            ((3, 6, 4), True, (True, '1.12')),
+        ],
+    )
+    def test_evaluate_link(
+        self, py_version_info, ignore_requires_python, expected,
+    ):
+        link = Link(
+            'https://example.com/#egg=twine-1.12',
+            requires_python='== 3.6.5',
+        )
+        search = Search(
+            supplied='twine', canonical='twine', formats=['source'],
+        )
+        evaluator = CandidateEvaluator(
+            [], py_version_info=py_version_info,
+            ignore_requires_python=ignore_requires_python,
+        )
+        actual = evaluator.evaluate_link(link, search=search)
+        assert actual == expected
 
 
 def test_sort_locations_file_expand_dir(data):
