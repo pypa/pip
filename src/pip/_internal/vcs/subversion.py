@@ -183,6 +183,11 @@ class Subversion(VersionControl):
         else:
             try:
                 # subversion >= 1.7
+                # Note that using get_remote_call_options is not necessary here
+                # because `svn info` is being run against a local directory.
+                # We don't need to worry about making sure interactive mode
+                # is being used to prompt for passwords, because passwords
+                # are only potentially needed for remote server requests.
                 xml = cls.run_command(
                     ['info', '--xml', location],
                     show_stdout=False,
