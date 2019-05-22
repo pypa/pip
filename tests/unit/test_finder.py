@@ -470,20 +470,16 @@ class TestCandidateEvaluator(object):
         lambda x: Distribution(project_name='setuptools', version='0.9')
     )
     def setup(self):
-        self.version = '1.0'
         self.search_name = 'pytest'
         self.canonical_name = 'pytest'
         valid_tags = pip._internal.pep425tags.get_supported()
         self.evaluator = CandidateEvaluator(valid_tags=valid_tags)
 
-    @pytest.mark.parametrize(
-        'url',
-        [
-            'http:/yo/pytest-1.0.tar.gz',
-            'http:/yo/pytest-1.0-py2.py3-none-any.whl',
-        ],
-    )
-    def test_evaluate_link__match(self, url):
+    @pytest.mark.parametrize('url, expected_version', [
+        ('http:/yo/pytest-1.0.tar.gz', '1.0'),
+        ('http:/yo/pytest-1.0-py2.py3-none-any.whl', '1.0'),
+    ])
+    def test_evaluate_link__match(self, url, expected_version):
         """Test that 'pytest' archives match for 'pytest'"""
         link = Link(url)
         search = Search(
@@ -491,20 +487,18 @@ class TestCandidateEvaluator(object):
             canonical=self.canonical_name,
             formats=['source', 'binary'],
         )
-        result = self.evaluator.get_install_candidate(link, search)
-        expected = InstallationCandidate(self.search_name, self.version, link)
-        assert result == expected, result
+        actual = self.evaluator.evaluate_link(link, search)
+        assert actual == (True, expected_version)
 
-    @pytest.mark.parametrize(
-        'url',
-        [
-            # TODO: Uncomment this test case when #1217 is fixed.
-            # 'http:/yo/pytest-xdist-1.0.tar.gz',
-            'http:/yo/pytest2-1.0.tar.gz',
-            'http:/yo/pytest_xdist-1.0-py2.py3-none-any.whl',
-        ],
-    )
-    def test_evaluate_link__substring_fails(self, url):
+    @pytest.mark.parametrize('url, expected_msg', [
+        # TODO: Uncomment this test case when #1217 is fixed.
+        # 'http:/yo/pytest-xdist-1.0.tar.gz',
+        ('http:/yo/pytest2-1.0.tar.gz',
+         'Missing project version for pytest'),
+        ('http:/yo/pytest_xdist-1.0-py2.py3-none-any.whl',
+         'wrong project name (not pytest)'),
+    ])
+    def test_evaluate_link__substring_fails(self, url, expected_msg):
         """Test that 'pytest<something> archives won't match for 'pytest'."""
         link = Link(url)
         search = Search(
@@ -512,8 +506,8 @@ class TestCandidateEvaluator(object):
             canonical=self.canonical_name,
             formats=['source', 'binary'],
         )
-        result = self.evaluator.get_install_candidate(link, search)
-        assert result is None, result
+        actual = self.evaluator.evaluate_link(link, search)
+        assert actual == (False, expected_msg)
 
 
 def test_get_index_urls_locations():

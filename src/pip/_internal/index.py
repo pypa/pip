@@ -267,10 +267,12 @@ class CandidateEvaluator(object):
         self,
         valid_tags,          # type: List[Pep425Tag]
         prefer_binary=False,   # type: bool
+        allow_all_prereleases=False,  # type: bool
         py_version_info=None,  # type: Optional[Tuple[int, ...]]
     ):
         # type: (...) -> None
         """
+        :param allow_all_prereleases: Whether to allow all pre-releases.
         :param py_version_info: The Python version, as a 3-tuple of ints
             representing a major-minor-micro version, to use to check both
             the Python version embedded in the filename and the package's
@@ -291,20 +293,14 @@ class CandidateEvaluator(object):
         # CandidateEvaluator is generally instantiated only once per pip
         # invocation (when PackageFinder is instantiated).
         self._py_version_re = re.compile(r'-py([123]\.?[0-9]?)$')
-        # These are boring links that have already been logged somehow.
-        self._logged_links = set()  # type: Set[Link]
 
-    def _log_skipped_link(self, link, reason):
-        # type: (Link, str) -> None
-        if link not in self._logged_links:
-            logger.debug('Skipping link %s; %s', link, reason)
-            self._logged_links.add(link)
+        self.allow_all_prereleases = allow_all_prereleases
 
     def _is_wheel_supported(self, wheel):
         # type: (Wheel) -> bool
         return wheel.supported(self._valid_tags)
 
-    def _evaluate_link(self, link, search):
+    def evaluate_link(self, link, search):
         # type: (Link, Search) -> Tuple[bool, Optional[str]]
         """
         Determine whether a link is a candidate for installation.
@@ -365,35 +361,53 @@ class CandidateEvaluator(object):
         except specifiers.InvalidSpecifier:
             logger.debug("Package %s has an invalid Requires-Python entry: %s",
                          link.filename, link.requires_python)
-            support_this_python = True
-
-        if not support_this_python:
-            logger.debug("The package %s is incompatible with the python "
-                         "version in use. Acceptable python versions are: %s",
-                         link, link.requires_python)
-            # Return None for the reason text to suppress calling
-            # _log_skipped_link().
-            return (False, None)
+        else:
+            if not support_this_python:
+                logger.debug(
+                    "The package %s is incompatible with the python "
+                    "version in use. Acceptable python versions are: %s",
+                    link, link.requires_python,
+                )
+                # Return None for the reason text to suppress calling
+                # _log_skipped_link().
+                return (False, None)
 
         logger.debug('Found link %s, version: %s', link, version)
 
         return (True, version)
 
-    def get_install_candidate(self, link, search):
-        # type: (Link, Search) -> Optional[InstallationCandidate]
+    def make_found_candidates(
+        self,
+        candidates,      # type: List[InstallationCandidate]
+        specifier=None,  # type: Optional[specifiers.BaseSpecifier]
+    ):
+        # type: (...) -> FoundCandidates
         """
-        If the link is a candidate for install, convert it to an
-        InstallationCandidate and return it. Otherwise, return None.
-        """
-        is_candidate, result = self._evaluate_link(link, search=search)
-        if not is_candidate:
-            if result:
-                self._log_skipped_link(link, reason=result)
-            return None
+        Create and return a `FoundCandidates` instance.
 
-        return InstallationCandidate(
-            search.supplied, location=link, version=result,
-        )
+        :param specifier: An optional object implementing `filter`
+            (e.g. `packaging.specifiers.SpecifierSet`) to filter applicable
+            versions.
+        """
+        if specifier is None:
+            specifier = specifiers.SpecifierSet()
+
+        # Using None infers from the specifier instead.
+        allow_prereleases = self.allow_all_prereleases or None
+        versions = {
+            str(v) for v in specifier.filter(
+                # We turn the version object into a str here because otherwise
+                # when we're debundled but setuptools isn't, Python will see
+                # packaging.version.Version and
+                # pkg_resources._vendor.packaging.version.Version as different
+                # types. This way we'll use a str as a common data interchange
+                # format. If we stop using the pkg_resources provided specifier
+                # and start using our own, we can drop the cast to str().
+                (str(c.version) for c in candidates),
+                prereleases=allow_prereleases,
+            )
+        }
+        return FoundCandidates(candidates, versions=versions, evaluator=self)
 
     def _sort_key(self, candidate):
         # type: (InstallationCandidate) -> CandidateSortingKey
@@ -447,17 +461,8 @@ class CandidateEvaluator(object):
 class FoundCandidates(object):
     """A collection of candidates, returned by `PackageFinder.find_candidates`.
 
-    This class is only intended to be instantiated by PackageFinder through
-    the `from_specifier()` constructor.
-
-    Arguments:
-
-    * `candidates`: A sequence of all available candidates found.
-    * `specifier`: Specifier to filter applicable versions.
-    * `prereleases`: Whether prereleases should be accounted. Pass None to
-        infer from the specifier.
-    * `evaluator`: A CandidateEvaluator object to sort applicable candidates
-        by order of preference.
+    This class is only intended to be instantiated by CandidateEvaluator's
+    `make_found_candidates()` method.
     """
 
     def __init__(
@@ -467,33 +472,16 @@ class FoundCandidates(object):
         evaluator,      # type: CandidateEvaluator
     ):
         # type: (...) -> None
+        """
+        :param candidates: A sequence of all available candidates found.
+        :param versions: The applicable versions to filter applicable
+            candidates.
+        :param evaluator: A CandidateEvaluator object to sort applicable
+            candidates by order of preference.
+        """
         self._candidates = candidates
         self._evaluator = evaluator
         self._versions = versions
-
-    @classmethod
-    def from_specifier(
-        cls,
-        candidates,     # type: List[InstallationCandidate]
-        specifier,      # type: specifiers.BaseSpecifier
-        prereleases,    # type: Optional[bool]
-        evaluator,      # type: CandidateEvaluator
-    ):
-        # type: (...) -> FoundCandidates
-        versions = {
-            str(v) for v in specifier.filter(
-                # We turn the version object into a str here because otherwise
-                # when we're debundled but setuptools isn't, Python will see
-                # packaging.version.Version and
-                # pkg_resources._vendor.packaging.version.Version as different
-                # types. This way we'll use a str as a common data interchange
-                # format. If we stop using the pkg_resources provided specifier
-                # and start using our own, we can drop the cast to str().
-                (str(c.version) for c in candidates),
-                prereleases=prereleases,
-            )
-        }
-        return cls(candidates, versions, evaluator)
 
     def iter_all(self):
         # type: () -> Iterable[InstallationCandidate]
@@ -532,7 +520,6 @@ class PackageFinder(object):
         index_urls,  # type: List[str]
         secure_origins,  # type: List[SecureOrigin]
         session,  # type: PipSession
-        allow_all_prereleases=False,  # type: bool
         format_control=None,  # type: Optional[FormatControl]
     ):
         # type: (...) -> None
@@ -542,7 +529,6 @@ class PackageFinder(object):
 
         :param candidate_evaluator: A CandidateEvaluator object.
         :param session: The Session to use to make requests.
-        :param allow_all_prereleases: Whether to allow all pre-releases.
         :param format_control: A FormatControl object, used to control
             the selection of source packages / binary packages when consulting
             the index and links.
@@ -554,8 +540,10 @@ class PackageFinder(object):
         self.index_urls = index_urls
         self.secure_origins = secure_origins
         self.session = session
-        self.allow_all_prereleases = allow_all_prereleases
         self.format_control = format_control
+
+        # These are boring links that have already been logged somehow.
+        self._logged_links = set()  # type: Set[Link]
 
     @classmethod
     def create(
@@ -628,6 +616,7 @@ class PackageFinder(object):
         )
         candidate_evaluator = CandidateEvaluator(
             valid_tags=valid_tags, prefer_binary=prefer_binary,
+            allow_all_prereleases=allow_all_prereleases,
         )
 
         # If we don't have TLS enabled, then WARN if anyplace we're looking
@@ -649,9 +638,17 @@ class PackageFinder(object):
             index_urls=index_urls,
             secure_origins=secure_origins,
             session=session,
-            allow_all_prereleases=allow_all_prereleases,
             format_control=format_control,
         )
+
+    @property
+    def allow_all_prereleases(self):
+        # type: () -> bool
+        return self.candidate_evaluator.allow_all_prereleases
+
+    def set_allow_all_prereleases(self):
+        # type: () -> None
+        self.candidate_evaluator.allow_all_prereleases = True
 
     def get_formatted_locations(self):
         # type: () -> str
@@ -829,7 +826,7 @@ class PackageFinder(object):
         This checks index_urls and find_links.
         All versions found are returned as an InstallationCandidate list.
 
-        See CandidateEvaluator._evaluate_link() for details on which files
+        See CandidateEvaluator.evaluate_link() for details on which files
         are accepted.
         """
         index_locations = self._get_index_urls_locations(project_name)
@@ -895,20 +892,18 @@ class PackageFinder(object):
         project_name,       # type: str
         specifier=None,     # type: Optional[specifiers.BaseSpecifier]
     ):
+        # type: (...) -> FoundCandidates
         """Find matches for the given project and specifier.
 
-        If given, `specifier` should implement `filter` to allow version
-        filtering (e.g. ``packaging.specifiers.SpecifierSet``).
+        :param specifier: An optional object implementing `filter`
+            (e.g. `packaging.specifiers.SpecifierSet`) to filter applicable
+            versions.
 
-        Returns a `FoundCandidates` instance.
+        :return: A `FoundCandidates` instance.
         """
-        if specifier is None:
-            specifier = specifiers.SpecifierSet()
-        return FoundCandidates.from_specifier(
-            self.find_all_candidates(project_name),
-            specifier=specifier,
-            prereleases=(self.allow_all_prereleases or None),
-            evaluator=self.candidate_evaluator,
+        candidates = self.find_all_candidates(project_name)
+        return self.candidate_evaluator.make_found_candidates(
+            candidates, specifier=specifier,
         )
 
     def find_requirement(self, req, upgrade):
@@ -1022,6 +1017,30 @@ class PackageFinder(object):
                     no_eggs.append(link)
         return no_eggs + eggs
 
+    def _log_skipped_link(self, link, reason):
+        # type: (Link, str) -> None
+        if link not in self._logged_links:
+            logger.debug('Skipping link %s; %s', link, reason)
+            self._logged_links.add(link)
+
+    def get_install_candidate(self, link, search):
+        # type: (Link, Search) -> Optional[InstallationCandidate]
+        """
+        If the link is a candidate for install, convert it to an
+        InstallationCandidate and return it. Otherwise, return None.
+        """
+        is_candidate, result = (
+            self.candidate_evaluator.evaluate_link(link, search=search)
+        )
+        if not is_candidate:
+            if result:
+                self._log_skipped_link(link, reason=result)
+            return None
+
+        return InstallationCandidate(
+            search.supplied, location=link, version=result,
+        )
+
     def _package_versions(
         self,
         links,  # type: Iterable[Link]
@@ -1030,8 +1049,7 @@ class PackageFinder(object):
         # type: (...) -> List[InstallationCandidate]
         result = []
         for link in self._sort_links(links):
-            candidate = self.candidate_evaluator.get_install_candidate(
-                link, search)
+            candidate = self.get_install_candidate(link, search=search)
             if candidate is not None:
                 result.append(candidate)
         return result
