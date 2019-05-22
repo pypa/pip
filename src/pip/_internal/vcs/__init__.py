@@ -376,8 +376,7 @@ class VersionControl(object):
         """
         return (cls.normalize_url(url1) == cls.normalize_url(url2))
 
-    @classmethod
-    def fetch_new(cls, dest, url, rev_options):
+    def fetch_new(self, dest, url, rev_options):
         """
         Fetch a revision from a repository, in the case that this is the
         first fetch from the repository.

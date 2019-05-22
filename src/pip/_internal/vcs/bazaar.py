@@ -46,8 +46,7 @@ class Bazaar(VersionControl):
             show_stdout=False,
         )
 
-    @classmethod
-    def fetch_new(cls, dest, url, rev_options):
+    def fetch_new(self, dest, url, rev_options):
         rev_display = rev_options.to_display()
         logger.info(
             'Checking out %s%s to %s',
@@ -56,7 +55,7 @@ class Bazaar(VersionControl):
             display_path(dest),
         )
         cmd_args = ['branch', '-q'] + rev_options.to_args() + [url, dest]
-        cls.run_command(cmd_args)
+        self.run_command(cmd_args)
 
     def switch(self, dest, url, rev_options):
         self.run_command(['switch', url], cwd=dest)
