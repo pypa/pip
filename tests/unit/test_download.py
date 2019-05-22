@@ -73,6 +73,7 @@ def test_user_agent():
     ('BUILD_BUILDID', True),
     ('BUILD_ID', True),
     ('CI', True),
+    ('PIP_IS_CI', True),
     # Test a prefix substring of one of the variable names we use.
     ('BUILD', False),
 ])

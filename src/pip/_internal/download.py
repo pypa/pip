@@ -95,6 +95,8 @@ CI_ENVIRONMENT_VARIABLES = (
     'BUILD_ID',
     # AppVeyor, CircleCI, Codeship, Gitlab CI, Shippable, Travis CI
     'CI',
+    # Explicit environment variable.
+    'PIP_IS_CI',
 )
 
 
