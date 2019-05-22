@@ -160,7 +160,7 @@ def test_pep518_forkbombs(script, data, common_wheels, command, package):
     )
     assert '{1} is already being built: {0} from {1}'.format(
         package, path_to_url(package_source),
-    ) in result.stdout, str(result)
+    ) in result.stderr, str(result)
 
 
 @pytest.mark.network
@@ -937,8 +937,9 @@ def test_install_package_that_emits_unicode(script, data):
         'install', to_install, expect_error=True, expect_temp=True, quiet=True,
     )
     assert (
-        'FakeError: this package designed to fail on install' in result.stdout
+        'FakeError: this package designed to fail on install' in result.stderr
     )
+    assert 'UnicodeDecodeError' not in result.stderr
     assert 'UnicodeDecodeError' not in result.stdout
 
 
@@ -1119,19 +1120,19 @@ def test_install_subprocess_output_handling(script, data):
     # With --verbose we should show the output.
     # Only count examples with sys.argv[1] == egg_info, because we call
     # setup.py multiple times, which should not count as duplicate output.
-    result = script.pip(*(args + ["--verbose"]))
-    assert 1 == result.stdout.count("HELLO FROM CHATTYMODULE egg_info")
+    result = script.pip(*(args + ["--verbose"]), expect_stderr=True)
+    assert 1 == result.stderr.count("HELLO FROM CHATTYMODULE egg_info")
     script.pip("uninstall", "-y", "chattymodule")
 
     # If the install fails, then we *should* show the output... but only once,
     # even if --verbose is given.
     result = script.pip(*(args + ["--global-option=--fail"]),
                         expect_error=True)
-    assert 1 == result.stdout.count("I DIE, I DIE")
+    assert 1 == result.stderr.count("I DIE, I DIE")
 
     result = script.pip(*(args + ["--global-option=--fail", "--verbose"]),
                         expect_error=True)
-    assert 1 == result.stdout.count("I DIE, I DIE")
+    assert 1 == result.stderr.count("I DIE, I DIE")
 
 
 def test_install_log(script, data, tmpdir):
@@ -1474,8 +1475,7 @@ def test_install_conflict_results_in_warning(script, data):
 
     # Then install an incorrect version of the dependency
     result2 = script.pip(
-        'install', '--no-index', pkgB_path,
-        expect_stderr=True,
+        'install', '--no-index', pkgB_path, allow_stderr_error=True,
     )
     assert "pkga 1.0 has requirement pkgb==1.0" in result2.stderr, str(result2)
     assert "Successfully installed pkgB-2.0" in result2.stdout, str(result2)

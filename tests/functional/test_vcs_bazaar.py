@@ -30,9 +30,9 @@ def test_export(script, tmpdir):
 
     _vcs_add(script, str(source_dir), vcs='bazaar')
 
-    bzr = Bazaar('bzr+' + _test_path_to_file_url(source_dir))
     export_dir = str(tmpdir / 'export')
-    bzr.export(export_dir)
+    url = 'bzr+' + _test_path_to_file_url(source_dir)
+    Bazaar().export(export_dir, url=url)
 
     assert os.listdir(export_dir) == ['test_file']
 
@@ -54,9 +54,9 @@ def test_export_rev(script, tmpdir):
         '-m', 'change test file', cwd=source_dir,
     )
 
-    bzr = Bazaar('bzr+' + _test_path_to_file_url(source_dir) + '@1')
     export_dir = tmpdir / 'export'
-    bzr.export(str(export_dir))
+    url = 'bzr+' + _test_path_to_file_url(source_dir) + '@1'
+    Bazaar().export(str(export_dir), url=url)
 
     with open(export_dir / 'test_file', 'r') as f:
         assert f.read() == 'something initial'

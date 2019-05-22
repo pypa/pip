@@ -8,8 +8,8 @@ import time
 from signal import SIGINT, default_int_handler, signal
 
 from pip._vendor import six
+from pip._vendor.progress import HIDE_CURSOR, SHOW_CURSOR
 from pip._vendor.progress.bar import Bar, FillingCirclesBar, IncrementalBar
-from pip._vendor.progress.helpers import HIDE_CURSOR, SHOW_CURSOR, WritelnMixin
 from pip._vendor.progress.spinner import Spinner
 
 from pip._internal.utils.compat import WINDOWS
@@ -224,7 +224,7 @@ class DownloadBlueEmojiProgressBar(BaseDownloadProgressBar,  # type: ignore
 
 
 class DownloadProgressSpinner(WindowsMixin, InterruptibleMixin,
-                              DownloadProgressMixin, WritelnMixin, Spinner):
+                              DownloadProgressMixin, Spinner):
 
     file = sys.stdout
     suffix = "%(downloaded)s %(download_speed)s"

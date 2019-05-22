@@ -30,7 +30,7 @@ def session():
 
 @pytest.fixture
 def finder(session):
-    return PackageFinder([], [], session=session)
+    return PackageFinder.create([], [], session=session)
 
 
 @pytest.fixture

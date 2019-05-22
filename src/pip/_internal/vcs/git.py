@@ -40,27 +40,6 @@ class Git(VersionControl):
     unset_environ = ('GIT_DIR', 'GIT_WORK_TREE')
     default_arg_rev = 'HEAD'
 
-    def __init__(self, url=None, *args, **kwargs):
-
-        # Works around an apparent Git bug
-        # (see https://article.gmane.org/gmane.comp.version-control.git/146500)
-        if url:
-            scheme, netloc, path, query, fragment = urlsplit(url)
-            if scheme.endswith('file'):
-                initial_slashes = path[:-len(path.lstrip('/'))]
-                newpath = (
-                    initial_slashes +
-                    urllib_request.url2pathname(path)
-                    .replace('\\', '/').lstrip('/')
-                )
-                url = urlunsplit((scheme, netloc, newpath, query, fragment))
-                after_plus = scheme.find('+') + 1
-                url = scheme[:after_plus] + urlunsplit(
-                    (scheme[after_plus:], netloc, newpath, query, fragment),
-                )
-
-        super(Git, self).__init__(url, *args, **kwargs)
-
     @staticmethod
     def get_base_rev_args(rev):
         return [rev]
@@ -78,7 +57,8 @@ class Git(VersionControl):
         version = '.'.join(version.split('.')[:3])
         return parse_version(version)
 
-    def get_current_branch(self, location):
+    @classmethod
+    def get_current_branch(cls, location):
         """
         Return the current branch, or None if HEAD isn't at a branch
         (e.g. detached HEAD).
@@ -88,7 +68,7 @@ class Git(VersionControl):
         # command to exit with status code 1 instead of 128 in this case
         # and to suppress the message to stderr.
         args = ['symbolic-ref', '-q', 'HEAD']
-        output = self.run_command(
+        output = cls.run_command(
             args, extra_ok_returncodes=(1, ), show_stdout=False, cwd=location,
         )
         ref = output.strip()
@@ -98,19 +78,20 @@ class Git(VersionControl):
 
         return None
 
-    def export(self, location):
+    def export(self, location, url):
         """Export the Git repository at the url to the destination location"""
         if not location.endswith('/'):
             location = location + '/'
 
         with TempDirectory(kind="export") as temp_dir:
-            self.unpack(temp_dir.path)
+            self.unpack(temp_dir.path, url=url)
             self.run_command(
                 ['checkout-index', '-a', '-f', '--prefix', location],
                 show_stdout=False, cwd=temp_dir.path
             )
 
-    def get_revision_sha(self, dest, rev):
+    @classmethod
+    def get_revision_sha(cls, dest, rev):
         """
         Return (sha_or_none, is_branch), where sha_or_none is a commit hash
         if the revision names a remote branch or tag, otherwise None.
@@ -120,8 +101,8 @@ class Git(VersionControl):
           rev: the revision name.
         """
         # Pass rev to pre-filter the list.
-        output = self.run_command(['show-ref', rev], cwd=dest,
-                                  show_stdout=False, on_returncode='ignore')
+        output = cls.run_command(['show-ref', rev], cwd=dest,
+                                 show_stdout=False, on_returncode='ignore')
         refs = {}
         for line in output.strip().splitlines():
             try:
@@ -144,7 +125,8 @@ class Git(VersionControl):
 
         return (sha, False)
 
-    def resolve_revision(self, dest, url, rev_options):
+    @classmethod
+    def resolve_revision(cls, dest, url, rev_options):
         """
         Resolve a revision to a new RevOptions object with the SHA1 of the
         branch, tag, or ref if found.
@@ -153,7 +135,7 @@ class Git(VersionControl):
           rev_options: a RevOptions object.
         """
         rev = rev_options.arg_rev
-        sha, is_branch = self.get_revision_sha(dest, rev)
+        sha, is_branch = cls.get_revision_sha(dest, rev)
 
         if sha is not None:
             rev_options = rev_options.make_new(sha)
@@ -173,17 +155,18 @@ class Git(VersionControl):
             return rev_options
 
         # If it looks like a ref, we have to fetch it explicitly.
-        self.run_command(
+        cls.run_command(
             ['fetch', '-q', url] + rev_options.to_args(),
             cwd=dest,
         )
         # Change the revision to the SHA of the ref we fetched
-        sha = self.get_revision(dest, rev='FETCH_HEAD')
+        sha = cls.get_revision(dest, rev='FETCH_HEAD')
         rev_options = rev_options.make_new(sha)
 
         return rev_options
 
-    def is_commit_id_equal(self, dest, name):
+    @classmethod
+    def is_commit_id_equal(cls, dest, name):
         """
         Return whether the current commit hash equals the given name.
 
@@ -195,37 +178,38 @@ class Git(VersionControl):
             # Then avoid an unnecessary subprocess call.
             return False
 
-        return self.get_revision(dest) == name
+        return cls.get_revision(dest) == name
 
-    def fetch_new(self, dest, url, rev_options):
+    @classmethod
+    def fetch_new(cls, dest, url, rev_options):
         rev_display = rev_options.to_display()
         logger.info(
             'Cloning %s%s to %s', redact_password_from_url(url),
             rev_display, display_path(dest),
         )
-        self.run_command(['clone', '-q', url, dest])
+        cls.run_command(['clone', '-q', url, dest])
 
         if rev_options.rev:
             # Then a specific revision was requested.
-            rev_options = self.resolve_revision(dest, url, rev_options)
+            rev_options = cls.resolve_revision(dest, url, rev_options)
             branch_name = getattr(rev_options, 'branch_name', None)
             if branch_name is None:
                 # Only do a checkout if the current commit id doesn't match
                 # the requested revision.
-                if not self.is_commit_id_equal(dest, rev_options.rev):
+                if not cls.is_commit_id_equal(dest, rev_options.rev):
                     cmd_args = ['checkout', '-q'] + rev_options.to_args()
-                    self.run_command(cmd_args, cwd=dest)
-            elif self.get_current_branch(dest) != branch_name:
+                    cls.run_command(cmd_args, cwd=dest)
+            elif cls.get_current_branch(dest) != branch_name:
                 # Then a specific branch was requested, and that branch
                 # is not yet checked out.
                 track_branch = 'origin/{}'.format(branch_name)
                 cmd_args = [
                     'checkout', '-b', branch_name, '--track', track_branch,
                 ]
-                self.run_command(cmd_args, cwd=dest)
+                cls.run_command(cmd_args, cwd=dest)
 
         #: repo may contain submodules
-        self.update_submodules(dest)
+        cls.update_submodules(dest)
 
     def switch(self, dest, url, rev_options):
         self.run_command(['config', 'remote.origin.url', url], cwd=dest)
@@ -319,6 +303,22 @@ class Git(VersionControl):
         work with a ssh:// scheme (e.g. GitHub). But we need a scheme for
         parsing. Hence we remove it again afterwards and return it as a stub.
         """
+        # Works around an apparent Git bug
+        # (see https://article.gmane.org/gmane.comp.version-control.git/146500)
+        scheme, netloc, path, query, fragment = urlsplit(url)
+        if scheme.endswith('file'):
+            initial_slashes = path[:-len(path.lstrip('/'))]
+            newpath = (
+                initial_slashes +
+                urllib_request.url2pathname(path)
+                .replace('\\', '/').lstrip('/')
+            )
+            url = urlunsplit((scheme, netloc, newpath, query, fragment))
+            after_plus = scheme.find('+') + 1
+            url = scheme[:after_plus] + urlunsplit(
+                (scheme[after_plus:], netloc, newpath, query, fragment),
+            )
+
         if '://' not in url:
             assert 'file:' not in url
             url = url.replace('git+', 'git+ssh://')
@@ -329,10 +329,11 @@ class Git(VersionControl):
 
         return url, rev, user_pass
 
-    def update_submodules(self, location):
+    @classmethod
+    def update_submodules(cls, location):
         if not os.path.exists(os.path.join(location, '.gitmodules')):
             return
-        self.run_command(
+        cls.run_command(
             ['submodule', 'update', '--init', '--recursive', '-q'],
             cwd=location,
         )

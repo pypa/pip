@@ -122,7 +122,7 @@ class RevOptions(object):
 
 
 class VcsSupport(object):
-    _registry = {}  # type: Dict[str, Type[VersionControl]]
+    _registry = {}  # type: Dict[str, VersionControl]
     schemes = ['ssh', 'git', 'hg', 'bzr', 'sftp', 'svn']
 
     def __init__(self):
@@ -140,7 +140,7 @@ class VcsSupport(object):
 
     @property
     def backends(self):
-        # type: () -> List[Type[VersionControl]]
+        # type: () -> List[VersionControl]
         return list(self._registry.values())
 
     @property
@@ -162,37 +162,34 @@ class VcsSupport(object):
             logger.warning('Cannot register VCS %s', cls.__name__)
             return
         if cls.name not in self._registry:
-            self._registry[cls.name] = cls
+            self._registry[cls.name] = cls()
             logger.debug('Registered VCS backend: %s', cls.name)
 
-    def unregister(self, cls=None, name=None):
-        # type: (Optional[Type[VersionControl]], Optional[str]) -> None
+    def unregister(self, name):
+        # type: (str) -> None
         if name in self._registry:
             del self._registry[name]
-        elif cls in self._registry.values():
-            del self._registry[cls.name]
-        else:
-            logger.warning('Cannot unregister because no class or name given')
 
-    def get_backend_type(self, location):
-        # type: (str) -> Optional[Type[VersionControl]]
+    def get_backend_for_dir(self, location):
+        # type: (str) -> Optional[VersionControl]
         """
-        Return the type of the version control backend if found at given
-        location, e.g. vcs.get_backend_type('/path/to/vcs/checkout')
+        Return a VersionControl object if a repository of that type is found
+        at the given directory.
         """
-        for vc_type in self._registry.values():
-            if vc_type.controls_location(location):
+        for vcs_backend in self._registry.values():
+            if vcs_backend.controls_location(location):
                 logger.debug('Determine that %s uses VCS: %s',
-                             location, vc_type.name)
-                return vc_type
+                             location, vcs_backend.name)
+                return vcs_backend
         return None
 
     def get_backend(self, name):
-        # type: (str) -> Optional[Type[VersionControl]]
+        # type: (str) -> Optional[VersionControl]
+        """
+        Return a VersionControl object or None.
+        """
         name = name.lower()
-        if name in self._registry:
-            return self._registry[name]
-        return None
+        return self._registry.get(name)
 
 
 vcs = VcsSupport()
@@ -257,10 +254,6 @@ class VersionControl(object):
 
         return req
 
-    def __init__(self, url=None, *args, **kwargs):
-        self.url = url
-        super(VersionControl, self).__init__(*args, **kwargs)
-
     @staticmethod
     def get_base_rev_args(rev):
         """
@@ -293,10 +286,12 @@ class VersionControl(object):
         drive, tail = os.path.splitdrive(repo)
         return repo.startswith(os.path.sep) or bool(drive)
 
-    def export(self, location):
+    def export(self, location, url):
         """
         Export the repository at the url to the destination location
         i.e. only download the files, without vcs informations
+
+        :param url: the repository URL starting with a vcs prefix.
         """
         raise NotImplementedError
 
@@ -364,7 +359,8 @@ class VersionControl(object):
 
         return url, rev_options
 
-    def normalize_url(self, url):
+    @staticmethod
+    def normalize_url(url):
         # type: (str) -> str
         """
         Normalize a URL for comparison by unquoting it and removing any
@@ -372,14 +368,16 @@ class VersionControl(object):
         """
         return urllib_parse.unquote(url).rstrip('/')
 
-    def compare_urls(self, url1, url2):
+    @classmethod
+    def compare_urls(cls, url1, url2):
         # type: (str, str) -> bool
         """
         Compare two repo URLs for identity, ignoring incidental differences.
         """
-        return (self.normalize_url(url1) == self.normalize_url(url2))
+        return (cls.normalize_url(url1) == cls.normalize_url(url2))
 
-    def fetch_new(self, dest, url, rev_options):
+    @classmethod
+    def fetch_new(cls, dest, url, rev_options):
         """
         Fetch a revision from a repository, in the case that this is the
         first fetch from the repository.
@@ -408,7 +406,8 @@ class VersionControl(object):
         """
         raise NotImplementedError
 
-    def is_commit_id_equal(self, dest, name):
+    @classmethod
+    def is_commit_id_equal(cls, dest, name):
         """
         Return whether the id of the current commit equals the given name.
 
@@ -418,16 +417,16 @@ class VersionControl(object):
         """
         raise NotImplementedError
 
-    def obtain(self, dest):
-        # type: (str) -> None
+    def obtain(self, dest, url):
+        # type: (str, str) -> None
         """
         Install or update in editable mode the package represented by this
         VersionControl object.
 
-        Args:
-          dest: the repository directory in which to install or update.
+        :param dest: the repository directory in which to install or update.
+        :param url: the repository URL starting with a vcs prefix.
         """
-        url, rev_options = self.get_url_rev_options(self.url)
+        url, rev_options = self.get_url_rev_options(url)
 
         if not os.path.exists(dest):
             self.fetch_new(dest, url, rev_options)
@@ -511,15 +510,17 @@ class VersionControl(object):
             )
             self.switch(dest, url, rev_options)
 
-    def unpack(self, location):
-        # type: (str) -> None
+    def unpack(self, location, url):
+        # type: (str, str) -> None
         """
         Clean up current location and download the url repository
         (and vcs infos) into location
+
+        :param url: the repository URL starting with a vcs prefix.
         """
         if os.path.exists(location):
             rmtree(location)
-        self.obtain(location)
+        self.obtain(location, url=url)
 
     @classmethod
     def get_remote_url(cls, location):

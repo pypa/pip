@@ -1,7 +1,10 @@
+import os
+
 import pytest
 from mock import patch
 from pip._vendor.packaging.version import parse as parse_version
 
+from pip._internal.exceptions import BadCommand
 from pip._internal.vcs import (
     RevOptions, VersionControl, make_vcs_requirement_url,
 )
@@ -9,12 +12,20 @@ from pip._internal.vcs.bazaar import Bazaar
 from pip._internal.vcs.git import Git, looks_like_hash
 from pip._internal.vcs.mercurial import Mercurial
 from pip._internal.vcs.subversion import Subversion
-from tests.lib import pyversion
+from tests.lib import is_svn_installed, pyversion
 
 if pyversion >= '3':
     VERBOSE_FALSE = False
 else:
     VERBOSE_FALSE = 0
+
+
+@pytest.mark.skipif(
+    'TRAVIS' not in os.environ,
+    reason='Subversion is only required under Travis')
+def test_ensure_svn_available():
+    """Make sure that svn is available when running in Travis."""
+    assert is_svn_installed()
 
 
 @pytest.mark.parametrize('args, expected', [
@@ -132,8 +143,7 @@ def test_git_resolve_revision_rev_exists(get_sha_mock):
     url = 'git+https://git.example.com'
     rev_options = Git.make_rev_options('develop')
 
-    git = Git()
-    new_options = git.resolve_revision('.', url, rev_options)
+    new_options = Git.resolve_revision('.', url, rev_options)
     assert new_options.rev == '123456'
 
 
@@ -143,8 +153,7 @@ def test_git_resolve_revision_rev_not_found(get_sha_mock):
     url = 'git+https://git.example.com'
     rev_options = Git.make_rev_options('develop')
 
-    git = Git()
-    new_options = git.resolve_revision('.', url, rev_options)
+    new_options = Git.resolve_revision('.', url, rev_options)
     assert new_options.rev == 'develop'
 
 
@@ -155,12 +164,11 @@ def test_git_resolve_revision_not_found_warning(get_sha_mock, caplog):
     sha = 40 * 'a'
     rev_options = Git.make_rev_options(sha)
 
-    git = Git()
-    new_options = git.resolve_revision('.', url, rev_options)
+    new_options = Git.resolve_revision('.', url, rev_options)
     assert new_options.rev == sha
 
     rev_options = Git.make_rev_options(sha[:6])
-    new_options = git.resolve_revision('.', url, rev_options)
+    new_options = Git.resolve_revision('.', url, rev_options)
     assert new_options.rev == 'aaaaaa'
 
     # Check that a warning got logged only for the abbreviated hash.
@@ -185,7 +193,7 @@ def test_git_is_commit_id_equal(mock_get_revision, rev_name, result):
     Test Git.is_commit_id_equal().
     """
     mock_get_revision.return_value = '5547fa909e83df8bd743d3978d6667497983a4b7'
-    assert Git().is_commit_id_equal('/path', rev_name) is result
+    assert Git.is_commit_id_equal('/path', rev_name) is result
 
 
 # The non-SVN backends all use the same get_netloc_and_auth(), so only test
@@ -369,3 +377,121 @@ def test_subversion__get_url_rev_options():
 def test_get_git_version():
     git_version = Git().get_git_version()
     assert git_version >= parse_version('1.0.0')
+
+
+@pytest.mark.parametrize('use_interactive,is_atty,expected', [
+    (None, False, False),
+    (None, True, True),
+    (False, False, False),
+    (False, True, False),
+    (True, False, True),
+    (True, True, True),
+])
+@patch('sys.stdin.isatty')
+def test_subversion__init_use_interactive(
+        mock_isatty, use_interactive, is_atty, expected):
+    """
+    Test Subversion.__init__() with mocked sys.stdin.isatty() output.
+    """
+    mock_isatty.return_value = is_atty
+    svn = Subversion(use_interactive=use_interactive)
+    assert svn.use_interactive == expected
+
+
+@pytest.mark.svn
+def test_subversion__call_vcs_version():
+    """
+    Test Subversion.call_vcs_version() against local ``svn``.
+    """
+    version = Subversion().call_vcs_version()
+    # All Subversion releases since 1.0.0 have used three parts.
+    assert len(version) == 3
+    for part in version:
+        assert isinstance(part, int)
+    assert version[0] >= 1
+
+
+@pytest.mark.parametrize('svn_output, expected_version', [
+    ('svn, version 1.10.3 (r1842928)\n'
+     '   compiled Feb 25 2019, 14:20:39 on x86_64-apple-darwin17.0.0',
+     (1, 10, 3)),
+    ('svn, version 1.9.7 (r1800392)', (1, 9, 7)),
+    ('svn, version 1.9.7a1 (r1800392)', ()),
+    ('svn, version 1.9 (r1800392)', (1, 9)),
+    ('svn, version .9.7 (r1800392)', ()),
+    ('svn version 1.9.7 (r1800392)', ()),
+    ('svn 1.9.7', ()),
+    ('svn, version . .', ()),
+    ('', ()),
+])
+@patch('pip._internal.vcs.subversion.Subversion.run_command')
+def test_subversion__call_vcs_version_patched(
+        mock_run_command, svn_output, expected_version):
+    """
+    Test Subversion.call_vcs_version() against patched output.
+    """
+    mock_run_command.return_value = svn_output
+    version = Subversion().call_vcs_version()
+    assert version == expected_version
+
+
+@patch('pip._internal.vcs.subversion.Subversion.run_command')
+def test_subversion__call_vcs_version_svn_not_installed(mock_run_command):
+    """
+    Test Subversion.call_vcs_version() when svn is not installed.
+    """
+    mock_run_command.side_effect = BadCommand
+    with pytest.raises(BadCommand):
+        Subversion().call_vcs_version()
+
+
+@pytest.mark.parametrize('version', [
+    (),
+    (1,),
+    (1, 8),
+    (1, 8, 0),
+])
+def test_subversion__get_vcs_version_cached(version):
+    """
+    Test Subversion.get_vcs_version() with previously cached result.
+    """
+    svn = Subversion()
+    svn._vcs_version = version
+    assert svn.get_vcs_version() == version
+
+
+@pytest.mark.parametrize('vcs_version', [
+    (),
+    (1, 7),
+    (1, 8, 0),
+])
+@patch('pip._internal.vcs.subversion.Subversion.call_vcs_version')
+def test_subversion__get_vcs_version_call_vcs(mock_call_vcs, vcs_version):
+    """
+    Test Subversion.get_vcs_version() with mocked output from
+    call_vcs_version().
+    """
+    mock_call_vcs.return_value = vcs_version
+    svn = Subversion()
+    assert svn.get_vcs_version() == vcs_version
+
+    # Check that the version information is cached.
+    assert svn._vcs_version == vcs_version
+
+
+@pytest.mark.parametrize('use_interactive,vcs_version,expected_options', [
+    (False, (), ['--non-interactive']),
+    (False, (1, 7, 0), ['--non-interactive']),
+    (False, (1, 8, 0), ['--non-interactive']),
+    (True, (), []),
+    (True, (1, 7, 0), []),
+    (True, (1, 8, 0), ['--force-interactive']),
+])
+def test_subversion__get_remote_call_options(
+        use_interactive, vcs_version, expected_options):
+    """
+    Test Subversion.get_remote_call_options().
+    """
+    svn = Subversion(use_interactive=use_interactive)
+    svn._vcs_version = vcs_version
+    assert svn.get_remote_call_options() == expected_options

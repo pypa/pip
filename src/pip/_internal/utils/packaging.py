@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import logging
-import sys
 from email.parser import FeedParser
 
 from pip._vendor import pkg_resources
@@ -12,7 +11,7 @@ from pip._internal.utils.misc import display_path
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional
+    from typing import Optional, Tuple
     from email.message import Message
     from pip._vendor.pkg_resources import Distribution
 
@@ -20,10 +19,13 @@ if MYPY_CHECK_RUNNING:
 logger = logging.getLogger(__name__)
 
 
-def check_requires_python(requires_python):
-    # type: (Optional[str]) -> bool
+def check_requires_python(requires_python, version_info):
+    # type: (Optional[str], Tuple[int, ...]) -> bool
     """
-    Check if the python version in use match the `requires_python` specifier.
+    Check if the given Python version matches a `requires_python` specifier.
+
+    :param version_info: A 3-tuple of ints representing the Python
+        major-minor-micro version to check (e.g. `sys.version_info[:3]`).
 
     Returns `True` if the version of python in use matches the requirement.
     Returns `False` if the version of python in use does not matches the
@@ -36,8 +38,7 @@ def check_requires_python(requires_python):
         return True
     requires_python_specifier = specifiers.SpecifierSet(requires_python)
 
-    # We only use major.minor.micro
-    python_version = version.parse('.'.join(map(str, sys.version_info[:3])))
+    python_version = version.parse('.'.join(map(str, version_info)))
     return python_version in requires_python_specifier
 
 
@@ -57,16 +58,22 @@ def get_metadata(dist):
     return feed_parser.close()
 
 
-def check_dist_requires_python(dist):
+def check_dist_requires_python(dist, version_info):
+    """
+    :param version_info: A 3-tuple of ints representing the Python
+        major-minor-micro version to check (e.g. `sys.version_info[:3]`).
+    """
     pkg_info_dict = get_metadata(dist)
     requires_python = pkg_info_dict.get('Requires-Python')
     try:
-        if not check_requires_python(requires_python):
+        if not check_requires_python(
+            requires_python, version_info=version_info,
+        ):
             raise exceptions.UnsupportedPythonVersion(
                 "%s requires Python '%s' but the running Python is %s" % (
                     dist.project_name,
                     requires_python,
-                    '.'.join(map(str, sys.version_info[:3])),)
+                    '.'.join(map(str, version_info)),)
             )
     except specifiers.InvalidSpecifier as e:
         logger.warning(

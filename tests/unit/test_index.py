@@ -1,5 +1,6 @@
 import logging
 import os.path
+import sys
 
 import pytest
 from mock import Mock
@@ -7,16 +8,41 @@ from pip._vendor import html5lib, requests
 
 from pip._internal.download import PipSession
 from pip._internal.index import (
-    Link, PackageFinder, _determine_base_url, _egg_info_matches,
-    _find_name_version_sep, _get_html_page,
+    CandidateEvaluator, Link, PackageFinder, _clean_link, _determine_base_url,
+    _egg_info_matches, _find_name_version_sep, _get_html_page,
 )
+
+
+class TestCandidateEvaluator:
+
+    @pytest.mark.parametrize("version_info, expected", [
+        ((2, 7, 14), '2.7'),
+        ((3, 6, 5), '3.6'),
+        # Check a minor version with two digits.
+        ((3, 10, 1), '3.10'),
+    ])
+    def test_init__py_version(self, version_info, expected):
+        """
+        Test the _py_version attribute.
+        """
+        evaluator = CandidateEvaluator([], py_version_info=version_info)
+        assert evaluator._py_version == expected
+
+    def test_init__py_version_default(self):
+        """
+        Test the _py_version attribute's default value.
+        """
+        evaluator = CandidateEvaluator([])
+        # Get the index of the second dot.
+        index = sys.version.find('.', 2)
+        assert evaluator._py_version == sys.version[:index]
 
 
 def test_sort_locations_file_expand_dir(data):
     """
     Test that a file:// dir gets listdir run with expand_dir
     """
-    finder = PackageFinder([data.find_links], [], session=PipSession())
+    finder = PackageFinder.create([data.find_links], [], session=PipSession())
     files, urls = finder._sort_locations([data.find_links], expand_dir=True)
     assert files and not urls, (
         "files and not urls should have been found at find-links url: %s" %
@@ -29,7 +55,7 @@ def test_sort_locations_file_not_find_link(data):
     Test that a file:// url dir that's not a find-link, doesn't get a listdir
     run
     """
-    finder = PackageFinder([], [], session=PipSession())
+    finder = PackageFinder.create([], [], session=PipSession())
     files, urls = finder._sort_locations([data.index_url("empty_with_pkg")])
     assert urls and not files, "urls, but not files should have been found"
 
@@ -38,7 +64,7 @@ def test_sort_locations_non_existing_path():
     """
     Test that a non-existing path is ignored.
     """
-    finder = PackageFinder([], [], session=PipSession())
+    finder = PackageFinder.create([], [], session=PipSession())
     files, urls = finder._sort_locations(
         [os.path.join('this', 'doesnt', 'exist')])
     assert not urls and not files, "nothing should have been found"
@@ -144,7 +170,7 @@ class MockLogger(object):
     ],
 )
 def test_secure_origin(location, trusted, expected):
-    finder = PackageFinder([], [], session=[], trusted_hosts=trusted)
+    finder = PackageFinder.create([], [], session=[], trusted_hosts=trusted)
     logger = MockLogger()
     finder._validate_secure_origin(logger, location)
     assert logger.called == expected
@@ -159,7 +185,7 @@ def test_get_formatted_locations_basic_auth():
         'https://pypi.org/simple',
         'https://user:pass@repo.domain.com',
     ]
-    finder = PackageFinder([], index_urls, session=[])
+    finder = PackageFinder.create([], index_urls, session=[])
 
     result = finder.get_formatted_locations()
     assert 'user' in result
@@ -280,3 +306,68 @@ def test_request_retries(caplog):
         'Could not fetch URL http://localhost: Retry error - skipping'
         in caplog.text
     )
+
+
+@pytest.mark.parametrize(
+    ("url", "clean_url"),
+    [
+        # URL with hostname and port. Port separator should not be quoted.
+        ("https://localhost.localdomain:8181/path/with space/",
+         "https://localhost.localdomain:8181/path/with%20space/"),
+        # URL that is already properly quoted. The quoting `%`
+        # characters should not be quoted again.
+        ("https://localhost.localdomain:8181/path/with%20quoted%20space/",
+         "https://localhost.localdomain:8181/path/with%20quoted%20space/"),
+        # URL with IPv4 address and port.
+        ("https://127.0.0.1:8181/path/with space/",
+         "https://127.0.0.1:8181/path/with%20space/"),
+        # URL with IPv6 address and port. The `[]` brackets around the
+        # IPv6 address should not be quoted.
+        ("https://[fd00:0:0:236::100]:8181/path/with space/",
+         "https://[fd00:0:0:236::100]:8181/path/with%20space/"),
+        # URL with query. The leading `?` should not be quoted.
+        ("https://localhost.localdomain:8181/path/with/query?request=test",
+         "https://localhost.localdomain:8181/path/with/query?request=test"),
+        # URL with colon in the path portion.
+        ("https://localhost.localdomain:8181/path:/with:/colon",
+         "https://localhost.localdomain:8181/path%3A/with%3A/colon"),
+        # URL with something that looks like a drive letter, but is
+        # not. The `:` should be quoted.
+        ("https://localhost.localdomain/T:/path/",
+         "https://localhost.localdomain/T%3A/path/"),
+        # VCS URL containing revision string.
+        ("git+ssh://example.com/path to/repo.git@1.0#egg=my-package-1.0",
+         "git+ssh://example.com/path%20to/repo.git@1.0#egg=my-package-1.0")
+    ]
+)
+def test_clean_link(url, clean_url):
+    assert(_clean_link(url) == clean_url)
+
+
+@pytest.mark.parametrize(
+    ("url", "clean_url"),
+    [
+        # URL with Windows drive letter. The `:` after the drive
+        # letter should not be quoted. The trailing `/` should be
+        # removed.
+        ("file:///T:/path/with spaces/",
+         "file:///T:/path/with%20spaces")
+    ]
+)
+@pytest.mark.skipif("sys.platform != 'win32'")
+def test_clean_link_windows(url, clean_url):
+    assert(_clean_link(url) == clean_url)
+
+
+@pytest.mark.parametrize(
+    ("url", "clean_url"),
+    [
+        # URL with Windows drive letter, running on non-windows
+        # platform. The `:` after the drive should be quoted.
+        ("file:///T:/path/with spaces/",
+         "file:///T%3A/path/with%20spaces/")
+    ]
+)
+@pytest.mark.skipif("sys.platform == 'win32'")
+def test_clean_link_non_windows(url, clean_url):
+    assert(_clean_link(url) == clean_url)

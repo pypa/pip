@@ -71,7 +71,9 @@ class TestRequirementSet(object):
         req = install_req_from_line('simple')
         req.is_direct = True
         reqset.add_requirement(req)
-        finder = PackageFinder([data.find_links], [], session=PipSession())
+        finder = PackageFinder.create(
+            [data.find_links], [], session=PipSession(),
+        )
         resolver = self._basic_resolver(finder)
         assert_raises_regexp(
             PreviousBuildDirError,
@@ -93,7 +95,9 @@ class TestRequirementSet(object):
         )
         req.is_direct = True
         reqset.add_requirement(req)
-        finder = PackageFinder([data.find_links], [], session=PipSession())
+        finder = PackageFinder.create(
+            [data.find_links], [], session=PipSession(),
+        )
         resolver = self._basic_resolver(finder)
         resolver.resolve(reqset)
         # This is hacky but does test both case in py2 and py3
@@ -130,7 +134,7 @@ class TestRequirementSet(object):
             'packages/source/p/peep/peep-3.1.1.tar.gz',
             lineno=4,
         ))
-        finder = PackageFinder(
+        finder = PackageFinder.create(
             [],
             ['https://pypi.org/simple/'],
             session=PipSession(),
@@ -160,7 +164,9 @@ class TestRequirementSet(object):
             'simple==1.0', lineno=1
         ))
 
-        finder = PackageFinder([data.find_links], [], session=PipSession())
+        finder = PackageFinder.create(
+            [data.find_links], [], session=PipSession(),
+        )
         resolver = self._basic_resolver(finder)
 
         assert_raises_regexp(
@@ -179,7 +185,7 @@ class TestRequirementSet(object):
         """
         req_set = RequirementSet(require_hashes=False)
         session = PipSession()
-        finder = PackageFinder([data.find_links], [], session=session)
+        finder = PackageFinder.create([data.find_links], [], session=session)
         command = InstallCommand()
         with requirements_file('--require-hashes', tmpdir) as reqs_file:
             options, args = command.parse_args(['-r', reqs_file])
@@ -207,7 +213,9 @@ class TestRequirementSet(object):
             'file://%s' % (dir_path,),
             lineno=2,
         ))
-        finder = PackageFinder([data.find_links], [], session=PipSession())
+        finder = PackageFinder.create(
+            [data.find_links], [], session=PipSession(),
+        )
         resolver = self._basic_resolver(finder)
         sep = os.path.sep
         if sep == '\\':
@@ -241,7 +249,9 @@ class TestRequirementSet(object):
             '123f6a7e44a9115db1ef945d4d92c123dfe21815a06',
             lineno=2,
         ))
-        finder = PackageFinder([data.find_links], [], session=PipSession())
+        finder = PackageFinder.create(
+            [data.find_links], [], session=PipSession(),
+        )
         resolver = self._basic_resolver(finder)
         assert_raises_regexp(
             HashErrors,
@@ -260,7 +270,9 @@ class TestRequirementSet(object):
         reqset.add_requirement(get_processed_req_from_line(
             '%s --hash=sha256:badbad' % file_url, lineno=1,
         ))
-        finder = PackageFinder([data.find_links], [], session=PipSession())
+        finder = PackageFinder.create(
+            [data.find_links], [], session=PipSession(),
+        )
         resolver = self._basic_resolver(finder)
         assert_raises_regexp(
             HashErrors,
@@ -276,7 +288,9 @@ class TestRequirementSet(object):
         """Make sure unhashed, unpinned, or otherwise unrepeatable
         dependencies get complained about when --require-hashes is on."""
         reqset = RequirementSet()
-        finder = PackageFinder([data.find_links], [], session=PipSession())
+        finder = PackageFinder.create(
+            [data.find_links], [], session=PipSession(),
+        )
         resolver = self._basic_resolver(finder)
         reqset.add_requirement(get_processed_req_from_line(
             'TopoRequires2==0.0.1 '  # requires TopoRequires

@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import cgi
 import email.utils
-import getpass
 import json
 import logging
 import mimetypes
@@ -12,7 +11,7 @@ import re
 import shutil
 import sys
 
-from pip._vendor import requests, six, urllib3
+from pip._vendor import requests, urllib3
 from pip._vendor.cachecontrol import CacheControlAdapter
 from pip._vendor.cachecontrol.caches import FileCache
 from pip._vendor.lockfile import LockError
@@ -36,9 +35,10 @@ from pip._internal.utils.encoding import auto_decode
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.glibc import libc_ver
 from pip._internal.utils.misc import (
-    ARCHIVE_EXTENSIONS, ask_path_exists, backup_dir, consume, display_path,
-    format_size, get_installed_version, rmtree, split_auth_from_netloc,
-    splitext, unpack_file,
+    ARCHIVE_EXTENSIONS, ask, ask_input, ask_password, ask_path_exists,
+    backup_dir, consume, display_path, format_size, get_installed_version,
+    remove_auth_from_url, rmtree, split_auth_netloc_from_url, splitext,
+    unpack_file,
 )
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -49,14 +49,16 @@ if MYPY_CHECK_RUNNING:
     from typing import (
         Optional, Tuple, Dict, IO, Text, Union
     )
+    from optparse import Values
     from pip._internal.models.link import Link
     from pip._internal.utils.hashes import Hashes
-    from pip._internal.vcs import AuthInfo
+    from pip._internal.vcs import AuthInfo, VersionControl
 
 try:
     import ssl  # noqa
 except ImportError:
     ssl = None
+
 
 HAS_TLS = (ssl is not None) or IS_PYOPENSSL
 
@@ -69,6 +71,15 @@ __all__ = ['get_file_content',
 
 logger = logging.getLogger(__name__)
 
+
+try:
+    import keyring  # noqa
+except ImportError:
+    keyring = None
+except Exception as exc:
+    logger.warning("Keyring is skipped due to an exception: %s",
+                   str(exc))
+    keyring = None
 
 # These are environment variables present when running under various
 # CI systems.  For each variable, some CI systems that use the variable
@@ -167,51 +178,184 @@ def user_agent():
     # value to make it easier to know that the check has been run.
     data["ci"] = True if looks_like_ci() else None
 
+    user_data = os.environ.get("PIP_USER_AGENT_USER_DATA")
+    if user_data is not None:
+        data["user_data"] = user_data
+
     return "{data[installer][name]}/{data[installer][version]} {json}".format(
         data=data,
         json=json.dumps(data, separators=(",", ":"), sort_keys=True),
     )
 
 
+def _get_keyring_auth(url, username):
+    """Return the tuple auth for a given url from keyring."""
+    if not url or not keyring:
+        return None
+
+    try:
+        try:
+            get_credential = keyring.get_credential
+        except AttributeError:
+            pass
+        else:
+            logger.debug("Getting credentials from keyring for %s", url)
+            cred = get_credential(url, username)
+            if cred is not None:
+                return cred.username, cred.password
+            return None
+
+        if username:
+            logger.debug("Getting password from keyring for %s", url)
+            password = keyring.get_password(url, username)
+            if password:
+                return username, password
+
+    except Exception as exc:
+        logger.warning("Keyring is skipped due to an exception: %s",
+                       str(exc))
+
+
 class MultiDomainBasicAuth(AuthBase):
 
-    def __init__(self, prompting=True):
-        # type: (bool) -> None
+    def __init__(self, prompting=True, index_urls=None):
+        # type: (bool, Optional[Values]) -> None
         self.prompting = prompting
+        self.index_urls = index_urls
         self.passwords = {}  # type: Dict[str, AuthInfo]
+        # When the user is prompted to enter credentials and keyring is
+        # available, we will offer to save them. If the user accepts,
+        # this value is set to the credentials they entered. After the
+        # request authenticates, the caller should call
+        # ``save_credentials`` to save these.
+        self._credentials_to_save = None   # type: Tuple[str, str, str]
 
-    def __call__(self, req):
-        parsed = urllib_parse.urlparse(req.url)
+    def _get_index_url(self, url):
+        """Return the original index URL matching the requested URL.
 
-        # Split the credentials from the netloc.
-        netloc, url_user_password = split_auth_from_netloc(parsed.netloc)
+        Cached or dynamically generated credentials may work against
+        the original index URL rather than just the netloc.
 
-        # Set the url of the request to the url without any credentials
-        req.url = urllib_parse.urlunparse(parsed[:1] + (netloc,) + parsed[2:])
+        The provided url should have had its username and password
+        removed already. If the original index url had credentials then
+        they will be included in the return value.
+
+        Returns None if no matching index was found, or if --no-index
+        was specified by the user.
+        """
+        if not url or not self.index_urls:
+            return None
+
+        for u in self.index_urls:
+            prefix = remove_auth_from_url(u).rstrip("/") + "/"
+            if url.startswith(prefix):
+                return u
+
+    def _get_new_credentials(self, original_url, allow_netrc=True,
+                             allow_keyring=True):
+        """Find and return credentials for the specified URL."""
+        # Split the credentials and netloc from the url.
+        url, netloc, url_user_password = split_auth_netloc_from_url(
+            original_url)
+
+        # Start with the credentials embedded in the url
+        username, password = url_user_password
+        if username is not None and password is not None:
+            logger.debug("Found credentials in url for %s", netloc)
+            return url_user_password
+
+        # Find a matching index url for this request
+        index_url = self._get_index_url(url)
+        if index_url:
+            # Split the credentials from the url.
+            index_info = split_auth_netloc_from_url(index_url)
+            if index_info:
+                index_url, _, index_url_user_password = index_info
+                logger.debug("Found index url %s", index_url)
+
+        # If an index URL was found, try its embedded credentials
+        if index_url and index_url_user_password[0] is not None:
+            username, password = index_url_user_password
+            if username is not None and password is not None:
+                logger.debug("Found credentials in index url for %s", netloc)
+                return index_url_user_password
+
+        # Get creds from netrc if we still don't have them
+        if allow_netrc:
+            netrc_auth = get_netrc_auth(original_url)
+            if netrc_auth:
+                logger.debug("Found credentials in netrc for %s", netloc)
+                return netrc_auth
+
+        # If we don't have a password and keyring is available, use it.
+        if allow_keyring:
+            # The index url is more specific than the netloc, so try it first
+            kr_auth = (_get_keyring_auth(index_url, username) or
+                       _get_keyring_auth(netloc, username))
+            if kr_auth:
+                logger.debug("Found credentials in keyring for %s", netloc)
+                return kr_auth
+
+        return None, None
+
+    def _get_url_and_credentials(self, original_url):
+        """Return the credentials to use for the provided URL.
+
+        If allowed, netrc and keyring may be used to obtain the
+        correct credentials.
+
+        Returns (url_without_credentials, username, password). Note
+        that even if the original URL contains credentials, this
+        function may return a different username and password.
+        """
+        url, netloc, _ = split_auth_netloc_from_url(original_url)
 
         # Use any stored credentials that we have for this netloc
         username, password = self.passwords.get(netloc, (None, None))
 
-        # Use the credentials embedded in the url if we have none stored
-        if username is None:
-            username, password = url_user_password
+        # If nothing cached, acquire new credentials without prompting
+        # the user (e.g. from netrc, keyring, or similar).
+        if username is None or password is None:
+            username, password = self._get_new_credentials(original_url)
 
-        # Get creds from netrc if we still don't have them
-        if username is None and password is None:
-            netrc_auth = get_netrc_auth(req.url)
-            username, password = netrc_auth if netrc_auth else (None, None)
-
-        if username or password:
+        if username is not None and password is not None:
             # Store the username and password
             self.passwords[netloc] = (username, password)
 
+        return url, username, password
+
+    def __call__(self, req):
+        # Get credentials for this request
+        url, username, password = self._get_url_and_credentials(req.url)
+
+        # Set the url of the request to the url without any credentials
+        req.url = url
+
+        if username is not None and password is not None:
             # Send the basic auth with this request
-            req = HTTPBasicAuth(username or "", password or "")(req)
+            req = HTTPBasicAuth(username, password)(req)
 
         # Attach a hook to handle 401 responses
         req.register_hook("response", self.handle_401)
 
         return req
+
+    # Factored out to allow for easy patching in tests
+    def _prompt_for_password(self, netloc):
+        username = ask_input("User for %s: " % netloc)
+        if not username:
+            return None, None
+        auth = _get_keyring_auth(netloc, username)
+        if auth:
+            return auth[0], auth[1], False
+        password = ask_password("Password: ")
+        return username, password, True
+
+    # Factored out to allow for easy patching in tests
+    def _should_save_password_to_keyring(self):
+        if not keyring:
+            return False
+        return ask("Save credentials to keyring [y/N]: ", ["y", "n"]) == "y"
 
     def handle_401(self, resp, **kwargs):
         # We only care about 401 responses, anything else we want to just
@@ -226,12 +370,16 @@ class MultiDomainBasicAuth(AuthBase):
         parsed = urllib_parse.urlparse(resp.url)
 
         # Prompt the user for a new username and password
-        username = six.moves.input("User for %s: " % parsed.netloc)
-        password = getpass.getpass("Password: ")
+        username, password, save = self._prompt_for_password(parsed.netloc)
 
         # Store the new username and password to use for future requests
-        if username or password:
+        self._credentials_to_save = None
+        if username is not None and password is not None:
             self.passwords[parsed.netloc] = (username, password)
+
+            # Prompt to save the password to keyring
+            if save and self._should_save_password_to_keyring():
+                self._credentials_to_save = (parsed.netloc, username, password)
 
         # Consume content and release the original connection to allow our new
         #   request to reuse the same one.
@@ -242,6 +390,12 @@ class MultiDomainBasicAuth(AuthBase):
         req = HTTPBasicAuth(username or "", password or "")(resp.request)
         req.register_hook("response", self.warn_on_401)
 
+        # On successful request, save the credentials that were used to
+        # keyring. (Note that if the user responded "no" above, this member
+        # is not set and nothing will be saved.)
+        if self._credentials_to_save:
+            req.register_hook("response", self.save_credentials)
+
         # Send our new request
         new_resp = resp.connection.send(req, **kwargs)
         new_resp.history.append(resp)
@@ -249,10 +403,25 @@ class MultiDomainBasicAuth(AuthBase):
         return new_resp
 
     def warn_on_401(self, resp, **kwargs):
-        # warn user that they provided incorrect credentials
+        """Response callback to warn about incorrect credentials."""
         if resp.status_code == 401:
             logger.warning('401 Error, Credentials not correct for %s',
                            resp.request.url)
+
+    def save_credentials(self, resp, **kwargs):
+        """Response callback to save credentials on success."""
+        assert keyring is not None, "should never reach here without keyring"
+        if not keyring:
+            return
+
+        creds = self._credentials_to_save
+        self._credentials_to_save = None
+        if creds and resp.status_code < 400:
+            try:
+                logger.info('Saving credentials to keyring')
+                keyring.set_password(*creds)
+            except Exception:
+                logger.exception('Failed to save credentials')
 
 
 class LocalFSAdapter(BaseAdapter):
@@ -369,6 +538,7 @@ class PipSession(requests.Session):
         retries = kwargs.pop("retries", 0)
         cache = kwargs.pop("cache", None)
         insecure_hosts = kwargs.pop("insecure_hosts", [])
+        index_urls = kwargs.pop("index_urls", None)
 
         super(PipSession, self).__init__(*args, **kwargs)
 
@@ -376,7 +546,7 @@ class PipSession(requests.Session):
         self.headers["User-Agent"] = user_agent()
 
         # Attach our Authentication handler to the session
-        self.auth = MultiDomainBasicAuth()
+        self.auth = MultiDomainBasicAuth(index_urls=index_urls)
 
         # Create our urllib3.Retry instance which will allow us to customize
         # how we handle retries.
@@ -543,14 +713,18 @@ def is_archive_file(name):
 
 def unpack_vcs_link(link, location):
     vcs_backend = _get_used_vcs_backend(link)
-    vcs_backend.unpack(location)
+    vcs_backend.unpack(location, url=link.url)
 
 
 def _get_used_vcs_backend(link):
-    for backend in vcs.backends:
-        if link.scheme in backend.schemes:
-            vcs_backend = backend(link.url)
+    # type: (Link) -> Optional[VersionControl]
+    """
+    Return a VersionControl object or None.
+    """
+    for vcs_backend in vcs.backends:
+        if link.scheme in vcs_backend.schemes:
             return vcs_backend
+    return None
 
 
 def is_vcs_url(link):

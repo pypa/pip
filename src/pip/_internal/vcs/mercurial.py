@@ -23,16 +23,17 @@ class Mercurial(VersionControl):
     def get_base_rev_args(rev):
         return [rev]
 
-    def export(self, location):
+    def export(self, location, url):
         """Export the Hg repository at the url to the destination location"""
         with TempDirectory(kind="export") as temp_dir:
-            self.unpack(temp_dir.path)
+            self.unpack(temp_dir.path, url=url)
 
             self.run_command(
                 ['archive', location], show_stdout=False, cwd=temp_dir.path
             )
 
-    def fetch_new(self, dest, url, rev_options):
+    @classmethod
+    def fetch_new(cls, dest, url, rev_options):
         rev_display = rev_options.to_display()
         logger.info(
             'Cloning hg %s%s to %s',
@@ -40,13 +41,13 @@ class Mercurial(VersionControl):
             rev_display,
             display_path(dest),
         )
-        self.run_command(['clone', '--noupdate', '-q', url, dest])
+        cls.run_command(['clone', '--noupdate', '-q', url, dest])
         cmd_args = ['update', '-q'] + rev_options.to_args()
-        self.run_command(cmd_args, cwd=dest)
+        cls.run_command(cmd_args, cwd=dest)
 
     def switch(self, dest, url, rev_options):
         repo_config = os.path.join(dest, self.dirname, 'hgrc')
-        config = configparser.SafeConfigParser()
+        config = configparser.RawConfigParser()
         try:
             config.read(repo_config)
             config.set('paths', 'default', url)
@@ -95,7 +96,8 @@ class Mercurial(VersionControl):
             show_stdout=False, cwd=location).strip()
         return current_rev_hash
 
-    def is_commit_id_equal(self, dest, name):
+    @classmethod
+    def is_commit_id_equal(cls, dest, name):
         """Always assume the versions don't match"""
         return False
 

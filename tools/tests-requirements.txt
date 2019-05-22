@@ -3,9 +3,11 @@ mock
 pretend
 pytest==3.8.2
 pytest-cov
-pytest-rerunfailures
+# Prevent installing 7.0 which has install_requires "pytest >= 3.10".
+pytest-rerunfailures<7.0
 pytest-timeout
-pytest-xdist
+# Prevent installing 1.28.0 which has install_requires "pytest >= 4.4.0".
+pytest-xdist<1.28.0
 pyyaml
 setuptools>=39.2.0  # Needed for `setuptools.wheel.Wheel` support.
 scripttest
