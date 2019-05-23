@@ -15,6 +15,9 @@ import sys
 from collections import defaultdict
 from itertools import chain
 
+from pip._vendor.packaging import specifiers
+
+from pip._internal import exceptions
 from pip._internal.exceptions import (
     BestVersionAlreadyInstalled, DistributionNotFound, HashError, HashErrors,
     UnsupportedPythonVersion,
@@ -22,11 +25,12 @@ from pip._internal.exceptions import (
 from pip._internal.req.constructors import install_req_from_req_string
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import dist_in_usersite, ensure_dir
-from pip._internal.utils.packaging import check_dist_requires_python
+from pip._internal.utils.packaging import check_requires_python, get_metadata
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, DefaultDict, List, Set
+    from typing import DefaultDict, List, Optional, Set, Tuple
+    from pip._vendor import pkg_resources
     from pip._internal.download import PipSession
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.index import PackageFinder
@@ -37,6 +41,35 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.cache import WheelCache
 
 logger = logging.getLogger(__name__)
+
+
+def check_dist_requires_python(
+        dist,  # type: pkg_resources.Distribution
+        version_info,  # type: Optional[Tuple[int, ...]]
+):
+    # type: (...) -> None
+    """
+    :param version_info: A 3-tuple of ints representing the Python
+        major-minor-micro version to check (e.g. `sys.version_info[:3]`).
+    """
+    pkg_info_dict = get_metadata(dist)
+    requires_python = pkg_info_dict.get('Requires-Python')
+    try:
+        if not check_requires_python(
+            requires_python, version_info=version_info,
+        ):
+            raise exceptions.UnsupportedPythonVersion(
+                "%s requires Python '%s' but the running Python is %s" % (
+                    dist.project_name,
+                    requires_python,
+                    '.'.join(map(str, version_info)),)
+            )
+    except specifiers.InvalidSpecifier as e:
+        logger.warning(
+            "Package %s has an invalid Requires-Python entry %s - %s",
+            dist.project_name, requires_python, e,
+        )
+        return
 
 
 class Resolver(object):
