@@ -1,4 +1,3 @@
-import pytest
 from mock import patch
 
 from pip._internal.vcs.subversion import Subversion
