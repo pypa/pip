@@ -32,8 +32,7 @@ class Mercurial(VersionControl):
                 ['archive', location], show_stdout=False, cwd=temp_dir.path
             )
 
-    @classmethod
-    def fetch_new(cls, dest, url, rev_options):
+    def fetch_new(self, dest, url, rev_options):
         rev_display = rev_options.to_display()
         logger.info(
             'Cloning hg %s%s to %s',
@@ -41,9 +40,9 @@ class Mercurial(VersionControl):
             rev_display,
             display_path(dest),
         )
-        cls.run_command(['clone', '--noupdate', '-q', url, dest])
+        self.run_command(['clone', '--noupdate', '-q', url, dest])
         cmd_args = ['update', '-q'] + rev_options.to_args()
-        cls.run_command(cmd_args, cwd=dest)
+        self.run_command(cmd_args, cwd=dest)
 
     def switch(self, dest, url, rev_options):
         repo_config = os.path.join(dest, self.dirname, 'hgrc')
