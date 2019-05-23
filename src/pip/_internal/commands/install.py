@@ -297,6 +297,7 @@ class InstallCommand(RequirementCommand):
                 python_versions=python_versions,
                 abi=options.abi,
                 implementation=options.implementation,
+                ignore_requires_python=options.ignore_requires_python,
             )
             build_delete = (not (options.no_clean or options.build_dir))
             wheel_cache = WheelCache(options.cache_dir, options.format_control)

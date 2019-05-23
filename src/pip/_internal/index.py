@@ -256,6 +256,49 @@ def _get_html_page(link, session=None):
     return None
 
 
+def _check_link_requires_python(
+    link,  # type: Link
+    version_info,  # type: Tuple[int, ...]
+    ignore_requires_python=False,  # type: bool
+):
+    # type: (...) -> bool
+    """
+    Return whether the given Python version is compatible with a link's
+    "Requires-Python" value.
+
+    :param version_info: The Python version to use to check, as a 3-tuple
+        of ints (major-minor-micro).
+    :param ignore_requires_python: Whether to ignore the "Requires-Python"
+        value if the given Python version isn't compatible.
+    """
+    try:
+        support_this_python = check_requires_python(
+            link.requires_python, version_info=version_info,
+        )
+    except specifiers.InvalidSpecifier:
+        logger.debug(
+            "Ignoring invalid Requires-Python (%r) for link: %s",
+            link.requires_python, link,
+        )
+    else:
+        if not support_this_python:
+            version = '.'.join(map(str, version_info))
+            if not ignore_requires_python:
+                logger.debug(
+                    'Link requires a different Python (%s not in: %r): %s',
+                    version, link.requires_python, link,
+                )
+                return False
+
+            logger.debug(
+                'Ignoring failed Requires-Python check (%s not in: %r) '
+                'for link: %s',
+                version, link.requires_python, link,
+            )
+
+    return True
+
+
 class CandidateEvaluator(object):
 
     """
@@ -269,6 +312,7 @@ class CandidateEvaluator(object):
         prefer_binary=False,   # type: bool
         allow_all_prereleases=False,  # type: bool
         py_version_info=None,  # type: Optional[Tuple[int, ...]]
+        ignore_requires_python=None,  # type: Optional[bool]
     ):
         # type: (...) -> None
         """
@@ -277,12 +321,17 @@ class CandidateEvaluator(object):
             representing a major-minor-micro version, to use to check both
             the Python version embedded in the filename and the package's
             "Requires-Python" metadata. Defaults to `sys.version_info[:3]`.
+        :param ignore_requires_python: Whether to ignore incompatible
+            "Requires-Python" values in links. Defaults to False.
         """
         if py_version_info is None:
             py_version_info = sys.version_info[:3]
+        if ignore_requires_python is None:
+            ignore_requires_python = False
 
         py_version = '.'.join(map(str, py_version_info[:2]))
 
+        self._ignore_requires_python = ignore_requires_python
         self._prefer_binary = prefer_binary
         self._py_version = py_version
         self._py_version_info = py_version_info
@@ -354,23 +403,15 @@ class CandidateEvaluator(object):
             py_version = match.group(1)
             if py_version != self._py_version:
                 return (False, 'Python version is incorrect')
-        try:
-            support_this_python = check_requires_python(
-                link.requires_python, version_info=self._py_version_info,
-            )
-        except specifiers.InvalidSpecifier:
-            logger.debug("Package %s has an invalid Requires-Python entry: %s",
-                         link.filename, link.requires_python)
-        else:
-            if not support_this_python:
-                logger.debug(
-                    "The package %s is incompatible with the python "
-                    "version in use. Acceptable python versions are: %s",
-                    link, link.requires_python,
-                )
-                # Return None for the reason text to suppress calling
-                # _log_skipped_link().
-                return (False, None)
+
+        supports_python = _check_link_requires_python(
+            link, version_info=self._py_version_info,
+            ignore_requires_python=self._ignore_requires_python,
+        )
+        if not supports_python:
+            # Return None for the reason text to suppress calling
+            # _log_skipped_link().
+            return (False, None)
 
         logger.debug('Found link %s, version: %s', link, version)
 
@@ -558,7 +599,8 @@ class PackageFinder(object):
         versions=None,  # type: Optional[List[str]]
         abi=None,  # type: Optional[str]
         implementation=None,  # type: Optional[str]
-        prefer_binary=False  # type: bool
+        prefer_binary=False,  # type: bool
+        ignore_requires_python=None,  # type: Optional[bool]
     ):
         # type: (...) -> PackageFinder
         """Create a PackageFinder.
@@ -582,6 +624,8 @@ class PackageFinder(object):
             to pep425tags.py in the get_supported() method.
         :param prefer_binary: Whether to prefer an old, but valid, binary
             dist over a new source dist.
+        :param ignore_requires_python: Whether to ignore incompatible
+            "Requires-Python" values in links. Defaults to False.
         """
         if session is None:
             raise TypeError(
@@ -617,6 +661,7 @@ class PackageFinder(object):
         candidate_evaluator = CandidateEvaluator(
             valid_tags=valid_tags, prefer_binary=prefer_binary,
             allow_all_prereleases=allow_all_prereleases,
+            ignore_requires_python=ignore_requires_python,
         )
 
         # If we don't have TLS enabled, then WARN if anyplace we're looking
