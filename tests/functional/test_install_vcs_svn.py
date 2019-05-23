@@ -5,7 +5,6 @@ from pip._internal.vcs.subversion import Subversion
 
 
 @patch('pip._internal.vcs.call_subprocess')
-@pytest.mark.network
 def test_obtain_should_recognize_auth_info_url(call_subprocess_mock, script):
     url = 'svn+http://username:password@svn.example.com/'
     # use_interactive is set to False to test that remote call options are
@@ -20,7 +19,6 @@ def test_obtain_should_recognize_auth_info_url(call_subprocess_mock, script):
 
 
 @patch('pip._internal.vcs.call_subprocess')
-@pytest.mark.network
 def test_export_should_recognize_auth_info_url(call_subprocess_mock, script):
     url = 'svn+http://username:password@svn.example.com/'
     # use_interactive is set to False to test that remote call options are
