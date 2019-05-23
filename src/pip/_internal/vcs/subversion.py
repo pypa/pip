@@ -20,6 +20,7 @@ _svn_info_xml_url_re = re.compile(r'<url>(.*)</url>')
 
 if MYPY_CHECK_RUNNING:
     from typing import List, Optional, Tuple
+    from pip._internal.vcs import RevOptions
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,7 @@ class Subversion(VersionControl):
             self.run_command(cmd_args, show_stdout=False)
 
     def fetch_new(self, dest, url, rev_options):
+        # type: (str, str, RevOptions) -> None
         rev_display = rev_options.to_display()
         logger.info(
             'Checking out %s%s to %s',
@@ -66,11 +68,13 @@ class Subversion(VersionControl):
         self.run_command(cmd_args)
 
     def switch(self, dest, url, rev_options):
+        # type: (str, str, RevOptions) -> None
         cmd_args = (['switch'] + self.get_remote_call_options() +
                     rev_options.to_args() + [url, dest])
         self.run_command(cmd_args)
 
     def update(self, dest, url, rev_options):
+        # type: (str, str, RevOptions) -> None
         cmd_args = (['update'] + self.get_remote_call_options() +
                     rev_options.to_args() + [dest])
         self.run_command(cmd_args)
