@@ -272,7 +272,7 @@ def _check_link_requires_python(
         value if the given Python version isn't compatible.
     """
     try:
-        support_this_python = check_requires_python(
+        is_compatible = check_requires_python(
             link.requires_python, version_info=version_info,
         )
     except specifiers.InvalidSpecifier:
@@ -281,7 +281,7 @@ def _check_link_requires_python(
             link.requires_python, link,
         )
     else:
-        if not support_this_python:
+        if not is_compatible:
             version = '.'.join(map(str, version_info))
             if not ignore_requires_python:
                 logger.debug(

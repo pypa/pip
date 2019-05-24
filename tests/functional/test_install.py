@@ -1305,6 +1305,12 @@ def test_double_install_fail(script):
     assert msg in result.stderr
 
 
+def _get_expected_error_text():
+    return (
+        "Package 'pkga' requires a different Python: {} not in '<1.0'"
+    ).format(sys.version.split()[0])
+
+
 def test_install_incompatible_python_requires(script):
     script.scratch_path.join("pkga").mkdir()
     pkga_path = script.scratch_path / 'pkga'
@@ -1315,8 +1321,7 @@ def test_install_incompatible_python_requires(script):
               version='0.1')
     """))
     result = script.pip('install', pkga_path, expect_error=True)
-    assert ("pkga requires Python '<1.0' "
-            "but the running Python is ") in result.stderr, str(result)
+    assert _get_expected_error_text() in result.stderr, str(result)
 
 
 def test_install_incompatible_python_requires_editable(script):
@@ -1330,8 +1335,7 @@ def test_install_incompatible_python_requires_editable(script):
     """))
     result = script.pip(
         'install', '--editable=%s' % pkga_path, expect_error=True)
-    assert ("pkga requires Python '<1.0' "
-            "but the running Python is ") in result.stderr, str(result)
+    assert _get_expected_error_text() in result.stderr, str(result)
 
 
 def test_install_incompatible_python_requires_wheel(script, with_wheel):
@@ -1347,8 +1351,7 @@ def test_install_incompatible_python_requires_wheel(script, with_wheel):
         'python', 'setup.py', 'bdist_wheel', '--universal', cwd=pkga_path)
     result = script.pip('install', './pkga/dist/pkga-0.1-py2.py3-none-any.whl',
                         expect_error=True)
-    assert ("pkga requires Python '<1.0' "
-            "but the running Python is ") in result.stderr
+    assert _get_expected_error_text() in result.stderr, str(result)
 
 
 def test_install_compatible_python_requires(script):

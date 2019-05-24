@@ -17,7 +17,6 @@ from itertools import chain
 
 from pip._vendor.packaging import specifiers
 
-from pip._internal import exceptions
 from pip._internal.exceptions import (
     BestVersionAlreadyInstalled, DistributionNotFound, HashError, HashErrors,
     UnsupportedPythonVersion,
@@ -25,7 +24,9 @@ from pip._internal.exceptions import (
 from pip._internal.req.constructors import install_req_from_req_string
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import dist_in_usersite, ensure_dir
-from pip._internal.utils.packaging import check_requires_python, get_metadata
+from pip._internal.utils.packaging import (
+    check_requires_python, get_requires_python,
+)
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -43,33 +44,52 @@ if MYPY_CHECK_RUNNING:
 logger = logging.getLogger(__name__)
 
 
-def check_dist_requires_python(
-        dist,  # type: pkg_resources.Distribution
-        version_info,  # type: Optional[Tuple[int, ...]]
+def _check_dist_requires_python(
+    dist,  # type: pkg_resources.Distribution
+    version_info,  # type: Tuple[int, ...]
+    ignore_requires_python=False,  # type: bool
 ):
     # type: (...) -> None
     """
-    :param version_info: A 3-tuple of ints representing the Python
-        major-minor-micro version to check (e.g. `sys.version_info[:3]`).
+    Check whether the given Python version is compatible with a distribution's
+    "Requires-Python" value.
+
+    :param version_info: The Python version to use to check, as a 3-tuple
+        of ints (major-minor-micro).
+    :param ignore_requires_python: Whether to ignore the "Requires-Python"
+        value if the given Python version isn't compatible.
+
+    :raises UnsupportedPythonVersion: When the given Python version isn't
+        compatible.
     """
-    pkg_info_dict = get_metadata(dist)
-    requires_python = pkg_info_dict.get('Requires-Python')
+    requires_python = get_requires_python(dist)
     try:
-        if not check_requires_python(
+        is_compatible = check_requires_python(
             requires_python, version_info=version_info,
-        ):
-            raise exceptions.UnsupportedPythonVersion(
-                "%s requires Python '%s' but the running Python is %s" % (
-                    dist.project_name,
-                    requires_python,
-                    '.'.join(map(str, version_info)),)
-            )
-    except specifiers.InvalidSpecifier as e:
+        )
+    except specifiers.InvalidSpecifier as exc:
         logger.warning(
-            "Package %s has an invalid Requires-Python entry %s - %s",
-            dist.project_name, requires_python, e,
+            "Package %r has an invalid Requires-Python: %s",
+            dist.project_name, exc,
         )
         return
+
+    if is_compatible:
+        return
+
+    version = '.'.join(map(str, version_info))
+    if ignore_requires_python:
+        logger.debug(
+            'Ignoring failed Requires-Python check for package %r: '
+            '%s not in %r',
+            dist.project_name, version, requires_python,
+        )
+        return
+
+    raise UnsupportedPythonVersion(
+        'Package {!r} requires a different Python: {} not in {!r}'.format(
+            dist.project_name, version, requires_python,
+        ))
 
 
 class Resolver(object):
@@ -92,11 +112,17 @@ class Resolver(object):
         force_reinstall,  # type: bool
         isolated,  # type: bool
         upgrade_strategy,  # type: str
-        use_pep517=None  # type: Optional[bool]
+        use_pep517=None,  # type: Optional[bool]
+        py_version_info=None,  # type: Optional[Tuple[int, ...]]
     ):
         # type: (...) -> None
         super(Resolver, self).__init__()
         assert upgrade_strategy in self._allowed_strategies
+
+        if py_version_info is None:
+            py_version_info = sys.version_info[:3]
+
+        self._py_version_info = py_version_info
 
         self.preparer = preparer
         self.finder = finder
@@ -329,13 +355,12 @@ class Resolver(object):
 
         # Parse and return dependencies
         dist = abstract_dist.dist()
-        try:
-            check_dist_requires_python(dist, version_info=sys.version_info[:3])
-        except UnsupportedPythonVersion as err:
-            if self.ignore_requires_python:
-                logger.warning(err.args[0])
-            else:
-                raise
+        # This will raise UnsupportedPythonVersion if the given Python
+        # version isn't compatible with the distribution's Requires-Python.
+        _check_dist_requires_python(
+            dist, version_info=self._py_version_info,
+            ignore_requires_python=self.ignore_requires_python,
+        )
 
         more_reqs = []  # type: List[InstallRequirement]
 
