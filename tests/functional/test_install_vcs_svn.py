@@ -51,21 +51,21 @@ class TestSubversionArgs(TestCase):
     def assert_call_args(self, args):
         assert self.call_subprocess_mock.call_args[0][0] == args
 
-    def test_fetch_new_should_include_remote_call_options(self):
+    def test_fetch_new(self):
         self.svn.fetch_new(self.dest, self.url, self.rev_options)
         self.assert_call_args(
             ['svn', 'checkout', '-q', '--non-interactive',
              'svn+http://username:password@svn.example.com/',
              '/tmp/test'])
 
-    def test_switch_should_include_remote_call_options(self):
+    def test_switch(self):
         self.svn.switch(self.dest, self.url, self.rev_options)
         self.assert_call_args(
             ['svn', 'switch', '--non-interactive',
              'svn+http://username:password@svn.example.com/',
              '/tmp/test'])
 
-    def test_update_should_include_remote_call_options(self):
+    def test_update(self):
         self.svn.update(self.dest, self.url, self.rev_options)
         self.assert_call_args(
             ['svn', 'update', '--non-interactive', '/tmp/test'])
