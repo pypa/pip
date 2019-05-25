@@ -8,10 +8,10 @@ from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import RequirementCommand
 from pip._internal.exceptions import CommandError, PreviousBuildDirError
+from pip._internal.legacy_resolve import Resolver
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import RequirementSet
 from pip._internal.req.req_tracker import RequirementTracker
-from pip._internal.resolve import Resolver
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.wheel import WheelBuilder
 
