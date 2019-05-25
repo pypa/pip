@@ -20,7 +20,7 @@ import pytest
 from mock import Mock, patch
 
 from pip._internal.exceptions import (
-    HashMismatch, HashMissing, InstallationError, UnsupportedPythonVersion,
+    HashMismatch, HashMissing, InstallationError,
 )
 from pip._internal.utils.encoding import BOMS, auto_decode
 from pip._internal.utils.glibc import check_glibc_version
@@ -31,7 +31,6 @@ from pip._internal.utils.misc import (
     redact_password_from_url, remove_auth_from_url, rmtree,
     split_auth_from_netloc, split_auth_netloc_from_url, untar_file, unzip_file,
 )
-from pip._internal.utils.packaging import check_dist_requires_python
 from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
 from pip._internal.utils.ui import SpinnerInterface
 
@@ -697,31 +696,6 @@ class TestGlibc(object):
                 else:
                     # Didn't find the warning we were expecting
                     assert False
-
-
-class TestCheckRequiresPython(object):
-
-    @pytest.mark.parametrize(
-        ("metadata", "should_raise"),
-        [
-            ("Name: test\n", False),
-            ("Name: test\nRequires-Python:", False),
-            ("Name: test\nRequires-Python: invalid_spec", False),
-            ("Name: test\nRequires-Python: <=1", True),
-        ],
-    )
-    def test_check_requires(self, metadata, should_raise):
-        fake_dist = Mock(
-            has_metadata=lambda _: True,
-            get_metadata=lambda _: metadata)
-        version_info = sys.version_info[:3]
-        if should_raise:
-            with pytest.raises(UnsupportedPythonVersion):
-                check_dist_requires_python(
-                    fake_dist, version_info=version_info,
-                )
-        else:
-            check_dist_requires_python(fake_dist, version_info=version_info)
 
 
 class TestGetProg(object):
