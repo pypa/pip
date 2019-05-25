@@ -20,6 +20,7 @@ _svn_info_xml_url_re = re.compile(r'<url>(.*)</url>')
 
 if MYPY_CHECK_RUNNING:
     from typing import List, Optional, Tuple
+    from pip._internal.vcs import RevOptions
 
 logger = logging.getLogger(__name__)
 
@@ -48,10 +49,12 @@ class Subversion(VersionControl):
                 # Subversion doesn't like to check out over an existing
                 # directory --force fixes this, but was only added in svn 1.5
                 rmtree(location)
-            cmd_args = ['export'] + rev_options.to_args() + [url, location]
+            cmd_args = (['export'] + self.get_remote_call_options() +
+                        rev_options.to_args() + [url, location])
             self.run_command(cmd_args, show_stdout=False)
 
     def fetch_new(self, dest, url, rev_options):
+        # type: (str, str, RevOptions) -> None
         rev_display = rev_options.to_display()
         logger.info(
             'Checking out %s%s to %s',
@@ -59,15 +62,21 @@ class Subversion(VersionControl):
             rev_display,
             display_path(dest),
         )
-        cmd_args = ['checkout', '-q'] + rev_options.to_args() + [url, dest]
+        cmd_args = (['checkout', '-q'] +
+                    self.get_remote_call_options() +
+                    rev_options.to_args() + [url, dest])
         self.run_command(cmd_args)
 
     def switch(self, dest, url, rev_options):
-        cmd_args = ['switch'] + rev_options.to_args() + [url, dest]
+        # type: (str, str, RevOptions) -> None
+        cmd_args = (['switch'] + self.get_remote_call_options() +
+                    rev_options.to_args() + [url, dest])
         self.run_command(cmd_args)
 
     def update(self, dest, url, rev_options):
-        cmd_args = ['update'] + rev_options.to_args() + [dest]
+        # type: (str, str, RevOptions) -> None
+        cmd_args = (['update'] + self.get_remote_call_options() +
+                    rev_options.to_args() + [dest])
         self.run_command(cmd_args)
 
     @classmethod
@@ -177,6 +186,11 @@ class Subversion(VersionControl):
         else:
             try:
                 # subversion >= 1.7
+                # Note that using get_remote_call_options is not necessary here
+                # because `svn info` is being run against a local directory.
+                # We don't need to worry about making sure interactive mode
+                # is being used to prompt for passwords, because passwords
+                # are only potentially needed for remote server requests.
                 xml = cls.run_command(
                     ['info', '--xml', location],
                     show_stdout=False,
