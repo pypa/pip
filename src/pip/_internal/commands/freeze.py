@@ -61,7 +61,8 @@ class FreezeCommand(Command):
             '--path',
             dest='path',
             action='append',
-            help='Use the specified installation path for listing packages')
+            help='Restrict to the specified installation path for listing '
+                 'packages (can be used multiple times).')
         self.cmd_opts.add_option(
             '--all',
             dest='freeze_all',
