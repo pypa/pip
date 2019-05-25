@@ -1,0 +1,2 @@
+Include more details in the log message if ``pip freeze`` can't generate a
+requirement string for a particular distribution.

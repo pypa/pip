@@ -108,12 +108,19 @@ def test_freeze_with_invalid_names(script):
             '...{}==1.0...'.format(pkgname.replace('_', '-'))
         )
     for pkgname in invalid_pkgnames:
-        _check_output(
-            result.stderr,
-            '...Could not parse requirement: {}\n...'.format(
-                pkgname.replace('_', '-')
-            )
+        # Check that the full distribution repr is present.
+        dist_repr = '{} 1.0 ('.format(pkgname.replace('_', '-'))
+        expected = (
+            '...Could not generate requirement for '
+            'distribution {}...'.format(dist_repr)
         )
+        _check_output(result.stderr, expected)
+
+    # Also check that the parse error details occur at least once.
+    # We only need to find one occurrence to know that exception details
+    # are logged.
+    expected = '...site-packages): Parse error at "...'
+    _check_output(result.stderr, expected)
 
 
 @pytest.mark.git

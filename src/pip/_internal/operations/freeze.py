@@ -60,10 +60,14 @@ def freeze(
                                             user_only=user_only):
         try:
             req = FrozenRequirement.from_dist(dist)
-        except RequirementParseError:
+        except RequirementParseError as exc:
+            # We include dist rather than dist.project_name because the
+            # dist string includes more information, like the version and
+            # location. We also include the exception message to aid
+            # troubleshooting.
             logger.warning(
-                "Could not parse requirement: %s",
-                dist.project_name
+                'Could not generate requirement for distribution %r: %s',
+                dist, exc
             )
             continue
         if exclude_editable and req.editable:
