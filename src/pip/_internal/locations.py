@@ -171,8 +171,9 @@ def distutils_scheme(dist_name, user=False, home=None, root=None,
     # or user base for installations during finalize_options()
     # ideally, we'd prefer a scheme class that has no side-effects.
     assert not (user and prefix), "user={} prefix={}".format(user, prefix)
+    assert not (home and prefix), "home={} prefix={}".format(home, prefix)
     i.user = user or i.user
-    if user:
+    if user or home:
         i.prefix = ""
     i.prefix = prefix or i.prefix
     i.home = home or i.home
