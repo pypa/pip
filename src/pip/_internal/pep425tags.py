@@ -49,6 +49,12 @@ def get_abbr_impl():
     return pyimpl
 
 
+def version_info_to_nodot(version_info):
+    # type: (Tuple[int, ...]) -> str
+    # Only use up to the first two numbers.
+    return ''.join(map(str, version_info[:2]))
+
+
 def get_impl_ver():
     # type: () -> str
     """Return implementation version."""

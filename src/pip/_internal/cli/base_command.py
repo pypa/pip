@@ -324,7 +324,7 @@ class RequirementCommand(Command):
         options,               # type: Values
         session,               # type: PipSession
         platform=None,         # type: Optional[str]
-        python_versions=None,  # type: Optional[List[str]]
+        py_version_info=None,  # type: Optional[Tuple[int, ...]]
         abi=None,              # type: Optional[str]
         implementation=None,   # type: Optional[str]
         ignore_requires_python=None,  # type: Optional[bool]
@@ -352,7 +352,7 @@ class RequirementCommand(Command):
             allow_all_prereleases=options.pre,
             session=session,
             platform=platform,
-            versions=python_versions,
+            py_version_info=py_version_info,
             abi=abi,
             implementation=implementation,
             prefer_binary=options.prefer_binary,

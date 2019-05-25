@@ -24,7 +24,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import BAR_TYPES
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Callable, Dict, Optional
+    from typing import Any, Callable, Dict, Optional, Tuple
     from optparse import OptionParser, Values
     from pip._internal.cli.parser import ConfigOptionParser
 
@@ -478,11 +478,36 @@ platform = partial(
 )  # type: Callable[..., Option]
 
 
+# This was made a separate function for unit-testing purposes.
+def _convert_python_version(value):
+    # type: (str) -> Tuple[int, ...]
+    """
+    Convert a string like "3" or "34" into a tuple of ints.
+    """
+    if len(value) == 1:
+        parts = [value]
+    else:
+        parts = [value[0], value[1:]]
+
+    return tuple(int(part) for part in parts)
+
+
+def _handle_python_version(option, opt_str, value, parser):
+    # type: (Option, str, str, OptionParser) -> None
+    """
+    Convert a string like "3" or "34" into a tuple of ints.
+    """
+    version_info = _convert_python_version(value)
+    parser.values.python_version = version_info
+
+
 python_version = partial(
     Option,
     '--python-version',
     dest='python_version',
     metavar='python_version',
+    action='callback',
+    callback=_handle_python_version, type='str',
     default=None,
     help=("Only use wheels compatible with Python "
           "interpreter version <version>. If not specified, then the "
