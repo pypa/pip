@@ -54,16 +54,18 @@ class TestSubversionArgs(TestCase):
     def test_fetch_new_should_include_remote_call_options(self):
         self.svn.fetch_new(self.dest, self.url, self.rev_options)
         self.assert_call_args(
-            [self.svn.name, 'checkout', '-q', '--non-interactive', self.url,
-             self.dest])
+            ['svn', 'checkout', '-q', '--non-interactive',
+             'svn+http://username:password@svn.example.com/',
+             '/tmp/test'])
 
     def test_switch_should_include_remote_call_options(self):
         self.svn.switch(self.dest, self.url, self.rev_options)
         self.assert_call_args(
-            [self.svn.name, 'switch', '--non-interactive', self.url,
-             self.dest])
+            ['svn', 'switch', '--non-interactive',
+             'svn+http://username:password@svn.example.com/',
+             '/tmp/test'])
 
     def test_update_should_include_remote_call_options(self):
         self.svn.update(self.dest, self.url, self.rev_options)
         self.assert_call_args(
-            [self.svn.name, 'update', '--non-interactive', self.dest])
+            ['svn', 'update', '--non-interactive', '/tmp/test'])
