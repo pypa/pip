@@ -543,7 +543,8 @@ cache_dir = partial(
 )  # type: Callable[..., Option]
 
 
-def no_cache_dir_callback(option, opt, value, parser):
+def _handle_no_cache_dir(option, opt, value, parser):
+    # type: (Option, str, str, OptionParser) -> None
     """
     Process a value provided for the --no-cache-dir option.
 
@@ -575,7 +576,7 @@ no_cache = partial(
     "--no-cache-dir",
     dest="cache_dir",
     action="callback",
-    callback=no_cache_dir_callback,
+    callback=_handle_no_cache_dir,
     help="Disable the cache.",
 )  # type: Callable[..., Option]
 
@@ -620,7 +621,8 @@ no_build_isolation = partial(
 )  # type: Callable[..., Option]
 
 
-def no_use_pep517_callback(option, opt, value, parser):
+def _handle_no_use_pep517(option, opt, value, parser):
+    # type: (Option, str, str, OptionParser) -> None
     """
     Process a value provided for the --no-use-pep517 option.
 
@@ -658,7 +660,7 @@ no_use_pep517 = partial(
     '--no-use-pep517',
     dest='use_pep517',
     action='callback',
-    callback=no_use_pep517_callback,
+    callback=_handle_no_use_pep517,
     default=None,
     help=SUPPRESS_HELP
 )  # type: Any
@@ -724,7 +726,7 @@ always_unzip = partial(
 )  # type: Callable[..., Option]
 
 
-def _merge_hash(option, opt_str, value, parser):
+def _handle_merge_hash(option, opt_str, value, parser):
     # type: (Option, str, str, OptionParser) -> None
     """Given a value spelled "algo:digest", append the digest to a list
     pointed to in a dict by the algo name."""
@@ -749,7 +751,7 @@ hash = partial(
     # __dict__ copying in process_line().
     dest='hashes',
     action='callback',
-    callback=_merge_hash,
+    callback=_handle_merge_hash,
     type='string',
     help="Verify that the package's archive matches this "
          'hash before installing. Example: --hash=sha256:abcdef...',
