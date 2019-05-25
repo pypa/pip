@@ -4,7 +4,7 @@ import pytest
 from mock import patch
 
 from pip._internal.exceptions import UnsupportedPythonVersion
-from pip._internal.resolve import _check_dist_requires_python
+from pip._internal.legacy_resolve import _check_dist_requires_python
 
 
 class FakeDist(object):
@@ -18,7 +18,7 @@ def dist():
     return FakeDist('my-project')
 
 
-@patch('pip._internal.resolve.get_requires_python')
+@patch('pip._internal.legacy_resolve.get_requires_python')
 class TestCheckDistRequiresPython(object):
 
     """

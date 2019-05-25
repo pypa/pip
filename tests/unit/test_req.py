@@ -15,6 +15,7 @@ from pip._internal.exceptions import (
     HashErrors, InstallationError, InvalidWheelFilename, PreviousBuildDirError,
 )
 from pip._internal.index import PackageFinder
+from pip._internal.legacy_resolve import Resolver
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import InstallRequirement, RequirementSet
 from pip._internal.req.constructors import (
@@ -22,7 +23,6 @@ from pip._internal.req.constructors import (
 )
 from pip._internal.req.req_file import process_line
 from pip._internal.req.req_tracker import RequirementTracker
-from pip._internal.resolve import Resolver
 from tests.lib import DATA_DIR, assert_raises_regexp, requirements_file
 
 
