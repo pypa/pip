@@ -44,6 +44,15 @@ class TestSubversionArgs(TestCase):
              'svn+http://username:password@svn.example.com/',
              '/tmp/test'])
 
+    def test_fetch_new_revision(self):
+        rev_options = RevOptions(Subversion, '123')
+        self.svn.fetch_new(self.dest, self.url, rev_options)
+        self.assert_call_args(
+            ['svn', 'checkout', '-q', '--non-interactive',
+             '-r', '123',
+             'svn+http://username:password@svn.example.com/',
+             '/tmp/test'])
+
     def test_switch(self):
         self.svn.switch(self.dest, self.url, self.rev_options)
         self.assert_call_args(
