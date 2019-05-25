@@ -310,22 +310,41 @@ class CandidateEvaluator(object):
             pri = -(support_num)
         return (binary_preference, candidate.version, build_tag, pri)
 
-    def get_best_candidates(self, candidates):
+    def get_best_candidate(self, candidates, hashes=None):
+        # type: (List[InstallationCandidate], Optional[Hashes]) -> Optional[InstallationCandidate]  # noqa: E501
         """
-        Return the candidates in descending order of preference.
-        """
-        return sorted(candidates, key=self._sort_key, reverse=True)
-
-    def get_best_candidate(self, candidates):
-        # type: (List[InstallationCandidate]) -> InstallationCandidate
-        """
-        Return the best candidate per the instance's sort order, or None if
-        no candidates are given.
+        Return the best candidate per the instance's sort order, ignoring
+        any that do not match the provided hashes in hash-checking mode.
+        Returns None if no candidates are given or none match the hashes.
         """
         if not candidates:
             return None
 
-        return max(candidates, key=self._sort_key)
+        # If we are in hash-checking mode, filter out candidates that will
+        # fail the hash check per the hash provided in their Link URL to
+        # prevent HashMismatch errors. However, if no hashes are provided
+        # we don't want to filter out all candidates, but instead let
+        # a HashMissing error get raised later.
+        # This is not a security check: after download the contents will
+        # be hashed and compared to the known-good hashes.
+        if not hashes:
+            return max(candidates, self._sort_key)
+
+        candidates = sorted(candidates, key=self._sort_key, reverse=True)
+        for candidate in candidates:
+            link = candidate.location
+            if not link.hash:
+                # Candidates with no hash in their URLs probably still match
+                # the provided hashes, so we shouldn't filter them out.
+                return candidate
+            if hashes.test_against_hash(link.hash_name, link.hash):
+                return candidate
+            logger.warning(
+                "candidate %s ignored: hash %s:%s not among provided hashes",
+                link.filename, link.hash_name, link.hash,
+            )
+
+        return None
 
 
 class FoundCandidates(object):
@@ -398,31 +417,8 @@ class FoundCandidates(object):
         """Return the best candidate available, or None if no applicable
         candidates are found.
         """
-        iter_candidates = self.iter_applicable()
-        if hashes:
-            # If we are in hash-checking mode, filter out candidates that will
-            # fail the hash check per the hash provided in their Link URL to
-            # prevent HashMismatch errors. However, if no hashes are provided
-            # we don't want to filter out all candidates, but instead let
-            # a HashMissing error get raised later.
-            # This is not a security check: after download the contents will
-            # be hashed and compared to the known-good hashes.
-            candidates = self._evaluator.get_best_candidates(iter_candidates)
-            for c in candidates:
-                link = c.location
-                if not link.hash:
-                    # We can only filter candidates with hashes in their URLs.
-                    return c
-                if hashes.test_against_hash(link.hash_name, link.hash):
-                    return c
-                logger.warning(
-                    "candidate %s ignored: hash %s:%s not among provided "
-                    "hashes",
-                    link.filename, link.hash_name, link.hash,
-                )
-        else:
-            candidates = list(iter_candidates)
-            return self._evaluator.get_best_candidate(candidates)
+        candidates = list(self.iter_applicable())
+        return self._evaluator.get_best_candidate(candidates, hashes=hashes)
 
 
 class PackageFinder(object):
