@@ -68,6 +68,15 @@ def make_test_install_req(base_name=None):
     return req
 
 
+@pytest.mark.parametrize('file_tag, expected', [
+    (('py27', 'none', 'any'), 'py27-none-any'),
+    (('cp33', 'cp32dmu', 'linux_x86_64'), 'cp33-cp32dmu-linux_x86_64'),
+])
+def test_format_tag(file_tag, expected):
+    actual = wheel.format_tag(file_tag)
+    assert actual == expected
+
+
 @pytest.mark.parametrize(
     "base_name, autobuilding, cache_available, expected",
     [
