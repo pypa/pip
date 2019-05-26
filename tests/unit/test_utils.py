@@ -22,6 +22,7 @@ from mock import Mock, patch
 from pip._internal.exceptions import (
     HashMismatch, HashMissing, InstallationError,
 )
+from pip._internal.utils.deprecation import PipDeprecationWarning, deprecated
 from pip._internal.utils.encoding import BOMS, auto_decode
 from pip._internal.utils.glibc import check_glibc_version
 from pip._internal.utils.hashes import Hashes, MissingHashes
@@ -1068,3 +1069,79 @@ def test_remove_auth_from_url(auth_url, expected_url):
 def test_redact_password_from_url(auth_url, expected_url):
     url = redact_password_from_url(auth_url)
     assert url == expected_url
+
+
+@pytest.fixture()
+def patch_deprecation_check_version():
+    # We do this, so that the deprecation tests are easier to write.
+    import pip._internal.utils.deprecation as d
+    old_version = d.current_version
+    d.current_version = "1.0"
+    yield
+    d.current_version = old_version
+
+
+@pytest.mark.usefixtures("patch_deprecation_check_version")
+@pytest.mark.parametrize("replacement", [None, "a magic 8 ball"])
+@pytest.mark.parametrize("gone_in", [None, "2.0"])
+@pytest.mark.parametrize("issue", [None, 988])
+def test_deprecated_message_contains_information(gone_in, replacement, issue):
+    with pytest.warns(PipDeprecationWarning) as record:
+        deprecated(
+            "Stop doing this!",
+            replacement=replacement,
+            gone_in=gone_in,
+            issue=issue,
+        )
+
+    assert len(record) == 1
+    message = record[0].message.args[0]
+
+    assert "DEPRECATION: Stop doing this!" in message
+    # Ensure non-None values are mentioned.
+    for item in [gone_in, replacement, issue]:
+        if item is not None:
+            assert str(item) in message
+
+
+@pytest.mark.usefixtures("patch_deprecation_check_version")
+@pytest.mark.parametrize("replacement", [None, "a magic 8 ball"])
+@pytest.mark.parametrize("issue", [None, 988])
+def test_deprecated_raises_error_if_too_old(replacement, issue):
+    with pytest.raises(PipDeprecationWarning) as exception:
+        deprecated(
+            "Stop doing this!",
+            gone_in="1.0",  # this matches the patched version.
+            replacement=replacement,
+            issue=issue,
+        )
+
+    message = exception.value.args[0]
+
+    assert "DEPRECATION: Stop doing this!" in message
+    assert "1.0" in message
+    # Ensure non-None values are mentioned.
+    for item in [replacement, issue]:
+        if item is not None:
+            assert str(item) in message
+
+
+@pytest.mark.usefixtures("patch_deprecation_check_version")
+def test_deprecated_message_reads_well():
+    with pytest.raises(PipDeprecationWarning) as exception:
+        deprecated(
+            "Stop doing this!",
+            gone_in="1.0",  # this matches the patched version.
+            replacement="to be nicer",
+            issue="100000",  # I hope we never reach this number.
+        )
+
+    message = exception.value.args[0]
+
+    assert message == (
+        "DEPRECATION: Stop doing this! "
+        "pip 1.0 will remove support for this functionality. "
+        "A possible replacement is to be nicer. "
+        "You can find discussion regarding this at "
+        "https://github.com/pypa/pip/issues/100000."
+    )
