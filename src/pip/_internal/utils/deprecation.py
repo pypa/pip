@@ -78,8 +78,8 @@ def deprecated(reason, replacement, gone_in, issue=None):
     """
 
     # Construct a nice message.
-    # This is purposely eagerly formatted as we want it to appear as if someone
-    # typed this entire message out.
+    #   This is eagerly formatted as we want it to get logged as if someone
+    #   typed this entire message out.
     message = DEPRECATION_MSG_PREFIX + reason
 
     if gone_in is not None:
@@ -95,4 +95,5 @@ def deprecated(reason, replacement, gone_in, issue=None):
     # Raise as an error if it has to be removed.
     if gone_in is not None and parse(current_version) >= parse(gone_in):
         raise PipDeprecationWarning(message)
+
     warnings.warn(message, category=PipDeprecationWarning, stacklevel=2)
