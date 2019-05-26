@@ -130,6 +130,24 @@ class TestCandidateEvaluator:
         actual = evaluator.evaluate_link(link, search=search)
         assert actual == expected
 
+    def test_evaluate_link__incompatible_wheel(self):
+        """
+        Test an incompatible wheel.
+        """
+        link = Link('https://example.com/sample-1.0-py2.py3-none-any.whl')
+        search = Search(
+            supplied='sample', canonical='sample', formats=['binary'],
+        )
+        # Pass an empty list for the valid tags to make sure nothing matches.
+        evaluator = CandidateEvaluator(
+            [], py_version_info=(3, 6, 4),
+        )
+        actual = evaluator.evaluate_link(link, search=search)
+        expected = (
+            False, "none of the wheel's tags match: py2-none-any, py3-none-any"
+        )
+        assert actual == expected
+
 
 def test_sort_locations_file_expand_dir(data):
     """

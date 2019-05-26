@@ -384,7 +384,15 @@ class CandidateEvaluator(object):
                     return (False, reason)
 
                 if not self._is_wheel_supported(wheel):
-                    return (False, 'it is not compatible with this Python')
+                    # Include the wheel's tags in the reason string to
+                    # simplify troubleshooting compatibility issues.
+                    file_tags = wheel.get_formatted_file_tags()
+                    reason = (
+                        "none of the wheel's tags match: {}".format(
+                            ', '.join(file_tags)
+                        )
+                    )
+                    return (False, reason)
 
                 version = wheel.version
 
@@ -1066,7 +1074,9 @@ class PackageFinder(object):
     def _log_skipped_link(self, link, reason):
         # type: (Link, str) -> None
         if link not in self._logged_links:
-            logger.debug('Skipping link %s; %s', link, reason)
+            # Put the link at the end so the reason is more visible and
+            # because the link string is usually very long.
+            logger.debug('Skipping link: %s: %s', reason, link)
             self._logged_links.add(link)
 
     def get_install_candidate(self, link, search):

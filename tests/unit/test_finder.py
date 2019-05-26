@@ -133,10 +133,7 @@ class TestWheel:
         with pytest.raises(DistributionNotFound):
             finder.find_requirement(req, True)
 
-        assert (
-            "invalid.whl; invalid wheel filename"
-            in caplog.text
-        )
+        assert 'Skipping link: invalid wheel filename:' in caplog.text
 
     def test_not_find_wheel_not_supported(self, data, monkeypatch):
         """

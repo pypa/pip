@@ -663,6 +663,16 @@ def check_compatibility(version, name):
         )
 
 
+def format_tag(file_tag):
+    # type: (Tuple[str, ...]) -> str
+    """
+    Format three tags in the form "<python_tag>-<abi_tag>-<platform_tag>".
+
+    :param file_tag: A 3-tuple of tags (python_tag, abi_tag, platform_tag).
+    """
+    return '-'.join(file_tag)
+
+
 class Wheel(object):
     """A wheel file"""
 
@@ -701,6 +711,13 @@ class Wheel(object):
             (x, y, z) for x in self.pyversions
             for y in self.abis for z in self.plats
         }
+
+    def get_formatted_file_tags(self):
+        # type: () -> List[str]
+        """
+        Return the wheel's tags as a sorted list of strings.
+        """
+        return sorted(format_tag(tag) for tag in self.file_tags)
 
     def support_index_min(self, tags=None):
         # type: (Optional[List[Pep425Tag]]) -> Optional[int]
