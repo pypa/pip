@@ -1,13 +1,18 @@
+import os
+
 import pytest
 from mock import patch
 from pip._vendor.packaging.version import parse as parse_version
 
-from pip._internal.vcs import RevOptions, VersionControl
+from pip._internal.exceptions import BadCommand
+from pip._internal.vcs import (
+    RevOptions, VersionControl, make_vcs_requirement_url,
+)
 from pip._internal.vcs.bazaar import Bazaar
 from pip._internal.vcs.git import Git, looks_like_hash
 from pip._internal.vcs.mercurial import Mercurial
 from pip._internal.vcs.subversion import Subversion
-from tests.lib import pyversion
+from tests.lib import is_svn_installed, pyversion
 
 if pyversion >= '3':
     VERBOSE_FALSE = False
@@ -15,27 +20,54 @@ else:
     VERBOSE_FALSE = 0
 
 
+@pytest.mark.skipif(
+    'TRAVIS' not in os.environ,
+    reason='Subversion is only required under Travis')
+def test_ensure_svn_available():
+    """Make sure that svn is available when running in Travis."""
+    assert is_svn_installed()
+
+
+@pytest.mark.parametrize('args, expected', [
+    # Test without subdir.
+    (('git+https://example.com/pkg', 'dev', 'myproj'),
+     'git+https://example.com/pkg@dev#egg=myproj'),
+    # Test with subdir.
+    (('git+https://example.com/pkg', 'dev', 'myproj', 'sub/dir'),
+     'git+https://example.com/pkg@dev#egg=myproj&subdirectory=sub/dir'),
+    # Test with None subdir.
+    (('git+https://example.com/pkg', 'dev', 'myproj', None),
+     'git+https://example.com/pkg@dev#egg=myproj'),
+    # Test an unescaped project name.
+    (('git+https://example.com/pkg', 'dev', 'zope-interface'),
+     'git+https://example.com/pkg@dev#egg=zope_interface'),
+])
+def test_make_vcs_requirement_url(args, expected):
+    actual = make_vcs_requirement_url(*args)
+    assert actual == expected
+
+
 def test_rev_options_repr():
-    rev_options = RevOptions(Git(), 'develop')
+    rev_options = RevOptions(Git, 'develop')
     assert repr(rev_options) == "<RevOptions git: rev='develop'>"
 
 
-@pytest.mark.parametrize(('vcs', 'expected1', 'expected2', 'kwargs'), [
+@pytest.mark.parametrize(('vc_class', 'expected1', 'expected2', 'kwargs'), [
     # First check VCS-specific RevOptions behavior.
-    (Bazaar(), [], ['-r', '123'], {}),
-    (Git(), ['HEAD'], ['123'], {}),
-    (Mercurial(), [], ['123'], {}),
-    (Subversion(), [], ['-r', '123'], {}),
+    (Bazaar, [], ['-r', '123'], {}),
+    (Git, ['HEAD'], ['123'], {}),
+    (Mercurial, [], ['123'], {}),
+    (Subversion, [], ['-r', '123'], {}),
     # Test extra_args.  For this, test using a single VersionControl class.
-    (Git(), ['HEAD', 'opt1', 'opt2'], ['123', 'opt1', 'opt2'],
+    (Git, ['HEAD', 'opt1', 'opt2'], ['123', 'opt1', 'opt2'],
         dict(extra_args=['opt1', 'opt2'])),
 ])
-def test_rev_options_to_args(vcs, expected1, expected2, kwargs):
+def test_rev_options_to_args(vc_class, expected1, expected2, kwargs):
     """
     Test RevOptions.to_args().
     """
-    assert RevOptions(vcs, **kwargs).to_args() == expected1
-    assert RevOptions(vcs, '123', **kwargs).to_args() == expected2
+    assert RevOptions(vc_class, **kwargs).to_args() == expected1
+    assert RevOptions(vc_class, '123', **kwargs).to_args() == expected2
 
 
 def test_rev_options_to_display():
@@ -44,12 +76,10 @@ def test_rev_options_to_display():
     """
     # The choice of VersionControl class doesn't matter here since
     # the implementation is the same for all of them.
-    vcs = Git()
-
-    rev_options = RevOptions(vcs)
+    rev_options = RevOptions(Git)
     assert rev_options.to_display() == ''
 
-    rev_options = RevOptions(vcs, 'master')
+    rev_options = RevOptions(Git, 'master')
     assert rev_options.to_display() == ' (to revision master)'
 
 
@@ -59,15 +89,13 @@ def test_rev_options_make_new():
     """
     # The choice of VersionControl class doesn't matter here since
     # the implementation is the same for all of them.
-    vcs = Git()
-
-    rev_options = RevOptions(vcs, 'master', extra_args=['foo', 'bar'])
+    rev_options = RevOptions(Git, 'master', extra_args=['foo', 'bar'])
     new_options = rev_options.make_new('develop')
 
     assert new_options is not rev_options
     assert new_options.extra_args == ['foo', 'bar']
     assert new_options.rev == 'develop'
-    assert new_options.vcs is vcs
+    assert new_options.vc_class is Git
 
 
 def test_looks_like_hash():
@@ -77,6 +105,18 @@ def test_looks_like_hash():
     assert looks_like_hash(18 * 'a' + '0123456789abcdefABCDEF')
     assert not looks_like_hash(40 * 'g')
     assert not looks_like_hash(39 * 'a')
+
+
+@pytest.mark.parametrize('vcs_cls, remote_url, expected', [
+    # Git is one of the subclasses using the base class implementation.
+    (Git, 'git://example.com/MyProject', False),
+    (Git, 'http://example.com/MyProject', True),
+    # Subversion is the only subclass overriding the base class implementation.
+    (Subversion, 'svn://example.com/MyProject', True),
+])
+def test_should_add_vcs_url_prefix(vcs_cls, remote_url, expected):
+    actual = vcs_cls.should_add_vcs_url_prefix(remote_url)
+    assert actual == expected
 
 
 @patch('pip._internal.vcs.git.Git.get_revision')
@@ -100,38 +140,35 @@ def test_git_get_src_requirements(mock_get_remote_url, mock_get_revision):
 @patch('pip._internal.vcs.git.Git.get_revision_sha')
 def test_git_resolve_revision_rev_exists(get_sha_mock):
     get_sha_mock.return_value = ('123456', False)
-    git = Git()
-    rev_options = git.make_rev_options('develop')
-
     url = 'git+https://git.example.com'
-    new_options = git.resolve_revision('.', url, rev_options)
+    rev_options = Git.make_rev_options('develop')
+
+    new_options = Git.resolve_revision('.', url, rev_options)
     assert new_options.rev == '123456'
 
 
 @patch('pip._internal.vcs.git.Git.get_revision_sha')
 def test_git_resolve_revision_rev_not_found(get_sha_mock):
     get_sha_mock.return_value = (None, False)
-    git = Git()
-    rev_options = git.make_rev_options('develop')
-
     url = 'git+https://git.example.com'
-    new_options = git.resolve_revision('.', url, rev_options)
+    rev_options = Git.make_rev_options('develop')
+
+    new_options = Git.resolve_revision('.', url, rev_options)
     assert new_options.rev == 'develop'
 
 
 @patch('pip._internal.vcs.git.Git.get_revision_sha')
 def test_git_resolve_revision_not_found_warning(get_sha_mock, caplog):
     get_sha_mock.return_value = (None, False)
-    git = Git()
-
     url = 'git+https://git.example.com'
     sha = 40 * 'a'
-    rev_options = git.make_rev_options(sha)
-    new_options = git.resolve_revision('.', url, rev_options)
+    rev_options = Git.make_rev_options(sha)
+
+    new_options = Git.resolve_revision('.', url, rev_options)
     assert new_options.rev == sha
 
-    rev_options = git.make_rev_options(sha[:6])
-    new_options = git.resolve_revision('.', url, rev_options)
+    rev_options = Git.make_rev_options(sha[:6])
+    new_options = Git.resolve_revision('.', url, rev_options)
     assert new_options.rev == 'aaaaaa'
 
     # Check that a warning got logged only for the abbreviated hash.
@@ -156,7 +193,7 @@ def test_git_is_commit_id_equal(mock_get_revision, rev_name, result):
     Test Git.is_commit_id_equal().
     """
     mock_get_revision.return_value = '5547fa909e83df8bd743d3978d6667497983a4b7'
-    assert Git().is_commit_id_equal('/path', rev_name) is result
+    assert Git.is_commit_id_equal('/path', rev_name) is result
 
 
 # The non-SVN backends all use the same get_netloc_and_auth(), so only test
@@ -173,7 +210,7 @@ def test_git__get_netloc_and_auth(args, expected):
     Test VersionControl.get_netloc_and_auth().
     """
     netloc, scheme = args
-    actual = Git().get_netloc_and_auth(netloc, scheme)
+    actual = Git.get_netloc_and_auth(netloc, scheme)
     assert actual == expected
 
 
@@ -196,7 +233,7 @@ def test_subversion__get_netloc_and_auth(args, expected):
     Test Subversion.get_netloc_and_auth().
     """
     netloc, scheme = args
-    actual = Subversion().get_netloc_and_auth(netloc, scheme)
+    actual = Subversion.get_netloc_and_auth(netloc, scheme)
     assert actual == expected
 
 
@@ -208,10 +245,8 @@ def test_git__get_url_rev__idempotent():
     Also check that it doesn't change self.url.
     """
     url = 'git+git@git.example.com:MyProject#egg=MyProject'
-    vcs = Git(url)
-    result1 = vcs.get_url_rev_and_auth(url)
-    assert vcs.url == url
-    result2 = vcs.get_url_rev_and_auth(url)
+    result1 = Git.get_url_rev_and_auth(url)
+    result2 = Git.get_url_rev_and_auth(url)
     expected = ('git@git.example.com:MyProject', None, (None, None))
     assert result1 == expected
     assert result2 == expected
@@ -228,7 +263,7 @@ def test_version_control__get_url_rev_and_auth(url, expected):
     """
     Test the basic case of VersionControl.get_url_rev_and_auth().
     """
-    actual = VersionControl().get_url_rev_and_auth(url)
+    actual = VersionControl.get_url_rev_and_auth(url)
     assert actual == expected
 
 
@@ -243,7 +278,7 @@ def test_version_control__get_url_rev_and_auth__missing_plus(url):
     missing from the scheme.
     """
     with pytest.raises(ValueError) as excinfo:
-        VersionControl().get_url_rev_and_auth(url)
+        VersionControl.get_url_rev_and_auth(url)
 
     assert 'malformed VCS url' in str(excinfo.value)
 
@@ -272,8 +307,7 @@ def test_bazaar__get_url_rev_and_auth(url, expected):
     """
     Test Bazaar.get_url_rev_and_auth().
     """
-    bzr = Bazaar(url=url)
-    actual = bzr.get_url_rev_and_auth(url)
+    actual = Bazaar.get_url_rev_and_auth(url)
     assert actual == (expected, None, (None, None))
 
 
@@ -295,7 +329,7 @@ def test_subversion__get_url_rev_and_auth(url, expected):
     """
     Test Subversion.get_url_rev_and_auth().
     """
-    actual = Subversion().get_url_rev_and_auth(url)
+    actual = Subversion.get_url_rev_and_auth(url)
     assert actual == expected
 
 
@@ -310,7 +344,7 @@ def test_git__make_rev_args(username, password, expected):
     """
     Test VersionControl.make_rev_args().
     """
-    actual = Git().make_rev_args(username, password)
+    actual = Git.make_rev_args(username, password)
     assert actual == expected
 
 
@@ -323,7 +357,7 @@ def test_subversion__make_rev_args(username, password, expected):
     """
     Test Subversion.make_rev_args().
     """
-    actual = Subversion().make_rev_args(username, password)
+    actual = Subversion.make_rev_args(username, password)
     assert actual == expected
 
 
@@ -343,3 +377,121 @@ def test_subversion__get_url_rev_options():
 def test_get_git_version():
     git_version = Git().get_git_version()
     assert git_version >= parse_version('1.0.0')
+
+
+@pytest.mark.parametrize('use_interactive,is_atty,expected', [
+    (None, False, False),
+    (None, True, True),
+    (False, False, False),
+    (False, True, False),
+    (True, False, True),
+    (True, True, True),
+])
+@patch('sys.stdin.isatty')
+def test_subversion__init_use_interactive(
+        mock_isatty, use_interactive, is_atty, expected):
+    """
+    Test Subversion.__init__() with mocked sys.stdin.isatty() output.
+    """
+    mock_isatty.return_value = is_atty
+    svn = Subversion(use_interactive=use_interactive)
+    assert svn.use_interactive == expected
+
+
+@pytest.mark.svn
+def test_subversion__call_vcs_version():
+    """
+    Test Subversion.call_vcs_version() against local ``svn``.
+    """
+    version = Subversion().call_vcs_version()
+    # All Subversion releases since 1.0.0 have used three parts.
+    assert len(version) == 3
+    for part in version:
+        assert isinstance(part, int)
+    assert version[0] >= 1
+
+
+@pytest.mark.parametrize('svn_output, expected_version', [
+    ('svn, version 1.10.3 (r1842928)\n'
+     '   compiled Feb 25 2019, 14:20:39 on x86_64-apple-darwin17.0.0',
+     (1, 10, 3)),
+    ('svn, version 1.9.7 (r1800392)', (1, 9, 7)),
+    ('svn, version 1.9.7a1 (r1800392)', ()),
+    ('svn, version 1.9 (r1800392)', (1, 9)),
+    ('svn, version .9.7 (r1800392)', ()),
+    ('svn version 1.9.7 (r1800392)', ()),
+    ('svn 1.9.7', ()),
+    ('svn, version . .', ()),
+    ('', ()),
+])
+@patch('pip._internal.vcs.subversion.Subversion.run_command')
+def test_subversion__call_vcs_version_patched(
+        mock_run_command, svn_output, expected_version):
+    """
+    Test Subversion.call_vcs_version() against patched output.
+    """
+    mock_run_command.return_value = svn_output
+    version = Subversion().call_vcs_version()
+    assert version == expected_version
+
+
+@patch('pip._internal.vcs.subversion.Subversion.run_command')
+def test_subversion__call_vcs_version_svn_not_installed(mock_run_command):
+    """
+    Test Subversion.call_vcs_version() when svn is not installed.
+    """
+    mock_run_command.side_effect = BadCommand
+    with pytest.raises(BadCommand):
+        Subversion().call_vcs_version()
+
+
+@pytest.mark.parametrize('version', [
+    (),
+    (1,),
+    (1, 8),
+    (1, 8, 0),
+])
+def test_subversion__get_vcs_version_cached(version):
+    """
+    Test Subversion.get_vcs_version() with previously cached result.
+    """
+    svn = Subversion()
+    svn._vcs_version = version
+    assert svn.get_vcs_version() == version
+
+
+@pytest.mark.parametrize('vcs_version', [
+    (),
+    (1, 7),
+    (1, 8, 0),
+])
+@patch('pip._internal.vcs.subversion.Subversion.call_vcs_version')
+def test_subversion__get_vcs_version_call_vcs(mock_call_vcs, vcs_version):
+    """
+    Test Subversion.get_vcs_version() with mocked output from
+    call_vcs_version().
+    """
+    mock_call_vcs.return_value = vcs_version
+    svn = Subversion()
+    assert svn.get_vcs_version() == vcs_version
+
+    # Check that the version information is cached.
+    assert svn._vcs_version == vcs_version
+
+
+@pytest.mark.parametrize('use_interactive,vcs_version,expected_options', [
+    (False, (), ['--non-interactive']),
+    (False, (1, 7, 0), ['--non-interactive']),
+    (False, (1, 8, 0), ['--non-interactive']),
+    (True, (), []),
+    (True, (1, 7, 0), []),
+    (True, (1, 8, 0), ['--force-interactive']),
+])
+def test_subversion__get_remote_call_options(
+        use_interactive, vcs_version, expected_options):
+    """
+    Test Subversion.get_remote_call_options().
+    """
+    svn = Subversion(use_interactive=use_interactive)
+    svn._vcs_version = vcs_version
+    assert svn.get_remote_call_options() == expected_options

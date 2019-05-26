@@ -16,12 +16,12 @@ from pip._internal.cli.status_codes import ERROR
 from pip._internal.exceptions import (
     CommandError, InstallationError, PreviousBuildDirError,
 )
+from pip._internal.legacy_resolve import Resolver
 from pip._internal.locations import distutils_scheme, virtualenv_no_global
 from pip._internal.operations.check import check_install_conflicts
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import RequirementSet, install_given_reqs
 from pip._internal.req.req_tracker import RequirementTracker
-from pip._internal.resolve import Resolver
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.misc import (
     ensure_dir, get_installed_version,
@@ -33,6 +33,43 @@ from pip._internal.wheel import WheelBuilder
 logger = logging.getLogger(__name__)
 
 
+def is_wheel_installed():
+    """
+    Return whether the wheel package is installed.
+    """
+    try:
+        import wheel  # noqa: F401
+    except ImportError:
+        return False
+
+    return True
+
+
+def build_wheels(builder, pep517_requirements, legacy_requirements, session):
+    """
+    Build wheels for requirements, depending on whether wheel is installed.
+    """
+    # We don't build wheels for legacy requirements if wheel is not installed.
+    should_build_legacy = is_wheel_installed()
+
+    # Always build PEP 517 requirements
+    build_failures = builder.build(
+        pep517_requirements,
+        session=session, autobuilding=True
+    )
+
+    if should_build_legacy:
+        # We don't care about failures building legacy
+        # requirements, as we'll fall through to a direct
+        # install for those.
+        builder.build(
+            legacy_requirements,
+            session=session, autobuilding=True
+        )
+
+    return build_failures
+
+
 class InstallCommand(RequirementCommand):
     """
     Install packages from:
@@ -42,7 +79,7 @@ class InstallCommand(RequirementCommand):
     - Local project directories.
     - Local or remote source archives.
 
-    pip also supports installing from "requirements files", which provide
+    pip also supports installing from "requirements files," which provide
     an easy way to specify a whole environment to be installed.
     """
     name = 'install'
@@ -260,6 +297,7 @@ class InstallCommand(RequirementCommand):
                 python_versions=python_versions,
                 abi=options.abi,
                 implementation=options.implementation,
+                ignore_requires_python=options.ignore_requires_python,
             )
             build_delete = (not (options.no_clean or options.build_dir))
             wheel_cache = WheelCache(options.cache_dir, options.format_control)
@@ -327,39 +365,23 @@ class InstallCommand(RequirementCommand):
                         else:
                             legacy_requirements.append(req)
 
-                    # We don't build wheels for legacy requirements if we
-                    # don't have wheel installed or we don't have a cache dir
-                    try:
-                        import wheel  # noqa: F401
-                        build_legacy = bool(options.cache_dir)
-                    except ImportError:
-                        build_legacy = False
-
-                    wb = WheelBuilder(
+                    wheel_builder = WheelBuilder(
                         finder, preparer, wheel_cache,
                         build_options=[], global_options=[],
                     )
 
-                    # Always build PEP 517 requirements
-                    build_failures = wb.build(
-                        pep517_requirements,
-                        session=session, autobuilding=True
+                    build_failures = build_wheels(
+                        builder=wheel_builder,
+                        pep517_requirements=pep517_requirements,
+                        legacy_requirements=legacy_requirements,
+                        session=session,
                     )
-
-                    if build_legacy:
-                        # We don't care about failures building legacy
-                        # requirements, as we'll fall through to a direct
-                        # install for those.
-                        wb.build(
-                            legacy_requirements,
-                            session=session, autobuilding=True
-                        )
 
                     # If we're using PEP 517, we cannot do a direct install
                     # so we fail here.
                     if build_failures:
                         raise InstallationError(
-                            "Could not build wheels for {} which use" +
+                            "Could not build wheels for {} which use"
                             " PEP 517 and cannot be installed directly".format(
                                 ", ".join(r.name for r in build_failures)))
 

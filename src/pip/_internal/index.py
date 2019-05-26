@@ -16,7 +16,7 @@ from pip._vendor.distlib.compat import unescape
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import parse as parse_version
-from pip._vendor.requests.exceptions import RetryError, SSLError
+from pip._vendor.requests.exceptions import HTTPError, RetryError, SSLError
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
@@ -41,21 +41,23 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.wheel import Wheel
 
 if MYPY_CHECK_RUNNING:
-    from logging import Logger  # noqa: F401
-    from typing import (  # noqa: F401
+    from logging import Logger
+    from typing import (
         Tuple, Optional, Any, List, Union, Callable, Set, Sequence,
         Iterable, MutableMapping
     )
-    from pip._vendor.packaging.version import _BaseVersion  # noqa: F401
-    from pip._vendor.requests import Response  # noqa: F401
-    from pip._internal.req import InstallRequirement  # noqa: F401
-    from pip._internal.download import PipSession  # noqa: F401
+    from pip._vendor.packaging.version import _BaseVersion
+    from pip._vendor.requests import Response
+    from pip._internal.pep425tags import Pep425Tag
+    from pip._internal.req import InstallRequirement
+    from pip._internal.download import PipSession
 
     SecureOrigin = Tuple[str, str, Optional[str]]
-    BuildTag = Tuple[Any, ...]  # either emply tuple or Tuple[int, str]
+    BuildTag = Tuple[Any, ...]  # either empty tuple or Tuple[int, str]
     CandidateSortingKey = Tuple[int, _BaseVersion, BuildTag, Optional[int]]
 
-__all__ = ['FormatControl', 'PackageFinder']
+
+__all__ = ['FormatControl', 'FoundCandidates', 'PackageFinder']
 
 
 SECURE_ORIGINS = [
@@ -155,7 +157,7 @@ def _get_html_response(url, session):
     if _is_url_like_archive(url):
         _ensure_html_response(url, session=session)
 
-    logger.debug('Getting page %s', url)
+    logger.debug('Getting page %s', redact_password_from_url(url))
 
     resp = session.get(
         url,
@@ -227,7 +229,7 @@ def _get_html_page(link, session=None):
 
     try:
         resp = _get_html_response(url, session=session)
-    except _NotHTTP as exc:
+    except _NotHTTP:
         logger.debug(
             'Skipping page %s because it looks like an archive, and cannot '
             'be checked by HEAD.', link,
@@ -237,7 +239,7 @@ def _get_html_page(link, session=None):
             'Skipping page %s because the %s request got Content-Type: %s',
             link, exc.request_desc, exc.content_type,
         )
-    except requests.HTTPError as exc:
+    except HTTPError as exc:
         _handle_get_page_fail(link, exc)
     except RetryError as exc:
         _handle_get_page_fail(link, exc)
@@ -254,6 +256,297 @@ def _get_html_page(link, session=None):
     return None
 
 
+def _check_link_requires_python(
+    link,  # type: Link
+    version_info,  # type: Tuple[int, ...]
+    ignore_requires_python=False,  # type: bool
+):
+    # type: (...) -> bool
+    """
+    Return whether the given Python version is compatible with a link's
+    "Requires-Python" value.
+
+    :param version_info: The Python version to use to check, as a 3-tuple
+        of ints (major-minor-micro).
+    :param ignore_requires_python: Whether to ignore the "Requires-Python"
+        value if the given Python version isn't compatible.
+    """
+    try:
+        is_compatible = check_requires_python(
+            link.requires_python, version_info=version_info,
+        )
+    except specifiers.InvalidSpecifier:
+        logger.debug(
+            "Ignoring invalid Requires-Python (%r) for link: %s",
+            link.requires_python, link,
+        )
+    else:
+        if not is_compatible:
+            version = '.'.join(map(str, version_info))
+            if not ignore_requires_python:
+                logger.debug(
+                    'Link requires a different Python (%s not in: %r): %s',
+                    version, link.requires_python, link,
+                )
+                return False
+
+            logger.debug(
+                'Ignoring failed Requires-Python check (%s not in: %r) '
+                'for link: %s',
+                version, link.requires_python, link,
+            )
+
+    return True
+
+
+class CandidateEvaluator(object):
+
+    """
+    Responsible for filtering and sorting candidates for installation based
+    on what tags are valid.
+    """
+
+    def __init__(
+        self,
+        valid_tags,          # type: List[Pep425Tag]
+        prefer_binary=False,   # type: bool
+        allow_all_prereleases=False,  # type: bool
+        py_version_info=None,  # type: Optional[Tuple[int, ...]]
+        ignore_requires_python=None,  # type: Optional[bool]
+    ):
+        # type: (...) -> None
+        """
+        :param allow_all_prereleases: Whether to allow all pre-releases.
+        :param py_version_info: The Python version, as a 3-tuple of ints
+            representing a major-minor-micro version, to use to check both
+            the Python version embedded in the filename and the package's
+            "Requires-Python" metadata. Defaults to `sys.version_info[:3]`.
+        :param ignore_requires_python: Whether to ignore incompatible
+            "Requires-Python" values in links. Defaults to False.
+        """
+        if py_version_info is None:
+            py_version_info = sys.version_info[:3]
+        if ignore_requires_python is None:
+            ignore_requires_python = False
+
+        py_version = '.'.join(map(str, py_version_info[:2]))
+
+        self._ignore_requires_python = ignore_requires_python
+        self._prefer_binary = prefer_binary
+        self._py_version = py_version
+        self._py_version_info = py_version_info
+        self._valid_tags = valid_tags
+
+        # We compile the regex here instead of as a class attribute so as
+        # not to impact pip start-up time.  This is also okay because
+        # CandidateEvaluator is generally instantiated only once per pip
+        # invocation (when PackageFinder is instantiated).
+        self._py_version_re = re.compile(r'-py([123]\.?[0-9]?)$')
+
+        self.allow_all_prereleases = allow_all_prereleases
+
+    def _is_wheel_supported(self, wheel):
+        # type: (Wheel) -> bool
+        return wheel.supported(self._valid_tags)
+
+    def evaluate_link(self, link, search):
+        # type: (Link, Search) -> Tuple[bool, Optional[str]]
+        """
+        Determine whether a link is a candidate for installation.
+
+        :return: A tuple (is_candidate, result), where `result` is (1) a
+            version string if `is_candidate` is True, and (2) if
+            `is_candidate` is False, an optional string to log the reason
+            the link fails to qualify.
+        """
+        version = None
+        if link.egg_fragment:
+            egg_info = link.egg_fragment
+            ext = link.ext
+        else:
+            egg_info, ext = link.splitext()
+            if not ext:
+                return (False, 'not a file')
+            if ext not in SUPPORTED_EXTENSIONS:
+                return (False, 'unsupported archive format: %s' % ext)
+            if "binary" not in search.formats and ext == WHEEL_EXTENSION:
+                reason = 'No binaries permitted for %s' % search.supplied
+                return (False, reason)
+            if "macosx10" in link.path and ext == '.zip':
+                return (False, 'macosx10 one')
+            if ext == WHEEL_EXTENSION:
+                try:
+                    wheel = Wheel(link.filename)
+                except InvalidWheelFilename:
+                    return (False, 'invalid wheel filename')
+                if canonicalize_name(wheel.name) != search.canonical:
+                    reason = 'wrong project name (not %s)' % search.supplied
+                    return (False, reason)
+
+                if not self._is_wheel_supported(wheel):
+                    return (False, 'it is not compatible with this Python')
+
+                version = wheel.version
+
+        # This should be up by the search.ok_binary check, but see issue 2700.
+        if "source" not in search.formats and ext != WHEEL_EXTENSION:
+            return (False, 'No sources permitted for %s' % search.supplied)
+
+        if not version:
+            version = _egg_info_matches(egg_info, search.canonical)
+        if not version:
+            return (False, 'Missing project version for %s' % search.supplied)
+
+        match = self._py_version_re.search(version)
+        if match:
+            version = version[:match.start()]
+            py_version = match.group(1)
+            if py_version != self._py_version:
+                return (False, 'Python version is incorrect')
+
+        supports_python = _check_link_requires_python(
+            link, version_info=self._py_version_info,
+            ignore_requires_python=self._ignore_requires_python,
+        )
+        if not supports_python:
+            # Return None for the reason text to suppress calling
+            # _log_skipped_link().
+            return (False, None)
+
+        logger.debug('Found link %s, version: %s', link, version)
+
+        return (True, version)
+
+    def make_found_candidates(
+        self,
+        candidates,      # type: List[InstallationCandidate]
+        specifier=None,  # type: Optional[specifiers.BaseSpecifier]
+    ):
+        # type: (...) -> FoundCandidates
+        """
+        Create and return a `FoundCandidates` instance.
+
+        :param specifier: An optional object implementing `filter`
+            (e.g. `packaging.specifiers.SpecifierSet`) to filter applicable
+            versions.
+        """
+        if specifier is None:
+            specifier = specifiers.SpecifierSet()
+
+        # Using None infers from the specifier instead.
+        allow_prereleases = self.allow_all_prereleases or None
+        versions = {
+            str(v) for v in specifier.filter(
+                # We turn the version object into a str here because otherwise
+                # when we're debundled but setuptools isn't, Python will see
+                # packaging.version.Version and
+                # pkg_resources._vendor.packaging.version.Version as different
+                # types. This way we'll use a str as a common data interchange
+                # format. If we stop using the pkg_resources provided specifier
+                # and start using our own, we can drop the cast to str().
+                (str(c.version) for c in candidates),
+                prereleases=allow_prereleases,
+            )
+        }
+        return FoundCandidates(candidates, versions=versions, evaluator=self)
+
+    def _sort_key(self, candidate):
+        # type: (InstallationCandidate) -> CandidateSortingKey
+        """
+        Function used to generate link sort key for link tuples.
+        The greater the return value, the more preferred it is.
+        If not finding wheels, then sorted by version only.
+        If finding wheels, then the sort order is by version, then:
+          1. existing installs
+          2. wheels ordered via Wheel.support_index_min(self._valid_tags)
+          3. source archives
+        If prefer_binary was set, then all wheels are sorted above sources.
+        Note: it was considered to embed this logic into the Link
+              comparison operators, but then different sdist links
+              with the same version, would have to be considered equal
+        """
+        support_num = len(self._valid_tags)
+        build_tag = tuple()  # type: BuildTag
+        binary_preference = 0
+        if candidate.location.is_wheel:
+            # can raise InvalidWheelFilename
+            wheel = Wheel(candidate.location.filename)
+            if not self._is_wheel_supported(wheel):
+                raise UnsupportedWheel(
+                    "%s is not a supported wheel for this platform. It "
+                    "can't be sorted." % wheel.filename
+                )
+            if self._prefer_binary:
+                binary_preference = 1
+            pri = -(wheel.support_index_min(self._valid_tags))
+            if wheel.build_tag is not None:
+                match = re.match(r'^(\d+)(.*)$', wheel.build_tag)
+                build_tag_groups = match.groups()
+                build_tag = (int(build_tag_groups[0]), build_tag_groups[1])
+        else:  # sdist
+            pri = -(support_num)
+        return (binary_preference, candidate.version, build_tag, pri)
+
+    def get_best_candidate(self, candidates):
+        # type: (List[InstallationCandidate]) -> InstallationCandidate
+        """
+        Return the best candidate per the instance's sort order, or None if
+        no candidates are given.
+        """
+        if not candidates:
+            return None
+
+        return max(candidates, key=self._sort_key)
+
+
+class FoundCandidates(object):
+    """A collection of candidates, returned by `PackageFinder.find_candidates`.
+
+    This class is only intended to be instantiated by CandidateEvaluator's
+    `make_found_candidates()` method.
+    """
+
+    def __init__(
+        self,
+        candidates,     # type: List[InstallationCandidate]
+        versions,       # type: Set[str]
+        evaluator,      # type: CandidateEvaluator
+    ):
+        # type: (...) -> None
+        """
+        :param candidates: A sequence of all available candidates found.
+        :param versions: The applicable versions to filter applicable
+            candidates.
+        :param evaluator: A CandidateEvaluator object to sort applicable
+            candidates by order of preference.
+        """
+        self._candidates = candidates
+        self._evaluator = evaluator
+        self._versions = versions
+
+    def iter_all(self):
+        # type: () -> Iterable[InstallationCandidate]
+        """Iterate through all candidates.
+        """
+        return iter(self._candidates)
+
+    def iter_applicable(self):
+        # type: () -> Iterable[InstallationCandidate]
+        """Iterate through candidates matching the versions associated with
+        this instance.
+        """
+        # Again, converting version to str to deal with debundling.
+        return (c for c in self.iter_all() if str(c.version) in self._versions)
+
+    def get_best(self):
+        # type: () -> Optional[InstallationCandidate]
+        """Return the best candidate available, or None if no applicable
+        candidates are found.
+        """
+        candidates = list(self.iter_applicable())
+        return self._evaluator.get_best_candidate(candidates)
+
+
 class PackageFinder(object):
     """This finds packages.
 
@@ -263,6 +556,39 @@ class PackageFinder(object):
 
     def __init__(
         self,
+        candidate_evaluator,  # type: CandidateEvaluator
+        find_links,  # type: List[str]
+        index_urls,  # type: List[str]
+        secure_origins,  # type: List[SecureOrigin]
+        session,  # type: PipSession
+        format_control=None,  # type: Optional[FormatControl]
+    ):
+        # type: (...) -> None
+        """
+        This constructor is primarily meant to be used by the create() class
+        method and from tests.
+
+        :param candidate_evaluator: A CandidateEvaluator object.
+        :param session: The Session to use to make requests.
+        :param format_control: A FormatControl object, used to control
+            the selection of source packages / binary packages when consulting
+            the index and links.
+        """
+        format_control = format_control or FormatControl(set(), set())
+
+        self.candidate_evaluator = candidate_evaluator
+        self.find_links = find_links
+        self.index_urls = index_urls
+        self.secure_origins = secure_origins
+        self.session = session
+        self.format_control = format_control
+
+        # These are boring links that have already been logged somehow.
+        self._logged_links = set()  # type: Set[Link]
+
+    @classmethod
+    def create(
+        cls,
         find_links,  # type: List[str]
         index_urls,  # type: List[str]
         allow_all_prereleases=False,  # type: bool
@@ -273,11 +599,15 @@ class PackageFinder(object):
         versions=None,  # type: Optional[List[str]]
         abi=None,  # type: Optional[str]
         implementation=None,  # type: Optional[str]
-        prefer_binary=False  # type: bool
+        prefer_binary=False,  # type: bool
+        ignore_requires_python=None,  # type: Optional[bool]
     ):
-        # type: (...) -> None
+        # type: (...) -> PackageFinder
         """Create a PackageFinder.
 
+        :param trusted_hosts: Domains that we won't emit warnings for when
+            not using HTTPS.
+        :param session: The Session to use to make requests.
         :param format_control: A FormatControl object or None. Used to control
             the selection of source packages / binary packages when consulting
             the index and links.
@@ -292,10 +622,14 @@ class PackageFinder(object):
             to pep425tags.py in the get_supported() method.
         :param implementation: A string or None. This is passed directly
             to pep425tags.py in the get_supported() method.
+        :param prefer_binary: Whether to prefer an old, but valid, binary
+            dist over a new source dist.
+        :param ignore_requires_python: Whether to ignore incompatible
+            "Requires-Python" values in links. Defaults to False.
         """
         if session is None:
             raise TypeError(
-                "PackageFinder() missing 1 required keyword argument: "
+                "PackageFinder.create() missing 1 required keyword argument: "
                 "'session'"
             )
 
@@ -304,48 +638,36 @@ class PackageFinder(object):
         # it and if it exists, use the normalized version.
         # This is deliberately conservative - it might be fine just to
         # blindly normalize anything starting with a ~...
-        self.find_links = []  # type: List[str]
+        built_find_links = []  # type: List[str]
         for link in find_links:
             if link.startswith('~'):
                 new_link = normalize_path(link)
                 if os.path.exists(new_link):
                     link = new_link
-            self.find_links.append(link)
+            built_find_links.append(link)
 
-        self.index_urls = index_urls
-
-        # These are boring links that have already been logged somehow:
-        self.logged_links = set()  # type: Set[Link]
-
-        self.format_control = format_control or FormatControl(set(), set())
-
-        # Domains that we won't emit warnings for when not using HTTPS
-        self.secure_origins = [
+        secure_origins = [
             ("*", host, "*")
             for host in (trusted_hosts if trusted_hosts else [])
         ]  # type: List[SecureOrigin]
 
-        # Do we want to allow _all_ pre-releases?
-        self.allow_all_prereleases = allow_all_prereleases
-
-        # The Session we'll use to make requests
-        self.session = session
-
         # The valid tags to check potential found wheel candidates against
-        self.valid_tags = get_supported(
+        valid_tags = get_supported(
             versions=versions,
             platform=platform,
             abi=abi,
             impl=implementation,
         )
-
-        # Do we prefer old, but valid, binary dist over new source dist
-        self.prefer_binary = prefer_binary
+        candidate_evaluator = CandidateEvaluator(
+            valid_tags=valid_tags, prefer_binary=prefer_binary,
+            allow_all_prereleases=allow_all_prereleases,
+            ignore_requires_python=ignore_requires_python,
+        )
 
         # If we don't have TLS enabled, then WARN if anyplace we're looking
         # relies on TLS.
         if not HAS_TLS:
-            for link in itertools.chain(self.index_urls, self.find_links):
+            for link in itertools.chain(index_urls, built_find_links):
                 parsed = urllib_parse.urlparse(link)
                 if parsed.scheme == "https":
                     logger.warning(
@@ -354,6 +676,24 @@ class PackageFinder(object):
                         "available."
                     )
                     break
+
+        return cls(
+            candidate_evaluator=candidate_evaluator,
+            find_links=built_find_links,
+            index_urls=index_urls,
+            secure_origins=secure_origins,
+            session=session,
+            format_control=format_control,
+        )
+
+    @property
+    def allow_all_prereleases(self):
+        # type: () -> bool
+        return self.candidate_evaluator.allow_all_prereleases
+
+    def set_allow_all_prereleases(self):
+        # type: () -> None
+        self.candidate_evaluator.allow_all_prereleases = True
 
     def get_formatted_locations(self):
         # type: () -> str
@@ -365,7 +705,8 @@ class PackageFinder(object):
             )
         if self.find_links:
             lines.append(
-                "Looking in links: {}".format(", ".join(self.find_links))
+                "Looking in links: {}".format(", ".join(
+                    redact_password_from_url(url) for url in self.find_links))
             )
         return "\n".join(lines)
 
@@ -426,43 +767,6 @@ class PackageFinder(object):
                 )
 
         return files, urls
-
-    def _candidate_sort_key(self, candidate):
-        # type: (InstallationCandidate) -> CandidateSortingKey
-        """
-        Function used to generate link sort key for link tuples.
-        The greater the return value, the more preferred it is.
-        If not finding wheels, then sorted by version only.
-        If finding wheels, then the sort order is by version, then:
-          1. existing installs
-          2. wheels ordered via Wheel.support_index_min(self.valid_tags)
-          3. source archives
-        If prefer_binary was set, then all wheels are sorted above sources.
-        Note: it was considered to embed this logic into the Link
-              comparison operators, but then different sdist links
-              with the same version, would have to be considered equal
-        """
-        support_num = len(self.valid_tags)
-        build_tag = tuple()  # type: BuildTag
-        binary_preference = 0
-        if candidate.location.is_wheel:
-            # can raise InvalidWheelFilename
-            wheel = Wheel(candidate.location.filename)
-            if not wheel.supported(self.valid_tags):
-                raise UnsupportedWheel(
-                    "%s is not a supported wheel for this platform. It "
-                    "can't be sorted." % wheel.filename
-                )
-            if self.prefer_binary:
-                binary_preference = 1
-            pri = -(wheel.support_index_min(self.valid_tags))
-            if wheel.build_tag is not None:
-                match = re.match(r'^(\d+)(.*)$', wheel.build_tag)
-                build_tag_groups = match.groups()
-                build_tag = (int(build_tag_groups[0]), build_tag_groups[1])
-        else:  # sdist
-            pri = -(support_num)
-        return (binary_preference, candidate.version, build_tag, pri)
 
     def _validate_secure_origin(self, logger, location):
         # type: (Logger, Link) -> bool
@@ -562,13 +866,14 @@ class PackageFinder(object):
         return [mkurl_pypi_url(url) for url in self.index_urls]
 
     def find_all_candidates(self, project_name):
-        # type: (str) -> List[Optional[InstallationCandidate]]
+        # type: (str) -> List[InstallationCandidate]
         """Find all available InstallationCandidate for project_name
 
         This checks index_urls and find_links.
         All versions found are returned as an InstallationCandidate list.
 
-        See _link_package_versions for details on which files are accepted
+        See CandidateEvaluator.evaluate_link() for details on which files
+        are accepted.
         """
         index_locations = self._get_index_urls_locations(project_name)
         index_file_loc, index_url_loc = self._sort_locations(index_locations)
@@ -628,6 +933,25 @@ class PackageFinder(object):
         # This is an intentional priority ordering
         return file_versions + find_links_versions + page_versions
 
+    def find_candidates(
+        self,
+        project_name,       # type: str
+        specifier=None,     # type: Optional[specifiers.BaseSpecifier]
+    ):
+        # type: (...) -> FoundCandidates
+        """Find matches for the given project and specifier.
+
+        :param specifier: An optional object implementing `filter`
+            (e.g. `packaging.specifiers.SpecifierSet`) to filter applicable
+            versions.
+
+        :return: A `FoundCandidates` instance.
+        """
+        candidates = self.find_all_candidates(project_name)
+        return self.candidate_evaluator.make_found_candidates(
+            candidates, specifier=specifier,
+        )
+
     def find_requirement(self, req, upgrade):
         # type: (InstallRequirement, bool) -> Optional[Link]
         """Try to find a Link matching req
@@ -636,52 +960,29 @@ class PackageFinder(object):
         Returns a Link if found,
         Raises DistributionNotFound or BestVersionAlreadyInstalled otherwise
         """
-        all_candidates = self.find_all_candidates(req.name)
+        candidates = self.find_candidates(req.name, req.specifier)
+        best_candidate = candidates.get_best()
 
-        # Filter out anything which doesn't match our specifier
-        compatible_versions = set(
-            req.specifier.filter(
-                # We turn the version object into a str here because otherwise
-                # when we're debundled but setuptools isn't, Python will see
-                # packaging.version.Version and
-                # pkg_resources._vendor.packaging.version.Version as different
-                # types. This way we'll use a str as a common data interchange
-                # format. If we stop using the pkg_resources provided specifier
-                # and start using our own, we can drop the cast to str().
-                [str(c.version) for c in all_candidates],
-                prereleases=(
-                    self.allow_all_prereleases
-                    if self.allow_all_prereleases else None
-                ),
-            )
-        )
-        applicable_candidates = [
-            # Again, converting to str to deal with debundling.
-            c for c in all_candidates if str(c.version) in compatible_versions
-        ]
-
-        if applicable_candidates:
-            best_candidate = max(applicable_candidates,
-                                 key=self._candidate_sort_key)
-        else:
-            best_candidate = None
-
+        installed_version = None    # type: Optional[_BaseVersion]
         if req.satisfied_by is not None:
             installed_version = parse_version(req.satisfied_by.version)
-        else:
-            installed_version = None
+
+        def _format_versions(cand_iter):
+            # This repeated parse_version and str() conversion is needed to
+            # handle different vendoring sources from pip and pkg_resources.
+            # If we stop using the pkg_resources provided specifier and start
+            # using our own, we can drop the cast to str().
+            return ", ".join(sorted(
+                {str(c.version) for c in cand_iter},
+                key=parse_version,
+            )) or "none"
 
         if installed_version is None and best_candidate is None:
             logger.critical(
                 'Could not find a version that satisfies the requirement %s '
                 '(from versions: %s)',
                 req,
-                ', '.join(
-                    sorted(
-                        {str(c.version) for c in all_candidates},
-                        key=parse_version,
-                    )
-                )
+                _format_versions(candidates.iter_all()),
             )
 
             raise DistributionNotFound(
@@ -716,15 +1017,14 @@ class PackageFinder(object):
                 'Installed version (%s) is most up-to-date (past versions: '
                 '%s)',
                 installed_version,
-                ', '.join(sorted(compatible_versions, key=parse_version)) or
-                "none",
+                _format_versions(candidates.iter_applicable()),
             )
             raise BestVersionAlreadyInstalled
 
         logger.debug(
             'Using version %s (newest of versions: %s)',
             best_candidate.version,
-            ', '.join(sorted(compatible_versions, key=parse_version))
+            _format_versions(candidates.iter_applicable()),
         )
         return best_candidate.location
 
@@ -746,8 +1046,6 @@ class PackageFinder(object):
 
             yield page
 
-    _py_version_re = re.compile(r'-py([123]\.?[0-9]?)$')
-
     def _sort_links(self, links):
         # type: (Iterable[Link]) -> List[Link]
         """
@@ -765,105 +1063,42 @@ class PackageFinder(object):
                     no_eggs.append(link)
         return no_eggs + eggs
 
+    def _log_skipped_link(self, link, reason):
+        # type: (Link, str) -> None
+        if link not in self._logged_links:
+            logger.debug('Skipping link %s; %s', link, reason)
+            self._logged_links.add(link)
+
+    def get_install_candidate(self, link, search):
+        # type: (Link, Search) -> Optional[InstallationCandidate]
+        """
+        If the link is a candidate for install, convert it to an
+        InstallationCandidate and return it. Otherwise, return None.
+        """
+        is_candidate, result = (
+            self.candidate_evaluator.evaluate_link(link, search=search)
+        )
+        if not is_candidate:
+            if result:
+                self._log_skipped_link(link, reason=result)
+            return None
+
+        return InstallationCandidate(
+            search.supplied, location=link, version=result,
+        )
+
     def _package_versions(
         self,
         links,  # type: Iterable[Link]
         search  # type: Search
     ):
-        # type: (...) -> List[Optional[InstallationCandidate]]
+        # type: (...) -> List[InstallationCandidate]
         result = []
         for link in self._sort_links(links):
-            v = self._link_package_versions(link, search)
-            if v is not None:
-                result.append(v)
+            candidate = self.get_install_candidate(link, search=search)
+            if candidate is not None:
+                result.append(candidate)
         return result
-
-    def _log_skipped_link(self, link, reason):
-        # type: (Link, str) -> None
-        if link not in self.logged_links:
-            logger.debug('Skipping link %s; %s', link, reason)
-            self.logged_links.add(link)
-
-    def _link_package_versions(self, link, search):
-        # type: (Link, Search) -> Optional[InstallationCandidate]
-        """Return an InstallationCandidate or None"""
-        version = None
-        if link.egg_fragment:
-            egg_info = link.egg_fragment
-            ext = link.ext
-        else:
-            egg_info, ext = link.splitext()
-            if not ext:
-                self._log_skipped_link(link, 'not a file')
-                return None
-            if ext not in SUPPORTED_EXTENSIONS:
-                self._log_skipped_link(
-                    link, 'unsupported archive format: %s' % ext,
-                )
-                return None
-            if "binary" not in search.formats and ext == WHEEL_EXTENSION:
-                self._log_skipped_link(
-                    link, 'No binaries permitted for %s' % search.supplied,
-                )
-                return None
-            if "macosx10" in link.path and ext == '.zip':
-                self._log_skipped_link(link, 'macosx10 one')
-                return None
-            if ext == WHEEL_EXTENSION:
-                try:
-                    wheel = Wheel(link.filename)
-                except InvalidWheelFilename:
-                    self._log_skipped_link(link, 'invalid wheel filename')
-                    return None
-                if canonicalize_name(wheel.name) != search.canonical:
-                    self._log_skipped_link(
-                        link, 'wrong project name (not %s)' % search.supplied)
-                    return None
-
-                if not wheel.supported(self.valid_tags):
-                    self._log_skipped_link(
-                        link, 'it is not compatible with this Python')
-                    return None
-
-                version = wheel.version
-
-        # This should be up by the search.ok_binary check, but see issue 2700.
-        if "source" not in search.formats and ext != WHEEL_EXTENSION:
-            self._log_skipped_link(
-                link, 'No sources permitted for %s' % search.supplied,
-            )
-            return None
-
-        if not version:
-            version = _egg_info_matches(egg_info, search.canonical)
-        if not version:
-            self._log_skipped_link(
-                link, 'Missing project version for %s' % search.supplied)
-            return None
-
-        match = self._py_version_re.search(version)
-        if match:
-            version = version[:match.start()]
-            py_version = match.group(1)
-            if py_version != sys.version[:3]:
-                self._log_skipped_link(
-                    link, 'Python version is incorrect')
-                return None
-        try:
-            support_this_python = check_requires_python(link.requires_python)
-        except specifiers.InvalidSpecifier:
-            logger.debug("Package %s has an invalid Requires-Python entry: %s",
-                         link.filename, link.requires_python)
-            support_this_python = True
-
-        if not support_this_python:
-            logger.debug("The package %s is incompatible with the python "
-                         "version in use. Acceptable python versions are: %s",
-                         link, link.requires_python)
-            return None
-        logger.debug('Found link %s, version: %s', link, version)
-
-        return InstallationCandidate(search.supplied, version, link)
 
 
 def _find_name_version_sep(egg_info, canonical_name):
@@ -939,15 +1174,30 @@ def _get_encoding_from_headers(headers):
     return None
 
 
-_CLEAN_LINK_RE = re.compile(r'[^a-z0-9$&+,/:;=?@.#%_\\|-]', re.I)
-
-
 def _clean_link(url):
     # type: (str) -> str
     """Makes sure a link is fully encoded.  That is, if a ' ' shows up in
     the link, it will be rewritten to %20 (while not over-quoting
     % or other characters)."""
-    return _CLEAN_LINK_RE.sub(lambda match: '%%%2x' % ord(match.group(0)), url)
+    # Split the URL into parts according to the general structure
+    # `scheme://netloc/path;parameters?query#fragment`. Note that the
+    # `netloc` can be empty and the URI will then refer to a local
+    # filesystem path.
+    result = urllib_parse.urlparse(url)
+    # In both cases below we unquote prior to quoting to make sure
+    # nothing is double quoted.
+    if result.netloc == "":
+        # On Windows the path part might contain a drive letter which
+        # should not be quoted. On Linux where drive letters do not
+        # exist, the colon should be quoted. We rely on urllib.request
+        # to do the right thing here.
+        path = urllib_request.pathname2url(
+            urllib_request.url2pathname(result.path))
+    else:
+        # In addition to the `/` character we protect `@` so that
+        # revision strings in VCS URLs are properly parsed.
+        path = urllib_parse.quote(urllib_parse.unquote(result.path), safe="/@")
+    return urllib_parse.urlunparse(result._replace(path=path))
 
 
 class HTMLPage(object):

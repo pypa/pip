@@ -4,6 +4,7 @@
 util tests
 
 """
+import codecs
 import itertools
 import os
 import shutil
@@ -13,25 +14,26 @@ import tempfile
 import time
 import warnings
 from io import BytesIO
+from logging import DEBUG, ERROR, INFO, WARNING
 
 import pytest
 from mock import Mock, patch
 
 from pip._internal.exceptions import (
-    HashMismatch, HashMissing, InstallationError, UnsupportedPythonVersion,
+    HashMismatch, HashMissing, InstallationError,
 )
 from pip._internal.utils.deprecation import PipDeprecationWarning, deprecated
-from pip._internal.utils.encoding import auto_decode
+from pip._internal.utils.encoding import BOMS, auto_decode
 from pip._internal.utils.glibc import check_glibc_version
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.misc import (
-    call_subprocess, egg_link_path, ensure_dir, get_installed_distributions,
-    get_prog, make_vcs_requirement_url, normalize_path, redact_netloc,
+    call_subprocess, egg_link_path, ensure_dir, format_command_args,
+    get_installed_distributions, get_prog, normalize_path, redact_netloc,
     redact_password_from_url, remove_auth_from_url, rmtree,
-    split_auth_from_netloc, untar_file, unzip_file,
+    split_auth_from_netloc, split_auth_netloc_from_url, untar_file, unzip_file,
 )
-from pip._internal.utils.packaging import check_dist_requires_python
 from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
+from pip._internal.utils.ui import SpinnerInterface
 
 
 @pytest.fixture()
@@ -472,11 +474,20 @@ class TestHashes(object):
 class TestEncoding(object):
     """Tests for pip._internal.utils.encoding"""
 
-    def test_auto_decode_utf16_le(self):
+    def test_auto_decode_utf_16_le(self):
         data = (
             b'\xff\xfeD\x00j\x00a\x00n\x00g\x00o\x00=\x00'
             b'=\x001\x00.\x004\x00.\x002\x00'
         )
+        assert data.startswith(codecs.BOM_UTF16_LE)
+        assert auto_decode(data) == "Django==1.4.2"
+
+    def test_auto_decode_utf_16_be(self):
+        data = (
+            b'\xfe\xff\x00D\x00j\x00a\x00n\x00g\x00o\x00='
+            b'\x00=\x001\x00.\x004\x00.\x002'
+        )
+        assert data.startswith(codecs.BOM_UTF16_BE)
         assert auto_decode(data) == "Django==1.4.2"
 
     def test_auto_decode_no_bom(self):
@@ -495,6 +506,11 @@ class TestEncoding(object):
             with patch('locale.getpreferredencoding', em):
                 ret = auto_decode(data.encode(sys.getdefaultencoding()))
         assert ret == data
+
+    @pytest.mark.parametrize('encoding', [encoding for bom, encoding in BOMS])
+    def test_all_encodings_are_valid(self, encoding):
+        # we really only care that there is no LookupError
+        assert ''.encode(encoding).decode(encoding) == ''
 
 
 class TestTempDirectory(object):
@@ -564,6 +580,10 @@ class TestTempDirectory(object):
         "ABC.dist-info",
         "_+-",
         "_package",
+        "A......B",
+        "AB",
+        "A",
+        "2",
     ])
     def test_adjacent_directory_names(self, name):
         def names():
@@ -577,15 +597,82 @@ class TestTempDirectory(object):
         # result that works, provided there are many of those
         # and that shorter names result in totally unique sets,
         # it's okay to skip part of the test.)
-        some_names = list(itertools.islice(names(), 10000))
-        assert len(some_names) == len(set(some_names))
+        some_names = list(itertools.islice(names(), 1000))
+        # We should always get at least 1000 names
+        assert len(some_names) == 1000
 
-        # Ensure original name does not appear
-        assert not any(n == name for n in names())
+        # Ensure original name does not appear early in the set
+        assert name not in some_names
 
-        # Check the first group are correct
-        assert all(x == y for x, y in
-                   zip(some_names, [c + name[1:] for c in chars]))
+        if len(name) > 2:
+            # Names should be at least 90% unique (given the infinite
+            # range of inputs, and the possibility that generated names
+            # may already exist on disk anyway, this is a much cheaper
+            # criteria to enforce than complete uniqueness).
+            assert len(some_names) > 0.9 * len(set(some_names))
+
+            # Ensure the first few names are the same length as the original
+            same_len = list(itertools.takewhile(
+                lambda x: len(x) == len(name),
+                some_names
+            ))
+            assert len(same_len) > 10
+
+            # Check the first group are correct
+            expected_names = ['~' + name[1:]]
+            expected_names.extend('~' + c + name[2:] for c in chars)
+            for x, y in zip(some_names, expected_names):
+                assert x == y
+
+        else:
+            # All names are going to be longer than our original
+            assert min(len(x) for x in some_names) > 1
+
+            # All names are going to be unique
+            assert len(some_names) == len(set(some_names))
+
+            if len(name) == 2:
+                # All but the first name are going to end with our original
+                assert all(x.endswith(name) for x in some_names[1:])
+            else:
+                # All names are going to end with our original
+                assert all(x.endswith(name) for x in some_names)
+
+    @pytest.mark.parametrize("name", [
+        "A",
+        "ABC",
+        "ABC.dist-info",
+        "_+-",
+        "_package",
+    ])
+    def test_adjacent_directory_exists(self, name, tmpdir):
+        block_name, expect_name = itertools.islice(
+            AdjacentTempDirectory._generate_names(name), 2)
+
+        original = os.path.join(tmpdir, name)
+        blocker = os.path.join(tmpdir, block_name)
+
+        ensure_dir(original)
+        ensure_dir(blocker)
+
+        with AdjacentTempDirectory(original) as atmp_dir:
+            assert expect_name == os.path.split(atmp_dir.path)[1]
+
+    def test_adjacent_directory_permission_error(self, monkeypatch):
+        name = "ABC"
+
+        def raising_mkdir(*args, **kwargs):
+            raise OSError("Unknown OSError")
+
+        with TempDirectory() as tmp_dir:
+            original = os.path.join(tmp_dir.path, name)
+
+            ensure_dir(original)
+            monkeypatch.setattr("os.mkdir", raising_mkdir)
+
+            with pytest.raises(OSError):
+                with AdjacentTempDirectory(original):
+                    pass
 
 
 class TestGlibc(object):
@@ -622,28 +709,6 @@ class TestGlibc(object):
                     assert False
 
 
-class TestCheckRequiresPython(object):
-
-    @pytest.mark.parametrize(
-        ("metadata", "should_raise"),
-        [
-            ("Name: test\n", False),
-            ("Name: test\nRequires-Python:", False),
-            ("Name: test\nRequires-Python: invalid_spec", False),
-            ("Name: test\nRequires-Python: <=1", True),
-        ],
-    )
-    def test_check_requires(self, metadata, should_raise):
-        fake_dist = Mock(
-            has_metadata=lambda _: True,
-            get_metadata=lambda _: metadata)
-        if should_raise:
-            with pytest.raises(UnsupportedPythonVersion):
-                check_dist_requires_python(fake_dist)
-        else:
-            check_dist_requires_python(fake_dist)
-
-
 class TestGetProg(object):
 
     @pytest.mark.parametrize(
@@ -664,35 +729,250 @@ class TestGetProg(object):
         assert get_prog() == expected
 
 
-def test_call_subprocess_works_okay_when_just_given_nothing():
-    try:
-        call_subprocess([sys.executable, '-c', 'print("Hello")'])
-    except Exception:
-        assert False, "Expected subprocess call to succeed"
-
-
-def test_call_subprocess_closes_stdin():
-    with pytest.raises(InstallationError):
-        call_subprocess([sys.executable, '-c', 'input()'])
-
-
 @pytest.mark.parametrize('args, expected', [
-    # Test without subdir.
-    (('git+https://example.com/pkg', 'dev', 'myproj'),
-     'git+https://example.com/pkg@dev#egg=myproj'),
-    # Test with subdir.
-    (('git+https://example.com/pkg', 'dev', 'myproj', 'sub/dir'),
-     'git+https://example.com/pkg@dev#egg=myproj&subdirectory=sub/dir'),
-    # Test with None subdir.
-    (('git+https://example.com/pkg', 'dev', 'myproj', None),
-     'git+https://example.com/pkg@dev#egg=myproj'),
-    # Test an unescaped project name.
-    (('git+https://example.com/pkg', 'dev', 'zope-interface'),
-     'git+https://example.com/pkg@dev#egg=zope_interface'),
+    (['pip', 'list'], 'pip list'),
+    (['foo', 'space space', 'new\nline', 'double"quote', "single'quote"],
+     """foo 'space space' 'new\nline' 'double"quote' 'single'"'"'quote'"""),
 ])
-def test_make_vcs_requirement_url(args, expected):
-    actual = make_vcs_requirement_url(*args)
+def test_format_command_args(args, expected):
+    actual = format_command_args(args)
     assert actual == expected
+
+
+class FakeSpinner(SpinnerInterface):
+
+    def __init__(self):
+        self.spin_count = 0
+        self.final_status = None
+
+    def spin(self):
+        self.spin_count += 1
+
+    def finish(self, final_status):
+        self.final_status = final_status
+
+
+class TestCallSubprocess(object):
+
+    """
+    Test call_subprocess().
+    """
+
+    def check_result(
+        self, capfd, caplog, log_level, spinner, result, expected,
+        expected_spinner,
+    ):
+        """
+        Check the result of calling call_subprocess().
+
+        :param log_level: the logging level that caplog was set to.
+        :param spinner: the FakeSpinner object passed to call_subprocess()
+            to be checked.
+        :param result: the call_subprocess() return value to be checked.
+        :param expected: a pair (expected_proc, expected_records), where
+            1) `expected_proc` is the expected return value of
+              call_subprocess() as a list of lines, or None if the return
+              value is expected to be None;
+            2) `expected_records` is the expected value of
+              caplog.record_tuples.
+        :param expected_spinner: a 2-tuple of the spinner's expected
+            (spin_count, final_status).
+        """
+        expected_proc, expected_records = expected
+
+        if expected_proc is None:
+            assert result is None
+        else:
+            assert result.splitlines() == expected_proc
+
+        # Confirm that stdout and stderr haven't been written to.
+        captured = capfd.readouterr()
+        assert (captured.out, captured.err) == ('', '')
+
+        records = caplog.record_tuples
+        if len(records) != len(expected_records):
+            raise RuntimeError('{} != {}'.format(records, expected_records))
+
+        for record, expected_record in zip(records, expected_records):
+            # Check the logger_name and log level parts exactly.
+            assert record[:2] == expected_record[:2]
+            # For the message portion, check only a substring.  Also, we
+            # can't use startswith() since the order of stdout and stderr
+            # isn't guaranteed in cases where stderr is also present.
+            # For example, we observed the stderr lines coming before stdout
+            # in CI for PyPy 2.7 even though stdout happens first
+            # chronologically.
+            assert expected_record[2] in record[2]
+
+        assert (spinner.spin_count, spinner.final_status) == expected_spinner
+
+    def prepare_call(self, caplog, log_level, command=None):
+        if command is None:
+            command = 'print("Hello"); print("world")'
+
+        caplog.set_level(log_level)
+        spinner = FakeSpinner()
+        args = [sys.executable, '-c', command]
+
+        return (args, spinner)
+
+    def test_debug_logging(self, capfd, caplog):
+        """
+        Test DEBUG logging (and without passing show_stdout=True).
+        """
+        log_level = DEBUG
+        args, spinner = self.prepare_call(caplog, log_level)
+        result = call_subprocess(args, spinner=spinner)
+
+        expected = (['Hello', 'world'], [
+            ('pip.subprocessor', DEBUG, 'Running command '),
+            ('pip.subprocessor', DEBUG, 'Hello'),
+            ('pip.subprocessor', DEBUG, 'world'),
+        ])
+        # The spinner shouldn't spin in this case since the subprocess
+        # output is already being logged to the console.
+        self.check_result(
+            capfd, caplog, log_level, spinner, result, expected,
+            expected_spinner=(0, None),
+        )
+
+    def test_info_logging(self, capfd, caplog):
+        """
+        Test INFO logging (and without passing show_stdout=True).
+        """
+        log_level = INFO
+        args, spinner = self.prepare_call(caplog, log_level)
+        result = call_subprocess(args, spinner=spinner)
+
+        expected = (['Hello', 'world'], [])
+        # The spinner should spin twice in this case since the subprocess
+        # output isn't being written to the console.
+        self.check_result(
+            capfd, caplog, log_level, spinner, result, expected,
+            expected_spinner=(2, 'done'),
+        )
+
+    def test_info_logging__subprocess_error(self, capfd, caplog):
+        """
+        Test INFO logging of a subprocess with an error (and without passing
+        show_stdout=True).
+        """
+        log_level = INFO
+        command = 'print("Hello"); print("world"); exit("fail")'
+        args, spinner = self.prepare_call(caplog, log_level, command=command)
+
+        with pytest.raises(InstallationError):
+            call_subprocess(args, spinner=spinner)
+        result = None
+
+        expected = (None, [
+            ('pip.subprocessor', ERROR, 'Complete output from command '),
+            # The "failed" portion is later on in this "Hello" string.
+            ('pip.subprocessor', ERROR, 'Hello'),
+        ])
+        # The spinner should spin three times in this case since the
+        # subprocess output isn't being written to the console.
+        self.check_result(
+            capfd, caplog, log_level, spinner, result, expected,
+            expected_spinner=(3, 'error'),
+        )
+
+        # Do some further checking on the captured log records to confirm
+        # that the subprocess output was logged.
+        last_record = caplog.record_tuples[-1]
+        last_message = last_record[2]
+        lines = last_message.splitlines()
+
+        # We have to sort before comparing the lines because we can't
+        # guarantee the order in which stdout and stderr will appear.
+        # For example, we observed the stderr lines coming before stdout
+        # in CI for PyPy 2.7 even though stdout happens first chronologically.
+        assert sorted(lines) == [
+            '----------------------------------------',
+            'Hello',
+            'fail',
+            'world',
+        ], 'lines: {}'.format(lines)  # Show the full output on failure.
+
+    def test_info_logging_with_show_stdout_true(self, capfd, caplog):
+        """
+        Test INFO logging with show_stdout=True.
+        """
+        log_level = INFO
+        args, spinner = self.prepare_call(caplog, log_level)
+        result = call_subprocess(args, spinner=spinner, show_stdout=True)
+
+        expected = (['Hello', 'world'], [
+            ('pip.subprocessor', INFO, 'Running command '),
+            ('pip.subprocessor', INFO, 'Hello'),
+            ('pip.subprocessor', INFO, 'world'),
+        ])
+        # The spinner shouldn't spin in this case since the subprocess
+        # output is already being written to the console.
+        self.check_result(
+            capfd, caplog, log_level, spinner, result, expected,
+            expected_spinner=(0, None),
+        )
+
+    @pytest.mark.parametrize((
+        'exit_status', 'show_stdout', 'extra_ok_returncodes', 'log_level',
+        'expected'),
+        [
+            # The spinner should show here because show_stdout=False means
+            # the subprocess should get logged at DEBUG level, but the passed
+            # log level is only INFO.
+            (0, False, None, INFO, (None, 'done', 2)),
+            # Test some cases where the spinner should not be shown.
+            (0, False, None, DEBUG, (None, None, 0)),
+            # Test show_stdout=True.
+            (0, True, None, DEBUG, (None, None, 0)),
+            (0, True, None, INFO, (None, None, 0)),
+            # The spinner should show here because show_stdout=True means
+            # the subprocess should get logged at INFO level, but the passed
+            # log level is only WARNING.
+            (0, True, None, WARNING, (None, 'done', 2)),
+            # Test a non-zero exit status.
+            (3, False, None, INFO, (InstallationError, 'error', 2)),
+            # Test a non-zero exit status also in extra_ok_returncodes.
+            (3, False, (3, ), INFO, (None, 'done', 2)),
+    ])
+    def test_spinner_finish(
+        self, exit_status, show_stdout, extra_ok_returncodes, log_level,
+        caplog, expected,
+    ):
+        """
+        Test that the spinner finishes correctly.
+        """
+        expected_exc_type = expected[0]
+        expected_final_status = expected[1]
+        expected_spin_count = expected[2]
+
+        command = (
+            'print("Hello"); print("world"); exit({})'.format(exit_status)
+        )
+        args, spinner = self.prepare_call(caplog, log_level, command=command)
+        try:
+            call_subprocess(
+                args,
+                show_stdout=show_stdout,
+                extra_ok_returncodes=extra_ok_returncodes,
+                spinner=spinner,
+            )
+        except Exception as exc:
+            exc_type = type(exc)
+        else:
+            exc_type = None
+
+        assert exc_type == expected_exc_type
+        assert spinner.final_status == expected_final_status
+        assert spinner.spin_count == expected_spin_count
+
+    def test_closes_stdin(self):
+        with pytest.raises(InstallationError):
+            call_subprocess(
+                [sys.executable, '-c', 'input()'],
+                show_stdout=True,
+            )
 
 
 @pytest.mark.parametrize('netloc, expected', [
@@ -714,6 +994,34 @@ def test_make_vcs_requirement_url(args, expected):
 ])
 def test_split_auth_from_netloc(netloc, expected):
     actual = split_auth_from_netloc(netloc)
+    assert actual == expected
+
+
+@pytest.mark.parametrize('url, expected', [
+    # Test a basic case.
+    ('http://example.com/path#anchor',
+     ('http://example.com/path#anchor', 'example.com', (None, None))),
+    # Test with username and no password.
+    ('http://user@example.com/path#anchor',
+     ('http://example.com/path#anchor', 'example.com', ('user', None))),
+    # Test with username and password.
+    ('http://user:pass@example.com/path#anchor',
+     ('http://example.com/path#anchor', 'example.com', ('user', 'pass'))),
+    # Test with username and empty password.
+    ('http://user:@example.com/path#anchor',
+     ('http://example.com/path#anchor', 'example.com', ('user', ''))),
+    # Test the password containing an @ symbol.
+    ('http://user:pass@word@example.com/path#anchor',
+     ('http://example.com/path#anchor', 'example.com', ('user', 'pass@word'))),
+    # Test the password containing a : symbol.
+    ('http://user:pass:word@example.com/path#anchor',
+     ('http://example.com/path#anchor', 'example.com', ('user', 'pass:word'))),
+    # Test URL-encoded reserved characters.
+    ('http://user%3Aname:%23%40%5E@example.com/path#anchor',
+     ('http://example.com/path#anchor', 'example.com', ('user:name', '#@^'))),
+])
+def test_split_auth_netloc_from_url(url, expected):
+    actual = split_auth_netloc_from_url(url)
     assert actual == expected
 
 

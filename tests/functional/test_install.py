@@ -62,7 +62,7 @@ def test_pep518_refuses_conflicting_requires(script, data):
         result.returncode != 0 and
         ('Some build dependencies for %s conflict with PEP 517/518 supported '
          'requirements: setuptools==1.0 is incompatible with '
-         'setuptools>=40.2.0.' % path_to_url(project_dir)) in result.stderr
+         'setuptools>=40.8.0.' % path_to_url(project_dir)) in result.stderr
     ), str(result)
 
 
@@ -160,7 +160,7 @@ def test_pep518_forkbombs(script, data, common_wheels, command, package):
     )
     assert '{1} is already being built: {0} from {1}'.format(
         package, path_to_url(package_source),
-    ) in result.stdout, str(result)
+    ) in result.stderr, str(result)
 
 
 @pytest.mark.network
@@ -491,13 +491,41 @@ def test_install_from_local_directory_with_no_setup_py(script, data):
     assert "Neither 'setup.py' nor 'pyproject.toml' found." in result.stderr
 
 
-def test_editable_install_from_local_directory_with_no_setup_py(script, data):
+def test_editable_install__local_dir_no_setup_py(
+        script, data, deprecated_python):
     """
-    Test installing from a local directory with no 'setup.py'.
+    Test installing in editable mode from a local directory with no setup.py.
     """
     result = script.pip('install', '-e', data.root, expect_error=True)
     assert not result.files_created
-    assert "is not installable. File 'setup.py' not found." in result.stderr
+
+    msg = result.stderr
+    if deprecated_python:
+        assert 'File "setup.py" not found. ' in msg
+    else:
+        assert msg.startswith('ERROR: File "setup.py" not found. ')
+    assert 'pyproject.toml' not in msg
+
+
+def test_editable_install__local_dir_no_setup_py_with_pyproject(
+        script, deprecated_python):
+    """
+    Test installing in editable mode from a local directory with no setup.py
+    but that does have pyproject.toml.
+    """
+    local_dir = script.scratch_path.join('temp').mkdir()
+    pyproject_path = local_dir.join('pyproject.toml')
+    pyproject_path.write('')
+
+    result = script.pip('install', '-e', local_dir, expect_error=True)
+    assert not result.files_created
+
+    msg = result.stderr
+    if deprecated_python:
+        assert 'File "setup.py" not found. ' in msg
+    else:
+        assert msg.startswith('ERROR: File "setup.py" not found. ')
+    assert 'A "pyproject.toml" file was found' in msg
 
 
 @pytest.mark.skipif("sys.version_info >= (3,4)")
@@ -514,6 +542,7 @@ def test_install_argparse_shadowed(script):
     assert "Not uninstalling argparse" in result.stdout
 
 
+@pytest.mark.network
 @pytest.mark.skipif("sys.version_info < (3,4)")
 def test_upgrade_argparse_shadowed(script):
     # If argparse is installed - even if shadowed for imported - we support
@@ -908,8 +937,9 @@ def test_install_package_that_emits_unicode(script, data):
         'install', to_install, expect_error=True, expect_temp=True, quiet=True,
     )
     assert (
-        'FakeError: this package designed to fail on install' in result.stdout
+        'FakeError: this package designed to fail on install' in result.stderr
     )
+    assert 'UnicodeDecodeError' not in result.stderr
     assert 'UnicodeDecodeError' not in result.stdout
 
 
@@ -1090,19 +1120,19 @@ def test_install_subprocess_output_handling(script, data):
     # With --verbose we should show the output.
     # Only count examples with sys.argv[1] == egg_info, because we call
     # setup.py multiple times, which should not count as duplicate output.
-    result = script.pip(*(args + ["--verbose"]))
-    assert 1 == result.stdout.count("HELLO FROM CHATTYMODULE egg_info")
+    result = script.pip(*(args + ["--verbose"]), expect_stderr=True)
+    assert 1 == result.stderr.count("HELLO FROM CHATTYMODULE egg_info")
     script.pip("uninstall", "-y", "chattymodule")
 
     # If the install fails, then we *should* show the output... but only once,
     # even if --verbose is given.
     result = script.pip(*(args + ["--global-option=--fail"]),
                         expect_error=True)
-    assert 1 == result.stdout.count("I DIE, I DIE")
+    assert 1 == result.stderr.count("I DIE, I DIE")
 
     result = script.pip(*(args + ["--global-option=--fail", "--verbose"]),
                         expect_error=True)
-    assert 1 == result.stdout.count("I DIE, I DIE")
+    assert 1 == result.stderr.count("I DIE, I DIE")
 
 
 def test_install_log(script, data, tmpdir):
@@ -1275,6 +1305,12 @@ def test_double_install_fail(script):
     assert msg in result.stderr
 
 
+def _get_expected_error_text():
+    return (
+        "Package 'pkga' requires a different Python: {} not in '<1.0'"
+    ).format(sys.version.split()[0])
+
+
 def test_install_incompatible_python_requires(script):
     script.scratch_path.join("pkga").mkdir()
     pkga_path = script.scratch_path / 'pkga'
@@ -1285,8 +1321,7 @@ def test_install_incompatible_python_requires(script):
               version='0.1')
     """))
     result = script.pip('install', pkga_path, expect_error=True)
-    assert ("pkga requires Python '<1.0' "
-            "but the running Python is ") in result.stderr, str(result)
+    assert _get_expected_error_text() in result.stderr, str(result)
 
 
 def test_install_incompatible_python_requires_editable(script):
@@ -1300,8 +1335,7 @@ def test_install_incompatible_python_requires_editable(script):
     """))
     result = script.pip(
         'install', '--editable=%s' % pkga_path, expect_error=True)
-    assert ("pkga requires Python '<1.0' "
-            "but the running Python is ") in result.stderr, str(result)
+    assert _get_expected_error_text() in result.stderr, str(result)
 
 
 def test_install_incompatible_python_requires_wheel(script, with_wheel):
@@ -1317,8 +1351,7 @@ def test_install_incompatible_python_requires_wheel(script, with_wheel):
         'python', 'setup.py', 'bdist_wheel', '--universal', cwd=pkga_path)
     result = script.pip('install', './pkga/dist/pkga-0.1-py2.py3-none-any.whl',
                         expect_error=True)
-    assert ("pkga requires Python '<1.0' "
-            "but the running Python is ") in result.stderr
+    assert _get_expected_error_text() in result.stderr, str(result)
 
 
 def test_install_compatible_python_requires(script):
@@ -1445,8 +1478,7 @@ def test_install_conflict_results_in_warning(script, data):
 
     # Then install an incorrect version of the dependency
     result2 = script.pip(
-        'install', '--no-index', pkgB_path,
-        expect_stderr=True,
+        'install', '--no-index', pkgB_path, allow_stderr_error=True,
     )
     assert "pkga 1.0 has requirement pkgb==1.0" in result2.stderr, str(result2)
     assert "Successfully installed pkgB-2.0" in result2.stdout, str(result2)
@@ -1471,3 +1503,22 @@ def test_install_conflict_warning_can_be_suppressed(script, data):
         'install', '--no-index', pkgB_path, '--no-warn-conflicts'
     )
     assert "Successfully installed pkgB-2.0" in result2.stdout, str(result2)
+
+
+def test_target_install_ignores_distutils_config_install_prefix(script):
+    prefix = script.scratch_path / 'prefix'
+    distutils_config = Path(os.path.expanduser('~'),
+                            'pydistutils.cfg' if sys.platform == 'win32'
+                            else '.pydistutils.cfg')
+    distutils_config.write(textwrap.dedent(
+        '''
+        [install]
+        prefix=%s
+        ''' % str(prefix)))
+    target = script.scratch_path / 'target'
+    result = script.pip_install_local('simplewheel', '-t', target)
+    assert (
+        "Successfully installed simplewheel" in result.stdout and
+        (target - script.base_path) in result.files_created and
+        (prefix - script.base_path) not in result.files_created
+    ), str(result)

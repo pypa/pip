@@ -108,12 +108,19 @@ def test_freeze_with_invalid_names(script):
             '...{}==1.0...'.format(pkgname.replace('_', '-'))
         )
     for pkgname in invalid_pkgnames:
-        _check_output(
-            result.stderr,
-            '...Could not parse requirement: {}\n...'.format(
-                pkgname.replace('_', '-')
-            )
+        # Check that the full distribution repr is present.
+        dist_repr = '{} 1.0 ('.format(pkgname.replace('_', '-'))
+        expected = (
+            '...Could not generate requirement for '
+            'distribution {}...'.format(dist_repr)
         )
+        _check_output(result.stderr, expected)
+
+    # Also check that the parse error details occur at least once.
+    # We only need to find one occurrence to know that exception details
+    # are logged.
+    expected = '...site-packages): Parse error at "...'
+    _check_output(result.stderr, expected)
 
 
 @pytest.mark.git
@@ -126,7 +133,7 @@ def test_freeze_editable_not_vcs(script, tmpdir):
     # as a VCS directory.
     os.rename(os.path.join(pkg_path, '.git'), os.path.join(pkg_path, '.bak'))
     script.pip('install', '-e', pkg_path)
-    result = script.pip('freeze', expect_stderr=True)
+    result = script.pip('freeze')
 
     # We need to apply os.path.normcase() to the path since that is what
     # the freeze code does.
@@ -476,8 +483,8 @@ def test_freeze_with_requirement_option_file_url_egg_not_installed(
         'freeze', '--requirement', 'requirements.txt', expect_stderr=True,
     )
     expected_err = (
-        'Requirement file [requirements.txt] contains {}, but package '
-        "'Does.Not-Exist' is not installed\n"
+        'WARNING: Requirement file [requirements.txt] contains {}, '
+        "but package 'Does.Not-Exist' is not installed\n"
     ).format(url)
     if deprecated_python:
         assert expected_err in result.stderr

@@ -16,8 +16,8 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.wheel import InvalidWheelFilename, Wheel
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, Set, List, Any  # noqa: F401
-    from pip._internal.index import FormatControl  # noqa: F401
+    from typing import Optional, Set, List, Any
+    from pip._internal.index import FormatControl
 
 logger = logging.getLogger(__name__)
 

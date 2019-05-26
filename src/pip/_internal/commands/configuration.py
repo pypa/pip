@@ -6,7 +6,8 @@ from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.configuration import Configuration, kinds
 from pip._internal.exceptions import PipError
-from pip._internal.locations import venv_config_file
+from pip._internal.locations import running_under_virtualenv, site_config_file
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.misc import get_prog
 
 logger = logging.getLogger(__name__)
@@ -23,7 +24,7 @@ class ConfigurationCommand(Command):
         set: Set the name=value
         unset: Unset the value associated with name
 
-        If none of --user, --global and --venv are passed, a virtual
+        If none of --user, --global and --site are passed, a virtual
         environment configuration file is used if one is active and the file
         exists. Otherwise, all modifications happen on the to the user file by
         default.
@@ -74,11 +75,22 @@ class ConfigurationCommand(Command):
         )
 
         self.cmd_opts.add_option(
+            '--site',
+            dest='site_file',
+            action='store_true',
+            default=False,
+            help='Use the current environment configuration file only'
+        )
+
+        self.cmd_opts.add_option(
             '--venv',
             dest='venv_file',
             action='store_true',
             default=False,
-            help='Use the virtualenv configuration file only'
+            help=(
+                '[Deprecated] Use the current environment configuration '
+                'file in a virtual environment only'
+            )
         )
 
         self.parser.insert_option_group(0, self.cmd_opts)
@@ -127,27 +139,41 @@ class ConfigurationCommand(Command):
         return SUCCESS
 
     def _determine_file(self, options, need_value):
-        file_options = {
-            kinds.USER: options.user_file,
-            kinds.GLOBAL: options.global_file,
-            kinds.VENV: options.venv_file
-        }
+        # Convert legacy venv_file option to site_file or error
+        if options.venv_file and not options.site_file:
+            if running_under_virtualenv():
+                options.site_file = True
+                deprecated(
+                    "The --venv option has been deprecated.",
+                    replacement="--site",
+                    gone_in="19.3",
+                )
+            else:
+                raise PipError(
+                    "Legacy --venv option requires a virtual environment. "
+                    "Use --site instead."
+                )
 
-        if sum(file_options.values()) == 0:
+        file_options = [key for key, value in (
+            (kinds.USER, options.user_file),
+            (kinds.GLOBAL, options.global_file),
+            (kinds.SITE, options.site_file),
+        ) if value]
+
+        if not file_options:
             if not need_value:
                 return None
-            # Default to user, unless there's a virtualenv file.
-            elif os.path.exists(venv_config_file):
-                return kinds.VENV
+            # Default to user, unless there's a site file.
+            elif os.path.exists(site_config_file):
+                return kinds.SITE
             else:
                 return kinds.USER
-        elif sum(file_options.values()) == 1:
-            # There's probably a better expression for this.
-            return [key for key in file_options if file_options[key]][0]
+        elif len(file_options) == 1:
+            return file_options[0]
 
         raise PipError(
             "Need exactly one file to operate upon "
-            "(--user, --venv, --global) to perform."
+            "(--user, --site, --global) to perform."
         )
 
     def list_values(self, options, args):

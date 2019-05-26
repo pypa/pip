@@ -9,8 +9,8 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.wheel import Wheel
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, List, Tuple, Dict, Iterable  # noqa: F401
-    from pip._internal.req.req_install import InstallRequirement  # noqa: F401
+    from typing import Dict, Iterable, List, Optional, Tuple
+    from pip._internal.req.req_install import InstallRequirement
 
 
 logger = logging.getLogger(__name__)
@@ -34,12 +34,14 @@ class RequirementSet(object):
         self.reqs_to_cleanup = []  # type: List[InstallRequirement]
 
     def __str__(self):
+        # type: () -> str
         reqs = [req for req in self.requirements.values()
                 if not req.comes_from]
         reqs.sort(key=lambda req: req.name.lower())
         return ' '.join([str(req.req) for req in reqs])
 
     def __repr__(self):
+        # type: () -> str
         reqs = [req for req in self.requirements.values()]
         reqs.sort(key=lambda req: req.name.lower())
         reqs_str = ', '.join([str(req.req) for req in reqs])
@@ -172,12 +174,6 @@ class RequirementSet(object):
            not self.requirements[self.requirement_aliases[name]].constraint):
             return True
         return False
-
-    @property
-    def has_requirements(self):
-        # type: () -> List[InstallRequirement]
-        return list(req for req in self.requirements.values() if not
-                    req.constraint) or self.unnamed_requirements
 
     def get_requirement(self, project_name):
         # type: (str) -> InstallRequirement

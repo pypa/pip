@@ -5,6 +5,7 @@ import logging
 import logging.config
 import optparse
 import os
+import platform
 import sys
 import traceback
 
@@ -36,10 +37,10 @@ from pip._internal.utils.outdated import pip_version_check
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, List, Tuple, Any  # noqa: F401
-    from optparse import Values  # noqa: F401
-    from pip._internal.cache import WheelCache  # noqa: F401
-    from pip._internal.req.req_set import RequirementSet  # noqa: F401
+    from typing import Optional, List, Tuple, Any
+    from optparse import Values
+    from pip._internal.cache import WheelCache
+    from pip._internal.req.req_set import RequirementSet
 
 __all__ = ['Command']
 
@@ -49,7 +50,6 @@ logger = logging.getLogger(__name__)
 class Command(object):
     name = None  # type: Optional[str]
     usage = None  # type: Optional[str]
-    hidden = False  # type: bool
     ignore_require_venv = False  # type: bool
 
     def __init__(self, isolated=False):
@@ -81,6 +81,20 @@ class Command(object):
         # type: (Values, List[Any]) -> Any
         raise NotImplementedError
 
+    @classmethod
+    def _get_index_urls(cls, options):
+        """Return a list of index urls from user-provided options."""
+        index_urls = []
+        if not getattr(options, "no_index", False):
+            url = getattr(options, "index_url", None)
+            if url:
+                index_urls.append(url)
+        urls = getattr(options, "extra_index_urls", None)
+        if urls:
+            index_urls.extend(urls)
+        # Return None rather than an empty list
+        return index_urls or None
+
     def _build_session(self, options, retries=None, timeout=None):
         # type: (Values, Optional[int], Optional[int]) -> PipSession
         session = PipSession(
@@ -90,6 +104,7 @@ class Command(object):
             ),
             retries=retries if retries is not None else options.retries,
             insecure_hosts=options.trusted_hosts,
+            index_urls=self._get_index_urls(options),
         )
 
         # Handle custom ca-bundles from the user
@@ -145,14 +160,16 @@ class Command(object):
                 gone_in='19.2',
             )
         elif sys.version_info[:2] == (2, 7):
-            deprecated(
-                "Python 2.7 will reach the end of its life on January 1st, "
-                "2020. Please upgrade your Python as Python 2.7 won't be "
-                "maintained after that date. A future version of pip will "
-                "drop support for Python 2.7.",
-                replacement=None,
-                gone_in=None,
+            message = (
+                "A future version of pip will drop support for Python 2.7."
             )
+            if platform.python_implementation() == "CPython":
+                message = (
+                    "Python 2.7 will reach the end of its life on January "
+                    "1st, 2020. Please upgrade your Python as Python 2.7 "
+                    "won't be maintained after that date. "
+                ) + message
+            deprecated(message, replacement=None, gone_in=None)
 
         # TODO: Try to get these passing down from the command?
         #       without resorting to os.environ to hold these.
@@ -189,7 +206,7 @@ class Command(object):
 
             return ERROR
         except CommandError as exc:
-            logger.critical('ERROR: %s', exc)
+            logger.critical('%s', exc)
             logger.debug('Exception information:', exc_info=True)
 
             return ERROR
@@ -309,11 +326,15 @@ class RequirementCommand(Command):
         platform=None,         # type: Optional[str]
         python_versions=None,  # type: Optional[List[str]]
         abi=None,              # type: Optional[str]
-        implementation=None    # type: Optional[str]
+        implementation=None,   # type: Optional[str]
+        ignore_requires_python=None,  # type: Optional[bool]
     ):
         # type: (...) -> PackageFinder
         """
         Create a package finder appropriate to this requirement command.
+
+        :param ignore_requires_python: Whether to ignore incompatible
+            "Requires-Python" values in links. Defaults to False.
         """
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:
@@ -323,7 +344,7 @@ class RequirementCommand(Command):
             )
             index_urls = []
 
-        return PackageFinder(
+        return PackageFinder.create(
             find_links=options.find_links,
             format_control=options.format_control,
             index_urls=index_urls,
@@ -335,4 +356,5 @@ class RequirementCommand(Command):
             abi=abi,
             implementation=implementation,
             prefer_binary=options.prefer_binary,
+            ignore_requires_python=ignore_requires_python,
         )

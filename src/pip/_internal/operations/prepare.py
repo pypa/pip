@@ -19,14 +19,13 @@ from pip._internal.utils.hashes import MissingHashes
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import display_path, normalize_path
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Optional  # noqa: F401
-    from pip._internal.req.req_install import InstallRequirement  # noqa: F401
-    from pip._internal.index import PackageFinder  # noqa: F401
-    from pip._internal.download import PipSession  # noqa: F401
-    from pip._internal.req.req_tracker import RequirementTracker  # noqa: F401
+    from typing import Any, Optional
+    from pip._internal.req.req_install import InstallRequirement
+    from pip._internal.index import PackageFinder
+    from pip._internal.download import PipSession
+    from pip._internal.req.req_tracker import RequirementTracker
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +99,36 @@ class IsSDist(DistAbstraction):
     def dist(self):
         return self.req.get_dist()
 
+    def _raise_conflicts(self, conflicting_with, conflicting_reqs):
+        conflict_messages = [
+            '%s is incompatible with %s' % (installed, wanted)
+            for installed, wanted in sorted(conflicting_reqs)
+        ]
+        raise InstallationError(
+            "Some build dependencies for %s conflict with %s: %s." % (
+                self.req, conflicting_with, ', '.join(conflict_messages))
+        )
+
+    def install_backend_dependencies(self, finder):
+        # type: (PackageFinder) -> None
+        """
+        Install any extra build dependencies that the backend requests.
+
+        :param finder: a PackageFinder object.
+        """
+        req = self.req
+        with req.build_env:
+            # We need to have the env active when calling the hook.
+            req.spin_message = "Getting requirements to build wheel"
+            reqs = req.pep517_backend.get_requires_for_build_wheel()
+        conflicting, missing = req.build_env.check_requirements(reqs)
+        if conflicting:
+            self._raise_conflicts("the backend dependencies", conflicting)
+        req.build_env.install_requirements(
+            finder, missing, 'normal',
+            "Installing backend dependencies"
+        )
+
     def prep_for_dist(self, finder, build_isolation):
         # type: (PackageFinder, bool) -> None
         # Prepare for building. We need to:
@@ -108,13 +137,6 @@ class IsSDist(DistAbstraction):
 
         self.req.load_pyproject_toml()
         should_isolate = self.req.use_pep517 and build_isolation
-
-        def _raise_conflicts(conflicting_with, conflicting_reqs):
-            raise InstallationError(
-                "Some build dependencies for %s conflict with %s: %s." % (
-                    self.req, conflicting_with, ', '.join(
-                        '%s is incompatible with %s' % (installed, wanted)
-                        for installed, wanted in sorted(conflicting))))
 
         if should_isolate:
             # Isolate in a BuildEnvironment and install the build-time
@@ -128,8 +150,8 @@ class IsSDist(DistAbstraction):
                 self.req.requirements_to_check
             )
             if conflicting:
-                _raise_conflicts("PEP 517/518 supported requirements",
-                                 conflicting)
+                self._raise_conflicts("PEP 517/518 supported requirements",
+                                      conflicting)
             if missing:
                 logger.warning(
                     "Missing build requirements in pyproject.toml for %s.",
@@ -140,20 +162,11 @@ class IsSDist(DistAbstraction):
                     "pip cannot fall back to setuptools without %s.",
                     " and ".join(map(repr, sorted(missing)))
                 )
+
             # Install any extra build dependencies that the backend requests.
             # This must be done in a second pass, as the pyproject.toml
             # dependencies must be installed before we can call the backend.
-            with self.req.build_env:
-                # We need to have the env active when calling the hook.
-                self.req.spin_message = "Getting requirements to build wheel"
-                reqs = self.req.pep517_backend.get_requires_for_build_wheel()
-            conflicting, missing = self.req.build_env.check_requirements(reqs)
-            if conflicting:
-                _raise_conflicts("the backend dependencies", conflicting)
-            self.req.build_env.install_requirements(
-                finder, missing, 'normal',
-                "Installing backend dependencies"
-            )
+            self.install_backend_dependencies(finder=finder)
 
         self.req.prepare_metadata()
         self.req.assert_source_matches_version()
@@ -349,7 +362,7 @@ class RequirementPreparer(object):
                 abstract_dist.prep_for_dist(finder, self.build_isolation)
             if self._download_should_save:
                 # Make a .zip of the source_dir we already created.
-                if req.link.scheme in vcs.all_schemes:
+                if not req.link.is_artifact:
                     req.archive(self.download_dir)
         return abstract_dist
 

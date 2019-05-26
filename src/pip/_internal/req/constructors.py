@@ -23,6 +23,7 @@ from pip._internal.download import (
 from pip._internal.exceptions import InstallationError
 from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.models.link import Link
+from pip._internal.pyproject import make_pyproject_path
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.misc import is_installable_dir
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -30,10 +31,10 @@ from pip._internal.vcs import vcs
 from pip._internal.wheel import Wheel
 
 if MYPY_CHECK_RUNNING:
-    from typing import (   # noqa: F401
-        Optional, Tuple, Set, Any, Union, Text, Dict,
+    from typing import (
+        Any, Dict, Optional, Set, Tuple, Union,
     )
-    from pip._internal.cache import WheelCache  # noqa: F401
+    from pip._internal.cache import WheelCache
 
 
 __all__ = [
@@ -77,10 +78,18 @@ def parse_editable(editable_req):
 
     if os.path.isdir(url_no_extras):
         if not os.path.exists(os.path.join(url_no_extras, 'setup.py')):
-            raise InstallationError(
-                "Directory %r is not installable. File 'setup.py' not found." %
-                url_no_extras
+            msg = (
+                'File "setup.py" not found. Directory cannot be installed '
+                'in editable mode: {}'.format(os.path.abspath(url_no_extras))
             )
+            pyproject_path = make_pyproject_path(url_no_extras)
+            if os.path.isfile(pyproject_path):
+                msg += (
+                    '\n(A "pyproject.toml" file was found, but editable '
+                    'mode currently requires a setup.py based build.)'
+                )
+            raise InstallationError(msg)
+
         # Treating it as code that has already been checked out
         url_no_extras = path_to_url(url_no_extras)
 
@@ -310,13 +319,14 @@ def install_req_from_req_string(
     try:
         req = Requirement(req_string)
     except InvalidRequirement:
-        raise InstallationError("Invalid requirement: '%s'" % req)
+        raise InstallationError("Invalid requirement: '%s'" % req_string)
 
     domains_not_allowed = [
         PyPI.file_storage_domain,
         TestPyPI.file_storage_domain,
     ]
-    if req.url and comes_from.link.netloc in domains_not_allowed:
+    if (req.url and comes_from and comes_from.link and
+            comes_from.link.netloc in domains_not_allowed):
         # Explicitly disallow pypi packages that depend on external urls
         raise InstallationError(
             "Packages installed from PyPI cannot depend on packages "

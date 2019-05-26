@@ -22,7 +22,7 @@ from pip._internal.locations import (
     PIP_DELETE_MARKER_FILENAME, running_under_virtualenv,
 )
 from pip._internal.models.link import Link
-from pip._internal.pyproject import load_pyproject_toml
+from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.compat import native_str
 from pip._internal.utils.hashes import Hashes
@@ -41,15 +41,15 @@ from pip._internal.vcs import vcs
 from pip._internal.wheel import move_wheel_files
 
 if MYPY_CHECK_RUNNING:
-    from typing import (  # noqa: F401
-        Optional, Iterable, List, Union, Any, Text, Sequence, Dict
+    from typing import (
+        Any, Dict, Iterable, List, Mapping, Optional, Sequence, Union,
     )
-    from pip._internal.build_env import BuildEnvironment  # noqa: F401
-    from pip._internal.cache import WheelCache  # noqa: F401
-    from pip._internal.index import PackageFinder  # noqa: F401
-    from pip._vendor.pkg_resources import Distribution  # noqa: F401
-    from pip._vendor.packaging.specifiers import SpecifierSet  # noqa: F401
-    from pip._vendor.packaging.markers import Marker  # noqa: F401
+    from pip._internal.build_env import BuildEnvironment
+    from pip._internal.cache import WheelCache
+    from pip._internal.index import PackageFinder
+    from pip._vendor.pkg_resources import Distribution
+    from pip._vendor.packaging.specifiers import SpecifierSet
+    from pip._vendor.packaging.markers import Marker
 
 
 logger = logging.getLogger(__name__)
@@ -58,7 +58,7 @@ logger = logging.getLogger(__name__)
 class InstallRequirement(object):
     """
     Represents something that may be installed later on, may have information
-    about where to fetch the relavant requirement and also contains logic for
+    about where to fetch the relevant requirement and also contains logic for
     installing the said requirement.
     """
 
@@ -156,6 +156,7 @@ class InstallRequirement(object):
         self.use_pep517 = use_pep517
 
     def __str__(self):
+        # type: () -> str
         if self.req:
             s = str(self.req)
             if self.link:
@@ -176,6 +177,7 @@ class InstallRequirement(object):
         return s
 
     def __repr__(self):
+        # type: () -> str
         return '<%s object: %s editable=%r>' % (
             self.__class__.__name__, str(self), self.editable)
 
@@ -226,6 +228,7 @@ class InstallRequirement(object):
 
     @property
     def installed_version(self):
+        # type: () -> Optional[str]
         return get_installed_version(self.name)
 
     def match_markers(self, extras_requested=None):
@@ -471,13 +474,7 @@ class InstallRequirement(object):
         # type: () -> str
         assert self.source_dir, "No source dir for %s" % self
 
-        pp_toml = os.path.join(self.setup_py_dir, 'pyproject.toml')
-
-        # Python2 __file__ should not be unicode
-        if six.PY2 and isinstance(pp_toml, six.text_type):
-            pp_toml = pp_toml.encode(sys.getfilesystemencoding())
-
-        return pp_toml
+        return make_pyproject_path(self.setup_py_dir)
 
     def load_pyproject_toml(self):
         # type: () -> None
@@ -507,13 +504,17 @@ class InstallRequirement(object):
             # Use a custom function to call subprocesses
             self.spin_message = ""
 
-            def runner(cmd, cwd=None, extra_environ=None):
+            def runner(
+                cmd,  # type: List[str]
+                cwd=None,  # type: Optional[str]
+                extra_environ=None  # type: Optional[Mapping[str, Any]]
+            ):
+                # type: (...) -> None
                 with open_spinner(self.spin_message) as spinner:
                     call_subprocess(
                         cmd,
                         cwd=cwd,
                         extra_environ=extra_environ,
-                        show_stdout=False,
                         spinner=spinner
                     )
                 self.spin_message = ""
@@ -611,7 +612,6 @@ class InstallRequirement(object):
             call_subprocess(
                 egg_info_cmd + egg_base_option,
                 cwd=self.setup_py_dir,
-                show_stdout=False,
                 command_desc='python setup.py egg_info')
 
     @property
@@ -669,6 +669,7 @@ class InstallRequirement(object):
 
     @property
     def metadata(self):
+        # type: () -> Any
         if not hasattr(self, '_metadata'):
             self._metadata = get_metadata(self.get_dist())
 
@@ -763,7 +764,6 @@ class InstallRequirement(object):
                     list(install_options),
 
                     cwd=self.setup_py_dir,
-                    show_stdout=False,
                 )
 
         self.install_succeeded = True
@@ -786,13 +786,13 @@ class InstallRequirement(object):
         if not self.update:
             return
         vc_type, url = self.link.url.split('+', 1)
-        backend = vcs.get_backend(vc_type)
-        if backend:
-            vcs_backend = backend(self.link.url)
+        vcs_backend = vcs.get_backend(vc_type)
+        if vcs_backend:
+            url = self.link.url
             if obtain:
-                vcs_backend.obtain(self.source_dir)
+                vcs_backend.obtain(self.source_dir, url=url)
             else:
-                vcs_backend.export(self.source_dir)
+                vcs_backend.export(self.source_dir, url=url)
         else:
             assert 0, (
                 'Unexpected version control type (in %s): %s'
@@ -824,6 +824,7 @@ class InstallRequirement(object):
         return uninstalled_pathset
 
     def _clean_zip_name(self, name, prefix):  # only used by archive.
+        # type: (str, str) -> str
         assert name.startswith(prefix + os.path.sep), (
             "name %r doesn't start with prefix %r" % (name, prefix)
         )
@@ -947,7 +948,6 @@ class InstallRequirement(object):
                         call_subprocess(
                             install_args + install_options,
                             cwd=self.setup_py_dir,
-                            show_stdout=False,
                             spinner=spinner,
                         )
 
@@ -957,6 +957,7 @@ class InstallRequirement(object):
             self.install_succeeded = True
 
             def prepend_root(path):
+                # type: (str) -> str
                 if root is None or not os.path.isabs(path):
                     return path
                 else:

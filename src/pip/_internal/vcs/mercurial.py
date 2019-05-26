@@ -6,7 +6,7 @@ import os
 from pip._vendor.six.moves import configparser
 
 from pip._internal.download import path_to_url
-from pip._internal.utils.misc import display_path, make_vcs_requirement_url
+from pip._internal.utils.misc import display_path
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.vcs import VersionControl, vcs
 
@@ -19,13 +19,14 @@ class Mercurial(VersionControl):
     repo_name = 'clone'
     schemes = ('hg', 'hg+http', 'hg+https', 'hg+ssh', 'hg+static-http')
 
-    def get_base_rev_args(self, rev):
+    @staticmethod
+    def get_base_rev_args(rev):
         return [rev]
 
-    def export(self, location):
+    def export(self, location, url):
         """Export the Hg repository at the url to the destination location"""
         with TempDirectory(kind="export") as temp_dir:
-            self.unpack(temp_dir.path)
+            self.unpack(temp_dir.path, url=url)
 
             self.run_command(
                 ['archive', location], show_stdout=False, cwd=temp_dir.path
@@ -45,7 +46,7 @@ class Mercurial(VersionControl):
 
     def switch(self, dest, url, rev_options):
         repo_config = os.path.join(dest, self.dirname, 'hgrc')
-        config = configparser.SafeConfigParser()
+        config = configparser.RawConfigParser()
         try:
             config.read(repo_config)
             config.set('paths', 'default', url)
@@ -75,27 +76,27 @@ class Mercurial(VersionControl):
 
     @classmethod
     def get_revision(cls, location):
+        """
+        Return the repository-local changeset revision number, as an integer.
+        """
         current_revision = cls.run_command(
             ['parents', '--template={rev}'],
             show_stdout=False, cwd=location).strip()
         return current_revision
 
     @classmethod
-    def get_revision_hash(cls, location):
+    def get_requirement_revision(cls, location):
+        """
+        Return the changeset identification hash, as a 40-character
+        hexadecimal string
+        """
         current_rev_hash = cls.run_command(
             ['parents', '--template={node}'],
             show_stdout=False, cwd=location).strip()
         return current_rev_hash
 
     @classmethod
-    def get_src_requirement(cls, location, project_name):
-        repo = cls.get_remote_url(location)
-        if not repo.lower().startswith('hg:'):
-            repo = 'hg+' + repo
-        current_rev_hash = cls.get_revision_hash(location)
-        return make_vcs_requirement_url(repo, current_rev_hash, project_name)
-
-    def is_commit_id_equal(self, dest, name):
+    def is_commit_id_equal(cls, dest, name):
         """Always assume the versions don't match"""
         return False
 

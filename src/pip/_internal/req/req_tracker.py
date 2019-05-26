@@ -10,9 +10,10 @@ from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Set, Iterator  # noqa: F401
-    from pip._internal.req.req_install import InstallRequirement  # noqa: F401
-    from pip._internal.models.link import Link  # noqa: F401
+    from types import TracebackType
+    from typing import Iterator, Optional, Set, Type
+    from pip._internal.req.req_install import InstallRequirement
+    from pip._internal.models.link import Link
 
 logger = logging.getLogger(__name__)
 
@@ -33,9 +34,16 @@ class RequirementTracker(object):
         self._entries = set()  # type: Set[InstallRequirement]
 
     def __enter__(self):
+        # type: () -> RequirementTracker
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self,
+        exc_type,  # type: Optional[Type[BaseException]]
+        exc_val,  # type: Optional[BaseException]
+        exc_tb  # type: Optional[TracebackType]
+    ):
+        # type: (...) -> None
         self.cleanup()
 
     def _entry_path(self, link):

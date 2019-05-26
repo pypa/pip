@@ -15,7 +15,7 @@ from pip._internal.utils.compat import WINDOWS, expanduser
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Union, Dict, List, Optional  # noqa: F401
+    from typing import Any, Union, Dict, List, Optional
 
 
 # Application Directories
@@ -135,12 +135,12 @@ else:
     if sys.platform[:6] == 'darwin' and sys.prefix[:16] == '/System/Library/':
         bin_py = '/usr/local/bin'
 
-site_config_files = [
+global_config_files = [
     os.path.join(path, config_basename)
     for path in appdirs.site_config_dirs('pip')
 ]
 
-venv_config_file = os.path.join(sys.prefix, config_basename)
+site_config_file = os.path.join(sys.prefix, config_basename)
 new_config_file = os.path.join(appdirs.user_config_dir("pip"), config_basename)
 
 
@@ -171,8 +171,9 @@ def distutils_scheme(dist_name, user=False, home=None, root=None,
     # or user base for installations during finalize_options()
     # ideally, we'd prefer a scheme class that has no side-effects.
     assert not (user and prefix), "user={} prefix={}".format(user, prefix)
+    assert not (home and prefix), "home={} prefix={}".format(home, prefix)
     i.user = user or i.user
-    if user:
+    if user or home:
         i.prefix = ""
     i.prefix = prefix or i.prefix
     i.home = home or i.home

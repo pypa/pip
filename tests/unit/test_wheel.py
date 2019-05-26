@@ -10,9 +10,12 @@ from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal import pep425tags, wheel
 from pip._internal.exceptions import InvalidWheelFilename, UnsupportedWheel
+from pip._internal.index import FormatControl
+from pip._internal.models.link import Link
+from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import unpack_file
-from tests.lib import DATA_DIR
+from tests.lib import DATA_DIR, assert_paths_equal
 
 
 @pytest.mark.parametrize(
@@ -33,6 +36,205 @@ from tests.lib import DATA_DIR
 def test_contains_egg_info(s, expected):
     result = wheel._contains_egg_info(s)
     assert result == expected
+
+
+def make_test_install_req(base_name=None):
+    """
+    Return an InstallRequirement object for testing purposes.
+    """
+    if base_name is None:
+        base_name = 'pendulum-2.0.4'
+
+    req = Requirement('pendulum')
+    link_url = (
+        'https://files.pythonhosted.org/packages/aa/{base_name}.tar.gz'
+        '#sha256=cf535d36c063575d4752af36df928882b2e0e31541b4482c97d637527'
+        '85f9fcb'
+    ).format(base_name=base_name)
+    link = Link(
+        url=link_url,
+        comes_from='https://pypi.org/simple/pendulum/',
+        requires_python='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*',
+    )
+    req = InstallRequirement(
+        req=req,
+        comes_from=None,
+        constraint=False,
+        editable=False,
+        link=link,
+        source_dir='/tmp/pip-install-9py5m2z1/pendulum',
+    )
+
+    return req
+
+
+@pytest.mark.parametrize(
+    "base_name, autobuilding, cache_available, expected",
+    [
+        ('pendulum-2.0.4', False, False, False),
+        # The following cases test autobuilding=True.
+        # Test _contains_egg_info() returning True.
+        ('pendulum-2.0.4', True, True, False),
+        ('pendulum-2.0.4', True, False, True),
+        # Test _contains_egg_info() returning False.
+        ('pendulum', True, True, True),
+        ('pendulum', True, False, True),
+    ],
+)
+def test_should_use_ephemeral_cache__issue_6197(
+    base_name, autobuilding, cache_available, expected,
+):
+    """
+    Regression test for: https://github.com/pypa/pip/issues/6197
+    """
+    req = make_test_install_req(base_name=base_name)
+    assert not req.is_wheel
+    assert req.link.is_artifact
+
+    format_control = FormatControl()
+    ephem_cache = wheel.should_use_ephemeral_cache(
+        req, format_control=format_control, autobuilding=autobuilding,
+        cache_available=cache_available,
+    )
+    assert ephem_cache is expected
+
+
+@pytest.mark.parametrize(
+    "disallow_binaries, expected",
+    [
+        # By default (i.e. when binaries are allowed), VCS requirements
+        # should be built.
+        (False, True),
+        # Disallowing binaries, however, should cause them not to be built.
+        (True, None),
+    ],
+)
+def test_should_use_ephemeral_cache__disallow_binaries_and_vcs_checkout(
+    disallow_binaries, expected,
+):
+    """
+    Test that disallowing binaries (e.g. from passing --global-option)
+    causes should_use_ephemeral_cache() to return None for VCS checkouts.
+    """
+    req = Requirement('pendulum')
+    # Passing a VCS url causes link.is_artifact to return False.
+    link = Link(url='git+https://git.example.com/pendulum.git')
+    req = InstallRequirement(
+        req=req,
+        comes_from=None,
+        constraint=False,
+        editable=False,
+        link=link,
+        source_dir='/tmp/pip-install-9py5m2z1/pendulum',
+    )
+    assert not req.is_wheel
+    assert not req.link.is_artifact
+
+    format_control = FormatControl()
+    if disallow_binaries:
+        format_control.disallow_binaries()
+
+    # The cache_available value doesn't matter for this test.
+    ephem_cache = wheel.should_use_ephemeral_cache(
+        req, format_control=format_control, autobuilding=True,
+        cache_available=True,
+    )
+    assert ephem_cache is expected
+
+
+def test_format_command_result__INFO(caplog):
+    caplog.set_level(logging.INFO)
+    actual = wheel.format_command_result(
+        # Include an argument with a space to test argument quoting.
+        command_args=['arg1', 'second arg'],
+        command_output='output line 1\noutput line 2\n',
+    )
+    assert actual.splitlines() == [
+        "Command arguments: arg1 'second arg'",
+        'Command output: [use --verbose to show]',
+    ]
+
+
+@pytest.mark.parametrize('command_output', [
+    # Test trailing newline.
+    'output line 1\noutput line 2\n',
+    # Test no trailing newline.
+    'output line 1\noutput line 2',
+])
+def test_format_command_result__DEBUG(caplog, command_output):
+    caplog.set_level(logging.DEBUG)
+    actual = wheel.format_command_result(
+        command_args=['arg1', 'arg2'],
+        command_output=command_output,
+    )
+    assert actual.splitlines() == [
+        "Command arguments: arg1 arg2",
+        'Command output:',
+        'output line 1',
+        'output line 2',
+        '----------------------------------------',
+    ]
+
+
+@pytest.mark.parametrize('log_level', ['DEBUG', 'INFO'])
+def test_format_command_result__empty_output(caplog, log_level):
+    caplog.set_level(log_level)
+    actual = wheel.format_command_result(
+        command_args=['arg1', 'arg2'],
+        command_output='',
+    )
+    assert actual.splitlines() == [
+        "Command arguments: arg1 arg2",
+        'Command output: None',
+    ]
+
+
+def call_get_legacy_build_wheel_path(caplog, names):
+    req = make_test_install_req()
+    wheel_path = wheel.get_legacy_build_wheel_path(
+        names=names,
+        temp_dir='/tmp/abcd',
+        req=req,
+        command_args=['arg1', 'arg2'],
+        command_output='output line 1\noutput line 2\n',
+    )
+    return wheel_path
+
+
+def test_get_legacy_build_wheel_path(caplog):
+    actual = call_get_legacy_build_wheel_path(caplog, names=['name'])
+    assert_paths_equal(actual, '/tmp/abcd/name')
+    assert not caplog.records
+
+
+def test_get_legacy_build_wheel_path__no_names(caplog):
+    actual = call_get_legacy_build_wheel_path(caplog, names=[])
+    assert actual is None
+    assert len(caplog.records) == 1
+    record = caplog.records[0]
+    assert record.levelname == 'WARNING'
+    assert record.message.splitlines() == [
+        "Legacy build of wheel for 'pendulum' created no files.",
+        "Command arguments: arg1 arg2",
+        'Command output: [use --verbose to show]',
+    ]
+
+
+def test_get_legacy_build_wheel_path__multiple_names(caplog):
+    # Deliberately pass the names in non-sorted order.
+    actual = call_get_legacy_build_wheel_path(
+        caplog, names=['name2', 'name1'],
+    )
+    assert_paths_equal(actual, '/tmp/abcd/name1')
+    assert len(caplog.records) == 1
+    record = caplog.records[0]
+    assert record.levelname == 'WARNING'
+    assert record.message.splitlines() == [
+        "Legacy build of wheel for 'pendulum' created more than one file.",
+        "Filenames (choosing first): ['name1', 'name2']",
+        "Command arguments: arg1 arg2",
+        'Command output: [use --verbose to show]',
+    ]
 
 
 @pytest.mark.parametrize("console_scripts",
@@ -82,7 +284,9 @@ def call_get_csv_rows_for_installed(tmpdir, text):
     path = tmpdir.join('temp.txt')
     path.write(text)
 
-    installed = {}
+    # Test that an installed file appearing in RECORD has its filename
+    # updated in the new RECORD file.
+    installed = {'a': 'z'}
     changed = set()
     generated = []
     lib_dir = '/lib/dir'
@@ -104,7 +308,7 @@ def test_get_csv_rows_for_installed(tmpdir, caplog):
     outrows = call_get_csv_rows_for_installed(tmpdir, text)
 
     expected = [
-        ('a', 'b', 'c'),
+        ('z', 'b', 'c'),
         ('d', 'e', 'f'),
     ]
     assert outrows == expected
@@ -121,7 +325,7 @@ def test_get_csv_rows_for_installed__long_lines(tmpdir, caplog):
     outrows = call_get_csv_rows_for_installed(tmpdir, text)
 
     expected = [
-        ('a', 'b', 'c', 'd'),
+        ('z', 'b', 'c', 'd'),
         ('e', 'f', 'g'),
         ('h', 'i', 'j', 'k'),
     ]

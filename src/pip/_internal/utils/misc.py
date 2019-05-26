@@ -2,8 +2,8 @@ from __future__ import absolute_import
 
 import contextlib
 import errno
+import getpass
 import io
-import locale
 # we have a submodule named 'logging' which would shadow this if we used the
 # regular name:
 import logging as std_logging
@@ -23,7 +23,7 @@ from pip._vendor import pkg_resources
 #       why we ignore the type on this import.
 from pip._vendor.retrying import retry  # type: ignore
 from pip._vendor.six import PY2
-from pip._vendor.six.moves import input
+from pip._vendor.six.moves import input, shlex_quote
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
 
@@ -43,13 +43,13 @@ else:
     from io import StringIO
 
 if MYPY_CHECK_RUNNING:
-    from typing import (  # noqa: F401
+    from typing import (
         Optional, Tuple, Iterable, List, Match, Union, Any, Mapping, Text,
         AnyStr, Container
     )
-    from pip._vendor.pkg_resources import Distribution  # noqa: F401
-    from pip._internal.models.link import Link  # noqa: F401
-    from pip._internal.utils.ui import SpinnerInterface  # noqa: F401
+    from pip._vendor.pkg_resources import Distribution
+    from pip._internal.models.link import Link
+    from pip._internal.utils.ui import SpinnerInterface
 
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
@@ -66,6 +66,9 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
 
 
 logger = std_logging.getLogger(__name__)
+subprocess_logger = std_logging.getLogger('pip.subprocessor')
+
+LOG_DIVIDER = '----------------------------------------'
 
 WHEEL_EXTENSION = '.whl'
 BZ2_EXTENSIONS = ('.tar.bz2', '.tbz')
@@ -169,15 +172,21 @@ def ask_path_exists(message, options):
     return ask(message, options)
 
 
+def _check_no_input(message):
+    # type: (str) -> None
+    """Raise an error if no input is allowed."""
+    if os.environ.get('PIP_NO_INPUT'):
+        raise Exception(
+            'No input was expected ($PIP_NO_INPUT set); question: %s' %
+            message
+        )
+
+
 def ask(message, options):
     # type: (str, Iterable[str]) -> str
     """Ask the message interactively, with the given possible responses"""
     while 1:
-        if os.environ.get('PIP_NO_INPUT'):
-            raise Exception(
-                'No input was expected ($PIP_NO_INPUT set); question: %s' %
-                message
-            )
+        _check_no_input(message)
         response = input(message)
         response = response.strip().lower()
         if response not in options:
@@ -187,6 +196,20 @@ def ask(message, options):
             )
         else:
             return response
+
+
+def ask_input(message):
+    # type: (str) -> str
+    """Ask for input interactively."""
+    _check_no_input(message)
+    return input(message)
+
+
+def ask_password(message):
+    # type: (str) -> str
+    """Ask for a password interactively."""
+    _check_no_input(message)
+    return getpass.getpass(message)
 
 
 def format_size(bytes):
@@ -634,7 +657,8 @@ def unpack_file(
             is_svn_page(file_contents(filename))):
         # We don't really care about this
         from pip._internal.vcs.subversion import Subversion
-        Subversion('svn+' + link.url).unpack(location)
+        url = 'svn+' + link.url
+        Subversion().unpack(location, url=url)
     else:
         # FIXME: handle?
         # FIXME: magic signatures?
@@ -648,9 +672,17 @@ def unpack_file(
         )
 
 
+def format_command_args(args):
+    # type: (List[str]) -> str
+    """
+    Format command arguments for display.
+    """
+    return ' '.join(shlex_quote(arg) for arg in args)
+
+
 def call_subprocess(
     cmd,  # type: List[str]
-    show_stdout=True,  # type: bool
+    show_stdout=False,  # type: bool
     cwd=None,  # type: Optional[str]
     on_returncode='raise',  # type: str
     extra_ok_returncodes=None,  # type: Optional[Iterable[int]]
@@ -662,6 +694,8 @@ def call_subprocess(
     # type: (...) -> Optional[Text]
     """
     Args:
+      show_stdout: if true, use INFO to log the subprocess's stderr and
+        stdout streams.  Otherwise, use DEBUG.  Defaults to False.
       extra_ok_returncodes: an iterable of integer return codes that are
         acceptable, in addition to 0. Defaults to None, which means [].
       unset_environ: an iterable of environment variable names to unset
@@ -671,39 +705,42 @@ def call_subprocess(
         extra_ok_returncodes = []
     if unset_environ is None:
         unset_environ = []
-    # This function's handling of subprocess output is confusing and I
-    # previously broke it terribly, so as penance I will write a long comment
-    # explaining things.
+    # Most places in pip use show_stdout=False. What this means is--
     #
-    # The obvious thing that affects output is the show_stdout=
-    # kwarg. show_stdout=True means, let the subprocess write directly to our
-    # stdout. Even though it is nominally the default, it is almost never used
-    # inside pip (and should not be used in new code without a very good
-    # reason); as of 2016-02-22 it is only used in a few places inside the VCS
-    # wrapper code. Ideally we should get rid of it entirely, because it
-    # creates a lot of complexity here for a rarely used feature.
+    # - We connect the child's output (combined stderr and stdout) to a
+    #   single pipe, which we read.
+    # - We log this output to stderr at DEBUG level as it is received.
+    # - If DEBUG logging isn't enabled (e.g. if --verbose logging wasn't
+    #   requested), then we show a spinner so the user can still see the
+    #   subprocess is in progress.
+    # - If the subprocess exits with an error, we log the output to stderr
+    #   at ERROR level if it hasn't already been displayed to the console
+    #   (e.g. if --verbose logging wasn't enabled).  This way we don't log
+    #   the output to the console twice.
     #
-    # Most places in pip set show_stdout=False. What this means is:
-    # - We connect the child stdout to a pipe, which we read.
-    # - By default, we hide the output but show a spinner -- unless the
-    #   subprocess exits with an error, in which case we show the output.
-    # - If the --verbose option was passed (= loglevel is DEBUG), then we show
-    #   the output unconditionally. (But in this case we don't want to show
-    #   the output a second time if it turns out that there was an error.)
-    #
-    # stderr is always merged with stdout (even if show_stdout=True).
+    # If show_stdout=True, then the above is still done, but with DEBUG
+    # replaced by INFO.
     if show_stdout:
-        stdout = None
+        # Then log the subprocess output at INFO level.
+        log_subprocess = subprocess_logger.info
+        used_level = std_logging.INFO
     else:
-        stdout = subprocess.PIPE
+        # Then log the subprocess output using DEBUG.  This also ensures
+        # it will be logged to the log file (aka user_log), if enabled.
+        log_subprocess = subprocess_logger.debug
+        used_level = std_logging.DEBUG
+
+    # Whether the subprocess will be visible in the console.
+    showing_subprocess = subprocess_logger.getEffectiveLevel() <= used_level
+
+    # Only use the spinner if we're not showing the subprocess output
+    # and we have a spinner.
+    use_spinner = not showing_subprocess and spinner is not None
+
     if command_desc is None:
-        cmd_parts = []
-        for part in cmd:
-            if ' ' in part or '\n' in part or '"' in part or "'" in part:
-                part = '"%s"' % part.replace('"', '\\"')
-            cmd_parts.append(part)
-        command_desc = ' '.join(cmd_parts)
-    logger.debug("Running command %s", command_desc)
+        command_desc = format_command_args(cmd)
+
+    log_subprocess("Running command %s", command_desc)
     env = os.environ.copy()
     if extra_environ:
         env.update(extra_environ)
@@ -712,55 +749,55 @@ def call_subprocess(
     try:
         proc = subprocess.Popen(
             cmd, stderr=subprocess.STDOUT, stdin=subprocess.PIPE,
-            stdout=stdout, cwd=cwd, env=env,
+            stdout=subprocess.PIPE, cwd=cwd, env=env,
         )
         proc.stdin.close()
     except Exception as exc:
-        logger.critical(
+        subprocess_logger.critical(
             "Error %s while executing command %s", exc, command_desc,
         )
         raise
     all_output = []
-    if stdout is not None:
-        while True:
-            line = console_to_str(proc.stdout.readline())
-            if not line:
-                break
-            line = line.rstrip()
-            all_output.append(line + '\n')
-            if logger.getEffectiveLevel() <= std_logging.DEBUG:
-                # Show the line immediately
-                logger.debug(line)
-            else:
-                # Update the spinner
-                if spinner is not None:
-                    spinner.spin()
+    while True:
+        line = console_to_str(proc.stdout.readline())
+        if not line:
+            break
+        line = line.rstrip()
+        all_output.append(line + '\n')
+
+        # Show the line immediately.
+        log_subprocess(line)
+        # Update the spinner.
+        if use_spinner:
+            spinner.spin()
     try:
         proc.wait()
     finally:
         if proc.stdout:
             proc.stdout.close()
-    if spinner is not None:
-        if proc.returncode:
+    proc_had_error = (
+        proc.returncode and proc.returncode not in extra_ok_returncodes
+    )
+    if use_spinner:
+        if proc_had_error:
             spinner.finish("error")
         else:
             spinner.finish("done")
-    if proc.returncode and proc.returncode not in extra_ok_returncodes:
+    if proc_had_error:
         if on_returncode == 'raise':
-            if (logger.getEffectiveLevel() > std_logging.DEBUG and
-                    not show_stdout):
-                logger.info(
+            if not showing_subprocess:
+                # Then the subprocess streams haven't been logged to the
+                # console yet.
+                subprocess_logger.error(
                     'Complete output from command %s:', command_desc,
                 )
-                logger.info(
-                    ''.join(all_output) +
-                    '\n----------------------------------------'
-                )
+                # The all_output value already ends in a newline.
+                subprocess_logger.error(''.join(all_output) + LOG_DIVIDER)
             raise InstallationError(
                 'Command "%s" failed with error code %s in %s'
                 % (command_desc, proc.returncode, cwd))
         elif on_returncode == 'warn':
-            logger.warning(
+            subprocess_logger.warning(
                 'Command "%s" had error code %s in %s',
                 command_desc, proc.returncode, cwd,
             )
@@ -769,35 +806,7 @@ def call_subprocess(
         else:
             raise ValueError('Invalid value: on_returncode=%s' %
                              repr(on_returncode))
-    if not show_stdout:
-        return ''.join(all_output)
-    return None
-
-
-def read_text_file(filename):
-    # type: (str) -> str
-    """Return the contents of *filename*.
-
-    Try to decode the file contents with utf-8, the preferred system encoding
-    (e.g., cp1252 on some Windows machines), and latin1, in that order.
-    Decoding a byte string with latin1 will never raise an error. In the worst
-    case, the returned string will contain some garbage characters.
-
-    """
-    with open(filename, 'rb') as fp:
-        data = fp.read()
-
-    encodings = ['utf-8', locale.getpreferredencoding(False), 'latin1']
-    for enc in encodings:
-        try:
-            # https://github.com/python/mypy/issues/1174
-            data = data.decode(enc)  # type: ignore
-        except UnicodeDecodeError:
-            continue
-        break
-
-    assert not isinstance(data, bytes)  # Latin1 should have worked.
-    return data
+    return ''.join(all_output)
 
 
 def _make_build_dir(build_dir):
@@ -922,22 +931,6 @@ def enum(*sequential, **named):
     return type('Enum', (), enums)
 
 
-def make_vcs_requirement_url(repo_url, rev, project_name, subdir=None):
-    """
-    Return the URL for a VCS requirement.
-
-    Args:
-      repo_url: the remote VCS url, with any needed VCS prefix (e.g. "git+").
-      project_name: the (unescaped) project name.
-    """
-    egg_project_name = pkg_resources.to_filename(project_name)
-    req = '{}@{}#egg={}'.format(repo_url, rev, egg_project_name)
-    if subdir:
-        req += '&subdirectory={}'.format(subdir)
-
-    return req
-
-
 def split_auth_from_netloc(netloc):
     """
     Parse out and remove the auth information from a netloc.
@@ -983,32 +976,56 @@ def redact_netloc(netloc):
 
 
 def _transform_url(url, transform_netloc):
+    """Transform and replace netloc in a url.
+
+    transform_netloc is a function taking the netloc and returning a
+    tuple. The first element of this tuple is the new netloc. The
+    entire tuple is returned.
+
+    Returns a tuple containing the transformed url as item 0 and the
+    original tuple returned by transform_netloc as item 1.
+    """
     purl = urllib_parse.urlsplit(url)
-    netloc = transform_netloc(purl.netloc)
+    netloc_tuple = transform_netloc(purl.netloc)
     # stripped url
     url_pieces = (
-        purl.scheme, netloc, purl.path, purl.query, purl.fragment
+        purl.scheme, netloc_tuple[0], purl.path, purl.query, purl.fragment
     )
     surl = urllib_parse.urlunsplit(url_pieces)
-    return surl
+    return surl, netloc_tuple
 
 
 def _get_netloc(netloc):
-    return split_auth_from_netloc(netloc)[0]
+    return split_auth_from_netloc(netloc)
+
+
+def _redact_netloc(netloc):
+    return (redact_netloc(netloc),)
+
+
+def split_auth_netloc_from_url(url):
+    # type: (str) -> Tuple[str, str, Tuple[str, str]]
+    """
+    Parse a url into separate netloc, auth, and url with no auth.
+
+    Returns: (url_without_auth, netloc, (username, password))
+    """
+    url_without_auth, (netloc, auth) = _transform_url(url, _get_netloc)
+    return url_without_auth, netloc, auth
 
 
 def remove_auth_from_url(url):
     # type: (str) -> str
-    # Return a copy of url with 'username:password@' removed.
+    """Return a copy of url with 'username:password@' removed."""
     # username/pass params are passed to subversion through flags
     # and are not recognized in the url.
-    return _transform_url(url, _get_netloc)
+    return _transform_url(url, _get_netloc)[0]
 
 
 def redact_password_from_url(url):
     # type: (str) -> str
     """Replace the password in a given url with ****."""
-    return _transform_url(url, redact_netloc)
+    return _transform_url(url, _redact_netloc)[0]
 
 
 def protect_pip_from_modification_on_windows(modifying_pip):

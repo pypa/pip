@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from contextlib import contextmanager
+from textwrap import dedent
 import os
 import sys
 import re
@@ -12,6 +13,7 @@ import subprocess
 import pytest
 from scripttest import FoundDir, TestFileEnvironment
 
+from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
 from tests.lib.path import Path, curdir
 
 DATA_DIR = Path(__file__).folder.folder.join("data").abspath
@@ -19,6 +21,10 @@ SRC_DIR = Path(__file__).abspath.folder.folder.folder
 
 pyversion = sys.version[:3]
 pyversion_tuple = sys.version_info
+
+
+def assert_paths_equal(actual, expected):
+    os.path.normpath(actual) == os.path.normpath(expected)
 
 
 def path_to_url(path):
@@ -258,6 +264,79 @@ class TestPipResult(object):
                 )
 
 
+def make_check_stderr_message(stderr, line, reason):
+    """
+    Create an exception message to use inside check_stderr().
+    """
+    return dedent("""\
+    {reason}:
+     Caused by line: {line!r}
+     Complete stderr: {stderr}
+    """).format(stderr=stderr, line=line, reason=reason)
+
+
+def check_stderr(
+    stderr, allow_stderr_warning=None, allow_stderr_error=None,
+):
+    """
+    Check the given stderr for logged warnings and errors.
+
+    :param stderr: stderr output as a string.
+    :param allow_stderr_warning: whether a logged warning (or deprecation
+        message) is allowed.  Defaults to `allow_stderr_error`.
+    :param allow_stderr_error: whether a logged error is allowed.  Passing
+        True for this argument implies that warnings are also allowed.
+        Defaults to False.
+    """
+    if allow_stderr_error is None:
+        allow_stderr_error = False
+
+    if allow_stderr_warning is None:
+        allow_stderr_warning = allow_stderr_error
+
+    if allow_stderr_error and not allow_stderr_warning:
+        raise RuntimeError(
+            'cannot pass allow_stderr_warning=False with '
+            'allow_stderr_error=True'
+        )
+
+    lines = stderr.splitlines()
+    for line in lines:
+        # First check for logging errors, which we don't allow during
+        # tests even if allow_stderr_error=True (since a logging error
+        # would signal a bug in pip's code).
+        #    Unlike errors logged with logger.error(), these errors are
+        # sent directly to stderr and so bypass any configured log formatter.
+        # The "--- Logging error ---" string is used in Python 3.4+, and
+        # "Logged from file " is used in Python 2.
+        if (line.startswith('--- Logging error ---') or
+                line.startswith('Logged from file ')):
+            reason = 'stderr has a logging error, which is never allowed'
+            msg = make_check_stderr_message(stderr, line=line, reason=reason)
+            raise RuntimeError(msg)
+        if allow_stderr_error:
+            continue
+
+        if line.startswith('ERROR: '):
+            reason = (
+                'stderr has an unexpected error '
+                '(pass allow_stderr_error=True to permit this)'
+            )
+            msg = make_check_stderr_message(stderr, line=line, reason=reason)
+            raise RuntimeError(msg)
+        if allow_stderr_warning:
+            continue
+
+        if (line.startswith('WARNING: ') or
+                line.startswith(DEPRECATION_MSG_PREFIX)):
+            reason = (
+                'stderr has an unexpected warning '
+                '(pass allow_stderr_warning=True to permit this)'
+            )
+            msg = make_check_stderr_message(stderr, line=line, reason=reason)
+            raise RuntimeError(msg)
+
+
 class PipTestEnvironment(TestFileEnvironment):
     """
     A specialized TestFileEnvironment for testing pip
@@ -325,7 +404,7 @@ class PipTestEnvironment(TestFileEnvironment):
 
         # Whether all pip invocations should expect stderr
         # (useful for Python version deprecation)
-        self.pip_expect_stderr = kwargs.pop('pip_expect_stderr', None)
+        self.pip_expect_warning = kwargs.pop('pip_expect_warning', None)
 
         # Call the TestFileEnvironment __init__
         super(PipTestEnvironment, self).__init__(base_path, *args, **kwargs)
@@ -364,6 +443,17 @@ class PipTestEnvironment(TestFileEnvironment):
             super(PipTestEnvironment, self)._find_traverse(path, result)
 
     def run(self, *args, **kw):
+        """
+        :param allow_stderr_warning: whether a logged warning (or
+            deprecation message) is allowed in stderr.
+        :param allow_stderr_error: whether a logged error is allowed in
+            stderr.  Passing True for this argument implies
+            `allow_stderr_warning` since warnings are weaker than errors.
+        :param expect_stderr: whether to allow warnings in stderr (equivalent
+            to `allow_stderr_warning`).  This argument is an abbreviated
+            version of `allow_stderr_warning` and is also kept for backwards
+            compatibility.
+        """
         if self.verbose:
             print('>> running %s %s' % (args, kw))
         cwd = kw.pop('cwd', None)
@@ -373,20 +463,44 @@ class PipTestEnvironment(TestFileEnvironment):
         if sys.platform == 'win32':
             # Partial fix for ScriptTest.run using `shell=True` on Windows.
             args = [str(a).replace('^', '^^').replace('&', '^&') for a in args]
-        return TestPipResult(
-            super(PipTestEnvironment, self).run(cwd=cwd, *args, **kw),
-            verbose=self.verbose,
+
+        # Remove `allow_stderr_error` and `allow_stderr_warning` before
+        # calling run() because PipTestEnvironment doesn't support them.
+        allow_stderr_error = kw.pop('allow_stderr_error', None)
+        allow_stderr_warning = kw.pop('allow_stderr_warning', None)
+
+        if kw.get('expect_error'):
+            # Then default to allowing logged errors.
+            if allow_stderr_error is not None and not allow_stderr_error:
+                raise RuntimeError(
+                    'cannot pass allow_stderr_error=False with '
+                    'expect_error=True'
+                )
+            allow_stderr_error = True
+        elif kw.get('expect_stderr'):
+            # Then default to allowing logged warnings.
+            if allow_stderr_warning is not None and not allow_stderr_warning:
+                raise RuntimeError(
+                    'cannot pass allow_stderr_warning=False with '
+                    'expect_stderr=True'
+                )
+            allow_stderr_warning = True
+
+        # Pass expect_stderr=True to allow any stderr.  We do this because
+        # we do our checking of stderr further on in check_stderr().
+        kw['expect_stderr'] = True
+        result = super(PipTestEnvironment, self).run(cwd=cwd, *args, **kw)
+
+        check_stderr(
+            result.stderr, allow_stderr_error=allow_stderr_error,
+            allow_stderr_warning=allow_stderr_warning,
         )
 
+        return TestPipResult(result, verbose=self.verbose)
+
     def pip(self, *args, **kwargs):
-        if self.pip_expect_stderr:
-            kwargs['expect_stderr'] = True
-        # On old versions of Python, urllib3/requests will raise a warning
-        # about the lack of an SSLContext. Expect it when running commands
-        # that will touch the outside world.
-        if (pyversion_tuple < (2, 7, 9) and
-                args and args[0] in ('search', 'install', 'download')):
-            kwargs['expect_stderr'] = True
+        if self.pip_expect_warning:
+            kwargs['allow_stderr_warning'] = True
         if kwargs.pop('use_module', True):
             exe = 'python'
             args = ('-m', 'pip') + args
@@ -799,6 +913,22 @@ def need_executable(name, check_cmd):
             return pytest.mark.skip(reason='%s is not available' % name)(fn)
         return fn
     return wrapper
+
+
+def is_bzr_installed():
+    try:
+        subprocess.check_output(('bzr', 'version', '--short'))
+    except OSError:
+        return False
+    return True
+
+
+def is_svn_installed():
+    try:
+        subprocess.check_output(('svn', '--version'))
+    except OSError:
+        return False
+    return True
 
 
 def need_bzr(fn):

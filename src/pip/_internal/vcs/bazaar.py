@@ -6,10 +6,7 @@ import os
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip._internal.download import path_to_url
-from pip._internal.utils.misc import (
-    display_path, make_vcs_requirement_url, rmtree,
-)
-from pip._internal.utils.temp_dir import TempDirectory
+from pip._internal.utils.misc import display_path, rmtree
 from pip._internal.vcs import VersionControl, vcs
 
 logger = logging.getLogger(__name__)
@@ -24,17 +21,18 @@ class Bazaar(VersionControl):
         'bzr+lp',
     )
 
-    def __init__(self, url=None, *args, **kwargs):
-        super(Bazaar, self).__init__(url, *args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super(Bazaar, self).__init__(*args, **kwargs)
         # This is only needed for python <2.7.5
         # Register lp but do not expose as a scheme to support bzr+lp.
         if getattr(urllib_parse, 'uses_fragment', None):
             urllib_parse.uses_fragment.extend(['lp'])
 
-    def get_base_rev_args(self, rev):
+    @staticmethod
+    def get_base_rev_args(rev):
         return ['-r', rev]
 
-    def export(self, location):
+    def export(self, location, url):
         """
         Export the Bazaar repository at the url to the destination location
         """
@@ -42,13 +40,11 @@ class Bazaar(VersionControl):
         if os.path.exists(location):
             rmtree(location)
 
-        with TempDirectory(kind="export") as temp_dir:
-            self.unpack(temp_dir.path)
-
-            self.run_command(
-                ['export', location],
-                cwd=temp_dir.path, show_stdout=False,
-            )
+        url, rev_options = self.get_url_rev_options(url)
+        self.run_command(
+            ['export', location, url] + rev_options.to_args(),
+            show_stdout=False,
+        )
 
     def fetch_new(self, dest, url, rev_options):
         rev_display = rev_options.to_display()
@@ -68,9 +64,10 @@ class Bazaar(VersionControl):
         cmd_args = ['pull', '-q'] + rev_options.to_args()
         self.run_command(cmd_args, cwd=dest)
 
-    def get_url_rev_and_auth(self, url):
+    @classmethod
+    def get_url_rev_and_auth(cls, url):
         # hotfix the URL scheme after removing bzr+ from bzr+ssh:// readd it
-        url, rev, user_pass = super(Bazaar, self).get_url_rev_and_auth(url)
+        url, rev, user_pass = super(Bazaar, cls).get_url_rev_and_auth(url)
         if url.startswith('ssh://'):
             url = 'bzr+' + url
         return url, rev, user_pass
@@ -97,16 +94,7 @@ class Bazaar(VersionControl):
         return revision.splitlines()[-1]
 
     @classmethod
-    def get_src_requirement(cls, location, project_name):
-        repo = cls.get_remote_url(location)
-        if not repo:
-            return None
-        if not repo.lower().startswith('bzr:'):
-            repo = 'bzr+' + repo
-        current_rev = cls.get_revision(location)
-        return make_vcs_requirement_url(repo, current_rev, project_name)
-
-    def is_commit_id_equal(self, dest, name):
+    def is_commit_id_equal(cls, dest, name):
         """Always assume the versions don't match"""
         return False
 

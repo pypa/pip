@@ -15,7 +15,7 @@ from pip._internal.utils.compat import get_extension_suffixes
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import (  # noqa: F401
+    from typing import (
         Tuple, Callable, List, Optional, Union, Dict
     )
 

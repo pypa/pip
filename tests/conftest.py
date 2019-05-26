@@ -32,15 +32,16 @@ def pytest_collection_modifyitems(config, items):
             continue
 
         # Mark network tests as flaky
-        if item.get_marker('network') is not None and "CI" in os.environ:
+        if (item.get_closest_marker('network') is not None and
+                "CI" in os.environ):
             item.add_marker(pytest.mark.flaky(reruns=3))
 
         if six.PY3:
-            if (item.get_marker('incompatible_with_test_venv') and
+            if (item.get_closest_marker('incompatible_with_test_venv') and
                     config.getoption("--use-venv")):
                 item.add_marker(pytest.mark.skip(
                     'Incompatible with test venv'))
-            if (item.get_marker('incompatible_with_venv') and
+            if (item.get_closest_marker('incompatible_with_venv') and
                     sys.prefix != sys.base_prefix):
                 item.add_marker(pytest.mark.skip(
                     'Incompatible with venv'))
@@ -303,7 +304,7 @@ def script(tmpdir, virtualenv, deprecated_python):
         assert_no_temp=True,
 
         # Deprecated python versions produce an extra deprecation warning
-        pip_expect_stderr=deprecated_python,
+        pip_expect_warning=deprecated_python,
     )
 
 
@@ -348,5 +349,5 @@ def in_memory_pip():
 
 @pytest.fixture
 def deprecated_python():
-    """Used to indicate wheither pip deprecated this python version"""
+    """Used to indicate whether pip deprecated this python version"""
     return sys.version_info[:2] in [(3, 4), (2, 7)]

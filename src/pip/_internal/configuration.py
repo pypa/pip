@@ -15,21 +15,19 @@ import locale
 import logging
 import os
 
-from pip._vendor import six
 from pip._vendor.six.moves import configparser
 
 from pip._internal.exceptions import (
     ConfigurationError, ConfigurationFileCouldNotBeLoaded,
 )
 from pip._internal.locations import (
-    legacy_config_file, new_config_file, running_under_virtualenv,
-    site_config_files, venv_config_file,
+    global_config_files, legacy_config_file, new_config_file, site_config_file,
 )
 from pip._internal.utils.misc import ensure_dir, enum
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import (  # noqa: F401
+    from typing import (
         Any, Dict, Iterable, List, NewType, Optional, Tuple
     )
 
@@ -52,6 +50,12 @@ def _normalize_name(name):
 
 def _disassemble_key(name):
     # type: (str) -> List[str]
+    if "." not in name:
+        error_message = (
+            "Key does not contain dot separated section and key. "
+            "Perhaps you wanted to use 'global.{}' instead?"
+        ).format(name)
+        raise ConfigurationError(error_message)
     return name.split(".", 1)
 
 
@@ -59,7 +63,7 @@ def _disassemble_key(name):
 kinds = enum(
     USER="user",        # User Specific
     GLOBAL="global",    # System Wide
-    VENV="venv",        # Virtual Environment Specific
+    SITE="site",        # [Virtual] Environment Specific
     ENV="env",          # from PIP_CONFIG_FILE
     ENV_VAR="env-var",  # from Environment Variables
 )
@@ -83,7 +87,7 @@ class Configuration(object):
         # type: (bool, Kind) -> None
         super(Configuration, self).__init__()
 
-        _valid_load_only = [kinds.USER, kinds.GLOBAL, kinds.VENV, None]
+        _valid_load_only = [kinds.USER, kinds.GLOBAL, kinds.SITE, None]
         if load_only not in _valid_load_only:
             raise ConfigurationError(
                 "Got invalid value for load_only - should be one of {}".format(
@@ -95,7 +99,7 @@ class Configuration(object):
 
         # The order here determines the override order.
         self._override_order = [
-            kinds.GLOBAL, kinds.USER, kinds.VENV, kinds.ENV, kinds.ENV_VAR
+            kinds.GLOBAL, kinds.USER, kinds.SITE, kinds.ENV, kinds.ENV_VAR
         ]
 
         self._ignore_env_names = ["version", "help"]
@@ -188,7 +192,7 @@ class Configuration(object):
                 # name removed from parser, section may now be empty
                 section_iter = iter(parser.items(section))
                 try:
-                    val = six.next(section_iter)
+                    val = next(section_iter)
                 except StopIteration:
                     val = None
 
@@ -205,7 +209,7 @@ class Configuration(object):
 
     def save(self):
         # type: () -> None
-        """Save the currentin-memory state.
+        """Save the current in-memory state.
         """
         self._ensure_have_load_only()
 
@@ -216,7 +220,7 @@ class Configuration(object):
             ensure_dir(os.path.dirname(fname))
 
             with open(fname, "w") as f:
-                parser.write(f)  # type: ignore
+                parser.write(f)
 
     #
     # Private routines
@@ -352,7 +356,7 @@ class Configuration(object):
             yield kinds.ENV, []
 
         # at the base we have any global configuration
-        yield kinds.GLOBAL, list(site_config_files)
+        yield kinds.GLOBAL, list(global_config_files)
 
         # per-user configuration next
         should_load_user_config = not self.isolated and not (
@@ -363,8 +367,7 @@ class Configuration(object):
             yield kinds.USER, [legacy_config_file, new_config_file]
 
         # finally virtualenv configuration first trumping others
-        if running_under_virtualenv():
-            yield kinds.VENV, [venv_config_file]
+        yield kinds.SITE, [site_config_file]
 
     def _get_parser_to_modify(self):
         # type: () -> Tuple[str, RawConfigParser]

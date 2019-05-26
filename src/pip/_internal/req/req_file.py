@@ -22,13 +22,13 @@ from pip._internal.req.constructors import (
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import (  # noqa: F401
-        Iterator, Tuple, Optional, List, Callable, Text
+    from typing import (
+        Any, Callable, Iterator, List, NoReturn, Optional, Text, Tuple,
     )
-    from pip._internal.req import InstallRequirement  # noqa: F401
-    from pip._internal.cache import WheelCache  # noqa: F401
-    from pip._internal.index import PackageFinder  # noqa: F401
-    from pip._internal.download import PipSession  # noqa: F401
+    from pip._internal.req import InstallRequirement
+    from pip._internal.cache import WheelCache
+    from pip._internal.index import PackageFinder
+    from pip._internal.download import PipSession
 
     ReqFileLines = Iterator[Tuple[int, Text]]
 
@@ -249,7 +249,7 @@ def process_line(
                 value = relative_to_reqs_file
             finder.find_links.append(value)
         if opts.pre:
-            finder.allow_all_prereleases = True
+            finder.set_allow_all_prereleases()
         if opts.trusted_hosts:
             finder.secure_origins.extend(
                 ("*", host, "*") for host in opts.trusted_hosts)
@@ -288,6 +288,7 @@ def build_parser(line):
     # By default optparse sys.exits on parsing errors. We want to wrap
     # that in our own exception.
     def parser_exit(self, msg):
+        # type: (Any, str) -> NoReturn
         # add offending line
         msg = 'Invalid requirement: %s\n%s' % (line, msg)
         raise RequirementsFileParseError(msg)
@@ -364,7 +365,7 @@ def expand_env_variables(lines_enum):
     1. Strings that contain a `$` aren't accidentally (partially) expanded.
     2. Ensure consistency across platforms for requirement files.
 
-    These points are the result of a discusssion on the `github pull
+    These points are the result of a discussion on the `github pull
     request #3514 <https://github.com/pypa/pip/pull/3514>`_.
 
     Valid characters in variable names follow the `POSIX standard

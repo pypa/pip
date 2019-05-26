@@ -6,11 +6,13 @@ import logging
 import logging.handlers
 import os
 import sys
+from logging import Filter
 
 from pip._vendor.six import PY2
 
 from pip._internal.utils.compat import WINDOWS
-from pip._internal.utils.misc import ensure_dir
+from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
+from pip._internal.utils.misc import ensure_dir, subprocess_logger
 
 try:
     import threading
@@ -92,7 +94,7 @@ def get_indentation():
 class IndentingFormatter(logging.Formatter):
     def __init__(self, *args, **kwargs):
         """
-        A logging.Formatter obeying containing indent_log contexts.
+        A logging.Formatter that obeys the indent_log() context manager.
 
         :param add_timestamp: A bool indicating output lines should be prefixed
             with their record's timestamp.
@@ -100,12 +102,31 @@ class IndentingFormatter(logging.Formatter):
         self.add_timestamp = kwargs.pop("add_timestamp", False)
         super(IndentingFormatter, self).__init__(*args, **kwargs)
 
+    def get_message_start(self, formatted, levelno):
+        """
+        Return the start of the formatted log message (not counting the
+        prefix to add to each line).
+        """
+        if levelno < logging.WARNING:
+            return ''
+        if formatted.startswith(DEPRECATION_MSG_PREFIX):
+            # Then the message already has a prefix.  We don't want it to
+            # look like "WARNING: DEPRECATION: ...."
+            return ''
+        if levelno < logging.ERROR:
+            return 'WARNING: '
+
+        return 'ERROR: '
+
     def format(self, record):
         """
         Calls the standard formatter, but will indent all of the log messages
         by our current indentation level.
         """
         formatted = super(IndentingFormatter, self).format(record)
+        message_start = self.get_message_start(formatted, record.levelno)
+        formatted = message_start + formatted
+
         prefix = ''
         if self.add_timestamp:
             prefix = self.formatTime(record, "%Y-%m-%dT%H:%M:%S ")
@@ -205,13 +226,25 @@ class BetterRotatingFileHandler(logging.handlers.RotatingFileHandler):
         return logging.handlers.RotatingFileHandler._open(self)
 
 
-class MaxLevelFilter(logging.Filter):
+class MaxLevelFilter(Filter):
 
     def __init__(self, level):
         self.level = level
 
     def filter(self, record):
         return record.levelno < self.level
+
+
+class ExcludeLoggerFilter(Filter):
+
+    """
+    A logging Filter that excludes records from a logger (or its children).
+    """
+
+    def filter(self, record):
+        # The base Filter class allows only records from a logger (or its
+        # children).
+        return not super(ExcludeLoggerFilter, self).filter(record)
 
 
 def setup_logging(verbosity, no_color, user_log_file):
@@ -257,6 +290,9 @@ def setup_logging(verbosity, no_color, user_log_file):
         "stream": "pip._internal.utils.logging.ColorizedStreamHandler",
         "file": "pip._internal.utils.logging.BetterRotatingFileHandler",
     }
+    handlers = ["console", "console_errors", "console_subprocess"] + (
+        ["user_log"] if include_user_log else []
+    )
 
     logging.config.dictConfig({
         "version": 1,
@@ -265,6 +301,14 @@ def setup_logging(verbosity, no_color, user_log_file):
             "exclude_warnings": {
                 "()": "pip._internal.utils.logging.MaxLevelFilter",
                 "level": logging.WARNING,
+            },
+            "restrict_to_subprocess": {
+                "()": "logging.Filter",
+                "name": subprocess_logger.name,
+            },
+            "exclude_subprocess": {
+                "()": "pip._internal.utils.logging.ExcludeLoggerFilter",
+                "name": subprocess_logger.name,
             },
         },
         "formatters": {
@@ -284,7 +328,7 @@ def setup_logging(verbosity, no_color, user_log_file):
                 "class": handler_classes["stream"],
                 "no_color": no_color,
                 "stream": log_streams["stdout"],
-                "filters": ["exclude_warnings"],
+                "filters": ["exclude_subprocess", "exclude_warnings"],
                 "formatter": "indent",
             },
             "console_errors": {
@@ -292,6 +336,17 @@ def setup_logging(verbosity, no_color, user_log_file):
                 "class": handler_classes["stream"],
                 "no_color": no_color,
                 "stream": log_streams["stderr"],
+                "filters": ["exclude_subprocess"],
+                "formatter": "indent",
+            },
+            # A handler responsible for logging to the console messages
+            # from the "subprocessor" logger.
+            "console_subprocess": {
+                "level": level,
+                "class": handler_classes["stream"],
+                "no_color": no_color,
+                "stream": log_streams["stderr"],
+                "filters": ["restrict_to_subprocess"],
                 "formatter": "indent",
             },
             "user_log": {
@@ -304,9 +359,7 @@ def setup_logging(verbosity, no_color, user_log_file):
         },
         "root": {
             "level": root_level,
-            "handlers": ["console", "console_errors"] + (
-                ["user_log"] if include_user_log else []
-            ),
+            "handlers": handlers,
         },
         "loggers": {
             "pip._vendor": {

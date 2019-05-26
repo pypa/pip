@@ -8,7 +8,7 @@ from mock import MagicMock
 
 from pip._internal.exceptions import ConfigurationError
 from pip._internal.locations import (
-    new_config_file, site_config_files, venv_config_file,
+    global_config_files, new_config_file, site_config_file,
 )
 from tests.lib.configuration_helpers import ConfigurationMixin, kinds
 
@@ -27,8 +27,8 @@ class TestConfigurationLoading(ConfigurationMixin):
         self.configuration.load()
         assert self.configuration.get_value("test.hello") == "2"
 
-    def test_venv_loading(self):
-        self.patch_configuration(kinds.VENV, {"test.hello": "3"})
+    def test_site_loading(self):
+        self.patch_configuration(kinds.SITE, {"test.hello": "3"})
 
         self.configuration.load()
         assert self.configuration.get_value("test.hello") == "3"
@@ -90,8 +90,8 @@ class TestConfigurationPrecedence(ConfigurationMixin):
     # Tests for methods to that determine the order of precedence of
     # configuration options
 
-    def test_env_overides_venv(self):
-        self.patch_configuration(kinds.VENV, {"test.hello": "1"})
+    def test_env_overides_site(self):
+        self.patch_configuration(kinds.SITE, {"test.hello": "1"})
         self.patch_configuration(kinds.ENV, {"test.hello": "0"})
         self.configuration.load()
 
@@ -111,16 +111,16 @@ class TestConfigurationPrecedence(ConfigurationMixin):
 
         assert self.configuration.get_value("test.hello") == "0"
 
-    def test_venv_overides_user(self):
+    def test_site_overides_user(self):
         self.patch_configuration(kinds.USER, {"test.hello": "2"})
-        self.patch_configuration(kinds.VENV, {"test.hello": "1"})
+        self.patch_configuration(kinds.SITE, {"test.hello": "1"})
         self.configuration.load()
 
         assert self.configuration.get_value("test.hello") == "1"
 
-    def test_venv_overides_global(self):
+    def test_site_overides_global(self):
         self.patch_configuration(kinds.GLOBAL, {"test.hello": "3"})
-        self.patch_configuration(kinds.VENV, {"test.hello": "1"})
+        self.patch_configuration(kinds.SITE, {"test.hello": "1"})
         self.configuration.load()
 
         assert self.configuration.get_value("test.hello") == "1"
@@ -141,8 +141,8 @@ class TestConfigurationPrecedence(ConfigurationMixin):
         assert self.configuration.get_value("test.hello") == "1"
         assert self.configuration.get_value(":env:.hello") == "5"
 
-    def test_venv_not_overriden_by_environment_var(self):
-        self.patch_configuration(kinds.VENV, {"test.hello": "2"})
+    def test_site_not_overriden_by_environment_var(self):
+        self.patch_configuration(kinds.SITE, {"test.hello": "2"})
         os.environ["PIP_HELLO"] = "5"
 
         self.configuration.load()
@@ -182,8 +182,8 @@ class TestConfigurationModification(ConfigurationMixin):
         else:
             assert False, "Should have raised an error."
 
-    def test_venv_modification(self):
-        self.configuration.load_only = kinds.VENV
+    def test_site_modification(self):
+        self.configuration.load_only = kinds.SITE
         self.configuration.load()
 
         # Mock out the method
@@ -192,9 +192,9 @@ class TestConfigurationModification(ConfigurationMixin):
 
         self.configuration.set_value("test.hello", "10")
 
-        # get the path to venv config file
+        # get the path to site config file
         assert mymock.call_count == 1
-        assert mymock.call_args[0][0] == venv_config_file
+        assert mymock.call_args[0][0] == site_config_file
 
     def test_user_modification(self):
         # get the path to local config file
@@ -224,4 +224,4 @@ class TestConfigurationModification(ConfigurationMixin):
 
         # get the path to user config file
         assert mymock.call_count == 1
-        assert mymock.call_args[0][0] == site_config_files[-1]
+        assert mymock.call_args[0][0] == global_config_files[-1]
