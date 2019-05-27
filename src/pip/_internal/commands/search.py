@@ -126,7 +126,11 @@ def print_results(hits, name_column_width=None, terminal_width=None):
                         logger.info('INSTALLED: %s (latest)', dist.version)
                     else:
                         logger.info('INSTALLED: %s', dist.version)
-                        logger.info('LATEST:    %s', latest)
+                        if parse_version(latest).pre:
+                            logger.info('LATEST:    %s (pre-release; install'
+                                        ' with "pip install --pre")', latest)
+                        else:
+                            logger.info('LATEST:    %s', latest)
         except UnicodeEncodeError:
             pass
 
