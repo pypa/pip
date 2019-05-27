@@ -1,0 +1,1 @@
+Work around failure to import ctypes when resolving glibc version string.

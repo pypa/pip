@@ -1,10 +1,15 @@
 from __future__ import absolute_import
 
-import ctypes
 import re
 import warnings
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+# Work around https://bugs.python.org/issue37060.
+try:
+    import ctypes
+except (ImportError, OSError):
+    ctypes = None
 
 if MYPY_CHECK_RUNNING:
     from typing import Optional, Tuple
@@ -13,6 +18,9 @@ if MYPY_CHECK_RUNNING:
 def glibc_version_string():
     # type: () -> Optional[str]
     "Returns glibc version string, or None if not using glibc."
+
+    if not ctypes:
+        return None
 
     # ctypes.CDLL(None) internally calls dlopen(NULL), and as the dlopen
     # manpage says, "If filename is NULL, then the returned handle is for the
