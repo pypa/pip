@@ -674,13 +674,13 @@ def test_freeze_path_exclude_user(tmpdir, script, data):
     """
     script.pip_install_local('--find-links', data.find_links,
                              '--user', 'simple2')
+    script.pip('install', '--find-links', data.find_links,
+               '--target', tmpdir, 'simple==1.0')
     result = script.pip('freeze', '--user')
     expected = textwrap.dedent("""\
         simple2==3.0
         <BLANKLINE>""")
     _check_output(result.stdout, expected)
-    script.pip('install', '--find-links', data.find_links,
-               '--target', tmpdir, 'simple==1.0')
     result = script.pip('freeze', '--path', tmpdir)
     expected = textwrap.dedent("""\
         simple==1.0
@@ -696,19 +696,15 @@ def test_freeze_path_multiple(tmpdir, script, data):
     os.mkdir(path1)
     path2 = tmpdir / "path2"
     os.mkdir(path2)
-    result = script.pip('freeze', '--path', path1)
-    _check_output(result.stdout, "")
-
     script.pip('install', '--find-links', data.find_links,
                '--target', path1, 'simple==2.0')
+    script.pip('install', '--find-links', data.find_links,
+               '--target', path2, 'simple2==3.0')
     result = script.pip('freeze', '--path', path1)
     expected = textwrap.dedent("""\
         simple==2.0
         <BLANKLINE>""")
     _check_output(result.stdout, expected)
-
-    script.pip('install', '--find-links', data.find_links,
-               '--target', path2, 'simple2==3.0')
     result = script.pip('freeze', '--path', path1, '--path', path2)
     expected = textwrap.dedent("""\
         simple==2.0
