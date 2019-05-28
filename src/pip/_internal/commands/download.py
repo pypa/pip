@@ -88,11 +88,6 @@ class DownloadCommand(RequirementCommand):
         # of the RequirementSet code require that property.
         options.editables = []
 
-        if options.python_version:
-            python_versions = [options.python_version]
-        else:
-            python_versions = None
-
         cmdoptions.check_dist_restriction(options)
 
         options.src_dir = os.path.abspath(options.src_dir)
@@ -105,7 +100,7 @@ class DownloadCommand(RequirementCommand):
                 options=options,
                 session=session,
                 platform=options.platform,
-                python_versions=python_versions,
+                py_version_info=options.python_version,
                 abi=options.abi,
                 implementation=options.implementation,
             )

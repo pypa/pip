@@ -29,7 +29,7 @@ from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.index import PyPI
 from pip._internal.models.link import Link
-from pip._internal.pep425tags import get_supported
+from pip._internal.pep425tags import get_supported, version_info_to_nodot
 from pip._internal.utils.compat import ipaddress
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
@@ -604,7 +604,7 @@ class PackageFinder(object):
         session=None,  # type: Optional[PipSession]
         format_control=None,  # type: Optional[FormatControl]
         platform=None,  # type: Optional[str]
-        versions=None,  # type: Optional[List[str]]
+        py_version_info=None,  # type: Optional[Tuple[int, ...]]
         abi=None,  # type: Optional[str]
         implementation=None,  # type: Optional[str]
         prefer_binary=False,  # type: bool
@@ -624,8 +624,10 @@ class PackageFinder(object):
             packages that can be built on the platform passed in. These
             packages will only be downloaded for distribution: they will
             not be built locally.
-        :param versions: A list of strings or None. This is passed directly
-            to pep425tags.py in the get_supported() method.
+        :param py_version_info: An optional tuple of ints representing the
+            Python version information to use (e.g. `sys.version_info[:3]`).
+            This can have length 1, 2, or 3. This is used to construct the
+            value passed to pep425tags.py's get_supported() function.
         :param abi: A string or None. This is passed directly
             to pep425tags.py in the get_supported() method.
         :param implementation: A string or None. This is passed directly
@@ -658,6 +660,11 @@ class PackageFinder(object):
             ("*", host, "*")
             for host in (trusted_hosts if trusted_hosts else [])
         ]  # type: List[SecureOrigin]
+
+        if py_version_info:
+            versions = [version_info_to_nodot(py_version_info)]
+        else:
+            versions = None
 
         # The valid tags to check potential found wheel candidates against
         valid_tags = get_supported(

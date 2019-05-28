@@ -3,7 +3,7 @@ import os.path
 import sys
 
 import pytest
-from mock import Mock
+from mock import Mock, patch
 from pip._vendor import html5lib, requests
 
 from pip._internal.download import PipSession
@@ -146,6 +146,34 @@ class TestCandidateEvaluator:
         expected = (
             False, "none of the wheel's tags match: py2-none-any, py3-none-any"
         )
+        assert actual == expected
+
+
+class TestPackageFinder:
+
+    @pytest.mark.parametrize('version_info, expected', [
+        ((2,), ['2']),
+        ((3,), ['3']),
+        ((3, 6,), ['36']),
+        # Test a tuple of length 3.
+        ((3, 6, 5), ['36']),
+        # Test a 2-digit minor version.
+        ((3, 10), ['310']),
+        # Test falsey values.
+        (None, None),
+        ((), None),
+    ])
+    @patch('pip._internal.index.get_supported')
+    def test_create__py_version_info(
+        self, mock_get_supported, version_info, expected,
+    ):
+        """
+        Test that the py_version_info argument is handled correctly.
+        """
+        PackageFinder.create(
+            [], [], py_version_info=version_info, session=object(),
+        )
+        actual = mock_get_supported.call_args[1]['versions']
         assert actual == expected
 
 

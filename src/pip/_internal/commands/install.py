@@ -251,11 +251,6 @@ class InstallCommand(RequirementCommand):
 
         cmdoptions.check_dist_restriction(options, check_target=True)
 
-        if options.python_version:
-            python_versions = [options.python_version]
-        else:
-            python_versions = None
-
         options.src_dir = os.path.abspath(options.src_dir)
         install_options = options.install_options or []
         if options.use_user_site:
@@ -294,7 +289,7 @@ class InstallCommand(RequirementCommand):
                 options=options,
                 session=session,
                 platform=options.platform,
-                python_versions=python_versions,
+                py_version_info=options.python_version,
                 abi=options.abi,
                 implementation=options.implementation,
                 ignore_requires_python=options.ignore_requires_python,
