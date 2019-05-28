@@ -52,7 +52,7 @@ if MYPY_CHECK_RUNNING:
     from optparse import Values
     from pip._internal.models.link import Link
     from pip._internal.utils.hashes import Hashes
-    from pip._internal.vcs import AuthInfo, VersionControl
+    from pip._internal.vcs.versioncontrol import AuthInfo, VersionControl
 
 try:
     import ssl  # noqa

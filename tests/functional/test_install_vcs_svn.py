@@ -2,13 +2,13 @@ from unittest import TestCase
 
 from mock import patch
 
-from pip._internal.vcs import RevOptions
 from pip._internal.vcs.subversion import Subversion
+from pip._internal.vcs.versioncontrol import RevOptions
 
 
 class TestSubversionArgs(TestCase):
     def setUp(self):
-        patcher = patch('pip._internal.vcs.call_subprocess')
+        patcher = patch('pip._internal.vcs.versioncontrol.call_subprocess')
         self.addCleanup(patcher.stop)
         self.call_subprocess_mock = patcher.start()
 
