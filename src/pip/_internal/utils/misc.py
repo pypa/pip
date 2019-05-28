@@ -390,12 +390,15 @@ def dist_is_editable(dist):
     return False
 
 
-def get_installed_distributions(local_only=True,
-                                skip=stdlib_pkgs,
-                                include_editables=True,
-                                editables_only=False,
-                                user_only=False):
-    # type: (bool, Container[str], bool, bool, bool) -> List[Distribution]
+def get_installed_distributions(
+        local_only=True,  # type: bool
+        skip=stdlib_pkgs,  # type: Container[str]
+        include_editables=True,  # type: bool
+        editables_only=False,  # type: bool
+        user_only=False,  # type: bool
+        paths=None  # type: Optional[List[str]]
+):
+    # type: (...) -> List[Distribution]
     """
     Return a list of installed Distribution objects.
 
@@ -412,7 +415,14 @@ def get_installed_distributions(local_only=True,
     If ``user_only`` is True , only report installations in the user
     site directory.
 
+    If ``paths`` is set, only report the distributions present at the
+    specified list of locations.
     """
+    if paths:
+        working_set = pkg_resources.WorkingSet(paths)
+    else:
+        working_set = pkg_resources.working_set
+
     if local_only:
         local_test = dist_is_local
     else:
@@ -440,7 +450,7 @@ def get_installed_distributions(local_only=True,
             return True
 
     # because of pkg_resources vendoring, mypy cannot find stub in typeshed
-    return [d for d in pkg_resources.working_set  # type: ignore
+    return [d for d in working_set  # type: ignore
             if local_test(d) and
             d.key not in skip and
             editable_test(d) and

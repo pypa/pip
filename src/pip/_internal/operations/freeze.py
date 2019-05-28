@@ -39,6 +39,7 @@ def freeze(
     find_links=None,  # type: Optional[List[str]]
     local_only=None,  # type: Optional[bool]
     user_only=None,  # type: Optional[bool]
+    paths=None,  # type: Optional[List[str]]
     skip_regex=None,  # type: Optional[str]
     isolated=False,  # type: bool
     wheel_cache=None,  # type: Optional[WheelCache]
@@ -57,7 +58,8 @@ def freeze(
     installations = {}  # type: Dict[str, FrozenRequirement]
     for dist in get_installed_distributions(local_only=local_only,
                                             skip=(),
-                                            user_only=user_only):
+                                            user_only=user_only,
+                                            paths=paths):
         try:
             req = FrozenRequirement.from_dist(dist)
         except RequirementParseError as exc:
