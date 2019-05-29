@@ -24,7 +24,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import BAR_TYPES
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Callable, Dict, Optional
+    from typing import Any, Callable, Dict, Optional, Tuple
     from optparse import OptionParser, Values
     from pip._internal.cli.parser import ConfigOptionParser
 
@@ -305,7 +305,7 @@ index_url = partial(
     dest='index_url',
     metavar='URL',
     default=PyPI.simple_url,
-    help="Base URL of Python Package Index (default %default). "
+    help="Base URL of the Python Package Index (default %default). "
          "This should point to a repository compliant with PEP 503 "
          "(the simple repository API) or a local directory laid out "
          "in the same format.",
@@ -478,11 +478,36 @@ platform = partial(
 )  # type: Callable[..., Option]
 
 
+# This was made a separate function for unit-testing purposes.
+def _convert_python_version(value):
+    # type: (str) -> Tuple[int, ...]
+    """
+    Convert a string like "3" or "34" into a tuple of ints.
+    """
+    if len(value) == 1:
+        parts = [value]
+    else:
+        parts = [value[0], value[1:]]
+
+    return tuple(int(part) for part in parts)
+
+
+def _handle_python_version(option, opt_str, value, parser):
+    # type: (Option, str, str, OptionParser) -> None
+    """
+    Convert a string like "3" or "34" into a tuple of ints.
+    """
+    version_info = _convert_python_version(value)
+    parser.values.python_version = version_info
+
+
 python_version = partial(
     Option,
     '--python-version',
     dest='python_version',
     metavar='python_version',
+    action='callback',
+    callback=_handle_python_version, type='str',
     default=None,
     help=("Only use wheels compatible with Python "
           "interpreter version <version>. If not specified, then the "
@@ -543,7 +568,8 @@ cache_dir = partial(
 )  # type: Callable[..., Option]
 
 
-def no_cache_dir_callback(option, opt, value, parser):
+def _handle_no_cache_dir(option, opt, value, parser):
+    # type: (Option, str, str, OptionParser) -> None
     """
     Process a value provided for the --no-cache-dir option.
 
@@ -575,7 +601,7 @@ no_cache = partial(
     "--no-cache-dir",
     dest="cache_dir",
     action="callback",
-    callback=no_cache_dir_callback,
+    callback=_handle_no_cache_dir,
     help="Disable the cache.",
 )  # type: Callable[..., Option]
 
@@ -620,7 +646,8 @@ no_build_isolation = partial(
 )  # type: Callable[..., Option]
 
 
-def no_use_pep517_callback(option, opt, value, parser):
+def _handle_no_use_pep517(option, opt, value, parser):
+    # type: (Option, str, str, OptionParser) -> None
     """
     Process a value provided for the --no-use-pep517 option.
 
@@ -658,7 +685,7 @@ no_use_pep517 = partial(
     '--no-use-pep517',
     dest='use_pep517',
     action='callback',
-    callback=no_use_pep517_callback,
+    callback=_handle_no_use_pep517,
     default=None,
     help=SUPPRESS_HELP
 )  # type: Any
@@ -724,7 +751,7 @@ always_unzip = partial(
 )  # type: Callable[..., Option]
 
 
-def _merge_hash(option, opt_str, value, parser):
+def _handle_merge_hash(option, opt_str, value, parser):
     # type: (Option, str, str, OptionParser) -> None
     """Given a value spelled "algo:digest", append the digest to a list
     pointed to in a dict by the algo name."""
@@ -749,7 +776,7 @@ hash = partial(
     # __dict__ copying in process_line().
     dest='hashes',
     action='callback',
-    callback=_merge_hash,
+    callback=_handle_merge_hash,
     type='string',
     help="Verify that the package's archive matches this "
          'hash before installing. Example: --hash=sha256:abcdef...',

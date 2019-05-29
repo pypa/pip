@@ -21,8 +21,8 @@ class Bazaar(VersionControl):
         'bzr+lp',
     )
 
-    def __init__(self, url=None, *args, **kwargs):
-        super(Bazaar, self).__init__(url, *args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super(Bazaar, self).__init__(*args, **kwargs)
         # This is only needed for python <2.7.5
         # Register lp but do not expose as a scheme to support bzr+lp.
         if getattr(urllib_parse, 'uses_fragment', None):
@@ -32,7 +32,7 @@ class Bazaar(VersionControl):
     def get_base_rev_args(rev):
         return ['-r', rev]
 
-    def export(self, location):
+    def export(self, location, url):
         """
         Export the Bazaar repository at the url to the destination location
         """
@@ -40,14 +40,13 @@ class Bazaar(VersionControl):
         if os.path.exists(location):
             rmtree(location)
 
-        url, rev_options = self.get_url_rev_options(self.url)
+        url, rev_options = self.get_url_rev_options(url)
         self.run_command(
             ['export', location, url] + rev_options.to_args(),
             show_stdout=False,
         )
 
-    @classmethod
-    def fetch_new(cls, dest, url, rev_options):
+    def fetch_new(self, dest, url, rev_options):
         rev_display = rev_options.to_display()
         logger.info(
             'Checking out %s%s to %s',
@@ -56,7 +55,7 @@ class Bazaar(VersionControl):
             display_path(dest),
         )
         cmd_args = ['branch', '-q'] + rev_options.to_args() + [url, dest]
-        cls.run_command(cmd_args)
+        self.run_command(cmd_args)
 
     def switch(self, dest, url, rev_options):
         self.run_command(['switch', url], cwd=dest)

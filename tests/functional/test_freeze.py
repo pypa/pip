@@ -108,12 +108,19 @@ def test_freeze_with_invalid_names(script):
             '...{}==1.0...'.format(pkgname.replace('_', '-'))
         )
     for pkgname in invalid_pkgnames:
-        _check_output(
-            result.stderr,
-            '...Could not parse requirement: {}\n...'.format(
-                pkgname.replace('_', '-')
-            )
+        # Check that the full distribution repr is present.
+        dist_repr = '{} 1.0 ('.format(pkgname.replace('_', '-'))
+        expected = (
+            '...Could not generate requirement for '
+            'distribution {}...'.format(dist_repr)
         )
+        _check_output(result.stderr, expected)
+
+    # Also check that the parse error details occur at least once.
+    # We only need to find one occurrence to know that exception details
+    # are logged.
+    expected = '...site-packages): Parse error at "...'
+    _check_output(result.stderr, expected)
 
 
 @pytest.mark.git
@@ -126,7 +133,7 @@ def test_freeze_editable_not_vcs(script, tmpdir):
     # as a VCS directory.
     os.rename(os.path.join(pkg_path, '.git'), os.path.join(pkg_path, '.bak'))
     script.pip('install', '-e', pkg_path)
-    result = script.pip('freeze', expect_stderr=True)
+    result = script.pip('freeze')
 
     # We need to apply os.path.normcase() to the path since that is what
     # the freeze code does.
@@ -652,3 +659,62 @@ def test_freeze_user(script, virtualenv, data):
         <BLANKLINE>""")
     _check_output(result.stdout, expected)
     assert 'simple2' not in result.stdout
+
+
+def test_freeze_path(tmpdir, script, data):
+    """
+    Test freeze with --path.
+    """
+    script.pip('install', '--find-links', data.find_links,
+               '--target', tmpdir, 'simple==2.0')
+    result = script.pip('freeze', '--path', tmpdir)
+    expected = textwrap.dedent("""\
+        simple==2.0
+        <BLANKLINE>""")
+    _check_output(result.stdout, expected)
+
+
+def test_freeze_path_exclude_user(tmpdir, script, data):
+    """
+    Test freeze with --path and make sure packages from --user are not picked
+    up.
+    """
+    script.pip_install_local('--find-links', data.find_links,
+                             '--user', 'simple2')
+    script.pip('install', '--find-links', data.find_links,
+               '--target', tmpdir, 'simple==1.0')
+    result = script.pip('freeze', '--user')
+    expected = textwrap.dedent("""\
+        simple2==3.0
+        <BLANKLINE>""")
+    _check_output(result.stdout, expected)
+    result = script.pip('freeze', '--path', tmpdir)
+    expected = textwrap.dedent("""\
+        simple==1.0
+        <BLANKLINE>""")
+    _check_output(result.stdout, expected)
+
+
+def test_freeze_path_multiple(tmpdir, script, data):
+    """
+    Test freeze with multiple --path arguments.
+    """
+    path1 = tmpdir / "path1"
+    os.mkdir(path1)
+    path2 = tmpdir / "path2"
+    os.mkdir(path2)
+    script.pip('install', '--find-links', data.find_links,
+               '--target', path1, 'simple==2.0')
+    script.pip('install', '--find-links', data.find_links,
+               '--target', path2, 'simple2==3.0')
+    result = script.pip('freeze', '--path', path1)
+    expected = textwrap.dedent("""\
+        simple==2.0
+        <BLANKLINE>""")
+    _check_output(result.stdout, expected)
+    result = script.pip('freeze', '--path', path1, '--path', path2)
+    expected = textwrap.dedent("""\
+        simple==2.0
+        simple2==3.0
+        <BLANKLINE>""")
+    _check_output(result.stdout, expected)

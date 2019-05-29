@@ -123,7 +123,7 @@ class ListCommand(Command):
         """
         Create a package finder appropriate to this list command.
         """
-        return PackageFinder(
+        return PackageFinder.create(
             find_links=options.find_links,
             index_urls=index_urls,
             allow_all_prereleases=options.pre,
@@ -201,10 +201,11 @@ class ListCommand(Command):
                     all_candidates = [candidate for candidate in all_candidates
                                       if not candidate.version.is_prerelease]
 
-                if not all_candidates:
+                evaluator = finder.candidate_evaluator
+                best_candidate = evaluator.get_best_candidate(all_candidates)
+                if best_candidate is None:
                     continue
-                best_candidate = max(all_candidates,
-                                     key=finder._candidate_sort_key)
+
                 remote_version = best_candidate.version
                 if best_candidate.location.is_wheel:
                     typ = 'wheel'

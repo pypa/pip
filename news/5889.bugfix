@@ -1,1 +1,0 @@
-Fixed crash when installing a requirement from a URL that comes from a dependency without a URL.

@@ -5,10 +5,10 @@ import os
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import RequirementCommand
+from pip._internal.legacy_resolve import Resolver
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import RequirementSet
 from pip._internal.req.req_tracker import RequirementTracker
-from pip._internal.resolve import Resolver
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.misc import ensure_dir, normalize_path
 from pip._internal.utils.temp_dir import TempDirectory
@@ -88,11 +88,6 @@ class DownloadCommand(RequirementCommand):
         # of the RequirementSet code require that property.
         options.editables = []
 
-        if options.python_version:
-            python_versions = [options.python_version]
-        else:
-            python_versions = None
-
         cmdoptions.check_dist_restriction(options)
 
         options.src_dir = os.path.abspath(options.src_dir)
@@ -105,7 +100,7 @@ class DownloadCommand(RequirementCommand):
                 options=options,
                 session=session,
                 platform=options.platform,
-                python_versions=python_versions,
+                py_version_info=options.python_version,
                 abi=options.abi,
                 implementation=options.implementation,
             )

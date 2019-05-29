@@ -81,6 +81,20 @@ class Command(object):
         # type: (Values, List[Any]) -> Any
         raise NotImplementedError
 
+    @classmethod
+    def _get_index_urls(cls, options):
+        """Return a list of index urls from user-provided options."""
+        index_urls = []
+        if not getattr(options, "no_index", False):
+            url = getattr(options, "index_url", None)
+            if url:
+                index_urls.append(url)
+        urls = getattr(options, "extra_index_urls", None)
+        if urls:
+            index_urls.extend(urls)
+        # Return None rather than an empty list
+        return index_urls or None
+
     def _build_session(self, options, retries=None, timeout=None):
         # type: (Values, Optional[int], Optional[int]) -> PipSession
         session = PipSession(
@@ -90,6 +104,7 @@ class Command(object):
             ),
             retries=retries if retries is not None else options.retries,
             insecure_hosts=options.trusted_hosts,
+            index_urls=self._get_index_urls(options),
         )
 
         # Handle custom ca-bundles from the user
@@ -309,13 +324,17 @@ class RequirementCommand(Command):
         options,               # type: Values
         session,               # type: PipSession
         platform=None,         # type: Optional[str]
-        python_versions=None,  # type: Optional[List[str]]
+        py_version_info=None,  # type: Optional[Tuple[int, ...]]
         abi=None,              # type: Optional[str]
-        implementation=None    # type: Optional[str]
+        implementation=None,   # type: Optional[str]
+        ignore_requires_python=None,  # type: Optional[bool]
     ):
         # type: (...) -> PackageFinder
         """
         Create a package finder appropriate to this requirement command.
+
+        :param ignore_requires_python: Whether to ignore incompatible
+            "Requires-Python" values in links. Defaults to False.
         """
         index_urls = [options.index_url] + options.extra_index_urls
         if options.no_index:
@@ -325,7 +344,7 @@ class RequirementCommand(Command):
             )
             index_urls = []
 
-        return PackageFinder(
+        return PackageFinder.create(
             find_links=options.find_links,
             format_control=options.format_control,
             index_urls=index_urls,
@@ -333,8 +352,9 @@ class RequirementCommand(Command):
             allow_all_prereleases=options.pre,
             session=session,
             platform=platform,
-            versions=python_versions,
+            py_version_info=py_version_info,
             abi=abi,
             implementation=implementation,
             prefer_binary=options.prefer_binary,
+            ignore_requires_python=ignore_requires_python,
         )

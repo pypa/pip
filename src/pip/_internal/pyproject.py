@@ -10,7 +10,7 @@ from pip._internal.exceptions import InstallationError
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Dict, List, Optional, Tuple
+    from typing import Any, Tuple, Optional, List
 
 
 def _is_list_of_str(obj):
@@ -32,61 +32,42 @@ def make_pyproject_path(setup_py_dir):
     return path
 
 
-def read_pyproject_toml(path):
-    # type: (str) -> Optional[Dict[str, str]]
-    """
-    Read a project's pyproject.toml file.
-
-    :param path: The path to the pyproject.toml file.
-
-    :return: The "build_system" value specified in the project's
-        pyproject.toml file.
-    """
-    with io.open(path, encoding="utf-8") as f:
-        pp_toml = pytoml.load(f)
-    build_system = pp_toml.get("build-system")
-
-    return build_system
-
-
-def make_editable_error(req_name, reason):
-    """
-    :param req_name: the name of the requirement.
-    :param reason: the reason the requirement is being processed as
-        pyproject.toml-style.
-    """
-    message = (
-        'Error installing {!r}: editable mode is not supported for '
-        'pyproject.toml-style projects. This project is being processed '
-        'as pyproject.toml-style because {}. '
-        'See PEP 517 for the relevant specification.'
-    ).format(req_name, reason)
-    return InstallationError(message)
-
-
-def resolve_pyproject_toml(
-    build_system,  # type: Optional[Dict[str, Any]]
-    has_pyproject,  # type: bool
-    has_setup,  # type: bool
+def load_pyproject_toml(
     use_pep517,  # type: Optional[bool]
-    editable,  # type: bool
-    req_name,  # type: str
+    pyproject_toml,  # type: str
+    setup_py,  # type: str
+    req_name  # type: str
 ):
     # type: (...) -> Optional[Tuple[List[str], str, List[str]]]
-    """
-    Return how a pyproject.toml file's contents should be interpreted.
+    """Load the pyproject.toml file.
 
-    :param build_system: the "build_system" value specified in a project's
-        pyproject.toml file, or None if the project either doesn't have the
-        file or does but the file doesn't have a "build_system" value.
-    :param has_pyproject: whether the project has a pyproject.toml file.
-    :param has_setup: whether the project has a setup.py file.
-    :param use_pep517: whether the user requested PEP 517 processing.  None
-        means the user didn't explicitly specify.
-    :param editable: whether editable mode was requested for the requirement.
-    :param req_name: the name of the requirement we're processing (for
-        error reporting).
+    Parameters:
+        use_pep517 - Has the user requested PEP 517 processing? None
+                     means the user hasn't explicitly specified.
+        pyproject_toml - Location of the project's pyproject.toml file
+        setup_py - Location of the project's setup.py file
+        req_name - The name of the requirement we're processing (for
+                   error reporting)
+
+    Returns:
+        None if we should use the legacy code path, otherwise a tuple
+        (
+            requirements from pyproject.toml,
+            name of PEP 517 backend,
+            requirements we should check are installed after setting
+                up the build environment
+        )
     """
+    has_pyproject = os.path.isfile(pyproject_toml)
+    has_setup = os.path.isfile(setup_py)
+
+    if has_pyproject:
+        with io.open(pyproject_toml, encoding="utf-8") as f:
+            pp_toml = pytoml.load(f)
+        build_system = pp_toml.get("build-system")
+    else:
+        build_system = None
+
     # The following cases must use PEP 517
     # We check for use_pep517 being non-None and falsey because that means
     # the user explicitly requested --no-use-pep517.  The value 0 as
@@ -99,10 +80,6 @@ def resolve_pyproject_toml(
                 "Disabling PEP 517 processing is invalid: "
                 "project does not have a setup.py"
             )
-        if editable:
-            raise make_editable_error(
-                req_name, 'it has a pyproject.toml file and no setup.py'
-            )
         use_pep517 = True
     elif build_system and "build-backend" in build_system:
         if use_pep517 is not None and not use_pep517:
@@ -113,18 +90,7 @@ def resolve_pyproject_toml(
                     build_system["build-backend"]
                 )
             )
-        if editable:
-            reason = (
-                'it has a pyproject.toml file with a "build-backend" key '
-                'in the "build_system" value'
-            )
-            raise make_editable_error(req_name, reason)
         use_pep517 = True
-    elif use_pep517:
-        if editable:
-            raise make_editable_error(
-                req_name, 'PEP 517 processing was explicitly requested'
-            )
 
     # If we haven't worked out whether to use PEP 517 yet,
     # and the user hasn't explicitly stated a preference,
@@ -203,49 +169,3 @@ def resolve_pyproject_toml(
         check = ["setuptools>=40.8.0", "wheel"]
 
     return (requires, backend, check)
-
-
-def load_pyproject_toml(
-    use_pep517,  # type: Optional[bool]
-    editable,  # type: bool
-    pyproject_toml,  # type: str
-    setup_py,  # type: str
-    req_name  # type: str
-):
-    # type: (...) -> Optional[Tuple[List[str], str, List[str]]]
-    """Load the pyproject.toml file.
-
-    Parameters:
-        use_pep517 - Has the user requested PEP 517 processing? None
-                     means the user hasn't explicitly specified.
-        editable - Whether editable mode was requested for the requirement.
-        pyproject_toml - Location of the project's pyproject.toml file
-        setup_py - Location of the project's setup.py file
-        req_name - The name of the requirement we're processing (for
-                   error reporting)
-
-    Returns:
-        None if we should use the legacy code path, otherwise a tuple
-        (
-            requirements from pyproject.toml,
-            name of PEP 517 backend,
-            requirements we should check are installed after setting
-                up the build environment
-        )
-    """
-    has_pyproject = os.path.isfile(pyproject_toml)
-    has_setup = os.path.isfile(setup_py)
-
-    if has_pyproject:
-        build_system = read_pyproject_toml(pyproject_toml)
-    else:
-        build_system = None
-
-    return resolve_pyproject_toml(
-        build_system=build_system,
-        has_pyproject=has_pyproject,
-        has_setup=has_setup,
-        use_pep517=use_pep517,
-        editable=editable,
-        req_name=req_name,
-    )

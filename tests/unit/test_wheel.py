@@ -68,6 +68,15 @@ def make_test_install_req(base_name=None):
     return req
 
 
+@pytest.mark.parametrize('file_tag, expected', [
+    (('py27', 'none', 'any'), 'py27-none-any'),
+    (('cp33', 'cp32dmu', 'linux_x86_64'), 'cp33-cp32dmu-linux_x86_64'),
+])
+def test_format_tag(file_tag, expected):
+    actual = wheel.format_tag(file_tag)
+    assert actual == expected
+
+
 @pytest.mark.parametrize(
     "base_name, autobuilding, cache_available, expected",
     [
@@ -95,6 +104,49 @@ def test_should_use_ephemeral_cache__issue_6197(
     ephem_cache = wheel.should_use_ephemeral_cache(
         req, format_control=format_control, autobuilding=autobuilding,
         cache_available=cache_available,
+    )
+    assert ephem_cache is expected
+
+
+@pytest.mark.parametrize(
+    "disallow_binaries, expected",
+    [
+        # By default (i.e. when binaries are allowed), VCS requirements
+        # should be built.
+        (False, True),
+        # Disallowing binaries, however, should cause them not to be built.
+        (True, None),
+    ],
+)
+def test_should_use_ephemeral_cache__disallow_binaries_and_vcs_checkout(
+    disallow_binaries, expected,
+):
+    """
+    Test that disallowing binaries (e.g. from passing --global-option)
+    causes should_use_ephemeral_cache() to return None for VCS checkouts.
+    """
+    req = Requirement('pendulum')
+    # Passing a VCS url causes link.is_artifact to return False.
+    link = Link(url='git+https://git.example.com/pendulum.git')
+    req = InstallRequirement(
+        req=req,
+        comes_from=None,
+        constraint=False,
+        editable=False,
+        link=link,
+        source_dir='/tmp/pip-install-9py5m2z1/pendulum',
+    )
+    assert not req.is_wheel
+    assert not req.link.is_artifact
+
+    format_control = FormatControl()
+    if disallow_binaries:
+        format_control.disallow_binaries()
+
+    # The cache_available value doesn't matter for this test.
+    ephem_cache = wheel.should_use_ephemeral_cache(
+        req, format_control=format_control, autobuilding=True,
+        cache_available=True,
     )
     assert ephem_cache is expected
 

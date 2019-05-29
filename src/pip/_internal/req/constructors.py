@@ -319,7 +319,7 @@ def install_req_from_req_string(
     try:
         req = Requirement(req_string)
     except InvalidRequirement:
-        raise InstallationError("Invalid requirement: '%s'" % req)
+        raise InstallationError("Invalid requirement: '%s'" % req_string)
 
     domains_not_allowed = [
         PyPI.file_storage_domain,

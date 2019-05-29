@@ -105,7 +105,10 @@ def test_command_line_append_flags(script, virtualenv, data):
         "Analyzing links from page https://test.pypi.org"
         in result.stdout
     )
-    assert "Skipping link %s" % data.find_links in result.stdout
+    assert (
+        'Skipping link: not a file: {}'.format(data.find_links) in
+        result.stdout
+    ), 'stdout: {}'.format(result.stdout)
 
 
 @pytest.mark.network
@@ -127,7 +130,10 @@ def test_command_line_appends_correctly(script, data):
         "Analyzing links from page https://test.pypi.org"
         in result.stdout
     ), result.stdout
-    assert "Skipping link %s" % data.find_links in result.stdout
+    assert (
+        'Skipping link: not a file: {}'.format(data.find_links) in
+        result.stdout
+    ), 'stdout: {}'.format(result.stdout)
 
 
 def test_config_file_override_stack(script, virtualenv):

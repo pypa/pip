@@ -50,6 +50,12 @@ def _normalize_name(name):
 
 def _disassemble_key(name):
     # type: (str) -> List[str]
+    if "." not in name:
+        error_message = (
+            "Key does not contain dot separated section and key. "
+            "Perhaps you wanted to use 'global.{}' instead?"
+        ).format(name)
+        raise ConfigurationError(error_message)
     return name.split(".", 1)
 
 

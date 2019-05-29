@@ -6,7 +6,6 @@ util tests
 """
 import codecs
 import itertools
-import logging
 import os
 import shutil
 import stat
@@ -15,13 +14,15 @@ import tempfile
 import time
 import warnings
 from io import BytesIO
+from logging import DEBUG, ERROR, INFO, WARNING
 
 import pytest
 from mock import Mock, patch
 
 from pip._internal.exceptions import (
-    HashMismatch, HashMissing, InstallationError, UnsupportedPythonVersion,
+    HashMismatch, HashMissing, InstallationError,
 )
+from pip._internal.utils.deprecation import PipDeprecationWarning, deprecated
 from pip._internal.utils.encoding import BOMS, auto_decode
 from pip._internal.utils.glibc import check_glibc_version
 from pip._internal.utils.hashes import Hashes, MissingHashes
@@ -29,9 +30,8 @@ from pip._internal.utils.misc import (
     call_subprocess, egg_link_path, ensure_dir, format_command_args,
     get_installed_distributions, get_prog, normalize_path, redact_netloc,
     redact_password_from_url, remove_auth_from_url, rmtree,
-    split_auth_from_netloc, untar_file, unzip_file,
+    split_auth_from_netloc, split_auth_netloc_from_url, untar_file, unzip_file,
 )
-from pip._internal.utils.packaging import check_dist_requires_python
 from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
 from pip._internal.utils.ui import SpinnerInterface
 
@@ -699,28 +699,6 @@ class TestGlibc(object):
                     assert False
 
 
-class TestCheckRequiresPython(object):
-
-    @pytest.mark.parametrize(
-        ("metadata", "should_raise"),
-        [
-            ("Name: test\n", False),
-            ("Name: test\nRequires-Python:", False),
-            ("Name: test\nRequires-Python: invalid_spec", False),
-            ("Name: test\nRequires-Python: <=1", True),
-        ],
-    )
-    def test_check_requires(self, metadata, should_raise):
-        fake_dist = Mock(
-            has_metadata=lambda _: True,
-            get_metadata=lambda _: metadata)
-        if should_raise:
-            with pytest.raises(UnsupportedPythonVersion):
-                check_dist_requires_python(fake_dist)
-        else:
-            check_dist_requires_python(fake_dist)
-
-
 class TestGetProg(object):
 
     @pytest.mark.parametrize(
@@ -781,30 +759,25 @@ class TestCallSubprocess(object):
         :param spinner: the FakeSpinner object passed to call_subprocess()
             to be checked.
         :param result: the call_subprocess() return value to be checked.
-        :param expected: a 3-tuple (expected_proc, expected_out,
-            expected_records), where
+        :param expected: a pair (expected_proc, expected_records), where
             1) `expected_proc` is the expected return value of
               call_subprocess() as a list of lines, or None if the return
               value is expected to be None;
-            2) `expected_out` is the expected stdout captured from the
-              subprocess call, as a list of lines; and
-            3) `expected_records` is the expected value of
+            2) `expected_records` is the expected value of
               caplog.record_tuples.
         :param expected_spinner: a 2-tuple of the spinner's expected
             (spin_count, final_status).
         """
-        expected_proc, expected_out, expected_records = expected
+        expected_proc, expected_records = expected
 
         if expected_proc is None:
-            assert result is expected_proc
+            assert result is None
         else:
             assert result.splitlines() == expected_proc
 
+        # Confirm that stdout and stderr haven't been written to.
         captured = capfd.readouterr()
-        stdout, stderr = captured.out, captured.err
-
-        assert stdout.splitlines() == expected_out
-        assert stderr == ''
+        assert (captured.out, captured.err) == ('', '')
 
         records = caplog.record_tuples
         if len(records) != len(expected_records):
@@ -837,31 +810,31 @@ class TestCallSubprocess(object):
         """
         Test DEBUG logging (and without passing show_stdout=True).
         """
-        log_level = logging.DEBUG
+        log_level = DEBUG
         args, spinner = self.prepare_call(caplog, log_level)
         result = call_subprocess(args, spinner=spinner)
 
-        expected = (['Hello', 'world'], [], [
-            ('pip._internal.utils.misc', 10, 'Running command '),
-            ('pip._internal.utils.misc', 10, 'Hello'),
-            ('pip._internal.utils.misc', 10, 'world'),
+        expected = (['Hello', 'world'], [
+            ('pip.subprocessor', DEBUG, 'Running command '),
+            ('pip.subprocessor', DEBUG, 'Hello'),
+            ('pip.subprocessor', DEBUG, 'world'),
         ])
         # The spinner shouldn't spin in this case since the subprocess
         # output is already being logged to the console.
         self.check_result(
             capfd, caplog, log_level, spinner, result, expected,
-            expected_spinner=(0, 'done'),
+            expected_spinner=(0, None),
         )
 
     def test_info_logging(self, capfd, caplog):
         """
         Test INFO logging (and without passing show_stdout=True).
         """
-        log_level = logging.INFO
+        log_level = INFO
         args, spinner = self.prepare_call(caplog, log_level)
         result = call_subprocess(args, spinner=spinner)
 
-        expected = (['Hello', 'world'], [], [])
+        expected = (['Hello', 'world'], [])
         # The spinner should spin twice in this case since the subprocess
         # output isn't being written to the console.
         self.check_result(
@@ -874,7 +847,7 @@ class TestCallSubprocess(object):
         Test INFO logging of a subprocess with an error (and without passing
         show_stdout=True).
         """
-        log_level = logging.INFO
+        log_level = INFO
         command = 'print("Hello"); print("world"); exit("fail")'
         args, spinner = self.prepare_call(caplog, log_level, command=command)
 
@@ -882,10 +855,10 @@ class TestCallSubprocess(object):
             call_subprocess(args, spinner=spinner)
         result = None
 
-        expected = (None, [], [
-            ('pip._internal.utils.misc', 20, 'Complete output from command '),
+        expected = (None, [
+            ('pip.subprocessor', ERROR, 'Complete output from command '),
             # The "failed" portion is later on in this "Hello" string.
-            ('pip._internal.utils.misc', 20, 'Hello'),
+            ('pip.subprocessor', ERROR, 'Hello'),
         ])
         # The spinner should spin three times in this case since the
         # subprocess output isn't being written to the console.
@@ -915,11 +888,15 @@ class TestCallSubprocess(object):
         """
         Test INFO logging with show_stdout=True.
         """
-        log_level = logging.INFO
+        log_level = INFO
         args, spinner = self.prepare_call(caplog, log_level)
         result = call_subprocess(args, spinner=spinner, show_stdout=True)
 
-        expected = (None, ['Hello', 'world'], [])
+        expected = (['Hello', 'world'], [
+            ('pip.subprocessor', INFO, 'Running command '),
+            ('pip.subprocessor', INFO, 'Hello'),
+            ('pip.subprocessor', INFO, 'world'),
+        ])
         # The spinner shouldn't spin in this case since the subprocess
         # output is already being written to the console.
         self.check_result(
@@ -931,17 +908,23 @@ class TestCallSubprocess(object):
         'exit_status', 'show_stdout', 'extra_ok_returncodes', 'log_level',
         'expected'),
         [
-            (0, False, None, logging.INFO, (None, 'done', 2)),
-            # Test some cases that should result in show_spinner false.
-            (0, False, None, logging.DEBUG, (None, 'done', 0)),
+            # The spinner should show here because show_stdout=False means
+            # the subprocess should get logged at DEBUG level, but the passed
+            # log level is only INFO.
+            (0, False, None, INFO, (None, 'done', 2)),
+            # Test some cases where the spinner should not be shown.
+            (0, False, None, DEBUG, (None, None, 0)),
             # Test show_stdout=True.
-            (0, True, None, logging.DEBUG, (None, None, 0)),
-            (0, True, None, logging.INFO, (None, None, 0)),
-            (0, True, None, logging.WARNING, (None, None, 0)),
+            (0, True, None, DEBUG, (None, None, 0)),
+            (0, True, None, INFO, (None, None, 0)),
+            # The spinner should show here because show_stdout=True means
+            # the subprocess should get logged at INFO level, but the passed
+            # log level is only WARNING.
+            (0, True, None, WARNING, (None, 'done', 2)),
             # Test a non-zero exit status.
-            (3, False, None, logging.INFO, (InstallationError, 'error', 2)),
+            (3, False, None, INFO, (InstallationError, 'error', 2)),
             # Test a non-zero exit status also in extra_ok_returncodes.
-            (3, False, (3, ), logging.INFO, (None, 'done', 2)),
+            (3, False, (3, ), INFO, (None, 'done', 2)),
     ])
     def test_spinner_finish(
         self, exit_status, show_stdout, extra_ok_returncodes, log_level,
@@ -1004,6 +987,34 @@ def test_split_auth_from_netloc(netloc, expected):
     assert actual == expected
 
 
+@pytest.mark.parametrize('url, expected', [
+    # Test a basic case.
+    ('http://example.com/path#anchor',
+     ('http://example.com/path#anchor', 'example.com', (None, None))),
+    # Test with username and no password.
+    ('http://user@example.com/path#anchor',
+     ('http://example.com/path#anchor', 'example.com', ('user', None))),
+    # Test with username and password.
+    ('http://user:pass@example.com/path#anchor',
+     ('http://example.com/path#anchor', 'example.com', ('user', 'pass'))),
+    # Test with username and empty password.
+    ('http://user:@example.com/path#anchor',
+     ('http://example.com/path#anchor', 'example.com', ('user', ''))),
+    # Test the password containing an @ symbol.
+    ('http://user:pass@word@example.com/path#anchor',
+     ('http://example.com/path#anchor', 'example.com', ('user', 'pass@word'))),
+    # Test the password containing a : symbol.
+    ('http://user:pass:word@example.com/path#anchor',
+     ('http://example.com/path#anchor', 'example.com', ('user', 'pass:word'))),
+    # Test URL-encoded reserved characters.
+    ('http://user%3Aname:%23%40%5E@example.com/path#anchor',
+     ('http://example.com/path#anchor', 'example.com', ('user:name', '#@^'))),
+])
+def test_split_auth_netloc_from_url(url, expected):
+    actual = split_auth_netloc_from_url(url)
+    assert actual == expected
+
+
 @pytest.mark.parametrize('netloc, expected', [
     # Test a basic case.
     ('example.com', 'example.com'),
@@ -1058,3 +1069,79 @@ def test_remove_auth_from_url(auth_url, expected_url):
 def test_redact_password_from_url(auth_url, expected_url):
     url = redact_password_from_url(auth_url)
     assert url == expected_url
+
+
+@pytest.fixture()
+def patch_deprecation_check_version():
+    # We do this, so that the deprecation tests are easier to write.
+    import pip._internal.utils.deprecation as d
+    old_version = d.current_version
+    d.current_version = "1.0"
+    yield
+    d.current_version = old_version
+
+
+@pytest.mark.usefixtures("patch_deprecation_check_version")
+@pytest.mark.parametrize("replacement", [None, "a magic 8 ball"])
+@pytest.mark.parametrize("gone_in", [None, "2.0"])
+@pytest.mark.parametrize("issue", [None, 988])
+def test_deprecated_message_contains_information(gone_in, replacement, issue):
+    with pytest.warns(PipDeprecationWarning) as record:
+        deprecated(
+            "Stop doing this!",
+            replacement=replacement,
+            gone_in=gone_in,
+            issue=issue,
+        )
+
+    assert len(record) == 1
+    message = record[0].message.args[0]
+
+    assert "DEPRECATION: Stop doing this!" in message
+    # Ensure non-None values are mentioned.
+    for item in [gone_in, replacement, issue]:
+        if item is not None:
+            assert str(item) in message
+
+
+@pytest.mark.usefixtures("patch_deprecation_check_version")
+@pytest.mark.parametrize("replacement", [None, "a magic 8 ball"])
+@pytest.mark.parametrize("issue", [None, 988])
+def test_deprecated_raises_error_if_too_old(replacement, issue):
+    with pytest.raises(PipDeprecationWarning) as exception:
+        deprecated(
+            "Stop doing this!",
+            gone_in="1.0",  # this matches the patched version.
+            replacement=replacement,
+            issue=issue,
+        )
+
+    message = exception.value.args[0]
+
+    assert "DEPRECATION: Stop doing this!" in message
+    assert "1.0" in message
+    # Ensure non-None values are mentioned.
+    for item in [replacement, issue]:
+        if item is not None:
+            assert str(item) in message
+
+
+@pytest.mark.usefixtures("patch_deprecation_check_version")
+def test_deprecated_message_reads_well():
+    with pytest.raises(PipDeprecationWarning) as exception:
+        deprecated(
+            "Stop doing this!",
+            gone_in="1.0",  # this matches the patched version.
+            replacement="to be nicer",
+            issue="100000",  # I hope we never reach this number.
+        )
+
+    message = exception.value.args[0]
+
+    assert message == (
+        "DEPRECATION: Stop doing this! "
+        "pip 1.0 will remove support for this functionality. "
+        "A possible replacement is to be nicer. "
+        "You can find discussion regarding this at "
+        "https://github.com/pypa/pip/issues/100000."
+    )
