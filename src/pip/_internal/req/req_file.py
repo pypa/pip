@@ -35,7 +35,7 @@ if MYPY_CHECK_RUNNING:
 __all__ = ['parse_requirements']
 
 SCHEME_RE = re.compile(r'^(http|https|file):', re.I)
-COMMENT_RE = re.compile(r'(^|\s)+#.*$')
+COMMENT_RE = re.compile(r'(^|\s+)#.*$')
 
 # Matches environment variable-style values in '${MY_VARIABLE_1}' with the
 # variable name consisting of only uppercase letters, digits or the '_'
