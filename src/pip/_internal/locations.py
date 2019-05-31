@@ -52,6 +52,8 @@ def running_under_virtualenv():
         return True
     elif sys.prefix != getattr(sys, "base_prefix", sys.prefix):
         return True
+    elif os.path.dirname(sys.prefix) == os.environ.get("CONDA_ENVS"):
+        return True
 
     return False
 

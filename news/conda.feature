@@ -1,0 +1,1 @@
+Let Conda work with PIP_REQUIRE_VIRTUALENV flag
