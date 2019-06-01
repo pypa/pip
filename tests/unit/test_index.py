@@ -12,7 +12,7 @@ from pip._internal.index import (
     _egg_info_matches, _find_name_version_sep, _get_html_page,
 )
 from pip._internal.models.target_python import TargetPython
-from tests.lib import CURRENT_PY_VERSION_INFO
+from tests.lib import CURRENT_PY_VERSION_INFO, make_test_finder
 
 
 @pytest.mark.parametrize('requires_python, expected', [
@@ -156,9 +156,8 @@ class TestPackageFinder:
         """
         target_python = TargetPython(py_version_info=(3, 7, 3))
         finder = PackageFinder.create(
-            [], [], target_python=target_python, session=object(),
+            [], [], session=object(), target_python=target_python,
         )
-
         evaluator = finder.candidate_evaluator
         actual_target_python = evaluator._target_python
         assert actual_target_python is target_python
@@ -169,7 +168,7 @@ def test_sort_locations_file_expand_dir(data):
     """
     Test that a file:// dir gets listdir run with expand_dir
     """
-    finder = PackageFinder.create([data.find_links], [], session=PipSession())
+    finder = make_test_finder(find_links=[data.find_links])
     files, urls = finder._sort_locations([data.find_links], expand_dir=True)
     assert files and not urls, (
         "files and not urls should have been found at find-links url: %s" %
@@ -182,7 +181,7 @@ def test_sort_locations_file_not_find_link(data):
     Test that a file:// url dir that's not a find-link, doesn't get a listdir
     run
     """
-    finder = PackageFinder.create([], [], session=PipSession())
+    finder = make_test_finder()
     files, urls = finder._sort_locations([data.index_url("empty_with_pkg")])
     assert urls and not files, "urls, but not files should have been found"
 
@@ -191,7 +190,7 @@ def test_sort_locations_non_existing_path():
     """
     Test that a non-existing path is ignored.
     """
-    finder = PackageFinder.create([], [], session=PipSession())
+    finder = make_test_finder()
     files, urls = finder._sort_locations(
         [os.path.join('this', 'doesnt', 'exist')])
     assert not urls and not files, "nothing should have been found"
@@ -297,7 +296,7 @@ class MockLogger(object):
     ],
 )
 def test_secure_origin(location, trusted, expected):
-    finder = PackageFinder.create([], [], session=[], trusted_hosts=trusted)
+    finder = make_test_finder(trusted_hosts=trusted)
     logger = MockLogger()
     finder._validate_secure_origin(logger, location)
     assert logger.called == expected
@@ -315,7 +314,7 @@ def test_get_formatted_locations_basic_auth():
     find_links = [
         'https://links-user:links-pass@page.domain.com'
     ]
-    finder = PackageFinder.create(find_links, index_urls, session=[])
+    finder = make_test_finder(find_links=find_links, index_urls=index_urls)
 
     result = finder.get_formatted_locations()
     assert 'repo-user:****@repo.domain.com' in result

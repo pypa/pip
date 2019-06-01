@@ -14,7 +14,15 @@ import pytest
 from scripttest import FoundDir, TestFileEnvironment
 
 from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
+from pip._internal.download import PipSession
+from pip._internal.index import PackageFinder
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from tests.lib.path import Path, curdir
+
+if MYPY_CHECK_RUNNING:
+    from typing import Iterable, List, Optional
+    from pip._internal.models.target_python import TargetPython
+
 
 DATA_DIR = Path(__file__).folder.folder.join("data").abspath
 SRC_DIR = Path(__file__).abspath.folder.folder.folder
@@ -67,6 +75,35 @@ def create_file(path, contents=None):
             f.write(contents)
         else:
             f.write("\n")
+
+
+def make_test_finder(
+    find_links=None,  # type: Optional[List[str]]
+    index_urls=None,  # type: Optional[List[str]]
+    allow_all_prereleases=False,  # type: bool
+    trusted_hosts=None,           # type: Optional[Iterable[str]]
+    session=None,                 # type: Optional[PipSession]
+    target_python=None,           # type: Optional[TargetPython]
+):
+    # type: (...) -> PackageFinder
+    """
+    Create a PackageFinder for testing purposes.
+    """
+    if find_links is None:
+        find_links = []
+    if index_urls is None:
+        index_urls = []
+    if session is None:
+        session = PipSession()
+
+    return PackageFinder.create(
+        find_links,
+        index_urls,
+        allow_all_prereleases=allow_all_prereleases,
+        trusted_hosts=trusted_hosts,
+        session=session,
+        target_python=target_python,
+    )
 
 
 class TestData(object):
