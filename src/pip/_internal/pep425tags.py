@@ -342,7 +342,7 @@ def get_supported(
             # https://www.python.org/dev/peps/pep-0571/#backwards-compatibility-with-manylinux1-wheels
             arches = [arch, 'manylinux1' + arch_sep + arch_suffix]
         elif platform is None:
-            arches = []
+            arches = ['local']
             if is_manylinux2010_compatible():
                 arches.append('manylinux2010' + arch_sep + arch_suffix)
             if is_manylinux1_compatible():
