@@ -3,9 +3,8 @@ import re
 
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
-from pip._internal.download import path_to_url
 from pip._internal.utils.misc import (
-    WHEEL_EXTENSION, redact_password_from_url, splitext,
+    WHEEL_EXTENSION, path_to_url, redact_password_from_url, splitext,
 )
 from pip._internal.utils.models import KeyBasedCompareMixin
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING

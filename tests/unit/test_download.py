@@ -12,11 +12,12 @@ from mock import Mock, patch
 import pip
 from pip._internal.download import (
     CI_ENVIRONMENT_VARIABLES, MultiDomainBasicAuth, PipSession, SafeFileCache,
-    path_to_url, unpack_file_url, unpack_http_url, url_to_path,
+    unpack_file_url, unpack_http_url, url_to_path,
 )
 from pip._internal.exceptions import HashMismatch
 from pip._internal.models.link import Link
 from pip._internal.utils.hashes import Hashes
+from pip._internal.utils.misc import path_to_url
 from tests.lib import create_file
 
 

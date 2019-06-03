@@ -23,7 +23,7 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.six import StringIO
 
 from pip._internal import pep425tags
-from pip._internal.download import path_to_url, unpack_url
+from pip._internal.download import unpack_url
 from pip._internal.exceptions import (
     InstallationError, InvalidWheelFilename, UnsupportedWheel,
 )
@@ -34,7 +34,7 @@ from pip._internal.models.link import Link
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     LOG_DIVIDER, call_subprocess, captured_stdout, ensure_dir,
-    format_command_args, read_chunks,
+    format_command_args, path_to_url, read_chunks,
 )
 from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._internal.utils.temp_dir import TempDirectory
