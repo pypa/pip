@@ -42,7 +42,6 @@ from pip._internal.cli.main_parser import parse_command
 from pip._internal.commands import commands_dict
 from pip._internal.exceptions import PipError
 from pip._internal.utils import deprecation
-from pip._internal.vcs import git, mercurial, subversion, bazaar  # noqa
 from pip._vendor.urllib3.exceptions import InsecureRequestWarning
 
 logger = logging.getLogger(__name__)

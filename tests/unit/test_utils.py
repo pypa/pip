@@ -18,6 +18,7 @@ from logging import DEBUG, ERROR, INFO, WARNING
 
 import pytest
 from mock import Mock, patch
+from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip._internal.exceptions import (
     HashMismatch, HashMissing, InstallationError,
@@ -28,8 +29,8 @@ from pip._internal.utils.glibc import check_glibc_version
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.misc import (
     call_subprocess, egg_link_path, ensure_dir, format_command_args,
-    get_installed_distributions, get_prog, normalize_path, redact_netloc,
-    redact_password_from_url, remove_auth_from_url, rmtree,
+    get_installed_distributions, get_prog, normalize_path, path_to_url,
+    redact_netloc, redact_password_from_url, remove_auth_from_url, rmtree,
     split_auth_from_netloc, split_auth_netloc_from_url, untar_file, unzip_file,
 )
 from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
@@ -963,6 +964,22 @@ class TestCallSubprocess(object):
                 [sys.executable, '-c', 'input()'],
                 show_stdout=True,
             )
+
+
+@pytest.mark.skipif("sys.platform == 'win32'")
+def test_path_to_url_unix():
+    assert path_to_url('/tmp/file') == 'file:///tmp/file'
+    path = os.path.join(os.getcwd(), 'file')
+    assert path_to_url('file') == 'file://' + urllib_request.pathname2url(path)
+
+
+@pytest.mark.skipif("sys.platform != 'win32'")
+def test_path_to_url_win():
+    assert path_to_url('c:/tmp/file') == 'file:///C:/tmp/file'
+    assert path_to_url('c:\\tmp\\file') == 'file:///C:/tmp/file'
+    assert path_to_url(r'\\unc\as\path') == 'file://unc/as/path'
+    path = os.path.join(os.getcwd(), 'file')
+    assert path_to_url('file') == 'file:' + urllib_request.pathname2url(path)
 
 
 @pytest.mark.parametrize('netloc, expected', [
