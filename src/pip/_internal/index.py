@@ -673,6 +673,10 @@ class PackageFinder(object):
             abi=abi,
             impl=implementation,
         )
+        logger.debug("Valid tags:")
+        with indent_log():
+            for tags in valid_tags:
+                logger.debug(" ".join(tags))
         candidate_evaluator = CandidateEvaluator(
             valid_tags=valid_tags, prefer_binary=prefer_binary,
             allow_all_prereleases=allow_all_prereleases,
