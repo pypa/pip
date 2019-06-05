@@ -240,8 +240,6 @@ and they will initiate a vote.
     - CI Administration capabilities
     - ReadTheDocs Administration capabilities
 
-    On getting commit access to pip, a contributor has the ability to manage bugs in pip's issue tracker.
-
 .. _`Studies have shown`: https://smartbear.com/smartbear/media/pdfs/wp-cc-11-best-practices-of-peer-code-review.pdf
 .. _`resolve merge conflicts`: https://help.github.com/articles/resolving-a-merge-conflict-using-the-command-line/
 .. _`Travis CI`: https://travis-ci.org/
