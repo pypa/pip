@@ -5,6 +5,7 @@ import json
 import logging
 import os.path
 import sys
+import packaging
 
 from pip._vendor import lockfile, pkg_resources
 from pip._vendor.packaging import version as packaging_version
@@ -76,15 +77,13 @@ class SelfCheckState(object):
                           separators=(",", ":"))
 
 
-def was_installed_by_pip(pkg):
-    # type: (str) -> bool
-    """Checks whether pkg was installed by pip
+def get_installer(dist):
+    # type: (Distribution) -> str
 
     This is used not to display the upgrade message when pip is in fact
     installed by system package manager, such as dnf on Fedora.
     """
     try:
-        dist = pkg_resources.get_distribution(pkg)
         return (dist.has_metadata('INSTALLER') and
                 'pip' in dist.get_metadata_lines('INSTALLER'))
     except pkg_resources.DistributionNotFound:
