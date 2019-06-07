@@ -62,7 +62,12 @@ class ListCommand(Command):
             action='store_true',
             default=False,
             help='Only output packages installed in user-site.')
-
+        self.cmd_opts.add_option(
+            '--path',
+            dest='path',
+            action='append',
+            help='Restrict to the specified installation path for listing '
+                 'packages (can be used multiple times).')
         cmd_opts.add_option(
             '--pre',
             action='store_true',
@@ -126,11 +131,17 @@ class ListCommand(Command):
             raise CommandError(
                 "Options --outdated and --uptodate cannot be combined.")
 
+        if options.path and (options.user or options.local):
+            raise CommandError(
+                "Cannot combine '--path' with '--user' or '--local'"
+            )
+
         packages = get_installed_distributions(
             local_only=options.local,
             user_only=options.user,
             editables_only=options.editable,
             include_editables=options.include_editable,
+            paths=options.path,
         )
 
         # get_not_required must be called firstly in order to find and
