@@ -152,6 +152,7 @@ class DownloadCommand(RequirementCommand):
                     upgrade_strategy="to-satisfy-only",
                     force_reinstall=False,
                     ignore_dependencies=options.ignore_dependencies,
+                    py_version_info=options.python_version,
                     ignore_requires_python=False,
                     ignore_installed=True,
                     isolated=options.isolated_mode,

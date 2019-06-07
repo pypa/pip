@@ -45,12 +45,22 @@ else:
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Optional, Tuple, Iterable, List, Match, Union, Any, Mapping, Text,
-        AnyStr, Container
+        Any, AnyStr, Container, Iterable, List, Mapping, Match, Optional, Text,
+        Union,
     )
     from pip._vendor.pkg_resources import Distribution
     from pip._internal.models.link import Link
     from pip._internal.utils.ui import SpinnerInterface
+
+try:
+    from typing import cast, Tuple
+    VersionInfo = Tuple[int, int, int]
+except ImportError:
+    # typing's cast() isn't supported in code comments, so we need to
+    # define a dummy, no-op version.
+    def cast(typ, val):
+        return val
+    VersionInfo = None
 
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
@@ -92,6 +102,29 @@ try:
     SUPPORTED_EXTENSIONS += XZ_EXTENSIONS
 except ImportError:
     logger.debug('lzma module is not available')
+
+
+def normalize_version_info(py_version_info):
+    # type: (Optional[Tuple[int, ...]]) -> Optional[Tuple[int, int, int]]
+    """
+    Convert a tuple of ints representing a Python version to one of length
+    three.
+
+    :param py_version_info: a tuple of ints representing a Python version,
+        or None to specify no version. The tuple can have any length.
+
+    :return: a tuple of length three if `py_version_info` is non-None.
+        Otherwise, return `py_version_info` unchanged (i.e. None).
+    """
+    if py_version_info is None:
+        return None
+
+    if len(py_version_info) < 3:
+        py_version_info += (3 - len(py_version_info)) * (0,)
+    elif len(py_version_info) > 3:
+        py_version_info = py_version_info[:3]
+
+    return cast(VersionInfo, py_version_info)
 
 
 def ensure_dir(path):

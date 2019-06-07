@@ -29,8 +29,9 @@ from pip._internal.utils.glibc import check_glibc_version
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.misc import (
     call_subprocess, egg_link_path, ensure_dir, format_command_args,
-    get_installed_distributions, get_prog, normalize_path, path_to_url,
-    redact_netloc, redact_password_from_url, remove_auth_from_url, rmtree,
+    get_installed_distributions, get_prog, normalize_path,
+    normalize_version_info, path_to_url, redact_netloc,
+    redact_password_from_url, remove_auth_from_url, rmtree,
     split_auth_from_netloc, split_auth_netloc_from_url, untar_file, unzip_file,
 )
 from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
@@ -698,6 +699,19 @@ class TestGlibc(object):
                 else:
                     # Didn't find the warning we were expecting
                     assert False
+
+
+@pytest.mark.parametrize('version_info, expected', [
+    (None, None),
+    ((), (0, 0, 0)),
+    ((3, ), (3, 0, 0)),
+    ((3, 6), (3, 6, 0)),
+    ((3, 6, 2), (3, 6, 2)),
+    ((3, 6, 2, 4), (3, 6, 2)),
+])
+def test_normalize_version_info(version_info, expected):
+    actual = normalize_version_info(version_info)
+    assert actual == expected
 
 
 class TestGetProg(object):

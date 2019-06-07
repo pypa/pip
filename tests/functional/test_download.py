@@ -1,3 +1,4 @@
+import os.path
 import textwrap
 
 import pytest
@@ -388,7 +389,7 @@ class TestDownloadPlatformManylinuxes(object):
         )
 
 
-def test_download_specify_python_version(script, data):
+def test_download__python_version(script, data):
     """
     Test using "pip download --python-version" to download a .whl archive
     supported for a specific interpreter
@@ -475,6 +476,63 @@ def test_download_specify_python_version(script, data):
         Path('scratch') / 'fake-2.0-py3-none-any.whl'
         in result.files_created
     )
+
+
+def make_wheel_with_python_requires(script, package_name, python_requires):
+    """
+    Create a wheel using the given python_requires.
+
+    :return: the path to the wheel file.
+    """
+    package_dir = script.scratch_path / package_name
+    package_dir.mkdir()
+
+    text = textwrap.dedent("""\
+    from setuptools import setup
+    setup(name='{}',
+          python_requires='{}',
+          version='1.0')
+    """).format(package_name, python_requires)
+    package_dir.join('setup.py').write(text)
+    script.run(
+        'python', 'setup.py', 'bdist_wheel', '--universal', cwd=package_dir,
+    )
+
+    file_name = '{}-1.0-py2.py3-none-any.whl'.format(package_name)
+    return package_dir / 'dist' / file_name
+
+
+def test_download__python_version_used_for_python_requires(
+    script, data, with_wheel,
+):
+    """
+    Test that --python-version is used for the Requires-Python check.
+    """
+    wheel_path = make_wheel_with_python_requires(
+        script, 'mypackage', python_requires='==3.2',
+    )
+    wheel_dir = os.path.dirname(wheel_path)
+
+    def make_args(python_version):
+        return [
+            'download', '--no-index', '--find-links', wheel_dir,
+            '--only-binary=:all:',
+            '--dest', '.',
+            '--python-version', python_version,
+            'mypackage==1.0',
+        ]
+
+    args = make_args('33')
+    result = script.pip(*args, expect_error=True)
+    expected_err = (
+        "ERROR: Package 'mypackage' requires a different Python: "
+        "3.3.0 not in '==3.2'"
+    )
+    assert expected_err in result.stderr, 'stderr: {}'.format(result.stderr)
+
+    # Now try with a --python-version that satisfies the Requires-Python.
+    args = make_args('32')
+    script.pip(*args)  # no exception
 
 
 def test_download_specify_abi(script, data):
