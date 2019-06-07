@@ -504,3 +504,59 @@ def test_list_json(script, data):
     data = json.loads(result.stdout)
     assert {'name': 'simple', 'version': '1.0'} in data
     assert {'name': 'simple2', 'version': '3.0'} in data
+
+
+def test_list_path(tmpdir, script, data):
+    """
+    Test list with --path.
+    """
+    result = script.pip('list', '--path', tmpdir, '--format=json')
+    assert {'name': 'simple',
+            'version': '2.0'} not in json.loads(result.stdout)
+
+    script.pip('install', '--find-links', data.find_links,
+               '--target', tmpdir, 'simple==2.0')
+    result = script.pip('list', '--path', tmpdir, '--format=json')
+    json_result = json.loads(result.stdout)
+    assert {'name': 'simple', 'version': '2.0'} in json_result
+
+
+def test_list_path_exclude_user(tmpdir, script, data):
+    """
+    Test list with --path and make sure packages from --user are not picked
+    up.
+    """
+    script.pip_install_local('--find-links', data.find_links,
+                             '--user', 'simple2')
+    script.pip('install', '--find-links', data.find_links,
+               '--target', tmpdir, 'simple==1.0')
+    result = script.pip('list', '--user', '--format=json')
+    json_result = json.loads(result.stdout)
+    assert {'name': 'simple2', 'version': '3.0'} in json_result
+
+    result = script.pip('list', '--path', tmpdir, '--format=json')
+    json_result = json.loads(result.stdout)
+    assert {'name': 'simple', 'version': '1.0'} in json_result
+
+
+def test_list_path_multiple(tmpdir, script, data):
+    """
+    Test list with multiple --path arguments.
+    """
+    path1 = tmpdir / "path1"
+    os.mkdir(path1)
+    path2 = tmpdir / "path2"
+    os.mkdir(path2)
+    script.pip('install', '--find-links', data.find_links,
+               '--target', path1, 'simple==2.0')
+    script.pip('install', '--find-links', data.find_links,
+               '--target', path2, 'simple2==3.0')
+    result = script.pip('list', '--path', path1, '--format=json')
+    json_result = json.loads(result.stdout)
+    assert {'name': 'simple', 'version': '2.0'} in json_result
+
+    result = script.pip('list', '--path', path1, '--path', path2,
+                        '--format=json')
+    json_result = json.loads(result.stdout)
+    assert {'name': 'simple', 'version': '2.0'} in json_result
+    assert {'name': 'simple2', 'version': '3.0'} in json_result
