@@ -366,8 +366,7 @@ def test_outdated_editables_flag(script, data):
 @pytest.mark.network
 def test_outdated_editables_columns_flag(script, data):
     """
-    test the behavior of --editable --outdated --format=column flag
-    in the list command
+    test the behavior of --editable --outdated flag in the list command
     """
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
     result = script.pip(

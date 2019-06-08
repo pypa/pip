@@ -39,20 +39,17 @@ class ListCommand(Command):
             '-o', '--outdated',
             action='store_true',
             default=False,
-            help='List outdated packages'
-        )
+            help='List outdated packages')
         cmd_opts.add_option(
             '-u', '--uptodate',
             action='store_true',
             default=False,
-            help='List uptodate packages'
-        )
+            help='List uptodate packages')
         cmd_opts.add_option(
             '-e', '--editable',
             action='store_true',
             default=False,
-            help='List editable projects.'
-        )
+            help='List editable projects.')
         cmd_opts.add_option(
             '-r', '--requirement',
             dest='requirements',
@@ -74,31 +71,34 @@ class ListCommand(Command):
             dest='user',
             action='store_true',
             default=False,
-            help='Only output packages installed in user-site.'
-        )
+            help='Only output packages installed in user-site.')
+
         cmd_opts.add_option(
             '--pre',
             action='store_true',
             default=False,
-            help=('Include pre-release and development versions. By default, '
-                  'pip only finds stable versions.'),
+            help=("Include pre-release and development versions. By default, "
+                  "pip only finds stable versions."),
         )
+
         cmd_opts.add_option(
             '--format',
             action='store',
             dest='list_format',
             default="columns",
             choices=('columns', 'freeze', 'json'),
-            help=('Select the output format among: columns (default), freeze, '
-                  'or json'),
+            help="Select the output format among: columns (default), freeze, "
+                 "or json",
         )
+
         cmd_opts.add_option(
             '--not-required',
             action='store_true',
             dest='not_required',
-            help=('List packages that are not dependencies of '
-                  'installed packages.'),
+            help="List packages that are not dependencies of "
+                 "installed packages.",
         )
+
         cmd_opts.add_option(
             '--exclude-editable',
             action='store_false',
@@ -134,8 +134,7 @@ class ListCommand(Command):
     def run(self, options, args):
         if options.outdated and options.uptodate:
             raise CommandError(
-                'Options --outdated and --uptodate cannot be combined.'
-            )
+                "Options --outdated and --uptodate cannot be combined.")
 
         to_keep = []
         with self._build_session(options) as session:

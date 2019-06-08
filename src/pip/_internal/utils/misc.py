@@ -426,10 +426,10 @@ def dist_is_editable(dist):
 
 def get_installed_distributions(
         local_only=True,  # type: bool
+        skip=stdlib_pkgs,  # type: Sized
+        include_editables=True,  # type: bool
         editables_only=False,  # type: bool
         user_only=False,  # type: bool
-        include_editables=True,  # type: bool
-        skip=stdlib_pkgs,  # type: Sized
         keep=(),  # type: Sized
         paths=None  # type: Optional[List[str]]
 ):
@@ -440,15 +440,15 @@ def get_installed_distributions(
     If ``local_only`` is True (default), only return installations
     local to the current virtualenv, if in a virtualenv.
 
+    ``skip`` argument is an iterable of lower-case project names to
+    ignore; defaults to stdlib_pkgs
+
+    If ``include_editables`` is False, don't report editables.
+
     If ``editables_only`` is True , only report editables.
 
     If ``user_only`` is True , only report installations in the user
     site directory.
-
-    If ``include_editables`` is False, don't report editables.
-
-    ``skip`` argument is an iterable of lower-case project names to
-    ignore; defaults to stdlib_pkgs
 
     ``keep`` argument is an iterable of lower-case project names to only
     check for; default to ()
@@ -467,6 +467,13 @@ def get_installed_distributions(
         def local_test(d):
             return True
 
+    if include_editables:
+        def editable_test(d):
+            return True
+    else:
+        def editable_test(d):
+            return not dist_is_editable(d)
+
     if editables_only:
         def editables_only_test(d):
             return dist_is_editable(d)
@@ -479,13 +486,6 @@ def get_installed_distributions(
     else:
         def user_test(d):
             return True
-
-    if include_editables:
-        def editable_test(d):
-            return True
-    else:
-        def editable_test(d):
-            return not dist_is_editable(d)
 
     if len(skip) > 0:
         def skip_test(d):
