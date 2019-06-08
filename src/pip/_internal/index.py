@@ -20,7 +20,7 @@ from pip._vendor.requests.exceptions import HTTPError, RetryError, SSLError
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
-from pip._internal.download import HAS_TLS, is_url, path_to_url, url_to_path
+from pip._internal.download import HAS_TLS, is_url, url_to_path
 from pip._internal.exceptions import (
     BestVersionAlreadyInstalled, DistributionNotFound, InvalidWheelFilename,
     UnsupportedWheel,
@@ -34,7 +34,7 @@ from pip._internal.utils.compat import ipaddress
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, WHEEL_EXTENSION, normalize_path,
-    redact_password_from_url,
+    normalize_version_info, path_to_url, redact_password_from_url,
 )
 from pip._internal.utils.packaging import check_requires_python
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -82,8 +82,8 @@ def _match_vcs_scheme(url):
 
     Returns the matched VCS scheme, or None if there's no match.
     """
-    from pip._internal.vcs import VcsSupport
-    for scheme in VcsSupport.schemes:
+    from pip._internal.vcs import vcs
+    for scheme in vcs.schemes:
         if url.lower().startswith(scheme) and url[len(scheme)] in '+:':
             return scheme
     return None
@@ -258,7 +258,7 @@ def _get_html_page(link, session=None):
 
 def _check_link_requires_python(
     link,  # type: Link
-    version_info,  # type: Tuple[int, ...]
+    version_info,  # type: Tuple[int, int, int]
     ignore_requires_python=False,  # type: bool
 ):
     # type: (...) -> bool
@@ -266,8 +266,8 @@ def _check_link_requires_python(
     Return whether the given Python version is compatible with a link's
     "Requires-Python" value.
 
-    :param version_info: The Python version to use to check, as a 3-tuple
-        of ints (major-minor-micro).
+    :param version_info: A 3-tuple of ints representing the Python
+        major-minor-micro version to check.
     :param ignore_requires_python: Whether to ignore the "Requires-Python"
         value if the given Python version isn't compatible.
     """
@@ -311,16 +311,17 @@ class CandidateEvaluator(object):
         valid_tags,          # type: List[Pep425Tag]
         prefer_binary=False,   # type: bool
         allow_all_prereleases=False,  # type: bool
-        py_version_info=None,  # type: Optional[Tuple[int, ...]]
+        py_version_info=None,  # type: Optional[Tuple[int, int, int]]
         ignore_requires_python=None,  # type: Optional[bool]
     ):
         # type: (...) -> None
         """
         :param allow_all_prereleases: Whether to allow all pre-releases.
-        :param py_version_info: The Python version, as a 3-tuple of ints
-            representing a major-minor-micro version, to use to check both
-            the Python version embedded in the filename and the package's
-            "Requires-Python" metadata. Defaults to `sys.version_info[:3]`.
+        :param py_version_info: A 3-tuple of ints representing the Python
+            major-minor-micro version to use to check both the Python version
+            embedded in the filename and the package's "Requires-Python"
+            metadata. If None (the default), then `sys.version_info[:3]`
+            will be used.
         :param ignore_requires_python: Whether to ignore incompatible
             "Requires-Python" values in links. Defaults to False.
         """
@@ -666,6 +667,8 @@ class PackageFinder(object):
         else:
             versions = None
 
+        py_version_info = normalize_version_info(py_version_info)
+
         # The valid tags to check potential found wheel candidates against
         valid_tags = get_supported(
             versions=versions,
@@ -676,6 +679,7 @@ class PackageFinder(object):
         candidate_evaluator = CandidateEvaluator(
             valid_tags=valid_tags, prefer_binary=prefer_binary,
             allow_all_prereleases=allow_all_prereleases,
+            py_version_info=py_version_info,
             ignore_requires_python=ignore_requires_python,
         )
 

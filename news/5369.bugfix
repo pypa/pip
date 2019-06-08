@@ -1,0 +1,2 @@
+Update ``pip download`` to respect the given ``--python-version`` when checking
+``"Requires-Python"``.

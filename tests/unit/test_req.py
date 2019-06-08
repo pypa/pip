@@ -10,7 +10,7 @@ from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.commands.install import InstallCommand
-from pip._internal.download import PipSession, path_to_url
+from pip._internal.download import PipSession
 from pip._internal.exceptions import (
     HashErrors, InstallationError, InvalidWheelFilename, PreviousBuildDirError,
 )
@@ -23,6 +23,7 @@ from pip._internal.req.constructors import (
 )
 from pip._internal.req.req_file import process_line
 from pip._internal.req.req_tracker import RequirementTracker
+from pip._internal.utils.misc import path_to_url
 from tests.lib import DATA_DIR, assert_raises_regexp, requirements_file
 
 

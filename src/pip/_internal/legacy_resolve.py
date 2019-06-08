@@ -23,7 +23,9 @@ from pip._internal.exceptions import (
 )
 from pip._internal.req.constructors import install_req_from_req_string
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import dist_in_usersite, ensure_dir
+from pip._internal.utils.misc import (
+    dist_in_usersite, ensure_dir, normalize_version_info,
+)
 from pip._internal.utils.packaging import (
     check_requires_python, get_requires_python,
 )
@@ -46,7 +48,7 @@ logger = logging.getLogger(__name__)
 
 def _check_dist_requires_python(
     dist,  # type: pkg_resources.Distribution
-    version_info,  # type: Tuple[int, ...]
+    version_info,  # type: Tuple[int, int, int]
     ignore_requires_python=False,  # type: bool
 ):
     # type: (...) -> None
@@ -54,8 +56,8 @@ def _check_dist_requires_python(
     Check whether the given Python version is compatible with a distribution's
     "Requires-Python" value.
 
-    :param version_info: The Python version to use to check, as a 3-tuple
-        of ints (major-minor-micro).
+    :param version_info: A 3-tuple of ints representing the Python
+        major-minor-micro version to check.
     :param ignore_requires_python: Whether to ignore the "Requires-Python"
         value if the given Python version isn't compatible.
 
@@ -121,6 +123,8 @@ class Resolver(object):
 
         if py_version_info is None:
             py_version_info = sys.version_info[:3]
+        else:
+            py_version_info = normalize_version_info(py_version_info)
 
         self._py_version_info = py_version_info
 

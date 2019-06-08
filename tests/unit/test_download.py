@@ -8,16 +8,16 @@ from tempfile import mkdtemp
 
 import pytest
 from mock import Mock, patch
-from pip._vendor.six.moves.urllib import request as urllib_request
 
 import pip
 from pip._internal.download import (
     CI_ENVIRONMENT_VARIABLES, MultiDomainBasicAuth, PipSession, SafeFileCache,
-    path_to_url, unpack_file_url, unpack_http_url, url_to_path,
+    unpack_file_url, unpack_http_url, url_to_path,
 )
 from pip._internal.exceptions import HashMismatch
 from pip._internal.models.link import Link
 from pip._internal.utils.hashes import Hashes
+from pip._internal.utils.misc import path_to_url
 from tests.lib import create_file
 
 
@@ -197,22 +197,6 @@ def test_unpack_http_url_bad_downloaded_checksum(mock_unpack_file):
 
     finally:
         rmtree(download_dir)
-
-
-@pytest.mark.skipif("sys.platform == 'win32'")
-def test_path_to_url_unix():
-    assert path_to_url('/tmp/file') == 'file:///tmp/file'
-    path = os.path.join(os.getcwd(), 'file')
-    assert path_to_url('file') == 'file://' + urllib_request.pathname2url(path)
-
-
-@pytest.mark.skipif("sys.platform != 'win32'")
-def test_path_to_url_win():
-    assert path_to_url('c:/tmp/file') == 'file:///C:/tmp/file'
-    assert path_to_url('c:\\tmp\\file') == 'file:///C:/tmp/file'
-    assert path_to_url(r'\\unc\as\path') == 'file://unc/as/path'
-    path = os.path.join(os.getcwd(), 'file')
-    assert path_to_url('file') == 'file:' + urllib_request.pathname2url(path)
 
 
 @pytest.mark.parametrize("url,win_expected,non_win_expected", [

@@ -17,15 +17,13 @@ from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 from pip._vendor.packaging.specifiers import Specifier
 from pip._vendor.pkg_resources import RequirementParseError, parse_requirements
 
-from pip._internal.download import (
-    is_archive_file, is_url, path_to_url, url_to_path,
-)
+from pip._internal.download import is_archive_file, is_url, url_to_path
 from pip._internal.exceptions import InstallationError
 from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.models.link import Link
 from pip._internal.pyproject import make_pyproject_path
 from pip._internal.req.req_install import InstallRequirement
-from pip._internal.utils.misc import is_installable_dir
+from pip._internal.utils.misc import is_installable_dir, path_to_url
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs import vcs
 from pip._internal.wheel import Wheel

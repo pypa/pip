@@ -10,7 +10,7 @@ from pip._internal.utils.misc import (
     display_path, rmtree, split_auth_from_netloc,
 )
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pip._internal.vcs import VersionControl, vcs
+from pip._internal.vcs.versioncontrol import VersionControl, vcs
 
 _svn_xml_url_re = re.compile('url="([^"]+)"')
 _svn_rev_re = re.compile(r'committed-rev="(\d+)"')
@@ -20,7 +20,7 @@ _svn_info_xml_url_re = re.compile(r'<url>(.*)</url>')
 
 if MYPY_CHECK_RUNNING:
     from typing import List, Optional, Tuple
-    from pip._internal.vcs import RevOptions
+    from pip._internal.vcs.versioncontrol import RevOptions
 
 logger = logging.getLogger(__name__)
 

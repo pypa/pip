@@ -5,13 +5,12 @@ from mock import patch
 from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.exceptions import BadCommand
-from pip._internal.vcs import (
-    RevOptions, VersionControl, make_vcs_requirement_url,
-)
+from pip._internal.vcs import make_vcs_requirement_url
 from pip._internal.vcs.bazaar import Bazaar
 from pip._internal.vcs.git import Git, looks_like_hash
 from pip._internal.vcs.mercurial import Mercurial
 from pip._internal.vcs.subversion import Subversion
+from pip._internal.vcs.versioncontrol import RevOptions, VersionControl
 from tests.lib import is_svn_installed, pyversion
 
 if pyversion >= '3':
