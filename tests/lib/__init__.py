@@ -22,6 +22,8 @@ SRC_DIR = Path(__file__).abspath.folder.folder.folder
 pyversion = sys.version[:3]
 pyversion_tuple = sys.version_info
 
+CURRENT_PY_VERSION_INFO = sys.version_info[:3]
+
 
 def assert_paths_equal(actual, expected):
     os.path.normpath(actual) == os.path.normpath(expected)

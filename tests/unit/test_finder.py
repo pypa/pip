@@ -14,6 +14,7 @@ from pip._internal.exceptions import (
 from pip._internal.index import (
     CandidateEvaluator, InstallationCandidate, Link, PackageFinder, Search,
 )
+from pip._internal.models.target_python import TargetPython
 from pip._internal.req.constructors import install_req_from_line
 
 
@@ -139,20 +140,16 @@ class TestWheel:
         """
         Test not finding an unsupported wheel.
         """
-        monkeypatch.setattr(
-            pip._internal.pep425tags,
-            "get_supported",
-            lambda **kw: [("py1", "none", "any")],
-        )
-
         req = install_req_from_line("simple.dist")
+        target_python = TargetPython()
+        # Make sure no tags will match.
+        target_python._valid_tags = []
         finder = PackageFinder.create(
             [data.find_links],
             [],
             session=PipSession(),
+            target_python=target_python,
         )
-        valid_tags = pip._internal.pep425tags.get_supported()
-        finder.candidate_evaluator = CandidateEvaluator(valid_tags=valid_tags)
 
         with pytest.raises(DistributionNotFound):
             finder.find_requirement(req, True)
@@ -246,7 +243,9 @@ class TestWheel:
             ('pyT', 'TEST', 'any'),
             ('pyT', 'none', 'any'),
         ]
-        evaluator = CandidateEvaluator(valid_tags=valid_tags)
+        target_python = TargetPython()
+        target_python._valid_tags = valid_tags
+        evaluator = CandidateEvaluator(target_python=target_python)
         sort_key = evaluator._sort_key
         results = sorted(links, key=sort_key, reverse=True)
         results2 = sorted(reversed(links), key=sort_key, reverse=True)
@@ -469,8 +468,7 @@ class TestCandidateEvaluator(object):
     def setup(self):
         self.search_name = 'pytest'
         self.canonical_name = 'pytest'
-        valid_tags = pip._internal.pep425tags.get_supported()
-        self.evaluator = CandidateEvaluator(valid_tags=valid_tags)
+        self.evaluator = CandidateEvaluator()
 
     @pytest.mark.parametrize('url, expected_version', [
         ('http:/yo/pytest-1.0.tar.gz', '1.0'),

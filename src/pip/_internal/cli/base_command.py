@@ -24,6 +24,7 @@ from pip._internal.exceptions import (
 )
 from pip._internal.index import PackageFinder
 from pip._internal.locations import running_under_virtualenv
+from pip._internal.models.target_python import TargetPython
 from pip._internal.req.constructors import (
     install_req_from_editable, install_req_from_line,
 )
@@ -344,6 +345,13 @@ class RequirementCommand(Command):
             )
             index_urls = []
 
+        target_python = TargetPython(
+            platform=platform,
+            py_version_info=py_version_info,
+            abi=abi,
+            implementation=implementation,
+        )
+
         return PackageFinder.create(
             find_links=options.find_links,
             format_control=options.format_control,
@@ -351,10 +359,7 @@ class RequirementCommand(Command):
             trusted_hosts=options.trusted_hosts,
             allow_all_prereleases=options.pre,
             session=session,
-            platform=platform,
-            py_version_info=py_version_info,
-            abi=abi,
-            implementation=implementation,
+            target_python=target_python,
             prefer_binary=options.prefer_binary,
             ignore_requires_python=ignore_requires_python,
         )
