@@ -14,6 +14,7 @@ import warnings
 from distutils.util import strtobool
 from functools import partial
 from optparse import SUPPRESS_HELP, Option, OptionGroup
+from textwrap import dedent
 
 from pip._internal.exceptions import CommandError
 from pip._internal.locations import USER_CACHE_DIR, src_prefix
@@ -480,24 +481,49 @@ platform = partial(
 
 # This was made a separate function for unit-testing purposes.
 def _convert_python_version(value):
-    # type: (str) -> Tuple[int, ...]
+    # type: (str) -> Tuple[Tuple[int, ...], Optional[str]]
     """
-    Convert a string like "3" or "34" into a tuple of ints.
-    """
-    if len(value) == 1:
-        parts = [value]
-    else:
-        parts = [value[0], value[1:]]
+    Convert a version string like "3", "37", or "3.7.3" into a tuple of ints.
 
-    return tuple(int(part) for part in parts)
+    :return: A 2-tuple (version_info, error_msg), where `error_msg` is
+        non-None if and only if there was a parsing error.
+    """
+    if not value:
+        # The empty string is the same as not providing a value.
+        return (None, None)
+
+    parts = value.split('.')
+    if len(parts) > 3:
+        return ((), 'at most three version parts are allowed')
+
+    if len(parts) == 1:
+        # Then we are in the case of "3" or "37".
+        value = parts[0]
+        if len(value) > 1:
+            parts = [value[0], value[1:]]
+
+    try:
+        version_info = tuple(int(part) for part in parts)
+    except ValueError:
+        return ((), 'each version part must be an integer')
+
+    return (version_info, None)
 
 
 def _handle_python_version(option, opt_str, value, parser):
     # type: (Option, str, str, OptionParser) -> None
     """
-    Convert a string like "3" or "34" into a tuple of ints.
+    Handle a provided --python-version value.
     """
-    version_info = _convert_python_version(value)
+    version_info, error_msg = _convert_python_version(value)
+    if error_msg is not None:
+        msg = (
+            'invalid --python-version value: {!r}: {}'.format(
+                value, error_msg,
+            )
+        )
+        raise_option_error(parser, option=option, msg=msg)
+
     parser.values.python_version = version_info
 
 
@@ -509,12 +535,13 @@ python_version = partial(
     action='callback',
     callback=_handle_python_version, type='str',
     default=None,
-    help=("Only use wheels compatible with Python "
-          "interpreter version <version>. If not specified, then the "
-          "current system interpreter minor version is used. A major "
-          "version (e.g. '2') can be specified to match all "
-          "minor revs of that major version.  A minor version "
-          "(e.g. '34') can also be specified."),
+    help=dedent("""\
+    The Python interpreter version to use for wheel and "Requires-Python"
+    compatibility checks. Defaults to a version derived from the running
+    interpreter. The version can be specified using up to three dot-separated
+    integers (e.g. "3" for 3.0.0, "3.7" for 3.7.0, or "3.7.3"). A major-minor
+    version can also be given as a string without dots (e.g. "37" for 3.7.0).
+    """),
 )  # type: Callable[..., Option]
 
 
