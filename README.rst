@@ -13,7 +13,11 @@ Please take a look at our documentation for how to install and use pip:
 
 * `Installation`_
 * `Usage`_
+
+Updates are released regularly and more details on them can be found in our documentation:
+
 * `Release notes`_
+* `Release process`_
 
 If you find bugs, need help, or want to talk to the developers please use our mailing lists or chat rooms:
 
@@ -28,10 +32,6 @@ If you want to get involved head over to GitHub to get the source code, look at 
 * `Dev mailing list`_
 * `Dev IRC`_
 
-Pip usually comes installed with Python, and updates are released regularly, with new versions every 3 months. Please take a look at our documentation.
-
-* [Pip release](https://github.com/pypa/pip/blob/master/docs/html/development/release-process.rst).
-
 Code of Conduct
 ---------------
 
@@ -43,6 +43,7 @@ rooms, and mailing lists is expected to follow the `PyPA Code of Conduct`_.
 .. _Installation: https://pip.pypa.io/en/stable/installing.html
 .. _Usage: https://pip.pypa.io/en/stable/
 .. _Release notes: https://pip.pypa.io/en/stable/news.html
+.. _Release process: https://pip.pypa.io/en/latest/development/release-process/
 .. _GitHub page: https://github.com/pypa/pip
 .. _Dev documentation: https://pip.pypa.io/en/latest/development
 .. _Issue tracking: https://github.com/pypa/pip/issues
