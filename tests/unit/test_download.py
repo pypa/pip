@@ -12,6 +12,7 @@ from mock import Mock, patch
 import pip
 from pip._internal.download import (
     CI_ENVIRONMENT_VARIABLES, MultiDomainBasicAuth, PipSession, SafeFileCache,
+    _download_http_url, parse_content_disposition, sanitize_content_filename,
     unpack_file_url, unpack_http_url, url_to_path,
 )
 from pip._internal.exceptions import HashMismatch
@@ -197,6 +198,90 @@ def test_unpack_http_url_bad_downloaded_checksum(mock_unpack_file):
 
     finally:
         rmtree(download_dir)
+
+
+@pytest.mark.parametrize("filename, expected", [
+    ('dir/file', 'file'),
+    ('../file', 'file'),
+    ('../../file', 'file'),
+    ('../', ''),
+    ('../..', '..'),
+    ('/', ''),
+])
+def test_sanitize_content_filename(filename, expected):
+    """
+    Test inputs where the result is the same for Windows and non-Windows.
+    """
+    assert sanitize_content_filename(filename) == expected
+
+
+@pytest.mark.parametrize("filename, win_expected, non_win_expected", [
+    ('dir\\file', 'file', 'dir\\file'),
+    ('..\\file', 'file', '..\\file'),
+    ('..\\..\\file', 'file', '..\\..\\file'),
+    ('..\\', '', '..\\'),
+    ('..\\..', '..', '..\\..'),
+    ('\\', '', '\\'),
+])
+def test_sanitize_content_filename__platform_dependent(
+    filename,
+    win_expected,
+    non_win_expected
+):
+    """
+    Test inputs where the result is different for Windows and non-Windows.
+    """
+    if sys.platform == 'win32':
+        expected = win_expected
+    else:
+        expected = non_win_expected
+    assert sanitize_content_filename(filename) == expected
+
+
+@pytest.mark.parametrize("content_disposition, default_filename, expected", [
+    ('attachment;filename="../file"', 'df', 'file'),
+])
+def test_parse_content_disposition(
+    content_disposition,
+    default_filename,
+    expected
+):
+    actual = parse_content_disposition(content_disposition, default_filename)
+    assert actual == expected
+
+
+def test_download_http_url__no_directory_traversal(tmpdir):
+    """
+    Test that directory traversal doesn't happen on download when the
+    Content-Disposition header contains a filename with a ".." path part.
+    """
+    mock_url = 'http://www.example.com/whatever.tgz'
+    contents = b'downloaded'
+    link = Link(mock_url)
+
+    session = Mock()
+    resp = MockResponse(contents)
+    resp.url = mock_url
+    resp.headers = {
+        # Set the content-type to a random value to prevent
+        # mimetypes.guess_extension from guessing the extension.
+        'content-type': 'random',
+        'content-disposition': 'attachment;filename="../out_dir_file"'
+    }
+    session.get.return_value = resp
+
+    download_dir = tmpdir.join('download')
+    os.mkdir(download_dir)
+    file_path, content_type = _download_http_url(
+        link,
+        session,
+        download_dir,
+        hashes=None,
+        progress_bar='on',
+    )
+    # The file should be downloaded to download_dir.
+    actual = os.listdir(download_dir)
+    assert actual == ['out_dir_file']
 
 
 @pytest.mark.parametrize("url,win_expected,non_win_expected", [
