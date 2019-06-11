@@ -14,7 +14,7 @@ Please take a look at our documentation for how to install and use pip:
 * `Installation`_
 * `Usage`_
 
-Updates are released regularly and more details on them can be found in our documentation:
+Updates are released regularly, with a new version every 3 months. More details can be found in our documentation:
 
 * `Release notes`_
 * `Release process`_
