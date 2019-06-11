@@ -17,6 +17,8 @@ generally case sensitive. Multiple commands may be listed in a single comment
 (but they must each be on their own line) and the comments may also include
 other, non command content.
 
+Please take a look at our [Development documentation](https://github.com/pypa/pip/tree/master/docs/html/development).
+
 Command | Who can run it | Description
 --- | --- | ---
 `/request-review` | anyone | Dismisses all of the current reviews on a pull request, making it appear back in the review queue.
