@@ -7,6 +7,9 @@ As a reminder, all contributors are expected to follow our [Code of Conduct][coc
 
 [coc]: https://www.pypa.io/en/latest/code-of-conduct/
 
+## Development Documentation
+
+If you want to get involved look at our development documentation [Dev documentation](https://pip.pypa.io/en/latest/development/)
 
 ## Bot Commands
 
