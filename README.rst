@@ -28,6 +28,10 @@ If you want to get involved head over to GitHub to get the source code, look at 
 * `Dev mailing list`_
 * `Dev IRC`_
 
+Pip usually comes installed with Python, and updates are released regularly, with new versions every 3 months. Please take a look at our documentation.
+
+* [Pip release](https://github.com/pypa/pip/blob/master/docs/html/development/release-process.rst).
+
 Code of Conduct
 ---------------
 
