@@ -1,10 +1,8 @@
 from pip._vendor import pytoml
 
 from pip._internal.build_env import BuildEnvironment
-from pip._internal.download import PipSession
-from pip._internal.index import PackageFinder
 from pip._internal.req import InstallRequirement
-from tests.lib import path_to_url
+from tests.lib import make_test_finder, path_to_url
 
 
 def make_project(tmpdir, requires=[], backend=None):
@@ -23,7 +21,7 @@ def test_backend(tmpdir, data):
     req = InstallRequirement(None, None, source_dir=project_dir)
     req.load_pyproject_toml()
     env = BuildEnvironment()
-    finder = PackageFinder.create([data.backends], [], session=PipSession())
+    finder = make_test_finder(find_links=[data.backends])
     env.install_requirements(finder, ["dummy_backend"], 'normal', "Installing")
     conflicting, missing = env.check_requirements(["dummy_backend"])
     assert not conflicting and not missing
