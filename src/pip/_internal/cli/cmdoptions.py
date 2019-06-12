@@ -822,6 +822,24 @@ require_hashes = partial(
 )  # type: Callable[..., Option]
 
 
+list_path = partial(
+    Option,
+    '--path',
+    dest='path',
+    action='append',
+    help='Restrict to the specified installation path for listing '
+         'packages (can be used multiple times).'
+)  # type: Callable[..., Option]
+
+
+def check_list_path_option(options):
+    # type: (Values) -> None
+    if options.path and (options.user or options.local):
+        raise CommandError(
+            "Cannot combine '--path' with '--user' or '--local'"
+        )
+
+
 ##########
 # groups #
 ##########

@@ -3,8 +3,8 @@ from __future__ import absolute_import
 import sys
 
 from pip._internal.cache import WheelCache
+from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
-from pip._internal.exceptions import CommandError
 from pip._internal.models.format_control import FormatControl
 from pip._internal.operations.freeze import freeze
 from pip._internal.utils.compat import stdlib_pkgs
@@ -57,12 +57,7 @@ class FreezeCommand(Command):
             action='store_true',
             default=False,
             help='Only output packages installed in user-site.')
-        self.cmd_opts.add_option(
-            '--path',
-            dest='path',
-            action='append',
-            help='Restrict to the specified installation path for listing '
-                 'packages (can be used multiple times).')
+        self.cmd_opts.add_option(cmdoptions.list_path())
         self.cmd_opts.add_option(
             '--all',
             dest='freeze_all',
@@ -84,10 +79,7 @@ class FreezeCommand(Command):
         if not options.freeze_all:
             skip.update(DEV_PKGS)
 
-        if options.path and (options.user or options.local):
-            raise CommandError(
-                "Cannot combine '--path' with '--user' or '--local'"
-            )
+        cmdoptions.check_list_path_option(options)
 
         freeze_kwargs = dict(
             requirement=options.requirements,
