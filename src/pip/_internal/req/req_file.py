@@ -251,8 +251,7 @@ def process_line(
         if opts.pre:
             finder.set_allow_all_prereleases()
         if opts.trusted_hosts:
-            finder.secure_origins.extend(
-                ("*", host, "*") for host in opts.trusted_hosts)
+            finder.extend_trusted_hosts(opts.trusted_hosts)
 
 
 def break_args_options(line):

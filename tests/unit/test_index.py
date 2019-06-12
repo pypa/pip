@@ -163,6 +163,44 @@ class TestPackageFinder:
         assert actual_target_python is target_python
         assert actual_target_python.py_version_info == (3, 7, 3)
 
+    def test_extend_trusted_hosts(self):
+        trusted_hosts = ['host1', 'host2']
+        finder = make_test_finder(trusted_hosts=trusted_hosts)
+
+        # Check that extend_trusted_hosts() prevents duplicates.
+        finder.extend_trusted_hosts(['host2', 'host3', 'host2'])
+        assert finder.trusted_hosts == ['host1', 'host2', 'host3'], (
+            'actual: {}'.format(finder.trusted_hosts)
+        )
+
+    def test_iter_secure_origins(self):
+        trusted_hosts = ['host1', 'host2']
+        finder = make_test_finder(trusted_hosts=trusted_hosts)
+
+        actual = list(finder.iter_secure_origins())
+        assert len(actual) == 8
+        # Spot-check that SECURE_ORIGINS is included.
+        assert actual[0] == ('https', '*', '*')
+        assert actual[-2:] == [
+            ('*', 'host1', '*'),
+            ('*', 'host2', '*'),
+        ]
+
+    def test_iter_secure_origins__none_trusted_hosts(self):
+        """
+        Test iter_secure_origins() after passing trusted_hosts=None.
+        """
+        # Use PackageFinder.create() rather than make_test_finder()
+        # to make sure we're really passing trusted_hosts=None.
+        finder = PackageFinder.create(
+            [], [], trusted_hosts=None, session=object(),
+        )
+
+        actual = list(finder.iter_secure_origins())
+        assert len(actual) == 6
+        # Spot-check that SECURE_ORIGINS is included.
+        assert actual[0] == ('https', '*', '*')
+
 
 def test_sort_locations_file_expand_dir(data):
     """

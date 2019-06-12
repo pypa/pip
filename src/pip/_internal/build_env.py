@@ -185,7 +185,7 @@ class BuildEnvironment(object):
             args.append('--no-index')
         for link in finder.find_links:
             args.extend(['--find-links', link])
-        for _, host, _ in finder.secure_origins:
+        for host in finder.trusted_hosts:
             args.extend(['--trusted-host', host])
         if finder.allow_all_prereleases:
             args.append('--pre')

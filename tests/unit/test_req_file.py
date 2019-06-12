@@ -316,7 +316,7 @@ class TestProcessLine(object):
 
     def test_set_finder_trusted_host(self, finder):
         list(process_line("--trusted-host=url", "file", 1, finder=finder))
-        assert finder.secure_origins == [('*', 'url', '*')]
+        assert finder.trusted_hosts == ['url']
 
     def test_noop_always_unzip(self, finder):
         # noop, but confirm it can be set
