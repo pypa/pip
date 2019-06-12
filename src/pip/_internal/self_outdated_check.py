@@ -10,10 +10,10 @@ from pip._vendor import lockfile, pkg_resources
 from pip._vendor.packaging import version as packaging_version
 
 from pip._internal.index import PackageFinder
-from pip._internal.compat import WINDOWS
-from pip._internal.filesystem import check_path_owner
-from pip._internal.misc import ensure_dir, get_installed_version
-from pip._internal.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.compat import WINDOWS
+from pip._internal.utils.filesystem import check_path_owner
+from pip._internal.utils.misc import ensure_dir, get_installed_version
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     import optparse
