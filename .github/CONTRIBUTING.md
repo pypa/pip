@@ -9,7 +9,7 @@ As a reminder, all contributors are expected to follow our [Code of Conduct][coc
 
 ## Development Documentation
 
-If you want to get involved look at our development documentation [Dev documentation](https://pip.pypa.io/en/latest/development/)
+Our [development documentation](https://pip.pypa.io/en/latest/development/) contains details on how to get started with contributing to pip, and details of our development processes.
 
 ## Bot Commands
 
