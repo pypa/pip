@@ -1,9 +1,8 @@
 import logging
 import os.path
-import sys
 
 import pytest
-from mock import Mock, patch
+from mock import Mock
 from pip._vendor import html5lib, requests
 
 from pip._internal.download import PipSession
@@ -12,8 +11,8 @@ from pip._internal.index import (
     _check_link_requires_python, _clean_link, _determine_base_url,
     _egg_info_matches, _find_name_version_sep, _get_html_page,
 )
-
-CURRENT_PY_VERSION_INFO = sys.version_info[:3]
+from pip._internal.models.target_python import TargetPython
+from tests.lib import CURRENT_PY_VERSION_INFO
 
 
 @pytest.mark.parametrize('requires_python, expected', [
@@ -84,33 +83,24 @@ def test_check_link_requires_python__invalid_requires(caplog):
 
 class TestCandidateEvaluator:
 
-    @pytest.mark.parametrize('py_version_info, expected_py_version', [
-        ((2, 7, 14), '2.7'),
-        ((3, 6, 5), '3.6'),
-        # Check a minor version with two digits.
-        ((3, 10, 1), '3.10'),
-    ])
-    def test_init__py_version_info(self, py_version_info, expected_py_version):
+    def test_init__target_python(self):
         """
-        Test the py_version_info argument.
+        Test the target_python argument.
         """
-        evaluator = CandidateEvaluator([], py_version_info=py_version_info)
+        target_python = TargetPython(py_version_info=(3, 7, 3))
+        evaluator = CandidateEvaluator(target_python=target_python)
+        # The target_python attribute should be set as is.
+        assert evaluator._target_python is target_python
 
-        # The _py_version_info attribute should be set as is.
-        assert evaluator._py_version_info == py_version_info
-        assert evaluator._py_version == expected_py_version
-
-    def test_init__py_version_info_none(self):
+    def test_init__target_python_none(self):
         """
-        Test passing None for the py_version_info argument.
+        Test passing None for the target_python argument.
         """
-        evaluator = CandidateEvaluator([], py_version_info=None)
-        # Get the index of the second dot.
-        index = sys.version.find('.', 2)
-        current_major_minor = sys.version[:index]  # e.g. "3.6"
-
-        assert evaluator._py_version_info == CURRENT_PY_VERSION_INFO
-        assert evaluator._py_version == current_major_minor
+        evaluator = CandidateEvaluator(target_python=None)
+        # Spot-check the default TargetPython object.
+        actual_target_python = evaluator._target_python
+        assert actual_target_python._given_py_version_info is None
+        assert actual_target_python.py_version_info == CURRENT_PY_VERSION_INFO
 
     @pytest.mark.parametrize(
         'py_version_info,ignore_requires_python,expected', [
@@ -124,16 +114,17 @@ class TestCandidateEvaluator:
     def test_evaluate_link(
         self, py_version_info, ignore_requires_python, expected,
     ):
+        target_python = TargetPython(py_version_info=py_version_info)
+        evaluator = CandidateEvaluator(
+            target_python=target_python,
+            ignore_requires_python=ignore_requires_python,
+        )
         link = Link(
             'https://example.com/#egg=twine-1.12',
             requires_python='== 3.6.5',
         )
         search = Search(
             supplied='twine', canonical='twine', formats=['source'],
-        )
-        evaluator = CandidateEvaluator(
-            [], py_version_info=py_version_info,
-            ignore_requires_python=ignore_requires_python,
         )
         actual = evaluator.evaluate_link(link, search=search)
         assert actual == expected
@@ -142,13 +133,13 @@ class TestCandidateEvaluator:
         """
         Test an incompatible wheel.
         """
+        target_python = TargetPython(py_version_info=(3, 6, 4))
+        # Set the valid tags to an empty list to make sure nothing matches.
+        target_python._valid_tags = []
+        evaluator = CandidateEvaluator(target_python=target_python)
         link = Link('https://example.com/sample-1.0-py2.py3-none-any.whl')
         search = Search(
             supplied='sample', canonical='sample', formats=['binary'],
-        )
-        # Pass an empty list for the valid tags to make sure nothing matches.
-        evaluator = CandidateEvaluator(
-            [], py_version_info=(3, 6, 4),
         )
         actual = evaluator.evaluate_link(link, search=search)
         expected = (
@@ -159,37 +150,19 @@ class TestCandidateEvaluator:
 
 class TestPackageFinder:
 
-    @pytest.mark.parametrize('py_version_info, expected', [
-        # Test tuples of varying lengths.
-        ((), (None, (0, 0, 0))),
-        ((2, ), (['2'], (2, 0, 0))),
-        ((3, ), (['3'], (3, 0, 0))),
-        ((3, 6,), (['36'], (3, 6, 0))),
-        ((3, 6, 5), (['36'], (3, 6, 5))),
-        # Test a 2-digit minor version.
-        ((3, 10), (['310'], (3, 10, 0))),
-        # Test passing None.
-        (None, (None, CURRENT_PY_VERSION_INFO)),
-    ])
-    @patch('pip._internal.index.get_supported')
-    def test_create__py_version_info(
-        self, mock_get_supported, py_version_info, expected,
-    ):
+    def test_create__target_python(self):
         """
-        Test that the py_version_info argument is handled correctly.
+        Test that target_python is passed to CandidateEvaluator as is.
         """
-        expected_versions, expected_evaluator_info = expected
+        target_python = TargetPython(py_version_info=(3, 7, 3))
         finder = PackageFinder.create(
-            [], [], py_version_info=py_version_info, session=object(),
+            [], [], target_python=target_python, session=object(),
         )
-        actual = mock_get_supported.call_args[1]['versions']
-        assert actual == expected_versions
 
-        # For candidate_evaluator, we only need to test _py_version_info
-        # since setting _py_version correctly is tested in
-        # TestCandidateEvaluator.
         evaluator = finder.candidate_evaluator
-        assert evaluator._py_version_info == expected_evaluator_info
+        actual_target_python = evaluator._target_python
+        assert actual_target_python is target_python
+        assert actual_target_python.py_version_info == (3, 7, 3)
 
 
 def test_sort_locations_file_expand_dir(data):

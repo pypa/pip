@@ -8,7 +8,6 @@ import mimetypes
 import os
 import posixpath
 import re
-import sys
 from collections import namedtuple
 
 from pip._vendor import html5lib, requests, six
@@ -29,12 +28,12 @@ from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.index import PyPI
 from pip._internal.models.link import Link
-from pip._internal.pep425tags import get_supported, version_info_to_nodot
+from pip._internal.models.target_python import TargetPython
 from pip._internal.utils.compat import ipaddress
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, WHEEL_EXTENSION, normalize_path,
-    normalize_version_info, path_to_url, redact_password_from_url,
+    path_to_url, redact_password_from_url,
 )
 from pip._internal.utils.packaging import check_requires_python
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -48,7 +47,6 @@ if MYPY_CHECK_RUNNING:
     )
     from pip._vendor.packaging.version import _BaseVersion
     from pip._vendor.requests import Response
-    from pip._internal.pep425tags import Pep425Tag
     from pip._internal.req import InstallRequirement
     from pip._internal.download import PipSession
 
@@ -308,35 +306,29 @@ class CandidateEvaluator(object):
 
     def __init__(
         self,
-        valid_tags,          # type: List[Pep425Tag]
+        target_python=None,  # type: Optional[TargetPython]
         prefer_binary=False,   # type: bool
         allow_all_prereleases=False,  # type: bool
-        py_version_info=None,  # type: Optional[Tuple[int, int, int]]
         ignore_requires_python=None,  # type: Optional[bool]
     ):
         # type: (...) -> None
         """
+        :param target_python: The target Python interpreter to use to check
+            both the Python version embedded in the filename and the package's
+            "Requires-Python" metadata. If None (the default), then a
+            TargetPython object will be constructed from the running Python.
         :param allow_all_prereleases: Whether to allow all pre-releases.
-        :param py_version_info: A 3-tuple of ints representing the Python
-            major-minor-micro version to use to check both the Python version
-            embedded in the filename and the package's "Requires-Python"
-            metadata. If None (the default), then `sys.version_info[:3]`
-            will be used.
         :param ignore_requires_python: Whether to ignore incompatible
             "Requires-Python" values in links. Defaults to False.
         """
-        if py_version_info is None:
-            py_version_info = sys.version_info[:3]
+        if target_python is None:
+            target_python = TargetPython()
         if ignore_requires_python is None:
             ignore_requires_python = False
 
-        py_version = '.'.join(map(str, py_version_info[:2]))
-
         self._ignore_requires_python = ignore_requires_python
         self._prefer_binary = prefer_binary
-        self._py_version = py_version
-        self._py_version_info = py_version_info
-        self._valid_tags = valid_tags
+        self._target_python = target_python
 
         # We compile the regex here instead of as a class attribute so as
         # not to impact pip start-up time.  This is also okay because
@@ -348,7 +340,8 @@ class CandidateEvaluator(object):
 
     def _is_wheel_supported(self, wheel):
         # type: (Wheel) -> bool
-        return wheel.supported(self._valid_tags)
+        valid_tags = self._target_python.get_tags()
+        return wheel.supported(valid_tags)
 
     def evaluate_link(self, link, search):
         # type: (Link, Search) -> Tuple[bool, Optional[str]]
@@ -410,11 +403,11 @@ class CandidateEvaluator(object):
         if match:
             version = version[:match.start()]
             py_version = match.group(1)
-            if py_version != self._py_version:
+            if py_version != self._target_python.py_version:
                 return (False, 'Python version is incorrect')
 
         supports_python = _check_link_requires_python(
-            link, version_info=self._py_version_info,
+            link, version_info=self._target_python.py_version_info,
             ignore_requires_python=self._ignore_requires_python,
         )
         if not supports_python:
@@ -474,7 +467,8 @@ class CandidateEvaluator(object):
               comparison operators, but then different sdist links
               with the same version, would have to be considered equal
         """
-        support_num = len(self._valid_tags)
+        valid_tags = self._target_python.get_tags()
+        support_num = len(valid_tags)
         build_tag = tuple()  # type: BuildTag
         binary_preference = 0
         if candidate.location.is_wheel:
@@ -487,7 +481,7 @@ class CandidateEvaluator(object):
                 )
             if self._prefer_binary:
                 binary_preference = 1
-            pri = -(wheel.support_index_min(self._valid_tags))
+            pri = -(wheel.support_index_min(valid_tags))
             if wheel.build_tag is not None:
                 match = re.match(r'^(\d+)(.*)$', wheel.build_tag)
                 build_tag_groups = match.groups()
@@ -604,10 +598,7 @@ class PackageFinder(object):
         trusted_hosts=None,  # type: Optional[Iterable[str]]
         session=None,  # type: Optional[PipSession]
         format_control=None,  # type: Optional[FormatControl]
-        platform=None,  # type: Optional[str]
-        py_version_info=None,  # type: Optional[Tuple[int, ...]]
-        abi=None,  # type: Optional[str]
-        implementation=None,  # type: Optional[str]
+        target_python=None,  # type: Optional[TargetPython]
         prefer_binary=False,  # type: bool
         ignore_requires_python=None,  # type: Optional[bool]
     ):
@@ -620,19 +611,7 @@ class PackageFinder(object):
         :param format_control: A FormatControl object or None. Used to control
             the selection of source packages / binary packages when consulting
             the index and links.
-        :param platform: A string or None. If None, searches for packages
-            that are supported by the current system. Otherwise, will find
-            packages that can be built on the platform passed in. These
-            packages will only be downloaded for distribution: they will
-            not be built locally.
-        :param py_version_info: An optional tuple of ints representing the
-            Python version information to use (e.g. `sys.version_info[:3]`).
-            This can have length 1, 2, or 3. This is used to construct the
-            value passed to pep425tags.py's get_supported() function.
-        :param abi: A string or None. This is passed directly
-            to pep425tags.py in the get_supported() method.
-        :param implementation: A string or None. This is passed directly
-            to pep425tags.py in the get_supported() method.
+        :param target_python: The target Python interpreter.
         :param prefer_binary: Whether to prefer an old, but valid, binary
             dist over a new source dist.
         :param ignore_requires_python: Whether to ignore incompatible
@@ -662,24 +641,9 @@ class PackageFinder(object):
             for host in (trusted_hosts if trusted_hosts else [])
         ]  # type: List[SecureOrigin]
 
-        if py_version_info:
-            versions = [version_info_to_nodot(py_version_info)]
-        else:
-            versions = None
-
-        py_version_info = normalize_version_info(py_version_info)
-
-        # The valid tags to check potential found wheel candidates against
-        valid_tags = get_supported(
-            versions=versions,
-            platform=platform,
-            abi=abi,
-            impl=implementation,
-        )
         candidate_evaluator = CandidateEvaluator(
-            valid_tags=valid_tags, prefer_binary=prefer_binary,
+            target_python=target_python, prefer_binary=prefer_binary,
             allow_all_prereleases=allow_all_prereleases,
-            py_version_info=py_version_info,
             ignore_requires_python=ignore_requires_python,
         )
 
