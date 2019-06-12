@@ -42,8 +42,8 @@ from pip._internal.wheel import Wheel
 if MYPY_CHECK_RUNNING:
     from logging import Logger
     from typing import (
-        Tuple, Optional, Any, List, Union, Callable, Set, Sequence,
-        Iterable, MutableMapping
+        Any, Callable, Iterable, Iterator, List, MutableMapping, Optional,
+        Sequence, Set, Tuple, Union,
     )
     from pip._vendor.packaging.version import _BaseVersion
     from pip._vendor.requests import Response
@@ -562,9 +562,9 @@ class PackageFinder(object):
         candidate_evaluator,  # type: CandidateEvaluator
         find_links,  # type: List[str]
         index_urls,  # type: List[str]
-        secure_origins,  # type: List[SecureOrigin]
         session,  # type: PipSession
         format_control=None,  # type: Optional[FormatControl]
+        trusted_hosts=None,   # type: Optional[List[str]]
     ):
         # type: (...) -> None
         """
@@ -577,14 +577,17 @@ class PackageFinder(object):
             the selection of source packages / binary packages when consulting
             the index and links.
         """
+        if trusted_hosts is None:
+            trusted_hosts = []
+
         format_control = format_control or FormatControl(set(), set())
 
         self.candidate_evaluator = candidate_evaluator
         self.find_links = find_links
         self.index_urls = index_urls
-        self.secure_origins = secure_origins
         self.session = session
         self.format_control = format_control
+        self.trusted_hosts = trusted_hosts
 
         # These are boring links that have already been logged somehow.
         self._logged_links = set()  # type: Set[Link]
@@ -595,7 +598,7 @@ class PackageFinder(object):
         find_links,  # type: List[str]
         index_urls,  # type: List[str]
         allow_all_prereleases=False,  # type: bool
-        trusted_hosts=None,  # type: Optional[Iterable[str]]
+        trusted_hosts=None,  # type: Optional[List[str]]
         session=None,  # type: Optional[PipSession]
         format_control=None,  # type: Optional[FormatControl]
         target_python=None,  # type: Optional[TargetPython]
@@ -636,11 +639,6 @@ class PackageFinder(object):
                     link = new_link
             built_find_links.append(link)
 
-        secure_origins = [
-            ("*", host, "*")
-            for host in (trusted_hosts if trusted_hosts else [])
-        ]  # type: List[SecureOrigin]
-
         candidate_evaluator = CandidateEvaluator(
             target_python=target_python, prefer_binary=prefer_binary,
             allow_all_prereleases=allow_all_prereleases,
@@ -664,9 +662,9 @@ class PackageFinder(object):
             candidate_evaluator=candidate_evaluator,
             find_links=built_find_links,
             index_urls=index_urls,
-            secure_origins=secure_origins,
             session=session,
             format_control=format_control,
+            trusted_hosts=trusted_hosts,
         )
 
     @property
@@ -677,6 +675,20 @@ class PackageFinder(object):
     def set_allow_all_prereleases(self):
         # type: () -> None
         self.candidate_evaluator.allow_all_prereleases = True
+
+    def extend_trusted_hosts(self, hosts):
+        # type: (List[str]) -> None
+        for host in hosts:
+            if host in self.trusted_hosts:
+                continue
+            self.trusted_hosts.append(host)
+
+    def iter_secure_origins(self):
+        # type: () -> Iterator[SecureOrigin]
+        for secure_origin in SECURE_ORIGINS:
+            yield secure_origin
+        for host in self.trusted_hosts:
+            yield ('*', host, '*')
 
     def get_formatted_locations(self):
         # type: () -> str
@@ -766,7 +778,7 @@ class PackageFinder(object):
         # Determine if our origin is a secure origin by looking through our
         # hardcoded list of secure origins, as well as any additional ones
         # configured on this PackageFinder instance.
-        for secure_origin in (SECURE_ORIGINS + self.secure_origins):
+        for secure_origin in self.iter_secure_origins():
             if protocol != secure_origin[0] and secure_origin[0] != "*":
                 continue
 
