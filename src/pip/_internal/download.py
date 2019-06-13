@@ -588,6 +588,8 @@ class PipSession(requests.Session):
         # well as any https:// host that we've marked as ignoring TLS errors
         # for.
         insecure_adapter = InsecureHTTPAdapter(max_retries=retries)
+        # Save this for later use in add_insecure_host().
+        self._insecure_adapter = insecure_adapter
 
         self.mount("https://", secure_adapter)
         self.mount("http://", insecure_adapter)
@@ -598,7 +600,11 @@ class PipSession(requests.Session):
         # We want to use a non-validating adapter for any requests which are
         # deemed insecure.
         for host in insecure_hosts:
-            self.mount("https://{}/".format(host), insecure_adapter)
+            self.add_insecure_host(host)
+
+    def add_insecure_host(self, host):
+        # type: (str) -> None
+        self.mount('https://{}/'.format(host), self._insecure_adapter)
 
     def request(self, method, url, *args, **kwargs):
         # Allow setting a default timeout on a session
