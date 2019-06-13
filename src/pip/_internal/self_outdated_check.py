@@ -5,6 +5,7 @@ import json
 import logging
 import os.path
 import sys
+import pip._internal.cli.base_command 
 
 from pip._vendor import lockfile, pkg_resources
 from pip._vendor.packaging import version as packaging_version
