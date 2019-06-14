@@ -4,6 +4,10 @@ from pip._internal.distributions.base import AbstractDistribution
 
 
 class WheelDistribution(AbstractDistribution):
+    """Represents a wheel distribution.
+
+    This does not need any preparation as wheels can be directly unpacked.
+    """
 
     def dist(self):
         return list(pkg_resources.find_distributions(
