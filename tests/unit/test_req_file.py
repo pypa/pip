@@ -1,3 +1,4 @@
+import logging
 import os
 import subprocess
 import textwrap
@@ -314,9 +315,21 @@ class TestProcessLine(object):
         list(process_line("--extra-index-url=url", "file", 1, finder=finder))
         assert finder.index_urls == ['url']
 
-    def test_set_finder_trusted_host(self, finder):
-        list(process_line("--trusted-host=url", "file", 1, finder=finder))
-        assert finder.trusted_hosts == ['url']
+    def test_set_finder_trusted_host(self, caplog, finder):
+        with caplog.at_level(logging.INFO):
+            list(process_line(
+                "--trusted-host=host", "file.txt", 1, finder=finder,
+            ))
+        assert finder.trusted_hosts == ['host']
+        session = finder.session
+        assert session.adapters['https://host/'] is session._insecure_adapter
+
+        # Test the log message.
+        actual = [(r.levelname, r.message) for r in caplog.records]
+        expected = [
+            ('INFO', "adding trusted host: 'host' (from line 1 of file.txt)"),
+        ]
+        assert actual == expected
 
     def test_noop_always_unzip(self, finder):
         # noop, but confirm it can be set

@@ -608,8 +608,8 @@ class PackageFinder(object):
         # type: (...) -> PackageFinder
         """Create a PackageFinder.
 
-        :param trusted_hosts: Domains that we won't emit warnings for when
-            not using HTTPS.
+        :param trusted_hosts: Domains not to emit warnings for when not using
+            HTTPS.
         :param session: The Session to use to make requests.
         :param format_control: A FormatControl object or None. Used to control
             the selection of source packages / binary packages when consulting
@@ -676,12 +676,23 @@ class PackageFinder(object):
         # type: () -> None
         self.candidate_evaluator.allow_all_prereleases = True
 
-    def extend_trusted_hosts(self, hosts):
-        # type: (List[str]) -> None
-        for host in hosts:
-            if host in self.trusted_hosts:
-                continue
-            self.trusted_hosts.append(host)
+    def add_trusted_host(self, host, source=None):
+        # type: (str, Optional[str]) -> None
+        """
+        :param source: An optional source string, for logging where the host
+            string came from.
+        """
+        # It is okay to add a previously added host because PipSession stores
+        # the resulting prefixes in a dict.
+        msg = 'adding trusted host: {!r}'.format(host)
+        if source is not None:
+            msg += ' (from {})'.format(source)
+        logger.info(msg)
+        self.session.add_insecure_host(host)
+        if host in self.trusted_hosts:
+            return
+
+        self.trusted_hosts.append(host)
 
     def iter_secure_origins(self):
         # type: () -> Iterator[SecureOrigin]

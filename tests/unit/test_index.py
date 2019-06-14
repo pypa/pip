@@ -163,15 +163,60 @@ class TestPackageFinder:
         assert actual_target_python is target_python
         assert actual_target_python.py_version_info == (3, 7, 3)
 
-    def test_extend_trusted_hosts(self):
-        trusted_hosts = ['host1', 'host2']
-        finder = make_test_finder(trusted_hosts=trusted_hosts)
+    def test_add_trusted_host(self):
+        # Leave a gap to test how the ordering is affected.
+        trusted_hosts = ['host1', 'host3']
+        session = PipSession(insecure_hosts=trusted_hosts)
+        finder = make_test_finder(
+            session=session,
+            trusted_hosts=trusted_hosts,
+        )
+        insecure_adapter = session._insecure_adapter
+        prefix2 = 'https://host2/'
+        prefix3 = 'https://host3/'
 
-        # Check that extend_trusted_hosts() prevents duplicates.
-        finder.extend_trusted_hosts(['host2', 'host3', 'host2'])
-        assert finder.trusted_hosts == ['host1', 'host2', 'host3'], (
+        # Confirm some initial conditions as a baseline.
+        assert finder.trusted_hosts == ['host1', 'host3']
+        assert session.adapters[prefix3] is insecure_adapter
+        assert prefix2 not in session.adapters
+
+        # Test adding a new host.
+        finder.add_trusted_host('host2')
+        assert finder.trusted_hosts == ['host1', 'host3', 'host2']
+        # Check that prefix3 is still present.
+        assert session.adapters[prefix3] is insecure_adapter
+        assert session.adapters[prefix2] is insecure_adapter
+
+        # Test that adding the same host doesn't create a duplicate.
+        finder.add_trusted_host('host3')
+        assert finder.trusted_hosts == ['host1', 'host3', 'host2'], (
             'actual: {}'.format(finder.trusted_hosts)
         )
+
+    def test_add_trusted_host__logging(self, caplog):
+        """
+        Test logging when add_trusted_host() is called.
+        """
+        trusted_hosts = ['host1']
+        session = PipSession(insecure_hosts=trusted_hosts)
+        finder = make_test_finder(
+            session=session,
+            trusted_hosts=trusted_hosts,
+        )
+        with caplog.at_level(logging.INFO):
+            # Test adding an existing host.
+            finder.add_trusted_host('host1', source='somewhere')
+            finder.add_trusted_host('host2')
+            # Test calling add_trusted_host() on the same host twice.
+            finder.add_trusted_host('host2')
+
+        actual = [(r.levelname, r.message) for r in caplog.records]
+        expected = [
+            ('INFO', "adding trusted host: 'host1' (from somewhere)"),
+            ('INFO', "adding trusted host: 'host2'"),
+            ('INFO', "adding trusted host: 'host2'"),
+        ]
+        assert actual == expected
 
     def test_iter_secure_origins(self):
         trusted_hosts = ['host1', 'host2']
