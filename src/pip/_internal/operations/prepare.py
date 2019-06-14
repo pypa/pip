@@ -22,9 +22,10 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import Any, Optional
-    from pip._internal.req.req_install import InstallRequirement
-    from pip._internal.index import PackageFinder
+
     from pip._internal.download import PipSession
+    from pip._internal.index import PackageFinder
+    from pip._internal.req.req_install import InstallRequirement
     from pip._internal.req.req_tracker import RequirementTracker
 
 logger = logging.getLogger(__name__)
