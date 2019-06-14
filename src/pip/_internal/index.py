@@ -676,10 +676,18 @@ class PackageFinder(object):
         # type: () -> None
         self.candidate_evaluator.allow_all_prereleases = True
 
-    def add_trusted_host(self, host):
-        # type: (str) -> None
+    def add_trusted_host(self, host, source=None):
+        # type: (str, Optional[str]) -> None
+        """
+        :param source: An optional source string, for logging where the host
+            string came from.
+        """
         # It is okay to add a previously added host because PipSession stores
         # the resulting prefixes in a dict.
+        msg = 'adding trusted host: {!r}'.format(host)
+        if source is not None:
+            msg += ' (from {})'.format(source)
+        logger.info(msg)
         self.session.add_insecure_host(host)
         if host in self.trusted_hosts:
             return

@@ -251,7 +251,8 @@ def process_line(
         if opts.pre:
             finder.set_allow_all_prereleases()
         for host in opts.trusted_hosts or []:
-            finder.add_trusted_host(host)
+            source = 'line {} of {}'.format(line_number, filename)
+            finder.add_trusted_host(host, source=source)
 
 
 def break_args_options(line):

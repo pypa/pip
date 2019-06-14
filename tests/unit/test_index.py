@@ -193,6 +193,31 @@ class TestPackageFinder:
             'actual: {}'.format(finder.trusted_hosts)
         )
 
+    def test_add_trusted_host__logging(self, caplog):
+        """
+        Test logging when add_trusted_host() is called.
+        """
+        trusted_hosts = ['host1']
+        session = PipSession(insecure_hosts=trusted_hosts)
+        finder = make_test_finder(
+            session=session,
+            trusted_hosts=trusted_hosts,
+        )
+        with caplog.at_level(logging.INFO):
+            # Test adding an existing host.
+            finder.add_trusted_host('host1', source='somewhere')
+            finder.add_trusted_host('host2')
+            # Test calling add_trusted_host() on the same host twice.
+            finder.add_trusted_host('host2')
+
+        actual = [(r.levelname, r.message) for r in caplog.records]
+        expected = [
+            ('INFO', "adding trusted host: 'host1' (from somewhere)"),
+            ('INFO', "adding trusted host: 'host2'"),
+            ('INFO', "adding trusted host: 'host2'"),
+        ]
+        assert actual == expected
+
     def test_iter_secure_origins(self):
         trusted_hosts = ['host1', 'host2']
         finder = make_test_finder(trusted_hosts=trusted_hosts)
