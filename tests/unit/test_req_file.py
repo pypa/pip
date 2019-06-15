@@ -190,6 +190,26 @@ class TestProcessLine(object):
         with pytest.raises(InstallationError):
             list(process_line("req1 req2", "file", 1))
 
+    def test_error_message(self):
+        """
+        Test the error message if a parsing error occurs (all of path,
+        line number, and hint).
+        """
+        iterator = process_line(
+            'my-package=1.0',
+            filename='path/requirements.txt',
+            line_number=3
+        )
+        with pytest.raises(InstallationError) as exc:
+            list(iterator)
+
+        expected = (
+            "Invalid requirement: 'my-package=1.0' "
+            '(from line 3 of path/requirements.txt)\n'
+            'Hint: = is not a valid operator. Did you mean == ?'
+        )
+        assert str(exc.value) == expected
+
     def test_yield_line_requirement(self):
         line = 'SomeProject'
         filename = 'filename'
