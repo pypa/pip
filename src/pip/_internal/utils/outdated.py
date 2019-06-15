@@ -13,8 +13,8 @@ from pip._internal.index import PackageFinder
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.misc import ensure_dir, get_installed_version
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.packaging import get_installer
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     import optparse
