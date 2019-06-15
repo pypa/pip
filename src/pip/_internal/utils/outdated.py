@@ -14,6 +14,7 @@ from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.misc import ensure_dir, get_installed_version
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.packaging import get_installer
 
 if MYPY_CHECK_RUNNING:
     import optparse
@@ -85,8 +86,7 @@ def was_installed_by_pip(pkg):
     """
     try:
         dist = pkg_resources.get_distribution(pkg)
-        return (dist.has_metadata('INSTALLER') and
-                'pip' in dist.get_metadata_lines('INSTALLER'))
+        return "pip" == get_installer(dist)
     except pkg_resources.DistributionNotFound:
         return False
 
