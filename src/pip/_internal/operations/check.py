@@ -132,7 +132,9 @@ def _simulate_installation_of(to_install, package_set):
 
     # Modify it as installing requirement_set would (assuming no errors)
     for inst_req in to_install:
-        dist = make_distribution_for_install_requirement(inst_req).dist()
+        abstract_dist = make_distribution_for_install_requirement(inst_req)
+        dist = abstract_dist.get_pkg_resources_distribution()
+
         name = canonicalize_name(dist.key)
         package_set[name] = PackageDetails(dist.version, dist.requires())
 

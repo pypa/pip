@@ -9,7 +9,7 @@ class WheelDistribution(AbstractDistribution):
     This does not need any preparation as wheels can be directly unpacked.
     """
 
-    def dist(self):
+    def get_pkg_resources_distribution(self):
         return list(pkg_resources.find_distributions(
                     self.req.source_dir))[0]
 

@@ -8,7 +8,7 @@ class InstalledDistribution(AbstractDistribution):
     been computed.
     """
 
-    def dist(self):
+    def get_pkg_resources_distribution(self):
         return self.req.satisfied_by
 
     def prep_for_dist(self, finder, build_isolation):

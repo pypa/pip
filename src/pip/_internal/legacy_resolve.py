@@ -358,7 +358,7 @@ class Resolver(object):
         abstract_dist = self._get_abstract_dist_for(req_to_install)
 
         # Parse and return dependencies
-        dist = abstract_dist.dist()
+        dist = abstract_dist.get_pkg_resources_distribution()
         # This will raise UnsupportedPythonVersion if the given Python
         # version isn't compatible with the distribution's Requires-Python.
         _check_dist_requires_python(

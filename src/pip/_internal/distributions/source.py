@@ -19,7 +19,7 @@ class SourceDistribution(AbstractDistribution):
     bringing logic for preparation out of InstallRequirement into this class.
     """
 
-    def dist(self):
+    def get_pkg_resources_distribution(self):
         return self.req.get_dist()
 
     def prep_for_dist(self, finder, build_isolation):
