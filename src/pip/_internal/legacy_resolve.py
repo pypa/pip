@@ -34,14 +34,14 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 if MYPY_CHECK_RUNNING:
     from typing import DefaultDict, List, Optional, Set, Tuple
     from pip._vendor import pkg_resources
-    from pip._internal.download import PipSession
-    from pip._internal.req.req_install import InstallRequirement
-    from pip._internal.index import PackageFinder
-    from pip._internal.req.req_set import RequirementSet
-    from pip._internal.operations.prepare import (
-        DistAbstraction, RequirementPreparer
-    )
+
     from pip._internal.cache import WheelCache
+    from pip._internal.distributions import AbstractDistribution
+    from pip._internal.download import PipSession
+    from pip._internal.index import PackageFinder
+    from pip._internal.operations.prepare import RequirementPreparer
+    from pip._internal.req.req_install import InstallRequirement
+    from pip._internal.req.req_set import RequirementSet
 
 logger = logging.getLogger(__name__)
 
@@ -277,7 +277,7 @@ class Resolver(object):
         return None
 
     def _get_abstract_dist_for(self, req):
-        # type: (InstallRequirement) -> DistAbstraction
+        # type: (InstallRequirement) -> AbstractDistribution
         """Takes a InstallRequirement and returns a single AbstractDist \
         representing a prepared variant of the same.
         """
