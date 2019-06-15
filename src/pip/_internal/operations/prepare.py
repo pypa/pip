@@ -6,7 +6,9 @@ import os
 
 from pip._vendor import requests
 
-from pip._internal.distributions import make_abstract_dist
+from pip._internal.distributions import (
+    make_distribution_for_install_requirement,
+)
 from pip._internal.distributions.installed import InstalledDistribution
 from pip._internal.download import (
     is_dir_url, is_file_url, is_vcs_url, unpack_url, url_to_path,
@@ -207,7 +209,7 @@ class RequirementPreparer(object):
                     'error %s for URL %s' %
                     (req, exc, req.link)
                 )
-            abstract_dist = make_abstract_dist(req)
+            abstract_dist = make_distribution_for_install_requirement(req)
             with self.req_tracker.track(req):
                 abstract_dist.prep_for_dist(finder, self.build_isolation)
             if self._download_should_save:
@@ -240,7 +242,7 @@ class RequirementPreparer(object):
             req.ensure_has_source_dir(self.src_dir)
             req.update_editable(not self._download_should_save)
 
-            abstract_dist = make_abstract_dist(req)
+            abstract_dist = make_distribution_for_install_requirement(req)
             with self.req_tracker.track(req):
                 abstract_dist.prep_for_dist(finder, self.build_isolation)
 
