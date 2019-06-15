@@ -22,7 +22,7 @@ class SourceDistribution(AbstractDistribution):
     def get_pkg_resources_distribution(self):
         return self.req.get_dist()
 
-    def prep_for_dist(self, finder, build_isolation):
+    def prepare_distribution_metadata(self, finder, build_isolation):
         # Prepare for building. We need to:
         #   1. Load pyproject.toml (if it exists)
         #   2. Set up the build environment
