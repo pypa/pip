@@ -39,34 +39,6 @@ class Subversion(VersionControl):
     def get_base_rev_args(rev):
         return ['-r', rev]
 
-    def export(self, location, url):
-        """Export the svn repository at the url to the destination location"""
-        url, rev_options = self.get_url_rev_options(url)
-
-        logger.info('Exporting svn repository %s to %s', url, location)
-        with indent_log():
-            if os.path.exists(location):
-                # Subversion doesn't like to check out over an existing
-                # directory --force fixes this, but was only added in svn 1.5
-                rmtree(location)
-            cmd_args = (['export'] + self.get_remote_call_options() +
-                        rev_options.to_args() + [url, location])
-            self.run_command(cmd_args, show_stdout=False)
-
-    def fetch_new(self, dest, url, rev_options):
-        # type: (str, str, RevOptions) -> None
-        rev_display = rev_options.to_display()
-        logger.info(
-            'Checking out %s%s to %s',
-            url,
-            rev_display,
-            display_path(dest),
-        )
-        cmd_args = (['checkout', '-q'] +
-                    self.get_remote_call_options() +
-                    rev_options.to_args() + [url, dest])
-        self.run_command(cmd_args)
-
     def switch(self, dest, url, rev_options):
         # type: (str, str, RevOptions) -> None
         cmd_args = (['switch'] + self.get_remote_call_options() +
@@ -310,6 +282,34 @@ class Subversion(VersionControl):
             return ['--force-interactive']
 
         return []
+
+    def export(self, location, url):
+        """Export the svn repository at the url to the destination location"""
+        url, rev_options = self.get_url_rev_options(url)
+
+        logger.info('Exporting svn repository %s to %s', url, location)
+        with indent_log():
+            if os.path.exists(location):
+                # Subversion doesn't like to check out over an existing
+                # directory --force fixes this, but was only added in svn 1.5
+                rmtree(location)
+            cmd_args = (['export'] + self.get_remote_call_options() +
+                        rev_options.to_args() + [url, location])
+            self.run_command(cmd_args, show_stdout=False)
+
+    def fetch_new(self, dest, url, rev_options):
+        # type: (str, str, RevOptions) -> None
+        rev_display = rev_options.to_display()
+        logger.info(
+            'Checking out %s%s to %s',
+            url,
+            rev_display,
+            display_path(dest),
+        )
+        cmd_args = (['checkout', '-q'] +
+                    self.get_remote_call_options() +
+                    rev_options.to_args() + [url, dest])
+        self.run_command(cmd_args)
 
 
 vcs.register(Subversion)
