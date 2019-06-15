@@ -39,18 +39,6 @@ class Subversion(VersionControl):
     def get_base_rev_args(rev):
         return ['-r', rev]
 
-    def switch(self, dest, url, rev_options):
-        # type: (str, str, RevOptions) -> None
-        cmd_args = (['switch'] + self.get_remote_call_options() +
-                    rev_options.to_args() + [url, dest])
-        self.run_command(cmd_args)
-
-    def update(self, dest, url, rev_options):
-        # type: (str, str, RevOptions) -> None
-        cmd_args = (['update'] + self.get_remote_call_options() +
-                    rev_options.to_args() + [dest])
-        self.run_command(cmd_args)
-
     @classmethod
     def get_revision(cls, location):
         """
@@ -258,7 +246,6 @@ class Subversion(VersionControl):
 
             - checkout
             - export
-            - info
             - switch
             - update
 
@@ -309,6 +296,18 @@ class Subversion(VersionControl):
         cmd_args = (['checkout', '-q'] +
                     self.get_remote_call_options() +
                     rev_options.to_args() + [url, dest])
+        self.run_command(cmd_args)
+
+    def switch(self, dest, url, rev_options):
+        # type: (str, str, RevOptions) -> None
+        cmd_args = (['switch'] + self.get_remote_call_options() +
+                    rev_options.to_args() + [url, dest])
+        self.run_command(cmd_args)
+
+    def update(self, dest, url, rev_options):
+        # type: (str, str, RevOptions) -> None
+        cmd_args = (['update'] + self.get_remote_call_options() +
+                    rev_options.to_args() + [dest])
         self.run_command(cmd_args)
 
 
