@@ -7,7 +7,7 @@ to ensure they are valid, reproducible, and have accurate information that allow
 resolved and tested.  After a bug is triaged, it should be sequenced according to the 
 priority for fixing it. 
 
-For more information please take a look at the following links.
+For more information please take a look at the following.
 
 * [Bug management/How to triage](https://www.mediawiki.org/wiki/Bug_management/How_to_triage).
 
