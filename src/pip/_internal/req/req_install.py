@@ -492,10 +492,9 @@ class InstallRequirement(object):
             str(self)
         )
 
-        if pep517_data is None:
-            self.use_pep517 = False
-        else:
-            self.use_pep517 = True
+        self.use_pep517 = (pep517_data is not None)
+
+        if self.use_pep517:
             requires, backend, check = pep517_data
             self.requirements_to_check = check
             self.pyproject_requires = requires
