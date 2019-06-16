@@ -494,31 +494,33 @@ class InstallRequirement(object):
 
         self.use_pep517 = (pyproject_toml_data is not None)
 
-        if self.use_pep517:
-            requires, backend, check = pyproject_toml_data
-            self.requirements_to_check = check
-            self.pyproject_requires = requires
-            self.pep517_backend = Pep517HookCaller(self.setup_py_dir, backend)
+        if not self.use_pep517:
+            return
 
-            # Use a custom function to call subprocesses
+        requires, backend, check = pyproject_toml_data
+        self.requirements_to_check = check
+        self.pyproject_requires = requires
+        self.pep517_backend = Pep517HookCaller(self.setup_py_dir, backend)
+
+        # Use a custom function to call subprocesses
+        self.spin_message = ""
+
+        def runner(
+            cmd,  # type: List[str]
+            cwd=None,  # type: Optional[str]
+            extra_environ=None  # type: Optional[Mapping[str, Any]]
+        ):
+            # type: (...) -> None
+            with open_spinner(self.spin_message) as spinner:
+                call_subprocess(
+                    cmd,
+                    cwd=cwd,
+                    extra_environ=extra_environ,
+                    spinner=spinner
+                )
             self.spin_message = ""
 
-            def runner(
-                cmd,  # type: List[str]
-                cwd=None,  # type: Optional[str]
-                extra_environ=None  # type: Optional[Mapping[str, Any]]
-            ):
-                # type: (...) -> None
-                with open_spinner(self.spin_message) as spinner:
-                    call_subprocess(
-                        cmd,
-                        cwd=cwd,
-                        extra_environ=extra_environ,
-                        spinner=spinner
-                    )
-                self.spin_message = ""
-
-            self.pep517_backend._subprocess_runner = runner
+        self.pep517_backend._subprocess_runner = runner
 
     def prepare_metadata(self):
         # type: () -> None
