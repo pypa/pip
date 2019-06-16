@@ -24,12 +24,10 @@ class AbstractDistribution(object):
         super(AbstractDistribution, self).__init__()
         self.req = req
 
-    # TODO:  Give this a better name.
     @abc.abstractmethod
-    def dist(self):
+    def get_pkg_resources_distribution(self):
         raise NotImplementedError()
 
-    # TODO:  Give this a better name.
     @abc.abstractmethod
-    def prep_for_dist(self, finder, build_isolation):
+    def prepare_distribution_metadata(self, finder, build_isolation):
         raise NotImplementedError()

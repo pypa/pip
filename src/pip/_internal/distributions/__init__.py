@@ -8,7 +8,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.req.req_install import InstallRequirement
 
 
-def make_abstract_dist(install_req):
+def make_distribution_for_install_requirement(install_req):
     # type: (InstallRequirement) -> AbstractDistribution
     """Returns a Distribution for the given InstallRequirement
     """
