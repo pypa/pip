@@ -71,6 +71,10 @@ the chosen version is available, it is assumed that any source is acceptable
 Installation Order
 ++++++++++++++++++
 
+.. note:
+   This section only talks about installation order of runtime dependencies.
+   This does not apply to build dependencies (specified using PEP 518).
+
 As of v6.1.0, pip installs dependencies before their dependents, i.e. in
 "topological order."  This is the only commitment pip currently makes related
 to order.  While it may be coincidentally true that pip will install things in
