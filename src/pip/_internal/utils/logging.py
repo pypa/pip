@@ -6,7 +6,6 @@ import logging
 import logging.handlers
 import os
 import sys
-import time
 from logging import Filter
 
 from pip._vendor.six import PY2
@@ -94,8 +93,6 @@ def get_indentation():
 
 class IndentingFormatter(logging.Formatter):
 
-    default_time_format = '%Y-%m-%dT%H:%M:%S'
-
     def __init__(self, *args, **kwargs):
         """
         A logging.Formatter that obeys the indent_log() context manager.
@@ -122,20 +119,6 @@ class IndentingFormatter(logging.Formatter):
 
         return 'ERROR: '
 
-    if PY2:
-        # Compatibility with default_time_format and default_msec_format from
-        # Python >= 3.3.
-        default_msec_format = '%s,%03d'
-
-        def formatTime(self, record, datefmt=None):
-            ct = self.converter(record.created)
-            if datefmt:
-                s = time.strftime(datefmt, ct)
-            else:
-                t = time.strftime(self.default_time_format, ct)
-                s = self.default_msec_format % (t, record.msecs)
-            return s
-
     def format(self, record):
         """
         Calls the standard formatter, but will indent all of the log message
@@ -147,7 +130,8 @@ class IndentingFormatter(logging.Formatter):
 
         prefix = ''
         if self.add_timestamp:
-            prefix = self.formatTime(record) + " "
+            t = self.formatTime(record, "%Y-%m-%dT%H:%M:%S")
+            prefix = '%s,%03d ' % (t, record.msecs)
         prefix += " " * get_indentation()
         formatted = "".join([
             prefix + line
