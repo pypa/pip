@@ -485,17 +485,17 @@ class InstallRequirement(object):
         use_pep517 attribute can be used to determine whether we should
         follow the PEP 517 or legacy (setup.py) code path.
         """
-        pep517_data = load_pyproject_toml(
+        pyproject_toml_data = load_pyproject_toml(
             self.use_pep517,
             self.pyproject_toml,
             self.setup_py,
             str(self)
         )
 
-        self.use_pep517 = (pep517_data is not None)
+        self.use_pep517 = (pyproject_toml_data is not None)
 
         if self.use_pep517:
-            requires, backend, check = pep517_data
+            requires, backend, check = pyproject_toml_data
             self.requirements_to_check = check
             self.pyproject_requires = requires
             self.pep517_backend = Pep517HookCaller(self.setup_py_dir, backend)
