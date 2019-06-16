@@ -81,7 +81,7 @@ class Test_base_command_logging(object):
 
     def setup(self):
         self.old_time = time.time
-        time.time = lambda: 1547704837.4
+        time.time = lambda: 1547704837.040001
         self.old_tz = os.environ.get('TZ')
         os.environ['TZ'] = 'UTC'
         # time.tzset() is not implemented on some platforms (notably, Windows).
@@ -105,7 +105,7 @@ class Test_base_command_logging(object):
         log_path = tmpdir.join('log')
         cmd.main(['fake', '--log', log_path])
         with open(log_path) as f:
-            assert f.read().rstrip() == '2019-01-17T06:00:37 fake'
+            assert f.read().rstrip() == '2019-01-17T06:00:37,040 fake'
 
     def test_log_command_error(self, tmpdir):
         """
@@ -115,7 +115,7 @@ class Test_base_command_logging(object):
         log_path = tmpdir.join('log')
         cmd.main(['fake', '--log', log_path])
         with open(log_path) as f:
-            assert f.read().startswith('2019-01-17T06:00:37 fake')
+            assert f.read().startswith('2019-01-17T06:00:37,040 fake')
 
     def test_log_file_command_error(self, tmpdir):
         """
@@ -125,7 +125,7 @@ class Test_base_command_logging(object):
         log_file_path = tmpdir.join('log_file')
         cmd.main(['fake', '--log-file', log_file_path])
         with open(log_file_path) as f:
-            assert f.read().startswith('2019-01-17T06:00:37 fake')
+            assert f.read().startswith('2019-01-17T06:00:37,040 fake')
 
     def test_unicode_messages(self, tmpdir):
         """
