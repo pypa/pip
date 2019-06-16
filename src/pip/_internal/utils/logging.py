@@ -130,6 +130,7 @@ class IndentingFormatter(logging.Formatter):
 
         prefix = ''
         if self.add_timestamp:
+            # TODO: Use Formatter.default_time_format after dropping PY2.
             t = self.formatTime(record, "%Y-%m-%dT%H:%M:%S")
             prefix = '%s,%03d ' % (t, record.msecs)
         prefix += " " * get_indentation()
