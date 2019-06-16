@@ -71,7 +71,7 @@ the chosen version is available, it is assumed that any source is acceptable
 Installation Order
 ++++++++++++++++++
 
-.. note:
+.. note::
    This section only talks about installation order of runtime dependencies.
    This does not apply to build dependencies (specified using PEP 518).
 
