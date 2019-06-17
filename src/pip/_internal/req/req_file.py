@@ -138,7 +138,7 @@ def process_line(
     session=None,  # type: Optional[PipSession]
     wheel_cache=None,  # type: Optional[WheelCache]
     use_pep517=None,  # type: Optional[bool]
-    constraint=False  # type: bool
+    constraint=False,  # type: bool
 ):
     # type: (...) -> Iterator[InstallRequirement]
     """Process a single requirements line; This can result in creating/yielding
@@ -187,10 +187,16 @@ def process_line(
         for dest in SUPPORTED_OPTIONS_REQ_DEST:
             if dest in opts.__dict__ and opts.__dict__[dest]:
                 req_options[dest] = opts.__dict__[dest]
+        line_source = 'line {} of {}'.format(line_number, filename)
         yield install_req_from_line(
-            args_str, line_comes_from, constraint=constraint,
+            args_str,
+            comes_from=line_comes_from,
             use_pep517=use_pep517,
-            isolated=isolated, options=req_options, wheel_cache=wheel_cache
+            isolated=isolated,
+            options=req_options,
+            wheel_cache=wheel_cache,
+            constraint=constraint,
+            line_source=line_source,
         )
 
     # yield an editable requirement

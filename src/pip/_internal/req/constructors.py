@@ -205,11 +205,15 @@ def install_req_from_line(
     isolated=False,  # type: bool
     options=None,  # type: Optional[Dict[str, Any]]
     wheel_cache=None,  # type: Optional[WheelCache]
-    constraint=False  # type: bool
+    constraint=False,  # type: bool
+    line_source=None,  # type: Optional[str]
 ):
     # type: (...) -> InstallRequirement
     """Creates an InstallRequirement from a name, which might be a
     requirement, directory containing 'setup.py', filename, or URL.
+
+    :param line_source: An optional string describing where the line is from,
+        for logging purposes in case of an error.
     """
     if is_url(name):
         marker_sep = '; '
@@ -289,10 +293,17 @@ def install_req_from_line(
                   not any(op in req_as_string for op in operators)):
                 add_msg = "= is not a valid operator. Did you mean == ?"
             else:
-                add_msg = ""
-            raise InstallationError(
-                "Invalid requirement: '%s'\n%s" % (req_as_string, add_msg)
+                add_msg = ''
+            if line_source is None:
+                source = ''
+            else:
+                source = ' (from {})'.format(line_source)
+            msg = (
+                'Invalid requirement: {!r}{}'.format(req_as_string, source)
             )
+            if add_msg:
+                msg += '\nHint: {}'.format(add_msg)
+            raise InstallationError(msg)
     else:
         req = None
 
