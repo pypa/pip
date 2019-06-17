@@ -485,41 +485,42 @@ class InstallRequirement(object):
         use_pep517 attribute can be used to determine whether we should
         follow the PEP 517 or legacy (setup.py) code path.
         """
-        pep517_data = load_pyproject_toml(
+        pyproject_toml_data = load_pyproject_toml(
             self.use_pep517,
             self.pyproject_toml,
             self.setup_py,
             str(self)
         )
 
-        if pep517_data is None:
-            self.use_pep517 = False
-        else:
-            self.use_pep517 = True
-            requires, backend, check = pep517_data
-            self.requirements_to_check = check
-            self.pyproject_requires = requires
-            self.pep517_backend = Pep517HookCaller(self.setup_py_dir, backend)
+        self.use_pep517 = (pyproject_toml_data is not None)
 
-            # Use a custom function to call subprocesses
+        if not self.use_pep517:
+            return
+
+        requires, backend, check = pyproject_toml_data
+        self.requirements_to_check = check
+        self.pyproject_requires = requires
+        self.pep517_backend = Pep517HookCaller(self.setup_py_dir, backend)
+
+        # Use a custom function to call subprocesses
+        self.spin_message = ""
+
+        def runner(
+            cmd,  # type: List[str]
+            cwd=None,  # type: Optional[str]
+            extra_environ=None  # type: Optional[Mapping[str, Any]]
+        ):
+            # type: (...) -> None
+            with open_spinner(self.spin_message) as spinner:
+                call_subprocess(
+                    cmd,
+                    cwd=cwd,
+                    extra_environ=extra_environ,
+                    spinner=spinner
+                )
             self.spin_message = ""
 
-            def runner(
-                cmd,  # type: List[str]
-                cwd=None,  # type: Optional[str]
-                extra_environ=None  # type: Optional[Mapping[str, Any]]
-            ):
-                # type: (...) -> None
-                with open_spinner(self.spin_message) as spinner:
-                    call_subprocess(
-                        cmd,
-                        cwd=cwd,
-                        extra_environ=extra_environ,
-                        spinner=spinner
-                    )
-                self.spin_message = ""
-
-            self.pep517_backend._subprocess_runner = runner
+        self.pep517_backend._subprocess_runner = runner
 
     def prepare_metadata(self):
         # type: () -> None
