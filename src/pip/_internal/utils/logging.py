@@ -92,6 +92,7 @@ def get_indentation():
 
 
 class IndentingFormatter(logging.Formatter):
+
     def __init__(self, *args, **kwargs):
         """
         A logging.Formatter that obeys the indent_log() context manager.
@@ -120,8 +121,8 @@ class IndentingFormatter(logging.Formatter):
 
     def format(self, record):
         """
-        Calls the standard formatter, but will indent all of the log messages
-        by our current indentation level.
+        Calls the standard formatter, but will indent all of the log message
+        lines by our current indentation level.
         """
         formatted = super(IndentingFormatter, self).format(record)
         message_start = self.get_message_start(formatted, record.levelno)
@@ -129,7 +130,9 @@ class IndentingFormatter(logging.Formatter):
 
         prefix = ''
         if self.add_timestamp:
-            prefix = self.formatTime(record, "%Y-%m-%dT%H:%M:%S ")
+            # TODO: Use Formatter.default_time_format after dropping PY2.
+            t = self.formatTime(record, "%Y-%m-%dT%H:%M:%S")
+            prefix = '%s,%03d ' % (t, record.msecs)
         prefix += " " * get_indentation()
         formatted = "".join([
             prefix + line
