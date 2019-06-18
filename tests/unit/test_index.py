@@ -385,27 +385,6 @@ def test_secure_origin(location, trusted, expected):
     assert logger.called == expected
 
 
-def test_get_formatted_locations_basic_auth():
-    """
-    Test that basic authentication credentials defined in URL
-    is not included in formatted output.
-    """
-    index_urls = [
-        'https://pypi.org/simple',
-        'https://repo-user:repo-pass@repo.domain.com',
-    ]
-    find_links = [
-        'https://links-user:links-pass@page.domain.com'
-    ]
-    finder = make_test_finder(find_links=find_links, index_urls=index_urls)
-
-    result = finder.get_formatted_locations()
-    assert 'repo-user:****@repo.domain.com' in result
-    assert 'repo-pass' not in result
-    assert 'links-user:****@page.domain.com' in result
-    assert 'links-pass' not in result
-
-
 @pytest.mark.parametrize(
     ("egg_info", "canonical_name", "expected"),
     [

@@ -179,7 +179,8 @@ class Resolver(object):
         )
 
         # Display where finder is looking for packages
-        locations = self.finder.get_formatted_locations()
+        search_scope = self.finder.search_scope
+        locations = search_scope.get_formatted_locations()
         if locations:
             logger.info(locations)
 
