@@ -220,6 +220,16 @@ Try force-pushing your branch with ``push -f``.
 The ``master`` branch in the main pip repository gets updated frequently, so
 you might have to update your branch at least once while you are working on it.
 
+Please do not have commit messages containing #issue-number in PRs so that it doesn't
+create noise on rebases and also don't trigger auto-close magic behavior when a PR is merged.
+
+For more information please take a look at the following.
+
+* [Hello World](https://guides.github.com/activities/hello-world/).
+
+* [Understanding the GitHub flow](https://guides.github.com/introduction/flow/).
+
+* [How To Create a Pull Request on GitHub](https://www.digitalocean.com/community/tutorials/how-to-create-a-pull-request-on-github).
 
 Becoming a maintainer
 =====================
