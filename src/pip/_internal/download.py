@@ -25,12 +25,13 @@ from pip._vendor.requests.utils import get_netrc_auth
 from pip._vendor.six.moves import xmlrpc_client  # type: ignore
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
-from pip._vendor.urllib3.util import IS_PYOPENSSL
 
 import pip
 from pip._internal.exceptions import HashMismatch, InstallationError
 from pip._internal.locations import write_delete_marker_file
 from pip._internal.models.index import PyPI
+# Import ssl from compat so the initial import occurs in only one place.
+from pip._internal.utils.compat import HAS_TLS, ssl
 from pip._internal.utils.encoding import auto_decode
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.glibc import libc_ver
@@ -53,14 +54,6 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.models.link import Link
     from pip._internal.utils.hashes import Hashes
     from pip._internal.vcs.versioncontrol import AuthInfo, VersionControl
-
-try:
-    import ssl  # noqa
-except ImportError:
-    ssl = None
-
-
-HAS_TLS = (ssl is not None) or IS_PYOPENSSL
 
 __all__ = ['get_file_content',
            'is_url', 'url_to_path', 'path_to_url',

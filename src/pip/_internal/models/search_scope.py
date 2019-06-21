@@ -6,8 +6,8 @@ import posixpath
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
-from pip._internal.download import HAS_TLS
 from pip._internal.models.index import PyPI
+from pip._internal.utils.compat import HAS_TLS
 from pip._internal.utils.misc import normalize_path, redact_password_from_url
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
