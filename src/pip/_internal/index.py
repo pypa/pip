@@ -6,7 +6,6 @@ import itertools
 import logging
 import mimetypes
 import os
-import posixpath
 import re
 from collections import namedtuple
 
@@ -19,21 +18,21 @@ from pip._vendor.requests.exceptions import HTTPError, RetryError, SSLError
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
-from pip._internal.download import HAS_TLS, is_url, url_to_path
+from pip._internal.download import is_url, url_to_path
 from pip._internal.exceptions import (
     BestVersionAlreadyInstalled, DistributionNotFound, InvalidWheelFilename,
     UnsupportedWheel,
 )
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.format_control import FormatControl
-from pip._internal.models.index import PyPI
 from pip._internal.models.link import Link
+from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.target_python import TargetPython
 from pip._internal.utils.compat import ipaddress
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
-    ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, WHEEL_EXTENSION, normalize_path,
-    path_to_url, redact_password_from_url,
+    ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, WHEEL_EXTENSION, path_to_url,
+    redact_password_from_url,
 )
 from pip._internal.utils.packaging import check_requires_python
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -560,8 +559,7 @@ class PackageFinder(object):
     def __init__(
         self,
         candidate_evaluator,  # type: CandidateEvaluator
-        find_links,  # type: List[str]
-        index_urls,  # type: List[str]
+        search_scope,         # type: SearchScope
         session,  # type: PipSession
         format_control=None,  # type: Optional[FormatControl]
         trusted_hosts=None,   # type: Optional[List[str]]
@@ -583,8 +581,7 @@ class PackageFinder(object):
         format_control = format_control or FormatControl(set(), set())
 
         self.candidate_evaluator = candidate_evaluator
-        self.find_links = find_links
-        self.index_urls = index_urls
+        self.search_scope = search_scope
         self.session = session
         self.format_control = format_control
         self.trusted_hosts = trusted_hosts
@@ -626,46 +623,35 @@ class PackageFinder(object):
                 "'session'"
             )
 
-        # Build find_links. If an argument starts with ~, it may be
-        # a local file relative to a home directory. So try normalizing
-        # it and if it exists, use the normalized version.
-        # This is deliberately conservative - it might be fine just to
-        # blindly normalize anything starting with a ~...
-        built_find_links = []  # type: List[str]
-        for link in find_links:
-            if link.startswith('~'):
-                new_link = normalize_path(link)
-                if os.path.exists(new_link):
-                    link = new_link
-            built_find_links.append(link)
+        search_scope = SearchScope.create(
+            find_links=find_links,
+            index_urls=index_urls,
+        )
 
         candidate_evaluator = CandidateEvaluator(
-            target_python=target_python, prefer_binary=prefer_binary,
+            target_python=target_python,
+            prefer_binary=prefer_binary,
             allow_all_prereleases=allow_all_prereleases,
             ignore_requires_python=ignore_requires_python,
         )
 
-        # If we don't have TLS enabled, then WARN if anyplace we're looking
-        # relies on TLS.
-        if not HAS_TLS:
-            for link in itertools.chain(index_urls, built_find_links):
-                parsed = urllib_parse.urlparse(link)
-                if parsed.scheme == "https":
-                    logger.warning(
-                        "pip is configured with locations that require "
-                        "TLS/SSL, however the ssl module in Python is not "
-                        "available."
-                    )
-                    break
-
         return cls(
             candidate_evaluator=candidate_evaluator,
-            find_links=built_find_links,
-            index_urls=index_urls,
+            search_scope=search_scope,
             session=session,
             format_control=format_control,
             trusted_hosts=trusted_hosts,
         )
+
+    @property
+    def find_links(self):
+        # type: () -> List[str]
+        return self.search_scope.find_links
+
+    @property
+    def index_urls(self):
+        # type: () -> List[str]
+        return self.search_scope.index_urls
 
     @property
     def allow_all_prereleases(self):
@@ -700,21 +686,6 @@ class PackageFinder(object):
             yield secure_origin
         for host in self.trusted_hosts:
             yield ('*', host, '*')
-
-    def get_formatted_locations(self):
-        # type: () -> str
-        lines = []
-        if self.index_urls and self.index_urls != [PyPI.simple_url]:
-            lines.append(
-                "Looking in indexes: {}".format(", ".join(
-                    redact_password_from_url(url) for url in self.index_urls))
-            )
-        if self.find_links:
-            lines.append(
-                "Looking in links: {}".format(", ".join(
-                    redact_password_from_url(url) for url in self.find_links))
-            )
-        return "\n".join(lines)
 
     @staticmethod
     def _sort_locations(locations, expand_dir=False):
@@ -848,29 +819,6 @@ class PackageFinder(object):
 
         return False
 
-    def _get_index_urls_locations(self, project_name):
-        # type: (str) -> List[str]
-        """Returns the locations found via self.index_urls
-
-        Checks the url_name on the main (first in the list) index and
-        use this url_name to produce all locations
-        """
-
-        def mkurl_pypi_url(url):
-            loc = posixpath.join(
-                url,
-                urllib_parse.quote(canonicalize_name(project_name)))
-            # For maximum compatibility with easy_install, ensure the path
-            # ends in a trailing slash.  Although this isn't in the spec
-            # (and PyPI can handle it without the slash) some other index
-            # implementations might break if they relied on easy_install's
-            # behavior.
-            if not loc.endswith('/'):
-                loc = loc + '/'
-            return loc
-
-        return [mkurl_pypi_url(url) for url in self.index_urls]
-
     def find_all_candidates(self, project_name):
         # type: (str) -> List[InstallationCandidate]
         """Find all available InstallationCandidate for project_name
@@ -881,7 +829,8 @@ class PackageFinder(object):
         See CandidateEvaluator.evaluate_link() for details on which files
         are accepted.
         """
-        index_locations = self._get_index_urls_locations(project_name)
+        search_scope = self.search_scope
+        index_locations = search_scope.get_index_urls_locations(project_name)
         index_file_loc, index_url_loc = self._sort_locations(index_locations)
         fl_file_loc, fl_url_loc = self._sort_locations(
             self.find_links, expand_dir=True,

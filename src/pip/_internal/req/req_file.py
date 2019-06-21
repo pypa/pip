@@ -16,6 +16,7 @@ from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._internal.cli import cmdoptions
 from pip._internal.download import get_file_content
 from pip._internal.exceptions import RequirementsFileParseError
+from pip._internal.models.search_scope import SearchScope
 from pip._internal.req.constructors import (
     install_req_from_editable, install_req_from_line,
 )
@@ -238,12 +239,14 @@ def process_line(
 
     # set finder options
     elif finder:
+        find_links = finder.find_links
+        index_urls = finder.index_urls
         if opts.index_url:
-            finder.index_urls = [opts.index_url]
+            index_urls = [opts.index_url]
         if opts.no_index is True:
-            finder.index_urls = []
+            index_urls = []
         if opts.extra_index_urls:
-            finder.index_urls.extend(opts.extra_index_urls)
+            index_urls.extend(opts.extra_index_urls)
         if opts.find_links:
             # FIXME: it would be nice to keep track of the source
             # of the find_links: support a find-links local path
@@ -253,7 +256,14 @@ def process_line(
             relative_to_reqs_file = os.path.join(req_dir, value)
             if os.path.exists(relative_to_reqs_file):
                 value = relative_to_reqs_file
-            finder.find_links.append(value)
+            find_links.append(value)
+
+        search_scope = SearchScope(
+            find_links=find_links,
+            index_urls=index_urls,
+        )
+        finder.search_scope = search_scope
+
         if opts.pre:
             finder.set_allow_all_prereleases()
         for host in opts.trusted_hosts or []:

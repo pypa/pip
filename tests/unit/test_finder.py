@@ -463,15 +463,6 @@ class TestCandidateEvaluator(object):
         assert actual == (False, expected_msg)
 
 
-def test_get_index_urls_locations():
-    """Check that the canonical name is on all indexes"""
-    finder = make_test_finder(index_urls=['file://index1/', 'file://index2'])
-    locations = finder._get_index_urls_locations(
-        install_req_from_line('Complex_Name').name)
-    assert locations == ['file://index1/complex-name/',
-                         'file://index2/complex-name/']
-
-
 def test_find_all_candidates_nothing():
     """Find nothing without anything"""
     finder = make_test_finder()
