@@ -108,11 +108,6 @@ class WheelCommand(RequirementCommand):
     def run(self, options, args):
         cmdoptions.check_install_build_global(options)
 
-        index_urls = [options.index_url] + options.extra_index_urls
-        if options.no_index:
-            logger.debug('Ignoring indexes: %s', ','.join(index_urls))
-            index_urls = []
-
         if options.build_dir:
             options.build_dir = os.path.abspath(options.build_dir)
 

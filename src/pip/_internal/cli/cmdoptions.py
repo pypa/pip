@@ -9,6 +9,7 @@ pass on state. To be consistent, all options will follow this design.
 """
 from __future__ import absolute_import
 
+import logging
 import textwrap
 import warnings
 from distutils.util import strtobool
@@ -20,7 +21,9 @@ from pip._internal.exceptions import CommandError
 from pip._internal.locations import USER_CACHE_DIR, src_prefix
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.index import PyPI
+from pip._internal.models.search_scope import SearchScope
 from pip._internal.utils.hashes import STRONG_HASHES
+from pip._internal.utils.misc import redact_password_from_url
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import BAR_TYPES
 
@@ -28,6 +31,8 @@ if MYPY_CHECK_RUNNING:
     from typing import Any, Callable, Dict, Optional, Tuple
     from optparse import OptionParser, Values
     from pip._internal.cli.parser import ConfigOptionParser
+
+logger = logging.getLogger(__name__)
 
 
 def raise_option_error(parser, option, msg):
@@ -348,6 +353,27 @@ def find_links():
              "archives. If a local path or file:// url that's a directory, "
              "then look for archives in the directory listing.",
     )
+
+
+def make_search_scope(options, suppress_no_index=False):
+    """
+    :param suppress_no_index: Whether to ignore the --no-index option
+        when constructing the SearchScope object.
+    """
+    index_urls = [options.index_url] + options.extra_index_urls
+    if options.no_index and not suppress_no_index:
+        logger.debug(
+            'Ignoring indexes: %s',
+            ','.join(redact_password_from_url(url) for url in index_urls),
+        )
+        index_urls = []
+
+    search_scope = SearchScope(
+        find_links=options.find_links,
+        index_urls=index_urls,
+    )
+
+    return search_scope
 
 
 def trusted_host():
