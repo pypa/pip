@@ -323,10 +323,7 @@ class RequirementCommand(Command):
         self,
         options,               # type: Values
         session,               # type: PipSession
-        platform=None,         # type: Optional[str]
-        py_version_info=None,  # type: Optional[Tuple[int, ...]]
-        abi=None,              # type: Optional[str]
-        implementation=None,   # type: Optional[str]
+        target_python=None,    # type: Optional[TargetPython]
         ignore_requires_python=None,  # type: Optional[bool]
     ):
         # type: (...) -> PackageFinder
@@ -337,13 +334,6 @@ class RequirementCommand(Command):
             "Requires-Python" values in links. Defaults to False.
         """
         search_scope = make_search_scope(options)
-
-        target_python = TargetPython(
-            platform=platform,
-            py_version_info=py_version_info,
-            abi=abi,
-            implementation=implementation,
-        )
 
         return PackageFinder.create(
             search_scope=search_scope,

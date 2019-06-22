@@ -12,6 +12,7 @@ from pip._vendor import pkg_resources
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import RequirementCommand
+from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.status_codes import ERROR
 from pip._internal.exceptions import (
     CommandError, InstallationError, PreviousBuildDirError,
@@ -114,10 +115,7 @@ class InstallCommand(RequirementCommand):
                  '<dir>. Use --upgrade to replace existing packages in <dir> '
                  'with new versions.'
         )
-        cmd_opts.add_option(cmdoptions.platform())
-        cmd_opts.add_option(cmdoptions.python_version())
-        cmd_opts.add_option(cmdoptions.implementation())
-        cmd_opts.add_option(cmdoptions.abi())
+        cmdoptions.add_target_python_options(cmd_opts)
 
         cmd_opts.add_option(
             '--user',
@@ -285,13 +283,11 @@ class InstallCommand(RequirementCommand):
         global_options = options.global_options or []
 
         with self._build_session(options) as session:
+            target_python = make_target_python(options)
             finder = self._build_package_finder(
                 options=options,
                 session=session,
-                platform=options.platform,
-                py_version_info=options.python_version,
-                abi=options.abi,
-                implementation=options.implementation,
+                target_python=target_python,
                 ignore_requires_python=options.ignore_requires_python,
             )
             build_delete = (not (options.no_clean or options.build_dir))
