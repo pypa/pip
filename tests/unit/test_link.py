@@ -6,6 +6,16 @@ from pip._internal.models.link import Link
 class TestLink:
 
     @pytest.mark.parametrize('url, expected', [
+        (
+            'https://user:password@example.com/path/page.html',
+            '<Link https://user:****@example.com/path/page.html>',
+        ),
+    ])
+    def test_repr(self, url, expected):
+        link = Link(url)
+        assert repr(link) == expected
+
+    @pytest.mark.parametrize('url, expected', [
         ('http://yo/wheel.whl', 'wheel.whl'),
         ('http://yo/wheel', 'wheel'),
         ('https://example.com/path/page.html', 'page.html'),
@@ -20,6 +30,11 @@ class TestLink:
         ('https://example.com/path//', 'path'),
         # Test a url with no filename.
         ('https://example.com/', 'example.com'),
+        # Test a url with no filename and with auth information.
+        (
+            'https://user:password@example.com/',
+            'example.com',
+        ),
     ])
     def test_filename(self, url, expected):
         link = Link(url)

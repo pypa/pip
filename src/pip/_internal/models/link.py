@@ -4,7 +4,8 @@ import re
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip._internal.utils.misc import (
-    WHEEL_EXTENSION, path_to_url, redact_password_from_url, splitext,
+    WHEEL_EXTENSION, path_to_url, redact_password_from_url,
+    split_auth_from_netloc, splitext,
 )
 from pip._internal.utils.models import KeyBasedCompareMixin
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -68,7 +69,13 @@ class Link(KeyBasedCompareMixin):
     def filename(self):
         # type: () -> str
         path = self.path.rstrip('/')
-        name = posixpath.basename(path) or self.netloc
+        name = posixpath.basename(path)
+        if not name:
+            # Make sure we don't leak auth information if the netloc
+            # includes a username and password.
+            netloc, user_pass = split_auth_from_netloc(self.netloc)
+            return netloc
+
         name = urllib_parse.unquote(name)
         assert name, ('URL %r produced no filename' % self._url)
         return name
@@ -81,6 +88,9 @@ class Link(KeyBasedCompareMixin):
     @property
     def netloc(self):
         # type: () -> str
+        """
+        This can contain auth information.
+        """
         return self._parsed_url[1]
 
     @property
