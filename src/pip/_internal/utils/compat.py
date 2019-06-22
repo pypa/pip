@@ -10,11 +10,20 @@ import shutil
 import sys
 
 from pip._vendor.six import text_type
+from pip._vendor.urllib3.util import IS_PYOPENSSL
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import Tuple, Text
+
+try:
+    import _ssl  # noqa
+except ImportError:
+    ssl = None
+else:
+    # This additional assignment was needed to prevent a mypy error.
+    ssl = _ssl
 
 try:
     import ipaddress
@@ -35,6 +44,8 @@ __all__ = [
 
 
 logger = logging.getLogger(__name__)
+
+HAS_TLS = (ssl is not None) or IS_PYOPENSSL
 
 if sys.version_info >= (3, 4):
     uses_pycache = True

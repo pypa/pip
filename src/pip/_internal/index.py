@@ -26,7 +26,6 @@ from pip._internal.exceptions import (
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.link import Link
-from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.target_python import TargetPython
 from pip._internal.utils.compat import ipaddress
 from pip._internal.utils.logging import indent_log
@@ -46,6 +45,7 @@ if MYPY_CHECK_RUNNING:
     )
     from pip._vendor.packaging.version import _BaseVersion
     from pip._vendor.requests import Response
+    from pip._internal.models.search_scope import SearchScope
     from pip._internal.req import InstallRequirement
     from pip._internal.download import PipSession
 
@@ -592,8 +592,7 @@ class PackageFinder(object):
     @classmethod
     def create(
         cls,
-        find_links,  # type: List[str]
-        index_urls,  # type: List[str]
+        search_scope,  # type: SearchScope
         allow_all_prereleases=False,  # type: bool
         trusted_hosts=None,  # type: Optional[List[str]]
         session=None,  # type: Optional[PipSession]
@@ -622,11 +621,6 @@ class PackageFinder(object):
                 "PackageFinder.create() missing 1 required keyword argument: "
                 "'session'"
             )
-
-        search_scope = SearchScope.create(
-            find_links=find_links,
-            index_urls=index_urls,
-        )
 
         candidate_evaluator = CandidateEvaluator(
             target_python=target_python,

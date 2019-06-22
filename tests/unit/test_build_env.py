@@ -24,8 +24,10 @@ def run_with_build_env(script, setup_script_contents,
             from pip._internal.build_env import BuildEnvironment
             from pip._internal.download import PipSession
             from pip._internal.index import PackageFinder
+            from pip._internal.models.search_scope import SearchScope
 
-            finder = PackageFinder.create([%r], [], session=PipSession())
+            search_scope = SearchScope.create([%r], [])
+            finder = PackageFinder.create(search_scope, session=PipSession())
             build_env = BuildEnvironment()
 
             try:

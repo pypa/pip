@@ -11,6 +11,7 @@ from pip._internal.index import (
     _check_link_requires_python, _clean_link, _determine_base_url,
     _egg_info_matches, _find_name_version_sep, _get_html_page,
 )
+from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.target_python import TargetPython
 from tests.lib import CURRENT_PY_VERSION_INFO, make_test_finder
 
@@ -154,9 +155,12 @@ class TestPackageFinder:
         """
         Test that target_python is passed to CandidateEvaluator as is.
         """
+        search_scope = SearchScope([], [])
         target_python = TargetPython(py_version_info=(3, 7, 3))
         finder = PackageFinder.create(
-            [], [], session=object(), target_python=target_python,
+            search_scope=search_scope,
+            session=object(),
+            target_python=target_python,
         )
         evaluator = finder.candidate_evaluator
         actual_target_python = evaluator._target_python
@@ -237,8 +241,11 @@ class TestPackageFinder:
         """
         # Use PackageFinder.create() rather than make_test_finder()
         # to make sure we're really passing trusted_hosts=None.
+        search_scope = SearchScope([], [])
         finder = PackageFinder.create(
-            [], [], trusted_hosts=None, session=object(),
+            search_scope=search_scope,
+            trusted_hosts=None,
+            session=object(),
         )
 
         actual = list(finder.iter_secure_origins())

@@ -9,6 +9,7 @@ import sys
 from pip._vendor import lockfile, pkg_resources
 from pip._vendor.packaging import version as packaging_version
 
+from pip._internal.cli.cmdoptions import make_search_scope
 from pip._internal.index import PackageFinder
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.filesystem import check_path_owner
@@ -122,9 +123,10 @@ def pip_version_check(session, options):
         # Refresh the version if we need to or just see if we need to warn
         if pypi_version is None:
             # Lets use PackageFinder to see what the latest pip version is
+            search_scope = make_search_scope(options, suppress_no_index=True)
+
             finder = PackageFinder.create(
-                find_links=options.find_links,
-                index_urls=[options.index_url] + options.extra_index_urls,
+                search_scope=search_scope,
                 allow_all_prereleases=False,  # Explicitly set to False
                 trusted_hosts=options.trusted_hosts,
                 session=session,

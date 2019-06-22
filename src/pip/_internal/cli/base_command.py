@@ -10,6 +10,7 @@ import sys
 import traceback
 
 from pip._internal.cli import cmdoptions
+from pip._internal.cli.cmdoptions import make_search_scope
 from pip._internal.cli.parser import (
     ConfigOptionParser, UpdatingDefaultsHelpFormatter,
 )
@@ -31,9 +32,7 @@ from pip._internal.req.constructors import (
 from pip._internal.req.req_file import parse_requirements
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.logging import BrokenStdoutLoggingError, setup_logging
-from pip._internal.utils.misc import (
-    get_prog, normalize_path, redact_password_from_url,
-)
+from pip._internal.utils.misc import get_prog, normalize_path
 from pip._internal.utils.outdated import pip_version_check
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -337,13 +336,7 @@ class RequirementCommand(Command):
         :param ignore_requires_python: Whether to ignore incompatible
             "Requires-Python" values in links. Defaults to False.
         """
-        index_urls = [options.index_url] + options.extra_index_urls
-        if options.no_index:
-            logger.debug(
-                'Ignoring indexes: %s',
-                ','.join(redact_password_from_url(url) for url in index_urls),
-            )
-            index_urls = []
+        search_scope = make_search_scope(options)
 
         target_python = TargetPython(
             platform=platform,
@@ -353,9 +346,8 @@ class RequirementCommand(Command):
         )
 
         return PackageFinder.create(
-            find_links=options.find_links,
+            search_scope=search_scope,
             format_control=options.format_control,
-            index_urls=index_urls,
             trusted_hosts=options.trusted_hosts,
             allow_all_prereleases=options.pre,
             session=session,

@@ -8,6 +8,7 @@ from pip._vendor.six.moves import zip_longest
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
+from pip._internal.cli.cmdoptions import make_search_scope
 from pip._internal.exceptions import CommandError
 from pip._internal.index import PackageFinder
 from pip._internal.utils.misc import (
@@ -109,13 +110,14 @@ class ListCommand(Command):
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, cmd_opts)
 
-    def _build_package_finder(self, options, index_urls, session):
+    def _build_package_finder(self, options, session):
         """
         Create a package finder appropriate to this list command.
         """
+        search_scope = make_search_scope(options)
+
         return PackageFinder.create(
-            find_links=options.find_links,
-            index_urls=index_urls,
+            search_scope=search_scope,
             allow_all_prereleases=options.pre,
             trusted_hosts=options.trusted_hosts,
             session=session,
@@ -169,13 +171,8 @@ class ListCommand(Command):
         return {pkg for pkg in packages if pkg.key not in dep_keys}
 
     def iter_packages_latest_infos(self, packages, options):
-        index_urls = [options.index_url] + options.extra_index_urls
-        if options.no_index:
-            logger.debug('Ignoring indexes: %s', ','.join(index_urls))
-            index_urls = []
-
         with self._build_session(options) as session:
-            finder = self._build_package_finder(options, index_urls, session)
+            finder = self._build_package_finder(options, session)
 
             for dist in packages:
                 typ = 'unknown'

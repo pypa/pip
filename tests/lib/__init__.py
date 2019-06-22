@@ -13,6 +13,7 @@ import subprocess
 import pytest
 from scripttest import FoundDir, TestFileEnvironment
 
+from pip._internal.models.search_scope import SearchScope
 from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
 from pip._internal.download import PipSession
 from pip._internal.index import PackageFinder
@@ -96,9 +97,13 @@ def make_test_finder(
     if session is None:
         session = PipSession()
 
+    search_scope = SearchScope.create(
+        find_links=find_links,
+        index_urls=index_urls,
+    )
+
     return PackageFinder.create(
-        find_links,
-        index_urls,
+        search_scope=search_scope,
         allow_all_prereleases=allow_all_prereleases,
         trusted_hosts=trusted_hosts,
         session=session,
