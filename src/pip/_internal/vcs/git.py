@@ -21,7 +21,7 @@ urlunsplit = urllib_parse.urlunsplit
 logger = logging.getLogger(__name__)
 
 
-HASH_REGEX = re.compile('[a-fA-F0-9]{40}')
+HASH_REGEX = re.compile('^[a-fA-F0-9]{40}$')
 
 
 def looks_like_hash(sha):

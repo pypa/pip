@@ -105,6 +105,7 @@ def test_looks_like_hash():
     assert looks_like_hash(18 * 'a' + '0123456789abcdefABCDEF')
     assert not looks_like_hash(40 * 'g')
     assert not looks_like_hash(39 * 'a')
+    assert not looks_like_hash(41 * 'a')
 
 
 @pytest.mark.parametrize('vcs_cls, remote_url, expected', [
