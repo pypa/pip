@@ -47,6 +47,29 @@ class TestTargetPython:
         assert target_python.py_version_info == CURRENT_PY_VERSION_INFO
         assert target_python.py_version == current_major_minor
 
+    @pytest.mark.parametrize('kwargs, expected', [
+        ({}, ''),
+        (dict(py_version_info=(3, 6)), "version_info='3.6'"),
+        (
+            dict(platform='darwin', py_version_info=(3, 6)),
+            "platform='darwin' version_info='3.6'",
+        ),
+        (
+            dict(
+                platform='darwin', py_version_info=(3, 6), abi='cp36m',
+                implementation='cp'
+            ),
+            (
+                "platform='darwin' version_info='3.6' abi='cp36m' "
+                "implementation='cp'"
+            ),
+        ),
+    ])
+    def test_format_given(self, kwargs, expected):
+        target_python = TargetPython(**kwargs)
+        actual = target_python.format_given()
+        assert actual == expected
+
     @pytest.mark.parametrize('py_version_info, expected_versions', [
         ((), ['']),
         ((2, ), ['2']),
