@@ -5,7 +5,7 @@ import operator
 
 
 class KeyBasedCompareMixin(object):
-    """Provides comparision capabilities that is based on a key
+    """Provides comparison capabilities that is based on a key
     """
 
     def __init__(self, key, defining_class):
