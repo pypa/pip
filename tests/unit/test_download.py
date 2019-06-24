@@ -366,9 +366,10 @@ class Test_unpack_file_url(object):
         Test when the file url hash fragment is wrong
         """
         self.prep(tmpdir, data)
-        self.dist_url.url = "%s#md5=bogus" % self.dist_url.url
+        url = '{}#md5=bogus'.format(self.dist_url.url)
+        dist_url = Link(url)
         with pytest.raises(HashMismatch):
-            unpack_file_url(self.dist_url,
+            unpack_file_url(dist_url,
                             self.build_dir,
                             hashes=Hashes({'md5': ['bogus']}))
 
@@ -392,11 +393,9 @@ class Test_unpack_file_url(object):
 
         assert dist_path_md5 != dist_path2_md5
 
-        self.dist_url.url = "%s#md5=%s" % (
-            self.dist_url.url,
-            dist_path_md5
-        )
-        unpack_file_url(self.dist_url, self.build_dir,
+        url = '{}#md5={}'.format(self.dist_url.url, dist_path_md5)
+        dist_url = Link(url)
+        unpack_file_url(dist_url, self.build_dir,
                         download_dir=self.download_dir,
                         hashes=Hashes({'md5': [dist_path_md5]}))
 
