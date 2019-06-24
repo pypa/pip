@@ -83,7 +83,7 @@ class Link(KeyBasedCompareMixin):
     @property
     def scheme(self):
         # type: () -> str
-        return self._parsed_url[0]
+        return self._parsed_url.scheme
 
     @property
     def netloc(self):
@@ -91,12 +91,12 @@ class Link(KeyBasedCompareMixin):
         """
         This can contain auth information.
         """
-        return self._parsed_url[1]
+        return self._parsed_url.netloc
 
     @property
     def path(self):
         # type: () -> str
-        return urllib_parse.unquote(self._parsed_url[2])
+        return urllib_parse.unquote(self._parsed_url.path)
 
     def splitext(self):
         # type: () -> Tuple[str, str]
