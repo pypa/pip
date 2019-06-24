@@ -43,15 +43,17 @@ if MYPY_CHECK_RUNNING:
         Any, Callable, Iterable, Iterator, List, MutableMapping, Optional,
         Sequence, Set, Tuple, Union,
     )
+    import xml.etree.ElementTree
     from pip._vendor.packaging.version import _BaseVersion
     from pip._vendor.requests import Response
     from pip._internal.models.search_scope import SearchScope
     from pip._internal.req import InstallRequirement
     from pip._internal.download import PipSession
 
-    SecureOrigin = Tuple[str, str, Optional[str]]
     BuildTag = Tuple[Any, ...]  # either empty tuple or Tuple[int, str]
     CandidateSortingKey = Tuple[int, _BaseVersion, BuildTag, Optional[int]]
+    HTMLElement = xml.etree.ElementTree.Element
+    SecureOrigin = Tuple[str, str, Optional[str]]
 
 
 __all__ = ['FormatControl', 'FoundCandidates', 'PackageFinder']
@@ -1151,6 +1153,37 @@ def _clean_link(url):
     return urllib_parse.urlunparse(result._replace(path=path))
 
 
+def _link_from_element(
+    anchor,    # type: HTMLElement
+    page_url,  # type: str
+    base_url,  # type: str
+):
+    # type: (...) -> Optional[Link]
+    """
+    Convert an anchor element in a simple repository page to a Link.
+    """
+    href = anchor.get("href")
+    if not href:
+        return None
+
+    url = _clean_link(urllib_parse.urljoin(base_url, href))
+    pyrequire = anchor.get('data-requires-python')
+    pyrequire = unescape(pyrequire) if pyrequire else None
+
+    yanked_reason = anchor.get('data-yanked')
+    if yanked_reason:
+        yanked_reason = unescape(yanked_reason)
+
+    link = Link(
+        url,
+        comes_from=page_url,
+        requires_python=pyrequire,
+        yanked_reason=yanked_reason,
+    )
+
+    return link
+
+
 class HTMLPage(object):
     """Represents one page, along with its URL"""
 
@@ -1173,12 +1206,14 @@ class HTMLPage(object):
         )
         base_url = _determine_base_url(document, self.url)
         for anchor in document.findall(".//a"):
-            if anchor.get("href"):
-                href = anchor.get("href")
-                url = _clean_link(urllib_parse.urljoin(base_url, href))
-                pyrequire = anchor.get('data-requires-python')
-                pyrequire = unescape(pyrequire) if pyrequire else None
-                yield Link(url, self.url, requires_python=pyrequire)
+            link = _link_from_element(
+                anchor,
+                page_url=self.url,
+                base_url=base_url,
+            )
+            if link is None:
+                continue
+            yield link
 
 
 Search = namedtuple('Search', 'supplied canonical formats')

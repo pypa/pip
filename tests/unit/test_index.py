@@ -7,7 +7,7 @@ from pip._vendor import html5lib, requests
 
 from pip._internal.download import PipSession
 from pip._internal.index import (
-    CandidateEvaluator, Link, PackageFinder, Search,
+    CandidateEvaluator, HTMLPage, Link, PackageFinder, Search,
     _check_link_requires_python, _clean_link, _determine_base_url,
     _egg_info_matches, _find_name_version_sep, _get_html_page,
 )
@@ -521,3 +521,31 @@ def test_clean_link_windows(url, clean_url):
 @pytest.mark.skipif("sys.platform == 'win32'")
 def test_clean_link_non_windows(url, clean_url):
     assert(_clean_link(url) == clean_url)
+
+
+class TestHTMLPage:
+
+    @pytest.mark.parametrize(
+        ('anchor_html, expected'),
+        [
+            # Test not present.
+            ('<a href="/pkg1-1.0.tar.gz"></a>', None),
+            # Test present with no value.
+            ('<a href="/pkg2-1.0.tar.gz" data-yanked></a>', ''),
+            # Test the empty string.
+            ('<a href="/pkg3-1.0.tar.gz" data-yanked=""></a>', ''),
+            # Test a non-empty string.
+            ('<a href="/pkg4-1.0.tar.gz" data-yanked="error"></a>', 'error'),
+            # Test a value with an escaped character.
+            ('<a href="/pkg4-1.0.tar.gz" data-yanked="version &lt 1"></a>',
+                'version < 1'),
+        ]
+    )
+    def test_iter_links__yanked_reason(self, anchor_html, expected):
+        html = '<html><body>{}</body></html>'.format(anchor_html)
+        html_bytes = html.encode('utf-8')
+        page = HTMLPage(html_bytes, url='https://example.com/simple/')
+        links = list(page.iter_links())
+        link, = links
+        actual = link.yanked_reason
+        assert actual == expected
