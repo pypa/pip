@@ -781,7 +781,7 @@ class TestWheelHashCalculators(object):
     def test_hash_file(self, tmpdir):
         self.prep(tmpdir)
         h, length = wheel.hash_file(self.test_file)
-        assert length == str(self.test_file_len)
+        assert length == self.test_file_len
         assert h.hexdigest() == self.test_file_hash
 
     def test_rehash(self, tmpdir):

@@ -69,7 +69,7 @@ def normpath(src, p):
 
 
 def hash_file(path, blocksize=1 << 20):
-    # type: (str, int) -> Tuple[Any, str]
+    # type: (str, int) -> Tuple[Any, int]
     """Return (hash, length) for path using hashlib.sha256()"""
     h = hashlib.sha256()
     length = 0
@@ -77,7 +77,7 @@ def hash_file(path, blocksize=1 << 20):
         for block in read_chunks(f, size=blocksize):
             length += len(block)
             h.update(block)
-    return (h, str(length))  # type: ignore
+    return (h, length)  # type: ignore
 
 
 def rehash(path, blocksize=1 << 20):
