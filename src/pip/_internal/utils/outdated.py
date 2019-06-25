@@ -131,7 +131,11 @@ def pip_version_check(session, options):
                 trusted_hosts=options.trusted_hosts,
                 session=session,
             )
-            candidate = finder.find_candidates("pip").get_best()
+            # Pass allow_yanked=False so we don't suggest upgrading to a
+            # yanked version.
+            candidate = finder.find_candidates("pip").get_best(
+                allow_yanked=False,
+            )
             if candidate is None:
                 return
             pypi_version = str(candidate.version)
