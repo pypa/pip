@@ -68,8 +68,8 @@ def normpath(src, p):
     return os.path.relpath(src, p).replace(os.path.sep, '/')
 
 
-def rehash(path, blocksize=1 << 20):
-    # type: (str, int) -> Tuple[str, str]
+def hash_file(path, blocksize=1 << 20):
+    # type: (str, int) -> Tuple[Any, int]
     """Return (hash, length) for path using hashlib.sha256()"""
     h = hashlib.sha256()
     length = 0
@@ -77,6 +77,13 @@ def rehash(path, blocksize=1 << 20):
         for block in read_chunks(f, size=blocksize):
             length += len(block)
             h.update(block)
+    return (h, length)  # type: ignore
+
+
+def rehash(path, blocksize=1 << 20):
+    # type: (str, int) -> Tuple[str, str]
+    """Return (encoded_digest, length) for path using hashlib.sha256()"""
+    h, length = hash_file(path, blocksize)
     digest = 'sha256=' + urlsafe_b64encode(
         h.digest()
     ).decode('latin1').rstrip('=')
@@ -902,7 +909,12 @@ class WheelBuilder(object):
                 wheel_name = os.path.basename(wheel_path)
                 dest_path = os.path.join(output_dir, wheel_name)
                 try:
+                    wheel_hash, length = hash_file(wheel_path)
                     shutil.move(wheel_path, dest_path)
+                    logger.info('Created wheel for %s: '
+                                'filename=%s size=%d sha256=%s',
+                                req.name, wheel_name, length,
+                                wheel_hash.hexdigest())
                     logger.info('Stored in directory: %s', output_dir)
                     return dest_path
                 except Exception:

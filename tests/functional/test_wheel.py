@@ -1,5 +1,6 @@
 """'pip wheel' tests"""
 import os
+import re
 from os.path import exists
 
 import pytest
@@ -48,6 +49,12 @@ def test_pip_wheel_success(script, data):
     )
     wheel_file_name = 'simple-3.0-py%s-none-any.whl' % pyversion[0]
     wheel_file_path = script.scratch / wheel_file_name
+    assert re.search(
+        r"Created wheel for simple: "
+        r"filename=%s size=\d+ sha256=[A-Fa-f0-9]{64}"
+        % re.escape(wheel_file_name), result.stdout)
+    assert re.search(
+        r"^\s+Stored in directory: ", result.stdout, re.M)
     assert wheel_file_path in result.files_created, result.stdout
     assert "Successfully built simple" in result.stdout, result.stdout
 

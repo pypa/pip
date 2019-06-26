@@ -815,3 +815,29 @@ class TestMessageAboutScriptsNotOnPATH(object):
             retval_empty = wheel.message_about_scripts_not_on_PATH(scripts)
 
         assert retval_missing == retval_empty
+
+
+class TestWheelHashCalculators(object):
+
+    def prep(self, tmpdir):
+        self.test_file = tmpdir.join("hash.file")
+        # Want this big enough to trigger the internal read loops.
+        self.test_file_len = 2 * 1024 * 1024
+        with open(str(self.test_file), "w") as fp:
+            fp.truncate(self.test_file_len)
+        self.test_file_hash = \
+            '5647f05ec18958947d32874eeb788fa396a05d0bab7c1b71f112ceb7e9b31eee'
+        self.test_file_hash_encoded = \
+            'sha256=VkfwXsGJWJR9ModO63iPo5agXQurfBtx8RLOt-mzHu4'
+
+    def test_hash_file(self, tmpdir):
+        self.prep(tmpdir)
+        h, length = wheel.hash_file(self.test_file)
+        assert length == self.test_file_len
+        assert h.hexdigest() == self.test_file_hash
+
+    def test_rehash(self, tmpdir):
+        self.prep(tmpdir)
+        h, length = wheel.rehash(self.test_file)
+        assert length == str(self.test_file_len)
+        assert h == self.test_file_hash_encoded
