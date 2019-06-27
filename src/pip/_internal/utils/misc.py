@@ -724,6 +724,41 @@ def format_command_args(args):
     return ' '.join(shlex_quote(arg) for arg in args)
 
 
+def make_subprocess_output_error(
+    cmd_args,     # type: List[str]
+    cwd,          # type: Optional[str]
+    lines,        # type: List[Text]
+    exit_status,  # type: int
+):
+    # type: (...) -> Text
+    """
+    Create and return the error message to use to log a subprocess error
+    with command output.
+
+    :param lines: A list of lines, each ending with a newline.
+    """
+    command = format_command_args(cmd_args)
+    # We know the joined output value ends in a newline.
+    output = ''.join(lines)
+    msg = (
+        # We need to mark this explicitly as a unicode string to avoid
+        # "UnicodeEncodeError: 'ascii' codec can't encode character ..."
+        # errors in Python 2 since e.g. `output` is a unicode string.
+        u'Command errored out with exit status {exit_status}:\n'
+        ' command: {command}\n'
+        '     cwd: {cwd}\n'
+        'Complete output ({line_count} lines):\n{output}{divider}'
+    ).format(
+        exit_status=exit_status,
+        command=command,
+        cwd=cwd,
+        line_count=len(lines),
+        output=output,
+        divider=LOG_DIVIDER,
+    )
+    return msg
+
+
 def call_subprocess(
     cmd,  # type: List[str]
     show_stdout=False,  # type: bool
@@ -803,6 +838,7 @@ def call_subprocess(
         raise
     all_output = []
     while True:
+        # The "line" value is a unicode string in Python 2.
         line = console_to_str(proc.stdout.readline())
         if not line:
             break
@@ -832,14 +868,18 @@ def call_subprocess(
             if not showing_subprocess:
                 # Then the subprocess streams haven't been logged to the
                 # console yet.
-                subprocess_logger.error(
-                    'Complete output from command %s:', command_desc,
+                msg = make_subprocess_output_error(
+                    cmd_args=cmd,
+                    cwd=cwd,
+                    lines=all_output,
+                    exit_status=proc.returncode,
                 )
-                # The all_output value already ends in a newline.
-                subprocess_logger.error(''.join(all_output) + LOG_DIVIDER)
-            raise InstallationError(
-                'Command "%s" failed with error code %s in %s'
-                % (command_desc, proc.returncode, cwd))
+                subprocess_logger.error(msg)
+            exc_msg = (
+                'Command errored out with exit status {}: {} '
+                'Check the logs for full command output.'
+            ).format(proc.returncode, command_desc)
+            raise InstallationError(exc_msg)
         elif on_returncode == 'warn':
             subprocess_logger.warning(
                 'Command "%s" had error code %s in %s',

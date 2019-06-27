@@ -938,7 +938,7 @@ def test_install_package_that_emits_unicode(script, data):
     )
     assert (
         'FakeError: this package designed to fail on install' in result.stderr
-    )
+    ), 'stderr: {}'.format(result.stderr)
     assert 'UnicodeDecodeError' not in result.stderr
     assert 'UnicodeDecodeError' not in result.stdout
 
