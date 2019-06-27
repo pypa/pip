@@ -90,7 +90,10 @@ class TestCandidateEvaluator:
         Test the target_python argument.
         """
         target_python = TargetPython(py_version_info=(3, 7, 3))
-        evaluator = CandidateEvaluator(target_python=target_python)
+        evaluator = CandidateEvaluator(
+            allow_yanked=True,
+            target_python=target_python,
+        )
         # The target_python attribute should be set as is.
         assert evaluator._target_python is target_python
 
@@ -98,7 +101,10 @@ class TestCandidateEvaluator:
         """
         Test passing None for the target_python argument.
         """
-        evaluator = CandidateEvaluator(target_python=None)
+        evaluator = CandidateEvaluator(
+            allow_yanked=True,
+            target_python=None,
+        )
         # Spot-check the default TargetPython object.
         actual_target_python = evaluator._target_python
         assert actual_target_python._given_py_version_info is None
@@ -118,12 +124,36 @@ class TestCandidateEvaluator:
     ):
         target_python = TargetPython(py_version_info=py_version_info)
         evaluator = CandidateEvaluator(
+            allow_yanked=True,
             target_python=target_python,
             ignore_requires_python=ignore_requires_python,
         )
         link = Link(
             'https://example.com/#egg=twine-1.12',
             requires_python='== 3.6.5',
+        )
+        search = Search(
+            supplied='twine', canonical='twine', formats=['source'],
+        )
+        actual = evaluator.evaluate_link(link, search=search)
+        assert actual == expected
+
+    @pytest.mark.parametrize('yanked_reason, allow_yanked, expected', [
+        (None, True, (True, '1.12')),
+        (None, False, (True, '1.12')),
+        ('', True, (True, '1.12')),
+        ('', False, (False, 'yanked for reason: <none given>')),
+        ('bad metadata', True, (True, '1.12')),
+        ('bad metadata', False,
+         (False, 'yanked for reason: bad metadata')),
+    ])
+    def test_evaluate_link__allow_yanked(
+        self, yanked_reason, allow_yanked, expected,
+    ):
+        evaluator = CandidateEvaluator(allow_yanked=allow_yanked)
+        link = Link(
+            'https://example.com/#egg=twine-1.12',
+            yanked_reason=yanked_reason,
         )
         search = Search(
             supplied='twine', canonical='twine', formats=['source'],
@@ -138,7 +168,10 @@ class TestCandidateEvaluator:
         target_python = TargetPython(py_version_info=(3, 6, 4))
         # Set the valid tags to an empty list to make sure nothing matches.
         target_python._valid_tags = []
-        evaluator = CandidateEvaluator(target_python=target_python)
+        evaluator = CandidateEvaluator(
+            allow_yanked=True,
+            target_python=target_python,
+        )
         link = Link('https://example.com/sample-1.0-py2.py3-none-any.whl')
         search = Search(
             supplied='sample', canonical='sample', formats=['binary'],
@@ -163,7 +196,7 @@ class TestCandidateEvaluator:
         link = Link(url, yanked_reason=yanked_reason)
         candidate = InstallationCandidate('mypackage', '1.0', link)
 
-        evaluator = CandidateEvaluator()
+        evaluator = CandidateEvaluator(allow_yanked=True)
         sort_value = evaluator._sort_key(candidate)
         # Yanked / non-yanked is reflected in the first element of the tuple.
         actual = sort_value[0]
@@ -176,30 +209,17 @@ class TestCandidateEvaluator:
 
         return candidate
 
-    @pytest.mark.parametrize('allow_yanked', [True, False])
-    def test_get_best_candidate__no_candidates(self, allow_yanked):
+    def test_get_best_candidate__no_candidates(self):
         """
         Test passing an empty list.
         """
-        evaluator = CandidateEvaluator()
-        actual = evaluator.get_best_candidate([], allow_yanked=allow_yanked)
+        evaluator = CandidateEvaluator(allow_yanked=True)
+        actual = evaluator.get_best_candidate([])
         assert actual is None
 
-    def test_get_best_candidate__all_yanked__allow_yanked_false(self):
+    def test_get_best_candidate__all_yanked(self, caplog):
         """
-        Test all candidates yanked with allow_yanked=False.
-        """
-        candidates = [
-            self.make_mock_candidate('1.0', yanked_reason=''),
-            self.make_mock_candidate('2.0', yanked_reason=''),
-        ]
-        evaluator = CandidateEvaluator()
-        actual = evaluator.get_best_candidate(candidates, allow_yanked=False)
-        assert actual is None
-
-    def test_get_best_candidate__all_yanked__allow_yanked_true(self, caplog):
-        """
-        Test all candidates yanked with allow_yanked=True.
+        Test all candidates yanked.
         """
         candidates = [
             self.make_mock_candidate('1.0', yanked_reason='bad metadata #1'),
@@ -208,8 +228,8 @@ class TestCandidateEvaluator:
             self.make_mock_candidate('2.0', yanked_reason='bad metadata #2'),
         ]
         expected_best = candidates[1]
-        evaluator = CandidateEvaluator()
-        actual = evaluator.get_best_candidate(candidates, allow_yanked=True)
+        evaluator = CandidateEvaluator(allow_yanked=True)
+        actual = evaluator.get_best_candidate(candidates)
         assert actual is expected_best
         assert str(actual.version) == '3.0'
 
@@ -231,8 +251,8 @@ class TestCandidateEvaluator:
         candidates = [
             self.make_mock_candidate('1.0', yanked_reason=''),
         ]
-        evaluator = CandidateEvaluator()
-        actual = evaluator.get_best_candidate(candidates, allow_yanked=True)
+        evaluator = CandidateEvaluator(allow_yanked=True)
+        actual = evaluator.get_best_candidate(candidates)
         assert str(actual.version) == '1.0'
 
         assert len(caplog.records) == 1
@@ -257,8 +277,8 @@ class TestCandidateEvaluator:
             self.make_mock_candidate('1.0'),
         ]
         expected_best = candidates[1]
-        evaluator = CandidateEvaluator()
-        actual = evaluator.get_best_candidate(candidates, allow_yanked=True)
+        evaluator = CandidateEvaluator(allow_yanked=True)
+        actual = evaluator.get_best_candidate(candidates)
         assert actual is expected_best
         assert str(actual.version) == '2.0'
 
@@ -268,6 +288,20 @@ class TestCandidateEvaluator:
 
 class TestPackageFinder:
 
+    @pytest.mark.parametrize('allow_yanked', [False, True])
+    def test_create__allow_yanked(self, allow_yanked):
+        """
+        Test that allow_yanked is passed to CandidateEvaluator.
+        """
+        search_scope = SearchScope([], [])
+        finder = PackageFinder.create(
+            search_scope=search_scope,
+            allow_yanked=allow_yanked,
+            session=object(),
+        )
+        evaluator = finder.candidate_evaluator
+        assert evaluator._allow_yanked == allow_yanked
+
     def test_create__target_python(self):
         """
         Test that target_python is passed to CandidateEvaluator as is.
@@ -276,6 +310,7 @@ class TestPackageFinder:
         target_python = TargetPython(py_version_info=(3, 7, 3))
         finder = PackageFinder.create(
             search_scope=search_scope,
+            allow_yanked=True,
             session=object(),
             target_python=target_python,
         )
@@ -361,6 +396,7 @@ class TestPackageFinder:
         search_scope = SearchScope([], [])
         finder = PackageFinder.create(
             search_scope=search_scope,
+            allow_yanked=True,
             trusted_hosts=None,
             session=object(),
         )

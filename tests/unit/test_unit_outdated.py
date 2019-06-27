@@ -16,7 +16,7 @@ class MockFoundCandidates(object):
     def __init__(self, best):
         self._best = best
 
-    def get_best(self, allow_yanked):
+    def get_best(self):
         return self._best
 
 

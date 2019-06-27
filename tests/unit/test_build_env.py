@@ -27,7 +27,11 @@ def run_with_build_env(script, setup_script_contents,
             from pip._internal.models.search_scope import SearchScope
 
             search_scope = SearchScope.create([%r], [])
-            finder = PackageFinder.create(search_scope, session=PipSession())
+            finder = PackageFinder.create(
+                search_scope,
+                allow_yanked=True,
+                session=PipSession(),
+            )
             build_env = BuildEnvironment()
 
             try:

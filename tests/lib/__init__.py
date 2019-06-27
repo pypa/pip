@@ -104,6 +104,7 @@ def make_test_finder(
 
     return PackageFinder.create(
         search_scope=search_scope,
+        allow_yanked=True,
         allow_all_prereleases=allow_all_prereleases,
         trusted_hosts=trusted_hosts,
         session=session,

@@ -347,6 +347,7 @@ class RequirementCommand(Command):
 
         return PackageFinder.create(
             search_scope=search_scope,
+            allow_yanked=True,
             format_control=options.format_control,
             trusted_hosts=options.trusted_hosts,
             allow_all_prereleases=options.pre,
