@@ -41,7 +41,7 @@ if MYPY_CHECK_RUNNING:
     from logging import Logger
     from typing import (
         Any, Callable, Iterable, Iterator, List, MutableMapping, Optional,
-        Sequence, Set, Tuple, Union,
+        Sequence, Set, Text, Tuple, Union,
     )
     import xml.etree.ElementTree
     from pip._vendor.packaging.version import _BaseVersion
@@ -355,7 +355,7 @@ class CandidateEvaluator(object):
         return wheel.supported(valid_tags)
 
     def evaluate_link(self, link, search):
-        # type: (Link, Search) -> Tuple[bool, Optional[str]]
+        # type: (Link, Search) -> Tuple[bool, Optional[Text]]
         """
         Determine whether a link is a candidate for installation.
 
@@ -367,7 +367,10 @@ class CandidateEvaluator(object):
         version = None
         if link.is_yanked and not self._allow_yanked:
             reason = link.yanked_reason or '<none given>'
-            return (False, 'yanked for reason: {}'.format(reason))
+            # Mark this as a unicode string to prevent "UnicodeEncodeError:
+            # 'ascii' codec can't encode character" in Python 2 when
+            # the reason contains non-ascii characters.
+            return (False, u'yanked for reason: {}'.format(reason))
 
         if link.egg_fragment:
             egg_info = link.egg_fragment
@@ -538,7 +541,10 @@ class CandidateEvaluator(object):
         if link.is_yanked:
             reason = link.yanked_reason or '<none given>'
             msg = (
-                'The candidate selected for download or install is a '
+                # Mark this as a unicode string to prevent
+                # "UnicodeEncodeError: 'ascii' codec can't encode character"
+                # in Python 2 when the reason contains non-ascii characters.
+                u'The candidate selected for download or install is a '
                 'yanked version: {candidate}\n'
                 'Reason for being yanked: {reason}'
             ).format(candidate=best_candidate, reason=reason)
@@ -1067,11 +1073,14 @@ class PackageFinder(object):
         return no_eggs + eggs
 
     def _log_skipped_link(self, link, reason):
-        # type: (Link, str) -> None
+        # type: (Link, Text) -> None
         if link not in self._logged_links:
-            # Put the link at the end so the reason is more visible and
-            # because the link string is usually very long.
-            logger.debug('Skipping link: %s: %s', reason, link)
+            # Mark this as a unicode string to prevent "UnicodeEncodeError:
+            # 'ascii' codec can't encode character" in Python 2 when
+            # the reason contains non-ascii characters.
+            #   Also, put the link at the end so the reason is more visible
+            # and because the link string is usually very long.
+            logger.debug(u'Skipping link: %s: %s', reason, link)
             self._logged_links.add(link)
 
     def get_install_candidate(self, link, search):
@@ -1089,7 +1098,9 @@ class PackageFinder(object):
             return None
 
         return InstallationCandidate(
-            search.supplied, location=link, version=result,
+            # Convert the Text result to str since InstallationCandidate
+            # accepts str.
+            search.supplied, location=link, version=str(result),
         )
 
     def _package_versions(
@@ -1224,6 +1235,7 @@ def _create_link_from_element(
 
     yanked_reason = anchor.get('data-yanked')
     if yanked_reason:
+        # This is a unicode string in Python 2 (and 3).
         yanked_reason = unescape(yanked_reason)
 
     link = Link(

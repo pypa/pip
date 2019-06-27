@@ -146,6 +146,10 @@ class TestCandidateEvaluator:
         ('bad metadata', True, (True, '1.12')),
         ('bad metadata', False,
          (False, 'yanked for reason: bad metadata')),
+        # Test a unicode string with a non-ascii character.
+        (u'curly quote: \u2018', True, (True, '1.12')),
+        (u'curly quote: \u2018', False,
+         (False, u'yanked for reason: curly quote: \u2018')),
     ])
     def test_evaluate_link__allow_yanked(
         self, yanked_reason, allow_yanked, expected,
@@ -244,12 +248,20 @@ class TestCandidateEvaluator:
             'Reason for being yanked: bad metadata #3'
         )
 
-    def test_get_best_candidate__yanked_no_reason_given(self, caplog):
+    @pytest.mark.parametrize('yanked_reason, expected_reason', [
+        # Test no reason given.
+        ('', '<none given>'),
+        # Test a unicode string with a non-ascii character.
+        (u'curly quote: \u2018', u'curly quote: \u2018'),
+    ])
+    def test_get_best_candidate__yanked_reason(
+        self, caplog, yanked_reason, expected_reason,
+    ):
         """
-        Test the log message when no reason is given.
+        Test the log message with various reason strings.
         """
         candidates = [
-            self.make_mock_candidate('1.0', yanked_reason=''),
+            self.make_mock_candidate('1.0', yanked_reason=yanked_reason),
         ]
         evaluator = CandidateEvaluator(allow_yanked=True)
         actual = evaluator.get_best_candidate(candidates)
@@ -258,12 +270,13 @@ class TestCandidateEvaluator:
         assert len(caplog.records) == 1
         record = caplog.records[0]
         assert record.levelname == 'WARNING'
-        assert record.message == (
+        expected_message = (
             'The candidate selected for download or install is a yanked '
             "version: 'mypackage' candidate "
             '(version 1.0 at https://example.com/pkg-1.0.tar.gz)\n'
-            'Reason for being yanked: <none given>'
-        )
+            'Reason for being yanked: '
+        ) + expected_reason
+        assert record.message == expected_message
 
     def test_get_best_candidate__best_yanked_but_not_all(self, caplog):
         """
@@ -692,10 +705,18 @@ class TestHTMLPage:
             # Test a value with an escaped character.
             ('<a href="/pkg4-1.0.tar.gz" data-yanked="version &lt 1"></a>',
                 'version < 1'),
+            # Test a yanked reason with a non-ascii character.
+            (u'<a href="/pkg-1.0.tar.gz" data-yanked="curlyquote \u2018"></a>',
+                u'curlyquote \u2018'),
         ]
     )
     def test_iter_links__yanked_reason(self, anchor_html, expected):
-        html = '<html><body>{}</body></html>'.format(anchor_html)
+        html = (
+            # Mark this as a unicode string for Python 2 since anchor_html
+            # can contain non-ascii.
+            u'<html><head><meta charset="utf-8"><head>'
+            '<body>{}</body></html>'
+        ).format(anchor_html)
         html_bytes = html.encode('utf-8')
         page = HTMLPage(html_bytes, url='https://example.com/simple/')
         links = list(page.iter_links())
