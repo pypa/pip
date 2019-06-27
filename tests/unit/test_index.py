@@ -7,10 +7,11 @@ from pip._vendor import html5lib, requests
 
 from pip._internal.download import PipSession
 from pip._internal.index import (
-    CandidateEvaluator, Link, PackageFinder, Search,
+    CandidateEvaluator, HTMLPage, Link, PackageFinder, Search,
     _check_link_requires_python, _clean_link, _determine_base_url,
     _egg_info_matches, _find_name_version_sep, _get_html_page,
 )
+from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.target_python import TargetPython
 from tests.lib import CURRENT_PY_VERSION_INFO, make_test_finder
@@ -147,6 +148,122 @@ class TestCandidateEvaluator:
             False, "none of the wheel's tags match: py2-none-any, py3-none-any"
         )
         assert actual == expected
+
+    @pytest.mark.parametrize('yanked_reason, expected', [
+        # Test a non-yanked file.
+        (None, 0),
+        # Test a yanked file (has a lower value than non-yanked).
+        ('bad metadata', -1),
+    ])
+    def test_sort_key__is_yanked(self, yanked_reason, expected):
+        """
+        Test the effect of is_yanked on _sort_key()'s return value.
+        """
+        url = 'https://example.com/mypackage.tar.gz'
+        link = Link(url, yanked_reason=yanked_reason)
+        candidate = InstallationCandidate('mypackage', '1.0', link)
+
+        evaluator = CandidateEvaluator()
+        sort_value = evaluator._sort_key(candidate)
+        # Yanked / non-yanked is reflected in the first element of the tuple.
+        actual = sort_value[0]
+        assert actual == expected
+
+    def make_mock_candidate(self, version, yanked_reason=None):
+        url = 'https://example.com/pkg-{}.tar.gz'.format(version)
+        link = Link(url, yanked_reason=yanked_reason)
+        candidate = InstallationCandidate('mypackage', version, link)
+
+        return candidate
+
+    @pytest.mark.parametrize('allow_yanked', [True, False])
+    def test_get_best_candidate__no_candidates(self, allow_yanked):
+        """
+        Test passing an empty list.
+        """
+        evaluator = CandidateEvaluator()
+        actual = evaluator.get_best_candidate([], allow_yanked=allow_yanked)
+        assert actual is None
+
+    def test_get_best_candidate__all_yanked__allow_yanked_false(self):
+        """
+        Test all candidates yanked with allow_yanked=False.
+        """
+        candidates = [
+            self.make_mock_candidate('1.0', yanked_reason=''),
+            self.make_mock_candidate('2.0', yanked_reason=''),
+        ]
+        evaluator = CandidateEvaluator()
+        actual = evaluator.get_best_candidate(candidates, allow_yanked=False)
+        assert actual is None
+
+    def test_get_best_candidate__all_yanked__allow_yanked_true(self, caplog):
+        """
+        Test all candidates yanked with allow_yanked=True.
+        """
+        candidates = [
+            self.make_mock_candidate('1.0', yanked_reason='bad metadata #1'),
+            # Put the best candidate in the middle, to test sorting.
+            self.make_mock_candidate('3.0', yanked_reason='bad metadata #3'),
+            self.make_mock_candidate('2.0', yanked_reason='bad metadata #2'),
+        ]
+        expected_best = candidates[1]
+        evaluator = CandidateEvaluator()
+        actual = evaluator.get_best_candidate(candidates, allow_yanked=True)
+        assert actual is expected_best
+        assert str(actual.version) == '3.0'
+
+        # Check the log messages.
+        assert len(caplog.records) == 1
+        record = caplog.records[0]
+        assert record.levelname == 'WARNING'
+        assert record.message == (
+            'The candidate selected for download or install is a yanked '
+            "version: 'mypackage' candidate "
+            '(version 3.0 at https://example.com/pkg-3.0.tar.gz)\n'
+            'Reason for being yanked: bad metadata #3'
+        )
+
+    def test_get_best_candidate__yanked_no_reason_given(self, caplog):
+        """
+        Test the log message when no reason is given.
+        """
+        candidates = [
+            self.make_mock_candidate('1.0', yanked_reason=''),
+        ]
+        evaluator = CandidateEvaluator()
+        actual = evaluator.get_best_candidate(candidates, allow_yanked=True)
+        assert str(actual.version) == '1.0'
+
+        assert len(caplog.records) == 1
+        record = caplog.records[0]
+        assert record.levelname == 'WARNING'
+        assert record.message == (
+            'The candidate selected for download or install is a yanked '
+            "version: 'mypackage' candidate "
+            '(version 1.0 at https://example.com/pkg-1.0.tar.gz)\n'
+            'Reason for being yanked: <none given>'
+        )
+
+    def test_get_best_candidate__best_yanked_but_not_all(self, caplog):
+        """
+        Test the best candidates being yanked, but not all.
+        """
+        candidates = [
+            self.make_mock_candidate('4.0', yanked_reason='bad metadata #4'),
+            # Put the best candidate in the middle, to test sorting.
+            self.make_mock_candidate('2.0'),
+            self.make_mock_candidate('3.0', yanked_reason='bad metadata #3'),
+            self.make_mock_candidate('1.0'),
+        ]
+        expected_best = candidates[1]
+        evaluator = CandidateEvaluator()
+        actual = evaluator.get_best_candidate(candidates, allow_yanked=True)
+        assert actual is expected_best
+        assert str(actual.version) == '2.0'
+
+        # Check the log messages.
+        assert len(caplog.records) == 0
 
 
 class TestPackageFinder:
@@ -521,3 +638,31 @@ def test_clean_link_windows(url, clean_url):
 @pytest.mark.skipif("sys.platform == 'win32'")
 def test_clean_link_non_windows(url, clean_url):
     assert(_clean_link(url) == clean_url)
+
+
+class TestHTMLPage:
+
+    @pytest.mark.parametrize(
+        ('anchor_html, expected'),
+        [
+            # Test not present.
+            ('<a href="/pkg1-1.0.tar.gz"></a>', None),
+            # Test present with no value.
+            ('<a href="/pkg2-1.0.tar.gz" data-yanked></a>', ''),
+            # Test the empty string.
+            ('<a href="/pkg3-1.0.tar.gz" data-yanked=""></a>', ''),
+            # Test a non-empty string.
+            ('<a href="/pkg4-1.0.tar.gz" data-yanked="error"></a>', 'error'),
+            # Test a value with an escaped character.
+            ('<a href="/pkg4-1.0.tar.gz" data-yanked="version &lt 1"></a>',
+                'version < 1'),
+        ]
+    )
+    def test_iter_links__yanked_reason(self, anchor_html, expected):
+        html = '<html><body>{}</body></html>'.format(anchor_html)
+        html_bytes = html.encode('utf-8')
+        page = HTMLPage(html_bytes, url='https://example.com/simple/')
+        links = list(page.iter_links())
+        link, = links
+        actual = link.yanked_reason
+        assert actual == expected

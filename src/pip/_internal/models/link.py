@@ -19,17 +19,28 @@ class Link(KeyBasedCompareMixin):
     """Represents a parsed link from a Package Index's simple URL
     """
 
-    def __init__(self, url, comes_from=None, requires_python=None):
-        # type: (str, Optional[Union[str, HTMLPage]], Optional[str]) -> None
+    def __init__(
+        self,
+        url,                   # type: str
+        comes_from=None,       # type: Optional[Union[str, HTMLPage]]
+        requires_python=None,  # type: Optional[str]
+        yanked_reason=None,    # type: Optional[str]
+    ):
+        # type: (...) -> None
         """
-        url:
-            url of the resource pointed to (href of the link)
-        comes_from:
-            instance of HTMLPage where the link was found, or string.
-        requires_python:
-            String containing the `Requires-Python` metadata field, specified
-            in PEP 345. This may be specified by a data-requires-python
-            attribute in the HTML link tag, as described in PEP 503.
+        :param url: url of the resource pointed to (href of the link)
+        :param comes_from: instance of HTMLPage where the link was found,
+            or string.
+        :param requires_python: String containing the `Requires-Python`
+            metadata field, specified in PEP 345. This may be specified by
+            a data-requires-python attribute in the HTML link tag, as
+            described in PEP 503.
+        :param yanked_reason: the reason the file has been yanked, if the
+            file has been yanked, or None if the file hasn't been yanked.
+            This is the value of the "data-yanked" attribute, if present, in
+            a simple repository HTML link. If the file has been yanked but
+            no reason was provided, this should be the empty string. See
+            PEP 592 for more information and the specification.
         """
 
         # url can be a UNC windows share
@@ -43,6 +54,7 @@ class Link(KeyBasedCompareMixin):
 
         self.comes_from = comes_from
         self.requires_python = requires_python if requires_python else None
+        self.yanked_reason = yanked_reason
 
         super(Link, self).__init__(key=url, defining_class=Link)
 
@@ -176,3 +188,8 @@ class Link(KeyBasedCompareMixin):
             return False
 
         return True
+
+    @property
+    def is_yanked(self):
+        # type: () -> bool
+        return self.yanked_reason is not None

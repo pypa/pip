@@ -183,7 +183,10 @@ class ListCommand(Command):
                                       if not candidate.version.is_prerelease]
 
                 evaluator = finder.candidate_evaluator
-                best_candidate = evaluator.get_best_candidate(all_candidates)
+                # Pass allow_yanked=False to ignore yanked versions.
+                best_candidate = evaluator.get_best_candidate(
+                    all_candidates, allow_yanked=False,
+                )
                 if best_candidate is None:
                     continue
 

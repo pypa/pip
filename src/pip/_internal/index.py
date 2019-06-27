@@ -43,15 +43,19 @@ if MYPY_CHECK_RUNNING:
         Any, Callable, Iterable, Iterator, List, MutableMapping, Optional,
         Sequence, Set, Tuple, Union,
     )
+    import xml.etree.ElementTree
     from pip._vendor.packaging.version import _BaseVersion
     from pip._vendor.requests import Response
     from pip._internal.models.search_scope import SearchScope
     from pip._internal.req import InstallRequirement
     from pip._internal.download import PipSession
 
-    SecureOrigin = Tuple[str, str, Optional[str]]
     BuildTag = Tuple[Any, ...]  # either empty tuple or Tuple[int, str]
-    CandidateSortingKey = Tuple[int, _BaseVersion, BuildTag, Optional[int]]
+    CandidateSortingKey = (
+        Tuple[int, int, _BaseVersion, BuildTag, Optional[int]]
+    )
+    HTMLElement = xml.etree.ElementTree.Element
+    SecureOrigin = Tuple[str, str, Optional[str]]
 
 
 __all__ = ['FormatControl', 'FoundCandidates', 'PackageFinder']
@@ -454,14 +458,24 @@ class CandidateEvaluator(object):
     def _sort_key(self, candidate):
         # type: (InstallationCandidate) -> CandidateSortingKey
         """
-        Function used to generate link sort key for link tuples.
-        The greater the return value, the more preferred it is.
-        If not finding wheels, then sorted by version only.
+        Function to pass as the `key` argument to a call to sorted() to sort
+        InstallationCandidates by preference.
+
+        Returns a tuple such that tuples sorting as greater using Python's
+        default comparison operator are more preferred.
+
+        The preference is as follows:
+
+        First and foremost, yanked candidates (in the sense of PEP 592) are
+        always less preferred than candidates that haven't been yanked. Then:
+
+        If not finding wheels, they are sorted by version only.
         If finding wheels, then the sort order is by version, then:
           1. existing installs
           2. wheels ordered via Wheel.support_index_min(self._valid_tags)
           3. source archives
         If prefer_binary was set, then all wheels are sorted above sources.
+
         Note: it was considered to embed this logic into the Link
               comparison operators, but then different sdist links
               with the same version, would have to be considered equal
@@ -470,9 +484,10 @@ class CandidateEvaluator(object):
         support_num = len(valid_tags)
         build_tag = tuple()  # type: BuildTag
         binary_preference = 0
-        if candidate.location.is_wheel:
+        link = candidate.location
+        if link.is_wheel:
             # can raise InvalidWheelFilename
-            wheel = Wheel(candidate.location.filename)
+            wheel = Wheel(link.filename)
             if not self._is_wheel_supported(wheel):
                 raise UnsupportedWheel(
                     "%s is not a supported wheel for this platform. It "
@@ -487,18 +502,52 @@ class CandidateEvaluator(object):
                 build_tag = (int(build_tag_groups[0]), build_tag_groups[1])
         else:  # sdist
             pri = -(support_num)
-        return (binary_preference, candidate.version, build_tag, pri)
+        yank_value = -1 * int(link.is_yanked)  # -1 for yanked.
+        return (
+            yank_value, binary_preference, candidate.version, build_tag, pri,
+        )
 
-    def get_best_candidate(self, candidates):
-        # type: (List[InstallationCandidate]) -> InstallationCandidate
+    # Don't include an allow_yanked default value to make sure each call
+    # site considers whether yanked releases are allowed. This also causes
+    # that decision to be made explicit in the calling code, which helps
+    # people when reading the code.
+    def get_best_candidate(
+        self,
+        candidates,    # type: List[InstallationCandidate]
+        allow_yanked,  # type: bool
+    ):
+        # type: (...) -> Optional[InstallationCandidate]
         """
         Return the best candidate per the instance's sort order, or None if
-        no candidates are given.
+        no candidate is acceptable.
+
+        :param allow_yanked: Whether to permit returning a yanked candidate
+            in the sense of PEP 592. If true, a yanked candidate will be
+            returned only if all candidates have been yanked.
         """
         if not candidates:
             return None
 
-        return max(candidates, key=self._sort_key)
+        best_candidate = max(candidates, key=self._sort_key)
+
+        # Log a warning per PEP 592 if necessary before returning.
+        link = best_candidate.location
+        if not link.is_yanked:
+            return best_candidate
+
+        # Otherwise, all the candidates were yanked.
+        if not allow_yanked:
+            return None
+
+        reason = link.yanked_reason or '<none given>'
+        msg = (
+            'The candidate selected for download or install is a '
+            'yanked version: {candidate}\n'
+            'Reason for being yanked: {reason}'
+        ).format(candidate=best_candidate, reason=reason)
+        logger.warning(msg)
+
+        return best_candidate
 
 
 class FoundCandidates(object):
@@ -540,13 +589,23 @@ class FoundCandidates(object):
         # Again, converting version to str to deal with debundling.
         return (c for c in self.iter_all() if str(c.version) in self._versions)
 
-    def get_best(self):
-        # type: () -> Optional[InstallationCandidate]
+    # Don't include an allow_yanked default value to make sure each call
+    # site considers whether yanked releases are allowed. This also causes
+    # that decision to be made explicit in the calling code, which helps
+    # people when reading the code.
+    def get_best(self, allow_yanked):
+        # type: (bool) -> Optional[InstallationCandidate]
         """Return the best candidate available, or None if no applicable
         candidates are found.
+
+        :param allow_yanked: Whether to permit returning a yanked candidate
+            in the sense of PEP 592. If true, a yanked candidate will be
+            returned only if all candidates have been yanked.
         """
         candidates = list(self.iter_applicable())
-        return self._evaluator.get_best_candidate(candidates)
+        return self._evaluator.get_best_candidate(
+            candidates, allow_yanked=allow_yanked,
+        )
 
 
 class PackageFinder(object):
@@ -910,7 +969,7 @@ class PackageFinder(object):
         Raises DistributionNotFound or BestVersionAlreadyInstalled otherwise
         """
         candidates = self.find_candidates(req.name, req.specifier)
-        best_candidate = candidates.get_best()
+        best_candidate = candidates.get_best(allow_yanked=True)
 
         installed_version = None    # type: Optional[_BaseVersion]
         if req.satisfied_by is not None:
@@ -1151,6 +1210,37 @@ def _clean_link(url):
     return urllib_parse.urlunparse(result._replace(path=path))
 
 
+def _create_link_from_element(
+    anchor,    # type: HTMLElement
+    page_url,  # type: str
+    base_url,  # type: str
+):
+    # type: (...) -> Optional[Link]
+    """
+    Convert an anchor element in a simple repository page to a Link.
+    """
+    href = anchor.get("href")
+    if not href:
+        return None
+
+    url = _clean_link(urllib_parse.urljoin(base_url, href))
+    pyrequire = anchor.get('data-requires-python')
+    pyrequire = unescape(pyrequire) if pyrequire else None
+
+    yanked_reason = anchor.get('data-yanked')
+    if yanked_reason:
+        yanked_reason = unescape(yanked_reason)
+
+    link = Link(
+        url,
+        comes_from=page_url,
+        requires_python=pyrequire,
+        yanked_reason=yanked_reason,
+    )
+
+    return link
+
+
 class HTMLPage(object):
     """Represents one page, along with its URL"""
 
@@ -1173,12 +1263,14 @@ class HTMLPage(object):
         )
         base_url = _determine_base_url(document, self.url)
         for anchor in document.findall(".//a"):
-            if anchor.get("href"):
-                href = anchor.get("href")
-                url = _clean_link(urllib_parse.urljoin(base_url, href))
-                pyrequire = anchor.get('data-requires-python')
-                pyrequire = unescape(pyrequire) if pyrequire else None
-                yield Link(url, self.url, requires_python=pyrequire)
+            link = _create_link_from_element(
+                anchor,
+                page_url=self.url,
+                base_url=base_url,
+            )
+            if link is None:
+                continue
+            yield link
 
 
 Search = namedtuple('Search', 'supplied canonical formats')
