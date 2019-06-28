@@ -924,8 +924,6 @@ def test_install_package_conflict_prefix_and_user(script, data):
     )
 
 
-# skip on win/py3 for now, see issue #782
-@pytest.mark.skipif("sys.platform == 'win32' and sys.version_info >= (3,)")
 def test_install_package_that_emits_unicode(script, data):
     """
     Install a package with a setup.py that emits UTF-8 output and then fails.
