@@ -11,6 +11,7 @@ from pip._internal.cli.base_command import Command
 from pip._internal.cli.cmdoptions import make_search_scope
 from pip._internal.exceptions import CommandError
 from pip._internal.index import PackageFinder
+from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.utils.misc import (
     dist_is_editable, get_installed_distributions,
 )
@@ -117,10 +118,14 @@ class ListCommand(Command):
         search_scope = make_search_scope(options)
 
         # Pass allow_yanked=False to ignore yanked versions.
-        return PackageFinder.create(
-            search_scope=search_scope,
+        selection_prefs = SelectionPreferences(
             allow_yanked=False,
             allow_all_prereleases=options.pre,
+        )
+
+        return PackageFinder.create(
+            search_scope=search_scope,
+            selection_prefs=selection_prefs,
             trusted_hosts=options.trusted_hosts,
             session=session,
         )

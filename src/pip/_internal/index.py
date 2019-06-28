@@ -26,6 +26,7 @@ from pip._internal.exceptions import (
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.link import Link
+from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.utils.compat import ipaddress
 from pip._internal.utils.logging import indent_log
@@ -649,31 +650,20 @@ class PackageFinder(object):
     def create(
         cls,
         search_scope,  # type: SearchScope
-        allow_yanked,  # type: bool
-        allow_all_prereleases=False,  # type: bool
+        selection_prefs,     # type: SelectionPreferences
         trusted_hosts=None,  # type: Optional[List[str]]
-        session=None,  # type: Optional[PipSession]
-        format_control=None,  # type: Optional[FormatControl]
+        session=None,        # type: Optional[PipSession]
         target_python=None,  # type: Optional[TargetPython]
-        prefer_binary=False,  # type: bool
-        ignore_requires_python=None,  # type: Optional[bool]
     ):
         # type: (...) -> PackageFinder
         """Create a PackageFinder.
 
-        :param allow_yanked: Whether files marked as yanked (in the sense
-            of PEP 592) are permitted to be candidates for install.
+        :param selection_prefs: The candidate selection preferences, as a
+            SelectionPreferences object.
         :param trusted_hosts: Domains not to emit warnings for when not using
             HTTPS.
         :param session: The Session to use to make requests.
-        :param format_control: A FormatControl object or None. Used to control
-            the selection of source packages / binary packages when consulting
-            the index and links.
         :param target_python: The target Python interpreter.
-        :param prefer_binary: Whether to prefer an old, but valid, binary
-            dist over a new source dist.
-        :param ignore_requires_python: Whether to ignore incompatible
-            "Requires-Python" values in links. Defaults to False.
         """
         if session is None:
             raise TypeError(
@@ -682,18 +672,18 @@ class PackageFinder(object):
             )
 
         candidate_evaluator = CandidateEvaluator(
-            allow_yanked=allow_yanked,
+            allow_yanked=selection_prefs.allow_yanked,
             target_python=target_python,
-            prefer_binary=prefer_binary,
-            allow_all_prereleases=allow_all_prereleases,
-            ignore_requires_python=ignore_requires_python,
+            prefer_binary=selection_prefs.prefer_binary,
+            allow_all_prereleases=selection_prefs.allow_all_prereleases,
+            ignore_requires_python=selection_prefs.ignore_requires_python,
         )
 
         return cls(
             candidate_evaluator=candidate_evaluator,
             search_scope=search_scope,
             session=session,
-            format_control=format_control,
+            format_control=selection_prefs.format_control,
             trusted_hosts=trusted_hosts,
         )
 

@@ -13,6 +13,7 @@ from pip._internal.index import (
 )
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.search_scope import SearchScope
+from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from tests.lib import CURRENT_PY_VERSION_INFO, make_test_finder
 
@@ -307,9 +308,12 @@ class TestPackageFinder:
         Test that allow_yanked is passed to CandidateEvaluator.
         """
         search_scope = SearchScope([], [])
+        selection_prefs = SelectionPreferences(
+            allow_yanked=allow_yanked,
+        )
         finder = PackageFinder.create(
             search_scope=search_scope,
-            allow_yanked=allow_yanked,
+            selection_prefs=selection_prefs,
             session=object(),
         )
         evaluator = finder.candidate_evaluator
@@ -320,10 +324,13 @@ class TestPackageFinder:
         Test that target_python is passed to CandidateEvaluator as is.
         """
         search_scope = SearchScope([], [])
+        selection_prefs = SelectionPreferences(
+            allow_yanked=True,
+        )
         target_python = TargetPython(py_version_info=(3, 7, 3))
         finder = PackageFinder.create(
             search_scope=search_scope,
-            allow_yanked=True,
+            selection_prefs=selection_prefs,
             session=object(),
             target_python=target_python,
         )
@@ -407,9 +414,12 @@ class TestPackageFinder:
         # Use PackageFinder.create() rather than make_test_finder()
         # to make sure we're really passing trusted_hosts=None.
         search_scope = SearchScope([], [])
+        selection_prefs = SelectionPreferences(
+            allow_yanked=True,
+        )
         finder = PackageFinder.create(
             search_scope=search_scope,
-            allow_yanked=True,
+            selection_prefs=selection_prefs,
             trusted_hosts=None,
             session=object(),
         )

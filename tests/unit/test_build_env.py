@@ -25,11 +25,17 @@ def run_with_build_env(script, setup_script_contents,
             from pip._internal.download import PipSession
             from pip._internal.index import PackageFinder
             from pip._internal.models.search_scope import SearchScope
+            from pip._internal.models.selection_prefs import (
+                SelectionPreferences
+            )
 
             search_scope = SearchScope.create([%r], [])
+            selection_prefs = SelectionPreferences(
+                allow_yanked=True,
+            )
             finder = PackageFinder.create(
                 search_scope,
-                allow_yanked=True,
+                selection_prefs=selection_prefs,
                 session=PipSession(),
             )
             build_env = BuildEnvironment()

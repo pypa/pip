@@ -13,10 +13,11 @@ import subprocess
 import pytest
 from scripttest import FoundDir, TestFileEnvironment
 
-from pip._internal.models.search_scope import SearchScope
-from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
 from pip._internal.download import PipSession
 from pip._internal.index import PackageFinder
+from pip._internal.models.search_scope import SearchScope
+from pip._internal.models.selection_prefs import SelectionPreferences
+from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from tests.lib.path import Path, curdir
 
@@ -101,11 +102,14 @@ def make_test_finder(
         find_links=find_links,
         index_urls=index_urls,
     )
+    selection_prefs = SelectionPreferences(
+        allow_yanked=True,
+        allow_all_prereleases=allow_all_prereleases,
+    )
 
     return PackageFinder.create(
         search_scope=search_scope,
-        allow_yanked=True,
-        allow_all_prereleases=allow_all_prereleases,
+        selection_prefs=selection_prefs,
         trusted_hosts=trusted_hosts,
         session=session,
         target_python=target_python,
