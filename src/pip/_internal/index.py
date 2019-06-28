@@ -41,7 +41,7 @@ if MYPY_CHECK_RUNNING:
     from logging import Logger
     from typing import (
         Any, Callable, Iterable, Iterator, List, MutableMapping, Optional,
-        Sequence, Set, Tuple, Union,
+        Sequence, Set, Text, Tuple, Union,
     )
     import xml.etree.ElementTree
     from pip._vendor.packaging.version import _BaseVersion
@@ -307,8 +307,13 @@ class CandidateEvaluator(object):
     on what tags are valid.
     """
 
+    # Don't include an allow_yanked default value to make sure each call
+    # site considers whether yanked releases are allowed. This also causes
+    # that decision to be made explicit in the calling code, which helps
+    # people when reading the code.
     def __init__(
         self,
+        allow_yanked,  # type: bool
         target_python=None,  # type: Optional[TargetPython]
         prefer_binary=False,   # type: bool
         allow_all_prereleases=False,  # type: bool
@@ -316,6 +321,8 @@ class CandidateEvaluator(object):
     ):
         # type: (...) -> None
         """
+        :param allow_yanked: Whether files marked as yanked (in the sense
+            of PEP 592) are permitted to be candidates for install.
         :param target_python: The target Python interpreter to use to check
             both the Python version embedded in the filename and the package's
             "Requires-Python" metadata. If None (the default), then a
@@ -329,6 +336,7 @@ class CandidateEvaluator(object):
         if ignore_requires_python is None:
             ignore_requires_python = False
 
+        self._allow_yanked = allow_yanked
         self._ignore_requires_python = ignore_requires_python
         self._prefer_binary = prefer_binary
         self._target_python = target_python
@@ -347,7 +355,7 @@ class CandidateEvaluator(object):
         return wheel.supported(valid_tags)
 
     def evaluate_link(self, link, search):
-        # type: (Link, Search) -> Tuple[bool, Optional[str]]
+        # type: (Link, Search) -> Tuple[bool, Optional[Text]]
         """
         Determine whether a link is a candidate for installation.
 
@@ -357,6 +365,13 @@ class CandidateEvaluator(object):
             the link fails to qualify.
         """
         version = None
+        if link.is_yanked and not self._allow_yanked:
+            reason = link.yanked_reason or '<none given>'
+            # Mark this as a unicode string to prevent "UnicodeEncodeError:
+            # 'ascii' codec can't encode character" in Python 2 when
+            # the reason contains non-ascii characters.
+            return (False, u'yanked for reason: {}'.format(reason))
+
         if link.egg_fragment:
             egg_info = link.egg_fragment
             ext = link.ext
@@ -507,23 +522,14 @@ class CandidateEvaluator(object):
             yank_value, binary_preference, candidate.version, build_tag, pri,
         )
 
-    # Don't include an allow_yanked default value to make sure each call
-    # site considers whether yanked releases are allowed. This also causes
-    # that decision to be made explicit in the calling code, which helps
-    # people when reading the code.
     def get_best_candidate(
         self,
         candidates,    # type: List[InstallationCandidate]
-        allow_yanked,  # type: bool
     ):
         # type: (...) -> Optional[InstallationCandidate]
         """
         Return the best candidate per the instance's sort order, or None if
         no candidate is acceptable.
-
-        :param allow_yanked: Whether to permit returning a yanked candidate
-            in the sense of PEP 592. If true, a yanked candidate will be
-            returned only if all candidates have been yanked.
         """
         if not candidates:
             return None
@@ -532,20 +538,17 @@ class CandidateEvaluator(object):
 
         # Log a warning per PEP 592 if necessary before returning.
         link = best_candidate.location
-        if not link.is_yanked:
-            return best_candidate
-
-        # Otherwise, all the candidates were yanked.
-        if not allow_yanked:
-            return None
-
-        reason = link.yanked_reason or '<none given>'
-        msg = (
-            'The candidate selected for download or install is a '
-            'yanked version: {candidate}\n'
-            'Reason for being yanked: {reason}'
-        ).format(candidate=best_candidate, reason=reason)
-        logger.warning(msg)
+        if link.is_yanked:
+            reason = link.yanked_reason or '<none given>'
+            msg = (
+                # Mark this as a unicode string to prevent
+                # "UnicodeEncodeError: 'ascii' codec can't encode character"
+                # in Python 2 when the reason contains non-ascii characters.
+                u'The candidate selected for download or install is a '
+                'yanked version: {candidate}\n'
+                'Reason for being yanked: {reason}'
+            ).format(candidate=best_candidate, reason=reason)
+            logger.warning(msg)
 
         return best_candidate
 
@@ -589,23 +592,13 @@ class FoundCandidates(object):
         # Again, converting version to str to deal with debundling.
         return (c for c in self.iter_all() if str(c.version) in self._versions)
 
-    # Don't include an allow_yanked default value to make sure each call
-    # site considers whether yanked releases are allowed. This also causes
-    # that decision to be made explicit in the calling code, which helps
-    # people when reading the code.
-    def get_best(self, allow_yanked):
-        # type: (bool) -> Optional[InstallationCandidate]
+    def get_best(self):
+        # type: () -> Optional[InstallationCandidate]
         """Return the best candidate available, or None if no applicable
         candidates are found.
-
-        :param allow_yanked: Whether to permit returning a yanked candidate
-            in the sense of PEP 592. If true, a yanked candidate will be
-            returned only if all candidates have been yanked.
         """
         candidates = list(self.iter_applicable())
-        return self._evaluator.get_best_candidate(
-            candidates, allow_yanked=allow_yanked,
-        )
+        return self._evaluator.get_best_candidate(candidates)
 
 
 class PackageFinder(object):
@@ -648,10 +641,15 @@ class PackageFinder(object):
         # These are boring links that have already been logged somehow.
         self._logged_links = set()  # type: Set[Link]
 
+    # Don't include an allow_yanked default value to make sure each call
+    # site considers whether yanked releases are allowed. This also causes
+    # that decision to be made explicit in the calling code, which helps
+    # people when reading the code.
     @classmethod
     def create(
         cls,
         search_scope,  # type: SearchScope
+        allow_yanked,  # type: bool
         allow_all_prereleases=False,  # type: bool
         trusted_hosts=None,  # type: Optional[List[str]]
         session=None,  # type: Optional[PipSession]
@@ -663,6 +661,8 @@ class PackageFinder(object):
         # type: (...) -> PackageFinder
         """Create a PackageFinder.
 
+        :param allow_yanked: Whether files marked as yanked (in the sense
+            of PEP 592) are permitted to be candidates for install.
         :param trusted_hosts: Domains not to emit warnings for when not using
             HTTPS.
         :param session: The Session to use to make requests.
@@ -682,6 +682,7 @@ class PackageFinder(object):
             )
 
         candidate_evaluator = CandidateEvaluator(
+            allow_yanked=allow_yanked,
             target_python=target_python,
             prefer_binary=prefer_binary,
             allow_all_prereleases=allow_all_prereleases,
@@ -969,7 +970,7 @@ class PackageFinder(object):
         Raises DistributionNotFound or BestVersionAlreadyInstalled otherwise
         """
         candidates = self.find_candidates(req.name, req.specifier)
-        best_candidate = candidates.get_best(allow_yanked=True)
+        best_candidate = candidates.get_best()
 
         installed_version = None    # type: Optional[_BaseVersion]
         if req.satisfied_by is not None:
@@ -1072,11 +1073,14 @@ class PackageFinder(object):
         return no_eggs + eggs
 
     def _log_skipped_link(self, link, reason):
-        # type: (Link, str) -> None
+        # type: (Link, Text) -> None
         if link not in self._logged_links:
-            # Put the link at the end so the reason is more visible and
-            # because the link string is usually very long.
-            logger.debug('Skipping link: %s: %s', reason, link)
+            # Mark this as a unicode string to prevent "UnicodeEncodeError:
+            # 'ascii' codec can't encode character" in Python 2 when
+            # the reason contains non-ascii characters.
+            #   Also, put the link at the end so the reason is more visible
+            # and because the link string is usually very long.
+            logger.debug(u'Skipping link: %s: %s', reason, link)
             self._logged_links.add(link)
 
     def get_install_candidate(self, link, search):
@@ -1094,7 +1098,9 @@ class PackageFinder(object):
             return None
 
         return InstallationCandidate(
-            search.supplied, location=link, version=result,
+            # Convert the Text result to str since InstallationCandidate
+            # accepts str.
+            search.supplied, location=link, version=str(result),
         )
 
     def _package_versions(
@@ -1229,6 +1235,7 @@ def _create_link_from_element(
 
     yanked_reason = anchor.get('data-yanked')
     if yanked_reason:
+        # This is a unicode string in Python 2 (and 3).
         yanked_reason = unescape(yanked_reason)
 
     link = Link(

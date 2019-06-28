@@ -218,7 +218,10 @@ class TestWheel:
         ]
         target_python = TargetPython()
         target_python._valid_tags = valid_tags
-        evaluator = CandidateEvaluator(target_python=target_python)
+        evaluator = CandidateEvaluator(
+            allow_yanked=True,
+            target_python=target_python,
+        )
         sort_key = evaluator._sort_key
         results = sorted(links, key=sort_key, reverse=True)
         results2 = sorted(reversed(links), key=sort_key, reverse=True)
@@ -426,7 +429,7 @@ class TestCandidateEvaluator(object):
     def setup(self):
         self.search_name = 'pytest'
         self.canonical_name = 'pytest'
-        self.evaluator = CandidateEvaluator()
+        self.evaluator = CandidateEvaluator(allow_yanked=True)
 
     @pytest.mark.parametrize('url, expected_version', [
         ('http:/yo/pytest-1.0.tar.gz', '1.0'),

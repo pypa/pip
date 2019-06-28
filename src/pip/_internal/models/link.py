@@ -11,7 +11,7 @@ from pip._internal.utils.models import KeyBasedCompareMixin
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, Tuple, Union
+    from typing import Optional, Text, Tuple, Union
     from pip._internal.index import HTMLPage
 
 
@@ -24,7 +24,7 @@ class Link(KeyBasedCompareMixin):
         url,                   # type: str
         comes_from=None,       # type: Optional[Union[str, HTMLPage]]
         requires_python=None,  # type: Optional[str]
-        yanked_reason=None,    # type: Optional[str]
+        yanked_reason=None,    # type: Optional[Text]
     ):
         # type: (...) -> None
         """

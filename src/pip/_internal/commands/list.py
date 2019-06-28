@@ -116,8 +116,10 @@ class ListCommand(Command):
         """
         search_scope = make_search_scope(options)
 
+        # Pass allow_yanked=False to ignore yanked versions.
         return PackageFinder.create(
             search_scope=search_scope,
+            allow_yanked=False,
             allow_all_prereleases=options.pre,
             trusted_hosts=options.trusted_hosts,
             session=session,
@@ -183,10 +185,7 @@ class ListCommand(Command):
                                       if not candidate.version.is_prerelease]
 
                 evaluator = finder.candidate_evaluator
-                # Pass allow_yanked=False to ignore yanked versions.
-                best_candidate = evaluator.get_best_candidate(
-                    all_candidates, allow_yanked=False,
-                )
+                best_candidate = evaluator.get_best_candidate(all_candidates)
                 if best_candidate is None:
                     continue
 

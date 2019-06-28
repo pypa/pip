@@ -125,17 +125,16 @@ def pip_version_check(session, options):
             # Lets use PackageFinder to see what the latest pip version is
             search_scope = make_search_scope(options, suppress_no_index=True)
 
+            # Pass allow_yanked=False so we don't suggest upgrading to a
+            # yanked version.
             finder = PackageFinder.create(
                 search_scope=search_scope,
+                allow_yanked=False,
                 allow_all_prereleases=False,  # Explicitly set to False
                 trusted_hosts=options.trusted_hosts,
                 session=session,
             )
-            # Pass allow_yanked=False so we don't suggest upgrading to a
-            # yanked version.
-            candidate = finder.find_candidates("pip").get_best(
-                allow_yanked=False,
-            )
+            candidate = finder.find_candidates("pip").get_best()
             if candidate is None:
                 return
             pypi_version = str(candidate.version)
