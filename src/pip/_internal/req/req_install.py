@@ -470,7 +470,7 @@ class InstallRequirement(object):
         return setup_py
 
     @property
-    def pyproject_toml(self):
+    def pyproject_toml_path(self):
         # type: () -> str
         assert self.source_dir, "No source dir for %s" % self
 
@@ -487,7 +487,7 @@ class InstallRequirement(object):
         """
         pyproject_toml_data = load_pyproject_toml(
             self.use_pep517,
-            self.pyproject_toml,
+            self.pyproject_toml_path,
             self.setup_py,
             str(self)
         )
