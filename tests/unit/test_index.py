@@ -9,7 +9,7 @@ from pip._internal.download import PipSession
 from pip._internal.index import (
     CandidateEvaluator, HTMLPage, Link, PackageFinder, Search,
     _check_link_requires_python, _clean_link, _determine_base_url,
-    _egg_info_matches, _find_name_version_sep, _get_html_page,
+    _extract_version_from_fragment, _find_name_version_sep, _get_html_page,
 )
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.search_scope import SearchScope
@@ -520,7 +520,7 @@ def test_secure_origin(location, trusted, expected):
 
 
 @pytest.mark.parametrize(
-    ("egg_info", "canonical_name", "expected"),
+    ("fragment", "canonical_name", "expected"),
     [
         # Trivial.
         ("pip-18.0", "pip", 3),
@@ -549,13 +549,13 @@ def test_secure_origin(location, trusted, expected):
         ("zope.interface-", "zope-interface", 14),
     ],
 )
-def test_find_name_version_sep(egg_info, canonical_name, expected):
-    index = _find_name_version_sep(egg_info, canonical_name)
+def test_find_name_version_sep(fragment, canonical_name, expected):
+    index = _find_name_version_sep(fragment, canonical_name)
     assert index == expected
 
 
 @pytest.mark.parametrize(
-    ("egg_info", "canonical_name"),
+    ("fragment", "canonical_name"),
     [
         # A dash must follow the package name.
         ("zope.interface4.5.0", "zope-interface"),
@@ -564,15 +564,15 @@ def test_find_name_version_sep(egg_info, canonical_name, expected):
         ("zope.interface", "zope-interface"),
     ],
 )
-def test_find_name_version_sep_failure(egg_info, canonical_name):
+def test_find_name_version_sep_failure(fragment, canonical_name):
     with pytest.raises(ValueError) as ctx:
-        _find_name_version_sep(egg_info, canonical_name)
-    message = "{} does not match {}".format(egg_info, canonical_name)
+        _find_name_version_sep(fragment, canonical_name)
+    message = "{} does not match {}".format(fragment, canonical_name)
     assert str(ctx.value) == message
 
 
 @pytest.mark.parametrize(
-    ("egg_info", "canonical_name", "expected"),
+    ("fragment", "canonical_name", "expected"),
     [
         # Trivial.
         ("pip-18.0", "pip", "18.0"),
@@ -604,8 +604,8 @@ def test_find_name_version_sep_failure(egg_info, canonical_name):
         ("zope.interface", "zope-interface", None),
     ],
 )
-def test_egg_info_matches(egg_info, canonical_name, expected):
-    version = _egg_info_matches(egg_info, canonical_name)
+def test_extract_version_from_fragment(fragment, canonical_name, expected):
+    version = _extract_version_from_fragment(fragment, canonical_name)
     assert version == expected
 
 

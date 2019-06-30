@@ -414,7 +414,9 @@ class CandidateEvaluator(object):
             return (False, 'No sources permitted for %s' % search.supplied)
 
         if not version:
-            version = _egg_info_matches(egg_info, search.canonical)
+            version = _extract_version_from_fragment(
+                egg_info, search.canonical,
+            )
         if not version:
             return (False, 'Missing project version for %s' % search.supplied)
 
@@ -1107,45 +1109,47 @@ class PackageFinder(object):
         return result
 
 
-def _find_name_version_sep(egg_info, canonical_name):
+def _find_name_version_sep(fragment, canonical_name):
     # type: (str, str) -> int
     """Find the separator's index based on the package's canonical name.
 
-    `egg_info` must be an egg info string for the given package, and
-    `canonical_name` must be the package's canonical name.
+    :param fragment: A <package>+<version> filename "fragment" (stem) or
+        egg fragment.
+    :param canonical_name: The package's canonical name.
 
     This function is needed since the canonicalized name does not necessarily
     have the same length as the egg info's name part. An example::
 
-    >>> egg_info = 'foo__bar-1.0'
+    >>> fragment = 'foo__bar-1.0'
     >>> canonical_name = 'foo-bar'
-    >>> _find_name_version_sep(egg_info, canonical_name)
+    >>> _find_name_version_sep(fragment, canonical_name)
     8
     """
     # Project name and version must be separated by one single dash. Find all
     # occurrences of dashes; if the string in front of it matches the canonical
     # name, this is the one separating the name and version parts.
-    for i, c in enumerate(egg_info):
+    for i, c in enumerate(fragment):
         if c != "-":
             continue
-        if canonicalize_name(egg_info[:i]) == canonical_name:
+        if canonicalize_name(fragment[:i]) == canonical_name:
             return i
-    raise ValueError("{} does not match {}".format(egg_info, canonical_name))
+    raise ValueError("{} does not match {}".format(fragment, canonical_name))
 
 
-def _egg_info_matches(egg_info, canonical_name):
+def _extract_version_from_fragment(fragment, canonical_name):
     # type: (str, str) -> Optional[str]
-    """Pull the version part out of a string.
+    """Parse the version string from a <package>+<version> filename
+    "fragment" (stem) or egg fragment.
 
-    :param egg_info: The string to parse. E.g. foo-2.1
+    :param fragment: The string to parse. E.g. foo-2.1
     :param canonical_name: The canonicalized name of the package this
         belongs to.
     """
     try:
-        version_start = _find_name_version_sep(egg_info, canonical_name) + 1
+        version_start = _find_name_version_sep(fragment, canonical_name) + 1
     except ValueError:
         return None
-    version = egg_info[version_start:]
+    version = fragment[version_start:]
     if not version:
         return None
     return version
