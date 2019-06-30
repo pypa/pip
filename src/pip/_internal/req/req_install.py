@@ -457,7 +457,7 @@ class InstallRequirement(object):
             self.link and self.link.subdirectory_fragment or '')
 
     @property
-    def setup_py(self):
+    def setup_py_path(self):
         # type: () -> str
         assert self.source_dir, "No source dir for %s" % self
 
@@ -488,7 +488,7 @@ class InstallRequirement(object):
         pyproject_toml_data = load_pyproject_toml(
             self.use_pep517,
             self.pyproject_toml_path,
-            self.setup_py,
+            self.setup_py_path,
             str(self)
         )
 
@@ -588,14 +588,14 @@ class InstallRequirement(object):
         if self.name:
             logger.debug(
                 'Running setup.py (path:%s) egg_info for package %s',
-                self.setup_py, self.name,
+                self.setup_py_path, self.name,
             )
         else:
             logger.debug(
                 'Running setup.py (path:%s) egg_info for package from %s',
-                self.setup_py, self.link,
+                self.setup_py_path, self.link,
             )
-        script = SETUPTOOLS_SHIM % self.setup_py
+        script = SETUPTOOLS_SHIM % self.setup_py_path
         base_cmd = [sys.executable, '-c', script]
         if self.isolated:
             base_cmd += ["--no-user-cfg"]
@@ -757,7 +757,7 @@ class InstallRequirement(object):
                     [
                         sys.executable,
                         '-c',
-                        SETUPTOOLS_SHIM % self.setup_py
+                        SETUPTOOLS_SHIM % self.setup_py_path
                     ] +
                     list(global_options) +
                     ['develop', '--no-deps'] +
@@ -1004,7 +1004,7 @@ class InstallRequirement(object):
         # type: (...) -> List[str]
         install_args = [sys.executable, "-u"]
         install_args.append('-c')
-        install_args.append(SETUPTOOLS_SHIM % self.setup_py)
+        install_args.append(SETUPTOOLS_SHIM % self.setup_py_path)
         install_args += list(global_options) + \
             ['install', '--record', record_filename]
         install_args += ['--single-version-externally-managed']
