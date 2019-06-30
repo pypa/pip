@@ -35,7 +35,7 @@ CURRENT_PY_VERSION_INFO = sys.version_info[:3]
 
 
 def assert_paths_equal(actual, expected):
-    os.path.normpath(actual) == os.path.normpath(expected)
+    assert os.path.normpath(actual) == os.path.normpath(expected)
 
 
 def path_to_url(path):
