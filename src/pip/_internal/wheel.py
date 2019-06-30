@@ -930,7 +930,7 @@ class WheelBuilder(object):
         # virtualenv.
         return [
             sys.executable, '-u', '-c',
-            SETUPTOOLS_SHIM % req.setup_py
+            SETUPTOOLS_SHIM % req.setup_py_path,
         ] + list(self.global_options)
 
     def _build_one_pep517(self, req, tempd, python_tag=None):
