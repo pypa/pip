@@ -11,6 +11,7 @@ from pip._vendor.packaging import version as packaging_version
 
 from pip._internal.cli.cmdoptions import make_search_scope
 from pip._internal.index import PackageFinder
+from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.misc import ensure_dir, get_installed_version
@@ -127,10 +128,14 @@ def pip_version_check(session, options):
 
             # Pass allow_yanked=False so we don't suggest upgrading to a
             # yanked version.
-            finder = PackageFinder.create(
-                search_scope=search_scope,
+            selection_prefs = SelectionPreferences(
                 allow_yanked=False,
                 allow_all_prereleases=False,  # Explicitly set to False
+            )
+
+            finder = PackageFinder.create(
+                search_scope=search_scope,
+                selection_prefs=selection_prefs,
                 trusted_hosts=options.trusted_hosts,
                 session=session,
             )

@@ -25,6 +25,7 @@ from pip._internal.exceptions import (
 )
 from pip._internal.index import PackageFinder
 from pip._internal.locations import running_under_virtualenv
+from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.req.constructors import (
     install_req_from_editable, install_req_from_line,
@@ -337,6 +338,13 @@ class RequirementCommand(Command):
             "Requires-Python" values in links. Defaults to False.
         """
         search_scope = make_search_scope(options)
+        selection_prefs = SelectionPreferences(
+            allow_yanked=True,
+            format_control=options.format_control,
+            allow_all_prereleases=options.pre,
+            prefer_binary=options.prefer_binary,
+            ignore_requires_python=ignore_requires_python,
+        )
 
         target_python = TargetPython(
             platform=platform,
@@ -347,12 +355,8 @@ class RequirementCommand(Command):
 
         return PackageFinder.create(
             search_scope=search_scope,
-            allow_yanked=True,
-            format_control=options.format_control,
+            selection_prefs=selection_prefs,
             trusted_hosts=options.trusted_hosts,
-            allow_all_prereleases=options.pre,
             session=session,
             target_python=target_python,
-            prefer_binary=options.prefer_binary,
-            ignore_requires_python=ignore_requires_python,
         )
