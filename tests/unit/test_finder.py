@@ -3,7 +3,7 @@ import sys
 
 import pytest
 from mock import Mock, patch
-from pkg_resources import Distribution, parse_version
+from pkg_resources import parse_version
 
 import pip._internal.pep425tags
 import pip._internal.wheel
@@ -11,7 +11,7 @@ from pip._internal.exceptions import (
     BestVersionAlreadyInstalled, DistributionNotFound,
 )
 from pip._internal.index import (
-    CandidateEvaluator, InstallationCandidate, Link, Search,
+    CandidateEvaluator, InstallationCandidate, Link, LinkEvaluator,
 )
 from pip._internal.models.target_python import TargetPython
 from pip._internal.req.constructors import install_req_from_line
@@ -216,12 +216,7 @@ class TestWheel:
             ('pyT', 'TEST', 'any'),
             ('pyT', 'none', 'any'),
         ]
-        target_python = TargetPython()
-        target_python._valid_tags = valid_tags
-        evaluator = CandidateEvaluator(
-            allow_yanked=True,
-            target_python=target_python,
-        )
+        evaluator = CandidateEvaluator(supported_tags=valid_tags)
         sort_key = evaluator._sort_key
         results = sorted(links, key=sort_key, reverse=True)
         results2 = sorted(reversed(links), key=sort_key, reverse=True)
@@ -419,17 +414,17 @@ def test_finder_installs_pre_releases_with_version_spec():
         assert link.url == "https://foo/bar-2.0b1.tar.gz"
 
 
-class TestCandidateEvaluator(object):
+class TestLinkEvaluator(object):
 
-    # patch this for travis which has distribute in its base env for now
-    @patch(
-        'pip._internal.wheel.pkg_resources.get_distribution',
-        lambda x: Distribution(project_name='setuptools', version='0.9')
-    )
-    def setup(self):
-        self.search_name = 'pytest'
-        self.canonical_name = 'pytest'
-        self.evaluator = CandidateEvaluator(allow_yanked=True)
+    def make_test_link_evaluator(self, formats):
+        target_python = TargetPython()
+        return LinkEvaluator(
+            project_name='pytest',
+            canonical_name='pytest',
+            formats=formats,
+            target_python=target_python,
+            allow_yanked=True,
+        )
 
     @pytest.mark.parametrize('url, expected_version', [
         ('http:/yo/pytest-1.0.tar.gz', '1.0'),
@@ -438,12 +433,8 @@ class TestCandidateEvaluator(object):
     def test_evaluate_link__match(self, url, expected_version):
         """Test that 'pytest' archives match for 'pytest'"""
         link = Link(url)
-        search = Search(
-            supplied=self.search_name,
-            canonical=self.canonical_name,
-            formats=['source', 'binary'],
-        )
-        actual = self.evaluator.evaluate_link(link, search)
+        evaluator = self.make_test_link_evaluator(formats=['source', 'binary'])
+        actual = evaluator.evaluate_link(link)
         assert actual == (True, expected_version)
 
     @pytest.mark.parametrize('url, expected_msg', [
@@ -457,12 +448,8 @@ class TestCandidateEvaluator(object):
     def test_evaluate_link__substring_fails(self, url, expected_msg):
         """Test that 'pytest<something> archives won't match for 'pytest'."""
         link = Link(url)
-        search = Search(
-            supplied=self.search_name,
-            canonical=self.canonical_name,
-            formats=['source', 'binary'],
-        )
-        actual = self.evaluator.evaluate_link(link, search)
+        evaluator = self.make_test_link_evaluator(formats=['source', 'binary'])
+        actual = evaluator.evaluate_link(link)
         assert actual == (False, expected_msg)
 
 

@@ -7,7 +7,6 @@ import logging
 import mimetypes
 import os
 import re
-from collections import namedtuple
 
 from pip._vendor import html5lib, requests, six
 from pip._vendor.distlib.compat import unescape
@@ -41,8 +40,8 @@ from pip._internal.wheel import Wheel
 if MYPY_CHECK_RUNNING:
     from logging import Logger
     from typing import (
-        Any, Callable, Iterable, Iterator, List, MutableMapping, Optional,
-        Sequence, Set, Text, Tuple, Union,
+        Any, Callable, FrozenSet, Iterable, Iterator, List, MutableMapping,
+        Optional, Sequence, Set, Text, Tuple, Union,
     )
     import xml.etree.ElementTree
     from pip._vendor.packaging.version import _BaseVersion
@@ -50,6 +49,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.models.search_scope import SearchScope
     from pip._internal.req import InstallRequirement
     from pip._internal.download import PipSession
+    from pip._internal.pep425tags import Pep425Tag
 
     BuildTag = Tuple[Any, ...]  # either empty tuple or Tuple[int, str]
     CandidateSortingKey = (
@@ -301,12 +301,13 @@ def _check_link_requires_python(
     return True
 
 
-class CandidateEvaluator(object):
+class LinkEvaluator(object):
 
     """
-    Responsible for filtering and sorting candidates for installation based
-    on what tags are valid.
+    Responsible for evaluating links for a particular project.
     """
+
+    _py_version_re = re.compile(r'-py([123]\.?[0-9]?)$')
 
     # Don't include an allow_yanked default value to make sure each call
     # site considers whether yanked releases are allowed. This also causes
@@ -314,49 +315,44 @@ class CandidateEvaluator(object):
     # people when reading the code.
     def __init__(
         self,
-        allow_yanked,  # type: bool
-        target_python=None,  # type: Optional[TargetPython]
-        prefer_binary=False,   # type: bool
-        allow_all_prereleases=False,  # type: bool
+        project_name,    # type: str
+        canonical_name,  # type: str
+        formats,         # type: FrozenSet
+        target_python,   # type: TargetPython
+        allow_yanked,    # type: bool
         ignore_requires_python=None,  # type: Optional[bool]
     ):
         # type: (...) -> None
         """
+        :param project_name: The user supplied package name.
+        :param canonical_name: The canonical package name.
+        :param formats: The formats allowed for this package. Should be a set
+            with 'binary' or 'source' or both in it.
+        :param target_python: The target Python interpreter to use when
+            evaluating link compatibility. This is used, for example, to
+            check wheel compatibility, as well as when checking the Python
+            version, e.g. the Python version embedded in a link filename
+            (or egg fragment) and against an HTML link's optional PEP 503
+            "data-requires-python" attribute.
         :param allow_yanked: Whether files marked as yanked (in the sense
             of PEP 592) are permitted to be candidates for install.
-        :param target_python: The target Python interpreter to use to check
-            both the Python version embedded in the filename and the package's
-            "Requires-Python" metadata. If None (the default), then a
-            TargetPython object will be constructed from the running Python.
-        :param allow_all_prereleases: Whether to allow all pre-releases.
         :param ignore_requires_python: Whether to ignore incompatible
-            "Requires-Python" values in links. Defaults to False.
+            PEP 503 "data-requires-python" values in HTML links. Defaults
+            to False.
         """
-        if target_python is None:
-            target_python = TargetPython()
         if ignore_requires_python is None:
             ignore_requires_python = False
 
         self._allow_yanked = allow_yanked
+        self._canonical_name = canonical_name
         self._ignore_requires_python = ignore_requires_python
-        self._prefer_binary = prefer_binary
+        self._formats = formats
         self._target_python = target_python
 
-        # We compile the regex here instead of as a class attribute so as
-        # not to impact pip start-up time.  This is also okay because
-        # CandidateEvaluator is generally instantiated only once per pip
-        # invocation (when PackageFinder is instantiated).
-        self._py_version_re = re.compile(r'-py([123]\.?[0-9]?)$')
+        self.project_name = project_name
 
-        self.allow_all_prereleases = allow_all_prereleases
-
-    def _is_wheel_supported(self, wheel):
-        # type: (Wheel) -> bool
-        valid_tags = self._target_python.get_tags()
-        return wheel.supported(valid_tags)
-
-    def evaluate_link(self, link, search):
-        # type: (Link, Search) -> Tuple[bool, Optional[Text]]
+    def evaluate_link(self, link):
+        # type: (Link) -> Tuple[bool, Optional[Text]]
         """
         Determine whether a link is a candidate for installation.
 
@@ -382,8 +378,8 @@ class CandidateEvaluator(object):
                 return (False, 'not a file')
             if ext not in SUPPORTED_EXTENSIONS:
                 return (False, 'unsupported archive format: %s' % ext)
-            if "binary" not in search.formats and ext == WHEEL_EXTENSION:
-                reason = 'No binaries permitted for %s' % search.supplied
+            if "binary" not in self._formats and ext == WHEEL_EXTENSION:
+                reason = 'No binaries permitted for %s' % self.project_name
                 return (False, reason)
             if "macosx10" in link.path and ext == '.zip':
                 return (False, 'macosx10 one')
@@ -392,11 +388,12 @@ class CandidateEvaluator(object):
                     wheel = Wheel(link.filename)
                 except InvalidWheelFilename:
                     return (False, 'invalid wheel filename')
-                if canonicalize_name(wheel.name) != search.canonical:
-                    reason = 'wrong project name (not %s)' % search.supplied
+                if canonicalize_name(wheel.name) != self._canonical_name:
+                    reason = 'wrong project name (not %s)' % self.project_name
                     return (False, reason)
 
-                if not self._is_wheel_supported(wheel):
+                supported_tags = self._target_python.get_tags()
+                if not wheel.supported(supported_tags):
                     # Include the wheel's tags in the reason string to
                     # simplify troubleshooting compatibility issues.
                     file_tags = wheel.get_formatted_file_tags()
@@ -409,16 +406,18 @@ class CandidateEvaluator(object):
 
                 version = wheel.version
 
-        # This should be up by the search.ok_binary check, but see issue 2700.
-        if "source" not in search.formats and ext != WHEEL_EXTENSION:
-            return (False, 'No sources permitted for %s' % search.supplied)
+        # This should be up by the self.ok_binary check, but see issue 2700.
+        if "source" not in self._formats and ext != WHEEL_EXTENSION:
+            return (False, 'No sources permitted for %s' % self.project_name)
 
         if not version:
             version = _extract_version_from_fragment(
-                egg_info, search.canonical,
+                egg_info, self._canonical_name,
             )
         if not version:
-            return (False, 'Missing project version for %s' % search.supplied)
+            return (
+                False, 'Missing project version for %s' % self.project_name,
+            )
 
         match = self._py_version_re.search(version)
         if match:
@@ -439,6 +438,36 @@ class CandidateEvaluator(object):
         logger.debug('Found link %s, version: %s', link, version)
 
         return (True, version)
+
+
+class CandidateEvaluator(object):
+
+    """
+    Responsible for filtering and sorting candidates for installation based
+    on what tags are valid.
+    """
+
+    def __init__(
+        self,
+        supported_tags=None,  # type: Optional[List[Pep425Tag]]
+        prefer_binary=False,  # type: bool
+        allow_all_prereleases=False,  # type: bool
+    ):
+        # type: (...) -> None
+        """
+        :param supported_tags: The PEP 425 tags supported by the target
+            Python in order of preference (most preferred first). If None,
+            then the list will be generated from the running Python.
+        :param allow_all_prereleases: Whether to allow all pre-releases.
+        """
+        if supported_tags is None:
+            target_python = TargetPython()
+            supported_tags = target_python.get_tags()
+
+        self._prefer_binary = prefer_binary
+        self._supported_tags = supported_tags
+
+        self.allow_all_prereleases = allow_all_prereleases
 
     def make_found_candidates(
         self,
@@ -490,7 +519,7 @@ class CandidateEvaluator(object):
         If not finding wheels, they are sorted by version only.
         If finding wheels, then the sort order is by version, then:
           1. existing installs
-          2. wheels ordered via Wheel.support_index_min(self._valid_tags)
+          2. wheels ordered via Wheel.support_index_min(self._supported_tags)
           3. source archives
         If prefer_binary was set, then all wheels are sorted above sources.
 
@@ -498,7 +527,7 @@ class CandidateEvaluator(object):
               comparison operators, but then different sdist links
               with the same version, would have to be considered equal
         """
-        valid_tags = self._target_python.get_tags()
+        valid_tags = self._supported_tags
         support_num = len(valid_tags)
         build_tag = tuple()  # type: BuildTag
         binary_preference = 0
@@ -506,7 +535,7 @@ class CandidateEvaluator(object):
         if link.is_wheel:
             # can raise InvalidWheelFilename
             wheel = Wheel(link.filename)
-            if not self._is_wheel_supported(wheel):
+            if not wheel.supported(valid_tags):
                 raise UnsupportedWheel(
                     "%s is not a supported wheel for this platform. It "
                     "can't be sorted." % wheel.filename
@@ -616,8 +645,11 @@ class PackageFinder(object):
         candidate_evaluator,  # type: CandidateEvaluator
         search_scope,         # type: SearchScope
         session,  # type: PipSession
+        target_python,        # type: TargetPython
+        allow_yanked,         # type: bool
         format_control=None,  # type: Optional[FormatControl]
         trusted_hosts=None,   # type: Optional[List[str]]
+        ignore_requires_python=None,  # type: Optional[bool]
     ):
         # type: (...) -> None
         """
@@ -634,6 +666,10 @@ class PackageFinder(object):
             trusted_hosts = []
 
         format_control = format_control or FormatControl(set(), set())
+
+        self._allow_yanked = allow_yanked
+        self._ignore_requires_python = ignore_requires_python
+        self._target_python = target_python
 
         self.candidate_evaluator = candidate_evaluator
         self.search_scope = search_scope
@@ -665,28 +701,34 @@ class PackageFinder(object):
         :param trusted_hosts: Domains not to emit warnings for when not using
             HTTPS.
         :param session: The Session to use to make requests.
-        :param target_python: The target Python interpreter.
+        :param target_python: The target Python interpreter to use when
+            checking compatibility. If None (the default), a TargetPython
+            object will be constructed from the running Python.
         """
         if session is None:
             raise TypeError(
                 "PackageFinder.create() missing 1 required keyword argument: "
                 "'session'"
             )
+        if target_python is None:
+            target_python = TargetPython()
 
+        supported_tags = target_python.get_tags()
         candidate_evaluator = CandidateEvaluator(
-            allow_yanked=selection_prefs.allow_yanked,
-            target_python=target_python,
+            supported_tags=supported_tags,
             prefer_binary=selection_prefs.prefer_binary,
             allow_all_prereleases=selection_prefs.allow_all_prereleases,
-            ignore_requires_python=selection_prefs.ignore_requires_python,
         )
 
         return cls(
             candidate_evaluator=candidate_evaluator,
             search_scope=search_scope,
             session=session,
+            target_python=target_python,
+            allow_yanked=selection_prefs.allow_yanked,
             format_control=selection_prefs.format_control,
             trusted_hosts=trusted_hosts,
+            ignore_requires_python=selection_prefs.ignore_requires_python,
         )
 
     @property
@@ -865,6 +907,20 @@ class PackageFinder(object):
 
         return False
 
+    def make_link_evaluator(self, project_name):
+        # type: (str) -> LinkEvaluator
+        canonical_name = canonicalize_name(project_name)
+        formats = self.format_control.get_allowed_formats(canonical_name)
+
+        return LinkEvaluator(
+            project_name=project_name,
+            canonical_name=canonical_name,
+            formats=formats,
+            target_python=self._target_python,
+            allow_yanked=self._allow_yanked,
+            ignore_requires_python=self._ignore_requires_python,
+        )
+
     def find_all_candidates(self, project_name):
         # type: (str) -> List[InstallationCandidate]
         """Find all available InstallationCandidate for project_name
@@ -872,7 +928,7 @@ class PackageFinder(object):
         This checks index_urls and find_links.
         All versions found are returned as an InstallationCandidate list.
 
-        See CandidateEvaluator.evaluate_link() for details on which files
+        See LinkEvaluator.evaluate_link() for details on which files
         are accepted.
         """
         search_scope = self.search_scope
@@ -903,13 +959,11 @@ class PackageFinder(object):
         for location in url_locations:
             logger.debug('* %s', location)
 
-        canonical_name = canonicalize_name(project_name)
-        formats = self.format_control.get_allowed_formats(canonical_name)
-        search = Search(project_name, canonical_name, formats)
+        link_evaluator = self.make_link_evaluator(project_name)
         find_links_versions = self._package_versions(
+            link_evaluator,
             # We trust every directly linked archive in find_links
             (Link(url, '-f') for url in self.find_links),
-            search
         )
 
         page_versions = []
@@ -917,10 +971,10 @@ class PackageFinder(object):
             logger.debug('Analyzing links from page %s', page.url)
             with indent_log():
                 page_versions.extend(
-                    self._package_versions(page.iter_links(), search)
+                    self._package_versions(link_evaluator, page.iter_links())
                 )
 
-        file_versions = self._package_versions(file_locations, search)
+        file_versions = self._package_versions(link_evaluator, file_locations)
         if file_versions:
             file_versions.sort(reverse=True)
             logger.debug(
@@ -1075,35 +1129,31 @@ class PackageFinder(object):
             logger.debug(u'Skipping link: %s: %s', reason, link)
             self._logged_links.add(link)
 
-    def get_install_candidate(self, link, search):
-        # type: (Link, Search) -> Optional[InstallationCandidate]
+    def get_install_candidate(self, link_evaluator, link):
+        # type: (LinkEvaluator, Link) -> Optional[InstallationCandidate]
         """
         If the link is a candidate for install, convert it to an
         InstallationCandidate and return it. Otherwise, return None.
         """
-        is_candidate, result = (
-            self.candidate_evaluator.evaluate_link(link, search=search)
-        )
+        is_candidate, result = link_evaluator.evaluate_link(link)
         if not is_candidate:
             if result:
                 self._log_skipped_link(link, reason=result)
             return None
 
         return InstallationCandidate(
+            project=link_evaluator.project_name,
+            location=link,
             # Convert the Text result to str since InstallationCandidate
             # accepts str.
-            search.supplied, location=link, version=str(result),
+            version=str(result),
         )
 
-    def _package_versions(
-        self,
-        links,  # type: Iterable[Link]
-        search  # type: Search
-    ):
-        # type: (...) -> List[InstallationCandidate]
+    def _package_versions(self, link_evaluator, links):
+        # type: (LinkEvaluator, Iterable[Link]) -> List[InstallationCandidate]
         result = []
         for link in self._sort_links(links):
-            candidate = self.get_install_candidate(link, search=search)
+            candidate = self.get_install_candidate(link_evaluator, link)
             if candidate is not None:
                 result.append(candidate)
         return result
@@ -1272,13 +1322,3 @@ class HTMLPage(object):
             if link is None:
                 continue
             yield link
-
-
-Search = namedtuple('Search', 'supplied canonical formats')
-"""Capture key aspects of a search.
-
-:attribute supplied: The user supplied package.
-:attribute canonical: The canonical package name.
-:attribute formats: The formats allowed for this package. Should be a set
-    with 'binary' or 'source' or both in it.
-"""

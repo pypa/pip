@@ -82,7 +82,9 @@ class TargetPython(object):
     def get_tags(self):
         # type: () -> List[Pep425Tag]
         """
-        Return the supported tags to check wheel candidates against.
+        Return the supported PEP 425 tags to check wheel candidates against.
+
+        The tags are returned in order of preference (most preferred first).
         """
         if self._valid_tags is None:
             # Pass versions=None if no py_version_info was given since
