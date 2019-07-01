@@ -67,15 +67,6 @@ class Path(_base):
 
     __itruediv__ = __idiv__
 
-    def __floordiv__(self, paths):
-        """
-        Returns a list of paths prefixed with 'self'.
-
-        >>> '/home/a' // [bc.d, ef.g]
-        [/home/a/bc.d, /home/a/ef.g]
-        """
-        return [Path(self, path) for path in paths]
-
     def __sub__(self, path):
         """
         Makes this path relative to another path.
@@ -125,14 +116,7 @@ class Path(_base):
         """
         '/home/a/bc.d' -> 'bc'
         """
-        return self.noext.name
-
-    @property
-    def noext(self):
-        """
-        '/home/a/bc.d' -> '/home/a/bc'
-        """
-        return Path(os.path.splitext(self)[0])
+        return Path(os.path.splitext(self)[0]).name
 
     @property
     def ext(self):
@@ -163,13 +147,6 @@ class Path(_base):
         return Path(os.path.normpath(self))
 
     @property
-    def normcase(self):
-        """
-        Deals with case-insensitive filesystems
-        """
-        return Path(os.path.normcase(self))
-
-    @property
     def folder(self):
         """
         Returns the folder of this path.
@@ -186,38 +163,6 @@ class Path(_base):
         Returns True if the path exists.
         """
         return os.path.exists(self)
-
-    @property
-    def atime(self):
-        """
-        Returns last accessed time.
-        """
-        return os.path.getatime(self)
-
-    @property
-    def mtime(self):
-        """
-        Returns last modified time.
-        """
-        return os.path.getmtime(self)
-
-    @property
-    def ctime(self):
-        """
-        Returns last changed time.
-        """
-        return os.path.getctime(self)
-
-    @classmethod
-    def supports_unicode(self):
-        """
-        Returns True if the system can handle Unicode file names.
-        """
-        return os.path.supports_unicode_filenames()
-
-    def walk(self, **kwargs):
-        """ Returns a generator that walks through a directory tree. """
-        return os.walk(self, **kwargs)
 
     def mkdir(self, mode=0x1FF):  # 0o777
         """
@@ -275,9 +220,6 @@ class Path(_base):
         Renames a file or directory. May throw an OSError.
         """
         return os.rename(self, to)
-
-    def renames(self, to):
-        return os.renames(self, to)
 
     def glob(self, pattern):
         return (Path(i) for i in glob.iglob(self.join(pattern)))
