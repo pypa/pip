@@ -14,7 +14,7 @@ def indent(text, prefix):
 def run_with_build_env(script, setup_script_contents,
                        test_script_contents=None):
     build_env_script = script.scratch_path / 'build_env.py'
-    build_env_script.write(
+    build_env_script.write_text(
         dedent(
             '''
             from __future__ import print_function
@@ -55,7 +55,7 @@ def run_with_build_env(script, setup_script_contents,
     args = ['python', build_env_script]
     if test_script_contents is not None:
         test_script = script.scratch_path / 'test.py'
-        test_script.write(dedent(test_script_contents))
+        test_script.write_text(dedent(test_script_contents))
         args.append(test_script)
     return script.run(*args)
 
@@ -173,7 +173,7 @@ def test_build_env_isolation(script):
     # And to another directory available through a .pth file.
     target = script.scratch_path / 'pth_install'
     script.pip_install_local('-t', target, pkg_whl)
-    (script.site_packages_path / 'build_requires.pth').write(
+    (script.site_packages_path / 'build_requires.pth').write_text(
         str(target) + '\n'
     )
 

@@ -13,7 +13,7 @@ def test_use_pep517(data, source, expected):
     """
     Test that we choose correctly between PEP 517 and legacy code paths
     """
-    src = data.src.join(source)
+    src = data.src.joinpath(source)
     req = InstallRequirement(None, None, source_dir=src)
     req.load_pyproject_toml()
     assert req.use_pep517 is expected
@@ -27,7 +27,7 @@ def test_disabling_pep517_invalid(data, source, msg):
     """
     Test that we fail if we try to disable PEP 517 when it's not acceptable
     """
-    src = data.src.join(source)
+    src = data.src.joinpath(source)
     req = InstallRequirement(None, None, source_dir=src)
 
     # Simulate --no-use-pep517

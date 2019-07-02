@@ -6,7 +6,6 @@ from __future__ import absolute_import
 import glob
 import os
 import shutil
-import sys
 
 from pip._vendor import six
 
@@ -112,14 +111,14 @@ class Path(_base):
         return os.path.basename(self)
 
     @property
-    def namebase(self):
+    def stem(self):
         """
         '/home/a/bc.d' -> 'bc'
         """
         return Path(os.path.splitext(self)[0]).name
 
     @property
-    def ext(self):
+    def suffix(self):
         """
         '/home/a/bc.d' -> '.d'
         """
@@ -132,8 +131,7 @@ class Path(_base):
         """
         return Path(os.path.abspath(self))
 
-    @property
-    def realpath(self):
+    def resolve(self):
         """
         Resolves symbolic links.
         """
@@ -147,9 +145,9 @@ class Path(_base):
         return Path(os.path.normpath(self))
 
     @property
-    def folder(self):
+    def parent(self):
         """
-        Returns the folder of this path.
+        Returns the parent directory of this path.
 
         '/home/a/bc.d' -> '/home/a'
         '/home/a/' -> '/home/a'
@@ -157,7 +155,6 @@ class Path(_base):
         """
         return Path(os.path.dirname(self))
 
-    @property
     def exists(self):
         """
         Returns True if the path exists.
@@ -168,7 +165,7 @@ class Path(_base):
         """
         Creates a directory, if it doesn't exist already.
         """
-        if not self.exists:
+        if not self.exists():
             os.mkdir(self, mode)
         return self
 
@@ -176,17 +173,15 @@ class Path(_base):
         """
         Like mkdir(), but also creates parent directories.
         """
-        if not self.exists:
+        if not self.exists():
             os.makedirs(self, mode)
         return self
 
-    def remove(self):
+    def unlink(self):
         """
         Removes a file.
         """
         return os.remove(self)
-
-    rm = remove  # Alias.
 
     def rmdir(self):
         """
@@ -222,16 +217,20 @@ class Path(_base):
         return os.rename(self, to)
 
     def glob(self, pattern):
-        return (Path(i) for i in glob.iglob(self.join(pattern)))
+        return (Path(i) for i in glob.iglob(self.joinpath(pattern)))
 
-    def join(self, *parts):
+    def joinpath(self, *parts):
         return Path(self, *parts)
+
+    # TODO: Remove after removing inheritance from str.
+    def join(self, *parts):
+        raise RuntimeError('Path.join is invalid, use joinpath instead.')
 
     def read_text(self):
         with open(self, "r") as fp:
             return fp.read()
 
-    def write(self, content):
+    def write_text(self, content):
         with open(self, "w") as fp:
             fp.write(content)
 

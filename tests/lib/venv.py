@@ -51,7 +51,7 @@ class VirtualEnvironment(object):
         if self._template:
             # On Windows, calling `_virtualenv.path_locations(target)`
             # will have created the `target` directory...
-            if sys.platform == 'win32' and self.location.exists:
+            if sys.platform == 'win32' and self.location.exists():
                 self.location.rmdir()
             # Clone virtual environment from template.
             self._template.location.copytree(self.location)
@@ -145,7 +145,7 @@ class VirtualEnvironment(object):
         if self._sitecustomize is not None:
             contents += '\n' + self._sitecustomize
         sitecustomize = self.site / "sitecustomize.py"
-        sitecustomize.write(contents)
+        sitecustomize.write_text(contents)
         # Make sure bytecode is up-to-date too.
         assert compileall.compile_file(str(sitecustomize), quiet=1, force=True)
 
@@ -176,7 +176,7 @@ class VirtualEnvironment(object):
         if self._venv_type == 'virtualenv':
             marker = self.lib / "no-global-site-packages.txt"
             if self._user_site_packages:
-                marker.rm()
+                marker.unlink()
             else:
                 marker.touch()
         elif self._venv_type == 'venv':

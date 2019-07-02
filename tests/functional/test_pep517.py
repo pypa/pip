@@ -11,7 +11,7 @@ def make_project(tmpdir, requires=[], backend=None):
     if backend:
         buildsys['build-backend'] = backend
     data = pytoml.dumps({'build-system': buildsys})
-    project_dir.join('pyproject.toml').write(data)
+    project_dir.joinpath('pyproject.toml').write_text(data)
     return project_dir
 
 
@@ -48,7 +48,7 @@ def test_pep517_install_with_reqs(script, tmpdir, data):
         tmpdir, requires=['test_backend'],
         backend="test_backend"
     )
-    project_dir.join("backend_reqs.txt").write("simplewheel")
+    project_dir.joinpath("backend_reqs.txt").write_text("simplewheel")
     result = script.pip(
         'install', '--no-index',
         '-f', data.backends,
@@ -78,7 +78,7 @@ def test_conflicting_pep517_backend_requirements(script, tmpdir, data):
         tmpdir, requires=['test_backend', 'simplewheel==1.0'],
         backend="test_backend"
     )
-    project_dir.join("backend_reqs.txt").write("simplewheel==2.0")
+    project_dir.joinpath("backend_reqs.txt").write_text("simplewheel==2.0")
     result = script.pip(
         'install', '--no-index',
         '-f', data.backends,
@@ -99,7 +99,7 @@ def test_pep517_backend_requirements_already_satisfied(script, tmpdir, data):
         tmpdir, requires=['test_backend', 'simplewheel==1.0'],
         backend="test_backend"
     )
-    project_dir.join("backend_reqs.txt").write("simplewheel")
+    project_dir.joinpath("backend_reqs.txt").write_text("simplewheel")
     result = script.pip(
         'install', '--no-index',
         '-f', data.backends,
@@ -158,10 +158,10 @@ def make_pyproject_with_setup(tmpdir, build_system=True, set_backend=True):
         'setup(name="pep517_test", version="0.1", packages=["pep517_test"])'
     )
 
-    project_dir.join('pyproject.toml').write(project_data)
-    project_dir.join('setup.py').write(setup_script)
+    project_dir.joinpath('pyproject.toml').write_text(project_data)
+    project_dir.joinpath('setup.py').write_text(setup_script)
     package_dir = (project_dir / "pep517_test").mkdir()
-    package_dir.join('__init__.py').write('__version__ = "0.1"')
+    package_dir.joinpath('__init__.py').write_text('__version__ = "0.1"')
     return project_dir, "pep517_test"
 
 

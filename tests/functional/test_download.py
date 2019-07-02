@@ -8,9 +8,9 @@ from tests.lib.path import Path
 
 
 def fake_wheel(data, wheel_path):
-    data.packages.join(
+    data.packages.joinpath(
         'simple.dist-0.1-py2.py3-none-any.whl'
-    ).copy(data.packages.join(wheel_path))
+    ).copy(data.packages.joinpath(wheel_path))
 
 
 @pytest.mark.network
@@ -61,7 +61,7 @@ def test_single_download_from_requirements_file(script):
     It should support download (in the scratch path) from PyPI from a
     requirements file
     """
-    script.scratch_path.join("test-req.txt").write(textwrap.dedent("""
+    script.scratch_path.joinpath("test-req.txt").write_text(textwrap.dedent("""
         INITools==0.1
         """))
     result = script.pip(
@@ -121,7 +121,7 @@ def test_download_should_skip_existing_files(script):
     """
     It should not download files already existing in the scratch dir
     """
-    script.scratch_path.join("test-req.txt").write(textwrap.dedent("""
+    script.scratch_path.joinpath("test-req.txt").write_text(textwrap.dedent("""
         INITools==0.1
         """))
 
@@ -133,7 +133,7 @@ def test_download_should_skip_existing_files(script):
     assert script.site_packages / 'initools' not in result.files_created
 
     # adding second package to test-req.txt
-    script.scratch_path.join("test-req.txt").write(textwrap.dedent("""
+    script.scratch_path.joinpath("test-req.txt").write_text(textwrap.dedent("""
         INITools==0.1
         python-openid==2.2.5
         """))
@@ -493,7 +493,7 @@ def make_wheel_with_python_requires(script, package_name, python_requires):
           python_requires='{}',
           version='1.0')
     """).format(package_name, python_requires)
-    package_dir.join('setup.py').write(text)
+    package_dir.joinpath('setup.py').write_text(text)
     script.run(
         'python', 'setup.py', 'bdist_wheel', '--universal', cwd=package_dir,
     )
@@ -674,7 +674,7 @@ def test_download_exit_status_code_when_blank_requirements_file(script):
     """
     Test download exit status code when blank requirements file specified
     """
-    script.scratch_path.join("blank.txt").write("\n")
+    script.scratch_path.joinpath("blank.txt").write_text("\n")
     script.pip('download', '-r', 'blank.txt')
 
 
@@ -699,7 +699,7 @@ def test_download_prefer_binary_when_tarball_higher_than_wheel(script, data):
 
 def test_download_prefer_binary_when_wheel_doesnt_satisfy_req(script, data):
     fake_wheel(data, 'source-0.8-py2.py3-none-any.whl')
-    script.scratch_path.join("test-req.txt").write(textwrap.dedent("""
+    script.scratch_path.joinpath("test-req.txt").write_text(textwrap.dedent("""
         source>0.9
         """))
 

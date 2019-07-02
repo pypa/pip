@@ -91,7 +91,7 @@ class TestRequirementSet(object):
         """
         reqset = RequirementSet()
         req = install_req_from_editable(
-            data.packages.join("LocalEnvironMarker")
+            data.packages.joinpath("LocalEnvironMarker")
         )
         req.is_direct = True
         reqset.add_requirement(req)
@@ -200,7 +200,7 @@ class TestRequirementSet(object):
             'git+git://github.com/pypa/pip-test-package --hash=sha256:123',
             lineno=1,
         ))
-        dir_path = data.packages.join('FSPkg')
+        dir_path = data.packages.joinpath('FSPkg')
         reqset.add_requirement(get_processed_req_from_line(
             'file://%s' % (dir_path,),
             lineno=2,
@@ -343,7 +343,7 @@ class TestInstallRequirement(object):
     def test_unsupported_wheel_local_file_requirement_raises(self, data):
         reqset = RequirementSet()
         req = install_req_from_line(
-            data.packages.join('simple.dist-0.1-py1-none-invalid.whl'),
+            data.packages.joinpath('simple.dist-0.1-py1-none-invalid.whl'),
         )
         assert req.link is not None
         assert req.link.is_wheel

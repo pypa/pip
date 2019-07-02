@@ -339,7 +339,7 @@ class TestUnpackArchives(object):
         """
         Test unpacking a *.tgz, and setting execute permissions
         """
-        test_file = data.packages.join("test_tar.tgz")
+        test_file = data.packages.joinpath("test_tar.tgz")
         untar_file(test_file, self.tempdir)
         self.confirm_files()
         # Check the timestamp of an extracted file
@@ -351,7 +351,7 @@ class TestUnpackArchives(object):
         """
         Test unpacking a *.zip, and setting execute permissions
         """
-        test_file = data.packages.join("test_zip.zip")
+        test_file = data.packages.joinpath("test_zip.zip")
         unzip_file(test_file, self.tempdir)
         self.confirm_files()
 
@@ -430,7 +430,7 @@ class TestHashes(object):
 
         """
         file = tmpdir / 'to_hash'
-        file.write('hello')
+        file.write_text('hello')
         hashes = Hashes({
             'sha256': ['2cf24dba5fb0a30e26e83b2ac5b9e29e'
                        '1b161e5c1fa7425e73043362938b9824'],
