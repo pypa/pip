@@ -34,7 +34,7 @@ from pip._internal.locations import (
     write_delete_marker_file,
 )
 from pip._internal.utils.compat import (
-    WINDOWS, console_to_str, expanduser, stdlib_pkgs,
+    WINDOWS, console_to_str, expanduser, stdlib_pkgs, str_to_display,
 )
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -738,19 +738,25 @@ def make_subprocess_output_error(
     :param lines: A list of lines, each ending with a newline.
     """
     command = format_command_args(cmd_args)
+    # Convert `command` to text (unicode in Python 2) so we can use it as
+    # an argument in the unicode format string below. This avoids
+    # "UnicodeDecodeError: 'ascii' codec can't decode byte ..." in Python 2
+    # when the formatted command contains a non-ascii character.
+    command_display = str_to_display(command, desc='command bytes')
+
     # We know the joined output value ends in a newline.
     output = ''.join(lines)
     msg = (
-        # We need to mark this explicitly as a unicode string to avoid
-        # "UnicodeEncodeError: 'ascii' codec can't encode character ..."
-        # errors in Python 2 since e.g. `output` is a unicode string.
+        # Use a unicode string to avoid "UnicodeEncodeError: 'ascii'
+        # codec can't encode character ..." in Python 2 when a format
+        # argument (e.g. `output`) has a non-ascii character.
         u'Command errored out with exit status {exit_status}:\n'
-        ' command: {command}\n'
+        ' command: {command_display}\n'
         '     cwd: {cwd}\n'
         'Complete output ({line_count} lines):\n{output}{divider}'
     ).format(
         exit_status=exit_status,
-        command=command,
+        command_display=command_display,
         cwd=cwd,
         line_count=len(lines),
         output=output,
