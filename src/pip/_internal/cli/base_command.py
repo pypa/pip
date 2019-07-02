@@ -324,10 +324,7 @@ class RequirementCommand(Command):
         self,
         options,               # type: Values
         session,               # type: PipSession
-        platform=None,         # type: Optional[str]
-        py_version_info=None,  # type: Optional[Tuple[int, ...]]
-        abi=None,              # type: Optional[str]
-        implementation=None,   # type: Optional[str]
+        target_python=None,    # type: Optional[TargetPython]
         ignore_requires_python=None,  # type: Optional[bool]
     ):
         # type: (...) -> PackageFinder
@@ -344,13 +341,6 @@ class RequirementCommand(Command):
             allow_all_prereleases=options.pre,
             prefer_binary=options.prefer_binary,
             ignore_requires_python=ignore_requires_python,
-        )
-
-        target_python = TargetPython(
-            platform=platform,
-            py_version_info=py_version_info,
-            abi=abi,
-            implementation=implementation,
         )
 
         return PackageFinder.create(

@@ -5,7 +5,8 @@ from pip._internal.utils.misc import normalize_version_info
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, Tuple
+    from typing import List, Optional, Tuple
+    from pip._internal.pep425tags import Pep425Tag
 
 
 class TargetPython(object):
@@ -54,9 +55,32 @@ class TargetPython(object):
         self.py_version_info = py_version_info
 
         # This is used to cache the return value of get_tags().
-        self._valid_tags = None
+        self._valid_tags = None  # type: Optional[List[Pep425Tag]]
+
+    def format_given(self):
+        # type: () -> str
+        """
+        Format the given, non-None attributes for display.
+        """
+        display_version = None
+        if self._given_py_version_info is not None:
+            display_version = '.'.join(
+                str(part) for part in self._given_py_version_info
+            )
+
+        key_values = [
+            ('platform', self.platform),
+            ('version_info', display_version),
+            ('abi', self.abi),
+            ('implementation', self.implementation),
+        ]
+        return ' '.join(
+            '{}={!r}'.format(key, value) for key, value in key_values
+            if value is not None
+        )
 
     def get_tags(self):
+        # type: () -> List[Pep425Tag]
         """
         Return the supported tags to check wheel candidates against.
         """

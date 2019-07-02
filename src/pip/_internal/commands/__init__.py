@@ -5,6 +5,7 @@ from __future__ import absolute_import
 
 from pip._internal.commands.completion import CompletionCommand
 from pip._internal.commands.configuration import ConfigurationCommand
+from pip._internal.commands.debug import DebugCommand
 from pip._internal.commands.download import DownloadCommand
 from pip._internal.commands.freeze import FreezeCommand
 from pip._internal.commands.hash import HashCommand
@@ -36,6 +37,7 @@ commands_order = [
     WheelCommand,
     HashCommand,
     CompletionCommand,
+    DebugCommand,
     HelpCommand,
 ]  # type: List[Type[Command]]
 

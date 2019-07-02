@@ -5,6 +5,7 @@ import os
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import RequirementCommand
+from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.legacy_resolve import Resolver
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import RequirementSet
@@ -69,10 +70,7 @@ class DownloadCommand(RequirementCommand):
             help=("Download packages into <dir>."),
         )
 
-        cmd_opts.add_option(cmdoptions.platform())
-        cmd_opts.add_option(cmdoptions.python_version())
-        cmd_opts.add_option(cmdoptions.implementation())
-        cmd_opts.add_option(cmdoptions.abi())
+        cmdoptions.add_target_python_options(cmd_opts)
 
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
@@ -96,13 +94,11 @@ class DownloadCommand(RequirementCommand):
         ensure_dir(options.download_dir)
 
         with self._build_session(options) as session:
+            target_python = make_target_python(options)
             finder = self._build_package_finder(
                 options=options,
                 session=session,
-                platform=options.platform,
-                py_version_info=options.python_version,
-                abi=options.abi,
-                implementation=options.implementation,
+                target_python=target_python,
             )
             build_delete = (not (options.no_clean or options.build_dir))
             if options.cache_dir and not check_path_owner(options.cache_dir):

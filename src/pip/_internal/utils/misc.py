@@ -28,6 +28,7 @@ from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
 
+from pip import __version__
 from pip._internal.exceptions import CommandError, InstallationError
 from pip._internal.locations import (
     running_under_virtualenv, site_packages, user_site, virtualenv_no_global,
@@ -102,6 +103,18 @@ try:
     SUPPORTED_EXTENSIONS += XZ_EXTENSIONS
 except ImportError:
     logger.debug('lzma module is not available')
+
+
+def get_pip_version():
+    # type: () -> str
+    pip_pkg_dir = os.path.join(os.path.dirname(__file__), "..", "..")
+    pip_pkg_dir = os.path.abspath(pip_pkg_dir)
+
+    return (
+        'pip {} from {} (python {})'.format(
+            __version__, pip_pkg_dir, sys.version[:3],
+        )
+    )
 
 
 def normalize_version_info(py_version_info):

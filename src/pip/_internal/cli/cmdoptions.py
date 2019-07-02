@@ -22,6 +22,7 @@ from pip._internal.locations import USER_CACHE_DIR, src_prefix
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.index import PyPI
 from pip._internal.models.search_scope import SearchScope
+from pip._internal.models.target_python import TargetPython
 from pip._internal.utils.hashes import STRONG_HASHES
 from pip._internal.utils.misc import redact_password_from_url
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -356,6 +357,7 @@ def find_links():
 
 
 def make_search_scope(options, suppress_no_index=False):
+    # type: (Values, bool) -> SearchScope
     """
     :param suppress_no_index: Whether to ignore the --no-index option
         when constructing the SearchScope object.
@@ -598,6 +600,26 @@ abi = partial(
           "--platform, and --python-version when using "
           "this option."),
 )  # type: Callable[..., Option]
+
+
+def add_target_python_options(cmd_opts):
+    # type: (OptionGroup) -> None
+    cmd_opts.add_option(platform())
+    cmd_opts.add_option(python_version())
+    cmd_opts.add_option(implementation())
+    cmd_opts.add_option(abi())
+
+
+def make_target_python(options):
+    # type: (Values) -> TargetPython
+    target_python = TargetPython(
+        platform=options.platform,
+        py_version_info=options.python_version,
+        abi=options.abi,
+        implementation=options.implementation,
+    )
+
+    return target_python
 
 
 def prefer_binary():
