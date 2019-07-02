@@ -101,6 +101,7 @@ def test_rev_options_make_new():
 @pytest.mark.parametrize('sha, expected', [
     ((40 * 'a'), True),
     ((40 * 'A'), True),
+    # Test a string containing all valid characters.
     ((18 * 'a' + '0123456789abcdefABCDEF'), True),
     ((40 * 'g'), False),
     ((39 * 'a'), False),
