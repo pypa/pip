@@ -19,7 +19,8 @@ def glibc_version_string():
     except (AttributeError, OSError, ValueError):
         pass  # os.confstr() or CS_GNU_LIBC_VERSION not available...
     else:
-        return glibc_version[-1] if len(glibc_version) == 2 else None
+        if len(glibc_version) == 2:
+            return glibc_version[-1]
 
     try:
         import ctypes
