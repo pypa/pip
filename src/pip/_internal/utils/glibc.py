@@ -37,12 +37,14 @@ def glibc_version_string():
         # Symbol doesn't exist -> therefore, we are not linked to
         # glibc.
         return None
+
     # Call gnu_get_libc_version, which returns a string like "2.5"
     gnu_get_libc_version.restype = ctypes.c_char_p
     version_str = gnu_get_libc_version()
     # py2 / py3 compatibility:
     if not isinstance(version_str, str):
         version_str = version_str.decode("ascii")
+
     return version_str
 
 
