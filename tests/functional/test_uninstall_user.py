@@ -54,7 +54,7 @@ class Tests_UninstallUserSite:
         script.user_site_path.makedirs()
 
         # install
-        to_install = data.packages.join("FSPkg")
+        to_install = data.packages.joinpath("FSPkg")
         result1 = script.pip(
             'install', '--user', '-e', to_install, expect_error=False,
         )

@@ -26,8 +26,8 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.models.target_python import TargetPython
 
 
-DATA_DIR = Path(__file__).folder.folder.join("data").abspath
-SRC_DIR = Path(__file__).abspath.folder.folder.folder
+DATA_DIR = Path(__file__).parent.parent.joinpath("data").abspath
+SRC_DIR = Path(__file__).abspath.parent.parent.parent
 
 pyversion = sys.version[:3]
 pyversion_tuple = sys.version_info
@@ -144,31 +144,31 @@ class TestData(object):
 
     @property
     def packages(self):
-        return self.root.join("packages")
+        return self.root.joinpath("packages")
 
     @property
     def packages2(self):
-        return self.root.join("packages2")
+        return self.root.joinpath("packages2")
 
     @property
     def packages3(self):
-        return self.root.join("packages3")
+        return self.root.joinpath("packages3")
 
     @property
     def src(self):
-        return self.root.join("src")
+        return self.root.joinpath("src")
 
     @property
     def indexes(self):
-        return self.root.join("indexes")
+        return self.root.joinpath("indexes")
 
     @property
     def reqfiles(self):
-        return self.root.join("reqfiles")
+        return self.root.joinpath("reqfiles")
 
     @property
     def completion_paths(self):
-        return self.root.join("completion_paths")
+        return self.root.joinpath("completion_paths")
 
     @property
     def find_links(self):
@@ -184,10 +184,10 @@ class TestData(object):
 
     @property
     def backends(self):
-        return path_to_url(self.root.join("backends"))
+        return path_to_url(self.root.joinpath("backends"))
 
     def index_url(self, index="simple"):
-        return path_to_url(self.root.join("indexes", index))
+        return path_to_url(self.root.joinpath("indexes", index))
 
 
 class TestFailure(AssertionError):
@@ -414,24 +414,24 @@ class PipTestEnvironment(TestFileEnvironment):
         self.site_packages_path = venv.site
         self.bin_path = venv.bin
 
-        self.user_base_path = self.venv_path.join("user")
-        self.user_site_path = self.venv_path.join(
+        self.user_base_path = self.venv_path.joinpath("user")
+        self.user_site_path = self.venv_path.joinpath(
             "user",
             site.USER_SITE[len(site.USER_BASE) + 1:],
         )
         if sys.platform == 'win32':
             if sys.version_info >= (3, 5):
-                scripts_base = self.user_site_path.join('..').normpath
+                scripts_base = self.user_site_path.joinpath('..').normpath
             else:
                 scripts_base = self.user_base_path
-            self.user_bin_path = scripts_base.join('Scripts')
+            self.user_bin_path = scripts_base.joinpath('Scripts')
         else:
-            self.user_bin_path = self.user_base_path.join(
+            self.user_bin_path = self.user_base_path.joinpath(
                 self.bin_path - self.venv_path
             )
 
         # Create a Directory to use as a scratch pad
-        self.scratch_path = base_path.join("scratch").mkdir()
+        self.scratch_path = base_path.joinpath("scratch").mkdir()
 
         # Set our default working directory
         kwargs.setdefault("cwd", self.scratch_path)
@@ -472,7 +472,7 @@ class PipTestEnvironment(TestFileEnvironment):
         # create easy-install.pth in user_site, so we always have it updated
         #   instead of created
         self.user_site_path.makedirs()
-        self.user_site_path.join("easy-install.pth").touch()
+        self.user_site_path.joinpath("easy-install.pth").touch()
 
     def _ignore_file(self, fn):
         if fn.endswith('__pycache__') or fn.endswith(".pyc"):
@@ -661,7 +661,7 @@ def _create_main_file(dir_path, name=None, output=None):
         print({!r})
     """.format(output))
     filename = '{}.py'.format(name)
-    dir_path.join(filename).write(text)
+    dir_path.joinpath(filename).write_text(text)
 
 
 def _git_commit(env_or_script, repo_dir, message=None, args=None,
@@ -730,10 +730,10 @@ def _vcs_add(script, version_pkg_path, vcs='git'):
 
 
 def _create_test_package_with_subdirectory(script, subdirectory):
-    script.scratch_path.join("version_pkg").mkdir()
+    script.scratch_path.joinpath("version_pkg").mkdir()
     version_pkg_path = script.scratch_path / 'version_pkg'
     _create_main_file(version_pkg_path, name="version_pkg", output="0.1")
-    version_pkg_path.join("setup.py").write(
+    version_pkg_path.joinpath("setup.py").write_text(
         textwrap.dedent("""
     from setuptools import setup, find_packages
     setup(name='version_pkg',
@@ -743,11 +743,11 @@ def _create_test_package_with_subdirectory(script, subdirectory):
           entry_points=dict(console_scripts=['version_pkg=version_pkg:main']))
         """))
 
-    subdirectory_path = version_pkg_path.join(subdirectory)
+    subdirectory_path = version_pkg_path.joinpath(subdirectory)
     subdirectory_path.mkdir()
     _create_main_file(subdirectory_path, name="version_subpkg", output="0.1")
 
-    subdirectory_path.join('setup.py').write(
+    subdirectory_path.joinpath('setup.py').write_text(
         textwrap.dedent("""
 from setuptools import setup, find_packages
 setup(name='version_subpkg',
@@ -765,16 +765,16 @@ setup(name='version_subpkg',
 
 
 def _create_test_package_with_srcdir(script, name='version_pkg', vcs='git'):
-    script.scratch_path.join(name).mkdir()
+    script.scratch_path.joinpath(name).mkdir()
     version_pkg_path = script.scratch_path / name
-    subdir_path = version_pkg_path.join('subdir')
+    subdir_path = version_pkg_path.joinpath('subdir')
     subdir_path.mkdir()
-    src_path = subdir_path.join('src')
+    src_path = subdir_path.joinpath('src')
     src_path.mkdir()
-    pkg_path = src_path.join('pkg')
+    pkg_path = src_path.joinpath('pkg')
     pkg_path.mkdir()
-    pkg_path.join('__init__.py').write('')
-    subdir_path.join("setup.py").write(textwrap.dedent("""
+    pkg_path.joinpath('__init__.py').write_text('')
+    subdir_path.joinpath("setup.py").write_text(textwrap.dedent("""
         from setuptools import setup, find_packages
         setup(
             name='{name}',
@@ -787,10 +787,10 @@ def _create_test_package_with_srcdir(script, name='version_pkg', vcs='git'):
 
 
 def _create_test_package(script, name='version_pkg', vcs='git'):
-    script.scratch_path.join(name).mkdir()
+    script.scratch_path.joinpath(name).mkdir()
     version_pkg_path = script.scratch_path / name
     _create_main_file(version_pkg_path, name=name, output='0.1')
-    version_pkg_path.join("setup.py").write(textwrap.dedent("""
+    version_pkg_path.joinpath("setup.py").write_text(textwrap.dedent("""
         from setuptools import setup, find_packages
         setup(
             name='{name}',
@@ -852,16 +852,16 @@ def requirements_file(contents, tmpdir):
 
     """
     path = tmpdir / 'reqs.txt'
-    path.write(contents)
+    path.write_text(contents)
     yield path
-    path.remove()
+    path.unlink()
 
 
 def create_test_package_with_setup(script, **setup_kwargs):
     assert 'name' in setup_kwargs, setup_kwargs
     pkg_path = script.scratch_path / setup_kwargs['name']
     pkg_path.mkdir()
-    pkg_path.join("setup.py").write(textwrap.dedent("""
+    pkg_path.joinpath("setup.py").write_text(textwrap.dedent("""
         from setuptools import setup
         kwargs = %r
         setup(**kwargs)
@@ -941,8 +941,8 @@ def create_basic_wheel_for_package(script, name, version,
 
     for fname in files:
         path = script.temp_path / fname
-        path.folder.mkdir()
-        path.write(files[fname])
+        path.parent.mkdir()
+        path.write_text(files[fname])
 
     retval = script.scratch_path / archive_name
     generated = shutil.make_archive(retval, 'zip', script.temp_path)

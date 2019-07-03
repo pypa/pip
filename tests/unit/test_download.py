@@ -24,7 +24,7 @@ from tests.lib import create_file
 
 @pytest.fixture(scope="function")
 def cache_tmpdir(tmpdir):
-    cache_dir = tmpdir.join("cache")
+    cache_dir = tmpdir.joinpath("cache")
     cache_dir.makedirs()
     yield cache_dir
 
@@ -43,7 +43,7 @@ def test_unpack_http_url_with_urllib_response_without_content_type(data):
     session = Mock()
     session.get = _fake_session_get
 
-    uri = path_to_url(data.packages.join("simple-1.0.tar.gz"))
+    uri = path_to_url(data.packages.joinpath("simple-1.0.tar.gz"))
     link = Link(uri)
     temp_dir = mkdtemp()
     try:
@@ -270,7 +270,7 @@ def test_download_http_url__no_directory_traversal(tmpdir):
     }
     session.get.return_value = resp
 
-    download_dir = tmpdir.join('download')
+    download_dir = tmpdir.joinpath('download')
     os.mkdir(download_dir)
     file_path, content_type = _download_http_url(
         link,
@@ -319,14 +319,14 @@ def test_url_to_path_path_to_url_symmetry_win():
 class Test_unpack_file_url(object):
 
     def prep(self, tmpdir, data):
-        self.build_dir = tmpdir.join('build')
-        self.download_dir = tmpdir.join('download')
+        self.build_dir = tmpdir.joinpath('build')
+        self.download_dir = tmpdir.joinpath('download')
         os.mkdir(self.build_dir)
         os.mkdir(self.download_dir)
         self.dist_file = "simple-1.0.tar.gz"
         self.dist_file2 = "simple-2.0.tar.gz"
-        self.dist_path = data.packages.join(self.dist_file)
-        self.dist_path2 = data.packages.join(self.dist_file2)
+        self.dist_path = data.packages.joinpath(self.dist_file)
+        self.dist_path2 = data.packages.joinpath(self.dist_file2)
         self.dist_url = Link(path_to_url(self.dist_path))
         self.dist_url2 = Link(path_to_url(self.dist_path2))
 
@@ -406,7 +406,7 @@ class Test_unpack_file_url(object):
 
     def test_unpack_file_url_thats_a_dir(self, tmpdir, data):
         self.prep(tmpdir, data)
-        dist_path = data.packages.join("FSPkg")
+        dist_path = data.packages.joinpath("FSPkg")
         dist_url = Link(path_to_url(dist_path))
         unpack_file_url(dist_url, self.build_dir,
                         download_dir=self.download_dir)
@@ -462,21 +462,21 @@ class TestPipSession:
         assert not hasattr(session.adapters["https://"], "cache")
 
     def test_cache_is_enabled(self, tmpdir):
-        session = PipSession(cache=tmpdir.join("test-cache"))
+        session = PipSession(cache=tmpdir.joinpath("test-cache"))
 
         assert hasattr(session.adapters["https://"], "cache")
 
         assert (session.adapters["https://"].cache.directory ==
-                tmpdir.join("test-cache"))
+                tmpdir.joinpath("test-cache"))
 
     def test_http_cache_is_not_enabled(self, tmpdir):
-        session = PipSession(cache=tmpdir.join("test-cache"))
+        session = PipSession(cache=tmpdir.joinpath("test-cache"))
 
         assert not hasattr(session.adapters["http://"], "cache")
 
     def test_insecure_host_cache_is_not_enabled(self, tmpdir):
         session = PipSession(
-            cache=tmpdir.join("test-cache"),
+            cache=tmpdir.joinpath("test-cache"),
             insecure_hosts=["example.com"],
         )
 

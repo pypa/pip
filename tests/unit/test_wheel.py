@@ -250,7 +250,7 @@ def test_get_legacy_build_wheel_path__multiple_names(caplog):
                          ["pip = pip._internal.main:pip",
                           "pip:pip = pip._internal.main:pip"])
 def test_get_entrypoints(tmpdir, console_scripts):
-    entry_points = tmpdir.join("entry_points.txt")
+    entry_points = tmpdir.joinpath("entry_points.txt")
     with open(str(entry_points), "w") as fp:
         fp.write("""
             [console_scripts]
@@ -290,8 +290,8 @@ def test_sorted_outrows(outrows, expected):
 
 
 def call_get_csv_rows_for_installed(tmpdir, text):
-    path = tmpdir.join('temp.txt')
-    path.write(text)
+    path = tmpdir.joinpath('temp.txt')
+    path.write_text(text)
 
     # Test that an installed file appearing in RECORD has its filename
     # updated in the new RECORD file.
@@ -353,9 +353,9 @@ def test_wheel_version(tmpdir, data):
     broken_wheel = 'brokenwheel-1.0-py2.py3-none-any.whl'
     future_version = (1, 9)
 
-    unpack_file(data.packages.join(future_wheel),
+    unpack_file(data.packages.joinpath(future_wheel),
                 tmpdir + 'future', None, None)
-    unpack_file(data.packages.join(broken_wheel),
+    unpack_file(data.packages.joinpath(broken_wheel),
                 tmpdir + 'broken', None, None)
 
     assert wheel.wheel_version(tmpdir + 'future') == future_version
@@ -593,11 +593,11 @@ class TestWheelFile(object):
         Test the "wheel is purelib/platlib" code.
         """
         packages = [
-            ("pure_wheel", data.packages.join("pure_wheel-1.7"), True),
-            ("plat_wheel", data.packages.join("plat_wheel-1.7"), False),
-            ("pure_wheel", data.packages.join(
+            ("pure_wheel", data.packages.joinpath("pure_wheel-1.7"), True),
+            ("plat_wheel", data.packages.joinpath("plat_wheel-1.7"), False),
+            ("pure_wheel", data.packages.joinpath(
                 "pure_wheel-_invalidversion_"), True),
-            ("plat_wheel", data.packages.join(
+            ("plat_wheel", data.packages.joinpath(
                 "plat_wheel-_invalidversion_"), False),
         ]
 
@@ -620,7 +620,7 @@ class TestMoveWheelFiles(object):
 
     def prep(self, data, tmpdir):
         self.name = 'sample'
-        self.wheelpath = data.packages.join(
+        self.wheelpath = data.packages.joinpath(
             'sample-1.2.0-py2.py3-none-any.whl')
         self.req = Requirement('sample')
         self.src = os.path.join(tmpdir, 'src')
@@ -820,7 +820,7 @@ class TestMessageAboutScriptsNotOnPATH(object):
 class TestWheelHashCalculators(object):
 
     def prep(self, tmpdir):
-        self.test_file = tmpdir.join("hash.file")
+        self.test_file = tmpdir.joinpath("hash.file")
         # Want this big enough to trigger the internal read loops.
         self.test_file_len = 2 * 1024 * 1024
         with open(str(self.test_file), "w") as fp:

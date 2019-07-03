@@ -25,7 +25,7 @@ def test_show_with_files_not_found(script, data):
     Test for show command with installed files listing enabled and
     installed-files.txt not found.
     """
-    editable = data.packages.join('SetupPyUTF8')
+    editable = data.packages.joinpath('SetupPyUTF8')
     script.pip('install', '-e', editable)
     result = script.pip('show', '-f', 'SetupPyUTF8')
     lines = result.stdout.splitlines()
@@ -42,7 +42,7 @@ def test_show_with_files_from_wheel(script, data):
     """
     Test that a wheel's files can be listed
     """
-    wheel_file = data.packages.join('simple.dist-0.1-py2.py3-none-any.whl')
+    wheel_file = data.packages.joinpath('simple.dist-0.1-py2.py3-none-any.whl')
     script.pip('install', '--no-index', wheel_file)
     result = script.pip('show', '-f', 'simple.dist')
     lines = result.stdout.splitlines()
@@ -113,7 +113,7 @@ def test_show_verbose_installer(script, data):
     """
     Test that the installer is shown (this currently needs a wheel install)
     """
-    wheel_file = data.packages.join('simple.dist-0.1-py2.py3-none-any.whl')
+    wheel_file = data.packages.joinpath('simple.dist-0.1-py2.py3-none-any.whl')
     script.pip('install', '--no-index', wheel_file)
     result = script.pip('show', '--verbose', 'simple.dist')
     lines = result.stdout.splitlines()

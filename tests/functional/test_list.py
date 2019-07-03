@@ -403,10 +403,12 @@ def test_outdated_pre(script, data):
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
 
     # Let's build a fake wheelhouse
-    script.scratch_path.join("wheelhouse").mkdir()
+    script.scratch_path.joinpath("wheelhouse").mkdir()
     wheelhouse_path = script.scratch_path / 'wheelhouse'
-    wheelhouse_path.join('simple-1.1-py2.py3-none-any.whl').write('')
-    wheelhouse_path.join('simple-2.0.dev0-py2.py3-none-any.whl').write('')
+    wheelhouse_path.joinpath('simple-1.1-py2.py3-none-any.whl').write_text('')
+    wheelhouse_path.joinpath(
+        'simple-2.0.dev0-py2.py3-none-any.whl'
+    ).write_text('')
     result = script.pip(
         'list', '--no-index', '--find-links', wheelhouse_path,
         '--format=json',
@@ -432,9 +434,9 @@ def test_outdated_formats(script, data):
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
 
     # Let's build a fake wheelhouse
-    script.scratch_path.join("wheelhouse").mkdir()
+    script.scratch_path.joinpath("wheelhouse").mkdir()
     wheelhouse_path = script.scratch_path / 'wheelhouse'
-    wheelhouse_path.join('simple-1.1-py2.py3-none-any.whl').write('')
+    wheelhouse_path.joinpath('simple-1.1-py2.py3-none-any.whl').write_text('')
     result = script.pip(
         'list', '--no-index', '--find-links', wheelhouse_path,
         '--format=freeze',

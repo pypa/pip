@@ -49,7 +49,7 @@ def test_cleanup_after_install_editable_from_hg(script, tmpdir):
         '%s#egg=ScriptTest' %
         local_checkout(
             'hg+https://bitbucket.org/ianb/scripttest',
-            tmpdir.join("cache"),
+            tmpdir.joinpath("cache"),
         ),
         expect_error=True,
     )
@@ -64,7 +64,7 @@ def test_cleanup_after_install_from_local_directory(script, data):
     """
     Test clean up after installing from a local directory.
     """
-    to_install = data.packages.join("FSPkg")
+    to_install = data.packages.joinpath("FSPkg")
     script.pip('install', to_install, expect_error=False)
     build = script.venv_path / 'build'
     src = script.venv_path / 'src'
@@ -83,7 +83,7 @@ def test_cleanup_req_satisifed_no_name(script, data):
     # 2 examples of reqs that would do this
     # 1) https://bitbucket.org/ianb/initools/get/tip.zip
     # 2) parent-0.1.tar.gz
-    dist = data.packages.join("parent-0.1.tar.gz")
+    dist = data.packages.joinpath("parent-0.1.tar.gz")
 
     script.pip('install', dist)
     script.pip('install', dist)
@@ -130,7 +130,7 @@ def test_cleanup_prevented_upon_build_dir_exception(script, data):
     build_simple = build / 'simple'
     os.makedirs(build_simple)
     write_delete_marker_file(build_simple)
-    build_simple.join("setup.py").write("#")
+    build_simple.joinpath("setup.py").write_text("#")
     result = script.pip(
         'install', '-f', data.find_links, '--no-index', 'simple',
         '--build', build,
