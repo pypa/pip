@@ -294,7 +294,7 @@ class InstallRequirement(object):
         return s
 
     def build_location(self, build_dir):
-        # type: (str) -> Optional[str]
+        # type: (str) -> str
         assert build_dir is not None
         if self._temp_build_dir.path is not None:
             return self._temp_build_dir.path
