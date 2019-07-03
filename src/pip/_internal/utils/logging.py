@@ -21,11 +21,31 @@ except ImportError:
 
 
 try:
-    from pip._vendor import colorama
+    # Use "import as" and set colorama in the else clause to avoid mypy
+    # errors and get the following correct revealed type for colorama:
+    # `Union[_importlib_modulespec.ModuleType, None]`
+    # Otherwise, we get an error like the following in the except block:
+    #  > Incompatible types in assignment (expression has type "None",
+    #   variable has type Module)
+    # TODO: eliminate the need to use "import as" once mypy addresses some
+    #  of its issues with conditional imports. Here is an umbrella issue:
+    #  https://github.com/python/mypy/issues/1297
+    from pip._vendor import colorama as _colorama
 # Lots of different errors can come from this, including SystemError and
 # ImportError.
 except Exception:
     colorama = None
+else:
+    # Import Fore explicitly rather than accessing below as colorama.Fore
+    # to avoid the following error running mypy:
+    # > Module has no attribute "Fore"
+    # TODO: eliminate the need to import Fore once mypy addresses some of its
+    #  issues with conditional imports. This particular case could be an
+    #  instance of the following issue (but also see the umbrella issue above):
+    #  https://github.com/python/mypy/issues/3500
+    from pip._vendor.colorama import Fore
+
+    colorama = _colorama
 
 
 _log_state = threading.local()
@@ -153,8 +173,8 @@ class ColorizedStreamHandler(logging.StreamHandler):
     if colorama:
         COLORS = [
             # This needs to be in order from highest logging level to lowest.
-            (logging.ERROR, _color_wrap(colorama.Fore.RED)),
-            (logging.WARNING, _color_wrap(colorama.Fore.YELLOW)),
+            (logging.ERROR, _color_wrap(Fore.RED)),
+            (logging.WARNING, _color_wrap(Fore.YELLOW)),
         ]
     else:
         COLORS = []
