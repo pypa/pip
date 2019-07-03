@@ -821,7 +821,7 @@ def call_subprocess(
     unset_environ=None,  # type: Optional[Iterable[str]]
     spinner=None  # type: Optional[SpinnerInterface]
 ):
-    # type: (...) -> Optional[Text]
+    # type: (...) -> Text
     """
     Args:
       show_stdout: if true, use INFO to log the subprocess's stderr and

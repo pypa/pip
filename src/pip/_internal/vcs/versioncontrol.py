@@ -550,7 +550,7 @@ class VersionControl(object):
         extra_environ=None,  # type: Optional[Mapping[str, Any]]
         spinner=None  # type: Optional[SpinnerInterface]
     ):
-        # type: (...) -> Optional[Text]
+        # type: (...) -> Text
         """
         Run a VCS subcommand
         This is simply a wrapper around call_subprocess that adds the VCS
