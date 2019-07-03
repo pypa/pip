@@ -739,7 +739,6 @@ class TestGlibc(object):
 
 
 @pytest.mark.parametrize('version_info, expected', [
-    (None, None),
     ((), (0, 0, 0)),
     ((3, ), (3, 0, 0)),
     ((3, 6), (3, 6, 0)),
