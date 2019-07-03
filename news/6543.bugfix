@@ -1,1 +1,1 @@
-The version info for glibc is now extracted from ``os`` instead of ``ctypes`` (which may be missing).
+If possible, the version info for glibc is extracted from ``os`` instead of ``ctypes`` (which may be missing).
