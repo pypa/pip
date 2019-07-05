@@ -442,6 +442,22 @@ class Test_normalize_path(object):
 class TestHashes(object):
     """Tests for pip._internal.utils.hashes"""
 
+    @pytest.mark.parametrize('hash_name, hex_digest, expected', [
+        # Test a value that matches but with the wrong hash_name.
+        ('sha384', 128 * 'a', False),
+        # Test matching values, including values other than the first.
+        ('sha512', 128 * 'a', True),
+        ('sha512', 128 * 'b', True),
+        # Test a matching hash_name with a value that doesn't match.
+        ('sha512', 128 * 'c', False),
+    ])
+    def test_is_hash_allowed(self, hash_name, hex_digest, expected):
+        hashes_data = {
+            'sha512': [128 * 'a', 128 * 'b'],
+        }
+        hashes = Hashes(hashes_data)
+        assert hashes.is_hash_allowed(hash_name, hex_digest) == expected
+
     def test_success(self, tmpdir):
         """Make sure no error is raised when at least one hash matches.
 
