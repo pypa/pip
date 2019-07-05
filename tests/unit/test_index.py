@@ -7,9 +7,10 @@ from pip._vendor import html5lib, requests
 
 from pip._internal.download import PipSession
 from pip._internal.index import (
-    CandidateEvaluator, HTMLPage, Link, PackageFinder, Search,
-    _check_link_requires_python, _clean_link, _determine_base_url,
-    _extract_version_from_fragment, _find_name_version_sep, _get_html_page,
+    CandidateEvaluator, FormatControl, HTMLPage, Link, LinkEvaluator,
+    PackageFinder, _check_link_requires_python, _clean_link,
+    _determine_base_url, _extract_version_from_fragment,
+    _find_name_version_sep, _get_html_page,
 )
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.search_scope import SearchScope
@@ -84,32 +85,7 @@ def test_check_link_requires_python__invalid_requires(caplog):
     check_caplog(caplog, 'DEBUG', expected_message)
 
 
-class TestCandidateEvaluator:
-
-    def test_init__target_python(self):
-        """
-        Test the target_python argument.
-        """
-        target_python = TargetPython(py_version_info=(3, 7, 3))
-        evaluator = CandidateEvaluator(
-            allow_yanked=True,
-            target_python=target_python,
-        )
-        # The target_python attribute should be set as is.
-        assert evaluator._target_python is target_python
-
-    def test_init__target_python_none(self):
-        """
-        Test passing None for the target_python argument.
-        """
-        evaluator = CandidateEvaluator(
-            allow_yanked=True,
-            target_python=None,
-        )
-        # Spot-check the default TargetPython object.
-        actual_target_python = evaluator._target_python
-        assert actual_target_python._given_py_version_info is None
-        assert actual_target_python.py_version_info == CURRENT_PY_VERSION_INFO
+class TestLinkEvaluator:
 
     @pytest.mark.parametrize(
         'py_version_info,ignore_requires_python,expected', [
@@ -124,19 +100,19 @@ class TestCandidateEvaluator:
         self, py_version_info, ignore_requires_python, expected,
     ):
         target_python = TargetPython(py_version_info=py_version_info)
-        evaluator = CandidateEvaluator(
-            allow_yanked=True,
+        evaluator = LinkEvaluator(
+            project_name='twine',
+            canonical_name='twine',
+            formats={'source'},
             target_python=target_python,
+            allow_yanked=True,
             ignore_requires_python=ignore_requires_python,
         )
         link = Link(
             'https://example.com/#egg=twine-1.12',
             requires_python='== 3.6.5',
         )
-        search = Search(
-            supplied='twine', canonical='twine', formats=['source'],
-        )
-        actual = evaluator.evaluate_link(link, search=search)
+        actual = evaluator.evaluate_link(link)
         assert actual == expected
 
     @pytest.mark.parametrize('yanked_reason, allow_yanked, expected', [
@@ -155,15 +131,19 @@ class TestCandidateEvaluator:
     def test_evaluate_link__allow_yanked(
         self, yanked_reason, allow_yanked, expected,
     ):
-        evaluator = CandidateEvaluator(allow_yanked=allow_yanked)
+        target_python = TargetPython(py_version_info=(3, 6, 4))
+        evaluator = LinkEvaluator(
+            project_name='twine',
+            canonical_name='twine',
+            formats={'source'},
+            target_python=target_python,
+            allow_yanked=allow_yanked,
+        )
         link = Link(
             'https://example.com/#egg=twine-1.12',
             yanked_reason=yanked_reason,
         )
-        search = Search(
-            supplied='twine', canonical='twine', formats=['source'],
-        )
-        actual = evaluator.evaluate_link(link, search=search)
+        actual = evaluator.evaluate_link(link)
         assert actual == expected
 
     def test_evaluate_link__incompatible_wheel(self):
@@ -173,19 +153,22 @@ class TestCandidateEvaluator:
         target_python = TargetPython(py_version_info=(3, 6, 4))
         # Set the valid tags to an empty list to make sure nothing matches.
         target_python._valid_tags = []
-        evaluator = CandidateEvaluator(
-            allow_yanked=True,
+        evaluator = LinkEvaluator(
+            project_name='sample',
+            canonical_name='sample',
+            formats={'binary'},
             target_python=target_python,
+            allow_yanked=True,
         )
         link = Link('https://example.com/sample-1.0-py2.py3-none-any.whl')
-        search = Search(
-            supplied='sample', canonical='sample', formats=['binary'],
-        )
-        actual = evaluator.evaluate_link(link, search=search)
+        actual = evaluator.evaluate_link(link)
         expected = (
             False, "none of the wheel's tags match: py2-none-any, py3-none-any"
         )
         assert actual == expected
+
+
+class TestCandidateEvaluator:
 
     @pytest.mark.parametrize('yanked_reason, expected', [
         # Test a non-yanked file.
@@ -201,7 +184,7 @@ class TestCandidateEvaluator:
         link = Link(url, yanked_reason=yanked_reason)
         candidate = InstallationCandidate('mypackage', '1.0', link)
 
-        evaluator = CandidateEvaluator(allow_yanked=True)
+        evaluator = CandidateEvaluator()
         sort_value = evaluator._sort_key(candidate)
         # Yanked / non-yanked is reflected in the first element of the tuple.
         actual = sort_value[0]
@@ -218,7 +201,7 @@ class TestCandidateEvaluator:
         """
         Test passing an empty list.
         """
-        evaluator = CandidateEvaluator(allow_yanked=True)
+        evaluator = CandidateEvaluator()
         actual = evaluator.get_best_candidate([])
         assert actual is None
 
@@ -233,7 +216,7 @@ class TestCandidateEvaluator:
             self.make_mock_candidate('2.0', yanked_reason='bad metadata #2'),
         ]
         expected_best = candidates[1]
-        evaluator = CandidateEvaluator(allow_yanked=True)
+        evaluator = CandidateEvaluator()
         actual = evaluator.get_best_candidate(candidates)
         assert actual is expected_best
         assert str(actual.version) == '3.0'
@@ -264,7 +247,7 @@ class TestCandidateEvaluator:
         candidates = [
             self.make_mock_candidate('1.0', yanked_reason=yanked_reason),
         ]
-        evaluator = CandidateEvaluator(allow_yanked=True)
+        evaluator = CandidateEvaluator()
         actual = evaluator.get_best_candidate(candidates)
         assert str(actual.version) == '1.0'
 
@@ -291,7 +274,7 @@ class TestCandidateEvaluator:
             self.make_mock_candidate('1.0'),
         ]
         expected_best = candidates[1]
-        evaluator = CandidateEvaluator(allow_yanked=True)
+        evaluator = CandidateEvaluator()
         actual = evaluator.get_best_candidate(candidates)
         assert actual is expected_best
         assert str(actual.version) == '2.0'
@@ -302,42 +285,115 @@ class TestCandidateEvaluator:
 
 class TestPackageFinder:
 
-    @pytest.mark.parametrize('allow_yanked', [False, True])
-    def test_create__allow_yanked(self, allow_yanked):
+    @pytest.mark.parametrize('allow_all_prereleases, prefer_binary', [
+        (False, False),
+        (False, True),
+        (True, False),
+        (True, True),
+    ])
+    def test_create__candidate_evaluator(
+        self, allow_all_prereleases, prefer_binary,
+    ):
         """
-        Test that allow_yanked is passed to CandidateEvaluator.
+        Test that the candidate_evaluator attribute is set correctly.
         """
-        search_scope = SearchScope([], [])
-        selection_prefs = SelectionPreferences(
-            allow_yanked=allow_yanked,
-        )
-        finder = PackageFinder.create(
-            search_scope=search_scope,
-            selection_prefs=selection_prefs,
-            session=object(),
-        )
-        evaluator = finder.candidate_evaluator
-        assert evaluator._allow_yanked == allow_yanked
-
-    def test_create__target_python(self):
-        """
-        Test that target_python is passed to CandidateEvaluator as is.
-        """
-        search_scope = SearchScope([], [])
         selection_prefs = SelectionPreferences(
             allow_yanked=True,
+            allow_all_prereleases=allow_all_prereleases,
+            prefer_binary=prefer_binary,
         )
         target_python = TargetPython(py_version_info=(3, 7, 3))
+        target_python._valid_tags = ['tag1', 'tag2']
         finder = PackageFinder.create(
-            search_scope=search_scope,
+            search_scope=SearchScope([], []),
             selection_prefs=selection_prefs,
-            session=object(),
+            session=PipSession(),
             target_python=target_python,
         )
         evaluator = finder.candidate_evaluator
-        actual_target_python = evaluator._target_python
+        assert evaluator.allow_all_prereleases == allow_all_prereleases
+        assert evaluator._prefer_binary == prefer_binary
+        assert evaluator._supported_tags == ['tag1', 'tag2']
+
+    def test_create__target_python(self):
+        """
+        Test that the _target_python attribute is set correctly.
+        """
+        target_python = TargetPython(py_version_info=(3, 7, 3))
+        finder = PackageFinder.create(
+            search_scope=SearchScope([], []),
+            selection_prefs=SelectionPreferences(allow_yanked=True),
+            session=PipSession(),
+            target_python=target_python,
+        )
+        actual_target_python = finder._target_python
+        # The target_python attribute should be set as is.
         assert actual_target_python is target_python
+        # Check that the attributes weren't reset.
         assert actual_target_python.py_version_info == (3, 7, 3)
+
+    def test_create__target_python_none(self):
+        """
+        Test passing target_python=None.
+        """
+        finder = PackageFinder.create(
+            search_scope=SearchScope([], []),
+            selection_prefs=SelectionPreferences(allow_yanked=True),
+            session=PipSession(),
+            target_python=None,
+        )
+        # Spot-check the default TargetPython object.
+        actual_target_python = finder._target_python
+        assert actual_target_python._given_py_version_info is None
+        assert actual_target_python.py_version_info == CURRENT_PY_VERSION_INFO
+
+    @pytest.mark.parametrize('allow_yanked', [False, True])
+    def test_create__allow_yanked(self, allow_yanked):
+        """
+        Test that the _allow_yanked attribute is set correctly.
+        """
+        selection_prefs = SelectionPreferences(allow_yanked=allow_yanked)
+        finder = PackageFinder.create(
+            search_scope=SearchScope([], []),
+            selection_prefs=selection_prefs,
+            session=PipSession(),
+        )
+        assert finder._allow_yanked == allow_yanked
+
+    @pytest.mark.parametrize('ignore_requires_python', [False, True])
+    def test_create__ignore_requires_python(self, ignore_requires_python):
+        """
+        Test that the _ignore_requires_python attribute is set correctly.
+        """
+        selection_prefs = SelectionPreferences(
+            allow_yanked=True,
+            ignore_requires_python=ignore_requires_python,
+        )
+        finder = PackageFinder.create(
+            search_scope=SearchScope([], []),
+            selection_prefs=selection_prefs,
+            session=PipSession(),
+        )
+        assert finder._ignore_requires_python == ignore_requires_python
+
+    def test_create__format_control(self):
+        """
+        Test that the format_control attribute is set correctly.
+        """
+        format_control = FormatControl(set(), {':all:'})
+        selection_prefs = SelectionPreferences(
+            allow_yanked=True,
+            format_control=format_control,
+        )
+        finder = PackageFinder.create(
+            search_scope=SearchScope([], []),
+            selection_prefs=selection_prefs,
+            session=PipSession(),
+        )
+        actual_format_control = finder.format_control
+        assert actual_format_control is format_control
+        # Check that the attributes weren't reset.
+        assert actual_format_control.only_binary == {':all:'}
 
     def test_add_trusted_host(self):
         # Leave a gap to test how the ordering is affected.
@@ -428,6 +484,52 @@ class TestPackageFinder:
         assert len(actual) == 6
         # Spot-check that SECURE_ORIGINS is included.
         assert actual[0] == ('https', '*', '*')
+
+    @pytest.mark.parametrize(
+        'allow_yanked, ignore_requires_python, only_binary, expected_formats',
+        [
+            (False, False, {}, frozenset({'binary', 'source'})),
+            # Test allow_yanked=True.
+            (True, False, {}, frozenset({'binary', 'source'})),
+            # Test ignore_requires_python=True.
+            (False, True, {}, frozenset({'binary', 'source'})),
+            # Test a non-trivial only_binary.
+            (False, False, {'twine'}, frozenset({'binary'})),
+        ]
+    )
+    def test_make_link_evaluator(
+        self, allow_yanked, ignore_requires_python, only_binary,
+        expected_formats,
+    ):
+        # Create a test TargetPython that we can check for.
+        target_python = TargetPython(py_version_info=(3, 7))
+        format_control = FormatControl(set(), only_binary)
+        finder = PackageFinder(
+            candidate_evaluator=CandidateEvaluator(),
+            search_scope=SearchScope([], []),
+            session=PipSession(),
+            target_python=target_python,
+            allow_yanked=allow_yanked,
+            format_control=format_control,
+            ignore_requires_python=ignore_requires_python,
+        )
+
+        # Pass a project_name that will be different from canonical_name.
+        link_evaluator = finder.make_link_evaluator('Twine')
+
+        assert link_evaluator.project_name == 'Twine'
+        assert link_evaluator._canonical_name == 'twine'
+        assert link_evaluator._allow_yanked == allow_yanked
+        assert link_evaluator._ignore_requires_python == ignore_requires_python
+        assert link_evaluator._formats == expected_formats
+
+        # Test the _target_python attribute.
+        actual_target_python = link_evaluator._target_python
+        # The target_python attribute should be set as is.
+        assert actual_target_python is target_python
+        # For good measure, check that the attributes weren't reset.
+        assert actual_target_python._given_py_version_info == (3, 7)
+        assert actual_target_python.py_version_info == (3, 7, 0)
 
 
 def test_sort_locations_file_expand_dir(data):
