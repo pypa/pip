@@ -98,14 +98,17 @@ def test_rev_options_make_new():
     assert new_options.vc_class is Git
 
 
-def test_looks_like_hash():
-    assert looks_like_hash(40 * 'a')
-    assert looks_like_hash(40 * 'A')
+@pytest.mark.parametrize('sha, expected', [
+    ((40 * 'a'), True),
+    ((40 * 'A'), True),
     # Test a string containing all valid characters.
-    assert looks_like_hash(18 * 'a' + '0123456789abcdefABCDEF')
-    assert not looks_like_hash(40 * 'g')
-    assert not looks_like_hash(39 * 'a')
-    assert not looks_like_hash(41 * 'a')
+    ((18 * 'a' + '0123456789abcdefABCDEF'), True),
+    ((40 * 'g'), False),
+    ((39 * 'a'), False),
+    ((41 * 'a'), False)
+])
+def test_looks_like_hash(sha, expected):
+    assert looks_like_hash(sha) == expected
 
 
 @pytest.mark.parametrize('vcs_cls, remote_url, expected', [
