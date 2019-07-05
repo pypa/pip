@@ -13,6 +13,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 if MYPY_CHECK_RUNNING:
     from typing import Optional, Text, Tuple, Union
     from pip._internal.index import HTMLPage
+    from pip._internal.utils.hashes import Hashes
 
 
 class Link(KeyBasedCompareMixin):
@@ -193,3 +194,17 @@ class Link(KeyBasedCompareMixin):
     def is_yanked(self):
         # type: () -> bool
         return self.yanked_reason is not None
+
+    @property
+    def has_hash(self):
+        return self.hash_name is not None
+
+    def is_hash_allowed(self, hashes):
+        # type: (Hashes) -> bool
+        """
+        Return True if the link has a hash and it is allowed.
+        """
+        if not self.has_hash:
+            return False
+
+        return hashes.is_hash_allowed(self.hash_name, hex_digest=self.hash)
