@@ -205,6 +205,23 @@ class TestCandidateEvaluator:
 
         return candidate
 
+    def test_get_applicable_candidates(self):
+        specifier = SpecifierSet('<= 1.11')
+        versions = ['1.10', '1.11', '1.12']
+        candidates = [
+            self.make_mock_candidate(version) for version in versions
+        ]
+        evaluator = CandidateEvaluator.create()
+        actual = evaluator.get_applicable_candidates(
+            candidates, specifier=specifier,
+        )
+        expected_applicable = candidates[:2]
+        assert [str(c.version) for c in expected_applicable] == [
+            '1.10',
+            '1.11',
+        ]
+        assert actual == expected_applicable
+
     def test_make_found_candidates(self):
         specifier = SpecifierSet('<= 1.11')
         versions = ['1.10', '1.11', '1.12']

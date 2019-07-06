@@ -507,22 +507,15 @@ class CandidateEvaluator(object):
         self._prefer_binary = prefer_binary
         self._supported_tags = supported_tags
 
-    def make_found_candidates(
+    def get_applicable_candidates(
         self,
-        candidates,      # type: List[InstallationCandidate]
-        specifier=None,  # type: Optional[specifiers.BaseSpecifier]
+        candidates,  # type: List[InstallationCandidate]
+        specifier,   # type: specifiers.BaseSpecifier
     ):
-        # type: (...) -> FoundCandidates
+        # type: (...) -> List[InstallationCandidate]
         """
-        Create and return a `FoundCandidates` instance.
-
-        :param specifier: An optional object implementing `filter`
-            (e.g. `packaging.specifiers.SpecifierSet`) to filter applicable
-            versions.
+        Return the applicable candidates from a list of candidates.
         """
-        if specifier is None:
-            specifier = specifiers.SpecifierSet()
-
         # Using None infers from the specifier instead.
         allow_prereleases = self._allow_all_prereleases or None
         versions = {
@@ -543,6 +536,28 @@ class CandidateEvaluator(object):
         applicable_candidates = [
             c for c in candidates if str(c.version) in versions
         ]
+        return applicable_candidates
+
+    def make_found_candidates(
+        self,
+        candidates,      # type: List[InstallationCandidate]
+        specifier=None,  # type: Optional[specifiers.BaseSpecifier]
+    ):
+        # type: (...) -> FoundCandidates
+        """
+        Create and return a `FoundCandidates` instance.
+
+        :param specifier: An optional object implementing `filter`
+            (e.g. `packaging.specifiers.SpecifierSet`) to filter applicable
+            versions.
+        """
+        if specifier is None:
+            specifier = specifiers.SpecifierSet()
+
+        applicable_candidates = self.get_applicable_candidates(
+            candidates=candidates,
+            specifier=specifier,
+        )
 
         return FoundCandidates(
             candidates,
