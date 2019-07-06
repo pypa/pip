@@ -1,0 +1,1 @@
+Make the "ascii" progress bar really be "ascii" and not Unicode.

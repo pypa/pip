@@ -208,8 +208,8 @@ class DownloadSilentBar(BaseDownloadProgressBar, SilentBar):  # type: ignore
     pass
 
 
-class DownloadIncrementalBar(BaseDownloadProgressBar,  # type: ignore
-                             IncrementalBar):
+class DownloadBar(BaseDownloadProgressBar,  # type: ignore
+                  Bar):
     pass
 
 
@@ -252,7 +252,7 @@ class DownloadProgressSpinner(WindowsMixin, InterruptibleMixin,
 BAR_TYPES = {
     "off": (DownloadSilentBar, DownloadSilentBar),
     "on": (DefaultDownloadProgressBar, DownloadProgressSpinner),
-    "ascii": (DownloadIncrementalBar, DownloadProgressSpinner),
+    "ascii": (DownloadBar, DownloadProgressSpinner),
     "pretty": (DownloadFillingCirclesBar, DownloadProgressSpinner),
     "emoji": (DownloadBlueEmojiProgressBar, DownloadProgressSpinner)
 }
