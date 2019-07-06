@@ -191,7 +191,12 @@ class TestCandidateEvaluator:
 
         assert found_candidates._candidates == candidates
         assert found_candidates._evaluator is evaluator
-        assert found_candidates._versions == {'1.10', '1.11'}
+        expected_applicable = candidates[:2]
+        assert [str(c.version) for c in expected_applicable] == [
+            '1.10',
+            '1.11',
+        ]
+        assert found_candidates._applicable_candidates == expected_applicable
 
     @pytest.mark.parametrize('yanked_reason, expected', [
         # Test a non-yanked file.
