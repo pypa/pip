@@ -500,7 +500,17 @@ class CandidateEvaluator(object):
                 prereleases=allow_prereleases,
             )
         }
-        return FoundCandidates(candidates, versions=versions, evaluator=self)
+
+        # Again, converting version to str to deal with debundling.
+        applicable_candidates = [
+            c for c in candidates if str(c.version) in versions
+        ]
+
+        return FoundCandidates(
+            candidates,
+            applicable_candidates=applicable_candidates,
+            evaluator=self,
+        )
 
     def _sort_key(self, candidate):
         # type: (InstallationCandidate) -> CandidateSortingKey
@@ -594,21 +604,20 @@ class FoundCandidates(object):
 
     def __init__(
         self,
-        candidates,     # type: List[InstallationCandidate]
-        versions,       # type: Set[str]
-        evaluator,      # type: CandidateEvaluator
+        candidates,             # type: List[InstallationCandidate]
+        applicable_candidates,  # type: List[InstallationCandidate]
+        evaluator,              # type: CandidateEvaluator
     ):
         # type: (...) -> None
         """
         :param candidates: A sequence of all available candidates found.
-        :param versions: The applicable versions to filter applicable
-            candidates.
+        :param applicable_candidates: The applicable candidates.
         :param evaluator: A CandidateEvaluator object to sort applicable
             candidates by order of preference.
         """
+        self._applicable_candidates = applicable_candidates
         self._candidates = candidates
         self._evaluator = evaluator
-        self._versions = versions
 
     def iter_all(self):
         # type: () -> Iterable[InstallationCandidate]
@@ -618,11 +627,9 @@ class FoundCandidates(object):
 
     def iter_applicable(self):
         # type: () -> Iterable[InstallationCandidate]
-        """Iterate through candidates matching the versions associated with
-        this instance.
+        """Iterate through the applicable candidates.
         """
-        # Again, converting version to str to deal with debundling.
-        return (c for c in self.iter_all() if str(c.version) in self._versions)
+        return iter(self._applicable_candidates)
 
     def get_best(self):
         # type: () -> Optional[InstallationCandidate]
