@@ -4,6 +4,7 @@ import os.path
 import pytest
 from mock import Mock
 from pip._vendor import html5lib, requests
+from pip._vendor.packaging.specifiers import SpecifierSet
 
 from pip._internal.download import PipSession
 from pip._internal.index import (
@@ -170,6 +171,28 @@ class TestLinkEvaluator:
 
 class TestCandidateEvaluator:
 
+    def make_mock_candidate(self, version, yanked_reason=None):
+        url = 'https://example.com/pkg-{}.tar.gz'.format(version)
+        link = Link(url, yanked_reason=yanked_reason)
+        candidate = InstallationCandidate('mypackage', version, link)
+
+        return candidate
+
+    def test_make_found_candidates(self):
+        specifier = SpecifierSet('<= 1.11')
+        versions = ['1.10', '1.11', '1.12']
+        candidates = [
+            self.make_mock_candidate(version) for version in versions
+        ]
+        evaluator = CandidateEvaluator()
+        found_candidates = evaluator.make_found_candidates(
+            candidates, specifier=specifier,
+        )
+
+        assert found_candidates._candidates == candidates
+        assert found_candidates._evaluator is evaluator
+        assert found_candidates._versions == {'1.10', '1.11'}
+
     @pytest.mark.parametrize('yanked_reason, expected', [
         # Test a non-yanked file.
         (None, 0),
@@ -189,13 +212,6 @@ class TestCandidateEvaluator:
         # Yanked / non-yanked is reflected in the first element of the tuple.
         actual = sort_value[0]
         assert actual == expected
-
-    def make_mock_candidate(self, version, yanked_reason=None):
-        url = 'https://example.com/pkg-{}.tar.gz'.format(version)
-        link = Link(url, yanked_reason=yanked_reason)
-        candidate = InstallationCandidate('mypackage', version, link)
-
-        return candidate
 
     def test_get_best_candidate__no_candidates(self):
         """
