@@ -22,7 +22,7 @@ from pip._vendor import pkg_resources
 # NOTE: retrying is not annotated in typeshed as on 2017-07-17, which is
 #       why we ignore the type on this import.
 from pip._vendor.retrying import retry  # type: ignore
-from pip._vendor.six import PY2
+from pip._vendor.six import PY2, text_type
 from pip._vendor.six.moves import input, shlex_quote
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
@@ -184,6 +184,40 @@ def rmtree_errorhandler(func, path, exc_info):
         return
     else:
         raise
+
+
+def path_to_display(path):
+    # type: (Optional[Union[str, Text]]) -> Optional[Text]
+    """
+    Convert a bytes (or text) path to text (unicode in Python 2) for display
+    and logging purposes.
+
+    This function should never error out. Also, this function is mainly needed
+    for Python 2 since in Python 3 str paths are already text.
+    """
+    if path is None:
+        return None
+    if isinstance(path, text_type):
+        return path
+    # Otherwise, path is a bytes object (str in Python 2).
+    try:
+        display_path = path.decode(sys.getfilesystemencoding(), 'strict')
+    except UnicodeDecodeError:
+        # Include the full bytes to make troubleshooting easier, even though
+        # it may not be very human readable.
+        if PY2:
+            # Convert the bytes to a readable str representation using
+            # repr(), and then convert the str to unicode.
+            #   Also, we add the prefix "b" to the repr() return value both
+            # to make the Python 2 output look like the Python 3 output, and
+            # to signal to the user that this is a bytes representation.
+            display_path = str_to_display('b{!r}'.format(path))
+        else:
+            # Silence the "F821 undefined name 'ascii'" flake8 error since
+            # in Python 3 ascii() is a built-in.
+            display_path = ascii(path)  # noqa: F821
+
+    return display_path
 
 
 def display_path(path):
@@ -751,11 +785,12 @@ def make_subprocess_output_error(
     :param lines: A list of lines, each ending with a newline.
     """
     command = format_command_args(cmd_args)
-    # Convert `command` to text (unicode in Python 2) so we can use it as
-    # an argument in the unicode format string below. This avoids
+    # Convert `command` and `cwd` to text (unicode in Python 2) so we can use
+    # them as arguments in the unicode format string below. This avoids
     # "UnicodeDecodeError: 'ascii' codec can't decode byte ..." in Python 2
-    # when the formatted command contains a non-ascii character.
+    # if either contains a non-ascii character.
     command_display = str_to_display(command, desc='command bytes')
+    cwd_display = path_to_display(cwd)
 
     # We know the joined output value ends in a newline.
     output = ''.join(lines)
@@ -765,12 +800,12 @@ def make_subprocess_output_error(
         # argument (e.g. `output`) has a non-ascii character.
         u'Command errored out with exit status {exit_status}:\n'
         ' command: {command_display}\n'
-        '     cwd: {cwd}\n'
+        '     cwd: {cwd_display}\n'
         'Complete output ({line_count} lines):\n{output}{divider}'
     ).format(
         exit_status=exit_status,
         command_display=command_display,
-        cwd=cwd,
+        cwd_display=cwd_display,
         line_count=len(lines),
         output=output,
         divider=LOG_DIVIDER,
