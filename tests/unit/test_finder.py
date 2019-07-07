@@ -242,8 +242,8 @@ class TestWheel:
                 Link("simplewheel-1.0-py2.py3-none-any.whl"),
             ),
         ]
-        finder = make_test_finder()
-        sort_key = finder.candidate_evaluator._sort_key
+        candidate_evaluator = CandidateEvaluator.create()
+        sort_key = candidate_evaluator._sort_key
         results = sorted(links, key=sort_key, reverse=True)
         results2 = sorted(reversed(links), key=sort_key, reverse=True)
         assert links == results == results2, results2

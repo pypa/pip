@@ -189,7 +189,7 @@ class ListCommand(Command):
                     all_candidates = [candidate for candidate in all_candidates
                                       if not candidate.version.is_prerelease]
 
-                evaluator = finder.candidate_evaluator
+                evaluator = finder.make_candidate_evaluator()
                 best_candidate = evaluator.get_best_candidate(all_candidates)
                 if best_candidate is None:
                     continue

@@ -440,6 +440,26 @@ class LinkEvaluator(object):
         return (True, version)
 
 
+class CandidatePreferences(object):
+
+    """
+    Encapsulates some of the preferences for filtering and sorting
+    InstallationCandidate objects.
+    """
+
+    def __init__(
+        self,
+        prefer_binary=False,  # type: bool
+        allow_all_prereleases=False,  # type: bool
+    ):
+        # type: (...) -> None
+        """
+        :param allow_all_prereleases: Whether to allow all pre-releases.
+        """
+        self.allow_all_prereleases = allow_all_prereleases
+        self.prefer_binary = prefer_binary
+
+
 class CandidateEvaluator(object):
 
     """
@@ -447,27 +467,45 @@ class CandidateEvaluator(object):
     on what tags are valid.
     """
 
+    @classmethod
+    def create(
+        cls,
+        target_python=None,   # type: Optional[TargetPython]
+        prefer_binary=False,  # type: bool
+        allow_all_prereleases=False,  # type: bool
+    ):
+        # type: (...) -> CandidateEvaluator
+        """Create a CandidateEvaluator object.
+
+        :param target_python: The target Python interpreter to use when
+            checking compatibility. If None (the default), a TargetPython
+            object will be constructed from the running Python.
+        """
+        if target_python is None:
+            target_python = TargetPython()
+
+        supported_tags = target_python.get_tags()
+
+        return cls(
+            supported_tags=supported_tags,
+            prefer_binary=prefer_binary,
+            allow_all_prereleases=allow_all_prereleases,
+        )
+
     def __init__(
         self,
-        supported_tags=None,  # type: Optional[List[Pep425Tag]]
+        supported_tags,       # type: List[Pep425Tag]
         prefer_binary=False,  # type: bool
         allow_all_prereleases=False,  # type: bool
     ):
         # type: (...) -> None
         """
         :param supported_tags: The PEP 425 tags supported by the target
-            Python in order of preference (most preferred first). If None,
-            then the list will be generated from the running Python.
-        :param allow_all_prereleases: Whether to allow all pre-releases.
+            Python in order of preference (most preferred first).
         """
-        if supported_tags is None:
-            target_python = TargetPython()
-            supported_tags = target_python.get_tags()
-
+        self._allow_all_prereleases = allow_all_prereleases
         self._prefer_binary = prefer_binary
         self._supported_tags = supported_tags
-
-        self.allow_all_prereleases = allow_all_prereleases
 
     def make_found_candidates(
         self,
@@ -486,7 +524,7 @@ class CandidateEvaluator(object):
             specifier = specifiers.SpecifierSet()
 
         # Using None infers from the specifier instead.
-        allow_prereleases = self.allow_all_prereleases or None
+        allow_prereleases = self._allow_all_prereleases or None
         versions = {
             str(v) for v in specifier.filter(
                 # We turn the version object into a str here because otherwise
@@ -649,13 +687,13 @@ class PackageFinder(object):
 
     def __init__(
         self,
-        candidate_evaluator,  # type: CandidateEvaluator
         search_scope,         # type: SearchScope
         session,  # type: PipSession
         target_python,        # type: TargetPython
         allow_yanked,         # type: bool
         format_control=None,  # type: Optional[FormatControl]
         trusted_hosts=None,   # type: Optional[List[str]]
+        candidate_prefs=None,         # type: CandidatePreferences
         ignore_requires_python=None,  # type: Optional[bool]
     ):
         # type: (...) -> None
@@ -663,22 +701,25 @@ class PackageFinder(object):
         This constructor is primarily meant to be used by the create() class
         method and from tests.
 
-        :param candidate_evaluator: A CandidateEvaluator object.
         :param session: The Session to use to make requests.
         :param format_control: A FormatControl object, used to control
             the selection of source packages / binary packages when consulting
             the index and links.
+        :param candidate_prefs: Options to use when creating a
+            CandidateEvaluator object.
         """
         if trusted_hosts is None:
             trusted_hosts = []
+        if candidate_prefs is None:
+            candidate_prefs = CandidatePreferences()
 
         format_control = format_control or FormatControl(set(), set())
 
         self._allow_yanked = allow_yanked
+        self._candidate_prefs = candidate_prefs
         self._ignore_requires_python = ignore_requires_python
         self._target_python = target_python
 
-        self.candidate_evaluator = candidate_evaluator
         self.search_scope = search_scope
         self.session = session
         self.format_control = format_control
@@ -720,15 +761,13 @@ class PackageFinder(object):
         if target_python is None:
             target_python = TargetPython()
 
-        supported_tags = target_python.get_tags()
-        candidate_evaluator = CandidateEvaluator(
-            supported_tags=supported_tags,
+        candidate_prefs = CandidatePreferences(
             prefer_binary=selection_prefs.prefer_binary,
             allow_all_prereleases=selection_prefs.allow_all_prereleases,
         )
 
         return cls(
-            candidate_evaluator=candidate_evaluator,
+            candidate_prefs=candidate_prefs,
             search_scope=search_scope,
             session=session,
             target_python=target_python,
@@ -751,11 +790,11 @@ class PackageFinder(object):
     @property
     def allow_all_prereleases(self):
         # type: () -> bool
-        return self.candidate_evaluator.allow_all_prereleases
+        return self._candidate_prefs.allow_all_prereleases
 
     def set_allow_all_prereleases(self):
         # type: () -> None
-        self.candidate_evaluator.allow_all_prereleases = True
+        self._candidate_prefs.allow_all_prereleases = True
 
     def add_trusted_host(self, host, source=None):
         # type: (str, Optional[str]) -> None
@@ -995,6 +1034,17 @@ class PackageFinder(object):
         # This is an intentional priority ordering
         return file_versions + find_links_versions + page_versions
 
+    def make_candidate_evaluator(self):
+        # type: (...) -> CandidateEvaluator
+        """Create a CandidateEvaluator object to use.
+        """
+        candidate_prefs = self._candidate_prefs
+        return CandidateEvaluator.create(
+            target_python=self._target_python,
+            prefer_binary=candidate_prefs.prefer_binary,
+            allow_all_prereleases=candidate_prefs.allow_all_prereleases,
+        )
+
     def find_candidates(
         self,
         project_name,       # type: str
@@ -1010,7 +1060,8 @@ class PackageFinder(object):
         :return: A `FoundCandidates` instance.
         """
         candidates = self.find_all_candidates(project_name)
-        return self.candidate_evaluator.make_found_candidates(
+        candidate_evaluator = self.make_candidate_evaluator()
+        return candidate_evaluator.make_found_candidates(
             candidates, specifier=specifier,
         )
 
