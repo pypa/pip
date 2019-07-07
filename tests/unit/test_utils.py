@@ -26,7 +26,9 @@ from pip._internal.exceptions import (
 )
 from pip._internal.utils.deprecation import PipDeprecationWarning, deprecated
 from pip._internal.utils.encoding import BOMS, auto_decode
-from pip._internal.utils.glibc import check_glibc_version
+from pip._internal.utils.glibc import (
+    check_glibc_version, glibc_version_string_ctypes, glibc_version_string_os,
+)
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.misc import (
     call_subprocess, egg_link_path, ensure_dir, format_command_args,
@@ -700,6 +702,27 @@ class TestGlibc(object):
                 else:
                     # Didn't find the warning we were expecting
                     assert False
+
+    def test_glibc_version_string_os_fail(self, monkeypatch):
+
+        def raises(error):
+            raise error()
+
+        monkeypatch.setattr(os, "confstr", lambda x: raises(ValueError))
+        assert glibc_version_string_os() is None
+
+        monkeypatch.setattr(os, "confstr", lambda x: raises(OSError))
+        assert glibc_version_string_os() is None
+
+        monkeypatch.setattr(os, "confstr", lambda x: "XXX")
+        assert glibc_version_string_os() is None
+
+        monkeypatch.delattr(os, "confstr")
+        assert glibc_version_string_os() is None
+
+    def test_glibc_version_string_ctypes_fail(self, monkeypatch):
+        monkeypatch.setitem(sys.modules, "ctypes", None)
+        assert glibc_version_string_ctypes() is None
 
 
 @pytest.mark.parametrize('version_info, expected', [
