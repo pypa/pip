@@ -705,19 +705,22 @@ class TestGlibc(object):
 
     def test_glibc_version_string_os_fail(self, monkeypatch):
 
-        def raises(error):
-            raise error()
+        if hasattr(os, "confstr"):
 
-        monkeypatch.setattr(os, "confstr", lambda x: raises(ValueError))
-        assert glibc_version_string_os() is None
+            def raises(error):
+                raise error()
 
-        monkeypatch.setattr(os, "confstr", lambda x: raises(OSError))
-        assert glibc_version_string_os() is None
+            monkeypatch.setattr(os, "confstr", lambda x: raises(ValueError))
+            assert glibc_version_string_os() is None
 
-        monkeypatch.setattr(os, "confstr", lambda x: "XXX")
-        assert glibc_version_string_os() is None
+            monkeypatch.setattr(os, "confstr", lambda x: raises(OSError))
+            assert glibc_version_string_os() is None
 
-        monkeypatch.delattr(os, "confstr")
+            monkeypatch.setattr(os, "confstr", lambda x: "XXX")
+            assert glibc_version_string_os() is None
+
+            monkeypatch.delattr(os, "confstr")
+
         assert glibc_version_string_os() is None
 
     def test_glibc_version_string_ctypes_fail(self, monkeypatch):
