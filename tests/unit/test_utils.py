@@ -27,7 +27,8 @@ from pip._internal.exceptions import (
 from pip._internal.utils.deprecation import PipDeprecationWarning, deprecated
 from pip._internal.utils.encoding import BOMS, auto_decode
 from pip._internal.utils.glibc import (
-    check_glibc_version, glibc_version_string_ctypes, glibc_version_string_os,
+    check_glibc_version, glibc_version_string_confstr,
+    glibc_version_string_ctypes,
 )
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.misc import (
@@ -703,25 +704,26 @@ class TestGlibc(object):
                     # Didn't find the warning we were expecting
                     assert False
 
-    def test_glibc_version_string_os_fail(self, monkeypatch):
+    def test_glibc_version_string_confstr_fail(self, monkeypatch):
 
-        if hasattr(os, "confstr"):
+        def raises(error):
+            raise error()
 
-            def raises(error):
-                raise error()
+        monkeypatch.setattr(
+            os, "confstr", lambda x: raises(ValueError), raising=False,
+        )
+        assert glibc_version_string_confstr() is None
 
-            monkeypatch.setattr(os, "confstr", lambda x: raises(ValueError))
-            assert glibc_version_string_os() is None
+        monkeypatch.setattr(
+            os, "confstr", lambda x: raises(OSError), raising=False,
+        )
+        assert glibc_version_string_confstr() is None
 
-            monkeypatch.setattr(os, "confstr", lambda x: raises(OSError))
-            assert glibc_version_string_os() is None
+        monkeypatch.setattr(os, "confstr", lambda x: "XXX", raising=False)
+        assert glibc_version_string_confstr() is None
 
-            monkeypatch.setattr(os, "confstr", lambda x: "XXX")
-            assert glibc_version_string_os() is None
-
-            monkeypatch.delattr(os, "confstr")
-
-        assert glibc_version_string_os() is None
+        monkeypatch.delattr(os, "confstr", raising=False)
+        assert glibc_version_string_confstr() is None
 
     def test_glibc_version_string_ctypes_fail(self, monkeypatch):
         monkeypatch.setitem(sys.modules, "ctypes", None)
