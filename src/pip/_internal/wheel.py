@@ -918,7 +918,10 @@ class WheelBuilder(object):
                     logger.info('Stored in directory: %s', output_dir)
                     return dest_path
                 except Exception:
-                    pass
+                    logger.warning(
+                        'Error storing in directory: %s',
+                        output_dir, exc_info=True
+                    )
             # Ignore return, we can't do anything else useful.
             self._clean_one(req)
             return None
