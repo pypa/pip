@@ -32,8 +32,8 @@ from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.misc import (
     call_subprocess, egg_link_path, ensure_dir, format_command_args,
     get_installed_distributions, get_prog, make_subprocess_output_error,
-    normalize_path, normalize_version_info, path_to_url, redact_netloc,
-    redact_password_from_url, remove_auth_from_url, rmtree,
+    normalize_path, normalize_version_info, path_to_display, path_to_url,
+    redact_netloc, redact_password_from_url, remove_auth_from_url, rmtree,
     split_auth_from_netloc, split_auth_netloc_from_url, untar_file, unzip_file,
 )
 from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
@@ -382,6 +382,24 @@ def test_rmtree_retries_for_3sec(tmpdir, monkeypatch):
     monkeypatch.setattr(shutil, 'rmtree', Failer(duration=5).call)
     with pytest.raises(OSError):
         rmtree('foo')
+
+
+@pytest.mark.parametrize('path, fs_encoding, expected', [
+    (None, None, None),
+    # Test passing a text (unicode) string.
+    (u'/path/déf', None, u'/path/déf'),
+    # Test a bytes object with a non-ascii character.
+    (u'/path/déf'.encode('utf-8'), 'utf-8', u'/path/déf'),
+    # Test a bytes object with a character that can't be decoded.
+    (u'/path/déf'.encode('utf-8'), 'ascii', u"b'/path/d\\xc3\\xa9f'"),
+    (u'/path/déf'.encode('utf-16'), 'utf-8',
+     u"b'\\xff\\xfe/\\x00p\\x00a\\x00t\\x00h\\x00/"
+     "\\x00d\\x00\\xe9\\x00f\\x00'"),
+])
+def test_path_to_display(monkeypatch, path, fs_encoding, expected):
+    monkeypatch.setattr(sys, 'getfilesystemencoding', lambda: fs_encoding)
+    actual = path_to_display(path)
+    assert actual == expected, 'actual: {!r}'.format(actual)
 
 
 class Test_normalize_path(object):
@@ -791,6 +809,58 @@ def test_make_subprocess_output_error__non_ascii_command_arg(monkeypatch):
     Command errored out with exit status 1:
      command: foo 'déf'
          cwd: /path/to/cwd
+    Complete output (0 lines):
+    ----------------------------------------""")
+    assert actual == expected, u'actual: {}'.format(actual)
+
+
+@pytest.mark.skipif("sys.version_info < (3,)")
+def test_make_subprocess_output_error__non_ascii_cwd_python_3(monkeypatch):
+    """
+    Test a str (text) cwd with a non-ascii character in Python 3.
+    """
+    cmd_args = ['test']
+    cwd = '/path/to/cwd/déf'
+    actual = make_subprocess_output_error(
+        cmd_args=cmd_args,
+        cwd=cwd,
+        lines=[],
+        exit_status=1,
+    )
+    expected = dedent("""\
+    Command errored out with exit status 1:
+     command: test
+         cwd: /path/to/cwd/déf
+    Complete output (0 lines):
+    ----------------------------------------""")
+    assert actual == expected, 'actual: {}'.format(actual)
+
+
+@pytest.mark.parametrize('encoding', [
+    'utf-8',
+    # Test a Windows encoding.
+    'cp1252',
+])
+@pytest.mark.skipif("sys.version_info >= (3,)")
+def test_make_subprocess_output_error__non_ascii_cwd_python_2(
+    monkeypatch, encoding,
+):
+    """
+    Test a str (bytes object) cwd with a non-ascii character in Python 2.
+    """
+    cmd_args = ['test']
+    cwd = u'/path/to/cwd/déf'.encode(encoding)
+    monkeypatch.setattr(sys, 'getfilesystemencoding', lambda: encoding)
+    actual = make_subprocess_output_error(
+        cmd_args=cmd_args,
+        cwd=cwd,
+        lines=[],
+        exit_status=1,
+    )
+    expected = dedent(u"""\
+    Command errored out with exit status 1:
+     command: test
+         cwd: /path/to/cwd/déf
     Complete output (0 lines):
     ----------------------------------------""")
     assert actual == expected, u'actual: {}'.format(actual)
