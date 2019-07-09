@@ -36,6 +36,7 @@ from pip._internal.utils.misc import (
     redact_password_from_url, remove_auth_from_url, rmtree,
     split_auth_from_netloc, split_auth_netloc_from_url, untar_file, unzip_file,
 )
+from pip._internal.utils.setuptools_build import make_setuptools_shim_args
 from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
 from pip._internal.utils.ui import SpinnerInterface
 
@@ -1263,3 +1264,19 @@ def test_deprecated_message_reads_well():
         "You can find discussion regarding this at "
         "https://github.com/pypa/pip/issues/100000."
     )
+
+
+@pytest.mark.parametrize("unbuffered", [False, True])
+def test_make_setuptools_shim_args(unbuffered):
+    built_shim = make_setuptools_shim_args("setup.py", unbuffered=unbuffered)
+    shim = (
+        "import sys, setuptools, tokenize;"
+        "sys.argv[0] = 'setup.py'; __file__='setup.py';"
+        "f=getattr(tokenize, 'open', open)(__file__, buffering=-1);"
+        "code=f.read().replace('\\r\\n', '\\n');"
+        "f.close();"
+        "exec(compile(code, __file__, 'exec'))"
+    )
+    shim = shim if not unbuffered else shim.replace("buffering=-1",
+                                                    "buffering=0")
+    assert built_shim == shim

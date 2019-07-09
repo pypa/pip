@@ -33,7 +33,7 @@ from pip._internal.utils.misc import (
     get_installed_version, redact_password_from_url, rmtree,
 )
 from pip._internal.utils.packaging import get_metadata
-from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
+from pip._internal.utils.setuptools_build import make_setuptools_shim_args
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import open_spinner
@@ -595,7 +595,7 @@ class InstallRequirement(object):
                 'Running setup.py (path:%s) egg_info for package from %s',
                 self.setup_py_path, self.link,
             )
-        script = SETUPTOOLS_SHIM.format(self.setup_py_path)
+        script = make_setuptools_shim_args(self.setup_py_path)
         base_cmd = [sys.executable, '-c', script]
         if self.isolated:
             base_cmd += ["--no-user-cfg"]
@@ -757,7 +757,7 @@ class InstallRequirement(object):
                     [
                         sys.executable,
                         '-c',
-                        SETUPTOOLS_SHIM.format(self.setup_py_path)
+                        make_setuptools_shim_args(self.setup_py_path)
                     ] +
                     list(global_options) +
                     ['develop', '--no-deps'] +
@@ -1004,7 +1004,7 @@ class InstallRequirement(object):
         # type: (...) -> List[str]
         install_args = [sys.executable, "-u"]
         install_args.append('-c')
-        install_args.append(SETUPTOOLS_SHIM.format(self.setup_py_path))
+        install_args.append(make_setuptools_shim_args(self.setup_py_path))
         install_args += list(global_options) + \
             ['install', '--record', record_filename]
         install_args += ['--single-version-externally-managed']
