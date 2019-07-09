@@ -595,8 +595,7 @@ class InstallRequirement(object):
                 'Running setup.py (path:%s) egg_info for package from %s',
                 self.setup_py_path, self.link,
             )
-        script = make_setuptools_shim_args(self.setup_py_path)
-        base_cmd = [sys.executable, '-c', script]
+        base_cmd = make_setuptools_shim_args(self.setup_py_path)
         if self.isolated:
             base_cmd += ["--no-user-cfg"]
         egg_info_cmd = base_cmd + ['egg_info']
@@ -754,11 +753,7 @@ class InstallRequirement(object):
             # FIXME: should we do --install-headers here too?
             with self.build_env:
                 call_subprocess(
-                    [
-                        sys.executable,
-                        '-c',
-                        make_setuptools_shim_args(self.setup_py_path)
-                    ] +
+                    make_setuptools_shim_args(self.setup_py_path) +
                     list(global_options) +
                     ['develop', '--no-deps'] +
                     list(install_options),
@@ -1002,9 +997,8 @@ class InstallRequirement(object):
         pycompile  # type: bool
     ):
         # type: (...) -> List[str]
-        install_args = [sys.executable, "-u"]
-        install_args.append('-c')
-        install_args.append(make_setuptools_shim_args(self.setup_py_path))
+        install_args = make_setuptools_shim_args(self.setup_py_path,
+                                                 unbuffered=True)
         install_args += list(global_options) + \
             ['install', '--record', record_filename]
         install_args += ['--single-version-externally-managed']

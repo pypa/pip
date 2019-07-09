@@ -1272,11 +1272,13 @@ def test_make_setuptools_shim_args(unbuffered):
     shim = (
         "import sys, setuptools, tokenize;"
         "sys.argv[0] = 'setup.py'; __file__='setup.py';"
-        "f=getattr(tokenize, 'open', open)(__file__, buffering=-1);"
+        "f=getattr(tokenize, 'open', open)(__file__);"
         "code=f.read().replace('\\r\\n', '\\n');"
         "f.close();"
         "exec(compile(code, __file__, 'exec'))"
     )
-    shim = shim if not unbuffered else shim.replace("buffering=-1",
-                                                    "buffering=0")
-    assert built_shim == shim
+    base_cmd = [sys.executable, "-c", shim]
+    if unbuffered:
+        base_cmd.insert(1, "-u")
+
+    assert built_shim == base_cmd
