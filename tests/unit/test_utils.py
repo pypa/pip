@@ -1266,19 +1266,24 @@ def test_deprecated_message_reads_well():
     )
 
 
-@pytest.mark.parametrize("unbuffered", [False, True])
-def test_make_setuptools_shim_args(unbuffered):
-    built_shim = make_setuptools_shim_args("setup.py", unbuffered=unbuffered)
-    shim = (
-        "import sys, setuptools, tokenize;"
-        "sys.argv[0] = 'setup.py'; __file__='setup.py';"
-        "f=getattr(tokenize, 'open', open)(__file__);"
-        "code=f.read().replace('\\r\\n', '\\n');"
-        "f.close();"
-        "exec(compile(code, __file__, 'exec'))"
+@pytest.mark.parametrize("setup_py_path", [
+    "setup.py",
+    "/dir/path/setup.py",
+    "../relative/path/setup.py",
+])
+@pytest.mark.parametrize("unbuffered_output", [False, True])
+def test_make_setuptools_shim_args(setup_py_path, unbuffered_output):
+    args = make_setuptools_shim_args(
+        setup_py_path,
+        unbuffered_output=unbuffered_output
     )
-    base_cmd = [sys.executable, "-c", shim]
-    if unbuffered:
-        base_cmd.insert(1, "-u")
 
-    assert built_shim == base_cmd
+    if unbuffered_output:
+        assert "-u" in args
+    else:
+        assert "-u" not in args
+
+    assert args[-2] == "-c"
+
+    assert "sys.argv[0] = '{}'".format(setup_py_path) in args[-1]
+    assert "__file__='{}'".format(setup_py_path) in args[-1]

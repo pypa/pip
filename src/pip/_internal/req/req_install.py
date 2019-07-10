@@ -998,7 +998,7 @@ class InstallRequirement(object):
     ):
         # type: (...) -> List[str]
         install_args = make_setuptools_shim_args(self.setup_py_path,
-                                                 unbuffered=True)
+                                                 unbuffered_output=True)
         install_args += list(global_options) + \
             ['install', '--record', record_filename]
         install_args += ['--single-version-externally-managed']
