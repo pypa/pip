@@ -11,10 +11,9 @@ logger = logging.getLogger(__name__)
 
 class CheckCommand(Command):
     """Verify installed packages have compatible dependencies."""
-    name = 'check'
+
     usage = """
       %prog [options]"""
-    summary = 'Verify installed packages have compatible dependencies.'
 
     def run(self, options, args):
         package_set, parsing_probs = create_package_set_from_installed()

@@ -27,10 +27,9 @@ class ListCommand(Command):
 
     Packages are listed in a case-insensitive sorted order.
     """
-    name = 'list'
+
     usage = """
       %prog [options]"""
-    summary = 'List installed packages.'
 
     def __init__(self, *args, **kw):
         super(ListCommand, self).__init__(*args, **kw)

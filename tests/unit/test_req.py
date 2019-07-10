@@ -9,7 +9,7 @@ from pip._vendor import pkg_resources
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
 
-from pip._internal.commands.install import InstallCommand
+from pip._internal.commands import create_command
 from pip._internal.download import PipSession
 from pip._internal.exceptions import (
     HashErrors,
@@ -186,7 +186,7 @@ class TestRequirementSet(object):
         req_set = RequirementSet(require_hashes=False)
         finder = make_test_finder(find_links=[data.find_links])
         session = finder.session
-        command = InstallCommand()
+        command = create_command('install')
         with requirements_file('--require-hashes', tmpdir) as reqs_file:
             options, args = command.parse_args(['-r', reqs_file])
             command.populate_requirement_set(

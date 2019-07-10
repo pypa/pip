@@ -18,10 +18,9 @@ class FreezeCommand(Command):
 
     packages are listed in a case-insensitive sorted order.
     """
-    name = 'freeze'
+
     usage = """
       %prog [options]"""
-    summary = 'Output installed packages in requirements format.'
     log_streams = ("ext://sys.stderr", "ext://sys.stderr")
 
     def __init__(self, *args, **kw):

@@ -4,8 +4,8 @@ import pretend
 import pytest
 
 from pip._internal.cli.status_codes import NO_MATCHES_FOUND, SUCCESS
+from pip._internal.commands import create_command
 from pip._internal.commands.search import (
-    SearchCommand,
     highest_version,
     print_results,
     transform_hits,
@@ -111,7 +111,7 @@ def test_run_method_should_return_success_when_find_packages():
     """
     Test SearchCommand.run for found package
     """
-    command = SearchCommand()
+    command = create_command('search')
     cmdline = "--index=https://pypi.org/pypi pip"
     options, args = command.parse_args(cmdline.split())
     status = command.run(options, args)
@@ -123,7 +123,7 @@ def test_run_method_should_return_no_matches_found_when_does_not_find_pkgs():
     """
     Test SearchCommand.run for no matches
     """
-    command = SearchCommand()
+    command = create_command('search')
     cmdline = "--index=https://pypi.org/pypi nonexistentpackage"
     options, args = command.parse_args(cmdline.split())
     status = command.run(options, args)

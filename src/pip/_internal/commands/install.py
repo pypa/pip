@@ -87,7 +87,6 @@ class InstallCommand(RequirementCommand):
     pip also supports installing from "requirements files," which provide
     an easy way to specify a whole environment to be installed.
     """
-    name = 'install'
 
     usage = """
       %prog [options] <requirement specifier> [package-index-options] ...
@@ -95,8 +94,6 @@ class InstallCommand(RequirementCommand):
       %prog [options] [-e] <vcs project url> ...
       %prog [options] [-e] <local project path> ...
       %prog [options] <archive url/path> ..."""
-
-    summary = 'Install packages.'
 
     def __init__(self, *args, **kw):
         super(InstallCommand, self).__init__(*args, **kw)

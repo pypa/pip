@@ -77,10 +77,8 @@ class DebugCommand(Command):
     Display debug information.
     """
 
-    name = 'debug'
     usage = """
       %prog <options>"""
-    summary = 'Show information useful for debugging.'
     ignore_require_venv = True
 
     def __init__(self, *args, **kw):
