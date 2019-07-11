@@ -6,7 +6,7 @@ import os
 import sys
 
 from pip._internal.cli.main_parser import create_main_parser
-from pip._internal.commands import create_command, get_summaries
+from pip._internal.commands import commands_dict, create_command
 from pip._internal.utils.misc import get_installed_distributions
 
 
@@ -23,7 +23,7 @@ def autocomplete():
     except IndexError:
         current = ''
 
-    subcommands = [cmd for cmd, summary in get_summaries()]
+    subcommands = list(commands_dict)
     options = []
     # subcommand
     try:

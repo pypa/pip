@@ -1,6 +1,6 @@
 import pytest
 
-from pip._internal.commands import commands_dict, create_command, get_summaries
+from pip._internal.commands import commands_dict, create_command
 
 
 def test_commands_dict__order():
@@ -20,12 +20,3 @@ def test_create_command(name):
     command = create_command(name)
     assert command.name == name
     assert command.summary == commands_dict[name].summary
-
-
-def test_get_summaries():
-    actual = list(get_summaries())
-    for name, summary in actual:
-        assert summary == commands_dict[name].summary
-
-    # Also check that the result is ordered correctly.
-    assert [item[0] for item in actual] == list(commands_dict)

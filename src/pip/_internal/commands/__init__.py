@@ -9,7 +9,7 @@ from collections import namedtuple, OrderedDict
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Iterable, Tuple
+    from typing import Any
     from pip._internal.cli.base_command import Command
 
 
@@ -94,13 +94,6 @@ def create_command(name, **kwargs):
     command = command_class(name=name, summary=summary, **kwargs)
 
     return command
-
-
-def get_summaries():
-    # type: () -> Iterable[Tuple[str, str]]
-    """Yield command (name, summary) tuples in display order."""
-    for name, command_info in commands_dict.items():
-        yield (name, command_info.summary)
 
 
 def get_similar_commands(name):
