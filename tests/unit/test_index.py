@@ -8,8 +8,8 @@ from pip._vendor.packaging.specifiers import SpecifierSet
 
 from pip._internal.download import PipSession
 from pip._internal.index import (
-    CandidateEvaluator, FormatControl, HTMLPage, Link, LinkEvaluator,
-    PackageFinder, _check_link_requires_python, _clean_link,
+    CandidateEvaluator, CandidatePreferences, FormatControl, HTMLPage, Link,
+    LinkEvaluator, PackageFinder, _check_link_requires_python, _clean_link,
     _determine_base_url, _extract_version_from_fragment,
     _find_name_version_sep, _get_html_page,
 )
@@ -17,6 +17,7 @@ from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
+from pip._internal.pep425tags import get_supported
 from tests.lib import CURRENT_PY_VERSION_INFO, make_test_finder
 
 
@@ -171,6 +172,32 @@ class TestLinkEvaluator:
 
 class TestCandidateEvaluator:
 
+    @pytest.mark.parametrize('allow_all_prereleases, prefer_binary', [
+        (False, False),
+        (False, True),
+        (True, False),
+        (True, True),
+    ])
+    def test_create(self, allow_all_prereleases, prefer_binary):
+        target_python = TargetPython()
+        target_python._valid_tags = [('py36', 'none', 'any')]
+        evaluator = CandidateEvaluator.create(
+            target_python=target_python,
+            allow_all_prereleases=allow_all_prereleases,
+            prefer_binary=prefer_binary,
+        )
+        assert evaluator._allow_all_prereleases == allow_all_prereleases
+        assert evaluator._prefer_binary == prefer_binary
+        assert evaluator._supported_tags == [('py36', 'none', 'any')]
+
+    def test_create__target_python_none(self):
+        """
+        Test passing target_python=None.
+        """
+        evaluator = CandidateEvaluator.create()
+        expected_tags = get_supported()
+        assert evaluator._supported_tags == expected_tags
+
     def make_mock_candidate(self, version, yanked_reason=None):
         url = 'https://example.com/pkg-{}.tar.gz'.format(version)
         link = Link(url, yanked_reason=yanked_reason)
@@ -178,13 +205,30 @@ class TestCandidateEvaluator:
 
         return candidate
 
+    def test_get_applicable_candidates(self):
+        specifier = SpecifierSet('<= 1.11')
+        versions = ['1.10', '1.11', '1.12']
+        candidates = [
+            self.make_mock_candidate(version) for version in versions
+        ]
+        evaluator = CandidateEvaluator.create()
+        actual = evaluator.get_applicable_candidates(
+            candidates, specifier=specifier,
+        )
+        expected_applicable = candidates[:2]
+        assert [str(c.version) for c in expected_applicable] == [
+            '1.10',
+            '1.11',
+        ]
+        assert actual == expected_applicable
+
     def test_make_found_candidates(self):
         specifier = SpecifierSet('<= 1.11')
         versions = ['1.10', '1.11', '1.12']
         candidates = [
             self.make_mock_candidate(version) for version in versions
         ]
-        evaluator = CandidateEvaluator()
+        evaluator = CandidateEvaluator.create()
         found_candidates = evaluator.make_found_candidates(
             candidates, specifier=specifier,
         )
@@ -212,7 +256,7 @@ class TestCandidateEvaluator:
         link = Link(url, yanked_reason=yanked_reason)
         candidate = InstallationCandidate('mypackage', '1.0', link)
 
-        evaluator = CandidateEvaluator()
+        evaluator = CandidateEvaluator.create()
         sort_value = evaluator._sort_key(candidate)
         # Yanked / non-yanked is reflected in the first element of the tuple.
         actual = sort_value[0]
@@ -222,7 +266,7 @@ class TestCandidateEvaluator:
         """
         Test passing an empty list.
         """
-        evaluator = CandidateEvaluator()
+        evaluator = CandidateEvaluator.create()
         actual = evaluator.get_best_candidate([])
         assert actual is None
 
@@ -237,7 +281,7 @@ class TestCandidateEvaluator:
             self.make_mock_candidate('2.0', yanked_reason='bad metadata #2'),
         ]
         expected_best = candidates[1]
-        evaluator = CandidateEvaluator()
+        evaluator = CandidateEvaluator.create()
         actual = evaluator.get_best_candidate(candidates)
         assert actual is expected_best
         assert str(actual.version) == '3.0'
@@ -268,7 +312,7 @@ class TestCandidateEvaluator:
         candidates = [
             self.make_mock_candidate('1.0', yanked_reason=yanked_reason),
         ]
-        evaluator = CandidateEvaluator()
+        evaluator = CandidateEvaluator.create()
         actual = evaluator.get_best_candidate(candidates)
         assert str(actual.version) == '1.0'
 
@@ -295,7 +339,7 @@ class TestCandidateEvaluator:
             self.make_mock_candidate('1.0'),
         ]
         expected_best = candidates[1]
-        evaluator = CandidateEvaluator()
+        evaluator = CandidateEvaluator.create()
         actual = evaluator.get_best_candidate(candidates)
         assert actual is expected_best
         assert str(actual.version) == '2.0'
@@ -312,29 +356,25 @@ class TestPackageFinder:
         (True, False),
         (True, True),
     ])
-    def test_create__candidate_evaluator(
+    def test_create__candidate_prefs(
         self, allow_all_prereleases, prefer_binary,
     ):
         """
-        Test that the candidate_evaluator attribute is set correctly.
+        Test that the _candidate_prefs attribute is set correctly.
         """
         selection_prefs = SelectionPreferences(
             allow_yanked=True,
             allow_all_prereleases=allow_all_prereleases,
             prefer_binary=prefer_binary,
         )
-        target_python = TargetPython(py_version_info=(3, 7, 3))
-        target_python._valid_tags = ['tag1', 'tag2']
         finder = PackageFinder.create(
             search_scope=SearchScope([], []),
             selection_prefs=selection_prefs,
             session=PipSession(),
-            target_python=target_python,
         )
-        evaluator = finder.candidate_evaluator
-        assert evaluator.allow_all_prereleases == allow_all_prereleases
-        assert evaluator._prefer_binary == prefer_binary
-        assert evaluator._supported_tags == ['tag1', 'tag2']
+        candidate_prefs = finder._candidate_prefs
+        assert candidate_prefs.allow_all_prereleases == allow_all_prereleases
+        assert candidate_prefs.prefer_binary == prefer_binary
 
     def test_create__target_python(self):
         """
@@ -526,7 +566,6 @@ class TestPackageFinder:
         target_python = TargetPython(py_version_info=(3, 7))
         format_control = FormatControl(set(), only_binary)
         finder = PackageFinder(
-            candidate_evaluator=CandidateEvaluator(),
             search_scope=SearchScope([], []),
             session=PipSession(),
             target_python=target_python,
@@ -551,6 +590,34 @@ class TestPackageFinder:
         # For good measure, check that the attributes weren't reset.
         assert actual_target_python._given_py_version_info == (3, 7)
         assert actual_target_python.py_version_info == (3, 7, 0)
+
+    @pytest.mark.parametrize('allow_all_prereleases, prefer_binary', [
+        (False, False),
+        (False, True),
+        (True, False),
+        (True, True),
+    ])
+    def test_make_candidate_evaluator(
+        self, allow_all_prereleases, prefer_binary,
+    ):
+        target_python = TargetPython()
+        target_python._valid_tags = [('py36', 'none', 'any')]
+        candidate_prefs = CandidatePreferences(
+            prefer_binary=prefer_binary,
+            allow_all_prereleases=allow_all_prereleases,
+        )
+        finder = PackageFinder(
+            search_scope=SearchScope([], []),
+            session=PipSession(),
+            target_python=target_python,
+            allow_yanked=True,
+            candidate_prefs=candidate_prefs,
+        )
+
+        evaluator = finder.make_candidate_evaluator()
+        assert evaluator._allow_all_prereleases == allow_all_prereleases
+        assert evaluator._prefer_binary == prefer_binary
+        assert evaluator._supported_tags == [('py36', 'none', 'any')]
 
 
 def test_sort_locations_file_expand_dir(data):
