@@ -50,6 +50,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.req import InstallRequirement
     from pip._internal.download import PipSession
     from pip._internal.pep425tags import Pep425Tag
+    from pip._internal.utils.hashes import Hashes
 
     BuildTag = Tuple[Any, ...]  # either empty tuple or Tuple[int, str]
     CandidateSortingKey = (
@@ -438,6 +439,45 @@ class LinkEvaluator(object):
         logger.debug('Found link %s, version: %s', link, version)
 
         return (True, version)
+
+
+def filter_unallowed_hashes(
+    candidates,  # type: List[InstallationCandidate]
+    hashes,      # type: Hashes
+):
+    # type: (...) -> List[InstallationCandidate]
+    """
+    Filter out candidates whose hashes aren't allowed, and return a new
+    list of candidates.
+
+    If at least one candidate has an allowed hash, then all candidates with
+    either an allowed hash or no hash specified are returned.  Otherwise,
+    the given candidates are returned.
+
+    Including the candidates with no hash specified when there is a match
+    allows a warning to be logged if there is a more preferred candidate
+    with no hash specified.  Returning all candidates in the case of no
+    matches lets pip report the hash of the candidate that would otherwise
+    have been installed (e.g. permitting the user to more easily update
+    their requirements file with the desired hash).
+    """
+    applicable = []
+    found_allowed_hash = False
+    for candidate in candidates:
+        link = candidate.location
+        if not link.has_hash:
+            applicable.append(candidate)
+            continue
+
+        if link.is_hash_allowed(hashes=hashes):
+            found_allowed_hash = True
+            applicable.append(candidate)
+
+    if found_allowed_hash:
+        return applicable
+
+    # Make sure we're not returning back the given value.
+    return list(candidates)
 
 
 class CandidatePreferences(object):

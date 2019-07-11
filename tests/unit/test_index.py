@@ -11,14 +11,27 @@ from pip._internal.index import (
     CandidateEvaluator, CandidatePreferences, FormatControl, HTMLPage, Link,
     LinkEvaluator, PackageFinder, _check_link_requires_python, _clean_link,
     _determine_base_url, _extract_version_from_fragment,
-    _find_name_version_sep, _get_html_page,
+    _find_name_version_sep, _get_html_page, filter_unallowed_hashes,
 )
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.pep425tags import get_supported
+from pip._internal.utils.hashes import Hashes
 from tests.lib import CURRENT_PY_VERSION_INFO, make_test_finder
+
+
+def make_mock_candidate(version, yanked_reason=None, hex_digest=None):
+    url = 'https://example.com/pkg-{}.tar.gz'.format(version)
+    if hex_digest is not None:
+        assert len(hex_digest) == 64
+        url += '#sha256={}'.format(hex_digest)
+
+    link = Link(url, yanked_reason=yanked_reason)
+    candidate = InstallationCandidate('mypackage', version, link)
+
+    return candidate
 
 
 @pytest.mark.parametrize('requires_python, expected', [
@@ -170,6 +183,30 @@ class TestLinkEvaluator:
         assert actual == expected
 
 
+@pytest.mark.parametrize('hex_digest, expected_versions', [
+    (None, ['1.0', '1.1', '1.2']),
+    (64 * 'a', ['1.0', '1.1']),
+    (64 * 'b', ['1.0', '1.2']),
+    (64 * 'c', ['1.0', '1.1', '1.2']),
+])
+def test_filter_unallowed_hashes(hex_digest, expected_versions):
+    candidates = [
+        make_mock_candidate('1.0'),
+        make_mock_candidate('1.1', hex_digest=(64 * 'a')),
+        make_mock_candidate('1.2', hex_digest=(64 * 'b')),
+    ]
+    hashes_data = {
+        'sha256': [hex_digest],
+    }
+    hashes = Hashes(hashes_data)
+    actual = filter_unallowed_hashes(candidates, hashes=hashes)
+
+    actual_versions = [str(candidate.version) for candidate in actual]
+    assert actual_versions == expected_versions
+    # Check that the return value is always different from the given value.
+    assert actual is not candidates
+
+
 class TestCandidateEvaluator:
 
     @pytest.mark.parametrize('allow_all_prereleases, prefer_binary', [
@@ -198,18 +235,11 @@ class TestCandidateEvaluator:
         expected_tags = get_supported()
         assert evaluator._supported_tags == expected_tags
 
-    def make_mock_candidate(self, version, yanked_reason=None):
-        url = 'https://example.com/pkg-{}.tar.gz'.format(version)
-        link = Link(url, yanked_reason=yanked_reason)
-        candidate = InstallationCandidate('mypackage', version, link)
-
-        return candidate
-
     def test_get_applicable_candidates(self):
         specifier = SpecifierSet('<= 1.11')
         versions = ['1.10', '1.11', '1.12']
         candidates = [
-            self.make_mock_candidate(version) for version in versions
+            make_mock_candidate(version) for version in versions
         ]
         evaluator = CandidateEvaluator.create()
         actual = evaluator.get_applicable_candidates(
@@ -226,7 +256,7 @@ class TestCandidateEvaluator:
         specifier = SpecifierSet('<= 1.11')
         versions = ['1.10', '1.11', '1.12']
         candidates = [
-            self.make_mock_candidate(version) for version in versions
+            make_mock_candidate(version) for version in versions
         ]
         evaluator = CandidateEvaluator.create()
         found_candidates = evaluator.make_found_candidates(
@@ -275,10 +305,10 @@ class TestCandidateEvaluator:
         Test all candidates yanked.
         """
         candidates = [
-            self.make_mock_candidate('1.0', yanked_reason='bad metadata #1'),
+            make_mock_candidate('1.0', yanked_reason='bad metadata #1'),
             # Put the best candidate in the middle, to test sorting.
-            self.make_mock_candidate('3.0', yanked_reason='bad metadata #3'),
-            self.make_mock_candidate('2.0', yanked_reason='bad metadata #2'),
+            make_mock_candidate('3.0', yanked_reason='bad metadata #3'),
+            make_mock_candidate('2.0', yanked_reason='bad metadata #2'),
         ]
         expected_best = candidates[1]
         evaluator = CandidateEvaluator.create()
@@ -310,7 +340,7 @@ class TestCandidateEvaluator:
         Test the log message with various reason strings.
         """
         candidates = [
-            self.make_mock_candidate('1.0', yanked_reason=yanked_reason),
+            make_mock_candidate('1.0', yanked_reason=yanked_reason),
         ]
         evaluator = CandidateEvaluator.create()
         actual = evaluator.get_best_candidate(candidates)
@@ -332,11 +362,11 @@ class TestCandidateEvaluator:
         Test the best candidates being yanked, but not all.
         """
         candidates = [
-            self.make_mock_candidate('4.0', yanked_reason='bad metadata #4'),
+            make_mock_candidate('4.0', yanked_reason='bad metadata #4'),
             # Put the best candidate in the middle, to test sorting.
-            self.make_mock_candidate('2.0'),
-            self.make_mock_candidate('3.0', yanked_reason='bad metadata #3'),
-            self.make_mock_candidate('1.0'),
+            make_mock_candidate('2.0'),
+            make_mock_candidate('3.0', yanked_reason='bad metadata #3'),
+            make_mock_candidate('1.0'),
         ]
         expected_best = candidates[1]
         evaluator = CandidateEvaluator.create()
