@@ -302,6 +302,29 @@ class TestCandidateEvaluator:
         ]
         assert found_candidates._applicable_candidates == expected_applicable
 
+    @pytest.mark.parametrize('hex_digest, expected', [
+        # Test a link with no hash.
+        (None, 0),
+        # Test a link with an allowed hash.
+        (64 * 'a', 1),
+        # Test a link with a hash that isn't allowed.
+        (64 * 'b', 0),
+    ])
+    def test_sort_key__hash(self, hex_digest, expected):
+        """
+        Test the effect of the link's hash on _sort_key()'s return value.
+        """
+        candidate = make_mock_candidate('1.0', hex_digest=hex_digest)
+        hashes_data = {
+            'sha256': [64 * 'a'],
+        }
+        hashes = Hashes(hashes_data)
+        evaluator = CandidateEvaluator.create(hashes=hashes)
+        sort_value = evaluator._sort_key(candidate)
+        # The hash is reflected in the first element of the tuple.
+        actual = sort_value[0]
+        assert actual == expected
+
     @pytest.mark.parametrize('yanked_reason, expected', [
         # Test a non-yanked file.
         (None, 0),
@@ -312,14 +335,11 @@ class TestCandidateEvaluator:
         """
         Test the effect of is_yanked on _sort_key()'s return value.
         """
-        url = 'https://example.com/mypackage.tar.gz'
-        link = Link(url, yanked_reason=yanked_reason)
-        candidate = InstallationCandidate('mypackage', '1.0', link)
-
+        candidate = make_mock_candidate('1.0', yanked_reason=yanked_reason)
         evaluator = CandidateEvaluator.create()
         sort_value = evaluator._sort_key(candidate)
-        # Yanked / non-yanked is reflected in the first element of the tuple.
-        actual = sort_value[0]
+        # Yanked / non-yanked is reflected in the second element of the tuple.
+        actual = sort_value[1]
         assert actual == expected
 
     def test_get_best_candidate__no_candidates(self):

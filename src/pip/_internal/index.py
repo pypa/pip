@@ -54,7 +54,7 @@ if MYPY_CHECK_RUNNING:
 
     BuildTag = Tuple[Any, ...]  # either empty tuple or Tuple[int, str]
     CandidateSortingKey = (
-        Tuple[int, int, _BaseVersion, BuildTag, Optional[int]]
+        Tuple[int, int, int, _BaseVersion, BuildTag, Optional[int]]
     )
     HTMLElement = xml.etree.ElementTree.Element
     SecureOrigin = Tuple[str, str, Optional[str]]
@@ -624,8 +624,14 @@ class CandidateEvaluator(object):
 
         The preference is as follows:
 
-        First and foremost, yanked candidates (in the sense of PEP 592) are
-        always less preferred than candidates that haven't been yanked. Then:
+        First and foremost, candidates with allowed (matching) hashes are
+        always preferred over candidates without matching hashes. This is
+        because e.g. if the only candidate with an allowed hash is yanked,
+        we still want to use that candidate.
+
+        Second, excepting hash considerations, candidates that have been
+        yanked (in the sense of PEP 592) are always less preferred than
+        candidates that haven't been yanked. Then:
 
         If not finding wheels, they are sorted by version only.
         If finding wheels, then the sort order is by version, then:
@@ -660,9 +666,11 @@ class CandidateEvaluator(object):
                 build_tag = (int(build_tag_groups[0]), build_tag_groups[1])
         else:  # sdist
             pri = -(support_num)
+        has_allowed_hash = int(link.is_hash_allowed(self._hashes))
         yank_value = -1 * int(link.is_yanked)  # -1 for yanked.
         return (
-            yank_value, binary_preference, candidate.version, build_tag, pri,
+            has_allowed_hash, yank_value, binary_preference, candidate.version,
+            build_tag, pri,
         )
 
     def get_best_candidate(
