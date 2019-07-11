@@ -230,7 +230,7 @@ def test_basic_editable_install(script):
     """
     result = script.pip('install', '-e', 'INITools==0.2', expect_error=True)
     assert (
-        "INITools==0.2 should either be a path to a local project or a VCS url"
+        "INITools==0.2 is not a valid editable requirement"
         in result.stderr
     )
     assert not result.files_created
