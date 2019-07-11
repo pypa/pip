@@ -252,6 +252,36 @@ class TestCandidateEvaluator:
         ]
         assert actual == expected_applicable
 
+    @pytest.mark.parametrize('specifier, expected_versions', [
+        # Test no version constraint.
+        (SpecifierSet(), ['1.0', '1.2']),
+        # Test a version constraint that excludes the candidate whose
+        # hash matches.  Then the non-allowed hash is a candidate.
+        (SpecifierSet('<= 1.1'), ['1.0', '1.1']),
+    ])
+    def test_get_applicable_candidates__hashes(
+        self, specifier, expected_versions,
+    ):
+        """
+        Test a non-None hashes value.
+        """
+        # specifier = SpecifierSet('<= 1.1')
+        candidates = [
+            make_mock_candidate('1.0'),
+            make_mock_candidate('1.1', hex_digest=(64 * 'a')),
+            make_mock_candidate('1.2', hex_digest=(64 * 'b')),
+        ]
+        hashes_data = {
+            'sha256': [64 * 'b'],
+        }
+        hashes = Hashes(hashes_data)
+        evaluator = CandidateEvaluator.create(hashes=hashes)
+        actual = evaluator.get_applicable_candidates(
+            candidates, specifier=specifier,
+        )
+        actual_versions = [str(c.version) for c in actual]
+        assert actual_versions == expected_versions
+
     def test_make_found_candidates(self):
         specifier = SpecifierSet('<= 1.11')
         versions = ['1.10', '1.11', '1.12']
@@ -644,8 +674,11 @@ class TestPackageFinder:
             candidate_prefs=candidate_prefs,
         )
 
-        evaluator = finder.make_candidate_evaluator()
+        # Pass hashes to check that _hashes is set.
+        hashes = Hashes({'sha256': [64 * 'a']})
+        evaluator = finder.make_candidate_evaluator(hashes=hashes)
         assert evaluator._allow_all_prereleases == allow_all_prereleases
+        assert evaluator._hashes == hashes
         assert evaluator._prefer_binary == prefer_binary
         assert evaluator._supported_tags == [('py36', 'none', 'any')]
 

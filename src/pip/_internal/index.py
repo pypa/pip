@@ -513,6 +513,7 @@ class CandidateEvaluator(object):
         target_python=None,   # type: Optional[TargetPython]
         prefer_binary=False,  # type: bool
         allow_all_prereleases=False,  # type: bool
+        hashes=None,                  # type: Optional[Hashes]
     ):
         # type: (...) -> CandidateEvaluator
         """Create a CandidateEvaluator object.
@@ -520,6 +521,7 @@ class CandidateEvaluator(object):
         :param target_python: The target Python interpreter to use when
             checking compatibility. If None (the default), a TargetPython
             object will be constructed from the running Python.
+        :param hashes: An optional collection of allowed hashes.
         """
         if target_python is None:
             target_python = TargetPython()
@@ -530,6 +532,7 @@ class CandidateEvaluator(object):
             supported_tags=supported_tags,
             prefer_binary=prefer_binary,
             allow_all_prereleases=allow_all_prereleases,
+            hashes=hashes,
         )
 
     def __init__(
@@ -537,6 +540,7 @@ class CandidateEvaluator(object):
         supported_tags,       # type: List[Pep425Tag]
         prefer_binary=False,  # type: bool
         allow_all_prereleases=False,  # type: bool
+        hashes=None,                  # type: Optional[Hashes]
     ):
         # type: (...) -> None
         """
@@ -544,6 +548,7 @@ class CandidateEvaluator(object):
             Python in order of preference (most preferred first).
         """
         self._allow_all_prereleases = allow_all_prereleases
+        self._hashes = hashes
         self._prefer_binary = prefer_binary
         self._supported_tags = supported_tags
 
@@ -576,7 +581,10 @@ class CandidateEvaluator(object):
         applicable_candidates = [
             c for c in candidates if str(c.version) in versions
         ]
-        return applicable_candidates
+
+        return filter_unallowed_hashes(
+            candidates=applicable_candidates, hashes=self._hashes,
+        )
 
     def make_found_candidates(
         self,
@@ -1089,8 +1097,8 @@ class PackageFinder(object):
         # This is an intentional priority ordering
         return file_versions + find_links_versions + page_versions
 
-    def make_candidate_evaluator(self):
-        # type: (...) -> CandidateEvaluator
+    def make_candidate_evaluator(self, hashes=None):
+        # type: (Optional[Hashes]) -> CandidateEvaluator
         """Create a CandidateEvaluator object to use.
         """
         candidate_prefs = self._candidate_prefs
@@ -1098,12 +1106,14 @@ class PackageFinder(object):
             target_python=self._target_python,
             prefer_binary=candidate_prefs.prefer_binary,
             allow_all_prereleases=candidate_prefs.allow_all_prereleases,
+            hashes=hashes,
         )
 
     def find_candidates(
         self,
         project_name,       # type: str
         specifier=None,     # type: Optional[specifiers.BaseSpecifier]
+        hashes=None,        # type: Optional[Hashes]
     ):
         # type: (...) -> FoundCandidates
         """Find matches for the given project and specifier.
@@ -1115,7 +1125,7 @@ class PackageFinder(object):
         :return: A `FoundCandidates` instance.
         """
         candidates = self.find_all_candidates(project_name)
-        candidate_evaluator = self.make_candidate_evaluator()
+        candidate_evaluator = self.make_candidate_evaluator(hashes=hashes)
         return candidate_evaluator.make_found_candidates(
             candidates, specifier=specifier,
         )
@@ -1128,7 +1138,10 @@ class PackageFinder(object):
         Returns a Link if found,
         Raises DistributionNotFound or BestVersionAlreadyInstalled otherwise
         """
-        candidates = self.find_candidates(req.name, req.specifier)
+        hashes = req.hashes(trust_internet=False)
+        candidates = self.find_candidates(
+            req.name, specifier=req.specifier, hashes=hashes,
+        )
         best_candidate = candidates.get_best()
 
         installed_version = None    # type: Optional[_BaseVersion]
