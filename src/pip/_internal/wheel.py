@@ -36,7 +36,7 @@ from pip._internal.utils.misc import (
     LOG_DIVIDER, call_subprocess, captured_stdout, ensure_dir,
     format_command_args, path_to_url, read_chunks,
 )
-from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
+from pip._internal.utils.setuptools_build import make_setuptools_shim_args
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import open_spinner
@@ -928,10 +928,9 @@ class WheelBuilder(object):
         # isolating. Currently, it breaks Python in virtualenvs, because it
         # relies on site.py to find parts of the standard library outside the
         # virtualenv.
-        return [
-            sys.executable, '-u', '-c',
-            SETUPTOOLS_SHIM.format(req.setup_py_path)
-        ] + list(self.global_options)
+        base_cmd = make_setuptools_shim_args(req.setup_py_path,
+                                             unbuffered_output=True)
+        return base_cmd + list(self.global_options)
 
     def _build_one_pep517(self, req, tempd, python_tag=None):
         """Build one InstallRequirement using the PEP 517 build process.

@@ -36,6 +36,7 @@ from pip._internal.utils.misc import (
     redact_netloc, redact_password_from_url, remove_auth_from_url, rmtree,
     split_auth_from_netloc, split_auth_netloc_from_url, untar_file, unzip_file,
 )
+from pip._internal.utils.setuptools_build import make_setuptools_shim_args
 from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
 from pip._internal.utils.ui import SpinnerInterface
 
@@ -1333,3 +1334,18 @@ def test_deprecated_message_reads_well():
         "You can find discussion regarding this at "
         "https://github.com/pypa/pip/issues/100000."
     )
+
+
+@pytest.mark.parametrize("unbuffered_output", [False, True])
+def test_make_setuptools_shim_args(unbuffered_output):
+    args = make_setuptools_shim_args(
+        "/dir/path/setup.py",
+        unbuffered_output=unbuffered_output
+    )
+
+    assert ("-u" in args) == unbuffered_output
+
+    assert args[-2] == "-c"
+
+    assert "sys.argv[0] = '/dir/path/setup.py'" in args[-1]
+    assert "__file__='/dir/path/setup.py'" in args[-1]
