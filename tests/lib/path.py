@@ -234,8 +234,8 @@ class Path(_base):
         with open(self, "w") as fp:
             fp.write(content)
 
-    def touch(self, times=None):
+    def touch(self):
         with open(self, "a") as fp:
-            os.utime(fp.fileno() if os.utime in supports_fd else self, times)
+            os.utime(fp.fileno() if os.utime in supports_fd else self)
 
 curdir = Path(os.path.curdir)
