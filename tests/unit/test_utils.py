@@ -1266,24 +1266,16 @@ def test_deprecated_message_reads_well():
     )
 
 
-@pytest.mark.parametrize("setup_py_path", [
-    "setup.py",
-    "/dir/path/setup.py",
-    "../relative/path/setup.py",
-])
 @pytest.mark.parametrize("unbuffered_output", [False, True])
-def test_make_setuptools_shim_args(setup_py_path, unbuffered_output):
+def test_make_setuptools_shim_args(unbuffered_output):
     args = make_setuptools_shim_args(
-        setup_py_path,
+        "/dir/path/setup.py",
         unbuffered_output=unbuffered_output
     )
 
-    if unbuffered_output:
-        assert "-u" in args
-    else:
-        assert "-u" not in args
+    assert "-u" in args == unbuffered_output
 
     assert args[-2] == "-c"
 
-    assert "sys.argv[0] = '{}'".format(setup_py_path) in args[-1]
-    assert "__file__='{}'".format(setup_py_path) in args[-1]
+    assert "sys.argv[0] = '/dir/path/setup.py'" in args[-1]
+    assert "__file__='/dir/path/setup.py'" in args[-1]
