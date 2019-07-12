@@ -1273,7 +1273,7 @@ def test_make_setuptools_shim_args(unbuffered_output):
         unbuffered_output=unbuffered_output
     )
 
-    assert "-u" in args == unbuffered_output
+    assert ("-u" in args) == unbuffered_output
 
     assert args[-2] == "-c"
 
