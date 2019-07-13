@@ -1351,16 +1351,38 @@ def test_deprecated_message_reads_well():
     )
 
 
+@pytest.mark.parametrize("global_options", [
+    None,
+    [],
+    ["--some", "--option"]
+])
+@pytest.mark.parametrize("no_user_cfg", [False, True])
 @pytest.mark.parametrize("unbuffered_output", [False, True])
-def test_make_setuptools_shim_args(unbuffered_output):
+def test_make_setuptools_shim_args(
+        global_options,
+        no_user_cfg,
+        unbuffered_output
+):
     args = make_setuptools_shim_args(
         "/dir/path/setup.py",
+        global_options=global_options,
+        no_user_cfg=no_user_cfg,
         unbuffered_output=unbuffered_output
     )
 
     assert ("-u" in args) == unbuffered_output
 
-    assert args[-2] == "-c"
+    if unbuffered_output:
+        assert args[2] == "-c"
+        assert "sys.argv[0] = '/dir/path/setup.py'" in args[3]
+        assert "__file__='/dir/path/setup.py'" in args[3]
+    else:
+        assert args[1] == "-c"
+        assert "sys.argv[0] = '/dir/path/setup.py'" in args[2]
+        assert "__file__='/dir/path/setup.py'" in args[2]
 
-    assert "sys.argv[0] = '/dir/path/setup.py'" in args[-1]
-    assert "__file__='/dir/path/setup.py'" in args[-1]
+    if global_options:
+        for option in global_options:
+            assert option in args
+
+    assert ("--no-user-cfg" in args) == no_user_cfg
