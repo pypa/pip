@@ -161,20 +161,17 @@ class Path(_base):
         """
         return os.path.exists(self)
 
-    def mkdir(self, mode=0x1FF):  # 0o777
+    def mkdir(self, mode=0x1FF, parents=False):  # 0o777
         """
         Creates a directory, if it doesn't exist already.
-        """
-        if not self.exists():
-            os.mkdir(self, mode)
-        return self
 
-    def makedirs(self, mode=0x1FF):  # 0o777
+        :param parents: Whether to create parent directories.
         """
-        Like mkdir(), but also creates parent directories.
-        """
-        if not self.exists():
-            os.makedirs(self, mode)
+        if self.exists():
+            return self
+
+        maker_func = os.makedirs if parents else os.mkdir
+        maker_func(self, mode)
         return self
 
     def unlink(self):

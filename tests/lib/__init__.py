@@ -471,7 +471,7 @@ class PipTestEnvironment(TestFileEnvironment):
 
         # create easy-install.pth in user_site, so we always have it updated
         #   instead of created
-        self.user_site_path.makedirs()
+        self.user_site_path.mkdir(parents=True)
         self.user_site_path.joinpath("easy-install.pth").touch()
 
     def _ignore_file(self, fn):

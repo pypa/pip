@@ -25,7 +25,7 @@ from tests.lib import create_file
 @pytest.fixture(scope="function")
 def cache_tmpdir(tmpdir):
     cache_dir = tmpdir.joinpath("cache")
-    cache_dir.makedirs()
+    cache_dir.mkdir(parents=True)
     yield cache_dir
 
 

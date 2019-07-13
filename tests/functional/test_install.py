@@ -896,7 +896,7 @@ def test_install_editable_with_prefix(script):
 
     # make sure target path is in PYTHONPATH
     pythonpath = script.scratch_path / site_packages
-    pythonpath.makedirs()
+    pythonpath.mkdir(parents=True)
     script.environ["PYTHONPATH"] = pythonpath
 
     # install pkga package into the absolute prefix directory
