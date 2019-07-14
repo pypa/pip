@@ -199,12 +199,93 @@ def test_filter_unallowed_hashes(hex_digest, expected_versions):
         'sha256': [hex_digest],
     }
     hashes = Hashes(hashes_data)
-    actual = filter_unallowed_hashes(candidates, hashes=hashes)
+    actual = filter_unallowed_hashes(
+        candidates, hashes=hashes, project_name='my-project',
+    )
 
     actual_versions = [str(candidate.version) for candidate in actual]
     assert actual_versions == expected_versions
     # Check that the return value is always different from the given value.
     assert actual is not candidates
+
+
+def test_filter_unallowed_hashes__no_hashes(caplog):
+    caplog.set_level(logging.DEBUG)
+
+    candidates = [
+        make_mock_candidate('1.0'),
+        make_mock_candidate('1.1'),
+    ]
+    actual = filter_unallowed_hashes(
+        candidates, hashes=Hashes(), project_name='my-project',
+    )
+
+    # Check that the return value is a copy.
+    assert actual == candidates
+    assert actual is not candidates
+
+    expected_message = (
+        "Given no hashes to check 2 links for project 'my-project': "
+        "discarding no candidates"
+    )
+    check_caplog(caplog, 'DEBUG', expected_message)
+
+
+def test_filter_unallowed_hashes__log_message_with_match(caplog):
+    caplog.set_level(logging.DEBUG)
+
+    # Test 1 match, 2 non-matches, 3 no hashes so all 3 values will be
+    # different.
+    candidates = [
+        make_mock_candidate('1.0'),
+        make_mock_candidate('1.1',),
+        make_mock_candidate('1.2',),
+        make_mock_candidate('1.3', hex_digest=(64 * 'a')),
+        make_mock_candidate('1.4', hex_digest=(64 * 'b')),
+        make_mock_candidate('1.5', hex_digest=(64 * 'c')),
+    ]
+    hashes_data = {
+        'sha256': [64 * 'a', 64 * 'd'],
+    }
+    hashes = Hashes(hashes_data)
+    actual = filter_unallowed_hashes(
+        candidates, hashes=hashes, project_name='my-project',
+    )
+    assert len(actual) == 4
+
+    expected_message = (
+        "Checked 6 links for project 'my-project' against 2 hashes "
+        "(1 matches, 3 no digest): discarding 2 non-matches:\n"
+        "  https://example.com/pkg-1.4.tar.gz#sha256="
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n"
+        "  https://example.com/pkg-1.5.tar.gz#sha256="
+        "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    )
+    check_caplog(caplog, 'DEBUG', expected_message)
+
+
+def test_filter_unallowed_hashes__log_message_with_no_match(caplog):
+    caplog.set_level(logging.DEBUG)
+
+    candidates = [
+        make_mock_candidate('1.0'),
+        make_mock_candidate('1.1', hex_digest=(64 * 'b')),
+        make_mock_candidate('1.2', hex_digest=(64 * 'c')),
+    ]
+    hashes_data = {
+        'sha256': [64 * 'a', 64 * 'd'],
+    }
+    hashes = Hashes(hashes_data)
+    actual = filter_unallowed_hashes(
+        candidates, hashes=hashes, project_name='my-project',
+    )
+    assert len(actual) == 3
+
+    expected_message = (
+        "Checked 3 links for project 'my-project' against 2 hashes "
+        "(0 matches, 1 no digest): discarding no candidates"
+    )
+    check_caplog(caplog, 'DEBUG', expected_message)
 
 
 class TestCandidateEvaluator:
