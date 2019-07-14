@@ -23,6 +23,7 @@ from pip._internal.models.format_control import FormatControl
 from pip._internal.models.index import PyPI
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.target_python import TargetPython
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.hashes import STRONG_HASHES
 from pip._internal.utils.misc import redact_password_from_url
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -378,13 +379,27 @@ def make_search_scope(options, suppress_no_index=False):
     return search_scope
 
 
+def _handle_trusted_host(option, opt_str, value, parser):
+    # type: (Option, str, str, OptionParser) -> None
+    if ":" in value:
+        deprecated(
+            "--trusted-host no longer needs port part with it.",
+            replacement=None,
+            gone_in=None,
+            issue=6705
+        )
+    parser.values.trusted_hosts.append(value)
+
+
 def trusted_host():
     # type: () -> Option
     return Option(
         "--trusted-host",
         dest="trusted_hosts",
-        action="append",
         metavar="HOSTNAME",
+        type="string",
+        action="callback",
+        callback=_handle_trusted_host,
         default=[],
         help="Mark this host as trusted, even though it does not have valid "
              "or any HTTPS.",
