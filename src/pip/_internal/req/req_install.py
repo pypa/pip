@@ -928,14 +928,11 @@ class InstallRequirement(object):
         install_options = list(install_options) + \
             self.options.get('install_options', [])
 
-        if self.isolated:
-            # https://github.com/python/mypy/issues/1174
-            global_options = global_options + ["--no-user-cfg"]  # type: ignore
-
         with TempDirectory(kind="record") as temp_dir:
             record_filename = os.path.join(temp_dir.path, 'install-record.txt')
             install_args = self.get_install_args(
-                global_options, record_filename, root, prefix, pycompile,
+                global_options, self.isolated, record_filename, root, prefix,
+                pycompile,
             )
             msg = 'Running setup.py install for %s' % (self.name,)
             with open_spinner(msg) as spinner:
@@ -992,6 +989,7 @@ class InstallRequirement(object):
     def get_install_args(
         self,
         global_options,  # type: Sequence[str]
+        isolated,  # type: bool
         record_filename,  # type: str
         root,  # type: Optional[str]
         prefix,  # type: Optional[str]
@@ -1001,6 +999,7 @@ class InstallRequirement(object):
         install_args = make_setuptools_shim_args(
             self.setup_py_path,
             global_options=global_options,
+            no_user_cfg=isolated,
             unbuffered_output=True
         )
         install_args += ['install', '--record', record_filename]
