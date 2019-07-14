@@ -239,7 +239,10 @@ def _get_win_folder_with_ctypes(csidl_name):
         if ctypes.windll.kernel32.GetShortPathNameW(buf.value, buf2, 1024):
             buf = buf2
 
-    return buf.value
+    # `buf.value` is `unicode`, but methods return type is `str`.
+    # If we annotate here as unicode, lots of other places should be
+    # changed / ignored.
+    return buf.value  # type: ignore
 
 
 if WINDOWS:
