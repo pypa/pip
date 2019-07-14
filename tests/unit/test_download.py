@@ -527,13 +527,15 @@ class TestPipSession:
 
         assert not hasattr(session.adapters["http://"], "cache")
 
-    def test_insecure_host_cache_is_not_enabled(self, tmpdir):
+    def test_insecure_host_adapter(self, tmpdir):
         session = PipSession(
             cache=tmpdir.joinpath("test-cache"),
             insecure_hosts=["example.com"],
         )
 
         assert not hasattr(session.adapters["https://example.com/"], "cache")
+        assert "https://example.com/" in session.adapters
+        assert "https://example.com:" in session.adapters
 
 
 @pytest.mark.parametrize(["input_url", "url", "username", "password"], [

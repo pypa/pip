@@ -43,10 +43,12 @@ from pip._internal.utils.misc import (
     ask_password,
     ask_path_exists,
     backup_dir,
+    build_url_from_netloc,
     consume,
     display_path,
     format_size,
     get_installed_version,
+    netloc_has_port,
     path_to_url,
     remove_auth_from_url,
     rmtree,
@@ -608,7 +610,13 @@ class PipSession(requests.Session):
 
     def add_insecure_host(self, host):
         # type: (str) -> None
-        self.mount('https://{}/'.format(host), self._insecure_adapter)
+        self.mount(build_url_from_netloc(host) + '/', self._insecure_adapter)
+        if not netloc_has_port(host):
+            # Mount wildcard ports for the same host.
+            self.mount(
+                build_url_from_netloc(host) + ':',
+                self._insecure_adapter
+            )
 
     def request(self, method, url, *args, **kwargs):
         # Allow setting a default timeout on a session

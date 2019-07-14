@@ -37,6 +37,7 @@ from pip._internal.utils.glibc import (
 )
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.misc import (
+    build_url_from_netloc,
     call_subprocess,
     egg_link_path,
     ensure_dir,
@@ -44,6 +45,7 @@ from pip._internal.utils.misc import (
     get_installed_distributions,
     get_prog,
     make_subprocess_output_error,
+    netloc_has_port,
     normalize_path,
     normalize_version_info,
     path_to_display,
@@ -1221,6 +1223,29 @@ def test_path_to_url_win():
     assert path_to_url(r'\\unc\as\path') == 'file://unc/as/path'
     path = os.path.join(os.getcwd(), 'file')
     assert path_to_url('file') == 'file:' + urllib_request.pathname2url(path)
+
+
+@pytest.mark.parametrize('netloc, url, has_port', [
+    # Test domain name.
+    ('example.com', 'https://example.com', False),
+    ('example.com:5000', 'https://example.com:5000', True),
+    # Test IPv4 address.
+    ('127.0.0.1', 'https://127.0.0.1', False),
+    ('127.0.0.1:5000', 'https://127.0.0.1:5000', True),
+    # Test bare IPv6 address.
+    ('2001:DB6::1', 'https://[2001:DB6::1]', False),
+    # Test IPv6 with port.
+    ('[2001:DB6::1]:5000', 'https://[2001:DB6::1]:5000', True),
+    # Test netloc with auth.
+    (
+        'user:password@localhost:5000',
+        'https://user:password@localhost:5000',
+        True
+    )
+])
+def test_build_url_from_netloc_and_netloc_has_port(netloc, url, has_port):
+    assert build_url_from_netloc(netloc) == url
+    assert netloc_has_port(netloc) is has_port
 
 
 @pytest.mark.parametrize('netloc, expected', [
