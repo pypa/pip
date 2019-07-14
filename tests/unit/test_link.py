@@ -1,6 +1,7 @@
 import pytest
 
 from pip._internal.models.link import Link
+from pip._internal.utils.hashes import Hashes
 
 
 class TestLink:
@@ -83,3 +84,36 @@ class TestLink:
             yanked_reason=yanked_reason,
         )
         assert link.is_yanked == expected
+
+    @pytest.mark.parametrize('hash_name, hex_digest, expected', [
+        # Test a value that matches but with the wrong hash_name.
+        ('sha384', 128 * 'a', False),
+        # Test matching values, including values other than the first.
+        ('sha512', 128 * 'a', True),
+        ('sha512', 128 * 'b', True),
+        # Test a matching hash_name with a value that doesn't match.
+        ('sha512', 128 * 'c', False),
+        # Test a link without a hash value.
+        ('sha512', '', False),
+    ])
+    def test_is_hash_allowed(self, hash_name, hex_digest, expected):
+        url = (
+            'https://example.com/wheel.whl#{hash_name}={hex_digest}'.format(
+                hash_name=hash_name,
+                hex_digest=hex_digest,
+            )
+        )
+        link = Link(url)
+        hashes_data = {
+            'sha512': [128 * 'a', 128 * 'b'],
+        }
+        hashes = Hashes(hashes_data)
+        assert link.is_hash_allowed(hashes) == expected
+
+    def test_is_hash_allowed__no_hash(self):
+        link = Link('https://example.com/wheel.whl')
+        hashes_data = {
+            'sha512': [128 * 'a'],
+        }
+        hashes = Hashes(hashes_data)
+        assert not link.is_hash_allowed(hashes)
