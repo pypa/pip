@@ -216,7 +216,7 @@ class TestWheel:
             ('pyT', 'TEST', 'any'),
             ('pyT', 'none', 'any'),
         ]
-        evaluator = CandidateEvaluator(supported_tags=valid_tags)
+        evaluator = CandidateEvaluator('my-project', supported_tags=valid_tags)
         sort_key = evaluator._sort_key
         results = sorted(links, key=sort_key, reverse=True)
         results2 = sorted(reversed(links), key=sort_key, reverse=True)
@@ -242,7 +242,7 @@ class TestWheel:
                 Link("simplewheel-1.0-py2.py3-none-any.whl"),
             ),
         ]
-        candidate_evaluator = CandidateEvaluator.create()
+        candidate_evaluator = CandidateEvaluator.create('my-project')
         sort_key = candidate_evaluator._sort_key
         results = sorted(links, key=sort_key, reverse=True)
         results2 = sorted(reversed(links), key=sort_key, reverse=True)

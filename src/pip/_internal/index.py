@@ -442,8 +442,9 @@ class LinkEvaluator(object):
 
 
 def filter_unallowed_hashes(
-    candidates,  # type: List[InstallationCandidate]
-    hashes,      # type: Hashes
+    candidates,    # type: List[InstallationCandidate]
+    hashes,        # type: Hashes
+    project_name,  # type: str
 ):
     # type: (...) -> List[InstallationCandidate]
     """
@@ -461,23 +462,58 @@ def filter_unallowed_hashes(
     have been installed (e.g. permitting the user to more easily update
     their requirements file with the desired hash).
     """
-    applicable = []
-    found_allowed_hash = False
+    if not hashes:
+        logger.debug(
+            'Given no hashes to check %s links for project %r: '
+            'discarding no candidates',
+            len(candidates),
+            project_name,
+        )
+        # Make sure we're not returning back the given value.
+        return list(candidates)
+
+    matches_or_no_digest = []
+    # Collect the non-matches for logging purposes.
+    non_matches = []
+    match_count = 0
     for candidate in candidates:
         link = candidate.location
         if not link.has_hash:
-            applicable.append(candidate)
+            pass
+        elif link.is_hash_allowed(hashes=hashes):
+            match_count += 1
+        else:
+            non_matches.append(candidate)
             continue
 
-        if link.is_hash_allowed(hashes=hashes):
-            found_allowed_hash = True
-            applicable.append(candidate)
+        matches_or_no_digest.append(candidate)
 
-    if found_allowed_hash:
-        return applicable
+    if match_count:
+        filtered = matches_or_no_digest
+    else:
+        # Make sure we're not returning back the given value.
+        filtered = list(candidates)
 
-    # Make sure we're not returning back the given value.
-    return list(candidates)
+    if len(filtered) == len(candidates):
+        discard_message = 'discarding no candidates'
+    else:
+        discard_message = 'discarding {} non-matches:\n  {}'.format(
+            len(non_matches),
+            '\n  '.join(str(candidate.location) for candidate in non_matches)
+        )
+
+    logger.debug(
+        'Checked %s links for project %r against %s hashes '
+        '(%s matches, %s no digest): %s',
+        len(candidates),
+        project_name,
+        hashes.digest_count,
+        match_count,
+        len(matches_or_no_digest) - match_count,
+        discard_message
+    )
+
+    return filtered
 
 
 class CandidatePreferences(object):
@@ -510,6 +546,7 @@ class CandidateEvaluator(object):
     @classmethod
     def create(
         cls,
+        project_name,         # type: str
         target_python=None,   # type: Optional[TargetPython]
         prefer_binary=False,  # type: bool
         allow_all_prereleases=False,  # type: bool
@@ -529,6 +566,7 @@ class CandidateEvaluator(object):
         supported_tags = target_python.get_tags()
 
         return cls(
+            project_name=project_name,
             supported_tags=supported_tags,
             prefer_binary=prefer_binary,
             allow_all_prereleases=allow_all_prereleases,
@@ -537,6 +575,7 @@ class CandidateEvaluator(object):
 
     def __init__(
         self,
+        project_name,         # type: str
         supported_tags,       # type: List[Pep425Tag]
         prefer_binary=False,  # type: bool
         allow_all_prereleases=False,  # type: bool
@@ -550,6 +589,7 @@ class CandidateEvaluator(object):
         self._allow_all_prereleases = allow_all_prereleases
         self._hashes = hashes
         self._prefer_binary = prefer_binary
+        self._project_name = project_name
         self._supported_tags = supported_tags
 
     def get_applicable_candidates(
@@ -583,7 +623,9 @@ class CandidateEvaluator(object):
         ]
 
         return filter_unallowed_hashes(
-            candidates=applicable_candidates, hashes=self._hashes,
+            candidates=applicable_candidates,
+            hashes=self._hashes,
+            project_name=self._project_name,
         )
 
     def make_found_candidates(
@@ -1105,12 +1147,17 @@ class PackageFinder(object):
         # This is an intentional priority ordering
         return file_versions + find_links_versions + page_versions
 
-    def make_candidate_evaluator(self, hashes=None):
-        # type: (Optional[Hashes]) -> CandidateEvaluator
+    def make_candidate_evaluator(
+        self,
+        project_name,  # type: str
+        hashes=None,   # type: Optional[Hashes]
+    ):
+        # type: (...) -> CandidateEvaluator
         """Create a CandidateEvaluator object to use.
         """
         candidate_prefs = self._candidate_prefs
         return CandidateEvaluator.create(
+            project_name=project_name,
             target_python=self._target_python,
             prefer_binary=candidate_prefs.prefer_binary,
             allow_all_prereleases=candidate_prefs.allow_all_prereleases,
@@ -1133,7 +1180,10 @@ class PackageFinder(object):
         :return: A `FoundCandidates` instance.
         """
         candidates = self.find_all_candidates(project_name)
-        candidate_evaluator = self.make_candidate_evaluator(hashes=hashes)
+        candidate_evaluator = self.make_candidate_evaluator(
+            project_name=project_name,
+            hashes=hashes,
+        )
         return candidate_evaluator.make_found_candidates(
             candidates, specifier=specifier,
         )

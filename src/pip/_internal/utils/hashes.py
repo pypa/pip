@@ -44,6 +44,11 @@ class Hashes(object):
         """
         self._allowed = {} if hashes is None else hashes
 
+    @property
+    def digest_count(self):
+        # type: () -> int
+        return sum(len(digests) for digests in self._allowed.values())
+
     def is_hash_allowed(
         self,
         hash_name,   # type: str

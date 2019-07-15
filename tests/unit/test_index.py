@@ -199,12 +199,93 @@ def test_filter_unallowed_hashes(hex_digest, expected_versions):
         'sha256': [hex_digest],
     }
     hashes = Hashes(hashes_data)
-    actual = filter_unallowed_hashes(candidates, hashes=hashes)
+    actual = filter_unallowed_hashes(
+        candidates, hashes=hashes, project_name='my-project',
+    )
 
     actual_versions = [str(candidate.version) for candidate in actual]
     assert actual_versions == expected_versions
     # Check that the return value is always different from the given value.
     assert actual is not candidates
+
+
+def test_filter_unallowed_hashes__no_hashes(caplog):
+    caplog.set_level(logging.DEBUG)
+
+    candidates = [
+        make_mock_candidate('1.0'),
+        make_mock_candidate('1.1'),
+    ]
+    actual = filter_unallowed_hashes(
+        candidates, hashes=Hashes(), project_name='my-project',
+    )
+
+    # Check that the return value is a copy.
+    assert actual == candidates
+    assert actual is not candidates
+
+    expected_message = (
+        "Given no hashes to check 2 links for project 'my-project': "
+        "discarding no candidates"
+    )
+    check_caplog(caplog, 'DEBUG', expected_message)
+
+
+def test_filter_unallowed_hashes__log_message_with_match(caplog):
+    caplog.set_level(logging.DEBUG)
+
+    # Test 1 match, 2 non-matches, 3 no hashes so all 3 values will be
+    # different.
+    candidates = [
+        make_mock_candidate('1.0'),
+        make_mock_candidate('1.1',),
+        make_mock_candidate('1.2',),
+        make_mock_candidate('1.3', hex_digest=(64 * 'a')),
+        make_mock_candidate('1.4', hex_digest=(64 * 'b')),
+        make_mock_candidate('1.5', hex_digest=(64 * 'c')),
+    ]
+    hashes_data = {
+        'sha256': [64 * 'a', 64 * 'd'],
+    }
+    hashes = Hashes(hashes_data)
+    actual = filter_unallowed_hashes(
+        candidates, hashes=hashes, project_name='my-project',
+    )
+    assert len(actual) == 4
+
+    expected_message = (
+        "Checked 6 links for project 'my-project' against 2 hashes "
+        "(1 matches, 3 no digest): discarding 2 non-matches:\n"
+        "  https://example.com/pkg-1.4.tar.gz#sha256="
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n"
+        "  https://example.com/pkg-1.5.tar.gz#sha256="
+        "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    )
+    check_caplog(caplog, 'DEBUG', expected_message)
+
+
+def test_filter_unallowed_hashes__log_message_with_no_match(caplog):
+    caplog.set_level(logging.DEBUG)
+
+    candidates = [
+        make_mock_candidate('1.0'),
+        make_mock_candidate('1.1', hex_digest=(64 * 'b')),
+        make_mock_candidate('1.2', hex_digest=(64 * 'c')),
+    ]
+    hashes_data = {
+        'sha256': [64 * 'a', 64 * 'd'],
+    }
+    hashes = Hashes(hashes_data)
+    actual = filter_unallowed_hashes(
+        candidates, hashes=hashes, project_name='my-project',
+    )
+    assert len(actual) == 3
+
+    expected_message = (
+        "Checked 3 links for project 'my-project' against 2 hashes "
+        "(0 matches, 1 no digest): discarding no candidates"
+    )
+    check_caplog(caplog, 'DEBUG', expected_message)
 
 
 class TestCandidateEvaluator:
@@ -219,6 +300,7 @@ class TestCandidateEvaluator:
         target_python = TargetPython()
         target_python._valid_tags = [('py36', 'none', 'any')]
         evaluator = CandidateEvaluator.create(
+            project_name='my-project',
             target_python=target_python,
             allow_all_prereleases=allow_all_prereleases,
             prefer_binary=prefer_binary,
@@ -231,7 +313,7 @@ class TestCandidateEvaluator:
         """
         Test passing target_python=None.
         """
-        evaluator = CandidateEvaluator.create()
+        evaluator = CandidateEvaluator.create('my-project')
         expected_tags = get_supported()
         assert evaluator._supported_tags == expected_tags
 
@@ -241,7 +323,7 @@ class TestCandidateEvaluator:
         candidates = [
             make_mock_candidate(version) for version in versions
         ]
-        evaluator = CandidateEvaluator.create()
+        evaluator = CandidateEvaluator.create('my-project')
         actual = evaluator.get_applicable_candidates(
             candidates, specifier=specifier,
         )
@@ -275,7 +357,7 @@ class TestCandidateEvaluator:
             'sha256': [64 * 'b'],
         }
         hashes = Hashes(hashes_data)
-        evaluator = CandidateEvaluator.create(hashes=hashes)
+        evaluator = CandidateEvaluator.create('my-project', hashes=hashes)
         actual = evaluator.get_applicable_candidates(
             candidates, specifier=specifier,
         )
@@ -288,7 +370,7 @@ class TestCandidateEvaluator:
         candidates = [
             make_mock_candidate(version) for version in versions
         ]
-        evaluator = CandidateEvaluator.create()
+        evaluator = CandidateEvaluator.create('my-project')
         found_candidates = evaluator.make_found_candidates(
             candidates, specifier=specifier,
         )
@@ -319,7 +401,7 @@ class TestCandidateEvaluator:
             'sha256': [64 * 'a'],
         }
         hashes = Hashes(hashes_data)
-        evaluator = CandidateEvaluator.create(hashes=hashes)
+        evaluator = CandidateEvaluator.create('my-project', hashes=hashes)
         sort_value = evaluator._sort_key(candidate)
         # The hash is reflected in the first element of the tuple.
         actual = sort_value[0]
@@ -336,7 +418,7 @@ class TestCandidateEvaluator:
         Test the effect of is_yanked on _sort_key()'s return value.
         """
         candidate = make_mock_candidate('1.0', yanked_reason=yanked_reason)
-        evaluator = CandidateEvaluator.create()
+        evaluator = CandidateEvaluator.create('my-project')
         sort_value = evaluator._sort_key(candidate)
         # Yanked / non-yanked is reflected in the second element of the tuple.
         actual = sort_value[1]
@@ -346,7 +428,7 @@ class TestCandidateEvaluator:
         """
         Test passing an empty list.
         """
-        evaluator = CandidateEvaluator.create()
+        evaluator = CandidateEvaluator.create('my-project')
         actual = evaluator.get_best_candidate([])
         assert actual is None
 
@@ -361,7 +443,7 @@ class TestCandidateEvaluator:
             make_mock_candidate('2.0', yanked_reason='bad metadata #2'),
         ]
         expected_best = candidates[1]
-        evaluator = CandidateEvaluator.create()
+        evaluator = CandidateEvaluator.create('my-project')
         actual = evaluator.get_best_candidate(candidates)
         assert actual is expected_best
         assert str(actual.version) == '3.0'
@@ -392,7 +474,7 @@ class TestCandidateEvaluator:
         candidates = [
             make_mock_candidate('1.0', yanked_reason=yanked_reason),
         ]
-        evaluator = CandidateEvaluator.create()
+        evaluator = CandidateEvaluator.create('my-project')
         actual = evaluator.get_best_candidate(candidates)
         assert str(actual.version) == '1.0'
 
@@ -419,7 +501,7 @@ class TestCandidateEvaluator:
             make_mock_candidate('1.0'),
         ]
         expected_best = candidates[1]
-        evaluator = CandidateEvaluator.create()
+        evaluator = CandidateEvaluator.create('my-project')
         actual = evaluator.get_best_candidate(candidates)
         assert actual is expected_best
         assert str(actual.version) == '2.0'
@@ -696,10 +778,13 @@ class TestPackageFinder:
 
         # Pass hashes to check that _hashes is set.
         hashes = Hashes({'sha256': [64 * 'a']})
-        evaluator = finder.make_candidate_evaluator(hashes=hashes)
+        evaluator = finder.make_candidate_evaluator(
+            'my-project', hashes=hashes,
+        )
         assert evaluator._allow_all_prereleases == allow_all_prereleases
         assert evaluator._hashes == hashes
         assert evaluator._prefer_binary == prefer_binary
+        assert evaluator._project_name == 'my-project'
         assert evaluator._supported_tags == [('py36', 'none', 'any')]
 
 
