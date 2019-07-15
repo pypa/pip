@@ -83,10 +83,10 @@ class InstallRequirement(object):
         self.req = req
         self.comes_from = comes_from
         self.constraint = constraint
-        if source_dir is not None:
-            self.source_dir = os.path.normpath(os.path.abspath(source_dir))
+        if source_dir is None:
+            self.source_dir = None  # type: Optional[str]
         else:
-            self.source_dir = None
+            self.source_dir = os.path.normpath(os.path.abspath(source_dir))
         self.editable = editable
 
         self._wheel_cache = wheel_cache
@@ -169,7 +169,7 @@ class InstallRequirement(object):
             s += ' in %s' % display_path(self.satisfied_by.location)
         if self.comes_from:
             if isinstance(self.comes_from, six.string_types):
-                comes_from = self.comes_from
+                comes_from = self.comes_from  # type: Optional[str]
             else:
                 comes_from = self.comes_from.from_path()
             if comes_from:
@@ -294,7 +294,7 @@ class InstallRequirement(object):
         return s
 
     def build_location(self, build_dir):
-        # type: (str) -> Optional[str]
+        # type: (str) -> str
         assert build_dir is not None
         if self._temp_build_dir.path is not None:
             return self._temp_build_dir.path

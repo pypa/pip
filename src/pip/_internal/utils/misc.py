@@ -118,7 +118,7 @@ def get_pip_version():
 
 
 def normalize_version_info(py_version_info):
-    # type: (Optional[Tuple[int, ...]]) -> Optional[Tuple[int, int, int]]
+    # type: (Tuple[int, ...]) -> Tuple[int, int, int]
     """
     Convert a tuple of ints representing a Python version to one of length
     three.
@@ -129,9 +129,6 @@ def normalize_version_info(py_version_info):
     :return: a tuple of length three if `py_version_info` is non-None.
         Otherwise, return `py_version_info` unchanged (i.e. None).
     """
-    if py_version_info is None:
-        return None
-
     if len(py_version_info) < 3:
         py_version_info += (3 - len(py_version_info)) * (0,)
     elif len(py_version_info) > 3:
@@ -824,7 +821,7 @@ def call_subprocess(
     unset_environ=None,  # type: Optional[Iterable[str]]
     spinner=None  # type: Optional[SpinnerInterface]
 ):
-    # type: (...) -> Optional[Text]
+    # type: (...) -> Text
     """
     Args:
       show_stdout: if true, use INFO to log the subprocess's stderr and
