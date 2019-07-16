@@ -3,6 +3,7 @@ import sys
 
 import pytest
 from mock import Mock, patch
+from pip._vendor.packaging.specifiers import SpecifierSet
 from pkg_resources import parse_version
 
 import pip._internal.pep425tags
@@ -216,7 +217,10 @@ class TestWheel:
             ('pyT', 'TEST', 'any'),
             ('pyT', 'none', 'any'),
         ]
-        evaluator = CandidateEvaluator('my-project', supported_tags=valid_tags)
+        specifier = SpecifierSet()
+        evaluator = CandidateEvaluator(
+            'my-project', supported_tags=valid_tags, specifier=specifier,
+        )
         sort_key = evaluator._sort_key
         results = sorted(links, key=sort_key, reverse=True)
         results2 = sorted(reversed(links), key=sort_key, reverse=True)

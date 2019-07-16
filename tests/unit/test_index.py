@@ -299,14 +299,17 @@ class TestCandidateEvaluator:
     def test_create(self, allow_all_prereleases, prefer_binary):
         target_python = TargetPython()
         target_python._valid_tags = [('py36', 'none', 'any')]
+        specifier = SpecifierSet()
         evaluator = CandidateEvaluator.create(
             project_name='my-project',
             target_python=target_python,
             allow_all_prereleases=allow_all_prereleases,
             prefer_binary=prefer_binary,
+            specifier=specifier,
         )
         assert evaluator._allow_all_prereleases == allow_all_prereleases
         assert evaluator._prefer_binary == prefer_binary
+        assert evaluator._specifier is specifier
         assert evaluator._supported_tags == [('py36', 'none', 'any')]
 
     def test_create__target_python_none(self):
@@ -317,16 +320,25 @@ class TestCandidateEvaluator:
         expected_tags = get_supported()
         assert evaluator._supported_tags == expected_tags
 
+    def test_create__specifier_none(self):
+        """
+        Test passing specifier=None.
+        """
+        evaluator = CandidateEvaluator.create('my-project')
+        expected_specifier = SpecifierSet()
+        assert evaluator._specifier == expected_specifier
+
     def test_get_applicable_candidates(self):
         specifier = SpecifierSet('<= 1.11')
         versions = ['1.10', '1.11', '1.12']
         candidates = [
             make_mock_candidate(version) for version in versions
         ]
-        evaluator = CandidateEvaluator.create('my-project')
-        actual = evaluator.get_applicable_candidates(
-            candidates, specifier=specifier,
+        evaluator = CandidateEvaluator.create(
+            'my-project',
+            specifier=specifier,
         )
+        actual = evaluator.get_applicable_candidates(candidates)
         expected_applicable = candidates[:2]
         assert [str(c.version) for c in expected_applicable] == [
             '1.10',
@@ -347,7 +359,6 @@ class TestCandidateEvaluator:
         """
         Test a non-None hashes value.
         """
-        # specifier = SpecifierSet('<= 1.1')
         candidates = [
             make_mock_candidate('1.0'),
             make_mock_candidate('1.1', hex_digest=(64 * 'a')),
@@ -357,10 +368,12 @@ class TestCandidateEvaluator:
             'sha256': [64 * 'b'],
         }
         hashes = Hashes(hashes_data)
-        evaluator = CandidateEvaluator.create('my-project', hashes=hashes)
-        actual = evaluator.get_applicable_candidates(
-            candidates, specifier=specifier,
+        evaluator = CandidateEvaluator.create(
+            'my-project',
+            specifier=specifier,
+            hashes=hashes,
         )
+        actual = evaluator.get_applicable_candidates(candidates)
         actual_versions = [str(c.version) for c in actual]
         assert actual_versions == expected_versions
 
@@ -370,10 +383,11 @@ class TestCandidateEvaluator:
         candidates = [
             make_mock_candidate(version) for version in versions
         ]
-        evaluator = CandidateEvaluator.create('my-project')
-        found_candidates = evaluator.make_found_candidates(
-            candidates, specifier=specifier,
+        evaluator = CandidateEvaluator.create(
+            'my-project',
+            specifier=specifier,
         )
+        found_candidates = evaluator.make_found_candidates(candidates)
 
         assert found_candidates._candidates == candidates
         assert found_candidates._evaluator is evaluator
@@ -776,15 +790,19 @@ class TestPackageFinder:
             candidate_prefs=candidate_prefs,
         )
 
+        specifier = SpecifierSet()
         # Pass hashes to check that _hashes is set.
         hashes = Hashes({'sha256': [64 * 'a']})
         evaluator = finder.make_candidate_evaluator(
-            'my-project', hashes=hashes,
+            'my-project',
+            specifier=specifier,
+            hashes=hashes,
         )
         assert evaluator._allow_all_prereleases == allow_all_prereleases
         assert evaluator._hashes == hashes
         assert evaluator._prefer_binary == prefer_binary
         assert evaluator._project_name == 'my-project'
+        assert evaluator._specifier is specifier
         assert evaluator._supported_tags == [('py36', 'none', 'any')]
 
 
