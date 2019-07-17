@@ -18,15 +18,14 @@ from pip._vendor.pep517.wrappers import Pep517HookCaller
 from pip._internal import wheel
 from pip._internal.build_env import NoOpBuildEnvironment
 from pip._internal.exceptions import InstallationError
-from pip._internal.locations import (
-    PIP_DELETE_MARKER_FILENAME, running_under_virtualenv,
-)
+from pip._internal.locations import running_under_virtualenv
 from pip._internal.models.link import Link
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.compat import native_str
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
+from pip._internal.utils.marker_files import PIP_DELETE_MARKER_FILENAME
 from pip._internal.utils.misc import (
     _make_build_dir, ask_path_exists, backup_dir, call_subprocess,
     display_path, dist_in_site_packages, dist_in_usersite, ensure_dir,

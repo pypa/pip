@@ -28,13 +28,13 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 
 import pip
 from pip._internal.exceptions import HashMismatch, InstallationError
-from pip._internal.locations import write_delete_marker_file
 from pip._internal.models.index import PyPI
 # Import ssl from compat so the initial import occurs in only one place.
 from pip._internal.utils.compat import HAS_TLS, ssl
 from pip._internal.utils.encoding import auto_decode
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.glibc import libc_ver
+from pip._internal.utils.marker_files import write_delete_marker_file
 from pip._internal.utils.misc import (
     ARCHIVE_EXTENSIONS, ask, ask_input, ask_password, ask_path_exists,
     backup_dir, consume, display_path, format_size, get_installed_version,
