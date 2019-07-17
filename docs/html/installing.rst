@@ -109,7 +109,7 @@ On Windows [4]_::
 Python and OS Compatibility
 ---------------------------
 
-pip works with CPython versions 2.7, 3.4, 3.5, 3.6, 3.7 and also pypy.
+pip works with CPython versions 2.7, 3.5, 3.6, 3.7 and also PyPy.
 
 This means pip works on the latest patch version of each of these minor
 versions. Previous patch versions are supported on a best effort approach.
