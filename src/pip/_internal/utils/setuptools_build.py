@@ -23,7 +23,7 @@ _SETUPTOOLS_SHIM = (
 def make_setuptools_shim_args(
         setup_py_path,  # type: str
         global_options=None,  # type: Sequence[str]
-        no_user_cfg=False,  # type: bool
+        no_user_config=False,  # type: bool
         unbuffered_output=False  # type: bool
 ):
     # type: (...) -> List[str]
@@ -32,7 +32,7 @@ def make_setuptools_shim_args(
 
     :param setup_py_path: The path to setup.py to be wrapped.
     :param global_options: Additional global options.
-    :param no_user_cfg: If True, disables personal user configuration.
+    :param no_user_config: If True, disables personal user configuration.
     :param unbuffered_output: If True, adds the unbuffered switch to the
      argument list.
     """
@@ -41,7 +41,7 @@ def make_setuptools_shim_args(
         args.append('-u')
     args.extend(['-c', _SETUPTOOLS_SHIM.format(setup_py_path)])
     if global_options:
-        args.extend(list(global_options))
-    if no_user_cfg:
+        args.extend(global_options)
+    if no_user_config:
         args.append('--no-user-cfg')
     return args

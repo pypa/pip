@@ -597,7 +597,7 @@ class InstallRequirement(object):
             )
         base_cmd = make_setuptools_shim_args(
             self.setup_py_path,
-            no_user_cfg=self.isolated
+            no_user_config=self.isolated
         )
         egg_info_cmd = base_cmd + ['egg_info']
         # We can't put the .egg-info files at the root, because then the
@@ -746,16 +746,16 @@ class InstallRequirement(object):
         if prefix:
             prefix_param = ['--prefix={}'.format(prefix)]
             install_options = list(install_options) + prefix_param
-
+        base_cmd = make_setuptools_shim_args(
+            self.setup_py_path,
+            global_options=global_options,
+            no_user_config=self.isolated
+        )
         with indent_log():
             # FIXME: should we do --install-headers here too?
             with self.build_env:
                 call_subprocess(
-                    make_setuptools_shim_args(
-                        self.setup_py_path,
-                        global_options=global_options,
-                        no_user_cfg=self.isolated
-                    ) +
+                    base_cmd +
                     ['develop', '--no-deps'] +
                     list(install_options),
 
@@ -931,7 +931,7 @@ class InstallRequirement(object):
         with TempDirectory(kind="record") as temp_dir:
             record_filename = os.path.join(temp_dir.path, 'install-record.txt')
             install_args = self.get_install_args(
-                global_options, self.isolated, record_filename, root, prefix,
+                global_options, record_filename, root, prefix,
                 pycompile,
             )
             msg = 'Running setup.py install for %s' % (self.name,)
@@ -989,7 +989,6 @@ class InstallRequirement(object):
     def get_install_args(
         self,
         global_options,  # type: Sequence[str]
-        isolated,  # type: bool
         record_filename,  # type: str
         root,  # type: Optional[str]
         prefix,  # type: Optional[str]
@@ -999,7 +998,7 @@ class InstallRequirement(object):
         install_args = make_setuptools_shim_args(
             self.setup_py_path,
             global_options=global_options,
-            no_user_cfg=isolated,
+            no_user_config=self.isolated,
             unbuffered_output=True
         )
         install_args += ['install', '--record', record_filename]
