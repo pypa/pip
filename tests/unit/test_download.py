@@ -1,5 +1,6 @@
 import functools
 import hashlib
+import logging
 import os
 import sys
 from io import BytesIO
@@ -510,6 +511,72 @@ def test_get_index_url_credentials():
     # Check resolution of indexes
     assert get("http://example.com/path/path2") == ('foo', 'bar')
     assert get("http://example.com/path3/path2") == (None, None)
+
+
+def test_get_env_credentials(request, caplog):
+    def reset_env():
+        del os.environ['PIP_USERNAME']
+        del os.environ['PIP_PASSWORD']
+
+    request.addfinalizer(reset_env)
+
+    os.environ['PIP_USERNAME'] = 'foo'
+    os.environ['PIP_PASSWORD'] = 'bar'
+
+    with caplog.at_level(logging.DEBUG):
+        auth = MultiDomainBasicAuth()
+        get = functools.partial(
+            auth._get_new_credentials,
+            allow_netrc=False,
+            allow_keyring=False
+        )
+
+        # Check resolution of credentials from env
+        assert get("http://envexample.com/pathx") == ('foo', 'bar')
+
+    assert "Found credentials in environment" in caplog.text
+
+
+def test_get_env_credentials_only_username(request, caplog):
+    def reset_env():
+        del os.environ['PIP_USERNAME']
+
+    request.addfinalizer(reset_env)
+
+    os.environ['PIP_USERNAME'] = 'foo'
+
+    auth = MultiDomainBasicAuth()
+    get = functools.partial(
+        auth._get_new_credentials,
+        allow_netrc=False,
+        allow_keyring=False
+    )
+
+    # Check resolution of credentials from env
+    assert get("http://envexample.com/pathx") == (None, None)
+
+    assert "but not 'PIP_PASSWORD'" in caplog.text
+
+
+def test_get_env_credentials_only_password(request, caplog):
+    def reset_env():
+        del os.environ['PIP_PASSWORD']
+
+    request.addfinalizer(reset_env)
+
+    os.environ['PIP_PASSWORD'] = 'bar'
+
+    auth = MultiDomainBasicAuth()
+    get = functools.partial(
+        auth._get_new_credentials,
+        allow_netrc=False,
+        allow_keyring=False
+    )
+
+    # Check resolution of credentials from env
+    assert get("http://envexample.com/pathx") == (None, None)
+
+    assert "but not 'PIP_USERNAME'" in caplog.text
 
 
 class KeyringModuleV1(object):

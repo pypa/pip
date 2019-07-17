@@ -804,6 +804,14 @@ Options
 .. pip-index-options::
 
 
+Environment Variables
+*********************
+
+It is possible to specify a username and password for accessing a pip repository which requires authentication.
+
+Use the environment variables ``PIP_USERNAME`` and ``PIP_PASSWORD`` to specify credentials.
+
+
 .. _`pip install Examples`:
 
 Examples

@@ -279,6 +279,23 @@ class MultiDomainBasicAuth(AuthBase):
                 logger.debug("Found credentials in index url for %s", netloc)
                 return index_url_user_password
 
+        # Check for creds in environment
+        user_var = 'PIP_USERNAME'
+        passwd_var = 'PIP_PASSWORD'
+        env_username = os.environ.get(user_var)
+        env_password = os.environ.get(passwd_var)
+        if env_username:
+            if env_password:
+                logger.debug("Found credentials in environment.")
+                return env_username, env_password
+
+            msg = "Found '{uv}' environment variable, but not '{pv}'. Ignoring '{uv}'."
+            logger.warning(msg.format(uv=user_var, pv=passwd_var))
+
+        if env_password:
+            msg = "Found '{pv}' environment variable, but not '{uv}'. Ignoring '{pv}'."
+            logger.warning(msg.format(uv=user_var, pv=passwd_var))
+
         # Get creds from netrc if we still don't have them
         if allow_netrc:
             netrc_auth = get_netrc_auth(original_url)
