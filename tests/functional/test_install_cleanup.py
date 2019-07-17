@@ -4,7 +4,7 @@ from os.path import exists
 import pytest
 
 from pip._internal.cli.status_codes import PREVIOUS_BUILD_DIR_ERROR
-from pip._internal.locations import write_delete_marker_file
+from pip._internal.utils.marker_files import write_delete_marker_file
 from tests.lib import need_mercurial
 from tests.lib.local_repos import local_checkout
 
