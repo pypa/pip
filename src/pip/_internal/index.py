@@ -550,7 +550,8 @@ class CandidateEvaluator(object):
         target_python=None,   # type: Optional[TargetPython]
         prefer_binary=False,  # type: bool
         allow_all_prereleases=False,  # type: bool
-        hashes=None,                  # type: Optional[Hashes]
+        specifier=None,       # type: Optional[specifiers.BaseSpecifier]
+        hashes=None,          # type: Optional[Hashes]
     ):
         # type: (...) -> CandidateEvaluator
         """Create a CandidateEvaluator object.
@@ -562,12 +563,15 @@ class CandidateEvaluator(object):
         """
         if target_python is None:
             target_python = TargetPython()
+        if specifier is None:
+            specifier = specifiers.SpecifierSet()
 
         supported_tags = target_python.get_tags()
 
         return cls(
             project_name=project_name,
             supported_tags=supported_tags,
+            specifier=specifier,
             prefer_binary=prefer_binary,
             allow_all_prereleases=allow_all_prereleases,
             hashes=hashes,
@@ -577,6 +581,7 @@ class CandidateEvaluator(object):
         self,
         project_name,         # type: str
         supported_tags,       # type: List[Pep425Tag]
+        specifier,            # type: specifiers.BaseSpecifier
         prefer_binary=False,  # type: bool
         allow_all_prereleases=False,  # type: bool
         hashes=None,                  # type: Optional[Hashes]
@@ -590,12 +595,12 @@ class CandidateEvaluator(object):
         self._hashes = hashes
         self._prefer_binary = prefer_binary
         self._project_name = project_name
+        self._specifier = specifier
         self._supported_tags = supported_tags
 
     def get_applicable_candidates(
         self,
         candidates,  # type: List[InstallationCandidate]
-        specifier,   # type: specifiers.BaseSpecifier
     ):
         # type: (...) -> List[InstallationCandidate]
         """
@@ -603,6 +608,7 @@ class CandidateEvaluator(object):
         """
         # Using None infers from the specifier instead.
         allow_prereleases = self._allow_all_prereleases or None
+        specifier = self._specifier
         versions = {
             str(v) for v in specifier.filter(
                 # We turn the version object into a str here because otherwise
@@ -631,7 +637,6 @@ class CandidateEvaluator(object):
     def make_found_candidates(
         self,
         candidates,      # type: List[InstallationCandidate]
-        specifier=None,  # type: Optional[specifiers.BaseSpecifier]
     ):
         # type: (...) -> FoundCandidates
         """
@@ -641,13 +646,7 @@ class CandidateEvaluator(object):
             (e.g. `packaging.specifiers.SpecifierSet`) to filter applicable
             versions.
         """
-        if specifier is None:
-            specifier = specifiers.SpecifierSet()
-
-        applicable_candidates = self.get_applicable_candidates(
-            candidates=candidates,
-            specifier=specifier,
-        )
+        applicable_candidates = self.get_applicable_candidates(candidates)
 
         return FoundCandidates(
             candidates,
@@ -1149,8 +1148,9 @@ class PackageFinder(object):
 
     def make_candidate_evaluator(
         self,
-        project_name,  # type: str
-        hashes=None,   # type: Optional[Hashes]
+        project_name,    # type: str
+        specifier=None,  # type: Optional[specifiers.BaseSpecifier]
+        hashes=None,     # type: Optional[Hashes]
     ):
         # type: (...) -> CandidateEvaluator
         """Create a CandidateEvaluator object to use.
@@ -1161,6 +1161,7 @@ class PackageFinder(object):
             target_python=self._target_python,
             prefer_binary=candidate_prefs.prefer_binary,
             allow_all_prereleases=candidate_prefs.allow_all_prereleases,
+            specifier=specifier,
             hashes=hashes,
         )
 
@@ -1182,11 +1183,10 @@ class PackageFinder(object):
         candidates = self.find_all_candidates(project_name)
         candidate_evaluator = self.make_candidate_evaluator(
             project_name=project_name,
+            specifier=specifier,
             hashes=hashes,
         )
-        return candidate_evaluator.make_found_candidates(
-            candidates, specifier=specifier,
-        )
+        return candidate_evaluator.make_found_candidates(candidates)
 
     def find_requirement(self, req, upgrade):
         # type: (InstallRequirement, bool) -> Optional[Link]
