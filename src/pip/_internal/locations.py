@@ -11,7 +11,7 @@ from distutils import sysconfig as distutils_sysconfig
 from distutils.command.install import SCHEME_KEYS  # type: ignore
 
 from pip._internal.utils import appdirs
-from pip._internal.utils.compat import WINDOWS, expanduser
+from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
@@ -56,7 +56,7 @@ try:
     user_site = site.getusersitepackages()
 except AttributeError:
     user_site = site.USER_SITE
-user_dir = expanduser('~')
+
 if WINDOWS:
     bin_py = os.path.join(sys.prefix, 'Scripts')
     bin_user = os.path.join(user_site, 'Scripts')
@@ -64,37 +64,14 @@ if WINDOWS:
     if not os.path.exists(bin_py):
         bin_py = os.path.join(sys.prefix, 'bin')
         bin_user = os.path.join(user_site, 'bin')
-
-    config_basename = 'pip.ini'
-
-    legacy_storage_dir = os.path.join(user_dir, 'pip')
-    legacy_config_file = os.path.join(
-        legacy_storage_dir,
-        config_basename,
-    )
 else:
     bin_py = os.path.join(sys.prefix, 'bin')
     bin_user = os.path.join(user_site, 'bin')
 
-    config_basename = 'pip.conf'
-
-    legacy_storage_dir = os.path.join(user_dir, '.pip')
-    legacy_config_file = os.path.join(
-        legacy_storage_dir,
-        config_basename,
-    )
     # Forcing to use /usr/local/bin for standard macOS framework installs
     # Also log to ~/Library/Logs/ for use with the Console.app log viewer
     if sys.platform[:6] == 'darwin' and sys.prefix[:16] == '/System/Library/':
         bin_py = '/usr/local/bin'
-
-global_config_files = [
-    os.path.join(path, config_basename)
-    for path in appdirs.site_config_dirs('pip')
-]
-
-site_config_file = os.path.join(sys.prefix, config_basename)
-new_config_file = os.path.join(appdirs.user_config_dir("pip"), config_basename)
 
 
 def distutils_scheme(dist_name, user=False, home=None, root=None,
