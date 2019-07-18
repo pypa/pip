@@ -30,7 +30,11 @@ from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
 
 from pip import __version__
 from pip._internal.exceptions import CommandError, InstallationError
-from pip._internal.locations import site_packages, user_site
+from pip._internal.locations import (
+    get_major_minor_version,
+    site_packages,
+    user_site,
+)
 from pip._internal.utils.compat import (
     WINDOWS,
     console_to_str,
@@ -118,7 +122,7 @@ def get_pip_version():
 
     return (
         'pip {} from {} (python {})'.format(
-            __version__, pip_pkg_dir, '{}.{}'.format(*sys.version_info),
+            __version__, pip_pkg_dir, get_major_minor_version(),
         )
     )
 

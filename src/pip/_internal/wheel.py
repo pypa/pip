@@ -29,7 +29,7 @@ from pip._internal.exceptions import (
     InvalidWheelFilename,
     UnsupportedWheel,
 )
-from pip._internal.locations import distutils_scheme
+from pip._internal.locations import distutils_scheme, get_major_minor_version
 from pip._internal.models.link import Link
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.marker_files import PIP_DELETE_MARKER_FILENAME
@@ -560,7 +560,7 @@ if __name__ == '__main__':
             spec = 'pip%s = %s' % (sys.version_info[0], pip_script)
             generated.extend(maker.make(spec))
 
-        spec = 'pip%s = %s' % ('{}.{}'.format(*sys.version_info), pip_script)
+        spec = 'pip%s = %s' % (get_major_minor_version(), pip_script)
         generated.extend(maker.make(spec))
         # Delete any other versioned pip entry points
         pip_ep = [k for k in console if re.match(r'pip(\d(\.\d)?)?$', k)]
@@ -573,7 +573,7 @@ if __name__ == '__main__':
             generated.extend(maker.make(spec))
 
         spec = 'easy_install-%s = %s' % (
-            '{}.{}'.format(*sys.version_info), easy_install_script,
+            get_major_minor_version(), easy_install_script,
         )
         generated.extend(maker.make(spec))
         # Delete any other versioned easy_install entry points

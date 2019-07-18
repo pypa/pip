@@ -15,6 +15,7 @@ from scripttest import FoundDir, TestFileEnvironment
 
 from pip._internal.download import PipSession
 from pip._internal.index import PackageFinder
+from pip._internal.locations import get_major_minor_version
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
@@ -29,7 +30,7 @@ if MYPY_CHECK_RUNNING:
 DATA_DIR = Path(__file__).parent.parent.joinpath("data").abspath
 SRC_DIR = Path(__file__).abspath.parent.parent.parent
 
-pyversion = '{}.{}'.format(*sys.version_info)
+pyversion = get_major_minor_version()
 pyversion_tuple = sys.version_info
 
 CURRENT_PY_VERSION_INFO = sys.version_info[:3]

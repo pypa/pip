@@ -1,10 +1,8 @@
-import sys
-
 import pytest
 from mock import patch
 
 from pip._internal.models.target_python import TargetPython
-from tests.lib import CURRENT_PY_VERSION_INFO
+from tests.lib import CURRENT_PY_VERSION_INFO, pyversion
 
 
 class TestTargetPython:
@@ -36,14 +34,12 @@ class TestTargetPython:
         """
         Test passing py_version_info=None.
         """
-        current_major_minor = '{}.{}'.format(*sys.version_info)
-
         target_python = TargetPython(py_version_info=None)
 
         assert target_python._given_py_version_info is None
 
         assert target_python.py_version_info == CURRENT_PY_VERSION_INFO
-        assert target_python.py_version == current_major_minor
+        assert target_python.py_version == pyversion
 
     @pytest.mark.parametrize('kwargs, expected', [
         ({}, ''),

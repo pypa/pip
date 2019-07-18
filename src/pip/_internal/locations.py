@@ -23,6 +23,15 @@ if MYPY_CHECK_RUNNING:
 USER_CACHE_DIR = appdirs.user_cache_dir("pip")
 
 
+def get_major_minor_version():
+    # type: () -> str
+    """
+    Return the major-minor version of the current Python as a string, e.g.
+    "3.7" or "3.10".
+    """
+    return '{}.{}'.format(*sys.version_info)
+
+
 def get_src_prefix():
     if running_under_virtualenv():
         src_prefix = os.path.join(sys.prefix, 'src')
@@ -127,7 +136,7 @@ def distutils_scheme(dist_name, user=False, home=None, root=None,
             sys.prefix,
             'include',
             'site',
-            'python{}.{}'.format(*sys.version_info),
+            'python{}'.format(get_major_minor_version()),
             dist_name,
         )
 
