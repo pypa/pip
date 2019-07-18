@@ -1,3 +1,21 @@
+from __future__ import absolute_import, division
+
+import contextlib
+import itertools
+import logging
+import sys
+import time
+
+from pip._vendor.progress import HIDE_CURSOR, SHOW_CURSOR
+
+from pip._internal.utils.compat import WINDOWS
+from pip._internal.utils.logging import get_indentation
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+if MYPY_CHECK_RUNNING:
+    from typing import Iterator, IO
+
+logger = logging.getLogger(__name__)
+
 class SpinnerInterface(object):
     def spin(self):
         # type: () -> None

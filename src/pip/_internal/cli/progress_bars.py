@@ -1,8 +1,4 @@
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-# mypy: disallow-untyped-defs=False
-
-from __future__ import absolute_import, division
+from __future__ import division
 
 import contextlib
 import itertools
@@ -12,7 +8,6 @@ import time
 from signal import SIGINT, default_int_handler, signal
 
 from pip._vendor import six
-from pip._vendor.progress import HIDE_CURSOR, SHOW_CURSOR
 from pip._vendor.progress.bar import Bar, FillingCirclesBar, IncrementalBar
 from pip._vendor.progress.spinner import Spinner
 
@@ -30,9 +25,6 @@ try:
 # ImportError.
 except Exception:
     colorama = None
-
-logger = logging.getLogger(__name__)
-
 
 def _select_progress_class(preferred, fallback):
     encoding = getattr(preferred.file, "encoding", None)
