@@ -13,6 +13,7 @@ from distutils.command.install import SCHEME_KEYS  # type: ignore
 from pip._internal.utils import appdirs
 from pip._internal.utils.compat import WINDOWS, expanduser
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.virtualenv import running_under_virtualenv
 
 if MYPY_CHECK_RUNNING:
     from typing import Any, Union, Dict, List, Optional
@@ -20,35 +21,6 @@ if MYPY_CHECK_RUNNING:
 
 # Application Directories
 USER_CACHE_DIR = appdirs.user_cache_dir("pip")
-
-
-def running_under_virtualenv():
-    # type: () -> bool
-    """
-    Return True if we're running inside a virtualenv, False otherwise.
-
-    """
-    if hasattr(sys, 'real_prefix'):
-        return True
-    elif sys.prefix != getattr(sys, "base_prefix", sys.prefix):
-        return True
-
-    return False
-
-
-def virtualenv_no_global():
-    # type: () -> bool
-    """
-    Return True if in a venv and no system site packages.
-    """
-    # this mirrors the logic in virtualenv.py for locating the
-    # no-global-site-packages.txt file
-    site_mod_dir = os.path.dirname(os.path.abspath(site.__file__))
-    no_global_file = os.path.join(site_mod_dir, 'no-global-site-packages.txt')
-    if running_under_virtualenv() and os.path.isfile(no_global_file):
-        return True
-    else:
-        return False
 
 
 if running_under_virtualenv():

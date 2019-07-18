@@ -18,7 +18,7 @@ from pip._internal.exceptions import (
     CommandError, InstallationError, PreviousBuildDirError,
 )
 from pip._internal.legacy_resolve import Resolver
-from pip._internal.locations import distutils_scheme, virtualenv_no_global
+from pip._internal.locations import distutils_scheme
 from pip._internal.operations.check import check_install_conflicts
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import RequirementSet, install_given_reqs
@@ -29,6 +29,7 @@ from pip._internal.utils.misc import (
     protect_pip_from_modification_on_windows,
 )
 from pip._internal.utils.temp_dir import TempDirectory
+from pip._internal.utils.virtualenv import virtualenv_no_global
 from pip._internal.wheel import WheelBuilder
 
 logger = logging.getLogger(__name__)
