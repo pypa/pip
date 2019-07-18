@@ -15,7 +15,7 @@ def test_debug(script, args):
     Check simple option cases.
     """
     args = ['debug'] + args
-    result = script.pip(*args)
+    result = script.pip(*args, allow_stderr_warning=True)
     stdout = result.stdout
 
     assert 'sys.executable: ' in stdout
@@ -43,7 +43,7 @@ def test_debug__target_options(script, args, expected):
     Check passing target-related options.
     """
     args = ['debug'] + args
-    result = script.pip(*args)
+    result = script.pip(*args, allow_stderr_warning=True)
     stdout = result.stdout
 
     assert 'Compatible tags: ' in stdout
