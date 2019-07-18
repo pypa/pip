@@ -18,7 +18,7 @@ from optparse import SUPPRESS_HELP, Option, OptionGroup
 from textwrap import dedent
 
 from pip._internal.exceptions import CommandError
-from pip._internal.locations import USER_CACHE_DIR, src_prefix
+from pip._internal.locations import USER_CACHE_DIR, get_src_prefix
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.index import PyPI
 from pip._internal.models.search_scope import SearchScope
@@ -435,7 +435,7 @@ src = partial(
     '--src', '--source', '--source-dir', '--source-directory',
     dest='src_dir',
     metavar='dir',
-    default=src_prefix,
+    default=get_src_prefix(),
     help='Directory to check out editable projects into. '
     'The default in a virtualenv is "<venv path>/src". '
     'The default for global installs is "<current dir>/src".'
