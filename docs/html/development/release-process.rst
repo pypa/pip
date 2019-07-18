@@ -57,6 +57,21 @@ their merits.
   ``pip._internal.utils.deprecation.deprecated``. The function is not a part of
   pip's public API.
 
+Python 2 support
+----------------
+
+pip will continue to ensure that it runs on Python 2.7 after the CPython 2.7
+EOL date. Support for Python 2.7 will be dropped, if bugs in Python 2.7 itself
+prevent this (which is unlikely) or Python 2 usage reduces to a level that pip
+maintainers feel it is OK to drop support. The same approach is used to
+determine when to drop support for other Python versions.
+
+However, bugs reported with pip which only occur on Python 2.7 would likely not
+be addressed directly by pip's maintainers. Pull Requests to fix Python 2.7
+only bugs will be considered, and merged (subject to normal review processes).
+Note that there may be delays due to the lack of developer resources for
+reviewing such pull requests.
+
 
 Release Process
 ===============
