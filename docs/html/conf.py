@@ -275,9 +275,13 @@ man_pages = [
 
 # Here, we crawl the entire man/commands/ directory and list every file with
 # appropriate name and details
-for fname in glob.glob('man/commands/*.rst'):
-    fname_base = fname[4:-4]
-    outname = 'pip-' + fname_base[13:]
+man_dir = os.path.join(docs_dir, 'man/')
+raw_subcommands = glob.glob(os.path.join(man_dir, 'commands/*.rst'))
+if not raw_subcommands:
+    raise FileNotFoundError('The individual subcommand manpages could not be found!')
+for fname in raw_subcommands:
+    fname_base = fname[len(man_dir):-4]
+    outname = 'pip-' + fname_base[9:]
     description = u'description of {} command'.format(
         outname.replace('-', ' ')
     )
