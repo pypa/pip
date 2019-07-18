@@ -16,6 +16,7 @@ if MYPY_CHECK_RUNNING:
 
 logger = logging.getLogger(__name__)
 
+
 class SpinnerInterface(object):
     def spin(self):
         # type: () -> None
@@ -104,6 +105,7 @@ class NonInteractiveSpinner(SpinnerInterface):
         self._update("finished with status '%s'" % (final_status,))
         self._finished = True
 
+
 class RateLimiter(object):
     def __init__(self, min_update_interval_seconds):
         # type: (float) -> None
@@ -119,6 +121,7 @@ class RateLimiter(object):
     def reset(self):
         # type: () -> None
         self._last_update = time.time()
+
 
 @contextlib.contextmanager
 def open_spinner(message):
@@ -144,6 +147,7 @@ def open_spinner(message):
     else:
         spinner.finish("done")
 
+
 @contextlib.contextmanager
 def hidden_cursor(file):
     # type: (IO) -> Iterator[None]
@@ -162,4 +166,3 @@ def hidden_cursor(file):
             yield
         finally:
             file.write(SHOW_CURSOR)
-

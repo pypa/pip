@@ -1,10 +1,7 @@
 from __future__ import division
 
-import contextlib
 import itertools
-import logging
 import sys
-import time
 from signal import SIGINT, default_int_handler, signal
 
 from pip._vendor import six
@@ -17,7 +14,7 @@ from pip._internal.utils.misc import format_size
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Iterator, IO
+    from typing import Any
 
 try:
     from pip._vendor import colorama
@@ -25,6 +22,7 @@ try:
 # ImportError.
 except Exception:
     colorama = None
+
 
 def _select_progress_class(preferred, fallback):
     encoding = getattr(preferred.file, "encoding", None)
