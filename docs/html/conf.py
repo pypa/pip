@@ -277,7 +277,7 @@ man_pages = [
 # appropriate name and details
 for fname in glob.glob('man/commands/*.rst'):
     fname_base = fname[4:-4]
-    outname = 'pip-' + fname_base[13:]
+    outname = 'pip-' + fname_base[9:]
     description = u'description of {} command'.format(
         outname.replace('-', ' ')
     )
