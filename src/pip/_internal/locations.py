@@ -127,7 +127,7 @@ def distutils_scheme(dist_name, user=False, home=None, root=None,
             sys.prefix,
             'include',
             'site',
-            'python' + sys.version[:3],
+            'python{}.{}'.format(*sys.version_info),
             dist_name,
         )
 

@@ -29,7 +29,7 @@ if MYPY_CHECK_RUNNING:
 DATA_DIR = Path(__file__).parent.parent.joinpath("data").abspath
 SRC_DIR = Path(__file__).abspath.parent.parent.parent
 
-pyversion = sys.version[:3]
+pyversion = '{}.{}'.format(*sys.version_info)
 pyversion_tuple = sys.version_info
 
 CURRENT_PY_VERSION_INFO = sys.version_info[:3]

@@ -118,7 +118,7 @@ def get_pip_version():
 
     return (
         'pip {} from {} (python {})'.format(
-            __version__, pip_pkg_dir, sys.version[:3],
+            __version__, pip_pkg_dir, '{}.{}'.format(*sys.version_info),
         )
     )
 

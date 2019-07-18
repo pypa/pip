@@ -557,10 +557,10 @@ if __name__ == '__main__':
             generated.extend(maker.make(spec))
 
         if os.environ.get("ENSUREPIP_OPTIONS", "") != "altinstall":
-            spec = 'pip%s = %s' % (sys.version[:1], pip_script)
+            spec = 'pip%s = %s' % (sys.version_info[0], pip_script)
             generated.extend(maker.make(spec))
 
-        spec = 'pip%s = %s' % (sys.version[:3], pip_script)
+        spec = 'pip%s = %s' % ('{}.{}'.format(*sys.version_info), pip_script)
         generated.extend(maker.make(spec))
         # Delete any other versioned pip entry points
         pip_ep = [k for k in console if re.match(r'pip(\d(\.\d)?)?$', k)]
@@ -572,7 +572,9 @@ if __name__ == '__main__':
             spec = 'easy_install = ' + easy_install_script
             generated.extend(maker.make(spec))
 
-        spec = 'easy_install-%s = %s' % (sys.version[:3], easy_install_script)
+        spec = 'easy_install-%s = %s' % (
+            '{}.{}'.format(*sys.version_info), easy_install_script,
+        )
         generated.extend(maker.make(spec))
         # Delete any other versioned easy_install entry points
         easy_install_ep = [

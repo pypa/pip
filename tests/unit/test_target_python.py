@@ -36,9 +36,7 @@ class TestTargetPython:
         """
         Test passing py_version_info=None.
         """
-        # Get the index of the second dot.
-        index = sys.version.find('.', 2)
-        current_major_minor = sys.version[:index]  # e.g. "3.6"
+        current_major_minor = '{}.{}'.format(*sys.version_info)
 
         target_python = TargetPython(py_version_info=None)
 
