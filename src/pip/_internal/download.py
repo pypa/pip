@@ -282,6 +282,7 @@ class MultiDomainBasicAuth(AuthBase):
         # Check for creds in environment
         user_var = 'PIP_USERNAME'
         passwd_var = 'PIP_PASSWORD'
+        msg = "Found '{fv}' env variable, but not '{nv}'. Ignoring '{fv}'."
         env_username = os.environ.get(user_var)
         env_password = os.environ.get(passwd_var)
         if env_username:
@@ -289,12 +290,10 @@ class MultiDomainBasicAuth(AuthBase):
                 logger.debug("Found credentials in environment.")
                 return env_username, env_password
 
-            msg = "Found '{uv}' environment variable, but not '{pv}'. Ignoring '{uv}'."
-            logger.warning(msg.format(uv=user_var, pv=passwd_var))
+            logger.warning(msg.format(fv=user_var, nv=passwd_var))
 
         if env_password:
-            msg = "Found '{pv}' environment variable, but not '{uv}'. Ignoring '{pv}'."
-            logger.warning(msg.format(uv=user_var, pv=passwd_var))
+            logger.warning(msg.format(fv=passwd_var, nv=user_var))
 
         # Get creds from netrc if we still don't have them
         if allow_netrc:
