@@ -30,14 +30,15 @@ from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
 
 from pip import __version__
 from pip._internal.exceptions import CommandError, InstallationError
-from pip._internal.locations import (
-    running_under_virtualenv, site_packages, user_site, virtualenv_no_global,
-)
+from pip._internal.locations import site_packages, user_site
 from pip._internal.utils.compat import (
     WINDOWS, console_to_str, expanduser, stdlib_pkgs, str_to_display,
 )
 from pip._internal.utils.marker_files import write_delete_marker_file
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.virtualenv import (
+    running_under_virtualenv, virtualenv_no_global,
+)
 
 if PY2:
     from io import BytesIO as StringIO

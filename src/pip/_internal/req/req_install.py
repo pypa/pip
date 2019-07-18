@@ -18,7 +18,6 @@ from pip._vendor.pep517.wrappers import Pep517HookCaller
 from pip._internal import wheel
 from pip._internal.build_env import NoOpBuildEnvironment
 from pip._internal.exceptions import InstallationError
-from pip._internal.locations import running_under_virtualenv
 from pip._internal.models.link import Link
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
@@ -36,6 +35,7 @@ from pip._internal.utils.setuptools_build import make_setuptools_shim_args
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import open_spinner
+from pip._internal.utils.virtualenv import running_under_virtualenv
 from pip._internal.vcs import vcs
 from pip._internal.wheel import move_wheel_files
 

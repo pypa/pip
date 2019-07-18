@@ -24,7 +24,6 @@ from pip._internal.exceptions import (
     UninstallationError,
 )
 from pip._internal.index import PackageFinder
-from pip._internal.locations import running_under_virtualenv
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.req.constructors import (
@@ -36,6 +35,7 @@ from pip._internal.utils.logging import BrokenStdoutLoggingError, setup_logging
 from pip._internal.utils.misc import get_prog, normalize_path
 from pip._internal.utils.outdated import pip_version_check
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.virtualenv import running_under_virtualenv
 
 if MYPY_CHECK_RUNNING:
     from typing import Optional, List, Tuple, Any
