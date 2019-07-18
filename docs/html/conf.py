@@ -278,7 +278,9 @@ man_pages = [
 man_dir = os.path.join(docs_dir, 'man/')
 raw_subcommands = glob.glob(os.path.join(man_dir, 'commands/*.rst'))
 if not raw_subcommands:
-    raise FileNotFoundError('The individual subcommand manpages could not be found!')
+    raise FileNotFoundError(
+        'The individual subcommand manpages could not be found!'
+    )
 for fname in raw_subcommands:
     fname_base = fname[len(man_dir):-4]
     outname = 'pip-' + fname_base[9:]
