@@ -18,6 +18,7 @@ from pip._vendor.pep517.wrappers import Pep517HookCaller
 
 from pip._internal import pep425tags
 from pip._internal.build_env import NoOpBuildEnvironment
+from pip._internal.cli.spinners import open_spinner
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_scheme
 from pip._internal.models.link import Link
