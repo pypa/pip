@@ -69,30 +69,27 @@ kinds = enum(
 )
 
 
+CONFIG_BASENAME = 'pip.ini' if WINDOWS else 'pip.conf'
+
+
 def get_configuration_files():
-    user_dir = expanduser('~')
-    if WINDOWS:
-        config_basename = 'pip.ini'
-        legacy_storage_dir = os.path.join(user_dir, 'pip')
-    else:
-        config_basename = 'pip.conf'
-        legacy_storage_dir = os.path.join(user_dir, '.pip')
-    legacy_config_file = os.path.join(
-        legacy_storage_dir,
-        config_basename,
-    )
     global_config_files = [
-        os.path.join(path, config_basename)
+        os.path.join(path, CONFIG_BASENAME)
         for path in appdirs.site_config_dirs('pip')
     ]
 
-    site_config_file = os.path.join(sys.prefix, config_basename)
+    site_config_file = os.path.join(sys.prefix, CONFIG_BASENAME)
+    legacy_config_file = os.path.join(
+        expanduser('~'),
+        'pip' if WINDOWS else '.pip',
+        CONFIG_BASENAME,
+    )
     new_config_file = os.path.join(
-        appdirs.user_config_dir("pip"), config_basename)
+        appdirs.user_config_dir("pip"), CONFIG_BASENAME)
     return {
-        kinds.USER: [legacy_config_file, new_config_file],
         kinds.GLOBAL: global_config_files,
         kinds.SITE: [site_config_file],
+        kinds.USER: [legacy_config_file, new_config_file],
     }
 
 
