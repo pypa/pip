@@ -10,8 +10,10 @@ def running_under_virtualenv():
 
     """
     if hasattr(sys, 'real_prefix'):
+        # pypa/virtualenv case
         return True
     elif sys.prefix != getattr(sys, "base_prefix", sys.prefix):
+        # PEP 405 venv
         return True
 
     return False
