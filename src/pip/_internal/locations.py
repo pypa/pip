@@ -37,7 +37,6 @@ else:
 
 # under macOS + virtualenv sys.prefix is not properly resolved
 # it is something like /path/to/python/bin/..
-# Note: using realpath due to tmp dirs on OSX being symlinks
 src_prefix = os.path.abspath(src_prefix)
 
 # FIXME doesn't account for venv linked to global site-packages
