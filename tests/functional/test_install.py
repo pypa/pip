@@ -115,7 +115,7 @@ def test_pep518_with_user_pip(script, pip_src, data, common_wheels):
     script.pip("install", "--ignore-installed",
                "-f", common_wheels, "--user", pip_src)
     system_pip_dir = script.site_packages_path / 'pip'
-    system_pip_dir.rmtree()
+    assert not system_pip_dir.exists()
     system_pip_dir.mkdir()
     with open(system_pip_dir / '__init__.py', 'w') as fp:
         fp.write('raise ImportError\n')

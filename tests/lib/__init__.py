@@ -139,7 +139,10 @@ class TestData(object):
         return obj
 
     def reset(self):
-        self.root.rmtree()
+        # Check explicitly for the target directory to avoid overly-broad
+        # try/except.
+        if self.root.exists():
+            shutil.rmtree(self.root)
         self.source.copytree(self.root)
 
     @property
@@ -948,7 +951,7 @@ def create_basic_wheel_for_package(script, name, version,
     generated = shutil.make_archive(retval, 'zip', script.temp_path)
     shutil.move(generated, retval)
 
-    script.temp_path.rmtree()
+    shutil.rmtree(script.temp_path)
     script.temp_path.mkdir()
 
     return retval
