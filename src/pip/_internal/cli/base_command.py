@@ -117,8 +117,10 @@ class Command(CommandContextMixIn):
             user_log_file=options.log,
         )
 
-        if (sys.version_info[:2] == (2, 7)
-                and not options.silence_python_deprecation_warnings):
+        if (
+                sys.version_info[:2] == (2, 7) and
+                not options.silence_python_deprecation_warnings
+        ):
             message = (
                 "A future version of pip will drop support for Python 2.7. "
                 "More details about Python 2 support in pip, can be found at "
