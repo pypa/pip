@@ -19,14 +19,15 @@ from pip._internal.utils import virtualenv
 ])
 def test_running_under_virtualenv(
         monkeypatch, real_prefix, base_prefix, expected):
+    # Use raising=False to prevent AttributeError on missing attribute
     if real_prefix is None:
-        monkeypatch.delattr(sys, "real_prefix")
+        monkeypatch.delattr(sys, "real_prefix", raising=False)
     else:
-        monkeypatch.setattr(sys, "real_prefix", real_prefix)
+        monkeypatch.setattr(sys, "real_prefix", real_prefix, raising=False)
     if base_prefix is None:
-        monkeypatch.delattr(sys, "base_prefix")
+        monkeypatch.delattr(sys, "base_prefix", raising=False)
     else:
-        monkeypatch.setattr(sys, "base_prefix", base_prefix)
+        monkeypatch.setattr(sys, "base_prefix", base_prefix, raising=False)
     assert virtualenv.running_under_virtualenv() == expected
 
 
