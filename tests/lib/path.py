@@ -186,12 +186,6 @@ class Path(_base):
         """
         return os.rmdir(self)
 
-    def rmtree(self, noerrors=True):
-        """
-        Removes a directory tree. Ignores errors by default.
-        """
-        return shutil.rmtree(self, ignore_errors=noerrors)
-
     def copy(self, to):
         return shutil.copy(self, to)
 
