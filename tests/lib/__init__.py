@@ -143,7 +143,7 @@ class TestData(object):
         # try/except.
         if self.root.exists():
             shutil.rmtree(self.root)
-        self.source.copytree(self.root)
+        shutil.copytree(self.source, self.root, symlinks=True)
 
     @property
     def packages(self):

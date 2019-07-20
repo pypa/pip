@@ -55,7 +55,9 @@ class VirtualEnvironment(object):
             if sys.platform == 'win32' and self.location.exists():
                 self.location.rmdir()
             # Clone virtual environment from template.
-            self._template.location.copytree(self.location)
+            shutil.copytree(
+                self._template.location, self.location, symlinks=True
+            )
             self._sitecustomize = self._template.sitecustomize
             self._user_site_packages = self._template.user_site_packages
         else:

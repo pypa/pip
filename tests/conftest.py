@@ -239,7 +239,7 @@ def virtualenv_template(request, tmpdir_factory, pip_src,
     # Install setuptools and pip.
     install_egg_link(venv, 'setuptools', setuptools_install)
     pip_editable = Path(str(tmpdir_factory.mktemp('pip'))) / 'pip'
-    pip_src.copytree(pip_editable)
+    shutil.copytree(pip_src, pip_editable, symlinks=True)
     assert compileall.compile_dir(str(pip_editable), quiet=1)
     subprocess.check_call([venv.bin / 'python', 'setup.py', '-q', 'develop'],
                           cwd=pip_editable)
