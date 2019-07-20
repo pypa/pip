@@ -14,10 +14,7 @@ from pip._internal.utils import outdated
 
 class MockBestCandidateResult(object):
     def __init__(self, best):
-        self._best = best
-
-    def get_best(self):
-        return self._best
+        self.best_candidate = best
 
 
 class MockPackageFinder(object):
