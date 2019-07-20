@@ -387,7 +387,7 @@ class TestCandidateEvaluator:
         actual_versions = [str(c.version) for c in actual]
         assert actual_versions == expected_versions
 
-    def test_make_found_candidates(self):
+    def test_compute_best_candidate(self):
         specifier = SpecifierSet('<= 1.11')
         versions = ['1.10', '1.11', '1.12']
         candidates = [
@@ -397,16 +397,16 @@ class TestCandidateEvaluator:
             'my-project',
             specifier=specifier,
         )
-        found_candidates = evaluator.make_found_candidates(candidates)
+        result = evaluator.compute_best_candidate(candidates)
 
-        assert found_candidates._candidates == candidates
-        assert found_candidates._evaluator is evaluator
+        assert result._candidates == candidates
+        assert result._evaluator is evaluator
         expected_applicable = candidates[:2]
         assert [str(c.version) for c in expected_applicable] == [
             '1.10',
             '1.11',
         ]
-        assert found_candidates._applicable_candidates == expected_applicable
+        assert result._applicable_candidates == expected_applicable
 
     @pytest.mark.parametrize('hex_digest, expected', [
         # Test a link with no hash.
@@ -448,15 +448,15 @@ class TestCandidateEvaluator:
         actual = sort_value[1]
         assert actual == expected
 
-    def test_get_best_candidate__no_candidates(self):
+    def test_sort_best_candidate__no_candidates(self):
         """
         Test passing an empty list.
         """
         evaluator = CandidateEvaluator.create('my-project')
-        actual = evaluator.get_best_candidate([])
+        actual = evaluator.sort_best_candidate([])
         assert actual is None
 
-    def test_get_best_candidate__all_yanked(self, caplog):
+    def test_sort_best_candidate__all_yanked(self, caplog):
         """
         Test all candidates yanked.
         """
@@ -468,7 +468,7 @@ class TestCandidateEvaluator:
         ]
         expected_best = candidates[1]
         evaluator = CandidateEvaluator.create('my-project')
-        actual = evaluator.get_best_candidate(candidates)
+        actual = evaluator.sort_best_candidate(candidates)
         assert actual is expected_best
         assert str(actual.version) == '3.0'
 
@@ -489,7 +489,7 @@ class TestCandidateEvaluator:
         # Test a unicode string with a non-ascii character.
         (u'curly quote: \u2018', u'curly quote: \u2018'),
     ])
-    def test_get_best_candidate__yanked_reason(
+    def test_sort_best_candidate__yanked_reason(
         self, caplog, yanked_reason, expected_reason,
     ):
         """
@@ -499,7 +499,7 @@ class TestCandidateEvaluator:
             make_mock_candidate('1.0', yanked_reason=yanked_reason),
         ]
         evaluator = CandidateEvaluator.create('my-project')
-        actual = evaluator.get_best_candidate(candidates)
+        actual = evaluator.sort_best_candidate(candidates)
         assert str(actual.version) == '1.0'
 
         assert len(caplog.records) == 1
@@ -513,7 +513,9 @@ class TestCandidateEvaluator:
         ) + expected_reason
         assert record.message == expected_message
 
-    def test_get_best_candidate__best_yanked_but_not_all(self, caplog):
+    def test_sort_best_candidate__best_yanked_but_not_all(
+        self, caplog,
+    ):
         """
         Test the best candidates being yanked, but not all.
         """
@@ -526,7 +528,7 @@ class TestCandidateEvaluator:
         ]
         expected_best = candidates[1]
         evaluator = CandidateEvaluator.create('my-project')
-        actual = evaluator.get_best_candidate(candidates)
+        actual = evaluator.sort_best_candidate(candidates)
         assert actual is expected_best
         assert str(actual.version) == '2.0'
 
