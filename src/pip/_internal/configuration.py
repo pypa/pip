@@ -85,7 +85,8 @@ def get_configuration_files():
         CONFIG_BASENAME,
     )
     new_config_file = os.path.join(
-        appdirs.user_config_dir("pip"), CONFIG_BASENAME)
+        appdirs.user_config_dir("pip"), CONFIG_BASENAME
+    )
     return {
         kinds.GLOBAL: global_config_files,
         kinds.SITE: [site_config_file],
