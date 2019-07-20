@@ -11,6 +11,9 @@ Some terminology:
   A single word describing where the configuration key-value pair came from
 """
 
+# The following comment should be removed at some point in the future.
+# mypy: strict-optional=False
+
 import locale
 import logging
 import os

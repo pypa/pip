@@ -1,6 +1,9 @@
 """Cache Management
 """
 
+# The following comment should be removed at some point in the future.
+# mypy: strict-optional=False
+
 import errno
 import hashlib
 import logging

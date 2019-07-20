@@ -8,6 +8,9 @@ These are meant to be used elsewhere within pip to create instances of
 InstallRequirement.
 """
 
+# The following comment should be removed at some point in the future.
+# mypy: strict-optional=False
+
 import logging
 import os
 import re
