@@ -179,9 +179,6 @@ class Path(_base):
         """
         return os.rmdir(self)
 
-    def copy(self, to):
-        return shutil.copy(self, to)
-
     def copytree(self, to):
         """
         Copies a directory tree to another path.

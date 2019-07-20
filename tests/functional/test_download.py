@@ -1,4 +1,5 @@
 import os.path
+import shutil
 import textwrap
 
 import pytest
@@ -8,9 +9,10 @@ from tests.lib.path import Path
 
 
 def fake_wheel(data, wheel_path):
-    data.packages.joinpath(
-        'simple.dist-0.1-py2.py3-none-any.whl'
-    ).copy(data.packages.joinpath(wheel_path))
+    shutil.copy(
+        data.packages.joinpath('simple.dist-0.1-py2.py3-none-any.whl'),
+        data.packages.joinpath(wheel_path),
+    )
 
 
 @pytest.mark.network
