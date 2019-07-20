@@ -197,7 +197,7 @@ class ListCommand(Command):
                     continue
 
                 remote_version = best_candidate.version
-                if best_candidate.location.is_wheel:
+                if best_candidate.link.is_wheel:
                     typ = 'wheel'
                 else:
                     typ = 'sdist'

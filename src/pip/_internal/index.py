@@ -477,7 +477,7 @@ def filter_unallowed_hashes(
     non_matches = []
     match_count = 0
     for candidate in candidates:
-        link = candidate.location
+        link = candidate.link
         if not link.has_hash:
             pass
         elif link.is_hash_allowed(hashes=hashes):
@@ -499,7 +499,7 @@ def filter_unallowed_hashes(
     else:
         discard_message = 'discarding {} non-matches:\n  {}'.format(
             len(non_matches),
-            '\n  '.join(str(candidate.location) for candidate in non_matches)
+            '\n  '.join(str(candidate.link) for candidate in non_matches)
         )
 
     logger.debug(
@@ -689,7 +689,7 @@ class CandidateEvaluator(object):
         support_num = len(valid_tags)
         build_tag = tuple()  # type: BuildTag
         binary_preference = 0
-        link = candidate.location
+        link = candidate.link
         if link.is_wheel:
             # can raise InvalidWheelFilename
             wheel = Wheel(link.filename)
@@ -729,7 +729,7 @@ class CandidateEvaluator(object):
         best_candidate = max(candidates, key=self._sort_key)
 
         # Log a warning per PEP 592 if necessary before returning.
-        link = best_candidate.location
+        link = best_candidate.link
         if link.is_yanked:
             reason = link.yanked_reason or '<none given>'
             msg = (
@@ -1138,7 +1138,7 @@ class PackageFinder(object):
             logger.debug(
                 'Local files found: %s',
                 ', '.join([
-                    url_to_path(candidate.location.url)
+                    url_to_path(candidate.link.url)
                     for candidate in file_versions
                 ])
             )
@@ -1265,7 +1265,7 @@ class PackageFinder(object):
             best_candidate.version,
             _format_versions(candidates.iter_applicable()),
         )
-        return best_candidate.location
+        return best_candidate.link
 
     def _get_pages(self, locations, project_name):
         # type: (Iterable[Link], str) -> Iterable[HTMLPage]
@@ -1327,7 +1327,7 @@ class PackageFinder(object):
 
         return InstallationCandidate(
             project=link_evaluator.project_name,
-            location=link,
+            link=link,
             # Convert the Text result to str since InstallationCandidate
             # accepts str.
             version=str(result),
