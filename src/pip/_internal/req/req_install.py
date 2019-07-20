@@ -180,6 +180,21 @@ class InstallRequirement(object):
         return '<%s object: %s editable=%r>' % (
             self.__class__.__name__, str(self), self.editable)
 
+    def format_debug(self):
+        # type: () -> str
+        """An un-tested helper for getting state, for debugging.
+        """
+        attributes = vars(self)
+        names = sorted(attributes)
+
+        state = (
+            "{}={!r}".format(attr, attributes[attr]) for attr in sorted(names)
+        )
+        return '<{name} object: {{{state}}}>'.format(
+            name=self.__class__.__name__,
+            state=", ".join(state),
+        )
+
     def populate_link(self, finder, upgrade, require_hashes):
         # type: (PackageFinder, bool, bool) -> None
         """Ensure that if a link can be found for this, that it is found.
