@@ -646,24 +646,6 @@ class CandidateEvaluator(object):
             project_name=self._project_name,
         )
 
-    def compute_best_candidate(
-        self,
-        candidates,      # type: List[InstallationCandidate]
-    ):
-        # type: (...) -> BestCandidateResult
-        """
-        Compute and return a `BestCandidateResult` instance.
-        """
-        applicable_candidates = self.get_applicable_candidates(candidates)
-
-        best_candidate = self.sort_best_candidate(applicable_candidates)
-
-        return BestCandidateResult(
-            candidates,
-            applicable_candidates=applicable_candidates,
-            best_candidate=best_candidate,
-        )
-
     def _sort_key(self, candidate):
         # type: (InstallationCandidate) -> CandidateSortingKey
         """
@@ -753,6 +735,24 @@ class CandidateEvaluator(object):
             logger.warning(msg)
 
         return best_candidate
+
+    def compute_best_candidate(
+        self,
+        candidates,      # type: List[InstallationCandidate]
+    ):
+        # type: (...) -> BestCandidateResult
+        """
+        Compute and return a `BestCandidateResult` instance.
+        """
+        applicable_candidates = self.get_applicable_candidates(candidates)
+
+        best_candidate = self.sort_best_candidate(applicable_candidates)
+
+        return BestCandidateResult(
+            candidates,
+            applicable_candidates=applicable_candidates,
+            best_candidate=best_candidate,
+        )
 
 
 class BestCandidateResult(object):
