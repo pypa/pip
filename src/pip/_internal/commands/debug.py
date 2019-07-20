@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import locale
 import logging
 import sys
 
@@ -100,6 +101,11 @@ class DebugCommand(Command):
         show_value('pip version', get_pip_version())
         show_value('sys.version', sys.version)
         show_value('sys.executable', sys.executable)
+        show_value('sys.getdefaultencoding', sys.getdefaultencoding())
+        show_value('sys.getfilesystemencoding', sys.getfilesystemencoding())
+        show_value(
+            'locale.getpreferredencoding', locale.getpreferredencoding(),
+        )
         show_value('sys.platform', sys.platform)
         show_sys_implementation()
 

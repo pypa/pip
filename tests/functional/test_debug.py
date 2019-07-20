@@ -3,6 +3,25 @@ import pytest
 from pip._internal import pep425tags
 
 
+@pytest.mark.parametrize('expected_text', [
+    'sys.executable: ',
+    'sys.getdefaultencoding: ',
+    'sys.getfilesystemencoding: ',
+    'locale.getpreferredencoding: ',
+    'sys.platform: ',
+    'sys.implementation:',
+])
+def test_debug(script, expected_text):
+    """
+    Check that certain strings are present in the output.
+    """
+    args = ['debug']
+    result = script.pip(*args, allow_stderr_warning=True)
+    stdout = result.stdout
+
+    assert expected_text in stdout
+
+
 @pytest.mark.parametrize(
     'args',
     [
@@ -10,17 +29,13 @@ from pip._internal import pep425tags
         ['--verbose'],
     ]
 )
-def test_debug(script, args):
+def test_debug__tags(script, args):
     """
-    Check simple option cases.
+    Check the compatible tag output.
     """
     args = ['debug'] + args
     result = script.pip(*args, allow_stderr_warning=True)
     stdout = result.stdout
-
-    assert 'sys.executable: ' in stdout
-    assert 'sys.platform: ' in stdout
-    assert 'sys.implementation:' in stdout
 
     tags = pep425tags.get_supported()
     expected_tag_header = 'Compatible tags: {}'.format(len(tags))
