@@ -262,8 +262,8 @@ def test_finder_priority_file_over_page(data):
     )
     all_versions = finder.find_all_candidates(req.name)
     # 1 file InstallationCandidate followed by all https ones
-    assert all_versions[0].location.scheme == 'file'
-    assert all(version.location.scheme == 'https'
+    assert all_versions[0].link.scheme == 'file'
+    assert all(version.link.scheme == 'https'
                for version in all_versions[1:]), all_versions
 
     link = finder.find_requirement(req, False)
@@ -279,8 +279,8 @@ def test_finder_priority_nonegg_over_eggfragments():
 
     with patch.object(finder, "_get_pages", lambda x, y: []):
         all_versions = finder.find_all_candidates(req.name)
-        assert all_versions[0].location.url.endswith('tar.gz')
-        assert all_versions[1].location.url.endswith('#egg=bar-1.0')
+        assert all_versions[0].link.url.endswith('tar.gz')
+        assert all_versions[1].link.url.endswith('#egg=bar-1.0')
 
         link = finder.find_requirement(req, False)
 
@@ -291,8 +291,8 @@ def test_finder_priority_nonegg_over_eggfragments():
 
     with patch.object(finder, "_get_pages", lambda x, y: []):
         all_versions = finder.find_all_candidates(req.name)
-        assert all_versions[0].location.url.endswith('tar.gz')
-        assert all_versions[1].location.url.endswith('#egg=bar-1.0')
+        assert all_versions[0].link.url.endswith('tar.gz')
+        assert all_versions[1].link.url.endswith('#egg=bar-1.0')
         link = finder.find_requirement(req, False)
 
     assert link.url.endswith('tar.gz')
