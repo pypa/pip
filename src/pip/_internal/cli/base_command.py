@@ -154,7 +154,9 @@ class Command(object):
 
         if sys.version_info[:2] == (2, 7):
             message = (
-                "A future version of pip will drop support for Python 2.7."
+                "A future version of pip will drop support for Python 2.7. "
+                "More details about Python 2 support in pip, can be found at "
+                "https://pip.pypa.io/en/latest/development/release-process/#python-2-support"  # noqa
             )
             if platform.python_implementation() == "CPython":
                 message = (
