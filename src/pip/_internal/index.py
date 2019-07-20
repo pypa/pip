@@ -545,6 +545,44 @@ class CandidatePreferences(object):
         self.prefer_binary = prefer_binary
 
 
+class BestCandidateResult(object):
+    """A collection of candidates, returned by `PackageFinder.find_best_candidate`.
+
+    This class is only intended to be instantiated by CandidateEvaluator's
+    `compute_best_candidate()` method.
+    """
+
+    def __init__(
+        self,
+        candidates,             # type: List[InstallationCandidate]
+        applicable_candidates,  # type: List[InstallationCandidate]
+        best_candidate,         # type: Optional[InstallationCandidate]
+    ):
+        # type: (...) -> None
+        """
+        :param candidates: A sequence of all available candidates found.
+        :param applicable_candidates: The applicable candidates.
+        :param best_candidate: The most preferred candidate found, or None
+            if no applicable candidates were found.
+        """
+        self._applicable_candidates = applicable_candidates
+        self._candidates = candidates
+
+        self.best_candidate = best_candidate
+
+    def iter_all(self):
+        # type: () -> Iterable[InstallationCandidate]
+        """Iterate through all candidates.
+        """
+        return iter(self._candidates)
+
+    def iter_applicable(self):
+        # type: () -> Iterable[InstallationCandidate]
+        """Iterate through the applicable candidates.
+        """
+        return iter(self._applicable_candidates)
+
+
 class CandidateEvaluator(object):
 
     """
@@ -753,44 +791,6 @@ class CandidateEvaluator(object):
             applicable_candidates=applicable_candidates,
             best_candidate=best_candidate,
         )
-
-
-class BestCandidateResult(object):
-    """A collection of candidates, returned by `PackageFinder.find_best_candidate`.
-
-    This class is only intended to be instantiated by CandidateEvaluator's
-    `compute_best_candidate()` method.
-    """
-
-    def __init__(
-        self,
-        candidates,             # type: List[InstallationCandidate]
-        applicable_candidates,  # type: List[InstallationCandidate]
-        best_candidate,         # type: Optional[InstallationCandidate]
-    ):
-        # type: (...) -> None
-        """
-        :param candidates: A sequence of all available candidates found.
-        :param applicable_candidates: The applicable candidates.
-        :param best_candidate: The most preferred candidate found, or None
-            if no applicable candidates were found.
-        """
-        self._applicable_candidates = applicable_candidates
-        self._candidates = candidates
-
-        self.best_candidate = best_candidate
-
-    def iter_all(self):
-        # type: () -> Iterable[InstallationCandidate]
-        """Iterate through all candidates.
-        """
-        return iter(self._candidates)
-
-    def iter_applicable(self):
-        # type: () -> Iterable[InstallationCandidate]
-        """Iterate through the applicable candidates.
-        """
-        return iter(self._applicable_candidates)
 
 
 class PackageFinder(object):
