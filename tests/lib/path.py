@@ -138,13 +138,6 @@ class Path(_base):
         return Path(os.path.realpath(self))
 
     @property
-    def normpath(self):
-        """
-        '/home/x/.././a//bc.d' -> '/home/a/bc.d'
-        """
-        return Path(os.path.normpath(self))
-
-    @property
     def parent(self):
         """
         Returns the parent directory of this path.
