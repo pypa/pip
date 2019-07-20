@@ -384,9 +384,10 @@ class TestGeneralOptions(AddFakeCommandMixin):
 class TestOptionsConfigFiles(object):
 
     def test_venv_config_file_found(self, monkeypatch):
-        # strict limit on the global_config_files list
+        # strict limit on the global config files list
         monkeypatch.setattr(
-            pip._internal.configuration, 'global_config_files', ['/a/place']
+            pip._internal.utils.appdirs, 'site_config_dirs',
+            lambda _: ['/a/place']
         )
 
         cp = pip._internal.configuration.Configuration(isolated=False)

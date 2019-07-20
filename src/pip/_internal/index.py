@@ -50,10 +50,11 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.req import InstallRequirement
     from pip._internal.download import PipSession
     from pip._internal.pep425tags import Pep425Tag
+    from pip._internal.utils.hashes import Hashes
 
     BuildTag = Tuple[Any, ...]  # either empty tuple or Tuple[int, str]
     CandidateSortingKey = (
-        Tuple[int, int, _BaseVersion, BuildTag, Optional[int]]
+        Tuple[int, int, int, _BaseVersion, BuildTag, Optional[int]]
     )
     HTMLElement = xml.etree.ElementTree.Element
     SecureOrigin = Tuple[str, str, Optional[str]]
@@ -440,6 +441,81 @@ class LinkEvaluator(object):
         return (True, version)
 
 
+def filter_unallowed_hashes(
+    candidates,    # type: List[InstallationCandidate]
+    hashes,        # type: Hashes
+    project_name,  # type: str
+):
+    # type: (...) -> List[InstallationCandidate]
+    """
+    Filter out candidates whose hashes aren't allowed, and return a new
+    list of candidates.
+
+    If at least one candidate has an allowed hash, then all candidates with
+    either an allowed hash or no hash specified are returned.  Otherwise,
+    the given candidates are returned.
+
+    Including the candidates with no hash specified when there is a match
+    allows a warning to be logged if there is a more preferred candidate
+    with no hash specified.  Returning all candidates in the case of no
+    matches lets pip report the hash of the candidate that would otherwise
+    have been installed (e.g. permitting the user to more easily update
+    their requirements file with the desired hash).
+    """
+    if not hashes:
+        logger.debug(
+            'Given no hashes to check %s links for project %r: '
+            'discarding no candidates',
+            len(candidates),
+            project_name,
+        )
+        # Make sure we're not returning back the given value.
+        return list(candidates)
+
+    matches_or_no_digest = []
+    # Collect the non-matches for logging purposes.
+    non_matches = []
+    match_count = 0
+    for candidate in candidates:
+        link = candidate.link
+        if not link.has_hash:
+            pass
+        elif link.is_hash_allowed(hashes=hashes):
+            match_count += 1
+        else:
+            non_matches.append(candidate)
+            continue
+
+        matches_or_no_digest.append(candidate)
+
+    if match_count:
+        filtered = matches_or_no_digest
+    else:
+        # Make sure we're not returning back the given value.
+        filtered = list(candidates)
+
+    if len(filtered) == len(candidates):
+        discard_message = 'discarding no candidates'
+    else:
+        discard_message = 'discarding {} non-matches:\n  {}'.format(
+            len(non_matches),
+            '\n  '.join(str(candidate.link) for candidate in non_matches)
+        )
+
+    logger.debug(
+        'Checked %s links for project %r against %s hashes '
+        '(%s matches, %s no digest): %s',
+        len(candidates),
+        project_name,
+        hashes.digest_count,
+        match_count,
+        len(matches_or_no_digest) - match_count,
+        discard_message
+    )
+
+    return filtered
+
+
 class CandidatePreferences(object):
 
     """
@@ -470,9 +546,12 @@ class CandidateEvaluator(object):
     @classmethod
     def create(
         cls,
+        project_name,         # type: str
         target_python=None,   # type: Optional[TargetPython]
         prefer_binary=False,  # type: bool
         allow_all_prereleases=False,  # type: bool
+        specifier=None,       # type: Optional[specifiers.BaseSpecifier]
+        hashes=None,          # type: Optional[Hashes]
     ):
         # type: (...) -> CandidateEvaluator
         """Create a CandidateEvaluator object.
@@ -480,23 +559,32 @@ class CandidateEvaluator(object):
         :param target_python: The target Python interpreter to use when
             checking compatibility. If None (the default), a TargetPython
             object will be constructed from the running Python.
+        :param hashes: An optional collection of allowed hashes.
         """
         if target_python is None:
             target_python = TargetPython()
+        if specifier is None:
+            specifier = specifiers.SpecifierSet()
 
         supported_tags = target_python.get_tags()
 
         return cls(
+            project_name=project_name,
             supported_tags=supported_tags,
+            specifier=specifier,
             prefer_binary=prefer_binary,
             allow_all_prereleases=allow_all_prereleases,
+            hashes=hashes,
         )
 
     def __init__(
         self,
+        project_name,         # type: str
         supported_tags,       # type: List[Pep425Tag]
+        specifier,            # type: specifiers.BaseSpecifier
         prefer_binary=False,  # type: bool
         allow_all_prereleases=False,  # type: bool
+        hashes=None,                  # type: Optional[Hashes]
     ):
         # type: (...) -> None
         """
@@ -504,13 +592,15 @@ class CandidateEvaluator(object):
             Python in order of preference (most preferred first).
         """
         self._allow_all_prereleases = allow_all_prereleases
+        self._hashes = hashes
         self._prefer_binary = prefer_binary
+        self._project_name = project_name
+        self._specifier = specifier
         self._supported_tags = supported_tags
 
     def get_applicable_candidates(
         self,
         candidates,  # type: List[InstallationCandidate]
-        specifier,   # type: specifiers.BaseSpecifier
     ):
         # type: (...) -> List[InstallationCandidate]
         """
@@ -518,6 +608,7 @@ class CandidateEvaluator(object):
         """
         # Using None infers from the specifier instead.
         allow_prereleases = self._allow_all_prereleases or None
+        specifier = self._specifier
         versions = {
             str(v) for v in specifier.filter(
                 # We turn the version object into a str here because otherwise
@@ -536,12 +627,16 @@ class CandidateEvaluator(object):
         applicable_candidates = [
             c for c in candidates if str(c.version) in versions
         ]
-        return applicable_candidates
+
+        return filter_unallowed_hashes(
+            candidates=applicable_candidates,
+            hashes=self._hashes,
+            project_name=self._project_name,
+        )
 
     def make_found_candidates(
         self,
         candidates,      # type: List[InstallationCandidate]
-        specifier=None,  # type: Optional[specifiers.BaseSpecifier]
     ):
         # type: (...) -> FoundCandidates
         """
@@ -551,13 +646,7 @@ class CandidateEvaluator(object):
             (e.g. `packaging.specifiers.SpecifierSet`) to filter applicable
             versions.
         """
-        if specifier is None:
-            specifier = specifiers.SpecifierSet()
-
-        applicable_candidates = self.get_applicable_candidates(
-            candidates=candidates,
-            specifier=specifier,
-        )
+        applicable_candidates = self.get_applicable_candidates(candidates)
 
         return FoundCandidates(
             candidates,
@@ -576,8 +665,14 @@ class CandidateEvaluator(object):
 
         The preference is as follows:
 
-        First and foremost, yanked candidates (in the sense of PEP 592) are
-        always less preferred than candidates that haven't been yanked. Then:
+        First and foremost, candidates with allowed (matching) hashes are
+        always preferred over candidates without matching hashes. This is
+        because e.g. if the only candidate with an allowed hash is yanked,
+        we still want to use that candidate.
+
+        Second, excepting hash considerations, candidates that have been
+        yanked (in the sense of PEP 592) are always less preferred than
+        candidates that haven't been yanked. Then:
 
         If not finding wheels, they are sorted by version only.
         If finding wheels, then the sort order is by version, then:
@@ -594,7 +689,7 @@ class CandidateEvaluator(object):
         support_num = len(valid_tags)
         build_tag = tuple()  # type: BuildTag
         binary_preference = 0
-        link = candidate.location
+        link = candidate.link
         if link.is_wheel:
             # can raise InvalidWheelFilename
             wheel = Wheel(link.filename)
@@ -612,9 +707,11 @@ class CandidateEvaluator(object):
                 build_tag = (int(build_tag_groups[0]), build_tag_groups[1])
         else:  # sdist
             pri = -(support_num)
+        has_allowed_hash = int(link.is_hash_allowed(self._hashes))
         yank_value = -1 * int(link.is_yanked)  # -1 for yanked.
         return (
-            yank_value, binary_preference, candidate.version, build_tag, pri,
+            has_allowed_hash, yank_value, binary_preference, candidate.version,
+            build_tag, pri,
         )
 
     def get_best_candidate(
@@ -632,7 +729,7 @@ class CandidateEvaluator(object):
         best_candidate = max(candidates, key=self._sort_key)
 
         # Log a warning per PEP 592 if necessary before returning.
-        link = best_candidate.location
+        link = best_candidate.link
         if link.is_yanked:
             reason = link.yanked_reason or '<none given>'
             msg = (
@@ -1041,7 +1138,7 @@ class PackageFinder(object):
             logger.debug(
                 'Local files found: %s',
                 ', '.join([
-                    url_to_path(candidate.location.url)
+                    url_to_path(candidate.link.url)
                     for candidate in file_versions
                 ])
             )
@@ -1049,21 +1146,30 @@ class PackageFinder(object):
         # This is an intentional priority ordering
         return file_versions + find_links_versions + page_versions
 
-    def make_candidate_evaluator(self):
+    def make_candidate_evaluator(
+        self,
+        project_name,    # type: str
+        specifier=None,  # type: Optional[specifiers.BaseSpecifier]
+        hashes=None,     # type: Optional[Hashes]
+    ):
         # type: (...) -> CandidateEvaluator
         """Create a CandidateEvaluator object to use.
         """
         candidate_prefs = self._candidate_prefs
         return CandidateEvaluator.create(
+            project_name=project_name,
             target_python=self._target_python,
             prefer_binary=candidate_prefs.prefer_binary,
             allow_all_prereleases=candidate_prefs.allow_all_prereleases,
+            specifier=specifier,
+            hashes=hashes,
         )
 
     def find_candidates(
         self,
         project_name,       # type: str
         specifier=None,     # type: Optional[specifiers.BaseSpecifier]
+        hashes=None,        # type: Optional[Hashes]
     ):
         # type: (...) -> FoundCandidates
         """Find matches for the given project and specifier.
@@ -1075,10 +1181,12 @@ class PackageFinder(object):
         :return: A `FoundCandidates` instance.
         """
         candidates = self.find_all_candidates(project_name)
-        candidate_evaluator = self.make_candidate_evaluator()
-        return candidate_evaluator.make_found_candidates(
-            candidates, specifier=specifier,
+        candidate_evaluator = self.make_candidate_evaluator(
+            project_name=project_name,
+            specifier=specifier,
+            hashes=hashes,
         )
+        return candidate_evaluator.make_found_candidates(candidates)
 
     def find_requirement(self, req, upgrade):
         # type: (InstallRequirement, bool) -> Optional[Link]
@@ -1088,7 +1196,10 @@ class PackageFinder(object):
         Returns a Link if found,
         Raises DistributionNotFound or BestVersionAlreadyInstalled otherwise
         """
-        candidates = self.find_candidates(req.name, req.specifier)
+        hashes = req.hashes(trust_internet=False)
+        candidates = self.find_candidates(
+            req.name, specifier=req.specifier, hashes=hashes,
+        )
         best_candidate = candidates.get_best()
 
         installed_version = None    # type: Optional[_BaseVersion]
@@ -1154,7 +1265,7 @@ class PackageFinder(object):
             best_candidate.version,
             _format_versions(candidates.iter_applicable()),
         )
-        return best_candidate.location
+        return best_candidate.link
 
     def _get_pages(self, locations, project_name):
         # type: (Iterable[Link], str) -> Iterable[HTMLPage]
@@ -1216,7 +1327,7 @@ class PackageFinder(object):
 
         return InstallationCandidate(
             project=link_evaluator.project_name,
-            location=link,
+            link=link,
             # Convert the Text result to str since InstallationCandidate
             # accepts str.
             version=str(result),

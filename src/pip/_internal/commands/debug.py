@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import locale
 import logging
 import sys
 
@@ -91,9 +92,20 @@ class DebugCommand(Command):
 
     def run(self, options, args):
         # type: (Values, List[Any]) -> int
+        logger.warning(
+            "This command is only meant for debugging. "
+            "Do not use this with automation for parsing and getting these "
+            "details, since the output and options of this command may "
+            "change without notice."
+        )
         show_value('pip version', get_pip_version())
         show_value('sys.version', sys.version)
         show_value('sys.executable', sys.executable)
+        show_value('sys.getdefaultencoding', sys.getdefaultencoding())
+        show_value('sys.getfilesystemencoding', sys.getfilesystemencoding())
+        show_value(
+            'locale.getpreferredencoding', locale.getpreferredencoding(),
+        )
         show_value('sys.platform', sys.platform)
         show_sys_implementation()
 

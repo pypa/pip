@@ -6,11 +6,9 @@ import os
 import pytest
 from mock import MagicMock
 
+from pip._internal.configuration import get_configuration_files, kinds
 from pip._internal.exceptions import ConfigurationError
-from pip._internal.locations import (
-    global_config_files, new_config_file, site_config_file,
-)
-from tests.lib.configuration_helpers import ConfigurationMixin, kinds
+from tests.lib.configuration_helpers import ConfigurationMixin
 
 
 class TestConfigurationLoading(ConfigurationMixin):
@@ -194,7 +192,9 @@ class TestConfigurationModification(ConfigurationMixin):
 
         # get the path to site config file
         assert mymock.call_count == 1
-        assert mymock.call_args[0][0] == site_config_file
+        assert mymock.call_args[0][0] == (
+            get_configuration_files()[kinds.SITE][0]
+        )
 
     def test_user_modification(self):
         # get the path to local config file
@@ -209,7 +209,10 @@ class TestConfigurationModification(ConfigurationMixin):
 
         # get the path to user config file
         assert mymock.call_count == 1
-        assert mymock.call_args[0][0] == new_config_file
+        assert mymock.call_args[0][0] == (
+            # Use new config file
+            get_configuration_files()[kinds.USER][1]
+        )
 
     def test_global_modification(self):
         # get the path to local config file
@@ -224,4 +227,6 @@ class TestConfigurationModification(ConfigurationMixin):
 
         # get the path to user config file
         assert mymock.call_count == 1
-        assert mymock.call_args[0][0] == global_config_files[-1]
+        assert mymock.call_args[0][0] == (
+            get_configuration_files()[kinds.GLOBAL][-1]
+        )

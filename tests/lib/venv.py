@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import compileall
+import shutil
 import sys
 import textwrap
 
@@ -47,7 +48,7 @@ class VirtualEnvironment(object):
 
     def _create(self, clear=False):
         if clear:
-            self.location.rmtree()
+            shutil.rmtree(self.location)
         if self._template:
             # On Windows, calling `_virtualenv.path_locations(target)`
             # will have created the `target` directory...
@@ -153,7 +154,7 @@ class VirtualEnvironment(object):
         self._create(clear=True)
 
     def move(self, location):
-        self.location.move(location)
+        shutil.move(self.location, location)
         self.location = Path(location)
         self._update_paths()
 

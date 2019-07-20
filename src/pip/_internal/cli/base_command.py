@@ -24,7 +24,6 @@ from pip._internal.exceptions import (
     UninstallationError,
 )
 from pip._internal.index import PackageFinder
-from pip._internal.locations import running_under_virtualenv
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.req.constructors import (
@@ -36,6 +35,7 @@ from pip._internal.utils.logging import BrokenStdoutLoggingError, setup_logging
 from pip._internal.utils.misc import get_prog, normalize_path
 from pip._internal.utils.outdated import pip_version_check
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.virtualenv import running_under_virtualenv
 
 if MYPY_CHECK_RUNNING:
     from typing import Optional, List, Tuple, Any
@@ -152,17 +152,11 @@ class Command(object):
             user_log_file=options.log,
         )
 
-        if sys.version_info[:2] == (3, 4):
-            deprecated(
-                "Python 3.4 support has been deprecated. pip 19.1 will be the "
-                "last one supporting it. Please upgrade your Python as Python "
-                "3.4 won't be maintained after March 2019 (cf PEP 429).",
-                replacement=None,
-                gone_in='19.2',
-            )
-        elif sys.version_info[:2] == (2, 7):
+        if sys.version_info[:2] == (2, 7):
             message = (
-                "A future version of pip will drop support for Python 2.7."
+                "A future version of pip will drop support for Python 2.7. "
+                "More details about Python 2 support in pip, can be found at "
+                "https://pip.pypa.io/en/latest/development/release-process/#python-2-support"  # noqa
             )
             if platform.python_implementation() == "CPython":
                 message = (

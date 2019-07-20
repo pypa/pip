@@ -189,13 +189,15 @@ class ListCommand(Command):
                     all_candidates = [candidate for candidate in all_candidates
                                       if not candidate.version.is_prerelease]
 
-                evaluator = finder.make_candidate_evaluator()
+                evaluator = finder.make_candidate_evaluator(
+                    project_name=dist.project_name,
+                )
                 best_candidate = evaluator.get_best_candidate(all_candidates)
                 if best_candidate is None:
                     continue
 
                 remote_version = best_candidate.version
-                if best_candidate.location.is_wheel:
+                if best_candidate.link.is_wheel:
                     typ = 'wheel'
                 else:
                     typ = 'sdist'

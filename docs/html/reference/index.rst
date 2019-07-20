@@ -17,3 +17,4 @@ Reference Guide
    pip_config
    pip_wheel
    pip_hash
+   pip_debug

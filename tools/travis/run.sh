@@ -2,7 +2,8 @@
 set -e
 
 # Short circuit tests and linting jobs if there are no code changes involved.
-if [[ $TOXENV != docs ]]; then
+if [[ $TOXENV != docs ]] && [[ $TOXENV != lint-py2 ]] && [[ $TOXENV != lint-py3 ]]; then
+    # Keep lint-py2 & lint-py3 for docs/conf.py
     if [[ "$TRAVIS_PULL_REQUEST" == "false" ]]
     then
         echo "This is not a PR -- will do a complete build."

@@ -18,15 +18,13 @@ from pip._vendor.pep517.wrappers import Pep517HookCaller
 from pip._internal import wheel
 from pip._internal.build_env import NoOpBuildEnvironment
 from pip._internal.exceptions import InstallationError
-from pip._internal.locations import (
-    PIP_DELETE_MARKER_FILENAME, running_under_virtualenv,
-)
 from pip._internal.models.link import Link
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.compat import native_str
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
+from pip._internal.utils.marker_files import PIP_DELETE_MARKER_FILENAME
 from pip._internal.utils.misc import (
     _make_build_dir, ask_path_exists, backup_dir, call_subprocess,
     display_path, dist_in_site_packages, dist_in_usersite, ensure_dir,
@@ -37,6 +35,7 @@ from pip._internal.utils.setuptools_build import make_setuptools_shim_args
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import open_spinner
+from pip._internal.utils.virtualenv import running_under_virtualenv
 from pip._internal.vcs import vcs
 from pip._internal.wheel import move_wheel_files
 
@@ -83,10 +82,10 @@ class InstallRequirement(object):
         self.req = req
         self.comes_from = comes_from
         self.constraint = constraint
-        if source_dir is not None:
-            self.source_dir = os.path.normpath(os.path.abspath(source_dir))
+        if source_dir is None:
+            self.source_dir = None  # type: Optional[str]
         else:
-            self.source_dir = None
+            self.source_dir = os.path.normpath(os.path.abspath(source_dir))
         self.editable = editable
 
         self._wheel_cache = wheel_cache
@@ -169,7 +168,7 @@ class InstallRequirement(object):
             s += ' in %s' % display_path(self.satisfied_by.location)
         if self.comes_from:
             if isinstance(self.comes_from, six.string_types):
-                comes_from = self.comes_from
+                comes_from = self.comes_from  # type: Optional[str]
             else:
                 comes_from = self.comes_from.from_path()
             if comes_from:
@@ -180,6 +179,21 @@ class InstallRequirement(object):
         # type: () -> str
         return '<%s object: %s editable=%r>' % (
             self.__class__.__name__, str(self), self.editable)
+
+    def format_debug(self):
+        # type: () -> str
+        """An un-tested helper for getting state, for debugging.
+        """
+        attributes = vars(self)
+        names = sorted(attributes)
+
+        state = (
+            "{}={!r}".format(attr, attributes[attr]) for attr in sorted(names)
+        )
+        return '<{name} object: {{{state}}}>'.format(
+            name=self.__class__.__name__,
+            state=", ".join(state),
+        )
 
     def populate_link(self, finder, upgrade, require_hashes):
         # type: (PackageFinder, bool, bool) -> None
@@ -294,7 +308,7 @@ class InstallRequirement(object):
         return s
 
     def build_location(self, build_dir):
-        # type: (str) -> Optional[str]
+        # type: (str) -> str
         assert build_dir is not None
         if self._temp_build_dir.path is not None:
             return self._temp_build_dir.path

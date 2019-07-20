@@ -139,7 +139,10 @@ class TestData(object):
         return obj
 
     def reset(self):
-        self.root.rmtree()
+        # Check explicitly for the target directory to avoid overly-broad
+        # try/except.
+        if self.root.exists():
+            shutil.rmtree(self.root)
         self.source.copytree(self.root)
 
     @property
@@ -299,14 +302,16 @@ class TestPipResult(object):
                 sorted(self.files_created.keys())))
 
         for f in with_files:
-            if not (pkg_dir / f).normpath in self.files_created:
+            normalized_path = os.path.normpath(pkg_dir / f)
+            if normalized_path not in self.files_created:
                 raise TestFailure(
                     'Package directory %r missing expected content %r' %
                     (pkg_dir, f)
                 )
 
         for f in without_files:
-            if (pkg_dir / f).normpath in self.files_created:
+            normalized_path = os.path.normpath(pkg_dir / f)
+            if normalized_path in self.files_created:
                 raise TestFailure(
                     'Package directory %r has unexpected content %f' %
                     (pkg_dir, f)
@@ -421,7 +426,9 @@ class PipTestEnvironment(TestFileEnvironment):
         )
         if sys.platform == 'win32':
             if sys.version_info >= (3, 5):
-                scripts_base = self.user_site_path.joinpath('..').normpath
+                scripts_base = Path(
+                    os.path.normpath(self.user_site_path.joinpath('..'))
+                )
             else:
                 scripts_base = self.user_base_path
             self.user_bin_path = scripts_base.joinpath('Scripts')
@@ -948,7 +955,7 @@ def create_basic_wheel_for_package(script, name, version,
     generated = shutil.make_archive(retval, 'zip', script.temp_path)
     shutil.move(generated, retval)
 
-    script.temp_path.rmtree()
+    shutil.rmtree(script.temp_path)
     script.temp_path.mkdir()
 
     return retval

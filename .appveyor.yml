@@ -7,8 +7,6 @@ environment:
       RUN_INTEGRATION_TESTS: "True"
     # Unit tests only.
     - PYTHON: "C:\\Python27-x64"
-    - PYTHON: "C:\\Python34"
-    - PYTHON: "C:\\Python34-x64"
     - PYTHON: "C:\\Python35"
     - PYTHON: "C:\\Python35-x64"
     - PYTHON: "C:\\Python36"

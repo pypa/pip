@@ -51,10 +51,6 @@ jobs:
       python: 3.5
     - env: GROUP=2
       python: 3.5
-    - env: GROUP=1
-      python: 3.4
-    - env: GROUP=2
-      python: 3.4
 
     - env: GROUP=1
       python: 3.8-dev

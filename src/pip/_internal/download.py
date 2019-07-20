@@ -28,13 +28,13 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 
 import pip
 from pip._internal.exceptions import HashMismatch, InstallationError
-from pip._internal.locations import write_delete_marker_file
 from pip._internal.models.index import PyPI
 # Import ssl from compat so the initial import occurs in only one place.
 from pip._internal.utils.compat import HAS_TLS, ssl
 from pip._internal.utils.encoding import auto_decode
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.glibc import libc_ver
+from pip._internal.utils.marker_files import write_delete_marker_file
 from pip._internal.utils.misc import (
     ARCHIVE_EXTENSIONS, ask, ask_input, ask_password, ask_path_exists,
     backup_dir, consume, display_path, format_size, get_installed_version,
@@ -54,6 +54,9 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.models.link import Link
     from pip._internal.utils.hashes import Hashes
     from pip._internal.vcs.versioncontrol import AuthInfo, VersionControl
+
+    Credentials = Tuple[str, str, str]
+
 
 __all__ = ['get_file_content',
            'is_url', 'url_to_path', 'path_to_url',
@@ -224,7 +227,7 @@ class MultiDomainBasicAuth(AuthBase):
         # this value is set to the credentials they entered. After the
         # request authenticates, the caller should call
         # ``save_credentials`` to save these.
-        self._credentials_to_save = None   # type: Tuple[str, str, str]
+        self._credentials_to_save = None  # type: Optional[Credentials]
 
     def _get_index_url(self, url):
         """Return the original index URL matching the requested URL.
@@ -748,7 +751,7 @@ def _download_url(
     resp,  # type: Response
     link,  # type: Link
     content_file,  # type: IO
-    hashes,  # type: Hashes
+    hashes,  # type: Optional[Hashes]
     progress_bar  # type: str
 ):
     # type: (...) -> None
@@ -1002,8 +1005,8 @@ class PipXmlrpcTransport(xmlrpc_client.Transport):
 
 
 def unpack_url(
-    link,  # type: Optional[Link]
-    location,  # type: Optional[str]
+    link,  # type: Link
+    location,  # type: str
     download_dir=None,  # type: Optional[str]
     only_download=False,  # type: bool
     session=None,  # type: Optional[PipSession]
@@ -1077,7 +1080,7 @@ def _download_http_url(
     link,  # type: Link
     session,  # type: PipSession
     temp_dir,  # type: str
-    hashes,  # type: Hashes
+    hashes,  # type: Optional[Hashes]
     progress_bar  # type: str
 ):
     # type: (...) -> Tuple[str, str]
@@ -1121,7 +1124,7 @@ def _download_http_url(
     content_disposition = resp.headers.get('content-disposition')
     if content_disposition:
         filename = parse_content_disposition(content_disposition, filename)
-    ext = splitext(filename)[1]
+    ext = splitext(filename)[1]  # type: Optional[str]
     if not ext:
         ext = mimetypes.guess_extension(content_type)
         if ext:
@@ -1137,7 +1140,7 @@ def _download_http_url(
 
 
 def _check_download_dir(link, download_dir, hashes):
-    # type: (Link, str, Hashes) -> Optional[str]
+    # type: (Link, str, Optional[Hashes]) -> Optional[str]
     """ Check download_dir for previously downloaded file with correct hash
         If a correct file is found return its path else None
     """

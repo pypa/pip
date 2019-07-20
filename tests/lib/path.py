@@ -138,13 +138,6 @@ class Path(_base):
         return Path(os.path.realpath(self))
 
     @property
-    def normpath(self):
-        """
-        '/home/x/.././a//bc.d' -> '/home/a/bc.d'
-        """
-        return Path(os.path.normpath(self))
-
-    @property
     def parent(self):
         """
         Returns the parent directory of this path.
@@ -186,23 +179,11 @@ class Path(_base):
         """
         return os.rmdir(self)
 
-    def rmtree(self, noerrors=True):
-        """
-        Removes a directory tree. Ignores errors by default.
-        """
-        return shutil.rmtree(self, ignore_errors=noerrors)
-
     def copytree(self, to):
         """
         Copies a directory tree to another path.
         """
         return shutil.copytree(self, to, symlinks=True)
-
-    def move(self, to):
-        """
-        Moves a file or directory to another path.
-        """
-        return shutil.move(self, to)
 
     def rename(self, to):
         """

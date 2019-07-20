@@ -192,9 +192,9 @@ def test_options_from_venv_config(script, virtualenv):
     Test if ConfigOptionParser reads a virtualenv-local config file
 
     """
-    from pip._internal.locations import config_basename
+    from pip._internal.configuration import CONFIG_BASENAME
     conf = "[global]\nno-index = true"
-    ini = virtualenv.location / config_basename
+    ini = virtualenv.location / CONFIG_BASENAME
     with open(ini, 'w') as f:
         f.write(conf)
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
