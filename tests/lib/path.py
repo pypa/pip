@@ -192,9 +192,6 @@ class Path(_base):
         """
         return shutil.rmtree(self, ignore_errors=noerrors)
 
-    def copy(self, to):
-        return shutil.copy(self, to)
-
     def copytree(self, to):
         """
         Copies a directory tree to another path.
