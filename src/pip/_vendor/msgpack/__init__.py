@@ -22,8 +22,7 @@ if os.environ.get('MSGPACK_PUREPYTHON'):
     from pip._vendor.msgpack.fallback import Packer, unpackb, Unpacker
 else:
     try:
-        from pip._vendor.msgpack._packer import Packer
-        from pip._vendor.msgpack._unpacker import unpackb, Unpacker
+        from pip._vendor.msgpack._cmsgpack import Packer, unpackb, Unpacker
     except ImportError:
         from pip._vendor.msgpack.fallback import Packer, unpackb, Unpacker
 
