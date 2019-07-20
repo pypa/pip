@@ -201,12 +201,6 @@ class Path(_base):
         """
         return shutil.copytree(self, to, symlinks=True)
 
-    def move(self, to):
-        """
-        Moves a file or directory to another path.
-        """
-        return shutil.move(self, to)
-
     def rename(self, to):
         """
         Renames a file or directory. May throw an OSError.
