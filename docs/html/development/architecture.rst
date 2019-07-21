@@ -1,16 +1,17 @@
-============
+############
 Architecture
-============
+############
 
+.. contents::
+
+****************************
 Broad functionality overview
-----------------------------
+****************************
 
 Pip is a package installer.
 
 pip does a lot more than installation; it also has a cache, and it has
-configuration, and it
-
-has a CLI, which has its own quirks. But mainly:
+configuration, and it has a CLI, which has its own quirks. But mainly:
 
 Things pip does:
 
@@ -27,7 +28,7 @@ Things pip does:
    defines interface between build backend & installer.
 
 Broad overview of flow
-----------------------
+======================
 
 In sequence, what does pip do?:
 
@@ -56,66 +57,57 @@ metadata from PyPI separate from downloading the package itself.
 
 In terms of flow of the install process:
 
-For 1 package: Get abstract requirement(s) for that package, and try and
-see what that means (this abstract requirement can take various forms).
+1. For 1 package: Get abstract requirement(s) for that package, and
+   try and see what that means (this abstract requirement can take
+   various forms). Define abstract dependencies.
 
-Once we have a set of "this package, get it from here, this is that
-version of that package",
+2. Once we have a set of "this package, get it from here, this is that
+   version of that package",
 
-Modify the environment to install those things (which means: place the
-files in the right place). For example: if you already have req 2.0 and
-you are installing 3.0, uninstall 2 and install 3.
+3. Modify the environment to install those things (which means: place
+   the files in the right place). For example: if you already have
+   version 6.0 of a requirement and you are installing 7.2, uninstall
+   6.0 and install 7.2.
 
-define abstract dependencies
+Download process
+----------------
 
-Downloading
+What happens in an install? Well, a subset of ``install``, a process
+pip usually does during a ``pip install``, is ``download`` (also
+available to the user as the :ref:`pip download` command). And we
+download and INSPECT packages to get manifests. For any given package
+name, we need to know what files are available and what their
+filenames are.
 
-Now: download process. What happens in an install? Well, a subset of
-\`install\` is \`download`; \`pip download\` is also a process pip does
-during install (it downloads from PyPI). And we download and INSPECT
-packages to get manifests.
+pip can download from a Python package repository, where packages are
+stored in a structured format so an installer like pip can find them.
 
-This is the \`pip download\` command.
+:pep:`503` defines the API we use to talk to a Python package repository.
 
-pip download somepackage
+PyPI
+^^^^
 
-With no other arguments
+What happens if we run ``pip download somepackage`` with no other
+arguments?  By default we look at `PyPI`_, which is where pip knows
+where to look to get more info for what the package index knows about
+``somepackage``.
 
-By default we look at PyPI which is where packages are stored in a
-structured format so an installer like pip can find them
-
-pip knows where to look to get more info for what the package index
-knows about that pkg
-
-pip then knows: what files are avail
-
-pip knows what files are available
-
-what their filenames are
+pip then knows: what files are available, and what their filenames are
 
 IN OTHER WORDS
 
 While all dependencies have not been resolved, do the following:
 
--  Following the API defined in PEP503, fetch the index page from
-   `http://{pypi_index}/simple/{package_name <http://pypi.org/simple/%7Bpackage_name>`__}
+1.  Following the API defined in PEP503, fetch the index page from
+    `http://{pypi_index}/simple/{package_name <http://pypi.org/simple/%7Bpackage_name>`__}
+2.  Parse all of the file links from the page.
+3.  Select a single file to download from the list of links.
+4.  Extract the metadata from the downloaded package
+5.  Update the dependency tree based on the metadata
 
--  Parse all of the file links from the page.
+The package index gives pip a list of files for that pkg (via the existing PyPI API). The files have the version and some other info that helps pip decide whether that's something pip ought to download.
 
--  Select a single file to download from the list of links.
--  Extract the metadata from the downloaded package
--  Update the dependency tree based on the metadata
-
-the package index
-
-gives pip a list of files for that pkg
-
-(via the existing PyPI API)
-
-the files have the version and some other info that helps pip decide
-whether that's something they want to download
-
-pip chooses from the list a single file to download
+pip chooses from the list a single file to download.
 
 It may go back and choose another file to download
 
@@ -135,26 +127,26 @@ For this package name -- this is the list of files available
 
 Looks there for:
 
-The list of filenames
-
-Other info
+* The list of filenames
+* Other info
 
 Once it has those, selects one file, downloads it
 
-If I want to pip install flask, I think the whole list of filenames
+(Question: If I want to ``pip install flask``, I think the whole list of filenames
 cannot….should not be …. ? I want only the Flask …. Why am I getting the
 whole list?
 
-IT’s not every file, just files of Flask. No API for getting alllllll
-files on PyPI. It’s for getting all files of Flask.
+Answer: It's not every file, just files of Flask. No API for getting alllllll
+files on PyPI. It’s for getting all files of Flask.)
 
+****************************************
 Repository anatomy & directory structure
-----------------------------------------
+****************************************
 
 https://github.com/pypa/pip/
 
-\`pip`’s repo: it’s a standard Python package. Readme, license,
-pyproject.toml, setup.py, etc. in the top level.
+``pip``’s repo: it’s a standard Python package. ``README``, license,
+``pyproject.toml``, ``setup.py``, etc. in the top level.
 
 There’s a tox.ini https://github.com/pypa/pip/blob/master/tox.ini that
 has a lot of …. Describes a few environments pip uses during development
@@ -172,7 +164,7 @@ towncrier docs]
 
 │ ├── html/ *[sources to HTML documentation avail. online]*
 
-│ ├── man/ *[man pages the distros can use by running \`man pip`]*
+│ ├── man/ *[man pages the distros can use by running ``man pip``]*
 
 │ └── pip_sphinxext.py *[an extension -- pip-specific plugins to Sphinx
 that do not apply to other packages]*
@@ -295,11 +287,11 @@ Then “prepare” got added (the operation of preparing a pkg). Then
 “check” got added for checking the state of an env.] [what’s a command
 vs an operation? Command is on CLI; an operation would be an internal
 bit of code that actually does some subset of the operation the command
-says. \`install\` command uses bits of \`check\` and \`prepare`, for
-instance. In the long run, Pradyun’s goal: \`prepare.py\` goes away
-(gets refactored into other files) such that \`operations\` is just
-\`check\` and \`freeze`..... … Pradyun plans to refactor this.] [how
-does this compare to \`utils`?]*
+says. ``install`` command uses bits of ``check`` and ``prepare``, for
+instance. In the long run, Pradyun’s goal: ``prepare.py`` goes away
+(gets refactored into other files) such that ``operations`` is just
+``check`` and ``freeze``..... … Pradyun plans to refactor this.] [how
+does this compare to ``utils``?]*
 
 │ │ │ │ ├── \__init__.py
 
@@ -389,7 +381,7 @@ with checkbox lists.]*
 │ │ │ │ └── ui.py
 
 │ │ │ ├── vcs/ *[stands for Version Control System. Where pip handles
-all version control stuff -- one of the \`pip install\` arguments you
+all version control stuff -- one of the ``pip install`` arguments you
 can use is a version control link. …. Are any of these commands
 vendored? No, via subprocesses. For performance, it makes sense (we
 think) to do this instead of pygitlib2 or similar -- and has to be pure
@@ -409,7 +401,7 @@ on.]*
 
 │ │ │ └── wheel.py *[file that manages installation of a wheel file.
 This handles unpacking wheels -- “unpack and spread”. There is a package
-on PyPI called \`wheel\` that builds wheels -- do not confuse it with
+on PyPI called ``wheel`` that builds wheels -- do not confuse it with
 this.]*
 
 │ │ └── \_vendor/ *[code from other packages -- pip’s own dependencies….
@@ -472,3 +464,5 @@ Travis CI files & helpers for tox]*
 └── tox.ini
 
 
+
+.. _PyPI: https://pypi.org/
