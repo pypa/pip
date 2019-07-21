@@ -27,7 +27,10 @@ from pip._internal.exceptions import (
 )
 from pip._internal.utils.deprecation import PipDeprecationWarning, deprecated
 from pip._internal.utils.encoding import BOMS, auto_decode
-from pip._internal.utils.glibc import check_glibc_version
+from pip._internal.utils.glibc import (
+    check_glibc_version, glibc_version_string, glibc_version_string_confstr,
+    glibc_version_string_ctypes,
+)
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.misc import (
     call_subprocess, egg_link_path, ensure_dir, format_command_args,
@@ -704,6 +707,10 @@ class TestTempDirectory(object):
                     pass
 
 
+def raises(error):
+    raise error
+
+
 class TestGlibc(object):
     def test_manylinux_check_glibc_version(self):
         """
@@ -736,6 +743,35 @@ class TestGlibc(object):
                 else:
                     # Didn't find the warning we were expecting
                     assert False
+
+    def test_glibc_version_string(self, monkeypatch):
+        monkeypatch.setattr(
+            os, "confstr", lambda x: "glibc 2.20", raising=False,
+        )
+        assert glibc_version_string() == "2.20"
+
+    def test_glibc_version_string_confstr(self, monkeypatch):
+        monkeypatch.setattr(
+            os, "confstr", lambda x: "glibc 2.20", raising=False,
+        )
+        assert glibc_version_string_confstr() == "2.20"
+
+    @pytest.mark.parametrize("failure", [
+        lambda x: raises(ValueError),
+        lambda x: raises(OSError),
+        lambda x: "XXX",
+    ])
+    def test_glibc_version_string_confstr_fail(self, monkeypatch, failure):
+        monkeypatch.setattr(os, "confstr", failure, raising=False)
+        assert glibc_version_string_confstr() is None
+
+    def test_glibc_version_string_confstr_missing(self, monkeypatch):
+        monkeypatch.delattr(os, "confstr", raising=False)
+        assert glibc_version_string_confstr() is None
+
+    def test_glibc_version_string_ctypes_missing(self, monkeypatch):
+        monkeypatch.setitem(sys.modules, "ctypes", None)
+        assert glibc_version_string_ctypes() is None
 
 
 @pytest.mark.parametrize('version_info, expected', [
