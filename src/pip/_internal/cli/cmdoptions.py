@@ -18,6 +18,7 @@ from optparse import SUPPRESS_HELP, Option, OptionGroup
 from textwrap import dedent
 
 from pip._vendor.six.moves.urllib import parse as urllib_parse
+
 from pip._internal.exceptions import CommandError
 from pip._internal.locations import USER_CACHE_DIR, src_prefix
 from pip._internal.models.format_control import FormatControl
