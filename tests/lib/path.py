@@ -179,12 +179,6 @@ class Path(_base):
         """
         return os.rmdir(self)
 
-    def copytree(self, to):
-        """
-        Copies a directory tree to another path.
-        """
-        return shutil.copytree(self, to, symlinks=True)
-
     def rename(self, to):
         """
         Renames a file or directory. May throw an OSError.
