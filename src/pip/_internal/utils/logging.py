@@ -13,12 +13,15 @@ from pip._vendor.six import PY2
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
 from pip._internal.utils.misc import ensure_dir, subprocess_logger
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from typing import IO
 
 try:
     import threading
 except ImportError:
     import dummy_threading as threading  # type: ignore
-
 
 try:
     # Use "import as" and set colorama in the else clause to avoid mypy
@@ -270,8 +273,9 @@ class ExcludeLoggerFilter(Filter):
         return not super(ExcludeLoggerFilter, self).filter(record)
 
 
-def setup_logging(verbosity, no_color, user_log_file):
-    """Configures and sets up all of the logging
+def setup_logging(verbosity, no_color, debug_stream, user_log_file):
+    # type: (int, bool, IO[str], str) -> int
+    """Configures and sets up all of the logging.
 
     Returns the requested logging level, as its integer value.
     """
@@ -305,10 +309,6 @@ def setup_logging(verbosity, no_color, user_log_file):
     vendored_log_level = "WARNING" if level in ["INFO", "ERROR"] else "DEBUG"
 
     # Shorthands for clarity
-    log_streams = {
-        "stdout": "ext://sys.stdout",
-        "stderr": "ext://sys.stderr",
-    }
     handler_classes = {
         "stream": "pip._internal.utils.logging.ColorizedStreamHandler",
         "file": "pip._internal.utils.logging.BetterRotatingFileHandler",
@@ -350,7 +350,7 @@ def setup_logging(verbosity, no_color, user_log_file):
                 "level": level,
                 "class": handler_classes["stream"],
                 "no_color": no_color,
-                "stream": log_streams["stdout"],
+                "stream": debug_stream,
                 "filters": ["exclude_subprocess", "exclude_warnings"],
                 "formatter": "indent",
             },
@@ -358,7 +358,7 @@ def setup_logging(verbosity, no_color, user_log_file):
                 "level": "WARNING",
                 "class": handler_classes["stream"],
                 "no_color": no_color,
-                "stream": log_streams["stderr"],
+                "stream": sys.stderr,
                 "filters": ["exclude_subprocess"],
                 "formatter": "indent",
             },
@@ -368,7 +368,7 @@ def setup_logging(verbosity, no_color, user_log_file):
                 "level": level,
                 "class": handler_classes["stream"],
                 "no_color": no_color,
-                "stream": log_streams["stderr"],
+                "stream": sys.stderr,
                 "filters": ["restrict_to_subprocess"],
                 "formatter": "indent",
             },

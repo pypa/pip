@@ -38,7 +38,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, List, Tuple, Any
+    from typing import Any, IO, List, Optional, Tuple
     from optparse import Values
     from pip._internal.cache import WheelCache
     from pip._internal.req.req_set import RequirementSet
@@ -52,6 +52,7 @@ class Command(object):
     name = None  # type: Optional[str]
     usage = None  # type: Optional[str]
     ignore_require_venv = False  # type: bool
+    debug_stream = sys.stdout  # type: IO[str]
 
     def __init__(self, isolated=False):
         # type: (bool) -> None
@@ -149,6 +150,7 @@ class Command(object):
         level_number = setup_logging(
             verbosity=self.verbosity,
             no_color=options.no_color,
+            debug_stream=self.debug_stream,
             user_log_file=options.log,
         )
 

@@ -22,7 +22,7 @@ class FreezeCommand(Command):
     usage = """
       %prog [options]"""
     summary = 'Output installed packages in requirements format.'
-    log_streams = ("ext://sys.stderr", "ext://sys.stderr")
+    debug_stream = sys.stderr
 
     def __init__(self, *args, **kw):
         super(FreezeCommand, self).__init__(*args, **kw)

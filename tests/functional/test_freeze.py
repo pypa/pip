@@ -42,7 +42,8 @@ def _check_output(result, expected):
     )
 
 
-def test_basic_freeze(script):
+@pytest.fixture
+def freeze_script(script):
     """
     Some tests of freeze, first we have to install some stuff.  Note that
     the test is a little crude at the end because Python 2.5+ adds egg
@@ -59,12 +60,27 @@ def test_basic_freeze(script):
     script.pip_install_local(
         '-r', script.scratch_path / 'initools-req.txt',
     )
-    result = script.pip('freeze', expect_stderr=True)
-    expected = textwrap.dedent("""\
-        ...simple==2.0
-        simple2==3.0...
-        <BLANKLINE>""")
-    _check_output(result.stdout, expected)
+
+    def run(*args, **kwargs):
+        result = script.pip(*args, **kwargs)
+        expected = textwrap.dedent("""\
+            ...simple==2.0
+            simple2==3.0...
+            <BLANKLINE>""")
+        _check_output(result.stdout, expected)
+        return result
+
+    return run
+
+
+def test_basic_freeze(freeze_script):
+    freeze_script("freeze")
+
+
+def test_freeze_verbose_stdout_is_clean(freeze_script):
+    result = freeze_script("freeze", "--verbose")
+    assert "Created temporary directory" not in result.stdout
+    assert "Created temporary directory" in result.stderr
 
 
 def test_freeze_with_pip(script):
