@@ -1,2 +1,0 @@
-Respect ``--global-option`` and ``--install-option`` when installing from
-a version control url (e.g. ``git``).

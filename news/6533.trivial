@@ -1,1 +1,0 @@
-Override the definition of the function was_installed_by_pip (src\pip\_internal\utils\outdated.py) too specific with a more general alternative

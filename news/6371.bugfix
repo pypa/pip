@@ -1,2 +1,0 @@
-Fix ``pip install`` to respect ``--ignore-requires-python`` when evaluating
-links.

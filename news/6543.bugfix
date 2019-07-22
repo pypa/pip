@@ -1,1 +1,0 @@
-Prefer ``os.confstr`` to ``ctypes`` when extracting glibc version info.
