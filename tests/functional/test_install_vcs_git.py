@@ -1,11 +1,14 @@
 import pytest
 
 from tests.lib import (
-    _change_test_package_version, _create_test_package, _test_path_to_file_url,
+    _change_test_package_version,
+    _create_test_package,
+    _test_path_to_file_url,
     pyversion,
 )
 from tests.lib.git_submodule_helpers import (
-    _change_test_package_submodule, _create_test_package_with_submodule,
+    _change_test_package_submodule,
+    _create_test_package_with_submodule,
     _pull_in_submodule_changes_to_module,
 )
 from tests.lib.local_repos import local_checkout

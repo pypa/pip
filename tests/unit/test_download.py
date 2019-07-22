@@ -11,9 +11,16 @@ from mock import Mock, patch
 
 import pip
 from pip._internal.download import (
-    CI_ENVIRONMENT_VARIABLES, MultiDomainBasicAuth, PipSession, SafeFileCache,
-    _download_http_url, parse_content_disposition, sanitize_content_filename,
-    unpack_file_url, unpack_http_url, url_to_path,
+    CI_ENVIRONMENT_VARIABLES,
+    MultiDomainBasicAuth,
+    PipSession,
+    SafeFileCache,
+    _download_http_url,
+    parse_content_disposition,
+    sanitize_content_filename,
+    unpack_file_url,
+    unpack_http_url,
+    url_to_path,
 )
 from pip._internal.exceptions import HashMismatch
 from pip._internal.models.link import Link

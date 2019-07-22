@@ -7,7 +7,9 @@ import sys
 
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
-    display_path, rmtree, split_auth_from_netloc,
+    display_path,
+    rmtree,
+    split_auth_from_netloc,
 )
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs.versioncontrol import VersionControl, vcs

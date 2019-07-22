@@ -12,19 +12,27 @@ from pip._vendor.packaging.requirements import Requirement
 from pip._internal.commands.install import InstallCommand
 from pip._internal.download import PipSession
 from pip._internal.exceptions import (
-    HashErrors, InstallationError, InvalidWheelFilename, PreviousBuildDirError,
+    HashErrors,
+    InstallationError,
+    InvalidWheelFilename,
+    PreviousBuildDirError,
 )
 from pip._internal.legacy_resolve import Resolver
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import InstallRequirement, RequirementSet
 from pip._internal.req.constructors import (
-    install_req_from_editable, install_req_from_line, parse_editable,
+    install_req_from_editable,
+    install_req_from_line,
+    parse_editable,
 )
 from pip._internal.req.req_file import process_line
 from pip._internal.req.req_tracker import RequirementTracker
 from pip._internal.utils.misc import path_to_url
 from tests.lib import (
-    DATA_DIR, assert_raises_regexp, make_test_finder, requirements_file,
+    DATA_DIR,
+    assert_raises_regexp,
+    make_test_finder,
+    requirements_file,
 )
 
 

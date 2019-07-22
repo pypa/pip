@@ -19,7 +19,8 @@ import sys
 from pip._vendor.six.moves import configparser
 
 from pip._internal.exceptions import (
-    ConfigurationError, ConfigurationFileCouldNotBeLoaded,
+    ConfigurationError,
+    ConfigurationFileCouldNotBeLoaded,
 )
 from pip._internal.utils import appdirs
 from pip._internal.utils.compat import WINDOWS, expanduser

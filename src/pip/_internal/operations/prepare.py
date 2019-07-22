@@ -11,11 +11,18 @@ from pip._internal.distributions import (
 )
 from pip._internal.distributions.installed import InstalledDistribution
 from pip._internal.download import (
-    is_dir_url, is_file_url, is_vcs_url, unpack_url, url_to_path,
+    is_dir_url,
+    is_file_url,
+    is_vcs_url,
+    unpack_url,
+    url_to_path,
 )
 from pip._internal.exceptions import (
-    DirectoryUrlHashUnsupported, HashUnpinned, InstallationError,
-    PreviousBuildDirError, VcsHashUnsupported,
+    DirectoryUrlHashUnsupported,
+    HashUnpinned,
+    InstallationError,
+    PreviousBuildDirError,
+    VcsHashUnsupported,
 )
 from pip._internal.utils.compat import expanduser
 from pip._internal.utils.hashes import MissingHashes

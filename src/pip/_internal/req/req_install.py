@@ -26,9 +26,17 @@ from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.marker_files import PIP_DELETE_MARKER_FILENAME
 from pip._internal.utils.misc import (
-    _make_build_dir, ask_path_exists, backup_dir, call_subprocess,
-    display_path, dist_in_site_packages, dist_in_usersite, ensure_dir,
-    get_installed_version, redact_password_from_url, rmtree,
+    _make_build_dir,
+    ask_path_exists,
+    backup_dir,
+    call_subprocess,
+    display_path,
+    dist_in_site_packages,
+    dist_in_usersite,
+    ensure_dir,
+    get_installed_version,
+    redact_password_from_url,
+    rmtree,
 )
 from pip._internal.utils.packaging import get_metadata
 from pip._internal.utils.setuptools_build import make_setuptools_shim_args

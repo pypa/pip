@@ -5,7 +5,9 @@ import hashlib
 from pip._vendor.six import iteritems, iterkeys, itervalues
 
 from pip._internal.exceptions import (
-    HashMismatch, HashMissing, InstallationError,
+    HashMismatch,
+    HashMissing,
+    InstallationError,
 )
 from pip._internal.utils.misc import read_chunks
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING

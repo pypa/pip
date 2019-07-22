@@ -13,7 +13,9 @@ from pip._internal.utils.compat import samefile
 from pip._internal.utils.misc import display_path, redact_password_from_url
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.vcs.versioncontrol import (
-    RemoteNotFoundError, VersionControl, vcs,
+    RemoteNotFoundError,
+    VersionControl,
+    vcs,
 )
 
 urlsplit = urllib_parse.urlsplit

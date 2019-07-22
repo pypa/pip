@@ -12,7 +12,11 @@ from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip._internal.exceptions import BadCommand
 from pip._internal.utils.misc import (
-    ask_path_exists, backup_dir, call_subprocess, display_path, rmtree,
+    ask_path_exists,
+    backup_dir,
+    call_subprocess,
+    display_path,
+    rmtree,
 )
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 

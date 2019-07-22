@@ -7,8 +7,12 @@ from doctest import ELLIPSIS, OutputChecker
 import pytest
 
 from tests.lib import (
-    _create_test_package, _create_test_package_with_srcdir, _git_commit,
-    need_bzr, need_mercurial, path_to_url,
+    _create_test_package,
+    _create_test_package_with_srcdir,
+    _git_commit,
+    need_bzr,
+    need_mercurial,
+    path_to_url,
 )
 
 distribute_re = re.compile('^distribute==[0-9.]+\n', re.MULTILINE)

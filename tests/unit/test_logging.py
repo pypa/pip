@@ -8,7 +8,9 @@ from mock import patch
 from pip._vendor.six import PY2
 
 from pip._internal.utils.logging import (
-    BrokenStdoutLoggingError, ColorizedStreamHandler, IndentingFormatter,
+    BrokenStdoutLoggingError,
+    ColorizedStreamHandler,
+    IndentingFormatter,
 )
 from pip._internal.utils.misc import captured_stderr, captured_stdout
 
