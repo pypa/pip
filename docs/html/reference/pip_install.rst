@@ -247,7 +247,8 @@ pip supports installing from a package index using a :term:`requirement
 specifier <pypug:Requirement Specifier>`. Generally speaking, a requirement
 specifier is composed of a project name followed by optional :term:`version
 specifiers <pypug:Version Specifier>`.  :pep:`508` contains a full specification
-of the format of a requirement.
+of the format of a requirement. Since version 18.1 pip supports the
+``url_req``-form specification.
 
 Some examples:
 
