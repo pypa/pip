@@ -15,6 +15,7 @@ from pip._internal.models.link import Link
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import unpack_file
+from pip._internal.wheel import MissingCallableSuffix, _assert_valid_entrypoint
 from tests.lib import DATA_DIR, assert_paths_equal
 
 
@@ -263,6 +264,19 @@ def test_get_entrypoints(tmpdir, console_scripts):
         dict([console_scripts.split(' = ')]),
         {},
     )
+
+
+def test_assert_valid_entrypoint_ok():
+    _assert_valid_entrypoint("hello = hello:main")
+
+
+@pytest.mark.parametrize("entrypoint", [
+    "hello = hello",
+    "hello = hello:",
+])
+def test_assert_valid_entrypoint_fail(entrypoint):
+    with pytest.raises(MissingCallableSuffix):
+        _assert_valid_entrypoint(entrypoint)
 
 
 @pytest.mark.parametrize("outrows, expected", [
