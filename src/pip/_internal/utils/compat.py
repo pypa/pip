@@ -47,7 +47,7 @@ logger = logging.getLogger(__name__)
 
 HAS_TLS = (ssl is not None) or IS_PYOPENSSL
 
-if sys.version_info >= (3, 4):
+if sys.version_info >= (3,):
     uses_pycache = True
     from importlib.util import cache_from_source
 else:
@@ -62,7 +62,7 @@ else:
     uses_pycache = cache_from_source is not None
 
 
-if sys.version_info >= (3, 5):
+if sys.version_info >= (3,):
     backslashreplace_decode = "backslashreplace"
 else:
     # In version 3.4 and older, backslashreplace exists
@@ -202,7 +202,7 @@ def get_path_uid(path):
     return file_uid
 
 
-if sys.version_info >= (3, 4):
+if sys.version_info >= (3,):
     from importlib.machinery import EXTENSION_SUFFIXES
 
     def get_extension_suffixes():

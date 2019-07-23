@@ -528,7 +528,7 @@ def test_editable_install__local_dir_no_setup_py_with_pyproject(
     assert 'A "pyproject.toml" file was found' in msg
 
 
-@pytest.mark.skipif("sys.version_info >= (3,4)")
+@pytest.mark.skipif("sys.version_info >= (3,)")
 @pytest.mark.xfail
 def test_install_argparse_shadowed(script):
     # When argparse is in the stdlib, we support installing it
@@ -543,7 +543,7 @@ def test_install_argparse_shadowed(script):
 
 
 @pytest.mark.network
-@pytest.mark.skipif("sys.version_info < (3,4)")
+@pytest.mark.skipif("sys.version_info < (3,)")
 def test_upgrade_argparse_shadowed(script):
     # If argparse is installed - even if shadowed for imported - we support
     # upgrading it and properly remove the older versions files.
