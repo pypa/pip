@@ -7,6 +7,16 @@
 
 .. towncrier release notes start
 
+19.2.1 (2019-07-23)
+===================
+
+Bug Fixes
+---------
+
+- Fix a ``NoneType`` ``AttributeError`` when evaluating hashes and no hashes
+  are provided. (`#6772 <https://github.com/pypa/pip/issues/6772>`_)
+
+
 19.2 (2019-07-22)
 =================
 
