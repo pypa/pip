@@ -947,8 +947,7 @@ def unpack_file_url(
                         # see dicsussion at:
                         #   https://github.com/pypa/pip/issues/2195
                         #   https://github.com/pypa/pip/pull/2196
-                        ignore=shutil.ignore_patterns('.tox', '.nox', '.git', '.hg', '.bzr', '.svn')
-        )
+                        ignore=shutil.ignore_patterns('.tox', '.nox', '.git', '.hg', '.bzr', '.svn'))
 
         if download_dir:
             logger.info('Link is a directory, ignoring download_dir')
