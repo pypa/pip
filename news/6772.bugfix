@@ -1,2 +1,0 @@
-Fix a ``NoneType`` ``AttributeError`` when evaluating hashes and no hashes
-are provided.
