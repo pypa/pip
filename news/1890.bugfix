@@ -1,2 +1,0 @@
-Set ``sys.argv[0]`` to the underlying ``setup.py`` when invoking ``setup.py``
-via the setuptools shim so setuptools doesn't think the path is ``-c``.

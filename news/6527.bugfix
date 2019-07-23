@@ -1,2 +1,0 @@
-Add the line number and file location to the error message when reading an
-invalid requirements file in certain situations.
