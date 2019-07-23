@@ -942,12 +942,12 @@ def unpack_file_url(
         shutil.copytree(link_path,
                         location,
                         symlinks=True,
-                        # Pulling in those directories can potentially be very slow.
-                        # Excludin them speeds things up substantially in some cases.
+                        # Pulling in those directories can potentially
+                        # be very slow.
                         # see dicsussion at:
                         #   https://github.com/pypa/pip/issues/2195
                         #   https://github.com/pypa/pip/pull/2196
-                        ignore=shutil.ignore_patterns('.tox', '.nox', '.git', '.hg', '.bzr', '.svn'))
+                        ignore=shutil.ignore_patterns('.tox', '.nox'))
 
         if download_dir:
             logger.info('Link is a directory, ignoring download_dir')
