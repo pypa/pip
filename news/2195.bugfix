@@ -1,0 +1,4 @@
+pip install . is very slow in the presence of large directories in the source tree.
+Typical cases are source control directories (.git, .svn etc) and test automation directries (.tox, .nox).
+This diff excludes the common culprits from the copy to a temporary directory, speeding up pip install .
+significantly in such cases.
