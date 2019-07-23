@@ -200,11 +200,11 @@ class Link(KeyBasedCompareMixin):
         return self.hash_name is not None
 
     def is_hash_allowed(self, hashes):
-        # type: (Hashes) -> bool
+        # type: (Optional[Hashes]) -> bool
         """
         Return True if the link has a hash and it is allowed.
         """
-        if not self.has_hash:
+        if hashes is None or not self.has_hash:
             return False
         # Assert non-None so mypy knows self.hash_name and self.hash are str.
         assert self.hash_name is not None

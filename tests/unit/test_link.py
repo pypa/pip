@@ -117,3 +117,13 @@ class TestLink:
         }
         hashes = Hashes(hashes_data)
         assert not link.is_hash_allowed(hashes)
+
+    @pytest.mark.parametrize('hashes, expected', [
+        (None, False),
+        # Also test a success case to show the test is correct.
+        (Hashes({'sha512': [128 * 'a']}), True),
+    ])
+    def test_is_hash_allowed__none_hashes(self, hashes, expected):
+        url = 'https://example.com/wheel.whl#sha512={}'.format(128 * 'a')
+        link = Link(url)
+        assert link.is_hash_allowed(hashes) == expected
