@@ -409,6 +409,25 @@ class TestCandidateEvaluator:
 
         assert result.best_candidate is expected_applicable[1]
 
+    def test_compute_best_candidate__none_best(self):
+        """
+        Test returning a None best candidate.
+        """
+        specifier = SpecifierSet('<= 1.10')
+        versions = ['1.11', '1.12']
+        candidates = [
+            make_mock_candidate(version) for version in versions
+        ]
+        evaluator = CandidateEvaluator.create(
+            'my-project',
+            specifier=specifier,
+        )
+        result = evaluator.compute_best_candidate(candidates)
+
+        assert result._candidates == candidates
+        assert result._applicable_candidates == []
+        assert result.best_candidate is None
+
     @pytest.mark.parametrize('hex_digest, expected', [
         # Test a link with no hash.
         (None, 0),
