@@ -9,7 +9,7 @@ import os
 import shutil
 import sys
 
-from pip._vendor.six import text_type
+from pip._vendor.six import PY2, PY3, text_type
 from pip._vendor.urllib3.util import IS_PYOPENSSL
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -47,7 +47,7 @@ logger = logging.getLogger(__name__)
 
 HAS_TLS = (ssl is not None) or IS_PYOPENSSL
 
-if sys.version_info >= (3,):
+if PY3:
     uses_pycache = True
     from importlib.util import cache_from_source
 else:
@@ -62,7 +62,7 @@ else:
     uses_pycache = cache_from_source is not None
 
 
-if sys.version_info >= (3,):
+if PY3:
     backslashreplace_decode = "backslashreplace"
 else:
     # In version 3.4 and older, backslashreplace exists
@@ -72,7 +72,7 @@ else:
     # backslash replacement for all versions.
     def backslashreplace_decode_fn(err):
         raw_bytes = (err.object[i] for i in range(err.start, err.end))
-        if sys.version_info[0] == 2:
+        if PY2:
             # Python 2 gave us characters - convert to numeric bytes
             raw_bytes = (ord(b) for b in raw_bytes)
         return u"".join(u"\\x%x" % c for c in raw_bytes), err.end
@@ -156,7 +156,7 @@ def console_to_str(data):
     return str_to_display(data, desc='Subprocess output')
 
 
-if sys.version_info >= (3,):
+if PY3:
     def native_str(s, replace=False):
         # type: (str, bool) -> str
         if isinstance(s, bytes):
@@ -202,7 +202,7 @@ def get_path_uid(path):
     return file_uid
 
 
-if sys.version_info >= (3,):
+if PY3:
     from importlib.machinery import EXTENSION_SUFFIXES
 
     def get_extension_suffixes():
