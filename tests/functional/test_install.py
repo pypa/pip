@@ -5,6 +5,7 @@ import sys
 import textwrap
 from os.path import curdir, join, pardir
 
+# Ignore because flake8 can't detect the use inside skipif().
 import pip._vendor.six  # noqa: F401
 import pytest
 
