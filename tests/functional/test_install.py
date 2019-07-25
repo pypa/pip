@@ -5,6 +5,7 @@ import sys
 import textwrap
 from os.path import curdir, join, pardir
 
+import pip._vendor.six  # noqa: F401
 import pytest
 
 from pip._internal import pep425tags
@@ -528,7 +529,7 @@ def test_editable_install__local_dir_no_setup_py_with_pyproject(
     assert 'A "pyproject.toml" file was found' in msg
 
 
-@pytest.mark.skipif("sys.version_info >= (3,)")
+@pytest.mark.skipif("pip._vendor.six.PY3")
 @pytest.mark.xfail
 def test_install_argparse_shadowed(script):
     # When argparse is in the stdlib, we support installing it
@@ -543,7 +544,7 @@ def test_install_argparse_shadowed(script):
 
 
 @pytest.mark.network
-@pytest.mark.skipif("sys.version_info < (3,)")
+@pytest.mark.skipif("pip._vendor.six.PY2")
 def test_upgrade_argparse_shadowed(script):
     # If argparse is installed - even if shadowed for imported - we support
     # upgrading it and properly remove the older versions files.
