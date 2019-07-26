@@ -23,21 +23,39 @@ from mock import Mock, patch
 from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip._internal.exceptions import (
-    HashMismatch, HashMissing, InstallationError,
+    HashMismatch,
+    HashMissing,
+    InstallationError,
 )
 from pip._internal.utils.deprecation import PipDeprecationWarning, deprecated
 from pip._internal.utils.encoding import BOMS, auto_decode
 from pip._internal.utils.glibc import (
-    check_glibc_version, glibc_version_string, glibc_version_string_confstr,
+    check_glibc_version,
+    glibc_version_string,
+    glibc_version_string_confstr,
     glibc_version_string_ctypes,
 )
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.misc import (
-    call_subprocess, egg_link_path, ensure_dir, format_command_args,
-    get_installed_distributions, get_prog, make_subprocess_output_error,
-    normalize_path, normalize_version_info, path_to_display, path_to_url,
-    redact_netloc, redact_password_from_url, remove_auth_from_url, rmtree,
-    split_auth_from_netloc, split_auth_netloc_from_url, untar_file, unzip_file,
+    call_subprocess,
+    egg_link_path,
+    ensure_dir,
+    format_command_args,
+    get_installed_distributions,
+    get_prog,
+    make_subprocess_output_error,
+    normalize_path,
+    normalize_version_info,
+    path_to_display,
+    path_to_url,
+    redact_netloc,
+    redact_password_from_url,
+    remove_auth_from_url,
+    rmtree,
+    split_auth_from_netloc,
+    split_auth_netloc_from_url,
+    untar_file,
+    unzip_file,
 )
 from pip._internal.utils.setuptools_build import make_setuptools_shim_args
 from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory

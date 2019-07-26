@@ -18,16 +18,22 @@ from itertools import chain
 from pip._vendor.packaging import specifiers
 
 from pip._internal.exceptions import (
-    BestVersionAlreadyInstalled, DistributionNotFound, HashError, HashErrors,
+    BestVersionAlreadyInstalled,
+    DistributionNotFound,
+    HashError,
+    HashErrors,
     UnsupportedPythonVersion,
 )
 from pip._internal.req.constructors import install_req_from_req_string
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
-    dist_in_usersite, ensure_dir, normalize_version_info,
+    dist_in_usersite,
+    ensure_dir,
+    normalize_version_info,
 )
 from pip._internal.utils.packaging import (
-    check_requires_python, get_requires_python,
+    check_requires_python,
+    get_requires_python,
 )
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 

@@ -15,7 +15,9 @@ from pip._internal.cli.base_command import RequirementCommand
 from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.status_codes import ERROR
 from pip._internal.exceptions import (
-    CommandError, InstallationError, PreviousBuildDirError,
+    CommandError,
+    InstallationError,
+    PreviousBuildDirError,
 )
 from pip._internal.legacy_resolve import Resolver
 from pip._internal.locations import distutils_scheme
@@ -25,7 +27,8 @@ from pip._internal.req import RequirementSet, install_given_reqs
 from pip._internal.req.req_tracker import RequirementTracker
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.misc import (
-    ensure_dir, get_installed_version,
+    ensure_dir,
+    get_installed_version,
     protect_pip_from_modification_on_windows,
 )
 from pip._internal.utils.temp_dir import TempDirectory

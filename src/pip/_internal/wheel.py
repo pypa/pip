@@ -25,15 +25,22 @@ from pip._vendor.six import StringIO
 from pip._internal import pep425tags
 from pip._internal.download import unpack_url
 from pip._internal.exceptions import (
-    InstallationError, InvalidWheelFilename, UnsupportedWheel,
+    InstallationError,
+    InvalidWheelFilename,
+    UnsupportedWheel,
 )
 from pip._internal.locations import distutils_scheme
 from pip._internal.models.link import Link
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.marker_files import PIP_DELETE_MARKER_FILENAME
 from pip._internal.utils.misc import (
-    LOG_DIVIDER, call_subprocess, captured_stdout, ensure_dir,
-    format_command_args, path_to_url, read_chunks,
+    LOG_DIVIDER,
+    call_subprocess,
+    captured_stdout,
+    ensure_dir,
+    format_command_args,
+    path_to_url,
+    read_chunks,
 )
 from pip._internal.utils.setuptools_build import make_setuptools_shim_args
 from pip._internal.utils.temp_dir import TempDirectory

@@ -6,10 +6,13 @@ import sys
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.parser import (
-    ConfigOptionParser, UpdatingDefaultsHelpFormatter,
+    ConfigOptionParser,
+    UpdatingDefaultsHelpFormatter,
 )
 from pip._internal.commands import (
-    commands_dict, get_similar_commands, get_summaries,
+    commands_dict,
+    get_similar_commands,
+    get_summaries,
 )
 from pip._internal.exceptions import CommandError
 from pip._internal.utils.misc import get_pip_version, get_prog

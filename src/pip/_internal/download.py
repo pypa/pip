@@ -36,10 +36,22 @@ from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.glibc import libc_ver
 from pip._internal.utils.marker_files import write_delete_marker_file
 from pip._internal.utils.misc import (
-    ARCHIVE_EXTENSIONS, ask, ask_input, ask_password, ask_path_exists,
-    backup_dir, consume, display_path, format_size, get_installed_version,
-    path_to_url, remove_auth_from_url, rmtree, split_auth_netloc_from_url,
-    splitext, unpack_file,
+    ARCHIVE_EXTENSIONS,
+    ask,
+    ask_input,
+    ask_password,
+    ask_path_exists,
+    backup_dir,
+    consume,
+    display_path,
+    format_size,
+    get_installed_version,
+    path_to_url,
+    remove_auth_from_url,
+    rmtree,
+    split_auth_netloc_from_url,
+    splitext,
+    unpack_file,
 )
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING

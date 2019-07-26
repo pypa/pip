@@ -19,7 +19,9 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip._internal.download import is_url, url_to_path
 from pip._internal.exceptions import (
-    BestVersionAlreadyInstalled, DistributionNotFound, InvalidWheelFilename,
+    BestVersionAlreadyInstalled,
+    DistributionNotFound,
+    InvalidWheelFilename,
     UnsupportedWheel,
 )
 from pip._internal.models.candidate import InstallationCandidate
@@ -30,7 +32,10 @@ from pip._internal.models.target_python import TargetPython
 from pip._internal.utils.compat import ipaddress
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
-    ARCHIVE_EXTENSIONS, SUPPORTED_EXTENSIONS, WHEEL_EXTENSION, path_to_url,
+    ARCHIVE_EXTENSIONS,
+    SUPPORTED_EXTENSIONS,
+    WHEEL_EXTENSION,
+    path_to_url,
     redact_password_from_url,
 )
 from pip._internal.utils.packaging import check_requires_python

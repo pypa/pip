@@ -6,7 +6,11 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip._internal.download import PipSession
 from pip._internal.index import (
-    Link, _get_html_page, _get_html_response, _NotHTML, _NotHTTP,
+    Link,
+    _get_html_page,
+    _get_html_response,
+    _NotHTML,
+    _NotHTTP,
 )
 
 

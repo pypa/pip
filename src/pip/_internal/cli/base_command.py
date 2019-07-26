@@ -12,22 +12,30 @@ import traceback
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.cmdoptions import make_search_scope
 from pip._internal.cli.parser import (
-    ConfigOptionParser, UpdatingDefaultsHelpFormatter,
+    ConfigOptionParser,
+    UpdatingDefaultsHelpFormatter,
 )
 from pip._internal.cli.status_codes import (
-    ERROR, PREVIOUS_BUILD_DIR_ERROR, SUCCESS, UNKNOWN_ERROR,
+    ERROR,
+    PREVIOUS_BUILD_DIR_ERROR,
+    SUCCESS,
+    UNKNOWN_ERROR,
     VIRTUALENV_NOT_FOUND,
 )
 from pip._internal.download import PipSession
 from pip._internal.exceptions import (
-    BadCommand, CommandError, InstallationError, PreviousBuildDirError,
+    BadCommand,
+    CommandError,
+    InstallationError,
+    PreviousBuildDirError,
     UninstallationError,
 )
 from pip._internal.index import PackageFinder
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.req.constructors import (
-    install_req_from_editable, install_req_from_line,
+    install_req_from_editable,
+    install_req_from_line,
 )
 from pip._internal.req.req_file import parse_requirements
 from pip._internal.utils.deprecation import deprecated

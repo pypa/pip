@@ -13,7 +13,8 @@ from pip._internal.exceptions import CommandError
 from pip._internal.index import PackageFinder
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.utils.misc import (
-    dist_is_editable, get_installed_distributions,
+    dist_is_editable,
+    get_installed_distributions,
 )
 from pip._internal.utils.packaging import get_installer
 

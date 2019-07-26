@@ -9,10 +9,14 @@ from pkg_resources import parse_version
 import pip._internal.pep425tags
 import pip._internal.wheel
 from pip._internal.exceptions import (
-    BestVersionAlreadyInstalled, DistributionNotFound,
+    BestVersionAlreadyInstalled,
+    DistributionNotFound,
 )
 from pip._internal.index import (
-    CandidateEvaluator, InstallationCandidate, Link, LinkEvaluator,
+    CandidateEvaluator,
+    InstallationCandidate,
+    Link,
+    LinkEvaluator,
 )
 from pip._internal.models.target_python import TargetPython
 from pip._internal.req.constructors import install_req_from_line

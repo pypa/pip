@@ -5,7 +5,9 @@ import subprocess
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.configuration import (
-    Configuration, get_configuration_files, kinds,
+    Configuration,
+    get_configuration_files,
+    kinds,
 )
 from pip._internal.exceptions import PipError
 from pip._internal.utils.deprecation import deprecated
