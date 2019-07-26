@@ -12,8 +12,8 @@ jobs:
       Python27-x86:
         python.version: '2.7'
         python.architecture: x86
-      Python35-x64:
-        python.version: '3.5'
+      Python37-x64:
+        python.version: '3.7'
         python.architecture: x64
     maxParallel: 2
 
