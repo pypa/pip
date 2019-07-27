@@ -330,7 +330,12 @@ class MultiDomainBasicAuth(AuthBase):
             username, password = self._get_new_credentials(original_url)
 
         if username is not None or password is not None:
-            # Store any acquired credentials
+            # Store any acquired credentials, converting None to empty strings
+            # The conversion ensures that this netloc will matched the "cached"
+            # conditional above. Further, HTTPBasicAuth doesn't accept None so
+            # it makes sense to cache the value that is going to be used.
+            username = username or ""
+            password = password or ""
             self.passwords[netloc] = (username, password)
 
         return url, username, password
