@@ -295,7 +295,7 @@ class MultiDomainBasicAuth(AuthBase):
                 logger.debug("Found credentials in keyring for %s", netloc)
                 return kr_auth
 
-        return None, None
+        return username, password
 
     def _get_url_and_credentials(self, original_url):
         """Return the credentials to use for the provided URL.
@@ -314,11 +314,11 @@ class MultiDomainBasicAuth(AuthBase):
 
         # If nothing cached, acquire new credentials without prompting
         # the user (e.g. from netrc, keyring, or similar).
-        if username is None or password is None:
+        if username is None and password is None:
             username, password = self._get_new_credentials(original_url)
 
-        if username is not None and password is not None:
-            # Store the username and password
+        if username is not None or password is not None:
+            # Store any acquired credentials
             self.passwords[netloc] = (username, password)
 
         return url, username, password
@@ -330,7 +330,7 @@ class MultiDomainBasicAuth(AuthBase):
         # Set the url of the request to the url without any credentials
         req.url = url
 
-        if username is not None and password is not None:
+        if username is not None or password is not None:
             # Send the basic auth with this request
             req = HTTPBasicAuth(username, password)(req)
 
