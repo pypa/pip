@@ -191,7 +191,7 @@ class InstallCommand(RequirementCommand):
                  'This can break your system if the existing package '
                  'is of a different version or was installed '
                  'with a different package manager!'
-            )
+        )
 
         cmd_opts.add_option(cmdoptions.ignore_requires_python())
         cmd_opts.add_option(cmdoptions.no_build_isolation())
