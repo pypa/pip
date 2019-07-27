@@ -332,7 +332,7 @@ class MultiDomainBasicAuth(AuthBase):
 
         if username is not None or password is not None:
             # Send the basic auth with this request
-            req = HTTPBasicAuth(username or "", password or "")(req) # Avoid passing Nonetype
+            req = HTTPBasicAuth(username or "", password or "")(req)
 
         # Attach a hook to handle 401 responses
         req.register_hook("response", self.handle_401)
