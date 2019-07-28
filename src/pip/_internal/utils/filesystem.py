@@ -1,5 +1,6 @@
 import os
 import os.path
+import stat
 
 from pip._internal.utils.compat import get_path_uid
 
@@ -28,3 +29,8 @@ def check_path_owner(path):
         else:
             previous, path = path, os.path.dirname(path)
     return False  # assume we don't own the path
+
+
+def is_socket(path):
+    # type: (str) -> bool
+    return stat.S_ISSOCK(os.lstat(path).st_mode)
