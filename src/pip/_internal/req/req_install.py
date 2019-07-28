@@ -616,9 +616,10 @@ class InstallRequirement(object):
                 'Running setup.py (path:%s) egg_info for package from %s',
                 self.setup_py_path, self.link,
             )
-        base_cmd = make_setuptools_shim_args(self.setup_py_path)
-        if self.isolated:
-            base_cmd += ["--no-user-cfg"]
+        base_cmd = make_setuptools_shim_args(
+            self.setup_py_path,
+            no_user_config=self.isolated
+        )
         egg_info_cmd = base_cmd + ['egg_info']
         # We can't put the .egg-info files at the root, because then the
         # source code will be mistaken for an installed egg, causing
@@ -763,19 +764,19 @@ class InstallRequirement(object):
         # type: (...) -> None
         logger.info('Running setup.py develop for %s', self.name)
 
-        if self.isolated:
-            global_options = list(global_options) + ["--no-user-cfg"]
-
         if prefix:
             prefix_param = ['--prefix={}'.format(prefix)]
             install_options = list(install_options) + prefix_param
-
+        base_cmd = make_setuptools_shim_args(
+            self.setup_py_path,
+            global_options=global_options,
+            no_user_config=self.isolated
+        )
         with indent_log():
             # FIXME: should we do --install-headers here too?
             with self.build_env:
                 call_subprocess(
-                    make_setuptools_shim_args(self.setup_py_path) +
-                    list(global_options) +
+                    base_cmd +
                     ['develop', '--no-deps'] +
                     list(install_options),
 
@@ -948,10 +949,6 @@ class InstallRequirement(object):
         install_options = list(install_options) + \
             self.options.get('install_options', [])
 
-        if self.isolated:
-            # https://github.com/python/mypy/issues/1174
-            global_options = global_options + ["--no-user-cfg"]  # type: ignore
-
         with TempDirectory(kind="record") as temp_dir:
             record_filename = os.path.join(temp_dir.path, 'install-record.txt')
             install_args = self.get_install_args(
@@ -1018,10 +1015,13 @@ class InstallRequirement(object):
         pycompile  # type: bool
     ):
         # type: (...) -> List[str]
-        install_args = make_setuptools_shim_args(self.setup_py_path,
-                                                 unbuffered_output=True)
-        install_args += list(global_options) + \
-            ['install', '--record', record_filename]
+        install_args = make_setuptools_shim_args(
+            self.setup_py_path,
+            global_options=global_options,
+            no_user_config=self.isolated,
+            unbuffered_output=True
+        )
+        install_args += ['install', '--record', record_filename]
         install_args += ['--single-version-externally-managed']
 
         if root is not None:

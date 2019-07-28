@@ -934,9 +934,11 @@ class WheelBuilder(object):
         # isolating. Currently, it breaks Python in virtualenvs, because it
         # relies on site.py to find parts of the standard library outside the
         # virtualenv.
-        base_cmd = make_setuptools_shim_args(req.setup_py_path,
-                                             unbuffered_output=True)
-        return base_cmd + list(self.global_options)
+        return make_setuptools_shim_args(
+            req.setup_py_path,
+            global_options=self.global_options,
+            unbuffered_output=True
+        )
 
     def _build_one_pep517(self, req, tempd, python_tag=None):
         """Build one InstallRequirement using the PEP 517 build process.

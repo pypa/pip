@@ -1405,16 +1405,54 @@ def test_deprecated_message_reads_well():
     )
 
 
-@pytest.mark.parametrize("unbuffered_output", [False, True])
-def test_make_setuptools_shim_args(unbuffered_output):
+def test_make_setuptools_shim_args():
+    # Test all arguments at once, including the overall ordering.
     args = make_setuptools_shim_args(
-        "/dir/path/setup.py",
-        unbuffered_output=unbuffered_output
+        '/dir/path/setup.py',
+        global_options=['--some', '--option'],
+        no_user_config=True,
+        unbuffered_output=True,
     )
 
-    assert ("-u" in args) == unbuffered_output
+    assert args[1:3] == ['-u', '-c']
+    # Spot-check key aspects of the command string.
+    assert "sys.argv[0] = '/dir/path/setup.py'" in args[3]
+    assert "__file__='/dir/path/setup.py'" in args[3]
+    assert args[4:] == ['--some', '--option', '--no-user-cfg']
 
-    assert args[-2] == "-c"
 
-    assert "sys.argv[0] = '/dir/path/setup.py'" in args[-1]
-    assert "__file__='/dir/path/setup.py'" in args[-1]
+@pytest.mark.parametrize('global_options', [
+    None,
+    [],
+    ['--some', '--option']
+])
+def test_make_setuptools_shim_args__global_options(global_options):
+    args = make_setuptools_shim_args(
+        '/dir/path/setup.py',
+        global_options=global_options,
+    )
+
+    if global_options:
+        assert len(args) == 5
+        for option in global_options:
+            assert option in args
+    else:
+        assert len(args) == 3
+
+
+@pytest.mark.parametrize('no_user_config', [False, True])
+def test_make_setuptools_shim_args__no_user_config(no_user_config):
+    args = make_setuptools_shim_args(
+        '/dir/path/setup.py',
+        no_user_config=no_user_config,
+    )
+    assert ('--no-user-cfg' in args) == no_user_config
+
+
+@pytest.mark.parametrize('unbuffered_output', [False, True])
+def test_make_setuptools_shim_args__unbuffered_output(unbuffered_output):
+    args = make_setuptools_shim_args(
+        '/dir/path/setup.py',
+        unbuffered_output=unbuffered_output
+    )
+    assert ('-u' in args) == unbuffered_output
