@@ -931,8 +931,7 @@ class InstallRequirement(object):
         with TempDirectory(kind="record") as temp_dir:
             record_filename = os.path.join(temp_dir.path, 'install-record.txt')
             install_args = self.get_install_args(
-                global_options, record_filename, root, prefix,
-                pycompile,
+                global_options, record_filename, root, prefix, pycompile,
             )
             msg = 'Running setup.py install for %s' % (self.name,)
             with open_spinner(msg) as spinner:
