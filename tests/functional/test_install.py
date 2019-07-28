@@ -1,6 +1,8 @@
 import distutils
 import glob
 import os
+import shutil
+import socket
 import sys
 import textwrap
 from os.path import curdir, join, pardir
@@ -486,6 +488,26 @@ def test_install_from_local_directory_with_symlinks_to_directories(
     )
     assert pkg_folder in result.files_created, str(result.stdout)
     assert egg_info_folder in result.files_created, str(result)
+
+
+@pytest.mark.skipif("sys.platform == 'win32'")
+def test_install_from_local_directory_with_socket_file(script, data, tmpdir):
+    """
+    Test installing from a local directory containing a socket file.
+    """
+    egg_info_file = (
+        script.site_packages / 'FSPkg-0.1.dev0-py%s.egg-info' % pyversion
+    )
+    package_folder = script.site_packages / 'fspkg'
+    to_copy = data.packages.joinpath("FSPkg")
+    to_install = tmpdir.joinpath("src")
+    shutil.copytree(to_copy, to_install)
+    sock = socket.socket(socket.AF_UNIX)
+    sock.bind(os.path.join(to_install, "example"))
+    result = script.pip("install", to_install, expect_error=False)
+
+    assert package_folder in result.files_created, str(result.stdout)
+    assert egg_info_file in result.files_created, str(result)
 
 
 def test_install_from_local_directory_with_no_setup_py(script, data):
