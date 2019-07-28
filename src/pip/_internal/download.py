@@ -33,7 +33,7 @@ from pip._internal.models.index import PyPI
 # Import ssl from compat so the initial import occurs in only one place.
 from pip._internal.utils.compat import HAS_TLS, ssl
 from pip._internal.utils.encoding import auto_decode
-from pip._internal.utils.filesystem import check_path_owner
+from pip._internal.utils.filesystem import check_path_owner, is_socket
 from pip._internal.utils.glibc import libc_ver
 from pip._internal.utils.marker_files import write_delete_marker_file
 from pip._internal.utils.misc import (
@@ -63,7 +63,7 @@ from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Optional, Tuple, Dict, IO, Text, Union
+        Dict, IO, List, Optional, Text, Tuple, Union
     )
     from optparse import Values
     from pip._internal.models.link import Link
@@ -944,6 +944,36 @@ def unpack_http_url(
             os.unlink(from_path)
 
 
+def _copy_source_tree(source, target):
+    # type: (str, str) -> None
+    def ignore(d, names):
+        # Pulling in those directories can potentially be very slow,
+        # exclude the following directories if they appear in the top
+        # level dir (and only it).
+        # See discussion at https://github.com/pypa/pip/pull/6770
+        return ['.tox', '.nox'] if d == source else []
+
+    try:
+        shutil.copytree(source, target, ignore=ignore, symlinks=True)
+    except shutil.Error as e:
+        errors = e.args[0]  # type: List[Tuple[str, str, shutil.Error]]
+        # Users may have locally-created socket files in the source
+        # directory. Copying socket files is not supported, so we skip errors
+        # related to them, for convenience.
+
+        # Copy list to avoid mutation while iterating.
+        errors_copy = errors[:]
+        for i, err in reversed(list(enumerate(errors_copy))):
+            src, _dest, _error = err
+            if is_socket(src):
+                # Remove errors related to sockets to prevent distractions if
+                # we end up re-raising.
+                errors.pop(i)
+
+        if errors:
+            raise
+
+
 def unpack_file_url(
     link,  # type: Link
     location,  # type: str
@@ -959,21 +989,9 @@ def unpack_file_url(
     link_path = url_to_path(link.url_without_fragment)
     # If it's a url to a local directory
     if is_dir_url(link):
-
-        def ignore(d, names):
-            # Pulling in those directories can potentially be very slow,
-            # exclude the following directories if they appear in the top
-            # level dir (and only it).
-            # See discussion at https://github.com/pypa/pip/pull/6770
-            return ['.tox', '.nox'] if d == link_path else []
-
         if os.path.isdir(location):
             rmtree(location)
-        shutil.copytree(link_path,
-                        location,
-                        symlinks=True,
-                        ignore=ignore)
-
+        _copy_source_tree(link_path, location)
         if download_dir:
             logger.info('Link is a directory, ignoring download_dir')
         return
