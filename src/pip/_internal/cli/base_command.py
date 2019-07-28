@@ -61,18 +61,20 @@ class Command(object):
     usage = None  # type: Optional[str]
     ignore_require_venv = False  # type: bool
 
-    def __init__(self, isolated=False):
-        # type: (bool) -> None
+    def __init__(self, name, summary, isolated=False):
+        # type: (str, str, bool) -> None
         parser_kw = {
             'usage': self.usage,
             'prog': '%s %s' % (get_prog(), self.name),
             'formatter': UpdatingDefaultsHelpFormatter(),
             'add_help_option': False,
-            'name': self.name,
+            'name': name,
             'description': self.__doc__,
             'isolated': isolated,
         }
 
+        self.name = name
+        self.summary = summary
         self.parser = ConfigOptionParser(**parser_kw)
 
         # Commands should add options to this option group

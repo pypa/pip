@@ -7,8 +7,8 @@ from pip._internal.utils.logging import BrokenStdoutLoggingError
 
 
 class FakeCommand(Command):
-    name = 'fake'
-    summary = name
+
+    _name = 'fake'
 
     def __init__(self, run_func=None, error=False):
         if error:
@@ -16,7 +16,7 @@ class FakeCommand(Command):
                 raise SystemExit(1)
 
         self.run_func = run_func
-        super(FakeCommand, self).__init__()
+        super(FakeCommand, self).__init__(self._name, self._name)
 
     def main(self, args):
         args.append("--disable-pip-version-check")
@@ -29,8 +29,7 @@ class FakeCommand(Command):
 
 
 class FakeCommandWithUnicode(FakeCommand):
-    name = 'fake_unicode'
-    summary = name
+    _name = 'fake_unicode'
 
     def run(self, options, args):
         logging.getLogger("pip.tests").info(b"bytes here \xE9")

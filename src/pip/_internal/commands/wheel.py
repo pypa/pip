@@ -33,15 +33,12 @@ class WheelCommand(RequirementCommand):
 
     """
 
-    name = 'wheel'
     usage = """
       %prog [options] <requirement specifier> ...
       %prog [options] -r <requirements file> ...
       %prog [options] [-e] <vcs project url> ...
       %prog [options] [-e] <local project path> ...
       %prog [options] <archive url/path> ..."""
-
-    summary = 'Build wheels from your requirements.'
 
     def __init__(self, *args, **kw):
         super(WheelCommand, self).__init__(*args, **kw)

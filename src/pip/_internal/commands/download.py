@@ -29,7 +29,6 @@ class DownloadCommand(RequirementCommand):
     pip also supports downloading from "requirements files", which provide
     an easy way to specify a whole environment to be downloaded.
     """
-    name = 'download'
 
     usage = """
       %prog [options] <requirement specifier> [package-index-options] ...
@@ -37,8 +36,6 @@ class DownloadCommand(RequirementCommand):
       %prog [options] <vcs project url> ...
       %prog [options] <local project path> ...
       %prog [options] <archive url/path> ..."""
-
-    summary = 'Download packages.'
 
     def __init__(self, *args, **kw):
         super(DownloadCommand, self).__init__(*args, **kw)

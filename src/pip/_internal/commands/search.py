@@ -24,10 +24,9 @@ logger = logging.getLogger(__name__)
 
 class SearchCommand(Command):
     """Search for PyPI packages whose name or summary contains <query>."""
-    name = 'search'
+
     usage = """
       %prog [options] <query>"""
-    summary = 'Search PyPI for packages.'
     ignore_require_venv = True
 
     def __init__(self, *args, **kw):
