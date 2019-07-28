@@ -1,0 +1,1 @@
+Fail without collecting and downloading packages if user doesn't have write permissions.
