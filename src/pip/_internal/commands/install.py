@@ -240,28 +240,28 @@ class InstallCommand(RequirementCommand):
         self.parser.insert_option_group(0, cmd_opts)
 
     def run(self, options, args):
-        if options.target_dir != None and not check_path_owner(options.target_dir):
+        if options.target_dir not None and not check_path_owner(options.target_dir):
             logger.error(
                 "The user that ran pip install doesn't have write access "
                 "to target directory '%s'",
                 options.target_dir,
             )
             return ERROR
-        if options.prefix_path != None and not check_path_owner(options.prefix_path):
+        if options.prefix_path not None and not check_path_owner(options.prefix_path):
             logger.error(
                 "The user that ran pip install doesn't have write access "
                 "to target prefix directory '%s'",
                 options.prefix_path,
             )
             return ERROR
-        if options.root_path != None and not check_path_owner(options.root_path):
+        if options.root_path not None and not check_path_owner(options.root_path):
             logger.error(
                 "The user that ran pip install doesn't have write access "
                 "to target root directory '%s'",
                 options.root_path,
             )
             return ERROR
-            
+
         cmdoptions.check_install_build_global(options)
         upgrade_strategy = "to-satisfy-only"
         if options.upgrade:
