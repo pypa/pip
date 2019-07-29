@@ -239,7 +239,9 @@ def _get_win_folder_with_ctypes(csidl_name):
         if ctypes.windll.kernel32.GetShortPathNameW(buf.value, buf2, 1024):
             buf = buf2
 
-    return buf.value
+    # On Python 2, ctypes.create_unicode_buffer().value returns "unicode",
+    # which isn't the same as str in the annotation above.
+    return buf.value  # type: ignore
 
 
 if WINDOWS:

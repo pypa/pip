@@ -65,9 +65,9 @@ try:
 except ImportError:
     # typing's cast() isn't supported in code comments, so we need to
     # define a dummy, no-op version.
-    def cast(typ, val):
+    def cast(typ, val):  # type: ignore
         return val
-    VersionInfo = None
+    VersionInfo = None  # type: ignore
 
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',

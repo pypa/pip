@@ -105,6 +105,8 @@ def get_abi_tag():
     (CPython 2, PyPy)."""
     soabi = get_config_var('SOABI')
     impl = get_abbr_impl()
+    abi = None  # type: Optional[str]
+
     if not soabi and impl in {'cp', 'pp'} and hasattr(sys, 'maxunicode'):
         d = ''
         m = ''
@@ -129,8 +131,7 @@ def get_abi_tag():
         abi = 'cp' + soabi.split('-')[1]
     elif soabi:
         abi = soabi.replace('.', '_').replace('-', '_')
-    else:
-        abi = None
+
     return abi
 
 
@@ -353,6 +354,7 @@ def get_supported(
 
         # Current version, current API (built specifically for our Python):
         for abi in abis:
+            assert abi
             for arch in arches:
                 supported.append(('%s%s' % (impl, versions[0]), abi, arch))
 
@@ -362,6 +364,7 @@ def get_supported(
             if version in {'31', '30'}:
                 break
             for abi in abi3s:   # empty set if not Python 3
+                assert abi
                 for arch in arches:
                     supported.append(("%s%s" % (impl, version), abi, arch))
 
