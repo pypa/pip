@@ -73,7 +73,7 @@ def test_cleanup_after_install_from_local_directory(script, data):
     script.assert_no_temp()
 
 
-def test_cleanup_req_satisifed_no_name(script, data):
+def test_cleanup_req_satisfied_no_name(script, data):
     """
     Test cleanup when req is already satisfied, and req has no 'name'
     """

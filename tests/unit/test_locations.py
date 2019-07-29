@@ -76,7 +76,7 @@ class TestLocations:
         return result
 
 
-class TestDisutilsScheme:
+class TestDistutilsScheme:
 
     def test_root_modifies_appropriately(self, monkeypatch):
         # This deals with nt/posix path differences
