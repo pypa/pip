@@ -110,10 +110,11 @@ class RequirementPreparer(object):
         """Prepare a requirement that would be obtained from req.link
         """
         assert req.link
+        link = req.link
 
         # TODO: Breakup into smaller functions
-        if req.link.scheme == 'file':
-            path = url_to_path(req.link.url)
+        if link.scheme == 'file':
+            path = url_to_path(link.url)
             logger.info('Processing %s', display_path(path))
         else:
             logger.info('Collecting %s', req.req or req)
@@ -139,8 +140,6 @@ class RequirementPreparer(object):
                     "can delete this. Please delete it and try again."
                     % (req, req.source_dir)
                 )
-
-            link = req.link
 
             # Now that we have the real link, we can tell what kind of
             # requirements we have and raise some more informative errors
@@ -178,11 +177,11 @@ class RequirementPreparer(object):
                 download_dir = self.download_dir
                 # We always delete unpacked sdists after pip ran.
                 autodelete_unpacked = True
-                if req.link.is_wheel and self.wheel_download_dir:
+                if link.is_wheel and self.wheel_download_dir:
                     # when doing 'pip wheel` we download wheels to a
                     # dedicated dir.
                     download_dir = self.wheel_download_dir
-                if req.link.is_wheel:
+                if link.is_wheel:
                     if download_dir:
                         # When downloading, we only unpack wheels to get
                         # metadata.
@@ -192,7 +191,7 @@ class RequirementPreparer(object):
                         # wheel.
                         autodelete_unpacked = False
                 unpack_url(
-                    req.link, req.source_dir,
+                    link, req.source_dir,
                     download_dir, autodelete_unpacked,
                     session=session, hashes=hashes,
                     progress_bar=self.progress_bar
