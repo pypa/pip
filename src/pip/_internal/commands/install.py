@@ -322,16 +322,11 @@ class InstallCommand(RequirementCommand):
                         requirement_set, args, options, finder, session,
                         self.name, wheel_cache
                     )
-                    preparer = RequirementPreparer(
-                        build_dir=directory.path,
-                        src_dir=options.src_dir,
-                        download_dir=None,
-                        wheel_download_dir=None,
-                        progress_bar=options.progress_bar,
-                        build_isolation=options.build_isolation,
-                        req_tracker=req_tracker,
+                    preparer = self.make_requirement_preparer(
+                        directory,
+                        options,
+                        req_tracker
                     )
-
                     resolver = Resolver(
                         preparer=preparer,
                         finder=finder,

@@ -33,6 +33,7 @@ from pip._internal.exceptions import (
 from pip._internal.index import PackageFinder
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
+from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req.constructors import (
     install_req_from_editable,
     install_req_from_line,
@@ -50,6 +51,8 @@ if MYPY_CHECK_RUNNING:
     from optparse import Values
     from pip._internal.cache import WheelCache
     from pip._internal.req.req_set import RequirementSet
+    from pip._internal.req.req_tracker import RequirementTracker
+    from pip._internal.utils.temp_dir import TempDirectory
 
 __all__ = ['Command']
 
@@ -256,6 +259,25 @@ class Command(object):
 
 
 class RequirementCommand(Command):
+
+    @staticmethod
+    def make_requirement_preparer(directory,   # type: TempDirectory
+                                  options,     # type: Any
+                                  req_tracker  # type: RequirementTracker
+                                  ):
+        # type: (...) -> RequirementPreparer
+        """
+        Create a RequirementPreparer instance for the given parameters.
+        """
+        return RequirementPreparer(
+            build_dir=directory.path,
+            src_dir=options.src_dir,
+            download_dir=None,
+            wheel_download_dir=None,
+            progress_bar=options.progress_bar,
+            build_isolation=options.build_isolation,
+            req_tracker=req_tracker,
+        )
 
     @staticmethod
     def populate_requirement_set(requirement_set,  # type: RequirementSet
