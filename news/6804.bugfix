@@ -1,0 +1,1 @@
+Make the --find-links option for install command expand tilde to the user's home directory.
