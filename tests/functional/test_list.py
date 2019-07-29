@@ -513,11 +513,10 @@ def test_list_path(tmpdir, script, data):
     Test list with --path.
     """
     result = script.pip('list', '--path', tmpdir, '--format=json')
-    assert {'name': 'simple',
-            'version': '2.0'} not in json.loads(result.stdout)
+    json_result = json.loads(result.stdout)
+    assert {'name': 'simple', 'version': '2.0'} not in json_result
 
-    script.pip('install', '--find-links', data.find_links,
-               '--target', tmpdir, 'simple==2.0')
+    script.pip_install_local('--target', tmpdir, 'simple==2.0')
     result = script.pip('list', '--path', tmpdir, '--format=json')
     json_result = json.loads(result.stdout)
     assert {'name': 'simple', 'version': '2.0'} in json_result
@@ -528,10 +527,9 @@ def test_list_path_exclude_user(tmpdir, script, data):
     Test list with --path and make sure packages from --user are not picked
     up.
     """
-    script.pip_install_local('--find-links', data.find_links,
-                             '--user', 'simple2')
-    script.pip('install', '--find-links', data.find_links,
-               '--target', tmpdir, 'simple==1.0')
+    script.pip_install_local('--user', 'simple2')
+    script.pip_install_local('--target', tmpdir, 'simple==1.0')
+
     result = script.pip('list', '--user', '--format=json')
     json_result = json.loads(result.stdout)
     assert {'name': 'simple2', 'version': '3.0'} in json_result
@@ -549,10 +547,10 @@ def test_list_path_multiple(tmpdir, script, data):
     os.mkdir(path1)
     path2 = tmpdir / "path2"
     os.mkdir(path2)
-    script.pip('install', '--find-links', data.find_links,
-               '--target', path1, 'simple==2.0')
-    script.pip('install', '--find-links', data.find_links,
-               '--target', path2, 'simple2==3.0')
+
+    script.pip_install_local('--target', path1, 'simple==2.0')
+    script.pip_install_local('--target', path2, 'simple2==3.0')
+
     result = script.pip('list', '--path', path1, '--format=json')
     json_result = json.loads(result.stdout)
     assert {'name': 'simple', 'version': '2.0'} in json_result
