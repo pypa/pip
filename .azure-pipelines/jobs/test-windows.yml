@@ -9,11 +9,11 @@ jobs:
     vmImage: ${{ parameters.vmImage }}
   strategy:
     matrix:
-      Python27-x64:
+      Python27-x86:
         python.version: '2.7'
-        python.architecture: x64
-      Python36-x64:
-        python.version: '3.6'
+        python.architecture: x86
+      Python37-x64:
+        python.version: '3.7'
         python.architecture: x64
     maxParallel: 2
 
@@ -32,16 +32,7 @@ jobs:
     vmImage: ${{ parameters.vmImage }}
   strategy:
     matrix:
-      Python35-x64:
-        python.version: '3.5'
-        python.architecture: x64
-      Python37-x64:
-        python.version: '3.7'
-        python.architecture: x64
       # This is for Windows, so test x86 builds
-      Python27-x86:
-        python.version: '2.7'
-        python.architecture: x86
       Python35-x86:
         python.version: '3.5'
         python.architecture: x86
