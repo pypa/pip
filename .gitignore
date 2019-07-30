@@ -18,7 +18,7 @@ docs/build/
 .mypy_cache/
 
 # Unit test / coverage reports
-.tox/
+.[nt]ox/
 htmlcov/
 .coverage
 .coverage.*
