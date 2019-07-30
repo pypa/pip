@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import sys
 
 from pip._internal.cache import WheelCache
+from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
 from pip._internal.models.format_control import FormatControl
 from pip._internal.operations.freeze import freeze
@@ -17,10 +18,9 @@ class FreezeCommand(Command):
 
     packages are listed in a case-insensitive sorted order.
     """
-    name = 'freeze'
+
     usage = """
       %prog [options]"""
-    summary = 'Output installed packages in requirements format.'
     log_streams = ("ext://sys.stderr", "ext://sys.stderr")
 
     def __init__(self, *args, **kw):
@@ -56,6 +56,7 @@ class FreezeCommand(Command):
             action='store_true',
             default=False,
             help='Only output packages installed in user-site.')
+        self.cmd_opts.add_option(cmdoptions.list_path())
         self.cmd_opts.add_option(
             '--all',
             dest='freeze_all',
@@ -77,11 +78,14 @@ class FreezeCommand(Command):
         if not options.freeze_all:
             skip.update(DEV_PKGS)
 
+        cmdoptions.check_list_path_option(options)
+
         freeze_kwargs = dict(
             requirement=options.requirements,
             find_links=options.find_links,
             local_only=options.local,
             user_only=options.user,
+            paths=options.path,
             skip_regex=options.skip_requirements_regex,
             isolated=options.isolated_mode,
             wheel_cache=wheel_cache,

@@ -13,7 +13,11 @@ Please take a look at our documentation for how to install and use pip:
 
 * `Installation`_
 * `Usage`_
+
+Updates are released regularly, with a new version every 3 months. More details can be found in our documentation:
+
 * `Release notes`_
+* `Release process`_
 
 If you find bugs, need help, or want to talk to the developers please use our mailing lists or chat rooms:
 
@@ -21,9 +25,10 @@ If you find bugs, need help, or want to talk to the developers please use our ma
 * `Discourse channel`_
 * `User IRC`_
 
-If you want to get involved head over to GitHub to get the source code and feel free to jump on the developer mailing lists and chat rooms:
+If you want to get involved head over to GitHub to get the source code, look at our development documentation and feel free to jump on the developer mailing lists and chat rooms:
 
 * `GitHub page`_
+* `Dev documentation`_
 * `Dev mailing list`_
 * `Dev IRC`_
 
@@ -38,7 +43,9 @@ rooms, and mailing lists is expected to follow the `PyPA Code of Conduct`_.
 .. _Installation: https://pip.pypa.io/en/stable/installing.html
 .. _Usage: https://pip.pypa.io/en/stable/
 .. _Release notes: https://pip.pypa.io/en/stable/news.html
+.. _Release process: https://pip.pypa.io/en/latest/development/release-process/
 .. _GitHub page: https://github.com/pypa/pip
+.. _Dev documentation: https://pip.pypa.io/en/latest/development
 .. _Issue tracking: https://github.com/pypa/pip/issues
 .. _Discourse channel: https://discuss.python.org/c/packaging
 .. _Dev mailing list: https://groups.google.com/forum/#!forum/pypa-dev

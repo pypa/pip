@@ -1,17 +1,14 @@
 environment:
   matrix:
     # Unit and integration tests.
-    - PYTHON: "C:\\Python27"
+    - PYTHON: "C:\\Python27-x64"
+      RUN_INTEGRATION_TESTS: "True"
+    - PYTHON: "C:\\Python35-x64"
       RUN_INTEGRATION_TESTS: "True"
     - PYTHON: "C:\\Python36-x64"
       RUN_INTEGRATION_TESTS: "True"
     # Unit tests only.
-    - PYTHON: "C:\\Python27-x64"
-    - PYTHON: "C:\\Python34"
-    - PYTHON: "C:\\Python34-x64"
-    - PYTHON: "C:\\Python35"
-    - PYTHON: "C:\\Python35-x64"
-    - PYTHON: "C:\\Python36"
+    # Nothing for the moment
 
 matrix:
     fast_finish: true

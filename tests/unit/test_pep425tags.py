@@ -6,6 +6,21 @@ from mock import patch
 from pip._internal import pep425tags
 
 
+@pytest.mark.parametrize('version_info, expected', [
+    ((2,), '2'),
+    ((2, 8), '28'),
+    ((3,), '3'),
+    ((3, 6), '36'),
+    # Test a tuple of length 3.
+    ((3, 6, 5), '36'),
+    # Test a 2-digit minor version.
+    ((3, 10), '310'),
+])
+def test_version_info_to_nodot(version_info, expected):
+    actual = pep425tags.version_info_to_nodot(version_info)
+    assert actual == expected
+
+
 class TestPEP425Tags(object):
 
     def mock_get_config_var(self, **kwd):

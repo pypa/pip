@@ -1,11 +1,12 @@
 """'pip wheel' tests"""
 import os
+import re
 from os.path import exists
 
 import pytest
 
 from pip._internal.cli.status_codes import ERROR, PREVIOUS_BUILD_DIR_ERROR
-from pip._internal.locations import write_delete_marker_file
+from pip._internal.utils.marker_files import write_delete_marker_file
 from tests.lib import pyversion
 
 
@@ -15,10 +16,12 @@ def auto_with_wheel(with_wheel):
 
 
 def add_files_to_dist_directory(folder):
-    (folder / 'dist').makedirs()
-    (folder / 'dist' / 'a_name-0.0.1.tar.gz').write("hello")
+    (folder / 'dist').mkdir(parents=True)
+    (folder / 'dist' / 'a_name-0.0.1.tar.gz').write_text("hello")
     # Not adding a wheel file since that confuses setuptools' backend.
-    # (folder / 'dist' / 'a_name-0.0.1-py2.py3-none-any.whl').write("hello")
+    # (folder / 'dist' / 'a_name-0.0.1-py2.py3-none-any.whl').write_text(
+    #     "hello"
+    # )
 
 
 def test_wheel_exit_status_code_when_no_requirements(script):
@@ -34,7 +37,7 @@ def test_wheel_exit_status_code_when_blank_requirements_file(script):
     """
     Test wheel exit status code when blank requirements file specified
     """
-    script.scratch_path.join("blank.txt").write("\n")
+    script.scratch_path.joinpath("blank.txt").write_text("\n")
     script.pip('wheel', '-r', 'blank.txt')
 
 
@@ -48,6 +51,12 @@ def test_pip_wheel_success(script, data):
     )
     wheel_file_name = 'simple-3.0-py%s-none-any.whl' % pyversion[0]
     wheel_file_path = script.scratch / wheel_file_name
+    assert re.search(
+        r"Created wheel for simple: "
+        r"filename=%s size=\d+ sha256=[A-Fa-f0-9]{64}"
+        % re.escape(wheel_file_name), result.stdout)
+    assert re.search(
+        r"^\s+Stored in directory: ", result.stdout, re.M)
     assert wheel_file_path in result.files_created, result.stdout
     assert "Successfully built simple" in result.stdout, result.stdout
 
@@ -66,7 +75,7 @@ def test_basic_pip_wheel_downloads_wheels(script, data):
 
 
 def test_pip_wheel_builds_when_no_binary_set(script, data):
-    data.packages.join('simple-3.0-py2.py3-none-any.whl').touch()
+    data.packages.joinpath('simple-3.0-py2.py3-none-any.whl').touch()
     # Check that the wheel package is ignored
     res = script.pip(
         'wheel', '--no-index', '--no-binary', ':all:',
@@ -164,7 +173,7 @@ def test_pip_wheel_fail_cause_of_previous_build_dir(script, data):
     build = script.venv_path / 'build' / 'simple'
     os.makedirs(build)
     write_delete_marker_file(script.venv_path / 'build' / 'simple')
-    build.join('setup.py').write('#')
+    build.joinpath('setup.py').write_text('#')
 
     # When I call pip trying to install things again
     result = script.pip(
@@ -180,7 +189,7 @@ def test_pip_wheel_fail_cause_of_previous_build_dir(script, data):
 def test_wheel_package_with_latin1_setup(script, data):
     """Create a wheel from a package with latin-1 encoded setup.py."""
 
-    pkg_to_wheel = data.packages.join("SetupPyLatin1")
+    pkg_to_wheel = data.packages.joinpath("SetupPyLatin1")
     result = script.pip('wheel', pkg_to_wheel)
     assert 'Successfully built SetupPyUTF8' in result.stdout
 
@@ -211,7 +220,7 @@ def test_pip_wheel_with_pep518_build_reqs_no_isolation(script, data):
 def test_pip_wheel_with_user_set_in_config(script, data, common_wheels):
     config_file = script.scratch_path / 'pip.conf'
     script.environ['PIP_CONFIG_FILE'] = str(config_file)
-    config_file.write("[install]\nuser = true")
+    config_file.write_text("[install]\nuser = true")
     result = script.pip(
         'wheel', data.src / 'withpyproject',
         '--no-index', '-f', common_wheels

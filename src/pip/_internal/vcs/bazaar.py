@@ -5,9 +5,8 @@ import os
 
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
-from pip._internal.download import path_to_url
-from pip._internal.utils.misc import display_path, rmtree
-from pip._internal.vcs import VersionControl, vcs
+from pip._internal.utils.misc import display_path, path_to_url, rmtree
+from pip._internal.vcs.versioncontrol import VersionControl, vcs
 
 logger = logging.getLogger(__name__)
 
@@ -46,8 +45,7 @@ class Bazaar(VersionControl):
             show_stdout=False,
         )
 
-    @classmethod
-    def fetch_new(cls, dest, url, rev_options):
+    def fetch_new(self, dest, url, rev_options):
         rev_display = rev_options.to_display()
         logger.info(
             'Checking out %s%s to %s',
@@ -56,7 +54,7 @@ class Bazaar(VersionControl):
             display_path(dest),
         )
         cmd_args = ['branch', '-q'] + rev_options.to_args() + [url, dest]
-        cls.run_command(cmd_args)
+        self.run_command(cmd_args)
 
     def switch(self, dest, url, rev_options):
         self.run_command(['switch', url], cwd=dest)

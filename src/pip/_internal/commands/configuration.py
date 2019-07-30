@@ -4,11 +4,15 @@ import subprocess
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
-from pip._internal.configuration import Configuration, kinds
+from pip._internal.configuration import (
+    Configuration,
+    get_configuration_files,
+    kinds,
+)
 from pip._internal.exceptions import PipError
-from pip._internal.locations import running_under_virtualenv, site_config_file
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.misc import get_prog
+from pip._internal.utils.virtualenv import running_under_virtualenv
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +34,6 @@ class ConfigurationCommand(Command):
         default.
     """
 
-    name = 'config'
     usage = """
         %prog [<file-option>] list
         %prog [<file-option>] [--editor <editor-path>] edit
@@ -39,8 +42,6 @@ class ConfigurationCommand(Command):
         %prog [<file-option>] set name value
         %prog [<file-option>] unset name
     """
-
-    summary = "Manage local and global configuration."
 
     def __init__(self, *args, **kwargs):
         super(ConfigurationCommand, self).__init__(*args, **kwargs)
@@ -164,7 +165,10 @@ class ConfigurationCommand(Command):
             if not need_value:
                 return None
             # Default to user, unless there's a site file.
-            elif os.path.exists(site_config_file):
+            elif any(
+                os.path.exists(site_config_file)
+                for site_config_file in get_configuration_files()[kinds.SITE]
+            ):
                 return kinds.SITE
             else:
                 return kinds.USER

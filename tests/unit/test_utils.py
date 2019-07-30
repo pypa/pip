@@ -6,6 +6,7 @@ util tests
 """
 import codecs
 import itertools
+import locale
 import os
 import shutil
 import stat
@@ -15,23 +16,48 @@ import time
 import warnings
 from io import BytesIO
 from logging import DEBUG, ERROR, INFO, WARNING
+from textwrap import dedent
 
 import pytest
 from mock import Mock, patch
+from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip._internal.exceptions import (
-    HashMismatch, HashMissing, InstallationError, UnsupportedPythonVersion,
+    HashMismatch,
+    HashMissing,
+    InstallationError,
 )
+from pip._internal.utils.deprecation import PipDeprecationWarning, deprecated
 from pip._internal.utils.encoding import BOMS, auto_decode
-from pip._internal.utils.glibc import check_glibc_version
+from pip._internal.utils.glibc import (
+    check_glibc_version,
+    glibc_version_string,
+    glibc_version_string_confstr,
+    glibc_version_string_ctypes,
+)
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.misc import (
-    call_subprocess, egg_link_path, ensure_dir, format_command_args,
-    get_installed_distributions, get_prog, normalize_path, redact_netloc,
-    redact_password_from_url, remove_auth_from_url, rmtree,
-    split_auth_from_netloc, split_auth_netloc_from_url, untar_file, unzip_file,
+    call_subprocess,
+    egg_link_path,
+    ensure_dir,
+    format_command_args,
+    get_installed_distributions,
+    get_prog,
+    make_subprocess_output_error,
+    normalize_path,
+    normalize_version_info,
+    path_to_display,
+    path_to_url,
+    redact_netloc,
+    redact_password_from_url,
+    remove_auth_from_url,
+    rmtree,
+    split_auth_from_netloc,
+    split_auth_netloc_from_url,
+    untar_file,
+    unzip_file,
 )
-from pip._internal.utils.packaging import check_dist_requires_python
+from pip._internal.utils.setuptools_build import make_setuptools_shim_args
 from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
 from pip._internal.utils.ui import SpinnerInterface
 
@@ -336,7 +362,7 @@ class TestUnpackArchives(object):
         """
         Test unpacking a *.tgz, and setting execute permissions
         """
-        test_file = data.packages.join("test_tar.tgz")
+        test_file = data.packages.joinpath("test_tar.tgz")
         untar_file(test_file, self.tempdir)
         self.confirm_files()
         # Check the timestamp of an extracted file
@@ -348,7 +374,7 @@ class TestUnpackArchives(object):
         """
         Test unpacking a *.zip, and setting execute permissions
         """
-        test_file = data.packages.join("test_zip.zip")
+        test_file = data.packages.joinpath("test_zip.zip")
         unzip_file(test_file, self.tempdir)
         self.confirm_files()
 
@@ -378,6 +404,24 @@ def test_rmtree_retries_for_3sec(tmpdir, monkeypatch):
     monkeypatch.setattr(shutil, 'rmtree', Failer(duration=5).call)
     with pytest.raises(OSError):
         rmtree('foo')
+
+
+@pytest.mark.parametrize('path, fs_encoding, expected', [
+    (None, None, None),
+    # Test passing a text (unicode) string.
+    (u'/path/déf', None, u'/path/déf'),
+    # Test a bytes object with a non-ascii character.
+    (u'/path/déf'.encode('utf-8'), 'utf-8', u'/path/déf'),
+    # Test a bytes object with a character that can't be decoded.
+    (u'/path/déf'.encode('utf-8'), 'ascii', u"b'/path/d\\xc3\\xa9f'"),
+    (u'/path/déf'.encode('utf-16'), 'utf-8',
+     u"b'\\xff\\xfe/\\x00p\\x00a\\x00t\\x00h\\x00/"
+     "\\x00d\\x00\\xe9\\x00f\\x00'"),
+])
+def test_path_to_display(monkeypatch, path, fs_encoding, expected):
+    monkeypatch.setattr(sys, 'getfilesystemencoding', lambda: fs_encoding)
+    actual = path_to_display(path)
+    assert actual == expected, 'actual: {!r}'.format(actual)
 
 
 class Test_normalize_path(object):
@@ -420,6 +464,22 @@ class Test_normalize_path(object):
 class TestHashes(object):
     """Tests for pip._internal.utils.hashes"""
 
+    @pytest.mark.parametrize('hash_name, hex_digest, expected', [
+        # Test a value that matches but with the wrong hash_name.
+        ('sha384', 128 * 'a', False),
+        # Test matching values, including values other than the first.
+        ('sha512', 128 * 'a', True),
+        ('sha512', 128 * 'b', True),
+        # Test a matching hash_name with a value that doesn't match.
+        ('sha512', 128 * 'c', False),
+    ])
+    def test_is_hash_allowed(self, hash_name, hex_digest, expected):
+        hashes_data = {
+            'sha512': [128 * 'a', 128 * 'b'],
+        }
+        hashes = Hashes(hashes_data)
+        assert hashes.is_hash_allowed(hash_name, hex_digest) == expected
+
     def test_success(self, tmpdir):
         """Make sure no error is raised when at least one hash matches.
 
@@ -427,7 +487,7 @@ class TestHashes(object):
 
         """
         file = tmpdir / 'to_hash'
-        file.write('hello')
+        file.write_text('hello')
         hashes = Hashes({
             'sha256': ['2cf24dba5fb0a30e26e83b2ac5b9e29e'
                        '1b161e5c1fa7425e73043362938b9824'],
@@ -665,6 +725,10 @@ class TestTempDirectory(object):
                     pass
 
 
+def raises(error):
+    raise error
+
+
 class TestGlibc(object):
     def test_manylinux_check_glibc_version(self):
         """
@@ -698,30 +762,46 @@ class TestGlibc(object):
                     # Didn't find the warning we were expecting
                     assert False
 
+    def test_glibc_version_string(self, monkeypatch):
+        monkeypatch.setattr(
+            os, "confstr", lambda x: "glibc 2.20", raising=False,
+        )
+        assert glibc_version_string() == "2.20"
 
-class TestCheckRequiresPython(object):
+    def test_glibc_version_string_confstr(self, monkeypatch):
+        monkeypatch.setattr(
+            os, "confstr", lambda x: "glibc 2.20", raising=False,
+        )
+        assert glibc_version_string_confstr() == "2.20"
 
-    @pytest.mark.parametrize(
-        ("metadata", "should_raise"),
-        [
-            ("Name: test\n", False),
-            ("Name: test\nRequires-Python:", False),
-            ("Name: test\nRequires-Python: invalid_spec", False),
-            ("Name: test\nRequires-Python: <=1", True),
-        ],
-    )
-    def test_check_requires(self, metadata, should_raise):
-        fake_dist = Mock(
-            has_metadata=lambda _: True,
-            get_metadata=lambda _: metadata)
-        version_info = sys.version_info[:3]
-        if should_raise:
-            with pytest.raises(UnsupportedPythonVersion):
-                check_dist_requires_python(
-                    fake_dist, version_info=version_info,
-                )
-        else:
-            check_dist_requires_python(fake_dist, version_info=version_info)
+    @pytest.mark.parametrize("failure", [
+        lambda x: raises(ValueError),
+        lambda x: raises(OSError),
+        lambda x: "XXX",
+    ])
+    def test_glibc_version_string_confstr_fail(self, monkeypatch, failure):
+        monkeypatch.setattr(os, "confstr", failure, raising=False)
+        assert glibc_version_string_confstr() is None
+
+    def test_glibc_version_string_confstr_missing(self, monkeypatch):
+        monkeypatch.delattr(os, "confstr", raising=False)
+        assert glibc_version_string_confstr() is None
+
+    def test_glibc_version_string_ctypes_missing(self, monkeypatch):
+        monkeypatch.setitem(sys.modules, "ctypes", None)
+        assert glibc_version_string_ctypes() is None
+
+
+@pytest.mark.parametrize('version_info, expected', [
+    ((), (0, 0, 0)),
+    ((3, ), (3, 0, 0)),
+    ((3, 6), (3, 6, 0)),
+    ((3, 6, 2), (3, 6, 2)),
+    ((3, 6, 2, 4), (3, 6, 2)),
+])
+def test_normalize_version_info(version_info, expected):
+    actual = normalize_version_info(version_info)
+    assert actual == expected
 
 
 class TestGetProg(object):
@@ -752,6 +832,130 @@ class TestGetProg(object):
 def test_format_command_args(args, expected):
     actual = format_command_args(args)
     assert actual == expected
+
+
+def test_make_subprocess_output_error():
+    cmd_args = ['test', 'has space']
+    cwd = '/path/to/cwd'
+    lines = ['line1\n', 'line2\n', 'line3\n']
+    actual = make_subprocess_output_error(
+        cmd_args=cmd_args,
+        cwd=cwd,
+        lines=lines,
+        exit_status=3,
+    )
+    expected = dedent("""\
+    Command errored out with exit status 3:
+     command: test 'has space'
+         cwd: /path/to/cwd
+    Complete output (3 lines):
+    line1
+    line2
+    line3
+    ----------------------------------------""")
+    assert actual == expected, 'actual: {}'.format(actual)
+
+
+def test_make_subprocess_output_error__non_ascii_command_arg(monkeypatch):
+    """
+    Test a command argument with a non-ascii character.
+    """
+    cmd_args = ['foo', 'déf']
+    if sys.version_info[0] == 2:
+        # Check in Python 2 that the str (bytes object) with the non-ascii
+        # character has the encoding we expect. (This comes from the source
+        # code encoding at the top of the file.)
+        assert cmd_args[1].decode('utf-8') == u'déf'
+
+    # We need to monkeypatch so the encoding will be correct on Windows.
+    monkeypatch.setattr(locale, 'getpreferredencoding', lambda: 'utf-8')
+    actual = make_subprocess_output_error(
+        cmd_args=cmd_args,
+        cwd='/path/to/cwd',
+        lines=[],
+        exit_status=1,
+    )
+    expected = dedent(u"""\
+    Command errored out with exit status 1:
+     command: foo 'déf'
+         cwd: /path/to/cwd
+    Complete output (0 lines):
+    ----------------------------------------""")
+    assert actual == expected, u'actual: {}'.format(actual)
+
+
+@pytest.mark.skipif("sys.version_info < (3,)")
+def test_make_subprocess_output_error__non_ascii_cwd_python_3(monkeypatch):
+    """
+    Test a str (text) cwd with a non-ascii character in Python 3.
+    """
+    cmd_args = ['test']
+    cwd = '/path/to/cwd/déf'
+    actual = make_subprocess_output_error(
+        cmd_args=cmd_args,
+        cwd=cwd,
+        lines=[],
+        exit_status=1,
+    )
+    expected = dedent("""\
+    Command errored out with exit status 1:
+     command: test
+         cwd: /path/to/cwd/déf
+    Complete output (0 lines):
+    ----------------------------------------""")
+    assert actual == expected, 'actual: {}'.format(actual)
+
+
+@pytest.mark.parametrize('encoding', [
+    'utf-8',
+    # Test a Windows encoding.
+    'cp1252',
+])
+@pytest.mark.skipif("sys.version_info >= (3,)")
+def test_make_subprocess_output_error__non_ascii_cwd_python_2(
+    monkeypatch, encoding,
+):
+    """
+    Test a str (bytes object) cwd with a non-ascii character in Python 2.
+    """
+    cmd_args = ['test']
+    cwd = u'/path/to/cwd/déf'.encode(encoding)
+    monkeypatch.setattr(sys, 'getfilesystemencoding', lambda: encoding)
+    actual = make_subprocess_output_error(
+        cmd_args=cmd_args,
+        cwd=cwd,
+        lines=[],
+        exit_status=1,
+    )
+    expected = dedent(u"""\
+    Command errored out with exit status 1:
+     command: test
+         cwd: /path/to/cwd/déf
+    Complete output (0 lines):
+    ----------------------------------------""")
+    assert actual == expected, u'actual: {}'.format(actual)
+
+
+# This test is mainly important for checking unicode in Python 2.
+def test_make_subprocess_output_error__non_ascii_line():
+    """
+    Test a line with a non-ascii character.
+    """
+    lines = [u'curly-quote: \u2018\n']
+    actual = make_subprocess_output_error(
+        cmd_args=['test'],
+        cwd='/path/to/cwd',
+        lines=lines,
+        exit_status=1,
+    )
+    expected = dedent(u"""\
+    Command errored out with exit status 1:
+     command: test
+         cwd: /path/to/cwd
+    Complete output (1 lines):
+    curly-quote: \u2018
+    ----------------------------------------""")
+    assert actual == expected, u'actual: {}'.format(actual)
 
 
 class FakeSpinner(SpinnerInterface):
@@ -876,14 +1080,17 @@ class TestCallSubprocess(object):
         command = 'print("Hello"); print("world"); exit("fail")'
         args, spinner = self.prepare_call(caplog, log_level, command=command)
 
-        with pytest.raises(InstallationError):
+        with pytest.raises(InstallationError) as exc:
             call_subprocess(args, spinner=spinner)
         result = None
+        exc_message = str(exc.value)
+        assert exc_message.startswith(
+            'Command errored out with exit status 1: '
+        )
+        assert exc_message.endswith('Check the logs for full command output.')
 
         expected = (None, [
-            ('pip.subprocessor', ERROR, 'Complete output from command '),
-            # The "failed" portion is later on in this "Hello" string.
-            ('pip.subprocessor', ERROR, 'Hello'),
+            ('pip.subprocessor', ERROR, 'Complete output (3 lines):\n'),
         ])
         # The spinner should spin three times in this case since the
         # subprocess output isn't being written to the console.
@@ -902,12 +1109,22 @@ class TestCallSubprocess(object):
         # guarantee the order in which stdout and stderr will appear.
         # For example, we observed the stderr lines coming before stdout
         # in CI for PyPy 2.7 even though stdout happens first chronologically.
-        assert sorted(lines) == [
+        actual = sorted(lines)
+        # Test the "command" line separately because we can't test an
+        # exact match.
+        command_line = actual.pop(1)
+        assert actual == [
+            '     cwd: None',
             '----------------------------------------',
+            'Command errored out with exit status 1:',
+            'Complete output (3 lines):',
             'Hello',
             'fail',
             'world',
-        ], 'lines: {}'.format(lines)  # Show the full output on failure.
+        ], 'lines: {}'.format(actual)  # Show the full output on failure.
+
+        assert command_line.startswith(' command: ')
+        assert command_line.endswith('print("world"); exit("fail")\'')
 
     def test_info_logging_with_show_stdout_true(self, capfd, caplog):
         """
@@ -988,6 +1205,22 @@ class TestCallSubprocess(object):
                 [sys.executable, '-c', 'input()'],
                 show_stdout=True,
             )
+
+
+@pytest.mark.skipif("sys.platform == 'win32'")
+def test_path_to_url_unix():
+    assert path_to_url('/tmp/file') == 'file:///tmp/file'
+    path = os.path.join(os.getcwd(), 'file')
+    assert path_to_url('file') == 'file://' + urllib_request.pathname2url(path)
+
+
+@pytest.mark.skipif("sys.platform != 'win32'")
+def test_path_to_url_win():
+    assert path_to_url('c:/tmp/file') == 'file:///C:/tmp/file'
+    assert path_to_url('c:\\tmp\\file') == 'file:///C:/tmp/file'
+    assert path_to_url(r'\\unc\as\path') == 'file://unc/as/path'
+    path = os.path.join(os.getcwd(), 'file')
+    assert path_to_url('file') == 'file:' + urllib_request.pathname2url(path)
 
 
 @pytest.mark.parametrize('netloc, expected', [
@@ -1094,3 +1327,132 @@ def test_remove_auth_from_url(auth_url, expected_url):
 def test_redact_password_from_url(auth_url, expected_url):
     url = redact_password_from_url(auth_url)
     assert url == expected_url
+
+
+@pytest.fixture()
+def patch_deprecation_check_version():
+    # We do this, so that the deprecation tests are easier to write.
+    import pip._internal.utils.deprecation as d
+    old_version = d.current_version
+    d.current_version = "1.0"
+    yield
+    d.current_version = old_version
+
+
+@pytest.mark.usefixtures("patch_deprecation_check_version")
+@pytest.mark.parametrize("replacement", [None, "a magic 8 ball"])
+@pytest.mark.parametrize("gone_in", [None, "2.0"])
+@pytest.mark.parametrize("issue", [None, 988])
+def test_deprecated_message_contains_information(gone_in, replacement, issue):
+    with pytest.warns(PipDeprecationWarning) as record:
+        deprecated(
+            "Stop doing this!",
+            replacement=replacement,
+            gone_in=gone_in,
+            issue=issue,
+        )
+
+    assert len(record) == 1
+    message = record[0].message.args[0]
+
+    assert "DEPRECATION: Stop doing this!" in message
+    # Ensure non-None values are mentioned.
+    for item in [gone_in, replacement, issue]:
+        if item is not None:
+            assert str(item) in message
+
+
+@pytest.mark.usefixtures("patch_deprecation_check_version")
+@pytest.mark.parametrize("replacement", [None, "a magic 8 ball"])
+@pytest.mark.parametrize("issue", [None, 988])
+def test_deprecated_raises_error_if_too_old(replacement, issue):
+    with pytest.raises(PipDeprecationWarning) as exception:
+        deprecated(
+            "Stop doing this!",
+            gone_in="1.0",  # this matches the patched version.
+            replacement=replacement,
+            issue=issue,
+        )
+
+    message = exception.value.args[0]
+
+    assert "DEPRECATION: Stop doing this!" in message
+    assert "1.0" in message
+    # Ensure non-None values are mentioned.
+    for item in [replacement, issue]:
+        if item is not None:
+            assert str(item) in message
+
+
+@pytest.mark.usefixtures("patch_deprecation_check_version")
+def test_deprecated_message_reads_well():
+    with pytest.raises(PipDeprecationWarning) as exception:
+        deprecated(
+            "Stop doing this!",
+            gone_in="1.0",  # this matches the patched version.
+            replacement="to be nicer",
+            issue="100000",  # I hope we never reach this number.
+        )
+
+    message = exception.value.args[0]
+
+    assert message == (
+        "DEPRECATION: Stop doing this! "
+        "pip 1.0 will remove support for this functionality. "
+        "A possible replacement is to be nicer. "
+        "You can find discussion regarding this at "
+        "https://github.com/pypa/pip/issues/100000."
+    )
+
+
+def test_make_setuptools_shim_args():
+    # Test all arguments at once, including the overall ordering.
+    args = make_setuptools_shim_args(
+        '/dir/path/setup.py',
+        global_options=['--some', '--option'],
+        no_user_config=True,
+        unbuffered_output=True,
+    )
+
+    assert args[1:3] == ['-u', '-c']
+    # Spot-check key aspects of the command string.
+    assert "sys.argv[0] = '/dir/path/setup.py'" in args[3]
+    assert "__file__='/dir/path/setup.py'" in args[3]
+    assert args[4:] == ['--some', '--option', '--no-user-cfg']
+
+
+@pytest.mark.parametrize('global_options', [
+    None,
+    [],
+    ['--some', '--option']
+])
+def test_make_setuptools_shim_args__global_options(global_options):
+    args = make_setuptools_shim_args(
+        '/dir/path/setup.py',
+        global_options=global_options,
+    )
+
+    if global_options:
+        assert len(args) == 5
+        for option in global_options:
+            assert option in args
+    else:
+        assert len(args) == 3
+
+
+@pytest.mark.parametrize('no_user_config', [False, True])
+def test_make_setuptools_shim_args__no_user_config(no_user_config):
+    args = make_setuptools_shim_args(
+        '/dir/path/setup.py',
+        no_user_config=no_user_config,
+    )
+    assert ('--no-user-cfg' in args) == no_user_config
+
+
+@pytest.mark.parametrize('unbuffered_output', [False, True])
+def test_make_setuptools_shim_args__unbuffered_output(unbuffered_output):
+    args = make_setuptools_shim_args(
+        '/dir/path/setup.py',
+        unbuffered_output=unbuffered_output
+    )
+    assert ('-u' in args) == unbuffered_output

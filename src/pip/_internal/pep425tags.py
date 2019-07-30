@@ -16,7 +16,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Tuple, Callable, List, Optional, Union, Dict
+        Tuple, Callable, List, Optional, Union, Dict, Set
     )
 
     Pep425Tag = Tuple[str, str, str]
@@ -47,6 +47,12 @@ def get_abbr_impl():
     else:
         pyimpl = 'cp'
     return pyimpl
+
+
+def version_info_to_nodot(version_info):
+    # type: (Tuple[int, ...]) -> str
+    # Only use up to the first two numbers.
+    return ''.join(map(str, version_info[:2]))
 
 
 def get_impl_ver():
@@ -99,6 +105,8 @@ def get_abi_tag():
     (CPython 2, PyPy)."""
     soabi = get_config_var('SOABI')
     impl = get_abbr_impl()
+    abi = None  # type: Optional[str]
+
     if not soabi and impl in {'cp', 'pp'} and hasattr(sys, 'maxunicode'):
         d = ''
         m = ''
@@ -123,8 +131,7 @@ def get_abi_tag():
         abi = 'cp' + soabi.split('-')[1]
     elif soabi:
         abi = soabi.replace('.', '_').replace('-', '_')
-    else:
-        abi = None
+
     return abi
 
 
@@ -304,7 +311,7 @@ def get_supported(
     if abi:
         abis[0:0] = [abi]
 
-    abi3s = set()
+    abi3s = set()  # type: Set[str]
     for suffix in get_extension_suffixes():
         if suffix.startswith('.abi'):
             abi3s.add(suffix.split('.', 2)[1])

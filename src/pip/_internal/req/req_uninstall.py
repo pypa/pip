@@ -14,8 +14,15 @@ from pip._internal.locations import bin_py, bin_user
 from pip._internal.utils.compat import WINDOWS, cache_from_source, uses_pycache
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
-    FakeFile, ask, dist_in_usersite, dist_is_local, egg_link_path, is_local,
-    normalize_path, renames, rmtree,
+    FakeFile,
+    ask,
+    dist_in_usersite,
+    dist_is_local,
+    egg_link_path,
+    is_local,
+    normalize_path,
+    renames,
+    rmtree,
 )
 from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING

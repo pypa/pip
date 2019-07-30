@@ -6,7 +6,6 @@ from __future__ import absolute_import
 import glob
 import os
 import shutil
-import sys
 
 from pip._vendor import six
 
@@ -67,15 +66,6 @@ class Path(_base):
 
     __itruediv__ = __idiv__
 
-    def __floordiv__(self, paths):
-        """
-        Returns a list of paths prefixed with 'self'.
-
-        >>> '/home/a' // [bc.d, ef.g]
-        [/home/a/bc.d, /home/a/ef.g]
-        """
-        return [Path(self, path) for path in paths]
-
     def __sub__(self, path):
         """
         Makes this path relative to another path.
@@ -121,21 +111,14 @@ class Path(_base):
         return os.path.basename(self)
 
     @property
-    def namebase(self):
+    def stem(self):
         """
         '/home/a/bc.d' -> 'bc'
         """
-        return self.noext.name
+        return Path(os.path.splitext(self)[0]).name
 
     @property
-    def noext(self):
-        """
-        '/home/a/bc.d' -> '/home/a/bc'
-        """
-        return Path(os.path.splitext(self)[0])
-
-    @property
-    def ext(self):
+    def suffix(self):
         """
         '/home/a/bc.d' -> '.d'
         """
@@ -148,31 +131,16 @@ class Path(_base):
         """
         return Path(os.path.abspath(self))
 
-    @property
-    def realpath(self):
+    def resolve(self):
         """
         Resolves symbolic links.
         """
         return Path(os.path.realpath(self))
 
     @property
-    def normpath(self):
+    def parent(self):
         """
-        '/home/x/.././a//bc.d' -> '/home/a/bc.d'
-        """
-        return Path(os.path.normpath(self))
-
-    @property
-    def normcase(self):
-        """
-        Deals with case-insensitive filesystems
-        """
-        return Path(os.path.normcase(self))
-
-    @property
-    def folder(self):
-        """
-        Returns the folder of this path.
+        Returns the parent directory of this path.
 
         '/home/a/bc.d' -> '/home/a'
         '/home/a/' -> '/home/a'
@@ -180,68 +148,30 @@ class Path(_base):
         """
         return Path(os.path.dirname(self))
 
-    @property
     def exists(self):
         """
         Returns True if the path exists.
         """
         return os.path.exists(self)
 
-    @property
-    def atime(self):
-        """
-        Returns last accessed time.
-        """
-        return os.path.getatime(self)
-
-    @property
-    def mtime(self):
-        """
-        Returns last modified time.
-        """
-        return os.path.getmtime(self)
-
-    @property
-    def ctime(self):
-        """
-        Returns last changed time.
-        """
-        return os.path.getctime(self)
-
-    @classmethod
-    def supports_unicode(self):
-        """
-        Returns True if the system can handle Unicode file names.
-        """
-        return os.path.supports_unicode_filenames()
-
-    def walk(self, **kwargs):
-        """ Returns a generator that walks through a directory tree. """
-        return os.walk(self, **kwargs)
-
-    def mkdir(self, mode=0x1FF):  # 0o777
+    def mkdir(self, mode=0x1FF, parents=False):  # 0o777
         """
         Creates a directory, if it doesn't exist already.
+
+        :param parents: Whether to create parent directories.
         """
-        if not self.exists:
-            os.mkdir(self, mode)
+        if self.exists():
+            return self
+
+        maker_func = os.makedirs if parents else os.mkdir
+        maker_func(self, mode)
         return self
 
-    def makedirs(self, mode=0x1FF):  # 0o777
-        """
-        Like mkdir(), but also creates parent directories.
-        """
-        if not self.exists:
-            os.makedirs(self, mode)
-        return self
-
-    def remove(self):
+    def unlink(self):
         """
         Removes a file.
         """
         return os.remove(self)
-
-    rm = remove  # Alias.
 
     def rmdir(self):
         """
@@ -249,52 +179,33 @@ class Path(_base):
         """
         return os.rmdir(self)
 
-    def rmtree(self, noerrors=True):
-        """
-        Removes a directory tree. Ignores errors by default.
-        """
-        return shutil.rmtree(self, ignore_errors=noerrors)
-
-    def copy(self, to):
-        return shutil.copy(self, to)
-
-    def copytree(self, to):
-        """
-        Copies a directory tree to another path.
-        """
-        return shutil.copytree(self, to, symlinks=True)
-
-    def move(self, to):
-        """
-        Moves a file or directory to another path.
-        """
-        return shutil.move(self, to)
-
     def rename(self, to):
         """
         Renames a file or directory. May throw an OSError.
         """
         return os.rename(self, to)
 
-    def renames(self, to):
-        return os.renames(self, to)
-
     def glob(self, pattern):
-        return (Path(i) for i in glob.iglob(self.join(pattern)))
+        return (Path(i) for i in glob.iglob(self.joinpath(pattern)))
 
-    def join(self, *parts):
+    def joinpath(self, *parts):
         return Path(self, *parts)
+
+    # TODO: Remove after removing inheritance from str.
+    def join(self, *parts):
+        raise RuntimeError('Path.join is invalid, use joinpath instead.')
 
     def read_text(self):
         with open(self, "r") as fp:
             return fp.read()
 
-    def write(self, content):
+    def write_text(self, content):
         with open(self, "w") as fp:
             fp.write(content)
 
-    def touch(self, times=None):
+    def touch(self):
         with open(self, "a") as fp:
-            os.utime(fp.fileno() if os.utime in supports_fd else self, times)
+            path = fp.fileno() if os.utime in supports_fd else self
+            os.utime(path, None)  # times is not optional on Python 2.7
 
 curdir = Path(os.path.curdir)

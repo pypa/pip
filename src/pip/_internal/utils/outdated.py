@@ -9,10 +9,13 @@ import sys
 from pip._vendor import lockfile, pkg_resources
 from pip._vendor.packaging import version as packaging_version
 
+from pip._internal.cli.cmdoptions import make_search_scope
 from pip._internal.index import PackageFinder
+from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.misc import ensure_dir, get_installed_version
+from pip._internal.utils.packaging import get_installer
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -85,8 +88,7 @@ def was_installed_by_pip(pkg):
     """
     try:
         dist = pkg_resources.get_distribution(pkg)
-        return (dist.has_metadata('INSTALLER') and
-                'pip' in dist.get_metadata_lines('INSTALLER'))
+        return "pip" == get_installer(dist)
     except pkg_resources.DistributionNotFound:
         return False
 
@@ -122,10 +124,18 @@ def pip_version_check(session, options):
         # Refresh the version if we need to or just see if we need to warn
         if pypi_version is None:
             # Lets use PackageFinder to see what the latest pip version is
-            finder = PackageFinder(
-                find_links=options.find_links,
-                index_urls=[options.index_url] + options.extra_index_urls,
+            search_scope = make_search_scope(options, suppress_no_index=True)
+
+            # Pass allow_yanked=False so we don't suggest upgrading to a
+            # yanked version.
+            selection_prefs = SelectionPreferences(
+                allow_yanked=False,
                 allow_all_prereleases=False,  # Explicitly set to False
+            )
+
+            finder = PackageFinder.create(
+                search_scope=search_scope,
+                selection_prefs=selection_prefs,
                 trusted_hosts=options.trusted_hosts,
                 session=session,
             )

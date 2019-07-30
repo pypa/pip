@@ -14,15 +14,16 @@ Some terminology:
 import locale
 import logging
 import os
+import sys
 
 from pip._vendor.six.moves import configparser
 
 from pip._internal.exceptions import (
-    ConfigurationError, ConfigurationFileCouldNotBeLoaded,
+    ConfigurationError,
+    ConfigurationFileCouldNotBeLoaded,
 )
-from pip._internal.locations import (
-    global_config_files, legacy_config_file, new_config_file, site_config_file,
-)
+from pip._internal.utils import appdirs
+from pip._internal.utils.compat import WINDOWS, expanduser
 from pip._internal.utils.misc import ensure_dir, enum
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -67,6 +68,31 @@ kinds = enum(
     ENV="env",          # from PIP_CONFIG_FILE
     ENV_VAR="env-var",  # from Environment Variables
 )
+
+
+CONFIG_BASENAME = 'pip.ini' if WINDOWS else 'pip.conf'
+
+
+def get_configuration_files():
+    global_config_files = [
+        os.path.join(path, CONFIG_BASENAME)
+        for path in appdirs.site_config_dirs('pip')
+    ]
+
+    site_config_file = os.path.join(sys.prefix, CONFIG_BASENAME)
+    legacy_config_file = os.path.join(
+        expanduser('~'),
+        'pip' if WINDOWS else '.pip',
+        CONFIG_BASENAME,
+    )
+    new_config_file = os.path.join(
+        appdirs.user_config_dir("pip"), CONFIG_BASENAME
+    )
+    return {
+        kinds.GLOBAL: global_config_files,
+        kinds.SITE: [site_config_file],
+        kinds.USER: [legacy_config_file, new_config_file],
+    }
 
 
 class Configuration(object):
@@ -355,8 +381,10 @@ class Configuration(object):
         else:
             yield kinds.ENV, []
 
+        config_files = get_configuration_files()
+
         # at the base we have any global configuration
-        yield kinds.GLOBAL, list(global_config_files)
+        yield kinds.GLOBAL, config_files[kinds.GLOBAL]
 
         # per-user configuration next
         should_load_user_config = not self.isolated and not (
@@ -364,10 +392,10 @@ class Configuration(object):
         )
         if should_load_user_config:
             # The legacy config file is overridden by the new config file
-            yield kinds.USER, [legacy_config_file, new_config_file]
+            yield kinds.USER, config_files[kinds.USER]
 
         # finally virtualenv configuration first trumping others
-        yield kinds.SITE, [site_config_file]
+        yield kinds.SITE, config_files[kinds.SITE]
 
     def _get_parser_to_modify(self):
         # type: () -> Tuple[str, RawConfigParser]

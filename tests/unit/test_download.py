@@ -8,23 +8,31 @@ from tempfile import mkdtemp
 
 import pytest
 from mock import Mock, patch
-from pip._vendor.six.moves.urllib import request as urllib_request
 
 import pip
 from pip._internal.download import (
-    CI_ENVIRONMENT_VARIABLES, MultiDomainBasicAuth, PipSession, SafeFileCache,
-    path_to_url, unpack_file_url, unpack_http_url, url_to_path,
+    CI_ENVIRONMENT_VARIABLES,
+    MultiDomainBasicAuth,
+    PipSession,
+    SafeFileCache,
+    _download_http_url,
+    parse_content_disposition,
+    sanitize_content_filename,
+    unpack_file_url,
+    unpack_http_url,
+    url_to_path,
 )
 from pip._internal.exceptions import HashMismatch
 from pip._internal.models.link import Link
 from pip._internal.utils.hashes import Hashes
+from pip._internal.utils.misc import path_to_url
 from tests.lib import create_file
 
 
 @pytest.fixture(scope="function")
 def cache_tmpdir(tmpdir):
-    cache_dir = tmpdir.join("cache")
-    cache_dir.makedirs()
+    cache_dir = tmpdir.joinpath("cache")
+    cache_dir.mkdir(parents=True)
     yield cache_dir
 
 
@@ -42,7 +50,7 @@ def test_unpack_http_url_with_urllib_response_without_content_type(data):
     session = Mock()
     session.get = _fake_session_get
 
-    uri = path_to_url(data.packages.join("simple-1.0.tar.gz"))
+    uri = path_to_url(data.packages.joinpath("simple-1.0.tar.gz"))
     link = Link(uri)
     temp_dir = mkdtemp()
     try:
@@ -73,6 +81,7 @@ def test_user_agent():
     ('BUILD_BUILDID', True),
     ('BUILD_ID', True),
     ('CI', True),
+    ('PIP_IS_CI', True),
     # Test a prefix substring of one of the variable names we use.
     ('BUILD', False),
 ])
@@ -198,20 +207,88 @@ def test_unpack_http_url_bad_downloaded_checksum(mock_unpack_file):
         rmtree(download_dir)
 
 
-@pytest.mark.skipif("sys.platform == 'win32'")
-def test_path_to_url_unix():
-    assert path_to_url('/tmp/file') == 'file:///tmp/file'
-    path = os.path.join(os.getcwd(), 'file')
-    assert path_to_url('file') == 'file://' + urllib_request.pathname2url(path)
+@pytest.mark.parametrize("filename, expected", [
+    ('dir/file', 'file'),
+    ('../file', 'file'),
+    ('../../file', 'file'),
+    ('../', ''),
+    ('../..', '..'),
+    ('/', ''),
+])
+def test_sanitize_content_filename(filename, expected):
+    """
+    Test inputs where the result is the same for Windows and non-Windows.
+    """
+    assert sanitize_content_filename(filename) == expected
 
 
-@pytest.mark.skipif("sys.platform != 'win32'")
-def test_path_to_url_win():
-    assert path_to_url('c:/tmp/file') == 'file:///C:/tmp/file'
-    assert path_to_url('c:\\tmp\\file') == 'file:///C:/tmp/file'
-    assert path_to_url(r'\\unc\as\path') == 'file://unc/as/path'
-    path = os.path.join(os.getcwd(), 'file')
-    assert path_to_url('file') == 'file:' + urllib_request.pathname2url(path)
+@pytest.mark.parametrize("filename, win_expected, non_win_expected", [
+    ('dir\\file', 'file', 'dir\\file'),
+    ('..\\file', 'file', '..\\file'),
+    ('..\\..\\file', 'file', '..\\..\\file'),
+    ('..\\', '', '..\\'),
+    ('..\\..', '..', '..\\..'),
+    ('\\', '', '\\'),
+])
+def test_sanitize_content_filename__platform_dependent(
+    filename,
+    win_expected,
+    non_win_expected
+):
+    """
+    Test inputs where the result is different for Windows and non-Windows.
+    """
+    if sys.platform == 'win32':
+        expected = win_expected
+    else:
+        expected = non_win_expected
+    assert sanitize_content_filename(filename) == expected
+
+
+@pytest.mark.parametrize("content_disposition, default_filename, expected", [
+    ('attachment;filename="../file"', 'df', 'file'),
+])
+def test_parse_content_disposition(
+    content_disposition,
+    default_filename,
+    expected
+):
+    actual = parse_content_disposition(content_disposition, default_filename)
+    assert actual == expected
+
+
+def test_download_http_url__no_directory_traversal(tmpdir):
+    """
+    Test that directory traversal doesn't happen on download when the
+    Content-Disposition header contains a filename with a ".." path part.
+    """
+    mock_url = 'http://www.example.com/whatever.tgz'
+    contents = b'downloaded'
+    link = Link(mock_url)
+
+    session = Mock()
+    resp = MockResponse(contents)
+    resp.url = mock_url
+    resp.headers = {
+        # Set the content-type to a random value to prevent
+        # mimetypes.guess_extension from guessing the extension.
+        'content-type': 'random',
+        'content-disposition': 'attachment;filename="../out_dir_file"'
+    }
+    session.get.return_value = resp
+
+    download_dir = tmpdir.joinpath('download')
+    os.mkdir(download_dir)
+    file_path, content_type = _download_http_url(
+        link,
+        session,
+        download_dir,
+        hashes=None,
+        progress_bar='on',
+    )
+    # The file should be downloaded to download_dir.
+    actual = os.listdir(download_dir)
+    assert actual == ['out_dir_file']
 
 
 @pytest.mark.parametrize("url,win_expected,non_win_expected", [
@@ -249,14 +326,14 @@ def test_url_to_path_path_to_url_symmetry_win():
 class Test_unpack_file_url(object):
 
     def prep(self, tmpdir, data):
-        self.build_dir = tmpdir.join('build')
-        self.download_dir = tmpdir.join('download')
+        self.build_dir = tmpdir.joinpath('build')
+        self.download_dir = tmpdir.joinpath('download')
         os.mkdir(self.build_dir)
         os.mkdir(self.download_dir)
         self.dist_file = "simple-1.0.tar.gz"
         self.dist_file2 = "simple-2.0.tar.gz"
-        self.dist_path = data.packages.join(self.dist_file)
-        self.dist_path2 = data.packages.join(self.dist_file2)
+        self.dist_path = data.packages.joinpath(self.dist_file)
+        self.dist_path2 = data.packages.joinpath(self.dist_file2)
         self.dist_url = Link(path_to_url(self.dist_path))
         self.dist_url2 = Link(path_to_url(self.dist_path2))
 
@@ -296,9 +373,10 @@ class Test_unpack_file_url(object):
         Test when the file url hash fragment is wrong
         """
         self.prep(tmpdir, data)
-        self.dist_url.url = "%s#md5=bogus" % self.dist_url.url
+        url = '{}#md5=bogus'.format(self.dist_url.url)
+        dist_url = Link(url)
         with pytest.raises(HashMismatch):
-            unpack_file_url(self.dist_url,
+            unpack_file_url(dist_url,
                             self.build_dir,
                             hashes=Hashes({'md5': ['bogus']}))
 
@@ -322,11 +400,9 @@ class Test_unpack_file_url(object):
 
         assert dist_path_md5 != dist_path2_md5
 
-        self.dist_url.url = "%s#md5=%s" % (
-            self.dist_url.url,
-            dist_path_md5
-        )
-        unpack_file_url(self.dist_url, self.build_dir,
+        url = '{}#md5={}'.format(self.dist_url.url, dist_path_md5)
+        dist_url = Link(url)
+        unpack_file_url(dist_url, self.build_dir,
                         download_dir=self.download_dir,
                         hashes=Hashes({'md5': [dist_path_md5]}))
 
@@ -337,7 +413,7 @@ class Test_unpack_file_url(object):
 
     def test_unpack_file_url_thats_a_dir(self, tmpdir, data):
         self.prep(tmpdir, data)
-        dist_path = data.packages.join("FSPkg")
+        dist_path = data.packages.joinpath("FSPkg")
         dist_url = Link(path_to_url(dist_path))
         unpack_file_url(dist_url, self.build_dir,
                         download_dir=self.download_dir)
@@ -393,21 +469,21 @@ class TestPipSession:
         assert not hasattr(session.adapters["https://"], "cache")
 
     def test_cache_is_enabled(self, tmpdir):
-        session = PipSession(cache=tmpdir.join("test-cache"))
+        session = PipSession(cache=tmpdir.joinpath("test-cache"))
 
         assert hasattr(session.adapters["https://"], "cache")
 
         assert (session.adapters["https://"].cache.directory ==
-                tmpdir.join("test-cache"))
+                tmpdir.joinpath("test-cache"))
 
     def test_http_cache_is_not_enabled(self, tmpdir):
-        session = PipSession(cache=tmpdir.join("test-cache"))
+        session = PipSession(cache=tmpdir.joinpath("test-cache"))
 
         assert not hasattr(session.adapters["http://"], "cache")
 
     def test_insecure_host_cache_is_not_enabled(self, tmpdir):
         session = PipSession(
-            cache=tmpdir.join("test-cache"),
+            cache=tmpdir.joinpath("test-cache"),
             insecure_hosts=["example.com"],
         )
 

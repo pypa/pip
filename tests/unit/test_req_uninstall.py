@@ -6,8 +6,13 @@ from mock import Mock
 
 import pip._internal.req.req_uninstall
 from pip._internal.req.req_uninstall import (
-    StashedUninstallPathSet, UninstallPathSet, UninstallPthEntries, compact,
-    compress_for_output_listing, compress_for_rename, uninstallation_paths,
+    StashedUninstallPathSet,
+    UninstallPathSet,
+    UninstallPthEntries,
+    compact,
+    compress_for_output_listing,
+    compress_for_rename,
+    uninstallation_paths,
 )
 from tests.lib import create_file
 
@@ -196,13 +201,13 @@ class TestUninstallPathSet(object):
         # construct 2 paths:
         #  tmpdir/dir/file
         #  tmpdir/dirlink/file (where dirlink is a link to dir)
-        d = tmpdir.join('dir')
+        d = tmpdir.joinpath('dir')
         d.mkdir()
-        dlink = tmpdir.join('dirlink')
+        dlink = tmpdir.joinpath('dirlink')
         os.symlink(d, dlink)
-        d.join('file').touch()
-        path1 = str(d.join('file'))
-        path2 = str(dlink.join('file'))
+        d.joinpath('file').touch()
+        path1 = str(d.joinpath('file'))
+        path2 = str(dlink.joinpath('file'))
 
         ups = UninstallPathSet(dist=Mock())
         ups.add(path1)

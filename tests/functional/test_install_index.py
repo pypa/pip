@@ -26,7 +26,7 @@ def test_find_links_relative_path(script, data):
 
 def test_find_links_requirements_file_relative_path(script, data):
     """Test find-links as a relative path to a reqs file."""
-    script.scratch_path.join("test-req.txt").write(textwrap.dedent("""
+    script.scratch_path.joinpath("test-req.txt").write_text(textwrap.dedent("""
         --no-index
         --find-links=%s
         parent==0.1

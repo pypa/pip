@@ -6,11 +6,9 @@ from pip._internal.models.format_control import FormatControl
 
 
 class SimpleCommand(Command):
-    name = 'fake'
-    summary = name
 
     def __init__(self):
-        super(SimpleCommand, self).__init__()
+        super(SimpleCommand, self).__init__('fake', 'fake summary')
         self.cmd_opts.add_option(cmdoptions.no_binary())
         self.cmd_opts.add_option(cmdoptions.only_binary())
 

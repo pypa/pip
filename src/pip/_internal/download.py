@@ -25,19 +25,32 @@ from pip._vendor.requests.utils import get_netrc_auth
 from pip._vendor.six.moves import xmlrpc_client  # type: ignore
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
-from pip._vendor.urllib3.util import IS_PYOPENSSL
 
 import pip
 from pip._internal.exceptions import HashMismatch, InstallationError
-from pip._internal.locations import write_delete_marker_file
 from pip._internal.models.index import PyPI
+# Import ssl from compat so the initial import occurs in only one place.
+from pip._internal.utils.compat import HAS_TLS, ssl
 from pip._internal.utils.encoding import auto_decode
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.glibc import libc_ver
+from pip._internal.utils.marker_files import write_delete_marker_file
 from pip._internal.utils.misc import (
-    ARCHIVE_EXTENSIONS, ask, ask_input, ask_password, ask_path_exists,
-    backup_dir, consume, display_path, format_size, get_installed_version,
-    remove_auth_from_url, rmtree, split_auth_netloc_from_url, splitext,
+    ARCHIVE_EXTENSIONS,
+    ask,
+    ask_input,
+    ask_password,
+    ask_path_exists,
+    backup_dir,
+    consume,
+    display_path,
+    format_size,
+    get_installed_version,
+    path_to_url,
+    remove_auth_from_url,
+    rmtree,
+    split_auth_netloc_from_url,
+    splitext,
     unpack_file,
 )
 from pip._internal.utils.temp_dir import TempDirectory
@@ -52,21 +65,17 @@ if MYPY_CHECK_RUNNING:
     from optparse import Values
     from pip._internal.models.link import Link
     from pip._internal.utils.hashes import Hashes
-    from pip._internal.vcs import AuthInfo, VersionControl
+    from pip._internal.vcs.versioncontrol import AuthInfo, VersionControl
 
-try:
-    import ssl  # noqa
-except ImportError:
-    ssl = None
+    Credentials = Tuple[str, str, str]
 
-
-HAS_TLS = (ssl is not None) or IS_PYOPENSSL
 
 __all__ = ['get_file_content',
            'is_url', 'url_to_path', 'path_to_url',
            'is_archive_file', 'unpack_vcs_link',
            'unpack_file_url', 'is_vcs_url', 'is_file_url',
-           'unpack_http_url', 'unpack_url']
+           'unpack_http_url', 'unpack_url',
+           'parse_content_disposition', 'sanitize_content_filename']
 
 
 logger = logging.getLogger(__name__)
@@ -95,6 +104,8 @@ CI_ENVIRONMENT_VARIABLES = (
     'BUILD_ID',
     # AppVeyor, CircleCI, Codeship, Gitlab CI, Shippable, Travis CI
     'CI',
+    # Explicit environment variable.
+    'PIP_IS_CI',
 )
 
 
@@ -228,7 +239,7 @@ class MultiDomainBasicAuth(AuthBase):
         # this value is set to the credentials they entered. After the
         # request authenticates, the caller should call
         # ``save_credentials`` to save these.
-        self._credentials_to_save = None   # type: Tuple[str, str, str]
+        self._credentials_to_save = None  # type: Optional[Credentials]
 
     def _get_index_url(self, url):
         """Return the original index URL matching the requested URL.
@@ -585,6 +596,8 @@ class PipSession(requests.Session):
         # well as any https:// host that we've marked as ignoring TLS errors
         # for.
         insecure_adapter = InsecureHTTPAdapter(max_retries=retries)
+        # Save this for later use in add_insecure_host().
+        self._insecure_adapter = insecure_adapter
 
         self.mount("https://", secure_adapter)
         self.mount("http://", insecure_adapter)
@@ -595,7 +608,11 @@ class PipSession(requests.Session):
         # We want to use a non-validating adapter for any requests which are
         # deemed insecure.
         for host in insecure_hosts:
-            self.mount("https://{}/".format(host), insecure_adapter)
+            self.add_insecure_host(host)
+
+    def add_insecure_host(self, host):
+        # type: (str) -> None
+        self.mount('https://{}/'.format(host), self._insecure_adapter)
 
     def request(self, method, url, *args, **kwargs):
         # Allow setting a default timeout on a session
@@ -691,17 +708,6 @@ def url_to_path(url):
     return path
 
 
-def path_to_url(path):
-    # type: (Union[str, Text]) -> str
-    """
-    Convert a path to a file: URL.  The path will be made absolute and have
-    quoted path parts.
-    """
-    path = os.path.normpath(os.path.abspath(path))
-    url = urllib_parse.urljoin('file:', urllib_request.pathname2url(path))
-    return url
-
-
 def is_archive_file(name):
     # type: (str) -> bool
     """Return True if `name` is a considered as an archive file."""
@@ -757,7 +763,7 @@ def _download_url(
     resp,  # type: Response
     link,  # type: Link
     content_file,  # type: IO
-    hashes,  # type: Hashes
+    hashes,  # type: Optional[Hashes]
     progress_bar  # type: str
 ):
     # type: (...) -> None
@@ -1011,8 +1017,8 @@ class PipXmlrpcTransport(xmlrpc_client.Transport):
 
 
 def unpack_url(
-    link,  # type: Optional[Link]
-    location,  # type: Optional[str]
+    link,  # type: Link
+    location,  # type: str
     download_dir=None,  # type: Optional[str]
     only_download=False,  # type: bool
     session=None,  # type: Optional[PipSession]
@@ -1059,11 +1065,34 @@ def unpack_url(
         write_delete_marker_file(location)
 
 
+def sanitize_content_filename(filename):
+    # type: (str) -> str
+    """
+    Sanitize the "filename" value from a Content-Disposition header.
+    """
+    return os.path.basename(filename)
+
+
+def parse_content_disposition(content_disposition, default_filename):
+    # type: (str, str) -> str
+    """
+    Parse the "filename" value from a Content-Disposition header, and
+    return the default filename if the result is empty.
+    """
+    _type, params = cgi.parse_header(content_disposition)
+    filename = params.get('filename')
+    if filename:
+        # We need to sanitize the filename to prevent directory traversal
+        # in case the filename contains ".." path parts.
+        filename = sanitize_content_filename(filename)
+    return filename or default_filename
+
+
 def _download_http_url(
     link,  # type: Link
     session,  # type: PipSession
     temp_dir,  # type: str
-    hashes,  # type: Hashes
+    hashes,  # type: Optional[Hashes]
     progress_bar  # type: str
 ):
     # type: (...) -> Tuple[str, str]
@@ -1106,11 +1135,8 @@ def _download_http_url(
     # Have a look at the Content-Disposition header for a better guess
     content_disposition = resp.headers.get('content-disposition')
     if content_disposition:
-        type, params = cgi.parse_header(content_disposition)
-        # We use ``or`` here because we don't want to use an "empty" value
-        # from the filename param.
-        filename = params.get('filename') or filename
-    ext = splitext(filename)[1]
+        filename = parse_content_disposition(content_disposition, filename)
+    ext = splitext(filename)[1]  # type: Optional[str]
     if not ext:
         ext = mimetypes.guess_extension(content_type)
         if ext:
@@ -1126,7 +1152,7 @@ def _download_http_url(
 
 
 def _check_download_dir(link, download_dir, hashes):
-    # type: (Link, str, Hashes) -> Optional[str]
+    # type: (Link, str, Optional[Hashes]) -> Optional[str]
     """ Check download_dir for previously downloaded file with correct hash
         If a correct file is found return its path else None
     """

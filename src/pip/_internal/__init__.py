@@ -39,10 +39,9 @@ else:
 
 from pip._internal.cli.autocompletion import autocomplete
 from pip._internal.cli.main_parser import parse_command
-from pip._internal.commands import commands_dict
+from pip._internal.commands import create_command
 from pip._internal.exceptions import PipError
 from pip._internal.utils import deprecation
-from pip._internal.vcs import git, mercurial, subversion, bazaar  # noqa
 from pip._vendor.urllib3.exceptions import InsecureRequestWarning
 
 logger = logging.getLogger(__name__)
@@ -74,5 +73,6 @@ def main(args=None):
     except locale.Error as e:
         # setlocale can apparently crash if locale are uninitialized
         logger.debug("Ignoring error %s when setting locale", e)
-    command = commands_dict[cmd_name](isolated=("--isolated" in cmd_args))
+    command = create_command(cmd_name, isolated=("--isolated" in cmd_args))
+
     return command.main(cmd_args)

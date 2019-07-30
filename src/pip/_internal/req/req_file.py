@@ -16,8 +16,10 @@ from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._internal.cli import cmdoptions
 from pip._internal.download import get_file_content
 from pip._internal.exceptions import RequirementsFileParseError
+from pip._internal.models.search_scope import SearchScope
 from pip._internal.req.constructors import (
-    install_req_from_editable, install_req_from_line,
+    install_req_from_editable,
+    install_req_from_line,
 )
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -35,7 +37,7 @@ if MYPY_CHECK_RUNNING:
 __all__ = ['parse_requirements']
 
 SCHEME_RE = re.compile(r'^(http|https|file):', re.I)
-COMMENT_RE = re.compile(r'(^|\s)+#.*$')
+COMMENT_RE = re.compile(r'(^|\s+)#.*$')
 
 # Matches environment variable-style values in '${MY_VARIABLE_1}' with the
 # variable name consisting of only uppercase letters, digits or the '_'
@@ -138,7 +140,7 @@ def process_line(
     session=None,  # type: Optional[PipSession]
     wheel_cache=None,  # type: Optional[WheelCache]
     use_pep517=None,  # type: Optional[bool]
-    constraint=False  # type: bool
+    constraint=False,  # type: bool
 ):
     # type: (...) -> Iterator[InstallRequirement]
     """Process a single requirements line; This can result in creating/yielding
@@ -187,10 +189,16 @@ def process_line(
         for dest in SUPPORTED_OPTIONS_REQ_DEST:
             if dest in opts.__dict__ and opts.__dict__[dest]:
                 req_options[dest] = opts.__dict__[dest]
+        line_source = 'line {} of {}'.format(line_number, filename)
         yield install_req_from_line(
-            args_str, line_comes_from, constraint=constraint,
+            args_str,
+            comes_from=line_comes_from,
             use_pep517=use_pep517,
-            isolated=isolated, options=req_options, wheel_cache=wheel_cache
+            isolated=isolated,
+            options=req_options,
+            wheel_cache=wheel_cache,
+            constraint=constraint,
+            line_source=line_source,
         )
 
     # yield an editable requirement
@@ -232,12 +240,14 @@ def process_line(
 
     # set finder options
     elif finder:
+        find_links = finder.find_links
+        index_urls = finder.index_urls
         if opts.index_url:
-            finder.index_urls = [opts.index_url]
+            index_urls = [opts.index_url]
         if opts.no_index is True:
-            finder.index_urls = []
+            index_urls = []
         if opts.extra_index_urls:
-            finder.index_urls.extend(opts.extra_index_urls)
+            index_urls.extend(opts.extra_index_urls)
         if opts.find_links:
             # FIXME: it would be nice to keep track of the source
             # of the find_links: support a find-links local path
@@ -247,12 +257,19 @@ def process_line(
             relative_to_reqs_file = os.path.join(req_dir, value)
             if os.path.exists(relative_to_reqs_file):
                 value = relative_to_reqs_file
-            finder.find_links.append(value)
+            find_links.append(value)
+
+        search_scope = SearchScope(
+            find_links=find_links,
+            index_urls=index_urls,
+        )
+        finder.search_scope = search_scope
+
         if opts.pre:
-            finder.allow_all_prereleases = True
-        if opts.trusted_hosts:
-            finder.secure_origins.extend(
-                ("*", host, "*") for host in opts.trusted_hosts)
+            finder.set_allow_all_prereleases()
+        for host in opts.trusted_hosts or []:
+            source = 'line {} of {}'.format(line_number, filename)
+            finder.add_trusted_host(host, source=source)
 
 
 def break_args_options(line):

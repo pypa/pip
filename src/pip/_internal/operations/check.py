@@ -7,7 +7,9 @@ from collections import namedtuple
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.pkg_resources import RequirementParseError
 
-from pip._internal.operations.prepare import make_abstract_dist
+from pip._internal.distributions import (
+    make_distribution_for_install_requirement,
+)
 from pip._internal.utils.misc import get_installed_distributions
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -130,7 +132,9 @@ def _simulate_installation_of(to_install, package_set):
 
     # Modify it as installing requirement_set would (assuming no errors)
     for inst_req in to_install:
-        dist = make_abstract_dist(inst_req).dist()
+        abstract_dist = make_distribution_for_install_requirement(inst_req)
+        dist = abstract_dist.get_pkg_resources_distribution()
+
         name = canonicalize_name(dist.key)
         package_set[name] = PackageDetails(dist.version, dist.requires())
 

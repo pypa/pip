@@ -5,7 +5,9 @@ import hashlib
 from pip._vendor.six import iteritems, iterkeys, itervalues
 
 from pip._internal.exceptions import (
-    HashMismatch, HashMissing, InstallationError,
+    HashMismatch,
+    HashMissing,
+    InstallationError,
 )
 from pip._internal.utils.misc import read_chunks
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -43,6 +45,19 @@ class Hashes(object):
             hex digests
         """
         self._allowed = {} if hashes is None else hashes
+
+    @property
+    def digest_count(self):
+        # type: () -> int
+        return sum(len(digests) for digests in self._allowed.values())
+
+    def is_hash_allowed(
+        self,
+        hash_name,   # type: str
+        hex_digest,  # type: str
+    ):
+        """Return whether the given hex digest is allowed."""
+        return hex_digest in self._allowed.get(hash_name, [])
 
     def check_against_chunks(self, chunks):
         # type: (Iterator[bytes]) -> None

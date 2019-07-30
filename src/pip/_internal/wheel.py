@@ -23,20 +23,26 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.six import StringIO
 
 from pip._internal import pep425tags
-from pip._internal.download import path_to_url, unpack_url
+from pip._internal.download import unpack_url
 from pip._internal.exceptions import (
-    InstallationError, InvalidWheelFilename, UnsupportedWheel,
+    InstallationError,
+    InvalidWheelFilename,
+    UnsupportedWheel,
 )
-from pip._internal.locations import (
-    PIP_DELETE_MARKER_FILENAME, distutils_scheme,
-)
+from pip._internal.locations import distutils_scheme
 from pip._internal.models.link import Link
 from pip._internal.utils.logging import indent_log
+from pip._internal.utils.marker_files import PIP_DELETE_MARKER_FILENAME
 from pip._internal.utils.misc import (
-    LOG_DIVIDER, call_subprocess, captured_stdout, ensure_dir,
-    format_command_args, read_chunks,
+    LOG_DIVIDER,
+    call_subprocess,
+    captured_stdout,
+    ensure_dir,
+    format_command_args,
+    path_to_url,
+    read_chunks,
 )
-from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
+from pip._internal.utils.setuptools_build import make_setuptools_shim_args
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import open_spinner
@@ -68,8 +74,8 @@ def normpath(src, p):
     return os.path.relpath(src, p).replace(os.path.sep, '/')
 
 
-def rehash(path, blocksize=1 << 20):
-    # type: (str, int) -> Tuple[str, str]
+def hash_file(path, blocksize=1 << 20):
+    # type: (str, int) -> Tuple[Any, int]
     """Return (hash, length) for path using hashlib.sha256()"""
     h = hashlib.sha256()
     length = 0
@@ -77,6 +83,13 @@ def rehash(path, blocksize=1 << 20):
         for block in read_chunks(f, size=blocksize):
             length += len(block)
             h.update(block)
+    return (h, length)  # type: ignore
+
+
+def rehash(path, blocksize=1 << 20):
+    # type: (str, int) -> Tuple[str, str]
+    """Return (encoded_digest, length) for path using hashlib.sha256()"""
+    h, length = hash_file(path, blocksize)
     digest = 'sha256=' + urlsafe_b64encode(
         h.digest()
     ).decode('latin1').rstrip('=')
@@ -663,6 +676,16 @@ def check_compatibility(version, name):
         )
 
 
+def format_tag(file_tag):
+    # type: (Tuple[str, ...]) -> str
+    """
+    Format three tags in the form "<python_tag>-<abi_tag>-<platform_tag>".
+
+    :param file_tag: A 3-tuple of tags (python_tag, abi_tag, platform_tag).
+    """
+    return '-'.join(file_tag)
+
+
 class Wheel(object):
     """A wheel file"""
 
@@ -701,6 +724,13 @@ class Wheel(object):
             (x, y, z) for x in self.pyversions
             for y in self.abis for z in self.plats
         }
+
+    def get_formatted_file_tags(self):
+        # type: () -> List[str]
+        """
+        Return the wheel's tags as a sorted list of strings.
+        """
+        return sorted(format_tag(tag) for tag in self.file_tags)
 
     def support_index_min(self, tags=None):
         # type: (Optional[List[Pep425Tag]]) -> Optional[int]
@@ -885,7 +915,12 @@ class WheelBuilder(object):
                 wheel_name = os.path.basename(wheel_path)
                 dest_path = os.path.join(output_dir, wheel_name)
                 try:
+                    wheel_hash, length = hash_file(wheel_path)
                     shutil.move(wheel_path, dest_path)
+                    logger.info('Created wheel for %s: '
+                                'filename=%s size=%d sha256=%s',
+                                req.name, wheel_name, length,
+                                wheel_hash.hexdigest())
                     logger.info('Stored in directory: %s', output_dir)
                     return dest_path
                 except Exception:
@@ -899,10 +934,11 @@ class WheelBuilder(object):
         # isolating. Currently, it breaks Python in virtualenvs, because it
         # relies on site.py to find parts of the standard library outside the
         # virtualenv.
-        return [
-            sys.executable, '-u', '-c',
-            SETUPTOOLS_SHIM % req.setup_py
-        ] + list(self.global_options)
+        return make_setuptools_shim_args(
+            req.setup_py_path,
+            global_options=self.global_options,
+            unbuffered_output=True
+        )
 
     def _build_one_pep517(self, req, tempd, python_tag=None):
         """Build one InstallRequirement using the PEP 517 build process.

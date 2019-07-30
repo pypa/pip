@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import compileall
+import shutil
 import sys
 import textwrap
 
@@ -47,14 +48,16 @@ class VirtualEnvironment(object):
 
     def _create(self, clear=False):
         if clear:
-            self.location.rmtree()
+            shutil.rmtree(self.location)
         if self._template:
             # On Windows, calling `_virtualenv.path_locations(target)`
             # will have created the `target` directory...
-            if sys.platform == 'win32' and self.location.exists:
+            if sys.platform == 'win32' and self.location.exists():
                 self.location.rmdir()
             # Clone virtual environment from template.
-            self._template.location.copytree(self.location)
+            shutil.copytree(
+                self._template.location, self.location, symlinks=True
+            )
             self._sitecustomize = self._template.sitecustomize
             self._user_site_packages = self._template.user_site_packages
         else:
@@ -72,7 +75,7 @@ class VirtualEnvironment(object):
                 context = builder.ensure_directories(self.location)
                 builder.create_configuration(context)
                 builder.setup_python(context)
-                self.site.makedirs()
+                self.site.mkdir(parents=True)
             self.sitecustomize = self._sitecustomize
             self.user_site_packages = self._user_site_packages
 
@@ -145,7 +148,7 @@ class VirtualEnvironment(object):
         if self._sitecustomize is not None:
             contents += '\n' + self._sitecustomize
         sitecustomize = self.site / "sitecustomize.py"
-        sitecustomize.write(contents)
+        sitecustomize.write_text(contents)
         # Make sure bytecode is up-to-date too.
         assert compileall.compile_file(str(sitecustomize), quiet=1, force=True)
 
@@ -153,7 +156,7 @@ class VirtualEnvironment(object):
         self._create(clear=True)
 
     def move(self, location):
-        self.location.move(location)
+        shutil.move(self.location, location)
         self.location = Path(location)
         self._update_paths()
 
@@ -176,7 +179,7 @@ class VirtualEnvironment(object):
         if self._venv_type == 'virtualenv':
             marker = self.lib / "no-global-site-packages.txt"
             if self._user_site_packages:
-                marker.rm()
+                marker.unlink()
             else:
                 marker.touch()
         elif self._venv_type == 'venv':

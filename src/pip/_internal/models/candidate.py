@@ -13,19 +13,24 @@ class InstallationCandidate(KeyBasedCompareMixin):
     """Represents a potential "candidate" for installation.
     """
 
-    def __init__(self, project, version, location):
+    def __init__(self, project, version, link):
         # type: (Any, str, Link) -> None
         self.project = project
         self.version = parse_version(version)  # type: _BaseVersion
-        self.location = location
+        self.link = link
 
         super(InstallationCandidate, self).__init__(
-            key=(self.project, self.version, self.location),
+            key=(self.project, self.version, self.link),
             defining_class=InstallationCandidate
         )
 
     def __repr__(self):
         # type: () -> str
         return "<InstallationCandidate({!r}, {!r}, {!r})>".format(
-            self.project, self.version, self.location,
+            self.project, self.version, self.link,
+        )
+
+    def __str__(self):
+        return '{!r} candidate (version {} at {})'.format(
+            self.project, self.version, self.link,
         )

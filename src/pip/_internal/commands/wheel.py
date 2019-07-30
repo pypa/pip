@@ -8,10 +8,10 @@ from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import RequirementCommand
 from pip._internal.exceptions import CommandError, PreviousBuildDirError
+from pip._internal.legacy_resolve import Resolver
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import RequirementSet
 from pip._internal.req.req_tracker import RequirementTracker
-from pip._internal.resolve import Resolver
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.wheel import WheelBuilder
 
@@ -33,15 +33,12 @@ class WheelCommand(RequirementCommand):
 
     """
 
-    name = 'wheel'
     usage = """
       %prog [options] <requirement specifier> ...
       %prog [options] -r <requirements file> ...
       %prog [options] [-e] <vcs project url> ...
       %prog [options] [-e] <local project path> ...
       %prog [options] <archive url/path> ..."""
-
-    summary = 'Build wheels from your requirements.'
 
     def __init__(self, *args, **kw):
         super(WheelCommand, self).__init__(*args, **kw)
@@ -107,11 +104,6 @@ class WheelCommand(RequirementCommand):
 
     def run(self, options, args):
         cmdoptions.check_install_build_global(options)
-
-        index_urls = [options.index_url] + options.extra_index_urls
-        if options.no_index:
-            logger.debug('Ignoring indexes: %s', ','.join(index_urls))
-            index_urls = []
 
         if options.build_dir:
             options.build_dir = os.path.abspath(options.build_dir)

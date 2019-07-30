@@ -10,31 +10,40 @@ import sys
 import traceback
 
 from pip._internal.cli import cmdoptions
+from pip._internal.cli.cmdoptions import make_search_scope
 from pip._internal.cli.parser import (
-    ConfigOptionParser, UpdatingDefaultsHelpFormatter,
+    ConfigOptionParser,
+    UpdatingDefaultsHelpFormatter,
 )
 from pip._internal.cli.status_codes import (
-    ERROR, PREVIOUS_BUILD_DIR_ERROR, SUCCESS, UNKNOWN_ERROR,
+    ERROR,
+    PREVIOUS_BUILD_DIR_ERROR,
+    SUCCESS,
+    UNKNOWN_ERROR,
     VIRTUALENV_NOT_FOUND,
 )
 from pip._internal.download import PipSession
 from pip._internal.exceptions import (
-    BadCommand, CommandError, InstallationError, PreviousBuildDirError,
+    BadCommand,
+    CommandError,
+    InstallationError,
+    PreviousBuildDirError,
     UninstallationError,
 )
 from pip._internal.index import PackageFinder
-from pip._internal.locations import running_under_virtualenv
+from pip._internal.models.selection_prefs import SelectionPreferences
+from pip._internal.models.target_python import TargetPython
 from pip._internal.req.constructors import (
-    install_req_from_editable, install_req_from_line,
+    install_req_from_editable,
+    install_req_from_line,
 )
 from pip._internal.req.req_file import parse_requirements
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.logging import BrokenStdoutLoggingError, setup_logging
-from pip._internal.utils.misc import (
-    get_prog, normalize_path, redact_password_from_url,
-)
+from pip._internal.utils.misc import get_prog, normalize_path
 from pip._internal.utils.outdated import pip_version_check
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.virtualenv import running_under_virtualenv
 
 if MYPY_CHECK_RUNNING:
     from typing import Optional, List, Tuple, Any
@@ -52,18 +61,20 @@ class Command(object):
     usage = None  # type: Optional[str]
     ignore_require_venv = False  # type: bool
 
-    def __init__(self, isolated=False):
-        # type: (bool) -> None
+    def __init__(self, name, summary, isolated=False):
+        # type: (str, str, bool) -> None
         parser_kw = {
             'usage': self.usage,
             'prog': '%s %s' % (get_prog(), self.name),
             'formatter': UpdatingDefaultsHelpFormatter(),
             'add_help_option': False,
-            'name': self.name,
+            'name': name,
             'description': self.__doc__,
             'isolated': isolated,
         }
 
+        self.name = name
+        self.summary = summary
         self.parser = ConfigOptionParser(**parser_kw)
 
         # Commands should add options to this option group
@@ -151,17 +162,11 @@ class Command(object):
             user_log_file=options.log,
         )
 
-        if sys.version_info[:2] == (3, 4):
-            deprecated(
-                "Python 3.4 support has been deprecated. pip 19.1 will be the "
-                "last one supporting it. Please upgrade your Python as Python "
-                "3.4 won't be maintained after March 2019 (cf PEP 429).",
-                replacement=None,
-                gone_in='19.2',
-            )
-        elif sys.version_info[:2] == (2, 7):
+        if sys.version_info[:2] == (2, 7):
             message = (
-                "A future version of pip will drop support for Python 2.7."
+                "A future version of pip will drop support for Python 2.7. "
+                "More details about Python 2 support in pip, can be found at "
+                "https://pip.pypa.io/en/latest/development/release-process/#python-2-support"  # noqa
             )
             if platform.python_implementation() == "CPython":
                 message = (
@@ -323,33 +328,29 @@ class RequirementCommand(Command):
         self,
         options,               # type: Values
         session,               # type: PipSession
-        platform=None,         # type: Optional[str]
-        python_versions=None,  # type: Optional[List[str]]
-        abi=None,              # type: Optional[str]
-        implementation=None    # type: Optional[str]
+        target_python=None,    # type: Optional[TargetPython]
+        ignore_requires_python=None,  # type: Optional[bool]
     ):
         # type: (...) -> PackageFinder
         """
         Create a package finder appropriate to this requirement command.
-        """
-        index_urls = [options.index_url] + options.extra_index_urls
-        if options.no_index:
-            logger.debug(
-                'Ignoring indexes: %s',
-                ','.join(redact_password_from_url(url) for url in index_urls),
-            )
-            index_urls = []
 
-        return PackageFinder(
-            find_links=options.find_links,
+        :param ignore_requires_python: Whether to ignore incompatible
+            "Requires-Python" values in links. Defaults to False.
+        """
+        search_scope = make_search_scope(options)
+        selection_prefs = SelectionPreferences(
+            allow_yanked=True,
             format_control=options.format_control,
-            index_urls=index_urls,
-            trusted_hosts=options.trusted_hosts,
             allow_all_prereleases=options.pre,
-            session=session,
-            platform=platform,
-            versions=python_versions,
-            abi=abi,
-            implementation=implementation,
             prefer_binary=options.prefer_binary,
+            ignore_requires_python=ignore_requires_python,
+        )
+
+        return PackageFinder.create(
+            search_scope=search_scope,
+            selection_prefs=selection_prefs,
+            trusted_hosts=options.trusted_hosts,
+            session=session,
+            target_python=target_python,
         )

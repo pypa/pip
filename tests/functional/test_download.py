@@ -1,3 +1,5 @@
+import os.path
+import shutil
 import textwrap
 
 import pytest
@@ -7,9 +9,10 @@ from tests.lib.path import Path
 
 
 def fake_wheel(data, wheel_path):
-    data.packages.join(
-        'simple.dist-0.1-py2.py3-none-any.whl'
-    ).copy(data.packages.join(wheel_path))
+    shutil.copy(
+        data.packages.joinpath('simple.dist-0.1-py2.py3-none-any.whl'),
+        data.packages.joinpath(wheel_path),
+    )
 
 
 @pytest.mark.network
@@ -60,7 +63,7 @@ def test_single_download_from_requirements_file(script):
     It should support download (in the scratch path) from PyPI from a
     requirements file
     """
-    script.scratch_path.join("test-req.txt").write(textwrap.dedent("""
+    script.scratch_path.joinpath("test-req.txt").write_text(textwrap.dedent("""
         INITools==0.1
         """))
     result = script.pip(
@@ -120,7 +123,7 @@ def test_download_should_skip_existing_files(script):
     """
     It should not download files already existing in the scratch dir
     """
-    script.scratch_path.join("test-req.txt").write(textwrap.dedent("""
+    script.scratch_path.joinpath("test-req.txt").write_text(textwrap.dedent("""
         INITools==0.1
         """))
 
@@ -132,7 +135,7 @@ def test_download_should_skip_existing_files(script):
     assert script.site_packages / 'initools' not in result.files_created
 
     # adding second package to test-req.txt
-    script.scratch_path.join("test-req.txt").write(textwrap.dedent("""
+    script.scratch_path.joinpath("test-req.txt").write_text(textwrap.dedent("""
         INITools==0.1
         python-openid==2.2.5
         """))
@@ -388,7 +391,7 @@ class TestDownloadPlatformManylinuxes(object):
         )
 
 
-def test_download_specify_python_version(script, data):
+def test_download__python_version(script, data):
     """
     Test using "pip download --python-version" to download a .whl archive
     supported for a specific interpreter
@@ -475,6 +478,63 @@ def test_download_specify_python_version(script, data):
         Path('scratch') / 'fake-2.0-py3-none-any.whl'
         in result.files_created
     )
+
+
+def make_wheel_with_python_requires(script, package_name, python_requires):
+    """
+    Create a wheel using the given python_requires.
+
+    :return: the path to the wheel file.
+    """
+    package_dir = script.scratch_path / package_name
+    package_dir.mkdir()
+
+    text = textwrap.dedent("""\
+    from setuptools import setup
+    setup(name='{}',
+          python_requires='{}',
+          version='1.0')
+    """).format(package_name, python_requires)
+    package_dir.joinpath('setup.py').write_text(text)
+    script.run(
+        'python', 'setup.py', 'bdist_wheel', '--universal', cwd=package_dir,
+    )
+
+    file_name = '{}-1.0-py2.py3-none-any.whl'.format(package_name)
+    return package_dir / 'dist' / file_name
+
+
+def test_download__python_version_used_for_python_requires(
+    script, data, with_wheel,
+):
+    """
+    Test that --python-version is used for the Requires-Python check.
+    """
+    wheel_path = make_wheel_with_python_requires(
+        script, 'mypackage', python_requires='==3.2',
+    )
+    wheel_dir = os.path.dirname(wheel_path)
+
+    def make_args(python_version):
+        return [
+            'download', '--no-index', '--find-links', wheel_dir,
+            '--only-binary=:all:',
+            '--dest', '.',
+            '--python-version', python_version,
+            'mypackage==1.0',
+        ]
+
+    args = make_args('33')
+    result = script.pip(*args, expect_error=True)
+    expected_err = (
+        "ERROR: Package 'mypackage' requires a different Python: "
+        "3.3.0 not in '==3.2'"
+    )
+    assert expected_err in result.stderr, 'stderr: {}'.format(result.stderr)
+
+    # Now try with a --python-version that satisfies the Requires-Python.
+    args = make_args('32')
+    script.pip(*args)  # no exception
 
 
 def test_download_specify_abi(script, data):
@@ -616,7 +676,7 @@ def test_download_exit_status_code_when_blank_requirements_file(script):
     """
     Test download exit status code when blank requirements file specified
     """
-    script.scratch_path.join("blank.txt").write("\n")
+    script.scratch_path.joinpath("blank.txt").write_text("\n")
     script.pip('download', '-r', 'blank.txt')
 
 
@@ -641,7 +701,7 @@ def test_download_prefer_binary_when_tarball_higher_than_wheel(script, data):
 
 def test_download_prefer_binary_when_wheel_doesnt_satisfy_req(script, data):
     fake_wheel(data, 'source-0.8-py2.py3-none-any.whl')
-    script.scratch_path.join("test-req.txt").write(textwrap.dedent("""
+    script.scratch_path.joinpath("test-req.txt").write_text(textwrap.dedent("""
         source>0.9
         """))
 

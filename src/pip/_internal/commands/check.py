@@ -2,7 +2,8 @@ import logging
 
 from pip._internal.cli.base_command import Command
 from pip._internal.operations.check import (
-    check_package_set, create_package_set_from_installed,
+    check_package_set,
+    create_package_set_from_installed,
 )
 
 logger = logging.getLogger(__name__)
@@ -10,10 +11,9 @@ logger = logging.getLogger(__name__)
 
 class CheckCommand(Command):
     """Verify installed packages have compatible dependencies."""
-    name = 'check'
+
     usage = """
       %prog [options]"""
-    summary = 'Verify installed packages have compatible dependencies.'
 
     def run(self, options, args):
         package_set, parsing_probs = create_package_set_from_installed()

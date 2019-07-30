@@ -12,22 +12,27 @@ from pip._vendor import pkg_resources
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import RequirementCommand
+from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.status_codes import ERROR
 from pip._internal.exceptions import (
-    CommandError, InstallationError, PreviousBuildDirError,
+    CommandError,
+    InstallationError,
+    PreviousBuildDirError,
 )
-from pip._internal.locations import distutils_scheme, virtualenv_no_global
+from pip._internal.legacy_resolve import Resolver
+from pip._internal.locations import distutils_scheme
 from pip._internal.operations.check import check_install_conflicts
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import RequirementSet, install_given_reqs
 from pip._internal.req.req_tracker import RequirementTracker
-from pip._internal.resolve import Resolver
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.misc import (
-    ensure_dir, get_installed_version,
+    ensure_dir,
+    get_installed_version,
     protect_pip_from_modification_on_windows,
 )
 from pip._internal.utils.temp_dir import TempDirectory
+from pip._internal.utils.virtualenv import virtualenv_no_global
 from pip._internal.wheel import WheelBuilder
 
 logger = logging.getLogger(__name__)
@@ -82,7 +87,6 @@ class InstallCommand(RequirementCommand):
     pip also supports installing from "requirements files," which provide
     an easy way to specify a whole environment to be installed.
     """
-    name = 'install'
 
     usage = """
       %prog [options] <requirement specifier> [package-index-options] ...
@@ -90,8 +94,6 @@ class InstallCommand(RequirementCommand):
       %prog [options] [-e] <vcs project url> ...
       %prog [options] [-e] <local project path> ...
       %prog [options] <archive url/path> ..."""
-
-    summary = 'Install packages.'
 
     def __init__(self, *args, **kw):
         super(InstallCommand, self).__init__(*args, **kw)
@@ -114,10 +116,7 @@ class InstallCommand(RequirementCommand):
                  '<dir>. Use --upgrade to replace existing packages in <dir> '
                  'with new versions.'
         )
-        cmd_opts.add_option(cmdoptions.platform())
-        cmd_opts.add_option(cmdoptions.python_version())
-        cmd_opts.add_option(cmdoptions.implementation())
-        cmd_opts.add_option(cmdoptions.abi())
+        cmdoptions.add_target_python_options(cmd_opts)
 
         cmd_opts.add_option(
             '--user',
@@ -185,7 +184,11 @@ class InstallCommand(RequirementCommand):
             '-I', '--ignore-installed',
             dest='ignore_installed',
             action='store_true',
-            help='Ignore the installed packages (reinstalling instead).')
+            help='Ignore the installed packages, overwriting them. '
+                 'This can break your system if the existing package '
+                 'is of a different version or was installed '
+                 'with a different package manager!'
+        )
 
         cmd_opts.add_option(cmdoptions.ignore_requires_python())
         cmd_opts.add_option(cmdoptions.no_build_isolation())
@@ -251,11 +254,6 @@ class InstallCommand(RequirementCommand):
 
         cmdoptions.check_dist_restriction(options, check_target=True)
 
-        if options.python_version:
-            python_versions = [options.python_version]
-        else:
-            python_versions = None
-
         options.src_dir = os.path.abspath(options.src_dir)
         install_options = options.install_options or []
         if options.use_user_site:
@@ -290,13 +288,12 @@ class InstallCommand(RequirementCommand):
         global_options = options.global_options or []
 
         with self._build_session(options) as session:
+            target_python = make_target_python(options)
             finder = self._build_package_finder(
                 options=options,
                 session=session,
-                platform=options.platform,
-                python_versions=python_versions,
-                abi=options.abi,
-                implementation=options.implementation,
+                target_python=target_python,
+                ignore_requires_python=options.ignore_requires_python,
             )
             build_delete = (not (options.no_clean or options.build_dir))
             wheel_cache = WheelCache(options.cache_dir, options.format_control)

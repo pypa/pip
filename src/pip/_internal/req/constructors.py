@@ -17,15 +17,13 @@ from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 from pip._vendor.packaging.specifiers import Specifier
 from pip._vendor.pkg_resources import RequirementParseError, parse_requirements
 
-from pip._internal.download import (
-    is_archive_file, is_url, path_to_url, url_to_path,
-)
+from pip._internal.download import is_archive_file, is_url, url_to_path
 from pip._internal.exceptions import InstallationError
 from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.models.link import Link
 from pip._internal.pyproject import make_pyproject_path
 from pip._internal.req.req_install import InstallRequirement
-from pip._internal.utils.misc import is_installable_dir
+from pip._internal.utils.misc import is_installable_dir, path_to_url
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs import vcs
 from pip._internal.wheel import Wheel
@@ -111,9 +109,9 @@ def parse_editable(editable_req):
 
     if '+' not in url:
         raise InstallationError(
-            '%s should either be a path to a local project or a VCS url '
-            'beginning with svn+, git+, hg+, or bzr+' %
-            editable_req
+            '{} is not a valid editable requirement. '
+            'It should either be a path to a local project or a VCS URL '
+            '(beginning with svn+, git+, hg+, or bzr+).'.format(editable_req)
         )
 
     vc_type = url.split('+', 1)[0].lower()
@@ -207,11 +205,15 @@ def install_req_from_line(
     isolated=False,  # type: bool
     options=None,  # type: Optional[Dict[str, Any]]
     wheel_cache=None,  # type: Optional[WheelCache]
-    constraint=False  # type: bool
+    constraint=False,  # type: bool
+    line_source=None,  # type: Optional[str]
 ):
     # type: (...) -> InstallRequirement
     """Creates an InstallRequirement from a name, which might be a
     requirement, directory containing 'setup.py', filename, or URL.
+
+    :param line_source: An optional string describing where the line is from,
+        for logging purposes in case of an error.
     """
     if is_url(name):
         marker_sep = '; '
@@ -291,10 +293,17 @@ def install_req_from_line(
                   not any(op in req_as_string for op in operators)):
                 add_msg = "= is not a valid operator. Did you mean == ?"
             else:
-                add_msg = ""
-            raise InstallationError(
-                "Invalid requirement: '%s'\n%s" % (req_as_string, add_msg)
+                add_msg = ''
+            if line_source is None:
+                source = ''
+            else:
+                source = ' (from {})'.format(line_source)
+            msg = (
+                'Invalid requirement: {!r}{}'.format(req_as_string, source)
             )
+            if add_msg:
+                msg += '\nHint: {}'.format(add_msg)
+            raise InstallationError(msg)
     else:
         req = None
 

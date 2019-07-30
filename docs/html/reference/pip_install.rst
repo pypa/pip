@@ -71,6 +71,10 @@ the chosen version is available, it is assumed that any source is acceptable
 Installation Order
 ++++++++++++++++++
 
+.. note::
+   This section is only about installation order of runtime dependencies, and
+   does not apply to build dependencies (those are specified using PEP 518).
+
 As of v6.1.0, pip installs dependencies before their dependents, i.e. in
 "topological order."  This is the only commitment pip currently makes related
 to order.  While it may be coincidentally true that pip will install things in
@@ -153,6 +157,7 @@ The following options are supported:
   *  :ref:`--no-binary <install_--no-binary>`
   *  :ref:`--only-binary <install_--only-binary>`
   *  :ref:`--require-hashes <--require-hashes>`
+  *  :ref:`--trusted-host <--trusted-host>`
 
 For example, to specify :ref:`--no-index <--no-index>` and two
 :ref:`--find-links <--find-links>` locations:
@@ -392,11 +397,12 @@ Here are the supported forms::
     [-e] git+file:///home/user/projects/MyProject#egg=MyProject
     -e git+git@git.example.com:MyProject#egg=MyProject
 
-Passing branch names, a commit hash or a tag name is possible like so::
+Passing a branch name, a commit hash, a tag name or a git ref is possible like so::
 
     [-e] git://git.example.com/MyProject.git@master#egg=MyProject
     [-e] git://git.example.com/MyProject.git@v1.0#egg=MyProject
     [-e] git://git.example.com/MyProject.git@da39a3ee5e6b4b0d3255bfef95601890afd80709#egg=MyProject
+    [-e] git://git.example.com/MyProject.git@refs/pull/123/head#egg=MyProject
 
 When passing a commit hash, specifying a full hash is preferable to a partial
 hash because a full hash allows pip to operate more efficiently (e.g. by
@@ -850,8 +856,8 @@ Examples
 
       $ pip install SomePackage[PDF]
       $ pip install git+https://git.repo/some_pkg.git#egg=SomePackage[PDF]
+      $ pip install .[PDF]  # project in current directory
       $ pip install SomePackage[PDF]==3.0
-      $ pip install -e .[PDF]==3.0  # editable project in current directory
       $ pip install SomePackage[PDF,EPUB]  # multiple extras
 
 

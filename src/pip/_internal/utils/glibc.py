@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import ctypes
+import os
 import re
 import warnings
 
@@ -13,6 +13,33 @@ if MYPY_CHECK_RUNNING:
 def glibc_version_string():
     # type: () -> Optional[str]
     "Returns glibc version string, or None if not using glibc."
+    return glibc_version_string_confstr() or glibc_version_string_ctypes()
+
+
+def glibc_version_string_confstr():
+    # type: () -> Optional[str]
+    "Primary implementation of glibc_version_string using os.confstr."
+    # os.confstr is quite a bit faster than ctypes.DLL. It's also less likely
+    # to be broken or missing. This strategy is used in the standard library
+    # platform module:
+    # https://github.com/python/cpython/blob/fcf1d003bf4f0100c9d0921ff3d70e1127ca1b71/Lib/platform.py#L175-L183
+    try:
+        # os.confstr("CS_GNU_LIBC_VERSION") returns a string like "glibc 2.17":
+        _, version = os.confstr("CS_GNU_LIBC_VERSION").split()
+    except (AttributeError, OSError, ValueError):
+        # os.confstr() or CS_GNU_LIBC_VERSION not available (or a bad value)...
+        return None
+    return version
+
+
+def glibc_version_string_ctypes():
+    # type: () -> Optional[str]
+    "Fallback implementation of glibc_version_string using ctypes."
+
+    try:
+        import ctypes
+    except ImportError:
+        return None
 
     # ctypes.CDLL(None) internally calls dlopen(NULL), and as the dlopen
     # manpage says, "If filename is NULL, then the returned handle is for the
@@ -56,7 +83,7 @@ def check_glibc_version(version_str, required_major, minimum_minor):
 
 def have_compatible_glibc(required_major, minimum_minor):
     # type: (int, int) -> bool
-    version_str = glibc_version_string()  # type: Optional[str]
+    version_str = glibc_version_string()
     if version_str is None:
         return False
     return check_glibc_version(version_str, required_major, minimum_minor)

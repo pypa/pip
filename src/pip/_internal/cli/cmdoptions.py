@@ -9,24 +9,31 @@ pass on state. To be consistent, all options will follow this design.
 """
 from __future__ import absolute_import
 
+import logging
 import textwrap
 import warnings
 from distutils.util import strtobool
 from functools import partial
 from optparse import SUPPRESS_HELP, Option, OptionGroup
+from textwrap import dedent
 
 from pip._internal.exceptions import CommandError
-from pip._internal.locations import USER_CACHE_DIR, src_prefix
+from pip._internal.locations import USER_CACHE_DIR, get_src_prefix
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.index import PyPI
+from pip._internal.models.search_scope import SearchScope
+from pip._internal.models.target_python import TargetPython
 from pip._internal.utils.hashes import STRONG_HASHES
+from pip._internal.utils.misc import redact_password_from_url
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import BAR_TYPES
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Callable, Dict, Optional
+    from typing import Any, Callable, Dict, Optional, Tuple
     from optparse import OptionParser, Values
     from pip._internal.cli.parser import ConfigOptionParser
+
+logger = logging.getLogger(__name__)
 
 
 def raise_option_error(parser, option, msg):
@@ -349,6 +356,28 @@ def find_links():
     )
 
 
+def make_search_scope(options, suppress_no_index=False):
+    # type: (Values, bool) -> SearchScope
+    """
+    :param suppress_no_index: Whether to ignore the --no-index option
+        when constructing the SearchScope object.
+    """
+    index_urls = [options.index_url] + options.extra_index_urls
+    if options.no_index and not suppress_no_index:
+        logger.debug(
+            'Ignoring indexes: %s',
+            ','.join(redact_password_from_url(url) for url in index_urls),
+        )
+        index_urls = []
+
+    search_scope = SearchScope(
+        find_links=options.find_links,
+        index_urls=index_urls,
+    )
+
+    return search_scope
+
+
 def trusted_host():
     # type: () -> Option
     return Option(
@@ -406,7 +435,7 @@ src = partial(
     '--src', '--source', '--source-dir', '--source-directory',
     dest='src_dir',
     metavar='dir',
-    default=src_prefix,
+    default=get_src_prefix(),
     help='Directory to check out editable projects into. '
     'The default in a virtualenv is "<venv path>/src". '
     'The default for global installs is "<current dir>/src".'
@@ -478,18 +507,69 @@ platform = partial(
 )  # type: Callable[..., Option]
 
 
+# This was made a separate function for unit-testing purposes.
+def _convert_python_version(value):
+    # type: (str) -> Tuple[Tuple[int, ...], Optional[str]]
+    """
+    Convert a version string like "3", "37", or "3.7.3" into a tuple of ints.
+
+    :return: A 2-tuple (version_info, error_msg), where `error_msg` is
+        non-None if and only if there was a parsing error.
+    """
+    if not value:
+        # The empty string is the same as not providing a value.
+        return (None, None)
+
+    parts = value.split('.')
+    if len(parts) > 3:
+        return ((), 'at most three version parts are allowed')
+
+    if len(parts) == 1:
+        # Then we are in the case of "3" or "37".
+        value = parts[0]
+        if len(value) > 1:
+            parts = [value[0], value[1:]]
+
+    try:
+        version_info = tuple(int(part) for part in parts)
+    except ValueError:
+        return ((), 'each version part must be an integer')
+
+    return (version_info, None)
+
+
+def _handle_python_version(option, opt_str, value, parser):
+    # type: (Option, str, str, OptionParser) -> None
+    """
+    Handle a provided --python-version value.
+    """
+    version_info, error_msg = _convert_python_version(value)
+    if error_msg is not None:
+        msg = (
+            'invalid --python-version value: {!r}: {}'.format(
+                value, error_msg,
+            )
+        )
+        raise_option_error(parser, option=option, msg=msg)
+
+    parser.values.python_version = version_info
+
+
 python_version = partial(
     Option,
     '--python-version',
     dest='python_version',
     metavar='python_version',
+    action='callback',
+    callback=_handle_python_version, type='str',
     default=None,
-    help=("Only use wheels compatible with Python "
-          "interpreter version <version>. If not specified, then the "
-          "current system interpreter minor version is used. A major "
-          "version (e.g. '2') can be specified to match all "
-          "minor revs of that major version.  A minor version "
-          "(e.g. '34') can also be specified."),
+    help=dedent("""\
+    The Python interpreter version to use for wheel and "Requires-Python"
+    compatibility checks. Defaults to a version derived from the running
+    interpreter. The version can be specified using up to three dot-separated
+    integers (e.g. "3" for 3.0.0, "3.7" for 3.7.0, or "3.7.3"). A major-minor
+    version can also be given as a string without dots (e.g. "37" for 3.7.0).
+    """),
 )  # type: Callable[..., Option]
 
 
@@ -522,6 +602,26 @@ abi = partial(
 )  # type: Callable[..., Option]
 
 
+def add_target_python_options(cmd_opts):
+    # type: (OptionGroup) -> None
+    cmd_opts.add_option(platform())
+    cmd_opts.add_option(python_version())
+    cmd_opts.add_option(implementation())
+    cmd_opts.add_option(abi())
+
+
+def make_target_python(options):
+    # type: (Values) -> TargetPython
+    target_python = TargetPython(
+        platform=options.platform,
+        py_version_info=options.python_version,
+        abi=options.abi,
+        implementation=options.implementation,
+    )
+
+    return target_python
+
+
 def prefer_binary():
     # type: () -> Option
     return Option(
@@ -543,7 +643,8 @@ cache_dir = partial(
 )  # type: Callable[..., Option]
 
 
-def no_cache_dir_callback(option, opt, value, parser):
+def _handle_no_cache_dir(option, opt, value, parser):
+    # type: (Option, str, str, OptionParser) -> None
     """
     Process a value provided for the --no-cache-dir option.
 
@@ -575,7 +676,7 @@ no_cache = partial(
     "--no-cache-dir",
     dest="cache_dir",
     action="callback",
-    callback=no_cache_dir_callback,
+    callback=_handle_no_cache_dir,
     help="Disable the cache.",
 )  # type: Callable[..., Option]
 
@@ -620,7 +721,8 @@ no_build_isolation = partial(
 )  # type: Callable[..., Option]
 
 
-def no_use_pep517_callback(option, opt, value, parser):
+def _handle_no_use_pep517(option, opt, value, parser):
+    # type: (Option, str, str, OptionParser) -> None
     """
     Process a value provided for the --no-use-pep517 option.
 
@@ -658,7 +760,7 @@ no_use_pep517 = partial(
     '--no-use-pep517',
     dest='use_pep517',
     action='callback',
-    callback=no_use_pep517_callback,
+    callback=_handle_no_use_pep517,
     default=None,
     help=SUPPRESS_HELP
 )  # type: Any
@@ -724,7 +826,7 @@ always_unzip = partial(
 )  # type: Callable[..., Option]
 
 
-def _merge_hash(option, opt_str, value, parser):
+def _handle_merge_hash(option, opt_str, value, parser):
     # type: (Option, str, str, OptionParser) -> None
     """Given a value spelled "algo:digest", append the digest to a list
     pointed to in a dict by the algo name."""
@@ -749,7 +851,7 @@ hash = partial(
     # __dict__ copying in process_line().
     dest='hashes',
     action='callback',
-    callback=_merge_hash,
+    callback=_handle_merge_hash,
     type='string',
     help="Verify that the package's archive matches this "
          'hash before installing. Example: --hash=sha256:abcdef...',
@@ -766,6 +868,24 @@ require_hashes = partial(
          'repeatable installs. This option is implied when any package in a '
          'requirements file has a --hash option.',
 )  # type: Callable[..., Option]
+
+
+list_path = partial(
+    Option,
+    '--path',
+    dest='path',
+    action='append',
+    help='Restrict to the specified installation path for listing '
+         'packages (can be used multiple times).'
+)  # type: Callable[..., Option]
+
+
+def check_list_path_option(options):
+    # type: (Values) -> None
+    if options.path and (options.user or options.local):
+        raise CommandError(
+            "Cannot combine '--path' with '--user' or '--local'"
+        )
 
 
 ##########

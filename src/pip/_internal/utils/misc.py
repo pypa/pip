@@ -22,20 +22,28 @@ from pip._vendor import pkg_resources
 # NOTE: retrying is not annotated in typeshed as on 2017-07-17, which is
 #       why we ignore the type on this import.
 from pip._vendor.retrying import retry  # type: ignore
-from pip._vendor.six import PY2
+from pip._vendor.six import PY2, text_type
 from pip._vendor.six.moves import input, shlex_quote
 from pip._vendor.six.moves.urllib import parse as urllib_parse
+from pip._vendor.six.moves.urllib import request as urllib_request
 from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
 
+from pip import __version__
 from pip._internal.exceptions import CommandError, InstallationError
-from pip._internal.locations import (
-    running_under_virtualenv, site_packages, user_site, virtualenv_no_global,
-    write_delete_marker_file,
-)
+from pip._internal.locations import site_packages, user_site
 from pip._internal.utils.compat import (
-    WINDOWS, console_to_str, expanduser, stdlib_pkgs,
+    WINDOWS,
+    console_to_str,
+    expanduser,
+    stdlib_pkgs,
+    str_to_display,
 )
+from pip._internal.utils.marker_files import write_delete_marker_file
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.virtualenv import (
+    running_under_virtualenv,
+    virtualenv_no_global,
+)
 
 if PY2:
     from io import BytesIO as StringIO
@@ -44,12 +52,19 @@ else:
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Optional, Tuple, Iterable, List, Match, Union, Any, Mapping, Text,
-        AnyStr, Container
+        Any, AnyStr, Container, Iterable, List, Mapping, Match, Optional, Text,
+        Tuple, Union, cast,
     )
     from pip._vendor.pkg_resources import Distribution
     from pip._internal.models.link import Link
     from pip._internal.utils.ui import SpinnerInterface
+
+    VersionInfo = Tuple[int, int, int]
+else:
+    # typing's cast() is needed at runtime, but we don't want to import typing.
+    # Thus, we use a dummy no-op version, which we tell mypy to ignore.
+    def cast(type_, value):  # type: ignore
+        return value
 
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
@@ -91,6 +106,38 @@ try:
     SUPPORTED_EXTENSIONS += XZ_EXTENSIONS
 except ImportError:
     logger.debug('lzma module is not available')
+
+
+def get_pip_version():
+    # type: () -> str
+    pip_pkg_dir = os.path.join(os.path.dirname(__file__), "..", "..")
+    pip_pkg_dir = os.path.abspath(pip_pkg_dir)
+
+    return (
+        'pip {} from {} (python {})'.format(
+            __version__, pip_pkg_dir, sys.version[:3],
+        )
+    )
+
+
+def normalize_version_info(py_version_info):
+    # type: (Tuple[int, ...]) -> Tuple[int, int, int]
+    """
+    Convert a tuple of ints representing a Python version to one of length
+    three.
+
+    :param py_version_info: a tuple of ints representing a Python version,
+        or None to specify no version. The tuple can have any length.
+
+    :return: a tuple of length three if `py_version_info` is non-None.
+        Otherwise, return `py_version_info` unchanged (i.e. None).
+    """
+    if len(py_version_info) < 3:
+        py_version_info += (3 - len(py_version_info)) * (0,)
+    elif len(py_version_info) > 3:
+        py_version_info = py_version_info[:3]
+
+    return cast('VersionInfo', py_version_info)
 
 
 def ensure_dir(path):
@@ -137,6 +184,40 @@ def rmtree_errorhandler(func, path, exc_info):
         return
     else:
         raise
+
+
+def path_to_display(path):
+    # type: (Optional[Union[str, Text]]) -> Optional[Text]
+    """
+    Convert a bytes (or text) path to text (unicode in Python 2) for display
+    and logging purposes.
+
+    This function should never error out. Also, this function is mainly needed
+    for Python 2 since in Python 3 str paths are already text.
+    """
+    if path is None:
+        return None
+    if isinstance(path, text_type):
+        return path
+    # Otherwise, path is a bytes object (str in Python 2).
+    try:
+        display_path = path.decode(sys.getfilesystemencoding(), 'strict')
+    except UnicodeDecodeError:
+        # Include the full bytes to make troubleshooting easier, even though
+        # it may not be very human readable.
+        if PY2:
+            # Convert the bytes to a readable str representation using
+            # repr(), and then convert the str to unicode.
+            #   Also, we add the prefix "b" to the repr() return value both
+            # to make the Python 2 output look like the Python 3 output, and
+            # to signal to the user that this is a bytes representation.
+            display_path = str_to_display('b{!r}'.format(path))
+        else:
+            # Silence the "F821 undefined name 'ascii'" flake8 error since
+            # in Python 3 ascii() is a built-in.
+            display_path = ascii(path)  # noqa: F821
+
+    return display_path
 
 
 def display_path(path):
@@ -390,12 +471,15 @@ def dist_is_editable(dist):
     return False
 
 
-def get_installed_distributions(local_only=True,
-                                skip=stdlib_pkgs,
-                                include_editables=True,
-                                editables_only=False,
-                                user_only=False):
-    # type: (bool, Container[str], bool, bool, bool) -> List[Distribution]
+def get_installed_distributions(
+        local_only=True,  # type: bool
+        skip=stdlib_pkgs,  # type: Container[str]
+        include_editables=True,  # type: bool
+        editables_only=False,  # type: bool
+        user_only=False,  # type: bool
+        paths=None  # type: Optional[List[str]]
+):
+    # type: (...) -> List[Distribution]
     """
     Return a list of installed Distribution objects.
 
@@ -412,7 +496,14 @@ def get_installed_distributions(local_only=True,
     If ``user_only`` is True , only report installations in the user
     site directory.
 
+    If ``paths`` is set, only report the distributions present at the
+    specified list of locations.
     """
+    if paths:
+        working_set = pkg_resources.WorkingSet(paths)
+    else:
+        working_set = pkg_resources.working_set
+
     if local_only:
         local_test = dist_is_local
     else:
@@ -440,7 +531,7 @@ def get_installed_distributions(local_only=True,
             return True
 
     # because of pkg_resources vendoring, mypy cannot find stub in typeshed
-    return [d for d in pkg_resources.working_set  # type: ignore
+    return [d for d in working_set  # type: ignore
             if local_test(d) and
             d.key not in skip and
             editable_test(d) and
@@ -680,6 +771,48 @@ def format_command_args(args):
     return ' '.join(shlex_quote(arg) for arg in args)
 
 
+def make_subprocess_output_error(
+    cmd_args,     # type: List[str]
+    cwd,          # type: Optional[str]
+    lines,        # type: List[Text]
+    exit_status,  # type: int
+):
+    # type: (...) -> Text
+    """
+    Create and return the error message to use to log a subprocess error
+    with command output.
+
+    :param lines: A list of lines, each ending with a newline.
+    """
+    command = format_command_args(cmd_args)
+    # Convert `command` and `cwd` to text (unicode in Python 2) so we can use
+    # them as arguments in the unicode format string below. This avoids
+    # "UnicodeDecodeError: 'ascii' codec can't decode byte ..." in Python 2
+    # if either contains a non-ascii character.
+    command_display = str_to_display(command, desc='command bytes')
+    cwd_display = path_to_display(cwd)
+
+    # We know the joined output value ends in a newline.
+    output = ''.join(lines)
+    msg = (
+        # Use a unicode string to avoid "UnicodeEncodeError: 'ascii'
+        # codec can't encode character ..." in Python 2 when a format
+        # argument (e.g. `output`) has a non-ascii character.
+        u'Command errored out with exit status {exit_status}:\n'
+        ' command: {command_display}\n'
+        '     cwd: {cwd_display}\n'
+        'Complete output ({line_count} lines):\n{output}{divider}'
+    ).format(
+        exit_status=exit_status,
+        command_display=command_display,
+        cwd_display=cwd_display,
+        line_count=len(lines),
+        output=output,
+        divider=LOG_DIVIDER,
+    )
+    return msg
+
+
 def call_subprocess(
     cmd,  # type: List[str]
     show_stdout=False,  # type: bool
@@ -691,7 +824,7 @@ def call_subprocess(
     unset_environ=None,  # type: Optional[Iterable[str]]
     spinner=None  # type: Optional[SpinnerInterface]
 ):
-    # type: (...) -> Optional[Text]
+    # type: (...) -> Text
     """
     Args:
       show_stdout: if true, use INFO to log the subprocess's stderr and
@@ -759,6 +892,7 @@ def call_subprocess(
         raise
     all_output = []
     while True:
+        # The "line" value is a unicode string in Python 2.
         line = console_to_str(proc.stdout.readline())
         if not line:
             break
@@ -788,14 +922,18 @@ def call_subprocess(
             if not showing_subprocess:
                 # Then the subprocess streams haven't been logged to the
                 # console yet.
-                subprocess_logger.error(
-                    'Complete output from command %s:', command_desc,
+                msg = make_subprocess_output_error(
+                    cmd_args=cmd,
+                    cwd=cwd,
+                    lines=all_output,
+                    exit_status=proc.returncode,
                 )
-                # The all_output value already ends in a newline.
-                subprocess_logger.error(''.join(all_output) + LOG_DIVIDER)
-            raise InstallationError(
-                'Command "%s" failed with error code %s in %s'
-                % (command_desc, proc.returncode, cwd))
+                subprocess_logger.error(msg)
+            exc_msg = (
+                'Command errored out with exit status {}: {} '
+                'Check the logs for full command output.'
+            ).format(proc.returncode, command_desc)
+            raise InstallationError(exc_msg)
         elif on_returncode == 'warn':
             subprocess_logger.warning(
                 'Command "%s" had error code %s in %s',
@@ -929,6 +1067,17 @@ def enum(*sequential, **named):
     reverse = {value: key for key, value in enums.items()}
     enums['reverse_mapping'] = reverse
     return type('Enum', (), enums)
+
+
+def path_to_url(path):
+    # type: (Union[str, Text]) -> str
+    """
+    Convert a path to a file: URL.  The path will be made absolute and have
+    quoted path parts.
+    """
+    path = os.path.normpath(os.path.abspath(path))
+    url = urllib_parse.urljoin('file:', urllib_request.pathname2url(path))
+    return url
 
 
 def split_auth_from_netloc(netloc):

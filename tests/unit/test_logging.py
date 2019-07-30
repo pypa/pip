@@ -8,7 +8,9 @@ from mock import patch
 from pip._vendor.six import PY2
 
 from pip._internal.utils.logging import (
-    BrokenStdoutLoggingError, ColorizedStreamHandler, IndentingFormatter,
+    BrokenStdoutLoggingError,
+    ColorizedStreamHandler,
+    IndentingFormatter,
 )
 from pip._internal.utils.misc import captured_stderr, captured_stdout
 
@@ -51,7 +53,10 @@ class TestIndentingFormatter(object):
     def make_record(self, msg, level_name):
         level_number = getattr(logging, level_name)
         attrs = dict(
-            msg=msg, created=1547704837.4, levelname=level_name,
+            msg=msg,
+            created=1547704837.040001,
+            msecs=40,
+            levelname=level_name,
             levelno=level_number,
         )
         record = logging.makeLogRecord(attrs)
@@ -75,9 +80,12 @@ class TestIndentingFormatter(object):
         assert f.format(record) == expected
 
     @pytest.mark.parametrize('level_name, expected', [
-        ('INFO', '2019-01-17T06:00:37 hello\n2019-01-17T06:00:37 world'),
+        ('INFO',
+         '2019-01-17T06:00:37,040 hello\n'
+         '2019-01-17T06:00:37,040 world'),
         ('WARNING',
-         '2019-01-17T06:00:37 WARNING: hello\n2019-01-17T06:00:37 world'),
+         '2019-01-17T06:00:37,040 WARNING: hello\n'
+         '2019-01-17T06:00:37,040 world'),
     ])
     def test_format_with_timestamp(self, level_name, expected):
         record = self.make_record('hello\nworld', level_name=level_name)

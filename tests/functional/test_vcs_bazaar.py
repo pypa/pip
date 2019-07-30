@@ -8,7 +8,11 @@ import pytest
 
 from pip._internal.vcs.bazaar import Bazaar
 from tests.lib import (
-    _test_path_to_file_url, _vcs_add, create_file, is_bzr_installed, need_bzr,
+    _test_path_to_file_url,
+    _vcs_add,
+    create_file,
+    is_bzr_installed,
+    need_bzr,
 )
 
 
