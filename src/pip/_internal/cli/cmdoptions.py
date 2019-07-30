@@ -370,9 +370,11 @@ def make_search_scope(options, suppress_no_index=False):
         )
         index_urls = []
 
-    search_scope = SearchScope(
-        find_links=options.find_links,
-        index_urls=index_urls,
+    # Make sure find_links is a list before passing to create().
+    find_links = options.find_links or []
+
+    search_scope = SearchScope.create(
+        find_links=find_links, index_urls=index_urls,
     )
 
     return search_scope
