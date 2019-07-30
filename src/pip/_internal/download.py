@@ -324,18 +324,20 @@ class MultiDomainBasicAuth(AuthBase):
         # Use any stored credentials that we have for this netloc
         username, password = self.passwords.get(netloc, (None, None))
 
-        # If nothing cached, acquire new credentials without prompting
-        # the user (e.g. from netrc, keyring, or similar).
         if username is None and password is None:
+            # No stored credentials. Acquire new credentials without prompting
+            # the user. (e.g. from netrc, keyring, or the URL itself)
             username, password = self._get_new_credentials(original_url)
 
         if username is not None or password is not None:
-            # Store any acquired credentials, converting None to empty strings
-            # The conversion ensures that this netloc will matched the "cached"
-            # conditional above. Further, HTTPBasicAuth doesn't accept None so
-            # it makes sense to cache the value that is going to be used.
+            # Convert the username and password if they're None, so that
+            # this netloc will show up as "cached" in the conditional above.
+            # Further, HTTPBasicAuth doesn't accept None, so it makes sense to
+            # cache the value that is going to be used.
             username = username or ""
             password = password or ""
+
+            # Store any acquired credentials.
             self.passwords[netloc] = (username, password)
 
         assert (
