@@ -16,7 +16,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Tuple, Callable, List, Optional, Union, Dict
+        Tuple, Callable, List, Optional, Union, Dict, Set
     )
 
     Pep425Tag = Tuple[str, str, str]
@@ -311,7 +311,7 @@ def get_supported(
     if abi:
         abis[0:0] = [abi]
 
-    abi3s = set()
+    abi3s = set()  # type: Set[str]
     for suffix in get_extension_suffixes():
         if suffix.startswith('.abi'):
             abi3s.add(suffix.split('.', 2)[1])
@@ -354,7 +354,6 @@ def get_supported(
 
         # Current version, current API (built specifically for our Python):
         for abi in abis:
-            assert abi
             for arch in arches:
                 supported.append(('%s%s' % (impl, versions[0]), abi, arch))
 
@@ -364,7 +363,6 @@ def get_supported(
             if version in {'31', '30'}:
                 break
             for abi in abi3s:   # empty set if not Python 3
-                assert abi
                 for arch in arches:
                     supported.append(("%s%s" % (impl, version), abi, arch))
 

@@ -218,6 +218,8 @@ def _get_win_folder_from_registry(csidl_name):
 
 def _get_win_folder_with_ctypes(csidl_name):
     # type: (str) -> str
+    # On Python 2, ctypes.create_unicode_buffer().value returns "unicode",
+    # which isn't the same as str in the annotation above.
     csidl_const = {
         "CSIDL_APPDATA": 26,
         "CSIDL_COMMON_APPDATA": 35,
@@ -239,8 +241,7 @@ def _get_win_folder_with_ctypes(csidl_name):
         if ctypes.windll.kernel32.GetShortPathNameW(buf.value, buf2, 1024):
             buf = buf2
 
-    # On Python 2, ctypes.create_unicode_buffer().value returns "unicode",
-    # which isn't the same as str in the annotation above.
+    # The type: ignore is explained under the type annotation for this function
     return buf.value  # type: ignore
 
 
