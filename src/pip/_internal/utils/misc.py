@@ -48,21 +48,18 @@ else:
 if MYPY_CHECK_RUNNING:
     from typing import (
         Any, AnyStr, Container, Iterable, List, Mapping, Match, Optional, Text,
-        Union,
+        Tuple, Union, cast,
     )
     from pip._vendor.pkg_resources import Distribution
     from pip._internal.models.link import Link
     from pip._internal.utils.ui import SpinnerInterface
 
-try:
-    from typing import cast, Tuple
     VersionInfo = Tuple[int, int, int]
-except ImportError:
-    # typing's cast() isn't supported in code comments, so we need to
-    # define a dummy, no-op version.
-    def cast(typ, val):
-        return val
-    VersionInfo = None
+else:
+    # typing's cast() is needed at runtime, but we don't want to import typing.
+    # Thus, we use a dummy no-op version, which we tell mypy to ignore.
+    def cast(type_, value):  # type: ignore
+        return value
 
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
@@ -135,7 +132,7 @@ def normalize_version_info(py_version_info):
     elif len(py_version_info) > 3:
         py_version_info = py_version_info[:3]
 
-    return cast(VersionInfo, py_version_info)
+    return cast('VersionInfo', py_version_info)
 
 
 def ensure_dir(path):
