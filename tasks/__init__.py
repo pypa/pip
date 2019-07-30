@@ -1,5 +1,5 @@
 import invoke
 
-from tools.automation import generate, vendoring
+from tools.automation import vendoring
 
-ns = invoke.Collection(generate, vendoring)
+ns = invoke.Collection(vendoring)
