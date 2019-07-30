@@ -338,6 +338,13 @@ class MultiDomainBasicAuth(AuthBase):
             password = password or ""
             self.passwords[netloc] = (username, password)
 
+        assert (
+            # Credentials were found
+            (username is not None and password is not None) or
+            # Credentials were not found
+            (username is None and password is None)
+        ), "Could not load credentials from url: {}".format(original_url)
+
         return url, username, password
 
     def __call__(self, req):
