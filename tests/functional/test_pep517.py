@@ -1,3 +1,4 @@
+import pytest
 from pip._vendor import pytoml
 
 from pip._internal.build_env import BuildEnvironment
@@ -198,6 +199,7 @@ def test_explicit_setuptools_backend(script, tmpdir, data, common_wheels):
     result.assert_installed(name, editable=False)
 
 
+@pytest.mark.network
 def test_pep517_and_build_options(script, tmpdir, data, common_wheels):
     """Backend generated requirements are installed in the build env"""
     project_dir, name = make_pyproject_with_setup(tmpdir)
