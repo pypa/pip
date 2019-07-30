@@ -73,7 +73,7 @@ class URIReference(namedtuple('URIReference', misc.URI_COMPONENTS), URIMixin):
 
     .. attribute:: host
 
-        The hostname, IPv4, or IPv6 address parsed from the authority.
+        The hostname, IPv4, or IPv6 adddres parsed from the authority.
 
     .. attribute:: port
 

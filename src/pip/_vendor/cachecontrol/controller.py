@@ -303,7 +303,7 @@ class CacheController(object):
         # Add to the cache any 301s. We do this before looking that
         # the Date headers.
         elif response.status == 301:
-            logger.debug("Caching permanent redirect")
+            logger.debug("Caching permanant redirect")
             self.cache.set(cache_url, self.serializer.dumps(request, response))
 
         # Add to the cache if the response headers demand it. If there

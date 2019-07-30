@@ -28,7 +28,7 @@ class Node(object):
         :arg name: The tag name associated with the node
 
         """
-        # The tag name associated with the node
+        # The tag name assocaited with the node
         self.name = name
         # The parent of the current node (or None for the document node)
         self.parent = None
