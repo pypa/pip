@@ -261,19 +261,22 @@ class Command(object):
 class RequirementCommand(Command):
 
     @staticmethod
-    def make_requirement_preparer(directory,   # type: TempDirectory
-                                  options,     # type: Any
-                                  req_tracker  # type: RequirementTracker
-                                  ):
+    def make_requirement_preparer(
+            temp_directory,           # type: TempDirectory
+            options,                  # type: Values
+            req_tracker,              # type: RequirementTracker
+            download_dir=None,        # type: str
+            wheel_download_dir=None,  # type: str
+    ):
         # type: (...) -> RequirementPreparer
         """
         Create a RequirementPreparer instance for the given parameters.
         """
         return RequirementPreparer(
-            build_dir=directory.path,
+            build_dir=temp_directory.path,
             src_dir=options.src_dir,
-            download_dir=None,
-            wheel_download_dir=None,
+            download_dir=download_dir,
+            wheel_download_dir=wheel_download_dir,
             progress_bar=options.progress_bar,
             build_isolation=options.build_isolation,
             req_tracker=req_tracker,

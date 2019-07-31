@@ -22,7 +22,6 @@ from pip._internal.exceptions import (
 from pip._internal.legacy_resolve import Resolver
 from pip._internal.locations import distutils_scheme
 from pip._internal.operations.check import check_install_conflicts
-from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import RequirementSet, install_given_reqs
 from pip._internal.req.req_tracker import RequirementTracker
 from pip._internal.utils.filesystem import check_path_owner
@@ -323,9 +322,9 @@ class InstallCommand(RequirementCommand):
                         self.name, wheel_cache
                     )
                     preparer = self.make_requirement_preparer(
-                        directory,
-                        options,
-                        req_tracker
+                        temp_directory=directory,
+                        options=options,
+                        req_tracker=req_tracker
                     )
                     resolver = Resolver(
                         preparer=preparer,
