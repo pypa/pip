@@ -20,11 +20,11 @@ Things pip does:
      this is not necessary if the package is a wheel).
 
    1. | By default, pip delegates package-building to setuptools, for
-           backwards compat reasons. But thing with setuptools: has a
-           setup.py file that it invokes to …… get info?
+           backwards compatibility reasons. But thing with setuptools:
+           has a ``setup.py`` file that it invokes to …… get info?
 
 2. Decides where to install stuff. Once the package is built, resulting
-   artifact is then installed into system in appropriate place. PEP 517
+   artifact is then installed into system in appropriate place. :pep:`517`
    defines interface between build backend & installer.
 
 Broad overview of flow
@@ -92,20 +92,21 @@ arguments?  By default we look at `PyPI`_, which is where pip knows
 where to look to get more info for what the package index knows about
 ``somepackage``.
 
-pip then knows: what files are available, and what their filenames are
+``pip`` then knows: what files are available, and what their filenames
+are.
 
 IN OTHER WORDS
 
 While all dependencies have not been resolved, do the following:
 
-1.  Following the API defined in PEP503, fetch the index page from
+1.  Following the API defined in :pep:`503`, fetch the index page from
     `http://{pypi_index}/simple/{package_name <http://pypi.org/simple/%7Bpackage_name>`__}
 2.  Parse all of the file links from the page.
 3.  Select a single file to download from the list of links.
-4.  Extract the metadata from the downloaded package
-5.  Update the dependency tree based on the metadata
+4.  Extract the metadata from the downloaded package.
+5.  Update the dependency tree based on the metadata.
 
-The package index gives pip a list of files for that pkg (via the existing PyPI API). The files have the version and some other info that helps pip decide whether that's something pip ought to download.
+The package index gives pip a list of files for that package (via the existing PyPI API). The files have the version and some other info that helps pip decide whether that's something pip ought to download.
 
 pip chooses from the list a single file to download.
 
@@ -114,12 +115,8 @@ It may go back and choose another file to download
 When pip looks at the package index, the place where it looks has
 basically a link. The link’s text is the name of the file
 
-This is the PyPI Simple API -- docs
-https://warehouse.readthedocs.io/api-reference/legacy/#simple-project-api
-
-(PyPI has several APIs, some are being deprecated)
-
-Pip looks at Simple API, documented initially at PEP 503 --
+This is the `PyPI Simple API`_ (PyPI has several APIs, some are being
+deprecated). Pip looks at Simple API, documented initially at :pep:`503` --
 packaging.python.org has PyPA specifications with more details for
 Simple Repository API
 
@@ -143,16 +140,13 @@ files on PyPI. It’s for getting all files of Flask.)
 Repository anatomy & directory structure
 ****************************************
 
-https://github.com/pypa/pip/
+``pip``’s codebase (`GitHub repository`_) is structured as a standard Python package. The ``README``, license, ``pyproject.toml``, ``setup.py``, and so on are in the top level.
 
-``pip``’s repo: it’s a standard Python package. ``README``, license,
-``pyproject.toml``, ``setup.py``, etc. in the top level.
-
-There’s a tox.ini https://github.com/pypa/pip/blob/master/tox.ini that
-has a lot of …. Describes a few environments pip uses during development
-for simplifying how tests are run (complicated situation there) -- tox
--e -py36 …. Can run for different versions of Python by changing “36” to
-“27” or similar. Tox is an automation tool
+``pip`` uses Tox, an automation tool, configured by the `tox.ini`_ in
+the top level. ``tox.ini`` describes a few environments ``pip`` uses
+during development for simplifying how tests are run (complicated
+situation there). Example: `` tox -e -py36`` We can run tests for
+different versions of Python by changing “36” to “27” or similar.
 
 [question: why a news directory? Mostly description is based on GitHub
 issues….]
@@ -466,3 +460,6 @@ Travis CI files & helpers for tox]*
 
 
 .. _PyPI: https://pypi.org/
+.. _GitHub repository: https://github.com/pypa/pip/
+.. _tox.ini: https://github.com/pypa/pip/blob/master/tox.ini
+.. _PyPI Simple API: https://warehouse.readthedocs.io/api-reference/legacy/#simple-project-api
