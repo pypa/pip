@@ -934,7 +934,6 @@ def unpack_file_url(
     of the link file inside download_dir.
     """
     link_path = url_to_path(link.url_without_fragment)
-
     # If it's a url to a local directory
     if is_dir_url(link):
         if os.path.isdir(location):
@@ -944,7 +943,8 @@ def unpack_file_url(
                         symlinks=True,
                         # Pulling in those directories can potentially
                         # be very slow.
-                        # see dicsussion at:
+                        # see discussion at:
+                        #   https://github.com/pypa/pip/pull/6770
                         #   https://github.com/pypa/pip/issues/2195
                         #   https://github.com/pypa/pip/pull/2196
                         ignore=shutil.ignore_patterns('.tox', '.nox'))

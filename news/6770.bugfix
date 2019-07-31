@@ -1,3 +1,1 @@
-'pip install .' is very slow in the presence of large directories in the source tree.
-#6770 excludes .tox and .nox from being copied by 'pip install .', significantly speeding 
-up the builds when those directories are large.
+Skip copying .tox and .nox directories to temporary build directories
