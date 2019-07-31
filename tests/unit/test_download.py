@@ -1,5 +1,6 @@
 import functools
 import hashlib
+import logging
 import os
 import sys
 from io import BytesIO
@@ -517,6 +518,24 @@ def test_get_index_url_credentials():
     # Check resolution of indexes
     assert get("http://example.com/path/path2") == ('foo', 'bar')
     assert get("http://example.com/path3/path2") == (None, None)
+
+
+def test_get_credentials_warns_when_using_email_unencoded(caplog):
+    auth = MultiDomainBasicAuth()
+
+    with caplog.at_level(logging.WARNING):
+        auth._get_url_and_credentials(
+            "http://me@site.com:password@example.com/path",
+        )
+
+    log_messages = sorted([r.getMessage() for r in caplog.records])
+    assert len(log_messages) == 1
+
+    message = log_messages[0]
+    assert "site.com" in message
+    assert "does not URL-encode credentials" in message
+
+    assert "Please use '%40' instead of '@' in the username." in message
 
 
 class KeyringModuleV1(object):

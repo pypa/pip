@@ -319,7 +319,20 @@ class MultiDomainBasicAuth(AuthBase):
         that even if the original URL contains credentials, this
         function may return a different username and password.
         """
-        url, netloc, _ = split_auth_netloc_from_url(original_url)
+        url, netloc, original_auth = split_auth_netloc_from_url(original_url)
+
+        # HACK
+        # If the username has an '@', it will fail since urllib3 expects an
+        # appropriately encoded username. We print a warning if this happens so
+        # that users that hit this, because they provided an email as the
+        # username, are told they have to URL-encode the '@'.
+        original_username, _ = original_auth
+        if original_username is not None and "@" in original_username:
+            logger.warning(
+                "The URL with domain '%s' does not URL-encode credentials. "
+                "Please use '%%40' instead of '@' in the username.",
+                netloc,
+            )
 
         # Use any stored credentials that we have for this netloc
         username, password = self.passwords.get(netloc, (None, None))
