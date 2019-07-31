@@ -811,6 +811,8 @@ It is possible to specify a username and password for accessing a pip repository
 
 Use the environment variables ``PIP_USERNAME`` and ``PIP_PASSWORD`` to specify credentials.
 
+Note that these credentials will be used for all indexes. See the other means of specifying credentials if you use multiple indexes requiring different credentials.
+
 
 .. _`pip install Examples`:
 
