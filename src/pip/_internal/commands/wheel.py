@@ -132,7 +132,7 @@ class WheelCommand(RequirementCommand):
                         temp_directory=directory,
                         options=options,
                         req_tracker=req_tracker,
-                        wheel_download_dir=options.wheel_dir
+                        wheel_download_dir=options.wheel_dir,
                     )
 
                     resolver = Resolver(

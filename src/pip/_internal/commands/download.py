@@ -129,7 +129,7 @@ class DownloadCommand(RequirementCommand):
                     temp_directory=directory,
                     options=options,
                     req_tracker=req_tracker,
-                    download_dir=options.download_dir
+                    download_dir=options.download_dir,
                 )
 
                 resolver = Resolver(
