@@ -308,9 +308,11 @@ class Resolver(object):
             )
 
         upgrade_allowed = self._is_upgrade_allowed(req)
+
+        # We eagerly populate the link, since that's our "legacy" behavior.
+        req.populate_link(self.finder, upgrade_allowed, self.require_hashes)
         abstract_dist = self.preparer.prepare_linked_requirement(
-            req, self.session, self.finder, upgrade_allowed,
-            self.require_hashes
+            req, self.session, self.finder, self.require_hashes
         )
 
         # NOTE
