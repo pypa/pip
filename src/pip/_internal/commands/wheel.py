@@ -9,7 +9,6 @@ from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import RequirementCommand
 from pip._internal.exceptions import CommandError, PreviousBuildDirError
 from pip._internal.legacy_resolve import Resolver
-from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import RequirementSet
 from pip._internal.req.req_tracker import RequirementTracker
 from pip._internal.utils.temp_dir import TempDirectory
@@ -129,14 +128,11 @@ class WheelCommand(RequirementCommand):
                         self.name, wheel_cache
                     )
 
-                    preparer = RequirementPreparer(
-                        build_dir=directory.path,
-                        src_dir=options.src_dir,
-                        download_dir=None,
-                        wheel_download_dir=options.wheel_dir,
-                        progress_bar=options.progress_bar,
-                        build_isolation=options.build_isolation,
+                    preparer = self.make_requirement_preparer(
+                        temp_directory=directory,
+                        options=options,
                         req_tracker=req_tracker,
+                        wheel_download_dir=options.wheel_dir,
                     )
 
                     resolver = Resolver(
