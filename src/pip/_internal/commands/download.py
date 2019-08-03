@@ -6,7 +6,6 @@ import os
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import RequirementCommand
 from pip._internal.cli.cmdoptions import make_target_python
-from pip._internal.legacy_resolve import Resolver
 from pip._internal.req import RequirementSet
 from pip._internal.req.req_tracker import RequirementTracker
 from pip._internal.utils.filesystem import check_path_owner
@@ -132,19 +131,12 @@ class DownloadCommand(RequirementCommand):
                     download_dir=options.download_dir,
                 )
 
-                resolver = Resolver(
+                resolver = self.make_resolver(
                     preparer=preparer,
-                    finder=finder,
                     session=session,
-                    wheel_cache=None,
-                    use_user_site=False,
-                    upgrade_strategy="to-satisfy-only",
-                    force_reinstall=False,
-                    ignore_dependencies=options.ignore_dependencies,
+                    finder=finder,
+                    options=options,
                     py_version_info=options.python_version,
-                    ignore_requires_python=False,
-                    ignore_installed=True,
-                    isolated=options.isolated_mode,
                 )
                 resolver.resolve(requirement_set)
 
