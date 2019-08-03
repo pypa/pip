@@ -18,7 +18,7 @@ from pip._internal.download import (
 from pip._internal.exceptions import HashMismatch
 from pip._internal.models.link import Link
 from pip._internal.utils.hashes import Hashes
-from pip._internal.utils.misc import path_to_url
+from pip._internal.utils.misc import ensure_dir, path_to_url
 from tests.lib import create_file
 
 
@@ -430,8 +430,8 @@ def test_unpack_file_url_with_excluded_dirs(exclude_dir):
     src_included_dir = os.path.join(src_dir, 'subdir', exclude_dir)
 
     # set up source directory
-    os.makedirs(src_excluded_dir, exist_ok=True)
-    os.makedirs(src_included_dir, exist_ok=True)
+    ensure_dir(src_excluded_dir)
+    ensure_dir(src_included_dir)
     touch(src_included_file)
     touch(src_excluded_file)
 
