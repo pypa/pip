@@ -694,10 +694,21 @@ does not satisfy the ``--require-hashes`` demand that every package have a
 local hash.
 
 
+Local project installs
+++++++++++++++++++++++
+pip supports installing local project in both regular mode and editable mode.
+You can install local projects by specifying the project path to pip::
+
+$ pip install path/to/SomeProject
+
+During the installation, pip will copy the entire project directory to a temporary location and install from there.
+The exception is that pip will exclude .tox and .nox directories present in the top level of the project from being copied.
+
+
 .. _`editable-installs`:
 
 "Editable" Installs
-+++++++++++++++++++
+~~~~~~~~~~~~~~~~~~~
 
 "Editable" installs are fundamentally `"setuptools develop mode"
 <https://setuptools.readthedocs.io/en/latest/setuptools.html#development-mode>`_
