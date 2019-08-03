@@ -19,7 +19,7 @@ from pip._internal.exceptions import HashMismatch
 from pip._internal.models.link import Link
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.misc import path_to_url
-from tests.lib import Path, create_file
+from tests.lib import create_file
 
 
 @pytest.fixture(scope="function")
@@ -420,21 +420,21 @@ class Test_unpack_file_url(object):
 def test_unpack_file_url_excludes_expected_dirs(tmpdir, exclude_dir):
     src_dir = tmpdir / 'src'
     dst_dir = tmpdir / 'dst'
-    src_included_file = Path.joinpath(src_dir, 'file.txt')
-    src_excluded_dir = Path.joinpath(src_dir, exclude_dir)
-    src_excluded_file = Path.joinpath(src_dir, exclude_dir, 'file.txt')
-    src_included_dir = Path.joinpath(src_dir, 'subdir', exclude_dir)
+    src_included_file = src_dir.joinpath('file.txt')
+    src_excluded_dir = src_dir.joinpath(exclude_dir)
+    src_excluded_file = src_dir.joinpath(exclude_dir, 'file.txt')
+    src_included_dir = src_dir.joinpath('subdir', exclude_dir)
 
     # set up source directory
     src_excluded_dir.mkdir(parents=True)
     src_included_dir.mkdir(parents=True)
-    Path.touch(src_included_file)
-    Path.touch(src_excluded_file)
+    src_included_file.touch()
+    src_excluded_file.touch()
 
-    dst_included_file = Path.joinpath(dst_dir, 'file.txt')
-    dst_excluded_dir = Path.joinpath(dst_dir, exclude_dir)
-    dst_excluded_file = Path.joinpath(dst_dir, exclude_dir, 'file.txt')
-    dst_included_dir = Path.joinpath(dst_dir, 'subdir', exclude_dir)
+    dst_included_file = dst_dir.joinpath('file.txt')
+    dst_excluded_dir = dst_dir.joinpath(exclude_dir)
+    dst_excluded_file = dst_dir.joinpath(exclude_dir, 'file.txt')
+    dst_included_dir = dst_dir.joinpath('subdir', exclude_dir)
 
     src_link = Link(path_to_url(src_dir))
     unpack_file_url(
