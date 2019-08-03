@@ -18,8 +18,8 @@ from pip._internal.download import (
 from pip._internal.exceptions import HashMismatch
 from pip._internal.models.link import Link
 from pip._internal.utils.hashes import Hashes
-from pip._internal.utils.misc import ensure_dir, path_to_url
-from tests.lib import create_file
+from pip._internal.utils.misc import path_to_url
+from tests.lib import Path, create_file
 
 
 @pytest.fixture(scope="function")
@@ -417,44 +417,35 @@ class Test_unpack_file_url(object):
     '.nox',
     '.tox'
 ])
-def test_unpack_file_url_with_excluded_dirs(exclude_dir):
-
-    def touch(path):
-        with open(path, 'a'):
-            os.utime(path, None)
-
-    src_dir = mkdtemp()
-    src_included_file = os.path.join(src_dir, 'file.txt')
-    src_excluded_dir = os.path.join(src_dir, exclude_dir)
-    src_excluded_file = os.path.join(src_dir, exclude_dir, 'file.txt')
-    src_included_dir = os.path.join(src_dir, 'subdir', exclude_dir)
+def test_unpack_file_url_excludes_expected_dirs(tmpdir, exclude_dir):
+    src_dir = tmpdir / 'src'
+    dst_dir = tmpdir / 'dst'
+    src_included_file = Path.joinpath(src_dir, 'file.txt')
+    src_excluded_dir = Path.joinpath(src_dir, exclude_dir)
+    src_excluded_file = Path.joinpath(src_dir, exclude_dir, 'file.txt')
+    src_included_dir = Path.joinpath(src_dir, 'subdir', exclude_dir)
 
     # set up source directory
-    ensure_dir(src_excluded_dir)
-    ensure_dir(src_included_dir)
-    touch(src_included_file)
-    touch(src_excluded_file)
+    src_excluded_dir.mkdir(parents=True)
+    src_included_dir.mkdir(parents=True)
+    Path.touch(src_included_file)
+    Path.touch(src_excluded_file)
 
-    dst_dir = mkdtemp()
-    dst_included_file = os.path.join(dst_dir, 'file.txt')
-    dst_excluded_dir = os.path.join(dst_dir, exclude_dir)
-    dst_excluded_file = os.path.join(dst_dir, exclude_dir, 'file.txt')
-    dst_included_dir = os.path.join(dst_dir, 'subdir', exclude_dir)
+    dst_included_file = Path.joinpath(dst_dir, 'file.txt')
+    dst_excluded_dir = Path.joinpath(dst_dir, exclude_dir)
+    dst_excluded_file = Path.joinpath(dst_dir, exclude_dir, 'file.txt')
+    dst_included_dir = Path.joinpath(dst_dir, 'subdir', exclude_dir)
 
-    try:
-        src_link = Link(path_to_url(src_dir))
-        unpack_file_url(
-            src_link,
-            dst_dir,
-            download_dir=None
-        )
-        assert not os.path.isdir(dst_excluded_dir)
-        assert not os.path.isfile(dst_excluded_file)
-        assert os.path.isfile(dst_included_file)
-        assert os.path.isdir(dst_included_dir)
-    finally:
-        rmtree(src_dir)
-        rmtree(dst_dir)
+    src_link = Link(path_to_url(src_dir))
+    unpack_file_url(
+        src_link,
+        dst_dir,
+        download_dir=None
+    )
+    assert not os.path.isdir(dst_excluded_dir)
+    assert not os.path.isfile(dst_excluded_file)
+    assert os.path.isfile(dst_included_file)
+    assert os.path.isdir(dst_included_dir)
 
 
 class TestSafeFileCache:

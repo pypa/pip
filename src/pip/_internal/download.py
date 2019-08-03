@@ -938,10 +938,10 @@ def unpack_file_url(
     if is_dir_url(link):
 
         def ignore(d, names):
-            # Pulling in those directories can potentially
-            # be very slow.
-            # see discussion at:
-            #   https://github.com/pypa/pip/pull/6770
+            # Pulling in those directories can potentially be very slow,
+            # exclude the following directories if they appear in the top
+            # level dir (and only it).
+            # See discussion at https://github.com/pypa/pip/pull/6770
             return ['.tox', '.nox'] if d == link_path else []
 
         if os.path.isdir(location):
