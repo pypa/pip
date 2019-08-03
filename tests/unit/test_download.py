@@ -413,6 +413,50 @@ class Test_unpack_file_url(object):
         assert os.path.isdir(os.path.join(self.build_dir, 'fspkg'))
 
 
+@pytest.mark.parametrize('exclude_dir', [
+    '.nox',
+    '.tox'
+])
+def test_unpack_file_url_with_excluded_dirs(exclude_dir):
+
+    def touch(path):
+        with open(path, 'a'):
+            os.utime(path, None)
+
+    src_dir = mkdtemp()
+    src_included_file = os.path.join(src_dir, 'file.txt')
+    src_excluded_dir = os.path.join(src_dir, exclude_dir)
+    src_excluded_file = os.path.join(src_dir, exclude_dir, 'file.txt')
+    src_included_dir = os.path.join(src_dir, 'subdir', exclude_dir)
+
+    # set up source directory
+    os.makedirs(src_excluded_dir, exist_ok=True)
+    os.makedirs(src_included_dir, exist_ok=True)
+    touch(src_included_file)
+    touch(src_excluded_file)
+
+    dst_dir = mkdtemp()
+    dst_included_file = os.path.join(dst_dir, 'file.txt')
+    dst_excluded_dir = os.path.join(dst_dir, exclude_dir)
+    dst_excluded_file = os.path.join(dst_dir, exclude_dir, 'file.txt')
+    dst_included_dir = os.path.join(dst_dir, 'subdir', exclude_dir)
+
+    try:
+        src_link = Link(path_to_url(src_dir))
+        unpack_file_url(
+            src_link,
+            dst_dir,
+            download_dir=None
+        )
+        assert not os.path.isdir(dst_excluded_dir)
+        assert not os.path.isfile(dst_excluded_file)
+        assert os.path.isfile(dst_included_file)
+        assert os.path.isdir(dst_included_dir)
+    finally:
+        rmtree(src_dir)
+        rmtree(dst_dir)
+
+
 class TestSafeFileCache:
     """
     The no_perms test are useless on Windows since SafeFileCache uses
