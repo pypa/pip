@@ -31,6 +31,7 @@ from pip._internal.exceptions import (
     UninstallationError,
 )
 from pip._internal.index import PackageFinder
+from pip._internal.legacy_resolve import Resolver
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.operations.prepare import RequirementPreparer
@@ -280,6 +281,41 @@ class RequirementCommand(Command):
             progress_bar=options.progress_bar,
             build_isolation=options.build_isolation,
             req_tracker=req_tracker,
+        )
+
+    @staticmethod
+    def make_resolver(
+            preparer,                            # type: RequirementPreparer
+            session,                             # type: PipSession
+            finder,                              # type: PackageFinder
+            options,                             # type: Values
+            wheel_cache=None,                    # type: Optional[WheelCache]
+            use_user_site=False,                 # type: bool
+            ignore_installed=True,               # type: bool
+            ignore_requires_python=False,        # type: bool
+            force_reinstall=False,               # type: bool
+            upgrade_strategy="to-satisfy-only",  # type: str
+            use_pep517=None,                     # type: Optional[bool]
+            py_version_info=None            # type: Optional[Tuple[int, ...]]
+    ):
+        # type: (...) -> Resolver
+        """
+        Create a Resolver instance for the given parameters.
+        """
+        return Resolver(
+            preparer=preparer,
+            session=session,
+            finder=finder,
+            wheel_cache=wheel_cache,
+            use_user_site=use_user_site,
+            ignore_dependencies=options.ignore_dependencies,
+            ignore_installed=ignore_installed,
+            ignore_requires_python=ignore_requires_python,
+            force_reinstall=force_reinstall,
+            isolated=options.isolated_mode,
+            upgrade_strategy=upgrade_strategy,
+            use_pep517=use_pep517,
+            py_version_info=py_version_info
         )
 
     @staticmethod

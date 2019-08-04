@@ -19,7 +19,6 @@ from pip._internal.exceptions import (
     InstallationError,
     PreviousBuildDirError,
 )
-from pip._internal.legacy_resolve import Resolver
 from pip._internal.locations import distutils_scheme
 from pip._internal.operations.check import check_install_conflicts
 from pip._internal.req import RequirementSet, install_given_reqs
@@ -326,19 +325,18 @@ class InstallCommand(RequirementCommand):
                         options=options,
                         req_tracker=req_tracker,
                     )
-                    resolver = Resolver(
+                    resolver = self.make_resolver(
                         preparer=preparer,
                         finder=finder,
                         session=session,
+                        options=options,
                         wheel_cache=wheel_cache,
                         use_user_site=options.use_user_site,
-                        upgrade_strategy=upgrade_strategy,
-                        force_reinstall=options.force_reinstall,
-                        ignore_dependencies=options.ignore_dependencies,
-                        ignore_requires_python=options.ignore_requires_python,
                         ignore_installed=options.ignore_installed,
-                        isolated=options.isolated_mode,
-                        use_pep517=options.use_pep517
+                        ignore_requires_python=options.ignore_requires_python,
+                        force_reinstall=options.force_reinstall,
+                        upgrade_strategy=upgrade_strategy,
+                        use_pep517=options.use_pep517,
                     )
                     resolver.resolve(requirement_set)
 
