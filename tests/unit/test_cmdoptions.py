@@ -1,5 +1,8 @@
+import os
+
 import pretend
 import pytest
+from mock import patch
 
 from pip._internal.cli.cmdoptions import (
     _convert_python_version, make_search_scope,
@@ -7,20 +10,24 @@ from pip._internal.cli.cmdoptions import (
 
 
 @pytest.mark.parametrize(
-    'no_index, suppress_no_index, expected_index_urls', [
-        (False, False, ['default_url', 'url1', 'url2']),
-        (False, True, ['default_url', 'url1', 'url2']),
-        (True, False, []),
+    'find_links, no_index, suppress_no_index, expected', [
+        (['link1'], False, False,
+         (['link1'], ['default_url', 'url1', 'url2'])),
+        (['link1'], False, True, (['link1'], ['default_url', 'url1', 'url2'])),
+        (['link1'], True, False, (['link1'], [])),
         # Passing suppress_no_index=True suppresses no_index=True.
-        (True, True, ['default_url', 'url1', 'url2']),
+        (['link1'], True, True, (['link1'], ['default_url', 'url1', 'url2'])),
+        # Test options.find_links=False.
+        (False, False, False, ([], ['default_url', 'url1', 'url2'])),
     ],
 )
-def test_make_search_scope(no_index, suppress_no_index, expected_index_urls):
+def test_make_search_scope(find_links, no_index, suppress_no_index, expected):
     """
-    :param expected: the expected index_urls value.
+    :param expected: the expected (find_links, index_urls) values.
     """
+    expected_find_links, expected_index_urls = expected
     options = pretend.stub(
-        find_links=['link1'],
+        find_links=find_links,
         index_url='default_url',
         extra_index_urls=['url1', 'url2'],
         no_index=no_index,
@@ -28,8 +35,40 @@ def test_make_search_scope(no_index, suppress_no_index, expected_index_urls):
     search_scope = make_search_scope(
         options, suppress_no_index=suppress_no_index,
     )
-    assert search_scope.find_links == ['link1']
+    assert search_scope.find_links == expected_find_links
     assert search_scope.index_urls == expected_index_urls
+
+
+@patch('pip._internal.utils.misc.expanduser')
+def test_make_search_scope__find_links_expansion(mock_expanduser, tmpdir):
+    """
+    Test "~" expansion in --find-links paths.
+    """
+    # This is a mock version of expanduser() that expands "~" to the tmpdir.
+    def expand_path(path):
+        if path.startswith('~/'):
+            path = os.path.join(tmpdir, path[2:])
+        return path
+
+    mock_expanduser.side_effect = expand_path
+
+    options = pretend.stub(
+        find_links=['~/temp1', '~/temp2'],
+        index_url='default_url',
+        extra_index_urls=[],
+        no_index=False,
+    )
+    # Only create temp2 and not temp1 to test that "~" expansion only occurs
+    # when the directory exists.
+    temp2_dir = os.path.join(tmpdir, 'temp2')
+    os.mkdir(temp2_dir)
+
+    search_scope = make_search_scope(options)
+
+    # Only ~/temp2 gets expanded. Also, the path is normalized when expanded.
+    expected_temp2_dir = os.path.normcase(temp2_dir)
+    assert search_scope.find_links == ['~/temp1', expected_temp2_dir]
+    assert search_scope.index_urls == ['default_url']
 
 
 @pytest.mark.parametrize('value, expected', [
