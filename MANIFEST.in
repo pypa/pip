@@ -15,6 +15,7 @@ exclude .coveragerc
 exclude .mailmap
 exclude .appveyor.yml
 exclude .travis.yml
+exclude .readthedocs.yml
 exclude tox.ini
 
 recursive-include src/pip/_vendor *.pem
