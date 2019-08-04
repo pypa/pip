@@ -1,6 +1,10 @@
 """
 Support for installing and building the "wheel" binary package format.
 """
+
+# The following comment should be removed at some point in the future.
+# mypy: strict-optional=False
+
 from __future__ import absolute_import
 
 import collections
