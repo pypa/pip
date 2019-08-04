@@ -401,7 +401,7 @@ def test_check_compatibility():
     # test raises with correct error
     with pytest.raises(UnsupportedWheel) as e:
         wheel.check_compatibility(higher_v, name)
-    assert 'is not compatible' in str(e)
+    assert 'is not compatible' in str(e.value)
 
     # Should only log.warning - minor version is greater
     higher_v = (vc[0], vc[1] + 1)
