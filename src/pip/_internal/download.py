@@ -47,6 +47,7 @@ from pip._internal.utils.misc import (
     format_size,
     get_installed_version,
     path_to_url,
+    redact_password_from_url,
     remove_auth_from_url,
     rmtree,
     split_auth_netloc_from_url,
@@ -839,13 +840,13 @@ def _download_url(
         progress_indicator = DownloadProgressProvider(progress_bar,
                                                       max=total_length)
         if total_length:
-            logger.info("Downloading %s (%s)", url, format_size(total_length))
+            logger.info("Downloading %s (%s)", redact_password_from_url(url), format_size(total_length))
         else:
-            logger.info("Downloading %s", url)
+            logger.info("Downloading %s", redact_password_from_url(url))
     elif cached_resp:
-        logger.info("Using cached %s", url)
+        logger.info("Using cached %s", redact_password_from_url(url))
     else:
-        logger.info("Downloading %s", url)
+        logger.info("Downloading %s", redact_password_from_url(url))
 
     logger.debug('Downloading from URL %s', link)
 
