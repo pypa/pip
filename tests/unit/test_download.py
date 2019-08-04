@@ -483,18 +483,53 @@ class TestPipSession:
         assert not hasattr(session.adapters["https://example.com/"], "cache")
 
 
-def test_get_credentials():
+@pytest.mark.parametrize(["input_url", "url", "username", "password"], [
+    (
+        "http://user%40email.com:password@example.com/path",
+        "http://example.com/path",
+        "user@email.com",
+        "password",
+    ),
+    (
+        "http://username:password@example.com/path",
+        "http://example.com/path",
+        "username",
+        "password",
+    ),
+    (
+        "http://token@example.com/path",
+        "http://example.com/path",
+        "token",
+        "",
+    ),
+    (
+        "http://example.com/path",
+        "http://example.com/path",
+        None,
+        None,
+    ),
+])
+def test_get_credentials_parses_correctly(input_url, url, username, password):
     auth = MultiDomainBasicAuth()
     get = auth._get_url_and_credentials
 
     # Check URL parsing
-    assert get("http://foo:bar@example.com/path") \
-        == ('http://example.com/path', 'foo', 'bar')
-    assert auth.passwords['example.com'] == ('foo', 'bar')
+    assert get(input_url) == (url, username, password)
+    assert (
+        # There are no credentials in the URL
+        (username is None and password is None) or
+        # Credentials were found and "cached" appropriately
+        auth.passwords['example.com'] == (username, password)
+    )
 
+
+def test_get_credentials_uses_cached_credentials():
+    auth = MultiDomainBasicAuth()
     auth.passwords['example.com'] = ('user', 'pass')
-    assert get("http://foo:bar@example.com/path") \
-        == ('http://example.com/path', 'user', 'pass')
+
+    got = auth._get_url_and_credentials("http://foo:bar@example.com/path")
+    expected = ('http://example.com/path', 'user', 'pass')
+    assert got == expected
 
 
 def test_get_index_url_credentials():
