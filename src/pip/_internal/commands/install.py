@@ -327,8 +327,8 @@ class InstallCommand(RequirementCommand):
                     )
                     resolver = self.make_resolver(
                         preparer=preparer,
-                        session=session,
                         finder=finder,
+                        session=session,
                         options=options,
                         wheel_cache=wheel_cache,
                         use_user_site=options.use_user_site,
