@@ -42,6 +42,15 @@ if MYPY_CHECK_RUNNING:
 logger = logging.getLogger(__name__)
 
 
+def _get_prepared_distribution(req, req_tracker, finder, build_isolation):
+    """Prepare a distribution for installation.
+    """
+    abstract_dist = make_distribution_for_install_requirement(req)
+    with req_tracker.track(req):
+        abstract_dist.prepare_distribution_metadata(finder, build_isolation)
+    return abstract_dist
+
+
 class RequirementPreparer(object):
     """Prepares a Requirement
     """
@@ -207,11 +216,11 @@ class RequirementPreparer(object):
                     'error %s for URL %s' %
                     (req, exc, link)
                 )
-            abstract_dist = make_distribution_for_install_requirement(req)
-            with self.req_tracker.track(req):
-                abstract_dist.prepare_distribution_metadata(
-                    finder, self.build_isolation,
-                )
+
+            abstract_dist = _get_prepared_distribution(
+                req, self.req_tracker, finder, self.build_isolation,
+            )
+
             if self._download_should_save:
                 # Make a .zip of the source_dir we already created.
                 if not link.is_artifact:
@@ -242,11 +251,9 @@ class RequirementPreparer(object):
             req.ensure_has_source_dir(self.src_dir)
             req.update_editable(not self._download_should_save)
 
-            abstract_dist = make_distribution_for_install_requirement(req)
-            with self.req_tracker.track(req):
-                abstract_dist.prepare_distribution_metadata(
-                    finder, self.build_isolation,
-                )
+            abstract_dist = _get_prepared_distribution(
+                req, self.req_tracker, finder, self.build_isolation,
+            )
 
             if self._download_should_save:
                 req.archive(self.download_dir)
