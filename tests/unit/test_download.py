@@ -16,6 +16,7 @@ from pip._internal.download import (
     PipSession,
     SafeFileCache,
     _download_http_url,
+    _get_url_scheme,
     parse_content_disposition,
     sanitize_content_filename,
     unpack_file_url,
@@ -289,6 +290,16 @@ def test_download_http_url__no_directory_traversal(tmpdir):
     # The file should be downloaded to download_dir.
     actual = os.listdir(download_dir)
     assert actual == ['out_dir_file']
+
+
+@pytest.mark.parametrize("url,expected", [
+    ('http://localhost:8080/', 'http'),
+    ('file:c:/path/to/file', 'file'),
+    ('file:/dev/null', 'file'),
+    ('', None),
+])
+def test__get_url_scheme(url, expected):
+    assert _get_url_scheme(url) == expected
 
 
 @pytest.mark.parametrize("url,win_expected,non_win_expected", [
