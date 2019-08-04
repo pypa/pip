@@ -1,13 +1,14 @@
 freezegun
 mock
 pretend
-pytest==3.8.2
+pytest; python_version >= "3"
+pytest < 5.0.0; python_version < "3"
 pytest-cov
 # Prevent installing 7.0 which has install_requires "pytest >= 3.10".
-pytest-rerunfailures<7.0
+pytest-rerunfailures
 pytest-timeout
 # Prevent installing 1.28.0 which has install_requires "pytest >= 4.4.0".
-pytest-xdist<1.28.0
+pytest-xdist
 pyyaml
 setuptools>=39.2.0  # Needed for `setuptools.wheel.Wheel` support.
 scripttest
