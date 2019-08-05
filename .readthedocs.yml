@@ -1,6 +1,7 @@
 version: 2
 
 sphinx:
+  builder: htmldir
   configuration: docs/html/conf.py
 
 python:
