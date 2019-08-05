@@ -967,12 +967,23 @@ def unpack_file_url(
     of the link file inside download_dir.
     """
     link_path = url_to_path(link.url_without_fragment)
-
     # If it's a url to a local directory
     if is_dir_url(link):
+
+        def ignore(d, names):
+            # Pulling in those directories can potentially be very slow,
+            # exclude the following directories if they appear in the top
+            # level dir (and only it).
+            # See discussion at https://github.com/pypa/pip/pull/6770
+            return ['.tox', '.nox'] if d == link_path else []
+
         if os.path.isdir(location):
             rmtree(location)
-        shutil.copytree(link_path, location, symlinks=True)
+        shutil.copytree(link_path,
+                        location,
+                        symlinks=True,
+                        ignore=ignore)
+
         if download_dir:
             logger.info('Link is a directory, ignoring download_dir')
         return
