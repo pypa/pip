@@ -99,9 +99,6 @@ def test_basic_install_from_wheel_file(script, data):
                                                         result.stdout)
 
 
-# header installs are broke in pypy virtualenvs
-# https://github.com/pypa/virtualenv/issues/510
-@pytest.mark.skipif("hasattr(sys, 'pypy_version_info')")
 def test_install_from_wheel_with_headers(script, data):
     """
     Test installing from a wheel file with headers
