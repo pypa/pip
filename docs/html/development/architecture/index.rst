@@ -4,7 +4,7 @@ Architecture of pip's internals
 
 .. note::
     This section of the documentation is currently being written. pip
-    developers welcome help to complete this documentation. If you're
+    developers welcome your help to complete this documentation. If you're
     interested in helping out, please let us know in the `tracking issue`_.
 
 .. note::
