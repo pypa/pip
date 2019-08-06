@@ -148,7 +148,6 @@ Root and tools
 
 The ``README``, license, ``pyproject.toml``, ``setup.py``, and so on are in the top level.
 
-
 * ``AUTHORS.txt``
 * ``LICENSE.txt``
 * ``MANIFEST.in``
@@ -203,17 +202,20 @@ source code. Within ``src/pip/``, ``_internal/`` has the pip code
 that's written by pip maintainers, and ``\_vendor/`` is pip's
 dependencies (code from other packages).
 
+Within ``src/``:
+
+* ``pip.egg-info/`` *[ignore the contents for now]*
 * ``pip/``
 
   * ``__init__.py``
   * ``__main__.py``
   * ``__pycache__/`` *[not discussing contents right now]*
   * ``_internal/`` *[where all the pip code lives that’s written by pip maintainers -- underscore means private. Pip is not a library -- it’s a command line tool! A very important distinction! People who want to install stuff with pip should not use the internals -- they should use the CLI. There’s a note on this in the docs.]*
+
     * ``__init__.py``
     * ``build_env.py`` [not discussing now]
     * ``cache.py`` *[has all the info for how to handle caching within pip -- cache-handling stuff. Uses cachecontrol from PyPI, vendored into pip]*
     * ``cli/`` *[subpackage containing helpers & additional code for managing the command line interface. Uses argparse from stdlib]*
-
     * ``commands/`` *[literally - each file is the name of the command on the pip CLI. Each has a class that defines what’s needed to set it up, what happens]*
     * ``configuration.py``
     * ``download.py``
@@ -225,14 +227,13 @@ dependencies (code from other packages).
     * ``pep425tags.py`` *[getting refactored into packaging.tags (a library on PyPI) which is external to pip (but vendored by pip). PEP 425 tags: turns out lots of people want this! Compatibility tags for built distributions -> e.g., platform, Python version, etc.]*
     * ``pyproject.py`` *[pyproject.toml is a new standard (PEP 518 and 517). This file reads pyproject.toml and passes that info elsewhere. The rest of the processing happens in a different file. All the handling for 517 and 518 is in a different file.]*
     * ``req/`` *[*\ **A DIRECTORY THAT NEEDS REFACTORING. A LOT**\ *\ …… Remember Step 3? Dependency resolution etc.? This is that step! Each file represents … have the entire flow of installing & uninstalling, getting info about packages…. Some files here are more than 1,000 lines long! (used to be longer?!) Refactor will deeply improve developer experience.]*
-    * ``resolve.py`` *[This is where the current dependency resolution algorithm sits. Pradyun is improving the pip dependency resolver*\ https://github.com/pypa/pip/issues/988\ *. Pradyun will get rid of this file and replace it with a directory called “resolution”. [this work is in git master…. There is further work that is going to be in a branch soon]]*
+    * ``resolve.py`` *[This is where the current dependency resolution algorithm sits. Pradyun is `improving the pip dependency resolver`_. Pradyun will get rid of this file and replace it with a directory called “resolution”. (this work is in git master…. There is further work that is going to be in a branch soon)]*
     * ``utils/`` *[everything that is not “operationally” pip ….. Misc functions and files get dumped. There’s some organization here. There’s a models.py here which needs refactoring. Deprecation.py is useful, as are other things, but some things do not belong here. There ought to be some GitHub issues for refactoring some things here. Maybe a few issues with checkbox lists.]*
-    * ``vcs/`` *[stands for Version Control System. Where pip handles all version control stuff -- one of the ``pip install`` arguments you can use is a version control link. …. Are any of these commands
-vendored? No, via subprocesses. For performance, it makes sense (we think) to do this instead of pygitlib2 or similar -- and has to be pure Python, can’t include C libraries, because you can’t include compiled C stuff, because you might not have it for the platform you are running on.]*
+    * ``vcs/`` *[stands for Version Control System. Where pip handles all version control stuff -- one of the ``pip install`` arguments you can use is a version control link. Are any of these commands vendored? No, via subprocesses. For performance, it makes sense (we think) to do this instead of pygitlib2 or similar -- and has to be pure Python, can’t include C libraries, because you can’t include compiled C stuff, because you might not have it for the platform you are running on.]*
     * ``wheel.py`` *[file that manages installation of a wheel file. This handles unpacking wheels -- “unpack and spread”. There is a package on PyPI called ``wheel`` that builds wheels -- do not confuse it with this.]*
+
   * ``_vendor/`` *[code from other packages -- pip’s own dependencies…. Has them in its own source tree, because pip cannot depend on pip being installed on the machine already!]*
-  
-* ``pip.egg-info/`` *[ignore the contents for now]*
+
 
 
 
@@ -240,3 +241,4 @@ vendored? No, via subprocesses. For performance, it makes sense (we think) to do
 .. _GitHub repository: https://github.com/pypa/pip/
 .. _tox.ini: https://github.com/pypa/pip/blob/master/tox.ini
 .. _PyPI Simple API: https://warehouse.readthedocs.io/api-reference/legacy/#simple-project-api
+.. _improving the pip depedency resolver: https://github.com/pypa/pip/issues/988
