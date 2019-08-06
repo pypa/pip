@@ -133,7 +133,5 @@ Answer: It's not every file, just files of Flask. No API for getting alllllll
 files on PyPI. It’s for getting all files of Flask.)
 
 .. _PyPI: https://pypi.org/
-.. _GitHub repository: https://github.com/pypa/pip/
-.. _tox.ini: https://github.com/pypa/pip/blob/master/tox.ini
 .. _PyPI Simple API: https://warehouse.readthedocs.io/api-reference/legacy/#simple-project-api
 

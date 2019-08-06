@@ -97,4 +97,6 @@ Within ``src/``:
 
   * ``_vendor/`` *[code from other packages -- pip’s own dependencies…. Has them in its own source tree, because pip cannot depend on pip being installed on the machine already!]*
 
+.. _GitHub repository: https://github.com/pypa/pip/
+.. _tox.ini: https://github.com/pypa/pip/blob/master/tox.ini
 .. _improving the pip depedency resolver: https://github.com/pypa/pip/issues/988
