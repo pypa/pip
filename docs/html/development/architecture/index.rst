@@ -15,6 +15,10 @@ Architecture of pip's internals
 .. toctree::
     :maxdepth: 2
 
+    overview
+    anatomy
+    
+
 
 
 .. _`tracking issue`: https://github.com/pypa/pip/issues/6831

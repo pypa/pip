@@ -13,7 +13,6 @@ or the `pypa-dev mailing list`_, to ask questions or get involved.
     :maxdepth: 2
 
     getting-started
-    architecture
     contributing
     architecture/index
     release-process
