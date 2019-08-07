@@ -4,8 +4,8 @@ import logging
 import os
 
 from pip._internal.cli import cmdoptions
-from pip._internal.cli.base_command import RequirementCommand
 from pip._internal.cli.cmdoptions import make_target_python
+from pip._internal.cli.req_command import RequirementCommand
 from pip._internal.req import RequirementSet
 from pip._internal.req.req_tracker import RequirementTracker
 from pip._internal.utils.filesystem import check_path_owner
