@@ -21,6 +21,7 @@ from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
 from pip._vendor.requests.structures import CaseInsensitiveDict
 from pip._vendor.requests.utils import get_netrc_auth
+from pip._vendor.six import PY2
 # NOTE: XMLRPC Client is not annotated in typeshed as on 2017-07-17, which is
 #       why we ignore the type on this import
 from pip._vendor.six.moves import xmlrpc_client  # type: ignore
@@ -33,7 +34,7 @@ from pip._internal.models.index import PyPI
 # Import ssl from compat so the initial import occurs in only one place.
 from pip._internal.utils.compat import HAS_TLS, ssl
 from pip._internal.utils.encoding import auto_decode
-from pip._internal.utils.filesystem import check_path_owner, copytree
+from pip._internal.utils.filesystem import check_path_owner, copy2_fixed
 from pip._internal.utils.glibc import libc_ver
 from pip._internal.utils.marker_files import write_delete_marker_file
 from pip._internal.utils.misc import (
@@ -945,6 +946,27 @@ def unpack_http_url(
             os.unlink(from_path)
 
 
+def _copy2_ignoring_special_files(src, dest):
+    # type: (str, str) -> None
+    """Copying special files is not supported, but as a convenience to users
+    we skip errors copying them. This supports tools that may create e.g.
+    socket files in the project source directory.
+    """
+    try:
+        copy2_fixed(src, dest)
+    except shutil.SpecialFileError as e:
+        # SpecialFileError may be raised due to either the source or
+        # destination. If the destination was the cause then we would actually
+        # care, but since the destination directory is deleted prior to
+        # copy we ignore all of them assuming it is caused by the source.
+        logger.warning(
+            "Ignoring special file error '%s' encountered copying %s to %s.",
+            str(e),
+            path_to_display(src),
+            path_to_display(dest),
+        )
+
+
 def _copy_source_tree(source, target):
     # type: (str, str) -> None
     def ignore(d, names):
@@ -954,36 +976,18 @@ def _copy_source_tree(source, target):
         # See discussion at https://github.com/pypa/pip/pull/6770
         return ['.tox', '.nox'] if d == source else []
 
-    def ignore_special_file_errors(error_details):
-        # Copying special files is not supported, so we skip errors related to
-        # them. This is a convenience to support users that may have tools
-        # creating e.g. socket files in their source directory.
-        src, dest, error = error_details
-
-        if not isinstance(error, shutil.SpecialFileError):
-            # Then it is some other kind of error that we do want to report.
-            return True
-
-        # SpecialFileError may be raised due to either the source or
-        # destination. If the destination was the cause then we would actually
-        # care, but since the destination directory is deleted prior to
-        # copy we ignore all of them assuming it is caused by the source.
-        logger.warning(
-            "Ignoring special file error '%s' encountered copying %s to %s.",
-            str(error),
-            path_to_display(src),
-            path_to_display(dest),
+    if PY2:
+        # Python 2 does not support copy_function, so we let errors for
+        # uncopyable special files propagate.
+        shutil.copytree(source, target, ignore=ignore, symlinks=True)
+    else:
+        shutil.copytree(
+            source,
+            target,
+            copy_function=_copy2_ignoring_special_files,
+            ignore=ignore,
+            symlinks=True
         )
-
-    try:
-        copytree(source, target, ignore=ignore, symlinks=True)
-    except shutil.Error as e:
-        errors = e.args[0]
-        normal_file_errors = list(
-            filter(ignore_special_file_errors, errors)
-        )
-        if normal_file_errors:
-            raise shutil.Error(normal_file_errors)
 
 
 def unpack_file_url(

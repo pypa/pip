@@ -32,33 +32,28 @@ def check_path_owner(path):
     return False  # assume we don't own the path
 
 
-def copytree(*args, **kwargs):
-    """Wrap shutil.copytree() to map errors copying socket file to
-    SpecialFileError.
+def copy2_fixed(src, dest):
+    # type: (str, str) -> None
+    """Wrap shutil.copy2() but map errors copying socket files to
+    SpecialFileError as expected.
 
     See also https://bugs.python.org/issue37700.
     """
-    def to_correct_error(src, dest, error):
+    try:
+        shutil.copy2(src, dest)
+    except (OSError, IOError):
         for f in [src, dest]:
             try:
-                if is_socket(f):
-                    new_error = shutil.SpecialFileError("`%s` is a socket" % f)
-                    return (src, dest, new_error)
+                is_socket_file = is_socket(f)
             except OSError:
                 # An error has already occurred. Another error here is not
                 # a problem and we can ignore it.
                 pass
+            else:
+                if is_socket_file:
+                    raise shutil.SpecialFileError("`%s` is a socket" % f)
 
-        return (src, dest, error)
-
-    try:
-        shutil.copytree(*args, **kwargs)
-    except shutil.Error as e:
-        errors = e.args[0]
-        new_errors = [
-            to_correct_error(src, dest, error) for src, dest, error in errors
-        ]
-        raise shutil.Error(new_errors)
+        raise
 
 
 def is_socket(path):

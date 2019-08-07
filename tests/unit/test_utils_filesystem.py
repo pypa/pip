@@ -3,9 +3,9 @@ import shutil
 
 import pytest
 
-from pip._internal.utils.filesystem import copytree, is_socket
+from pip._internal.utils.filesystem import copy2_fixed, is_socket
 
-from ..lib.filesystem import make_socket_file
+from ..lib.filesystem import make_socket_file, make_unreadable_file
 from ..lib.path import Path
 
 
@@ -27,7 +27,10 @@ def make_dir(path):
     os.mkdir(path)
 
 
-@pytest.mark.skipif("sys.platform == 'win32'")
+skip_on_windows = pytest.mark.skipif("sys.platform == 'win32'")
+
+
+@skip_on_windows
 @pytest.mark.parametrize("create,result", [
     (make_socket_file, True),
     (make_file, False),
@@ -42,28 +45,18 @@ def test_is_socket(create, result, tmpdir):
     assert is_socket(target) == result
 
 
-@pytest.mark.skipif("sys.platform == 'win32'")
-def test_copytree_maps_socket_errors(tmpdir):
-    src_dir = tmpdir.joinpath("src")
-    make_dir(src_dir)
-    make_file(src_dir.joinpath("a"))
-    socket_src = src_dir.joinpath("b")
-    make_socket_file(socket_src)
-    make_file(src_dir.joinpath("c"))
+@pytest.mark.parametrize("create,error_type", [
+    pytest.param(
+        make_socket_file, shutil.SpecialFileError, marks=skip_on_windows
+    ),
+    (make_unreadable_file, OSError),
+])
+def test_copy2_fixed_raises_appropriate_errors(create, error_type, tmpdir):
+    src = tmpdir.joinpath("src")
+    create(src)
+    dest = tmpdir.joinpath("dest")
 
-    dest_dir = tmpdir.joinpath("dest")
-    socket_dest = dest_dir.joinpath("b")
+    with pytest.raises(error_type):
+        copy2_fixed(src, dest)
 
-    with pytest.raises(shutil.Error) as e:
-        copytree(src_dir, dest_dir)
-
-    errors = e.value.args[0]
-    assert len(errors) == 1
-    src, dest, error = errors[0]
-    assert src == str(socket_src)
-    assert dest == str(socket_dest)
-    assert isinstance(error, shutil.SpecialFileError)
-
-    assert dest_dir.joinpath("a").exists()
-    assert not socket_dest.exists()
-    assert dest_dir.joinpath("c").exists()
+    assert not dest.exists()
