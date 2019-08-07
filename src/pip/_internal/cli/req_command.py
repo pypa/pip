@@ -1,12 +1,15 @@
-"""Contains the RequirementCommand base class.
+"""Contains the Command base classes that depend on PipSession.
 
-This is in a separate module so that Command classes not inheriting from
-RequirementCommand don't need to import e.g. the PackageFinder machinery
-and all its vendored dependencies.
+The classes in this module are in a separate module so the commands not
+needing download / PackageFinder capability don't unnecessarily import the
+PackageFinder machinery and all its vendored dependencies, etc.
 """
+
+import os
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.cmdoptions import make_search_scope
+from pip._internal.download import PipSession
 from pip._internal.exceptions import CommandError
 from pip._internal.index import PackageFinder
 from pip._internal.legacy_resolve import Resolver
@@ -17,20 +20,111 @@ from pip._internal.req.constructors import (
     install_req_from_line,
 )
 from pip._internal.req.req_file import parse_requirements
+from pip._internal.utils.misc import normalize_path
+from pip._internal.utils.outdated import pip_version_check
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
     from typing import List, Optional, Tuple
     from pip._internal.cache import WheelCache
-    from pip._internal.download import PipSession
     from pip._internal.models.target_python import TargetPython
     from pip._internal.req.req_set import RequirementSet
     from pip._internal.req.req_tracker import RequirementTracker
     from pip._internal.utils.temp_dir import TempDirectory
 
 
-class RequirementCommand(Command):
+class SessionCommandMixin(object):
+
+    """
+    A class mixin for command classes needing _build_session().
+    """
+
+    @classmethod
+    def _get_index_urls(cls, options):
+        """Return a list of index urls from user-provided options."""
+        index_urls = []
+        if not getattr(options, "no_index", False):
+            url = getattr(options, "index_url", None)
+            if url:
+                index_urls.append(url)
+        urls = getattr(options, "extra_index_urls", None)
+        if urls:
+            index_urls.extend(urls)
+        # Return None rather than an empty list
+        return index_urls or None
+
+    def _build_session(self, options, retries=None, timeout=None):
+        # type: (Values, Optional[int], Optional[int]) -> PipSession
+        session = PipSession(
+            cache=(
+                normalize_path(os.path.join(options.cache_dir, "http"))
+                if options.cache_dir else None
+            ),
+            retries=retries if retries is not None else options.retries,
+            insecure_hosts=options.trusted_hosts,
+            index_urls=self._get_index_urls(options),
+        )
+
+        # Handle custom ca-bundles from the user
+        if options.cert:
+            session.verify = options.cert
+
+        # Handle SSL client certificate
+        if options.client_cert:
+            session.cert = options.client_cert
+
+        # Handle timeouts
+        if options.timeout or timeout:
+            session.timeout = (
+                timeout if timeout is not None else options.timeout
+            )
+
+        # Handle configured proxies
+        if options.proxy:
+            session.proxies = {
+                "http": options.proxy,
+                "https": options.proxy,
+            }
+
+        # Determine if we can prompt the user for authentication or not
+        session.auth.prompting = not options.no_input
+
+        return session
+
+
+class IndexGroupCommand(SessionCommandMixin, Command):
+
+    """
+    Abstract base class for commands with the index_group options.
+
+    This also corresponds to the commands that permit the pip version check.
+    """
+
+    def handle_pip_version_check(self, options):
+        # type: (Values) -> None
+        """
+        Do the pip version check if not disabled.
+
+        This overrides the default behavior of not doing the check.
+        """
+        # Make sure the index_group options are present.
+        assert hasattr(options, 'no_index')
+
+        if options.disable_pip_version_check or options.no_index:
+            return
+
+        # Otherwise, check if we're using the latest version of pip available.
+        session = self._build_session(
+            options,
+            retries=0,
+            timeout=min(5, options.timeout)
+        )
+        with session:
+            pip_version_check(session, options)
+
+
+class RequirementCommand(IndexGroupCommand):
 
     @staticmethod
     def make_requirement_preparer(

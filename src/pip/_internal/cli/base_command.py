@@ -25,7 +25,6 @@ from pip._internal.cli.status_codes import (
     UNKNOWN_ERROR,
     VIRTUALENV_NOT_FOUND,
 )
-from pip._internal.download import PipSession
 from pip._internal.exceptions import (
     BadCommand,
     CommandError,
@@ -35,8 +34,7 @@ from pip._internal.exceptions import (
 )
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.logging import BrokenStdoutLoggingError, setup_logging
-from pip._internal.utils.misc import get_prog, normalize_path
-from pip._internal.utils.outdated import pip_version_check
+from pip._internal.utils.misc import get_prog
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
@@ -81,61 +79,19 @@ class Command(object):
         )
         self.parser.add_option_group(gen_opts)
 
+    def handle_pip_version_check(self, options):
+        # type: (Values) -> None
+        """
+        This is a no-op so that commands by default do not do the pip version
+        check.
+        """
+        # Make sure we do the pip version check if the index_group options
+        # are present.
+        assert not hasattr(options, 'no_index')
+
     def run(self, options, args):
         # type: (Values, List[Any]) -> Any
         raise NotImplementedError
-
-    @classmethod
-    def _get_index_urls(cls, options):
-        """Return a list of index urls from user-provided options."""
-        index_urls = []
-        if not getattr(options, "no_index", False):
-            url = getattr(options, "index_url", None)
-            if url:
-                index_urls.append(url)
-        urls = getattr(options, "extra_index_urls", None)
-        if urls:
-            index_urls.extend(urls)
-        # Return None rather than an empty list
-        return index_urls or None
-
-    def _build_session(self, options, retries=None, timeout=None):
-        # type: (Values, Optional[int], Optional[int]) -> PipSession
-        session = PipSession(
-            cache=(
-                normalize_path(os.path.join(options.cache_dir, "http"))
-                if options.cache_dir else None
-            ),
-            retries=retries if retries is not None else options.retries,
-            insecure_hosts=options.trusted_hosts,
-            index_urls=self._get_index_urls(options),
-        )
-
-        # Handle custom ca-bundles from the user
-        if options.cert:
-            session.verify = options.cert
-
-        # Handle SSL client certificate
-        if options.client_cert:
-            session.cert = options.client_cert
-
-        # Handle timeouts
-        if options.timeout or timeout:
-            session.timeout = (
-                timeout if timeout is not None else options.timeout
-            )
-
-        # Handle configured proxies
-        if options.proxy:
-            session.proxies = {
-                "http": options.proxy,
-                "https": options.proxy,
-            }
-
-        # Determine if we can prompt the user for authentication or not
-        session.auth.prompting = not options.no_input
-
-        return session
 
     def parse_args(self, args):
         # type: (List[str]) -> Tuple
@@ -226,21 +182,7 @@ class Command(object):
 
             return UNKNOWN_ERROR
         finally:
-            allow_version_check = (
-                # Does this command have the index_group options?
-                hasattr(options, "no_index") and
-                # Is this command allowed to perform this check?
-                not (options.disable_pip_version_check or options.no_index)
-            )
-            # Check if we're using the latest version of pip available
-            if allow_version_check:
-                session = self._build_session(
-                    options,
-                    retries=0,
-                    timeout=min(5, options.timeout)
-                )
-                with session:
-                    pip_version_check(session, options)
+            self.handle_pip_version_check(options)
 
             # Shutdown the logging module
             logging.shutdown()
