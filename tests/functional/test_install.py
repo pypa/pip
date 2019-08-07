@@ -504,11 +504,13 @@ def test_install_from_local_directory_with_socket_file(script, data, tmpdir):
 
     shutil.copytree(to_copy, to_install)
     # Socket file, should be ignored.
-    make_socket_file(os.path.join(to_install, "example"))
+    socket_file_path = os.path.join(to_install, "example")
+    make_socket_file(socket_file_path)
 
-    result = script.pip("install", to_install, expect_error=False)
+    result = script.pip("install", "--verbose", to_install, expect_error=False)
     assert package_folder in result.files_created, str(result.stdout)
     assert egg_info_file in result.files_created, str(result)
+    assert str(socket_file_path) in result.stderr
 
 
 def test_install_from_local_directory_with_no_setup_py(script, data):

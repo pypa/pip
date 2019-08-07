@@ -363,15 +363,22 @@ def test_copy_source_tree(clean_project, tmpdir):
 
 
 @pytest.mark.skipif("sys.platform == 'win32'")
-def test_copy_source_tree_with_socket(clean_project, tmpdir):
+def test_copy_source_tree_with_socket(clean_project, tmpdir, caplog):
     target = tmpdir.joinpath("target")
     expected_files = get_filelist(clean_project)
-    make_socket_file(clean_project.joinpath("aaa"))
+    socket_path = str(clean_project.joinpath("aaa"))
+    make_socket_file(socket_path)
 
     _copy_source_tree(clean_project, target)
 
     copied_files = get_filelist(target)
     assert expected_files == copied_files
+
+    # Warning should have been logged.
+    assert len(caplog.records) == 1
+    record = caplog.records[0]
+    assert record.levelname == 'WARNING'
+    assert socket_path in record.message
 
 
 @pytest.mark.skipif("sys.platform == 'win32'")
@@ -392,7 +399,7 @@ def test_copy_source_tree_with_socket_fails_with_no_socket_error(
     assert unreadable_file in errored_files
 
     copied_files = get_filelist(target)
-    # Even with errors, all files should have been copied.
+    # All files without errors should have been copied.
     assert expected_files == copied_files
 
 
@@ -410,7 +417,7 @@ def test_copy_source_tree_with_unreadable_dir_fails(clean_project, tmpdir):
     assert unreadable_file in errored_files
 
     copied_files = get_filelist(target)
-    # Even with errors, all files should have been copied.
+    # All files without errors should have been copied.
     assert expected_files == copied_files
 
 

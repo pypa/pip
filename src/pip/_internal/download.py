@@ -33,7 +33,7 @@ from pip._internal.models.index import PyPI
 # Import ssl from compat so the initial import occurs in only one place.
 from pip._internal.utils.compat import HAS_TLS, ssl
 from pip._internal.utils.encoding import auto_decode
-from pip._internal.utils.filesystem import check_path_owner, is_socket
+from pip._internal.utils.filesystem import check_path_owner, copytree
 from pip._internal.utils.glibc import libc_ver
 from pip._internal.utils.marker_files import write_delete_marker_file
 from pip._internal.utils.misc import (
@@ -49,6 +49,7 @@ from pip._internal.utils.misc import (
     format_size,
     get_installed_version,
     netloc_has_port,
+    path_to_display,
     path_to_url,
     remove_auth_from_url,
     rmtree,
@@ -63,7 +64,7 @@ from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Dict, IO, List, Optional, Text, Tuple, Union
+        Dict, IO, Optional, Text, Tuple, Union
     )
     from optparse import Values
     from pip._internal.models.link import Link
@@ -953,25 +954,36 @@ def _copy_source_tree(source, target):
         # See discussion at https://github.com/pypa/pip/pull/6770
         return ['.tox', '.nox'] if d == source else []
 
+    def ignore_special_file_errors(error_details):
+        # Copying special files is not supported, so we skip errors related to
+        # them. This is a convenience to support users that may have tools
+        # creating e.g. socket files in their source directory.
+        src, dest, error = error_details
+
+        if not isinstance(error, shutil.SpecialFileError):
+            # Then it is some other kind of error that we do want to report.
+            return True
+
+        # SpecialFileError may be raised due to either the source or
+        # destination. If the destination was the cause then we would actually
+        # care, but since the destination directory is deleted prior to
+        # copy we ignore all of them assuming it is caused by the source.
+        logger.warning(
+            "Ignoring special file error '%s' encountered copying %s to %s.",
+            str(error),
+            path_to_display(src),
+            path_to_display(dest),
+        )
+
     try:
-        shutil.copytree(source, target, ignore=ignore, symlinks=True)
+        copytree(source, target, ignore=ignore, symlinks=True)
     except shutil.Error as e:
-        errors = e.args[0]  # type: List[Tuple[str, str, shutil.Error]]
-        # Users may have locally-created socket files in the source
-        # directory. Copying socket files is not supported, so we skip errors
-        # related to them, for convenience.
-
-        # Copy list to avoid mutation while iterating.
-        errors_copy = errors[:]
-        for i, err in reversed(list(enumerate(errors_copy))):
-            src, _dest, _error = err
-            if is_socket(src):
-                # Remove errors related to sockets to prevent distractions if
-                # we end up re-raising.
-                errors.pop(i)
-
-        if errors:
-            raise
+        errors = e.args[0]
+        normal_file_errors = list(
+            filter(ignore_special_file_errors, errors)
+        )
+        if normal_file_errors:
+            raise shutil.Error(normal_file_errors)
 
 
 def unpack_file_url(
