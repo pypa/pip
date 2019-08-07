@@ -128,11 +128,11 @@ class RequirementCommand(IndexGroupCommand):
 
     @staticmethod
     def make_requirement_preparer(
-            temp_directory,           # type: TempDirectory
-            options,                  # type: Values
-            req_tracker,              # type: RequirementTracker
-            download_dir=None,        # type: str
-            wheel_download_dir=None,  # type: str
+        temp_directory,           # type: TempDirectory
+        options,                  # type: Values
+        req_tracker,              # type: RequirementTracker
+        download_dir=None,        # type: str
+        wheel_download_dir=None,  # type: str
     ):
         # type: (...) -> RequirementPreparer
         """
@@ -150,18 +150,18 @@ class RequirementCommand(IndexGroupCommand):
 
     @staticmethod
     def make_resolver(
-            preparer,                            # type: RequirementPreparer
-            session,                             # type: PipSession
-            finder,                              # type: PackageFinder
-            options,                             # type: Values
-            wheel_cache=None,                    # type: Optional[WheelCache]
-            use_user_site=False,                 # type: bool
-            ignore_installed=True,               # type: bool
-            ignore_requires_python=False,        # type: bool
-            force_reinstall=False,               # type: bool
-            upgrade_strategy="to-satisfy-only",  # type: str
-            use_pep517=None,                     # type: Optional[bool]
-            py_version_info=None            # type: Optional[Tuple[int, ...]]
+        preparer,                            # type: RequirementPreparer
+        session,                             # type: PipSession
+        finder,                              # type: PackageFinder
+        options,                             # type: Values
+        wheel_cache=None,                    # type: Optional[WheelCache]
+        use_user_site=False,                 # type: bool
+        ignore_installed=True,               # type: bool
+        ignore_requires_python=False,        # type: bool
+        force_reinstall=False,               # type: bool
+        upgrade_strategy="to-satisfy-only",  # type: str
+        use_pep517=None,                     # type: Optional[bool]
+        py_version_info=None            # type: Optional[Tuple[int, ...]]
     ):
         # type: (...) -> Resolver
         """
@@ -184,14 +184,15 @@ class RequirementCommand(IndexGroupCommand):
         )
 
     @staticmethod
-    def populate_requirement_set(requirement_set,  # type: RequirementSet
-                                 args,             # type: List[str]
-                                 options,          # type: Values
-                                 finder,           # type: PackageFinder
-                                 session,          # type: PipSession
-                                 name,             # type: str
-                                 wheel_cache       # type: Optional[WheelCache]
-                                 ):
+    def populate_requirement_set(
+        requirement_set,  # type: RequirementSet
+        args,             # type: List[str]
+        options,          # type: Values
+        finder,           # type: PackageFinder
+        session,          # type: PipSession
+        name,             # type: str
+        wheel_cache,      # type: Optional[WheelCache]
+    ):
         # type: (...) -> None
         """
         Marshal cmd line args into a requirement set.
