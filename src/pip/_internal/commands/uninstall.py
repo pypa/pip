@@ -19,11 +19,10 @@ class UninstallCommand(Command):
       leave behind no metadata to determine what files were installed.
     - Script wrappers installed by ``python setup.py develop``.
     """
-    name = 'uninstall'
+
     usage = """
       %prog [options] <package> ...
       %prog [options] -r <requirements file> ..."""
-    summary = 'Uninstall packages.'
 
     def __init__(self, *args, **kw):
         super(UninstallCommand, self).__init__(*args, **kw)

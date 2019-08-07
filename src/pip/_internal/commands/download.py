@@ -5,10 +5,9 @@ import os
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import RequirementCommand
-from pip._internal.operations.prepare import RequirementPreparer
+from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.req import RequirementSet
 from pip._internal.req.req_tracker import RequirementTracker
-from pip._internal.resolve import Resolver
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.misc import ensure_dir, normalize_path
 from pip._internal.utils.temp_dir import TempDirectory
@@ -28,7 +27,6 @@ class DownloadCommand(RequirementCommand):
     pip also supports downloading from "requirements files", which provide
     an easy way to specify a whole environment to be downloaded.
     """
-    name = 'download'
 
     usage = """
       %prog [options] <requirement specifier> [package-index-options] ...
@@ -36,8 +34,6 @@ class DownloadCommand(RequirementCommand):
       %prog [options] <vcs project url> ...
       %prog [options] <local project path> ...
       %prog [options] <archive url/path> ..."""
-
-    summary = 'Download packages.'
 
     def __init__(self, *args, **kw):
         super(DownloadCommand, self).__init__(*args, **kw)
@@ -58,6 +54,8 @@ class DownloadCommand(RequirementCommand):
         cmd_opts.add_option(cmdoptions.require_hashes())
         cmd_opts.add_option(cmdoptions.progress_bar())
         cmd_opts.add_option(cmdoptions.no_build_isolation())
+        cmd_opts.add_option(cmdoptions.use_pep517())
+        cmd_opts.add_option(cmdoptions.no_use_pep517())
 
         cmd_opts.add_option(
             '-d', '--dest', '--destination-dir', '--destination-directory',
@@ -67,10 +65,7 @@ class DownloadCommand(RequirementCommand):
             help=("Download packages into <dir>."),
         )
 
-        cmd_opts.add_option(cmdoptions.platform())
-        cmd_opts.add_option(cmdoptions.python_version())
-        cmd_opts.add_option(cmdoptions.implementation())
-        cmd_opts.add_option(cmdoptions.abi())
+        cmdoptions.add_target_python_options(cmd_opts)
 
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
@@ -86,11 +81,6 @@ class DownloadCommand(RequirementCommand):
         # of the RequirementSet code require that property.
         options.editables = []
 
-        if options.python_version:
-            python_versions = [options.python_version]
-        else:
-            python_versions = None
-
         cmdoptions.check_dist_restriction(options)
 
         options.src_dir = os.path.abspath(options.src_dir)
@@ -99,13 +89,11 @@ class DownloadCommand(RequirementCommand):
         ensure_dir(options.download_dir)
 
         with self._build_session(options) as session:
+            target_python = make_target_python(options)
             finder = self._build_package_finder(
                 options=options,
                 session=session,
-                platform=options.platform,
-                python_versions=python_versions,
-                abi=options.abi,
-                implementation=options.implementation,
+                target_python=target_python,
             )
             build_delete = (not (options.no_clean or options.build_dir))
             if options.cache_dir and not check_path_owner(options.cache_dir):
@@ -136,28 +124,19 @@ class DownloadCommand(RequirementCommand):
                     None
                 )
 
-                preparer = RequirementPreparer(
-                    build_dir=directory.path,
-                    src_dir=options.src_dir,
-                    download_dir=options.download_dir,
-                    wheel_download_dir=None,
-                    progress_bar=options.progress_bar,
-                    build_isolation=options.build_isolation,
+                preparer = self.make_requirement_preparer(
+                    temp_directory=directory,
+                    options=options,
                     req_tracker=req_tracker,
+                    download_dir=options.download_dir,
                 )
 
-                resolver = Resolver(
+                resolver = self.make_resolver(
                     preparer=preparer,
                     finder=finder,
                     session=session,
-                    wheel_cache=None,
-                    use_user_site=False,
-                    upgrade_strategy="to-satisfy-only",
-                    force_reinstall=False,
-                    ignore_dependencies=options.ignore_dependencies,
-                    ignore_requires_python=False,
-                    ignore_installed=True,
-                    isolated=options.isolated_mode,
+                    options=options,
+                    py_version_info=options.python_version,
                 )
                 resolver.resolve(requirement_set)
 

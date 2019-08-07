@@ -99,7 +99,7 @@ def handle_install_request(script, requirement):
 
 @pytest.mark.yaml
 @pytest.mark.parametrize(
-    "case", generate_yaml_tests(DATA_DIR.folder / "yaml"), ids=id_func
+    "case", generate_yaml_tests(DATA_DIR.parent / "yaml"), ids=id_func
 )
 def test_yaml_based(script, case):
     available = case.get("available", [])

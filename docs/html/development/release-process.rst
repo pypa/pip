@@ -57,6 +57,21 @@ their merits.
   ``pip._internal.utils.deprecation.deprecated``. The function is not a part of
   pip's public API.
 
+Python 2 support
+----------------
+
+pip will continue to ensure that it runs on Python 2.7 after the CPython 2.7
+EOL date. Support for Python 2.7 will be dropped, if bugs in Python 2.7 itself
+make this necessary (which is unlikely) or Python 2 usage reduces to a level
+where pip maintainers feel it is OK to drop support. The same approach is used
+to determine when to drop support for other Python versions.
+
+However, bugs reported with pip which only occur on Python 2.7 would likely not
+be addressed directly by pip's maintainers. Pull Requests to fix Python 2.7
+only bugs will be considered, and merged (subject to normal review processes).
+Note that there may be delays due to the lack of developer resources for
+reviewing such pull requests.
+
 
 Release Process
 ===============
@@ -83,6 +98,9 @@ Creating a new release
 #. Push all of the changes including the tag.
 #. Regenerate the ``get-pip.py`` script in the `get-pip repository`_ (as
    documented there) and commit the results.
+#. Submit a Pull Request to `CPython`_ adding the new version of pip (and upgrading
+   setuptools) to ``Lib/ensurepip/_bundled``, removing the existing version, and
+   adjusting the versions listed in ``Lib/ensurepip/__init__.py``.
 
 Creating a bug-fix release
 --------------------------
@@ -102,3 +120,4 @@ order to create one of these the changes should already be merged into the
    the above release process starting with step 4.
 
 .. _`get-pip repository`: https://github.com/pypa/get-pip
+.. _`CPython`: https://github.com/pypa/cpython

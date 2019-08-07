@@ -57,3 +57,8 @@ class TestBasicLoading(ConfigurationMixin):
         """
 
         assert lines == textwrap.dedent(expected).strip().splitlines()
+
+    def test_forget_section(self, script):
+        result = script.pip("config", "set", "isolated", "true",
+                            expect_error=True)
+        assert "global.isolated" in result.stderr

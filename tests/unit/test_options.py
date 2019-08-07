@@ -1,10 +1,52 @@
 import os
+from contextlib import contextmanager
 
 import pytest
 
 import pip._internal.configuration
 from pip._internal import main
+from pip._internal.commands import create_command
+from pip._internal.exceptions import PipError
 from tests.lib.options_helpers import AddFakeCommandMixin
+
+
+@contextmanager
+def temp_environment_variable(name, value):
+    not_set = object()
+    original = os.environ[name] if name in os.environ else not_set
+    os.environ[name] = value
+
+    try:
+        yield
+    finally:
+        # Return the environment variable to its original state.
+        if original is not_set:
+            if name in os.environ:
+                del os.environ[name]
+        else:
+            os.environ[name] = original
+
+
+@contextmanager
+def assert_option_error(capsys, expected):
+    """
+    Assert that a SystemExit occurred because of a parsing error.
+
+    Args:
+      expected: an expected substring of stderr.
+    """
+    with pytest.raises(SystemExit) as excinfo:
+        yield
+
+    assert excinfo.value.code == 2
+    stderr = capsys.readouterr().err
+    assert expected in stderr
+
+
+def assert_is_default_cache_dir(value):
+    # This path looks different on different platforms, but the path always
+    # has the substring "pip".
+    assert 'pip' in value
 
 
 class TestOptionPrecedence(AddFakeCommandMixin):
@@ -81,6 +123,149 @@ class TestOptionPrecedence(AddFakeCommandMixin):
         options, args = main(['fake', '--timeout', '-2'])
         assert options.timeout == -2
 
+    @pytest.mark.parametrize('pip_no_cache_dir', [
+        # Enabling --no-cache-dir means no cache directory.
+        '1',
+        'true',
+        'on',
+        'yes',
+        # For historical / backwards compatibility reasons, we also disable
+        # the cache directory if provided a value that translates to 0.
+        '0',
+        'false',
+        'off',
+        'no',
+    ])
+    def test_cache_dir__PIP_NO_CACHE_DIR(self, pip_no_cache_dir):
+        """
+        Test setting the PIP_NO_CACHE_DIR environment variable without
+        passing any command-line flags.
+        """
+        os.environ['PIP_NO_CACHE_DIR'] = pip_no_cache_dir
+        options, args = main(['fake'])
+        assert options.cache_dir is False
+
+    @pytest.mark.parametrize('pip_no_cache_dir', ['yes', 'no'])
+    def test_cache_dir__PIP_NO_CACHE_DIR__with_cache_dir(
+        self, pip_no_cache_dir
+    ):
+        """
+        Test setting PIP_NO_CACHE_DIR while also passing an explicit
+        --cache-dir value.
+        """
+        os.environ['PIP_NO_CACHE_DIR'] = pip_no_cache_dir
+        options, args = main(['--cache-dir', '/cache/dir', 'fake'])
+        # The command-line flag takes precedence.
+        assert options.cache_dir == '/cache/dir'
+
+    @pytest.mark.parametrize('pip_no_cache_dir', ['yes', 'no'])
+    def test_cache_dir__PIP_NO_CACHE_DIR__with_no_cache_dir(
+        self, pip_no_cache_dir
+    ):
+        """
+        Test setting PIP_NO_CACHE_DIR while also passing --no-cache-dir.
+        """
+        os.environ['PIP_NO_CACHE_DIR'] = pip_no_cache_dir
+        options, args = main(['--no-cache-dir', 'fake'])
+        # The command-line flag should take precedence (which has the same
+        # value in this case).
+        assert options.cache_dir is False
+
+    def test_cache_dir__PIP_NO_CACHE_DIR_invalid__with_no_cache_dir(
+            self, capsys,
+    ):
+        """
+        Test setting PIP_NO_CACHE_DIR to an invalid value while also passing
+        --no-cache-dir.
+        """
+        os.environ['PIP_NO_CACHE_DIR'] = 'maybe'
+        expected_err = "--no-cache-dir error: invalid truth value 'maybe'"
+        with assert_option_error(capsys, expected=expected_err):
+            main(['--no-cache-dir', 'fake'])
+
+
+class TestUsePEP517Options(object):
+
+    """
+    Test options related to using --use-pep517.
+    """
+
+    def parse_args(self, args):
+        # We use DownloadCommand since that is one of the few Command
+        # classes with the use_pep517 options.
+        command = create_command('download')
+        options, args = command.parse_args(args)
+
+        return options
+
+    def test_no_option(self):
+        """
+        Test passing no option.
+        """
+        options = self.parse_args([])
+        assert options.use_pep517 is None
+
+    def test_use_pep517(self):
+        """
+        Test passing --use-pep517.
+        """
+        options = self.parse_args(['--use-pep517'])
+        assert options.use_pep517 is True
+
+    def test_no_use_pep517(self):
+        """
+        Test passing --no-use-pep517.
+        """
+        options = self.parse_args(['--no-use-pep517'])
+        assert options.use_pep517 is False
+
+    def test_PIP_USE_PEP517_true(self):
+        """
+        Test setting PIP_USE_PEP517 to "true".
+        """
+        with temp_environment_variable('PIP_USE_PEP517', 'true'):
+            options = self.parse_args([])
+        # This is an int rather than a boolean because strtobool() in pip's
+        # configuration code returns an int.
+        assert options.use_pep517 == 1
+
+    def test_PIP_USE_PEP517_false(self):
+        """
+        Test setting PIP_USE_PEP517 to "false".
+        """
+        with temp_environment_variable('PIP_USE_PEP517', 'false'):
+            options = self.parse_args([])
+        # This is an int rather than a boolean because strtobool() in pip's
+        # configuration code returns an int.
+        assert options.use_pep517 == 0
+
+    def test_use_pep517_and_PIP_USE_PEP517_false(self):
+        """
+        Test passing --use-pep517 and setting PIP_USE_PEP517 to "false".
+        """
+        with temp_environment_variable('PIP_USE_PEP517', 'false'):
+            options = self.parse_args(['--use-pep517'])
+        assert options.use_pep517 is True
+
+    def test_no_use_pep517_and_PIP_USE_PEP517_true(self):
+        """
+        Test passing --no-use-pep517 and setting PIP_USE_PEP517 to "true".
+        """
+        with temp_environment_variable('PIP_USE_PEP517', 'true'):
+            options = self.parse_args(['--no-use-pep517'])
+        assert options.use_pep517 is False
+
+    def test_PIP_NO_USE_PEP517(self, capsys):
+        """
+        Test setting PIP_NO_USE_PEP517, which isn't allowed.
+        """
+        expected_err = (
+            '--no-use-pep517 error: A value was passed for --no-use-pep517,\n'
+        )
+        with temp_environment_variable('PIP_NO_USE_PEP517', 'true'):
+            with assert_option_error(capsys, expected=expected_err):
+                self.parse_args([])
+
 
 class TestOptionsInterspersed(AddFakeCommandMixin):
 
@@ -105,6 +290,19 @@ class TestGeneralOptions(AddFakeCommandMixin):
 
     # the reason to specifically test general options is due to the
     # extra processing they receive, and the number of bugs we've had
+
+    def test_cache_dir__default(self):
+        options, args = main(['fake'])
+        # With no options the default cache dir should be used.
+        assert_is_default_cache_dir(options.cache_dir)
+
+    def test_cache_dir__provided(self):
+        options, args = main(['--cache-dir', '/cache/dir', 'fake'])
+        assert options.cache_dir == '/cache/dir'
+
+    def test_no_cache_dir__provided(self):
+        options, args = main(['--no-cache-dir', 'fake'])
+        assert options.cache_dir is False
 
     def test_require_virtualenv(self):
         options1, args1 = main(['--require-virtualenv', 'fake'])
@@ -186,19 +384,12 @@ class TestGeneralOptions(AddFakeCommandMixin):
 class TestOptionsConfigFiles(object):
 
     def test_venv_config_file_found(self, monkeypatch):
-        # strict limit on the site_config_files list
+        # strict limit on the global config files list
         monkeypatch.setattr(
-            pip._internal.configuration, 'site_config_files', ['/a/place']
+            pip._internal.utils.appdirs, 'site_config_dirs',
+            lambda _: ['/a/place']
         )
 
-        # If we are running in a virtualenv and all files appear to exist,
-        # we should see two config files.
-        monkeypatch.setattr(
-            pip._internal.configuration,
-            'running_under_virtualenv',
-            lambda: True,
-        )
-        monkeypatch.setattr(os.path, 'exists', lambda filename: True)
         cp = pip._internal.configuration.Configuration(isolated=False)
 
         files = []
@@ -206,3 +397,50 @@ class TestOptionsConfigFiles(object):
             files.extend(val)
 
         assert len(files) == 4
+
+    @pytest.mark.parametrize(
+        "args, expect",
+        (
+            ([], None),
+            (["--global"], "global"),
+            (["--site"], "site"),
+            (["--user"], "user"),
+            (["--global", "--user"], PipError),
+            (["--global", "--site"], PipError),
+            (["--global", "--site", "--user"], PipError),
+        )
+    )
+    def test_config_file_options(self, monkeypatch, args, expect):
+        cmd = create_command('config')
+        # Replace a handler with a no-op to avoid side effects
+        monkeypatch.setattr(cmd, "get_name", lambda *a: None)
+
+        options, args = cmd.parser.parse_args(args + ["get", "name"])
+        if expect is PipError:
+            with pytest.raises(PipError):
+                cmd._determine_file(options, need_value=False)
+        else:
+            assert expect == cmd._determine_file(options, need_value=False)
+
+    def test_config_file_venv_option(self, monkeypatch):
+        cmd = create_command('config')
+        # Replace a handler with a no-op to avoid side effects
+        monkeypatch.setattr(cmd, "get_name", lambda *a: None)
+
+        collected_warnings = []
+
+        def _warn(message, *a, **kw):
+            collected_warnings.append(message)
+        monkeypatch.setattr("warnings.warn", _warn)
+
+        options, args = cmd.parser.parse_args(["--venv", "get", "name"])
+        assert "site" == cmd._determine_file(options, need_value=False)
+        assert collected_warnings
+        assert "--site" in collected_warnings[0]
+
+        # No warning or error if both "--venv" and "--site" are specified
+        collected_warnings[:] = []
+        options, args = cmd.parser.parse_args(["--venv", "--site", "get",
+                                               "name"])
+        assert "site" == cmd._determine_file(options, need_value=False)
+        assert not collected_warnings

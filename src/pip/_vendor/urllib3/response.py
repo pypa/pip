@@ -6,12 +6,17 @@ import logging
 from socket import timeout as SocketTimeout
 from socket import error as SocketError
 
+try:
+    import brotli
+except ImportError:
+    brotli = None
+
 from ._collections import HTTPHeaderDict
 from .exceptions import (
     BodyNotHttplibCompatible, ProtocolError, DecodeError, ReadTimeoutError,
     ResponseNotChunked, IncompleteRead, InvalidHeader
 )
-from .packages.six import string_types as basestring, binary_type, PY3
+from .packages.six import string_types as basestring, PY3
 from .packages.six.moves import http_client as httplib
 from .connection import HTTPException, BaseSSLError
 from .util.response import is_fp_closed, is_response_to_head
@@ -23,7 +28,7 @@ class DeflateDecoder(object):
 
     def __init__(self):
         self._first_try = True
-        self._data = binary_type()
+        self._data = b''
         self._obj = zlib.decompressobj()
 
     def __getattr__(self, name):
@@ -69,9 +74,9 @@ class GzipDecoder(object):
         return getattr(self._obj, name)
 
     def decompress(self, data):
-        ret = binary_type()
+        ret = bytearray()
         if self._state == GzipDecoderState.SWALLOW_DATA or not data:
-            return ret
+            return bytes(ret)
         while True:
             try:
                 ret += self._obj.decompress(data)
@@ -81,18 +86,64 @@ class GzipDecoder(object):
                 self._state = GzipDecoderState.SWALLOW_DATA
                 if previous_state == GzipDecoderState.OTHER_MEMBERS:
                     # Allow trailing garbage acceptable in other gzip clients
-                    return ret
+                    return bytes(ret)
                 raise
             data = self._obj.unused_data
             if not data:
-                return ret
+                return bytes(ret)
             self._state = GzipDecoderState.OTHER_MEMBERS
             self._obj = zlib.decompressobj(16 + zlib.MAX_WBITS)
 
 
+if brotli is not None:
+    class BrotliDecoder(object):
+        # Supports both 'brotlipy' and 'Brotli' packages
+        # since they share an import name. The top branches
+        # are for 'brotlipy' and bottom branches for 'Brotli'
+        def __init__(self):
+            self._obj = brotli.Decompressor()
+
+        def decompress(self, data):
+            if hasattr(self._obj, 'decompress'):
+                return self._obj.decompress(data)
+            return self._obj.process(data)
+
+        def flush(self):
+            if hasattr(self._obj, 'flush'):
+                return self._obj.flush()
+            return b''
+
+
+class MultiDecoder(object):
+    """
+    From RFC7231:
+        If one or more encodings have been applied to a representation, the
+        sender that applied the encodings MUST generate a Content-Encoding
+        header field that lists the content codings in the order in which
+        they were applied.
+    """
+
+    def __init__(self, modes):
+        self._decoders = [_get_decoder(m.strip()) for m in modes.split(',')]
+
+    def flush(self):
+        return self._decoders[0].flush()
+
+    def decompress(self, data):
+        for d in reversed(self._decoders):
+            data = d.decompress(data)
+        return data
+
+
 def _get_decoder(mode):
+    if ',' in mode:
+        return MultiDecoder(mode)
+
     if mode == 'gzip':
         return GzipDecoder()
+
+    if brotli is not None and mode == 'br':
+        return BrotliDecoder()
 
     return DeflateDecoder()
 
@@ -131,6 +182,8 @@ class HTTPResponse(io.IOBase):
     """
 
     CONTENT_DECODERS = ['gzip', 'deflate']
+    if brotli is not None:
+        CONTENT_DECODERS += ['br']
     REDIRECT_STATUSES = [301, 302, 303, 307, 308]
 
     def __init__(self, body='', headers=None, status=0, version=0, reason=None,
@@ -159,7 +212,7 @@ class HTTPResponse(io.IOBase):
         self.msg = msg
         self._request_url = request_url
 
-        if body and isinstance(body, (basestring, binary_type)):
+        if body and isinstance(body, (basestring, bytes)):
             self._body = body
 
         self._pool = pool
@@ -283,23 +336,36 @@ class HTTPResponse(io.IOBase):
         # Note: content-encoding value should be case-insensitive, per RFC 7230
         # Section 3.2
         content_encoding = self.headers.get('content-encoding', '').lower()
-        if self._decoder is None and content_encoding in self.CONTENT_DECODERS:
-            self._decoder = _get_decoder(content_encoding)
+        if self._decoder is None:
+            if content_encoding in self.CONTENT_DECODERS:
+                self._decoder = _get_decoder(content_encoding)
+            elif ',' in content_encoding:
+                encodings = [
+                    e.strip() for e in content_encoding.split(',')
+                    if e.strip() in self.CONTENT_DECODERS]
+                if len(encodings):
+                    self._decoder = _get_decoder(content_encoding)
+
+    DECODER_ERROR_CLASSES = (IOError, zlib.error)
+    if brotli is not None:
+        DECODER_ERROR_CLASSES += (brotli.error,)
 
     def _decode(self, data, decode_content, flush_decoder):
         """
         Decode the data passed in and potentially flush the decoder.
         """
+        if not decode_content:
+            return data
+
         try:
-            if decode_content and self._decoder:
+            if self._decoder:
                 data = self._decoder.decompress(data)
-        except (IOError, zlib.error) as e:
+        except self.DECODER_ERROR_CLASSES as e:
             content_encoding = self.headers.get('content-encoding', '').lower()
             raise DecodeError(
                 "Received response with content-encoding: %s, but "
                 "failed to decode it." % content_encoding, e)
-
-        if flush_decoder and decode_content:
+        if flush_decoder:
             data += self._flush_decoder()
 
         return data
@@ -479,9 +545,10 @@ class HTTPResponse(io.IOBase):
         headers = r.msg
 
         if not isinstance(headers, HTTPHeaderDict):
-            if PY3:  # Python 3
+            if PY3:
                 headers = HTTPHeaderDict(headers.items())
-            else:  # Python 2
+            else:
+                # Python 2.7
                 headers = HTTPHeaderDict.from_httplib(headers)
 
         # HTTPResponse objects in Python 3 don't have a .strict attribute
@@ -674,3 +741,20 @@ class HTTPResponse(io.IOBase):
             return self.retries.history[-1].redirect_location
         else:
             return self._request_url
+
+    def __iter__(self):
+        buffer = [b""]
+        for chunk in self.stream(decode_content=True):
+            if b"\n" in chunk:
+                chunk = chunk.split(b"\n")
+                yield b"".join(buffer) + chunk[0] + b"\n"
+                for x in chunk[1:-1]:
+                    yield x + b"\n"
+                if chunk[-1]:
+                    buffer = [chunk[-1]]
+                else:
+                    buffer = []
+            else:
+                buffer.append(chunk)
+        if buffer:
+            yield b"".join(buffer)

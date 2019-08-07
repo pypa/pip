@@ -9,15 +9,17 @@ from docutils.parsers import rst
 from docutils.statemachine import ViewList
 
 from pip._internal.cli import cmdoptions
-from pip._internal.commands import commands_dict as commands
+from pip._internal.commands import create_command
 
 
 class PipCommandUsage(rst.Directive):
     required_arguments = 1
 
     def run(self):
-        cmd = commands[self.arguments[0]]
-        usage = dedent(cmd.usage.replace('%prog', 'pip')).strip()
+        cmd = create_command(self.arguments[0])
+        usage = dedent(
+            cmd.usage.replace('%prog', 'pip {}'.format(cmd.name))
+        ).strip()
         node = nodes.literal_block(usage, usage)
         return [node]
 
@@ -29,7 +31,8 @@ class PipCommandDescription(rst.Directive):
         node = nodes.paragraph()
         node.document = self.state.document
         desc = ViewList()
-        description = dedent(commands[self.arguments[0]].__doc__)
+        cmd = create_command(self.arguments[0])
+        description = dedent(cmd.__doc__)
         for line in description.split('\n'):
             desc.append(line, "")
         self.state.nested_parse(desc, 0, node)
@@ -93,7 +96,7 @@ class PipCommandOptions(PipOptions):
     required_arguments = 1
 
     def process_options(self):
-        cmd = commands[self.arguments[0]]()
+        cmd = create_command(self.arguments[0])
         self._format_options(
             cmd.parser.option_groups[0].option_list,
             cmd_name=cmd.name,

@@ -1,10 +1,14 @@
 import pytest
 
 from tests.lib import (
-    _change_test_package_version, _create_test_package, pyversion,
+    _change_test_package_version,
+    _create_test_package,
+    _test_path_to_file_url,
+    pyversion,
 )
 from tests.lib.git_submodule_helpers import (
-    _change_test_package_submodule, _create_test_package_with_submodule,
+    _change_test_package_submodule,
+    _create_test_package_with_submodule,
     _pull_in_submodule_changes_to_module,
 )
 from tests.lib.local_repos import local_checkout
@@ -39,7 +43,7 @@ def _get_branch_remote(script, package_name, branch):
     return result.stdout.strip()
 
 
-def _github_checkout(url_path, temp_dir, egg=None, scheme=None):
+def _github_checkout(url_path, temp_dir, rev=None, egg=None, scheme=None):
     """
     Call local_checkout() with a GitHub URL, and return the resulting URL.
 
@@ -54,7 +58,9 @@ def _github_checkout(url_path, temp_dir, egg=None, scheme=None):
     if scheme is None:
         scheme = 'https'
     url = 'git+{}://github.com/{}'.format(scheme, url_path)
-    local_url = local_checkout(url, temp_dir.join('cache'))
+    local_url = local_checkout(url, temp_dir.joinpath('cache'))
+    if rev is not None:
+        local_url += '@{}'.format(rev)
     if egg is not None:
         local_url += '#egg={}'.format(egg)
 
@@ -70,9 +76,9 @@ def _make_version_pkg_url(path, rev=None):
         containing the version_pkg package.
       rev: an optional revision to install like a branch name, tag, or SHA.
     """
-    path = path.abspath.replace('\\', '/')
+    file_url = _test_path_to_file_url(path)
     url_rev = '' if rev is None else '@{}'.format(rev)
-    url = 'git+file://{}{}#egg=version_pkg'.format(path, url_rev)
+    url = 'git+{}{}#egg=version_pkg'.format(file_url, url_rev)
 
     return url
 
@@ -149,7 +155,7 @@ def test_install_editable_from_git_with_https(script, tmpdir):
     """
     url_path = 'pypa/pip-test-package.git'
     local_url = _github_checkout(url_path, tmpdir, egg='pip-test-package')
-    result = script.pip('install', '-e', local_url, expect_error=True)
+    result = script.pip('install', '-e', local_url)
     result.assert_installed('pip-test-package', with_files=['.git'])
 
 
@@ -183,9 +189,7 @@ def test_git_with_sha1_revisions(script):
         'git', 'rev-parse', 'HEAD~1',
         cwd=version_pkg_path,
     ).stdout.strip()
-    version = _install_version_pkg(
-        script, version_pkg_path, rev=sha1, expect_stderr=True,
-    )
+    version = _install_version_pkg(script, version_pkg_path, rev=sha1)
     assert '0.1' == version
 
 
@@ -199,9 +203,7 @@ def test_git_with_short_sha1_revisions(script):
         'git', 'rev-parse', 'HEAD~1',
         cwd=version_pkg_path,
     ).stdout.strip()[:7]
-    version = _install_version_pkg(
-        script, version_pkg_path, rev=sha1, expect_stderr=True,
-    )
+    version = _install_version_pkg(script, version_pkg_path, rev=sha1)
     assert '0.1' == version
 
 
@@ -211,11 +213,7 @@ def test_git_with_branch_name_as_revision(script):
     """
     version_pkg_path = _create_test_package(script)
     branch = 'test_branch'
-    script.run(
-        'git', 'checkout', '-b', branch,
-        expect_stderr=True,
-        cwd=version_pkg_path,
-    )
+    script.run('git', 'checkout', '-b', branch, cwd=version_pkg_path)
     _change_test_package_version(script, version_pkg_path)
     version = _install_version_pkg(script, version_pkg_path, rev=branch)
     assert 'some different version' == version
@@ -226,11 +224,7 @@ def test_git_with_tag_name_as_revision(script):
     Git backend should be able to install from tag names
     """
     version_pkg_path = _create_test_package(script)
-    script.run(
-        'git', 'tag', 'test_tag',
-        expect_stderr=True,
-        cwd=version_pkg_path,
-    )
+    script.run('git', 'tag', 'test_tag', cwd=version_pkg_path)
     _change_test_package_version(script, version_pkg_path)
     version = _install_version_pkg(script, version_pkg_path, rev='test_tag')
     assert '0.1' == version
@@ -240,7 +234,7 @@ def _add_ref(script, path, ref):
     """
     Add a new ref to a repository at the given path.
     """
-    script.run('git', 'update-ref', ref, 'HEAD', expect_stderr=True, cwd=path)
+    script.run('git', 'update-ref', ref, 'HEAD', cwd=path)
 
 
 def test_git_install_ref(script):
@@ -252,7 +246,7 @@ def test_git_install_ref(script):
     _change_test_package_version(script, version_pkg_path)
 
     version = _install_version_pkg(
-        script, version_pkg_path, rev='refs/foo/bar', expect_stderr=True,
+        script, version_pkg_path, rev='refs/foo/bar',
     )
     assert '0.1' == version
 
@@ -266,14 +260,12 @@ def test_git_install_then_install_ref(script):
     _add_ref(script, version_pkg_path, 'refs/foo/bar')
     _change_test_package_version(script, version_pkg_path)
 
-    version = _install_version_pkg(
-        script, version_pkg_path, expect_stderr=True,
-    )
+    version = _install_version_pkg(script, version_pkg_path)
     assert 'some different version' == version
 
     # Now install the ref.
     version = _install_version_pkg(
-        script, version_pkg_path, rev='refs/foo/bar', expect_stderr=True,
+        script, version_pkg_path, rev='refs/foo/bar',
     )
     assert '0.1' == version
 
@@ -285,14 +277,13 @@ def test_git_with_tag_name_and_update(script, tmpdir):
     """
     url_path = 'pypa/pip-test-package.git'
     local_url = _github_checkout(url_path, tmpdir, egg='pip-test-package')
-    result = script.pip('install', '-e', local_url, expect_error=True)
+    result = script.pip('install', '-e', local_url)
     result.assert_installed('pip-test-package', with_files=['.git'])
 
     new_local_url = _github_checkout(url_path, tmpdir)
     new_local_url += '@0.1.2#egg=pip-test-package'
     result = script.pip(
         'install', '--global-option=--version', '-e', new_local_url,
-        expect_error=True,
     )
     assert '0.1.2' in result.stdout
 
@@ -305,7 +296,7 @@ def test_git_branch_should_not_be_changed(script, tmpdir):
     """
     url_path = 'pypa/pip-test-package.git'
     local_url = _github_checkout(url_path, tmpdir, egg='pip-test-package')
-    script.pip('install', '-e', local_url, expect_error=True)
+    script.pip('install', '-e', local_url)
     branch = _get_editable_branch(script, 'pip-test-package')
     assert 'master' == branch
 
@@ -315,11 +306,11 @@ def test_git_with_non_editable_unpacking(script, tmpdir):
     """
     Test cloning a git repository from a non-editable URL with a given tag.
     """
-    url_path = 'pypa/pip-test-package.git@0.1.2#egg=pip-test-package'
-    local_url = _github_checkout(url_path, tmpdir)
-    result = script.pip(
-        'install', '--global-option=--version', local_url, expect_error=True,
+    url_path = 'pypa/pip-test-package.git'
+    local_url = _github_checkout(
+        url_path, tmpdir, rev='0.1.2', egg='pip-test-package',
     )
+    result = script.pip('install', '--global-option=--version', local_url)
     assert '0.1.2' in result.stdout
 
 
@@ -366,20 +357,6 @@ def test_git_with_ambiguous_revs(script):
     result.assert_installed('version-pkg', with_files=['.git'])
 
 
-def test_git_works_with_editable_non_origin_repo(script):
-    # set up, create a git repo and install it as editable from a local
-    # directory path
-    version_pkg_path = _create_test_package(script)
-    script.pip('install', '-e', version_pkg_path.abspath)
-
-    # 'freeze'ing this should not fall over, but should result in stderr output
-    # warning
-    result = script.pip('freeze', expect_stderr=True)
-    assert "Error when trying to get requirement" in result.stderr
-    assert "Could not determine repository location" in result.stdout
-    assert "version-pkg==0.1" in result.stdout
-
-
 def test_editable__no_revision(script):
     """
     Test a basic install in editable mode specifying no revision.
@@ -401,13 +378,8 @@ def test_editable__branch_with_sha_same_as_default(script):
     """
     version_pkg_path = _create_test_package(script)
     # Create a second branch with the same SHA.
-    script.run(
-        'git', 'branch', 'develop', expect_stderr=True,
-        cwd=version_pkg_path,
-    )
-    _install_version_pkg_only(
-        script, version_pkg_path, rev='develop', expect_stderr=True
-    )
+    script.run('git', 'branch', 'develop', cwd=version_pkg_path)
+    _install_version_pkg_only(script, version_pkg_path, rev='develop')
 
     branch = _get_editable_branch(script, 'version-pkg')
     assert branch == 'develop'
@@ -423,16 +395,11 @@ def test_editable__branch_with_sha_different_from_default(script):
     """
     version_pkg_path = _create_test_package(script)
     # Create a second branch.
-    script.run(
-        'git', 'branch', 'develop', expect_stderr=True,
-        cwd=version_pkg_path,
-    )
+    script.run('git', 'branch', 'develop', cwd=version_pkg_path)
     # Add another commit to the master branch to give it a different sha.
     _change_test_package_version(script, version_pkg_path)
 
-    version = _install_version_pkg(
-        script, version_pkg_path, rev='develop', expect_stderr=True
-    )
+    version = _install_version_pkg(script, version_pkg_path, rev='develop')
     assert version == '0.1'
 
     branch = _get_editable_branch(script, 'version-pkg')
@@ -450,10 +417,7 @@ def test_editable__non_master_default_branch(script):
     version_pkg_path = _create_test_package(script)
     # Change the default branch of the remote repo to a name that is
     # alphabetically after "master".
-    script.run(
-        'git', 'checkout', '-b', 'release', expect_stderr=True,
-        cwd=version_pkg_path,
-    )
+    script.run('git', 'checkout', '-b', 'release', cwd=version_pkg_path)
     _install_version_pkg_only(script, version_pkg_path)
 
     branch = _get_editable_branch(script, 'version-pkg')
@@ -484,7 +448,9 @@ def test_check_submodule_addition(script):
     """
     Submodules are pulled in on install and updated on upgrade.
     """
-    module_path, submodule_path = _create_test_package_with_submodule(script)
+    module_path, submodule_path = (
+        _create_test_package_with_submodule(script, rel_path='testpkg/static')
+    )
 
     install_result = script.pip(
         'install', '-e', 'git+' + module_path + '#egg=version_pkg'
@@ -495,13 +461,14 @@ def test_check_submodule_addition(script):
     )
 
     _change_test_package_submodule(script, submodule_path)
-    _pull_in_submodule_changes_to_module(script, module_path)
+    _pull_in_submodule_changes_to_module(
+        script, module_path, rel_path='testpkg/static',
+    )
 
     # expect error because git may write to stderr
     update_result = script.pip(
         'install', '-e', 'git+' + module_path + '#egg=version_pkg',
         '--upgrade',
-        expect_error=True,
     )
 
     assert (

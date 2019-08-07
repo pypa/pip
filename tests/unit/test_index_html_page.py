@@ -6,7 +6,11 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip._internal.download import PipSession
 from pip._internal.index import (
-    Link, _get_html_page, _get_html_response, _NotHTML, _NotHTTP,
+    Link,
+    _get_html_page,
+    _get_html_response,
+    _NotHTML,
+    _NotHTTP,
 )
 
 
@@ -115,6 +119,34 @@ def test_get_html_response_no_head(url):
         }),
         mock.call().raise_for_status(),
         mock.call().headers.get("Content-Type", ""),
+    ]
+
+
+def test_get_html_response_dont_log_clear_text_password(caplog):
+    """
+    `_get_html_response()` should redact the password from the index URL
+    in its DEBUG log message.
+    """
+    session = mock.Mock(PipSession)
+
+    # Mock the headers dict to ensure it is accessed.
+    session.get.return_value = mock.Mock(headers=mock.Mock(**{
+        "get.return_value": "text/html",
+    }))
+
+    caplog.set_level(logging.DEBUG)
+
+    resp = _get_html_response(
+        "https://user:my_password@example.com/simple/", session=session
+    )
+
+    assert resp is not None
+
+    assert len(caplog.records) == 1
+    record = caplog.records[0]
+    assert record.levelname == 'DEBUG'
+    assert record.message.splitlines() == [
+        "Getting page https://user:****@example.com/simple/",
     ]
 
 

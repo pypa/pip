@@ -5,7 +5,11 @@ from mock import Mock
 
 import pip._internal.req.req_uninstall
 from pip._internal.req.req_uninstall import (
-    UninstallPathSet, compact, compress_for_output_listing,
+    StashedUninstallPathSet,
+    UninstallPathSet,
+    compact,
+    compress_for_output_listing,
+    compress_for_rename,
     uninstallation_paths,
 )
 from tests.lib import create_file
@@ -90,9 +94,24 @@ def test_compressed_listing(tmpdir):
         "lib/mypkg/support/would_be_skipped.skip.py",
     ])
 
+    expected_rename = in_tmpdir([
+        "bin/",
+        "lib/mypkg.dist-info/",
+        "lib/mypkg/would_be_removed.txt",
+        "lib/mypkg/__init__.py",
+        "lib/mypkg/my_awesome_code.py",
+        "lib/mypkg/__pycache__/",
+        "lib/mypkg/support/support_file.py",
+        "lib/mypkg/support/more_support.py",
+        "lib/mypkg/support/__pycache__/",
+        "lib/random_other_place/",
+    ])
+
     will_remove, will_skip = compress_for_output_listing(sample)
+    will_rename = compress_for_rename(sample)
     assert sorted(expected_skip) == sorted(compact(will_skip))
     assert sorted(expected_remove) == sorted(compact(will_remove))
+    assert sorted(expected_rename) == sorted(compact(will_rename))
 
 
 class TestUninstallPathSet(object):
@@ -148,15 +167,108 @@ class TestUninstallPathSet(object):
         # construct 2 paths:
         #  tmpdir/dir/file
         #  tmpdir/dirlink/file (where dirlink is a link to dir)
-        d = tmpdir.join('dir')
+        d = tmpdir.joinpath('dir')
         d.mkdir()
-        dlink = tmpdir.join('dirlink')
+        dlink = tmpdir.joinpath('dirlink')
         os.symlink(d, dlink)
-        d.join('file').touch()
-        path1 = str(d.join('file'))
-        path2 = str(dlink.join('file'))
+        d.joinpath('file').touch()
+        path1 = str(d.joinpath('file'))
+        path2 = str(dlink.joinpath('file'))
 
         ups = UninstallPathSet(dist=Mock())
         ups.add(path1)
         ups.add(path2)
         assert ups.paths == {path1}
+
+
+class TestStashedUninstallPathSet(object):
+    WALK_RESULT = [
+        ("A", ["B", "C"], ["a.py"]),
+        ("A/B", ["D"], ["b.py"]),
+        ("A/B/D", [], ["c.py"]),
+        ("A/C", [], ["d.py", "e.py"]),
+        ("A/E", ["F"], ["f.py"]),
+        ("A/E/F", [], []),
+        ("A/G", ["H"], ["g.py"]),
+        ("A/G/H", [], ["h.py"]),
+    ]
+
+    @classmethod
+    def mock_walk(cls, root):
+        for dirname, subdirs, files in cls.WALK_RESULT:
+            dirname = os.path.sep.join(dirname.split("/"))
+            if dirname.startswith(root):
+                yield dirname[len(root) + 1:], subdirs, files
+
+    def test_compress_for_rename(self, monkeypatch):
+        paths = [os.path.sep.join(p.split("/")) for p in [
+            "A/B/b.py",
+            "A/B/D/c.py",
+            "A/C/d.py",
+            "A/E/f.py",
+            "A/G/g.py",
+        ]]
+
+        expected_paths = [os.path.sep.join(p.split("/")) for p in [
+            "A/B/",         # selected everything below A/B
+            "A/C/d.py",     # did not select everything below A/C
+            "A/E/",         # only empty folders remain under A/E
+            "A/G/g.py",     # non-empty folder remains under A/G
+        ]]
+
+        monkeypatch.setattr('os.walk', self.mock_walk)
+
+        actual_paths = compress_for_rename(paths)
+        assert set(expected_paths) == set(actual_paths)
+
+    @classmethod
+    def make_stash(cls, tmpdir, paths):
+        for dirname, subdirs, files in cls.WALK_RESULT:
+            root = os.path.join(tmpdir, *dirname.split("/"))
+            if not os.path.exists(root):
+                os.mkdir(root)
+            for d in subdirs:
+                os.mkdir(os.path.join(root, d))
+            for f in files:
+                with open(os.path.join(root, f), "wb"):
+                    pass
+
+        pathset = StashedUninstallPathSet()
+
+        paths = [os.path.join(tmpdir, *p.split('/')) for p in paths]
+        stashed_paths = [(p, pathset.stash(p)) for p in paths]
+
+        return pathset, stashed_paths
+
+    def test_stash(self, tmpdir):
+        pathset, stashed_paths = self.make_stash(tmpdir, [
+            "A/B/", "A/C/d.py", "A/E/", "A/G/g.py",
+        ])
+
+        for old_path, new_path in stashed_paths:
+            assert not os.path.exists(old_path)
+            assert os.path.exists(new_path)
+
+        assert stashed_paths == pathset._moves
+
+    def test_commit(self, tmpdir):
+        pathset, stashed_paths = self.make_stash(tmpdir, [
+            "A/B/", "A/C/d.py", "A/E/", "A/G/g.py",
+        ])
+
+        pathset.commit()
+
+        for old_path, new_path in stashed_paths:
+            assert not os.path.exists(old_path)
+            assert not os.path.exists(new_path)
+
+    def test_rollback(self, tmpdir):
+        pathset, stashed_paths = self.make_stash(tmpdir, [
+            "A/B/", "A/C/d.py", "A/E/", "A/G/g.py",
+        ])
+
+        pathset.rollback()
+
+        for old_path, new_path in stashed_paths:
+            assert os.path.exists(old_path)
+            assert not os.path.exists(new_path)

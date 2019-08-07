@@ -262,7 +262,7 @@ def test_upgrade_from_reqs_file(script):
     Upgrade from a requirements file.
 
     """
-    script.scratch_path.join("test-req.txt").write(textwrap.dedent("""\
+    script.scratch_path.joinpath("test-req.txt").write_text(textwrap.dedent("""\
         PyLogo<0.4
         # and something else to test out:
         INITools==0.3
@@ -270,7 +270,7 @@ def test_upgrade_from_reqs_file(script):
     install_result = script.pip(
         'install', '-r', script.scratch_path / 'test-req.txt'
     )
-    script.scratch_path.join("test-req.txt").write(textwrap.dedent("""\
+    script.scratch_path.joinpath("test-req.txt").write_text(textwrap.dedent("""\
         PyLogo
         # and something else to test out:
         INITools
@@ -356,7 +356,7 @@ def test_upgrade_vcs_req_with_no_dists_found(script, tmpdir):
     """It can upgrade a VCS requirement that has no distributions otherwise."""
     req = "%s#egg=pip-test-package" % local_checkout(
         "git+https://github.com/pypa/pip-test-package.git",
-        tmpdir.join("cache"),
+        tmpdir.joinpath("cache"),
     )
     script.pip("install", req)
     result = script.pip("install", "-U", req)

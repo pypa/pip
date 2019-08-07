@@ -4,27 +4,36 @@ import sys
 import tempfile
 
 import pytest
-from mock import Mock, mock_open, patch
+from mock import patch
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
 
-from pip._internal.commands.install import InstallCommand
-from pip._internal.download import PipSession, path_to_url
+from pip._internal.commands import create_command
+from pip._internal.download import PipSession
 from pip._internal.exceptions import (
-    HashErrors, InstallationError, InvalidWheelFilename, PreviousBuildDirError,
+    HashErrors,
+    InstallationError,
+    InvalidWheelFilename,
+    PreviousBuildDirError,
 )
-from pip._internal.index import PackageFinder
+from pip._internal.legacy_resolve import Resolver
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import InstallRequirement, RequirementSet
 from pip._internal.req.constructors import (
-    install_req_from_editable, install_req_from_line, parse_editable,
+    install_req_from_editable,
+    install_req_from_line,
+    parse_editable,
 )
 from pip._internal.req.req_file import process_line
 from pip._internal.req.req_tracker import RequirementTracker
-from pip._internal.resolve import Resolver
-from pip._internal.utils.misc import read_text_file
-from tests.lib import DATA_DIR, assert_raises_regexp, requirements_file
+from pip._internal.utils.misc import path_to_url
+from tests.lib import (
+    DATA_DIR,
+    assert_raises_regexp,
+    make_test_finder,
+    requirements_file,
+)
 
 
 def get_processed_req_from_line(line, fname='file', lineno=1):
@@ -72,7 +81,7 @@ class TestRequirementSet(object):
         req = install_req_from_line('simple')
         req.is_direct = True
         reqset.add_requirement(req)
-        finder = PackageFinder([data.find_links], [], session=PipSession())
+        finder = make_test_finder(find_links=[data.find_links])
         resolver = self._basic_resolver(finder)
         assert_raises_regexp(
             PreviousBuildDirError,
@@ -82,6 +91,7 @@ class TestRequirementSet(object):
             reqset,
         )
 
+    # TODO: Update test when Python 2.7 or Python 3.4 is dropped.
     def test_environment_marker_extras(self, data):
         """
         Test that the environment marker extras are used with
@@ -89,11 +99,11 @@ class TestRequirementSet(object):
         """
         reqset = RequirementSet()
         req = install_req_from_editable(
-            data.packages.join("LocalEnvironMarker")
+            data.packages.joinpath("LocalEnvironMarker")
         )
         req.is_direct = True
         reqset.add_requirement(req)
-        finder = PackageFinder([data.find_links], [], session=PipSession())
+        finder = make_test_finder(find_links=[data.find_links])
         resolver = self._basic_resolver(finder)
         resolver.resolve(reqset)
         # This is hacky but does test both case in py2 and py3
@@ -130,11 +140,7 @@ class TestRequirementSet(object):
             'packages/source/p/peep/peep-3.1.1.tar.gz',
             lineno=4,
         ))
-        finder = PackageFinder(
-            [],
-            ['https://pypi.org/simple/'],
-            session=PipSession(),
-        )
+        finder = make_test_finder(index_urls=['https://pypi.org/simple/'])
         resolver = self._basic_resolver(finder)
         assert_raises_regexp(
             HashErrors,
@@ -160,7 +166,7 @@ class TestRequirementSet(object):
             'simple==1.0', lineno=1
         ))
 
-        finder = PackageFinder([data.find_links], [], session=PipSession())
+        finder = make_test_finder(find_links=[data.find_links])
         resolver = self._basic_resolver(finder)
 
         assert_raises_regexp(
@@ -178,9 +184,9 @@ class TestRequirementSet(object):
         RequirementSet.
         """
         req_set = RequirementSet(require_hashes=False)
-        session = PipSession()
-        finder = PackageFinder([data.find_links], [], session=session)
-        command = InstallCommand()
+        finder = make_test_finder(find_links=[data.find_links])
+        session = finder.session
+        command = create_command('install')
         with requirements_file('--require-hashes', tmpdir) as reqs_file:
             options, args = command.parse_args(['-r', reqs_file])
             command.populate_requirement_set(
@@ -202,12 +208,12 @@ class TestRequirementSet(object):
             'git+git://github.com/pypa/pip-test-package --hash=sha256:123',
             lineno=1,
         ))
-        dir_path = data.packages.join('FSPkg')
+        dir_path = data.packages.joinpath('FSPkg')
         reqset.add_requirement(get_processed_req_from_line(
             'file://%s' % (dir_path,),
             lineno=2,
         ))
-        finder = PackageFinder([data.find_links], [], session=PipSession())
+        finder = make_test_finder(find_links=[data.find_links])
         resolver = self._basic_resolver(finder)
         sep = os.path.sep
         if sep == '\\':
@@ -241,7 +247,7 @@ class TestRequirementSet(object):
             '123f6a7e44a9115db1ef945d4d92c123dfe21815a06',
             lineno=2,
         ))
-        finder = PackageFinder([data.find_links], [], session=PipSession())
+        finder = make_test_finder(find_links=[data.find_links])
         resolver = self._basic_resolver(finder)
         assert_raises_regexp(
             HashErrors,
@@ -260,7 +266,7 @@ class TestRequirementSet(object):
         reqset.add_requirement(get_processed_req_from_line(
             '%s --hash=sha256:badbad' % file_url, lineno=1,
         ))
-        finder = PackageFinder([data.find_links], [], session=PipSession())
+        finder = make_test_finder(find_links=[data.find_links])
         resolver = self._basic_resolver(finder)
         assert_raises_regexp(
             HashErrors,
@@ -276,7 +282,7 @@ class TestRequirementSet(object):
         """Make sure unhashed, unpinned, or otherwise unrepeatable
         dependencies get complained about when --require-hashes is on."""
         reqset = RequirementSet()
-        finder = PackageFinder([data.find_links], [], session=PipSession())
+        finder = make_test_finder(find_links=[data.find_links])
         resolver = self._basic_resolver(finder)
         reqset.add_requirement(get_processed_req_from_line(
             'TopoRequires2==0.0.1 '  # requires TopoRequires
@@ -316,21 +322,6 @@ class TestRequirementSet(object):
         ))
 
 
-@pytest.mark.parametrize(('file_contents', 'expected'), [
-    (b'\xf6\x80', b'\xc3\xb6\xe2\x82\xac'),  # cp1252
-    (b'\xc3\xb6\xe2\x82\xac', b'\xc3\xb6\xe2\x82\xac'),  # utf-8
-    (b'\xc3\xb6\xe2', b'\xc3\x83\xc2\xb6\xc3\xa2'),  # Garbage
-])
-def test_egg_info_data(file_contents, expected):
-    om = mock_open(read_data=file_contents)
-    em = Mock()
-    em.return_value = 'cp1252'
-    with patch('pip._internal.utils.misc.open', om, create=True):
-        with patch('locale.getpreferredencoding', em):
-            ret = read_text_file('foo')
-    assert ret == expected.decode('utf-8')
-
-
 class TestInstallRequirement(object):
     def setup(self):
         self.tempdir = tempfile.mkdtemp()
@@ -360,7 +351,7 @@ class TestInstallRequirement(object):
     def test_unsupported_wheel_local_file_requirement_raises(self, data):
         reqset = RequirementSet()
         req = install_req_from_line(
-            data.packages.join('simple.dist-0.1-py1-none-invalid.whl'),
+            data.packages.joinpath('simple.dist-0.1-py1-none-invalid.whl'),
         )
         assert req.link is not None
         assert req.link.is_wheel
@@ -542,12 +533,12 @@ class TestInstallRequirement(object):
         assert "Invalid requirement" in err_msg
         assert "= is not a valid operator. Did you mean == ?" in err_msg
 
-    def test_traceback(self):
+    def test_unidentifiable_name(self):
+        test_name = '-'
         with pytest.raises(InstallationError) as e:
-            install_req_from_line('toto 42')
+            install_req_from_line(test_name)
         err_msg = e.value.args[0]
-        assert "Invalid requirement" in err_msg
-        assert "\nTraceback " in err_msg
+        assert "Invalid requirement: '{}'".format(test_name) == err_msg
 
     def test_requirement_file(self):
         req_file_path = os.path.join(self.tempdir, 'test.txt')
@@ -630,7 +621,7 @@ def test_mismatched_versions(caplog, tmpdir):
     shutil.copytree(original_source, source_dir)
     req = InstallRequirement(req=Requirement('simplewheel==2.0'),
                              comes_from=None, source_dir=source_dir)
-    req.run_egg_info()
+    req.prepare_metadata()
     req.assert_source_matches_version()
     assert caplog.records[-1].message == (
         'Requested simplewheel==2.0, '

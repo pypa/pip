@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import logging
 import os
-from email.parser import FeedParser  # type: ignore
+from email.parser import FeedParser
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.utils import canonicalize_name
@@ -19,10 +19,9 @@ class ShowCommand(Command):
 
     The output is in RFC-compliant mail header format.
     """
-    name = 'show'
+
     usage = """
       %prog [options] <package> ..."""
-    summary = 'Show information about installed packages.'
     ignore_require_venv = True
 
     def __init__(self, *args, **kw):

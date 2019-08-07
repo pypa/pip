@@ -40,12 +40,13 @@ compctl -K _pip_completion pip"""),
     COMPLETION_FOR_SUPPORTED_SHELLS_TESTS,
     ids=[t[0] for t in COMPLETION_FOR_SUPPORTED_SHELLS_TESTS],
 )
-def test_completion_for_supported_shells(script, pip_src, shell, completion):
+def test_completion_for_supported_shells(script, pip_src, common_wheels,
+                                         shell, completion):
     """
     Test getting completion for bash shell
     """
     # Re-install pip so we get the launchers.
-    script.pip_install_local('--no-build-isolation', pip_src)
+    script.pip_install_local('-f', common_wheels, pip_src)
 
     result = script.pip('completion', '--' + shell, use_module=False)
     assert completion in result.stdout, str(result.stdout)
@@ -282,10 +283,10 @@ def test_completion_path_after_option(script, data):
 
 
 @pytest.mark.parametrize('flag', ['--bash', '--zsh', '--fish'])
-def test_completion_uses_same_executable_name(script, flag):
-    expect_stderr = sys.version_info[:2] == (3, 3)
+def test_completion_uses_same_executable_name(script, flag, deprecated_python):
     executable_name = 'pip{}'.format(sys.version_info[0])
+    # Deprecated python versions produce an extra deprecation warning
     result = script.run(
-        executable_name, 'completion', flag, expect_stderr=expect_stderr
+        executable_name, 'completion', flag, expect_stderr=deprecated_python,
     )
     assert executable_name in result.stdout

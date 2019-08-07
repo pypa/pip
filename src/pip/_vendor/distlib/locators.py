@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 HASHER_HASH = re.compile(r'^(\w+)=([a-f0-9]+)')
 CHARSET = re.compile(r';\s*charset\s*=\s*(.*)\s*$', re.I)
 HTML_CONTENT_TYPE = re.compile('text/html|application/x(ht)?ml')
-DEFAULT_INDEX = 'https://pypi.python.org/pypi'
+DEFAULT_INDEX = 'https://pypi.org/pypi'
 
 def get_all_distribution_names(url=None):
     """
@@ -197,7 +197,7 @@ class Locator(object):
         is_downloadable = basename.endswith(self.downloadable_extensions)
         if is_wheel:
             compatible = is_compatible(Wheel(basename), self.wheel_tags)
-        return (t.scheme == 'https', 'pypi.python.org' in t.netloc,
+        return (t.scheme == 'https', 'pypi.org' in t.netloc,
                 is_downloadable, is_wheel, compatible, basename)
 
     def prefer_url(self, url1, url2):
@@ -255,7 +255,9 @@ class Locator(object):
         if path.endswith('.whl'):
             try:
                 wheel = Wheel(path)
-                if is_compatible(wheel, self.wheel_tags):
+                if not is_compatible(wheel, self.wheel_tags):
+                    logger.debug('Wheel not compatible: %s', path)
+                else:
                     if project_name is None:
                         include = True
                     else:
@@ -613,6 +615,7 @@ class SimpleScrapingLocator(Locator):
         # as it is for coordinating our internal threads - the ones created
         # in _prepare_threads.
         self._gplock = threading.RLock()
+        self.platform_check = False  # See issue #112
 
     def _prepare_threads(self):
         """
@@ -658,8 +661,8 @@ class SimpleScrapingLocator(Locator):
             del self.result
         return result
 
-    platform_dependent = re.compile(r'\b(linux-(i\d86|x86_64|arm\w+)|'
-                                    r'win(32|-amd64)|macosx-?\d+)\b', re.I)
+    platform_dependent = re.compile(r'\b(linux_(i\d86|x86_64|arm\w+)|'
+                                    r'win(32|_amd64)|macosx_?\d+)\b', re.I)
 
     def _is_platform_dependent(self, url):
         """
@@ -677,7 +680,7 @@ class SimpleScrapingLocator(Locator):
         Note that the return value isn't actually used other than as a boolean
         value.
         """
-        if self._is_platform_dependent(url):
+        if self.platform_check and self._is_platform_dependent(url):
             info = None
         else:
             info = self.convert_url_to_download_info(url, self.project_name)
@@ -1046,7 +1049,7 @@ class AggregatingLocator(Locator):
 # versions which don't conform to PEP 426 / PEP 440.
 default_locator = AggregatingLocator(
                     JSONLocator(),
-                    SimpleScrapingLocator('https://pypi.python.org/simple/',
+                    SimpleScrapingLocator('https://pypi.org/simple/',
                                           timeout=3.0),
                     scheme='legacy')
 

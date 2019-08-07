@@ -62,6 +62,8 @@ pip can be configured to connect through a proxy server in various ways:
 * using ``proxy`` in a :ref:`config-file`
 * by setting the standard environment-variables ``http_proxy``, ``https_proxy``
   and ``no_proxy``.
+* using the environment variable ``PIP_USER_AGENT_USER_DATA`` to include
+  a JSON-encoded string in the user-agent variable used in pip's requests.
 
 
 .. _`Requirements Files`:
@@ -443,6 +445,11 @@ is the same as calling::
 
     pip install --find-links=http://mirror1.example.com --find-links=http://mirror2.example.com
 
+.. note::
+
+   Environment variables set to be empty string will not be treated as false. Please use ``no``,
+   ``false`` or ``0`` instead.
+
 
 Config Precedence
 -----------------
@@ -493,10 +500,10 @@ to PyPI.
 
 First, download the archives that fulfill your requirements::
 
-$ pip install --download DIR -r requirements.txt
+$ pip download --destination-directory DIR -r requirements.txt
 
 
-Note that ``pip install --download`` will look in your wheel cache first, before
+Note that ``pip download`` will look in your wheel cache first, before
 trying to download from PyPI.  If you've never installed your requirements
 before, you won't have a wheel cache for those items.  In that case, if some of
 your requirements don't come as wheels from PyPI, and you want wheels, then run

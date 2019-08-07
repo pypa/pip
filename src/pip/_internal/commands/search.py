@@ -24,10 +24,9 @@ logger = logging.getLogger(__name__)
 
 class SearchCommand(Command):
     """Search for PyPI packages whose name or summary contains <query>."""
-    name = 'search'
+
     usage = """
       %prog [options] <query>"""
-    summary = 'Search PyPI for packages.'
     ignore_require_venv = True
 
     def __init__(self, *args, **kw):
@@ -126,7 +125,11 @@ def print_results(hits, name_column_width=None, terminal_width=None):
                         logger.info('INSTALLED: %s (latest)', dist.version)
                     else:
                         logger.info('INSTALLED: %s', dist.version)
-                        logger.info('LATEST:    %s', latest)
+                        if parse_version(latest).pre:
+                            logger.info('LATEST:    %s (pre-release; install'
+                                        ' with "pip install --pre")', latest)
+                        else:
+                            logger.info('LATEST:    %s', latest)
         except UnicodeEncodeError:
             pass
 

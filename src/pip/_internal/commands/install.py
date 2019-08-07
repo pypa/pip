@@ -12,31 +12,65 @@ from pip._vendor import pkg_resources
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import RequirementCommand
+from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.status_codes import ERROR
 from pip._internal.exceptions import (
-    CommandError, InstallationError, PreviousBuildDirError,
+    CommandError,
+    InstallationError,
+    PreviousBuildDirError,
 )
-from pip._internal.locations import distutils_scheme, virtualenv_no_global
+from pip._internal.locations import distutils_scheme
 from pip._internal.operations.check import check_install_conflicts
-from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import RequirementSet, install_given_reqs
 from pip._internal.req.req_tracker import RequirementTracker
-from pip._internal.resolve import Resolver
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.misc import (
-    ensure_dir, get_installed_version,
+    ensure_dir,
+    get_installed_version,
     protect_pip_from_modification_on_windows,
 )
 from pip._internal.utils.temp_dir import TempDirectory
+from pip._internal.utils.virtualenv import virtualenv_no_global
 from pip._internal.wheel import WheelBuilder
 
-try:
-    import wheel
-except ImportError:
-    wheel = None
-
-
 logger = logging.getLogger(__name__)
+
+
+def is_wheel_installed():
+    """
+    Return whether the wheel package is installed.
+    """
+    try:
+        import wheel  # noqa: F401
+    except ImportError:
+        return False
+
+    return True
+
+
+def build_wheels(builder, pep517_requirements, legacy_requirements, session):
+    """
+    Build wheels for requirements, depending on whether wheel is installed.
+    """
+    # We don't build wheels for legacy requirements if wheel is not installed.
+    should_build_legacy = is_wheel_installed()
+
+    # Always build PEP 517 requirements
+    build_failures = builder.build(
+        pep517_requirements,
+        session=session, autobuilding=True
+    )
+
+    if should_build_legacy:
+        # We don't care about failures building legacy
+        # requirements, as we'll fall through to a direct
+        # install for those.
+        builder.build(
+            legacy_requirements,
+            session=session, autobuilding=True
+        )
+
+    return build_failures
 
 
 class InstallCommand(RequirementCommand):
@@ -48,10 +82,9 @@ class InstallCommand(RequirementCommand):
     - Local project directories.
     - Local or remote source archives.
 
-    pip also supports installing from "requirements files", which provide
+    pip also supports installing from "requirements files," which provide
     an easy way to specify a whole environment to be installed.
     """
-    name = 'install'
 
     usage = """
       %prog [options] <requirement specifier> [package-index-options] ...
@@ -59,8 +92,6 @@ class InstallCommand(RequirementCommand):
       %prog [options] [-e] <vcs project url> ...
       %prog [options] [-e] <local project path> ...
       %prog [options] <archive url/path> ..."""
-
-    summary = 'Install packages.'
 
     def __init__(self, *args, **kw):
         super(InstallCommand, self).__init__(*args, **kw)
@@ -83,10 +114,7 @@ class InstallCommand(RequirementCommand):
                  '<dir>. Use --upgrade to replace existing packages in <dir> '
                  'with new versions.'
         )
-        cmd_opts.add_option(cmdoptions.platform())
-        cmd_opts.add_option(cmdoptions.python_version())
-        cmd_opts.add_option(cmdoptions.implementation())
-        cmd_opts.add_option(cmdoptions.abi())
+        cmdoptions.add_target_python_options(cmd_opts)
 
         cmd_opts.add_option(
             '--user',
@@ -154,10 +182,16 @@ class InstallCommand(RequirementCommand):
             '-I', '--ignore-installed',
             dest='ignore_installed',
             action='store_true',
-            help='Ignore the installed packages (reinstalling instead).')
+            help='Ignore the installed packages, overwriting them. '
+                 'This can break your system if the existing package '
+                 'is of a different version or was installed '
+                 'with a different package manager!'
+        )
 
         cmd_opts.add_option(cmdoptions.ignore_requires_python())
         cmd_opts.add_option(cmdoptions.no_build_isolation())
+        cmd_opts.add_option(cmdoptions.use_pep517())
+        cmd_opts.add_option(cmdoptions.no_use_pep517())
 
         cmd_opts.add_option(cmdoptions.install_options())
         cmd_opts.add_option(cmdoptions.global_options())
@@ -218,11 +252,6 @@ class InstallCommand(RequirementCommand):
 
         cmdoptions.check_dist_restriction(options, check_target=True)
 
-        if options.python_version:
-            python_versions = [options.python_version]
-        else:
-            python_versions = None
-
         options.src_dir = os.path.abspath(options.src_dir)
         install_options = options.install_options or []
         if options.use_user_site:
@@ -257,13 +286,12 @@ class InstallCommand(RequirementCommand):
         global_options = options.global_options or []
 
         with self._build_session(options) as session:
+            target_python = make_target_python(options)
             finder = self._build_package_finder(
                 options=options,
                 session=session,
-                platform=options.platform,
-                python_versions=python_versions,
-                abi=options.abi,
-                implementation=options.implementation,
+                target_python=target_python,
+                ignore_requires_python=options.ignore_requires_python,
             )
             build_delete = (not (options.no_clean or options.build_dir))
             wheel_cache = WheelCache(options.cache_dir, options.format_control)
@@ -292,28 +320,23 @@ class InstallCommand(RequirementCommand):
                         requirement_set, args, options, finder, session,
                         self.name, wheel_cache
                     )
-                    preparer = RequirementPreparer(
-                        build_dir=directory.path,
-                        src_dir=options.src_dir,
-                        download_dir=None,
-                        wheel_download_dir=None,
-                        progress_bar=options.progress_bar,
-                        build_isolation=options.build_isolation,
+                    preparer = self.make_requirement_preparer(
+                        temp_directory=directory,
+                        options=options,
                         req_tracker=req_tracker,
                     )
-
-                    resolver = Resolver(
+                    resolver = self.make_resolver(
                         preparer=preparer,
                         finder=finder,
                         session=session,
+                        options=options,
                         wheel_cache=wheel_cache,
                         use_user_site=options.use_user_site,
-                        upgrade_strategy=upgrade_strategy,
-                        force_reinstall=options.force_reinstall,
-                        ignore_dependencies=options.ignore_dependencies,
-                        ignore_requires_python=options.ignore_requires_python,
                         ignore_installed=options.ignore_installed,
-                        isolated=options.isolated_mode,
+                        ignore_requires_python=options.ignore_requires_python,
+                        force_reinstall=options.force_reinstall,
+                        upgrade_strategy=upgrade_strategy,
+                        use_pep517=options.use_pep517,
                     )
                     resolver.resolve(requirement_set)
 
@@ -321,20 +344,34 @@ class InstallCommand(RequirementCommand):
                         modifying_pip=requirement_set.has_requirement("pip")
                     )
 
-                    # If caching is disabled or wheel is not installed don't
-                    # try to build wheels.
-                    if wheel and options.cache_dir:
-                        # build wheels before install.
-                        wb = WheelBuilder(
-                            finder, preparer, wheel_cache,
-                            build_options=[], global_options=[],
-                        )
-                        # Ignore the result: a failed wheel will be
-                        # installed from the sdist/vcs whatever.
-                        wb.build(
-                            requirement_set.requirements.values(),
-                            session=session, autobuilding=True
-                        )
+                    # Consider legacy and PEP517-using requirements separately
+                    legacy_requirements = []
+                    pep517_requirements = []
+                    for req in requirement_set.requirements.values():
+                        if req.use_pep517:
+                            pep517_requirements.append(req)
+                        else:
+                            legacy_requirements.append(req)
+
+                    wheel_builder = WheelBuilder(
+                        finder, preparer, wheel_cache,
+                        build_options=[], global_options=[],
+                    )
+
+                    build_failures = build_wheels(
+                        builder=wheel_builder,
+                        pep517_requirements=pep517_requirements,
+                        legacy_requirements=legacy_requirements,
+                        session=session,
+                    )
+
+                    # If we're using PEP 517, we cannot do a direct install
+                    # so we fail here.
+                    if build_failures:
+                        raise InstallationError(
+                            "Could not build wheels for {} which use"
+                            " PEP 517 and cannot be installed directly".format(
+                                ", ".join(r.name for r in build_failures)))
 
                     to_install = resolver.get_installation_order(
                         requirement_set

@@ -5,10 +5,9 @@ import os
 
 from pip._vendor.six.moves import configparser
 
-from pip._internal.download import path_to_url
-from pip._internal.utils.misc import display_path, make_vcs_requirement_url
+from pip._internal.utils.misc import display_path, path_to_url
 from pip._internal.utils.temp_dir import TempDirectory
-from pip._internal.vcs import VersionControl, vcs
+from pip._internal.vcs.versioncontrol import VersionControl, vcs
 
 logger = logging.getLogger(__name__)
 
@@ -19,13 +18,14 @@ class Mercurial(VersionControl):
     repo_name = 'clone'
     schemes = ('hg', 'hg+http', 'hg+https', 'hg+ssh', 'hg+static-http')
 
-    def get_base_rev_args(self, rev):
+    @staticmethod
+    def get_base_rev_args(rev):
         return [rev]
 
-    def export(self, location):
+    def export(self, location, url):
         """Export the Hg repository at the url to the destination location"""
         with TempDirectory(kind="export") as temp_dir:
-            self.unpack(temp_dir.path)
+            self.unpack(temp_dir.path, url=url)
 
             self.run_command(
                 ['archive', location], show_stdout=False, cwd=temp_dir.path
@@ -45,7 +45,7 @@ class Mercurial(VersionControl):
 
     def switch(self, dest, url, rev_options):
         repo_config = os.path.join(dest, self.dirname, 'hgrc')
-        config = configparser.SafeConfigParser()
+        config = configparser.RawConfigParser()
         try:
             config.read(repo_config)
             config.set('paths', 'default', url)
@@ -64,36 +64,38 @@ class Mercurial(VersionControl):
         cmd_args = ['update', '-q'] + rev_options.to_args()
         self.run_command(cmd_args, cwd=dest)
 
-    def get_url(self, location):
-        url = self.run_command(
+    @classmethod
+    def get_remote_url(cls, location):
+        url = cls.run_command(
             ['showconfig', 'paths.default'],
             show_stdout=False, cwd=location).strip()
-        if self._is_local_repository(url):
+        if cls._is_local_repository(url):
             url = path_to_url(url)
         return url.strip()
 
-    def get_revision(self, location):
-        current_revision = self.run_command(
+    @classmethod
+    def get_revision(cls, location):
+        """
+        Return the repository-local changeset revision number, as an integer.
+        """
+        current_revision = cls.run_command(
             ['parents', '--template={rev}'],
             show_stdout=False, cwd=location).strip()
         return current_revision
 
-    def get_revision_hash(self, location):
-        current_rev_hash = self.run_command(
+    @classmethod
+    def get_requirement_revision(cls, location):
+        """
+        Return the changeset identification hash, as a 40-character
+        hexadecimal string
+        """
+        current_rev_hash = cls.run_command(
             ['parents', '--template={node}'],
             show_stdout=False, cwd=location).strip()
         return current_rev_hash
 
-    def get_src_requirement(self, dist, location):
-        repo = self.get_url(location)
-        if not repo.lower().startswith('hg:'):
-            repo = 'hg+' + repo
-        current_rev_hash = self.get_revision_hash(location)
-        egg_project_name = dist.egg_name().split('-', 1)[0]
-        return make_vcs_requirement_url(repo, current_rev_hash,
-                                        egg_project_name)
-
-    def is_commit_id_equal(self, dest, name):
+    @classmethod
+    def is_commit_id_equal(cls, dest, name):
         """Always assume the versions don't match"""
         return False
 

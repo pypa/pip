@@ -1,11 +1,14 @@
 from tests.lib import create_test_package_with_setup
 
 
-def matches_expected_lines(string, expected_lines):
-    return set(string.splitlines()) == set(expected_lines)
+def matches_expected_lines(string, expected_lines, exact=True):
+    if exact:
+        return set(string.splitlines()) == set(expected_lines)
+    # If not exact, check that all expected lines are present
+    return set(expected_lines) <= set(string.splitlines())
 
 
-def test_check_install_canonicalization(script):
+def test_check_install_canonicalization(script, deprecated_python):
     pkga_path = create_test_package_with_setup(
         script,
         name='pkgA',
@@ -31,9 +34,11 @@ def test_check_install_canonicalization(script):
         'install', '--no-index', normal_path, '--quiet', expect_error=True
     )
     expected_lines = [
-        "pkga 1.0 requires SPECIAL.missing, which is not installed.",
+        "ERROR: pkga 1.0 requires SPECIAL.missing, which is not installed.",
     ]
-    assert matches_expected_lines(result.stderr, expected_lines)
+    # Deprecated python versions produce an extra warning on stderr
+    assert matches_expected_lines(
+        result.stderr, expected_lines, exact=not deprecated_python)
     assert result.returncode == 0
 
     # Install the second missing package and expect that there is no warning
@@ -42,7 +47,8 @@ def test_check_install_canonicalization(script):
     result = script.pip(
         'install', '--no-index', special_path, '--quiet',
     )
-    assert matches_expected_lines(result.stderr, [])
+    assert matches_expected_lines(
+        result.stderr, [], exact=not deprecated_python)
     assert result.returncode == 0
 
     # Double check that all errors are resolved in the end
@@ -54,7 +60,8 @@ def test_check_install_canonicalization(script):
     assert result.returncode == 0
 
 
-def test_check_install_does_not_warn_for_out_of_graph_issues(script):
+def test_check_install_does_not_warn_for_out_of_graph_issues(
+        script, deprecated_python):
     pkg_broken_path = create_test_package_with_setup(
         script,
         name='broken',
@@ -74,26 +81,29 @@ def test_check_install_does_not_warn_for_out_of_graph_issues(script):
 
     # Install a package without it's dependencies
     result = script.pip('install', '--no-index', pkg_broken_path, '--no-deps')
-    assert matches_expected_lines(result.stderr, [])
+    # Deprecated python versions produce an extra warning on stderr
+    assert matches_expected_lines(
+        result.stderr, [], exact=not deprecated_python)
 
     # Install conflict package
     result = script.pip(
         'install', '--no-index', pkg_conflict_path, expect_error=True,
     )
     assert matches_expected_lines(result.stderr, [
-        "broken 1.0 requires missing, which is not installed.",
+        "ERROR: broken 1.0 requires missing, which is not installed.",
         (
-            "broken 1.0 has requirement conflict<1.0, but "
+            "ERROR: broken 1.0 has requirement conflict<1.0, but "
             "you'll have conflict 1.0 which is incompatible."
         ),
-    ])
+    ], exact=not deprecated_python)
 
     # Install unrelated package
     result = script.pip(
         'install', '--no-index', pkg_unrelated_path, '--quiet',
     )
     # should not warn about broken's deps when installing unrelated package
-    assert matches_expected_lines(result.stderr, [])
+    assert matches_expected_lines(
+        result.stderr, [], exact=not deprecated_python)
 
     result = script.pip('check', expect_error=True)
     expected_lines = [

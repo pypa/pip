@@ -1,3 +1,6 @@
+# The following comment should be removed at some point in the future.
+# mypy: strict-optional=False
+
 from __future__ import absolute_import
 
 import collections
@@ -11,23 +14,44 @@ from pip._vendor.pkg_resources import RequirementParseError
 
 from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.req.constructors import (
-    install_req_from_editable, install_req_from_line,
+    install_req_from_editable,
+    install_req_from_line,
 )
 from pip._internal.req.req_file import COMMENT_RE
 from pip._internal.utils.misc import (
-    dist_is_editable, get_installed_distributions,
+    dist_is_editable,
+    get_installed_distributions,
 )
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from typing import (
+        Iterator, Optional, List, Container, Set, Dict, Tuple, Iterable, Union
+    )
+    from pip._internal.cache import WheelCache
+    from pip._vendor.pkg_resources import (
+        Distribution, Requirement
+    )
+
+    RequirementInfo = Tuple[Optional[Union[str, Requirement]], bool, List[str]]
+
 
 logger = logging.getLogger(__name__)
 
 
 def freeze(
-        requirement=None,
-        find_links=None, local_only=None, user_only=None, skip_regex=None,
-        isolated=False,
-        wheel_cache=None,
-        exclude_editable=False,
-        skip=()):
+    requirement=None,  # type: Optional[List[str]]
+    find_links=None,  # type: Optional[List[str]]
+    local_only=None,  # type: Optional[bool]
+    user_only=None,  # type: Optional[bool]
+    paths=None,  # type: Optional[List[str]]
+    skip_regex=None,  # type: Optional[str]
+    isolated=False,  # type: bool
+    wheel_cache=None,  # type: Optional[WheelCache]
+    exclude_editable=False,  # type: bool
+    skip=()  # type: Container[str]
+):
+    # type: (...) -> Iterator[str]
     find_links = find_links or []
     skip_match = None
 
@@ -36,16 +60,21 @@ def freeze(
 
     for link in find_links:
         yield '-f %s' % link
-    installations = {}
+    installations = {}  # type: Dict[str, FrozenRequirement]
     for dist in get_installed_distributions(local_only=local_only,
                                             skip=(),
-                                            user_only=user_only):
+                                            user_only=user_only,
+                                            paths=paths):
         try:
             req = FrozenRequirement.from_dist(dist)
-        except RequirementParseError:
+        except RequirementParseError as exc:
+            # We include dist rather than dist.project_name because the
+            # dist string includes more information, like the version and
+            # location. We also include the exception message to aid
+            # troubleshooting.
             logger.warning(
-                "Could not parse requirement: %s",
-                dist.project_name
+                'Could not generate requirement for distribution %r: %s',
+                dist, exc
             )
             continue
         if exclude_editable and req.editable:
@@ -57,10 +86,10 @@ def freeze(
         # should only be emitted once, even if the same option is in multiple
         # requirements files, so we need to keep track of what has been emitted
         # so that we don't emit it again if it's seen again
-        emitted_options = set()
+        emitted_options = set()  # type: Set[str]
         # keep track of which files a requirement is in so that we can
         # give an accurate warning if a requirement appears multiple times.
-        req_files = collections.defaultdict(list)
+        req_files = collections.defaultdict(list)  # type: Dict[str, List[str]]
         for req_file_path in requirement:
             with open(req_file_path) as req_file:
                 for line in req_file:
@@ -114,10 +143,10 @@ def freeze(
                         # but has been processed already
                         if not req_files[line_req.name]:
                             logger.warning(
-                                "Requirement file [%s] contains %s, but that "
-                                "package is not installed",
+                                "Requirement file [%s] contains %s, but "
+                                "package %r is not installed",
                                 req_file_path,
-                                COMMENT_RE.sub('', line).strip(),
+                                COMMENT_RE.sub('', line).strip(), line_req.name
                             )
                         else:
                             req_files[line_req.name].append(req_file_path)
@@ -144,6 +173,7 @@ def freeze(
 
 
 def get_requirement_info(dist):
+    # type: (Distribution) -> RequirementInfo
     """
     Compute and return values (req, editable, comments) for use in
     FrozenRequirement.from_dist().
@@ -153,20 +183,37 @@ def get_requirement_info(dist):
 
     location = os.path.normcase(os.path.abspath(dist.location))
 
-    from pip._internal.vcs import vcs
-    vc_type = vcs.get_backend_type(location)
+    from pip._internal.vcs import vcs, RemoteNotFoundError
+    vcs_backend = vcs.get_backend_for_dir(location)
 
-    if not vc_type:
-        return (None, False, [])
+    if vcs_backend is None:
+        req = dist.as_requirement()
+        logger.debug(
+            'No VCS found for editable requirement "%s" in: %r', req,
+            location,
+        )
+        comments = [
+            '# Editable install with no version control ({})'.format(req)
+        ]
+        return (location, True, comments)
 
     try:
-        req = vc_type().get_src_requirement(dist, location)
+        req = vcs_backend.get_src_requirement(location, dist.project_name)
+    except RemoteNotFoundError:
+        req = dist.as_requirement()
+        comments = [
+            '# Editable {} install with no remote ({})'.format(
+                type(vcs_backend).__name__, req,
+            )
+        ]
+        return (location, True, comments)
+
     except BadCommand:
         logger.warning(
             'cannot determine version of editable source in %s '
             '(%s command not found in path)',
             location,
-            vc_type.name,
+            vcs_backend.name,
         )
         return (None, True, [])
 
@@ -189,6 +236,7 @@ def get_requirement_info(dist):
 
 class FrozenRequirement(object):
     def __init__(self, name, req, editable, comments=()):
+        # type: (str, Union[str, Requirement], bool, Iterable[str]) -> None
         self.name = name
         self.req = req
         self.editable = editable
@@ -196,6 +244,7 @@ class FrozenRequirement(object):
 
     @classmethod
     def from_dist(cls, dist):
+        # type: (Distribution) -> FrozenRequirement
         req, editable, comments = get_requirement_info(dist)
         if req is None:
             req = dist.as_requirement()

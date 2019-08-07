@@ -1,8 +1,24 @@
 import sys
 
+import pytest
 from mock import patch
 
 from pip._internal import pep425tags
+
+
+@pytest.mark.parametrize('version_info, expected', [
+    ((2,), '2'),
+    ((2, 8), '28'),
+    ((3,), '3'),
+    ((3, 6), '36'),
+    # Test a tuple of length 3.
+    ((3, 6, 5), '36'),
+    # Test a 2-digit minor version.
+    ((3, 10), '310'),
+])
+def test_version_info_to_nodot(version_info, expected):
+    actual = pep425tags.version_info_to_nodot(version_info)
+    assert actual == expected
 
 
 class TestPEP425Tags(object):
@@ -114,44 +130,58 @@ class TestPEP425Tags(object):
         self.abi_tag_unicode('dm', {'Py_DEBUG': True, 'WITH_PYMALLOC': True})
 
 
-class TestManylinux1Tags(object):
-
+@pytest.mark.parametrize('is_manylinux_compatible', [
+    pep425tags.is_manylinux1_compatible,
+    pep425tags.is_manylinux2010_compatible,
+])
+class TestManylinuxTags(object):
+    """
+    Tests common to all manylinux tags (e.g. manylinux1, manylinux2010,
+    ...)
+    """
     @patch('pip._internal.pep425tags.get_platform', lambda: 'linux_x86_64')
     @patch('pip._internal.utils.glibc.have_compatible_glibc',
            lambda major, minor: True)
-    def test_manylinux1_compatible_on_linux_x86_64(self):
+    def test_manylinux_compatible_on_linux_x86_64(self,
+                                                  is_manylinux_compatible):
         """
-        Test that manylinux1 is enabled on linux_x86_64
+        Test that manylinuxes are enabled on linux_x86_64
         """
-        assert pep425tags.is_manylinux1_compatible()
+        assert is_manylinux_compatible()
 
     @patch('pip._internal.pep425tags.get_platform', lambda: 'linux_i686')
     @patch('pip._internal.utils.glibc.have_compatible_glibc',
            lambda major, minor: True)
-    def test_manylinux1_compatible_on_linux_i686(self):
+    def test_manylinux1_compatible_on_linux_i686(self,
+                                                 is_manylinux_compatible):
         """
         Test that manylinux1 is enabled on linux_i686
         """
-        assert pep425tags.is_manylinux1_compatible()
+        assert is_manylinux_compatible()
 
     @patch('pip._internal.pep425tags.get_platform', lambda: 'linux_x86_64')
     @patch('pip._internal.utils.glibc.have_compatible_glibc',
            lambda major, minor: False)
-    def test_manylinux1_2(self):
+    def test_manylinux1_2(self, is_manylinux_compatible):
         """
         Test that manylinux1 is disabled with incompatible glibc
         """
-        assert not pep425tags.is_manylinux1_compatible()
+        assert not is_manylinux_compatible()
 
     @patch('pip._internal.pep425tags.get_platform', lambda: 'arm6vl')
     @patch('pip._internal.utils.glibc.have_compatible_glibc',
            lambda major, minor: True)
-    def test_manylinux1_3(self):
+    def test_manylinux1_3(self, is_manylinux_compatible):
         """
         Test that manylinux1 is disabled on arm6vl
         """
-        assert not pep425tags.is_manylinux1_compatible()
+        assert not is_manylinux_compatible()
 
+
+class TestManylinux1Tags(object):
+
+    @patch('pip._internal.pep425tags.is_manylinux2010_compatible',
+           lambda: False)
     @patch('pip._internal.pep425tags.get_platform', lambda: 'linux_x86_64')
     @patch('pip._internal.utils.glibc.have_compatible_glibc',
            lambda major, minor: True)
@@ -172,3 +202,50 @@ class TestManylinux1Tags(object):
                 assert arches == ['manylinux1_x86_64', 'linux_x86_64', 'any']
             else:
                 assert arches == ['manylinux1_x86_64', 'linux_x86_64']
+
+
+class TestManylinux2010Tags(object):
+
+    @patch('pip._internal.pep425tags.get_platform', lambda: 'linux_x86_64')
+    @patch('pip._internal.utils.glibc.have_compatible_glibc',
+           lambda major, minor: True)
+    @patch('sys.platform', 'linux2')
+    def test_manylinux2010_tag_is_first(self):
+        """
+        Test that the more specific tag manylinux2010 comes first.
+        """
+        groups = {}
+        for pyimpl, abi, arch in pep425tags.get_supported():
+            groups.setdefault((pyimpl, abi), []).append(arch)
+
+        for arches in groups.values():
+            if arches == ['any']:
+                continue
+            # Expect the most specific arch first:
+            if len(arches) == 4:
+                assert arches == ['manylinux2010_x86_64',
+                                  'manylinux1_x86_64',
+                                  'linux_x86_64',
+                                  'any']
+            else:
+                assert arches == ['manylinux2010_x86_64',
+                                  'manylinux1_x86_64',
+                                  'linux_x86_64']
+
+    @pytest.mark.parametrize("manylinux2010,manylinux1", [
+        ("manylinux2010_x86_64", "manylinux1_x86_64"),
+        ("manylinux2010_i686", "manylinux1_i686"),
+    ])
+    def test_manylinux2010_implies_manylinux1(self, manylinux2010, manylinux1):
+        """
+        Specifying manylinux2010 implies manylinux1.
+        """
+        groups = {}
+        supported = pep425tags.get_supported(platform=manylinux2010)
+        for pyimpl, abi, arch in supported:
+            groups.setdefault((pyimpl, abi), []).append(arch)
+
+        for arches in groups.values():
+            if arches == ['any']:
+                continue
+            assert arches[:2] == [manylinux2010, manylinux1]

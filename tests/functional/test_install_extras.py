@@ -101,8 +101,8 @@ def test_nonexistent_options_listed_in_order(script, data):
         'simplewheel[nonexistent, nope]', expect_stderr=True,
     )
     msg = (
-        "  simplewheel 2.0 does not provide the extra 'nonexistent'\n"
-        "  simplewheel 2.0 does not provide the extra 'nope'"
+        "  WARNING: simplewheel 2.0 does not provide the extra 'nonexistent'\n"
+        "  WARNING: simplewheel 2.0 does not provide the extra 'nope'"
     )
     assert msg in result.stderr
 
@@ -112,7 +112,7 @@ def test_install_special_extra(script):
     # make a dummy project
     pkga_path = script.scratch_path / 'pkga'
     pkga_path.mkdir()
-    pkga_path.join("setup.py").write(textwrap.dedent("""
+    pkga_path.joinpath("setup.py").write_text(textwrap.dedent("""
         from setuptools import setup
         setup(name='pkga',
               version='0.1',

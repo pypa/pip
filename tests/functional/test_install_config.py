@@ -63,7 +63,7 @@ def _test_env_vars_override_config_file(script, virtualenv, config_file):
     # because there is/was a bug which only shows up in cases in which
     # 'config-item' and 'config_item' hash to the same value modulo the size
     # of the config dictionary.
-    (script.scratch_path / config_file).write(textwrap.dedent("""\
+    (script.scratch_path / config_file).write_text(textwrap.dedent("""\
         [global]
         no-index = 1
         """))
@@ -105,7 +105,10 @@ def test_command_line_append_flags(script, virtualenv, data):
         "Analyzing links from page https://test.pypi.org"
         in result.stdout
     )
-    assert "Skipping link %s" % data.find_links in result.stdout
+    assert (
+        'Skipping link: not a file: {}'.format(data.find_links) in
+        result.stdout
+    ), 'stdout: {}'.format(result.stdout)
 
 
 @pytest.mark.network
@@ -127,7 +130,10 @@ def test_command_line_appends_correctly(script, data):
         "Analyzing links from page https://test.pypi.org"
         in result.stdout
     ), result.stdout
-    assert "Skipping link %s" % data.find_links in result.stdout
+    assert (
+        'Skipping link: not a file: {}'.format(data.find_links) in
+        result.stdout
+    ), 'stdout: {}'.format(result.stdout)
 
 
 def test_config_file_override_stack(script, virtualenv):
@@ -149,7 +155,7 @@ def test_config_file_override_stack(script, virtualenv):
 def _test_config_file_override_stack(script, virtualenv, config_file):
     # set this to make pip load it
     script.environ['PIP_CONFIG_FILE'] = config_file
-    (script.scratch_path / config_file).write(textwrap.dedent("""\
+    (script.scratch_path / config_file).write_text(textwrap.dedent("""\
         [global]
         index-url = https://download.zope.org/ppix
         """))
@@ -158,7 +164,7 @@ def _test_config_file_override_stack(script, virtualenv, config_file):
         "Getting page https://download.zope.org/ppix/initools" in result.stdout
     )
     virtualenv.clear()
-    (script.scratch_path / config_file).write(textwrap.dedent("""\
+    (script.scratch_path / config_file).write_text(textwrap.dedent("""\
         [global]
         index-url = https://download.zope.org/ppix
         [install]
@@ -186,9 +192,9 @@ def test_options_from_venv_config(script, virtualenv):
     Test if ConfigOptionParser reads a virtualenv-local config file
 
     """
-    from pip._internal.locations import config_basename
+    from pip._internal.configuration import CONFIG_BASENAME
     conf = "[global]\nno-index = true"
-    ini = virtualenv.location / config_basename
+    ini = virtualenv.location / CONFIG_BASENAME
     with open(ini, 'w') as f:
         f.write(conf)
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
@@ -216,6 +222,6 @@ def test_install_no_binary_via_config_disables_cached_wheels(
         os.unlink(config_file.name)
     assert "Successfully installed upper-2.0" in str(res), str(res)
     # No wheel building for upper, which was blacklisted
-    assert "Running setup.py bdist_wheel for upper" not in str(res), str(res)
+    assert "Building wheel for upper" not in str(res), str(res)
     # Must have used source, not a cached wheel to install upper.
     assert "Running setup.py install for upper" in str(res), str(res)

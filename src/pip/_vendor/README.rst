@@ -1,11 +1,13 @@
-Policy
-======
+Vendoring Policy
+================
 
 * Vendored libraries **MUST** not be modified except as required to
   successfully vendor them.
 
 * Vendored libraries **MUST** be released copies of libraries available on
   PyPI.
+
+* Vendored libraries **MUST** be accompanied with LICENSE files.
 
 * The versions of libraries vendored in pip **MUST** be reflected in
   ``pip/_vendor/vendor.txt``.
@@ -18,6 +20,8 @@ Policy
   ``pip/_vendor/README.rst`` and their corresponding patches **MUST** be
   included ``tasks/vendoring/patches``.
 
+* Vendored libraries should have corresponding ``vendored()`` entries in
+  ``pip/_vendor/__init__.py``.
 
 Rationale
 ---------
@@ -95,7 +99,8 @@ Modifications
 * ``setuptools`` is completely stripped to only keep ``pkg_resources``
 * ``pkg_resources`` has been modified to import its dependencies from ``pip._vendor``
 * ``packaging`` has been modified to import its dependencies from ``pip._vendor``
-* ``html5lib`` has been modified to ``import six from pip._vendor``
+* ``html5lib`` has been modified to import six from ``pip._vendor`` and
+  to prefer importing from ``collections.abc`` instead of ``collections``.
 * ``CacheControl`` has been modified to import its dependencies from ``pip._vendor``
 * ``requests`` has been modified to import its other dependencies from ``pip._vendor``
   and to *not* load ``simplejson`` (all platforms) and ``pyopenssl`` (Windows).
@@ -142,3 +147,6 @@ extra work on your end in order to solve the problems described above.
 6. *(optional)* Update the ``pip_version_check`` logic to use the
    appropriate logic for determining the latest available version of pip and
    prompt the user with the correct upgrade message.
+
+Note that partial debundling is **NOT** supported. You need to prepare wheels
+for all dependencies for successful debundling.

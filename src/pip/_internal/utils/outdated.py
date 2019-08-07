@@ -9,10 +9,20 @@ import sys
 from pip._vendor import lockfile, pkg_resources
 from pip._vendor.packaging import version as packaging_version
 
+from pip._internal.cli.cmdoptions import make_search_scope
 from pip._internal.index import PackageFinder
+from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.misc import ensure_dir, get_installed_version
+from pip._internal.utils.packaging import get_installer
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    import optparse
+    from typing import Any, Dict
+    from pip._internal.download import PipSession
+
 
 SELFCHECK_DATE_FMT = "%Y-%m-%dT%H:%M:%SZ"
 
@@ -22,7 +32,8 @@ logger = logging.getLogger(__name__)
 
 class SelfCheckState(object):
     def __init__(self, cache_dir):
-        self.state = {}
+        # type: (str) -> None
+        self.state = {}  # type: Dict[str, Any]
         self.statefile_path = None
 
         # Try to load the existing state
@@ -37,6 +48,7 @@ class SelfCheckState(object):
                 pass
 
     def save(self, pypi_version, current_time):
+        # type: (str, datetime.datetime) -> None
         # If we do not have a path to cache in, don't bother saving.
         if not self.statefile_path:
             return
@@ -68,6 +80,7 @@ class SelfCheckState(object):
 
 
 def was_installed_by_pip(pkg):
+    # type: (str) -> bool
     """Checks whether pkg was installed by pip
 
     This is used not to display the upgrade message when pip is in fact
@@ -75,13 +88,13 @@ def was_installed_by_pip(pkg):
     """
     try:
         dist = pkg_resources.get_distribution(pkg)
-        return (dist.has_metadata('INSTALLER') and
-                'pip' in dist.get_metadata_lines('INSTALLER'))
+        return "pip" == get_installer(dist)
     except pkg_resources.DistributionNotFound:
         return False
 
 
 def pip_version_check(session, options):
+    # type: (PipSession, optparse.Values) -> None
     """Check for an update for pip.
 
     Limit the frequency of checks to once per week. State is stored either in
@@ -111,42 +124,53 @@ def pip_version_check(session, options):
         # Refresh the version if we need to or just see if we need to warn
         if pypi_version is None:
             # Lets use PackageFinder to see what the latest pip version is
-            finder = PackageFinder(
-                find_links=options.find_links,
-                index_urls=[options.index_url] + options.extra_index_urls,
+            search_scope = make_search_scope(options, suppress_no_index=True)
+
+            # Pass allow_yanked=False so we don't suggest upgrading to a
+            # yanked version.
+            selection_prefs = SelectionPreferences(
+                allow_yanked=False,
                 allow_all_prereleases=False,  # Explicitly set to False
+            )
+
+            finder = PackageFinder.create(
+                search_scope=search_scope,
+                selection_prefs=selection_prefs,
                 trusted_hosts=options.trusted_hosts,
-                process_dependency_links=options.process_dependency_links,
                 session=session,
             )
-            all_candidates = finder.find_all_candidates("pip")
-            if not all_candidates:
+            candidate = finder.find_candidates("pip").get_best()
+            if candidate is None:
                 return
-            pypi_version = str(
-                max(all_candidates, key=lambda c: c.version).version
-            )
+            pypi_version = str(candidate.version)
 
             # save that we've performed a check
             state.save(pypi_version, current_time)
 
         remote_version = packaging_version.parse(pypi_version)
 
+        local_version_is_older = (
+            pip_version < remote_version and
+            pip_version.base_version != remote_version.base_version and
+            was_installed_by_pip('pip')
+        )
+
         # Determine if our pypi_version is older
-        if (pip_version < remote_version and
-                pip_version.base_version != remote_version.base_version and
-                was_installed_by_pip('pip')):
-            # Advise "python -m pip" on Windows to avoid issues
-            # with overwriting pip.exe.
-            if WINDOWS:
-                pip_cmd = "python -m pip"
-            else:
-                pip_cmd = "pip"
-            logger.warning(
-                "You are using pip version %s, however version %s is "
-                "available.\nYou should consider upgrading via the "
-                "'%s install --upgrade pip' command.",
-                pip_version, pypi_version, pip_cmd
-            )
+        if not local_version_is_older:
+            return
+
+        # Advise "python -m pip" on Windows to avoid issues
+        # with overwriting pip.exe.
+        if WINDOWS:
+            pip_cmd = "python -m pip"
+        else:
+            pip_cmd = "pip"
+        logger.warning(
+            "You are using pip version %s, however version %s is "
+            "available.\nYou should consider upgrading via the "
+            "'%s install --upgrade pip' command.",
+            pip_version, pypi_version, pip_cmd
+        )
     except Exception:
         logger.debug(
             "There was an error checking the latest version of pip",

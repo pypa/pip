@@ -18,11 +18,9 @@ class HashCommand(Command):
 
     These can be used with --hash in a requirements file to do repeatable
     installs.
-
     """
-    name = 'hash'
+
     usage = '%prog [options] <file> ...'
-    summary = 'Compute hashes of package archives.'
     ignore_require_venv = True
 
     def __init__(self, *args, **kw):

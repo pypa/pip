@@ -8,10 +8,13 @@ from pip._vendor.six.moves import zip_longest
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
+from pip._internal.cli.cmdoptions import make_search_scope
 from pip._internal.exceptions import CommandError
 from pip._internal.index import PackageFinder
+from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.utils.misc import (
-    dist_is_editable, get_installed_distributions,
+    dist_is_editable,
+    get_installed_distributions,
 )
 from pip._internal.utils.packaging import get_installer
 
@@ -24,10 +27,9 @@ class ListCommand(Command):
 
     Packages are listed in a case-insensitive sorted order.
     """
-    name = 'list'
+
     usage = """
       %prog [options]"""
-    summary = 'List installed packages.'
 
     def __init__(self, *args, **kw):
         super(ListCommand, self).__init__(*args, **kw)
@@ -62,7 +64,7 @@ class ListCommand(Command):
             action='store_true',
             default=False,
             help='Only output packages installed in user-site.')
-
+        cmd_opts.add_option(cmdoptions.list_path())
         cmd_opts.add_option(
             '--pre',
             action='store_true',
@@ -109,16 +111,22 @@ class ListCommand(Command):
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, cmd_opts)
 
-    def _build_package_finder(self, options, index_urls, session):
+    def _build_package_finder(self, options, session):
         """
         Create a package finder appropriate to this list command.
         """
-        return PackageFinder(
-            find_links=options.find_links,
-            index_urls=index_urls,
+        search_scope = make_search_scope(options)
+
+        # Pass allow_yanked=False to ignore yanked versions.
+        selection_prefs = SelectionPreferences(
+            allow_yanked=False,
             allow_all_prereleases=options.pre,
+        )
+
+        return PackageFinder.create(
+            search_scope=search_scope,
+            selection_prefs=selection_prefs,
             trusted_hosts=options.trusted_hosts,
-            process_dependency_links=options.process_dependency_links,
             session=session,
         )
 
@@ -127,20 +135,27 @@ class ListCommand(Command):
             raise CommandError(
                 "Options --outdated and --uptodate cannot be combined.")
 
+        cmdoptions.check_list_path_option(options)
+
         packages = get_installed_distributions(
             local_only=options.local,
             user_only=options.user,
             editables_only=options.editable,
             include_editables=options.include_editable,
+            paths=options.path,
         )
+
+        # get_not_required must be called firstly in order to find and
+        # filter out all dependencies correctly. Otherwise a package
+        # can't be identified as requirement because some parent packages
+        # could be filtered out before.
+        if options.not_required:
+            packages = self.get_not_required(packages, options)
 
         if options.outdated:
             packages = self.get_outdated(packages, options)
         elif options.uptodate:
             packages = self.get_uptodate(packages, options)
-
-        if options.not_required:
-            packages = self.get_not_required(packages, options)
 
         self.output_package_listing(packages, options)
 
@@ -163,21 +178,8 @@ class ListCommand(Command):
         return {pkg for pkg in packages if pkg.key not in dep_keys}
 
     def iter_packages_latest_infos(self, packages, options):
-        index_urls = [options.index_url] + options.extra_index_urls
-        if options.no_index:
-            logger.debug('Ignoring indexes: %s', ','.join(index_urls))
-            index_urls = []
-
-        dependency_links = []
-        for dist in packages:
-            if dist.has_metadata('dependency_links.txt'):
-                dependency_links.extend(
-                    dist.get_metadata_lines('dependency_links.txt'),
-                )
-
         with self._build_session(options) as session:
-            finder = self._build_package_finder(options, index_urls, session)
-            finder.add_dependency_links(dependency_links)
+            finder = self._build_package_finder(options, session)
 
             for dist in packages:
                 typ = 'unknown'
@@ -187,12 +189,15 @@ class ListCommand(Command):
                     all_candidates = [candidate for candidate in all_candidates
                                       if not candidate.version.is_prerelease]
 
-                if not all_candidates:
+                evaluator = finder.make_candidate_evaluator(
+                    project_name=dist.project_name,
+                )
+                best_candidate = evaluator.get_best_candidate(all_candidates)
+                if best_candidate is None:
                     continue
-                best_candidate = max(all_candidates,
-                                     key=finder._candidate_sort_key)
+
                 remote_version = best_candidate.version
-                if best_candidate.location.is_wheel:
+                if best_candidate.link.is_wheel:
                     typ = 'wheel'
                 else:
                     typ = 'sdist'

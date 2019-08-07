@@ -17,6 +17,16 @@ and ensuring reproducible environments for linting and building documentation.
 For developing pip, you need to install ``tox`` on your system. Often, you can
 just do ``python -m pip install tox`` to install and use it.
 
+Running pip From Source Tree
+----------------------------
+
+To run the pip executable from your source tree during development, run pip
+from the ``src`` directory:
+
+.. code-block:: console
+
+    $ python src/pip --version
+
 Running Tests
 -------------
 
@@ -73,9 +83,6 @@ The above commands run the linters on Python 2 followed by Python 3.
 .. note::
 
     Do not silence errors from flake8 with ``# noqa`` comments or otherwise.
-    The only exception to this is silencing unused-import errors for imports
-    related to static type checking as currently `flake8 does not understand
-    PEP 484 type-comments`_.
 
 Running mypy
 ------------
@@ -105,6 +112,5 @@ To build it locally, run:
 The built documentation can be found in the ``docs/build`` folder.
 
 .. _`open an issue`: https://github.com/pypa/pip/issues/new?title=Trouble+with+pip+development+environment
-.. _`flake8 does not understand PEP 484 type-comments`: https://gitlab.com/pycqa/flake8/issues/118
 .. _`PEP 484 type-comments`: https://www.python.org/dev/peps/pep-0484/#suggested-syntax-for-python-2-7-and-straddling-code
 .. _`rich CLI`: https://docs.pytest.org/en/latest/usage.html#specifying-tests-selecting-tests
