@@ -501,7 +501,7 @@ class SafeFileCache(FileCache):
     """
 
     def __init__(self, directory, *args, **kwargs):
-        assert directory is not None
+        assert directory is not None, "Cache directory must not be None."
         super(SafeFileCache, self).__init__(directory, *args, **kwargs)
 
     def get(self, *args, **kwargs):
