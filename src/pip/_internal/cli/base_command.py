@@ -1,8 +1,5 @@
 """Base Command class, and related routines"""
 
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-
 from __future__ import absolute_import, print_function
 
 import logging
@@ -39,7 +36,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, List, Tuple, Any
+    from typing import List, Tuple, Any
     from optparse import Values
 
 __all__ = ['Command']
@@ -48,15 +45,14 @@ logger = logging.getLogger(__name__)
 
 
 class Command(object):
-    name = None  # type: Optional[str]
-    usage = None  # type: Optional[str]
+    usage = None  # type: str
     ignore_require_venv = False  # type: bool
 
     def __init__(self, name, summary, isolated=False):
         # type: (str, str, bool) -> None
         parser_kw = {
             'usage': self.usage,
-            'prog': '%s %s' % (get_prog(), self.name),
+            'prog': '%s %s' % (get_prog(), name),
             'formatter': UpdatingDefaultsHelpFormatter(),
             'add_help_option': False,
             'name': name,
