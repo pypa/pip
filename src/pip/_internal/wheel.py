@@ -751,10 +751,10 @@ class Wheel(object):
 
     def supported(self, tags=None):
         # type: (Optional[List[Pep425Tag]]) -> bool
-        """Is this wheel supported on this system?"""
+        """Return whether this wheel is supported by one of the given tags."""
         if tags is None:  # for mock
             tags = pep425tags.get_supported()
-        return bool(set(tags).intersection(self.file_tags))
+        return not self.file_tags.isdisjoint(tags)
 
 
 def _contains_egg_info(
