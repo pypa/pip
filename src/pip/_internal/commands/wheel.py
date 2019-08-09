@@ -124,7 +124,7 @@ class WheelCommand(RequirementCommand):
                 try:
                     self.populate_requirement_set(
                         requirement_set, args, options, finder, session,
-                        self.name, wheel_cache
+                        wheel_cache
                     )
 
                     preparer = self.make_requirement_preparer(

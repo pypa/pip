@@ -183,14 +183,13 @@ class RequirementCommand(IndexGroupCommand):
             py_version_info=py_version_info
         )
 
-    @staticmethod
     def populate_requirement_set(
+        self,
         requirement_set,  # type: RequirementSet
         args,             # type: List[str]
         options,          # type: Values
         finder,           # type: PackageFinder
         session,          # type: PipSession
-        name,             # type: str
         wheel_cache,      # type: Optional[WheelCache]
     ):
         # type: (...) -> None
@@ -240,7 +239,7 @@ class RequirementCommand(IndexGroupCommand):
         requirement_set.require_hashes = options.require_hashes
 
         if not (args or options.editables or options.requirements):
-            opts = {'name': name}
+            opts = {'name': self.name}
             if options.find_links:
                 raise CommandError(
                     'You must give at least one requirement to %(name)s '

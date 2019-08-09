@@ -120,7 +120,6 @@ class DownloadCommand(RequirementCommand):
                     options,
                     finder,
                     session,
-                    self.name,
                     None
                 )
 
