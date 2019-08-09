@@ -10,6 +10,7 @@ import platform
 import re
 import shutil
 import sys
+from contextlib import contextmanager
 
 from pip._vendor import requests, urllib3
 from pip._vendor.cachecontrol import CacheControlAdapter
@@ -482,70 +483,38 @@ class LocalFSAdapter(BaseAdapter):
         pass
 
 
+@contextmanager
+def suppressed_cache_errors():
+    """If we can't access the cache then we can just skip caching and process
+    requests as if caching wasn't enabled.
+    """
+    try:
+        yield
+    except (LockError, OSError, IOError):
+        pass
+
+
 class SafeFileCache(FileCache):
     """
     A file based cache which is safe to use even when the target directory may
     not be accessible or writable.
     """
 
-    def __init__(self, *args, **kwargs):
-        super(SafeFileCache, self).__init__(*args, **kwargs)
-
-        # Check to ensure that the directory containing our cache directory
-        # is owned by the user current executing pip. If it does not exist
-        # we will check the parent directory until we find one that does exist.
-        # If it is not owned by the user executing pip then we will disable
-        # the cache and log a warning.
-        if not check_path_owner(self.directory):
-            logger.warning(
-                "The directory '%s' or its parent directory is not owned by "
-                "the current user and the cache has been disabled. Please "
-                "check the permissions and owner of that directory. If "
-                "executing pip with sudo, you may want sudo's -H flag.",
-                self.directory,
-            )
-
-            # Set our directory to None to disable the Cache
-            self.directory = None
+    def __init__(self, directory, *args, **kwargs):
+        assert directory is not None, "Cache directory must not be None."
+        super(SafeFileCache, self).__init__(directory, *args, **kwargs)
 
     def get(self, *args, **kwargs):
-        # If we don't have a directory, then the cache should be a no-op.
-        if self.directory is None:
-            return
-
-        try:
+        with suppressed_cache_errors():
             return super(SafeFileCache, self).get(*args, **kwargs)
-        except (LockError, OSError, IOError):
-            # We intentionally silence this error, if we can't access the cache
-            # then we can just skip caching and process the request as if
-            # caching wasn't enabled.
-            pass
 
     def set(self, *args, **kwargs):
-        # If we don't have a directory, then the cache should be a no-op.
-        if self.directory is None:
-            return
-
-        try:
+        with suppressed_cache_errors():
             return super(SafeFileCache, self).set(*args, **kwargs)
-        except (LockError, OSError, IOError):
-            # We intentionally silence this error, if we can't access the cache
-            # then we can just skip caching and process the request as if
-            # caching wasn't enabled.
-            pass
 
     def delete(self, *args, **kwargs):
-        # If we don't have a directory, then the cache should be a no-op.
-        if self.directory is None:
-            return
-
-        try:
+        with suppressed_cache_errors():
             return super(SafeFileCache, self).delete(*args, **kwargs)
-        except (LockError, OSError, IOError):
-            # We intentionally silence this error, if we can't access the cache
-            # then we can just skip caching and process the request as if
-            # caching wasn't enabled.
-            pass
 
 
 class InsecureHTTPAdapter(HTTPAdapter):
@@ -592,6 +561,19 @@ class PipSession(requests.Session):
             # order to prevent hammering the service.
             backoff_factor=0.25,
         )
+
+        # Check to ensure that the directory containing our cache directory
+        # is owned by the user current executing pip. If it does not exist
+        # we will check the parent directory until we find one that does exist.
+        if cache and not check_path_owner(cache):
+            logger.warning(
+                "The directory '%s' or its parent directory is not owned by "
+                "the current user and the cache has been disabled. Please "
+                "check the permissions and owner of that directory. If "
+                "executing pip with sudo, you may want sudo's -H flag.",
+                cache,
+            )
+            cache = None
 
         # We want to _only_ cache responses on securely fetched origins. We do
         # this because we can't validate the response of an insecurely fetched
