@@ -65,14 +65,37 @@ from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Dict, IO, Optional, Text, Tuple, Union
+        Callable, Dict, List, IO, Optional, Text, Tuple, Union
     )
     from optparse import Values
+
+    from mypy_extensions import TypedDict
+
     from pip._internal.models.link import Link
     from pip._internal.utils.hashes import Hashes
     from pip._internal.vcs.versioncontrol import AuthInfo, VersionControl
 
     Credentials = Tuple[str, str, str]
+
+    if PY2:
+        CopytreeKwargs = TypedDict(
+            'CopytreeKwargs',
+            {
+                'ignore': Callable[[str, List[str]], List[str]],
+                'symlinks': bool,
+            },
+            total=False,
+        )
+    else:
+        CopytreeKwargs = TypedDict(
+            'CopytreeKwargs', {
+                'copy_function': Callable[[str, str], None],
+                'ignore': Callable[[str, List[str]], List[str]],
+                'ignore_dangling_symlinks': bool,
+                'symlinks': bool,
+            },
+            total=False,
+        )
 
 
 __all__ = ['get_file_content',
@@ -976,18 +999,14 @@ def _copy_source_tree(source, target):
         # See discussion at https://github.com/pypa/pip/pull/6770
         return ['.tox', '.nox'] if d == source else []
 
-    if PY2:
-        # Python 2 does not support copy_function, so we let errors for
-        # uncopyable special files propagate.
-        shutil.copytree(source, target, ignore=ignore, symlinks=True)
-    else:
-        shutil.copytree(
-            source,
-            target,
-            copy_function=_copy2_ignoring_special_files,
-            ignore=ignore,
-            symlinks=True
-        )
+    kwargs = dict(ignore=ignore, symlinks=True)  # type: CopytreeKwargs
+
+    if not PY2:
+        # Python 2 does not support copy_function, so we only ignore
+        # errors on special file copy in Python 3.
+        kwargs['copy_function'] = _copy2_ignoring_special_files
+
+    shutil.copytree(source, target, **kwargs)
 
 
 def unpack_file_url(
