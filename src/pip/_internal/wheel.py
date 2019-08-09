@@ -737,24 +737,27 @@ class Wheel(object):
         return sorted(format_tag(tag) for tag in self.file_tags)
 
     def support_index_min(self, tags=None):
-        # type: (Optional[List[Pep425Tag]]) -> Optional[int]
+        # type: (Optional[List[Pep425Tag]]) -> int
         """
         Return the lowest index that one of the wheel's file_tag combinations
-        achieves in the supported_tags list e.g. if there are 8 supported tags,
-        and one of the file tags is first in the list, then return 0.  Returns
-        None is the wheel is not supported.
+        achieves in the given list of supported tags.
+
+        For example, if there are 8 supported tags and one of the file tags
+        is first in the list, then return 0.
+
+        :raises ValueError: If none of the wheel's file tags match one of
+            the supported tags.
         """
         if tags is None:  # for mock
             tags = pep425tags.get_supported()
-        indexes = [tags.index(c) for c in self.file_tags if c in tags]
-        return min(indexes) if indexes else None
+        return min(tags.index(tag) for tag in self.file_tags if tag in tags)
 
     def supported(self, tags=None):
         # type: (Optional[List[Pep425Tag]]) -> bool
-        """Is this wheel supported on this system?"""
+        """Return whether this wheel is supported by one of the given tags."""
         if tags is None:  # for mock
             tags = pep425tags.get_supported()
-        return bool(set(tags).intersection(self.file_tags))
+        return not self.file_tags.isdisjoint(tags)
 
 
 def _contains_egg_info(
