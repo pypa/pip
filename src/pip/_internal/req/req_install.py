@@ -18,7 +18,7 @@ from pip._vendor.packaging.version import Version
 from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.pep517.wrappers import Pep517HookCaller
 
-from pip._internal import wheel
+from pip._internal import pep425tags, wheel
 from pip._internal.build_env import NoOpBuildEnvironment
 from pip._internal.exceptions import InstallationError
 from pip._internal.models.link import Link
@@ -222,7 +222,12 @@ class InstallRequirement(object):
             self.link = finder.find_requirement(self, upgrade)
         if self._wheel_cache is not None and not require_hashes:
             old_link = self.link
-            self.link = self._wheel_cache.get(self.link, self.name)
+            supported_tags = pep425tags.get_supported()
+            self.link = self._wheel_cache.get(
+                link=self.link,
+                package_name=self.name,
+                supported_tags=supported_tags,
+            )
             if old_link != self.link:
                 logger.debug('Using cached wheel link: %s', self.link)
 
