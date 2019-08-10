@@ -736,8 +736,8 @@ class Wheel(object):
         """
         return sorted(format_tag(tag) for tag in self.file_tags)
 
-    def support_index_min(self, tags=None):
-        # type: (Optional[List[Pep425Tag]]) -> int
+    def support_index_min(self, tags):
+        # type: (List[Pep425Tag]) -> int
         """
         Return the lowest index that one of the wheel's file_tag combinations
         achieves in the given list of supported tags.
@@ -745,18 +745,21 @@ class Wheel(object):
         For example, if there are 8 supported tags and one of the file tags
         is first in the list, then return 0.
 
+        :param tags: the PEP 425 tags to check the wheel against, in order
+            with most preferred first.
+
         :raises ValueError: If none of the wheel's file tags match one of
             the supported tags.
         """
-        if tags is None:  # for mock
-            tags = pep425tags.get_supported()
         return min(tags.index(tag) for tag in self.file_tags if tag in tags)
 
-    def supported(self, tags=None):
-        # type: (Optional[List[Pep425Tag]]) -> bool
-        """Return whether this wheel is supported by one of the given tags."""
-        if tags is None:  # for mock
-            tags = pep425tags.get_supported()
+    def supported(self, tags):
+        # type: (List[Pep425Tag]) -> bool
+        """
+        Return whether the wheel is compatible with one of the given tags.
+
+        :param tags: the PEP 425 tags to check the wheel against.
+        """
         return not self.file_tags.isdisjoint(tags)
 
 

@@ -6,6 +6,7 @@ from __future__ import absolute_import
 import logging
 from collections import OrderedDict
 
+from pip._internal import pep425tags
 from pip._internal.exceptions import InstallationError
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -88,7 +89,8 @@ class RequirementSet(object):
         # single requirements file.
         if install_req.link and install_req.link.is_wheel:
             wheel = Wheel(install_req.link.filename)
-            if self.check_supported_wheels and not wheel.supported():
+            tags = pep425tags.get_supported()
+            if (self.check_supported_wheels and not wheel.supported(tags)):
                 raise InstallationError(
                     "%s is not a supported wheel on this platform." %
                     wheel.filename
