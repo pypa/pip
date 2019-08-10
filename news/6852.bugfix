@@ -1,0 +1,2 @@
+Cache wheels that ``pip wheel`` built locally after downloading
+them as sdist. This matches what ``pip install`` does.

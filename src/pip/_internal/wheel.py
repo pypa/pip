@@ -793,24 +793,33 @@ def should_use_ephemeral_cache(
     if req.constraint:
         # never build requirements that are merely constraints
         return None
+
     if req.is_wheel:
         if not should_unpack:
             logger.info(
                 'Skipping %s, due to already being wheel.', req.name,
             )
+        # never build a requirement that is already a wheel
         return None
-    if not should_unpack:
-        # i.e. pip wheel, not pip install;
-        # return False, knowing that the caller will never cache
-        # in this case anyway, so this return merely means "build it".
-        # TODO improve this behavior
-        return False
 
-    if req.editable or not req.source_dir:
+    if req.editable:
+        # if must build an editable, build to ephem cache,
+        # else do not build as install will egglink to it
+        if not should_unpack:
+            return True
+        return None
+
+    if not req.source_dir:
+        # TODO explain what no source_dir means
+        if not should_unpack:
+            return True
         return None
 
     if "binary" not in format_control.get_allowed_formats(
             canonicalize_name(req.name)):
+        if not should_unpack:
+            # --no-binary has no effect as a pip wheel option
+            return True
         logger.info(
             "Skipping bdist_wheel for %s, due to binaries "
             "being disabled for it.", req.name,
@@ -1098,19 +1107,17 @@ class WheelBuilder(object):
                 python_tag = None
                 if should_unpack:
                     python_tag = pep425tags.implementation_tag
-                    if ephem:
-                        output_dir = _cache.get_ephem_path_for_link(req.link)
-                    else:
-                        output_dir = _cache.get_path_for_link(req.link)
-                    try:
-                        ensure_dir(output_dir)
-                    except OSError as e:
-                        logger.warning("Building wheel for %s failed: %s",
-                                       req.name, e)
-                        build_failure.append(req)
-                        continue
+                if ephem:
+                    output_dir = _cache.get_ephem_path_for_link(req.link)
                 else:
-                    output_dir = self._wheel_dir
+                    output_dir = _cache.get_path_for_link(req.link)
+                try:
+                    ensure_dir(output_dir)
+                except OSError as e:
+                    logger.warning("Building wheel for %s failed: %s",
+                                   req.name, e)
+                    build_failure.append(req)
+                    continue
                 wheel_file = self._build_one(
                     req, output_dir,
                     python_tag=python_tag,
@@ -1139,6 +1146,9 @@ class WheelBuilder(object):
                         assert req.link.is_wheel
                         # extract the wheel into the dir
                         unpack_file_url(link=req.link, location=req.source_dir)
+                    else:
+                        shutil.copy(wheel_file, self._wheel_dir)
+                        logger.info('Stored in directory: %s', self._wheel_dir)
                 else:
                     build_failure.append(req)
 

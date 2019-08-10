@@ -80,7 +80,7 @@ def test_format_tag(file_tag, expected):
 @pytest.mark.parametrize(
     "base_name, should_unpack, cache_available, expected",
     [
-        ('pendulum-2.0.4', False, False, False),
+        ('pendulum-2.0.4', False, False, True),
         # The following cases test should_unpack=True.
         # Test _contains_egg_info() returning True.
         ('pendulum-2.0.4', True, True, False),
