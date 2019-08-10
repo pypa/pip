@@ -7,9 +7,7 @@ import contextlib
 import errno
 import getpass
 import io
-# we have a submodule named 'logging' which would shadow this if we used the
-# regular name:
-import logging as std_logging
+import logging
 import os
 import posixpath
 import re
@@ -83,8 +81,8 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'get_installed_version', 'remove_auth_from_url']
 
 
-logger = std_logging.getLogger(__name__)
-subprocess_logger = std_logging.getLogger('pip.subprocessor')
+logger = logging.getLogger(__name__)
+subprocess_logger = logging.getLogger('pip.subprocessor')
 
 LOG_DIVIDER = '----------------------------------------'
 
@@ -859,12 +857,12 @@ def call_subprocess(
     if show_stdout:
         # Then log the subprocess output at INFO level.
         log_subprocess = subprocess_logger.info
-        used_level = std_logging.INFO
+        used_level = logging.INFO
     else:
         # Then log the subprocess output using DEBUG.  This also ensures
         # it will be logged to the log file (aka user_log), if enabled.
         log_subprocess = subprocess_logger.debug
-        used_level = std_logging.DEBUG
+        used_level = logging.DEBUG
 
     # Whether the subprocess will be visible in the console.
     showing_subprocess = subprocess_logger.getEffectiveLevel() <= used_level
