@@ -52,6 +52,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import open_spinner
 from pip._internal.utils.unpacking import unpack_file
 from pip._internal.utils.urls import path_to_url
+from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
     from typing import (
@@ -838,7 +839,15 @@ def should_cache(
         return False
 
     if req.link and req.link.is_vcs:
-        # VCS checkout. Build wheel just for this run.
+        # VCS checkout. Build wheel just for this run
+        # unless it points to an immutable commit hash in which
+        # case it can be cached.
+        assert not req.editable
+        assert req.source_dir
+        vcs_backend = vcs.get_backend_for_scheme(req.link.scheme)
+        assert vcs_backend
+        if vcs_backend.is_immutable_rev_checkout(req.link.url, req.source_dir):
+            return True
         return False
 
     link = req.link

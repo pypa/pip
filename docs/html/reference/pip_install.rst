@@ -573,6 +573,9 @@ and use any packages found there. This is disabled via the same
 of that is not part of the pip API. As of 7.0, pip makes a subdirectory for
 each sdist that wheels are built from and places the resulting wheels inside.
 
+As of version 20.0, pip also caches wheels when building from an immutable Git
+reference (i.e. a commit hash).
+
 Pip attempts to choose the best wheels from those built in preference to
 building a new wheel. Note that this means when a package has both optional
 C extensions and builds ``py`` tagged wheels when the C extension can't be built

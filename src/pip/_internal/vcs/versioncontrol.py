@@ -329,6 +329,20 @@ class VersionControl(object):
         """
         raise NotImplementedError
 
+    def is_immutable_rev_checkout(self, url, dest):
+        # type: (str, str) -> bool
+        """
+        Return true if the commit hash checked out at dest matches
+        the revision in url.
+
+        Always return False, if the VCS does not support immutable commit
+        hashes.
+
+        This method does not check if there are local uncommitted changes
+        in dest after checkout, as pip currently has no use case for that.
+        """
+        return False
+
     @classmethod
     def make_rev_options(cls, rev=None, extra_args=None):
         # type: (Optional[str], Optional[CommandArgs]) -> RevOptions
