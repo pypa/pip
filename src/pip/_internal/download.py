@@ -88,7 +88,8 @@ if MYPY_CHECK_RUNNING:
         )
     else:
         CopytreeKwargs = TypedDict(
-            'CopytreeKwargs', {
+            'CopytreeKwargs',
+            {
                 'copy_function': Callable[[str, str], None],
                 'ignore': Callable[[str, List[str]], List[str]],
                 'ignore_dangling_symlinks': bool,

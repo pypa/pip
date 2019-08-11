@@ -4,9 +4,8 @@ import shutil
 import pytest
 
 from pip._internal.utils.filesystem import copy2_fixed, is_socket
-
-from ..lib.filesystem import make_socket_file, make_unreadable_file
-from ..lib.path import Path
+from tests.lib.filesystem import make_socket_file, make_unreadable_file
+from tests.lib.path import Path
 
 
 def make_file(path):

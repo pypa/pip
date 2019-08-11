@@ -26,6 +26,7 @@ def make_unreadable_file(path):
     Path(path).touch()
     os.chmod(path, 0o000)
     if sys.platform == "win32":
+        # Once we drop PY2 we can use `os.getlogin()` instead.
         username = os.environ["USERNAME"]
         # Remove "Read Data/List Directory" permission for current user, but
         # leave everything else.
