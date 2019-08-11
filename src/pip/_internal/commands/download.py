@@ -4,10 +4,8 @@ import logging
 import os
 
 from pip._internal.cli import cmdoptions
-from pip._internal.cli.base_command import RequirementCommand
 from pip._internal.cli.cmdoptions import make_target_python
-from pip._internal.legacy_resolve import Resolver
-from pip._internal.operations.prepare import RequirementPreparer
+from pip._internal.cli.req_command import RequirementCommand
 from pip._internal.req import RequirementSet
 from pip._internal.req.req_tracker import RequirementTracker
 from pip._internal.utils.filesystem import check_path_owner
@@ -29,7 +27,6 @@ class DownloadCommand(RequirementCommand):
     pip also supports downloading from "requirements files", which provide
     an easy way to specify a whole environment to be downloaded.
     """
-    name = 'download'
 
     usage = """
       %prog [options] <requirement specifier> [package-index-options] ...
@@ -37,8 +34,6 @@ class DownloadCommand(RequirementCommand):
       %prog [options] <vcs project url> ...
       %prog [options] <local project path> ...
       %prog [options] <archive url/path> ..."""
-
-    summary = 'Download packages.'
 
     def __init__(self, *args, **kw):
         super(DownloadCommand, self).__init__(*args, **kw)
@@ -125,33 +120,22 @@ class DownloadCommand(RequirementCommand):
                     options,
                     finder,
                     session,
-                    self.name,
                     None
                 )
 
-                preparer = RequirementPreparer(
-                    build_dir=directory.path,
-                    src_dir=options.src_dir,
-                    download_dir=options.download_dir,
-                    wheel_download_dir=None,
-                    progress_bar=options.progress_bar,
-                    build_isolation=options.build_isolation,
+                preparer = self.make_requirement_preparer(
+                    temp_directory=directory,
+                    options=options,
                     req_tracker=req_tracker,
+                    download_dir=options.download_dir,
                 )
 
-                resolver = Resolver(
+                resolver = self.make_resolver(
                     preparer=preparer,
                     finder=finder,
                     session=session,
-                    wheel_cache=None,
-                    use_user_site=False,
-                    upgrade_strategy="to-satisfy-only",
-                    force_reinstall=False,
-                    ignore_dependencies=options.ignore_dependencies,
+                    options=options,
                     py_version_info=options.python_version,
-                    ignore_requires_python=False,
-                    ignore_installed=True,
-                    isolated=options.isolated_mode,
                 )
                 resolver.resolve(requirement_set)
 

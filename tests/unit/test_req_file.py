@@ -10,15 +10,22 @@ from pretend import stub
 import pip._internal.index
 from pip._internal.download import PipSession
 from pip._internal.exceptions import (
-    InstallationError, RequirementsFileParseError,
+    InstallationError,
+    RequirementsFileParseError,
 )
 from pip._internal.models.format_control import FormatControl
 from pip._internal.req.constructors import (
-    install_req_from_editable, install_req_from_line,
+    install_req_from_editable,
+    install_req_from_line,
 )
 from pip._internal.req.req_file import (
-    break_args_options, ignore_comments, join_lines, parse_requirements,
-    preprocess, process_line, skip_regex,
+    break_args_options,
+    ignore_comments,
+    join_lines,
+    parse_requirements,
+    preprocess,
+    process_line,
+    skip_regex,
 )
 from tests.lib import make_test_finder, requirements_file
 

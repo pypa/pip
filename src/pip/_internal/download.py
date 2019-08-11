@@ -10,6 +10,7 @@ import platform
 import re
 import shutil
 import sys
+from contextlib import contextmanager
 
 from pip._vendor import requests, urllib3
 from pip._vendor.cachecontrol import CacheControlAdapter
@@ -36,10 +37,22 @@ from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.glibc import libc_ver
 from pip._internal.utils.marker_files import write_delete_marker_file
 from pip._internal.utils.misc import (
-    ARCHIVE_EXTENSIONS, ask, ask_input, ask_password, ask_path_exists,
-    backup_dir, consume, display_path, format_size, get_installed_version,
-    path_to_url, remove_auth_from_url, rmtree, split_auth_netloc_from_url,
-    splitext, unpack_file,
+    ARCHIVE_EXTENSIONS,
+    ask,
+    ask_input,
+    ask_password,
+    ask_path_exists,
+    backup_dir,
+    consume,
+    display_path,
+    format_size,
+    get_installed_version,
+    path_to_url,
+    remove_auth_from_url,
+    rmtree,
+    split_auth_netloc_from_url,
+    splitext,
+    unpack_file,
 )
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -470,70 +483,38 @@ class LocalFSAdapter(BaseAdapter):
         pass
 
 
+@contextmanager
+def suppressed_cache_errors():
+    """If we can't access the cache then we can just skip caching and process
+    requests as if caching wasn't enabled.
+    """
+    try:
+        yield
+    except (LockError, OSError, IOError):
+        pass
+
+
 class SafeFileCache(FileCache):
     """
     A file based cache which is safe to use even when the target directory may
     not be accessible or writable.
     """
 
-    def __init__(self, *args, **kwargs):
-        super(SafeFileCache, self).__init__(*args, **kwargs)
-
-        # Check to ensure that the directory containing our cache directory
-        # is owned by the user current executing pip. If it does not exist
-        # we will check the parent directory until we find one that does exist.
-        # If it is not owned by the user executing pip then we will disable
-        # the cache and log a warning.
-        if not check_path_owner(self.directory):
-            logger.warning(
-                "The directory '%s' or its parent directory is not owned by "
-                "the current user and the cache has been disabled. Please "
-                "check the permissions and owner of that directory. If "
-                "executing pip with sudo, you may want sudo's -H flag.",
-                self.directory,
-            )
-
-            # Set our directory to None to disable the Cache
-            self.directory = None
+    def __init__(self, directory, *args, **kwargs):
+        assert directory is not None, "Cache directory must not be None."
+        super(SafeFileCache, self).__init__(directory, *args, **kwargs)
 
     def get(self, *args, **kwargs):
-        # If we don't have a directory, then the cache should be a no-op.
-        if self.directory is None:
-            return
-
-        try:
+        with suppressed_cache_errors():
             return super(SafeFileCache, self).get(*args, **kwargs)
-        except (LockError, OSError, IOError):
-            # We intentionally silence this error, if we can't access the cache
-            # then we can just skip caching and process the request as if
-            # caching wasn't enabled.
-            pass
 
     def set(self, *args, **kwargs):
-        # If we don't have a directory, then the cache should be a no-op.
-        if self.directory is None:
-            return
-
-        try:
+        with suppressed_cache_errors():
             return super(SafeFileCache, self).set(*args, **kwargs)
-        except (LockError, OSError, IOError):
-            # We intentionally silence this error, if we can't access the cache
-            # then we can just skip caching and process the request as if
-            # caching wasn't enabled.
-            pass
 
     def delete(self, *args, **kwargs):
-        # If we don't have a directory, then the cache should be a no-op.
-        if self.directory is None:
-            return
-
-        try:
+        with suppressed_cache_errors():
             return super(SafeFileCache, self).delete(*args, **kwargs)
-        except (LockError, OSError, IOError):
-            # We intentionally silence this error, if we can't access the cache
-            # then we can just skip caching and process the request as if
-            # caching wasn't enabled.
-            pass
 
 
 class InsecureHTTPAdapter(HTTPAdapter):
@@ -580,6 +561,19 @@ class PipSession(requests.Session):
             # order to prevent hammering the service.
             backoff_factor=0.25,
         )
+
+        # Check to ensure that the directory containing our cache directory
+        # is owned by the user current executing pip. If it does not exist
+        # we will check the parent directory until we find one that does exist.
+        if cache and not check_path_owner(cache):
+            logger.warning(
+                "The directory '%s' or its parent directory is not owned by "
+                "the current user and the cache has been disabled. Please "
+                "check the permissions and owner of that directory. If "
+                "executing pip with sudo, you may want sudo's -H flag.",
+                cache,
+            )
+            cache = None
 
         # We want to _only_ cache responses on securely fetched origins. We do
         # this because we can't validate the response of an insecurely fetched
@@ -638,29 +632,30 @@ def get_file_content(url, comes_from=None, session=None):
             "get_file_content() missing 1 required keyword argument: 'session'"
         )
 
-    match = _scheme_re.search(url)
-    if match:
-        scheme = match.group(1).lower()
-        if (scheme == 'file' and comes_from and
-                comes_from.startswith('http')):
+    scheme = _get_url_scheme(url)
+
+    if scheme in ['http', 'https']:
+        # FIXME: catch some errors
+        resp = session.get(url)
+        resp.raise_for_status()
+        return resp.url, resp.text
+
+    elif scheme == 'file':
+        if comes_from and comes_from.startswith('http'):
             raise InstallationError(
                 'Requirements file %s references URL %s, which is local'
                 % (comes_from, url))
-        if scheme == 'file':
-            path = url.split(':', 1)[1]
-            path = path.replace('\\', '/')
-            match = _url_slash_drive_re.match(path)
-            if match:
-                path = match.group(1) + ':' + path.split('|', 1)[1]
-            path = urllib_parse.unquote(path)
-            if path.startswith('/'):
-                path = '/' + path.lstrip('/')
-            url = path
-        else:
-            # FIXME: catch some errors
-            resp = session.get(url)
-            resp.raise_for_status()
-            return resp.url, resp.text
+
+        path = url.split(':', 1)[1]
+        path = path.replace('\\', '/')
+        match = _url_slash_drive_re.match(path)
+        if match:
+            path = match.group(1) + ':' + path.split('|', 1)[1]
+        path = urllib_parse.unquote(path)
+        if path.startswith('/'):
+            path = '/' + path.lstrip('/')
+        url = path
+
     try:
         with open(url, 'rb') as f:
             content = auto_decode(f.read())
@@ -671,16 +666,22 @@ def get_file_content(url, comes_from=None, session=None):
     return url, content
 
 
-_scheme_re = re.compile(r'^(http|https|file):', re.I)
 _url_slash_drive_re = re.compile(r'/*([a-z])\|', re.I)
+
+
+def _get_url_scheme(url):
+    # type: (Union[str, Text]) -> Optional[Text]
+    if ':' not in url:
+        return None
+    return url.split(':', 1)[0].lower()
 
 
 def is_url(name):
     # type: (Union[str, Text]) -> bool
     """Returns true if the name looks like a URL"""
-    if ':' not in name:
+    scheme = _get_url_scheme(name)
+    if scheme is None:
         return False
-    scheme = name.split(':', 1)[0].lower()
     return scheme in ['http', 'https', 'file', 'ftp'] + vcs.all_schemes
 
 
@@ -948,12 +949,23 @@ def unpack_file_url(
     of the link file inside download_dir.
     """
     link_path = url_to_path(link.url_without_fragment)
-
     # If it's a url to a local directory
     if is_dir_url(link):
+
+        def ignore(d, names):
+            # Pulling in those directories can potentially be very slow,
+            # exclude the following directories if they appear in the top
+            # level dir (and only it).
+            # See discussion at https://github.com/pypa/pip/pull/6770
+            return ['.tox', '.nox'] if d == link_path else []
+
         if os.path.isdir(location):
             rmtree(location)
-        shutil.copytree(link_path, location, symlinks=True)
+        shutil.copytree(link_path,
+                        location,
+                        symlinks=True,
+                        ignore=ignore)
+
         if download_dir:
             logger.info('Link is a directory, ignoring download_dir')
         return

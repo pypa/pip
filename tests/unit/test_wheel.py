@@ -566,12 +566,13 @@ class TestWheelFile(object):
         w = wheel.Wheel('simple-0.1-py2-none-TEST.whl')
         assert w.support_index_min(tags=tags) == 0
 
-    def test_support_index_min_none(self):
+    def test_support_index_min__none_supported(self):
         """
-        Test `support_index_min` returns None, when wheel not supported
+        Test a wheel not supported by the given tags.
         """
         w = wheel.Wheel('simple-0.1-py2-none-any.whl')
-        assert w.support_index_min(tags=[]) is None
+        with pytest.raises(ValueError):
+            w.support_index_min(tags=[])
 
     def test_unpack_wheel_no_flatten(self):
         from pip._internal.utils import misc as utils

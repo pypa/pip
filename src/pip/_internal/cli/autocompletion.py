@@ -6,7 +6,7 @@ import os
 import sys
 
 from pip._internal.cli.main_parser import create_main_parser
-from pip._internal.commands import commands_dict, get_summaries
+from pip._internal.commands import commands_dict, create_command
 from pip._internal.utils.misc import get_installed_distributions
 
 
@@ -23,7 +23,7 @@ def autocomplete():
     except IndexError:
         current = ''
 
-    subcommands = [cmd for cmd, summary in get_summaries()]
+    subcommands = list(commands_dict)
     options = []
     # subcommand
     try:
@@ -54,7 +54,7 @@ def autocomplete():
                     print(dist)
                 sys.exit(1)
 
-        subcommand = commands_dict[subcommand_name]()
+        subcommand = create_command(subcommand_name)
 
         for opt in subcommand.parser.option_list_all:
             if opt.help != optparse.SUPPRESS_HELP:

@@ -9,22 +9,30 @@ from pip._vendor import pkg_resources
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
 
-from pip._internal.commands.install import InstallCommand
+from pip._internal.commands import create_command
 from pip._internal.download import PipSession
 from pip._internal.exceptions import (
-    HashErrors, InstallationError, InvalidWheelFilename, PreviousBuildDirError,
+    HashErrors,
+    InstallationError,
+    InvalidWheelFilename,
+    PreviousBuildDirError,
 )
 from pip._internal.legacy_resolve import Resolver
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import InstallRequirement, RequirementSet
 from pip._internal.req.constructors import (
-    install_req_from_editable, install_req_from_line, parse_editable,
+    install_req_from_editable,
+    install_req_from_line,
+    parse_editable,
 )
 from pip._internal.req.req_file import process_line
 from pip._internal.req.req_tracker import RequirementTracker
 from pip._internal.utils.misc import path_to_url
 from tests.lib import (
-    DATA_DIR, assert_raises_regexp, make_test_finder, requirements_file,
+    DATA_DIR,
+    assert_raises_regexp,
+    make_test_finder,
+    requirements_file,
 )
 
 
@@ -178,12 +186,11 @@ class TestRequirementSet(object):
         req_set = RequirementSet(require_hashes=False)
         finder = make_test_finder(find_links=[data.find_links])
         session = finder.session
-        command = InstallCommand()
+        command = create_command('install')
         with requirements_file('--require-hashes', tmpdir) as reqs_file:
             options, args = command.parse_args(['-r', reqs_file])
             command.populate_requirement_set(
-                req_set, args, options, finder, session, command.name,
-                wheel_cache=None,
+                req_set, args, options, finder, session, wheel_cache=None,
             )
         assert req_set.require_hashes
 

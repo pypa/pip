@@ -1,0 +1,1 @@
+Skip copying .tox and .nox directories to temporary build directories

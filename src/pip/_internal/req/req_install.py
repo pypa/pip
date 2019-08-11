@@ -1,3 +1,6 @@
+# The following comment should be removed at some point in the future.
+# mypy: strict-optional=False
+
 from __future__ import absolute_import
 
 import logging
@@ -15,7 +18,7 @@ from pip._vendor.packaging.version import Version
 from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.pep517.wrappers import Pep517HookCaller
 
-from pip._internal import wheel
+from pip._internal import pep425tags, wheel
 from pip._internal.build_env import NoOpBuildEnvironment
 from pip._internal.exceptions import InstallationError
 from pip._internal.models.link import Link
@@ -26,9 +29,17 @@ from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.marker_files import PIP_DELETE_MARKER_FILENAME
 from pip._internal.utils.misc import (
-    _make_build_dir, ask_path_exists, backup_dir, call_subprocess,
-    display_path, dist_in_site_packages, dist_in_usersite, ensure_dir,
-    get_installed_version, redact_password_from_url, rmtree,
+    _make_build_dir,
+    ask_path_exists,
+    backup_dir,
+    call_subprocess,
+    display_path,
+    dist_in_site_packages,
+    dist_in_usersite,
+    ensure_dir,
+    get_installed_version,
+    redact_password_from_url,
+    rmtree,
 )
 from pip._internal.utils.packaging import get_metadata
 from pip._internal.utils.setuptools_build import make_setuptools_shim_args
@@ -211,7 +222,12 @@ class InstallRequirement(object):
             self.link = finder.find_requirement(self, upgrade)
         if self._wheel_cache is not None and not require_hashes:
             old_link = self.link
-            self.link = self._wheel_cache.get(self.link, self.name)
+            supported_tags = pep425tags.get_supported()
+            self.link = self._wheel_cache.get(
+                link=self.link,
+                package_name=self.name,
+                supported_tags=supported_tags,
+            )
             if old_link != self.link:
                 logger.debug('Using cached wheel link: %s', self.link)
 
@@ -608,9 +624,10 @@ class InstallRequirement(object):
                 'Running setup.py (path:%s) egg_info for package from %s',
                 self.setup_py_path, self.link,
             )
-        base_cmd = make_setuptools_shim_args(self.setup_py_path)
-        if self.isolated:
-            base_cmd += ["--no-user-cfg"]
+        base_cmd = make_setuptools_shim_args(
+            self.setup_py_path,
+            no_user_config=self.isolated
+        )
         egg_info_cmd = base_cmd + ['egg_info']
         # We can't put the .egg-info files at the root, because then the
         # source code will be mistaken for an installed egg, causing
@@ -755,19 +772,19 @@ class InstallRequirement(object):
         # type: (...) -> None
         logger.info('Running setup.py develop for %s', self.name)
 
-        if self.isolated:
-            global_options = list(global_options) + ["--no-user-cfg"]
-
         if prefix:
             prefix_param = ['--prefix={}'.format(prefix)]
             install_options = list(install_options) + prefix_param
-
+        base_cmd = make_setuptools_shim_args(
+            self.setup_py_path,
+            global_options=global_options,
+            no_user_config=self.isolated
+        )
         with indent_log():
             # FIXME: should we do --install-headers here too?
             with self.build_env:
                 call_subprocess(
-                    make_setuptools_shim_args(self.setup_py_path) +
-                    list(global_options) +
+                    base_cmd +
                     ['develop', '--no-deps'] +
                     list(install_options),
 
@@ -940,10 +957,6 @@ class InstallRequirement(object):
         install_options = list(install_options) + \
             self.options.get('install_options', [])
 
-        if self.isolated:
-            # https://github.com/python/mypy/issues/1174
-            global_options = global_options + ["--no-user-cfg"]  # type: ignore
-
         with TempDirectory(kind="record") as temp_dir:
             record_filename = os.path.join(temp_dir.path, 'install-record.txt')
             install_args = self.get_install_args(
@@ -1010,10 +1023,13 @@ class InstallRequirement(object):
         pycompile  # type: bool
     ):
         # type: (...) -> List[str]
-        install_args = make_setuptools_shim_args(self.setup_py_path,
-                                                 unbuffered_output=True)
-        install_args += list(global_options) + \
-            ['install', '--record', record_filename]
+        install_args = make_setuptools_shim_args(
+            self.setup_py_path,
+            global_options=global_options,
+            no_user_config=self.isolated,
+            unbuffered_output=True
+        )
+        install_args += ['install', '--record', record_filename]
         install_args += ['--single-version-externally-managed']
 
         if root is not None:

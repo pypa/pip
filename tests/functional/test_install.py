@@ -12,9 +12,16 @@ from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.utils.misc import rmtree
 from tests.lib import (
-    _create_svn_repo, _create_test_package, create_basic_wheel_for_package,
-    create_test_package_with_setup, need_bzr, need_mercurial, path_to_url,
-    pyversion, pyversion_tuple, requirements_file,
+    _create_svn_repo,
+    _create_test_package,
+    create_basic_wheel_for_package,
+    create_test_package_with_setup,
+    need_bzr,
+    need_mercurial,
+    path_to_url,
+    pyversion,
+    pyversion_tuple,
+    requirements_file,
 )
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
@@ -593,7 +600,7 @@ def test_install_global_option(script):
     result = script.pip(
         'install', '--global-option=--version', "INITools==0.1",
         expect_stderr=True)
-    assert '0.1\n' in result.stdout
+    assert 'INITools==0.1\n' in result.stdout
 
 
 def test_install_with_hacked_egg_info(script, data):
@@ -1306,7 +1313,7 @@ def test_double_install_fail(script):
 def _get_expected_error_text():
     return (
         "Package 'pkga' requires a different Python: {} not in '<1.0'"
-    ).format(sys.version.split()[0])
+    ).format('.'.join(map(str, sys.version_info[:3])))
 
 
 def test_install_incompatible_python_requires(script):

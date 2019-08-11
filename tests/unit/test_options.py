@@ -5,7 +5,7 @@ import pytest
 
 import pip._internal.configuration
 from pip._internal import main
-from pip._internal.commands import ConfigurationCommand, DownloadCommand
+from pip._internal.commands import create_command
 from pip._internal.exceptions import PipError
 from tests.lib.options_helpers import AddFakeCommandMixin
 
@@ -193,7 +193,7 @@ class TestUsePEP517Options(object):
     def parse_args(self, args):
         # We use DownloadCommand since that is one of the few Command
         # classes with the use_pep517 options.
-        command = DownloadCommand()
+        command = create_command('download')
         options, args = command.parse_args(args)
 
         return options
@@ -411,7 +411,7 @@ class TestOptionsConfigFiles(object):
         )
     )
     def test_config_file_options(self, monkeypatch, args, expect):
-        cmd = ConfigurationCommand()
+        cmd = create_command('config')
         # Replace a handler with a no-op to avoid side effects
         monkeypatch.setattr(cmd, "get_name", lambda *a: None)
 
@@ -423,7 +423,7 @@ class TestOptionsConfigFiles(object):
             assert expect == cmd._determine_file(options, need_value=False)
 
     def test_config_file_venv_option(self, monkeypatch):
-        cmd = ConfigurationCommand()
+        cmd = create_command('config')
         # Replace a handler with a no-op to avoid side effects
         monkeypatch.setattr(cmd, "get_name", lambda *a: None)
 

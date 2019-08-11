@@ -7,7 +7,11 @@ import pytest
 
 import pip._internal.utils.compat as pip_compat
 from pip._internal.utils.compat import (
-    console_to_str, expanduser, get_path_uid, native_str, str_to_display,
+    console_to_str,
+    expanduser,
+    get_path_uid,
+    native_str,
+    str_to_display,
 )
 
 

@@ -23,21 +23,39 @@ from mock import Mock, patch
 from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip._internal.exceptions import (
-    HashMismatch, HashMissing, InstallationError,
+    HashMismatch,
+    HashMissing,
+    InstallationError,
 )
 from pip._internal.utils.deprecation import PipDeprecationWarning, deprecated
 from pip._internal.utils.encoding import BOMS, auto_decode
 from pip._internal.utils.glibc import (
-    check_glibc_version, glibc_version_string, glibc_version_string_confstr,
+    check_glibc_version,
+    glibc_version_string,
+    glibc_version_string_confstr,
     glibc_version_string_ctypes,
 )
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.misc import (
-    call_subprocess, egg_link_path, ensure_dir, format_command_args,
-    get_installed_distributions, get_prog, make_subprocess_output_error,
-    normalize_path, normalize_version_info, path_to_display, path_to_url,
-    redact_netloc, redact_password_from_url, remove_auth_from_url, rmtree,
-    split_auth_from_netloc, split_auth_netloc_from_url, untar_file, unzip_file,
+    call_subprocess,
+    egg_link_path,
+    ensure_dir,
+    format_command_args,
+    get_installed_distributions,
+    get_prog,
+    make_subprocess_output_error,
+    normalize_path,
+    normalize_version_info,
+    path_to_display,
+    path_to_url,
+    redact_netloc,
+    redact_password_from_url,
+    remove_auth_from_url,
+    rmtree,
+    split_auth_from_netloc,
+    split_auth_netloc_from_url,
+    untar_file,
+    unzip_file,
 )
 from pip._internal.utils.setuptools_build import make_setuptools_shim_args
 from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
@@ -1387,16 +1405,54 @@ def test_deprecated_message_reads_well():
     )
 
 
-@pytest.mark.parametrize("unbuffered_output", [False, True])
-def test_make_setuptools_shim_args(unbuffered_output):
+def test_make_setuptools_shim_args():
+    # Test all arguments at once, including the overall ordering.
     args = make_setuptools_shim_args(
-        "/dir/path/setup.py",
-        unbuffered_output=unbuffered_output
+        '/dir/path/setup.py',
+        global_options=['--some', '--option'],
+        no_user_config=True,
+        unbuffered_output=True,
     )
 
-    assert ("-u" in args) == unbuffered_output
+    assert args[1:3] == ['-u', '-c']
+    # Spot-check key aspects of the command string.
+    assert "sys.argv[0] = '/dir/path/setup.py'" in args[3]
+    assert "__file__='/dir/path/setup.py'" in args[3]
+    assert args[4:] == ['--some', '--option', '--no-user-cfg']
 
-    assert args[-2] == "-c"
 
-    assert "sys.argv[0] = '/dir/path/setup.py'" in args[-1]
-    assert "__file__='/dir/path/setup.py'" in args[-1]
+@pytest.mark.parametrize('global_options', [
+    None,
+    [],
+    ['--some', '--option']
+])
+def test_make_setuptools_shim_args__global_options(global_options):
+    args = make_setuptools_shim_args(
+        '/dir/path/setup.py',
+        global_options=global_options,
+    )
+
+    if global_options:
+        assert len(args) == 5
+        for option in global_options:
+            assert option in args
+    else:
+        assert len(args) == 3
+
+
+@pytest.mark.parametrize('no_user_config', [False, True])
+def test_make_setuptools_shim_args__no_user_config(no_user_config):
+    args = make_setuptools_shim_args(
+        '/dir/path/setup.py',
+        no_user_config=no_user_config,
+    )
+    assert ('--no-user-cfg' in args) == no_user_config
+
+
+@pytest.mark.parametrize('unbuffered_output', [False, True])
+def test_make_setuptools_shim_args__unbuffered_output(unbuffered_output):
+    args = make_setuptools_shim_args(
+        '/dir/path/setup.py',
+        unbuffered_output=unbuffered_output
+    )
+    assert ('-u' in args) == unbuffered_output

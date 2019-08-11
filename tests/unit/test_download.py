@@ -11,9 +11,17 @@ from mock import Mock, patch
 
 import pip
 from pip._internal.download import (
-    CI_ENVIRONMENT_VARIABLES, MultiDomainBasicAuth, PipSession, SafeFileCache,
-    _download_http_url, parse_content_disposition, sanitize_content_filename,
-    unpack_file_url, unpack_http_url, url_to_path,
+    CI_ENVIRONMENT_VARIABLES,
+    MultiDomainBasicAuth,
+    PipSession,
+    SafeFileCache,
+    _download_http_url,
+    _get_url_scheme,
+    parse_content_disposition,
+    sanitize_content_filename,
+    unpack_file_url,
+    unpack_http_url,
+    url_to_path,
 )
 from pip._internal.exceptions import HashMismatch
 from pip._internal.models.link import Link
@@ -284,6 +292,16 @@ def test_download_http_url__no_directory_traversal(tmpdir):
     assert actual == ['out_dir_file']
 
 
+@pytest.mark.parametrize("url,expected", [
+    ('http://localhost:8080/', 'http'),
+    ('file:c:/path/to/file', 'file'),
+    ('file:/dev/null', 'file'),
+    ('', None),
+])
+def test__get_url_scheme(url, expected):
+    assert _get_url_scheme(url) == expected
+
+
 @pytest.mark.parametrize("url,win_expected,non_win_expected", [
     ('file:tmp', 'tmp', 'tmp'),
     ('file:c:/path/to/file', r'C:\path\to\file', 'c:/path/to/file'),
@@ -411,6 +429,41 @@ class Test_unpack_file_url(object):
         unpack_file_url(dist_url, self.build_dir,
                         download_dir=self.download_dir)
         assert os.path.isdir(os.path.join(self.build_dir, 'fspkg'))
+
+
+@pytest.mark.parametrize('exclude_dir', [
+    '.nox',
+    '.tox'
+])
+def test_unpack_file_url_excludes_expected_dirs(tmpdir, exclude_dir):
+    src_dir = tmpdir / 'src'
+    dst_dir = tmpdir / 'dst'
+    src_included_file = src_dir.joinpath('file.txt')
+    src_excluded_dir = src_dir.joinpath(exclude_dir)
+    src_excluded_file = src_dir.joinpath(exclude_dir, 'file.txt')
+    src_included_dir = src_dir.joinpath('subdir', exclude_dir)
+
+    # set up source directory
+    src_excluded_dir.mkdir(parents=True)
+    src_included_dir.mkdir(parents=True)
+    src_included_file.touch()
+    src_excluded_file.touch()
+
+    dst_included_file = dst_dir.joinpath('file.txt')
+    dst_excluded_dir = dst_dir.joinpath(exclude_dir)
+    dst_excluded_file = dst_dir.joinpath(exclude_dir, 'file.txt')
+    dst_included_dir = dst_dir.joinpath('subdir', exclude_dir)
+
+    src_link = Link(path_to_url(src_dir))
+    unpack_file_url(
+        src_link,
+        dst_dir,
+        download_dir=None
+    )
+    assert not os.path.isdir(dst_excluded_dir)
+    assert not os.path.isfile(dst_excluded_file)
+    assert os.path.isfile(dst_included_file)
+    assert os.path.isdir(dst_included_dir)
 
 
 class TestSafeFileCache:

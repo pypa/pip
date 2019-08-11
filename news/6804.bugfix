@@ -1,0 +1,2 @@
+Fix a regression that caused ``~`` expansion not to occur in ``--find-links``
+paths.

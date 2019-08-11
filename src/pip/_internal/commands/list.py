@@ -7,29 +7,29 @@ from pip._vendor import six
 from pip._vendor.six.moves import zip_longest
 
 from pip._internal.cli import cmdoptions
-from pip._internal.cli.base_command import Command
 from pip._internal.cli.cmdoptions import make_search_scope
+from pip._internal.cli.req_command import IndexGroupCommand
 from pip._internal.exceptions import CommandError
 from pip._internal.index import PackageFinder
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.utils.misc import (
-    dist_is_editable, get_installed_distributions,
+    dist_is_editable,
+    get_installed_distributions,
 )
 from pip._internal.utils.packaging import get_installer
 
 logger = logging.getLogger(__name__)
 
 
-class ListCommand(Command):
+class ListCommand(IndexGroupCommand):
     """
     List installed packages, including editables.
 
     Packages are listed in a case-insensitive sorted order.
     """
-    name = 'list'
+
     usage = """
       %prog [options]"""
-    summary = 'List installed packages.'
 
     def __init__(self, *args, **kw):
         super(ListCommand, self).__init__(*args, **kw)

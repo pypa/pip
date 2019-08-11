@@ -1,6 +1,9 @@
 """Validation of dependencies of packages
 """
 
+# The following comment should be removed at some point in the future.
+# mypy: strict-optional=False
+
 import logging
 from collections import namedtuple
 

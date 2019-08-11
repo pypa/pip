@@ -3,13 +3,14 @@ from __future__ import absolute_import
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.cli.base_command import Command
+from pip._internal.cli.req_command import SessionCommandMixin
 from pip._internal.exceptions import InstallationError
 from pip._internal.req import parse_requirements
 from pip._internal.req.constructors import install_req_from_line
 from pip._internal.utils.misc import protect_pip_from_modification_on_windows
 
 
-class UninstallCommand(Command):
+class UninstallCommand(SessionCommandMixin, Command):
     """
     Uninstall packages.
 
@@ -19,11 +20,10 @@ class UninstallCommand(Command):
       leave behind no metadata to determine what files were installed.
     - Script wrappers installed by ``python setup.py develop``.
     """
-    name = 'uninstall'
+
     usage = """
       %prog [options] <package> ...
       %prog [options] -r <requirements file> ..."""
-    summary = 'Uninstall packages.'
 
     def __init__(self, *args, **kw):
         super(UninstallCommand, self).__init__(*args, **kw)

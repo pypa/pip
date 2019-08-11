@@ -5,7 +5,8 @@ import pytest
 from mock import patch
 
 from pip._internal.cli.cmdoptions import (
-    _convert_python_version, make_search_scope,
+    _convert_python_version,
+    make_search_scope,
 )
 
 

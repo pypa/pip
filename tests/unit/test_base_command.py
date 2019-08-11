@@ -2,13 +2,15 @@ import logging
 import os
 import time
 
+from mock import patch
+
 from pip._internal.cli.base_command import Command
 from pip._internal.utils.logging import BrokenStdoutLoggingError
 
 
 class FakeCommand(Command):
-    name = 'fake'
-    summary = name
+
+    _name = 'fake'
 
     def __init__(self, run_func=None, error=False):
         if error:
@@ -16,7 +18,7 @@ class FakeCommand(Command):
                 raise SystemExit(1)
 
         self.run_func = run_func
-        super(FakeCommand, self).__init__()
+        super(FakeCommand, self).__init__(self._name, self._name)
 
     def main(self, args):
         args.append("--disable-pip-version-check")
@@ -29,8 +31,7 @@ class FakeCommand(Command):
 
 
 class FakeCommandWithUnicode(FakeCommand):
-    name = 'fake_unicode'
-    summary = name
+    _name = 'fake_unicode'
 
     def run(self, options, args):
         logging.getLogger("pip.tests").info(b"bytes here \xE9")
@@ -71,6 +72,16 @@ class TestCommand(object):
 
         assert 'ERROR: Pipe to stdout was broken' in stderr
         assert 'Traceback (most recent call last):' in stderr
+
+
+@patch('pip._internal.cli.req_command.Command.handle_pip_version_check')
+def test_handle_pip_version_check_called(mock_handle_version_check):
+    """
+    Check that Command.handle_pip_version_check() is called.
+    """
+    cmd = FakeCommand()
+    cmd.main([])
+    mock_handle_version_check.assert_called_once()
 
 
 class Test_base_command_logging(object):

@@ -8,10 +8,20 @@ from pip._vendor.packaging.specifiers import SpecifierSet
 
 from pip._internal.download import PipSession
 from pip._internal.index import (
-    CandidateEvaluator, CandidatePreferences, FormatControl, HTMLPage, Link,
-    LinkEvaluator, PackageFinder, _check_link_requires_python, _clean_link,
-    _determine_base_url, _extract_version_from_fragment,
-    _find_name_version_sep, _get_html_page, filter_unallowed_hashes,
+    CandidateEvaluator,
+    CandidatePreferences,
+    FormatControl,
+    HTMLPage,
+    Link,
+    LinkEvaluator,
+    PackageFinder,
+    _check_link_requires_python,
+    _clean_link,
+    _determine_base_url,
+    _extract_version_from_fragment,
+    _find_name_version_sep,
+    _get_html_page,
+    filter_unallowed_hashes,
 )
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.search_scope import SearchScope

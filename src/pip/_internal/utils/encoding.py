@@ -1,3 +1,6 @@
+# The following comment should be removed at some point in the future.
+# mypy: strict-optional=False
+
 import codecs
 import locale
 import re

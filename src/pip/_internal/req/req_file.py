@@ -2,6 +2,9 @@
 Requirements file parsing
 """
 
+# The following comment should be removed at some point in the future.
+# mypy: strict-optional=False
+
 from __future__ import absolute_import
 
 import optparse
@@ -18,7 +21,8 @@ from pip._internal.download import get_file_content
 from pip._internal.exceptions import RequirementsFileParseError
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.req.constructors import (
-    install_req_from_editable, install_req_from_line,
+    install_req_from_editable,
+    install_req_from_line,
 )
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 

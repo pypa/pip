@@ -4,7 +4,9 @@ import textwrap
 import pytest
 
 from tests.lib import (
-    _create_test_package_with_subdirectory, path_to_url, pyversion,
+    _create_test_package_with_subdirectory,
+    path_to_url,
+    pyversion,
     requirements_file,
 )
 from tests.lib.local_repos import local_checkout
@@ -160,7 +162,7 @@ def test_respect_order_in_requirements_file(script, data):
     )
 
     downloaded = [line for line in result.stdout.split('\n')
-                  if 'Collecting' in line]
+                  if 'Processing' in line]
 
     assert 'parent' in downloaded[0], (
         'First download should be "parent" but was "%s"' % downloaded[0]

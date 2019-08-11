@@ -12,6 +12,7 @@ from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.six.moves import xmlrpc_client  # type: ignore
 
 from pip._internal.cli.base_command import Command
+from pip._internal.cli.req_command import SessionCommandMixin
 from pip._internal.cli.status_codes import NO_MATCHES_FOUND, SUCCESS
 from pip._internal.download import PipXmlrpcTransport
 from pip._internal.exceptions import CommandError
@@ -22,12 +23,11 @@ from pip._internal.utils.logging import indent_log
 logger = logging.getLogger(__name__)
 
 
-class SearchCommand(Command):
+class SearchCommand(SessionCommandMixin, Command):
     """Search for PyPI packages whose name or summary contains <query>."""
-    name = 'search'
+
     usage = """
       %prog [options] <query>"""
-    summary = 'Search PyPI for packages.'
     ignore_require_venv = True
 
     def __init__(self, *args, **kw):

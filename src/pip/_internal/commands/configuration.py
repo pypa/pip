@@ -5,7 +5,9 @@ import subprocess
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.configuration import (
-    Configuration, get_configuration_files, kinds,
+    Configuration,
+    get_configuration_files,
+    kinds,
 )
 from pip._internal.exceptions import PipError
 from pip._internal.utils.deprecation import deprecated
@@ -32,7 +34,6 @@ class ConfigurationCommand(Command):
         default.
     """
 
-    name = 'config'
     usage = """
         %prog [<file-option>] list
         %prog [<file-option>] [--editor <editor-path>] edit
@@ -41,8 +42,6 @@ class ConfigurationCommand(Command):
         %prog [<file-option>] set name value
         %prog [<file-option>] unset name
     """
-
-    summary = "Manage local and global configuration."
 
     def __init__(self, *args, **kwargs):
         super(ConfigurationCommand, self).__init__(*args, **kwargs)

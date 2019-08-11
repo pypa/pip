@@ -1,6 +1,10 @@
 """
 Support for installing and building the "wheel" binary package format.
 """
+
+# The following comment should be removed at some point in the future.
+# mypy: strict-optional=False
+
 from __future__ import absolute_import
 
 import collections
@@ -25,15 +29,22 @@ from pip._vendor.six import StringIO
 from pip._internal import pep425tags
 from pip._internal.download import unpack_url
 from pip._internal.exceptions import (
-    InstallationError, InvalidWheelFilename, UnsupportedWheel,
+    InstallationError,
+    InvalidWheelFilename,
+    UnsupportedWheel,
 )
 from pip._internal.locations import distutils_scheme
 from pip._internal.models.link import Link
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.marker_files import PIP_DELETE_MARKER_FILENAME
 from pip._internal.utils.misc import (
-    LOG_DIVIDER, call_subprocess, captured_stdout, ensure_dir,
-    format_command_args, path_to_url, read_chunks,
+    LOG_DIVIDER,
+    call_subprocess,
+    captured_stdout,
+    ensure_dir,
+    format_command_args,
+    path_to_url,
+    read_chunks,
 )
 from pip._internal.utils.setuptools_build import make_setuptools_shim_args
 from pip._internal.utils.temp_dir import TempDirectory
@@ -725,25 +736,31 @@ class Wheel(object):
         """
         return sorted(format_tag(tag) for tag in self.file_tags)
 
-    def support_index_min(self, tags=None):
-        # type: (Optional[List[Pep425Tag]]) -> Optional[int]
+    def support_index_min(self, tags):
+        # type: (List[Pep425Tag]) -> int
         """
         Return the lowest index that one of the wheel's file_tag combinations
-        achieves in the supported_tags list e.g. if there are 8 supported tags,
-        and one of the file tags is first in the list, then return 0.  Returns
-        None is the wheel is not supported.
-        """
-        if tags is None:  # for mock
-            tags = pep425tags.get_supported()
-        indexes = [tags.index(c) for c in self.file_tags if c in tags]
-        return min(indexes) if indexes else None
+        achieves in the given list of supported tags.
 
-    def supported(self, tags=None):
-        # type: (Optional[List[Pep425Tag]]) -> bool
-        """Is this wheel supported on this system?"""
-        if tags is None:  # for mock
-            tags = pep425tags.get_supported()
-        return bool(set(tags).intersection(self.file_tags))
+        For example, if there are 8 supported tags and one of the file tags
+        is first in the list, then return 0.
+
+        :param tags: the PEP 425 tags to check the wheel against, in order
+            with most preferred first.
+
+        :raises ValueError: If none of the wheel's file tags match one of
+            the supported tags.
+        """
+        return min(tags.index(tag) for tag in self.file_tags if tag in tags)
+
+    def supported(self, tags):
+        # type: (List[Pep425Tag]) -> bool
+        """
+        Return whether the wheel is compatible with one of the given tags.
+
+        :param tags: the PEP 425 tags to check the wheel against.
+        """
+        return not self.file_tags.isdisjoint(tags)
 
 
 def _contains_egg_info(
@@ -927,9 +944,11 @@ class WheelBuilder(object):
         # isolating. Currently, it breaks Python in virtualenvs, because it
         # relies on site.py to find parts of the standard library outside the
         # virtualenv.
-        base_cmd = make_setuptools_shim_args(req.setup_py_path,
-                                             unbuffered_output=True)
-        return base_cmd + list(self.global_options)
+        return make_setuptools_shim_args(
+            req.setup_py_path,
+            global_options=self.global_options,
+            unbuffered_output=True
+        )
 
     def _build_one_pep517(self, req, tempd, python_tag=None):
         """Build one InstallRequirement using the PEP 517 build process.

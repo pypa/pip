@@ -6,11 +6,10 @@ import sys
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.parser import (
-    ConfigOptionParser, UpdatingDefaultsHelpFormatter,
+    ConfigOptionParser,
+    UpdatingDefaultsHelpFormatter,
 )
-from pip._internal.commands import (
-    commands_dict, get_similar_commands, get_summaries,
-)
+from pip._internal.commands import commands_dict, get_similar_commands
 from pip._internal.exceptions import CommandError
 from pip._internal.utils.misc import get_pip_version, get_prog
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -48,8 +47,10 @@ def create_main_parser():
     parser.main = True  # type: ignore
 
     # create command listing for description
-    command_summaries = get_summaries()
-    description = [''] + ['%-27s %s' % (i, j) for i, j in command_summaries]
+    description = [''] + [
+        '%-27s %s' % (name, command_info.summary)
+        for name, command_info in commands_dict.items()
+    ]
     parser.description = '\n'.join(description)
 
     return parser

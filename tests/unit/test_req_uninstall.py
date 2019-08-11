@@ -1,12 +1,18 @@
 import os
+import sys
 
 import pytest
 from mock import Mock
 
 import pip._internal.req.req_uninstall
 from pip._internal.req.req_uninstall import (
-    StashedUninstallPathSet, UninstallPathSet, compact,
-    compress_for_output_listing, compress_for_rename, uninstallation_paths,
+    StashedUninstallPathSet,
+    UninstallPathSet,
+    UninstallPthEntries,
+    compact,
+    compress_for_output_listing,
+    compress_for_rename,
+    uninstallation_paths,
 )
 from tests.lib import create_file
 
@@ -128,6 +134,38 @@ class TestUninstallPathSet(object):
 
         ups.add(file_nonexistent)
         assert ups.paths == {file_extant}
+
+    def test_add_pth(self, tmpdir, monkeypatch):
+        monkeypatch.setattr(pip._internal.req.req_uninstall, 'is_local',
+                            mock_is_local)
+        # Fix case for windows tests
+        tmpdir = os.path.normcase(tmpdir)
+        on_windows = sys.platform == 'win32'
+        pth_file = os.path.join(tmpdir, 'foo.pth')
+        relative = '../../example'
+        if on_windows:
+            share = '\\\\example\\share\\'
+            share_com = '\\\\example.com\\share\\'
+        # Create a .pth file for testing
+        with open(pth_file, 'w') as f:
+            f.writelines([tmpdir, '\n',
+                          relative, '\n'])
+            if on_windows:
+                f.writelines([share, '\n',
+                              share_com, '\n'])
+        # Add paths to be removed
+        pth = UninstallPthEntries(pth_file)
+        pth.add(tmpdir)
+        pth.add(relative)
+        if on_windows:
+            pth.add(share)
+            pth.add(share_com)
+        # Check that the paths were added to entries
+        if on_windows:
+            check = set([tmpdir, relative, share, share_com])
+        else:
+            check = set([tmpdir, relative])
+        assert pth.entries == check
 
     @pytest.mark.skipif("sys.platform == 'win32'")
     def test_add_symlink(self, tmpdir, monkeypatch):

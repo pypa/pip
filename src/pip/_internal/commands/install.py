@@ -11,21 +11,22 @@ from pip._vendor import pkg_resources
 
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
-from pip._internal.cli.base_command import RequirementCommand
 from pip._internal.cli.cmdoptions import make_target_python
+from pip._internal.cli.req_command import RequirementCommand
 from pip._internal.cli.status_codes import ERROR
 from pip._internal.exceptions import (
-    CommandError, InstallationError, PreviousBuildDirError,
+    CommandError,
+    InstallationError,
+    PreviousBuildDirError,
 )
-from pip._internal.legacy_resolve import Resolver
 from pip._internal.locations import distutils_scheme
 from pip._internal.operations.check import check_install_conflicts
-from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import RequirementSet, install_given_reqs
 from pip._internal.req.req_tracker import RequirementTracker
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.misc import (
-    ensure_dir, get_installed_version,
+    ensure_dir,
+    get_installed_version,
     protect_pip_from_modification_on_windows,
 )
 from pip._internal.utils.temp_dir import TempDirectory
@@ -84,7 +85,6 @@ class InstallCommand(RequirementCommand):
     pip also supports installing from "requirements files," which provide
     an easy way to specify a whole environment to be installed.
     """
-    name = 'install'
 
     usage = """
       %prog [options] <requirement specifier> [package-index-options] ...
@@ -92,8 +92,6 @@ class InstallCommand(RequirementCommand):
       %prog [options] [-e] <vcs project url> ...
       %prog [options] [-e] <local project path> ...
       %prog [options] <archive url/path> ..."""
-
-    summary = 'Install packages.'
 
     def __init__(self, *args, **kw):
         super(InstallCommand, self).__init__(*args, **kw)
@@ -184,7 +182,11 @@ class InstallCommand(RequirementCommand):
             '-I', '--ignore-installed',
             dest='ignore_installed',
             action='store_true',
-            help='Ignore the installed packages (reinstalling instead).')
+            help='Ignore the installed packages, overwriting them. '
+                 'This can break your system if the existing package '
+                 'is of a different version or was installed '
+                 'with a different package manager!'
+        )
 
         cmd_opts.add_option(cmdoptions.ignore_requires_python())
         cmd_opts.add_option(cmdoptions.no_build_isolation())
@@ -316,31 +318,25 @@ class InstallCommand(RequirementCommand):
                 try:
                     self.populate_requirement_set(
                         requirement_set, args, options, finder, session,
-                        self.name, wheel_cache
+                        wheel_cache
                     )
-                    preparer = RequirementPreparer(
-                        build_dir=directory.path,
-                        src_dir=options.src_dir,
-                        download_dir=None,
-                        wheel_download_dir=None,
-                        progress_bar=options.progress_bar,
-                        build_isolation=options.build_isolation,
+                    preparer = self.make_requirement_preparer(
+                        temp_directory=directory,
+                        options=options,
                         req_tracker=req_tracker,
                     )
-
-                    resolver = Resolver(
+                    resolver = self.make_resolver(
                         preparer=preparer,
                         finder=finder,
                         session=session,
+                        options=options,
                         wheel_cache=wheel_cache,
                         use_user_site=options.use_user_site,
-                        upgrade_strategy=upgrade_strategy,
-                        force_reinstall=options.force_reinstall,
-                        ignore_dependencies=options.ignore_dependencies,
-                        ignore_requires_python=options.ignore_requires_python,
                         ignore_installed=options.ignore_installed,
-                        isolated=options.isolated_mode,
-                        use_pep517=options.use_pep517
+                        ignore_requires_python=options.ignore_requires_python,
+                        force_reinstall=options.force_reinstall,
+                        upgrade_strategy=upgrade_strategy,
+                        use_pep517=options.use_pep517,
                     )
                     resolver.resolve(requirement_set)
 
