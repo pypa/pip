@@ -1554,3 +1554,17 @@ def test_install_with_hg_redacts_password(script):
     assert res.returncode == 1
     assert '$password$' not in res.stdout, str(res)
     assert '$password$' not in res.stderr, str(res)
+
+
+@pytest.mark.network
+@need_bzr
+def test_install_with_bzr_redacts_password(script):
+    url = ('bzr+http://user:$password$@'
+           'bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp/missing')
+    res = script.pip(
+        'install',
+        url,
+        expect_error=True)
+    assert res.returncode == 1
+    assert '$password$' not in res.stdout, str(res)
+    assert '$password$' not in res.stderr, str(res)
