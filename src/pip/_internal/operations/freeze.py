@@ -79,7 +79,7 @@ def freeze(
             continue
         if exclude_editable and req.editable:
             continue
-        installations[req.name] = req
+        installations[req.canonical_name] = req
 
     if requirement:
         # the options that don't get turned into an InstallRequirement
@@ -138,22 +138,27 @@ def freeze(
                             "  (add #egg=PackageName to the URL to avoid"
                             " this warning)"
                         )
-                    elif line_req.name not in installations:
-                        # either it's not installed, or it is installed
-                        # but has been processed already
-                        if not req_files[line_req.name]:
-                            logger.warning(
-                                "Requirement file [%s] contains %s, but "
-                                "package %r is not installed",
-                                req_file_path,
-                                COMMENT_RE.sub('', line).strip(), line_req.name
-                            )
-                        else:
-                            req_files[line_req.name].append(req_file_path)
                     else:
-                        yield str(installations[line_req.name]).rstrip()
-                        del installations[line_req.name]
-                        req_files[line_req.name].append(req_file_path)
+                        line_req_canonical_name = canonicalize_name(
+                            line_req.name)
+                        if line_req_canonical_name not in installations:
+                            # either it's not installed, or it is installed
+                            # but has been processed already
+                            if not req_files[line_req.name]:
+                                logger.warning(
+                                    "Requirement file [%s] contains %s, but "
+                                    "package %r is not installed",
+                                    req_file_path,
+                                    COMMENT_RE.sub('', line).strip(),
+                                    line_req.name
+                                )
+                            else:
+                                req_files[line_req.name].append(req_file_path)
+                        else:
+                            yield str(installations[
+                                line_req_canonical_name]).rstrip()
+                            del installations[line_req_canonical_name]
+                            req_files[line_req.name].append(req_file_path)
 
         # Warn about requirements that were included multiple times (in a
         # single requirements file or in different requirements files).
@@ -168,7 +173,7 @@ def freeze(
         )
     for installation in sorted(
             installations.values(), key=lambda x: x.name.lower()):
-        if canonicalize_name(installation.name) not in skip:
+        if installation.canonical_name not in skip:
             yield str(installation).rstrip()
 
 
@@ -238,6 +243,7 @@ class FrozenRequirement(object):
     def __init__(self, name, req, editable, comments=()):
         # type: (str, Union[str, Requirement], bool, Iterable[str]) -> None
         self.name = name
+        self.canonical_name = canonicalize_name(name)
         self.req = req
         self.editable = editable
         self.comments = comments
