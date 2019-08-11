@@ -27,7 +27,7 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.six import StringIO
 
 from pip._internal import pep425tags
-from pip._internal.download import unpack_url
+from pip._internal.download import unpack_file_url
 from pip._internal.exceptions import (
     InstallationError,
     InvalidWheelFilename,
@@ -57,7 +57,6 @@ if MYPY_CHECK_RUNNING:
     )
     from pip._vendor.packaging.requirements import Requirement
     from pip._internal.req.req_install import InstallRequirement
-    from pip._internal.download import PipSession
     from pip._internal.index import FormatControl, PackageFinder
     from pip._internal.operations.prepare import (
         RequirementPreparer
@@ -1032,7 +1031,6 @@ class WheelBuilder(object):
     def build(
         self,
         requirements,  # type: Iterable[InstallRequirement]
-        session,  # type: PipSession
         autobuilding=False  # type: bool
     ):
         # type: (...) -> List[InstallRequirement]
@@ -1122,10 +1120,7 @@ class WheelBuilder(object):
                         req.link = Link(path_to_url(wheel_file))
                         assert req.link.is_wheel
                         # extract the wheel into the dir
-                        unpack_url(
-                            req.link, req.source_dir, None, False,
-                            session=session,
-                        )
+                        unpack_file_url(link=req.link, location=req.source_dir)
                 else:
                     build_failure.append(req)
 

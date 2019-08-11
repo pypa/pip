@@ -1,3 +1,10 @@
+
+# The following comment should be removed at some point in the future.
+# It's included for now because without it InstallCommand.run() has a
+# couple errors where we have to know req.name is str rather than
+# Optional[str] for the InstallRequirement req.
+# mypy: strict-optional=False
+
 from __future__ import absolute_import
 
 import errno
@@ -13,7 +20,7 @@ from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.req_command import RequirementCommand
-from pip._internal.cli.status_codes import ERROR
+from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.exceptions import (
     CommandError,
     InstallationError,
@@ -30,8 +37,16 @@ from pip._internal.utils.misc import (
     protect_pip_from_modification_on_windows,
 )
 from pip._internal.utils.temp_dir import TempDirectory
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.virtualenv import virtualenv_no_global
 from pip._internal.wheel import WheelBuilder
+
+if MYPY_CHECK_RUNNING:
+    from optparse import Values
+    from typing import Any, List
+
+    from pip._internal.req.req_install import InstallRequirement
+
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +63,12 @@ def is_wheel_installed():
     return True
 
 
-def build_wheels(builder, pep517_requirements, legacy_requirements, session):
+def build_wheels(
+    builder,              # type: WheelBuilder
+    pep517_requirements,  # type: List[InstallRequirement]
+    legacy_requirements,  # type: List[InstallRequirement]
+):
+    # type: (...) -> List[InstallRequirement]
     """
     Build wheels for requirements, depending on whether wheel is installed.
     """
@@ -58,7 +78,7 @@ def build_wheels(builder, pep517_requirements, legacy_requirements, session):
     # Always build PEP 517 requirements
     build_failures = builder.build(
         pep517_requirements,
-        session=session, autobuilding=True
+        autobuilding=True,
     )
 
     if should_build_legacy:
@@ -67,7 +87,7 @@ def build_wheels(builder, pep517_requirements, legacy_requirements, session):
         # install for those.
         builder.build(
             legacy_requirements,
-            session=session, autobuilding=True
+            autobuilding=True,
         )
 
     return build_failures
@@ -242,6 +262,7 @@ class InstallCommand(RequirementCommand):
         self.parser.insert_option_group(0, cmd_opts)
 
     def run(self, options, args):
+        # type: (Values, List[Any]) -> int
         cmdoptions.check_install_build_global(options)
         upgrade_strategy = "to-satisfy-only"
         if options.upgrade:
@@ -362,7 +383,6 @@ class InstallCommand(RequirementCommand):
                         builder=wheel_builder,
                         pep517_requirements=pep517_requirements,
                         legacy_requirements=legacy_requirements,
-                        session=session,
                     )
 
                     # If we're using PEP 517, we cannot do a direct install
@@ -425,9 +445,11 @@ class InstallCommand(RequirementCommand):
                         except Exception:
                             pass
                         items.append(item)
-                    installed = ' '.join(items)
-                    if installed:
-                        logger.info('Successfully installed %s', installed)
+                    installed_desc = ' '.join(items)
+                    if installed_desc:
+                        logger.info(
+                            'Successfully installed %s', installed_desc,
+                        )
                 except EnvironmentError as error:
                     show_traceback = (self.verbosity >= 1)
 
@@ -450,7 +472,8 @@ class InstallCommand(RequirementCommand):
             self._handle_target_dir(
                 options.target_dir, target_temp_dir, options.upgrade
             )
-        return requirement_set
+
+        return SUCCESS
 
     def _handle_target_dir(self, target_dir, target_temp_dir, upgrade):
         ensure_dir(target_dir)

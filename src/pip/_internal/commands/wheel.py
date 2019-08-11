@@ -11,7 +11,13 @@ from pip._internal.exceptions import CommandError, PreviousBuildDirError
 from pip._internal.req import RequirementSet
 from pip._internal.req.req_tracker import RequirementTracker
 from pip._internal.utils.temp_dir import TempDirectory
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.wheel import WheelBuilder
+
+if MYPY_CHECK_RUNNING:
+    from optparse import Values
+    from typing import Any, List
+
 
 logger = logging.getLogger(__name__)
 
@@ -101,6 +107,7 @@ class WheelCommand(RequirementCommand):
         self.parser.insert_option_group(0, cmd_opts)
 
     def run(self, options, args):
+        # type: (Values, List[Any]) -> None
         cmdoptions.check_install_build_global(options)
 
         if options.build_dir:
@@ -153,7 +160,7 @@ class WheelCommand(RequirementCommand):
                         no_clean=options.no_clean,
                     )
                     build_failures = wb.build(
-                        requirement_set.requirements.values(), session=session,
+                        requirement_set.requirements.values(),
                     )
                     if len(build_failures) != 0:
                         raise CommandError(
