@@ -51,7 +51,6 @@ def test_cleanup_after_install_editable_from_hg(script, tmpdir):
             'hg+https://bitbucket.org/ianb/scripttest',
             tmpdir.joinpath("cache"),
         ),
-        expect_error=True,
     )
     build = script.venv_path / 'build'
     src = script.venv_path / 'src'

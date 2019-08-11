@@ -21,7 +21,7 @@ def test_debian_egg_name_workaround(script):
     https://bitbucket.org/ianb/pip/issue/104/pip-uninstall-on-ubuntu-linux
 
     """
-    result = script.pip('install', 'INITools==0.2', expect_error=True)
+    result = script.pip('install', 'INITools==0.2')
 
     egg_info = os.path.join(
         script.site_packages, "INITools-0.2-py%s.egg-info" % pyversion)

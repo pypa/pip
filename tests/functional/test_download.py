@@ -21,7 +21,7 @@ def test_download_if_requested(script):
     It should download (in the scratch path) and not install if requested.
     """
     result = script.pip(
-        'download', '-d', 'pip_downloads', 'INITools==0.1', expect_error=True
+        'download', '-d', 'pip_downloads', 'INITools==0.1'
     )
     assert Path('scratch') / 'pip_downloads' / 'INITools-0.1.tar.gz' \
         in result.files_created
@@ -68,7 +68,6 @@ def test_single_download_from_requirements_file(script):
         """))
     result = script.pip(
         'download', '-r', script.scratch_path / 'test-req.txt', '-d', '.',
-        expect_error=True,
     )
     assert Path('scratch') / 'INITools-0.1.tar.gz' in result.files_created
     assert script.site_packages / 'initools' not in result.files_created
@@ -80,7 +79,7 @@ def test_basic_download_should_download_dependencies(script):
     It should download dependencies (in the scratch path)
     """
     result = script.pip(
-        'download', 'Paste[openid]==1.7.5.1', '-d', '.', expect_error=True,
+        'download', 'Paste[openid]==1.7.5.1', '-d', '.'
     )
     assert Path('scratch') / 'Paste-1.7.5.1.tar.gz' in result.files_created
     openid_tarball_prefix = str(Path('scratch') / 'python-openid-')
@@ -129,7 +128,6 @@ def test_download_should_skip_existing_files(script):
 
     result = script.pip(
         'download', '-r', script.scratch_path / 'test-req.txt', '-d', '.',
-        expect_error=True,
     )
     assert Path('scratch') / 'INITools-0.1.tar.gz' in result.files_created
     assert script.site_packages / 'initools' not in result.files_created
@@ -143,7 +141,6 @@ def test_download_should_skip_existing_files(script):
     # only the second package should be downloaded
     result = script.pip(
         'download', '-r', script.scratch_path / 'test-req.txt', '-d', '.',
-        expect_error=True,
     )
     openid_tarball_prefix = str(Path('scratch') / 'python-openid-')
     assert any(
@@ -387,7 +384,6 @@ class TestDownloadPlatformManylinuxes(object):
             '--dest', '.',
             '--platform', 'linux_x86_64',
             'fake',
-            expect_error=True,
         )
 
 
@@ -571,7 +567,6 @@ def test_download_specify_abi(script, data):
         '--dest', '.',
         '--abi', 'cp27m',
         'fake',
-        expect_error=True,
     )
 
     data.reset()

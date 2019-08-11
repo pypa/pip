@@ -53,8 +53,8 @@ def _create_test_package_with_submodule(env, rel_path):
                               packages=find_packages(),
                              )
                         '''))
-    env.run('git', 'init', cwd=version_pkg_path, expect_error=True)
-    env.run('git', 'add', '.', cwd=version_pkg_path, expect_error=True)
+    env.run('git', 'init', cwd=version_pkg_path)
+    env.run('git', 'add', '.', cwd=version_pkg_path)
     _git_commit(env, version_pkg_path, message='initial version')
 
     submodule_path = _create_test_package_submodule(env)
@@ -66,7 +66,6 @@ def _create_test_package_with_submodule(env, rel_path):
         submodule_path,
         rel_path,
         cwd=version_pkg_path,
-        expect_error=True,
     )
     _git_commit(env, version_pkg_path, message='initial version w submodule')
 

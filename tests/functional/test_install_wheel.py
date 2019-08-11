@@ -412,7 +412,7 @@ def test_wheel_no_compiles_pyc(script, data):
 def test_install_from_wheel_uninstalls_old_version(script, data):
     # regression test for https://github.com/pypa/pip/issues/1825
     package = data.packages.joinpath("simplewheel-1.0-py2.py3-none-any.whl")
-    result = script.pip('install', package, '--no-index', expect_error=True)
+    result = script.pip('install', package, '--no-index')
     package = data.packages.joinpath("simplewheel-2.0-py2.py3-none-any.whl")
     result = script.pip('install', package, '--no-index', expect_error=False)
     dist_info_folder = script.site_packages / 'simplewheel-2.0.dist-info'
