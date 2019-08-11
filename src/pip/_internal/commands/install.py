@@ -63,7 +63,12 @@ def is_wheel_installed():
     return True
 
 
-def build_wheels(builder, pep517_requirements, legacy_requirements, session):
+def build_wheels(
+    builder,              # type: WheelBuilder
+    pep517_requirements,  # type: List[InstallRequirement]
+    legacy_requirements,  # type: List[InstallRequirement]
+):
+    # type: (...) -> List[InstallRequirement]
     """
     Build wheels for requirements, depending on whether wheel is installed.
     """
@@ -73,7 +78,7 @@ def build_wheels(builder, pep517_requirements, legacy_requirements, session):
     # Always build PEP 517 requirements
     build_failures = builder.build(
         pep517_requirements,
-        session=session, autobuilding=True
+        autobuilding=True,
     )
 
     if should_build_legacy:
@@ -82,7 +87,7 @@ def build_wheels(builder, pep517_requirements, legacy_requirements, session):
         # install for those.
         builder.build(
             legacy_requirements,
-            session=session, autobuilding=True
+            autobuilding=True,
         )
 
     return build_failures
@@ -378,7 +383,6 @@ class InstallCommand(RequirementCommand):
                         builder=wheel_builder,
                         pep517_requirements=pep517_requirements,
                         legacy_requirements=legacy_requirements,
-                        session=session,
                     )
 
                     # If we're using PEP 517, we cannot do a direct install

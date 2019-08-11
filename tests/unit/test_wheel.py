@@ -700,7 +700,7 @@ class TestWheelBuilder(object):
                 finder=Mock(), preparer=Mock(), wheel_cache=None,
             )
             with caplog.at_level(logging.INFO):
-                wb.build([wheel_req], session=Mock())
+                wb.build([wheel_req])
             assert "due to already being wheel" in caplog.text
             assert mock_build_one.mock_calls == []
 

@@ -160,7 +160,7 @@ class WheelCommand(RequirementCommand):
                         no_clean=options.no_clean,
                     )
                     build_failures = wb.build(
-                        requirement_set.requirements.values(), session=session,
+                        requirement_set.requirements.values(),
                     )
                     if len(build_failures) != 0:
                         raise CommandError(
