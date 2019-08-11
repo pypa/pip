@@ -1530,9 +1530,11 @@ def test_target_install_ignores_distutils_config_install_prefix(script):
 
 
 @pytest.mark.network
-def test_install_with_git_redacts_password(script):
-    url = ('git+https://'
-           'user:$password$@github.com/pypa/pip-test-package.git@refs/missing')
+@pytest.mark.parametrize('url', (
+    'git+https://user:$password$@github.com/pypa/pip-test-package.git@refs/x',
+    'svn+https://user:$password$@svn.osdn.net/svnroot/tortoisesvn/invalid',
+))
+def test_install_redacts_password(url, script):
     res = script.pip(
         'install',
         url,
