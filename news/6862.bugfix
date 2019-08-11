@@ -1,0 +1,1 @@
+Passwords provided to pip install with VCS commands are now redacted before logging.
