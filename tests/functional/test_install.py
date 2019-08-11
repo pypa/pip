@@ -1541,3 +1541,16 @@ def test_install_with_git_redacts_password(script):
     assert res.returncode == 1
     assert '$password$' not in res.stdout, str(res)
     assert '$password$' not in res.stderr, str(res)
+
+
+@pytest.mark.network
+@need_mercurial
+def test_install_with_hg_redacts_password(script):
+    url = 'hg+https://user:$password$@bitbucket.org/runeh/anyjson@missing'
+    res = script.pip(
+        'install',
+        url,
+        expect_error=True)
+    assert res.returncode == 1
+    assert '$password$' not in res.stdout, str(res)
+    assert '$password$' not in res.stderr, str(res)
