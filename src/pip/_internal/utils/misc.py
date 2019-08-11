@@ -15,16 +15,8 @@ import shutil
 import stat
 import subprocess
 import sys
-import tarfile
-import zipfile
 from collections import deque
 
-from pip._vendor import pkg_resources
-# NOTE: retrying is not annotated in typeshed as on 2017-07-17, which is
-#       why we ignore the type on this import.
-from pip._vendor.retrying import retry  # type: ignore
-from pip._vendor.six import PY2, text_type
-from pip._vendor.six.moves import input, shlex_quote
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
@@ -45,6 +37,10 @@ from pip._internal.utils.virtualenv import (
     running_under_virtualenv,
     virtualenv_no_global,
 )
+from pip._vendor import pkg_resources
+from pip._vendor.retrying import retry  # type: ignore
+from pip._vendor.six import PY2, text_type
+from pip._vendor.six.moves import input, shlex_quote
 
 if PY2:
     from io import BytesIO as StringIO
@@ -53,11 +49,10 @@ else:
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, AnyStr, Container, Iterable, List, Mapping, Match, Optional, Text,
-        Tuple, Union, cast,
+        Any, Container, Iterable, List, Mapping, Optional, Text,
+        Tuple, cast,
     )
     from pip._vendor.pkg_resources import Distribution
-    from pip._internal.models.link import Link
     from pip._internal.utils.ui import SpinnerInterface
 
     VersionInfo = Tuple[int, int, int]
@@ -75,7 +70,7 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'split_leading_dir', 'has_leading_dir',
            'normalize_path',
            'renames', 'get_prog',
-           'unzip_file', 'untar_file', 'unpack_file', 'call_subprocess',
+           'call_subprocess',
            'captured_stdout', 'ensure_dir',
            'ARCHIVE_EXTENSIONS', 'SUPPORTED_EXTENSIONS', 'WHEEL_EXTENSION',
            'get_installed_version', 'remove_auth_from_url']
@@ -600,168 +595,6 @@ def current_umask():
     mask = os.umask(0)
     os.umask(mask)
     return mask
-
-
-def unzip_file(filename, location, flatten=True):
-    # type: (str, str, bool) -> None
-    """
-    Unzip the file (with path `filename`) to the destination `location`.  All
-    files are written based on system defaults and umask (i.e. permissions are
-    not preserved), except that regular file members with any execute
-    permissions (user, group, or world) have "chmod +x" applied after being
-    written. Note that for windows, any execute changes using os.chmod are
-    no-ops per the python docs.
-    """
-    ensure_dir(location)
-    zipfp = open(filename, 'rb')
-    try:
-        zip = zipfile.ZipFile(zipfp, allowZip64=True)
-        leading = has_leading_dir(zip.namelist()) and flatten
-        for info in zip.infolist():
-            name = info.filename
-            fn = name
-            if leading:
-                fn = split_leading_dir(name)[1]
-            fn = os.path.join(location, fn)
-            dir = os.path.dirname(fn)
-            if fn.endswith('/') or fn.endswith('\\'):
-                # A directory
-                ensure_dir(fn)
-            else:
-                ensure_dir(dir)
-                # Don't use read() to avoid allocating an arbitrarily large
-                # chunk of memory for the file's content
-                fp = zip.open(name)
-                try:
-                    with open(fn, 'wb') as destfp:
-                        shutil.copyfileobj(fp, destfp)
-                finally:
-                    fp.close()
-                    mode = info.external_attr >> 16
-                    # if mode and regular file and any execute permissions for
-                    # user/group/world?
-                    if mode and stat.S_ISREG(mode) and mode & 0o111:
-                        # make dest file have execute for user/group/world
-                        # (chmod +x) no-op on windows per python docs
-                        os.chmod(fn, (0o777 - current_umask() | 0o111))
-    finally:
-        zipfp.close()
-
-
-def untar_file(filename, location):
-    # type: (str, str) -> None
-    """
-    Untar the file (with path `filename`) to the destination `location`.
-    All files are written based on system defaults and umask (i.e. permissions
-    are not preserved), except that regular file members with any execute
-    permissions (user, group, or world) have "chmod +x" applied after being
-    written.  Note that for windows, any execute changes using os.chmod are
-    no-ops per the python docs.
-    """
-    ensure_dir(location)
-    if filename.lower().endswith('.gz') or filename.lower().endswith('.tgz'):
-        mode = 'r:gz'
-    elif filename.lower().endswith(BZ2_EXTENSIONS):
-        mode = 'r:bz2'
-    elif filename.lower().endswith(XZ_EXTENSIONS):
-        mode = 'r:xz'
-    elif filename.lower().endswith('.tar'):
-        mode = 'r'
-    else:
-        logger.warning(
-            'Cannot determine compression type for file %s', filename,
-        )
-        mode = 'r:*'
-    tar = tarfile.open(filename, mode)
-    try:
-        leading = has_leading_dir([
-            member.name for member in tar.getmembers()
-        ])
-        for member in tar.getmembers():
-            fn = member.name
-            if leading:
-                # https://github.com/python/mypy/issues/1174
-                fn = split_leading_dir(fn)[1]  # type: ignore
-            path = os.path.join(location, fn)
-            if member.isdir():
-                ensure_dir(path)
-            elif member.issym():
-                try:
-                    # https://github.com/python/typeshed/issues/2673
-                    tar._extract_member(member, path)  # type: ignore
-                except Exception as exc:
-                    # Some corrupt tar files seem to produce this
-                    # (specifically bad symlinks)
-                    logger.warning(
-                        'In the tar file %s the member %s is invalid: %s',
-                        filename, member.name, exc,
-                    )
-                    continue
-            else:
-                try:
-                    fp = tar.extractfile(member)
-                except (KeyError, AttributeError) as exc:
-                    # Some corrupt tar files seem to produce this
-                    # (specifically bad symlinks)
-                    logger.warning(
-                        'In the tar file %s the member %s is invalid: %s',
-                        filename, member.name, exc,
-                    )
-                    continue
-                ensure_dir(os.path.dirname(path))
-                with open(path, 'wb') as destfp:
-                    shutil.copyfileobj(fp, destfp)
-                fp.close()
-                # Update the timestamp (useful for cython compiled files)
-                # https://github.com/python/typeshed/issues/2673
-                tar.utime(member, path)  # type: ignore
-                # member have any execute permissions for user/group/world?
-                if member.mode & 0o111:
-                    # make dest file have execute for user/group/world
-                    # no-op on windows per python docs
-                    os.chmod(path, (0o777 - current_umask() | 0o111))
-    finally:
-        tar.close()
-
-
-def unpack_file(
-    filename,  # type: str
-    location,  # type: str
-    content_type,  # type: Optional[str]
-    link  # type: Optional[Link]
-):
-    # type: (...) -> None
-    filename = os.path.realpath(filename)
-    if (content_type == 'application/zip' or
-            filename.lower().endswith(ZIP_EXTENSIONS) or
-            zipfile.is_zipfile(filename)):
-        unzip_file(
-            filename,
-            location,
-            flatten=not filename.endswith('.whl')
-        )
-    elif (content_type == 'application/x-gzip' or
-            tarfile.is_tarfile(filename) or
-            filename.lower().endswith(
-                TAR_EXTENSIONS + BZ2_EXTENSIONS + XZ_EXTENSIONS)):
-        untar_file(filename, location)
-    elif (content_type and content_type.startswith('text/html') and
-            is_svn_page(file_contents(filename))):
-        # We don't really care about this
-        from pip._internal.vcs.subversion import Subversion
-        url = 'svn+' + link.url
-        Subversion().unpack(location, url=url)
-    else:
-        # FIXME: handle?
-        # FIXME: magic signatures?
-        logger.critical(
-            'Cannot unpack file %s (downloaded from %s, content-type: %s); '
-            'cannot detect archive format',
-            filename, location, content_type,
-        )
-        raise InstallationError(
-            'Cannot determine archive format of %s' % location
-        )
 
 
 def format_command_args(args):

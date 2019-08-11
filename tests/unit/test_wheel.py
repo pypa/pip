@@ -6,6 +6,8 @@ import textwrap
 
 import pytest
 from mock import Mock, patch
+
+import pip._internal.utils.unpacking
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal import pep425tags, wheel
@@ -14,7 +16,7 @@ from pip._internal.index import FormatControl
 from pip._internal.models.link import Link
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.compat import WINDOWS
-from pip._internal.utils.misc import unpack_file
+from pip._internal.utils.unpacking import unpack_file
 from tests.lib import DATA_DIR, assert_paths_equal
 
 
@@ -583,7 +585,7 @@ class TestWheelFile(object):
                                 'meta-1.0-py2.py3-none-any.whl')
         try:
             tmpdir = mkdtemp()
-            utils.unpack_file(filepath, tmpdir, 'application/zip', None)
+            pip._internal.utils.unpacking.unpack_file(filepath, tmpdir, 'application/zip', None)
             assert os.path.isdir(os.path.join(tmpdir, 'meta-1.0.dist-info'))
         finally:
             rmtree(tmpdir)
