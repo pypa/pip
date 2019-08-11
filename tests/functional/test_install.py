@@ -1527,3 +1527,17 @@ def test_target_install_ignores_distutils_config_install_prefix(script):
         (target - script.base_path) in result.files_created and
         (prefix - script.base_path) not in result.files_created
     ), str(result)
+
+
+@pytest.mark.network
+def test_install_with_git_redacts_password(script):
+    url = ('git+https://'
+           'user:$password$@github.com/pypa/pip-test-package.git@refs/missing')
+    res = script.pip(
+        'install',
+        url,
+        expect_error=True,
+    )
+    assert res.returncode == 1
+    assert '$password$' not in res.stdout, str(res)
+    assert '$password$' not in res.stderr, str(res)
