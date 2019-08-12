@@ -1185,6 +1185,7 @@ def protect_pip_from_modification_on_windows(modifying_pip):
         python -m pip ...
     """
     pip_names = [
+        "pip",
         "pip.exe",
         "pip{}.exe".format(sys.version_info[0]),
         "pip{}.{}.exe".format(*sys.version_info[:2])
