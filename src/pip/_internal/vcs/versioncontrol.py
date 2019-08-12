@@ -16,6 +16,8 @@ from pip._internal.utils.misc import (
     backup_dir,
     call_subprocess,
     display_path,
+    hide_url,
+    hide_value,
     rmtree,
 )
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -327,7 +329,8 @@ class VersionControl(object):
 
         Returns: (url, rev, (username, password)).
         """
-        scheme, netloc, path, query, frag = urllib_parse.urlsplit(url)
+        raw = getattr(url, 'raw', url)
+        scheme, netloc, path, query, frag = urllib_parse.urlsplit(raw)
         if '+' not in scheme:
             raise ValueError(
                 "Sorry, {!r} is a malformed VCS url. "
@@ -341,7 +344,9 @@ class VersionControl(object):
         if '@' in path:
             path, rev = path.rsplit('@', 1)
         url = urllib_parse.urlunsplit((scheme, netloc, path, query, ''))
-        return url, rev, user_pass
+        if user_pass[1] is not None:
+            user_pass = (user_pass[0], hide_value(user_pass[1]))
+        return hide_url(url), rev, user_pass
 
     @staticmethod
     def make_rev_args(username, password):

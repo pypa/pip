@@ -772,6 +772,15 @@ def format_command_args(args):
     return ' '.join(shlex_quote(arg) for arg in args)
 
 
+def raw_command_args(args):
+    # type: (List[str]) -> List[str]
+    """
+    Return an argument list containing raw unredacted arguments
+    """
+    return [arg.raw if isinstance(arg, HiddenText) else arg
+            for arg in args]
+
+
 def make_subprocess_output_error(
     cmd_args,     # type: List[str]
     cwd,          # type: Optional[str]
@@ -882,7 +891,8 @@ def call_subprocess(
         env.pop(name, None)
     try:
         proc = subprocess.Popen(
-            cmd, stderr=subprocess.STDOUT, stdin=subprocess.PIPE,
+            raw_command_args(cmd),
+            stderr=subprocess.STDOUT, stdin=subprocess.PIPE,
             stdout=subprocess.PIPE, cwd=cwd, env=env,
         )
         proc.stdin.close()
@@ -951,6 +961,26 @@ def call_subprocess(
 def _make_build_dir(build_dir):
     os.makedirs(build_dir)
     write_delete_marker_file(build_dir)
+
+
+class HiddenText(str):
+    raw = None  # type: str
+
+    def __repr__(self):
+        return '<HiddenText {!r}>'.format(str(self))
+
+
+def hide_url(raw):
+    redacted = redact_password_from_url(raw)
+    text = HiddenText(redacted)
+    text.raw = raw
+    return text
+
+
+def hide_value(value):
+    text = HiddenText('****')
+    text.raw = value
+    return text
 
 
 class FakeFile(object):
