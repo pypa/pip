@@ -4,12 +4,12 @@ import re
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip._internal.utils.misc import (
-    WHEEL_EXTENSION,
     path_to_url,
     redact_password_from_url,
     split_auth_from_netloc,
     splitext,
 )
+from pip._internal.utils.unpacking import WHEEL_EXTENSION
 from pip._internal.utils.models import KeyBasedCompareMixin
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 

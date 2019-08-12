@@ -1,3 +1,5 @@
+# mypy: strict-optional=False
+
 import logging
 import os
 import shutil
@@ -20,7 +22,6 @@ from pip._internal.utils.misc import (
     file_contents
 )
 
-
 if MYPY_CHECK_RUNNING:
     from typing import Optional
     from pip._internal.models.link import Link
@@ -33,6 +34,22 @@ BZ2_EXTENSIONS = ('.tar.bz2', '.tbz')
 XZ_EXTENSIONS = ('.tar.xz', '.txz', '.tlz', '.tar.lz', '.tar.lzma')
 ZIP_EXTENSIONS = ('.zip', WHEEL_EXTENSION)
 TAR_EXTENSIONS = ('.tar.gz', '.tgz', '.tar')
+ARCHIVE_EXTENSIONS = (
+    ZIP_EXTENSIONS + BZ2_EXTENSIONS + TAR_EXTENSIONS + XZ_EXTENSIONS)
+SUPPORTED_EXTENSIONS = ZIP_EXTENSIONS + TAR_EXTENSIONS
+
+try:
+    import bz2  # noqa
+    SUPPORTED_EXTENSIONS += BZ2_EXTENSIONS
+except ImportError:
+    logger.debug('bz2 module is not available')
+
+try:
+    # Only for Python 3.3+
+    import lzma  # noqa
+    SUPPORTED_EXTENSIONS += XZ_EXTENSIONS
+except ImportError:
+    logger.debug('lzma module is not available')
 
 
 def unpack_file_url(
@@ -260,3 +277,5 @@ def unpack_file(
         raise InstallationError(
             'Cannot determine archive format of %s' % location
         )
+
+

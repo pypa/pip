@@ -36,11 +36,13 @@ from pip._internal.models.target_python import TargetPython
 from pip._internal.utils.compat import ipaddress
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
-    ARCHIVE_EXTENSIONS,
-    SUPPORTED_EXTENSIONS,
-    WHEEL_EXTENSION,
     path_to_url,
-    redact_password_from_url,
+    redact_password_from_url
+)
+from pip._internal.utils.unpacking import (
+    WHEEL_EXTENSION,
+    ARCHIVE_EXTENSIONS,
+    SUPPORTED_EXTENSIONS
 )
 from pip._internal.utils.packaging import check_requires_python
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
