@@ -1,5 +1,7 @@
 # mypy: strict-optional=False
 
+from __future__ import absolute_import
+
 import logging
 import os
 import shutil
@@ -68,7 +70,7 @@ def unpack_file_url(
         _check_download_dir,
         _copy_file
     )
-    
+
     link_path = url_to_path(link.url_without_fragment)
     # If it's a url to a local directory
     if is_dir_url(link):
