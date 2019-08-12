@@ -262,7 +262,7 @@ def _test_install_editable_from_git(script, tmpdir):
     """Test cloning from Git."""
     pkg_path = _create_test_package(script, name='testpackage', vcs='git')
     args = ['install', '-e', 'git+%s#egg=testpackage' % path_to_url(pkg_path)]
-    result = script.pip(*args, **{"expect_error": True})
+    result = script.pip(*args)
     result.assert_installed('testpackage', with_files=['.git'])
 
 
@@ -331,7 +331,7 @@ def test_basic_install_editable_from_hg(script, tmpdir):
     """Test cloning from Mercurial."""
     pkg_path = _create_test_package(script, name='testpackage', vcs='hg')
     args = ['install', '-e', 'hg+%s#egg=testpackage' % path_to_url(pkg_path)]
-    result = script.pip(*args, **{"expect_error": True})
+    result = script.pip(*args)
     result.assert_installed('testpackage', with_files=['.hg'])
 
 
@@ -342,7 +342,7 @@ def test_vcs_url_final_slash_normalization(script, tmpdir):
     """
     pkg_path = _create_test_package(script, name='testpackage', vcs='hg')
     args = ['install', '-e', 'hg+%s/#egg=testpackage' % path_to_url(pkg_path)]
-    result = script.pip(*args, **{"expect_error": True})
+    result = script.pip(*args)
     result.assert_installed('testpackage', with_files=['.hg'])
 
 
@@ -351,7 +351,7 @@ def test_install_editable_from_bazaar(script, tmpdir):
     """Test checking out from Bazaar."""
     pkg_path = _create_test_package(script, name='testpackage', vcs='bazaar')
     args = ['install', '-e', 'bzr+%s/#egg=testpackage' % path_to_url(pkg_path)]
-    result = script.pip(*args, **{"expect_error": True})
+    result = script.pip(*args)
     result.assert_installed('testpackage', with_files=['.bzr'])
 
 
@@ -1264,8 +1264,8 @@ def test_install_editable_with_wrong_egg_name(script):
               version='0.1')
     """))
     result = script.pip(
-        'install', '--editable', 'file://%s#egg=pkgb' % pkga_path,
-        expect_error=True)
+        'install', '--editable', 'file://%s#egg=pkgb' % pkga_path
+    )
     assert ("Generating metadata for package pkgb produced metadata "
             "for project name pkga. Fix your #egg=pkgb "
             "fragments.") in result.stderr
@@ -1368,7 +1368,7 @@ def test_install_compatible_python_requires(script):
               python_requires='>1.0',
               version='0.1')
     """))
-    res = script.pip('install', pkga_path, expect_error=True)
+    res = script.pip('install', pkga_path)
     assert "Successfully installed pkga-0.1" in res.stdout, res
 
 
@@ -1424,7 +1424,7 @@ def test_install_from_test_pypi_with_ext_url_dep_is_blocked(script, index):
 
 def test_installing_scripts_outside_path_prints_warning(script):
     result = script.pip_install_local(
-        "--prefix", script.scratch_path, "script_wheel1", expect_error=True
+        "--prefix", script.scratch_path, "script_wheel1"
     )
     assert "Successfully installed script-wheel1" in result.stdout, str(result)
     assert "--no-warn-script-location" in result.stderr

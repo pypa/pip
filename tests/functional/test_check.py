@@ -166,7 +166,7 @@ def test_check_complicated_name_clean(script):
     )
     assert "Successfully installed dependency-b-1.0" in result.stdout
 
-    result = script.pip('check', expect_error=True)
+    result = script.pip('check')
     expected_lines = (
         "No broken requirements found.",
     )

@@ -142,11 +142,11 @@ def test_basic_uninstall_namespace_package(script):
     the namespace and everything in it.
 
     """
-    result = script.pip('install', 'pd.requires==0.0.3', expect_error=True)
+    result = script.pip('install', 'pd.requires==0.0.3')
     assert join(script.site_packages, 'pd') in result.files_created, (
         sorted(result.files_created.keys())
     )
-    result2 = script.pip('uninstall', 'pd.find', '-y', expect_error=True)
+    result2 = script.pip('uninstall', 'pd.find', '-y')
     assert join(script.site_packages, 'pd') not in result2.files_deleted, (
         sorted(result2.files_deleted.keys())
     )
@@ -259,11 +259,11 @@ def test_uninstall_console_scripts(script):
     """
     args = ['install']
     args.append('discover')
-    result = script.pip(*args, **{"expect_error": True})
+    result = script.pip(*args)
     assert script.bin / 'discover' + script.exe in result.files_created, (
         sorted(result.files_created.keys())
     )
-    result2 = script.pip('uninstall', 'discover', '-y', expect_error=True)
+    result2 = script.pip('uninstall', 'discover', '-y')
     assert_all_changes(result, result2, [script.venv / 'build', 'cache'])
 
 
@@ -272,7 +272,7 @@ def test_uninstall_easy_installed_console_scripts(script):
     """
     Test uninstalling package with console_scripts that is easy_installed.
     """
-    result = script.easy_install('discover', expect_error=True)
+    result = script.easy_install('discover')
     assert script.bin / 'discover' + script.exe in result.files_created, (
         sorted(result.files_created.keys())
     )
@@ -349,8 +349,7 @@ def _test_uninstall_editable_with_source_outside_venv(
     assert join(
         script.site_packages, 'pip-test-package.egg-link'
     ) in result2.files_created, list(result2.files_created.keys())
-    result3 = script.pip('uninstall', '-y',
-                         'pip-test-package', expect_error=True)
+    result3 = script.pip('uninstall', '-y', 'pip-test-package')
     assert_all_changes(
         result,
         result3,
