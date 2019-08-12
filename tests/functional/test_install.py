@@ -1531,14 +1531,22 @@ def test_target_install_ignores_distutils_config_install_prefix(script):
 
 
 @pytest.mark.skipif("sys.platform != 'win32'")
-def test_protect_pip_from_modification_on_windows(script):
+@pytest.mark.parametrize('pip_name', [
+    'pip',
+    'pip{}'.format(sys.version_info[0]),
+    'pip{}.{}'.format(*sys.version_info[:2]),
+    'pip.exe',
+    'pip{}.exe'.format(sys.version_info[0]),
+    'pip{}.{}.exe'.format(*sys.version_info[:2])
+])
+def test_protect_pip_from_modification_on_windows(script, pip_name):
     """
     Test ``pip install --upgrade pip`` is raised an error on Windows.
     """
-    command = ['pip', 'install', '--upgrade', 'pip']
+    command = [pip_name, 'install', '--upgrade', 'pip']
     result = script.run(*command, expect_error=True)
     assert result.returncode != 0
-    new_command = [sys.executable, '-m'] + command
+    new_command = [sys.executable, '-m', 'pip'] + command[1:]
     assert 'To modify pip, please run the following command:\n{}'.format(
         ' '.join(new_command)) in result.stderr, str(result)
 

@@ -1184,12 +1184,11 @@ def protect_pip_from_modification_on_windows(modifying_pip):
     On Windows, any operation modifying pip should be run as:
         python -m pip ...
     """
-    pip_names = [
-        "pip",
-        "pip.exe",
-        "pip{}.exe".format(sys.version_info[0]),
-        "pip{}.{}.exe".format(*sys.version_info[:2])
-    ]
+    pip_names = set()
+    for ext in ('', '.exe'):
+        pip_names.add('pip{0}'.format(ext))
+        pip_names.add('pip{0}{1}'.format(sys.version_info[0], ext))
+        pip_names.add('pip{0}.{1}{ext}'.format(*sys.version_info[:2], ext=ext))
 
     # See https://github.com/pypa/pip/issues/1299 for more discussion
     should_show_use_python_msg = (
