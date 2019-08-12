@@ -6,8 +6,6 @@ import textwrap
 
 import pytest
 from mock import Mock, patch
-
-import pip._internal.utils.unpacking
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal import pep425tags, wheel
@@ -577,7 +575,6 @@ class TestWheelFile(object):
             w.support_index_min(tags=[])
 
     def test_unpack_wheel_no_flatten(self):
-        from pip._internal.utils import misc as utils
         from tempfile import mkdtemp
         from shutil import rmtree
 
@@ -585,7 +582,7 @@ class TestWheelFile(object):
                                 'meta-1.0-py2.py3-none-any.whl')
         try:
             tmpdir = mkdtemp()
-            pip._internal.utils.unpacking.unpack_file(filepath, tmpdir, 'application/zip', None)
+            unpack_file(filepath, tmpdir, 'application/zip', None)
             assert os.path.isdir(os.path.join(tmpdir, 'meta-1.0.dist-info'))
         finally:
             rmtree(tmpdir)

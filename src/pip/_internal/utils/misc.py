@@ -80,6 +80,7 @@ subprocess_logger = logging.getLogger('pip.subprocessor')
 
 LOG_DIVIDER = '----------------------------------------'
 
+
 def get_pip_version():
     # type: () -> str
     pip_pkg_dir = os.path.join(os.path.dirname(__file__), "..", "..")

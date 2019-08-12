@@ -41,7 +41,11 @@ from pip._internal.utils.misc import (
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import DownloadProgressProvider
-from pip._internal.utils.unpacking import unpack_file_url, unpack_file, ARCHIVE_EXTENSIONS
+from pip._internal.utils.unpacking import (
+    unpack_file_url,
+    unpack_file,
+    ARCHIVE_EXTENSIONS
+)
 from pip._internal.vcs import vcs
 from pip._vendor import requests, urllib3
 from pip._vendor.cachecontrol import CacheControlAdapter

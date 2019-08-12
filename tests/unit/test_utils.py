@@ -54,12 +54,11 @@ from pip._internal.utils.misc import (
     rmtree,
     split_auth_from_netloc,
     split_auth_netloc_from_url,
-    untar_file,
 )
-from pip._internal.utils.unpacking import unzip_file, untar_file
 from pip._internal.utils.setuptools_build import make_setuptools_shim_args
 from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
 from pip._internal.utils.ui import SpinnerInterface
+from pip._internal.utils.unpacking import untar_file, unzip_file
 
 
 class Tests_EgglinkPath:

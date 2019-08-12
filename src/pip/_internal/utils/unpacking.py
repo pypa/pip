@@ -7,8 +7,6 @@ import stat
 import tarfile
 import zipfile
 import mimetypes
-
-from pip._internal.download import url_to_path, is_dir_url, _check_download_dir, _copy_file
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.exceptions import InstallationError
 
@@ -64,6 +62,13 @@ def unpack_file_url(
     If download_dir is provided and link points to a file, make a copy
     of the link file inside download_dir.
     """
+    from pip._internal.download import (
+        is_dir_url,
+        url_to_path,
+        _check_download_dir,
+        _copy_file
+    )
+    
     link_path = url_to_path(link.url_without_fragment)
     # If it's a url to a local directory
     if is_dir_url(link):
@@ -277,5 +282,3 @@ def unpack_file(
         raise InstallationError(
             'Cannot determine archive format of %s' % location
         )
-
-
