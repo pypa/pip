@@ -38,7 +38,6 @@ from pip._internal.utils.misc import (
     remove_auth_from_url,
     split_auth_netloc_from_url,
     splitext,
-    unpack_file,
 )
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -58,11 +57,12 @@ from pip._vendor.six.moves import xmlrpc_client  # type: ignore
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Optional, Tuple, Dict, IO
+        Optional, Tuple, Dict, IO, Text, Union
     )
+    from optparse import Values
     from pip._internal.models.link import Link
     from pip._internal.utils.hashes import Hashes
-    from pip._internal.vcs.versioncontrol import AuthInfo
+    from pip._internal.vcs.versioncontrol import AuthInfo, VersionControl
 
     Credentials = Tuple[str, str, str]
 

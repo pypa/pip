@@ -1,14 +1,38 @@
-import mimetypes
+import logging
 import os
 import shutil
 import stat
 import tarfile
 import zipfile
+import mimetypes
 
-from pip._internal.download import url_to_path, is_dir_url, logger, _check_download_dir, _copy_file
+from pip._internal.download import url_to_path, is_dir_url, _check_download_dir, _copy_file
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.exceptions import InstallationError
-from pip._internal.utils.misc import rmtree, ensure_dir, has_leading_dir, split_leading_dir, current_umask, \
-    BZ2_EXTENSIONS, XZ_EXTENSIONS, logger, ZIP_EXTENSIONS, TAR_EXTENSIONS, is_svn_page, file_contents
+
+from pip._internal.utils.misc import (
+    rmtree,
+    ensure_dir,
+    has_leading_dir,
+    current_umask,
+    split_leading_dir,
+    is_svn_page,
+    file_contents
+)
+
+
+if MYPY_CHECK_RUNNING:
+    from typing import Optional
+    from pip._internal.models.link import Link
+    from pip._internal.utils.hashes import Hashes
+
+logger = logging.getLogger(__name__)
+
+WHEEL_EXTENSION = '.whl'
+BZ2_EXTENSIONS = ('.tar.bz2', '.tbz')
+XZ_EXTENSIONS = ('.tar.xz', '.txz', '.tlz', '.tar.lz', '.tar.lzma')
+ZIP_EXTENSIONS = ('.zip', WHEEL_EXTENSION)
+TAR_EXTENSIONS = ('.tar.gz', '.tgz', '.tar')
 
 
 def unpack_file_url(

@@ -50,7 +50,7 @@ else:
 if MYPY_CHECK_RUNNING:
     from typing import (
         Any, Container, Iterable, List, Mapping, Optional, Text,
-        Tuple, cast,
+        Tuple, cast, Union, AnyStr, Match
     )
     from pip._vendor.pkg_resources import Distribution
     from pip._internal.utils.ui import SpinnerInterface
