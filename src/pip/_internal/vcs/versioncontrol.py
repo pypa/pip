@@ -329,8 +329,7 @@ class VersionControl(object):
 
         Returns: (url, rev, (username, password)).
         """
-        raw = getattr(url, 'raw', url)
-        scheme, netloc, path, query, frag = urllib_parse.urlsplit(raw)
+        scheme, netloc, path, query, frag = urllib_parse.urlsplit(url)
         if '+' not in scheme:
             raise ValueError(
                 "Sorry, {!r} is a malformed VCS url. "

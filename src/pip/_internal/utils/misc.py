@@ -769,16 +769,16 @@ def format_command_args(args):
     """
     Format command arguments for display.
     """
-    return ' '.join(shlex_quote(arg) for arg in args)
-
-
-def raw_command_args(args):
-    # type: (List[str]) -> List[str]
-    """
-    Return an argument list containing raw unredacted arguments
-    """
-    return [arg.raw if isinstance(arg, HiddenText) else arg
-            for arg in args]
+    # Arguments can be HiddenText, in which case the raw value should be
+    # redacted when being displayed. This is done through a cast to str.
+    # py27: Only cast to str if the argument type is an instance of HiddenText.
+    # Casting to a str when a non-ascii character is present and the type(arg)
+    # is unicode can trigger a UnicodeDecodeError.
+    return ' '.join(
+        shlex_quote(str(arg)) if isinstance(
+            arg, HiddenText) else shlex_quote(arg)
+        for arg in args
+    )
 
 
 def make_subprocess_output_error(
@@ -891,8 +891,7 @@ def call_subprocess(
         env.pop(name, None)
     try:
         proc = subprocess.Popen(
-            raw_command_args(cmd),
-            stderr=subprocess.STDOUT, stdin=subprocess.PIPE,
+            cmd, stderr=subprocess.STDOUT, stdin=subprocess.PIPE,
             stdout=subprocess.PIPE, cwd=cwd, env=env,
         )
         proc.stdin.close()
@@ -964,22 +963,28 @@ def _make_build_dir(build_dir):
 
 
 class HiddenText(str):
-    raw = None  # type: str
 
     def __repr__(self):
         return '<HiddenText {!r}>'.format(str(self))
 
+    def __str__(self):
+        return self.redacted
+
+    @property
+    def raw(self):
+        return str.__str__(self)
+
 
 def hide_url(raw):
     redacted = redact_password_from_url(raw)
-    text = HiddenText(redacted)
-    text.raw = raw
+    text = HiddenText(raw)
+    text.redacted = redacted
     return text
 
 
 def hide_value(value):
-    text = HiddenText('****')
-    text.raw = value
+    text = HiddenText(value)
+    text.redacted = '****'
     return text
 
 
