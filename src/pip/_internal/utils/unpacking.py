@@ -3,24 +3,24 @@
 from __future__ import absolute_import
 
 import logging
+import mimetypes
 import os
 import shutil
 import stat
 import tarfile
 import zipfile
-import mimetypes
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pip._internal.exceptions import InstallationError
 
+from pip._internal.exceptions import InstallationError
 from pip._internal.utils.misc import (
-    rmtree,
-    ensure_dir,
-    has_leading_dir,
     current_umask,
-    split_leading_dir,
+    ensure_dir,
+    file_contents,
+    has_leading_dir,
     is_svn_page,
-    file_contents
+    rmtree,
+    split_leading_dir,
 )
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import Optional

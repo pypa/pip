@@ -27,7 +27,6 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.six import StringIO
 
 from pip._internal import pep425tags
-from pip._internal.utils.unpacking import unpack_file_url
 from pip._internal.exceptions import (
     InstallationError,
     InvalidWheelFilename,
@@ -50,6 +49,7 @@ from pip._internal.utils.setuptools_build import make_setuptools_shim_args
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import open_spinner
+from pip._internal.utils.unpacking import unpack_file_url
 
 if MYPY_CHECK_RUNNING:
     from typing import (

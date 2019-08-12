@@ -39,9 +39,9 @@ from pip._internal.utils.misc import path_to_url, redact_password_from_url
 from pip._internal.utils.packaging import check_requires_python
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.unpacking import (
-    WHEEL_EXTENSION,
     ARCHIVE_EXTENSIONS,
-    SUPPORTED_EXTENSIONS
+    SUPPORTED_EXTENSIONS,
+    WHEEL_EXTENSION,
 )
 from pip._internal.wheel import Wheel
 

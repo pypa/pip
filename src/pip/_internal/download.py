@@ -12,6 +12,16 @@ import shutil
 import sys
 from contextlib import contextmanager
 
+from pip._vendor import requests, urllib3
+from pip._vendor.cachecontrol import CacheControlAdapter
+from pip._vendor.cachecontrol.caches import FileCache
+from pip._vendor.lockfile import LockError
+from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
+from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
+from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
+from pip._vendor.requests.structures import CaseInsensitiveDict
+from pip._vendor.requests.utils import get_netrc_auth
+from pip._vendor.six.moves import xmlrpc_client  # type: ignore
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
@@ -42,21 +52,11 @@ from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import DownloadProgressProvider
 from pip._internal.utils.unpacking import (
-    unpack_file_url,
+    ARCHIVE_EXTENSIONS,
     unpack_file,
-    ARCHIVE_EXTENSIONS
+    unpack_file_url,
 )
 from pip._internal.vcs import vcs
-from pip._vendor import requests, urllib3
-from pip._vendor.cachecontrol import CacheControlAdapter
-from pip._vendor.cachecontrol.caches import FileCache
-from pip._vendor.lockfile import LockError
-from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
-from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
-from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
-from pip._vendor.requests.structures import CaseInsensitiveDict
-from pip._vendor.requests.utils import get_netrc_auth
-from pip._vendor.six.moves import xmlrpc_client  # type: ignore
 
 if MYPY_CHECK_RUNNING:
     from typing import (

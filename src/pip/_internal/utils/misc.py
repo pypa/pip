@@ -17,6 +17,10 @@ import subprocess
 import sys
 from collections import deque
 
+from pip._vendor import pkg_resources
+from pip._vendor.retrying import retry  # type: ignore
+from pip._vendor.six import PY2, text_type
+from pip._vendor.six.moves import input, shlex_quote
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
@@ -37,10 +41,6 @@ from pip._internal.utils.virtualenv import (
     running_under_virtualenv,
     virtualenv_no_global,
 )
-from pip._vendor import pkg_resources
-from pip._vendor.retrying import retry  # type: ignore
-from pip._vendor.six import PY2, text_type
-from pip._vendor.six.moves import input, shlex_quote
 
 if PY2:
     from io import BytesIO as StringIO

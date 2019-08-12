@@ -9,9 +9,9 @@ from pip._internal.utils.misc import (
     split_auth_from_netloc,
     splitext,
 )
-from pip._internal.utils.unpacking import WHEEL_EXTENSION
 from pip._internal.utils.models import KeyBasedCompareMixin
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.unpacking import WHEEL_EXTENSION
 
 if MYPY_CHECK_RUNNING:
     from typing import Optional, Text, Tuple, Union
