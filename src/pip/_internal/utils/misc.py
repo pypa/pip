@@ -985,11 +985,13 @@ class HiddenText(object):
 
 
 def hide_url(raw):
+    # type: (str) -> HiddenText
     redacted = redact_password_from_url(raw)
     return HiddenText(raw, redacted)
 
 
 def hide_value(value):
+    # type: (str) -> HiddenText
     return HiddenText(value)
 
 
