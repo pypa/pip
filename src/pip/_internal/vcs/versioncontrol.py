@@ -361,12 +361,12 @@ class VersionControl(object):
         Return the URL and RevOptions object to use in obtain() and in
         some cases export(), as a tuple (url, rev_options).
         """
-        url, rev, user_pass = self.get_url_rev_and_auth(url)
+        hidden_url, rev, user_pass = self.get_url_rev_and_auth(url)
         username, password = user_pass
         extra_args = self.make_rev_args(username, password)
         rev_options = self.make_rev_options(rev, extra_args=extra_args)
 
-        return url, rev_options
+        return hidden_url, rev_options
 
     @staticmethod
     def normalize_url(url):
@@ -434,21 +434,21 @@ class VersionControl(object):
         :param dest: the repository directory in which to install or update.
         :param url: the repository URL starting with a vcs prefix.
         """
-        url, rev_options = self.get_url_rev_options(url)
+        hidden_url, rev_options = self.get_url_rev_options(url)
 
         if not os.path.exists(dest):
-            self.fetch_new(dest, url, rev_options)
+            self.fetch_new(dest, hidden_url, rev_options)
             return
 
         rev_display = rev_options.to_display()
         if self.is_repository_directory(dest):
             existing_url = self.get_remote_url(dest)
-            if self.compare_urls(existing_url, url):
+            if self.compare_urls(existing_url, hidden_url.redacted):
                 logger.debug(
                     '%s in %s exists, and has correct URL (%s)',
                     self.repo_name.title(),
                     display_path(dest),
-                    url,
+                    hidden_url,
                 )
                 if not self.is_commit_id_equal(dest, rev_options.rev):
                     logger.info(
@@ -457,7 +457,7 @@ class VersionControl(object):
                         self.repo_name,
                         rev_display,
                     )
-                    self.update(dest, url, rev_options)
+                    self.update(dest, hidden_url, rev_options)
                 else:
                     logger.info('Skipping because already up-to-date.')
                 return
@@ -485,7 +485,7 @@ class VersionControl(object):
         logger.warning(
             'The plan is to install the %s repository %s',
             self.name,
-            url,
+            hidden_url,
         )
         response = ask_path_exists('What to do?  %s' % prompt[0], prompt[1])
 
@@ -495,7 +495,7 @@ class VersionControl(object):
         if response == 'w':
             logger.warning('Deleting %s', display_path(dest))
             rmtree(dest)
-            self.fetch_new(dest, url, rev_options)
+            self.fetch_new(dest, hidden_url, rev_options)
             return
 
         if response == 'b':
@@ -504,7 +504,7 @@ class VersionControl(object):
                 'Backing up %s to %s', display_path(dest), dest_dir,
             )
             shutil.move(dest, dest_dir)
-            self.fetch_new(dest, url, rev_options)
+            self.fetch_new(dest, hidden_url, rev_options)
             return
 
         # Do nothing if the response is "i".
@@ -513,10 +513,10 @@ class VersionControl(object):
                 'Switching %s %s to %s%s',
                 self.repo_name,
                 display_path(dest),
-                url,
+                hidden_url,
                 rev_display,
             )
-            self.switch(dest, url, rev_options)
+            self.switch(dest, hidden_url, rev_options)
 
     def unpack(self, location, url):
         # type: (str, str) -> None

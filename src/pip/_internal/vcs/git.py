@@ -10,7 +10,7 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip._internal.exceptions import BadCommand
 from pip._internal.utils.compat import samefile
-from pip._internal.utils.misc import display_path, redact_password_from_url
+from pip._internal.utils.misc import display_path, hide_url
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs.versioncontrol import (
@@ -198,7 +198,7 @@ class Git(VersionControl):
         # type: (str, HiddenText, RevOptions) -> None
         rev_display = rev_options.to_display()
         logger.info(
-            'Cloning %s%s to %s', redact_password_from_url(url),
+            'Cloning %s%s to %s', url,
             rev_display, display_path(dest),
         )
         cmd = ['clone', '-q', url, dest]  # type: List[Union[str, HiddenText]]
@@ -338,12 +338,16 @@ class Git(VersionControl):
         if '://' not in url:
             assert 'file:' not in url
             url = url.replace('git+', 'git+ssh://')
-            url, rev, user_pass = super(Git, cls).get_url_rev_and_auth(url)
-            url = url.replace('ssh://', '')
+            hidden_url, rev, user_pass = super(
+                Git, cls).get_url_rev_and_auth(url)
+            if hidden_url.redacted.startswith('ssh://'):
+                hidden_url = hide_url(
+                    hidden_url.raw.replace('ssh://', ''))
         else:
-            url, rev, user_pass = super(Git, cls).get_url_rev_and_auth(url)
+            hidden_url, rev, user_pass = super(
+                Git, cls).get_url_rev_and_auth(url)
 
-        return url, rev, user_pass
+        return hidden_url, rev, user_pass
 
     @classmethod
     def update_submodules(cls, location):

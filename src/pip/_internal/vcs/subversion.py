@@ -8,6 +8,7 @@ import sys
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     display_path,
+    hide_url,
     rmtree,
     split_auth_from_netloc,
 )
@@ -89,10 +90,11 @@ class Subversion(VersionControl):
     def get_url_rev_and_auth(cls, url):
         # type: (str) -> Tuple[HiddenText, Optional[str], AuthInfo]
         # hotfix the URL scheme after removing svn+ from svn+ssh:// readd it
-        url, rev, user_pass = super(Subversion, cls).get_url_rev_and_auth(url)
-        if url.startswith('ssh://'):
-            url = 'svn+' + url
-        return url, rev, user_pass
+        hidden_url, rev, user_pass = super(
+            Subversion, cls).get_url_rev_and_auth(url)
+        if hidden_url.redacted.startswith('ssh://'):
+            hidden_url = hide_url('svn+' + hidden_url.raw)
+        return hidden_url, rev, user_pass
 
     @staticmethod
     def make_rev_args(username, password):

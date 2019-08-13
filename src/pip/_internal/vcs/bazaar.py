@@ -79,10 +79,11 @@ class Bazaar(VersionControl):
     def get_url_rev_and_auth(cls, url):
         # type: (str) -> Tuple[HiddenText, Optional[str], AuthInfo]
         # hotfix the URL scheme after removing bzr+ from bzr+ssh:// readd it
-        url, rev, user_pass = super(Bazaar, cls).get_url_rev_and_auth(url)
-        if url.startswith('ssh://'):
-            url = 'bzr+' + url
-        return url, rev, user_pass
+        hidden_url, rev, user_pass = super(
+            Bazaar, cls).get_url_rev_and_auth(url)
+        if hidden_url.redacted.startswith('ssh://'):
+            hidden_url = hide_url('bzr+' + hidden_url.raw)
+        return hidden_url, rev, user_pass
 
     @classmethod
     def get_remote_url(cls, location):
