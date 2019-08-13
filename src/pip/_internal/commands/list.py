@@ -217,12 +217,12 @@ class ListCommand(IndexGroupCommand):
         elif options.list_format == 'freeze':
             for dist in packages:
                 if options.verbose >= 1:
-                    logger.info("%s==%s (%s)", dist.project_name,
+                    self.write_output("%s==%s (%s)", dist.project_name,
                                 dist.version, dist.location)
                 else:
-                    logger.info("%s==%s", dist.project_name, dist.version)
+                    self.write_output("%s==%s", dist.project_name, dist.version)
         elif options.list_format == 'json':
-            logger.info(format_for_json(packages, options))
+            self.write_output(format_for_json(packages, options))
 
     def output_package_listing_columns(self, data, header):
         # insert the header first: we need to know the size of column names
@@ -236,7 +236,7 @@ class ListCommand(IndexGroupCommand):
             pkg_strings.insert(1, " ".join(map(lambda x: '-' * x, sizes)))
 
         for val in pkg_strings:
-            logger.info(val)
+            self.write_output(val)
 
 
 def tabulate(vals):

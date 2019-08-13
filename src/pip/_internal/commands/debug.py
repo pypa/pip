@@ -22,12 +22,12 @@ logger = logging.getLogger(__name__)
 
 def show_value(name, value):
     # type: (str, str) -> None
-    logger.info('{}: {}'.format(name, value))
+    self.write_output('{}: {}'.format(name, value))
 
 
 def show_sys_implementation():
     # type: () -> None
-    logger.info('sys.implementation:')
+    self.write_output('sys.implementation:')
     if hasattr(sys, 'implementation'):
         implementation = sys.implementation  # type: ignore
         implementation_name = implementation.name
@@ -52,7 +52,7 @@ def show_tags(options):
         suffix = ' (target: {})'.format(formatted_target)
 
     msg = 'Compatible tags: {}{}'.format(len(tags), suffix)
-    logger.info(msg)
+    self.write_output(msg)
 
     if options.verbose < 1 and len(tags) > tag_limit:
         tags_limited = True
@@ -62,14 +62,14 @@ def show_tags(options):
 
     with indent_log():
         for tag in tags:
-            logger.info(format_tag(tag))
+            self.write_output(format_tag(tag))
 
         if tags_limited:
             msg = (
                 '...\n'
                 '[First {tag_limit} tags shown. Pass --verbose to show all.]'
             ).format(tag_limit=tag_limit)
-            logger.info(msg)
+            self.write_output(msg)
 
 
 class DebugCommand(Command):

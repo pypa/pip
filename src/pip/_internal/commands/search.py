@@ -118,19 +118,19 @@ def print_results(hits, name_column_width=None, terminal_width=None):
         line = '%-*s - %s' % (name_column_width,
                               '%s (%s)' % (name, latest), summary)
         try:
-            logger.info(line)
+            self.write_output(line)
             if name in installed_packages:
                 dist = pkg_resources.get_distribution(name)
                 with indent_log():
                     if dist.version == latest:
-                        logger.info('INSTALLED: %s (latest)', dist.version)
+                        self.write_output('INSTALLED: %s (latest)', dist.version)
                     else:
-                        logger.info('INSTALLED: %s', dist.version)
+                        self.write_output('INSTALLED: %s', dist.version)
                         if parse_version(latest).pre:
-                            logger.info('LATEST:    %s (pre-release; install'
+                            self.write_output('LATEST:    %s (pre-release; install'
                                         ' with "pip install --pre")', latest)
                         else:
-                            logger.info('LATEST:    %s', latest)
+                            self.write_output('LATEST:    %s', latest)
         except UnicodeEncodeError:
             pass
 

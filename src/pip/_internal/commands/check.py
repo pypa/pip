@@ -22,7 +22,7 @@ class CheckCommand(Command):
         for project_name in missing:
             version = package_set[project_name].version
             for dependency in missing[project_name]:
-                logger.info(
+                self.write_output(
                     "%s %s requires %s, which is not installed.",
                     project_name, version, dependency[0],
                 )
@@ -30,7 +30,7 @@ class CheckCommand(Command):
         for project_name in conflicting:
             version = package_set[project_name].version
             for dep_name, dep_version, req in conflicting[project_name]:
-                logger.info(
+                self.write_output(
                     "%s %s has requirement %s, but you have %s %s.",
                     project_name, version, req, dep_name, dep_version,
                 )
