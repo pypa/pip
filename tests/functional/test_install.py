@@ -1554,7 +1554,7 @@ def test_protect_pip_from_modification_on_windows(script, pip_name):
 @pytest.mark.skipif("sys.platform != 'win32'")
 def test_protect_pip_from_modification_via_deps_on_windows(script, with_wheel):
     """
-    Test ``pip install pkga`` is raised and error on Windows
+    Test ``pip install pkga`` is raised an error on Windows
     if `pkga` implicitly tries to upgrade pip.
     """
     # Make a wheel for pkga which requires pip
@@ -1566,10 +1566,9 @@ def test_protect_pip_from_modification_via_deps_on_windows(script, with_wheel):
               version='0.1',
               install_requires = ["pip<{}"])
     """.format(pip.__version__)))
-    result = script.run(
+    script.run(
         'python', 'setup.py', 'bdist_wheel', '--universal', cwd=pkga_path
     )
-    assert result.returncode == 0
 
     # Make sure pip install pkga is raised error
     pkga_wheel_path = './pkga/dist/pkga-0.1-py2.py3-none-any.whl'
@@ -1586,8 +1585,8 @@ def test_protect_pip_from_modification_via_sub_deps_on_windows(
     script, with_wheel
 ):
     """
-    Test ``pip install pkga`` is raised and error on Windows
-    if sub-dependencies of `pkga` implicitly tries to upgrade pip.
+    Test ``pip install pkg`` is raised an error on Windows
+    if sub-dependencies of `pkg` implicitly tries to upgrade pip.
     """
     # Make a wheel for pkga which requires pip
     script.scratch_path.joinpath('pkga').mkdir()
@@ -1598,12 +1597,11 @@ def test_protect_pip_from_modification_via_sub_deps_on_windows(
               version='0.1',
               install_requires = ["pip<{}"])
     """.format(pip.__version__)))
-    result = script.run(
+    script.run(
         'python', 'setup.py', 'bdist_wheel', '--universal', cwd=pkga_path
     )
-    assert result.returncode == 0
 
-    # Make a wheel for pkgb which requires pkgb
+    # Make a wheel for pkgb which requires pkga
     script.scratch_path.joinpath('pkgb').mkdir()
     pkgb_path = script.scratch_path / 'pkgb'
     pkgb_path.joinpath('setup.py').write_text(textwrap.dedent("""
@@ -1612,12 +1610,11 @@ def test_protect_pip_from_modification_via_sub_deps_on_windows(
               version='0.1',
               install_requires = ["pkga"])
     """))
-    result = script.run(
+    script.run(
         'python', 'setup.py', 'bdist_wheel', '--universal', cwd=pkgb_path
     )
-    assert result.returncode == 0
 
-    # Make sure pip install pkgb is raised error
+    # Make sure pip install pkgb is raised an error
     pkgb_wheel_path = './pkgb/dist/pkgb-0.1-py2.py3-none-any.whl'
     command = [
         'pip', 'install', pkgb_wheel_path, '--find-links', pkga_path / 'dist'
