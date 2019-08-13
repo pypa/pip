@@ -765,7 +765,7 @@ def unpack_file(
 
 
 def format_command_args(args):
-    # type: (List[str]) -> str
+    # type: (Union[List[str], List[Union[str, HiddenText]]]) -> str
     """
     Format command arguments for display.
     """
@@ -781,8 +781,17 @@ def format_command_args(args):
     )
 
 
+def raw_command_args(args):
+    # type: (Union[List[str], List[Union[str, HiddenText]]]) -> List[str]
+    """
+    Return an argument list containing raw unredacted arguments
+    """
+    return [arg.raw if isinstance(arg, HiddenText) else arg
+            for arg in args]
+
+
 def make_subprocess_output_error(
-    cmd_args,     # type: List[str]
+    cmd_args,     # type: Union[List[str], List[Union[str, HiddenText]]]
     cwd,          # type: Optional[str]
     lines,        # type: List[Text]
     exit_status,  # type: int
@@ -824,7 +833,7 @@ def make_subprocess_output_error(
 
 
 def call_subprocess(
-    cmd,  # type: List[str]
+    cmd,  # type: Union[List[str], List[Union[str, HiddenText]]]
     show_stdout=False,  # type: bool
     cwd=None,  # type: Optional[str]
     on_returncode='raise',  # type: str
@@ -891,7 +900,8 @@ def call_subprocess(
         env.pop(name, None)
     try:
         proc = subprocess.Popen(
-            cmd, stderr=subprocess.STDOUT, stdin=subprocess.PIPE,
+            raw_command_args(cmd),
+            stderr=subprocess.STDOUT, stdin=subprocess.PIPE,
             stdout=subprocess.PIPE, cwd=cwd, env=env,
         )
         proc.stdin.close()
@@ -962,7 +972,10 @@ def _make_build_dir(build_dir):
     write_delete_marker_file(build_dir)
 
 
-class HiddenText(str):
+class HiddenText(object):
+    def __init__(self, raw, redacted="****"):
+        self.raw = raw
+        self.redacted = redacted
 
     def __repr__(self):
         return '<HiddenText {!r}>'.format(str(self))
@@ -970,22 +983,14 @@ class HiddenText(str):
     def __str__(self):
         return self.redacted
 
-    @property
-    def raw(self):
-        return str.__str__(self)
-
 
 def hide_url(raw):
     redacted = redact_password_from_url(raw)
-    text = HiddenText(raw)
-    text.redacted = redacted
-    return text
+    return HiddenText(raw, redacted)
 
 
 def hide_value(value):
-    text = HiddenText(value)
-    text.redacted = '****'
-    return text
+    return HiddenText(value)
 
 
 class FakeFile(object):
