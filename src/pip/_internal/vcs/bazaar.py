@@ -5,8 +5,20 @@ import os
 
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
-from pip._internal.utils.misc import display_path, path_to_url, rmtree
+from pip._internal.utils.misc import (
+    display_path,
+    hide_url,
+    path_to_url,
+    rmtree,
+)
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs.versioncontrol import VersionControl, vcs
+
+if MYPY_CHECK_RUNNING:
+    from typing import Optional, Tuple
+    from pip._internal.utils.misc import HiddenText
+
+    AuthInfo = Tuple[Optional[str], Optional[str]]
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +77,7 @@ class Bazaar(VersionControl):
 
     @classmethod
     def get_url_rev_and_auth(cls, url):
+        # type: (str) -> Tuple[HiddenText, Optional[str], AuthInfo]
         # hotfix the URL scheme after removing bzr+ from bzr+ssh:// readd it
         url, rev, user_pass = super(Bazaar, cls).get_url_rev_and_auth(url)
         if url.startswith('ssh://'):

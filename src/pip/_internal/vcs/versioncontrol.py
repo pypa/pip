@@ -24,9 +24,10 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, Dict, Iterable, List, Mapping, Optional, Text, Tuple, Type
+        Any, Dict, Iterable, List, Mapping, Optional, Text, Tuple, Type, Union
     )
     from pip._internal.utils.ui import SpinnerInterface
+    from pip._internal.utils.misc import HiddenText
 
     AuthInfo = Tuple[Optional[str], Optional[str]]
 
@@ -322,7 +323,7 @@ class VersionControl(object):
 
     @classmethod
     def get_url_rev_and_auth(cls, url):
-        # type: (str) -> Tuple[str, Optional[str], AuthInfo]
+        # type: (str) -> Tuple[HiddenText, Optional[str], AuthInfo]
         """
         Parse the repository URL to use, and return the URL, revision,
         and auth info to use.
@@ -355,7 +356,7 @@ class VersionControl(object):
         return []
 
     def get_url_rev_options(self, url):
-        # type: (str) -> Tuple[str, RevOptions]
+        # type: (str) -> Tuple[HiddenText, RevOptions]
         """
         Return the URL and RevOptions object to use in obtain() and in
         some cases export(), as a tuple (url, rev_options).
@@ -549,7 +550,7 @@ class VersionControl(object):
     @classmethod
     def run_command(
         cls,
-        cmd,  # type: List[str]
+        cmd,  # type: Union[List[str], List[Union[str, HiddenText]]]
         show_stdout=True,  # type: bool
         cwd=None,  # type: Optional[str]
         on_returncode='raise',  # type: str
@@ -564,7 +565,10 @@ class VersionControl(object):
         This is simply a wrapper around call_subprocess that adds the VCS
         command name, and checks that the VCS is available
         """
-        cmd = [cls.name] + cmd
+        _cmd = [cls.name]  # type: List[Union[str, HiddenText]]
+        _cmd.extend(cmd)
+        cmd = _cmd
+
         try:
             return call_subprocess(cmd, show_stdout, cwd,
                                    on_returncode=on_returncode,

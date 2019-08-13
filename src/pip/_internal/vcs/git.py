@@ -12,11 +12,21 @@ from pip._internal.exceptions import BadCommand
 from pip._internal.utils.compat import samefile
 from pip._internal.utils.misc import display_path, redact_password_from_url
 from pip._internal.utils.temp_dir import TempDirectory
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs.versioncontrol import (
     RemoteNotFoundError,
     VersionControl,
     vcs,
 )
+
+if MYPY_CHECK_RUNNING:
+    from typing import (
+        List, Optional, Tuple, Union,
+    )
+    from pip._internal.utils.misc import HiddenText
+    from pip._internal.vcs.versioncontrol import RevOptions
+
+    AuthInfo = Tuple[Optional[str], Optional[str]]
 
 urlsplit = urllib_parse.urlsplit
 urlunsplit = urllib_parse.urlunsplit
@@ -185,12 +195,14 @@ class Git(VersionControl):
         return cls.get_revision(dest) == name
 
     def fetch_new(self, dest, url, rev_options):
+        # type: (str, HiddenText, RevOptions) -> None
         rev_display = rev_options.to_display()
         logger.info(
             'Cloning %s%s to %s', redact_password_from_url(url),
             rev_display, display_path(dest),
         )
-        self.run_command(['clone', '-q', url, dest])
+        cmd = ['clone', '-q', url, dest]  # type: List[Union[str, HiddenText]]
+        self.run_command(cmd)
 
         if rev_options.rev:
             # Then a specific revision was requested.
@@ -300,6 +312,7 @@ class Git(VersionControl):
 
     @classmethod
     def get_url_rev_and_auth(cls, url):
+        # type: (str) -> Tuple[HiddenText, Optional[str], AuthInfo]
         """
         Prefixes stub URLs like 'user@hostname:user/repo.git' with 'ssh://'.
         That's required because although they use SSH they sometimes don't

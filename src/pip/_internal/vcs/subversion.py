@@ -23,6 +23,9 @@ _svn_info_xml_url_re = re.compile(r'<url>(.*)</url>')
 if MYPY_CHECK_RUNNING:
     from typing import List, Optional, Tuple
     from pip._internal.vcs.versioncontrol import RevOptions
+    from pip._internal.utils.misc import HiddenText
+
+    AuthInfo = Tuple[Optional[str], Optional[str]]
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +87,7 @@ class Subversion(VersionControl):
 
     @classmethod
     def get_url_rev_and_auth(cls, url):
+        # type: (str) -> Tuple[HiddenText, Optional[str], AuthInfo]
         # hotfix the URL scheme after removing svn+ from svn+ssh:// readd it
         url, rev, user_pass = super(Subversion, cls).get_url_rev_and_auth(url)
         if url.startswith('ssh://'):
@@ -307,7 +311,7 @@ class Subversion(VersionControl):
         self.run_command(cmd_args)
 
     def update(self, dest, url, rev_options):
-        # type: (str, str, RevOptions) -> None
+        # type: (str, HiddenText, RevOptions) -> None
         cmd_args = (['update'] + self.get_remote_call_options() +
                     rev_options.to_args() + [dest])
         self.run_command(cmd_args)
