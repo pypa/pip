@@ -774,7 +774,7 @@ def _contains_egg_info(
 def should_use_ephemeral_cache(
     req,  # type: InstallRequirement
     format_control,  # type: FormatControl
-    autobuilding,  # type: bool
+    should_unpack,  # type: bool
     cache_available  # type: bool
 ):
     # type: (...) -> Optional[bool]
@@ -783,20 +783,25 @@ def should_use_ephemeral_cache(
     ephemeral cache.
 
     :param cache_available: whether a cache directory is available for the
-        autobuilding=True case.
+        should_unpack=True case.
 
     :return: True or False to build the requirement with ephem_cache=True
         or False, respectively; or None not to build the requirement.
     """
     if req.constraint:
+        # never build requirements that are merely constraints
         return None
     if req.is_wheel:
-        if not autobuilding:
+        if not should_unpack:
             logger.info(
                 'Skipping %s, due to already being wheel.', req.name,
             )
         return None
-    if not autobuilding:
+    if not should_unpack:
+        # i.e. pip wheel, not pip install;
+        # return False, knowing that the caller will never cache
+        # in this case anyway, so this return merely means "build it".
+        # TODO improve this behavior
         return False
 
     if req.editable or not req.source_dir:
@@ -1031,23 +1036,34 @@ class WheelBuilder(object):
     def build(
         self,
         requirements,  # type: Iterable[InstallRequirement]
-        autobuilding=False  # type: bool
+        should_unpack=False  # type: bool
     ):
         # type: (...) -> List[InstallRequirement]
         """Build wheels.
 
-        :param unpack: If True, replace the sdist we built from with the
-            newly built wheel, in preparation for installation.
+        :param should_unpack: If True, after building the wheel, unpack it
+            and replace the sdist with the unpacked version in preparation
+            for installation.
         :return: True if all the wheels built correctly.
         """
+        # pip install uses should_unpack=True.
+        # pip install never provides a _wheel_dir.
+        # pip wheel uses should_unpack=False.
+        # pip wheel always provides a _wheel_dir (via the preparer).
+        assert (
+            (should_unpack and not self._wheel_dir) or
+            (not should_unpack and self._wheel_dir)
+        )
+
         buildset = []
         format_control = self.finder.format_control
-        # Whether a cache directory is available for autobuilding=True.
-        cache_available = bool(self._wheel_dir or self.wheel_cache.cache_dir)
+        cache_available = bool(self.wheel_cache.cache_dir)
 
         for req in requirements:
             ephem_cache = should_use_ephemeral_cache(
-                req, format_control=format_control, autobuilding=autobuilding,
+                req,
+                format_control=format_control,
+                should_unpack=should_unpack,
                 cache_available=cache_available,
             )
             if ephem_cache is None:
@@ -1061,7 +1077,7 @@ class WheelBuilder(object):
         # Is any wheel build not using the ephemeral cache?
         if any(not ephem_cache for _, ephem_cache in buildset):
             have_directory_for_build = self._wheel_dir or (
-                autobuilding and self.wheel_cache.cache_dir
+                should_unpack and self.wheel_cache.cache_dir
             )
             assert have_directory_for_build
 
@@ -1078,7 +1094,7 @@ class WheelBuilder(object):
             build_success, build_failure = [], []
             for req, ephem in buildset:
                 python_tag = None
-                if autobuilding:
+                if should_unpack:
                     python_tag = pep425tags.implementation_tag
                     if ephem:
                         output_dir = _cache.get_ephem_path_for_link(req.link)
@@ -1099,7 +1115,7 @@ class WheelBuilder(object):
                 )
                 if wheel_file:
                     build_success.append(req)
-                    if autobuilding:
+                    if should_unpack:
                         # XXX: This is mildly duplicative with prepare_files,
                         # but not close enough to pull out to a single common
                         # method.

@@ -78,10 +78,10 @@ def test_format_tag(file_tag, expected):
 
 
 @pytest.mark.parametrize(
-    "base_name, autobuilding, cache_available, expected",
+    "base_name, should_unpack, cache_available, expected",
     [
         ('pendulum-2.0.4', False, False, False),
-        # The following cases test autobuilding=True.
+        # The following cases test should_unpack=True.
         # Test _contains_egg_info() returning True.
         ('pendulum-2.0.4', True, True, False),
         ('pendulum-2.0.4', True, False, True),
@@ -91,7 +91,7 @@ def test_format_tag(file_tag, expected):
     ],
 )
 def test_should_use_ephemeral_cache__issue_6197(
-    base_name, autobuilding, cache_available, expected,
+    base_name, should_unpack, cache_available, expected,
 ):
     """
     Regression test for: https://github.com/pypa/pip/issues/6197
@@ -102,7 +102,7 @@ def test_should_use_ephemeral_cache__issue_6197(
 
     format_control = FormatControl()
     ephem_cache = wheel.should_use_ephemeral_cache(
-        req, format_control=format_control, autobuilding=autobuilding,
+        req, format_control=format_control, should_unpack=should_unpack,
         cache_available=cache_available,
     )
     assert ephem_cache is expected
@@ -145,7 +145,7 @@ def test_should_use_ephemeral_cache__disallow_binaries_and_vcs_checkout(
 
     # The cache_available value doesn't matter for this test.
     ephem_cache = wheel.should_use_ephemeral_cache(
-        req, format_control=format_control, autobuilding=True,
+        req, format_control=format_control, should_unpack=True,
         cache_available=True,
     )
     assert ephem_cache is expected
@@ -697,7 +697,9 @@ class TestWheelBuilder(object):
                 as mock_build_one:
             wheel_req = Mock(is_wheel=True, editable=False, constraint=False)
             wb = wheel.WheelBuilder(
-                finder=Mock(), preparer=Mock(), wheel_cache=None,
+                finder=Mock(),
+                preparer=Mock(),
+                wheel_cache=Mock(cache_dir=None),
             )
             with caplog.at_level(logging.INFO):
                 wb.build([wheel_req])
