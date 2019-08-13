@@ -94,8 +94,8 @@ class Command(object):
         # factored out for testability
         return self.parser.parse_args(args)
 
-    def write_output(self, log_message):
-        logger.info(log_message)
+    def write_output(self, message):
+        logger.info(message)
 
     def main(self, args):
         # type: (List[str]) -> int

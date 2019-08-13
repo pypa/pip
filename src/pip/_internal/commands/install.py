@@ -447,7 +447,8 @@ class InstallCommand(RequirementCommand):
                         items.append(item)
                     installed_desc = ' '.join(items)
                     if installed_desc:
-                        self.write_output( 'Successfully installed %s', installed_desc)
+                        self.write_output('Successfully installed {}' 
+                                          ''.format(installed_desc))
                 except EnvironmentError as error:
                     show_traceback = (self.verbosity >= 1)
 

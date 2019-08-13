@@ -137,31 +137,30 @@ def print_results(distributions, list_files=False, verbose=False):
             if name in [required.name for required in pkg.requires()]
         ]
 
-        self.write_output("Name: %s", name)
-        self.write_output("Version: %s", dist.get('version', ''))
-        self.write_output("Summary: %s", dist.get('summary', ''))
-        self.write_output("Home-page: %s", dist.get('home-page', ''))
-        self.write_output("Author: %s", dist.get('author', ''))
-        self.write_output("Author-email: %s", dist.get('author-email', ''))
-        self.write_output("License: %s", dist.get('license', ''))
-        self.write_output("Location: %s", dist.get('location', ''))
-        self.write_output("Requires: %s", ', '.join(dist.get('requires', [])))
-        self.write_output("Required-by: %s", ', '.join(required_by))
+        self.write_output("Name: {}".format(name))
+        self.write_output("Version: {}".format(dist.get('version', '')))
+        self.write_output("Summary: {}".format(dist.get('summary', '')))
+        self.write_output("Home-page: {}".format(dist.get('home-page', '')))
+        self.write_output("Author: {}".format(dist.get('author', '')))
+        self.write_output("Author-email: {}".format(dist.get('author-email', '')))
+        self.write_output("License: {}".format(dist.get('license', '')))
+        self.write_output("Location: {}".format(dist.get('location', '')))
+        self.write_output("Requires: {}".format(', '.join(dist.get('requires', []))))
+        self.write_output("Required-by: {}".format(', '.join(required_by)))
 
         if verbose:
-            self.write_output("Metadata-Version: %s",
-                        dist.get('metadata-version', ''))
-            self.write_output("Installer: %s", dist.get('installer', ''))
+            self.write_output("Metadata-Version: {}".format(dist.get('metadata-version', '')))
+            self.write_output("Installer: {}".format(dist.get('installer', '')))
             self.write_output("Classifiers:")
             for classifier in dist.get('classifiers', []):
-                self.write_output("  %s", classifier)
+                self.write_output("  {}", classifier)
             self.write_output("Entry-points:")
             for entry in dist.get('entry_points', []):
-                self.write_output("  %s", entry.strip())
+                self.write_output("  {}".format(entry.strip()))
         if list_files:
             self.write_output("Files:")
             for line in dist.get('files', []):
-                self.write_output("  %s", line.strip())
+                self.write_output("  {}".format(line.strip()))
             if "files" not in dist:
                 self.write_output("Cannot locate installed-files.txt")
     return results_printed

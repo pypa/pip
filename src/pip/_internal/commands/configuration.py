@@ -184,13 +184,13 @@ class ConfigurationCommand(Command):
         self._get_n_args(args, "list", n=0)
 
         for key, value in sorted(self.configuration.items()):
-            self.write_output("%s=%r", key, value)
+            self.write_output("{}={}".format(key, value))
 
     def get_name(self, options, args):
         key = self._get_n_args(args, "get [name]", n=1)
         value = self.configuration.get_value(key)
 
-        self.write_output("%s", value)
+        self.write_output("{}".format(value))
 
     def set_name_value(self, options, args):
         key, value = self._get_n_args(args, "set [name] [value]", n=2)

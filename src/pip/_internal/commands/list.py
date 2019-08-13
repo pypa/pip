@@ -217,10 +217,10 @@ class ListCommand(IndexGroupCommand):
         elif options.list_format == 'freeze':
             for dist in packages:
                 if options.verbose >= 1:
-                    self.write_output("%s==%s (%s)", dist.project_name,
-                                dist.version, dist.location)
+                    self.write_output("{}=={} ({})".format(dist.project_name,
+                                dist.version, dist.location))
                 else:
-                    self.write_output("%s==%s", dist.project_name, dist.version)
+                    self.write_output("{}=={}".format(dist.project_name, dist.version))
         elif options.list_format == 'json':
             self.write_output(format_for_json(packages, options))
 
