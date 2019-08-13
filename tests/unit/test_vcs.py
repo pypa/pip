@@ -6,6 +6,7 @@ from mock import patch
 from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.exceptions import BadCommand
+from pip._internal.utils.misc import HiddenText
 from pip._internal.vcs import make_vcs_requirement_url
 from pip._internal.vcs.bazaar import Bazaar
 from pip._internal.vcs.git import Git, looks_like_hash
@@ -251,9 +252,12 @@ def test_git__get_url_rev__idempotent():
     url = 'git+git@git.example.com:MyProject#egg=MyProject'
     result1 = Git.get_url_rev_and_auth(url)
     result2 = Git.get_url_rev_and_auth(url)
-    expected = ('git@git.example.com:MyProject', None, (None, None))
-    assert result1 == expected
-    assert result2 == expected
+    expected_url = 'git@git.example.com:MyProject'
+    expected = (None, (None, None))
+    assert result1[0].raw == expected_url
+    assert result2[0].raw == expected_url
+    assert result1[1:] == expected
+    assert result2[1:] == expected
 
 
 @pytest.mark.parametrize('url, expected', [
@@ -268,7 +272,8 @@ def test_version_control__get_url_rev_and_auth(url, expected):
     Test the basic case of VersionControl.get_url_rev_and_auth().
     """
     actual = VersionControl.get_url_rev_and_auth(url)
-    assert actual == expected
+    assert actual[0].raw == expected[0]
+    assert actual[1:] == expected[1:]
 
 
 @pytest.mark.parametrize('url', [
@@ -312,7 +317,8 @@ def test_bazaar__get_url_rev_and_auth(url, expected):
     Test Bazaar.get_url_rev_and_auth().
     """
     actual = Bazaar.get_url_rev_and_auth(url)
-    assert actual == (expected, None, (None, None))
+    assert actual[0].raw == expected
+    assert actual[1:] == (None, (None, None))
 
 
 @pytest.mark.parametrize('url, expected', [
@@ -334,7 +340,13 @@ def test_subversion__get_url_rev_and_auth(url, expected):
     Test Subversion.get_url_rev_and_auth().
     """
     actual = Subversion.get_url_rev_and_auth(url)
-    assert actual == expected
+    assert actual[0].raw == expected[0]
+    assert actual[1:-1] == expected[1:-1]
+    actual_user, actual_pass = actual[-1]
+    expected_user, expected_pass = expected[-1]
+    actual_pass = getattr(actual_pass, 'raw', actual_pass)
+    assert actual_user == expected_user
+    assert actual_pass == expected_pass
 
 
 # The non-SVN backends all use the same make_rev_args(), so only test
@@ -371,11 +383,12 @@ def test_subversion__get_url_rev_options():
     """
     url = 'svn+https://user:pass@svn.example.com/MyProject@v1.0#egg=MyProject'
     url, rev_options = Subversion().get_url_rev_options(url)
-    assert url == 'https://svn.example.com/MyProject'
+    assert url.raw == 'https://svn.example.com/MyProject'
     assert rev_options.rev == 'v1.0'
-    assert rev_options.extra_args == (
-        ['--username', 'user', '--password', 'pass']
+    assert rev_options.extra_args[:-1] == (
+        ['--username', 'user', '--password']
     )
+    assert rev_options.extra_args[-1].raw == 'pass'
 
 
 def test_get_git_version():
@@ -516,7 +529,11 @@ class TestSubversionArgs(TestCase):
         self.dest = '/tmp/test'
 
     def assert_call_args(self, args):
-        assert self.call_subprocess_mock.call_args[0][0] == args
+        call_args = self.call_subprocess_mock.call_args[0][0]
+        call_args = [arg.raw
+                     if isinstance(arg, HiddenText)
+                     else arg for arg in call_args]
+        assert call_args == args
 
     def test_obtain(self):
         self.svn.obtain(self.dest, self.url)
