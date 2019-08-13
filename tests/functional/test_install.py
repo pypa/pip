@@ -1529,7 +1529,6 @@ def test_target_install_ignores_distutils_config_install_prefix(script):
     ), str(result)
 
 
-@pytest.mark.network
 @pytest.mark.parametrize('url', (
     'git+https://user:$password$@github.com/pypa/pip-test-package.git@refs/x',
     'svn+https://user:$password$@svn.osdn.net/svnroot/tortoisesvn/invalid',
@@ -1545,7 +1544,6 @@ def test_install_redacts_password(url, script):
     assert '$password$' not in res.stderr, str(res)
 
 
-@pytest.mark.network
 @need_mercurial
 def test_install_with_hg_redacts_password(script):
     url = 'hg+https://user:$password$@bitbucket.org/runeh/anyjson@missing'
@@ -1558,7 +1556,6 @@ def test_install_with_hg_redacts_password(script):
     assert '$password$' not in res.stderr, str(res)
 
 
-@pytest.mark.network
 @need_bzr
 def test_install_with_bzr_redacts_password(script):
     url = ('bzr+http://user:$password$@'
