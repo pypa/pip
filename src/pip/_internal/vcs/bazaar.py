@@ -11,14 +11,7 @@ from pip._internal.utils.misc import (
     path_to_url,
     rmtree,
 )
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs.versioncontrol import VersionControl, vcs
-
-if MYPY_CHECK_RUNNING:
-    from typing import Optional, Tuple
-    from pip._internal.utils.misc import HiddenText
-
-    AuthInfo = Tuple[Optional[str], Optional[str]]
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +46,7 @@ class Bazaar(VersionControl):
 
         url, rev_options = self.get_url_rev_options(url)
         self.run_command(
-            ['export', location, url] + rev_options.to_args(),
+            ['export', location, hide_url(url)] + rev_options.to_args(),
             show_stdout=False,
         )
 
@@ -61,15 +54,18 @@ class Bazaar(VersionControl):
         rev_display = rev_options.to_display()
         logger.info(
             'Checking out %s%s to %s',
-            url,
+            hide_url(url),
             rev_display,
             display_path(dest),
         )
-        cmd_args = ['branch', '-q'] + rev_options.to_args() + [url, dest]
+        cmd_args = (
+            ['branch', '-q'] +
+            rev_options.to_args() +
+            [hide_url(url), dest])
         self.run_command(cmd_args)
 
     def switch(self, dest, url, rev_options):
-        self.run_command(['switch', url], cwd=dest)
+        self.run_command(['switch', hide_url(url)], cwd=dest)
 
     def update(self, dest, url, rev_options):
         cmd_args = ['pull', '-q'] + rev_options.to_args()
@@ -77,13 +73,11 @@ class Bazaar(VersionControl):
 
     @classmethod
     def get_url_rev_and_auth(cls, url):
-        # type: (str) -> Tuple[HiddenText, Optional[str], AuthInfo]
         # hotfix the URL scheme after removing bzr+ from bzr+ssh:// readd it
-        hidden_url, rev, user_pass = super(
-            Bazaar, cls).get_url_rev_and_auth(url)
-        if hidden_url.redacted.startswith('ssh://'):
-            hidden_url = hide_url('bzr+' + hidden_url.raw)
-        return hidden_url, rev, user_pass
+        url, rev, user_pass = super(Bazaar, cls).get_url_rev_and_auth(url)
+        if url.startswith('ssh://'):
+            url = 'bzr+' + url
+        return url, rev, user_pass
 
     @classmethod
     def get_remote_url(cls, location):

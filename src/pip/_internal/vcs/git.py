@@ -12,21 +12,11 @@ from pip._internal.exceptions import BadCommand
 from pip._internal.utils.compat import samefile
 from pip._internal.utils.misc import display_path, hide_url
 from pip._internal.utils.temp_dir import TempDirectory
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs.versioncontrol import (
     RemoteNotFoundError,
     VersionControl,
     vcs,
 )
-
-if MYPY_CHECK_RUNNING:
-    from typing import (
-        List, Optional, Tuple, Union,
-    )
-    from pip._internal.utils.misc import HiddenText
-    from pip._internal.vcs.versioncontrol import RevOptions
-
-    AuthInfo = Tuple[Optional[str], Optional[str]]
 
 urlsplit = urllib_parse.urlsplit
 urlunsplit = urllib_parse.urlunsplit
@@ -169,8 +159,9 @@ class Git(VersionControl):
             return rev_options
 
         # If it looks like a ref, we have to fetch it explicitly.
+        cmd = ['fetch', '-q', hide_url(url)] + rev_options.to_args()
         cls.run_command(
-            ['fetch', '-q', url] + rev_options.to_args(),
+            cmd,
             cwd=dest,
         )
         # Change the revision to the SHA of the ref we fetched
@@ -195,13 +186,12 @@ class Git(VersionControl):
         return cls.get_revision(dest) == name
 
     def fetch_new(self, dest, url, rev_options):
-        # type: (str, HiddenText, RevOptions) -> None
         rev_display = rev_options.to_display()
         logger.info(
-            'Cloning %s%s to %s', url,
+            'Cloning %s%s to %s', hide_url(url),
             rev_display, display_path(dest),
         )
-        cmd = ['clone', '-q', url, dest]  # type: List[Union[str, HiddenText]]
+        cmd = ['clone', '-q', hide_url(url), dest]
         self.run_command(cmd)
 
         if rev_options.rev:
@@ -227,7 +217,10 @@ class Git(VersionControl):
         self.update_submodules(dest)
 
     def switch(self, dest, url, rev_options):
-        self.run_command(['config', 'remote.origin.url', url], cwd=dest)
+        self.run_command(
+            ['config', 'remote.origin.url', hide_url(url)],
+            cwd=dest,
+        )
         cmd_args = ['checkout', '-q'] + rev_options.to_args()
         self.run_command(cmd_args, cwd=dest)
 
@@ -312,7 +305,6 @@ class Git(VersionControl):
 
     @classmethod
     def get_url_rev_and_auth(cls, url):
-        # type: (str) -> Tuple[HiddenText, Optional[str], AuthInfo]
         """
         Prefixes stub URLs like 'user@hostname:user/repo.git' with 'ssh://'.
         That's required because although they use SSH they sometimes don't
@@ -338,16 +330,12 @@ class Git(VersionControl):
         if '://' not in url:
             assert 'file:' not in url
             url = url.replace('git+', 'git+ssh://')
-            hidden_url, rev, user_pass = super(
-                Git, cls).get_url_rev_and_auth(url)
-            if hidden_url.redacted.startswith('ssh://'):
-                hidden_url = hide_url(
-                    hidden_url.raw.replace('ssh://', ''))
+            url, rev, user_pass = super(Git, cls).get_url_rev_and_auth(url)
+            url = url.replace('ssh://', '')
         else:
-            hidden_url, rev, user_pass = super(
-                Git, cls).get_url_rev_and_auth(url)
+            url, rev, user_pass = super(Git, cls).get_url_rev_and_auth(url)
 
-        return hidden_url, rev, user_pass
+        return url, rev, user_pass
 
     @classmethod
     def update_submodules(cls, location):

@@ -5,7 +5,7 @@ import os
 
 from pip._vendor.six.moves import configparser
 
-from pip._internal.utils.misc import display_path, path_to_url
+from pip._internal.utils.misc import display_path, hide_url, path_to_url
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.vcs.versioncontrol import VersionControl, vcs
 
@@ -35,11 +35,14 @@ class Mercurial(VersionControl):
         rev_display = rev_options.to_display()
         logger.info(
             'Cloning hg %s%s to %s',
-            url,
+            hide_url(url),
             rev_display,
             display_path(dest),
         )
-        self.run_command(['clone', '--noupdate', '-q', url, dest])
+        cmd = ['clone', '--noupdate', '-q', hide_url(url), dest]
+        self.run_command(
+            cmd,
+        )
         cmd_args = ['update', '-q'] + rev_options.to_args()
         self.run_command(cmd_args, cwd=dest)
 

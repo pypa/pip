@@ -16,8 +16,6 @@ from pip._internal.utils.misc import (
     backup_dir,
     call_subprocess,
     display_path,
-    hide_url,
-    hide_value,
     rmtree,
 )
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -323,7 +321,7 @@ class VersionControl(object):
 
     @classmethod
     def get_url_rev_and_auth(cls, url):
-        # type: (str) -> Tuple[HiddenText, Optional[str], AuthInfo]
+        # type: (str) -> Tuple[str, Optional[str], AuthInfo]
         """
         Parse the repository URL to use, and return the URL, revision,
         and auth info to use.
@@ -344,9 +342,7 @@ class VersionControl(object):
         if '@' in path:
             path, rev = path.rsplit('@', 1)
         url = urllib_parse.urlunsplit((scheme, netloc, path, query, ''))
-        if user_pass[1] is not None:
-            user_pass = (user_pass[0], hide_value(user_pass[1]))
-        return hide_url(url), rev, user_pass
+        return url, rev, user_pass
 
     @staticmethod
     def make_rev_args(username, password):
@@ -356,17 +352,17 @@ class VersionControl(object):
         return []
 
     def get_url_rev_options(self, url):
-        # type: (str) -> Tuple[HiddenText, RevOptions]
+        # type: (str) -> Tuple[str, RevOptions]
         """
         Return the URL and RevOptions object to use in obtain() and in
         some cases export(), as a tuple (url, rev_options).
         """
-        hidden_url, rev, user_pass = self.get_url_rev_and_auth(url)
+        url, rev, user_pass = self.get_url_rev_and_auth(url)
         username, password = user_pass
         extra_args = self.make_rev_args(username, password)
         rev_options = self.make_rev_options(rev, extra_args=extra_args)
 
-        return hidden_url, rev_options
+        return url, rev_options
 
     @staticmethod
     def normalize_url(url):
@@ -434,21 +430,21 @@ class VersionControl(object):
         :param dest: the repository directory in which to install or update.
         :param url: the repository URL starting with a vcs prefix.
         """
-        hidden_url, rev_options = self.get_url_rev_options(url)
+        url, rev_options = self.get_url_rev_options(url)
 
         if not os.path.exists(dest):
-            self.fetch_new(dest, hidden_url, rev_options)
+            self.fetch_new(dest, url, rev_options)
             return
 
         rev_display = rev_options.to_display()
         if self.is_repository_directory(dest):
             existing_url = self.get_remote_url(dest)
-            if self.compare_urls(existing_url, hidden_url.redacted):
+            if self.compare_urls(existing_url, url):
                 logger.debug(
                     '%s in %s exists, and has correct URL (%s)',
                     self.repo_name.title(),
                     display_path(dest),
-                    hidden_url,
+                    url,
                 )
                 if not self.is_commit_id_equal(dest, rev_options.rev):
                     logger.info(
@@ -457,7 +453,7 @@ class VersionControl(object):
                         self.repo_name,
                         rev_display,
                     )
-                    self.update(dest, hidden_url, rev_options)
+                    self.update(dest, url, rev_options)
                 else:
                     logger.info('Skipping because already up-to-date.')
                 return
@@ -485,7 +481,7 @@ class VersionControl(object):
         logger.warning(
             'The plan is to install the %s repository %s',
             self.name,
-            hidden_url,
+            url,
         )
         response = ask_path_exists('What to do?  %s' % prompt[0], prompt[1])
 
@@ -495,7 +491,7 @@ class VersionControl(object):
         if response == 'w':
             logger.warning('Deleting %s', display_path(dest))
             rmtree(dest)
-            self.fetch_new(dest, hidden_url, rev_options)
+            self.fetch_new(dest, url, rev_options)
             return
 
         if response == 'b':
@@ -504,7 +500,7 @@ class VersionControl(object):
                 'Backing up %s to %s', display_path(dest), dest_dir,
             )
             shutil.move(dest, dest_dir)
-            self.fetch_new(dest, hidden_url, rev_options)
+            self.fetch_new(dest, url, rev_options)
             return
 
         # Do nothing if the response is "i".
@@ -513,10 +509,10 @@ class VersionControl(object):
                 'Switching %s %s to %s%s',
                 self.repo_name,
                 display_path(dest),
-                hidden_url,
+                url,
                 rev_display,
             )
-            self.switch(dest, hidden_url, rev_options)
+            self.switch(dest, url, rev_options)
 
     def unpack(self, location, url):
         # type: (str, str) -> None
@@ -568,7 +564,6 @@ class VersionControl(object):
         _cmd = [cls.name]  # type: List[Union[str, HiddenText]]
         _cmd.extend(cmd)
         cmd = _cmd
-
         try:
             return call_subprocess(cmd, show_stdout, cwd,
                                    on_returncode=on_returncode,

@@ -8,7 +8,7 @@ import sys
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     display_path,
-    hide_url,
+    hide_value,
     rmtree,
     split_auth_from_netloc,
 )
@@ -24,9 +24,6 @@ _svn_info_xml_url_re = re.compile(r'<url>(.*)</url>')
 if MYPY_CHECK_RUNNING:
     from typing import List, Optional, Tuple
     from pip._internal.vcs.versioncontrol import RevOptions
-    from pip._internal.utils.misc import HiddenText
-
-    AuthInfo = Tuple[Optional[str], Optional[str]]
 
 logger = logging.getLogger(__name__)
 
@@ -88,13 +85,11 @@ class Subversion(VersionControl):
 
     @classmethod
     def get_url_rev_and_auth(cls, url):
-        # type: (str) -> Tuple[HiddenText, Optional[str], AuthInfo]
         # hotfix the URL scheme after removing svn+ from svn+ssh:// readd it
-        hidden_url, rev, user_pass = super(
-            Subversion, cls).get_url_rev_and_auth(url)
-        if hidden_url.redacted.startswith('ssh://'):
-            hidden_url = hide_url('svn+' + hidden_url.raw)
-        return hidden_url, rev, user_pass
+        url, rev, user_pass = super(Subversion, cls).get_url_rev_and_auth(url)
+        if url.startswith('ssh://'):
+            url = 'svn+' + url
+        return url, rev, user_pass
 
     @staticmethod
     def make_rev_args(username, password):
@@ -102,7 +97,7 @@ class Subversion(VersionControl):
         if username:
             extra_args += ['--username', username]
         if password:
-            extra_args += ['--password', password]
+            extra_args += ['--password', hide_value(password)]
 
         return extra_args
 
@@ -313,7 +308,7 @@ class Subversion(VersionControl):
         self.run_command(cmd_args)
 
     def update(self, dest, url, rev_options):
-        # type: (str, HiddenText, RevOptions) -> None
+        # type: (str, str, RevOptions) -> None
         cmd_args = (['update'] + self.get_remote_call_options() +
                     rev_options.to_args() + [dest])
         self.run_command(cmd_args)
