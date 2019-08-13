@@ -43,6 +43,8 @@ from pip._internal.utils.misc import (
     format_command_args,
     get_installed_distributions,
     get_prog,
+    hide_url,
+    hide_value,
     make_subprocess_output_error,
     normalize_path,
     normalize_version_info,
@@ -1456,3 +1458,22 @@ def test_make_setuptools_shim_args__unbuffered_output(unbuffered_output):
         unbuffered_output=unbuffered_output
     )
     assert ('-u' in args) == unbuffered_output
+
+
+def test_hide_url():
+    url = 'https://user:password@example.com'
+    redacted = 'https://user:****@example.com'
+    hidden = hide_url(url)
+    assert hidden.raw == url
+    assert hidden.redacted == redacted
+    assert str(hidden) == redacted
+    assert 'password' not in repr(hidden)
+
+
+def test_hide_value():
+    value = 'hide_me'
+    hidden = hide_value(value)
+    assert hidden.raw == value
+    assert hidden.redacted == '****'
+    assert str(hidden) == '****'
+    assert 'hide_me' not in repr(hidden)
