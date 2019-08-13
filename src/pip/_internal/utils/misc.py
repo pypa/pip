@@ -61,6 +61,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.utils.ui import SpinnerInterface
 
     VersionInfo = Tuple[int, int, int]
+    CommandArgs = List[Union[str, 'HiddenText']]
 else:
     # typing's cast() is needed at runtime, but we don't want to import typing.
     # Thus, we use a dummy no-op version, which we tell mypy to ignore.
@@ -765,7 +766,7 @@ def unpack_file(
 
 
 def format_command_args(args):
-    # type: (Union[List[str], List[Union[str, HiddenText]]]) -> str
+    # type: (Union[List[str], CommandArgs]) -> str
     """
     Format command arguments for display.
     """
@@ -782,7 +783,7 @@ def format_command_args(args):
 
 
 def raw_command_args(args):
-    # type: (Union[List[str], List[Union[str, HiddenText]]]) -> List[str]
+    # type: (Union[List[str], CommandArgs]) -> List[str]
     """
     Return an argument list containing raw unredacted arguments
     """
@@ -791,7 +792,7 @@ def raw_command_args(args):
 
 
 def make_subprocess_output_error(
-    cmd_args,     # type: Union[List[str], List[Union[str, HiddenText]]]
+    cmd_args,     # type: Union[List[str], CommandArgs]
     cwd,          # type: Optional[str]
     lines,        # type: List[Text]
     exit_status,  # type: int
@@ -833,7 +834,7 @@ def make_subprocess_output_error(
 
 
 def call_subprocess(
-    cmd,  # type: Union[List[str], List[Union[str, HiddenText]]]
+    cmd,  # type: Union[List[str], CommandArgs]
     show_stdout=False,  # type: bool
     cwd=None,  # type: Optional[str]
     on_returncode='raise',  # type: str

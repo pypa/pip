@@ -28,6 +28,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.utils.misc import HiddenText
 
     AuthInfo = Tuple[Optional[str], Optional[str]]
+    CommandArgs = List[Union[str, HiddenText]]
 
 __all__ = ['vcs']
 
@@ -546,7 +547,7 @@ class VersionControl(object):
     @classmethod
     def run_command(
         cls,
-        cmd,  # type: Union[List[str], List[Union[str, HiddenText]]]
+        cmd,  # type: Union[List[str], CommandArgs]
         show_stdout=True,  # type: bool
         cwd=None,  # type: Optional[str]
         on_returncode='raise',  # type: str
@@ -561,7 +562,7 @@ class VersionControl(object):
         This is simply a wrapper around call_subprocess that adds the VCS
         command name, and checks that the VCS is available
         """
-        _cmd = [cls.name]  # type: List[Union[str, HiddenText]]
+        _cmd = [cls.name]  # type: CommandArgs
         _cmd.extend(cmd)
         cmd = _cmd
         try:
