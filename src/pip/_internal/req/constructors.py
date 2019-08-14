@@ -20,7 +20,8 @@ from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 from pip._vendor.packaging.specifiers import Specifier
 from pip._vendor.pkg_resources import RequirementParseError, parse_requirements
 
-from pip._internal.download import is_archive_file, is_url, url_to_path
+from pip._internal.download import is_archive_file, is_url
+from pip._internal.unpacker import url_to_path
 from pip._internal.exceptions import InstallationError
 from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.models.link import Link

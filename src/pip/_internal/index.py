@@ -21,7 +21,8 @@ from pip._vendor.requests.exceptions import HTTPError, RetryError, SSLError
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
-from pip._internal.download import is_url, url_to_path
+from pip._internal.download import is_url
+from pip._internal.unpacker import url_to_path
 from pip._internal.exceptions import (
     BestVersionAlreadyInstalled,
     DistributionNotFound,

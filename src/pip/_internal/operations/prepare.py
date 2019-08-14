@@ -14,12 +14,12 @@ from pip._internal.distributions import (
 )
 from pip._internal.distributions.installed import InstalledDistribution
 from pip._internal.download import (
-    is_dir_url,
     is_file_url,
     is_vcs_url,
     unpack_url,
     url_to_path,
 )
+from pip._internal.unpacker import is_dir_url, url_to_path
 from pip._internal.exceptions import (
     DirectoryUrlHashUnsupported,
     HashUnpinned,

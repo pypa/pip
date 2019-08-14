@@ -26,7 +26,7 @@ from pip._internal.exceptions import HashMismatch
 from pip._internal.models.link import Link
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.misc import path_to_url
-from pip._internal.unpacker import unpack_file_url
+from pip._internal.unpacker import unpack_file_url, url_to_path
 from tests.lib import create_file
 
 

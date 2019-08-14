@@ -8,29 +8,15 @@ import mimetypes
 import os
 import platform
 import re
-import shutil
 import sys
 from contextlib import contextmanager
 
-from pip._vendor import requests, urllib3
-from pip._vendor.cachecontrol import CacheControlAdapter
-from pip._vendor.cachecontrol.caches import FileCache
-from pip._vendor.lockfile import LockError
-from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
-from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
-from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
-from pip._vendor.requests.structures import CaseInsensitiveDict
-from pip._vendor.requests.utils import get_netrc_auth
-# NOTE: XMLRPC Client is not annotated in typeshed as on 2017-07-17, which is
-#       why we ignore the type on this import
-from pip._vendor.six.moves import xmlrpc_client  # type: ignore
 from pip._vendor.six.moves.urllib import parse as urllib_parse
-from pip._vendor.six.moves.urllib import request as urllib_request
 
 import pip
-from pip._internal.exceptions import HashMismatch, InstallationError
+from pip._internal.exceptions import InstallationError
 from pip._internal.models.index import PyPI
-# Import ssl from compat so the initial import occurs in only one place.
+from pip._internal.unpacker import unpack_file_url, _copy_file, _check_download_dir, url_to_path
 from pip._internal.utils.compat import HAS_TLS, ssl
 from pip._internal.utils.encoding import auto_decode
 from pip._internal.utils.filesystem import check_path_owner
@@ -40,10 +26,7 @@ from pip._internal.utils.misc import (
     ask,
     ask_input,
     ask_password,
-    ask_path_exists,
-    backup_dir,
     consume,
-    display_path,
     format_size,
     get_installed_version,
     path_to_url,
@@ -58,23 +41,31 @@ from pip._internal.utils.unpacking import (
     ARCHIVE_EXTENSIONS,
     unpack_file,
 )
-from pip._internal.unpacker import unpack_file_url
 from pip._internal.vcs import vcs
+from pip._vendor import requests, urllib3
+from pip._vendor.cachecontrol import CacheControlAdapter
+from pip._vendor.cachecontrol.caches import FileCache
+from pip._vendor.lockfile import LockError
+from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
+from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
+from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
+from pip._vendor.requests.structures import CaseInsensitiveDict
+from pip._vendor.requests.utils import get_netrc_auth
+from pip._vendor.six.moves import xmlrpc_client  # type: ignore
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Optional, Tuple, Dict, IO, Text, Union
+        Optional, Tuple, Dict, IO
     )
-    from optparse import Values
     from pip._internal.models.link import Link
     from pip._internal.utils.hashes import Hashes
-    from pip._internal.vcs.versioncontrol import AuthInfo, VersionControl
+    from pip._internal.vcs.versioncontrol import AuthInfo
 
     Credentials = Tuple[str, str, str]
 
 
 __all__ = ['get_file_content',
-           'is_url', 'url_to_path', 'path_to_url',
+           'is_url', 'path_to_url',
            'is_archive_file', 'unpack_vcs_link',
            'is_vcs_url', 'is_file_url',
            'unpack_http_url', 'unpack_url',
@@ -687,32 +678,6 @@ def is_url(name):
     return scheme in ['http', 'https', 'file', 'ftp'] + vcs.all_schemes
 
 
-def url_to_path(url):
-    # type: (str) -> str
-    """
-    Convert a file: URL to a path.
-    """
-    assert url.startswith('file:'), (
-        "You can only turn file: urls into filenames (not %r)" % url)
-
-    _, netloc, path, _, _ = urllib_parse.urlsplit(url)
-
-    if not netloc or netloc == 'localhost':
-        # According to RFC 8089, same as empty authority.
-        netloc = ''
-    elif sys.platform == 'win32':
-        # If we have a UNC path, prepend UNC share notation.
-        netloc = '\\\\' + netloc
-    else:
-        raise ValueError(
-            'non-local file URIs are not supported on this platform: %r'
-            % url
-        )
-
-    path = urllib_request.url2pathname(netloc + path)
-    return path
-
-
 def is_archive_file(name):
     # type: (str) -> bool
     """Return True if `name` is a considered as an archive file."""
@@ -746,18 +711,6 @@ def is_vcs_url(link):
 def is_file_url(link):
     # type: (Link) -> bool
     return link.url.lower().startswith('file:')
-
-
-def is_dir_url(link):
-    # type: (Link) -> bool
-    """Return whether a file:// Link points to a directory.
-
-    ``link`` must not have any other scheme but file://. Call is_file_url()
-    first.
-
-    """
-    link_path = url_to_path(link.url_without_fragment)
-    return os.path.isdir(link_path)
 
 
 def _progress_indicator(iterable, *args, **kwargs):
@@ -864,33 +817,6 @@ def _download_url(
         hashes.check_against_chunks(downloaded_chunks)
     else:
         consume(downloaded_chunks)
-
-
-def _copy_file(filename, location, link):
-    copy = True
-    download_location = os.path.join(location, link.filename)
-    if os.path.exists(download_location):
-        response = ask_path_exists(
-            'The file %s exists. (i)gnore, (w)ipe, (b)ackup, (a)abort' %
-            display_path(download_location), ('i', 'w', 'b', 'a'))
-        if response == 'i':
-            copy = False
-        elif response == 'w':
-            logger.warning('Deleting %s', display_path(download_location))
-            os.remove(download_location)
-        elif response == 'b':
-            dest_file = backup_dir(download_location)
-            logger.warning(
-                'Backing up %s to %s',
-                display_path(download_location),
-                display_path(dest_file),
-            )
-            shutil.move(download_location, dest_file)
-        elif response == 'a':
-            sys.exit(-1)
-    if copy:
-        shutil.copy(filename, download_location)
-        logger.info('Saved %s', display_path(download_location))
 
 
 def unpack_http_url(
@@ -1102,25 +1028,3 @@ def _download_http_url(
     return file_path, content_type
 
 
-def _check_download_dir(link, download_dir, hashes):
-    # type: (Link, str, Optional[Hashes]) -> Optional[str]
-    """ Check download_dir for previously downloaded file with correct hash
-        If a correct file is found return its path else None
-    """
-    download_path = os.path.join(download_dir, link.filename)
-    if os.path.exists(download_path):
-        # If already downloaded, does its hash match?
-        logger.info('File was already downloaded %s', download_path)
-        if hashes:
-            try:
-                hashes.check_against_path(download_path)
-            except HashMismatch:
-                logger.warning(
-                    'Previously-downloaded file %s has bad hash. '
-                    'Re-downloading.',
-                    download_path
-                )
-                os.unlink(download_path)
-                return None
-        return download_path
-    return None
