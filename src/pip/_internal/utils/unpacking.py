@@ -4,6 +4,7 @@ from __future__ import absolute_import
 
 import logging
 import os
+import re
 import shutil
 import stat
 import tarfile
@@ -14,9 +15,6 @@ from pip._internal.utils.misc import (
     current_umask,
     ensure_dir,
     file_contents,
-    has_leading_dir,
-    is_svn_page,
-    split_leading_dir,
 )
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -47,6 +45,43 @@ try:
     SUPPORTED_EXTENSIONS += XZ_EXTENSIONS
 except ImportError:
     logger.debug('lzma module is not available')
+
+
+def split_leading_dir(path):
+    # type: (Union[str, Text]) -> List[Union[str, Text]]
+    path = path.lstrip('/').lstrip('\\')
+    if '/' in path and (('\\' in path and path.find('/') < path.find('\\')) or
+                        '\\' not in path):
+        return path.split('/', 1)
+    elif '\\' in path:
+        return path.split('\\', 1)
+    else:
+        return [path, '']
+
+
+def has_leading_dir(paths):
+    # type: (Iterable[Union[str, Text]]) -> bool
+    """Returns true if all the paths have the same leading path name
+    (i.e., everything is in one subdirectory in an archive)"""
+    common_prefix = None
+    for path in paths:
+        prefix, rest = split_leading_dir(path)
+        if not prefix:
+            return False
+        elif common_prefix is None:
+            common_prefix = prefix
+        elif prefix != common_prefix:
+            return False
+    return True
+
+
+def is_svn_page(html):
+    # type: (Union[str, Text]) -> Optional[Match[Union[str, Text]]]
+    """
+    Returns true if the page appears to be the index page of an svn repository
+    """
+    return (re.search(r'<title>[^<]*Revision \d+:', html) and
+            re.search(r'Powered by (?:<a[^>]*?>)?Subversion', html, re.I))
 
 
 def unzip_file(filename, location, flatten=True):

@@ -10,19 +10,12 @@ import io
 import logging
 import os
 import posixpath
-import re
 import shutil
 import stat
 import subprocess
 import sys
 from collections import deque
 
-from pip._vendor import pkg_resources
-# NOTE: retrying is not annotated in typeshed as on 2017-07-17, which is
-#       why we ignore the type on this import.
-from pip._vendor.retrying import retry  # type: ignore
-from pip._vendor.six import PY2, text_type
-from pip._vendor.six.moves import input, shlex_quote
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
@@ -43,6 +36,10 @@ from pip._internal.utils.virtualenv import (
     running_under_virtualenv,
     virtualenv_no_global,
 )
+from pip._vendor import pkg_resources
+from pip._vendor.retrying import retry  # type: ignore
+from pip._vendor.six import PY2, text_type
+from pip._vendor.six.moves import input, shlex_quote
 
 if PY2:
     from io import BytesIO as StringIO
@@ -51,8 +48,8 @@ else:
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, AnyStr, Container, Iterable, List, Mapping, Match, Optional, Text,
-        Tuple, Union, cast,
+        Any, Container, Iterable, List, Mapping, Optional, Text,
+        Tuple, cast,
     )
     from pip._vendor.pkg_resources import Distribution
     from pip._internal.utils.ui import SpinnerInterface
@@ -68,8 +65,7 @@ else:
 __all__ = ['rmtree', 'display_path', 'backup_dir',
            'ask', 'splitext',
            'format_size', 'is_installable_dir',
-           'is_svn_page', 'file_contents',
-           'split_leading_dir', 'has_leading_dir',
+           'file_contents',
            'normalize_path',
            'renames', 'get_prog',
            'call_subprocess',
@@ -295,15 +291,6 @@ def is_installable_dir(path):
     return False
 
 
-def is_svn_page(html):
-    # type: (Union[str, Text]) -> Optional[Match[Union[str, Text]]]
-    """
-    Returns true if the page appears to be the index page of an svn repository
-    """
-    return (re.search(r'<title>[^<]*Revision \d+:', html) and
-            re.search(r'Powered by (?:<a[^>]*?>)?Subversion', html, re.I))
-
-
 def file_contents(filename):
     # type: (str) -> Text
     with open(filename, 'rb') as fp:
@@ -317,34 +304,6 @@ def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):
         if not chunk:
             break
         yield chunk
-
-
-def split_leading_dir(path):
-    # type: (Union[str, Text]) -> List[Union[str, Text]]
-    path = path.lstrip('/').lstrip('\\')
-    if '/' in path and (('\\' in path and path.find('/') < path.find('\\')) or
-                        '\\' not in path):
-        return path.split('/', 1)
-    elif '\\' in path:
-        return path.split('\\', 1)
-    else:
-        return [path, '']
-
-
-def has_leading_dir(paths):
-    # type: (Iterable[Union[str, Text]]) -> bool
-    """Returns true if all the paths have the same leading path name
-    (i.e., everything is in one subdirectory in an archive)"""
-    common_prefix = None
-    for path in paths:
-        prefix, rest = split_leading_dir(path)
-        if not prefix:
-            return False
-        elif common_prefix is None:
-            common_prefix = prefix
-        elif prefix != common_prefix:
-            return False
-    return True
 
 
 def normalize_path(path, resolve_symlinks=True):
