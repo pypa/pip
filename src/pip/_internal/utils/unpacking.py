@@ -20,7 +20,9 @@ from pip._internal.utils.misc import (
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional
+    from typing import (
+        Iterable, List, Match, Optional, Text, Union,
+    )
     from pip._internal.models.link import Link
 
 

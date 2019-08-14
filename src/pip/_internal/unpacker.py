@@ -1,13 +1,28 @@
+from __future__ import absolute_import
+
+import logging
 import mimetypes
 import os
 import shutil
 import sys
 
-from pip._internal.download import logger
 from pip._internal.exceptions import HashMismatch
+from pip._vendor.six.moves.urllib import parse as urllib_parse
+from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip._internal.utils.misc import rmtree, ask_path_exists, display_path, backup_dir
-from pip._internal.utils.unpacking import logger, unpack_file
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.unpacking import unpack_file
+
+if MYPY_CHECK_RUNNING:
+    from typing import (
+        Optional,
+    )
+    from pip._internal.models.link import Link
+    from pip._internal.utils.hashes import Hashes
+
+
+logger = logging.getLogger(__name__)
 
 
 def url_to_path(url):
