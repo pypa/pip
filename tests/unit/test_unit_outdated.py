@@ -162,8 +162,8 @@ def _get_statefile_path(cache_dir, key):
 
 
 def test_self_check_state(monkeypatch, tmpdir):
-    CONTENT = '''{"pip_prefix": {"last_check": "1970-01-02T11:00:00Z",
-        "pypi_version": "1.0"}}'''
+    CONTENT = '''{"key": "pip_prefix", "last_check": "1970-01-02T11:00:00Z",
+        "pypi_version": "1.0"}'''
     fake_file = pretend.stub(
         read=pretend.call_recorder(lambda: CONTENT),
         write=pretend.call_recorder(lambda s: None),
@@ -229,10 +229,9 @@ def test_self_check_state_reads_expected_statefile(monkeypatch, tmpdir):
     last_check = "1970-01-02T11:00:00Z"
     pypi_version = "1.0"
     content = {
-        key: {
-            "last_check": last_check,
-            "pypi_version": pypi_version,
-        },
+        "key": key,
+        "last_check": last_check,
+        "pypi_version": pypi_version,
     }
 
     with open(statefile_path, "w") as f:
@@ -264,9 +263,8 @@ def test_self_check_state_writes_expected_statefile(monkeypatch, tmpdir):
         saved = json.load(f)
 
     expected = {
-        key: {
-            "last_check": last_check.strftime(outdated.SELFCHECK_DATE_FMT),
-            "pypi_version": pypi_version,
-        },
+        "key": key,
+        "last_check": last_check.strftime(outdated.SELFCHECK_DATE_FMT),
+        "pypi_version": pypi_version,
     }
     assert expected == saved

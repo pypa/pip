@@ -52,7 +52,7 @@ class SelfCheckState(object):
             )
             try:
                 with open(self.statefile_path) as statefile:
-                    self.state = json.load(statefile)[self.key]
+                    self.state = json.load(statefile)
             except (IOError, ValueError, KeyError):
                 # Explicitly suppressing exceptions, since we don't want to
                 # error out if the cache file is invalid.
@@ -81,10 +81,11 @@ class SelfCheckState(object):
             # Since we have a prefix-specific state file, we can just
             # overwrite whatever is there, no need to check.
             state = {
-                self.key: {
-                    "last_check": current_time.strftime(SELFCHECK_DATE_FMT),
-                    "pypi_version": pypi_version,
-                },
+                # Include the key so it's easy to tell which pip wrote the
+                # file.
+                "key": self.key,
+                "last_check": current_time.strftime(SELFCHECK_DATE_FMT),
+                "pypi_version": pypi_version,
             }
 
             with open(self.statefile_path, "w") as statefile:
