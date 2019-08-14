@@ -49,7 +49,7 @@ from pip._internal.utils.setuptools_build import make_setuptools_shim_args
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import open_spinner
-from pip._internal.utils.unpacking import unpack_file_url
+from pip._internal.unpacker import unpack_file_url
 
 if MYPY_CHECK_RUNNING:
     from typing import (

@@ -57,8 +57,8 @@ from pip._internal.utils.ui import DownloadProgressProvider
 from pip._internal.utils.unpacking import (
     ARCHIVE_EXTENSIONS,
     unpack_file,
-    unpack_file_url,
 )
+from pip._internal.unpacker import unpack_file_url
 from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
