@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import datetime
+import hashlib
 import json
 import logging
 import os.path
@@ -8,6 +9,7 @@ import sys
 
 from pip._vendor import lockfile, pkg_resources
 from pip._vendor.packaging import version as packaging_version
+from pip._vendor.six import ensure_binary
 
 from pip._internal.cli.cmdoptions import make_search_scope
 from pip._internal.index import PackageFinder
@@ -20,7 +22,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     import optparse
-    from typing import Any, Dict
+    from typing import Any, Dict, Text, Union
     from pip._internal.download import PipSession
 
 
@@ -30,7 +32,11 @@ SELFCHECK_DATE_FMT = "%Y-%m-%dT%H:%M:%SZ"
 logger = logging.getLogger(__name__)
 
 
-_STATEFILE_NAME = "selfcheck.json"
+def _get_statefile_name(key):
+    # type: (Union[str, Text]) -> str
+    key_bytes = ensure_binary(key)
+    name = hashlib.sha256(key_bytes).hexdigest()
+    return "selfcheck-{}.json".format(name)
 
 
 class SelfCheckState(object):
@@ -41,7 +47,9 @@ class SelfCheckState(object):
 
         # Try to load the existing state
         if cache_dir:
-            self.statefile_path = os.path.join(cache_dir, _STATEFILE_NAME)
+            self.statefile_path = os.path.join(
+                cache_dir, _get_statefile_name(self.key)
+            )
             try:
                 with open(self.statefile_path) as statefile:
                     self.state = json.load(statefile)[self.key]

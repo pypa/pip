@@ -136,8 +136,10 @@ def test_pip_version_check(monkeypatch, stored_time, installed_ver, new_ver,
         assert len(outdated.logger.warning.calls) == 0
 
 
-def _get_statefile_path(cache_dir):
-    return os.path.join(cache_dir, outdated._STATEFILE_NAME)
+def _get_statefile_path(cache_dir, key):
+    return os.path.join(
+        cache_dir, outdated._get_statefile_name(key)
+    )
 
 
 def test_self_check_state(monkeypatch, tmpdir):
@@ -166,12 +168,13 @@ def test_self_check_state(monkeypatch, tmpdir):
     monkeypatch.setattr(os.path, "exists", lambda p: True)
 
     cache_dir = tmpdir / 'cache_dir'
-    monkeypatch.setattr(sys, 'prefix', tmpdir / 'pip_prefix')
+    key = 'pip_prefix'
+    monkeypatch.setattr(sys, 'prefix', key)
 
     state = outdated.SelfCheckState(cache_dir=cache_dir)
     state.save('2.0', datetime.datetime.utcnow())
 
-    expected_path = _get_statefile_path(str(cache_dir))
+    expected_path = _get_statefile_path(str(cache_dir), key)
     assert fake_lock.calls == [pretend.call(expected_path)]
 
     assert fake_open.calls == [
@@ -203,7 +206,7 @@ def test_self_check_state_reads_expected_statefile(monkeypatch, tmpdir):
     cache_dir = tmpdir / "cache_dir"
     cache_dir.mkdir()
     key = "helloworld"
-    statefile_path = _get_statefile_path(str(cache_dir))
+    statefile_path = _get_statefile_path(str(cache_dir), key)
 
     last_check = "1970-01-02T11:00:00Z"
     pypi_version = "1.0"
@@ -228,7 +231,7 @@ def test_self_check_state_writes_expected_statefile(monkeypatch, tmpdir):
     cache_dir = tmpdir / "cache_dir"
     cache_dir.mkdir()
     key = "helloworld"
-    statefile_path = _get_statefile_path(str(cache_dir))
+    statefile_path = _get_statefile_path(str(cache_dir), key)
 
     last_check = datetime.datetime.strptime(
         "1970-01-02T11:00:00Z", outdated.SELFCHECK_DATE_FMT
