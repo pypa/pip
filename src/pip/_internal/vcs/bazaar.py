@@ -55,8 +55,14 @@ class Bazaar(VersionControl):
             rmtree(location)
 
         url, rev_options = self.get_url_rev_options(url)
+        return self._export(location, hide_url(url), rev_options)
+
+    def _export(self, location, url, rev_options):
+        # type: (str, HiddenText, RevOptions) -> None
+        cmd = ['export', location, url]  # type: CommandArgs
+        cmd += rev_options.to_args()
         self.run_command(
-            ['export', location, hide_url(url)] + rev_options.to_args(),
+            cmd,
             show_stdout=False,
         )
 
@@ -65,23 +71,24 @@ class Bazaar(VersionControl):
         rev_display = rev_options.to_display()
         logger.info(
             'Checking out %s%s to %s',
-            hide_url(url),
+            url,
             rev_display,
             display_path(dest),
         )
-        cmd_args = (
-            ['branch', '-q'] +
-            rev_options.to_args() +
-            [hide_url(url), dest])
+        cmd_args = ['branch', '-q']  # type: CommandArgs
+        cmd_args += rev_options.to_args()
+        cmd_args += [url, dest]
         self.run_command(cmd_args)
 
     def switch(self, dest, url, rev_options):
         # type: (str, HiddenText, RevOptions) -> None
-        self.run_command(['switch', hide_url(url)], cwd=dest)
+        cmd_args = ['switch', url]  # type: CommandArgs
+        self.run_command(cmd_args, cwd=dest)
 
     def update(self, dest, url, rev_options):
         # type: (str, HiddenText, RevOptions) -> None
-        cmd_args = ['pull', '-q'] + rev_options.to_args()
+        cmd_args = ['pull', '-q']  # type: CommandArgs
+        cmd_args += rev_options.to_args()
         self.run_command(cmd_args, cwd=dest)
 
     @classmethod
