@@ -7,7 +7,18 @@ from pip._vendor.six.moves import configparser
 
 from pip._internal.utils.misc import display_path, hide_url, path_to_url
 from pip._internal.utils.temp_dir import TempDirectory
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs.versioncontrol import VersionControl, vcs
+
+if MYPY_CHECK_RUNNING:
+    from typing import (
+        List, Optional, Tuple, Union,
+    )
+    from pip._internal.utils.misc import HiddenText
+    from pip._internal.vcs.versioncontrol import RevOptions
+
+    AuthInfo = Tuple[Optional[str], Optional[str]]
+    CommandArgs = List[Union[str, HiddenText]]
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +34,7 @@ class Mercurial(VersionControl):
         return [rev]
 
     def export(self, location, url):
+        # type: (str, str) -> None
         """Export the Hg repository at the url to the destination location"""
         with TempDirectory(kind="export") as temp_dir:
             self.unpack(temp_dir.path, url=url)
@@ -32,6 +44,7 @@ class Mercurial(VersionControl):
             )
 
     def fetch_new(self, dest, url, rev_options):
+        # type: (str, HiddenText, RevOptions) -> None
         rev_display = rev_options.to_display()
         logger.info(
             'Cloning hg %s%s to %s',
@@ -47,6 +60,7 @@ class Mercurial(VersionControl):
         self.run_command(cmd_args, cwd=dest)
 
     def switch(self, dest, url, rev_options):
+        # type: (str, HiddenText, RevOptions) -> None
         repo_config = os.path.join(dest, self.dirname, 'hgrc')
         config = configparser.RawConfigParser()
         try:
@@ -63,6 +77,7 @@ class Mercurial(VersionControl):
             self.run_command(cmd_args, cwd=dest)
 
     def update(self, dest, url, rev_options):
+        # type: (str, HiddenText, RevOptions) -> None
         self.run_command(['pull', '-q'], cwd=dest)
         cmd_args = ['update', '-q'] + rev_options.to_args()
         self.run_command(cmd_args, cwd=dest)

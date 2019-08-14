@@ -11,7 +11,16 @@ from pip._internal.utils.misc import (
     path_to_url,
     rmtree,
 )
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs.versioncontrol import VersionControl, vcs
+
+if MYPY_CHECK_RUNNING:
+    from typing import List, Optional, Tuple, Union
+    from pip._internal.vcs.versioncontrol import RevOptions
+    from pip._internal.utils.misc import HiddenText
+
+    AuthInfo = Tuple[Optional[str], Optional[str]]
+    CommandArgs = List[Union[str, HiddenText]]
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +46,7 @@ class Bazaar(VersionControl):
         return ['-r', rev]
 
     def export(self, location, url):
+        # type: (str, str) -> None
         """
         Export the Bazaar repository at the url to the destination location
         """
@@ -51,6 +61,7 @@ class Bazaar(VersionControl):
         )
 
     def fetch_new(self, dest, url, rev_options):
+        # type: (str, HiddenText, RevOptions) -> None
         rev_display = rev_options.to_display()
         logger.info(
             'Checking out %s%s to %s',
@@ -65,14 +76,17 @@ class Bazaar(VersionControl):
         self.run_command(cmd_args)
 
     def switch(self, dest, url, rev_options):
+        # type: (str, HiddenText, RevOptions) -> None
         self.run_command(['switch', hide_url(url)], cwd=dest)
 
     def update(self, dest, url, rev_options):
+        # type: (str, HiddenText, RevOptions) -> None
         cmd_args = ['pull', '-q'] + rev_options.to_args()
         self.run_command(cmd_args, cwd=dest)
 
     @classmethod
     def get_url_rev_and_auth(cls, url):
+        # type: (str) -> Tuple[str, Optional[str], AuthInfo]
         # hotfix the URL scheme after removing bzr+ from bzr+ssh:// readd it
         url, rev, user_pass = super(Bazaar, cls).get_url_rev_and_auth(url)
         if url.startswith('ssh://'):

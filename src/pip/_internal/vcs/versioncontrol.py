@@ -97,11 +97,11 @@ class RevOptions(object):
         return self.rev
 
     def to_args(self):
-        # type: () -> List[str]
+        # type: () -> CommandArgs
         """
         Return the VCS-specific command arguments.
         """
-        args = []  # type: List[str]
+        args = []  # type: CommandArgs
         rev = self.arg_rev
         if rev is not None:
             args += self.vc_class.get_base_rev_args(rev)

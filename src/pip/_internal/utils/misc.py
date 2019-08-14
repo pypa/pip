@@ -974,7 +974,12 @@ def _make_build_dir(build_dir):
 
 
 class HiddenText(object):
-    def __init__(self, raw, redacted="****"):
+    def __init__(
+        self,
+        raw,  # type: str
+        redacted="****",
+    ):
+        # type: (...) -> None
         self.raw = raw
         self.redacted = redacted
 

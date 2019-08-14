@@ -22,8 +22,12 @@ _svn_info_xml_url_re = re.compile(r'<url>(.*)</url>')
 
 
 if MYPY_CHECK_RUNNING:
-    from typing import List, Optional, Tuple
+    from typing import List, Optional, Tuple, Union
     from pip._internal.vcs.versioncontrol import RevOptions
+    from pip._internal.utils.misc import HiddenText
+
+    AuthInfo = Tuple[Optional[str], Optional[str]]
+    CommandArgs = List[Union[str, HiddenText]]
 
 logger = logging.getLogger(__name__)
 
@@ -93,6 +97,7 @@ class Subversion(VersionControl):
 
     @staticmethod
     def make_rev_args(username, password):
+        # type: (Optional[str], Optional[str]) -> CommandArgs
         extra_args = []
         if username:
             extra_args += ['--username', username]
@@ -241,7 +246,7 @@ class Subversion(VersionControl):
         return vcs_version
 
     def get_remote_call_options(self):
-        # type: () -> List[str]
+        # type: () -> CommandArgs
         """Return options to be used on calls to Subversion that contact the server.
 
         These options are applicable for the following ``svn`` subcommands used
@@ -274,6 +279,7 @@ class Subversion(VersionControl):
         return []
 
     def export(self, location, url):
+        # type: (str, str) -> None
         """Export the svn repository at the url to the destination location"""
         url, rev_options = self.get_url_rev_options(url)
 
@@ -288,7 +294,7 @@ class Subversion(VersionControl):
             self.run_command(cmd_args, show_stdout=False)
 
     def fetch_new(self, dest, url, rev_options):
-        # type: (str, str, RevOptions) -> None
+        # type: (str, HiddenText, RevOptions) -> None
         rev_display = rev_options.to_display()
         logger.info(
             'Checking out %s%s to %s',
@@ -302,13 +308,13 @@ class Subversion(VersionControl):
         self.run_command(cmd_args)
 
     def switch(self, dest, url, rev_options):
-        # type: (str, str, RevOptions) -> None
+        # type: (str, HiddenText, RevOptions) -> None
         cmd_args = (['switch'] + self.get_remote_call_options() +
                     rev_options.to_args() + [url, dest])
         self.run_command(cmd_args)
 
     def update(self, dest, url, rev_options):
-        # type: (str, str, RevOptions) -> None
+        # type: (str, HiddenText, RevOptions) -> None
         cmd_args = (['update'] + self.get_remote_call_options() +
                     rev_options.to_args() + [dest])
         self.run_command(cmd_args)

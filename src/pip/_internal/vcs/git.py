@@ -10,13 +10,24 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip._internal.exceptions import BadCommand
 from pip._internal.utils.compat import samefile
-from pip._internal.utils.misc import display_path, hide_url
+from pip._internal.utils.misc import display_path
 from pip._internal.utils.temp_dir import TempDirectory
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs.versioncontrol import (
     RemoteNotFoundError,
     VersionControl,
     vcs,
 )
+
+if MYPY_CHECK_RUNNING:
+    from typing import (
+        List, Optional, Tuple, Union,
+    )
+    from pip._internal.utils.misc import HiddenText
+    from pip._internal.vcs.versioncontrol import RevOptions
+
+    AuthInfo = Tuple[Optional[str], Optional[str]]
+    CommandArgs = List[Union[str, HiddenText]]
 
 urlsplit = urllib_parse.urlsplit
 urlunsplit = urllib_parse.urlunsplit
@@ -83,6 +94,7 @@ class Git(VersionControl):
         return None
 
     def export(self, location, url):
+        # type: (str, str) -> None
         """Export the Git repository at the url to the destination location"""
         if not location.endswith('/'):
             location = location + '/'
@@ -131,6 +143,7 @@ class Git(VersionControl):
 
     @classmethod
     def resolve_revision(cls, dest, url, rev_options):
+        # type: (str, HiddenText, RevOptions) -> RevOptions
         """
         Resolve a revision to a new RevOptions object with the SHA1 of the
         branch, tag, or ref if found.
@@ -186,6 +199,7 @@ class Git(VersionControl):
         return cls.get_revision(dest) == name
 
     def fetch_new(self, dest, url, rev_options):
+        # type: (str, HiddenText, RevOptions) -> None
         rev_display = rev_options.to_display()
         logger.info(
             'Cloning %s%s to %s', hide_url(url),
@@ -217,6 +231,7 @@ class Git(VersionControl):
         self.update_submodules(dest)
 
     def switch(self, dest, url, rev_options):
+        # type: (str, HiddenText, RevOptions) -> None
         self.run_command(
             ['config', 'remote.origin.url', hide_url(url)],
             cwd=dest,
@@ -227,6 +242,7 @@ class Git(VersionControl):
         self.update_submodules(dest)
 
     def update(self, dest, url, rev_options):
+        # type: (str, HiddenText, RevOptions) -> None
         # First fetch changes from the default remote
         if self.get_git_version() >= parse_version('1.9.0'):
             # fetch tags in addition to everything else
@@ -305,6 +321,7 @@ class Git(VersionControl):
 
     @classmethod
     def get_url_rev_and_auth(cls, url):
+        # type: (str) -> Tuple[str, Optional[str], AuthInfo]
         """
         Prefixes stub URLs like 'user@hostname:user/repo.git' with 'ssh://'.
         That's required because although they use SSH they sometimes don't
