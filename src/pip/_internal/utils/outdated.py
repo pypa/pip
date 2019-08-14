@@ -76,21 +76,22 @@ class SelfCheckState(object):
         # ahead and make sure that all our directories are created.
         ensure_dir(os.path.dirname(self.statefile_path))
 
+        state = {
+            # Include the key so it's easy to tell which pip wrote the
+            # file.
+            "key": self.key,
+            "last_check": current_time.strftime(SELFCHECK_DATE_FMT),
+            "pypi_version": pypi_version,
+        }
+
+        text = json.dumps(state, sort_keys=True, separators=(",", ":"))
+
         # Attempt to write out our version check file
         with lockfile.LockFile(self.statefile_path):
             # Since we have a prefix-specific state file, we can just
             # overwrite whatever is there, no need to check.
-            state = {
-                # Include the key so it's easy to tell which pip wrote the
-                # file.
-                "key": self.key,
-                "last_check": current_time.strftime(SELFCHECK_DATE_FMT),
-                "pypi_version": pypi_version,
-            }
-
             with open(self.statefile_path, "w") as statefile:
-                json.dump(state, statefile, sort_keys=True,
-                          separators=(",", ":"))
+                statefile.write(text)
 
 
 def was_installed_by_pip(pkg):
