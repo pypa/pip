@@ -163,6 +163,7 @@ class Git(VersionControl):
                 rev,
             )
 
+        assert rev is not None
         if not rev.startswith('refs/'):
             return rev_options
 

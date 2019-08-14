@@ -82,6 +82,7 @@ class RevOptions(object):
         self.extra_args = extra_args
         self.rev = rev
         self.vc_class = vc_class
+        self.branch_name = None  # type: Optional[str]
 
     def __repr__(self):
         return '<RevOptions {}: rev={!r}>'.format(self.vc_class.name, self.rev)
