@@ -183,3 +183,12 @@ def test_self_check_state_no_cache_dir():
     state = outdated.SelfCheckState(cache_dir=False)
     assert state.state == {}
     assert state.statefile_path is None
+
+
+def test_self_check_state_key_uses_sys_prefix(monkeypatch):
+    key = "helloworld"
+
+    monkeypatch.setattr(sys, "prefix", key)
+    state = outdated.SelfCheckState("")
+
+    assert state.key == key

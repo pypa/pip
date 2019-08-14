@@ -41,11 +41,15 @@ class SelfCheckState(object):
             self.statefile_path = os.path.join(cache_dir, "selfcheck.json")
             try:
                 with open(self.statefile_path) as statefile:
-                    self.state = json.load(statefile)[sys.prefix]
+                    self.state = json.load(statefile)[self.key]
             except (IOError, ValueError, KeyError):
                 # Explicitly suppressing exceptions, since we don't want to
                 # error out if the cache file is invalid.
                 pass
+
+    @property
+    def key(self):
+        return sys.prefix
 
     def save(self, pypi_version, current_time):
         # type: (str, datetime.datetime) -> None
@@ -69,7 +73,7 @@ class SelfCheckState(object):
             else:
                 state = {}
 
-            state[sys.prefix] = {
+            state[self.key] = {
                 "last_check": current_time.strftime(SELFCHECK_DATE_FMT),
                 "pypi_version": pypi_version,
             }
