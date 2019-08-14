@@ -21,6 +21,8 @@ from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
 from pip._vendor.requests.structures import CaseInsensitiveDict
 from pip._vendor.requests.utils import get_netrc_auth
+# NOTE: XMLRPC Client is not annotated in typeshed as on 2017-07-17, which is
+#       why we ignore the type on this import
 from pip._vendor.six.moves import xmlrpc_client  # type: ignore
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
@@ -28,6 +30,7 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 import pip
 from pip._internal.exceptions import HashMismatch, InstallationError
 from pip._internal.models.index import PyPI
+# Import ssl from compat so the initial import occurs in only one place.
 from pip._internal.utils.compat import HAS_TLS, ssl
 from pip._internal.utils.encoding import auto_decode
 from pip._internal.utils.filesystem import check_path_owner
