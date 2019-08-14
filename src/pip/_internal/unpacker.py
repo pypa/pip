@@ -10,6 +10,93 @@ from pip._internal.utils.misc import rmtree, ask_path_exists, display_path, back
 from pip._internal.utils.unpacking import logger, unpack_file
 
 
+def url_to_path(url):
+    # type: (str) -> str
+    """
+    Convert a file: URL to a path.
+    """
+    assert url.startswith('file:'), (
+        "You can only turn file: urls into filenames (not %r)" % url)
+
+    _, netloc, path, _, _ = urllib_parse.urlsplit(url)
+
+    if not netloc or netloc == 'localhost':
+        # According to RFC 8089, same as empty authority.
+        netloc = ''
+    elif sys.platform == 'win32':
+        # If we have a UNC path, prepend UNC share notation.
+        netloc = '\\\\' + netloc
+    else:
+        raise ValueError(
+            'non-local file URIs are not supported on this platform: %r'
+            % url
+        )
+
+    path = urllib_request.url2pathname(netloc + path)
+    return path
+
+def is_dir_url(link):
+    # type: (Link) -> bool
+    """Return whether a file:// Link points to a directory.
+
+    ``link`` must not have any other scheme but file://. Call is_file_url()
+    first.
+
+    """
+    link_path = url_to_path(link.url_without_fragment)
+    return os.path.isdir(link_path)
+
+
+def _copy_file(filename, location, link):
+    copy = True
+    download_location = os.path.join(location, link.filename)
+    if os.path.exists(download_location):
+        response = ask_path_exists(
+            'The file %s exists. (i)gnore, (w)ipe, (b)ackup, (a)abort' %
+            display_path(download_location), ('i', 'w', 'b', 'a'))
+        if response == 'i':
+            copy = False
+        elif response == 'w':
+            logger.warning('Deleting %s', display_path(download_location))
+            os.remove(download_location)
+        elif response == 'b':
+            dest_file = backup_dir(download_location)
+            logger.warning(
+                'Backing up %s to %s',
+                display_path(download_location),
+                display_path(dest_file),
+            )
+            shutil.move(download_location, dest_file)
+        elif response == 'a':
+            sys.exit(-1)
+    if copy:
+        shutil.copy(filename, download_location)
+        logger.info('Saved %s', display_path(download_location))
+
+def _check_download_dir(link, download_dir, hashes):
+    # type: (Link, str, Optional[Hashes]) -> Optional[str]
+    """ Check download_dir for previously downloaded file with correct hash
+        If a correct file is found return its path else None
+    """
+    download_path = os.path.join(download_dir, link.filename)
+    if os.path.exists(download_path):
+        # If already downloaded, does its hash match?
+        logger.info('File was already downloaded %s', download_path)
+        if hashes:
+            try:
+                hashes.check_against_path(download_path)
+            except HashMismatch:
+                logger.warning(
+                    'Previously-downloaded file %s has bad hash. '
+                    'Re-downloading.',
+                    download_path
+                )
+                os.unlink(download_path)
+                return None
+        return download_path
+    return None
+
+
 def unpack_file_url(
     link,  # type: Link
     location,  # type: str
@@ -75,91 +162,3 @@ def unpack_file_url(
     if download_dir and not already_downloaded_path:
         _copy_file(from_path, download_dir, link)
 
-
-def is_dir_url(link):
-    # type: (Link) -> bool
-    """Return whether a file:// Link points to a directory.
-
-    ``link`` must not have any other scheme but file://. Call is_file_url()
-    first.
-
-    """
-    link_path = url_to_path(link.url_without_fragment)
-    return os.path.isdir(link_path)
-
-
-def _copy_file(filename, location, link):
-    copy = True
-    download_location = os.path.join(location, link.filename)
-    if os.path.exists(download_location):
-        response = ask_path_exists(
-            'The file %s exists. (i)gnore, (w)ipe, (b)ackup, (a)abort' %
-            display_path(download_location), ('i', 'w', 'b', 'a'))
-        if response == 'i':
-            copy = False
-        elif response == 'w':
-            logger.warning('Deleting %s', display_path(download_location))
-            os.remove(download_location)
-        elif response == 'b':
-            dest_file = backup_dir(download_location)
-            logger.warning(
-                'Backing up %s to %s',
-                display_path(download_location),
-                display_path(dest_file),
-            )
-            shutil.move(download_location, dest_file)
-        elif response == 'a':
-            sys.exit(-1)
-    if copy:
-        shutil.copy(filename, download_location)
-        logger.info('Saved %s', display_path(download_location))
-
-
-def _check_download_dir(link, download_dir, hashes):
-    # type: (Link, str, Optional[Hashes]) -> Optional[str]
-    """ Check download_dir for previously downloaded file with correct hash
-        If a correct file is found return its path else None
-    """
-    download_path = os.path.join(download_dir, link.filename)
-    if os.path.exists(download_path):
-        # If already downloaded, does its hash match?
-        logger.info('File was already downloaded %s', download_path)
-        if hashes:
-            try:
-                hashes.check_against_path(download_path)
-            except HashMismatch:
-                logger.warning(
-                    'Previously-downloaded file %s has bad hash. '
-                    'Re-downloading.',
-                    download_path
-                )
-                os.unlink(download_path)
-                return None
-        return download_path
-    return None
-
-
-def url_to_path(url):
-    # type: (str) -> str
-    """
-    Convert a file: URL to a path.
-    """
-    assert url.startswith('file:'), (
-        "You can only turn file: urls into filenames (not %r)" % url)
-
-    _, netloc, path, _, _ = urllib_parse.urlsplit(url)
-
-    if not netloc or netloc == 'localhost':
-        # According to RFC 8089, same as empty authority.
-        netloc = ''
-    elif sys.platform == 'win32':
-        # If we have a UNC path, prepend UNC share notation.
-        netloc = '\\\\' + netloc
-    else:
-        raise ValueError(
-            'non-local file URIs are not supported on this platform: %r'
-            % url
-        )
-
-    path = urllib_request.url2pathname(netloc + path)
-    return path
