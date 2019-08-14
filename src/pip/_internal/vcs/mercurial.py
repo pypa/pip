@@ -5,7 +5,7 @@ import os
 
 from pip._vendor.six.moves import configparser
 
-from pip._internal.utils.misc import display_path, hide_url, path_to_url
+from pip._internal.utils.misc import display_path, path_to_url
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs.versioncontrol import VersionControl, vcs
@@ -48,15 +48,16 @@ class Mercurial(VersionControl):
         rev_display = rev_options.to_display()
         logger.info(
             'Cloning hg %s%s to %s',
-            hide_url(url),
+            url,
             rev_display,
             display_path(dest),
         )
-        cmd = ['clone', '--noupdate', '-q', hide_url(url), dest]
+        cmd = ['clone', '--noupdate', '-q', url, dest]  # type: CommandArgs
         self.run_command(
             cmd,
         )
-        cmd_args = ['update', '-q'] + rev_options.to_args()
+        cmd_args = ['update', '-q']  # type: CommandArgs
+        cmd_args += rev_options.to_args()
         self.run_command(cmd_args, cwd=dest)
 
     def switch(self, dest, url, rev_options):
@@ -65,7 +66,7 @@ class Mercurial(VersionControl):
         config = configparser.RawConfigParser()
         try:
             config.read(repo_config)
-            config.set('paths', 'default', url)
+            config.set('paths', 'default', url.raw)
             with open(repo_config, 'w') as config_file:
                 config.write(config_file)
         except (OSError, configparser.NoSectionError) as exc:
@@ -73,13 +74,15 @@ class Mercurial(VersionControl):
                 'Could not switch Mercurial repository to %s: %s', url, exc,
             )
         else:
-            cmd_args = ['update', '-q'] + rev_options.to_args()
+            cmd_args = ['update', '-q']  # type: CommandArgs
+            cmd_args += rev_options.to_args()
             self.run_command(cmd_args, cwd=dest)
 
     def update(self, dest, url, rev_options):
         # type: (str, HiddenText, RevOptions) -> None
         self.run_command(['pull', '-q'], cwd=dest)
-        cmd_args = ['update', '-q'] + rev_options.to_args()
+        cmd_args = ['update', '-q']  # type: CommandArgs
+        cmd_args += rev_options.to_args()
         self.run_command(cmd_args, cwd=dest)
 
     @classmethod
