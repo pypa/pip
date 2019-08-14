@@ -30,6 +30,9 @@ SELFCHECK_DATE_FMT = "%Y-%m-%dT%H:%M:%SZ"
 logger = logging.getLogger(__name__)
 
 
+_STATEFILE_NAME = "selfcheck.json"
+
+
 class SelfCheckState(object):
     def __init__(self, cache_dir):
         # type: (str) -> None
@@ -38,7 +41,7 @@ class SelfCheckState(object):
 
         # Try to load the existing state
         if cache_dir:
-            self.statefile_path = os.path.join(cache_dir, "selfcheck.json")
+            self.statefile_path = os.path.join(cache_dir, _STATEFILE_NAME)
             try:
                 with open(self.statefile_path) as statefile:
                     self.state = json.load(statefile)[self.key]
