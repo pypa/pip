@@ -1186,9 +1186,9 @@ def protect_pip_from_modification_on_windows(modifying_pip):
     """
     pip_names = set()
     for ext in ('', '.exe'):
-        pip_names.add('pip{0}'.format(ext))
-        pip_names.add('pip{0}{1}'.format(sys.version_info[0], ext))
-        pip_names.add('pip{0}.{1}{ext}'.format(*sys.version_info[:2], ext=ext))
+        pip_names.add('pip{ext}'.format(ext=ext))
+        pip_names.add('pip{}{ext}'.format(sys.version_info[0], ext=ext))
+        pip_names.add('pip{}.{}{ext}'.format(*sys.version_info[:2], ext=ext))
 
     # See https://github.com/pypa/pip/issues/1299 for more discussion
     should_show_use_python_msg = (

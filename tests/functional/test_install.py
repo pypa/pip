@@ -7,7 +7,7 @@ from os.path import curdir, join, pardir
 
 import pytest
 
-import pip
+from pip import __version__ as pip_current_version
 from pip._internal import pep425tags
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.models.index import PyPI, TestPyPI
@@ -1530,6 +1530,7 @@ def test_target_install_ignores_distutils_config_install_prefix(script):
     ), str(result)
 
 
+@pytest.mark.network
 @pytest.mark.skipif("sys.platform != 'win32'")
 @pytest.mark.parametrize('pip_name', [
     'pip',
@@ -1541,86 +1542,73 @@ def test_target_install_ignores_distutils_config_install_prefix(script):
 ])
 def test_protect_pip_from_modification_on_windows(script, pip_name):
     """
-    Test ``pip install --upgrade pip`` is raised an error on Windows.
+    Test that pip modification command using ``pip install ...``
+    raises an error on Windows.
     """
-    command = [pip_name, 'install', '--upgrade', 'pip']
+    command = [pip_name, 'install', 'pip != {}'.format(pip_current_version)]
     result = script.run(*command, expect_error=True)
-    assert result.returncode != 0
     new_command = [sys.executable, '-m', 'pip'] + command[1:]
-    assert 'To modify pip, please run the following command:\n{}'.format(
-        ' '.join(new_command)) in result.stderr, str(result)
+    expected_message = (
+        'To modify pip, please run the following command:\n{}'
+        .format(' '.join(new_command))
+    )
+    assert expected_message in result.stderr, str(result)
 
 
+@pytest.mark.network
 @pytest.mark.skipif("sys.platform != 'win32'")
-def test_protect_pip_from_modification_via_deps_on_windows(script, with_wheel):
+def test_protect_pip_from_modification_via_deps_on_windows(script):
     """
     Test ``pip install pkga`` is raised an error on Windows
     if `pkga` implicitly tries to upgrade pip.
     """
-    # Make a wheel for pkga which requires pip
-    script.scratch_path.joinpath('pkga').mkdir()
-    pkga_path = script.scratch_path / 'pkga'
-    pkga_path.joinpath('setup.py').write_text(textwrap.dedent("""
-        from setuptools import setup
-        setup(name='pkga',
-              version='0.1',
-              install_requires = ["pip<{}"])
-    """.format(pip.__version__)))
-    script.run(
-        'python', 'setup.py', 'bdist_wheel', '--universal', cwd=pkga_path
+    pkga_wheel_path = create_basic_wheel_for_package(
+        script,
+        'pkga', '0.1',
+        depends=['pip != {}'.format(pip_current_version)],
     )
 
-    # Make sure pip install pkga is raised error
-    pkga_wheel_path = './pkga/dist/pkga-0.1-py2.py3-none-any.whl'
+    # Make sure pip install pkga is raised an error
     command = ['pip', 'install', pkga_wheel_path]
     result = script.run(*command, expect_error=True)
-    assert result.returncode != 0
     new_command = [sys.executable, "-m"] + command
-    assert "To modify pip, please run the following command:\n{}".format(
-        " ".join(new_command)) in result.stderr, str(result)
+    expected_message = (
+        'To modify pip, please run the following command:\n{}'
+        .format(' '.join(new_command))
+    )
+    assert expected_message in result.stderr, str(result)
 
 
+@pytest.mark.network
 @pytest.mark.skipif("sys.platform != 'win32'")
-def test_protect_pip_from_modification_via_sub_deps_on_windows(
-    script, with_wheel
-):
+def test_protect_pip_from_modification_via_sub_deps_on_windows(script):
     """
-    Test ``pip install pkg`` is raised an error on Windows
-    if sub-dependencies of `pkg` implicitly tries to upgrade pip.
+    Test ``pip install pkga`` is raised an error on Windows
+    if sub-dependencies of `pkga` implicitly tries to upgrade pip.
     """
-    # Make a wheel for pkga which requires pip
-    script.scratch_path.joinpath('pkga').mkdir()
-    pkga_path = script.scratch_path / 'pkga'
-    pkga_path.joinpath('setup.py').write_text(textwrap.dedent("""
-        from setuptools import setup
-        setup(name='pkga',
-              version='0.1',
-              install_requires = ["pip<{}"])
-    """.format(pip.__version__)))
-    script.run(
-        'python', 'setup.py', 'bdist_wheel', '--universal', cwd=pkga_path
+    # Make a wheel for pkga which requires pkgb
+    pkga_wheel_path = create_basic_wheel_for_package(
+        script,
+        'pkga', '0.1',
+        depends=['pkgb'],
     )
 
-    # Make a wheel for pkgb which requires pkga
-    script.scratch_path.joinpath('pkgb').mkdir()
-    pkgb_path = script.scratch_path / 'pkgb'
-    pkgb_path.joinpath('setup.py').write_text(textwrap.dedent("""
-        from setuptools import setup
-        setup(name='pkgb',
-              version='0.1',
-              install_requires = ["pkga"])
-    """))
-    script.run(
-        'python', 'setup.py', 'bdist_wheel', '--universal', cwd=pkgb_path
+    # Make a wheel for pkgb which requires pip
+    pkgb_wheel_path = create_basic_wheel_for_package(
+        script,
+        'pkgb', '0.1',
+        depends=['pip != {}'.format(pip_current_version)],
     )
 
-    # Make sure pip install pkgb is raised an error
-    pkgb_wheel_path = './pkgb/dist/pkgb-0.1-py2.py3-none-any.whl'
+    # Make sure pip install pkga is raised an error
     command = [
-        'pip', 'install', pkgb_wheel_path, '--find-links', pkga_path / 'dist'
+        'pip', 'install', pkga_wheel_path,
+        '--find-links', pkgb_wheel_path.parent,
     ]
     result = script.run(*command, expect_error=True)
-    assert result.returncode != 0
     new_command = [sys.executable, '-m'] + command
-    assert 'To modify pip, please run the following command:\n{}'.format(
-        ' '.join(new_command)) in result.stderr, str(result)
+    expected_message = (
+        'To modify pip, please run the following command:\n{}'
+        .format(' '.join(new_command))
+    )
+    assert expected_message in result.stderr, str(result)
