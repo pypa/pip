@@ -1559,7 +1559,7 @@ def test_protect_pip_from_modification_on_windows(script, pip_name):
 @pytest.mark.skipif("sys.platform != 'win32'")
 def test_protect_pip_from_modification_via_deps_on_windows(script):
     """
-    Test ``pip install pkga`` is raised an error on Windows
+    Test ``pip install pkga`` raises an error on Windows
     if `pkga` implicitly tries to upgrade pip.
     """
     pkga_wheel_path = create_basic_wheel_for_package(
@@ -1568,10 +1568,10 @@ def test_protect_pip_from_modification_via_deps_on_windows(script):
         depends=['pip != {}'.format(pip_current_version)],
     )
 
-    # Make sure pip install pkga is raised an error
-    command = ['pip', 'install', pkga_wheel_path]
-    result = script.run(*command, expect_error=True)
-    new_command = [sys.executable, "-m"] + command
+    # Make sure pip install pkga raises an error
+    args = ['install', pkga_wheel_path]
+    result = script.pip(*args, expect_error=True, use_module=False)
+    new_command = [sys.executable, '-m', 'pip'] + args
     expected_message = (
         'To modify pip, please run the following command:\n{}'
         .format(' '.join(new_command))
@@ -1583,7 +1583,7 @@ def test_protect_pip_from_modification_via_deps_on_windows(script):
 @pytest.mark.skipif("sys.platform != 'win32'")
 def test_protect_pip_from_modification_via_sub_deps_on_windows(script):
     """
-    Test ``pip install pkga`` is raised an error on Windows
+    Test ``pip install pkga`` raises an error on Windows
     if sub-dependencies of `pkga` implicitly tries to upgrade pip.
     """
     # Make a wheel for pkga which requires pkgb
@@ -1600,13 +1600,12 @@ def test_protect_pip_from_modification_via_sub_deps_on_windows(script):
         depends=['pip != {}'.format(pip_current_version)],
     )
 
-    # Make sure pip install pkga is raised an error
-    command = [
-        'pip', 'install', pkga_wheel_path,
-        '--find-links', pkgb_wheel_path.parent,
+    # Make sure pip install pkga raises an error
+    args = [
+        'install', pkga_wheel_path, '--find-links', pkgb_wheel_path.parent
     ]
-    result = script.run(*command, expect_error=True)
-    new_command = [sys.executable, '-m'] + command
+    result = script.pip(*args, expect_error=True, use_module=False)
+    new_command = [sys.executable, '-m', 'pip'] + args
     expected_message = (
         'To modify pip, please run the following command:\n{}'
         .format(' '.join(new_command))
