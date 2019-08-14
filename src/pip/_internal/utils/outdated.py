@@ -78,15 +78,13 @@ class SelfCheckState(object):
 
         # Attempt to write out our version check file
         with lockfile.LockFile(self.statefile_path):
-            if os.path.exists(self.statefile_path):
-                with open(self.statefile_path) as statefile:
-                    state = json.load(statefile)
-            else:
-                state = {}
-
-            state[self.key] = {
-                "last_check": current_time.strftime(SELFCHECK_DATE_FMT),
-                "pypi_version": pypi_version,
+            # Since we have a prefix-specific state file, we can just
+            # overwrite whatever is there, no need to check.
+            state = {
+                self.key: {
+                    "last_check": current_time.strftime(SELFCHECK_DATE_FMT),
+                    "pypi_version": pypi_version,
+                },
             }
 
             with open(self.statefile_path, "w") as statefile:

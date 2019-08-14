@@ -198,7 +198,6 @@ def test_self_check_state(monkeypatch, tmpdir):
 
     assert fake_open.calls == [
         pretend.call(expected_path),
-        pretend.call(expected_path),
         pretend.call(expected_path, 'w'),
     ]
 
