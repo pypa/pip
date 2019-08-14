@@ -98,7 +98,7 @@ class Subversion(VersionControl):
     @staticmethod
     def make_rev_args(username, password):
         # type: (Optional[str], Optional[str]) -> CommandArgs
-        extra_args = []
+        extra_args = []  # type: CommandArgs
         if username:
             extra_args += ['--username', username]
         if password:
@@ -283,14 +283,18 @@ class Subversion(VersionControl):
         """Export the svn repository at the url to the destination location"""
         url, rev_options = self.get_url_rev_options(url)
 
+        # With SVN, the url should not contain secrets at this point since they
+        # are in the rev_options
         logger.info('Exporting svn repository %s to %s', url, location)
         with indent_log():
             if os.path.exists(location):
                 # Subversion doesn't like to check out over an existing
                 # directory --force fixes this, but was only added in svn 1.5
                 rmtree(location)
-            cmd_args = (['export'] + self.get_remote_call_options() +
-                        rev_options.to_args() + [url, location])
+            cmd_args = ['export']  # type: CommandArgs
+            cmd_args += self.get_remote_call_options()
+            cmd_args += rev_options.to_args()
+            cmd_args += [url, location]
             self.run_command(cmd_args, show_stdout=False)
 
     def fetch_new(self, dest, url, rev_options):
@@ -302,21 +306,26 @@ class Subversion(VersionControl):
             rev_display,
             display_path(dest),
         )
-        cmd_args = (['checkout', '-q'] +
-                    self.get_remote_call_options() +
-                    rev_options.to_args() + [url, dest])
+        cmd_args = ['checkout', '-q']  # type: CommandArgs
+        cmd_args += self.get_remote_call_options()
+        cmd_args += rev_options.to_args()
+        cmd_args += [url, dest]
         self.run_command(cmd_args)
 
     def switch(self, dest, url, rev_options):
         # type: (str, HiddenText, RevOptions) -> None
-        cmd_args = (['switch'] + self.get_remote_call_options() +
-                    rev_options.to_args() + [url, dest])
+        cmd_args = ['switch']  # type: CommandArgs
+        cmd_args += self.get_remote_call_options()
+        cmd_args += rev_options.to_args()
+        cmd_args += [url, dest]
         self.run_command(cmd_args)
 
     def update(self, dest, url, rev_options):
         # type: (str, HiddenText, RevOptions) -> None
-        cmd_args = (['update'] + self.get_remote_call_options() +
-                    rev_options.to_args() + [dest])
+        cmd_args = ['update']  # type: CommandArgs
+        cmd_args += self.get_remote_call_options()
+        cmd_args += rev_options.to_args()
+        cmd_args.append(dest)
         self.run_command(cmd_args)
 
 
