@@ -136,6 +136,25 @@ def test_pip_version_check(monkeypatch, stored_time, installed_ver, new_ver,
         assert len(outdated.logger.warning.calls) == 0
 
 
+statefile_name_case_1 = (
+    "selfcheck-"
+    "d0d922be2c876108df5bd95254ebf2b9228716063584a623cadcc72159364474.json"
+)
+
+statefile_name_case_2 = (
+    "selfcheck-"
+    "37d748d2f9a7d61c07aa598962da9a6a620b6b2203038952062471fbf22762ec.json"
+)
+
+
+@pytest.mark.parametrize("key,expected", [
+    ("/hello/world/venv", statefile_name_case_1),
+    ("C:\\Users\\User\\Desktop\\venv", statefile_name_case_2),
+])
+def test_get_statefile_name_known_values(key, expected):
+    assert expected == outdated._get_statefile_name(key)
+
+
 def _get_statefile_path(cache_dir, key):
     return os.path.join(
         cache_dir, outdated._get_statefile_name(key)
