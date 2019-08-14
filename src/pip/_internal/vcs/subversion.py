@@ -24,6 +24,7 @@ if MYPY_CHECK_RUNNING:
     from typing import List, Optional, Tuple
     from pip._internal.vcs.versioncontrol import RevOptions
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -92,7 +93,8 @@ class Subversion(VersionControl):
 
     @staticmethod
     def make_rev_args(username, password):
-        extra_args = []
+        # type: (Optional[str], Optional[str]) -> List[str]
+        extra_args = []  # type: List[str]
         if username:
             extra_args += ['--username', username]
         if password:
@@ -273,6 +275,7 @@ class Subversion(VersionControl):
         return []
 
     def export(self, location, url):
+        # type: (str, str) -> None
         """Export the svn repository at the url to the destination location"""
         url, rev_options = self.get_url_rev_options(url)
 
