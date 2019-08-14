@@ -156,7 +156,8 @@ class Git(VersionControl):
 
         if sha is not None:
             rev_options = rev_options.make_new(sha)
-            rev_options.branch_name = rev if is_branch else None
+            branch_name = rev if is_branch else None
+            setattr(rev_options, 'branch_name', branch_name)
 
             return rev_options
 
@@ -168,11 +169,12 @@ class Git(VersionControl):
                 rev,
             )
 
-        if not rev.startswith('refs/'):
+        if rev and not rev.startswith('refs/'):
             return rev_options
 
         # If it looks like a ref, we have to fetch it explicitly.
-        cmd = ['fetch', '-q', hide_url(url)] + rev_options.to_args()
+        cmd = ['fetch', '-q', url]  # type: CommandArgs
+        cmd += rev_options.to_args()
         cls.run_command(
             cmd,
             cwd=dest,
@@ -202,10 +204,10 @@ class Git(VersionControl):
         # type: (str, HiddenText, RevOptions) -> None
         rev_display = rev_options.to_display()
         logger.info(
-            'Cloning %s%s to %s', hide_url(url),
+            'Cloning %s%s to %s', url,
             rev_display, display_path(dest),
         )
-        cmd = ['clone', '-q', hide_url(url), dest]
+        cmd = ['clone', '-q', url, dest]  # type: CommandArgs
         self.run_command(cmd)
 
         if rev_options.rev:
@@ -216,7 +218,8 @@ class Git(VersionControl):
                 # Only do a checkout if the current commit id doesn't match
                 # the requested revision.
                 if not self.is_commit_id_equal(dest, rev_options.rev):
-                    cmd_args = ['checkout', '-q'] + rev_options.to_args()
+                    cmd_args = ['checkout', '-q']  # type: CommandArgs
+                    cmd_args += rev_options.to_args()
                     self.run_command(cmd_args, cwd=dest)
             elif self.get_current_branch(dest) != branch_name:
                 # Then a specific branch was requested, and that branch
@@ -232,11 +235,13 @@ class Git(VersionControl):
 
     def switch(self, dest, url, rev_options):
         # type: (str, HiddenText, RevOptions) -> None
+        cmd = ['config', 'remote.origin.url', url]  # type: CommandArgs
         self.run_command(
-            ['config', 'remote.origin.url', hide_url(url)],
+            cmd,
             cwd=dest,
         )
-        cmd_args = ['checkout', '-q'] + rev_options.to_args()
+        cmd_args = ['checkout', '-q']  # type: CommandArgs
+        cmd_args += rev_options.to_args()
         self.run_command(cmd_args, cwd=dest)
 
         self.update_submodules(dest)
@@ -251,7 +256,8 @@ class Git(VersionControl):
             self.run_command(['fetch', '-q'], cwd=dest)
         # Then reset to wanted revision (maybe even origin/master)
         rev_options = self.resolve_revision(dest, url, rev_options)
-        cmd_args = ['reset', '--hard', '-q'] + rev_options.to_args()
+        cmd_args = ['reset', '--hard', '-q']  # type: CommandArgs
+        cmd_args += rev_options.to_args()
         self.run_command(cmd_args, cwd=dest)
         #: update submodules
         self.update_submodules(dest)
