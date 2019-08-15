@@ -602,10 +602,10 @@ def test_parse_editable_local_extras(
 def test_exclusive_environment_markers():
     """Make sure RequirementSet accepts several excluding env markers"""
     eq26 = install_req_from_line(
-        "Django>=1.6.10,<1.7 ; python_version == '2.6'")
+        "Django>=1.6.10,<1.7 ; python_version == '3.6'")
     eq26.is_direct = True
     ne26 = install_req_from_line(
-        "Django>=1.6.10,<1.8 ; python_version != '2.6'")
+        "Django>=1.6.10,<1.8 ; python_version != '3.6'")
     ne26.is_direct = True
 
     req_set = RequirementSet()
