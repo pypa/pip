@@ -1081,6 +1081,27 @@ def path_to_url(path):
     return url
 
 
+def build_url_from_netloc(netloc, scheme='https'):
+    # type: (str, str) -> str
+    """
+    Build a full URL from a netloc.
+    """
+    if netloc.count(':') >= 2 and '@' not in netloc and '[' not in netloc:
+        # It must be a bare IPv6 address, so wrap it with brackets.
+        netloc = '[{}]'.format(netloc)
+    return '{}://{}'.format(scheme, netloc)
+
+
+def netloc_has_port(netloc):
+    # type: (str) -> bool
+    """
+    Return whether the netloc has a port part.
+    """
+    url = build_url_from_netloc(netloc)
+    parsed = urllib_parse.urlparse(url)
+    return bool(parsed.port)
+
+
 def split_auth_from_netloc(netloc):
     """
     Parse out and remove the auth information from a netloc.
