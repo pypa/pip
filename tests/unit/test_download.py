@@ -533,9 +533,11 @@ class TestPipSession:
             insecure_hosts=["example.com"],
         )
 
-        assert not hasattr(session.adapters["https://example.com/"], "cache")
         assert "https://example.com/" in session.adapters
+        # Check that the "port wildcard" is present.
         assert "https://example.com:" in session.adapters
+        # Check that the cache isn't enabled.
+        assert not hasattr(session.adapters["https://example.com/"], "cache")
 
 
 @pytest.mark.parametrize(["input_url", "url", "username", "password"], [

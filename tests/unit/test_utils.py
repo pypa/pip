@@ -1225,7 +1225,7 @@ def test_path_to_url_win():
     assert path_to_url('file') == 'file:' + urllib_request.pathname2url(path)
 
 
-@pytest.mark.parametrize('netloc, url, has_port', [
+@pytest.mark.parametrize('netloc, expected_url, expected_has_port', [
     # Test domain name.
     ('example.com', 'https://example.com', False),
     ('example.com:5000', 'https://example.com:5000', True),
@@ -1243,9 +1243,11 @@ def test_path_to_url_win():
         True
     )
 ])
-def test_build_url_from_netloc_and_netloc_has_port(netloc, url, has_port):
-    assert build_url_from_netloc(netloc) == url
-    assert netloc_has_port(netloc) is has_port
+def test_build_url_from_netloc_and_netloc_has_port(
+    netloc, expected_url, expected_has_port,
+):
+    assert build_url_from_netloc(netloc) == expected_url
+    assert netloc_has_port(netloc) is expected_has_port
 
 
 @pytest.mark.parametrize('netloc, expected', [

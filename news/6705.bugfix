@@ -1,1 +1,2 @@
-Fix --trusted-host processing under HTTPS to trust any port number used with the host.
+Fix ``--trusted-host`` processing under HTTPS to trust any port number used
+with the host.
