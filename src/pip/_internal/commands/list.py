@@ -15,7 +15,7 @@ from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.utils.misc import (
     dist_is_editable,
     get_installed_distributions,
-    write_output
+    write_output,
 )
 from pip._internal.utils.packaging import get_installer
 
@@ -219,9 +219,11 @@ class ListCommand(IndexGroupCommand):
             for dist in packages:
                 if options.verbose >= 1:
                     write_output("{}=={} ({})".format(dist.project_name,
-                                  dist.version, dist.location))
+                                                      dist.version,
+                                                      dist.location))
                 else:
-                    write_output("{}=={}".format(dist.project_name, dist.version))
+                    write_output("{}=={}".format(
+                        dist.project_name, dist.version))
         elif options.list_format == 'json':
             write_output(format_for_json(packages, options))
 

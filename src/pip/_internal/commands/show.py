@@ -146,11 +146,13 @@ def print_results(distributions, list_files=False, verbose=False):
         write_output("Author-email: {}".format(dist.get('author-email', '')))
         write_output("License: {}".format(dist.get('license', '')))
         write_output("Location: {}".format(dist.get('location', '')))
-        write_output("Requires: {}".format(', '.join(dist.get('requires', []))))
+        write_output("Requires: {}".format(', '.join(
+            dist.get('requires', []))))
         write_output("Required-by: {}".format(', '.join(required_by)))
 
         if verbose:
-            write_output("Metadata-Version: {}".format(dist.get('metadata-version', '')))
+            write_output("Metadata-Version: {}".format(
+                dist.get('metadata-version', '')))
             write_output("Installer: {}".format(dist.get('installer', '')))
             write_output("Classifiers:")
             for classifier in dist.get('classifiers', []):

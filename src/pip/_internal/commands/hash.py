@@ -43,7 +43,7 @@ class HashCommand(Command):
         algorithm = options.algorithm
         for path in args:
             write_output('{}:\n--hash={}:{}'.format(
-                              path, algorithm, _hash_of_file(path, algorithm)))
+                         path, algorithm, _hash_of_file(path, algorithm)))
 
 
 def _hash_of_file(path, algorithm):
