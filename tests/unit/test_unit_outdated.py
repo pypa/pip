@@ -2,12 +2,11 @@ import datetime
 import json
 import os
 import sys
-from contextlib import contextmanager
 
 import freezegun
 import pretend
 import pytest
-from pip._vendor import lockfile, pkg_resources
+from pip._vendor import pkg_resources
 
 from pip._internal.index import InstallationCandidate
 from pip._internal.utils import outdated
@@ -160,49 +159,6 @@ def _get_statefile_path(cache_dir, key):
     return os.path.join(
         cache_dir, "selfcheck", outdated._get_statefile_name(key)
     )
-
-
-def test_self_check_state(monkeypatch, tmpdir):
-    CONTENT = '''{"key": "pip_prefix", "last_check": "1970-01-02T11:00:00Z",
-        "pypi_version": "1.0"}'''
-    fake_file = pretend.stub(
-        read=pretend.call_recorder(lambda: CONTENT),
-        write=pretend.call_recorder(lambda s: None),
-    )
-
-    @pretend.call_recorder
-    @contextmanager
-    def fake_open(filename, mode='r'):
-        yield fake_file
-
-    monkeypatch.setattr(outdated, 'open', fake_open, raising=False)
-
-    @pretend.call_recorder
-    @contextmanager
-    def fake_lock(filename):
-        yield
-
-    monkeypatch.setattr(outdated, "check_path_owner", lambda p: True)
-
-    monkeypatch.setattr(lockfile, 'LockFile', fake_lock)
-
-    cache_dir = tmpdir / 'cache_dir'
-    key = 'pip_prefix'
-    monkeypatch.setattr(sys, 'prefix', key)
-
-    state = SelfCheckState(cache_dir=cache_dir)
-    state.save('2.0', datetime.datetime.utcnow())
-
-    expected_path = _get_statefile_path(str(cache_dir), key)
-    assert fake_lock.calls == [pretend.call(expected_path)]
-
-    assert fake_open.calls == [
-        pretend.call(expected_path),
-        pretend.call(expected_path, 'w'),
-    ]
-
-    # json.dumps will call this a number of times
-    assert len(fake_file.write.calls)
 
 
 def test_self_check_state_no_cache_dir():
