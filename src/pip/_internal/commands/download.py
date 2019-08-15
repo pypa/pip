@@ -9,7 +9,7 @@ from pip._internal.cli.req_command import RequirementCommand
 from pip._internal.req import RequirementSet
 from pip._internal.req.req_tracker import RequirementTracker
 from pip._internal.utils.filesystem import check_path_owner
-from pip._internal.utils.misc import ensure_dir, normalize_path
+from pip._internal.utils.misc import ensure_dir, normalize_path, write_output
 from pip._internal.utils.temp_dir import TempDirectory
 
 logger = logging.getLogger(__name__)
@@ -143,7 +143,7 @@ class DownloadCommand(RequirementCommand):
                     req.name for req in requirement_set.successfully_downloaded
                 ])
                 if downloaded:
-                    self.write_output('Successfully downloaded {}'.format(downloaded))
+                    write_output('Successfully downloaded {}'.format(downloaded))
 
                 # Clean up
                 if not options.no_clean:

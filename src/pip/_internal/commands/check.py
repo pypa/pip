@@ -5,6 +5,7 @@ from pip._internal.operations.check import (
     check_package_set,
     create_package_set_from_installed,
 )
+from pip._internal.utils.misc import write_output
 
 logger = logging.getLogger(__name__)
 
@@ -22,17 +23,15 @@ class CheckCommand(Command):
         for project_name in missing:
             version = package_set[project_name].version
             for dependency in missing[project_name]:
-                self.write_output(
-                    "{} {} requires {}, which is not installed."
+                write_output("{} {} requires {}, which is not installed."
                     "".format( project_name, version, dependency[0]))
 
         for project_name in conflicting:
             version = package_set[project_name].version
             for dep_name, dep_version, req in conflicting[project_name]:
-                self.write_output(
-                    "{} {} has requirement {}, but you have {} {}."
-                    "".format( project_name, version, req, dep_name,
-                     dep_version))
+                write_output( "{} {} has requirement {}, but you have {} {}."
+                    "".format(project_name, version, req, dep_name,
+                              dep_version))
 
         if missing or conflicting or parsing_probs:
             return 1

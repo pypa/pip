@@ -947,6 +947,8 @@ def call_subprocess(
                              repr(on_returncode))
     return ''.join(all_output)
 
+def write_output(message):
+    logger.info(message)
 
 def _make_build_dir(build_dir):
     os.makedirs(build_dir)
