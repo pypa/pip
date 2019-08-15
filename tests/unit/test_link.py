@@ -127,3 +127,13 @@ class TestLink:
         url = 'https://example.com/wheel.whl#sha512={}'.format(128 * 'a')
         link = Link(url)
         assert link.is_hash_allowed(hashes) == expected
+
+    @pytest.mark.parametrize('url, expected', [
+        ('git+https://github.com/org/repo', True),
+        ('bzr+http://bzr.myproject.org/MyProject/trunk/#egg=MyProject', True),
+        ('https://example.com/some.whl', False),
+        ('file://home/foo/some.whl', False),
+    ])
+    def test_is_vcs(self, url, expected):
+        link = Link(url)
+        assert link.is_vcs is expected
