@@ -11,6 +11,7 @@ from pip._vendor import lockfile, pkg_resources
 
 from pip._internal.index import InstallationCandidate
 from pip._internal.utils import outdated
+from tests.lib.path import Path
 
 
 class MockFoundCandidates(object):
@@ -137,13 +138,11 @@ def test_pip_version_check(monkeypatch, stored_time, installed_ver, new_ver,
 
 
 statefile_name_case_1 = (
-    "selfcheck-"
-    "d0d922be2c876108df5bd95254ebf2b9228716063584a623cadcc72159364474.json"
+    "fcd2d5175dd33d5df759ee7b045264230205ef837bf9f582f7c3ada7"
 )
 
 statefile_name_case_2 = (
-    "selfcheck-"
-    "37d748d2f9a7d61c07aa598962da9a6a620b6b2203038952062471fbf22762ec.json"
+    "902cecc0745b8ecf2509ba473f3556f0ba222fedc6df433acda24aa5"
 )
 
 
@@ -157,7 +156,7 @@ def test_get_statefile_name_known_values(key, expected):
 
 def _get_statefile_path(cache_dir, key):
     return os.path.join(
-        cache_dir, outdated._get_statefile_name(key)
+        cache_dir, "selfcheck", outdated._get_statefile_name(key)
     )
 
 
@@ -184,7 +183,6 @@ def test_self_check_state(monkeypatch, tmpdir):
     monkeypatch.setattr(outdated, "check_path_owner", lambda p: True)
 
     monkeypatch.setattr(lockfile, 'LockFile', fake_lock)
-    monkeypatch.setattr(os.path, "exists", lambda p: True)
 
     cache_dir = tmpdir / 'cache_dir'
     key = 'pip_prefix'
@@ -233,6 +231,8 @@ def test_self_check_state_reads_expected_statefile(monkeypatch, tmpdir):
         "last_check": last_check,
         "pypi_version": pypi_version,
     }
+
+    Path(statefile_path).parent.mkdir()
 
     with open(statefile_path, "w") as f:
         json.dump(content, f)

@@ -35,8 +35,8 @@ logger = logging.getLogger(__name__)
 def _get_statefile_name(key):
     # type: (Union[str, Text]) -> str
     key_bytes = ensure_binary(key)
-    name = hashlib.sha256(key_bytes).hexdigest()
-    return "selfcheck-{}.json".format(name)
+    name = hashlib.sha224(key_bytes).hexdigest()
+    return name
 
 
 class SelfCheckState(object):
@@ -48,7 +48,7 @@ class SelfCheckState(object):
         # Try to load the existing state
         if cache_dir:
             self.statefile_path = os.path.join(
-                cache_dir, _get_statefile_name(self.key)
+                cache_dir, "selfcheck", _get_statefile_name(self.key)
             )
             try:
                 with open(self.statefile_path) as statefile:
