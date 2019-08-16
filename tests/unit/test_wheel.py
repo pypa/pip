@@ -38,6 +38,25 @@ def test_contains_egg_info(s, expected):
     assert result == expected
 
 
+class ReqMock:
+
+    def __init__(
+        self,
+        name="pendulum",
+        is_wheel=False,
+        editable=False,
+        link=None,
+        constraint=False,
+        source_dir="/tmp/pip-install-123/pendulum",
+    ):
+        self.name = name
+        self.is_wheel = is_wheel
+        self.editable = editable
+        self.link = link
+        self.constraint = constraint
+        self.source_dir = source_dir
+
+
 def make_test_install_req(base_name=None):
     """
     Return an InstallRequirement object for testing purposes.
@@ -78,76 +97,66 @@ def test_format_tag(file_tag, expected):
 
 
 @pytest.mark.parametrize(
-    "base_name, should_unpack, cache_available, expected",
+    "req, should_unpack, disallow_binaries, expected",
     [
-        ('pendulum-2.0.4', False, False, True),
-        # The following cases test should_unpack=True.
-        # Test _contains_egg_info() returning True.
-        ('pendulum-2.0.4', True, True, False),
-        ('pendulum-2.0.4', True, False, True),
-        # Test _contains_egg_info() returning False.
-        ('pendulum', True, True, True),
-        ('pendulum', True, False, True),
-    ],
-)
-def test_should_use_ephemeral_cache__issue_6197(
-    base_name, should_unpack, cache_available, expected,
-):
-    """
-    Regression test for: https://github.com/pypa/pip/issues/6197
-    """
-    req = make_test_install_req(base_name=base_name)
-    assert not req.is_wheel
-    assert req.link.is_artifact
-
-    format_control = FormatControl()
-    ephem_cache = wheel.should_use_ephemeral_cache(
-        req, format_control=format_control, should_unpack=should_unpack,
-        cache_available=cache_available,
-    )
-    assert ephem_cache is expected
-
-
-@pytest.mark.parametrize(
-    "disallow_binaries, expected",
-    [
+        # pip wheel (should_unpack=False)
+        (ReqMock(), False, False, True),
+        (ReqMock(), False, True, True),
+        (ReqMock(constraint=True), False, False, False),
+        (ReqMock(is_wheel=True), False, False, False),
+        (ReqMock(editable=True), False, False, True),
+        (ReqMock(source_dir=None), False, False, True),
+        (ReqMock(link=Link("git+https://g.c/org/repo")), False, False, True),
+        (ReqMock(link=Link("git+https://g.c/org/repo")), False, True, True),
+        # pip install (should_unpack=True)
+        (ReqMock(), True, False, True),
+        (ReqMock(), True, True, False),
+        (ReqMock(constraint=True), True, False, False),
+        (ReqMock(is_wheel=True), True, False, False),
+        (ReqMock(editable=True), True, False, False),
+        (ReqMock(source_dir=None), True, False, False),
         # By default (i.e. when binaries are allowed), VCS requirements
-        # should be built.
-        (False, True),
+        # should be built in install mode.
+        (ReqMock(link=Link("git+https://g.c/org/repo")), True, False, True),
         # Disallowing binaries, however, should cause them not to be built.
-        (True, None),
+        (ReqMock(link=Link("git+https://g.c/org/repo")), True, True, False),
     ],
 )
-def test_should_use_ephemeral_cache__disallow_binaries_and_vcs_checkout(
-    disallow_binaries, expected,
-):
-    """
-    Test that disallowing binaries (e.g. from passing --global-option)
-    causes should_use_ephemeral_cache() to return None for VCS checkouts.
-    """
-    req = Requirement('pendulum')
-    link = Link(url='git+https://git.example.com/pendulum.git')
-    req = InstallRequirement(
-        req=req,
-        comes_from=None,
-        constraint=False,
-        editable=False,
-        link=link,
-        source_dir='/tmp/pip-install-9py5m2z1/pendulum',
-    )
-    assert not req.is_wheel
-    assert req.link.is_vcs
-
+def test_should_build(req, should_unpack, disallow_binaries, expected):
     format_control = FormatControl()
     if disallow_binaries:
         format_control.disallow_binaries()
-
-    # The cache_available value doesn't matter for this test.
-    ephem_cache = wheel.should_use_ephemeral_cache(
-        req, format_control=format_control, should_unpack=True,
-        cache_available=True,
+    should_build = wheel.should_build(
+        req, should_unpack=should_unpack, format_control=format_control
     )
-    assert ephem_cache is expected
+    assert should_build is expected
+
+
+@pytest.mark.parametrize(
+    "req, disallow_binaries, cache_available, expected",
+    [
+        (ReqMock(editable=True), False, True, True),
+        (ReqMock(editable=True), False, False, True),
+        (ReqMock(source_dir=None), False, True, True),
+        (ReqMock(source_dir=None), False, False, True),
+        (ReqMock(link=Link("git+https://g.c/org/repo")), False, True, True),
+        (ReqMock(link=Link("git+https://g.c/org/repo")), False, False, True),
+        (ReqMock(link=Link("https://g.c/dist.tgz")), False, True, True),
+        (ReqMock(link=Link("https://g.c/dist.tgz")), False, False, True),
+        (ReqMock(link=Link("https://g.c/dist-2.0.4.tgz")), False, True, False),
+        (ReqMock(link=Link("https://g.c/dist-2.0.4.tgz")), False, False, True),
+    ],
+)
+def test_should_use_ephemeral_cache(
+    req, disallow_binaries, cache_available, expected
+):
+    format_control = FormatControl()
+    if disallow_binaries:
+        format_control.disallow_binaries()
+    should_use_ephemeral_cache = wheel.should_use_ephemeral_cache(
+        req, format_control=format_control, cache_available=cache_available
+    )
+    assert should_use_ephemeral_cache is expected
 
 
 def test_format_command_result__INFO(caplog):

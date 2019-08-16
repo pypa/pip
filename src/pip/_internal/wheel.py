@@ -773,11 +773,50 @@ def _contains_egg_info(
     return bool(_egg_info_re.search(s))
 
 
+def should_build(
+    req,  # type: InstallRequirement
+    should_unpack,  # type: bool
+    format_control,  # type: FormatControl
+):
+    """
+    Return whether a wheel should be built based on the requirement
+    characteristics, and if it should be ultimately unpacked or not.
+    """
+    if req.constraint:
+        # never build requirements that are merely constraints
+        return False
+
+    if req.is_wheel:
+        if not should_unpack:
+            logger.info(
+                'Skipping %s, due to already being wheel.', req.name,
+            )
+        # never build a requirement that is already a wheel
+        return False
+
+    if req.editable:
+        # don't build an editable if it should be unpacked
+        return not should_unpack
+
+    if not req.source_dir:
+        # TODO explain what no source_dir means
+        return not should_unpack
+
+    if should_unpack and "binary" not in format_control.get_allowed_formats(
+            canonicalize_name(req.name)):
+        logger.info(
+            "Skipping bdist_wheel for %s, due to binaries "
+            "being disabled for it.", req.name,
+        )
+        return False
+
+    return True
+
+
 def should_use_ephemeral_cache(
     req,  # type: InstallRequirement
     format_control,  # type: FormatControl
-    should_unpack,  # type: bool
-    cache_available  # type: bool
+    cache_available,  # type: bool
 ):
     # type: (...) -> Optional[bool]
     """
@@ -790,41 +829,19 @@ def should_use_ephemeral_cache(
     :return: True or False to build the requirement with ephem_cache=True
         or False, respectively; or None not to build the requirement.
     """
-    if req.constraint:
-        # never build requirements that are merely constraints
-        return None
-
-    if req.is_wheel:
-        if not should_unpack:
-            logger.info(
-                'Skipping %s, due to already being wheel.', req.name,
-            )
-        # never build a requirement that is already a wheel
-        return None
-
     if req.editable:
-        # if must build an editable, build to ephem cache,
-        # else do not build as install will egglink to it
-        if not should_unpack:
-            return True
-        return None
+        # don't cache editable requirements because they can
+        # be locally modified
+        return True
 
     if not req.source_dir:
         # TODO explain what no source_dir means
-        if not should_unpack:
-            return True
-        return None
+        return True
 
     if "binary" not in format_control.get_allowed_formats(
             canonicalize_name(req.name)):
-        if not should_unpack:
-            # --no-binary has no effect as a pip wheel option
-            return True
-        logger.info(
-            "Skipping bdist_wheel for %s, due to binaries "
-            "being disabled for it.", req.name,
-        )
-        return None
+        # TODO explain this
+        return True
 
     if req.link and req.link.is_vcs:
         # VCS checkout. Build wheel just for this run.
@@ -1071,16 +1088,18 @@ class WheelBuilder(object):
         cache_available = bool(self.wheel_cache.cache_dir)
 
         for req in requirements:
-            ephem_cache = should_use_ephemeral_cache(
+            if not should_build(
+                req,
+                should_unpack=should_unpack,
+                format_control=format_control,
+            ):
+                continue
+            use_ephemeral_cache = should_use_ephemeral_cache(
                 req,
                 format_control=format_control,
-                should_unpack=should_unpack,
                 cache_available=cache_available,
             )
-            if ephem_cache is None:
-                continue
-
-            buildset.append((req, ephem_cache))
+            buildset.append((req, use_ephemeral_cache))
 
         if not buildset:
             return []
@@ -1103,11 +1122,11 @@ class WheelBuilder(object):
         _cache = self.wheel_cache  # shorter name
         with indent_log():
             build_success, build_failure = [], []
-            for req, ephem in buildset:
+            for req, use_ephemeral_cache in buildset:
                 python_tag = None
                 if should_unpack:
                     python_tag = pep425tags.implementation_tag
-                if ephem:
+                if use_ephemeral_cache:
                     output_dir = _cache.get_ephem_path_for_link(req.link)
                 else:
                     output_dir = _cache.get_path_for_link(req.link)
