@@ -815,7 +815,7 @@ def should_use_ephemeral_cache(
         )
         return None
 
-    if req.link and not req.link.is_artifact:
+    if req.link and req.link.is_vcs:
         # VCS checkout. Build wheel just for this run.
         return True
 

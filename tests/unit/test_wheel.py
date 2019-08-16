@@ -126,7 +126,6 @@ def test_should_use_ephemeral_cache__disallow_binaries_and_vcs_checkout(
     causes should_use_ephemeral_cache() to return None for VCS checkouts.
     """
     req = Requirement('pendulum')
-    # Passing a VCS url causes link.is_artifact to return False.
     link = Link(url='git+https://git.example.com/pendulum.git')
     req = InstallRequirement(
         req=req,
@@ -137,7 +136,7 @@ def test_should_use_ephemeral_cache__disallow_binaries_and_vcs_checkout(
         source_dir='/tmp/pip-install-9py5m2z1/pendulum',
     )
     assert not req.is_wheel
-    assert not req.link.is_artifact
+    assert req.link.is_vcs
 
     format_control = FormatControl()
     if disallow_binaries:

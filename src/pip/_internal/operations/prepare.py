@@ -16,7 +16,6 @@ from pip._internal.distributions.installed import InstalledDistribution
 from pip._internal.download import (
     is_dir_url,
     is_file_url,
-    is_vcs_url,
     unpack_url,
     url_to_path,
 )
@@ -163,7 +162,7 @@ class RequirementPreparer(object):
                 # we would report less-useful error messages for
                 # unhashable requirements, complaining that there's no
                 # hash provided.
-                if is_vcs_url(link):
+                if link.is_vcs:
                     raise VcsHashUnsupported()
                 elif is_file_url(link) and is_dir_url(link):
                     raise DirectoryUrlHashUnsupported()

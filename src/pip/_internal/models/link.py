@@ -180,18 +180,20 @@ class Link(KeyBasedCompareMixin):
         return self.ext == WHEEL_EXTENSION
 
     @property
+    def is_vcs(self):
+        # type: () -> bool
+        from pip._internal.vcs import vcs
+
+        return self.scheme in vcs.all_schemes
+
+    @property
     def is_artifact(self):
         # type: () -> bool
         """
         Determines if this points to an actual artifact (e.g. a tarball) or if
         it points to an "abstract" thing like a path or a VCS location.
         """
-        from pip._internal.vcs import vcs
-
-        if self.scheme in vcs.all_schemes:
-            return False
-
-        return True
+        return not self.is_vcs
 
     @property
     def is_yanked(self):

@@ -76,7 +76,7 @@ if MYPY_CHECK_RUNNING:
 __all__ = ['get_file_content',
            'is_url', 'url_to_path', 'path_to_url',
            'is_archive_file', 'unpack_vcs_link',
-           'unpack_file_url', 'is_vcs_url', 'is_file_url',
+           'unpack_file_url', 'is_file_url',
            'unpack_http_url', 'unpack_url',
            'parse_content_disposition', 'sanitize_content_filename']
 
@@ -744,11 +744,6 @@ def _get_used_vcs_backend(link):
     return None
 
 
-def is_vcs_url(link):
-    # type: (Link) -> bool
-    return bool(_get_used_vcs_backend(link))
-
-
 def is_file_url(link):
     # type: (Link) -> bool
     return link.url.lower().startswith('file:')
@@ -1063,7 +1058,7 @@ def unpack_url(
         would ordinarily raise HashUnsupported) are allowed.
     """
     # non-editable vcs urls
-    if is_vcs_url(link):
+    if link.is_vcs:
         unpack_vcs_link(link, location)
 
     # file urls
