@@ -184,7 +184,7 @@ class ConfigurationCommand(Command):
         self._get_n_args(args, "list", n=0)
 
         for key, value in sorted(self.configuration.items()):
-            write_output("{}={}".format(key, value))
+            write_output("{}={!r}".format(key, value))
 
     def get_name(self, options, args):
         key = self._get_n_args(args, "get [name]", n=1)
