@@ -844,7 +844,10 @@ def should_use_ephemeral_cache(
         return True
 
     if req.link and req.link.is_vcs:
-        # VCS checkout. Build wheel just for this run.
+        # VCS checkout. Build wheel just for this run
+        # unless it points to an immutable commit hash in which
+        # case it can be cached.
+        # TODO if req.link.is_vcs_immutable: return False
         return True
 
     link = req.link
