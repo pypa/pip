@@ -82,6 +82,7 @@ class RevOptions(object):
         self.extra_args = extra_args
         self.rev = rev
         self.vc_class = vc_class
+        self.branch_name = None  # type: Optional[str]
 
     def __repr__(self):
         return '<RevOptions {}: rev={!r}>'.format(self.vc_class.name, self.rev)
@@ -291,6 +292,7 @@ class VersionControl(object):
         return repo.startswith(os.path.sep) or bool(drive)
 
     def export(self, location, url):
+        # type: (str, str) -> None
         """
         Export the repository at the url to the destination location
         i.e. only download the files, without vcs informations
@@ -345,6 +347,7 @@ class VersionControl(object):
 
     @staticmethod
     def make_rev_args(username, password):
+        # type: (Optional[str], Optional[str]) -> List[str]
         """
         Return the RevOptions "extra arguments" to use in obtain().
         """
@@ -381,6 +384,7 @@ class VersionControl(object):
         return (cls.normalize_url(url1) == cls.normalize_url(url2))
 
     def fetch_new(self, dest, url, rev_options):
+        # type: (str, str, RevOptions) -> None
         """
         Fetch a revision from a repository, in the case that this is the
         first fetch from the repository.
@@ -392,6 +396,7 @@ class VersionControl(object):
         raise NotImplementedError
 
     def switch(self, dest, url, rev_options):
+        # type: (str, str, RevOptions) -> None
         """
         Switch the repo at ``dest`` to point to ``URL``.
 
@@ -401,6 +406,7 @@ class VersionControl(object):
         raise NotImplementedError
 
     def update(self, dest, url, rev_options):
+        # type: (str, str, RevOptions) -> None
         """
         Update an already-existing repo to the given ``rev_options``.
 
