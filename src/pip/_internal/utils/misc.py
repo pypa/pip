@@ -61,6 +61,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.utils.ui import SpinnerInterface
 
     VersionInfo = Tuple[int, int, int]
+    CommandArgs = List[Union[str, 'HiddenText']]
 else:
     # typing's cast() is needed at runtime, but we don't want to import typing.
     # Thus, we use a dummy no-op version, which we tell mypy to ignore.
@@ -749,8 +750,8 @@ def unpack_file(
             is_svn_page(file_contents(filename))):
         # We don't really care about this
         from pip._internal.vcs.subversion import Subversion
-        url = 'svn+' + link.url
-        Subversion().unpack(location, url=url)
+        hidden_url = hide_url('svn+' + link.url)
+        Subversion().unpack(location, url=hidden_url)
     else:
         # FIXME: handle?
         # FIXME: magic signatures?
@@ -764,16 +765,42 @@ def unpack_file(
         )
 
 
+def make_command(*args):
+    # type: (Union[str, HiddenText]) -> CommandArgs
+    command_args = []  # type: CommandArgs
+    command_args.extend(args)
+
+    return command_args
+
+
 def format_command_args(args):
-    # type: (List[str]) -> str
+    # type: (Union[List[str], CommandArgs]) -> str
     """
     Format command arguments for display.
     """
-    return ' '.join(shlex_quote(arg) for arg in args)
+    # For HiddenText arguments, display the redacted form by calling str().
+    # Also, we don't apply str() to arguments that aren't HiddenText since
+    # this can trigger a UnicodeDecodeError in Python 2 if the argument
+    # has type unicode and includes a non-ascii character.  (The type
+    # checker doesn't ensure the annotations are correct in all cases.)
+    return ' '.join(
+        shlex_quote(str(arg)) if isinstance(arg, HiddenText)
+        else shlex_quote(arg) for arg in args
+    )
+
+
+def reveal_command_args(args):
+    # type: (Union[List[str], CommandArgs]) -> List[str]
+    """
+    Return the arguments in their raw, unredacted form.
+    """
+    return [
+        arg.secret if isinstance(arg, HiddenText) else arg for arg in args
+    ]
 
 
 def make_subprocess_output_error(
-    cmd_args,     # type: List[str]
+    cmd_args,     # type: Union[List[str], CommandArgs]
     cwd,          # type: Optional[str]
     lines,        # type: List[Text]
     exit_status,  # type: int
@@ -815,7 +842,7 @@ def make_subprocess_output_error(
 
 
 def call_subprocess(
-    cmd,  # type: List[str]
+    cmd,  # type: Union[List[str], CommandArgs]
     show_stdout=False,  # type: bool
     cwd=None,  # type: Optional[str]
     on_returncode='raise',  # type: str
@@ -882,7 +909,9 @@ def call_subprocess(
         env.pop(name, None)
     try:
         proc = subprocess.Popen(
-            cmd, stderr=subprocess.STDOUT, stdin=subprocess.PIPE,
+            # Convert HiddenText objects to the underlying str.
+            reveal_command_args(cmd),
+            stderr=subprocess.STDOUT, stdin=subprocess.PIPE,
             stdout=subprocess.PIPE, cwd=cwd, env=env,
         )
         proc.stdin.close()
@@ -1197,6 +1226,46 @@ def redact_password_from_url(url):
     # type: (str) -> str
     """Replace the password in a given url with ****."""
     return _transform_url(url, _redact_netloc)[0]
+
+
+class HiddenText(object):
+    def __init__(
+        self,
+        secret,         # type: str
+        redacted=None,  # type: Optional[str]
+    ):
+        # type: (...) -> None
+        if redacted is None:
+            redacted = '****'
+
+        self.secret = secret
+        self.redacted = redacted
+
+    def __repr__(self):
+        return '<HiddenText {!r}>'.format(str(self))
+
+    def __str__(self):
+        return self.redacted
+
+    # This is useful for testing.
+    def __eq__(self, other):
+        if type(self) != type(other):
+            return False
+
+        # The string being used for redaction doesn't also have to match,
+        # just the raw, original string.
+        return (self.secret == other.secret)
+
+
+def hide_value(value):
+    # type: (str) -> HiddenText
+    return HiddenText(value)
+
+
+def hide_url(url):
+    # type: (str) -> HiddenText
+    redacted = redact_password_from_url(url)
+    return HiddenText(url, redacted=redacted)
 
 
 def protect_pip_from_modification_on_windows(modifying_pip):

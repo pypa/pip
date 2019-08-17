@@ -37,6 +37,7 @@ from pip._internal.utils.glibc import (
 )
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.misc import (
+    HiddenText,
     build_url_from_netloc,
     call_subprocess,
     egg_link_path,
@@ -44,6 +45,9 @@ from pip._internal.utils.misc import (
     format_command_args,
     get_installed_distributions,
     get_prog,
+    hide_url,
+    hide_value,
+    make_command,
     make_subprocess_output_error,
     netloc_has_port,
     normalize_path,
@@ -830,6 +834,9 @@ class TestGetProg(object):
     (['pip', 'list'], 'pip list'),
     (['foo', 'space space', 'new\nline', 'double"quote', "single'quote"],
      """foo 'space space' 'new\nline' 'double"quote' 'single'"'"'quote'"""),
+    # Test HiddenText arguments.
+    (make_command(hide_value('secret1'), 'foo', hide_value('secret2')),
+        "'****' foo '****'"),
 ])
 def test_format_command_args(args, expected):
     actual = format_command_args(args)
@@ -1354,6 +1361,39 @@ def test_remove_auth_from_url(auth_url, expected_url):
 def test_redact_password_from_url(auth_url, expected_url):
     url = redact_password_from_url(auth_url)
     assert url == expected_url
+
+
+class TestHiddenText:
+
+    def test_default_redacted(self):
+        hidden = HiddenText('my-secret')
+        assert repr(hidden) == "<HiddenText '****'>"
+        assert str(hidden) == '****'
+        assert hidden.redacted == '****'
+        assert hidden.secret == 'my-secret'
+
+    def test_custom_redacted(self):
+        hidden = HiddenText('my-secret', redacted='######')
+        assert repr(hidden) == "<HiddenText '######'>"
+        assert str(hidden) == '######'
+        assert hidden.redacted == '######'
+        assert hidden.secret == 'my-secret'
+
+
+def test_hide_value():
+    hidden = hide_value('my-secret')
+    assert repr(hidden) == "<HiddenText '****'>"
+    assert str(hidden) == '****'
+    assert hidden.redacted == '****'
+    assert hidden.secret == 'my-secret'
+
+
+def test_hide_url():
+    hidden_url = hide_url('https://user:password@example.com')
+    assert repr(hidden_url) == "<HiddenText 'https://user:****@example.com'>"
+    assert str(hidden_url) == 'https://user:****@example.com'
+    assert hidden_url.redacted == 'https://user:****@example.com'
+    assert hidden_url.secret == 'https://user:password@example.com'
 
 
 @pytest.fixture()

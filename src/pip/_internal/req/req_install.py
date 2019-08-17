@@ -38,6 +38,7 @@ from pip._internal.utils.misc import (
     dist_in_usersite,
     ensure_dir,
     get_installed_version,
+    hide_url,
     redact_password_from_url,
     rmtree,
 )
@@ -813,11 +814,11 @@ class InstallRequirement(object):
         vc_type, url = self.link.url.split('+', 1)
         vcs_backend = vcs.get_backend(vc_type)
         if vcs_backend:
-            url = self.link.url
+            hidden_url = hide_url(self.link.url)
             if obtain:
-                vcs_backend.obtain(self.source_dir, url=url)
+                vcs_backend.obtain(self.source_dir, url=hidden_url)
             else:
-                vcs_backend.export(self.source_dir, url=url)
+                vcs_backend.export(self.source_dir, url=hidden_url)
         else:
             assert 0, (
                 'Unexpected version control type (in %s): %s'

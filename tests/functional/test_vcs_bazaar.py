@@ -6,6 +6,7 @@ import os
 
 import pytest
 
+from pip._internal.utils.misc import hide_url
 from pip._internal.vcs.bazaar import Bazaar
 from tests.lib import (
     _test_path_to_file_url,
@@ -35,7 +36,7 @@ def test_export(script, tmpdir):
     _vcs_add(script, str(source_dir), vcs='bazaar')
 
     export_dir = str(tmpdir / 'export')
-    url = 'bzr+' + _test_path_to_file_url(source_dir)
+    url = hide_url('bzr+' + _test_path_to_file_url(source_dir))
     Bazaar().export(export_dir, url=url)
 
     assert os.listdir(export_dir) == ['test_file']
@@ -59,7 +60,7 @@ def test_export_rev(script, tmpdir):
     )
 
     export_dir = tmpdir / 'export'
-    url = 'bzr+' + _test_path_to_file_url(source_dir) + '@1'
+    url = hide_url('bzr+' + _test_path_to_file_url(source_dir) + '@1')
     Bazaar().export(str(export_dir), url=url)
 
     with open(export_dir / 'test_file', 'r') as f:
