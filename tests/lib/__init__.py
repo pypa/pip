@@ -451,7 +451,8 @@ class PipTestEnvironment(TestFileEnvironment):
             )
 
         # Create a Directory to use as a scratch pad
-        self.scratch_path = base_path.joinpath("scratch").mkdir()
+        self.scratch_path = base_path.joinpath("scratch")
+        self.scratch_path.mkdir()
 
         # Set our default working directory
         kwargs.setdefault("cwd", self.scratch_path)
@@ -988,7 +989,7 @@ def create_basic_wheel_for_package(script, name, version,
 
     for fname in files:
         path = script.temp_path / fname
-        path.parent.mkdir()
+        path.parent.mkdir(exist_ok=True)
         path.write_text(files[fname])
 
     retval = script.scratch_path / archive_name

@@ -551,7 +551,8 @@ def test_editable_install__local_dir_no_setup_py_with_pyproject(
     Test installing in editable mode from a local directory with no setup.py
     but that does have pyproject.toml.
     """
-    local_dir = script.scratch_path.joinpath('temp').mkdir()
+    local_dir = script.scratch_path.joinpath('temp')
+    local_dir.mkdir()
     pyproject_path = local_dir.joinpath('pyproject.toml')
     pyproject_path.write_text('')
 

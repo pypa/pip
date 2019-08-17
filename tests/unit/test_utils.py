@@ -303,7 +303,9 @@ def test_rmtree_errorhandler_readonly_directory(tmpdir):
     Test rmtree_errorhandler makes the given read-only directory writable.
     """
     # Create read only directory
-    path = str((tmpdir / 'subdir').mkdir())
+    subdir_path = tmpdir / 'subdir'
+    subdir_path.mkdir()
+    path = str(subdir_path)
     os.chmod(path, stat.S_IREAD)
 
     # Make sure mock_func is called with the given path
@@ -321,7 +323,9 @@ def test_rmtree_errorhandler_reraises_error(tmpdir):
     by the given unreadable directory.
     """
     # Create directory without read permission
-    path = str((tmpdir / 'subdir').mkdir())
+    subdir_path = tmpdir / 'subdir'
+    subdir_path.mkdir()
+    path = str(subdir_path)
     os.chmod(path, stat.S_IWRITE)
 
     mock_func = Mock()
