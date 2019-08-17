@@ -322,6 +322,7 @@ memoselyk <memoselyk@gmail.com>
 Michael <michael-k@users.noreply.github.com>
 Michael Aquilina <michaelaquilina@gmail.com>
 Michael E. Karpeles <michael.karpeles@gmail.com>
+Michael Felt <aixtools@felt.demon.nl>
 Michael Klich <michal@michalklich.com>
 Michael Williamson <mike@zwobble.org>
 michaelpacer <michaelpacer@gmail.com>
