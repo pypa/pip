@@ -85,6 +85,18 @@ def has_leading_dir(paths):
     return True
 
 
+def is_within_directory(directory, target):
+    # type: ((Union[str, Text]), (Union[str, Text])) -> bool
+    """
+    Return true if the absolute path of target is within the directory
+    """
+    abs_directory = os.path.abspath(directory)
+    abs_target = os.path.abspath(target)
+
+    prefix = os.path.commonprefix([abs_directory, abs_target])
+    return prefix == abs_directory
+
+
 def unzip_file(filename, location, flatten=True):
     # type: (str, str, bool) -> None
     """
@@ -107,6 +119,12 @@ def unzip_file(filename, location, flatten=True):
                 fn = split_leading_dir(name)[1]
             fn = os.path.join(location, fn)
             dir = os.path.dirname(fn)
+            if not is_within_directory(location, fn):
+                raise InstallationError(
+                    'The zip file (%s) has a file (%s) trying to install '
+                    'outside target directory (%s)' %
+                    (filename, fn, location)
+                )
             if fn.endswith('/') or fn.endswith('\\'):
                 # A directory
                 ensure_dir(fn)
@@ -166,6 +184,12 @@ def untar_file(filename, location):
                 # https://github.com/python/mypy/issues/1174
                 fn = split_leading_dir(fn)[1]  # type: ignore
             path = os.path.join(location, fn)
+            if not is_within_directory(location, path):
+                raise InstallationError(
+                    'The tar file (%s) has a file (%s) trying to install '
+                    'outside target directory (%s)' %
+                    (filename, path, location)
+                )
             if member.isdir():
                 ensure_dir(path)
             elif member.issym():

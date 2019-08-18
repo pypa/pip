@@ -2,10 +2,19 @@ import os
 import shutil
 import stat
 import sys
+import tarfile
 import tempfile
 import time
+import zipfile
 
-from pip._internal.utils.unpacking import untar_file, unzip_file
+import pytest
+
+from pip._internal.exceptions import InstallationError
+from pip._internal.utils.unpacking import (
+    is_within_directory,
+    untar_file,
+    unzip_file,
+)
 
 
 class TestUnpackArchives(object):
@@ -71,6 +80,27 @@ class TestUnpackArchives(object):
                 "mode: %s, expected mode: %s" % (mode, expected_mode)
             )
 
+    def make_zip_file(self, filename, file_list):
+        """
+        Create a zip file for test case
+        """
+        test_zip = os.path.join(self.tempdir, filename)
+        with zipfile.ZipFile(test_zip, 'w') as myzip:
+            for item in file_list:
+                myzip.writestr(item, 'file content')
+        return test_zip
+
+    def make_tar_file(self, filename, file_list):
+        """
+        Create a tar file for test case
+        """
+        test_tar = os.path.join(self.tempdir, filename)
+        with tarfile.open(test_tar, 'w') as mytar:
+            for item in file_list:
+                file_tarinfo = tarfile.TarInfo(item)
+                mytar.addfile(file_tarinfo, 'file content')
+        return test_tar
+
     def test_unpack_tgz(self, data):
         """
         Test unpacking a *.tgz, and setting execute permissions
@@ -90,3 +120,72 @@ class TestUnpackArchives(object):
         test_file = data.packages.joinpath("test_zip.zip")
         unzip_file(test_file, self.tempdir)
         self.confirm_files()
+
+    def test_unpack_zip_failure(self):
+        """
+        Test unpacking a *.zip with file containing .. path
+        and expect exception
+        """
+        test_zip = self.make_zip_file('test_zip.zip',
+                                      ['regular_file.txt',
+                                       os.path.join('..', 'outside_file.txt')])
+        with pytest.raises(
+                InstallationError,
+                match=r'.*trying to install outside target directory.*'):
+            unzip_file(test_zip, self.tempdir)
+
+    def test_unpack_zip_success(self):
+        """
+        Test unpacking a *.zip with regular files,
+        no file will be installed outside target directory after unpack
+        so no exception raised
+        """
+        test_zip = self.make_zip_file(
+            'test_zip.zip',
+            ['regular_file1.txt',
+             os.path.join('dir', 'dir_file1.txt'),
+             os.path.join('dir', '..', 'dir_file2.txt')])
+        unzip_file(test_zip, self.tempdir)
+
+    def test_unpack_tar_failure(self):
+        """
+        Test unpacking a *.tar with file containing .. path
+        and expect exception
+        """
+        test_tar = self.make_tar_file('test_tar.tar',
+                                      ['regular_file.txt',
+                                       os.path.join('..', 'outside_file.txt')])
+        with pytest.raises(
+                InstallationError,
+                match=r'.*trying to install outside target directory.*'):
+            untar_file(test_tar, self.tempdir)
+
+    def test_unpack_tar_success(self):
+        """
+        Test unpacking a *.tar with regular files,
+        no file will be installed outside target directory after unpack
+        so no exception raised
+        """
+        test_tar = self.make_tar_file(
+            'test_tar.tar',
+            ['regular_file1.txt',
+             os.path.join('dir', 'dir_file1.txt'),
+             os.path.join('dir', '..', 'dir_file2.txt')])
+        untar_file(test_tar, self.tempdir)
+
+
+@pytest.mark.parametrize('args, expected', [
+    # Test the second containing the first.
+    (('parent/sub', 'parent/'), False),
+    # Test the first not ending in a trailing slash.
+    (('parent', 'parent/foo'), True),
+    # Test target containing `..` but still inside the parent.
+    (('parent/', 'parent/foo/../bar'), True),
+    # Test target within the parent
+    (('parent/', 'parent/sub'), True),
+    # Test target outside parent
+    (('parent/', 'parent/../sub'), False),
+])
+def test_is_within_directory(args, expected):
+    result = is_within_directory(*args)
+    assert result == expected
