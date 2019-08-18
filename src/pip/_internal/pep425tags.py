@@ -109,22 +109,17 @@ def get_abi_tag():
         d = ''
         m = ''
         u = ''
-        if get_flag('Py_DEBUG',
-                    lambda: hasattr(sys, 'gettotalrefcount'),
-                    warn=(impl == 'cp')):
+        is_cpython = (impl == 'cp')
+        if get_flag(
+                'Py_DEBUG', lambda: hasattr(sys, 'gettotalrefcount'),
+                warn=is_cpython):
             d = 'd'
-        if get_flag('WITH_PYMALLOC',
-                    lambda: impl == 'cp',
-                    warn=(impl == 'cp' and
-                          sys.version_info < (3, 8))) \
-                and sys.version_info < (3, 8):
+        if sys.version_info < (3, 8) and get_flag(
+                'WITH_PYMALLOC', lambda: is_cpython, warn=is_cpython):
             m = 'm'
-        if get_flag('Py_UNICODE_SIZE',
-                    lambda: sys.maxunicode == 0x10ffff,
-                    expected=4,
-                    warn=(impl == 'cp' and
-                          sys.version_info < (3, 3))) \
-                and sys.version_info < (3, 3):
+        if sys.version_info < (3, 3) and get_flag(
+                'Py_UNICODE_SIZE', lambda: sys.maxunicode == 0x10ffff,
+                expected=4, warn=is_cpython):
             u = 'u'
         abi = '%s%s%s%s%s' % (impl, get_impl_ver(), d, m, u)
     elif soabi and soabi.startswith('cpython-'):
