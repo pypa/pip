@@ -54,7 +54,7 @@ class Bazaar(VersionControl):
 
         url, rev_options = self.get_url_rev_options(url)
         self.run_command(
-            make_command('export', location, url) + rev_options.to_args(),
+            make_command('export', location, url, rev_options.to_args()),
             show_stdout=False,
         )
 
@@ -68,7 +68,7 @@ class Bazaar(VersionControl):
             display_path(dest),
         )
         cmd_args = (
-            make_command('branch', '-q') + rev_options.to_args() + [url, dest]
+            make_command('branch', '-q', rev_options.to_args(), url, dest)
         )
         self.run_command(cmd_args)
 
@@ -78,7 +78,7 @@ class Bazaar(VersionControl):
 
     def update(self, dest, url, rev_options):
         # type: (str, HiddenText, RevOptions) -> None
-        cmd_args = make_command('pull', '-q') + rev_options.to_args()
+        cmd_args = make_command('pull', '-q', rev_options.to_args())
         self.run_command(cmd_args, cwd=dest)
 
     @classmethod

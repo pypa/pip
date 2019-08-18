@@ -173,7 +173,7 @@ class Git(VersionControl):
 
         # If it looks like a ref, we have to fetch it explicitly.
         cls.run_command(
-            make_command('fetch', '-q', url) + rev_options.to_args(),
+            make_command('fetch', '-q', url, rev_options.to_args()),
             cwd=dest,
         )
         # Change the revision to the SHA of the ref we fetched
@@ -211,8 +211,8 @@ class Git(VersionControl):
                 # Only do a checkout if the current commit id doesn't match
                 # the requested revision.
                 if not self.is_commit_id_equal(dest, rev_options.rev):
-                    cmd_args = (
-                        make_command('checkout', '-q') + rev_options.to_args()
+                    cmd_args = make_command(
+                        'checkout', '-q', rev_options.to_args(),
                     )
                     self.run_command(cmd_args, cwd=dest)
             elif self.get_current_branch(dest) != branch_name:
@@ -233,7 +233,7 @@ class Git(VersionControl):
             make_command('config', 'remote.origin.url', url),
             cwd=dest,
         )
-        cmd_args = make_command('checkout', '-q') + rev_options.to_args()
+        cmd_args = make_command('checkout', '-q', rev_options.to_args())
         self.run_command(cmd_args, cwd=dest)
 
         self.update_submodules(dest)
@@ -248,9 +248,7 @@ class Git(VersionControl):
             self.run_command(['fetch', '-q'], cwd=dest)
         # Then reset to wanted revision (maybe even origin/master)
         rev_options = self.resolve_revision(dest, url, rev_options)
-        cmd_args = (
-            make_command('reset', '--hard', '-q') + rev_options.to_args()
-        )
+        cmd_args = make_command('reset', '--hard', '-q', rev_options.to_args())
         self.run_command(cmd_args, cwd=dest)
         #: update submodules
         self.update_submodules(dest)

@@ -766,9 +766,19 @@ def unpack_file(
 
 
 def make_command(*args):
-    # type: (Union[str, HiddenText]) -> CommandArgs
+    # type: (Union[str, HiddenText, CommandArgs]) -> CommandArgs
+    """
+    Create a CommandArgs object.
+    """
     command_args = []  # type: CommandArgs
-    command_args.extend(args)
+    for arg in args:
+        # Check for list instead of CommandArgs since CommandArgs is
+        # only known during type-checking.
+        if isinstance(arg, list):
+            command_args.extend(arg)
+        else:
+            # Otherwise, arg is str or HiddenText.
+            command_args.append(arg)
 
     return command_args
 

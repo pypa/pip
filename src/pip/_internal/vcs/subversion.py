@@ -288,9 +288,9 @@ class Subversion(VersionControl):
                 # Subversion doesn't like to check out over an existing
                 # directory --force fixes this, but was only added in svn 1.5
                 rmtree(location)
-            cmd_args = (
-                make_command('export') + self.get_remote_call_options() +
-                rev_options.to_args() + [url, location]
+            cmd_args = make_command(
+                'export', self.get_remote_call_options(),
+                rev_options.to_args(), url, location,
             )
             self.run_command(cmd_args, show_stdout=False)
 
@@ -303,25 +303,25 @@ class Subversion(VersionControl):
             rev_display,
             display_path(dest),
         )
-        cmd_args = (
-            make_command('checkout', '-q') + self.get_remote_call_options() +
-            rev_options.to_args() + [url, dest]
+        cmd_args = make_command(
+            'checkout', '-q', self.get_remote_call_options(),
+            rev_options.to_args(), url, dest,
         )
         self.run_command(cmd_args)
 
     def switch(self, dest, url, rev_options):
         # type: (str, HiddenText, RevOptions) -> None
-        cmd_args = (
-            make_command('switch') + self.get_remote_call_options() +
-            rev_options.to_args() + [url, dest]
+        cmd_args = make_command(
+            'switch', self.get_remote_call_options(), rev_options.to_args(),
+            url, dest,
         )
         self.run_command(cmd_args)
 
     def update(self, dest, url, rev_options):
         # type: (str, HiddenText, RevOptions) -> None
-        cmd_args = (
-            make_command('update') + self.get_remote_call_options() +
-            rev_options.to_args() + [dest]
+        cmd_args = make_command(
+            'update', self.get_remote_call_options(), rev_options.to_args(),
+            dest,
         )
         self.run_command(cmd_args)
 
