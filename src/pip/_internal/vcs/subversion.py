@@ -8,7 +8,6 @@ import sys
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     display_path,
-    hide_value,
     make_command,
     rmtree,
     split_auth_from_netloc,
@@ -97,12 +96,12 @@ class Subversion(VersionControl):
 
     @staticmethod
     def make_rev_args(username, password):
-        # type: (Optional[str], Optional[str]) -> CommandArgs
+        # type: (Optional[str], Optional[HiddenText]) -> CommandArgs
         extra_args = []  # type: CommandArgs
         if username:
             extra_args += ['--username', username]
         if password:
-            extra_args += ['--password', hide_value(password)]
+            extra_args += ['--password', password]
 
         return extra_args
 

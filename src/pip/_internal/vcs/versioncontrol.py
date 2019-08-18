@@ -17,6 +17,7 @@ from pip._internal.utils.misc import (
     call_subprocess,
     display_path,
     hide_url,
+    hide_value,
     make_command,
     rmtree,
 )
@@ -351,7 +352,7 @@ class VersionControl(object):
 
     @staticmethod
     def make_rev_args(username, password):
-        # type: (Optional[str], Optional[str]) -> CommandArgs
+        # type: (Optional[str], Optional[HiddenText]) -> CommandArgs
         """
         Return the RevOptions "extra arguments" to use in obtain().
         """
@@ -364,7 +365,10 @@ class VersionControl(object):
         some cases export(), as a tuple (url, rev_options).
         """
         secret_url, rev, user_pass = self.get_url_rev_and_auth(url.secret)
-        username, password = user_pass
+        username, secret_password = user_pass
+        password = None  # type: Optional[HiddenText]
+        if secret_password is not None:
+            password = hide_value(secret_password)
         extra_args = self.make_rev_args(username, password)
         rev_options = self.make_rev_options(rev, extra_args=extra_args)
 

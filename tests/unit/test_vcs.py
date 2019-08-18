@@ -6,7 +6,7 @@ from mock import patch
 from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.exceptions import BadCommand
-from pip._internal.utils.misc import HiddenText, hide_url
+from pip._internal.utils.misc import HiddenText, hide_url, hide_value
 from pip._internal.vcs import make_vcs_requirement_url
 from pip._internal.vcs.bazaar import Bazaar
 from pip._internal.vcs.git import Git, looks_like_hash
@@ -343,7 +343,7 @@ def test_subversion__get_url_rev_and_auth(url, expected):
 @pytest.mark.parametrize('username, password, expected', [
     (None, None, []),
     ('user', None, []),
-    ('user', 'pass', []),
+    ('user', hide_value('pass'), []),
 ])
 def test_git__make_rev_args(username, password, expected):
     """
@@ -356,7 +356,8 @@ def test_git__make_rev_args(username, password, expected):
 @pytest.mark.parametrize('username, password, expected', [
     (None, None, []),
     ('user', None, ['--username', 'user']),
-    ('user', 'pass', ['--username', 'user', '--password', HiddenText('pass')]),
+    ('user', hide_value('pass'),
+     ['--username', 'user', '--password', HiddenText('pass')]),
 ])
 def test_subversion__make_rev_args(username, password, expected):
     """
