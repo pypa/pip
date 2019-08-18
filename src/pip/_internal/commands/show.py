@@ -60,6 +60,11 @@ def search_packages_info(query):
         installed[canonicalize_name(p.project_name)] = p
 
     query_names = [canonicalize_name(name) for name in query]
+    missing = sorted(
+        [name for name, pkg in zip(query, query_names) if pkg not in installed]
+    )
+    if missing:
+        logger.warning('Package(s) not found: %s', ', '.join(missing))
 
     for dist in [installed[pkg] for pkg in query_names if pkg in installed]:
         package = {
