@@ -36,4 +36,4 @@ class CheckCommand(Command):
         if missing or conflicting or parsing_probs:
             return 1
         else:
-            logger.info("No broken requirements found.")
+            write_output("No broken requirements found.")

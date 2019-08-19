@@ -143,8 +143,7 @@ class DownloadCommand(RequirementCommand):
                     req.name for req in requirement_set.successfully_downloaded
                 ])
                 if downloaded:
-                    write_output('Successfully downloaded {}'.format(
-                        downloaded))
+                    write_output('Successfully downloaded %s', downloaded)
 
                 # Clean up
                 if not options.no_clean:

@@ -138,32 +138,31 @@ def print_results(distributions, list_files=False, verbose=False):
             if name in [required.name for required in pkg.requires()]
         ]
 
-        write_output("Name: {}".format(name))
-        write_output("Version: {}".format(dist.get('version', '')))
-        write_output("Summary: {}".format(dist.get('summary', '')))
-        write_output("Home-page: {}".format(dist.get('home-page', '')))
-        write_output("Author: {}".format(dist.get('author', '')))
-        write_output("Author-email: {}".format(dist.get('author-email', '')))
-        write_output("License: {}".format(dist.get('license', '')))
-        write_output("Location: {}".format(dist.get('location', '')))
-        write_output("Requires: {}".format(', '.join(
-            dist.get('requires', []))))
-        write_output("Required-by: {}".format(', '.join(required_by)))
+        write_output("Name: %s", name)
+        write_output("Version: %s", dist.get('version', ''))
+        write_output("Summary: %s", dist.get('summary', ''))
+        write_output("Home-page: %s", dist.get('home-page', ''))
+        write_output("Author: %s", dist.get('author', ''))
+        write_output("Author-email: %s", dist.get('author-email', ''))
+        write_output("License: %s", dist.get('license', ''))
+        write_output("Location: %s", dist.get('location', ''))
+        write_output("Requires: %s", ', '.join(dist.get('requires', [])))
+        write_output("Required-by: %s", ', '.join(required_by))
 
         if verbose:
-            write_output("Metadata-Version: {}".format(
-                dist.get('metadata-version', '')))
-            write_output("Installer: {}".format(dist.get('installer', '')))
+            write_output("Metadata-Version: %s",
+                        dist.get('metadata-version', ''))
+            write_output("Installer: %s", dist.get('installer', ''))
             write_output("Classifiers:")
             for classifier in dist.get('classifiers', []):
-                write_output("  {}".format(classifier))
+                write_output("  %s", classifier)
             write_output("Entry-points:")
             for entry in dist.get('entry_points', []):
-                write_output("  {}".format(entry.strip()))
+                write_output("  %s", entry.strip())
         if list_files:
             write_output("Files:")
             for line in dist.get('files', []):
-                write_output("  {}".format(line.strip()))
+                write_output("  %s", line.strip())
             if "files" not in dist:
                 write_output("Cannot locate installed-files.txt")
     return results_printed
