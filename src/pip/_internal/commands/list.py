@@ -219,7 +219,7 @@ class ListCommand(IndexGroupCommand):
             for dist in packages:
                 if options.verbose >= 1:
                     write_output("%s==%s (%s)", dist.project_name,
-                                dist.version, dist.location)
+                                 dist.version, dist.location)
                 else:
                     write_output("%s==%s", dist.project_name, dist.version)
         elif options.list_format == 'json':

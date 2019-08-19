@@ -151,7 +151,7 @@ def print_results(distributions, list_files=False, verbose=False):
 
         if verbose:
             write_output("Metadata-Version: %s",
-                        dist.get('metadata-version', ''))
+                         dist.get('metadata-version', ''))
             write_output("Installer: %s", dist.get('installer', ''))
             write_output("Classifiers:")
             for classifier in dist.get('classifiers', []):

@@ -23,15 +23,14 @@ class CheckCommand(Command):
         for project_name in missing:
             version = package_set[project_name].version
             for dependency in missing[project_name]:
-                write_output("{} {} requires {}, which is not installed."
-                             "".format(project_name, version, dependency[0]))
+                write_output("%s %s requires %s, which is not installed.",
+                             project_name, version, dependency[0])
 
         for project_name in conflicting:
             version = package_set[project_name].version
             for dep_name, dep_version, req in conflicting[project_name]:
-                write_output("{} {} has requirement {}, but you have {} {}."
-                             "".format(project_name, version, req, dep_name,
-                                       dep_version))
+                write_output("%s %s has requirement %s, but you have %s %s.",
+                             project_name, version, req, dep_name, dep_version)
 
         if missing or conflicting or parsing_probs:
             return 1

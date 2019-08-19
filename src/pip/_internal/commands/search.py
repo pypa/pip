@@ -129,7 +129,7 @@ def print_results(hits, name_column_width=None, terminal_width=None):
                         write_output('INSTALLED: %s', dist.version)
                         if parse_version(latest).pre:
                             write_output('LATEST:    %s (pre-release; install'
-                                        ' with "pip install --pre")', latest)
+                                         ' with "pip install --pre")', latest)
                         else:
                             write_output('LATEST:    %s', latest)
         except UnicodeEncodeError:
