@@ -1,0 +1,1 @@
+Pip now includes license text of 3rd party libraries in its wheel package as well as its source package.
