@@ -63,6 +63,7 @@ setup(
         where="src",
         exclude=["contrib", "docs", "tests*", "tasks"],
     ),
+    include_package_data=True,
     package_data={
         "pip._vendor.certifi": ["*.pem"],
         "pip._vendor.requests": ["*.pem"],
