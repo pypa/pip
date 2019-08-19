@@ -1241,24 +1241,24 @@ def redact_password_from_url(url):
 class HiddenText(object):
     def __init__(
         self,
-        secret,         # type: str
-        redacted=None,  # type: Optional[str]
+        secret,    # type: str
+        redacted,  # type: str
     ):
         # type: (...) -> None
-        if redacted is None:
-            redacted = '****'
-
         self.secret = secret
         self.redacted = redacted
 
     def __repr__(self):
+        # type: (...) -> str
         return '<HiddenText {!r}>'.format(str(self))
 
     def __str__(self):
+        # type: (...) -> str
         return self.redacted
 
     # This is useful for testing.
     def __eq__(self, other):
+        # type: (Any) -> bool
         if type(self) != type(other):
             return False
 
@@ -1266,10 +1266,16 @@ class HiddenText(object):
         # just the raw, original string.
         return (self.secret == other.secret)
 
+    # We need to provide an explicit __ne__ implementation for Python 2.
+    # TODO: remove this when we drop PY2 support.
+    def __ne__(self, other):
+        # type: (Any) -> bool
+        return not self == other
+
 
 def hide_value(value):
     # type: (str) -> HiddenText
-    return HiddenText(value)
+    return HiddenText(value, redacted='****')
 
 
 def hide_url(url):

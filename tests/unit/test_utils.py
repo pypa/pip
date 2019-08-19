@@ -1365,19 +1365,53 @@ def test_redact_password_from_url(auth_url, expected_url):
 
 class TestHiddenText:
 
-    def test_default_redacted(self):
-        hidden = HiddenText('my-secret')
-        assert repr(hidden) == "<HiddenText '****'>"
-        assert str(hidden) == '****'
-        assert hidden.redacted == '****'
-        assert hidden.secret == 'my-secret'
-
-    def test_custom_redacted(self):
+    def test_basic(self):
+        """
+        Test str(), repr(), and attribute access.
+        """
         hidden = HiddenText('my-secret', redacted='######')
         assert repr(hidden) == "<HiddenText '######'>"
         assert str(hidden) == '######'
         assert hidden.redacted == '######'
         assert hidden.secret == 'my-secret'
+
+    def test_equality_with_str(self):
+        """
+        Test equality (and inequality) with str objects.
+        """
+        hidden = HiddenText('secret', redacted='****')
+
+        # Test that the object doesn't compare equal to either its original
+        # or redacted forms.
+        assert hidden != hidden.secret
+        assert hidden.secret != hidden
+
+        assert hidden != hidden.redacted
+        assert hidden.redacted != hidden
+
+    def test_equality_same_secret(self):
+        """
+        Test equality with an object having the same secret.
+        """
+        # Choose different redactions for the two objects.
+        hidden1 = HiddenText('secret', redacted='****')
+        hidden2 = HiddenText('secret', redacted='####')
+
+        assert hidden1 == hidden2
+        # Also test __ne__.  This assertion fails in Python 2 without
+        # defining HiddenText.__ne__.
+        assert not hidden1 != hidden2
+
+    def test_equality_different_secret(self):
+        """
+        Test equality with an object having a different secret.
+        """
+        hidden1 = HiddenText('secret-1', redacted='****')
+        hidden2 = HiddenText('secret-2', redacted='****')
+
+        assert hidden1 != hidden2
+        # Also test __eq__.
+        assert not hidden1 == hidden2
 
 
 def test_hide_value():

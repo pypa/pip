@@ -6,7 +6,7 @@ from mock import patch
 from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.exceptions import BadCommand
-from pip._internal.utils.misc import HiddenText, hide_url, hide_value
+from pip._internal.utils.misc import hide_url, hide_value
 from pip._internal.vcs import make_vcs_requirement_url
 from pip._internal.vcs.bazaar import Bazaar
 from pip._internal.vcs.git import Git, looks_like_hash
@@ -357,7 +357,7 @@ def test_git__make_rev_args(username, password, expected):
     (None, None, []),
     ('user', None, ['--username', 'user']),
     ('user', hide_value('pass'),
-     ['--username', 'user', '--password', HiddenText('pass')]),
+     ['--username', 'user', '--password', hide_value('pass')]),
 ])
 def test_subversion__make_rev_args(username, password, expected):
     """
@@ -376,10 +376,10 @@ def test_subversion__get_url_rev_options():
     )
     hidden_url = hide_url(secret_url)
     url, rev_options = Subversion().get_url_rev_options(hidden_url)
-    assert url == HiddenText('https://svn.example.com/MyProject')
+    assert url == hide_url('https://svn.example.com/MyProject')
     assert rev_options.rev == 'v1.0'
     assert rev_options.extra_args == (
-        ['--username', 'user', '--password', HiddenText('pass')]
+        ['--username', 'user', '--password', hide_value('pass')]
     )
 
 
@@ -527,23 +527,23 @@ class TestSubversionArgs(TestCase):
         self.svn.obtain(self.dest, hide_url(self.url))
         self.assert_call_args([
             'svn', 'checkout', '-q', '--non-interactive', '--username',
-            'username', '--password', HiddenText('password'),
-            HiddenText('http://svn.example.com/'), '/tmp/test',
+            'username', '--password', hide_value('password'),
+            hide_url('http://svn.example.com/'), '/tmp/test',
         ])
 
     def test_export(self):
         self.svn.export(self.dest, hide_url(self.url))
         self.assert_call_args([
             'svn', 'export', '--non-interactive', '--username', 'username',
-            '--password', HiddenText('password'),
-            HiddenText('http://svn.example.com/'), '/tmp/test',
+            '--password', hide_value('password'),
+            hide_url('http://svn.example.com/'), '/tmp/test',
         ])
 
     def test_fetch_new(self):
         self.svn.fetch_new(self.dest, hide_url(self.url), self.rev_options)
         self.assert_call_args([
             'svn', 'checkout', '-q', '--non-interactive',
-            HiddenText('svn+http://username:password@svn.example.com/'),
+            hide_url('svn+http://username:password@svn.example.com/'),
             '/tmp/test',
         ])
 
@@ -552,7 +552,7 @@ class TestSubversionArgs(TestCase):
         self.svn.fetch_new(self.dest, hide_url(self.url), rev_options)
         self.assert_call_args([
             'svn', 'checkout', '-q', '--non-interactive', '-r', '123',
-            HiddenText('svn+http://username:password@svn.example.com/'),
+            hide_url('svn+http://username:password@svn.example.com/'),
             '/tmp/test',
         ])
 
@@ -560,7 +560,7 @@ class TestSubversionArgs(TestCase):
         self.svn.switch(self.dest, hide_url(self.url), self.rev_options)
         self.assert_call_args([
             'svn', 'switch', '--non-interactive',
-            HiddenText('svn+http://username:password@svn.example.com/'),
+            hide_url('svn+http://username:password@svn.example.com/'),
             '/tmp/test',
         ])
 
