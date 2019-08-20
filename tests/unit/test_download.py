@@ -618,7 +618,7 @@ class TestPipSession:
     def test_insecure_host_adapter(self, tmpdir):
         session = PipSession(
             cache=tmpdir.joinpath("test-cache"),
-            insecure_hosts=["example.com"],
+            trusted_hosts=["example.com"],
         )
 
         assert "https://example.com/" in session.adapters
@@ -630,7 +630,7 @@ class TestPipSession:
     def test_add_trusted_host(self):
         # Leave a gap to test how the ordering is affected.
         trusted_hosts = ['host1', 'host3']
-        session = PipSession(insecure_hosts=trusted_hosts)
+        session = PipSession(trusted_hosts=trusted_hosts)
         insecure_adapter = session._insecure_adapter
         prefix2 = 'https://host2/'
         prefix3 = 'https://host3/'
@@ -658,7 +658,7 @@ class TestPipSession:
         Test logging when add_trusted_host() is called.
         """
         trusted_hosts = ['host0', 'host1']
-        session = PipSession(insecure_hosts=trusted_hosts)
+        session = PipSession(trusted_hosts=trusted_hosts)
         with caplog.at_level(logging.INFO):
             # Test adding an existing host.
             session.add_trusted_host('host1', source='somewhere')
@@ -677,7 +677,7 @@ class TestPipSession:
 
     def test_iter_secure_origins(self):
         trusted_hosts = ['host1', 'host2']
-        session = PipSession(insecure_hosts=trusted_hosts)
+        session = PipSession(trusted_hosts=trusted_hosts)
 
         actual = list(session.iter_secure_origins())
         assert len(actual) == 8
@@ -688,11 +688,11 @@ class TestPipSession:
             ('*', 'host2', '*'),
         ]
 
-    def test_iter_secure_origins__insecure_hosts_empty(self):
+    def test_iter_secure_origins__trusted_hosts_empty(self):
         """
-        Test iter_secure_origins() after passing insecure_hosts=[].
+        Test iter_secure_origins() after passing trusted_hosts=[].
         """
-        session = PipSession(insecure_hosts=[])
+        session = PipSession(trusted_hosts=[])
 
         actual = list(session.iter_secure_origins())
         assert len(actual) == 6
@@ -723,7 +723,7 @@ class TestPipSession:
             def warning(self, *args, **kwargs):
                 self.called = True
 
-        session = PipSession(insecure_hosts=trusted)
+        session = PipSession(trusted_hosts=trusted)
         actual = session.is_secure_origin(location)
         assert actual == expected
 

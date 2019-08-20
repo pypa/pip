@@ -573,12 +573,12 @@ class PipSession(requests.Session):
 
     def __init__(self, *args, **kwargs):
         """
-        :param insecure_hosts: Domains not to emit warnings for when not using
+        :param trusted_hosts: Domains not to emit warnings for when not using
             HTTPS.
         """
         retries = kwargs.pop("retries", 0)
         cache = kwargs.pop("cache", None)
-        insecure_hosts = kwargs.pop("insecure_hosts", [])  # type: List[str]
+        trusted_hosts = kwargs.pop("trusted_hosts", [])  # type: List[str]
         index_urls = kwargs.pop("index_urls", None)
 
         super(PipSession, self).__init__(*args, **kwargs)
@@ -652,7 +652,7 @@ class PipSession(requests.Session):
         # Enable file:// urls
         self.mount("file://", LocalFSAdapter())
 
-        for host in insecure_hosts:
+        for host in trusted_hosts:
             self.add_trusted_host(host, suppress_logging=True)
 
     def add_trusted_host(self, host, source=None, suppress_logging=False):
