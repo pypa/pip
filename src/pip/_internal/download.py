@@ -691,45 +691,48 @@ class PipSession(requests.Session):
         # type: (Link) -> bool
         # Determine if this url used a secure transport mechanism
         parsed = urllib_parse.urlparse(str(location))
-        origin = (parsed.scheme, parsed.hostname, parsed.port)
+        origin_protocol, origin_host, origin_port = (
+            parsed.scheme, parsed.hostname, parsed.port,
+        )
 
         # The protocol to use to see if the protocol matches.
         # Don't count the repository type as part of the protocol: in
         # cases such as "git+ssh", only use "ssh". (I.e., Only verify against
         # the last scheme.)
-        protocol = origin[0].rsplit('+', 1)[-1]
+        origin_protocol = origin_protocol.rsplit('+', 1)[-1]
 
         # Determine if our origin is a secure origin by looking through our
         # hardcoded list of secure origins, as well as any additional ones
         # configured on this PackageFinder instance.
         for secure_origin in self.iter_secure_origins():
-            if protocol != secure_origin[0] and secure_origin[0] != "*":
+            secure_protocol, secure_host, secure_port = secure_origin
+            if origin_protocol != secure_protocol and secure_protocol != "*":
                 continue
 
             try:
                 # We need to do this decode dance to ensure that we have a
                 # unicode object, even on Python 2.x.
                 addr = ipaddress.ip_address(
-                    origin[1]
+                    origin_host
                     if (
-                        isinstance(origin[1], six.text_type) or
-                        origin[1] is None
+                        isinstance(origin_host, six.text_type) or
+                        origin_host is None
                     )
-                    else origin[1].decode("utf8")
+                    else origin_host.decode("utf8")
                 )
                 network = ipaddress.ip_network(
-                    secure_origin[1]
-                    if isinstance(secure_origin[1], six.text_type)
-                    # setting secure_origin[1] to proper Union[bytes, str]
+                    secure_host
+                    if isinstance(secure_host, six.text_type)
+                    # setting secure_host to proper Union[bytes, str]
                     # creates problems in other places
-                    else secure_origin[1].decode("utf8")  # type: ignore
+                    else secure_host.decode("utf8")  # type: ignore
                 )
             except ValueError:
                 # We don't have both a valid address or a valid network, so
                 # we'll check this origin against hostnames.
-                if (origin[1] and
-                        origin[1].lower() != secure_origin[1].lower() and
-                        secure_origin[1] != "*"):
+                if (origin_host and
+                        origin_host.lower() != secure_host.lower() and
+                        secure_host != "*"):
                     continue
             else:
                 # We have a valid address and network, so see if the address
@@ -737,10 +740,10 @@ class PipSession(requests.Session):
                 if addr not in network:
                     continue
 
-            # Check to see if the port patches
-            if (origin[2] != secure_origin[2] and
-                    secure_origin[2] != "*" and
-                    secure_origin[2] is not None):
+            # Check to see if the port matches.
+            if (origin_port != secure_port and
+                    secure_port != "*" and
+                    secure_port is not None):
                 continue
 
             # If we've gotten here, then this origin matches the current
@@ -755,8 +758,8 @@ class PipSession(requests.Session):
             "is being ignored. If this repository is available via HTTPS we "
             "recommend you use HTTPS instead, otherwise you may silence "
             "this warning and allow it anyway with '--trusted-host %s'.",
-            parsed.hostname,
-            parsed.hostname,
+            origin_host,
+            origin_host,
         )
 
         return False
