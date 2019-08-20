@@ -12,7 +12,7 @@ import shutil
 import sys
 from contextlib import contextmanager
 
-from pip._vendor import requests, urllib3
+from pip._vendor import requests, six, urllib3
 from pip._vendor.cachecontrol import CacheControlAdapter
 from pip._vendor.cachecontrol.caches import FileCache
 from pip._vendor.lockfile import LockError
@@ -32,7 +32,7 @@ import pip
 from pip._internal.exceptions import HashMismatch, InstallationError
 from pip._internal.models.index import PyPI
 # Import ssl from compat so the initial import occurs in only one place.
-from pip._internal.utils.compat import HAS_TLS, ssl
+from pip._internal.utils.compat import HAS_TLS, ipaddress, ssl
 from pip._internal.utils.encoding import auto_decode
 from pip._internal.utils.filesystem import check_path_owner, copy2_fixed
 from pip._internal.utils.glibc import libc_ver
@@ -64,8 +64,9 @@ from pip._internal.utils.ui import DownloadProgressProvider
 from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
+    from logging import Logger
     from typing import (
-        Callable, Dict, List, IO, Optional, Text, Tuple, Union
+        IO, Callable, Dict, Iterator, List, Optional, Text, Tuple, Union,
     )
     from optparse import Values
 
@@ -76,6 +77,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.vcs.versioncontrol import AuthInfo, VersionControl
 
     Credentials = Tuple[str, str, str]
+    SecureOrigin = Tuple[str, str, Optional[str]]
 
     if PY2:
         CopytreeKwargs = TypedDict(
@@ -118,6 +120,20 @@ except Exception as exc:
     logger.warning("Keyring is skipped due to an exception: %s",
                    str(exc))
     keyring = None
+
+
+SECURE_ORIGINS = [
+    # protocol, hostname, port
+    # Taken from Chrome's list of secure origins (See: http://bit.ly/1qrySKC)
+    ("https", "*", "*"),
+    ("*", "localhost", "*"),
+    ("*", "127.0.0.0/8", "*"),
+    ("*", "::1/128", "*"),
+    ("file", "*", None),
+    # ssh is always secure.
+    ("ssh", "*", "*"),
+]  # type: List[SecureOrigin]
+
 
 # These are environment variables present when running under various
 # CI systems.  For each variable, some CI systems that use the variable
@@ -557,12 +573,20 @@ class PipSession(requests.Session):
     timeout = None  # type: Optional[int]
 
     def __init__(self, *args, **kwargs):
+        """
+        :param insecure_hosts: Domains not to emit warnings for when not using
+            HTTPS.
+        """
         retries = kwargs.pop("retries", 0)
         cache = kwargs.pop("cache", None)
-        insecure_hosts = kwargs.pop("insecure_hosts", [])
+        insecure_hosts = kwargs.pop("insecure_hosts", [])  # type: List[str]
         index_urls = kwargs.pop("index_urls", None)
 
         super(PipSession, self).__init__(*args, **kwargs)
+
+        # Namespace the attribute with "pip_" just in case to prevent
+        # possible conflicts with the base class.
+        self.pip_trusted_hosts = []  # type: List[str]
 
         # Attach our User Agent to the request
         self.headers["User-Agent"] = user_agent()
@@ -629,13 +653,26 @@ class PipSession(requests.Session):
         # Enable file:// urls
         self.mount("file://", LocalFSAdapter())
 
-        # We want to use a non-validating adapter for any requests which are
-        # deemed insecure.
         for host in insecure_hosts:
-            self.add_insecure_host(host)
+            self.add_trusted_host(host, suppress_logging=True)
 
-    def add_insecure_host(self, host):
-        # type: (str) -> None
+    def add_trusted_host(self, host, source=None, suppress_logging=False):
+        # type: (str, Optional[str], bool) -> None
+        """
+        :param host: It is okay to provide a host that has previously been
+            added.
+        :param source: An optional source string, for logging where the host
+            string came from.
+        """
+        if not suppress_logging:
+            msg = 'adding trusted host: {!r}'.format(host)
+            if source is not None:
+                msg += ' (from {})'.format(source)
+            logger.info(msg)
+
+        if host not in self.pip_trusted_hosts:
+            self.pip_trusted_hosts.append(host)
+
         self.mount(build_url_from_netloc(host) + '/', self._insecure_adapter)
         if not netloc_has_port(host):
             # Mount wildcard ports for the same host.
@@ -643,6 +680,87 @@ class PipSession(requests.Session):
                 build_url_from_netloc(host) + ':',
                 self._insecure_adapter
             )
+
+    def iter_secure_origins(self):
+        # type: () -> Iterator[SecureOrigin]
+        for secure_origin in SECURE_ORIGINS:
+            yield secure_origin
+        for host in self.pip_trusted_hosts:
+            yield ('*', host, '*')
+
+    def is_secure_origin(self, logger, location):
+        # type: (Logger, Link) -> bool
+        # Determine if this url used a secure transport mechanism
+        parsed = urllib_parse.urlparse(str(location))
+        origin = (parsed.scheme, parsed.hostname, parsed.port)
+
+        # The protocol to use to see if the protocol matches.
+        # Don't count the repository type as part of the protocol: in
+        # cases such as "git+ssh", only use "ssh". (I.e., Only verify against
+        # the last scheme.)
+        protocol = origin[0].rsplit('+', 1)[-1]
+
+        # Determine if our origin is a secure origin by looking through our
+        # hardcoded list of secure origins, as well as any additional ones
+        # configured on this PackageFinder instance.
+        for secure_origin in self.iter_secure_origins():
+            if protocol != secure_origin[0] and secure_origin[0] != "*":
+                continue
+
+            try:
+                # We need to do this decode dance to ensure that we have a
+                # unicode object, even on Python 2.x.
+                addr = ipaddress.ip_address(
+                    origin[1]
+                    if (
+                        isinstance(origin[1], six.text_type) or
+                        origin[1] is None
+                    )
+                    else origin[1].decode("utf8")
+                )
+                network = ipaddress.ip_network(
+                    secure_origin[1]
+                    if isinstance(secure_origin[1], six.text_type)
+                    # setting secure_origin[1] to proper Union[bytes, str]
+                    # creates problems in other places
+                    else secure_origin[1].decode("utf8")  # type: ignore
+                )
+            except ValueError:
+                # We don't have both a valid address or a valid network, so
+                # we'll check this origin against hostnames.
+                if (origin[1] and
+                        origin[1].lower() != secure_origin[1].lower() and
+                        secure_origin[1] != "*"):
+                    continue
+            else:
+                # We have a valid address and network, so see if the address
+                # is contained within the network.
+                if addr not in network:
+                    continue
+
+            # Check to see if the port patches
+            if (origin[2] != secure_origin[2] and
+                    secure_origin[2] != "*" and
+                    secure_origin[2] is not None):
+                continue
+
+            # If we've gotten here, then this origin matches the current
+            # secure origin and we should return True
+            return True
+
+        # If we've gotten to this point, then the origin isn't secure and we
+        # will not accept it as a valid location to search. We will however
+        # log a warning that we are ignoring it.
+        logger.warning(
+            "The repository located at %s is not a trusted or secure host and "
+            "is being ignored. If this repository is available via HTTPS we "
+            "recommend you use HTTPS instead, otherwise you may silence "
+            "this warning and allow it anyway with '--trusted-host %s'.",
+            parsed.hostname,
+            parsed.hostname,
+        )
+
+        return False
 
     def request(self, method, url, *args, **kwargs):
         # Allow setting a default timeout on a session

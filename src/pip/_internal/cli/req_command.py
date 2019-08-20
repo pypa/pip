@@ -276,7 +276,6 @@ class RequirementCommand(IndexGroupCommand):
         return PackageFinder.create(
             search_scope=search_scope,
             selection_prefs=selection_prefs,
-            trusted_hosts=options.trusted_hosts,
             session=session,
             target_python=target_python,
         )
