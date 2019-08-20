@@ -52,6 +52,11 @@ class RequirementSet(object):
         return ('<%s object; %d requirement(s): %s>'
                 % (self.__class__.__name__, len(reqs), reqs_str))
 
+    def add_unnamed_requirement(self, install_req):
+        # type: (InstallRequirement) -> None
+        assert not install_req.name
+        self.unnamed_requirements.append(install_req)
+
     def add_requirement(
         self,
         install_req,  # type: InstallRequirement
@@ -105,8 +110,7 @@ class RequirementSet(object):
         # Unnamed requirements are scanned again and the requirement won't be
         # added as a dependency until after scanning.
         if not name:
-            # url or path requirement w/o an egg fragment
-            self.unnamed_requirements.append(install_req)
+            self.add_unnamed_requirement(install_req)
             return [install_req], None
 
         try:
