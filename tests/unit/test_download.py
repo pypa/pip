@@ -700,21 +700,22 @@ class TestPipSession:
         assert actual[0] == ('https', '*', '*')
 
     @pytest.mark.parametrize(
-        ("location", "trusted", "expected"),
+        'location, trusted, expected',
         [
-            ("http://pypi.org/something", [], True),
-            ("https://pypi.org/something", [], False),
-            ("git+http://pypi.org/something", [], True),
-            ("git+https://pypi.org/something", [], False),
-            ("git+ssh://git@pypi.org/something", [], False),
-            ("http://localhost", [], False),
-            ("http://127.0.0.1", [], False),
-            ("http://example.com/something/", [], True),
-            ("http://example.com/something/", ["example.com"], False),
-            ("http://eXample.com/something/", ["example.cOm"], False),
+            ("http://pypi.org/something", [], False),
+            ("https://pypi.org/something", [], True),
+            ("git+http://pypi.org/something", [], False),
+            ("git+https://pypi.org/something", [], True),
+            ("git+ssh://git@pypi.org/something", [], True),
+            ("http://localhost", [], True),
+            ("http://127.0.0.1", [], True),
+            ("http://example.com/something/", [], False),
+            ("http://example.com/something/", ["example.com"], True),
+            # Try changing the case.
+            ("http://eXample.com/something/", ["example.cOm"], True),
         ],
     )
-    def test_secure_origin(self, location, trusted, expected):
+    def test_is_secure_origin(self, caplog, location, trusted, expected):
         class MockLogger(object):
             def __init__(self):
                 self.called = False
@@ -723,9 +724,18 @@ class TestPipSession:
                 self.called = True
 
         session = PipSession(insecure_hosts=trusted)
-        logger = MockLogger()
-        session.is_secure_origin(logger, location)
-        assert logger.called == expected
+        actual = session.is_secure_origin(location)
+        assert actual == expected
+
+        log_records = [(r.levelname, r.message) for r in caplog.records]
+        if expected:
+            assert not log_records
+            return
+
+        assert len(log_records) == 1
+        actual_level, actual_message = log_records[0]
+        assert actual_level == 'WARNING'
+        assert 'is not a trusted or secure host' in actual_message
 
 
 @pytest.mark.parametrize(["input_url", "url", "username", "password"], [

@@ -64,7 +64,6 @@ from pip._internal.utils.ui import DownloadProgressProvider
 from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
-    from logging import Logger
     from typing import (
         IO, Callable, Dict, Iterator, List, Optional, Text, Tuple, Union,
     )
@@ -688,8 +687,8 @@ class PipSession(requests.Session):
         for host in self.pip_trusted_hosts:
             yield ('*', host, '*')
 
-    def is_secure_origin(self, logger, location):
-        # type: (Logger, Link) -> bool
+    def is_secure_origin(self, location):
+        # type: (Link) -> bool
         # Determine if this url used a secure transport mechanism
         parsed = urllib_parse.urlparse(str(location))
         origin = (parsed.scheme, parsed.hostname, parsed.port)

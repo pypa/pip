@@ -999,7 +999,7 @@ class PackageFinder(object):
                 (Link(url) for url in index_url_loc),
                 (Link(url) for url in fl_url_loc),
             )
-            if self.session.is_secure_origin(logger, link)
+            if self.session.is_secure_origin(link)
         ]
 
         logger.debug('%d location(s) to search for versions of %s:',
