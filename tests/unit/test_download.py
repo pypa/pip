@@ -1,6 +1,7 @@
 import functools
 import hashlib
 import os
+import shutil
 import sys
 from io import BytesIO
 from shutil import copy, rmtree
@@ -15,6 +16,7 @@ from pip._internal.download import (
     MultiDomainBasicAuth,
     PipSession,
     SafeFileCache,
+    _copy_source_tree,
     _download_http_url,
     _get_url_scheme,
     parse_content_disposition,
@@ -28,6 +30,12 @@ from pip._internal.models.link import Link
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.misc import path_to_url
 from tests.lib import create_file
+from tests.lib.filesystem import (
+    get_filelist,
+    make_socket_file,
+    make_unreadable_file,
+)
+from tests.lib.path import Path
 
 
 @pytest.fixture(scope="function")
@@ -332,6 +340,85 @@ def test_url_to_path_path_to_url_symmetry_win():
 
     unc_path = r'\\unc\share\path'
     assert url_to_path(path_to_url(unc_path)) == unc_path
+
+
+@pytest.fixture
+def clean_project(tmpdir_factory, data):
+    tmpdir = Path(str(tmpdir_factory.mktemp("clean_project")))
+    new_project_dir = tmpdir.joinpath("FSPkg")
+    path = data.packages.joinpath("FSPkg")
+    shutil.copytree(path, new_project_dir)
+    return new_project_dir
+
+
+def test_copy_source_tree(clean_project, tmpdir):
+    target = tmpdir.joinpath("target")
+    expected_files = get_filelist(clean_project)
+    assert len(expected_files) == 3
+
+    _copy_source_tree(clean_project, target)
+
+    copied_files = get_filelist(target)
+    assert expected_files == copied_files
+
+
+@pytest.mark.skipif("sys.platform == 'win32' or sys.version_info < (3,)")
+def test_copy_source_tree_with_socket(clean_project, tmpdir, caplog):
+    target = tmpdir.joinpath("target")
+    expected_files = get_filelist(clean_project)
+    socket_path = str(clean_project.joinpath("aaa"))
+    make_socket_file(socket_path)
+
+    _copy_source_tree(clean_project, target)
+
+    copied_files = get_filelist(target)
+    assert expected_files == copied_files
+
+    # Warning should have been logged.
+    assert len(caplog.records) == 1
+    record = caplog.records[0]
+    assert record.levelname == 'WARNING'
+    assert socket_path in record.message
+
+
+@pytest.mark.skipif("sys.platform == 'win32' or sys.version_info < (3,)")
+def test_copy_source_tree_with_socket_fails_with_no_socket_error(
+    clean_project, tmpdir
+):
+    target = tmpdir.joinpath("target")
+    expected_files = get_filelist(clean_project)
+    make_socket_file(clean_project.joinpath("aaa"))
+    unreadable_file = clean_project.joinpath("bbb")
+    make_unreadable_file(unreadable_file)
+
+    with pytest.raises(shutil.Error) as e:
+        _copy_source_tree(clean_project, target)
+
+    errored_files = [err[0] for err in e.value.args[0]]
+    assert len(errored_files) == 1
+    assert unreadable_file in errored_files
+
+    copied_files = get_filelist(target)
+    # All files without errors should have been copied.
+    assert expected_files == copied_files
+
+
+def test_copy_source_tree_with_unreadable_dir_fails(clean_project, tmpdir):
+    target = tmpdir.joinpath("target")
+    expected_files = get_filelist(clean_project)
+    unreadable_file = clean_project.joinpath("bbb")
+    make_unreadable_file(unreadable_file)
+
+    with pytest.raises(shutil.Error) as e:
+        _copy_source_tree(clean_project, target)
+
+    errored_files = [err[0] for err in e.value.args[0]]
+    assert len(errored_files) == 1
+    assert unreadable_file in errored_files
+
+    copied_files = get_filelist(target)
+    # All files without errors should have been copied.
+    assert expected_files == copied_files
 
 
 class Test_unpack_file_url(object):

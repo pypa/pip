@@ -21,6 +21,7 @@ from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
 from pip._vendor.requests.structures import CaseInsensitiveDict
 from pip._vendor.requests.utils import get_netrc_auth
+from pip._vendor.six import PY2
 # NOTE: XMLRPC Client is not annotated in typeshed as on 2017-07-17, which is
 #       why we ignore the type on this import
 from pip._vendor.six.moves import xmlrpc_client  # type: ignore
@@ -33,7 +34,7 @@ from pip._internal.models.index import PyPI
 # Import ssl from compat so the initial import occurs in only one place.
 from pip._internal.utils.compat import HAS_TLS, ssl
 from pip._internal.utils.encoding import auto_decode
-from pip._internal.utils.filesystem import check_path_owner
+from pip._internal.utils.filesystem import check_path_owner, copy2_fixed
 from pip._internal.utils.glibc import libc_ver
 from pip._internal.utils.marker_files import write_delete_marker_file
 from pip._internal.utils.misc import (
@@ -49,6 +50,7 @@ from pip._internal.utils.misc import (
     format_size,
     get_installed_version,
     netloc_has_port,
+    path_to_display,
     path_to_url,
     remove_auth_from_url,
     rmtree,
@@ -63,14 +65,38 @@ from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Optional, Tuple, Dict, IO, Text, Union
+        Callable, Dict, List, IO, Optional, Text, Tuple, Union
     )
     from optparse import Values
+
+    from mypy_extensions import TypedDict
+
     from pip._internal.models.link import Link
     from pip._internal.utils.hashes import Hashes
     from pip._internal.vcs.versioncontrol import AuthInfo, VersionControl
 
     Credentials = Tuple[str, str, str]
+
+    if PY2:
+        CopytreeKwargs = TypedDict(
+            'CopytreeKwargs',
+            {
+                'ignore': Callable[[str, List[str]], List[str]],
+                'symlinks': bool,
+            },
+            total=False,
+        )
+    else:
+        CopytreeKwargs = TypedDict(
+            'CopytreeKwargs',
+            {
+                'copy_function': Callable[[str, str], None],
+                'ignore': Callable[[str, List[str]], List[str]],
+                'ignore_dangling_symlinks': bool,
+                'symlinks': bool,
+            },
+            total=False,
+        )
 
 
 __all__ = ['get_file_content',
@@ -939,6 +965,46 @@ def unpack_http_url(
             os.unlink(from_path)
 
 
+def _copy2_ignoring_special_files(src, dest):
+    # type: (str, str) -> None
+    """Copying special files is not supported, but as a convenience to users
+    we skip errors copying them. This supports tools that may create e.g.
+    socket files in the project source directory.
+    """
+    try:
+        copy2_fixed(src, dest)
+    except shutil.SpecialFileError as e:
+        # SpecialFileError may be raised due to either the source or
+        # destination. If the destination was the cause then we would actually
+        # care, but since the destination directory is deleted prior to
+        # copy we ignore all of them assuming it is caused by the source.
+        logger.warning(
+            "Ignoring special file error '%s' encountered copying %s to %s.",
+            str(e),
+            path_to_display(src),
+            path_to_display(dest),
+        )
+
+
+def _copy_source_tree(source, target):
+    # type: (str, str) -> None
+    def ignore(d, names):
+        # Pulling in those directories can potentially be very slow,
+        # exclude the following directories if they appear in the top
+        # level dir (and only it).
+        # See discussion at https://github.com/pypa/pip/pull/6770
+        return ['.tox', '.nox'] if d == source else []
+
+    kwargs = dict(ignore=ignore, symlinks=True)  # type: CopytreeKwargs
+
+    if not PY2:
+        # Python 2 does not support copy_function, so we only ignore
+        # errors on special file copy in Python 3.
+        kwargs['copy_function'] = _copy2_ignoring_special_files
+
+    shutil.copytree(source, target, **kwargs)
+
+
 def unpack_file_url(
     link,  # type: Link
     location,  # type: str
@@ -954,21 +1020,9 @@ def unpack_file_url(
     link_path = url_to_path(link.url_without_fragment)
     # If it's a url to a local directory
     if is_dir_url(link):
-
-        def ignore(d, names):
-            # Pulling in those directories can potentially be very slow,
-            # exclude the following directories if they appear in the top
-            # level dir (and only it).
-            # See discussion at https://github.com/pypa/pip/pull/6770
-            return ['.tox', '.nox'] if d == link_path else []
-
         if os.path.isdir(location):
             rmtree(location)
-        shutil.copytree(link_path,
-                        location,
-                        symlinks=True,
-                        ignore=ignore)
-
+        _copy_source_tree(link_path, location)
         if download_dir:
             logger.info('Link is a directory, ignoring download_dir')
         return
