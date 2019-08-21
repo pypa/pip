@@ -49,6 +49,7 @@ from pip._internal.utils.misc import (
     display_path,
     format_size,
     get_installed_version,
+    hide_url,
     netloc_has_port,
     path_to_display,
     path_to_url,
@@ -755,8 +756,10 @@ def is_archive_file(name):
 
 
 def unpack_vcs_link(link, location):
+    # type: (Link, str) -> None
     vcs_backend = _get_used_vcs_backend(link)
-    vcs_backend.unpack(location, url=link.url)
+    assert vcs_backend is not None
+    vcs_backend.unpack(location, url=hide_url(link.url))
 
 
 def _get_used_vcs_backend(link):

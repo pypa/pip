@@ -6,6 +6,7 @@ import os
 
 from pip._vendor.six.moves import configparser
 
+from pip._internal.utils.misc import hide_url
 from pip._internal.vcs.mercurial import Mercurial
 from tests.lib import need_mercurial
 
@@ -24,7 +25,7 @@ def test_mercurial_switch_updates_config_file_when_found(tmpdir):
     hgrc_path = os.path.join(hg_dir, 'hgrc')
     with open(hgrc_path, 'w') as f:
         config.write(f)
-    hg.switch(tmpdir, 'new_url', options)
+    hg.switch(tmpdir, hide_url('new_url'), options)
 
     config.read(hgrc_path)
 
