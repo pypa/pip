@@ -948,8 +948,8 @@ def call_subprocess(
     return ''.join(all_output)
 
 
-def write_output(*args):
-    logger.info(*args)
+def write_output(msg, *args):
+    logger.info(msg, *args)
 
 
 def _make_build_dir(build_dir):
