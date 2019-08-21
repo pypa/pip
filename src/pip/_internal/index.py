@@ -69,7 +69,7 @@ if MYPY_CHECK_RUNNING:
     SecureOrigin = Tuple[str, str, Optional[str]]
 
 
-__all__ = ['FormatControl', 'FoundCandidates', 'PackageFinder']
+__all__ = ['FormatControl', 'BestCandidateResult', 'PackageFinder']
 
 
 SECURE_ORIGINS = [
@@ -545,6 +545,51 @@ class CandidatePreferences(object):
         self.prefer_binary = prefer_binary
 
 
+class BestCandidateResult(object):
+    """A collection of candidates, returned by `PackageFinder.find_best_candidate`.
+
+    This class is only intended to be instantiated by CandidateEvaluator's
+    `compute_best_candidate()` method.
+    """
+
+    def __init__(
+        self,
+        candidates,             # type: List[InstallationCandidate]
+        applicable_candidates,  # type: List[InstallationCandidate]
+        best_candidate,         # type: Optional[InstallationCandidate]
+    ):
+        # type: (...) -> None
+        """
+        :param candidates: A sequence of all available candidates found.
+        :param applicable_candidates: The applicable candidates.
+        :param best_candidate: The most preferred candidate found, or None
+            if no applicable candidates were found.
+        """
+        assert set(applicable_candidates) <= set(candidates)
+
+        if best_candidate is None:
+            assert not applicable_candidates
+        else:
+            assert best_candidate in applicable_candidates
+
+        self._applicable_candidates = applicable_candidates
+        self._candidates = candidates
+
+        self.best_candidate = best_candidate
+
+    def iter_all(self):
+        # type: () -> Iterable[InstallationCandidate]
+        """Iterate through all candidates.
+        """
+        return iter(self._candidates)
+
+    def iter_applicable(self):
+        # type: () -> Iterable[InstallationCandidate]
+        """Iterate through the applicable candidates.
+        """
+        return iter(self._applicable_candidates)
+
+
 class CandidateEvaluator(object):
 
     """
@@ -568,6 +613,9 @@ class CandidateEvaluator(object):
         :param target_python: The target Python interpreter to use when
             checking compatibility. If None (the default), a TargetPython
             object will be constructed from the running Python.
+        :param specifier: An optional object implementing `filter`
+            (e.g. `packaging.specifiers.SpecifierSet`) to filter applicable
+            versions.
         :param hashes: An optional collection of allowed hashes.
         """
         if target_python is None:
@@ -643,26 +691,6 @@ class CandidateEvaluator(object):
             project_name=self._project_name,
         )
 
-    def make_found_candidates(
-        self,
-        candidates,      # type: List[InstallationCandidate]
-    ):
-        # type: (...) -> FoundCandidates
-        """
-        Create and return a `FoundCandidates` instance.
-
-        :param specifier: An optional object implementing `filter`
-            (e.g. `packaging.specifiers.SpecifierSet`) to filter applicable
-            versions.
-        """
-        applicable_candidates = self.get_applicable_candidates(candidates)
-
-        return FoundCandidates(
-            candidates,
-            applicable_candidates=applicable_candidates,
-            evaluator=self,
-        )
-
     def _sort_key(self, candidate):
         # type: (InstallationCandidate) -> CandidateSortingKey
         """
@@ -723,7 +751,7 @@ class CandidateEvaluator(object):
             build_tag, pri,
         )
 
-    def get_best_candidate(
+    def sort_best_candidate(
         self,
         candidates,    # type: List[InstallationCandidate]
     ):
@@ -753,50 +781,23 @@ class CandidateEvaluator(object):
 
         return best_candidate
 
-
-class FoundCandidates(object):
-    """A collection of candidates, returned by `PackageFinder.find_candidates`.
-
-    This class is only intended to be instantiated by CandidateEvaluator's
-    `make_found_candidates()` method.
-    """
-
-    def __init__(
+    def compute_best_candidate(
         self,
-        candidates,             # type: List[InstallationCandidate]
-        applicable_candidates,  # type: List[InstallationCandidate]
-        evaluator,              # type: CandidateEvaluator
+        candidates,      # type: List[InstallationCandidate]
     ):
-        # type: (...) -> None
+        # type: (...) -> BestCandidateResult
         """
-        :param candidates: A sequence of all available candidates found.
-        :param applicable_candidates: The applicable candidates.
-        :param evaluator: A CandidateEvaluator object to sort applicable
-            candidates by order of preference.
+        Compute and return a `BestCandidateResult` instance.
         """
-        self._applicable_candidates = applicable_candidates
-        self._candidates = candidates
-        self._evaluator = evaluator
+        applicable_candidates = self.get_applicable_candidates(candidates)
 
-    def iter_all(self):
-        # type: () -> Iterable[InstallationCandidate]
-        """Iterate through all candidates.
-        """
-        return iter(self._candidates)
+        best_candidate = self.sort_best_candidate(applicable_candidates)
 
-    def iter_applicable(self):
-        # type: () -> Iterable[InstallationCandidate]
-        """Iterate through the applicable candidates.
-        """
-        return iter(self._applicable_candidates)
-
-    def get_best(self):
-        # type: () -> Optional[InstallationCandidate]
-        """Return the best candidate available, or None if no applicable
-        candidates are found.
-        """
-        candidates = list(self.iter_applicable())
-        return self._evaluator.get_best_candidate(candidates)
+        return BestCandidateResult(
+            candidates,
+            applicable_candidates=applicable_candidates,
+            best_candidate=best_candidate,
+        )
 
 
 class PackageFinder(object):
@@ -1174,20 +1175,20 @@ class PackageFinder(object):
             hashes=hashes,
         )
 
-    def find_candidates(
+    def find_best_candidate(
         self,
         project_name,       # type: str
         specifier=None,     # type: Optional[specifiers.BaseSpecifier]
         hashes=None,        # type: Optional[Hashes]
     ):
-        # type: (...) -> FoundCandidates
+        # type: (...) -> BestCandidateResult
         """Find matches for the given project and specifier.
 
         :param specifier: An optional object implementing `filter`
             (e.g. `packaging.specifiers.SpecifierSet`) to filter applicable
             versions.
 
-        :return: A `FoundCandidates` instance.
+        :return: A `BestCandidateResult` instance.
         """
         candidates = self.find_all_candidates(project_name)
         candidate_evaluator = self.make_candidate_evaluator(
@@ -1195,7 +1196,7 @@ class PackageFinder(object):
             specifier=specifier,
             hashes=hashes,
         )
-        return candidate_evaluator.make_found_candidates(candidates)
+        return candidate_evaluator.compute_best_candidate(candidates)
 
     def find_requirement(self, req, upgrade):
         # type: (InstallRequirement, bool) -> Optional[Link]
@@ -1206,10 +1207,10 @@ class PackageFinder(object):
         Raises DistributionNotFound or BestVersionAlreadyInstalled otherwise
         """
         hashes = req.hashes(trust_internet=False)
-        candidates = self.find_candidates(
+        best_candidate_result = self.find_best_candidate(
             req.name, specifier=req.specifier, hashes=hashes,
         )
-        best_candidate = candidates.get_best()
+        best_candidate = best_candidate_result.best_candidate
 
         installed_version = None    # type: Optional[_BaseVersion]
         if req.satisfied_by is not None:
@@ -1230,7 +1231,7 @@ class PackageFinder(object):
                 'Could not find a version that satisfies the requirement %s '
                 '(from versions: %s)',
                 req,
-                _format_versions(candidates.iter_all()),
+                _format_versions(best_candidate_result.iter_all()),
             )
 
             raise DistributionNotFound(
@@ -1265,14 +1266,14 @@ class PackageFinder(object):
                 'Installed version (%s) is most up-to-date (past versions: '
                 '%s)',
                 installed_version,
-                _format_versions(candidates.iter_applicable()),
+                _format_versions(best_candidate_result.iter_applicable()),
             )
             raise BestVersionAlreadyInstalled
 
         logger.debug(
             'Using version %s (newest of versions: %s)',
             best_candidate.version,
-            _format_versions(candidates.iter_applicable()),
+            _format_versions(best_candidate_result.iter_applicable()),
         )
         return best_candidate.link
 

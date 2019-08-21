@@ -192,7 +192,7 @@ class ListCommand(IndexGroupCommand):
                 evaluator = finder.make_candidate_evaluator(
                     project_name=dist.project_name,
                 )
-                best_candidate = evaluator.get_best_candidate(all_candidates)
+                best_candidate = evaluator.sort_best_candidate(all_candidates)
                 if best_candidate is None:
                     continue
 

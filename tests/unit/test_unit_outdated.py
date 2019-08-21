@@ -12,12 +12,9 @@ from pip._internal.index import InstallationCandidate
 from pip._internal.utils import outdated
 
 
-class MockFoundCandidates(object):
+class MockBestCandidateResult(object):
     def __init__(self, best):
-        self._best = best
-
-    def get_best(self):
-        return self._best
+        self.best_candidate = best
 
 
 class MockPackageFinder(object):
@@ -37,8 +34,8 @@ class MockPackageFinder(object):
     def create(cls, *args, **kwargs):
         return cls()
 
-    def find_candidates(self, project_name):
-        return MockFoundCandidates(self.INSTALLATION_CANDIDATES[0])
+    def find_best_candidate(self, project_name):
+        return MockBestCandidateResult(self.INSTALLATION_CANDIDATES[0])
 
 
 class MockDistribution(object):
