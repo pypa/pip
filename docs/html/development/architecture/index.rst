@@ -15,6 +15,7 @@ Architecture of pip's internals
 .. toctree::
     :maxdepth: 2
 
+    package-finding
 
 
 .. _`tracking issue`: https://github.com/pypa/pip/issues/6831
