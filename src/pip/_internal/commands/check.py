@@ -33,7 +33,7 @@ class CheckCommand(Command):
             for dep_name, dep_version, req in conflicting[project_name]:
                 write_output(
                     "%s %s has requirement %s, but you have %s %s.",
-                    project_name, version, req, dep_name, dep_version
+                    project_name, version, req, dep_name, dep_version,
                 )
 
         if missing or conflicting or parsing_probs:
