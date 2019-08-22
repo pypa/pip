@@ -12,7 +12,7 @@ from pip._internal.index import (
     CandidatePreferences,
     FormatControl,
     HTMLPage,
-    Link,
+    LinkCollector,
     LinkEvaluator,
     PackageFinder,
     _check_link_requires_python,
@@ -25,6 +25,7 @@ from pip._internal.index import (
     group_locations,
 )
 from pip._internal.models.candidate import InstallationCandidate
+from pip._internal.models.link import Link
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
@@ -684,9 +685,14 @@ class TestPackageFinder:
         # Create a test TargetPython that we can check for.
         target_python = TargetPython(py_version_info=(3, 7))
         format_control = FormatControl(set(), only_binary)
-        finder = PackageFinder(
-            search_scope=SearchScope([], []),
+
+        link_collector = LinkCollector(
             session=PipSession(),
+            search_scope=SearchScope([], []),
+        )
+
+        finder = PackageFinder(
+            link_collector=link_collector,
             target_python=target_python,
             allow_yanked=allow_yanked,
             format_control=format_control,
@@ -725,9 +731,12 @@ class TestPackageFinder:
             prefer_binary=prefer_binary,
             allow_all_prereleases=allow_all_prereleases,
         )
-        finder = PackageFinder(
-            search_scope=SearchScope([], []),
+        link_collector = LinkCollector(
             session=PipSession(),
+            search_scope=SearchScope([], []),
+        )
+        finder = PackageFinder(
+            link_collector=link_collector,
             target_python=target_python,
             allow_yanked=True,
             candidate_prefs=candidate_prefs,
@@ -773,8 +782,7 @@ def test_group_locations__non_existing_path():
     """
     Test that a non-existing path is ignored.
     """
-    files, urls = group_locations(
-        [os.path.join('this', 'doesnt', 'exist')])
+    files, urls = group_locations([os.path.join('this', 'doesnt', 'exist')])
     assert not urls and not files, "nothing should have been found"
 
 

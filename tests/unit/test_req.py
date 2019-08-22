@@ -193,7 +193,7 @@ class TestRequirementSet(object):
         """
         req_set = RequirementSet(require_hashes=False)
         finder = make_test_finder(find_links=[data.find_links])
-        session = finder.session
+        session = finder._link_collector.session
         command = create_command('install')
         with requirements_file('--require-hashes', tmpdir) as reqs_file:
             options, args = command.parse_args(['-r', reqs_file])

@@ -35,8 +35,9 @@ def make_no_network_finder(
         find_links=find_links,
         allow_all_prereleases=allow_all_prereleases,
     )
-    # Replace the PackageFinder object's _get_pages() with a no-op.
-    finder._get_pages = lambda locations, project_name: []
+    # Replace the PackageFinder._link_collector's _get_pages() with a no-op.
+    link_collector = finder._link_collector
+    link_collector._get_pages = lambda locations, project_name: []
 
     return finder
 

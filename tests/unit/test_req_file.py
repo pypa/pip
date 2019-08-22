@@ -349,7 +349,7 @@ class TestProcessLine(object):
                 "file.txt", 1, finder=finder, session=session,
             ))
         assert list(finder.trusted_hosts) == ['host1', 'host2:8080']
-        session = finder.session
+        session = finder._link_collector.session
         assert session.adapters['https://host1/'] is session._insecure_adapter
         assert (
             session.adapters['https://host2:8080/']
