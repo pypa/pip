@@ -16,6 +16,8 @@ Architecture of pip's internals
 .. toctree::
     :maxdepth: 2
 
+    overview
+    anatomy
     package-finding
 
 
