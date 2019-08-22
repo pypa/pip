@@ -15,6 +15,7 @@ from scripttest import FoundDir, TestFileEnvironment
 
 from pip._internal.download import PipSession
 from pip._internal.index import PackageFinder
+from pip._internal.locations import get_major_minor_version
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
@@ -22,14 +23,14 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from tests.lib.path import Path, curdir
 
 if MYPY_CHECK_RUNNING:
-    from typing import Iterable, List, Optional
+    from typing import List, Optional
     from pip._internal.models.target_python import TargetPython
 
 
 DATA_DIR = Path(__file__).parent.parent.joinpath("data").abspath
 SRC_DIR = Path(__file__).abspath.parent.parent.parent
 
-pyversion = sys.version[:3]
+pyversion = get_major_minor_version()
 pyversion_tuple = sys.version_info
 
 CURRENT_PY_VERSION_INFO = sys.version_info[:3]
@@ -83,7 +84,6 @@ def make_test_finder(
     find_links=None,  # type: Optional[List[str]]
     index_urls=None,  # type: Optional[List[str]]
     allow_all_prereleases=False,  # type: bool
-    trusted_hosts=None,           # type: Optional[Iterable[str]]
     session=None,                 # type: Optional[PipSession]
     target_python=None,           # type: Optional[TargetPython]
 ):
@@ -110,7 +110,6 @@ def make_test_finder(
     return PackageFinder.create(
         search_scope=search_scope,
         selection_prefs=selection_prefs,
-        trusted_hosts=trusted_hosts,
         session=session,
         target_python=target_python,
     )

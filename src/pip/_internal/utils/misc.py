@@ -31,7 +31,11 @@ from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
 
 from pip import __version__
 from pip._internal.exceptions import CommandError, InstallationError
-from pip._internal.locations import site_packages, user_site
+from pip._internal.locations import (
+    get_major_minor_version,
+    site_packages,
+    user_site,
+)
 from pip._internal.utils.compat import (
     WINDOWS,
     console_to_str,
@@ -61,6 +65,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.utils.ui import SpinnerInterface
 
     VersionInfo = Tuple[int, int, int]
+    CommandArgs = List[Union[str, 'HiddenText']]
 else:
     # typing's cast() is needed at runtime, but we don't want to import typing.
     # Thus, we use a dummy no-op version, which we tell mypy to ignore.
@@ -116,7 +121,7 @@ def get_pip_version():
 
     return (
         'pip {} from {} (python {})'.format(
-            __version__, pip_pkg_dir, sys.version[:3],
+            __version__, pip_pkg_dir, get_major_minor_version(),
         )
     )
 
@@ -749,8 +754,8 @@ def unpack_file(
             is_svn_page(file_contents(filename))):
         # We don't really care about this
         from pip._internal.vcs.subversion import Subversion
-        url = 'svn+' + link.url
-        Subversion().unpack(location, url=url)
+        hidden_url = hide_url('svn+' + link.url)
+        Subversion().unpack(location, url=hidden_url)
     else:
         # FIXME: handle?
         # FIXME: magic signatures?
@@ -764,16 +769,52 @@ def unpack_file(
         )
 
 
+def make_command(*args):
+    # type: (Union[str, HiddenText, CommandArgs]) -> CommandArgs
+    """
+    Create a CommandArgs object.
+    """
+    command_args = []  # type: CommandArgs
+    for arg in args:
+        # Check for list instead of CommandArgs since CommandArgs is
+        # only known during type-checking.
+        if isinstance(arg, list):
+            command_args.extend(arg)
+        else:
+            # Otherwise, arg is str or HiddenText.
+            command_args.append(arg)
+
+    return command_args
+
+
 def format_command_args(args):
-    # type: (List[str]) -> str
+    # type: (Union[List[str], CommandArgs]) -> str
     """
     Format command arguments for display.
     """
-    return ' '.join(shlex_quote(arg) for arg in args)
+    # For HiddenText arguments, display the redacted form by calling str().
+    # Also, we don't apply str() to arguments that aren't HiddenText since
+    # this can trigger a UnicodeDecodeError in Python 2 if the argument
+    # has type unicode and includes a non-ascii character.  (The type
+    # checker doesn't ensure the annotations are correct in all cases.)
+    return ' '.join(
+        shlex_quote(str(arg)) if isinstance(arg, HiddenText)
+        else shlex_quote(arg) for arg in args
+    )
+
+
+def reveal_command_args(args):
+    # type: (Union[List[str], CommandArgs]) -> List[str]
+    """
+    Return the arguments in their raw, unredacted form.
+    """
+    return [
+        arg.secret if isinstance(arg, HiddenText) else arg for arg in args
+    ]
 
 
 def make_subprocess_output_error(
-    cmd_args,     # type: List[str]
+    cmd_args,     # type: Union[List[str], CommandArgs]
     cwd,          # type: Optional[str]
     lines,        # type: List[Text]
     exit_status,  # type: int
@@ -815,7 +856,7 @@ def make_subprocess_output_error(
 
 
 def call_subprocess(
-    cmd,  # type: List[str]
+    cmd,  # type: Union[List[str], CommandArgs]
     show_stdout=False,  # type: bool
     cwd=None,  # type: Optional[str]
     on_returncode='raise',  # type: str
@@ -882,7 +923,9 @@ def call_subprocess(
         env.pop(name, None)
     try:
         proc = subprocess.Popen(
-            cmd, stderr=subprocess.STDOUT, stdin=subprocess.PIPE,
+            # Convert HiddenText objects to the underlying str.
+            reveal_command_args(cmd),
+            stderr=subprocess.STDOUT, stdin=subprocess.PIPE,
             stdout=subprocess.PIPE, cwd=cwd, env=env,
         )
         proc.stdin.close()
@@ -1081,6 +1124,27 @@ def path_to_url(path):
     return url
 
 
+def build_url_from_netloc(netloc, scheme='https'):
+    # type: (str, str) -> str
+    """
+    Build a full URL from a netloc.
+    """
+    if netloc.count(':') >= 2 and '@' not in netloc and '[' not in netloc:
+        # It must be a bare IPv6 address, so wrap it with brackets.
+        netloc = '[{}]'.format(netloc)
+    return '{}://{}'.format(scheme, netloc)
+
+
+def netloc_has_port(netloc):
+    # type: (str) -> bool
+    """
+    Return whether the netloc has a port part.
+    """
+    url = build_url_from_netloc(netloc)
+    parsed = urllib_parse.urlparse(url)
+    return bool(parsed.port)
+
+
 def split_auth_from_netloc(netloc):
     """
     Parse out and remove the auth information from a netloc.
@@ -1176,6 +1240,52 @@ def redact_password_from_url(url):
     # type: (str) -> str
     """Replace the password in a given url with ****."""
     return _transform_url(url, _redact_netloc)[0]
+
+
+class HiddenText(object):
+    def __init__(
+        self,
+        secret,    # type: str
+        redacted,  # type: str
+    ):
+        # type: (...) -> None
+        self.secret = secret
+        self.redacted = redacted
+
+    def __repr__(self):
+        # type: (...) -> str
+        return '<HiddenText {!r}>'.format(str(self))
+
+    def __str__(self):
+        # type: (...) -> str
+        return self.redacted
+
+    # This is useful for testing.
+    def __eq__(self, other):
+        # type: (Any) -> bool
+        if type(self) != type(other):
+            return False
+
+        # The string being used for redaction doesn't also have to match,
+        # just the raw, original string.
+        return (self.secret == other.secret)
+
+    # We need to provide an explicit __ne__ implementation for Python 2.
+    # TODO: remove this when we drop PY2 support.
+    def __ne__(self, other):
+        # type: (Any) -> bool
+        return not self == other
+
+
+def hide_value(value):
+    # type: (str) -> HiddenText
+    return HiddenText(value, redacted='****')
+
+
+def hide_url(url):
+    # type: (str) -> HiddenText
+    redacted = redact_password_from_url(url)
+    return HiddenText(url, redacted=redacted)
 
 
 def protect_pip_from_modification_on_windows(modifying_pip):

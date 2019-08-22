@@ -52,6 +52,21 @@ class RequirementSet(object):
         return ('<%s object; %d requirement(s): %s>'
                 % (self.__class__.__name__, len(reqs), reqs_str))
 
+    def add_unnamed_requirement(self, install_req):
+        # type: (InstallRequirement) -> None
+        assert not install_req.name
+        self.unnamed_requirements.append(install_req)
+
+    def add_named_requirement(self, install_req):
+        # type: (InstallRequirement) -> None
+        assert install_req.name
+        name = install_req.name
+
+        self.requirements[name] = install_req
+        # FIXME: what about other normalizations?  E.g., _ vs. -?
+        if name.lower() != name:
+            self.requirement_aliases[name.lower()] = name
+
     def add_requirement(
         self,
         install_req,  # type: InstallRequirement
@@ -105,8 +120,7 @@ class RequirementSet(object):
         # Unnamed requirements are scanned again and the requirement won't be
         # added as a dependency until after scanning.
         if not name:
-            # url or path requirement w/o an egg fragment
-            self.unnamed_requirements.append(install_req)
+            self.add_unnamed_requirement(install_req)
             return [install_req], None
 
         try:
@@ -130,11 +144,8 @@ class RequirementSet(object):
         # When no existing requirement exists, add the requirement as a
         # dependency and it will be scanned again after.
         if not existing_req:
-            self.requirements[name] = install_req
-            # FIXME: what about other normalizations?  E.g., _ vs. -?
-            if name.lower() != name:
-                self.requirement_aliases[name.lower()] = name
-            # We'd want to rescan this requirements later
+            self.add_named_requirement(install_req)
+            # We'd want to rescan this requirement later
             return [install_req], install_req
 
         # Assume there's no need to scan, and that we've already

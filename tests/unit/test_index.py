@@ -387,7 +387,7 @@ class TestCandidateEvaluator:
         actual_versions = [str(c.version) for c in actual]
         assert actual_versions == expected_versions
 
-    def test_make_found_candidates(self):
+    def test_compute_best_candidate(self):
         specifier = SpecifierSet('<= 1.11')
         versions = ['1.10', '1.11', '1.12']
         candidates = [
@@ -397,16 +397,36 @@ class TestCandidateEvaluator:
             'my-project',
             specifier=specifier,
         )
-        found_candidates = evaluator.make_found_candidates(candidates)
+        result = evaluator.compute_best_candidate(candidates)
 
-        assert found_candidates._candidates == candidates
-        assert found_candidates._evaluator is evaluator
+        assert result._candidates == candidates
         expected_applicable = candidates[:2]
         assert [str(c.version) for c in expected_applicable] == [
             '1.10',
             '1.11',
         ]
-        assert found_candidates._applicable_candidates == expected_applicable
+        assert result._applicable_candidates == expected_applicable
+
+        assert result.best_candidate is expected_applicable[1]
+
+    def test_compute_best_candidate__none_best(self):
+        """
+        Test returning a None best candidate.
+        """
+        specifier = SpecifierSet('<= 1.10')
+        versions = ['1.11', '1.12']
+        candidates = [
+            make_mock_candidate(version) for version in versions
+        ]
+        evaluator = CandidateEvaluator.create(
+            'my-project',
+            specifier=specifier,
+        )
+        result = evaluator.compute_best_candidate(candidates)
+
+        assert result._candidates == candidates
+        assert result._applicable_candidates == []
+        assert result.best_candidate is None
 
     @pytest.mark.parametrize('hex_digest, expected', [
         # Test a link with no hash.
@@ -448,15 +468,15 @@ class TestCandidateEvaluator:
         actual = sort_value[1]
         assert actual == expected
 
-    def test_get_best_candidate__no_candidates(self):
+    def test_sort_best_candidate__no_candidates(self):
         """
         Test passing an empty list.
         """
         evaluator = CandidateEvaluator.create('my-project')
-        actual = evaluator.get_best_candidate([])
+        actual = evaluator.sort_best_candidate([])
         assert actual is None
 
-    def test_get_best_candidate__all_yanked(self, caplog):
+    def test_sort_best_candidate__all_yanked(self, caplog):
         """
         Test all candidates yanked.
         """
@@ -468,7 +488,7 @@ class TestCandidateEvaluator:
         ]
         expected_best = candidates[1]
         evaluator = CandidateEvaluator.create('my-project')
-        actual = evaluator.get_best_candidate(candidates)
+        actual = evaluator.sort_best_candidate(candidates)
         assert actual is expected_best
         assert str(actual.version) == '3.0'
 
@@ -489,7 +509,7 @@ class TestCandidateEvaluator:
         # Test a unicode string with a non-ascii character.
         (u'curly quote: \u2018', u'curly quote: \u2018'),
     ])
-    def test_get_best_candidate__yanked_reason(
+    def test_sort_best_candidate__yanked_reason(
         self, caplog, yanked_reason, expected_reason,
     ):
         """
@@ -499,7 +519,7 @@ class TestCandidateEvaluator:
             make_mock_candidate('1.0', yanked_reason=yanked_reason),
         ]
         evaluator = CandidateEvaluator.create('my-project')
-        actual = evaluator.get_best_candidate(candidates)
+        actual = evaluator.sort_best_candidate(candidates)
         assert str(actual.version) == '1.0'
 
         assert len(caplog.records) == 1
@@ -513,7 +533,9 @@ class TestCandidateEvaluator:
         ) + expected_reason
         assert record.message == expected_message
 
-    def test_get_best_candidate__best_yanked_but_not_all(self, caplog):
+    def test_sort_best_candidate__best_yanked_but_not_all(
+        self, caplog,
+    ):
         """
         Test the best candidates being yanked, but not all.
         """
@@ -526,7 +548,7 @@ class TestCandidateEvaluator:
         ]
         expected_best = candidates[1]
         evaluator = CandidateEvaluator.create('my-project')
-        actual = evaluator.get_best_candidate(candidates)
+        actual = evaluator.sort_best_candidate(candidates)
         assert actual is expected_best
         assert str(actual.version) == '2.0'
 
@@ -641,96 +663,6 @@ class TestPackageFinder:
         assert actual_format_control is format_control
         # Check that the attributes weren't reset.
         assert actual_format_control.only_binary == {':all:'}
-
-    def test_add_trusted_host(self):
-        # Leave a gap to test how the ordering is affected.
-        trusted_hosts = ['host1', 'host3']
-        session = PipSession(insecure_hosts=trusted_hosts)
-        finder = make_test_finder(
-            session=session,
-            trusted_hosts=trusted_hosts,
-        )
-        insecure_adapter = session._insecure_adapter
-        prefix2 = 'https://host2/'
-        prefix3 = 'https://host3/'
-
-        # Confirm some initial conditions as a baseline.
-        assert finder.trusted_hosts == ['host1', 'host3']
-        assert session.adapters[prefix3] is insecure_adapter
-        assert prefix2 not in session.adapters
-
-        # Test adding a new host.
-        finder.add_trusted_host('host2')
-        assert finder.trusted_hosts == ['host1', 'host3', 'host2']
-        # Check that prefix3 is still present.
-        assert session.adapters[prefix3] is insecure_adapter
-        assert session.adapters[prefix2] is insecure_adapter
-
-        # Test that adding the same host doesn't create a duplicate.
-        finder.add_trusted_host('host3')
-        assert finder.trusted_hosts == ['host1', 'host3', 'host2'], (
-            'actual: {}'.format(finder.trusted_hosts)
-        )
-
-    def test_add_trusted_host__logging(self, caplog):
-        """
-        Test logging when add_trusted_host() is called.
-        """
-        trusted_hosts = ['host1']
-        session = PipSession(insecure_hosts=trusted_hosts)
-        finder = make_test_finder(
-            session=session,
-            trusted_hosts=trusted_hosts,
-        )
-        with caplog.at_level(logging.INFO):
-            # Test adding an existing host.
-            finder.add_trusted_host('host1', source='somewhere')
-            finder.add_trusted_host('host2')
-            # Test calling add_trusted_host() on the same host twice.
-            finder.add_trusted_host('host2')
-
-        actual = [(r.levelname, r.message) for r in caplog.records]
-        expected = [
-            ('INFO', "adding trusted host: 'host1' (from somewhere)"),
-            ('INFO', "adding trusted host: 'host2'"),
-            ('INFO', "adding trusted host: 'host2'"),
-        ]
-        assert actual == expected
-
-    def test_iter_secure_origins(self):
-        trusted_hosts = ['host1', 'host2']
-        finder = make_test_finder(trusted_hosts=trusted_hosts)
-
-        actual = list(finder.iter_secure_origins())
-        assert len(actual) == 8
-        # Spot-check that SECURE_ORIGINS is included.
-        assert actual[0] == ('https', '*', '*')
-        assert actual[-2:] == [
-            ('*', 'host1', '*'),
-            ('*', 'host2', '*'),
-        ]
-
-    def test_iter_secure_origins__none_trusted_hosts(self):
-        """
-        Test iter_secure_origins() after passing trusted_hosts=None.
-        """
-        # Use PackageFinder.create() rather than make_test_finder()
-        # to make sure we're really passing trusted_hosts=None.
-        search_scope = SearchScope([], [])
-        selection_prefs = SelectionPreferences(
-            allow_yanked=True,
-        )
-        finder = PackageFinder.create(
-            search_scope=search_scope,
-            selection_prefs=selection_prefs,
-            trusted_hosts=None,
-            session=object(),
-        )
-
-        actual = list(finder.iter_secure_origins())
-        assert len(actual) == 6
-        # Spot-check that SECURE_ORIGINS is included.
-        assert actual[0] == ('https', '*', '*')
 
     @pytest.mark.parametrize(
         'allow_yanked, ignore_requires_python, only_binary, expected_formats',
@@ -873,36 +805,6 @@ def test_determine_base_url(html, url, expected):
         html, transport_encoding=None, namespaceHTMLElements=False,
     )
     assert _determine_base_url(document, url) == expected
-
-
-class MockLogger(object):
-    def __init__(self):
-        self.called = False
-
-    def warning(self, *args, **kwargs):
-        self.called = True
-
-
-@pytest.mark.parametrize(
-    ("location", "trusted", "expected"),
-    [
-        ("http://pypi.org/something", [], True),
-        ("https://pypi.org/something", [], False),
-        ("git+http://pypi.org/something", [], True),
-        ("git+https://pypi.org/something", [], False),
-        ("git+ssh://git@pypi.org/something", [], False),
-        ("http://localhost", [], False),
-        ("http://127.0.0.1", [], False),
-        ("http://example.com/something/", [], True),
-        ("http://example.com/something/", ["example.com"], False),
-        ("http://eXample.com/something/", ["example.cOm"], False),
-    ],
-)
-def test_secure_origin(location, trusted, expected):
-    finder = make_test_finder(trusted_hosts=trusted)
-    logger = MockLogger()
-    finder._validate_secure_origin(logger, location)
-    assert logger.called == expected
 
 
 @pytest.mark.parametrize(

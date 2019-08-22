@@ -62,7 +62,7 @@ class SessionCommandMixin(object):
                 if options.cache_dir else None
             ),
             retries=retries if retries is not None else options.retries,
-            insecure_hosts=options.trusted_hosts,
+            trusted_hosts=options.trusted_hosts,
             index_urls=self._get_index_urls(options),
         )
 
@@ -276,7 +276,6 @@ class RequirementCommand(IndexGroupCommand):
         return PackageFinder.create(
             search_scope=search_scope,
             selection_prefs=selection_prefs,
-            trusted_hosts=options.trusted_hosts,
             session=session,
             target_python=target_python,
         )

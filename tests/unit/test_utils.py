@@ -37,13 +37,19 @@ from pip._internal.utils.glibc import (
 )
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.misc import (
+    HiddenText,
+    build_url_from_netloc,
     call_subprocess,
     egg_link_path,
     ensure_dir,
     format_command_args,
     get_installed_distributions,
     get_prog,
+    hide_url,
+    hide_value,
+    make_command,
     make_subprocess_output_error,
+    netloc_has_port,
     normalize_path,
     normalize_version_info,
     path_to_display,
@@ -828,6 +834,9 @@ class TestGetProg(object):
     (['pip', 'list'], 'pip list'),
     (['foo', 'space space', 'new\nline', 'double"quote', "single'quote"],
      """foo 'space space' 'new\nline' 'double"quote' 'single'"'"'quote'"""),
+    # Test HiddenText arguments.
+    (make_command(hide_value('secret1'), 'foo', hide_value('secret2')),
+        "'****' foo '****'"),
 ])
 def test_format_command_args(args, expected):
     actual = format_command_args(args)
@@ -1223,6 +1232,31 @@ def test_path_to_url_win():
     assert path_to_url('file') == 'file:' + urllib_request.pathname2url(path)
 
 
+@pytest.mark.parametrize('netloc, expected_url, expected_has_port', [
+    # Test domain name.
+    ('example.com', 'https://example.com', False),
+    ('example.com:5000', 'https://example.com:5000', True),
+    # Test IPv4 address.
+    ('127.0.0.1', 'https://127.0.0.1', False),
+    ('127.0.0.1:5000', 'https://127.0.0.1:5000', True),
+    # Test bare IPv6 address.
+    ('2001:DB6::1', 'https://[2001:DB6::1]', False),
+    # Test IPv6 with port.
+    ('[2001:DB6::1]:5000', 'https://[2001:DB6::1]:5000', True),
+    # Test netloc with auth.
+    (
+        'user:password@localhost:5000',
+        'https://user:password@localhost:5000',
+        True
+    )
+])
+def test_build_url_from_netloc_and_netloc_has_port(
+    netloc, expected_url, expected_has_port,
+):
+    assert build_url_from_netloc(netloc) == expected_url
+    assert netloc_has_port(netloc) is expected_has_port
+
+
 @pytest.mark.parametrize('netloc, expected', [
     # Test a basic case.
     ('example.com', ('example.com', (None, None))),
@@ -1327,6 +1361,73 @@ def test_remove_auth_from_url(auth_url, expected_url):
 def test_redact_password_from_url(auth_url, expected_url):
     url = redact_password_from_url(auth_url)
     assert url == expected_url
+
+
+class TestHiddenText:
+
+    def test_basic(self):
+        """
+        Test str(), repr(), and attribute access.
+        """
+        hidden = HiddenText('my-secret', redacted='######')
+        assert repr(hidden) == "<HiddenText '######'>"
+        assert str(hidden) == '######'
+        assert hidden.redacted == '######'
+        assert hidden.secret == 'my-secret'
+
+    def test_equality_with_str(self):
+        """
+        Test equality (and inequality) with str objects.
+        """
+        hidden = HiddenText('secret', redacted='****')
+
+        # Test that the object doesn't compare equal to either its original
+        # or redacted forms.
+        assert hidden != hidden.secret
+        assert hidden.secret != hidden
+
+        assert hidden != hidden.redacted
+        assert hidden.redacted != hidden
+
+    def test_equality_same_secret(self):
+        """
+        Test equality with an object having the same secret.
+        """
+        # Choose different redactions for the two objects.
+        hidden1 = HiddenText('secret', redacted='****')
+        hidden2 = HiddenText('secret', redacted='####')
+
+        assert hidden1 == hidden2
+        # Also test __ne__.  This assertion fails in Python 2 without
+        # defining HiddenText.__ne__.
+        assert not hidden1 != hidden2
+
+    def test_equality_different_secret(self):
+        """
+        Test equality with an object having a different secret.
+        """
+        hidden1 = HiddenText('secret-1', redacted='****')
+        hidden2 = HiddenText('secret-2', redacted='****')
+
+        assert hidden1 != hidden2
+        # Also test __eq__.
+        assert not hidden1 == hidden2
+
+
+def test_hide_value():
+    hidden = hide_value('my-secret')
+    assert repr(hidden) == "<HiddenText '****'>"
+    assert str(hidden) == '****'
+    assert hidden.redacted == '****'
+    assert hidden.secret == 'my-secret'
+
+
+def test_hide_url():
+    hidden_url = hide_url('https://user:password@example.com')
+    assert repr(hidden_url) == "<HiddenText 'https://user:****@example.com'>"
+    assert str(hidden_url) == 'https://user:****@example.com'
+    assert hidden_url.redacted == 'https://user:****@example.com'
+    assert hidden_url.secret == 'https://user:password@example.com'
 
 
 @pytest.fixture()

@@ -39,8 +39,8 @@ class TestWheelCache:
 
         # Legacy requirements were built.
         assert mock_calls == [
-            call(['a', 'b'], autobuilding=True),
-            call(['c', 'd'], autobuilding=True),
+            call(['a', 'b'], should_unpack=True),
+            call(['c', 'd'], should_unpack=True),
         ]
 
         # Legacy build failures are not included in the return value.
@@ -57,7 +57,7 @@ class TestWheelCache:
 
         # Legacy requirements were not built.
         assert mock_calls == [
-            call(['a', 'b'], autobuilding=True),
+            call(['a', 'b'], should_unpack=True),
         ]
 
         assert build_failures == ['a']

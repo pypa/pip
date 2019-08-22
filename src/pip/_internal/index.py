@@ -12,7 +12,7 @@ import mimetypes
 import os
 import re
 
-from pip._vendor import html5lib, requests, six
+from pip._vendor import html5lib, requests
 from pip._vendor.distlib.compat import unescape
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.utils import canonicalize_name
@@ -33,7 +33,6 @@ from pip._internal.models.format_control import FormatControl
 from pip._internal.models.link import Link
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
-from pip._internal.utils.compat import ipaddress
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     ARCHIVE_EXTENSIONS,
@@ -47,10 +46,9 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.wheel import Wheel
 
 if MYPY_CHECK_RUNNING:
-    from logging import Logger
     from typing import (
-        Any, Callable, FrozenSet, Iterable, Iterator, List, MutableMapping,
-        Optional, Sequence, Set, Text, Tuple, Union,
+        Any, Callable, FrozenSet, Iterable, List, MutableMapping, Optional,
+        Sequence, Set, Text, Tuple, Union,
     )
     import xml.etree.ElementTree
     from pip._vendor.packaging.version import _BaseVersion
@@ -66,23 +64,9 @@ if MYPY_CHECK_RUNNING:
         Tuple[int, int, int, _BaseVersion, BuildTag, Optional[int]]
     )
     HTMLElement = xml.etree.ElementTree.Element
-    SecureOrigin = Tuple[str, str, Optional[str]]
 
 
-__all__ = ['FormatControl', 'FoundCandidates', 'PackageFinder']
-
-
-SECURE_ORIGINS = [
-    # protocol, hostname, port
-    # Taken from Chrome's list of secure origins (See: http://bit.ly/1qrySKC)
-    ("https", "*", "*"),
-    ("*", "localhost", "*"),
-    ("*", "127.0.0.0/8", "*"),
-    ("*", "::1/128", "*"),
-    ("file", "*", None),
-    # ssh is always secure.
-    ("ssh", "*", "*"),
-]  # type: List[SecureOrigin]
+__all__ = ['FormatControl', 'BestCandidateResult', 'PackageFinder']
 
 
 logger = logging.getLogger(__name__)
@@ -545,6 +529,51 @@ class CandidatePreferences(object):
         self.prefer_binary = prefer_binary
 
 
+class BestCandidateResult(object):
+    """A collection of candidates, returned by `PackageFinder.find_best_candidate`.
+
+    This class is only intended to be instantiated by CandidateEvaluator's
+    `compute_best_candidate()` method.
+    """
+
+    def __init__(
+        self,
+        candidates,             # type: List[InstallationCandidate]
+        applicable_candidates,  # type: List[InstallationCandidate]
+        best_candidate,         # type: Optional[InstallationCandidate]
+    ):
+        # type: (...) -> None
+        """
+        :param candidates: A sequence of all available candidates found.
+        :param applicable_candidates: The applicable candidates.
+        :param best_candidate: The most preferred candidate found, or None
+            if no applicable candidates were found.
+        """
+        assert set(applicable_candidates) <= set(candidates)
+
+        if best_candidate is None:
+            assert not applicable_candidates
+        else:
+            assert best_candidate in applicable_candidates
+
+        self._applicable_candidates = applicable_candidates
+        self._candidates = candidates
+
+        self.best_candidate = best_candidate
+
+    def iter_all(self):
+        # type: () -> Iterable[InstallationCandidate]
+        """Iterate through all candidates.
+        """
+        return iter(self._candidates)
+
+    def iter_applicable(self):
+        # type: () -> Iterable[InstallationCandidate]
+        """Iterate through the applicable candidates.
+        """
+        return iter(self._applicable_candidates)
+
+
 class CandidateEvaluator(object):
 
     """
@@ -568,6 +597,9 @@ class CandidateEvaluator(object):
         :param target_python: The target Python interpreter to use when
             checking compatibility. If None (the default), a TargetPython
             object will be constructed from the running Python.
+        :param specifier: An optional object implementing `filter`
+            (e.g. `packaging.specifiers.SpecifierSet`) to filter applicable
+            versions.
         :param hashes: An optional collection of allowed hashes.
         """
         if target_python is None:
@@ -643,26 +675,6 @@ class CandidateEvaluator(object):
             project_name=self._project_name,
         )
 
-    def make_found_candidates(
-        self,
-        candidates,      # type: List[InstallationCandidate]
-    ):
-        # type: (...) -> FoundCandidates
-        """
-        Create and return a `FoundCandidates` instance.
-
-        :param specifier: An optional object implementing `filter`
-            (e.g. `packaging.specifiers.SpecifierSet`) to filter applicable
-            versions.
-        """
-        applicable_candidates = self.get_applicable_candidates(candidates)
-
-        return FoundCandidates(
-            candidates,
-            applicable_candidates=applicable_candidates,
-            evaluator=self,
-        )
-
     def _sort_key(self, candidate):
         # type: (InstallationCandidate) -> CandidateSortingKey
         """
@@ -723,7 +735,7 @@ class CandidateEvaluator(object):
             build_tag, pri,
         )
 
-    def get_best_candidate(
+    def sort_best_candidate(
         self,
         candidates,    # type: List[InstallationCandidate]
     ):
@@ -753,50 +765,23 @@ class CandidateEvaluator(object):
 
         return best_candidate
 
-
-class FoundCandidates(object):
-    """A collection of candidates, returned by `PackageFinder.find_candidates`.
-
-    This class is only intended to be instantiated by CandidateEvaluator's
-    `make_found_candidates()` method.
-    """
-
-    def __init__(
+    def compute_best_candidate(
         self,
-        candidates,             # type: List[InstallationCandidate]
-        applicable_candidates,  # type: List[InstallationCandidate]
-        evaluator,              # type: CandidateEvaluator
+        candidates,      # type: List[InstallationCandidate]
     ):
-        # type: (...) -> None
+        # type: (...) -> BestCandidateResult
         """
-        :param candidates: A sequence of all available candidates found.
-        :param applicable_candidates: The applicable candidates.
-        :param evaluator: A CandidateEvaluator object to sort applicable
-            candidates by order of preference.
+        Compute and return a `BestCandidateResult` instance.
         """
-        self._applicable_candidates = applicable_candidates
-        self._candidates = candidates
-        self._evaluator = evaluator
+        applicable_candidates = self.get_applicable_candidates(candidates)
 
-    def iter_all(self):
-        # type: () -> Iterable[InstallationCandidate]
-        """Iterate through all candidates.
-        """
-        return iter(self._candidates)
+        best_candidate = self.sort_best_candidate(applicable_candidates)
 
-    def iter_applicable(self):
-        # type: () -> Iterable[InstallationCandidate]
-        """Iterate through the applicable candidates.
-        """
-        return iter(self._applicable_candidates)
-
-    def get_best(self):
-        # type: () -> Optional[InstallationCandidate]
-        """Return the best candidate available, or None if no applicable
-        candidates are found.
-        """
-        candidates = list(self.iter_applicable())
-        return self._evaluator.get_best_candidate(candidates)
+        return BestCandidateResult(
+            candidates,
+            applicable_candidates=applicable_candidates,
+            best_candidate=best_candidate,
+        )
 
 
 class PackageFinder(object):
@@ -813,7 +798,6 @@ class PackageFinder(object):
         target_python,        # type: TargetPython
         allow_yanked,         # type: bool
         format_control=None,  # type: Optional[FormatControl]
-        trusted_hosts=None,   # type: Optional[List[str]]
         candidate_prefs=None,         # type: CandidatePreferences
         ignore_requires_python=None,  # type: Optional[bool]
     ):
@@ -829,8 +813,6 @@ class PackageFinder(object):
         :param candidate_prefs: Options to use when creating a
             CandidateEvaluator object.
         """
-        if trusted_hosts is None:
-            trusted_hosts = []
         if candidate_prefs is None:
             candidate_prefs = CandidatePreferences()
 
@@ -844,7 +826,6 @@ class PackageFinder(object):
         self.search_scope = search_scope
         self.session = session
         self.format_control = format_control
-        self.trusted_hosts = trusted_hosts
 
         # These are boring links that have already been logged somehow.
         self._logged_links = set()  # type: Set[Link]
@@ -858,7 +839,6 @@ class PackageFinder(object):
         cls,
         search_scope,  # type: SearchScope
         selection_prefs,     # type: SelectionPreferences
-        trusted_hosts=None,  # type: Optional[List[str]]
         session=None,        # type: Optional[PipSession]
         target_python=None,  # type: Optional[TargetPython]
     ):
@@ -867,8 +847,6 @@ class PackageFinder(object):
 
         :param selection_prefs: The candidate selection preferences, as a
             SelectionPreferences object.
-        :param trusted_hosts: Domains not to emit warnings for when not using
-            HTTPS.
         :param session: The Session to use to make requests.
         :param target_python: The target Python interpreter to use when
             checking compatibility. If None (the default), a TargetPython
@@ -894,7 +872,6 @@ class PackageFinder(object):
             target_python=target_python,
             allow_yanked=selection_prefs.allow_yanked,
             format_control=selection_prefs.format_control,
-            trusted_hosts=trusted_hosts,
             ignore_requires_python=selection_prefs.ignore_requires_python,
         )
 
@@ -909,6 +886,11 @@ class PackageFinder(object):
         return self.search_scope.index_urls
 
     @property
+    def trusted_hosts(self):
+        # type: () -> Iterable[str]
+        return iter(self.session.pip_trusted_hosts)
+
+    @property
     def allow_all_prereleases(self):
         # type: () -> bool
         return self._candidate_prefs.allow_all_prereleases
@@ -916,31 +898,6 @@ class PackageFinder(object):
     def set_allow_all_prereleases(self):
         # type: () -> None
         self._candidate_prefs.allow_all_prereleases = True
-
-    def add_trusted_host(self, host, source=None):
-        # type: (str, Optional[str]) -> None
-        """
-        :param source: An optional source string, for logging where the host
-            string came from.
-        """
-        # It is okay to add a previously added host because PipSession stores
-        # the resulting prefixes in a dict.
-        msg = 'adding trusted host: {!r}'.format(host)
-        if source is not None:
-            msg += ' (from {})'.format(source)
-        logger.info(msg)
-        self.session.add_insecure_host(host)
-        if host in self.trusted_hosts:
-            return
-
-        self.trusted_hosts.append(host)
-
-    def iter_secure_origins(self):
-        # type: () -> Iterator[SecureOrigin]
-        for secure_origin in SECURE_ORIGINS:
-            yield secure_origin
-        for host in self.trusted_hosts:
-            yield ('*', host, '*')
 
     @staticmethod
     def _sort_locations(locations, expand_dir=False):
@@ -1000,80 +957,6 @@ class PackageFinder(object):
 
         return files, urls
 
-    def _validate_secure_origin(self, logger, location):
-        # type: (Logger, Link) -> bool
-        # Determine if this url used a secure transport mechanism
-        parsed = urllib_parse.urlparse(str(location))
-        origin = (parsed.scheme, parsed.hostname, parsed.port)
-
-        # The protocol to use to see if the protocol matches.
-        # Don't count the repository type as part of the protocol: in
-        # cases such as "git+ssh", only use "ssh". (I.e., Only verify against
-        # the last scheme.)
-        protocol = origin[0].rsplit('+', 1)[-1]
-
-        # Determine if our origin is a secure origin by looking through our
-        # hardcoded list of secure origins, as well as any additional ones
-        # configured on this PackageFinder instance.
-        for secure_origin in self.iter_secure_origins():
-            if protocol != secure_origin[0] and secure_origin[0] != "*":
-                continue
-
-            try:
-                # We need to do this decode dance to ensure that we have a
-                # unicode object, even on Python 2.x.
-                addr = ipaddress.ip_address(
-                    origin[1]
-                    if (
-                        isinstance(origin[1], six.text_type) or
-                        origin[1] is None
-                    )
-                    else origin[1].decode("utf8")
-                )
-                network = ipaddress.ip_network(
-                    secure_origin[1]
-                    if isinstance(secure_origin[1], six.text_type)
-                    # setting secure_origin[1] to proper Union[bytes, str]
-                    # creates problems in other places
-                    else secure_origin[1].decode("utf8")  # type: ignore
-                )
-            except ValueError:
-                # We don't have both a valid address or a valid network, so
-                # we'll check this origin against hostnames.
-                if (origin[1] and
-                        origin[1].lower() != secure_origin[1].lower() and
-                        secure_origin[1] != "*"):
-                    continue
-            else:
-                # We have a valid address and network, so see if the address
-                # is contained within the network.
-                if addr not in network:
-                    continue
-
-            # Check to see if the port patches
-            if (origin[2] != secure_origin[2] and
-                    secure_origin[2] != "*" and
-                    secure_origin[2] is not None):
-                continue
-
-            # If we've gotten here, then this origin matches the current
-            # secure origin and we should return True
-            return True
-
-        # If we've gotten to this point, then the origin isn't secure and we
-        # will not accept it as a valid location to search. We will however
-        # log a warning that we are ignoring it.
-        logger.warning(
-            "The repository located at %s is not a trusted or secure host and "
-            "is being ignored. If this repository is available via HTTPS we "
-            "recommend you use HTTPS instead, otherwise you may silence "
-            "this warning and allow it anyway with '--trusted-host %s'.",
-            parsed.hostname,
-            parsed.hostname,
-        )
-
-        return False
-
     def make_link_evaluator(self, project_name):
         # type: (str) -> LinkEvaluator
         canonical_name = canonicalize_name(project_name)
@@ -1117,7 +1000,7 @@ class PackageFinder(object):
                 (Link(url) for url in index_url_loc),
                 (Link(url) for url in fl_url_loc),
             )
-            if self._validate_secure_origin(logger, link)
+            if self.session.is_secure_origin(link)
         ]
 
         logger.debug('%d location(s) to search for versions of %s:',
@@ -1174,20 +1057,20 @@ class PackageFinder(object):
             hashes=hashes,
         )
 
-    def find_candidates(
+    def find_best_candidate(
         self,
         project_name,       # type: str
         specifier=None,     # type: Optional[specifiers.BaseSpecifier]
         hashes=None,        # type: Optional[Hashes]
     ):
-        # type: (...) -> FoundCandidates
+        # type: (...) -> BestCandidateResult
         """Find matches for the given project and specifier.
 
         :param specifier: An optional object implementing `filter`
             (e.g. `packaging.specifiers.SpecifierSet`) to filter applicable
             versions.
 
-        :return: A `FoundCandidates` instance.
+        :return: A `BestCandidateResult` instance.
         """
         candidates = self.find_all_candidates(project_name)
         candidate_evaluator = self.make_candidate_evaluator(
@@ -1195,7 +1078,7 @@ class PackageFinder(object):
             specifier=specifier,
             hashes=hashes,
         )
-        return candidate_evaluator.make_found_candidates(candidates)
+        return candidate_evaluator.compute_best_candidate(candidates)
 
     def find_requirement(self, req, upgrade):
         # type: (InstallRequirement, bool) -> Optional[Link]
@@ -1206,10 +1089,10 @@ class PackageFinder(object):
         Raises DistributionNotFound or BestVersionAlreadyInstalled otherwise
         """
         hashes = req.hashes(trust_internet=False)
-        candidates = self.find_candidates(
+        best_candidate_result = self.find_best_candidate(
             req.name, specifier=req.specifier, hashes=hashes,
         )
-        best_candidate = candidates.get_best()
+        best_candidate = best_candidate_result.best_candidate
 
         installed_version = None    # type: Optional[_BaseVersion]
         if req.satisfied_by is not None:
@@ -1230,7 +1113,7 @@ class PackageFinder(object):
                 'Could not find a version that satisfies the requirement %s '
                 '(from versions: %s)',
                 req,
-                _format_versions(candidates.iter_all()),
+                _format_versions(best_candidate_result.iter_all()),
             )
 
             raise DistributionNotFound(
@@ -1265,14 +1148,14 @@ class PackageFinder(object):
                 'Installed version (%s) is most up-to-date (past versions: '
                 '%s)',
                 installed_version,
-                _format_versions(candidates.iter_applicable()),
+                _format_versions(best_candidate_result.iter_applicable()),
             )
             raise BestVersionAlreadyInstalled
 
         logger.debug(
             'Using version %s (newest of versions: %s)',
             best_candidate.version,
-            _format_versions(candidates.iter_applicable()),
+            _format_versions(best_candidate_result.iter_applicable()),
         )
         return best_candidate.link
 

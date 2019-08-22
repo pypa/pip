@@ -10,13 +10,20 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip._internal.exceptions import BadCommand
 from pip._internal.utils.compat import samefile
-from pip._internal.utils.misc import display_path, redact_password_from_url
+from pip._internal.utils.misc import display_path, make_command
 from pip._internal.utils.temp_dir import TempDirectory
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs.versioncontrol import (
     RemoteNotFoundError,
     VersionControl,
     vcs,
 )
+
+if MYPY_CHECK_RUNNING:
+    from typing import Optional, Tuple
+    from pip._internal.utils.misc import HiddenText
+    from pip._internal.vcs.versioncontrol import AuthInfo, RevOptions
+
 
 urlsplit = urllib_parse.urlsplit
 urlunsplit = urllib_parse.urlunsplit
@@ -83,6 +90,7 @@ class Git(VersionControl):
         return None
 
     def export(self, location, url):
+        # type: (str, HiddenText) -> None
         """Export the Git repository at the url to the destination location"""
         if not location.endswith('/'):
             location = location + '/'
@@ -131,6 +139,7 @@ class Git(VersionControl):
 
     @classmethod
     def resolve_revision(cls, dest, url, rev_options):
+        # type: (str, HiddenText, RevOptions) -> RevOptions
         """
         Resolve a revision to a new RevOptions object with the SHA1 of the
         branch, tag, or ref if found.
@@ -139,6 +148,10 @@ class Git(VersionControl):
           rev_options: a RevOptions object.
         """
         rev = rev_options.arg_rev
+        # The arg_rev property's implementation for Git ensures that the
+        # rev return value is always non-None.
+        assert rev is not None
+
         sha, is_branch = cls.get_revision_sha(dest, rev)
 
         if sha is not None:
@@ -160,7 +173,7 @@ class Git(VersionControl):
 
         # If it looks like a ref, we have to fetch it explicitly.
         cls.run_command(
-            ['fetch', '-q', url] + rev_options.to_args(),
+            make_command('fetch', '-q', url, rev_options.to_args()),
             cwd=dest,
         )
         # Change the revision to the SHA of the ref we fetched
@@ -185,12 +198,10 @@ class Git(VersionControl):
         return cls.get_revision(dest) == name
 
     def fetch_new(self, dest, url, rev_options):
+        # type: (str, HiddenText, RevOptions) -> None
         rev_display = rev_options.to_display()
-        logger.info(
-            'Cloning %s%s to %s', redact_password_from_url(url),
-            rev_display, display_path(dest),
-        )
-        self.run_command(['clone', '-q', url, dest])
+        logger.info('Cloning %s%s to %s', url, rev_display, display_path(dest))
+        self.run_command(make_command('clone', '-q', url, dest))
 
         if rev_options.rev:
             # Then a specific revision was requested.
@@ -200,7 +211,9 @@ class Git(VersionControl):
                 # Only do a checkout if the current commit id doesn't match
                 # the requested revision.
                 if not self.is_commit_id_equal(dest, rev_options.rev):
-                    cmd_args = ['checkout', '-q'] + rev_options.to_args()
+                    cmd_args = make_command(
+                        'checkout', '-q', rev_options.to_args(),
+                    )
                     self.run_command(cmd_args, cwd=dest)
             elif self.get_current_branch(dest) != branch_name:
                 # Then a specific branch was requested, and that branch
@@ -215,13 +228,18 @@ class Git(VersionControl):
         self.update_submodules(dest)
 
     def switch(self, dest, url, rev_options):
-        self.run_command(['config', 'remote.origin.url', url], cwd=dest)
-        cmd_args = ['checkout', '-q'] + rev_options.to_args()
+        # type: (str, HiddenText, RevOptions) -> None
+        self.run_command(
+            make_command('config', 'remote.origin.url', url),
+            cwd=dest,
+        )
+        cmd_args = make_command('checkout', '-q', rev_options.to_args())
         self.run_command(cmd_args, cwd=dest)
 
         self.update_submodules(dest)
 
     def update(self, dest, url, rev_options):
+        # type: (str, HiddenText, RevOptions) -> None
         # First fetch changes from the default remote
         if self.get_git_version() >= parse_version('1.9.0'):
             # fetch tags in addition to everything else
@@ -230,7 +248,7 @@ class Git(VersionControl):
             self.run_command(['fetch', '-q'], cwd=dest)
         # Then reset to wanted revision (maybe even origin/master)
         rev_options = self.resolve_revision(dest, url, rev_options)
-        cmd_args = ['reset', '--hard', '-q'] + rev_options.to_args()
+        cmd_args = make_command('reset', '--hard', '-q', rev_options.to_args())
         self.run_command(cmd_args, cwd=dest)
         #: update submodules
         self.update_submodules(dest)
@@ -300,6 +318,7 @@ class Git(VersionControl):
 
     @classmethod
     def get_url_rev_and_auth(cls, url):
+        # type: (str) -> Tuple[str, Optional[str], AuthInfo]
         """
         Prefixes stub URLs like 'user@hostname:user/repo.git' with 'ssh://'.
         That's required because although they use SSH they sometimes don't

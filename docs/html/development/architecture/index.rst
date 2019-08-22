@@ -8,8 +8,9 @@ Architecture of pip's internals
     interested in helping out, please let us know in the `tracking issue`_.
 
 .. note::
-    Direct use of pip's internals is *not supported*.
-    For more details, see :ref:`Using pip from your program`.
+    Direct use of pip's internals is *not supported*, and these internals
+    can change at any time. For more details, see :ref:`Using pip from
+    your program`.
 
 
 .. toctree::
@@ -17,8 +18,7 @@ Architecture of pip's internals
 
     overview
     anatomy
-    
-
+    package-finding
 
 
 .. _`tracking issue`: https://github.com/pypa/pip/issues/6831
