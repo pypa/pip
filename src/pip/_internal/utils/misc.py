@@ -949,6 +949,7 @@ def call_subprocess(
 
 
 def write_output(msg, *args):
+    # type: (str, str) -> None
     logger.info(msg, *args)
 
 
