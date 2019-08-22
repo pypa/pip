@@ -23,7 +23,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from tests.lib.path import Path, curdir
 
 if MYPY_CHECK_RUNNING:
-    from typing import Iterable, List, Optional
+    from typing import List, Optional
     from pip._internal.models.target_python import TargetPython
 
 
@@ -84,7 +84,6 @@ def make_test_finder(
     find_links=None,  # type: Optional[List[str]]
     index_urls=None,  # type: Optional[List[str]]
     allow_all_prereleases=False,  # type: bool
-    trusted_hosts=None,           # type: Optional[Iterable[str]]
     session=None,                 # type: Optional[PipSession]
     target_python=None,           # type: Optional[TargetPython]
 ):
@@ -111,7 +110,6 @@ def make_test_finder(
     return PackageFinder.create(
         search_scope=search_scope,
         selection_prefs=selection_prefs,
-        trusted_hosts=trusted_hosts,
         session=session,
         target_python=target_python,
     )

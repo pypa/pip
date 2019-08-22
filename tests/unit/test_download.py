@@ -1,5 +1,6 @@
 import functools
 import hashlib
+import logging
 import os
 import shutil
 import sys
@@ -617,7 +618,7 @@ class TestPipSession:
     def test_insecure_host_adapter(self, tmpdir):
         session = PipSession(
             cache=tmpdir.joinpath("test-cache"),
-            insecure_hosts=["example.com"],
+            trusted_hosts=["example.com"],
         )
 
         assert "https://example.com/" in session.adapters
@@ -625,6 +626,116 @@ class TestPipSession:
         assert "https://example.com:" in session.adapters
         # Check that the cache isn't enabled.
         assert not hasattr(session.adapters["https://example.com/"], "cache")
+
+    def test_add_trusted_host(self):
+        # Leave a gap to test how the ordering is affected.
+        trusted_hosts = ['host1', 'host3']
+        session = PipSession(trusted_hosts=trusted_hosts)
+        insecure_adapter = session._insecure_adapter
+        prefix2 = 'https://host2/'
+        prefix3 = 'https://host3/'
+
+        # Confirm some initial conditions as a baseline.
+        assert session.pip_trusted_hosts == ['host1', 'host3']
+        assert session.adapters[prefix3] is insecure_adapter
+        assert prefix2 not in session.adapters
+
+        # Test adding a new host.
+        session.add_trusted_host('host2')
+        assert session.pip_trusted_hosts == ['host1', 'host3', 'host2']
+        # Check that prefix3 is still present.
+        assert session.adapters[prefix3] is insecure_adapter
+        assert session.adapters[prefix2] is insecure_adapter
+
+        # Test that adding the same host doesn't create a duplicate.
+        session.add_trusted_host('host3')
+        assert session.pip_trusted_hosts == ['host1', 'host3', 'host2'], (
+            'actual: {}'.format(session.pip_trusted_hosts)
+        )
+
+    def test_add_trusted_host__logging(self, caplog):
+        """
+        Test logging when add_trusted_host() is called.
+        """
+        trusted_hosts = ['host0', 'host1']
+        session = PipSession(trusted_hosts=trusted_hosts)
+        with caplog.at_level(logging.INFO):
+            # Test adding an existing host.
+            session.add_trusted_host('host1', source='somewhere')
+            session.add_trusted_host('host2')
+            # Test calling add_trusted_host() on the same host twice.
+            session.add_trusted_host('host2')
+
+        actual = [(r.levelname, r.message) for r in caplog.records]
+        # Observe that "host0" isn't included in the logs.
+        expected = [
+            ('INFO', "adding trusted host: 'host1' (from somewhere)"),
+            ('INFO', "adding trusted host: 'host2'"),
+            ('INFO', "adding trusted host: 'host2'"),
+        ]
+        assert actual == expected
+
+    def test_iter_secure_origins(self):
+        trusted_hosts = ['host1', 'host2']
+        session = PipSession(trusted_hosts=trusted_hosts)
+
+        actual = list(session.iter_secure_origins())
+        assert len(actual) == 8
+        # Spot-check that SECURE_ORIGINS is included.
+        assert actual[0] == ('https', '*', '*')
+        assert actual[-2:] == [
+            ('*', 'host1', '*'),
+            ('*', 'host2', '*'),
+        ]
+
+    def test_iter_secure_origins__trusted_hosts_empty(self):
+        """
+        Test iter_secure_origins() after passing trusted_hosts=[].
+        """
+        session = PipSession(trusted_hosts=[])
+
+        actual = list(session.iter_secure_origins())
+        assert len(actual) == 6
+        # Spot-check that SECURE_ORIGINS is included.
+        assert actual[0] == ('https', '*', '*')
+
+    @pytest.mark.parametrize(
+        'location, trusted, expected',
+        [
+            ("http://pypi.org/something", [], False),
+            ("https://pypi.org/something", [], True),
+            ("git+http://pypi.org/something", [], False),
+            ("git+https://pypi.org/something", [], True),
+            ("git+ssh://git@pypi.org/something", [], True),
+            ("http://localhost", [], True),
+            ("http://127.0.0.1", [], True),
+            ("http://example.com/something/", [], False),
+            ("http://example.com/something/", ["example.com"], True),
+            # Try changing the case.
+            ("http://eXample.com/something/", ["example.cOm"], True),
+        ],
+    )
+    def test_is_secure_origin(self, caplog, location, trusted, expected):
+        class MockLogger(object):
+            def __init__(self):
+                self.called = False
+
+            def warning(self, *args, **kwargs):
+                self.called = True
+
+        session = PipSession(trusted_hosts=trusted)
+        actual = session.is_secure_origin(location)
+        assert actual == expected
+
+        log_records = [(r.levelname, r.message) for r in caplog.records]
+        if expected:
+            assert not log_records
+            return
+
+        assert len(log_records) == 1
+        actual_level, actual_message = log_records[0]
+        assert actual_level == 'WARNING'
+        assert 'is not a trusted or secure host' in actual_message
 
 
 @pytest.mark.parametrize(["input_url", "url", "username", "password"], [

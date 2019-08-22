@@ -342,12 +342,13 @@ class TestProcessLine(object):
         list(process_line("--extra-index-url=url", "file", 1, finder=finder))
         assert finder.index_urls == ['url']
 
-    def test_set_finder_trusted_host(self, caplog, finder):
+    def test_set_finder_trusted_host(self, caplog, session, finder):
         with caplog.at_level(logging.INFO):
             list(process_line(
                 "--trusted-host=host", "file.txt", 1, finder=finder,
+                session=session,
             ))
-        assert finder.trusted_hosts == ['host']
+        assert list(finder.trusted_hosts) == ['host']
         session = finder.session
         assert session.adapters['https://host/'] is session._insecure_adapter
 

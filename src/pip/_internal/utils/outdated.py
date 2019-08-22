@@ -136,7 +136,6 @@ def pip_version_check(session, options):
             finder = PackageFinder.create(
                 search_scope=search_scope,
                 selection_prefs=selection_prefs,
-                trusted_hosts=options.trusted_hosts,
                 session=session,
             )
             best_candidate = finder.find_best_candidate("pip").best_candidate
