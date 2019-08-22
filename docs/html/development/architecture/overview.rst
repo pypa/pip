@@ -1,3 +1,8 @@
+.. note::
+    This section of the documentation is currently being written. pip
+    developers welcome your help to complete this documentation. If you're
+    interested in helping out, please let us know in the `tracking issue`_.
+
 .. contents::
 
 ****************************
@@ -132,6 +137,7 @@ whole list?
 Answer: It's not every file, just files of Flask. No API for getting alllllll
 files on PyPI. It’s for getting all files of Flask.)
 
+.. _`tracking issue`: https://github.com/pypa/pip/issues/6831
 .. _PyPI: https://pypi.org/
 .. _PyPI Simple API: https://warehouse.readthedocs.io/api-reference/legacy/#simple-project-api
 

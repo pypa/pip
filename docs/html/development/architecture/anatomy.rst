@@ -1,3 +1,7 @@
+.. note::
+    This section of the documentation is currently being written. pip
+    developers welcome your help to complete this documentation. If you're
+    interested in helping out, please let us know in the `tracking issue`_.
 
 ****************************************
 Repository anatomy & directory structure
@@ -97,6 +101,7 @@ Within ``src/``:
 
   * ``_vendor/`` *[code from other packages -- pip’s own dependencies…. Has them in its own source tree, because pip cannot depend on pip being installed on the machine already!]*
 
+.. _`tracking issue`: https://github.com/pypa/pip/issues/6831
 .. _GitHub repository: https://github.com/pypa/pip/
 .. _tox.ini: https://github.com/pypa/pip/blob/master/tox.ini
 .. _improving the pip dependency resolver: https://github.com/pypa/pip/issues/988
