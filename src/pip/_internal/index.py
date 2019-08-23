@@ -972,6 +972,63 @@ class PackageFinder(object):
             ignore_requires_python=self._ignore_requires_python,
         )
 
+    def _sort_links(self, links):
+        # type: (Iterable[Link]) -> List[Link]
+        """
+        Returns elements of links in order, non-egg links first, egg links
+        second, while eliminating duplicates
+        """
+        eggs, no_eggs = [], []
+        seen = set()  # type: Set[Link]
+        for link in links:
+            if link not in seen:
+                seen.add(link)
+                if link.egg_fragment:
+                    eggs.append(link)
+                else:
+                    no_eggs.append(link)
+        return no_eggs + eggs
+
+    def _log_skipped_link(self, link, reason):
+        # type: (Link, Text) -> None
+        if link not in self._logged_links:
+            # Mark this as a unicode string to prevent "UnicodeEncodeError:
+            # 'ascii' codec can't encode character" in Python 2 when
+            # the reason contains non-ascii characters.
+            #   Also, put the link at the end so the reason is more visible
+            # and because the link string is usually very long.
+            logger.debug(u'Skipping link: %s: %s', reason, link)
+            self._logged_links.add(link)
+
+    def get_install_candidate(self, link_evaluator, link):
+        # type: (LinkEvaluator, Link) -> Optional[InstallationCandidate]
+        """
+        If the link is a candidate for install, convert it to an
+        InstallationCandidate and return it. Otherwise, return None.
+        """
+        is_candidate, result = link_evaluator.evaluate_link(link)
+        if not is_candidate:
+            if result:
+                self._log_skipped_link(link, reason=result)
+            return None
+
+        return InstallationCandidate(
+            project=link_evaluator.project_name,
+            link=link,
+            # Convert the Text result to str since InstallationCandidate
+            # accepts str.
+            version=str(result),
+        )
+
+    def _package_versions(self, link_evaluator, links):
+        # type: (LinkEvaluator, Iterable[Link]) -> List[InstallationCandidate]
+        result = []
+        for link in self._sort_links(links):
+            candidate = self.get_install_candidate(link_evaluator, link)
+            if candidate is not None:
+                result.append(candidate)
+        return result
+
     def find_all_candidates(self, project_name):
         # type: (str) -> List[InstallationCandidate]
         """Find all available InstallationCandidate for project_name
@@ -1177,63 +1234,6 @@ class PackageFinder(object):
                 continue
 
             yield page
-
-    def _sort_links(self, links):
-        # type: (Iterable[Link]) -> List[Link]
-        """
-        Returns elements of links in order, non-egg links first, egg links
-        second, while eliminating duplicates
-        """
-        eggs, no_eggs = [], []
-        seen = set()  # type: Set[Link]
-        for link in links:
-            if link not in seen:
-                seen.add(link)
-                if link.egg_fragment:
-                    eggs.append(link)
-                else:
-                    no_eggs.append(link)
-        return no_eggs + eggs
-
-    def _log_skipped_link(self, link, reason):
-        # type: (Link, Text) -> None
-        if link not in self._logged_links:
-            # Mark this as a unicode string to prevent "UnicodeEncodeError:
-            # 'ascii' codec can't encode character" in Python 2 when
-            # the reason contains non-ascii characters.
-            #   Also, put the link at the end so the reason is more visible
-            # and because the link string is usually very long.
-            logger.debug(u'Skipping link: %s: %s', reason, link)
-            self._logged_links.add(link)
-
-    def get_install_candidate(self, link_evaluator, link):
-        # type: (LinkEvaluator, Link) -> Optional[InstallationCandidate]
-        """
-        If the link is a candidate for install, convert it to an
-        InstallationCandidate and return it. Otherwise, return None.
-        """
-        is_candidate, result = link_evaluator.evaluate_link(link)
-        if not is_candidate:
-            if result:
-                self._log_skipped_link(link, reason=result)
-            return None
-
-        return InstallationCandidate(
-            project=link_evaluator.project_name,
-            link=link,
-            # Convert the Text result to str since InstallationCandidate
-            # accepts str.
-            version=str(result),
-        )
-
-    def _package_versions(self, link_evaluator, links):
-        # type: (LinkEvaluator, Iterable[Link]) -> List[InstallationCandidate]
-        result = []
-        for link in self._sort_links(links):
-            candidate = self.get_install_candidate(link_evaluator, link)
-            if candidate is not None:
-                result.append(candidate)
-        return result
 
 
 def _find_name_version_sep(fragment, canonical_name):
