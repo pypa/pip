@@ -50,7 +50,7 @@ from pip._internal.utils.misc import (
     format_size,
     get_installed_version,
     hide_url,
-    netloc_has_port,
+    parse_netloc,
     path_to_display,
     path_to_url,
     remove_auth_from_url,
@@ -77,7 +77,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.vcs.versioncontrol import AuthInfo, VersionControl
 
     Credentials = Tuple[str, str, str]
-    SecureOrigin = Tuple[str, str, Optional[str]]
+    SecureOrigin = Tuple[str, str, Union[None, int, str]]
 
     if PY2:
         CopytreeKwargs = TypedDict(
@@ -586,7 +586,7 @@ class PipSession(requests.Session):
 
         # Namespace the attribute with "pip_" just in case to prevent
         # possible conflicts with the base class.
-        self.pip_trusted_hosts = []  # type: List[str]
+        self.pip_trusted_origins = []  # type: List[Tuple[str, Optional[int]]]
 
         # Attach our User Agent to the request
         self.headers["User-Agent"] = user_agent()
@@ -670,11 +670,12 @@ class PipSession(requests.Session):
                 msg += ' (from {})'.format(source)
             logger.info(msg)
 
-        if host not in self.pip_trusted_hosts:
-            self.pip_trusted_hosts.append(host)
+        host_port = parse_netloc(host)
+        if host_port not in self.pip_trusted_origins:
+            self.pip_trusted_origins.append(host_port)
 
         self.mount(build_url_from_netloc(host) + '/', self._insecure_adapter)
-        if not netloc_has_port(host):
+        if not host_port[1]:
             # Mount wildcard ports for the same host.
             self.mount(
                 build_url_from_netloc(host) + ':',
@@ -685,8 +686,8 @@ class PipSession(requests.Session):
         # type: () -> Iterator[SecureOrigin]
         for secure_origin in SECURE_ORIGINS:
             yield secure_origin
-        for host in self.pip_trusted_hosts:
-            yield ('*', host, '*')
+        for host, port in self.pip_trusted_origins:
+            yield ('*', host, '*' if port is None else port)
 
     def is_secure_origin(self, location):
         # type: (Link) -> bool

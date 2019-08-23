@@ -38,6 +38,7 @@ from pip._internal.utils.misc import (
     ARCHIVE_EXTENSIONS,
     SUPPORTED_EXTENSIONS,
     WHEEL_EXTENSION,
+    build_netloc,
     path_to_url,
     redact_password_from_url,
 )
@@ -947,7 +948,8 @@ class PackageFinder(object):
     @property
     def trusted_hosts(self):
         # type: () -> Iterable[str]
-        return iter(self.session.pip_trusted_hosts)
+        for host_port in self.session.pip_trusted_origins:
+            yield build_netloc(*host_port)
 
     @property
     def allow_all_prereleases(self):

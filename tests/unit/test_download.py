@@ -634,24 +634,39 @@ class TestPipSession:
         insecure_adapter = session._insecure_adapter
         prefix2 = 'https://host2/'
         prefix3 = 'https://host3/'
+        prefix3_wildcard = 'https://host3:'
 
         # Confirm some initial conditions as a baseline.
-        assert session.pip_trusted_hosts == ['host1', 'host3']
+        assert session.pip_trusted_origins == [
+            ('host1', None), ('host3', None)
+        ]
         assert session.adapters[prefix3] is insecure_adapter
+        assert session.adapters[prefix3_wildcard] is insecure_adapter
+
         assert prefix2 not in session.adapters
 
         # Test adding a new host.
         session.add_trusted_host('host2')
-        assert session.pip_trusted_hosts == ['host1', 'host3', 'host2']
+        assert session.pip_trusted_origins == [
+            ('host1', None), ('host3', None), ('host2', None)
+        ]
         # Check that prefix3 is still present.
         assert session.adapters[prefix3] is insecure_adapter
         assert session.adapters[prefix2] is insecure_adapter
 
         # Test that adding the same host doesn't create a duplicate.
         session.add_trusted_host('host3')
-        assert session.pip_trusted_hosts == ['host1', 'host3', 'host2'], (
-            'actual: {}'.format(session.pip_trusted_hosts)
-        )
+        assert session.pip_trusted_origins == [
+            ('host1', None), ('host3', None), ('host2', None)
+        ], 'actual: {}'.format(session.pip_trusted_origins)
+
+        session.add_trusted_host('host4:8080')
+        prefix4 = 'https://host4:8080/'
+        assert session.pip_trusted_origins == [
+            ('host1', None), ('host3', None),
+            ('host2', None), ('host4', 8080)
+        ]
+        assert session.adapters[prefix4] is insecure_adapter
 
     def test_add_trusted_host__logging(self, caplog):
         """
@@ -676,16 +691,17 @@ class TestPipSession:
         assert actual == expected
 
     def test_iter_secure_origins(self):
-        trusted_hosts = ['host1', 'host2']
+        trusted_hosts = ['host1', 'host2', 'host3:8080']
         session = PipSession(trusted_hosts=trusted_hosts)
 
         actual = list(session.iter_secure_origins())
-        assert len(actual) == 8
+        assert len(actual) == 9
         # Spot-check that SECURE_ORIGINS is included.
         assert actual[0] == ('https', '*', '*')
-        assert actual[-2:] == [
+        assert actual[-3:] == [
             ('*', 'host1', '*'),
             ('*', 'host2', '*'),
+            ('*', 'host3', 8080)
         ]
 
     def test_iter_secure_origins__trusted_hosts_empty(self):
@@ -713,6 +729,16 @@ class TestPipSession:
             ("http://example.com/something/", ["example.com"], True),
             # Try changing the case.
             ("http://eXample.com/something/", ["example.cOm"], True),
+            # Test hosts with port.
+            ("http://example.com:8080/something/", ["example.com"], True),
+            # Test a trusted_host with a port.
+            ("http://example.com:8080/something/", ["example.com:8080"], True),
+            ("http://example.com/something/", ["example.com:8080"], False),
+            (
+                "http://example.com:8888/something/",
+                ["example.com:8080"],
+                False
+            ),
         ],
     )
     def test_is_secure_origin(self, caplog, location, trusted, expected):

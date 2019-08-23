@@ -392,7 +392,7 @@ def trusted_host():
         metavar="HOSTNAME",
         default=[],
         help="Mark this host as trusted, even though it does not have valid "
-             "or any HTTPS.",
+             "or any HTTPS. A host:port pair is also acceptable.",
     )
 
 
