@@ -35,6 +35,7 @@ from pip._internal.utils.misc import (
     ensure_dir,
     get_installed_version,
     protect_pip_from_modification_on_windows,
+    write_output,
 )
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -447,7 +448,7 @@ class InstallCommand(RequirementCommand):
                         items.append(item)
                     installed_desc = ' '.join(items)
                     if installed_desc:
-                        logger.info(
+                        write_output(
                             'Successfully installed %s', installed_desc,
                         )
                 except EnvironmentError as error:

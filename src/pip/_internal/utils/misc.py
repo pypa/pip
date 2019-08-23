@@ -991,6 +991,11 @@ def call_subprocess(
     return ''.join(all_output)
 
 
+def write_output(msg, *args):
+    # type: (str, str) -> None
+    logger.info(msg, *args)
+
+
 def _make_build_dir(build_dir):
     os.makedirs(build_dir)
     write_delete_marker_file(build_dir)

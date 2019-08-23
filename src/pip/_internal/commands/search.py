@@ -19,6 +19,7 @@ from pip._internal.exceptions import CommandError
 from pip._internal.models.index import PyPI
 from pip._internal.utils.compat import get_terminal_size
 from pip._internal.utils.logging import indent_log
+from pip._internal.utils.misc import write_output
 
 logger = logging.getLogger(__name__)
 
@@ -118,19 +119,19 @@ def print_results(hits, name_column_width=None, terminal_width=None):
         line = '%-*s - %s' % (name_column_width,
                               '%s (%s)' % (name, latest), summary)
         try:
-            logger.info(line)
+            write_output(line)
             if name in installed_packages:
                 dist = pkg_resources.get_distribution(name)
                 with indent_log():
                     if dist.version == latest:
-                        logger.info('INSTALLED: %s (latest)', dist.version)
+                        write_output('INSTALLED: %s (latest)', dist.version)
                     else:
-                        logger.info('INSTALLED: %s', dist.version)
+                        write_output('INSTALLED: %s', dist.version)
                         if parse_version(latest).pre:
-                            logger.info('LATEST:    %s (pre-release; install'
-                                        ' with "pip install --pre")', latest)
+                            write_output('LATEST:    %s (pre-release; install'
+                                         ' with "pip install --pre")', latest)
                         else:
-                            logger.info('LATEST:    %s', latest)
+                            write_output('LATEST:    %s', latest)
         except UnicodeEncodeError:
             pass
 

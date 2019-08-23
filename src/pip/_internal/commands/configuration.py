@@ -11,7 +11,7 @@ from pip._internal.configuration import (
 )
 from pip._internal.exceptions import PipError
 from pip._internal.utils.deprecation import deprecated
-from pip._internal.utils.misc import get_prog
+from pip._internal.utils.misc import get_prog, write_output
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
 logger = logging.getLogger(__name__)
@@ -184,13 +184,13 @@ class ConfigurationCommand(Command):
         self._get_n_args(args, "list", n=0)
 
         for key, value in sorted(self.configuration.items()):
-            logger.info("%s=%r", key, value)
+            write_output("%s=%r", key, value)
 
     def get_name(self, options, args):
         key = self._get_n_args(args, "get [name]", n=1)
         value = self.configuration.get_value(key)
 
-        logger.info("%s", value)
+        write_output("%s", value)
 
     def set_name_value(self, options, args):
         key, value = self._get_n_args(args, "set [name] [value]", n=2)
