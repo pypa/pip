@@ -252,6 +252,65 @@ def _get_html_page(link, session=None):
     return None
 
 
+def group_locations(locations, expand_dir=False):
+    # type: (Sequence[str], bool) -> Tuple[List[str], List[str]]
+    """
+    Divide a list of locations into two groups: "files" (archives) and "urls."
+
+    :return: A pair of lists (files, urls).
+    """
+    files = []
+    urls = []
+
+    # puts the url for the given file path into the appropriate list
+    def sort_path(path):
+        url = path_to_url(path)
+        if mimetypes.guess_type(url, strict=False)[0] == 'text/html':
+            urls.append(url)
+        else:
+            files.append(url)
+
+    for url in locations:
+
+        is_local_path = os.path.exists(url)
+        is_file_url = url.startswith('file:')
+
+        if is_local_path or is_file_url:
+            if is_local_path:
+                path = url
+            else:
+                path = url_to_path(url)
+            if os.path.isdir(path):
+                if expand_dir:
+                    path = os.path.realpath(path)
+                    for item in os.listdir(path):
+                        sort_path(os.path.join(path, item))
+                elif is_file_url:
+                    urls.append(url)
+                else:
+                    logger.warning(
+                        "Path '{0}' is ignored: "
+                        "it is a directory.".format(path),
+                    )
+            elif os.path.isfile(path):
+                sort_path(path)
+            else:
+                logger.warning(
+                    "Url '%s' is ignored: it is neither a file "
+                    "nor a directory.", url,
+                )
+        elif is_url(url):
+            # Only add url with clear scheme
+            urls.append(url)
+        else:
+            logger.warning(
+                "Url '%s' is ignored. It is either a non-existing "
+                "path or lacks a specific scheme.", url,
+            )
+
+    return files, urls
+
+
 def _check_link_requires_python(
     link,  # type: Link
     version_info,  # type: Tuple[int, int, int]
@@ -899,64 +958,6 @@ class PackageFinder(object):
         # type: () -> None
         self._candidate_prefs.allow_all_prereleases = True
 
-    @staticmethod
-    def _sort_locations(locations, expand_dir=False):
-        # type: (Sequence[str], bool) -> Tuple[List[str], List[str]]
-        """
-        Sort locations into "files" (archives) and "urls", and return
-        a pair of lists (files,urls)
-        """
-        files = []
-        urls = []
-
-        # puts the url for the given file path into the appropriate list
-        def sort_path(path):
-            url = path_to_url(path)
-            if mimetypes.guess_type(url, strict=False)[0] == 'text/html':
-                urls.append(url)
-            else:
-                files.append(url)
-
-        for url in locations:
-
-            is_local_path = os.path.exists(url)
-            is_file_url = url.startswith('file:')
-
-            if is_local_path or is_file_url:
-                if is_local_path:
-                    path = url
-                else:
-                    path = url_to_path(url)
-                if os.path.isdir(path):
-                    if expand_dir:
-                        path = os.path.realpath(path)
-                        for item in os.listdir(path):
-                            sort_path(os.path.join(path, item))
-                    elif is_file_url:
-                        urls.append(url)
-                    else:
-                        logger.warning(
-                            "Path '{0}' is ignored: "
-                            "it is a directory.".format(path),
-                        )
-                elif os.path.isfile(path):
-                    sort_path(path)
-                else:
-                    logger.warning(
-                        "Url '%s' is ignored: it is neither a file "
-                        "nor a directory.", url,
-                    )
-            elif is_url(url):
-                # Only add url with clear scheme
-                urls.append(url)
-            else:
-                logger.warning(
-                    "Url '%s' is ignored. It is either a non-existing "
-                    "path or lacks a specific scheme.", url,
-                )
-
-        return files, urls
-
     def make_link_evaluator(self, project_name):
         # type: (str) -> LinkEvaluator
         canonical_name = canonicalize_name(project_name)
@@ -983,8 +984,8 @@ class PackageFinder(object):
         """
         search_scope = self.search_scope
         index_locations = search_scope.get_index_urls_locations(project_name)
-        index_file_loc, index_url_loc = self._sort_locations(index_locations)
-        fl_file_loc, fl_url_loc = self._sort_locations(
+        index_file_loc, index_url_loc = group_locations(index_locations)
+        fl_file_loc, fl_url_loc = group_locations(
             self.find_links, expand_dir=True,
         )
 
