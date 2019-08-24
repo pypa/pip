@@ -775,30 +775,30 @@ def _contains_egg_info(
 
 def should_build(
     req,  # type: InstallRequirement
-    should_unpack,  # type: bool
+    need_wheel,  # type: bool
     format_control,  # type: FormatControl
 ):
     """
     Return whether a wheel should be built based on the requirement
-    characteristics, and if it should be ultimately unpacked or not.
+    characteristics, and if a wheel is ultimately needed or not.
     """
     if req.constraint:
         # never build requirements that are merely constraints
         return False
 
     if req.is_wheel:
-        if not should_unpack:
+        if need_wheel:
             logger.info(
                 'Skipping %s, due to already being wheel.', req.name,
             )
         # never build a requirement that is already a wheel
         return False
 
-    if not should_unpack:
+    if need_wheel:
         return True
 
     if req.editable:
-        # don't build an editable if it should ultimately be unpacked
+        # don't build an editable if no wheel is needed
         return False
 
     if not req.source_dir:
@@ -1096,7 +1096,7 @@ class WheelBuilder(object):
         for req in requirements:
             if not should_build(
                 req,
-                should_unpack=should_unpack,
+                need_wheel=not should_unpack,
                 format_control=format_control,
             ):
                 continue

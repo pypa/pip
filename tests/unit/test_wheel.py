@@ -97,37 +97,37 @@ def test_format_tag(file_tag, expected):
 
 
 @pytest.mark.parametrize(
-    "req, should_unpack, disallow_binaries, expected",
+    "req, need_wheel, disallow_binaries, expected",
     [
-        # pip wheel (should_unpack=False)
-        (ReqMock(), False, False, True),
-        (ReqMock(), False, True, True),
-        (ReqMock(constraint=True), False, False, False),
-        (ReqMock(is_wheel=True), False, False, False),
-        (ReqMock(editable=True), False, False, True),
-        (ReqMock(source_dir=None), False, False, True),
-        (ReqMock(link=Link("git+https://g.c/org/repo")), False, False, True),
-        (ReqMock(link=Link("git+https://g.c/org/repo")), False, True, True),
-        # pip install (should_unpack=True)
+        # pip wheel (need_wheel=True)
         (ReqMock(), True, False, True),
-        (ReqMock(), True, True, False),
+        (ReqMock(), True, True, True),
         (ReqMock(constraint=True), True, False, False),
         (ReqMock(is_wheel=True), True, False, False),
-        (ReqMock(editable=True), True, False, False),
-        (ReqMock(source_dir=None), True, False, False),
+        (ReqMock(editable=True), True, False, True),
+        (ReqMock(source_dir=None), True, False, True),
+        (ReqMock(link=Link("git+https://g.c/org/repo")), True, False, True),
+        (ReqMock(link=Link("git+https://g.c/org/repo")), True, True, True),
+        # pip install (need_wheel=False)
+        (ReqMock(), False, False, True),
+        (ReqMock(), False, True, False),
+        (ReqMock(constraint=True), False, False, False),
+        (ReqMock(is_wheel=True), False, False, False),
+        (ReqMock(editable=True), False, False, False),
+        (ReqMock(source_dir=None), False, False, False),
         # By default (i.e. when binaries are allowed), VCS requirements
         # should be built in install mode.
-        (ReqMock(link=Link("git+https://g.c/org/repo")), True, False, True),
+        (ReqMock(link=Link("git+https://g.c/org/repo")), False, False, True),
         # Disallowing binaries, however, should cause them not to be built.
-        (ReqMock(link=Link("git+https://g.c/org/repo")), True, True, False),
+        (ReqMock(link=Link("git+https://g.c/org/repo")), False, True, False),
     ],
 )
-def test_should_build(req, should_unpack, disallow_binaries, expected):
+def test_should_build(req, need_wheel, disallow_binaries, expected):
     format_control = FormatControl()
     if disallow_binaries:
         format_control.disallow_binaries()
     should_build = wheel.should_build(
-        req, should_unpack=should_unpack, format_control=format_control
+        req, need_wheel=need_wheel, format_control=format_control
     )
     assert should_build is expected
 
