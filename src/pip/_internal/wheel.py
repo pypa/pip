@@ -794,15 +794,18 @@ def should_build(
         # never build a requirement that is already a wheel
         return False
 
+    if not should_unpack:
+        return True
+
     if req.editable:
-        # don't build an editable if it should be unpacked
-        return not should_unpack
+        # don't build an editable if it should ultimately be unpacked
+        return False
 
     if not req.source_dir:
         # TODO explain what no source_dir means
-        return not should_unpack
+        return False
 
-    if should_unpack and "binary" not in format_control.get_allowed_formats(
+    if "binary" not in format_control.get_allowed_formats(
             canonicalize_name(req.name)):
         logger.info(
             "Skipping bdist_wheel for %s, due to binaries "
