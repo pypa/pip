@@ -22,6 +22,7 @@ from pip._internal.index import (
     _find_name_version_sep,
     _get_html_page,
     filter_unallowed_hashes,
+    group_locations,
 )
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.search_scope import SearchScope
@@ -29,7 +30,7 @@ from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.pep425tags import get_supported
 from pip._internal.utils.hashes import Hashes
-from tests.lib import CURRENT_PY_VERSION_INFO, make_test_finder
+from tests.lib import CURRENT_PY_VERSION_INFO
 
 
 def make_mock_candidate(version, yanked_reason=None, hex_digest=None):
@@ -748,34 +749,31 @@ class TestPackageFinder:
         assert evaluator._supported_tags == [('py36', 'none', 'any')]
 
 
-def test_sort_locations_file_expand_dir(data):
+def test_group_locations__file_expand_dir(data):
     """
     Test that a file:// dir gets listdir run with expand_dir
     """
-    finder = make_test_finder(find_links=[data.find_links])
-    files, urls = finder._sort_locations([data.find_links], expand_dir=True)
+    files, urls = group_locations([data.find_links], expand_dir=True)
     assert files and not urls, (
         "files and not urls should have been found at find-links url: %s" %
         data.find_links
     )
 
 
-def test_sort_locations_file_not_find_link(data):
+def test_group_locations__file_not_find_link(data):
     """
     Test that a file:// url dir that's not a find-link, doesn't get a listdir
     run
     """
-    finder = make_test_finder()
-    files, urls = finder._sort_locations([data.index_url("empty_with_pkg")])
+    files, urls = group_locations([data.index_url("empty_with_pkg")])
     assert urls and not files, "urls, but not files should have been found"
 
 
-def test_sort_locations_non_existing_path():
+def test_group_locations__non_existing_path():
     """
     Test that a non-existing path is ignored.
     """
-    finder = make_test_finder()
-    files, urls = finder._sort_locations(
+    files, urls = group_locations(
         [os.path.join('this', 'doesnt', 'exist')])
     assert not urls and not files, "nothing should have been found"
 
