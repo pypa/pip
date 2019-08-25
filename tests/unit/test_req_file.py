@@ -359,8 +359,7 @@ class TestProcessLine(object):
         # Test the log message.
         actual = [(r.levelname, r.message) for r in caplog.records]
         expected = (
-            'INFO',
-            "adding trusted host: 'host1' (from line 1 of file.txt)"
+            'INFO', "adding trusted host: 'host1' (from line 1 of file.txt)"
         )
         assert expected in actual
 

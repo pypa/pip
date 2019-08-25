@@ -77,7 +77,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.vcs.versioncontrol import AuthInfo, VersionControl
 
     Credentials = Tuple[str, str, str]
-    SecureOrigin = Tuple[str, str, Union[None, int, str]]
+    SecureOrigin = Tuple[str, str, Optional[Union[int, str]]]
 
     if PY2:
         CopytreeKwargs = TypedDict(

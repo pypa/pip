@@ -1233,6 +1233,22 @@ def test_path_to_url_win():
     assert path_to_url('file') == 'file:' + urllib_request.pathname2url(path)
 
 
+@pytest.mark.parametrize('host_port, expected_netloc', [
+    # Test domain name.
+    (('example.com', None), 'example.com'),
+    (('example.com', 5000), 'example.com:5000'),
+    # Test IPv4 address.
+    (('127.0.0.1', None), '127.0.0.1'),
+    (('127.0.0.1', 5000), '127.0.0.1:5000'),
+    # Test bare IPv6 address.
+    (('2001:db6::1', None), '2001:db6::1'),
+    # Test IPv6 with port.
+    (('2001:db6::1', 5000), '[2001:db6::1]:5000'),
+])
+def test_build_netloc(host_port, expected_netloc):
+    assert build_netloc(*host_port) == expected_netloc
+
+
 @pytest.mark.parametrize('netloc, expected_url, expected_host_port', [
     # Test domain name.
     ('example.com', 'https://example.com', ('example.com', None)),
@@ -1260,22 +1276,6 @@ def test_build_url_from_netloc_and_parse_netloc(
 ):
     assert build_url_from_netloc(netloc) == expected_url
     assert parse_netloc(netloc) == expected_host_port
-
-
-@pytest.mark.parametrize('host_port, expected_netloc', [
-    # Test domain name.
-    (('example.com', None), 'example.com'),
-    (('example.com', 5000), 'example.com:5000'),
-    # Test IPv4 address.
-    (('127.0.0.1', None), '127.0.0.1'),
-    (('127.0.0.1', 5000), '127.0.0.1:5000'),
-    # Test bare IPv6 address.
-    (('2001:db6::1', None), '2001:db6::1'),
-    # Test IPv6 with port.
-    (('2001:db6::1', 5000), '[2001:db6::1]:5000'),
-])
-def test_build_netloc(host_port, expected_netloc):
-    assert build_netloc(*host_port) == expected_netloc
 
 
 @pytest.mark.parametrize('netloc, expected', [
