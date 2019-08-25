@@ -39,7 +39,7 @@ from pip._internal.utils.misc import (
     SUPPORTED_EXTENSIONS,
     WHEEL_EXTENSION,
     path_to_url,
-    redact_password_from_url,
+    redact_auth_from_url,
 )
 from pip._internal.utils.packaging import check_requires_python
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -153,7 +153,7 @@ def _get_html_response(url, session):
     if _is_url_like_archive(url):
         _ensure_html_response(url, session=session)
 
-    logger.debug('Getting page %s', redact_password_from_url(url))
+    logger.debug('Getting page %s', redact_auth_from_url(url))
 
     resp = session.get(
         url,
@@ -1379,7 +1379,7 @@ class HTMLPage(object):
         self.headers = headers
 
     def __str__(self):
-        return redact_password_from_url(self.url)
+        return redact_auth_from_url(self.url)
 
     def iter_links(self):
         # type: () -> Iterable[Link]

@@ -1181,15 +1181,22 @@ def split_auth_from_netloc(netloc):
 def redact_netloc(netloc):
     # type: (str) -> str
     """
-    Replace the password in a netloc with "****", if it exists.
+    Replace the sensitive data in a netloc with "****", if it exists.
 
-    For example, "user:pass@example.com" returns "user:****@example.com".
+    For example:
+        - "user:pass@example.com" returns "user:****@example.com"
+        - "accesstoken@example.com" returns "****@example.com"
     """
     netloc, (user, password) = split_auth_from_netloc(netloc)
     if user is None:
         return netloc
-    password = '' if password is None else ':****'
-    return '{user}{password}@{netloc}'.format(user=urllib_parse.quote(user),
+    if password is None:
+        user = '****'
+        password = ''
+    else:
+        user = urllib_parse.quote(user)
+        password = ':****'
+    return '{user}{password}@{netloc}'.format(user=user,
                                               password=password,
                                               netloc=netloc)
 
@@ -1241,7 +1248,7 @@ def remove_auth_from_url(url):
     return _transform_url(url, _get_netloc)[0]
 
 
-def redact_password_from_url(url):
+def redact_auth_from_url(url):
     # type: (str) -> str
     """Replace the password in a given url with ****."""
     return _transform_url(url, _redact_netloc)[0]
@@ -1289,7 +1296,7 @@ def hide_value(value):
 
 def hide_url(url):
     # type: (str) -> HiddenText
-    redacted = redact_password_from_url(url)
+    redacted = redact_auth_from_url(url)
     return HiddenText(url, redacted=redacted)
 
 
