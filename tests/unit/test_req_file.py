@@ -345,19 +345,23 @@ class TestProcessLine(object):
     def test_set_finder_trusted_host(self, caplog, session, finder):
         with caplog.at_level(logging.INFO):
             list(process_line(
-                "--trusted-host=host", "file.txt", 1, finder=finder,
-                session=session,
+                "--trusted-host=host1 --trusted-host=host2:8080",
+                "file.txt", 1, finder=finder, session=session,
             ))
-        assert list(finder.trusted_hosts) == ['host']
+        assert list(finder.trusted_hosts) == ['host1', 'host2:8080']
         session = finder.session
-        assert session.adapters['https://host/'] is session._insecure_adapter
+        assert session.adapters['https://host1/'] is session._insecure_adapter
+        assert (
+            session.adapters['https://host2:8080/']
+            is session._insecure_adapter
+        )
 
         # Test the log message.
         actual = [(r.levelname, r.message) for r in caplog.records]
-        expected = [
-            ('INFO', "adding trusted host: 'host' (from line 1 of file.txt)"),
-        ]
-        assert actual == expected
+        expected = (
+            'INFO', "adding trusted host: 'host1' (from line 1 of file.txt)"
+        )
+        assert expected in actual
 
     def test_noop_always_unzip(self, finder):
         # noop, but confirm it can be set

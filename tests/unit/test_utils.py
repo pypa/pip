@@ -38,6 +38,7 @@ from pip._internal.utils.glibc import (
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.misc import (
     HiddenText,
+    build_netloc,
     build_url_from_netloc,
     call_subprocess,
     egg_link_path,
@@ -49,9 +50,9 @@ from pip._internal.utils.misc import (
     hide_value,
     make_command,
     make_subprocess_output_error,
-    netloc_has_port,
     normalize_path,
     normalize_version_info,
+    parse_netloc,
     path_to_display,
     path_to_url,
     redact_netloc,
@@ -1232,29 +1233,49 @@ def test_path_to_url_win():
     assert path_to_url('file') == 'file:' + urllib_request.pathname2url(path)
 
 
-@pytest.mark.parametrize('netloc, expected_url, expected_has_port', [
+@pytest.mark.parametrize('host_port, expected_netloc', [
     # Test domain name.
-    ('example.com', 'https://example.com', False),
-    ('example.com:5000', 'https://example.com:5000', True),
+    (('example.com', None), 'example.com'),
+    (('example.com', 5000), 'example.com:5000'),
     # Test IPv4 address.
-    ('127.0.0.1', 'https://127.0.0.1', False),
-    ('127.0.0.1:5000', 'https://127.0.0.1:5000', True),
+    (('127.0.0.1', None), '127.0.0.1'),
+    (('127.0.0.1', 5000), '127.0.0.1:5000'),
     # Test bare IPv6 address.
-    ('2001:DB6::1', 'https://[2001:DB6::1]', False),
+    (('2001:db6::1', None), '2001:db6::1'),
     # Test IPv6 with port.
-    ('[2001:DB6::1]:5000', 'https://[2001:DB6::1]:5000', True),
+    (('2001:db6::1', 5000), '[2001:db6::1]:5000'),
+])
+def test_build_netloc(host_port, expected_netloc):
+    assert build_netloc(*host_port) == expected_netloc
+
+
+@pytest.mark.parametrize('netloc, expected_url, expected_host_port', [
+    # Test domain name.
+    ('example.com', 'https://example.com', ('example.com', None)),
+    ('example.com:5000', 'https://example.com:5000', ('example.com', 5000)),
+    # Test IPv4 address.
+    ('127.0.0.1', 'https://127.0.0.1', ('127.0.0.1', None)),
+    ('127.0.0.1:5000', 'https://127.0.0.1:5000', ('127.0.0.1', 5000)),
+    # Test bare IPv6 address.
+    ('2001:db6::1', 'https://[2001:db6::1]', ('2001:db6::1', None)),
+    # Test IPv6 with port.
+    (
+        '[2001:db6::1]:5000',
+        'https://[2001:db6::1]:5000',
+        ('2001:db6::1', 5000)
+    ),
     # Test netloc with auth.
     (
         'user:password@localhost:5000',
         'https://user:password@localhost:5000',
-        True
+        ('localhost', 5000)
     )
 ])
-def test_build_url_from_netloc_and_netloc_has_port(
-    netloc, expected_url, expected_has_port,
+def test_build_url_from_netloc_and_parse_netloc(
+    netloc, expected_url, expected_host_port,
 ):
     assert build_url_from_netloc(netloc) == expected_url
-    assert netloc_has_port(netloc) is expected_has_port
+    assert parse_netloc(netloc) == expected_host_port
 
 
 @pytest.mark.parametrize('netloc, expected', [

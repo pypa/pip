@@ -1129,6 +1129,19 @@ def path_to_url(path):
     return url
 
 
+def build_netloc(host, port):
+    # type: (str, Optional[int]) -> str
+    """
+    Build a netloc from a host-port pair
+    """
+    if port is None:
+        return host
+    if ':' in host:
+        # Only wrap host with square brackets when it is IPv6
+        host = '[{}]'.format(host)
+    return '{}:{}'.format(host, port)
+
+
 def build_url_from_netloc(netloc, scheme='https'):
     # type: (str, str) -> str
     """
@@ -1140,14 +1153,14 @@ def build_url_from_netloc(netloc, scheme='https'):
     return '{}://{}'.format(scheme, netloc)
 
 
-def netloc_has_port(netloc):
-    # type: (str) -> bool
+def parse_netloc(netloc):
+    # type: (str) -> Tuple[str, Optional[int]]
     """
-    Return whether the netloc has a port part.
+    Return the host-port pair from a netloc.
     """
     url = build_url_from_netloc(netloc)
     parsed = urllib_parse.urlparse(url)
-    return bool(parsed.port)
+    return parsed.hostname, parsed.port
 
 
 def split_auth_from_netloc(netloc):
