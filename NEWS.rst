@@ -7,6 +7,15 @@
 
 .. towncrier release notes start
 
+19.2.3 (2019-08-25)
+===================
+
+Bug Fixes
+---------
+
+- Fix 'm' flag erroneously being appended to ABI tag in Python 3.8 on platforms that do not provide SOABI (`#6885 <https://github.com/pypa/pip/issues/6885>`_)
+
+
 19.2.2 (2019-08-11)
 ===================
 
