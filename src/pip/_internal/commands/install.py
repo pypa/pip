@@ -362,8 +362,16 @@ class InstallCommand(RequirementCommand):
                     )
                     resolver.resolve(requirement_set)
 
+                    try:
+                        pip_req = requirement_set.get_requirement("pip")
+                    except KeyError:
+                        pip_req = None
+                    modifying_pip = (
+                        pip_req is not None and
+                        pip_req.satisfied_by is None
+                    )
                     protect_pip_from_modification_on_windows(
-                        modifying_pip=requirement_set.has_requirement("pip")
+                        modifying_pip=modifying_pip
                     )
 
                     # Consider legacy and PEP517-using requirements separately

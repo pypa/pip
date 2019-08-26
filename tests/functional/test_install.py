@@ -1636,3 +1636,21 @@ def test_protect_pip_from_modification_via_sub_deps_on_windows(script):
         .format(' '.join(new_command))
     )
     assert expected_message in result.stderr, str(result)
+
+
+@pytest.mark.parametrize(
+    'install_args, expected_message', [
+        ([], 'Requirement already satisfied: pip in'),
+        (['--upgrade'], 'Requirement already up-to-date: pip in'),
+    ]
+)
+@pytest.mark.parametrize("use_module", [True, False])
+def test_install_pip_does_not_modify_pip_when_satisfied(
+        script, install_args, expected_message, use_module):
+    """
+    Test it doesn't upgrade the pip if it already satisfies the requirement.
+    """
+    result = script.pip_install_local(
+        'pip', *install_args, use_module=use_module
+    )
+    assert expected_message in result.stdout, str(result)

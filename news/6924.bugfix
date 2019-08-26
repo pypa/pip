@@ -1,0 +1,2 @@
+Fix an error when upgrade pip using ``pip.exe`` on Windows fails
+if the requirement already satisfied.

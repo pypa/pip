@@ -1307,6 +1307,7 @@ def hide_url(url):
 
 
 def protect_pip_from_modification_on_windows(modifying_pip):
+    # type: (bool) -> None
     """Protection of pip.exe from modification on Windows
 
     On Windows, any operation modifying pip should be run as:
