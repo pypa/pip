@@ -652,7 +652,10 @@ class PipSession(requests.Session):
         elif _KERBEROS_AVAILABLE and not prompting:
             auths = [no_prompt, HTTPKerberosAuth(ik.REQUIRED)]
         else:
-            auths = [MultiDomainBasicAuth(prompting=prompting, index_urls=index_urls)]
+            auths = [MultiDomainBasicAuth(
+                prompting=prompting,
+                index_urls=index_urls
+            )]
 
         self.auth = MultiAuth(*auths)
 
