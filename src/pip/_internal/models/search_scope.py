@@ -8,7 +8,7 @@ from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip._internal.models.index import PyPI
 from pip._internal.utils.compat import HAS_TLS
-from pip._internal.utils.misc import normalize_path, redact_password_from_url
+from pip._internal.utils.misc import normalize_path, redact_auth_from_url
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -80,12 +80,12 @@ class SearchScope(object):
         if self.index_urls and self.index_urls != [PyPI.simple_url]:
             lines.append(
                 'Looking in indexes: {}'.format(', '.join(
-                    redact_password_from_url(url) for url in self.index_urls))
+                    redact_auth_from_url(url) for url in self.index_urls))
             )
         if self.find_links:
             lines.append(
                 'Looking in links: {}'.format(', '.join(
-                    redact_password_from_url(url) for url in self.find_links))
+                    redact_auth_from_url(url) for url in self.find_links))
             )
         return '\n'.join(lines)
 

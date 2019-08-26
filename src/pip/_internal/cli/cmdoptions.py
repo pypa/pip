@@ -27,7 +27,7 @@ from pip._internal.models.index import PyPI
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.target_python import TargetPython
 from pip._internal.utils.hashes import STRONG_HASHES
-from pip._internal.utils.misc import redact_password_from_url
+from pip._internal.utils.misc import redact_auth_from_url
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import BAR_TYPES
 
@@ -369,7 +369,7 @@ def make_search_scope(options, suppress_no_index=False):
     if options.no_index and not suppress_no_index:
         logger.debug(
             'Ignoring indexes: %s',
-            ','.join(redact_password_from_url(url) for url in index_urls),
+            ','.join(redact_auth_from_url(url) for url in index_urls),
         )
         index_urls = []
 

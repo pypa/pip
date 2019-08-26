@@ -55,8 +55,8 @@ from pip._internal.utils.misc import (
     parse_netloc,
     path_to_display,
     path_to_url,
+    redact_auth_from_url,
     redact_netloc,
-    redact_password_from_url,
     remove_auth_from_url,
     rmtree,
     split_auth_from_netloc,
@@ -1332,7 +1332,7 @@ def test_split_auth_netloc_from_url(url, expected):
     # Test a basic case.
     ('example.com', 'example.com'),
     # Test with username and no password.
-    ('user@example.com', 'user@example.com'),
+    ('accesstoken@example.com', '****@example.com'),
     # Test with username and password.
     ('user:pass@example.com', 'user:****@example.com'),
     # Test with username and empty password.
@@ -1371,7 +1371,7 @@ def test_remove_auth_from_url(auth_url, expected_url):
 
 
 @pytest.mark.parametrize('auth_url, expected_url', [
-    ('https://user@example.com/abc', 'https://user@example.com/abc'),
+    ('https://accesstoken@example.com/abc', 'https://****@example.com/abc'),
     ('https://user:password@example.com', 'https://user:****@example.com'),
     ('https://user:@example.com', 'https://user:****@example.com'),
     ('https://example.com', 'https://example.com'),
@@ -1379,8 +1379,8 @@ def test_remove_auth_from_url(auth_url, expected_url):
     ('https://user%3Aname:%23%40%5E@example.com',
      'https://user%3Aname:****@example.com'),
 ])
-def test_redact_password_from_url(auth_url, expected_url):
-    url = redact_password_from_url(auth_url)
+def test_redact_auth_from_url(auth_url, expected_url):
+    url = redact_auth_from_url(auth_url)
     assert url == expected_url
 
 

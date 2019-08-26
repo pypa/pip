@@ -39,7 +39,7 @@ from pip._internal.utils.misc import (
     ensure_dir,
     get_installed_version,
     hide_url,
-    redact_password_from_url,
+    redact_auth_from_url,
     rmtree,
 )
 from pip._internal.utils.packaging import get_metadata
@@ -170,9 +170,9 @@ class InstallRequirement(object):
         if self.req:
             s = str(self.req)
             if self.link:
-                s += ' from %s' % redact_password_from_url(self.link.url)
+                s += ' from %s' % redact_auth_from_url(self.link.url)
         elif self.link:
-            s = redact_password_from_url(self.link.url)
+            s = redact_auth_from_url(self.link.url)
         else:
             s = '<InstallRequirement>'
         if self.satisfied_by is not None:

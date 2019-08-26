@@ -6,7 +6,7 @@ from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._internal.utils.misc import (
     WHEEL_EXTENSION,
     path_to_url,
-    redact_password_from_url,
+    redact_auth_from_url,
     split_auth_from_netloc,
     splitext,
 )
@@ -68,10 +68,10 @@ class Link(KeyBasedCompareMixin):
         else:
             rp = ''
         if self.comes_from:
-            return '%s (from %s)%s' % (redact_password_from_url(self._url),
+            return '%s (from %s)%s' % (redact_auth_from_url(self._url),
                                        self.comes_from, rp)
         else:
-            return redact_password_from_url(str(self._url))
+            return redact_auth_from_url(str(self._url))
 
     def __repr__(self):
         return '<Link %s>' % self
