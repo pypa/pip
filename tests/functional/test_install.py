@@ -162,7 +162,7 @@ def test_pep518_with_namespace_package(script, data, common_wheels):
 def test_pep518_forkbombs(script, data, common_wheels, command, package):
     package_source = next(data.packages.glob(package + '-[0-9]*.tar.gz'))
     result = script.pip(
-        'wheel', '--no-index', '-v',
+        command, '--no-index', '-v',
         '-f', common_wheels,
         '-f', data.find_links,
         package,
