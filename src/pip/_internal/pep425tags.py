@@ -44,6 +44,8 @@ def get_abbr_impl():
         pyimpl = 'jy'
     elif sys.platform == 'cli':
         pyimpl = 'ip'
+    elif platform.python_implementation() == 'Tauthon':
+        pyimpl = 'ta'
     else:
         pyimpl = 'cp'
     return pyimpl
@@ -126,6 +128,8 @@ def get_abi_tag():
         abi = '%s%s%s%s%s' % (impl, get_impl_ver(), d, m, u)
     elif soabi and soabi.startswith('cpython-'):
         abi = 'cp' + soabi.split('-')[1]
+    elif soabi and soabi.startswith('tauthon-'):
+        abi = 'ta' + soabi.split('-')[1]
     elif soabi:
         abi = soabi.replace('.', '_').replace('-', '_')
 
