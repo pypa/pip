@@ -8,7 +8,9 @@ from mock import patch
 from pip._vendor.six import PY2
 
 from pip._internal.utils.logging import (
-    BrokenStdoutLoggingError, ColorizedStreamHandler, IndentingFormatter,
+    BrokenStdoutLoggingError,
+    ColorizedStreamHandler,
+    IndentingFormatter,
 )
 from pip._internal.utils.misc import captured_stderr, captured_stdout
 
@@ -34,9 +36,7 @@ class TestIndentingFormatter(object):
     """
 
     def setup(self):
-        # Robustify the tests below to the ambient timezone by setting it
-        # explicitly here.
-        self.old_tz = getattr(os.environ, 'TZ', None)
+        self.old_tz = os.environ.get('TZ')
         os.environ['TZ'] = 'UTC'
         # time.tzset() is not implemented on some platforms (notably, Windows).
         if hasattr(time, 'tzset'):
@@ -50,21 +50,62 @@ class TestIndentingFormatter(object):
         if 'tzset' in dir(time):
             time.tzset()
 
-    def test_format(self, tmpdir):
-        record = logging.makeLogRecord(dict(
-            created=1547704837.4,
-            msg='hello\nworld',
-        ))
-        f = IndentingFormatter(fmt="%(message)s")
-        assert f.format(record) == 'hello\nworld'
+    def make_record(self, msg, level_name):
+        level_number = getattr(logging, level_name)
+        attrs = dict(
+            msg=msg,
+            created=1547704837.040001,
+            msecs=40,
+            levelname=level_name,
+            levelno=level_number,
+        )
+        record = logging.makeLogRecord(attrs)
 
-    def test_format_with_timestamp(self, tmpdir):
-        record = logging.makeLogRecord(dict(
-            created=1547704837.4,
-            msg='hello\nworld',
-        ))
+        return record
+
+    @pytest.mark.parametrize('level_name, expected', [
+        ('DEBUG', 'hello\nworld'),
+        ('INFO', 'hello\nworld'),
+        ('WARNING', 'WARNING: hello\nworld'),
+        ('ERROR', 'ERROR: hello\nworld'),
+        ('CRITICAL', 'ERROR: hello\nworld'),
+    ])
+    def test_format(self, level_name, expected):
+        """
+        Args:
+          level_name: a logging level name (e.g. "WARNING").
+        """
+        record = self.make_record('hello\nworld', level_name=level_name)
+        f = IndentingFormatter(fmt="%(message)s")
+        assert f.format(record) == expected
+
+    @pytest.mark.parametrize('level_name, expected', [
+        ('INFO',
+         '2019-01-17T06:00:37,040 hello\n'
+         '2019-01-17T06:00:37,040 world'),
+        ('WARNING',
+         '2019-01-17T06:00:37,040 WARNING: hello\n'
+         '2019-01-17T06:00:37,040 world'),
+    ])
+    def test_format_with_timestamp(self, level_name, expected):
+        record = self.make_record('hello\nworld', level_name=level_name)
         f = IndentingFormatter(fmt="%(message)s", add_timestamp=True)
-        expected = '2019-01-17T06:00:37 hello\n2019-01-17T06:00:37 world'
+        assert f.format(record) == expected
+
+    @pytest.mark.parametrize('level_name, expected', [
+        ('WARNING', 'DEPRECATION: hello\nworld'),
+        ('ERROR', 'DEPRECATION: hello\nworld'),
+        ('CRITICAL', 'DEPRECATION: hello\nworld'),
+    ])
+    def test_format_deprecated(self, level_name, expected):
+        """
+        Test that logged deprecation warnings coming from deprecated()
+        don't get another prefix.
+        """
+        record = self.make_record(
+            'DEPRECATION: hello\nworld', level_name=level_name,
+        )
+        f = IndentingFormatter(fmt="%(message)s")
         assert f.format(record) == expected
 
 

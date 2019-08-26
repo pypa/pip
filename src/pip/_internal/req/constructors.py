@@ -8,6 +8,9 @@ These are meant to be used elsewhere within pip to create instances of
 InstallRequirement.
 """
 
+# The following comment should be removed at some point in the future.
+# mypy: strict-optional=False
+
 import logging
 import os
 import re
@@ -17,23 +20,22 @@ from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 from pip._vendor.packaging.specifiers import Specifier
 from pip._vendor.pkg_resources import RequirementParseError, parse_requirements
 
-from pip._internal.download import (
-    is_archive_file, is_url, path_to_url, url_to_path,
-)
+from pip._internal.download import is_archive_file, is_url, url_to_path
 from pip._internal.exceptions import InstallationError
 from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.models.link import Link
+from pip._internal.pyproject import make_pyproject_path
 from pip._internal.req.req_install import InstallRequirement
-from pip._internal.utils.misc import is_installable_dir
+from pip._internal.utils.misc import is_installable_dir, path_to_url
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs import vcs
 from pip._internal.wheel import Wheel
 
 if MYPY_CHECK_RUNNING:
-    from typing import (   # noqa: F401
-        Optional, Tuple, Set, Any, Union, Text, Dict,
+    from typing import (
+        Any, Dict, Optional, Set, Tuple, Union,
     )
-    from pip._internal.cache import WheelCache  # noqa: F401
+    from pip._internal.cache import WheelCache
 
 
 __all__ = [
@@ -77,10 +79,18 @@ def parse_editable(editable_req):
 
     if os.path.isdir(url_no_extras):
         if not os.path.exists(os.path.join(url_no_extras, 'setup.py')):
-            raise InstallationError(
-                "Directory %r is not installable. File 'setup.py' not found." %
-                url_no_extras
+            msg = (
+                'File "setup.py" not found. Directory cannot be installed '
+                'in editable mode: {}'.format(os.path.abspath(url_no_extras))
             )
+            pyproject_path = make_pyproject_path(url_no_extras)
+            if os.path.isfile(pyproject_path):
+                msg += (
+                    '\n(A "pyproject.toml" file was found, but editable '
+                    'mode currently requires a setup.py based build.)'
+                )
+            raise InstallationError(msg)
+
         # Treating it as code that has already been checked out
         url_no_extras = path_to_url(url_no_extras)
 
@@ -102,9 +112,9 @@ def parse_editable(editable_req):
 
     if '+' not in url:
         raise InstallationError(
-            '%s should either be a path to a local project or a VCS url '
-            'beginning with svn+, git+, hg+, or bzr+' %
-            editable_req
+            '{} is not a valid editable requirement. '
+            'It should either be a path to a local project or a VCS URL '
+            '(beginning with svn+, git+, hg+, or bzr+).'.format(editable_req)
         )
 
     vc_type = url.split('+', 1)[0].lower()
@@ -198,11 +208,15 @@ def install_req_from_line(
     isolated=False,  # type: bool
     options=None,  # type: Optional[Dict[str, Any]]
     wheel_cache=None,  # type: Optional[WheelCache]
-    constraint=False  # type: bool
+    constraint=False,  # type: bool
+    line_source=None,  # type: Optional[str]
 ):
     # type: (...) -> InstallRequirement
     """Creates an InstallRequirement from a name, which might be a
     requirement, directory containing 'setup.py', filename, or URL.
+
+    :param line_source: An optional string describing where the line is from,
+        for logging purposes in case of an error.
     """
     if is_url(name):
         marker_sep = '; '
@@ -282,10 +296,17 @@ def install_req_from_line(
                   not any(op in req_as_string for op in operators)):
                 add_msg = "= is not a valid operator. Did you mean == ?"
             else:
-                add_msg = ""
-            raise InstallationError(
-                "Invalid requirement: '%s'\n%s" % (req_as_string, add_msg)
+                add_msg = ''
+            if line_source is None:
+                source = ''
+            else:
+                source = ' (from {})'.format(line_source)
+            msg = (
+                'Invalid requirement: {!r}{}'.format(req_as_string, source)
             )
+            if add_msg:
+                msg += '\nHint: {}'.format(add_msg)
+            raise InstallationError(msg)
     else:
         req = None
 
@@ -310,13 +331,14 @@ def install_req_from_req_string(
     try:
         req = Requirement(req_string)
     except InvalidRequirement:
-        raise InstallationError("Invalid requirement: '%s'" % req)
+        raise InstallationError("Invalid requirement: '%s'" % req_string)
 
     domains_not_allowed = [
         PyPI.file_storage_domain,
         TestPyPI.file_storage_domain,
     ]
-    if req.url and comes_from.link.netloc in domains_not_allowed:
+    if (req.url and comes_from and comes_from.link and
+            comes_from.link.netloc in domains_not_allowed):
         # Explicitly disallow pypi packages that depend on external urls
         raise InstallationError(
             "Packages installed from PyPI cannot depend on packages "

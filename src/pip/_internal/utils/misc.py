@@ -1,12 +1,13 @@
+# The following comment should be removed at some point in the future.
+# mypy: strict-optional=False
+
 from __future__ import absolute_import
 
 import contextlib
 import errno
+import getpass
 import io
-import locale
-# we have a submodule named 'logging' which would shadow this if we used the
-# regular name:
-import logging as std_logging
+import logging
 import os
 import posixpath
 import re
@@ -22,20 +23,32 @@ from pip._vendor import pkg_resources
 # NOTE: retrying is not annotated in typeshed as on 2017-07-17, which is
 #       why we ignore the type on this import.
 from pip._vendor.retrying import retry  # type: ignore
-from pip._vendor.six import PY2
-from pip._vendor.six.moves import input
+from pip._vendor.six import PY2, text_type
+from pip._vendor.six.moves import input, shlex_quote
 from pip._vendor.six.moves.urllib import parse as urllib_parse
+from pip._vendor.six.moves.urllib import request as urllib_request
 from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
 
+from pip import __version__
 from pip._internal.exceptions import CommandError, InstallationError
 from pip._internal.locations import (
-    running_under_virtualenv, site_packages, user_site, virtualenv_no_global,
-    write_delete_marker_file,
+    get_major_minor_version,
+    site_packages,
+    user_site,
 )
 from pip._internal.utils.compat import (
-    WINDOWS, console_to_str, expanduser, stdlib_pkgs,
+    WINDOWS,
+    console_to_str,
+    expanduser,
+    stdlib_pkgs,
+    str_to_display,
 )
+from pip._internal.utils.marker_files import write_delete_marker_file
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.virtualenv import (
+    running_under_virtualenv,
+    virtualenv_no_global,
+)
 
 if PY2:
     from io import BytesIO as StringIO
@@ -43,13 +56,21 @@ else:
     from io import StringIO
 
 if MYPY_CHECK_RUNNING:
-    from typing import (  # noqa: F401
-        Optional, Tuple, Iterable, List, Match, Union, Any, Mapping, Text,
-        AnyStr, Container
+    from typing import (
+        Any, AnyStr, Container, Iterable, List, Mapping, Match, Optional, Text,
+        Tuple, Union, cast,
     )
-    from pip._vendor.pkg_resources import Distribution  # noqa: F401
-    from pip._internal.models.link import Link  # noqa: F401
-    from pip._internal.utils.ui import SpinnerInterface  # noqa: F401
+    from pip._vendor.pkg_resources import Distribution
+    from pip._internal.models.link import Link
+    from pip._internal.utils.ui import SpinnerInterface
+
+    VersionInfo = Tuple[int, int, int]
+    CommandArgs = List[Union[str, 'HiddenText']]
+else:
+    # typing's cast() is needed at runtime, but we don't want to import typing.
+    # Thus, we use a dummy no-op version, which we tell mypy to ignore.
+    def cast(type_, value):  # type: ignore
+        return value
 
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
@@ -65,7 +86,10 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'get_installed_version', 'remove_auth_from_url']
 
 
-logger = std_logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
+subprocess_logger = logging.getLogger('pip.subprocessor')
+
+LOG_DIVIDER = '----------------------------------------'
 
 WHEEL_EXTENSION = '.whl'
 BZ2_EXTENSIONS = ('.tar.bz2', '.tbz')
@@ -88,6 +112,38 @@ try:
     SUPPORTED_EXTENSIONS += XZ_EXTENSIONS
 except ImportError:
     logger.debug('lzma module is not available')
+
+
+def get_pip_version():
+    # type: () -> str
+    pip_pkg_dir = os.path.join(os.path.dirname(__file__), "..", "..")
+    pip_pkg_dir = os.path.abspath(pip_pkg_dir)
+
+    return (
+        'pip {} from {} (python {})'.format(
+            __version__, pip_pkg_dir, get_major_minor_version(),
+        )
+    )
+
+
+def normalize_version_info(py_version_info):
+    # type: (Tuple[int, ...]) -> Tuple[int, int, int]
+    """
+    Convert a tuple of ints representing a Python version to one of length
+    three.
+
+    :param py_version_info: a tuple of ints representing a Python version,
+        or None to specify no version. The tuple can have any length.
+
+    :return: a tuple of length three if `py_version_info` is non-None.
+        Otherwise, return `py_version_info` unchanged (i.e. None).
+    """
+    if len(py_version_info) < 3:
+        py_version_info += (3 - len(py_version_info)) * (0,)
+    elif len(py_version_info) > 3:
+        py_version_info = py_version_info[:3]
+
+    return cast('VersionInfo', py_version_info)
 
 
 def ensure_dir(path):
@@ -136,6 +192,40 @@ def rmtree_errorhandler(func, path, exc_info):
         raise
 
 
+def path_to_display(path):
+    # type: (Optional[Union[str, Text]]) -> Optional[Text]
+    """
+    Convert a bytes (or text) path to text (unicode in Python 2) for display
+    and logging purposes.
+
+    This function should never error out. Also, this function is mainly needed
+    for Python 2 since in Python 3 str paths are already text.
+    """
+    if path is None:
+        return None
+    if isinstance(path, text_type):
+        return path
+    # Otherwise, path is a bytes object (str in Python 2).
+    try:
+        display_path = path.decode(sys.getfilesystemencoding(), 'strict')
+    except UnicodeDecodeError:
+        # Include the full bytes to make troubleshooting easier, even though
+        # it may not be very human readable.
+        if PY2:
+            # Convert the bytes to a readable str representation using
+            # repr(), and then convert the str to unicode.
+            #   Also, we add the prefix "b" to the repr() return value both
+            # to make the Python 2 output look like the Python 3 output, and
+            # to signal to the user that this is a bytes representation.
+            display_path = str_to_display('b{!r}'.format(path))
+        else:
+            # Silence the "F821 undefined name 'ascii'" flake8 error since
+            # in Python 3 ascii() is a built-in.
+            display_path = ascii(path)  # noqa: F821
+
+    return display_path
+
+
 def display_path(path):
     # type: (Union[str, Text]) -> str
     """Gives the display value for a given path, making it relative to cwd
@@ -169,15 +259,21 @@ def ask_path_exists(message, options):
     return ask(message, options)
 
 
+def _check_no_input(message):
+    # type: (str) -> None
+    """Raise an error if no input is allowed."""
+    if os.environ.get('PIP_NO_INPUT'):
+        raise Exception(
+            'No input was expected ($PIP_NO_INPUT set); question: %s' %
+            message
+        )
+
+
 def ask(message, options):
     # type: (str, Iterable[str]) -> str
     """Ask the message interactively, with the given possible responses"""
     while 1:
-        if os.environ.get('PIP_NO_INPUT'):
-            raise Exception(
-                'No input was expected ($PIP_NO_INPUT set); question: %s' %
-                message
-            )
+        _check_no_input(message)
         response = input(message)
         response = response.strip().lower()
         if response not in options:
@@ -187,6 +283,20 @@ def ask(message, options):
             )
         else:
             return response
+
+
+def ask_input(message):
+    # type: (str) -> str
+    """Ask for input interactively."""
+    _check_no_input(message)
+    return input(message)
+
+
+def ask_password(message):
+    # type: (str) -> str
+    """Ask for a password interactively."""
+    _check_no_input(message)
+    return getpass.getpass(message)
 
 
 def format_size(bytes):
@@ -367,12 +477,15 @@ def dist_is_editable(dist):
     return False
 
 
-def get_installed_distributions(local_only=True,
-                                skip=stdlib_pkgs,
-                                include_editables=True,
-                                editables_only=False,
-                                user_only=False):
-    # type: (bool, Container[str], bool, bool, bool) -> List[Distribution]
+def get_installed_distributions(
+        local_only=True,  # type: bool
+        skip=stdlib_pkgs,  # type: Container[str]
+        include_editables=True,  # type: bool
+        editables_only=False,  # type: bool
+        user_only=False,  # type: bool
+        paths=None  # type: Optional[List[str]]
+):
+    # type: (...) -> List[Distribution]
     """
     Return a list of installed Distribution objects.
 
@@ -389,7 +502,14 @@ def get_installed_distributions(local_only=True,
     If ``user_only`` is True , only report installations in the user
     site directory.
 
+    If ``paths`` is set, only report the distributions present at the
+    specified list of locations.
     """
+    if paths:
+        working_set = pkg_resources.WorkingSet(paths)
+    else:
+        working_set = pkg_resources.working_set
+
     if local_only:
         local_test = dist_is_local
     else:
@@ -417,7 +537,7 @@ def get_installed_distributions(local_only=True,
             return True
 
     # because of pkg_resources vendoring, mypy cannot find stub in typeshed
-    return [d for d in pkg_resources.working_set  # type: ignore
+    return [d for d in working_set  # type: ignore
             if local_test(d) and
             d.key not in skip and
             editable_test(d) and
@@ -634,7 +754,8 @@ def unpack_file(
             is_svn_page(file_contents(filename))):
         # We don't really care about this
         from pip._internal.vcs.subversion import Subversion
-        Subversion('svn+' + link.url).unpack(location)
+        hidden_url = hide_url('svn+' + link.url)
+        Subversion().unpack(location, url=hidden_url)
     else:
         # FIXME: handle?
         # FIXME: magic signatures?
@@ -648,9 +769,95 @@ def unpack_file(
         )
 
 
+def make_command(*args):
+    # type: (Union[str, HiddenText, CommandArgs]) -> CommandArgs
+    """
+    Create a CommandArgs object.
+    """
+    command_args = []  # type: CommandArgs
+    for arg in args:
+        # Check for list instead of CommandArgs since CommandArgs is
+        # only known during type-checking.
+        if isinstance(arg, list):
+            command_args.extend(arg)
+        else:
+            # Otherwise, arg is str or HiddenText.
+            command_args.append(arg)
+
+    return command_args
+
+
+def format_command_args(args):
+    # type: (Union[List[str], CommandArgs]) -> str
+    """
+    Format command arguments for display.
+    """
+    # For HiddenText arguments, display the redacted form by calling str().
+    # Also, we don't apply str() to arguments that aren't HiddenText since
+    # this can trigger a UnicodeDecodeError in Python 2 if the argument
+    # has type unicode and includes a non-ascii character.  (The type
+    # checker doesn't ensure the annotations are correct in all cases.)
+    return ' '.join(
+        shlex_quote(str(arg)) if isinstance(arg, HiddenText)
+        else shlex_quote(arg) for arg in args
+    )
+
+
+def reveal_command_args(args):
+    # type: (Union[List[str], CommandArgs]) -> List[str]
+    """
+    Return the arguments in their raw, unredacted form.
+    """
+    return [
+        arg.secret if isinstance(arg, HiddenText) else arg for arg in args
+    ]
+
+
+def make_subprocess_output_error(
+    cmd_args,     # type: Union[List[str], CommandArgs]
+    cwd,          # type: Optional[str]
+    lines,        # type: List[Text]
+    exit_status,  # type: int
+):
+    # type: (...) -> Text
+    """
+    Create and return the error message to use to log a subprocess error
+    with command output.
+
+    :param lines: A list of lines, each ending with a newline.
+    """
+    command = format_command_args(cmd_args)
+    # Convert `command` and `cwd` to text (unicode in Python 2) so we can use
+    # them as arguments in the unicode format string below. This avoids
+    # "UnicodeDecodeError: 'ascii' codec can't decode byte ..." in Python 2
+    # if either contains a non-ascii character.
+    command_display = str_to_display(command, desc='command bytes')
+    cwd_display = path_to_display(cwd)
+
+    # We know the joined output value ends in a newline.
+    output = ''.join(lines)
+    msg = (
+        # Use a unicode string to avoid "UnicodeEncodeError: 'ascii'
+        # codec can't encode character ..." in Python 2 when a format
+        # argument (e.g. `output`) has a non-ascii character.
+        u'Command errored out with exit status {exit_status}:\n'
+        ' command: {command_display}\n'
+        '     cwd: {cwd_display}\n'
+        'Complete output ({line_count} lines):\n{output}{divider}'
+    ).format(
+        exit_status=exit_status,
+        command_display=command_display,
+        cwd_display=cwd_display,
+        line_count=len(lines),
+        output=output,
+        divider=LOG_DIVIDER,
+    )
+    return msg
+
+
 def call_subprocess(
-    cmd,  # type: List[str]
-    show_stdout=True,  # type: bool
+    cmd,  # type: Union[List[str], CommandArgs]
+    show_stdout=False,  # type: bool
     cwd=None,  # type: Optional[str]
     on_returncode='raise',  # type: str
     extra_ok_returncodes=None,  # type: Optional[Iterable[int]]
@@ -659,9 +866,11 @@ def call_subprocess(
     unset_environ=None,  # type: Optional[Iterable[str]]
     spinner=None  # type: Optional[SpinnerInterface]
 ):
-    # type: (...) -> Optional[Text]
+    # type: (...) -> Text
     """
     Args:
+      show_stdout: if true, use INFO to log the subprocess's stderr and
+        stdout streams.  Otherwise, use DEBUG.  Defaults to False.
       extra_ok_returncodes: an iterable of integer return codes that are
         acceptable, in addition to 0. Defaults to None, which means [].
       unset_environ: an iterable of environment variable names to unset
@@ -671,39 +880,42 @@ def call_subprocess(
         extra_ok_returncodes = []
     if unset_environ is None:
         unset_environ = []
-    # This function's handling of subprocess output is confusing and I
-    # previously broke it terribly, so as penance I will write a long comment
-    # explaining things.
+    # Most places in pip use show_stdout=False. What this means is--
     #
-    # The obvious thing that affects output is the show_stdout=
-    # kwarg. show_stdout=True means, let the subprocess write directly to our
-    # stdout. Even though it is nominally the default, it is almost never used
-    # inside pip (and should not be used in new code without a very good
-    # reason); as of 2016-02-22 it is only used in a few places inside the VCS
-    # wrapper code. Ideally we should get rid of it entirely, because it
-    # creates a lot of complexity here for a rarely used feature.
+    # - We connect the child's output (combined stderr and stdout) to a
+    #   single pipe, which we read.
+    # - We log this output to stderr at DEBUG level as it is received.
+    # - If DEBUG logging isn't enabled (e.g. if --verbose logging wasn't
+    #   requested), then we show a spinner so the user can still see the
+    #   subprocess is in progress.
+    # - If the subprocess exits with an error, we log the output to stderr
+    #   at ERROR level if it hasn't already been displayed to the console
+    #   (e.g. if --verbose logging wasn't enabled).  This way we don't log
+    #   the output to the console twice.
     #
-    # Most places in pip set show_stdout=False. What this means is:
-    # - We connect the child stdout to a pipe, which we read.
-    # - By default, we hide the output but show a spinner -- unless the
-    #   subprocess exits with an error, in which case we show the output.
-    # - If the --verbose option was passed (= loglevel is DEBUG), then we show
-    #   the output unconditionally. (But in this case we don't want to show
-    #   the output a second time if it turns out that there was an error.)
-    #
-    # stderr is always merged with stdout (even if show_stdout=True).
+    # If show_stdout=True, then the above is still done, but with DEBUG
+    # replaced by INFO.
     if show_stdout:
-        stdout = None
+        # Then log the subprocess output at INFO level.
+        log_subprocess = subprocess_logger.info
+        used_level = logging.INFO
     else:
-        stdout = subprocess.PIPE
+        # Then log the subprocess output using DEBUG.  This also ensures
+        # it will be logged to the log file (aka user_log), if enabled.
+        log_subprocess = subprocess_logger.debug
+        used_level = logging.DEBUG
+
+    # Whether the subprocess will be visible in the console.
+    showing_subprocess = subprocess_logger.getEffectiveLevel() <= used_level
+
+    # Only use the spinner if we're not showing the subprocess output
+    # and we have a spinner.
+    use_spinner = not showing_subprocess and spinner is not None
+
     if command_desc is None:
-        cmd_parts = []
-        for part in cmd:
-            if ' ' in part or '\n' in part or '"' in part or "'" in part:
-                part = '"%s"' % part.replace('"', '\\"')
-            cmd_parts.append(part)
-        command_desc = ' '.join(cmd_parts)
-    logger.debug("Running command %s", command_desc)
+        command_desc = format_command_args(cmd)
+
+    log_subprocess("Running command %s", command_desc)
     env = os.environ.copy()
     if extra_environ:
         env.update(extra_environ)
@@ -711,56 +923,63 @@ def call_subprocess(
         env.pop(name, None)
     try:
         proc = subprocess.Popen(
-            cmd, stderr=subprocess.STDOUT, stdin=subprocess.PIPE,
-            stdout=stdout, cwd=cwd, env=env,
+            # Convert HiddenText objects to the underlying str.
+            reveal_command_args(cmd),
+            stderr=subprocess.STDOUT, stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE, cwd=cwd, env=env,
         )
         proc.stdin.close()
     except Exception as exc:
-        logger.critical(
+        subprocess_logger.critical(
             "Error %s while executing command %s", exc, command_desc,
         )
         raise
     all_output = []
-    if stdout is not None:
-        while True:
-            line = console_to_str(proc.stdout.readline())
-            if not line:
-                break
-            line = line.rstrip()
-            all_output.append(line + '\n')
-            if logger.getEffectiveLevel() <= std_logging.DEBUG:
-                # Show the line immediately
-                logger.debug(line)
-            else:
-                # Update the spinner
-                if spinner is not None:
-                    spinner.spin()
+    while True:
+        # The "line" value is a unicode string in Python 2.
+        line = console_to_str(proc.stdout.readline())
+        if not line:
+            break
+        line = line.rstrip()
+        all_output.append(line + '\n')
+
+        # Show the line immediately.
+        log_subprocess(line)
+        # Update the spinner.
+        if use_spinner:
+            spinner.spin()
     try:
         proc.wait()
     finally:
         if proc.stdout:
             proc.stdout.close()
-    if spinner is not None:
-        if proc.returncode:
+    proc_had_error = (
+        proc.returncode and proc.returncode not in extra_ok_returncodes
+    )
+    if use_spinner:
+        if proc_had_error:
             spinner.finish("error")
         else:
             spinner.finish("done")
-    if proc.returncode and proc.returncode not in extra_ok_returncodes:
+    if proc_had_error:
         if on_returncode == 'raise':
-            if (logger.getEffectiveLevel() > std_logging.DEBUG and
-                    not show_stdout):
-                logger.info(
-                    'Complete output from command %s:', command_desc,
+            if not showing_subprocess:
+                # Then the subprocess streams haven't been logged to the
+                # console yet.
+                msg = make_subprocess_output_error(
+                    cmd_args=cmd,
+                    cwd=cwd,
+                    lines=all_output,
+                    exit_status=proc.returncode,
                 )
-                logger.info(
-                    ''.join(all_output) +
-                    '\n----------------------------------------'
-                )
-            raise InstallationError(
-                'Command "%s" failed with error code %s in %s'
-                % (command_desc, proc.returncode, cwd))
+                subprocess_logger.error(msg)
+            exc_msg = (
+                'Command errored out with exit status {}: {} '
+                'Check the logs for full command output.'
+            ).format(proc.returncode, command_desc)
+            raise InstallationError(exc_msg)
         elif on_returncode == 'warn':
-            logger.warning(
+            subprocess_logger.warning(
                 'Command "%s" had error code %s in %s',
                 command_desc, proc.returncode, cwd,
             )
@@ -769,35 +988,12 @@ def call_subprocess(
         else:
             raise ValueError('Invalid value: on_returncode=%s' %
                              repr(on_returncode))
-    if not show_stdout:
-        return ''.join(all_output)
-    return None
+    return ''.join(all_output)
 
 
-def read_text_file(filename):
-    # type: (str) -> str
-    """Return the contents of *filename*.
-
-    Try to decode the file contents with utf-8, the preferred system encoding
-    (e.g., cp1252 on some Windows machines), and latin1, in that order.
-    Decoding a byte string with latin1 will never raise an error. In the worst
-    case, the returned string will contain some garbage characters.
-
-    """
-    with open(filename, 'rb') as fp:
-        data = fp.read()
-
-    encodings = ['utf-8', locale.getpreferredencoding(False), 'latin1']
-    for enc in encodings:
-        try:
-            # https://github.com/python/mypy/issues/1174
-            data = data.decode(enc)  # type: ignore
-        except UnicodeDecodeError:
-            continue
-        break
-
-    assert not isinstance(data, bytes)  # Latin1 should have worked.
-    return data
+def write_output(msg, *args):
+    # type: (str, str) -> None
+    logger.info(msg, *args)
 
 
 def _make_build_dir(build_dir):
@@ -922,20 +1118,49 @@ def enum(*sequential, **named):
     return type('Enum', (), enums)
 
 
-def make_vcs_requirement_url(repo_url, rev, project_name, subdir=None):
+def path_to_url(path):
+    # type: (Union[str, Text]) -> str
     """
-    Return the URL for a VCS requirement.
-
-    Args:
-      repo_url: the remote VCS url, with any needed VCS prefix (e.g. "git+").
-      project_name: the (unescaped) project name.
+    Convert a path to a file: URL.  The path will be made absolute and have
+    quoted path parts.
     """
-    egg_project_name = pkg_resources.to_filename(project_name)
-    req = '{}@{}#egg={}'.format(repo_url, rev, egg_project_name)
-    if subdir:
-        req += '&subdirectory={}'.format(subdir)
+    path = os.path.normpath(os.path.abspath(path))
+    url = urllib_parse.urljoin('file:', urllib_request.pathname2url(path))
+    return url
 
-    return req
+
+def build_netloc(host, port):
+    # type: (str, Optional[int]) -> str
+    """
+    Build a netloc from a host-port pair
+    """
+    if port is None:
+        return host
+    if ':' in host:
+        # Only wrap host with square brackets when it is IPv6
+        host = '[{}]'.format(host)
+    return '{}:{}'.format(host, port)
+
+
+def build_url_from_netloc(netloc, scheme='https'):
+    # type: (str, str) -> str
+    """
+    Build a full URL from a netloc.
+    """
+    if netloc.count(':') >= 2 and '@' not in netloc and '[' not in netloc:
+        # It must be a bare IPv6 address, so wrap it with brackets.
+        netloc = '[{}]'.format(netloc)
+    return '{}://{}'.format(scheme, netloc)
+
+
+def parse_netloc(netloc):
+    # type: (str) -> Tuple[str, Optional[int]]
+    """
+    Return the host-port pair from a netloc.
+    """
+    url = build_url_from_netloc(netloc)
+    parsed = urllib_parse.urlparse(url)
+    return parsed.hostname, parsed.port
 
 
 def split_auth_from_netloc(netloc):
@@ -983,32 +1208,102 @@ def redact_netloc(netloc):
 
 
 def _transform_url(url, transform_netloc):
+    """Transform and replace netloc in a url.
+
+    transform_netloc is a function taking the netloc and returning a
+    tuple. The first element of this tuple is the new netloc. The
+    entire tuple is returned.
+
+    Returns a tuple containing the transformed url as item 0 and the
+    original tuple returned by transform_netloc as item 1.
+    """
     purl = urllib_parse.urlsplit(url)
-    netloc = transform_netloc(purl.netloc)
+    netloc_tuple = transform_netloc(purl.netloc)
     # stripped url
     url_pieces = (
-        purl.scheme, netloc, purl.path, purl.query, purl.fragment
+        purl.scheme, netloc_tuple[0], purl.path, purl.query, purl.fragment
     )
     surl = urllib_parse.urlunsplit(url_pieces)
-    return surl
+    return surl, netloc_tuple
 
 
 def _get_netloc(netloc):
-    return split_auth_from_netloc(netloc)[0]
+    return split_auth_from_netloc(netloc)
+
+
+def _redact_netloc(netloc):
+    return (redact_netloc(netloc),)
+
+
+def split_auth_netloc_from_url(url):
+    # type: (str) -> Tuple[str, str, Tuple[str, str]]
+    """
+    Parse a url into separate netloc, auth, and url with no auth.
+
+    Returns: (url_without_auth, netloc, (username, password))
+    """
+    url_without_auth, (netloc, auth) = _transform_url(url, _get_netloc)
+    return url_without_auth, netloc, auth
 
 
 def remove_auth_from_url(url):
     # type: (str) -> str
-    # Return a copy of url with 'username:password@' removed.
+    """Return a copy of url with 'username:password@' removed."""
     # username/pass params are passed to subversion through flags
     # and are not recognized in the url.
-    return _transform_url(url, _get_netloc)
+    return _transform_url(url, _get_netloc)[0]
 
 
 def redact_password_from_url(url):
     # type: (str) -> str
     """Replace the password in a given url with ****."""
-    return _transform_url(url, redact_netloc)
+    return _transform_url(url, _redact_netloc)[0]
+
+
+class HiddenText(object):
+    def __init__(
+        self,
+        secret,    # type: str
+        redacted,  # type: str
+    ):
+        # type: (...) -> None
+        self.secret = secret
+        self.redacted = redacted
+
+    def __repr__(self):
+        # type: (...) -> str
+        return '<HiddenText {!r}>'.format(str(self))
+
+    def __str__(self):
+        # type: (...) -> str
+        return self.redacted
+
+    # This is useful for testing.
+    def __eq__(self, other):
+        # type: (Any) -> bool
+        if type(self) != type(other):
+            return False
+
+        # The string being used for redaction doesn't also have to match,
+        # just the raw, original string.
+        return (self.secret == other.secret)
+
+    # We need to provide an explicit __ne__ implementation for Python 2.
+    # TODO: remove this when we drop PY2 support.
+    def __ne__(self, other):
+        # type: (Any) -> bool
+        return not self == other
+
+
+def hide_value(value):
+    # type: (str) -> HiddenText
+    return HiddenText(value, redacted='****')
+
+
+def hide_url(url):
+    # type: (str) -> HiddenText
+    redacted = redact_password_from_url(url)
+    return HiddenText(url, redacted=redacted)
 
 
 def protect_pip_from_modification_on_windows(modifying_pip):
@@ -1017,11 +1312,11 @@ def protect_pip_from_modification_on_windows(modifying_pip):
     On Windows, any operation modifying pip should be run as:
         python -m pip ...
     """
-    pip_names = [
-        "pip.exe",
-        "pip{}.exe".format(sys.version_info[0]),
-        "pip{}.{}.exe".format(*sys.version_info[:2])
-    ]
+    pip_names = set()
+    for ext in ('', '.exe'):
+        pip_names.add('pip{ext}'.format(ext=ext))
+        pip_names.add('pip{}{ext}'.format(sys.version_info[0], ext=ext))
+        pip_names.add('pip{}.{}{ext}'.format(*sys.version_info[:2], ext=ext))
 
     # See https://github.com/pypa/pip/issues/1299 for more discussion
     should_show_use_python_msg = (

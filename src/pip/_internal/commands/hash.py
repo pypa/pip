@@ -7,7 +7,7 @@ import sys
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR
 from pip._internal.utils.hashes import FAVORITE_HASH, STRONG_HASHES
-from pip._internal.utils.misc import read_chunks
+from pip._internal.utils.misc import read_chunks, write_output
 
 logger = logging.getLogger(__name__)
 
@@ -18,11 +18,9 @@ class HashCommand(Command):
 
     These can be used with --hash in a requirements file to do repeatable
     installs.
-
     """
-    name = 'hash'
+
     usage = '%prog [options] <file> ...'
-    summary = 'Compute hashes of package archives.'
     ignore_require_venv = True
 
     def __init__(self, *args, **kw):
@@ -44,8 +42,8 @@ class HashCommand(Command):
 
         algorithm = options.algorithm
         for path in args:
-            logger.info('%s:\n--hash=%s:%s',
-                        path, algorithm, _hash_of_file(path, algorithm))
+            write_output('%s:\n--hash=%s:%s',
+                         path, algorithm, _hash_of_file(path, algorithm))
 
 
 def _hash_of_file(path, algorithm):

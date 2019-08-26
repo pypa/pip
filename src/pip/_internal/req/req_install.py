@@ -1,3 +1,6 @@
+# The following comment should be removed at some point in the future.
+# mypy: strict-optional=False
+
 from __future__ import absolute_import
 
 import logging
@@ -15,41 +18,48 @@ from pip._vendor.packaging.version import Version
 from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.pep517.wrappers import Pep517HookCaller
 
-from pip._internal import wheel
+from pip._internal import pep425tags, wheel
 from pip._internal.build_env import NoOpBuildEnvironment
 from pip._internal.exceptions import InstallationError
-from pip._internal.locations import (
-    PIP_DELETE_MARKER_FILENAME, running_under_virtualenv,
-)
 from pip._internal.models.link import Link
-from pip._internal.pyproject import load_pyproject_toml
+from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.compat import native_str
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
+from pip._internal.utils.marker_files import PIP_DELETE_MARKER_FILENAME
 from pip._internal.utils.misc import (
-    _make_build_dir, ask_path_exists, backup_dir, call_subprocess,
-    display_path, dist_in_site_packages, dist_in_usersite, ensure_dir,
-    get_installed_version, redact_password_from_url, rmtree,
+    _make_build_dir,
+    ask_path_exists,
+    backup_dir,
+    call_subprocess,
+    display_path,
+    dist_in_site_packages,
+    dist_in_usersite,
+    ensure_dir,
+    get_installed_version,
+    hide_url,
+    redact_password_from_url,
+    rmtree,
 )
 from pip._internal.utils.packaging import get_metadata
-from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
+from pip._internal.utils.setuptools_build import make_setuptools_shim_args
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import open_spinner
+from pip._internal.utils.virtualenv import running_under_virtualenv
 from pip._internal.vcs import vcs
-from pip._internal.wheel import move_wheel_files
 
 if MYPY_CHECK_RUNNING:
-    from typing import (  # noqa: F401
-        Optional, Iterable, List, Union, Any, Text, Sequence, Dict
+    from typing import (
+        Any, Dict, Iterable, List, Mapping, Optional, Sequence, Union,
     )
-    from pip._internal.build_env import BuildEnvironment  # noqa: F401
-    from pip._internal.cache import WheelCache  # noqa: F401
-    from pip._internal.index import PackageFinder  # noqa: F401
-    from pip._vendor.pkg_resources import Distribution  # noqa: F401
-    from pip._vendor.packaging.specifiers import SpecifierSet  # noqa: F401
-    from pip._vendor.packaging.markers import Marker  # noqa: F401
+    from pip._internal.build_env import BuildEnvironment
+    from pip._internal.cache import WheelCache
+    from pip._internal.index import PackageFinder
+    from pip._vendor.pkg_resources import Distribution
+    from pip._vendor.packaging.specifiers import SpecifierSet
+    from pip._vendor.packaging.markers import Marker
 
 
 logger = logging.getLogger(__name__)
@@ -58,7 +68,7 @@ logger = logging.getLogger(__name__)
 class InstallRequirement(object):
     """
     Represents something that may be installed later on, may have information
-    about where to fetch the relavant requirement and also contains logic for
+    about where to fetch the relevant requirement and also contains logic for
     installing the said requirement.
     """
 
@@ -83,10 +93,10 @@ class InstallRequirement(object):
         self.req = req
         self.comes_from = comes_from
         self.constraint = constraint
-        if source_dir is not None:
-            self.source_dir = os.path.normpath(os.path.abspath(source_dir))
+        if source_dir is None:
+            self.source_dir = None  # type: Optional[str]
         else:
-            self.source_dir = None
+            self.source_dir = os.path.normpath(os.path.abspath(source_dir))
         self.editable = editable
 
         self._wheel_cache = wheel_cache
@@ -156,6 +166,7 @@ class InstallRequirement(object):
         self.use_pep517 = use_pep517
 
     def __str__(self):
+        # type: () -> str
         if self.req:
             s = str(self.req)
             if self.link:
@@ -168,7 +179,7 @@ class InstallRequirement(object):
             s += ' in %s' % display_path(self.satisfied_by.location)
         if self.comes_from:
             if isinstance(self.comes_from, six.string_types):
-                comes_from = self.comes_from
+                comes_from = self.comes_from  # type: Optional[str]
             else:
                 comes_from = self.comes_from.from_path()
             if comes_from:
@@ -176,8 +187,24 @@ class InstallRequirement(object):
         return s
 
     def __repr__(self):
+        # type: () -> str
         return '<%s object: %s editable=%r>' % (
             self.__class__.__name__, str(self), self.editable)
+
+    def format_debug(self):
+        # type: () -> str
+        """An un-tested helper for getting state, for debugging.
+        """
+        attributes = vars(self)
+        names = sorted(attributes)
+
+        state = (
+            "{}={!r}".format(attr, attributes[attr]) for attr in sorted(names)
+        )
+        return '<{name} object: {{{state}}}>'.format(
+            name=self.__class__.__name__,
+            state=", ".join(state),
+        )
 
     def populate_link(self, finder, upgrade, require_hashes):
         # type: (PackageFinder, bool, bool) -> None
@@ -196,7 +223,12 @@ class InstallRequirement(object):
             self.link = finder.find_requirement(self, upgrade)
         if self._wheel_cache is not None and not require_hashes:
             old_link = self.link
-            self.link = self._wheel_cache.get(self.link, self.name)
+            supported_tags = pep425tags.get_supported()
+            self.link = self._wheel_cache.get(
+                link=self.link,
+                package_name=self.name,
+                supported_tags=supported_tags,
+            )
             if old_link != self.link:
                 logger.debug('Using cached wheel link: %s', self.link)
 
@@ -226,6 +258,7 @@ class InstallRequirement(object):
 
     @property
     def installed_version(self):
+        # type: () -> Optional[str]
         return get_installed_version(self.name)
 
     def match_markers(self, extras_requested=None):
@@ -291,7 +324,7 @@ class InstallRequirement(object):
         return s
 
     def build_location(self, build_dir):
-        # type: (str) -> Optional[str]
+        # type: (str) -> str
         assert build_dir is not None
         if self._temp_build_dir.path is not None:
             return self._temp_build_dir.path
@@ -434,7 +467,7 @@ class InstallRequirement(object):
         pycompile=True  # type: bool
     ):
         # type: (...) -> None
-        move_wheel_files(
+        wheel.move_wheel_files(
             self.name, self.req, wheeldir,
             user=use_user_site,
             home=home,
@@ -454,7 +487,7 @@ class InstallRequirement(object):
             self.link and self.link.subdirectory_fragment or '')
 
     @property
-    def setup_py(self):
+    def setup_py_path(self):
         # type: () -> str
         assert self.source_dir, "No source dir for %s" % self
 
@@ -467,17 +500,11 @@ class InstallRequirement(object):
         return setup_py
 
     @property
-    def pyproject_toml(self):
+    def pyproject_toml_path(self):
         # type: () -> str
         assert self.source_dir, "No source dir for %s" % self
 
-        pp_toml = os.path.join(self.setup_py_dir, 'pyproject.toml')
-
-        # Python2 __file__ should not be unicode
-        if six.PY2 and isinstance(pp_toml, six.text_type):
-            pp_toml = pp_toml.encode(sys.getfilesystemencoding())
-
-        return pp_toml
+        return make_pyproject_path(self.setup_py_dir)
 
     def load_pyproject_toml(self):
         # type: () -> None
@@ -488,37 +515,42 @@ class InstallRequirement(object):
         use_pep517 attribute can be used to determine whether we should
         follow the PEP 517 or legacy (setup.py) code path.
         """
-        pep517_data = load_pyproject_toml(
+        pyproject_toml_data = load_pyproject_toml(
             self.use_pep517,
-            self.pyproject_toml,
-            self.setup_py,
+            self.pyproject_toml_path,
+            self.setup_py_path,
             str(self)
         )
 
-        if pep517_data is None:
-            self.use_pep517 = False
-        else:
-            self.use_pep517 = True
-            requires, backend, check = pep517_data
-            self.requirements_to_check = check
-            self.pyproject_requires = requires
-            self.pep517_backend = Pep517HookCaller(self.setup_py_dir, backend)
+        self.use_pep517 = (pyproject_toml_data is not None)
 
-            # Use a custom function to call subprocesses
+        if not self.use_pep517:
+            return
+
+        requires, backend, check = pyproject_toml_data
+        self.requirements_to_check = check
+        self.pyproject_requires = requires
+        self.pep517_backend = Pep517HookCaller(self.setup_py_dir, backend)
+
+        # Use a custom function to call subprocesses
+        self.spin_message = ""
+
+        def runner(
+            cmd,  # type: List[str]
+            cwd=None,  # type: Optional[str]
+            extra_environ=None  # type: Optional[Mapping[str, Any]]
+        ):
+            # type: (...) -> None
+            with open_spinner(self.spin_message) as spinner:
+                call_subprocess(
+                    cmd,
+                    cwd=cwd,
+                    extra_environ=extra_environ,
+                    spinner=spinner
+                )
             self.spin_message = ""
 
-            def runner(cmd, cwd=None, extra_environ=None):
-                with open_spinner(self.spin_message) as spinner:
-                    call_subprocess(
-                        cmd,
-                        cwd=cwd,
-                        extra_environ=extra_environ,
-                        show_stdout=False,
-                        spinner=spinner
-                    )
-                self.spin_message = ""
-
-            self.pep517_backend._subprocess_runner = runner
+        self.pep517_backend._subprocess_runner = runner
 
     def prepare_metadata(self):
         # type: () -> None
@@ -586,17 +618,17 @@ class InstallRequirement(object):
         if self.name:
             logger.debug(
                 'Running setup.py (path:%s) egg_info for package %s',
-                self.setup_py, self.name,
+                self.setup_py_path, self.name,
             )
         else:
             logger.debug(
                 'Running setup.py (path:%s) egg_info for package from %s',
-                self.setup_py, self.link,
+                self.setup_py_path, self.link,
             )
-        script = SETUPTOOLS_SHIM % self.setup_py
-        base_cmd = [sys.executable, '-c', script]
-        if self.isolated:
-            base_cmd += ["--no-user-cfg"]
+        base_cmd = make_setuptools_shim_args(
+            self.setup_py_path,
+            no_user_config=self.isolated
+        )
         egg_info_cmd = base_cmd + ['egg_info']
         # We can't put the .egg-info files at the root, because then the
         # source code will be mistaken for an installed egg, causing
@@ -611,7 +643,6 @@ class InstallRequirement(object):
             call_subprocess(
                 egg_info_cmd + egg_base_option,
                 cwd=self.setup_py_dir,
-                show_stdout=False,
                 command_desc='python setup.py egg_info')
 
     @property
@@ -669,6 +700,7 @@ class InstallRequirement(object):
 
     @property
     def metadata(self):
+        # type: () -> Any
         if not hasattr(self, '_metadata'):
             self._metadata = get_metadata(self.get_dist())
 
@@ -678,21 +710,20 @@ class InstallRequirement(object):
         # type: () -> Distribution
         """Return a pkg_resources.Distribution for this requirement"""
         if self.metadata_directory:
-            base_dir, distinfo = os.path.split(self.metadata_directory)
-            metadata = pkg_resources.PathMetadata(
-                base_dir, self.metadata_directory
-            )
-            dist_name = os.path.splitext(distinfo)[0]
-            typ = pkg_resources.DistInfoDistribution
+            dist_dir = self.metadata_directory
+            dist_cls = pkg_resources.DistInfoDistribution
         else:
-            egg_info = self.egg_info_path.rstrip(os.path.sep)
-            base_dir = os.path.dirname(egg_info)
-            metadata = pkg_resources.PathMetadata(base_dir, egg_info)
-            dist_name = os.path.splitext(os.path.basename(egg_info))[0]
+            dist_dir = self.egg_info_path.rstrip(os.path.sep)
             # https://github.com/python/mypy/issues/1174
-            typ = pkg_resources.Distribution  # type: ignore
+            dist_cls = pkg_resources.Distribution  # type: ignore
 
-        return typ(
+        # dist_dir_name can be of the form "<project>.dist-info" or
+        # e.g. "<project>.egg-info".
+        base_dir, dist_dir_name = os.path.split(dist_dir)
+        dist_name = os.path.splitext(dist_dir_name)[0]
+        metadata = pkg_resources.PathMetadata(base_dir, dist_dir)
+
+        return dist_cls(
             base_dir,
             project_name=dist_name,
             metadata=metadata,
@@ -742,28 +773,23 @@ class InstallRequirement(object):
         # type: (...) -> None
         logger.info('Running setup.py develop for %s', self.name)
 
-        if self.isolated:
-            global_options = list(global_options) + ["--no-user-cfg"]
-
         if prefix:
             prefix_param = ['--prefix={}'.format(prefix)]
             install_options = list(install_options) + prefix_param
-
+        base_cmd = make_setuptools_shim_args(
+            self.setup_py_path,
+            global_options=global_options,
+            no_user_config=self.isolated
+        )
         with indent_log():
             # FIXME: should we do --install-headers here too?
             with self.build_env:
                 call_subprocess(
-                    [
-                        sys.executable,
-                        '-c',
-                        SETUPTOOLS_SHIM % self.setup_py
-                    ] +
-                    list(global_options) +
+                    base_cmd +
                     ['develop', '--no-deps'] +
                     list(install_options),
 
                     cwd=self.setup_py_dir,
-                    show_stdout=False,
                 )
 
         self.install_succeeded = True
@@ -786,13 +812,13 @@ class InstallRequirement(object):
         if not self.update:
             return
         vc_type, url = self.link.url.split('+', 1)
-        backend = vcs.get_backend(vc_type)
-        if backend:
-            vcs_backend = backend(self.link.url)
+        vcs_backend = vcs.get_backend(vc_type)
+        if vcs_backend:
+            hidden_url = hide_url(self.link.url)
             if obtain:
-                vcs_backend.obtain(self.source_dir)
+                vcs_backend.obtain(self.source_dir, url=hidden_url)
             else:
-                vcs_backend.export(self.source_dir)
+                vcs_backend.export(self.source_dir, url=hidden_url)
         else:
             assert 0, (
                 'Unexpected version control type (in %s): %s'
@@ -824,6 +850,7 @@ class InstallRequirement(object):
         return uninstalled_pathset
 
     def _clean_zip_name(self, name, prefix):  # only used by archive.
+        # type: (str, str) -> str
         assert name.startswith(prefix + os.path.sep), (
             "name %r doesn't start with prefix %r" % (name, prefix)
         )
@@ -931,10 +958,6 @@ class InstallRequirement(object):
         install_options = list(install_options) + \
             self.options.get('install_options', [])
 
-        if self.isolated:
-            # https://github.com/python/mypy/issues/1174
-            global_options = global_options + ["--no-user-cfg"]  # type: ignore
-
         with TempDirectory(kind="record") as temp_dir:
             record_filename = os.path.join(temp_dir.path, 'install-record.txt')
             install_args = self.get_install_args(
@@ -947,7 +970,6 @@ class InstallRequirement(object):
                         call_subprocess(
                             install_args + install_options,
                             cwd=self.setup_py_dir,
-                            show_stdout=False,
                             spinner=spinner,
                         )
 
@@ -957,6 +979,7 @@ class InstallRequirement(object):
             self.install_succeeded = True
 
             def prepend_root(path):
+                # type: (str) -> str
                 if root is None or not os.path.isabs(path):
                     return path
                 else:
@@ -1001,11 +1024,13 @@ class InstallRequirement(object):
         pycompile  # type: bool
     ):
         # type: (...) -> List[str]
-        install_args = [sys.executable, "-u"]
-        install_args.append('-c')
-        install_args.append(SETUPTOOLS_SHIM % self.setup_py)
-        install_args += list(global_options) + \
-            ['install', '--record', record_filename]
+        install_args = make_setuptools_shim_args(
+            self.setup_py_path,
+            global_options=global_options,
+            no_user_config=self.isolated,
+            unbuffered_output=True
+        )
+        install_args += ['install', '--record', record_filename]
         install_args += ['--single-version-externally-managed']
 
         if root is not None:

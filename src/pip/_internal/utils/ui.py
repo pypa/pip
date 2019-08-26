@@ -1,3 +1,6 @@
+# The following comment should be removed at some point in the future.
+# mypy: strict-optional=False
+
 from __future__ import absolute_import, division
 
 import contextlib
@@ -8,11 +11,8 @@ import time
 from signal import SIGINT, default_int_handler, signal
 
 from pip._vendor import six
-from pip._vendor.progress.bar import (
-    Bar, ChargingBar, FillingCirclesBar, FillingSquaresBar, IncrementalBar,
-    ShadyBar,
-)
-from pip._vendor.progress.helpers import HIDE_CURSOR, SHOW_CURSOR, WritelnMixin
+from pip._vendor.progress import HIDE_CURSOR, SHOW_CURSOR
+from pip._vendor.progress.bar import Bar, FillingCirclesBar, IncrementalBar
 from pip._vendor.progress.spinner import Spinner
 
 from pip._internal.utils.compat import WINDOWS
@@ -21,7 +21,7 @@ from pip._internal.utils.misc import format_size
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Iterator, IO  # noqa: F401
+    from typing import Any, Iterator, IO
 
 try:
     from pip._vendor import colorama
@@ -168,7 +168,7 @@ class WindowsMixin(object):
         # The Windows terminal does not support the hide/show cursor ANSI codes
         # even with colorama. So we'll ensure that hide_cursor is False on
         # Windows.
-        # This call neds to go before the super() call, so that hide_cursor
+        # This call needs to go before the super() call, so that hide_cursor
         # is set in time. The base progress bar class writes the "hide cursor"
         # code to the terminal in its init, so if we don't set this soon
         # enough, we get a "hide" with no corresponding "show"...
@@ -211,22 +211,8 @@ class DownloadSilentBar(BaseDownloadProgressBar, SilentBar):  # type: ignore
     pass
 
 
-class DownloadIncrementalBar(BaseDownloadProgressBar,  # type: ignore
-                             IncrementalBar):
-    pass
-
-
-class DownloadChargingBar(BaseDownloadProgressBar,  # type: ignore
-                          ChargingBar):
-    pass
-
-
-class DownloadShadyBar(BaseDownloadProgressBar, ShadyBar):  # type: ignore
-    pass
-
-
-class DownloadFillingSquaresBar(BaseDownloadProgressBar,  # type: ignore
-                                FillingSquaresBar):
+class DownloadBar(BaseDownloadProgressBar,  # type: ignore
+                  Bar):
     pass
 
 
@@ -241,7 +227,7 @@ class DownloadBlueEmojiProgressBar(BaseDownloadProgressBar,  # type: ignore
 
 
 class DownloadProgressSpinner(WindowsMixin, InterruptibleMixin,
-                              DownloadProgressMixin, WritelnMixin, Spinner):
+                              DownloadProgressMixin, Spinner):
 
     file = sys.stdout
     suffix = "%(downloaded)s %(download_speed)s"
@@ -269,7 +255,7 @@ class DownloadProgressSpinner(WindowsMixin, InterruptibleMixin,
 BAR_TYPES = {
     "off": (DownloadSilentBar, DownloadSilentBar),
     "on": (DefaultDownloadProgressBar, DownloadProgressSpinner),
-    "ascii": (DownloadIncrementalBar, DownloadProgressSpinner),
+    "ascii": (DownloadBar, DownloadProgressSpinner),
     "pretty": (DownloadFillingCirclesBar, DownloadProgressSpinner),
     "emoji": (DownloadBlueEmojiProgressBar, DownloadProgressSpinner)
 }

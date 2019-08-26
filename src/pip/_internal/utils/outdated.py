@@ -9,16 +9,19 @@ import sys
 from pip._vendor import lockfile, pkg_resources
 from pip._vendor.packaging import version as packaging_version
 
+from pip._internal.cli.cmdoptions import make_search_scope
 from pip._internal.index import PackageFinder
+from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.misc import ensure_dir, get_installed_version
+from pip._internal.utils.packaging import get_installer
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    import optparse  # noqa: F401
-    from typing import Any, Dict  # noqa: F401
-    from pip._internal.download import PipSession  # noqa: F401
+    import optparse
+    from typing import Any, Dict
+    from pip._internal.download import PipSession
 
 
 SELFCHECK_DATE_FMT = "%Y-%m-%dT%H:%M:%SZ"
@@ -85,8 +88,7 @@ def was_installed_by_pip(pkg):
     """
     try:
         dist = pkg_resources.get_distribution(pkg)
-        return (dist.has_metadata('INSTALLER') and
-                'pip' in dist.get_metadata_lines('INSTALLER'))
+        return "pip" == get_installer(dist)
     except pkg_resources.DistributionNotFound:
         return False
 
@@ -122,41 +124,52 @@ def pip_version_check(session, options):
         # Refresh the version if we need to or just see if we need to warn
         if pypi_version is None:
             # Lets use PackageFinder to see what the latest pip version is
-            finder = PackageFinder(
-                find_links=options.find_links,
-                index_urls=[options.index_url] + options.extra_index_urls,
+            search_scope = make_search_scope(options, suppress_no_index=True)
+
+            # Pass allow_yanked=False so we don't suggest upgrading to a
+            # yanked version.
+            selection_prefs = SelectionPreferences(
+                allow_yanked=False,
                 allow_all_prereleases=False,  # Explicitly set to False
-                trusted_hosts=options.trusted_hosts,
+            )
+
+            finder = PackageFinder.create(
+                search_scope=search_scope,
+                selection_prefs=selection_prefs,
                 session=session,
             )
-            all_candidates = finder.find_all_candidates("pip")
-            if not all_candidates:
+            best_candidate = finder.find_best_candidate("pip").best_candidate
+            if best_candidate is None:
                 return
-            pypi_version = str(
-                max(all_candidates, key=lambda c: c.version).version
-            )
+            pypi_version = str(best_candidate.version)
 
             # save that we've performed a check
             state.save(pypi_version, current_time)
 
         remote_version = packaging_version.parse(pypi_version)
 
+        local_version_is_older = (
+            pip_version < remote_version and
+            pip_version.base_version != remote_version.base_version and
+            was_installed_by_pip('pip')
+        )
+
         # Determine if our pypi_version is older
-        if (pip_version < remote_version and
-                pip_version.base_version != remote_version.base_version and
-                was_installed_by_pip('pip')):
-            # Advise "python -m pip" on Windows to avoid issues
-            # with overwriting pip.exe.
-            if WINDOWS:
-                pip_cmd = "python -m pip"
-            else:
-                pip_cmd = "pip"
-            logger.warning(
-                "You are using pip version %s, however version %s is "
-                "available.\nYou should consider upgrading via the "
-                "'%s install --upgrade pip' command.",
-                pip_version, pypi_version, pip_cmd
-            )
+        if not local_version_is_older:
+            return
+
+        # Advise "python -m pip" on Windows to avoid issues
+        # with overwriting pip.exe.
+        if WINDOWS:
+            pip_cmd = "python -m pip"
+        else:
+            pip_cmd = "pip"
+        logger.warning(
+            "You are using pip version %s, however version %s is "
+            "available.\nYou should consider upgrading via the "
+            "'%s install --upgrade pip' command.",
+            pip_version, pypi_version, pip_cmd
+        )
     except Exception:
         logger.debug(
             "There was an error checking the latest version of pip",

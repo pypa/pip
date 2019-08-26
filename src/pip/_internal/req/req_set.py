@@ -1,16 +1,20 @@
+# The following comment should be removed at some point in the future.
+# mypy: strict-optional=False
+
 from __future__ import absolute_import
 
 import logging
 from collections import OrderedDict
 
+from pip._internal import pep425tags
 from pip._internal.exceptions import InstallationError
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.wheel import Wheel
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, List, Tuple, Dict, Iterable  # noqa: F401
-    from pip._internal.req.req_install import InstallRequirement  # noqa: F401
+    from typing import Dict, Iterable, List, Optional, Tuple
+    from pip._internal.req.req_install import InstallRequirement
 
 
 logger = logging.getLogger(__name__)
@@ -34,17 +38,34 @@ class RequirementSet(object):
         self.reqs_to_cleanup = []  # type: List[InstallRequirement]
 
     def __str__(self):
+        # type: () -> str
         reqs = [req for req in self.requirements.values()
                 if not req.comes_from]
         reqs.sort(key=lambda req: req.name.lower())
         return ' '.join([str(req.req) for req in reqs])
 
     def __repr__(self):
+        # type: () -> str
         reqs = [req for req in self.requirements.values()]
         reqs.sort(key=lambda req: req.name.lower())
         reqs_str = ', '.join([str(req.req) for req in reqs])
         return ('<%s object; %d requirement(s): %s>'
                 % (self.__class__.__name__, len(reqs), reqs_str))
+
+    def add_unnamed_requirement(self, install_req):
+        # type: (InstallRequirement) -> None
+        assert not install_req.name
+        self.unnamed_requirements.append(install_req)
+
+    def add_named_requirement(self, install_req):
+        # type: (InstallRequirement) -> None
+        assert install_req.name
+        name = install_req.name
+
+        self.requirements[name] = install_req
+        # FIXME: what about other normalizations?  E.g., _ vs. -?
+        if name.lower() != name:
+            self.requirement_aliases[name.lower()] = name
 
     def add_requirement(
         self,
@@ -83,7 +104,8 @@ class RequirementSet(object):
         # single requirements file.
         if install_req.link and install_req.link.is_wheel:
             wheel = Wheel(install_req.link.filename)
-            if self.check_supported_wheels and not wheel.supported():
+            tags = pep425tags.get_supported()
+            if (self.check_supported_wheels and not wheel.supported(tags)):
                 raise InstallationError(
                     "%s is not a supported wheel on this platform." %
                     wheel.filename
@@ -98,8 +120,7 @@ class RequirementSet(object):
         # Unnamed requirements are scanned again and the requirement won't be
         # added as a dependency until after scanning.
         if not name:
-            # url or path requirement w/o an egg fragment
-            self.unnamed_requirements.append(install_req)
+            self.add_unnamed_requirement(install_req)
             return [install_req], None
 
         try:
@@ -123,11 +144,8 @@ class RequirementSet(object):
         # When no existing requirement exists, add the requirement as a
         # dependency and it will be scanned again after.
         if not existing_req:
-            self.requirements[name] = install_req
-            # FIXME: what about other normalizations?  E.g., _ vs. -?
-            if name.lower() != name:
-                self.requirement_aliases[name.lower()] = name
-            # We'd want to rescan this requirements later
+            self.add_named_requirement(install_req)
+            # We'd want to rescan this requirement later
             return [install_req], install_req
 
         # Assume there's no need to scan, and that we've already
@@ -172,12 +190,6 @@ class RequirementSet(object):
            not self.requirements[self.requirement_aliases[name]].constraint):
             return True
         return False
-
-    @property
-    def has_requirements(self):
-        # type: () -> List[InstallRequirement]
-        return list(req for req in self.requirements.values() if not
-                    req.constraint) or self.unnamed_requirements
 
     def get_requirement(self, project_name):
         # type: (str) -> InstallRequirement

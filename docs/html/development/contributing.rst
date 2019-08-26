@@ -226,8 +226,13 @@ Becoming a maintainer
 
 If you want to become an official maintainer, start by helping out.
 
+As a first step, we welcome you to triage issues on pip's issue tracker. pip
+maintainers provide triage abilities to contributors once they have been around
+for some time and contributed positively to the project. This is optional and highly
+recommended for becoming a pip maintainer.
+
 Later, when you think you're ready, get in touch with one of the maintainers
-and they will initiate a vote.
+and they will initiate a vote among the existing maintainers.
 
 .. note::
 

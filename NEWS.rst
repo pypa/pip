@@ -7,6 +7,247 @@
 
 .. towncrier release notes start
 
+19.2.3 (2019-08-25)
+===================
+
+Bug Fixes
+---------
+
+- Fix 'm' flag erroneously being appended to ABI tag in Python 3.8 on platforms that do not provide SOABI (`#6885 <https://github.com/pypa/pip/issues/6885>`_)
+
+
+19.2.2 (2019-08-11)
+===================
+
+Bug Fixes
+---------
+
+- Fix handling of tokens (single part credentials) in URLs. (`#6795 <https://github.com/pypa/pip/issues/6795>`_)
+- Fix a regression that caused ``~`` expansion not to occur in ``--find-links``
+  paths. (`#6804 <https://github.com/pypa/pip/issues/6804>`_)
+
+
+19.2.1 (2019-07-23)
+===================
+
+Bug Fixes
+---------
+
+- Fix a ``NoneType`` ``AttributeError`` when evaluating hashes and no hashes
+  are provided. (`#6772 <https://github.com/pypa/pip/issues/6772>`_)
+
+
+19.2 (2019-07-22)
+=================
+
+Deprecations and Removals
+-------------------------
+
+- Drop support for EOL Python 3.4. (`#6685 <https://github.com/pypa/pip/issues/6685>`_)
+- Improve deprecation messages to include the version in which the functionality will be removed. (`#6549 <https://github.com/pypa/pip/issues/6549>`_)
+
+Features
+--------
+
+- Credentials will now be loaded using `keyring` when installed. (`#5948 <https://github.com/pypa/pip/issues/5948>`_)
+- Fully support using ``--trusted-host`` inside requirements files. (`#3799 <https://github.com/pypa/pip/issues/3799>`_)
+- Update timestamps in pip's ``--log`` file to include milliseconds. (`#6587 <https://github.com/pypa/pip/issues/6587>`_)
+- Respect whether a file has been marked as "yanked" from a simple repository
+  (see `PEP 592 <https://www.python.org/dev/peps/pep-0592/>`__ for details). (`#6633 <https://github.com/pypa/pip/issues/6633>`_)
+- When choosing candidates to install, prefer candidates with a hash matching
+  one of the user-provided hashes. (`#5874 <https://github.com/pypa/pip/issues/5874>`_)
+- Improve the error message when ``METADATA`` or ``PKG-INFO`` is None when
+  accessing metadata. (`#5082 <https://github.com/pypa/pip/issues/5082>`_)
+- Add a new command ``pip debug`` that can display e.g. the list of compatible
+  tags for the current Python. (`#6638 <https://github.com/pypa/pip/issues/6638>`_)
+- Display hint on installing with --pre when search results include pre-release versions. (`#5169 <https://github.com/pypa/pip/issues/5169>`_)
+- Report to Warehouse that pip is running under CI if the ``PIP_IS_CI`` environment variable is set. (`#5499 <https://github.com/pypa/pip/issues/5499>`_)
+- Allow ``--python-version`` to be passed as a dotted version string (e.g.
+  ``3.7`` or ``3.7.3``). (`#6585 <https://github.com/pypa/pip/issues/6585>`_)
+- Log the final filename and SHA256 of a ``.whl`` file when done building a
+  wheel. (`#5908 <https://github.com/pypa/pip/issues/5908>`_)
+- Include the wheel's tags in the log message explanation when a candidate
+  wheel link is found incompatible. (`#6121 <https://github.com/pypa/pip/issues/6121>`_)
+- Add a ``--path`` argument to ``pip freeze`` to support ``--target``
+  installations. (`#6404 <https://github.com/pypa/pip/issues/6404>`_)
+- Add a ``--path`` argument to ``pip list`` to support ``--target``
+  installations. (`#6551 <https://github.com/pypa/pip/issues/6551>`_)
+
+Bug Fixes
+---------
+
+- Set ``sys.argv[0]`` to the underlying ``setup.py`` when invoking ``setup.py``
+  via the setuptools shim so setuptools doesn't think the path is ``-c``. (`#1890 <https://github.com/pypa/pip/issues/1890>`_)
+- Update ``pip download`` to respect the given ``--python-version`` when checking
+  ``"Requires-Python"``. (`#5369 <https://github.com/pypa/pip/issues/5369>`_)
+- Respect ``--global-option`` and ``--install-option`` when installing from
+  a version control url (e.g. ``git``). (`#5518 <https://github.com/pypa/pip/issues/5518>`_)
+- Make the "ascii" progress bar really be "ascii" and not Unicode. (`#5671 <https://github.com/pypa/pip/issues/5671>`_)
+- Fail elegantly when trying to set an incorrectly formatted key in config. (`#5963 <https://github.com/pypa/pip/issues/5963>`_)
+- Prevent DistutilsOptionError when prefix is indicated in the global environment and `--target` is used. (`#6008 <https://github.com/pypa/pip/issues/6008>`_)
+- Fix ``pip install`` to respect ``--ignore-requires-python`` when evaluating
+  links. (`#6371 <https://github.com/pypa/pip/issues/6371>`_)
+- Fix a debug log message when freezing an editable, non-version controlled
+  requirement. (`#6383 <https://github.com/pypa/pip/issues/6383>`_)
+- Extend to Subversion 1.8+ the behavior of calling Subversion in
+  interactive mode when pip is run interactively. (`#6386 <https://github.com/pypa/pip/issues/6386>`_)
+- Prevent ``pip install <url>`` from permitting directory traversal if e.g.
+  a malicious server sends a ``Content-Disposition`` header with a filename
+  containing ``../`` or ``..\\``. (`#6413 <https://github.com/pypa/pip/issues/6413>`_)
+- Hide passwords in output when using ``--find-links``. (`#6489 <https://github.com/pypa/pip/issues/6489>`_)
+- Include more details in the log message if ``pip freeze`` can't generate a
+  requirement string for a particular distribution. (`#6513 <https://github.com/pypa/pip/issues/6513>`_)
+- Add the line number and file location to the error message when reading an
+  invalid requirements file in certain situations. (`#6527 <https://github.com/pypa/pip/issues/6527>`_)
+- Prefer ``os.confstr`` to ``ctypes`` when extracting glibc version info. (`#6543 <https://github.com/pypa/pip/issues/6543>`_, `#6675 <https://github.com/pypa/pip/issues/6675>`_)
+- Improve error message printed when an invalid editable requirement is provided. (`#6648 <https://github.com/pypa/pip/issues/6648>`_)
+- Improve error message formatting when a command errors out in a subprocess. (`#6651 <https://github.com/pypa/pip/issues/6651>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade certifi to 2019.6.16
+- Upgrade distlib to 0.2.9.post0
+- Upgrade msgpack to 0.6.1
+- Upgrade requests to 2.22.0
+- Upgrade urllib3 to 1.25.3
+- Patch vendored html5lib, to prefer using `collections.abc` where possible.
+
+Improved Documentation
+----------------------
+
+- Document how Python 2.7 support will be maintained. (`#6726 <https://github.com/pypa/pip/issues/6726>`_)
+- Upgrade Sphinx version used to build documentation. (`#6471 <https://github.com/pypa/pip/issues/6471>`_)
+- Fix generation of subcommand manpages. (`#6724 <https://github.com/pypa/pip/issues/6724>`_)
+- Mention that pip can install from git refs. (`#6512 <https://github.com/pypa/pip/issues/6512>`_)
+- Replace a failing example of pip installs with extras with a working one. (`#4733 <https://github.com/pypa/pip/issues/4733>`_)
+
+19.1.1 (2019-05-06)
+===================
+
+Features
+--------
+
+- Restore ``pyproject.toml`` handling to how it was with pip 19.0.3 to prevent
+  the need to add ``--no-use-pep517`` when installing in editable mode. (`#6434 <https://github.com/pypa/pip/issues/6434>`_)
+
+Bug Fixes
+---------
+
+- Fix a regression that caused `@` to be quoted in pypiserver links.
+  This interfered with parsing the revision string from VCS urls. (`#6440 <https://github.com/pypa/pip/issues/6440>`_)
+
+
+19.1 (2019-04-23)
+=================
+
+Features
+--------
+
+- Configuration files may now also be stored under ``sys.prefix`` (`#5060 <https://github.com/pypa/pip/issues/5060>`_)
+- Avoid creating an unnecessary local clone of a Bazaar branch when exporting. (`#5443 <https://github.com/pypa/pip/issues/5443>`_)
+- Include in pip's User-Agent string whether it looks like pip is running
+  under CI. (`#5499 <https://github.com/pypa/pip/issues/5499>`_)
+- A custom (JSON-encoded) string can now be added to pip's User-Agent
+  using the ``PIP_USER_AGENT_USER_DATA`` environment variable. (`#5549 <https://github.com/pypa/pip/issues/5549>`_)
+- For consistency, passing ``--no-cache-dir`` no longer affects whether wheels
+  will be built.  In this case, a temporary directory is used. (`#5749 <https://github.com/pypa/pip/issues/5749>`_)
+- Command arguments in ``subprocess`` log messages are now quoted using
+  ``shlex.quote()``. (`#6290 <https://github.com/pypa/pip/issues/6290>`_)
+- Prefix warning and error messages in log output with `WARNING` and `ERROR`. (`#6298 <https://github.com/pypa/pip/issues/6298>`_)
+- Using ``--build-options`` in a PEP 517 build now fails with an error,
+  rather than silently ignoring the option. (`#6305 <https://github.com/pypa/pip/issues/6305>`_)
+- Error out with an informative message if one tries to install a
+  ``pyproject.toml``-style (PEP 517) source tree using ``--editable`` mode. (`#6314 <https://github.com/pypa/pip/issues/6314>`_)
+- When downloading a package, the ETA and average speed now only update once per second for better legibility. (`#6319 <https://github.com/pypa/pip/issues/6319>`_)
+
+Bug Fixes
+---------
+
+- The stdout and stderr from VCS commands run by pip as subprocesses (e.g.
+  ``git``, ``hg``, etc.) no longer pollute pip's stdout. (`#1219 <https://github.com/pypa/pip/issues/1219>`_)
+- Fix handling of requests exceptions when dependencies are debundled. (`#4195 <https://github.com/pypa/pip/issues/4195>`_)
+- Make pip's self version check avoid recommending upgrades to prereleases if the currently-installed version is stable. (`#5175 <https://github.com/pypa/pip/issues/5175>`_)
+- Fixed crash when installing a requirement from a URL that comes from a dependency without a URL. (`#5889 <https://github.com/pypa/pip/issues/5889>`_)
+- Improve handling of file URIs: correctly handle `file://localhost/...` and don't try to use UNC paths on Unix. (`#5892 <https://github.com/pypa/pip/issues/5892>`_)
+- Fix ``utils.encoding.auto_decode()`` ``LookupError`` with invalid encodings.
+  ``utils.encoding.auto_decode()`` was broken when decoding Big Endian BOM
+  byte-strings on Little Endian or vice versa. (`#6054 <https://github.com/pypa/pip/issues/6054>`_)
+- Fix incorrect URL quoting of IPv6 addresses. (`#6285 <https://github.com/pypa/pip/issues/6285>`_)
+- Redact the password from the extra index URL when using ``pip -v``. (`#6295 <https://github.com/pypa/pip/issues/6295>`_)
+- The spinner no longer displays a completion message after subprocess calls
+  not needing a spinner. It also no longer incorrectly reports an error after
+  certain subprocess calls to Git that succeeded. (`#6312 <https://github.com/pypa/pip/issues/6312>`_)
+- Fix the handling of editable mode during installs when ``pyproject.toml`` is
+  present but PEP 517 doesn't require the source tree to be treated as
+  ``pyproject.toml``-style. (`#6370 <https://github.com/pypa/pip/issues/6370>`_)
+- Fix ``NameError`` when handling an invalid requirement. (`#6419 <https://github.com/pypa/pip/issues/6419>`_)
+
+Vendored Libraries
+------------------
+
+- Updated certifi to 2019.3.9
+- Updated distro to 1.4.0
+- Update progress to 1.5
+- Updated pyparsing to 2.4.0
+- Updated pkg_resources to 41.0.1 (via setuptools)
+
+Improved Documentation
+----------------------
+
+- Make dashes render correctly when displaying long options like
+  ``--find-links`` in the text. (`#6422 <https://github.com/pypa/pip/issues/6422>`_)
+
+
+19.0.3 (2019-02-20)
+===================
+
+Bug Fixes
+---------
+
+- Fix an ``IndexError`` crash when a legacy build of a wheel fails. (`#6252 <https://github.com/pypa/pip/issues/6252>`_)
+- Fix a regression introduced in 19.0.2 where the filename in a RECORD file
+  of an installed file would not be updated when installing a wheel. (`#6266 <https://github.com/pypa/pip/issues/6266>`_)
+
+
+19.0.2 (2019-02-09)
+===================
+
+Bug Fixes
+---------
+
+- Fix a crash where PEP 517-based builds using ``--no-cache-dir`` would fail in
+  some circumstances with an ``AssertionError`` due to not finalizing a build
+  directory internally. (`#6197 <https://github.com/pypa/pip/issues/6197>`_)
+- Provide a better error message if attempting an editable install of a
+  directory with a ``pyproject.toml`` but no ``setup.py``. (`#6170 <https://github.com/pypa/pip/issues/6170>`_)
+- The implicit default backend used for projects that provide a ``pyproject.toml``
+  file without explicitly specifying ``build-backend`` now behaves more like direct
+  execution of ``setup.py``, and hence should restore compatibility with projects
+  that were unable to be installed with ``pip`` 19.0. This raised the minimum
+  required version of ``setuptools`` for such builds to 40.8.0. (`#6163 <https://github.com/pypa/pip/issues/6163>`_)
+- Allow ``RECORD`` lines with more than three elements, and display a warning. (`#6165 <https://github.com/pypa/pip/issues/6165>`_)
+- ``AdjacentTempDirectory`` fails on unwritable directory instead of locking up the uninstall command. (`#6169 <https://github.com/pypa/pip/issues/6169>`_)
+- Make failed uninstalls roll back more reliably and better at avoiding naming conflicts. (`#6194 <https://github.com/pypa/pip/issues/6194>`_)
+- Ensure the correct wheel file is copied when building PEP 517 distribution is built. (`#6196 <https://github.com/pypa/pip/issues/6196>`_)
+- The Python 2 end of life warning now only shows on CPython, which is the
+  implementation that has announced end of life plans. (`#6207 <https://github.com/pypa/pip/issues/6207>`_)
+
+Improved Documentation
+----------------------
+
+- Re-write README and documentation index (`#5815 <https://github.com/pypa/pip/issues/5815>`_)
+
+
+19.0.1 (2019-01-23)
+===================
+
+Bug Fixes
+---------
+
+- Fix a crash when using --no-cache-dir with PEP 517 distributions (`#6158 <https://github.com/pypa/pip/issues/6158>`_, `#6171 <https://github.com/pypa/pip/issues/6171>`_)
+
+
 19.0 (2019-01-22)
 =================
 

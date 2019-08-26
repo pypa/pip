@@ -10,11 +10,20 @@ import shutil
 import sys
 
 from pip._vendor.six import text_type
+from pip._vendor.urllib3.util import IS_PYOPENSSL
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Tuple, Text  # noqa: F401
+    from typing import Optional, Text, Tuple, Union
+
+try:
+    import _ssl  # noqa
+except ImportError:
+    ssl = None
+else:
+    # This additional assignment was needed to prevent a mypy error.
+    ssl = _ssl
 
 try:
     import ipaddress
@@ -35,6 +44,8 @@ __all__ = [
 
 
 logger = logging.getLogger(__name__)
+
+HAS_TLS = (ssl is not None) or IS_PYOPENSSL
 
 if sys.version_info >= (3, 4):
     uses_pycache = True
@@ -72,18 +83,29 @@ else:
     backslashreplace_decode = "backslashreplace_decode"
 
 
-def console_to_str(data):
-    # type: (bytes) -> Text
-    """Return a string, safe for output, of subprocess output.
-
-    We assume the data is in the locale preferred encoding.
-    If it won't decode properly, we warn the user but decode as
-    best we can.
-
-    We also ensure that the output can be safely written to
-    standard output without encoding errors.
+def str_to_display(data, desc=None):
+    # type: (Union[bytes, Text], Optional[str]) -> Text
     """
+    For display or logging purposes, convert a bytes object (or text) to
+    text (e.g. unicode in Python 2) safe for output.
 
+    :param desc: An optional phrase describing the input data, for use in
+        the log message if a warning is logged. Defaults to "Bytes object".
+
+    This function should never error out and so can take a best effort
+    approach. It is okay to be lossy if needed since the return value is
+    just for display.
+
+    We assume the data is in the locale preferred encoding. If it won't
+    decode properly, we warn the user but decode as best we can.
+
+    We also ensure that the output can be safely written to standard output
+    without encoding errors.
+    """
+    if isinstance(data, text_type):
+        return data
+
+    # Otherwise, data is a bytes object (str in Python 2).
     # First, get the encoding we assume. This is the preferred
     # encoding for the locale, unless that is not found, or
     # it is ASCII, in which case assume UTF-8
@@ -96,10 +118,10 @@ def console_to_str(data):
     try:
         decoded_data = data.decode(encoding)
     except UnicodeDecodeError:
-        logger.warning(
-            "Subprocess output does not appear to be encoded as %s",
-            encoding,
-        )
+        if desc is None:
+            desc = 'Bytes object'
+        msg_format = '{} does not appear to be encoded as %s'.format(desc)
+        logger.warning(msg_format, encoding)
         decoded_data = data.decode(encoding, errors=backslashreplace_decode)
 
     # Make sure we can print the output, by encoding it to the output
@@ -125,6 +147,13 @@ def console_to_str(data):
         decoded_data = output_encoded.decode(output_encoding)
 
     return decoded_data
+
+
+def console_to_str(data):
+    # type: (bytes) -> Text
+    """Return a string, safe for output, of subprocess output.
+    """
+    return str_to_display(data, desc='Subprocess output')
 
 
 if sys.version_info >= (3,):

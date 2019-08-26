@@ -6,6 +6,21 @@ from mock import patch
 from pip._internal import pep425tags
 
 
+@pytest.mark.parametrize('version_info, expected', [
+    ((2,), '2'),
+    ((2, 8), '28'),
+    ((3,), '3'),
+    ((3, 6), '36'),
+    # Test a tuple of length 3.
+    ((3, 6, 5), '36'),
+    # Test a 2-digit minor version.
+    ((3, 10), '310'),
+])
+def test_version_info_to_nodot(version_info, expected):
+    actual = pep425tags.version_info_to_nodot(version_info)
+    assert actual == expected
+
+
 class TestPEP425Tags(object):
 
     def mock_get_config_var(self, **kwd):
@@ -31,6 +46,10 @@ class TestPEP425Tags(object):
         config_vars.update({'SOABI': None})
         base = pip._internal.pep425tags.get_abbr_impl() + \
             pip._internal.pep425tags.get_impl_ver()
+
+        if sys.version_info >= (3, 8):
+            # Python 3.8 removes the m flag, so don't look for it.
+            flags = flags.replace('m', '')
 
         if sys.version_info < (3, 3):
             config_vars.update({'Py_UNICODE_SIZE': 2})

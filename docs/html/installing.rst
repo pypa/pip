@@ -77,7 +77,7 @@ Install behind a proxy::
   python get-pip.py --proxy="http://[user:passwd@]proxy.server:port"
 
 ``get-pip.py`` can also be used to install a specified combination of ``pip``,
-``setuptools``, and ``wheel`` using the same requirements syntax as ``pip``::
+``setuptools``, and ``wheel`` using the same requirements syntax as pip::
 
   python get-pip.py pip==9.0.2 wheel==0.30.0 setuptools==28.8.0
 
@@ -109,7 +109,7 @@ On Windows [4]_::
 Python and OS Compatibility
 ---------------------------
 
-pip works with CPython versions 2.7, 3.4, 3.5, 3.6, 3.7 and also pypy.
+pip works with CPython versions 2.7, 3.5, 3.6, 3.7 and also PyPy.
 
 This means pip works on the latest patch version of each of these minor
 versions. Previous patch versions are supported on a best effort approach.

@@ -32,15 +32,16 @@ def pytest_collection_modifyitems(config, items):
             continue
 
         # Mark network tests as flaky
-        if item.get_marker('network') is not None and "CI" in os.environ:
+        if (item.get_closest_marker('network') is not None and
+                "CI" in os.environ):
             item.add_marker(pytest.mark.flaky(reruns=3))
 
         if six.PY3:
-            if (item.get_marker('incompatible_with_test_venv') and
+            if (item.get_closest_marker('incompatible_with_test_venv') and
                     config.getoption("--use-venv")):
                 item.add_marker(pytest.mark.skip(
                     'Incompatible with test venv'))
-            if (item.get_marker('incompatible_with_venv') and
+            if (item.get_closest_marker('incompatible_with_venv') and
                     sys.prefix != sys.base_prefix):
                 item.add_marker(pytest.mark.skip(
                     'Incompatible with venv'))
@@ -179,7 +180,7 @@ def pip_src(tmpdir_factory):
             ignored.extend(fnmatch.filter(names, pattern))
         return set(ignored)
 
-    pip_src = Path(str(tmpdir_factory.mktemp('pip_src'))).join('pip_src')
+    pip_src = Path(str(tmpdir_factory.mktemp('pip_src'))).joinpath('pip_src')
     # Copy over our source tree so that each use is self contained
     shutil.copytree(
         SRC_DIR,
@@ -231,12 +232,14 @@ def virtualenv_template(request, tmpdir_factory, pip_src,
 
     # Create the virtual environment
     tmpdir = Path(str(tmpdir_factory.mktemp('virtualenv')))
-    venv = VirtualEnvironment(tmpdir.join("venv_orig"), venv_type=venv_type)
+    venv = VirtualEnvironment(
+        tmpdir.joinpath("venv_orig"), venv_type=venv_type
+    )
 
     # Install setuptools and pip.
     install_egg_link(venv, 'setuptools', setuptools_install)
     pip_editable = Path(str(tmpdir_factory.mktemp('pip'))) / 'pip'
-    pip_src.copytree(pip_editable)
+    shutil.copytree(pip_src, pip_editable, symlinks=True)
     assert compileall.compile_dir(str(pip_editable), quiet=1)
     subprocess.check_call([venv.bin / 'python', 'setup.py', '-q', 'develop'],
                           cwd=pip_editable)
@@ -247,7 +250,7 @@ def virtualenv_template(request, tmpdir_factory, pip_src,
             exe.startswith('python') or
             exe.startswith('libpy')  # Don't remove libpypy-c.so...
         ):
-            (venv.bin / exe).remove()
+            (venv.bin / exe).unlink()
 
     # Enable user site packages.
     venv.user_site_packages = True
@@ -267,7 +270,7 @@ def virtualenv(virtualenv_template, tmpdir, isolate):
     temporary directory. The returned object is a
     ``tests.lib.venv.VirtualEnvironment`` object.
     """
-    venv_location = tmpdir.join("workspace", "venv")
+    venv_location = tmpdir.joinpath("workspace", "venv")
     yield VirtualEnvironment(venv_location, virtualenv_template)
 
 
@@ -286,7 +289,7 @@ def script(tmpdir, virtualenv, deprecated_python):
     """
     return PipTestEnvironment(
         # The base location for our test environment
-        tmpdir.join("workspace"),
+        tmpdir.joinpath("workspace"),
 
         # Tell the Test Environment where our virtualenv is located
         virtualenv=virtualenv,
@@ -303,19 +306,19 @@ def script(tmpdir, virtualenv, deprecated_python):
         assert_no_temp=True,
 
         # Deprecated python versions produce an extra deprecation warning
-        pip_expect_stderr=deprecated_python,
+        pip_expect_warning=deprecated_python,
     )
 
 
 @pytest.fixture(scope="session")
 def common_wheels():
     """Provide a directory with latest setuptools and wheel wheels"""
-    return DATA_DIR.join('common_wheels')
+    return DATA_DIR.joinpath('common_wheels')
 
 
 @pytest.fixture
 def data(tmpdir):
-    return TestData.copy(tmpdir.join("data"))
+    return TestData.copy(tmpdir.joinpath("data"))
 
 
 class InMemoryPipResult(object):
@@ -348,5 +351,5 @@ def in_memory_pip():
 
 @pytest.fixture
 def deprecated_python():
-    """Used to indicate wheither pip deprecated this python version"""
+    """Used to indicate whether pip deprecated this python version"""
     return sys.version_info[:2] in [(3, 4), (2, 7)]

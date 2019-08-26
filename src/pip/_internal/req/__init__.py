@@ -1,3 +1,6 @@
+# The following comment should be removed at some point in the future.
+# mypy: strict-optional=False
+
 from __future__ import absolute_import
 
 import logging
@@ -9,7 +12,7 @@ from pip._internal.utils.logging import indent_log
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import List, Sequence  # noqa: F401
+    from typing import Any, List, Sequence
 
 __all__ = [
     "RequirementSet", "InstallRequirement",
@@ -23,7 +26,8 @@ def install_given_reqs(
     to_install,  # type: List[InstallRequirement]
     install_options,  # type: List[str]
     global_options=(),  # type: Sequence[str]
-    *args, **kwargs
+    *args,  # type: Any
+    **kwargs  # type: Any
 ):
     # type: (...) -> List[InstallRequirement]
     """

@@ -7,8 +7,12 @@ from doctest import ELLIPSIS, OutputChecker
 import pytest
 
 from tests.lib import (
-    _create_test_package, _create_test_package_with_srcdir, _git_commit,
-    need_bzr, need_mercurial, path_to_url,
+    _create_test_package,
+    _create_test_package_with_srcdir,
+    _git_commit,
+    need_bzr,
+    need_mercurial,
+    path_to_url,
 )
 
 distribute_re = re.compile('^distribute==[0-9.]+\n', re.MULTILINE)
@@ -51,7 +55,7 @@ def test_basic_freeze(script):
     currently it is not).
 
     """
-    script.scratch_path.join("initools-req.txt").write(textwrap.dedent("""\
+    script.scratch_path.joinpath("initools-req.txt").write_text(textwrap.dedent("""\
         simple==2.0
         # and something else to test out:
         simple2<=3.0
@@ -108,12 +112,19 @@ def test_freeze_with_invalid_names(script):
             '...{}==1.0...'.format(pkgname.replace('_', '-'))
         )
     for pkgname in invalid_pkgnames:
-        _check_output(
-            result.stderr,
-            '...Could not parse requirement: {}\n...'.format(
-                pkgname.replace('_', '-')
-            )
+        # Check that the full distribution repr is present.
+        dist_repr = '{} 1.0 ('.format(pkgname.replace('_', '-'))
+        expected = (
+            '...Could not generate requirement for '
+            'distribution {}...'.format(dist_repr)
         )
+        _check_output(result.stderr, expected)
+
+    # Also check that the parse error details occur at least once.
+    # We only need to find one occurrence to know that exception details
+    # are logged.
+    expected = '...site-packages): Parse error at "...'
+    _check_output(result.stderr, expected)
 
 
 @pytest.mark.git
@@ -126,7 +137,7 @@ def test_freeze_editable_not_vcs(script, tmpdir):
     # as a VCS directory.
     os.rename(os.path.join(pkg_path, '.git'), os.path.join(pkg_path, '.bak'))
     script.pip('install', '-e', pkg_path)
-    result = script.pip('freeze', expect_stderr=True)
+    result = script.pip('freeze')
 
     # We need to apply os.path.normcase() to the path since that is what
     # the freeze code does.
@@ -469,15 +480,15 @@ def test_freeze_with_requirement_option_file_url_egg_not_installed(
     """
 
     url = path_to_url('my-package.tar.gz') + '#egg=Does.Not-Exist'
-    requirements_path = script.scratch_path.join('requirements.txt')
-    requirements_path.write(url + '\n')
+    requirements_path = script.scratch_path.joinpath('requirements.txt')
+    requirements_path.write_text(url + '\n')
 
     result = script.pip(
         'freeze', '--requirement', 'requirements.txt', expect_stderr=True,
     )
     expected_err = (
-        'Requirement file [requirements.txt] contains {}, but package '
-        "'Does.Not-Exist' is not installed\n"
+        'WARNING: Requirement file [requirements.txt] contains {}, '
+        "but package 'Does.Not-Exist' is not installed\n"
     ).format(url)
     if deprecated_python:
         assert expected_err in result.stderr
@@ -491,7 +502,7 @@ def test_freeze_with_requirement_option(script):
 
     """
 
-    script.scratch_path.join("hint.txt").write(textwrap.dedent("""\
+    script.scratch_path.joinpath("hint.txt").write_text(textwrap.dedent("""\
         INITools==0.1
         NoExist==4.2  # A comment that ensures end of line comments work.
         simple==3.0; python_version > '1.0'
@@ -521,12 +532,12 @@ def test_freeze_with_requirement_option_multiple(script):
     --requirement hints
 
     """
-    script.scratch_path.join('hint1.txt').write(textwrap.dedent("""\
+    script.scratch_path.joinpath('hint1.txt').write_text(textwrap.dedent("""\
         INITools==0.1
         NoExist==4.2
         simple==3.0; python_version > '1.0'
     """) + _freeze_req_opts)
-    script.scratch_path.join('hint2.txt').write(textwrap.dedent("""\
+    script.scratch_path.joinpath('hint2.txt').write_text(textwrap.dedent("""\
         NoExist2==2.0
         simple2==1.0
     """) + _freeze_req_opts)
@@ -569,7 +580,7 @@ def test_freeze_with_requirement_option_package_repeated_one_file(script):
     Test freezing with single requirements file that contains a package
     multiple times
     """
-    script.scratch_path.join('hint1.txt').write(textwrap.dedent("""\
+    script.scratch_path.joinpath('hint1.txt').write_text(textwrap.dedent("""\
         simple2
         simple2
         NoExist
@@ -602,10 +613,10 @@ def test_freeze_with_requirement_option_package_repeated_multi_file(script):
     """
     Test freezing with multiple requirements file that contain a package
     """
-    script.scratch_path.join('hint1.txt').write(textwrap.dedent("""\
+    script.scratch_path.joinpath('hint1.txt').write_text(textwrap.dedent("""\
         simple
     """) + _freeze_req_opts)
-    script.scratch_path.join('hint2.txt').write(textwrap.dedent("""\
+    script.scratch_path.joinpath('hint2.txt').write_text(textwrap.dedent("""\
         simple
         NoExist
     """) + _freeze_req_opts)
@@ -652,3 +663,62 @@ def test_freeze_user(script, virtualenv, data):
         <BLANKLINE>""")
     _check_output(result.stdout, expected)
     assert 'simple2' not in result.stdout
+
+
+def test_freeze_path(tmpdir, script, data):
+    """
+    Test freeze with --path.
+    """
+    script.pip('install', '--find-links', data.find_links,
+               '--target', tmpdir, 'simple==2.0')
+    result = script.pip('freeze', '--path', tmpdir)
+    expected = textwrap.dedent("""\
+        simple==2.0
+        <BLANKLINE>""")
+    _check_output(result.stdout, expected)
+
+
+def test_freeze_path_exclude_user(tmpdir, script, data):
+    """
+    Test freeze with --path and make sure packages from --user are not picked
+    up.
+    """
+    script.pip_install_local('--find-links', data.find_links,
+                             '--user', 'simple2')
+    script.pip('install', '--find-links', data.find_links,
+               '--target', tmpdir, 'simple==1.0')
+    result = script.pip('freeze', '--user')
+    expected = textwrap.dedent("""\
+        simple2==3.0
+        <BLANKLINE>""")
+    _check_output(result.stdout, expected)
+    result = script.pip('freeze', '--path', tmpdir)
+    expected = textwrap.dedent("""\
+        simple==1.0
+        <BLANKLINE>""")
+    _check_output(result.stdout, expected)
+
+
+def test_freeze_path_multiple(tmpdir, script, data):
+    """
+    Test freeze with multiple --path arguments.
+    """
+    path1 = tmpdir / "path1"
+    os.mkdir(path1)
+    path2 = tmpdir / "path2"
+    os.mkdir(path2)
+    script.pip('install', '--find-links', data.find_links,
+               '--target', path1, 'simple==2.0')
+    script.pip('install', '--find-links', data.find_links,
+               '--target', path2, 'simple2==3.0')
+    result = script.pip('freeze', '--path', path1)
+    expected = textwrap.dedent("""\
+        simple==2.0
+        <BLANKLINE>""")
+    _check_output(result.stdout, expected)
+    result = script.pip('freeze', '--path', path1, '--path', path2)
+    expected = textwrap.dedent("""\
+        simple==2.0
+        simple2==3.0
+        <BLANKLINE>""")
+    _check_output(result.stdout, expected)

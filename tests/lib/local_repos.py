@@ -5,6 +5,7 @@ import subprocess
 
 from pip._vendor.six.moves.urllib import request as urllib_request
 
+from pip._internal.utils.misc import hide_url
 from pip._internal.vcs import bazaar, git, mercurial, subversion
 from tests.lib import path_to_url
 
@@ -59,7 +60,8 @@ def _get_vcs_and_checkout_url(remote_repository, directory):
 
     destination_path = os.path.join(directory, repository_name)
     if not os.path.exists(destination_path):
-        vcs_class(remote_repository).obtain(destination_path)
+        url = hide_url(remote_repository)
+        vcs_class().obtain(destination_path, url=url)
     return '%s+%s' % (
         vcs,
         path_to_url('/'.join([directory, repository_name, branch])),

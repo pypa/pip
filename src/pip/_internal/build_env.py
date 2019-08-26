@@ -1,6 +1,9 @@
 """Build Environment used for isolation during sdist building
 """
 
+# The following comment should be removed at some point in the future.
+# mypy: strict-optional=False
+
 import logging
 import os
 import sys
@@ -18,8 +21,8 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import open_spinner
 
 if MYPY_CHECK_RUNNING:
-    from typing import Tuple, Set, Iterable, Optional, List  # noqa: F401
-    from pip._internal.index import PackageFinder  # noqa: F401
+    from typing import Tuple, Set, Iterable, Optional, List
+    from pip._internal.index import PackageFinder
 
 logger = logging.getLogger(__name__)
 
@@ -177,22 +180,25 @@ class BuildEnvironment(object):
             formats = getattr(finder.format_control, format_control)
             args.extend(('--' + format_control.replace('_', '-'),
                          ','.join(sorted(formats or {':none:'}))))
-        if finder.index_urls:
-            args.extend(['-i', finder.index_urls[0]])
-            for extra_index in finder.index_urls[1:]:
+
+        index_urls = finder.index_urls
+        if index_urls:
+            args.extend(['-i', index_urls[0]])
+            for extra_index in index_urls[1:]:
                 args.extend(['--extra-index-url', extra_index])
         else:
             args.append('--no-index')
         for link in finder.find_links:
             args.extend(['--find-links', link])
-        for _, host, _ in finder.secure_origins:
+
+        for host in finder.trusted_hosts:
             args.extend(['--trusted-host', host])
         if finder.allow_all_prereleases:
             args.append('--pre')
         args.append('--')
         args.extend(requirements)
         with open_spinner(message) as spinner:
-            call_subprocess(args, show_stdout=False, spinner=spinner)
+            call_subprocess(args, spinner=spinner)
 
 
 class NoOpBuildEnvironment(BuildEnvironment):

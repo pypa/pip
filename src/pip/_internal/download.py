@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import cgi
 import email.utils
-import getpass
 import json
 import logging
 import mimetypes
@@ -11,6 +10,7 @@ import platform
 import re
 import shutil
 import sys
+from contextlib import contextmanager
 
 from pip._vendor import requests, six, urllib3
 from pip._vendor.cachecontrol import CacheControlAdapter
@@ -21,46 +21,85 @@ from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
 from pip._vendor.requests.structures import CaseInsensitiveDict
 from pip._vendor.requests.utils import get_netrc_auth
+from pip._vendor.six import PY2
 # NOTE: XMLRPC Client is not annotated in typeshed as on 2017-07-17, which is
 #       why we ignore the type on this import
 from pip._vendor.six.moves import xmlrpc_client  # type: ignore
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
-from pip._vendor.urllib3.util import IS_PYOPENSSL
 
 import pip
 from pip._internal.exceptions import HashMismatch, InstallationError
-from pip._internal.locations import write_delete_marker_file
 from pip._internal.models.index import PyPI
+# Import ssl from compat so the initial import occurs in only one place.
+from pip._internal.utils.compat import HAS_TLS, ipaddress, ssl
 from pip._internal.utils.encoding import auto_decode
-from pip._internal.utils.filesystem import check_path_owner
+from pip._internal.utils.filesystem import check_path_owner, copy2_fixed
 from pip._internal.utils.glibc import libc_ver
-from pip._internal.utils.logging import indent_log
+from pip._internal.utils.marker_files import write_delete_marker_file
 from pip._internal.utils.misc import (
-    ARCHIVE_EXTENSIONS, ask_path_exists, backup_dir, call_subprocess, consume,
-    display_path, format_size, get_installed_version, rmtree,
-    split_auth_from_netloc, splitext, unpack_file,
+    ARCHIVE_EXTENSIONS,
+    ask,
+    ask_input,
+    ask_password,
+    ask_path_exists,
+    backup_dir,
+    build_url_from_netloc,
+    consume,
+    display_path,
+    format_size,
+    get_installed_version,
+    hide_url,
+    parse_netloc,
+    path_to_display,
+    path_to_url,
+    remove_auth_from_url,
+    rmtree,
+    split_auth_netloc_from_url,
+    splitext,
+    unpack_file,
 )
-from pip._internal.utils.setuptools_build import SETUPTOOLS_SHIM
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import DownloadProgressProvider
 from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
-    from typing import (  # noqa: F401
-        Optional, Tuple, Dict, IO, Text, Union
+    from typing import (
+        IO, Callable, Dict, Iterator, List, Optional, Text, Tuple, Union,
     )
-    from pip._internal.models.link import Link  # noqa: F401
-    from pip._internal.utils.hashes import Hashes  # noqa: F401
-    from pip._internal.vcs import AuthInfo  # noqa: F401
+    from optparse import Values
 
-try:
-    import ssl  # noqa
-except ImportError:
-    ssl = None
+    from mypy_extensions import TypedDict
 
-HAS_TLS = (ssl is not None) or IS_PYOPENSSL
+    from pip._internal.models.link import Link
+    from pip._internal.utils.hashes import Hashes
+    from pip._internal.vcs.versioncontrol import AuthInfo, VersionControl
+
+    Credentials = Tuple[str, str, str]
+    SecureOrigin = Tuple[str, str, Optional[Union[int, str]]]
+
+    if PY2:
+        CopytreeKwargs = TypedDict(
+            'CopytreeKwargs',
+            {
+                'ignore': Callable[[str, List[str]], List[str]],
+                'symlinks': bool,
+            },
+            total=False,
+        )
+    else:
+        CopytreeKwargs = TypedDict(
+            'CopytreeKwargs',
+            {
+                'copy_function': Callable[[str, str], None],
+                'ignore': Callable[[str, List[str]], List[str]],
+                'ignore_dangling_symlinks': bool,
+                'symlinks': bool,
+            },
+            total=False,
+        )
+
 
 try:
     from pip._vendor.requests_kerberos import HTTPKerberosAuth
@@ -73,11 +112,65 @@ except ImportError:
 __all__ = ['get_file_content',
            'is_url', 'url_to_path', 'path_to_url',
            'is_archive_file', 'unpack_vcs_link',
-           'unpack_file_url', 'is_vcs_url', 'is_file_url',
-           'unpack_http_url', 'unpack_url']
+           'unpack_file_url', 'is_file_url',
+           'unpack_http_url', 'unpack_url',
+           'parse_content_disposition', 'sanitize_content_filename']
 
 
 logger = logging.getLogger(__name__)
+
+
+try:
+    import keyring  # noqa
+except ImportError:
+    keyring = None
+except Exception as exc:
+    logger.warning("Keyring is skipped due to an exception: %s",
+                   str(exc))
+    keyring = None
+
+
+SECURE_ORIGINS = [
+    # protocol, hostname, port
+    # Taken from Chrome's list of secure origins (See: http://bit.ly/1qrySKC)
+    ("https", "*", "*"),
+    ("*", "localhost", "*"),
+    ("*", "127.0.0.0/8", "*"),
+    ("*", "::1/128", "*"),
+    ("file", "*", None),
+    # ssh is always secure.
+    ("ssh", "*", "*"),
+]  # type: List[SecureOrigin]
+
+
+# These are environment variables present when running under various
+# CI systems.  For each variable, some CI systems that use the variable
+# are indicated.  The collection was chosen so that for each of a number
+# of popular systems, at least one of the environment variables is used.
+# This list is used to provide some indication of and lower bound for
+# CI traffic to PyPI.  Thus, it is okay if the list is not comprehensive.
+# For more background, see: https://github.com/pypa/pip/issues/5499
+CI_ENVIRONMENT_VARIABLES = (
+    # Azure Pipelines
+    'BUILD_BUILDID',
+    # Jenkins
+    'BUILD_ID',
+    # AppVeyor, CircleCI, Codeship, Gitlab CI, Shippable, Travis CI
+    'CI',
+    # Explicit environment variable.
+    'PIP_IS_CI',
+)
+
+
+def looks_like_ci():
+    # type: () -> bool
+    """
+    Return whether it looks like pip is running under CI.
+    """
+    # We don't use the method of checking for a tty (e.g. using isatty())
+    # because some CI systems mimic a tty (e.g. Travis CI).  Thus that
+    # method doesn't provide definitive information in either direction.
+    return any(name in os.environ for name in CI_ENVIRONMENT_VARIABLES)
 
 
 def user_agent():
@@ -143,51 +236,204 @@ def user_agent():
     if setuptools_version is not None:
         data["setuptools_version"] = setuptools_version
 
+    # Use None rather than False so as not to give the impression that
+    # pip knows it is not being run under CI.  Rather, it is a null or
+    # inconclusive result.  Also, we include some value rather than no
+    # value to make it easier to know that the check has been run.
+    data["ci"] = True if looks_like_ci() else None
+
+    user_data = os.environ.get("PIP_USER_AGENT_USER_DATA")
+    if user_data is not None:
+        data["user_data"] = user_data
+
     return "{data[installer][name]}/{data[installer][version]} {json}".format(
         data=data,
         json=json.dumps(data, separators=(",", ":"), sort_keys=True),
     )
 
 
+def _get_keyring_auth(url, username):
+    """Return the tuple auth for a given url from keyring."""
+    if not url or not keyring:
+        return None
+
+    try:
+        try:
+            get_credential = keyring.get_credential
+        except AttributeError:
+            pass
+        else:
+            logger.debug("Getting credentials from keyring for %s", url)
+            cred = get_credential(url, username)
+            if cred is not None:
+                return cred.username, cred.password
+            return None
+
+        if username:
+            logger.debug("Getting password from keyring for %s", url)
+            password = keyring.get_password(url, username)
+            if password:
+                return username, password
+
+    except Exception as exc:
+        logger.warning("Keyring is skipped due to an exception: %s",
+                       str(exc))
+
+
 class MultiDomainBasicAuth(AuthBase):
 
-    def __init__(self, prompting=True):
-        # type: (bool) -> None
+    def __init__(self, prompting=True, index_urls=None):
+        # type: (bool, Optional[Values]) -> None
         self.prompting = prompting
+        self.index_urls = index_urls
         self.passwords = {}  # type: Dict[str, AuthInfo]
+        # When the user is prompted to enter credentials and keyring is
+        # available, we will offer to save them. If the user accepts,
+        # this value is set to the credentials they entered. After the
+        # request authenticates, the caller should call
+        # ``save_credentials`` to save these.
+        self._credentials_to_save = None  # type: Optional[Credentials]
 
-    def __call__(self, req):
-        parsed = urllib_parse.urlparse(req.url)
+    def _get_index_url(self, url):
+        """Return the original index URL matching the requested URL.
 
-        # Split the credentials from the netloc.
-        netloc, url_user_password = split_auth_from_netloc(parsed.netloc)
+        Cached or dynamically generated credentials may work against
+        the original index URL rather than just the netloc.
 
-        # Set the url of the request to the url without any credentials
-        req.url = urllib_parse.urlunparse(parsed[:1] + (netloc,) + parsed[2:])
+        The provided url should have had its username and password
+        removed already. If the original index url had credentials then
+        they will be included in the return value.
+
+        Returns None if no matching index was found, or if --no-index
+        was specified by the user.
+        """
+        if not url or not self.index_urls:
+            return None
+
+        for u in self.index_urls:
+            prefix = remove_auth_from_url(u).rstrip("/") + "/"
+            if url.startswith(prefix):
+                return u
+
+    def _get_new_credentials(self, original_url, allow_netrc=True,
+                             allow_keyring=True):
+        """Find and return credentials for the specified URL."""
+        # Split the credentials and netloc from the url.
+        url, netloc, url_user_password = split_auth_netloc_from_url(
+            original_url)
+
+        # Start with the credentials embedded in the url
+        username, password = url_user_password
+        if username is not None and password is not None:
+            logger.debug("Found credentials in url for %s", netloc)
+            return url_user_password
+
+        # Find a matching index url for this request
+        index_url = self._get_index_url(url)
+        if index_url:
+            # Split the credentials from the url.
+            index_info = split_auth_netloc_from_url(index_url)
+            if index_info:
+                index_url, _, index_url_user_password = index_info
+                logger.debug("Found index url %s", index_url)
+
+        # If an index URL was found, try its embedded credentials
+        if index_url and index_url_user_password[0] is not None:
+            username, password = index_url_user_password
+            if username is not None and password is not None:
+                logger.debug("Found credentials in index url for %s", netloc)
+                return index_url_user_password
+
+        # Get creds from netrc if we still don't have them
+        if allow_netrc:
+            netrc_auth = get_netrc_auth(original_url)
+            if netrc_auth:
+                logger.debug("Found credentials in netrc for %s", netloc)
+                return netrc_auth
+
+        # If we don't have a password and keyring is available, use it.
+        if allow_keyring:
+            # The index url is more specific than the netloc, so try it first
+            kr_auth = (_get_keyring_auth(index_url, username) or
+                       _get_keyring_auth(netloc, username))
+            if kr_auth:
+                logger.debug("Found credentials in keyring for %s", netloc)
+                return kr_auth
+
+        return username, password
+
+    def _get_url_and_credentials(self, original_url):
+        """Return the credentials to use for the provided URL.
+
+        If allowed, netrc and keyring may be used to obtain the
+        correct credentials.
+
+        Returns (url_without_credentials, username, password). Note
+        that even if the original URL contains credentials, this
+        function may return a different username and password.
+        """
+        url, netloc, _ = split_auth_netloc_from_url(original_url)
 
         # Use any stored credentials that we have for this netloc
         username, password = self.passwords.get(netloc, (None, None))
 
-        # Use the credentials embedded in the url if we have none stored
-        if username is None:
-            username, password = url_user_password
-
-        # Get creds from netrc if we still don't have them
         if username is None and password is None:
-            netrc_auth = get_netrc_auth(req.url)
-            username, password = netrc_auth if netrc_auth else (None, None)
+            # No stored credentials. Acquire new credentials without prompting
+            # the user. (e.g. from netrc, keyring, or the URL itself)
+            username, password = self._get_new_credentials(original_url)
 
-        if username or password:
-            # Store the username and password
+        if username is not None or password is not None:
+            # Convert the username and password if they're None, so that
+            # this netloc will show up as "cached" in the conditional above.
+            # Further, HTTPBasicAuth doesn't accept None, so it makes sense to
+            # cache the value that is going to be used.
+            username = username or ""
+            password = password or ""
+
+            # Store any acquired credentials.
             self.passwords[netloc] = (username, password)
 
+        assert (
+            # Credentials were found
+            (username is not None and password is not None) or
+            # Credentials were not found
+            (username is None and password is None)
+        ), "Could not load credentials from url: {}".format(original_url)
+
+        return url, username, password
+
+    def __call__(self, req):
+        # Get credentials for this request
+        url, username, password = self._get_url_and_credentials(req.url)
+
+        # Set the url of the request to the url without any credentials
+        req.url = url
+
+        if username is not None and password is not None:
             # Send the basic auth with this request
-            req = HTTPBasicAuth(username or "", password or "")(req)
+            req = HTTPBasicAuth(username, password)(req)
 
         # Attach a hook to handle 401 responses
         req.register_hook("response", self.handle_401)
 
         return req
+
+    # Factored out to allow for easy patching in tests
+    def _prompt_for_password(self, netloc):
+        username = ask_input("User for %s: " % netloc)
+        if not username:
+            return None, None
+        auth = _get_keyring_auth(netloc, username)
+        if auth:
+            return auth[0], auth[1], False
+        password = ask_password("Password: ")
+        return username, password, True
+
+    # Factored out to allow for easy patching in tests
+    def _should_save_password_to_keyring(self):
+        if not keyring:
+            return False
+        return ask("Save credentials to keyring [y/N]: ", ["y", "n"]) == "y"
 
     def handle_401(self, resp, **kwargs):
         # We only care about 401 responses, anything else we want to just
@@ -202,12 +448,16 @@ class MultiDomainBasicAuth(AuthBase):
         parsed = urllib_parse.urlparse(resp.url)
 
         # Prompt the user for a new username and password
-        username = six.moves.input("User for %s: " % parsed.netloc)
-        password = getpass.getpass("Password: ")
+        username, password, save = self._prompt_for_password(parsed.netloc)
 
         # Store the new username and password to use for future requests
-        if username or password:
+        self._credentials_to_save = None
+        if username is not None and password is not None:
             self.passwords[parsed.netloc] = (username, password)
+
+            # Prompt to save the password to keyring
+            if save and self._should_save_password_to_keyring():
+                self._credentials_to_save = (parsed.netloc, username, password)
 
         # Consume content and release the original connection to allow our new
         #   request to reuse the same one.
@@ -218,6 +468,12 @@ class MultiDomainBasicAuth(AuthBase):
         req = HTTPBasicAuth(username or "", password or "")(resp.request)
         req.register_hook("response", self.warn_on_401)
 
+        # On successful request, save the credentials that were used to
+        # keyring. (Note that if the user responded "no" above, this member
+        # is not set and nothing will be saved.)
+        if self._credentials_to_save:
+            req.register_hook("response", self.save_credentials)
+
         # Send our new request
         new_resp = resp.connection.send(req, **kwargs)
         new_resp.history.append(resp)
@@ -225,10 +481,25 @@ class MultiDomainBasicAuth(AuthBase):
         return new_resp
 
     def warn_on_401(self, resp, **kwargs):
-        # warn user that they provided incorrect credentials
+        """Response callback to warn about incorrect credentials."""
         if resp.status_code == 401:
             logger.warning('401 Error, Credentials not correct for %s',
                            resp.request.url)
+
+    def save_credentials(self, resp, **kwargs):
+        """Response callback to save credentials on success."""
+        assert keyring is not None, "should never reach here without keyring"
+        if not keyring:
+            return
+
+        creds = self._credentials_to_save
+        self._credentials_to_save = None
+        if creds and resp.status_code < 400:
+            try:
+                logger.info('Saving credentials to keyring')
+                keyring.set_password(*creds)
+            except Exception:
+                logger.exception('Failed to save credentials')
 
 
 class MultiAuth(AuthBase):
@@ -305,70 +576,38 @@ class LocalFSAdapter(BaseAdapter):
         pass
 
 
+@contextmanager
+def suppressed_cache_errors():
+    """If we can't access the cache then we can just skip caching and process
+    requests as if caching wasn't enabled.
+    """
+    try:
+        yield
+    except (LockError, OSError, IOError):
+        pass
+
+
 class SafeFileCache(FileCache):
     """
     A file based cache which is safe to use even when the target directory may
     not be accessible or writable.
     """
 
-    def __init__(self, *args, **kwargs):
-        super(SafeFileCache, self).__init__(*args, **kwargs)
-
-        # Check to ensure that the directory containing our cache directory
-        # is owned by the user current executing pip. If it does not exist
-        # we will check the parent directory until we find one that does exist.
-        # If it is not owned by the user executing pip then we will disable
-        # the cache and log a warning.
-        if not check_path_owner(self.directory):
-            logger.warning(
-                "The directory '%s' or its parent directory is not owned by "
-                "the current user and the cache has been disabled. Please "
-                "check the permissions and owner of that directory. If "
-                "executing pip with sudo, you may want sudo's -H flag.",
-                self.directory,
-            )
-
-            # Set our directory to None to disable the Cache
-            self.directory = None
+    def __init__(self, directory, *args, **kwargs):
+        assert directory is not None, "Cache directory must not be None."
+        super(SafeFileCache, self).__init__(directory, *args, **kwargs)
 
     def get(self, *args, **kwargs):
-        # If we don't have a directory, then the cache should be a no-op.
-        if self.directory is None:
-            return
-
-        try:
+        with suppressed_cache_errors():
             return super(SafeFileCache, self).get(*args, **kwargs)
-        except (LockError, OSError, IOError):
-            # We intentionally silence this error, if we can't access the cache
-            # then we can just skip caching and process the request as if
-            # caching wasn't enabled.
-            pass
 
     def set(self, *args, **kwargs):
-        # If we don't have a directory, then the cache should be a no-op.
-        if self.directory is None:
-            return
-
-        try:
+        with suppressed_cache_errors():
             return super(SafeFileCache, self).set(*args, **kwargs)
-        except (LockError, OSError, IOError):
-            # We intentionally silence this error, if we can't access the cache
-            # then we can just skip caching and process the request as if
-            # caching wasn't enabled.
-            pass
 
     def delete(self, *args, **kwargs):
-        # If we don't have a directory, then the cache should be a no-op.
-        if self.directory is None:
-            return
-
-        try:
+        with suppressed_cache_errors():
             return super(SafeFileCache, self).delete(*args, **kwargs)
-        except (LockError, OSError, IOError):
-            # We intentionally silence this error, if we can't access the cache
-            # then we can just skip caching and process the request as if
-            # caching wasn't enabled.
-            pass
 
 
 class InsecureHTTPAdapter(HTTPAdapter):
@@ -383,12 +622,22 @@ class PipSession(requests.Session):
     timeout = None  # type: Optional[int]
 
     def __init__(self, *args, **kwargs):
+        """
+        :param trusted_hosts: Domains not to emit warnings for when not using
+            HTTPS.
+        """
         retries = kwargs.pop("retries", 0)
         cache = kwargs.pop("cache", None)
-        insecure_hosts = kwargs.pop("insecure_hosts", [])
+
+        trusted_hosts = kwargs.pop("trusted_hosts", [])  # type: List[str]
+        index_urls = kwargs.pop("index_urls", None)
         prompting = kwargs.pop("prompting", True)
 
         super(PipSession, self).__init__(*args, **kwargs)
+
+        # Namespace the attribute with "pip_" just in case to prevent
+        # possible conflicts with the base class.
+        self.pip_trusted_origins = []  # type: List[Tuple[str, Optional[int]]]
 
         # Attach our User Agent to the request
         self.headers["User-Agent"] = user_agent()
@@ -403,7 +652,7 @@ class PipSession(requests.Session):
         elif _KERBEROS_AVAILABLE and not prompting:
             auths = [no_prompt, HTTPKerberosAuth(ik.REQUIRED)]
         else:
-            auths = [MultiDomainBasicAuth(prompting=prompting)]
+            auths = [MultiDomainBasicAuth(prompting=prompting, index_urls=index_urls)]
 
         self.auth = MultiAuth(*auths)
 
@@ -427,6 +676,19 @@ class PipSession(requests.Session):
             backoff_factor=0.25,
         )
 
+        # Check to ensure that the directory containing our cache directory
+        # is owned by the user current executing pip. If it does not exist
+        # we will check the parent directory until we find one that does exist.
+        if cache and not check_path_owner(cache):
+            logger.warning(
+                "The directory '%s' or its parent directory is not owned by "
+                "the current user and the cache has been disabled. Please "
+                "check the permissions and owner of that directory. If "
+                "executing pip with sudo, you may want sudo's -H flag.",
+                cache,
+            )
+            cache = None
+
         # We want to _only_ cache responses on securely fetched origins. We do
         # this because we can't validate the response of an insecurely fetched
         # origin, and we don't want someone to be able to poison the cache and
@@ -444,6 +706,8 @@ class PipSession(requests.Session):
         # well as any https:// host that we've marked as ignoring TLS errors
         # for.
         insecure_adapter = InsecureHTTPAdapter(max_retries=retries)
+        # Save this for later use in add_insecure_host().
+        self._insecure_adapter = insecure_adapter
 
         self.mount("https://", secure_adapter)
         self.mount("http://", insecure_adapter)
@@ -451,10 +715,118 @@ class PipSession(requests.Session):
         # Enable file:// urls
         self.mount("file://", LocalFSAdapter())
 
-        # We want to use a non-validating adapter for any requests which are
-        # deemed insecure.
-        for host in insecure_hosts:
-            self.mount("https://{}/".format(host), insecure_adapter)
+        for host in trusted_hosts:
+            self.add_trusted_host(host, suppress_logging=True)
+
+    def add_trusted_host(self, host, source=None, suppress_logging=False):
+        # type: (str, Optional[str], bool) -> None
+        """
+        :param host: It is okay to provide a host that has previously been
+            added.
+        :param source: An optional source string, for logging where the host
+            string came from.
+        """
+        if not suppress_logging:
+            msg = 'adding trusted host: {!r}'.format(host)
+            if source is not None:
+                msg += ' (from {})'.format(source)
+            logger.info(msg)
+
+        host_port = parse_netloc(host)
+        if host_port not in self.pip_trusted_origins:
+            self.pip_trusted_origins.append(host_port)
+
+        self.mount(build_url_from_netloc(host) + '/', self._insecure_adapter)
+        if not host_port[1]:
+            # Mount wildcard ports for the same host.
+            self.mount(
+                build_url_from_netloc(host) + ':',
+                self._insecure_adapter
+            )
+
+    def iter_secure_origins(self):
+        # type: () -> Iterator[SecureOrigin]
+        for secure_origin in SECURE_ORIGINS:
+            yield secure_origin
+        for host, port in self.pip_trusted_origins:
+            yield ('*', host, '*' if port is None else port)
+
+    def is_secure_origin(self, location):
+        # type: (Link) -> bool
+        # Determine if this url used a secure transport mechanism
+        parsed = urllib_parse.urlparse(str(location))
+        origin_protocol, origin_host, origin_port = (
+            parsed.scheme, parsed.hostname, parsed.port,
+        )
+
+        # The protocol to use to see if the protocol matches.
+        # Don't count the repository type as part of the protocol: in
+        # cases such as "git+ssh", only use "ssh". (I.e., Only verify against
+        # the last scheme.)
+        origin_protocol = origin_protocol.rsplit('+', 1)[-1]
+
+        # Determine if our origin is a secure origin by looking through our
+        # hardcoded list of secure origins, as well as any additional ones
+        # configured on this PackageFinder instance.
+        for secure_origin in self.iter_secure_origins():
+            secure_protocol, secure_host, secure_port = secure_origin
+            if origin_protocol != secure_protocol and secure_protocol != "*":
+                continue
+
+            try:
+                # We need to do this decode dance to ensure that we have a
+                # unicode object, even on Python 2.x.
+                addr = ipaddress.ip_address(
+                    origin_host
+                    if (
+                        isinstance(origin_host, six.text_type) or
+                        origin_host is None
+                    )
+                    else origin_host.decode("utf8")
+                )
+                network = ipaddress.ip_network(
+                    secure_host
+                    if isinstance(secure_host, six.text_type)
+                    # setting secure_host to proper Union[bytes, str]
+                    # creates problems in other places
+                    else secure_host.decode("utf8")  # type: ignore
+                )
+            except ValueError:
+                # We don't have both a valid address or a valid network, so
+                # we'll check this origin against hostnames.
+                if (origin_host and
+                        origin_host.lower() != secure_host.lower() and
+                        secure_host != "*"):
+                    continue
+            else:
+                # We have a valid address and network, so see if the address
+                # is contained within the network.
+                if addr not in network:
+                    continue
+
+            # Check to see if the port matches.
+            if (origin_port != secure_port and
+                    secure_port != "*" and
+                    secure_port is not None):
+                continue
+
+            # If we've gotten here, then this origin matches the current
+            # secure origin and we should return True
+            return True
+
+        # If we've gotten to this point, then the origin isn't secure and we
+        # will not accept it as a valid location to search. We will however
+        # log a warning that we are ignoring it.
+        logger.warning(
+            "The repository located at %s is not a trusted or secure host and "
+            "is being ignored. If this repository is available via HTTPS we "
+            "recommend you use HTTPS instead, otherwise you may silence "
+            "this warning and allow it anyway with '--trusted-host %s'.",
+            origin_host,
+            origin_host,
+        )
+
+        return False
 
     def request(self, method, url, *args, **kwargs):
         # Allow setting a default timeout on a session
@@ -478,29 +850,30 @@ def get_file_content(url, comes_from=None, session=None):
             "get_file_content() missing 1 required keyword argument: 'session'"
         )
 
-    match = _scheme_re.search(url)
-    if match:
-        scheme = match.group(1).lower()
-        if (scheme == 'file' and comes_from and
-                comes_from.startswith('http')):
+    scheme = _get_url_scheme(url)
+
+    if scheme in ['http', 'https']:
+        # FIXME: catch some errors
+        resp = session.get(url)
+        resp.raise_for_status()
+        return resp.url, resp.text
+
+    elif scheme == 'file':
+        if comes_from and comes_from.startswith('http'):
             raise InstallationError(
                 'Requirements file %s references URL %s, which is local'
                 % (comes_from, url))
-        if scheme == 'file':
-            path = url.split(':', 1)[1]
-            path = path.replace('\\', '/')
-            match = _url_slash_drive_re.match(path)
-            if match:
-                path = match.group(1) + ':' + path.split('|', 1)[1]
-            path = urllib_parse.unquote(path)
-            if path.startswith('/'):
-                path = '/' + path.lstrip('/')
-            url = path
-        else:
-            # FIXME: catch some errors
-            resp = session.get(url)
-            resp.raise_for_status()
-            return resp.url, resp.text
+
+        path = url.split(':', 1)[1]
+        path = path.replace('\\', '/')
+        match = _url_slash_drive_re.match(path)
+        if match:
+            path = match.group(1) + ':' + path.split('|', 1)[1]
+        path = urllib_parse.unquote(path)
+        if path.startswith('/'):
+            path = '/' + path.lstrip('/')
+        url = path
+
     try:
         with open(url, 'rb') as f:
             content = auto_decode(f.read())
@@ -511,16 +884,22 @@ def get_file_content(url, comes_from=None, session=None):
     return url, content
 
 
-_scheme_re = re.compile(r'^(http|https|file):', re.I)
 _url_slash_drive_re = re.compile(r'/*([a-z])\|', re.I)
+
+
+def _get_url_scheme(url):
+    # type: (Union[str, Text]) -> Optional[Text]
+    if ':' not in url:
+        return None
+    return url.split(':', 1)[0].lower()
 
 
 def is_url(name):
     # type: (Union[str, Text]) -> bool
     """Returns true if the name looks like a URL"""
-    if ':' not in name:
+    scheme = _get_url_scheme(name)
+    if scheme is None:
         return False
-    scheme = name.split(':', 1)[0].lower()
     return scheme in ['http', 'https', 'file', 'ftp'] + vcs.all_schemes
 
 
@@ -534,23 +913,20 @@ def url_to_path(url):
 
     _, netloc, path, _, _ = urllib_parse.urlsplit(url)
 
-    # if we have a UNC path, prepend UNC share notation
-    if netloc:
+    if not netloc or netloc == 'localhost':
+        # According to RFC 8089, same as empty authority.
+        netloc = ''
+    elif sys.platform == 'win32':
+        # If we have a UNC path, prepend UNC share notation.
         netloc = '\\\\' + netloc
+    else:
+        raise ValueError(
+            'non-local file URIs are not supported on this platform: %r'
+            % url
+        )
 
     path = urllib_request.url2pathname(netloc + path)
     return path
-
-
-def path_to_url(path):
-    # type: (Union[str, Text]) -> str
-    """
-    Convert a path to a file: URL.  The path will be made absolute and have
-    quoted path parts.
-    """
-    path = os.path.normpath(os.path.abspath(path))
-    url = urllib_parse.urljoin('file:', urllib_request.pathname2url(path))
-    return url
 
 
 def is_archive_file(name):
@@ -563,20 +939,21 @@ def is_archive_file(name):
 
 
 def unpack_vcs_link(link, location):
+    # type: (Link, str) -> None
     vcs_backend = _get_used_vcs_backend(link)
-    vcs_backend.unpack(location)
+    assert vcs_backend is not None
+    vcs_backend.unpack(location, url=hide_url(link.url))
 
 
 def _get_used_vcs_backend(link):
-    for backend in vcs.backends:
-        if link.scheme in backend.schemes:
-            vcs_backend = backend(link.url)
+    # type: (Link) -> Optional[VersionControl]
+    """
+    Return a VersionControl object or None.
+    """
+    for vcs_backend in vcs.backends:
+        if link.scheme in vcs_backend.schemes:
             return vcs_backend
-
-
-def is_vcs_url(link):
-    # type: (Link) -> bool
-    return bool(_get_used_vcs_backend(link))
+    return None
 
 
 def is_file_url(link):
@@ -604,7 +981,7 @@ def _download_url(
     resp,  # type: Response
     link,  # type: Link
     content_file,  # type: IO
-    hashes,  # type: Hashes
+    hashes,  # type: Optional[Hashes]
     progress_bar  # type: str
 ):
     # type: (...) -> None
@@ -774,6 +1151,46 @@ def unpack_http_url(
             os.unlink(from_path)
 
 
+def _copy2_ignoring_special_files(src, dest):
+    # type: (str, str) -> None
+    """Copying special files is not supported, but as a convenience to users
+    we skip errors copying them. This supports tools that may create e.g.
+    socket files in the project source directory.
+    """
+    try:
+        copy2_fixed(src, dest)
+    except shutil.SpecialFileError as e:
+        # SpecialFileError may be raised due to either the source or
+        # destination. If the destination was the cause then we would actually
+        # care, but since the destination directory is deleted prior to
+        # copy we ignore all of them assuming it is caused by the source.
+        logger.warning(
+            "Ignoring special file error '%s' encountered copying %s to %s.",
+            str(e),
+            path_to_display(src),
+            path_to_display(dest),
+        )
+
+
+def _copy_source_tree(source, target):
+    # type: (str, str) -> None
+    def ignore(d, names):
+        # Pulling in those directories can potentially be very slow,
+        # exclude the following directories if they appear in the top
+        # level dir (and only it).
+        # See discussion at https://github.com/pypa/pip/pull/6770
+        return ['.tox', '.nox'] if d == source else []
+
+    kwargs = dict(ignore=ignore, symlinks=True)  # type: CopytreeKwargs
+
+    if not PY2:
+        # Python 2 does not support copy_function, so we only ignore
+        # errors on special file copy in Python 3.
+        kwargs['copy_function'] = _copy2_ignoring_special_files
+
+    shutil.copytree(source, target, **kwargs)
+
+
 def unpack_file_url(
     link,  # type: Link
     location,  # type: str
@@ -787,12 +1204,11 @@ def unpack_file_url(
     of the link file inside download_dir.
     """
     link_path = url_to_path(link.url_without_fragment)
-
     # If it's a url to a local directory
     if is_dir_url(link):
         if os.path.isdir(location):
             rmtree(location)
-        shutil.copytree(link_path, location, symlinks=True)
+        _copy_source_tree(link_path, location)
         if download_dir:
             logger.info('Link is a directory, ignoring download_dir')
         return
@@ -828,42 +1244,6 @@ def unpack_file_url(
         _copy_file(from_path, download_dir, link)
 
 
-def _copy_dist_from_dir(link_path, location):
-    """Copy distribution files in `link_path` to `location`.
-
-    Invoked when user requests to install a local directory. E.g.:
-
-        pip install .
-        pip install ~/dev/git-repos/python-prompt-toolkit
-
-    """
-
-    # Note: This is currently VERY SLOW if you have a lot of data in the
-    # directory, because it copies everything with `shutil.copytree`.
-    # What it should really do is build an sdist and install that.
-    # See https://github.com/pypa/pip/issues/2195
-
-    if os.path.isdir(location):
-        rmtree(location)
-
-    # build an sdist
-    setup_py = 'setup.py'
-    sdist_args = [sys.executable]
-    sdist_args.append('-c')
-    sdist_args.append(SETUPTOOLS_SHIM % setup_py)
-    sdist_args.append('sdist')
-    sdist_args += ['--dist-dir', location]
-    logger.info('Running setup.py sdist for %s', link_path)
-
-    with indent_log():
-        call_subprocess(sdist_args, cwd=link_path, show_stdout=False)
-
-    # unpack sdist into `location`
-    sdist = os.path.join(location, os.listdir(location)[0])
-    logger.info('Unpacking sdist %s into %s', sdist, location)
-    unpack_file(sdist, location, content_type=None, link=None)
-
-
 class PipXmlrpcTransport(xmlrpc_client.Transport):
     """Provide a `xmlrpclib.Transport` implementation via a `PipSession`
     object.
@@ -894,8 +1274,8 @@ class PipXmlrpcTransport(xmlrpc_client.Transport):
 
 
 def unpack_url(
-    link,  # type: Optional[Link]
-    location,  # type: Optional[str]
+    link,  # type: Link
+    location,  # type: str
     download_dir=None,  # type: Optional[str]
     only_download=False,  # type: bool
     session=None,  # type: Optional[PipSession]
@@ -918,7 +1298,7 @@ def unpack_url(
         would ordinarily raise HashUnsupported) are allowed.
     """
     # non-editable vcs urls
-    if is_vcs_url(link):
+    if link.is_vcs:
         unpack_vcs_link(link, location)
 
     # file urls
@@ -942,11 +1322,34 @@ def unpack_url(
         write_delete_marker_file(location)
 
 
+def sanitize_content_filename(filename):
+    # type: (str) -> str
+    """
+    Sanitize the "filename" value from a Content-Disposition header.
+    """
+    return os.path.basename(filename)
+
+
+def parse_content_disposition(content_disposition, default_filename):
+    # type: (str, str) -> str
+    """
+    Parse the "filename" value from a Content-Disposition header, and
+    return the default filename if the result is empty.
+    """
+    _type, params = cgi.parse_header(content_disposition)
+    filename = params.get('filename')
+    if filename:
+        # We need to sanitize the filename to prevent directory traversal
+        # in case the filename contains ".." path parts.
+        filename = sanitize_content_filename(filename)
+    return filename or default_filename
+
+
 def _download_http_url(
     link,  # type: Link
     session,  # type: PipSession
     temp_dir,  # type: str
-    hashes,  # type: Hashes
+    hashes,  # type: Optional[Hashes]
     progress_bar  # type: str
 ):
     # type: (...) -> Tuple[str, str]
@@ -989,11 +1392,8 @@ def _download_http_url(
     # Have a look at the Content-Disposition header for a better guess
     content_disposition = resp.headers.get('content-disposition')
     if content_disposition:
-        type, params = cgi.parse_header(content_disposition)
-        # We use ``or`` here because we don't want to use an "empty" value
-        # from the filename param.
-        filename = params.get('filename') or filename
-    ext = splitext(filename)[1]
+        filename = parse_content_disposition(content_disposition, filename)
+    ext = splitext(filename)[1]  # type: Optional[str]
     if not ext:
         ext = mimetypes.guess_extension(content_type)
         if ext:
@@ -1009,7 +1409,7 @@ def _download_http_url(
 
 
 def _check_download_dir(link, download_dir, hashes):
-    # type: (Link, str, Hashes) -> Optional[str]
+    # type: (Link, str, Optional[Hashes]) -> Optional[str]
     """ Check download_dir for previously downloaded file with correct hash
         If a correct file is found return its path else None
     """

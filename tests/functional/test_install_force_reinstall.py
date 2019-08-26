@@ -26,7 +26,7 @@ def check_force_reinstall(script, specifier, expected):
     assert result2.files_updated, 'force-reinstall failed'
     check_installed_version(script, 'simplewheel', expected)
 
-    result3 = script.pip('uninstall', 'simplewheel', '-y', expect_error=True)
+    result3 = script.pip('uninstall', 'simplewheel', '-y')
     assert_all_changes(result, result3, [script.venv / 'build', 'cache'])
 
 

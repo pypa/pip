@@ -6,14 +6,18 @@ import os
 
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
-from pip._internal.cli.base_command import RequirementCommand
+from pip._internal.cli.req_command import RequirementCommand
 from pip._internal.exceptions import CommandError, PreviousBuildDirError
-from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import RequirementSet
 from pip._internal.req.req_tracker import RequirementTracker
-from pip._internal.resolve import Resolver
 from pip._internal.utils.temp_dir import TempDirectory
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.wheel import WheelBuilder
+
+if MYPY_CHECK_RUNNING:
+    from optparse import Values
+    from typing import Any, List
+
 
 logger = logging.getLogger(__name__)
 
@@ -33,15 +37,12 @@ class WheelCommand(RequirementCommand):
 
     """
 
-    name = 'wheel'
     usage = """
       %prog [options] <requirement specifier> ...
       %prog [options] -r <requirements file> ...
       %prog [options] [-e] <vcs project url> ...
       %prog [options] [-e] <local project path> ...
       %prog [options] <archive url/path> ..."""
-
-    summary = 'Build wheels from your requirements.'
 
     def __init__(self, *args, **kw):
         super(WheelCommand, self).__init__(*args, **kw)
@@ -106,12 +107,8 @@ class WheelCommand(RequirementCommand):
         self.parser.insert_option_group(0, cmd_opts)
 
     def run(self, options, args):
+        # type: (Values, List[Any]) -> None
         cmdoptions.check_install_build_global(options)
-
-        index_urls = [options.index_url] + options.extra_index_urls
-        if options.no_index:
-            logger.debug('Ignoring indexes: %s', ','.join(index_urls))
-            index_urls = []
 
         if options.build_dir:
             options.build_dir = os.path.abspath(options.build_dir)
@@ -134,32 +131,24 @@ class WheelCommand(RequirementCommand):
                 try:
                     self.populate_requirement_set(
                         requirement_set, args, options, finder, session,
-                        self.name, wheel_cache
+                        wheel_cache
                     )
 
-                    preparer = RequirementPreparer(
-                        build_dir=directory.path,
-                        src_dir=options.src_dir,
-                        download_dir=None,
-                        wheel_download_dir=options.wheel_dir,
-                        progress_bar=options.progress_bar,
-                        build_isolation=options.build_isolation,
+                    preparer = self.make_requirement_preparer(
+                        temp_directory=directory,
+                        options=options,
                         req_tracker=req_tracker,
+                        wheel_download_dir=options.wheel_dir,
                     )
 
-                    resolver = Resolver(
+                    resolver = self.make_resolver(
                         preparer=preparer,
                         finder=finder,
                         session=session,
+                        options=options,
                         wheel_cache=wheel_cache,
-                        use_user_site=False,
-                        upgrade_strategy="to-satisfy-only",
-                        force_reinstall=False,
-                        ignore_dependencies=options.ignore_dependencies,
                         ignore_requires_python=options.ignore_requires_python,
-                        ignore_installed=True,
-                        isolated=options.isolated_mode,
-                        use_pep517=options.use_pep517
+                        use_pep517=options.use_pep517,
                     )
                     resolver.resolve(requirement_set)
 
@@ -171,7 +160,7 @@ class WheelCommand(RequirementCommand):
                         no_clean=options.no_clean,
                     )
                     build_failures = wb.build(
-                        requirement_set.requirements.values(), session=session,
+                        requirement_set.requirements.values(),
                     )
                     if len(build_failures) != 0:
                         raise CommandError(

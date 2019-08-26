@@ -29,9 +29,6 @@ jobs:
     vmImage: ${{ parameters.vmImage }}
   strategy:
     matrix:
-      Python34:
-        python.version: '3.4'
-        python.architecture: x64
       Python35:
         python.version: '3.5'
         python.architecture: x64

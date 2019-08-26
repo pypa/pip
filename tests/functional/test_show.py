@@ -25,7 +25,7 @@ def test_show_with_files_not_found(script, data):
     Test for show command with installed files listing enabled and
     installed-files.txt not found.
     """
-    editable = data.packages.join('SetupPyUTF8')
+    editable = data.packages.joinpath('SetupPyUTF8')
     script.pip('install', '-e', editable)
     result = script.pip('show', '-f', 'SetupPyUTF8')
     lines = result.stdout.splitlines()
@@ -42,7 +42,7 @@ def test_show_with_files_from_wheel(script, data):
     """
     Test that a wheel's files can be listed
     """
-    wheel_file = data.packages.join('simple.dist-0.1-py2.py3-none-any.whl')
+    wheel_file = data.packages.joinpath('simple.dist-0.1-py2.py3-none-any.whl')
     script.pip('install', '--no-index', wheel_file)
     result = script.pip('show', '-f', 'simple.dist')
     lines = result.stdout.splitlines()
@@ -79,6 +79,34 @@ def test_find_package_not_found():
     assert len(list(result)) == 0
 
 
+def test_report_single_not_found(script):
+    """
+    Test passing one name and that isn't found.
+    """
+    # We choose a non-canonicalized name to test that the non-canonical
+    # form is logged.
+    # Also, the following should report an error as there are no results
+    # to print. Consequently, there is no need to pass
+    # allow_stderr_warning=True since this is implied by expect_error=True.
+    result = script.pip('show', 'Abcd-3', expect_error=True)
+    assert 'WARNING: Package(s) not found: Abcd-3' in result.stderr
+    assert not result.stdout.splitlines()
+
+
+def test_report_mixed_not_found(script):
+    """
+    Test passing a mixture of found and not-found names.
+    """
+    # We test passing non-canonicalized names.
+    result = script.pip(
+        'show', 'Abcd3', 'A-B-C', 'pip', allow_stderr_warning=True
+    )
+    assert 'WARNING: Package(s) not found: A-B-C, Abcd3' in result.stderr
+    lines = result.stdout.splitlines()
+    assert len(lines) == 10
+    assert 'Name: pip' in lines
+
+
 def test_search_any_case():
     """
     Search for a package in any case.
@@ -86,7 +114,7 @@ def test_search_any_case():
     """
     result = list(search_packages_info(['PIP']))
     assert len(result) == 1
-    assert 'pip' == result[0]['name']
+    assert result[0]['name'] == 'pip'
 
 
 def test_more_than_one_package():
@@ -113,7 +141,7 @@ def test_show_verbose_installer(script, data):
     """
     Test that the installer is shown (this currently needs a wheel install)
     """
-    wheel_file = data.packages.join('simple.dist-0.1-py2.py3-none-any.whl')
+    wheel_file = data.packages.joinpath('simple.dist-0.1-py2.py3-none-any.whl')
     script.pip('install', '--no-index', wheel_file)
     result = script.pip('show', '--verbose', 'simple.dist')
     lines = result.stdout.splitlines()

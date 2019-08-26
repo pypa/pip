@@ -403,10 +403,12 @@ def test_outdated_pre(script, data):
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
 
     # Let's build a fake wheelhouse
-    script.scratch_path.join("wheelhouse").mkdir()
+    script.scratch_path.joinpath("wheelhouse").mkdir()
     wheelhouse_path = script.scratch_path / 'wheelhouse'
-    wheelhouse_path.join('simple-1.1-py2.py3-none-any.whl').write('')
-    wheelhouse_path.join('simple-2.0.dev0-py2.py3-none-any.whl').write('')
+    wheelhouse_path.joinpath('simple-1.1-py2.py3-none-any.whl').write_text('')
+    wheelhouse_path.joinpath(
+        'simple-2.0.dev0-py2.py3-none-any.whl'
+    ).write_text('')
     result = script.pip(
         'list', '--no-index', '--find-links', wheelhouse_path,
         '--format=json',
@@ -432,9 +434,9 @@ def test_outdated_formats(script, data):
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
 
     # Let's build a fake wheelhouse
-    script.scratch_path.join("wheelhouse").mkdir()
+    script.scratch_path.joinpath("wheelhouse").mkdir()
     wheelhouse_path = script.scratch_path / 'wheelhouse'
-    wheelhouse_path.join('simple-1.1-py2.py3-none-any.whl').write('')
+    wheelhouse_path.joinpath('simple-1.1-py2.py3-none-any.whl').write_text('')
     result = script.pip(
         'list', '--no-index', '--find-links', wheelhouse_path,
         '--format=freeze',
@@ -504,3 +506,57 @@ def test_list_json(script, data):
     data = json.loads(result.stdout)
     assert {'name': 'simple', 'version': '1.0'} in data
     assert {'name': 'simple2', 'version': '3.0'} in data
+
+
+def test_list_path(tmpdir, script, data):
+    """
+    Test list with --path.
+    """
+    result = script.pip('list', '--path', tmpdir, '--format=json')
+    json_result = json.loads(result.stdout)
+    assert {'name': 'simple', 'version': '2.0'} not in json_result
+
+    script.pip_install_local('--target', tmpdir, 'simple==2.0')
+    result = script.pip('list', '--path', tmpdir, '--format=json')
+    json_result = json.loads(result.stdout)
+    assert {'name': 'simple', 'version': '2.0'} in json_result
+
+
+def test_list_path_exclude_user(tmpdir, script, data):
+    """
+    Test list with --path and make sure packages from --user are not picked
+    up.
+    """
+    script.pip_install_local('--user', 'simple2')
+    script.pip_install_local('--target', tmpdir, 'simple==1.0')
+
+    result = script.pip('list', '--user', '--format=json')
+    json_result = json.loads(result.stdout)
+    assert {'name': 'simple2', 'version': '3.0'} in json_result
+
+    result = script.pip('list', '--path', tmpdir, '--format=json')
+    json_result = json.loads(result.stdout)
+    assert {'name': 'simple', 'version': '1.0'} in json_result
+
+
+def test_list_path_multiple(tmpdir, script, data):
+    """
+    Test list with multiple --path arguments.
+    """
+    path1 = tmpdir / "path1"
+    os.mkdir(path1)
+    path2 = tmpdir / "path2"
+    os.mkdir(path2)
+
+    script.pip_install_local('--target', path1, 'simple==2.0')
+    script.pip_install_local('--target', path2, 'simple2==3.0')
+
+    result = script.pip('list', '--path', path1, '--format=json')
+    json_result = json.loads(result.stdout)
+    assert {'name': 'simple', 'version': '2.0'} in json_result
+
+    result = script.pip('list', '--path', path1, '--path', path2,
+                        '--format=json')
+    json_result = json.loads(result.stdout)
+    assert {'name': 'simple', 'version': '2.0'} in json_result
+    assert {'name': 'simple2', 'version': '3.0'} in json_result

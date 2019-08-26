@@ -49,7 +49,7 @@ class TestInstallationCandidate(object):
         )
         assert obj.project == "A"
         assert obj.version == parse_version("1.0.0")
-        assert obj.location == "https://somewhere.com/path/A-1.0.0.tar.gz"
+        assert obj.link == "https://somewhere.com/path/A-1.0.0.tar.gz"
 
     # NOTE: This isn't checking the ordering logic; only the data provided to
     #       it is correct.
@@ -57,4 +57,4 @@ class TestInstallationCandidate(object):
         obj = candidate.InstallationCandidate(
             "A", "1.0.0", "https://somewhere.com/path/A-1.0.0.tar.gz"
         )
-        assert obj._compare_key == (obj.project, obj.version, obj.location)
+        assert obj._compare_key == (obj.project, obj.version, obj.link)

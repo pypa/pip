@@ -3,9 +3,7 @@ from textwrap import dedent
 import pytest
 
 from pip._internal.build_env import BuildEnvironment
-from pip._internal.download import PipSession
-from pip._internal.index import PackageFinder
-from tests.lib import create_basic_wheel_for_package
+from tests.lib import create_basic_wheel_for_package, make_test_finder
 
 
 def indent(text, prefix):
@@ -16,7 +14,7 @@ def indent(text, prefix):
 def run_with_build_env(script, setup_script_contents,
                        test_script_contents=None):
     build_env_script = script.scratch_path / 'build_env.py'
-    build_env_script.write(
+    build_env_script.write_text(
         dedent(
             '''
             from __future__ import print_function
@@ -26,8 +24,20 @@ def run_with_build_env(script, setup_script_contents,
             from pip._internal.build_env import BuildEnvironment
             from pip._internal.download import PipSession
             from pip._internal.index import PackageFinder
+            from pip._internal.models.search_scope import SearchScope
+            from pip._internal.models.selection_prefs import (
+                SelectionPreferences
+            )
 
-            finder = PackageFinder([%r], [], session=PipSession())
+            search_scope = SearchScope.create([%r], [])
+            selection_prefs = SelectionPreferences(
+                allow_yanked=True,
+            )
+            finder = PackageFinder.create(
+                search_scope,
+                selection_prefs=selection_prefs,
+                session=PipSession(),
+            )
             build_env = BuildEnvironment()
 
             try:
@@ -45,7 +55,7 @@ def run_with_build_env(script, setup_script_contents,
     args = ['python', build_env_script]
     if test_script_contents is not None:
         test_script = script.scratch_path / 'test.py'
-        test_script.write(dedent(test_script_contents))
+        test_script.write_text(dedent(test_script_contents))
         args.append(test_script)
     return script.run(*args)
 
@@ -59,7 +69,7 @@ def test_build_env_allow_empty_requirements_install():
 def test_build_env_allow_only_one_install(script):
     create_basic_wheel_for_package(script, 'foo', '1.0')
     create_basic_wheel_for_package(script, 'bar', '1.0')
-    finder = PackageFinder([script.scratch_path], [], session=PipSession())
+    finder = make_test_finder(find_links=[script.scratch_path])
     build_env = BuildEnvironment()
     for prefix in ('normal', 'overlay'):
         build_env.install_requirements(finder, ['foo'], prefix,
@@ -163,7 +173,7 @@ def test_build_env_isolation(script):
     # And to another directory available through a .pth file.
     target = script.scratch_path / 'pth_install'
     script.pip_install_local('-t', target, pkg_whl)
-    (script.site_packages_path / 'build_requires.pth').write(
+    (script.site_packages_path / 'build_requires.pth').write_text(
         str(target) + '\n'
     )
 
