@@ -365,11 +365,11 @@ class InstallCommand(RequirementCommand):
                     try:
                         pip_req = requirement_set.get_requirement("pip")
                     except KeyError:
-                        pip_req = None
-                    modifying_pip = (
-                        pip_req is not None and
-                        pip_req.satisfied_by is None
-                    )
+                        modifying_pip = None
+                    else:
+                        # If we're not replacing an already installed pip,
+                        # we're not modifying it.
+                        modifying_pip = pip_req.satisfied_by is None
                     protect_pip_from_modification_on_windows(
                         modifying_pip=modifying_pip
                     )
