@@ -27,7 +27,7 @@ steps:
       $env:TEMP = "T:\"
       $env:TMP = "T:\"
 
-      tox -e py -- -m integration -n 3 --duration=5 --junit-xml=junit/integration-test.xml
+      tox -e py -- -m integration -n 3 --durations=5 --junit-xml=junit/integration-test.xml
     displayName: Tox run integration tests
 
 - task: PublishTestResults@2

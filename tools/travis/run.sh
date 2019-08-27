@@ -43,10 +43,10 @@ if [[ "$GROUP" == "1" ]]; then
     # Unit tests
     tox -- --use-venv -m unit
     # Integration tests (not the ones for 'pip install')
-    tox -- --use-venv -m integration -n 4 --duration=5 -k "not test_install"
+    tox -- --use-venv -m integration -n 4 --durations=5 -k "not test_install"
 elif [[ "$GROUP" == "2" ]]; then
     # Separate Job for running integration tests for 'pip install'
-    tox -- --use-venv -m integration -n 4 --duration=5 -k "test_install"
+    tox -- --use-venv -m integration -n 4 --durations=5 -k "test_install"
 else
     # Non-Testing Jobs should run once
     tox
