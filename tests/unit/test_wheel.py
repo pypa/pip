@@ -135,28 +135,28 @@ def test_should_build(req, need_wheel, disallow_binaries, expected):
 @pytest.mark.parametrize(
     "req, disallow_binaries, cache_available, expected",
     [
-        (ReqMock(editable=True), False, True, True),
-        (ReqMock(editable=True), False, False, True),
-        (ReqMock(source_dir=None), False, True, True),
-        (ReqMock(source_dir=None), False, False, True),
-        (ReqMock(link=Link("git+https://g.c/org/repo")), False, True, True),
-        (ReqMock(link=Link("git+https://g.c/org/repo")), False, False, True),
-        (ReqMock(link=Link("https://g.c/dist.tgz")), False, True, True),
-        (ReqMock(link=Link("https://g.c/dist.tgz")), False, False, True),
-        (ReqMock(link=Link("https://g.c/dist-2.0.4.tgz")), False, True, False),
-        (ReqMock(link=Link("https://g.c/dist-2.0.4.tgz")), False, False, True),
+        (ReqMock(editable=True), False, True, False),
+        (ReqMock(editable=True), False, False, False),
+        (ReqMock(source_dir=None), False, True, False),
+        (ReqMock(source_dir=None), False, False, False),
+        (ReqMock(link=Link("git+https://g.c/org/repo")), False, True, False),
+        (ReqMock(link=Link("git+https://g.c/org/repo")), False, False, False),
+        (ReqMock(link=Link("https://g.c/dist.tgz")), False, True, False),
+        (ReqMock(link=Link("https://g.c/dist.tgz")), False, False, False),
+        (ReqMock(link=Link("https://g.c/dist-2.0.4.tgz")), False, True, True),
+        (ReqMock(link=Link("https://g.c/dist-2.0.4.tgz")), False, False, False),
     ],
 )
-def test_should_use_ephemeral_cache(
+def test_should_cache(
     req, disallow_binaries, cache_available, expected
 ):
     format_control = FormatControl()
     if disallow_binaries:
         format_control.disallow_binaries()
-    should_use_ephemeral_cache = not wheel.should_cache(
+    should_cache = wheel.should_cache(
         req, format_control=format_control, cache_available=cache_available
     )
-    assert should_use_ephemeral_cache is expected
+    assert should_cache is expected
 
 
 def test_format_command_result__INFO(caplog):
