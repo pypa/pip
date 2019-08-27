@@ -816,7 +816,7 @@ def should_build(
     return True
 
 
-def should_use_ephemeral_cache(
+def should_cache(
     req,  # type: InstallRequirement
     format_control,  # type: FormatControl
     cache_available,  # type: bool
@@ -824,44 +824,44 @@ def should_use_ephemeral_cache(
     # type: (...) -> Optional[bool]
     """
     Return whether to build an InstallRequirement object using the
-    ephemeral cache.
+    wheel cache.
 
     :param cache_available: whether a cache directory is available for the
         should_unpack=True case.
 
-    :return: True or False to build the requirement with ephem_cache=True
-        or False, respectively; or None not to build the requirement.
+    :return: True to use the persistent cache,
+        False to use the ephemeral cache.
     """
     if req.editable:
         # don't cache editable requirements because they can
         # be locally modified
-        return True
+        return False
 
     if not req.source_dir:
         # TODO explain what no source_dir means
-        return True
+        return False
 
     if "binary" not in format_control.get_allowed_formats(
             canonicalize_name(req.name)):
         # TODO explain this
-        return True
+        return False
 
     if req.link and req.link.is_vcs:
         # VCS checkout. Build wheel just for this run
         # unless it points to an immutable commit hash in which
         # case it can be cached.
-        # TODO if req.link.is_vcs_immutable: return False
-        return True
+        # TODO cache against the commit hash if we can.
+        return False
 
     link = req.link
     base, ext = link.splitext()
     if cache_available and _contains_egg_info(base):
-        return False
+        return True
 
     # Otherwise, build the wheel just for this run using the ephemeral
     # cache since we are either in the case of e.g. a local directory, or
     # no cache directory is available to use.
-    return True
+    return False
 
 
 def format_command_result(
@@ -1100,7 +1100,7 @@ class WheelBuilder(object):
                 format_control=format_control,
             ):
                 continue
-            use_ephemeral_cache = should_use_ephemeral_cache(
+            use_ephemeral_cache = not should_cache(
                 req,
                 format_control=format_control,
                 cache_available=cache_available,
@@ -1111,7 +1111,7 @@ class WheelBuilder(object):
             return []
 
         # Is any wheel build not using the ephemeral cache?
-        if any(not ephem_cache for _, ephem_cache in buildset):
+        if any(not use_ephemeral_cache for _, use_ephemeral_cache in buildset):
             have_directory_for_build = self._wheel_dir or (
                 should_unpack and self.wheel_cache.cache_dir
             )

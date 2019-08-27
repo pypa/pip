@@ -153,7 +153,7 @@ def test_should_use_ephemeral_cache(
     format_control = FormatControl()
     if disallow_binaries:
         format_control.disallow_binaries()
-    should_use_ephemeral_cache = wheel.should_use_ephemeral_cache(
+    should_use_ephemeral_cache = not wheel.should_cache(
         req, format_control=format_control, cache_available=cache_available
     )
     assert should_use_ephemeral_cache is expected
