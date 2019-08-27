@@ -75,10 +75,10 @@ To use linters locally, run:
 
 .. code-block:: console
 
+    $ tox -e lint
     $ tox -e lint-py2
-    $ tox -e lint-py3
 
-The above commands run the linters on Python 2 followed by Python 3.
+The above commands run the linters on Python 3 followed by Python 2.
 
 .. note::
 
