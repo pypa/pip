@@ -819,18 +819,11 @@ def should_build(
 def should_cache(
     req,  # type: InstallRequirement
     format_control,  # type: FormatControl
-    cache_available,  # type: bool
 ):
     # type: (...) -> Optional[bool]
     """
     Return whether to build an InstallRequirement object using the
-    wheel cache.
-
-    :param cache_available: whether a cache directory is available for the
-        should_unpack=True case.
-
-    :return: True to use the persistent cache,
-        False to use the ephemeral cache.
+    wheel cache, assuming the wheel cache is available.
     """
     if req.editable:
         # don't cache editable requirements because they can
@@ -855,12 +848,11 @@ def should_cache(
 
     link = req.link
     base, ext = link.splitext()
-    if cache_available and _contains_egg_info(base):
+    if _contains_egg_info(base):
         return True
 
     # Otherwise, build the wheel just for this run using the ephemeral
-    # cache since we are either in the case of e.g. a local directory, or
-    # no cache directory is available to use.
+    # cache since we are either in the case of e.g. a local directory.
     return False
 
 
@@ -1100,10 +1092,9 @@ class WheelBuilder(object):
                 format_control=format_control,
             ):
                 continue
-            use_ephemeral_cache = not should_cache(
-                req,
-                format_control=format_control,
-                cache_available=cache_available,
+            use_ephemeral_cache = (
+                not cache_available or
+                not should_cache(req, format_control=format_control)
             )
             buildset.append((req, use_ephemeral_cache))
 

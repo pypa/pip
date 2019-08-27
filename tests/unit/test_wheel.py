@@ -133,28 +133,23 @@ def test_should_build(req, need_wheel, disallow_binaries, expected):
 
 
 @pytest.mark.parametrize(
-    "req, disallow_binaries, cache_available, expected",
+    "req, disallow_binaries, expected",
     [
-        (ReqMock(editable=True), False, True, False),
-        (ReqMock(editable=True), False, False, False),
-        (ReqMock(source_dir=None), False, True, False),
-        (ReqMock(source_dir=None), False, False, False),
-        (ReqMock(link=Link("git+https://g.c/org/repo")), False, True, False),
-        (ReqMock(link=Link("git+https://g.c/org/repo")), False, False, False),
-        (ReqMock(link=Link("https://g.c/dist.tgz")), False, True, False),
-        (ReqMock(link=Link("https://g.c/dist.tgz")), False, False, False),
-        (ReqMock(link=Link("https://g.c/dist-2.0.4.tgz")), False, True, True),
-        (ReqMock(link=Link("https://g.c/dist-2.0.4.tgz")), False, False, False),
+        (ReqMock(editable=True), False, False),
+        (ReqMock(source_dir=None), False, False),
+        (ReqMock(link=Link("git+https://g.c/org/repo")), False, False),
+        (ReqMock(link=Link("https://g.c/dist.tgz")), False, False),
+        (ReqMock(link=Link("https://g.c/dist-2.0.4.tgz")), False, True),
     ],
 )
 def test_should_cache(
-    req, disallow_binaries, cache_available, expected
+    req, disallow_binaries, expected
 ):
     format_control = FormatControl()
     if disallow_binaries:
         format_control.disallow_binaries()
     should_cache = wheel.should_cache(
-        req, format_control=format_control, cache_available=cache_available
+        req, format_control=format_control,
     )
     assert should_cache is expected
 
