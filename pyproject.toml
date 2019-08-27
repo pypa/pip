@@ -9,38 +9,12 @@ directory = "news/"
 title_format = "{version} ({project_date})"
 issue_format = "`#{issue} <https://github.com/pypa/pip/issues/{issue}>`_"
 template = "news/_template.rst"
-
-  [[tool.towncrier.type]]
-  directory = "process"
-  name = "Process"
-  showcontent = true
-
-  [[tool.towncrier.type]]
-  directory = "removal"
-  name = "Deprecations and Removals"
-  showcontent = true
-
-  [[tool.towncrier.type]]
-  directory = "feature"
-  name = "Features"
-  showcontent = true
-
-  [[tool.towncrier.type]]
-  directory = "bugfix"
-  name = "Bug Fixes"
-  showcontent = true
-
-  [[tool.towncrier.type]]
-  directory = "vendor"
-  name = "Vendored Libraries"
-  showcontent = true
-
-  [[tool.towncrier.type]]
-  directory = "doc"
-  name = "Improved Documentation"
-  showcontent = true
-
-  [[tool.towncrier.type]]
-  directory = "trivial"
-  name = "Trivial Changes"
-  showcontent = false
+type = [
+  { name = "Process",                   directory = "process", showcontent = true },
+  { name = "Deprecations and Removals", directory = "removal", showcontent = true },
+  { name = "Features",                  directory = "feature", showcontent = true },
+  { name = "Bug Fixes",                 directory = "bugfix",  showcontent = true },
+  { name = "Vendored Libraries",        directory = "vendor",  showcontent = true },
+  { name = "Improved Documentation",    directory = "doc",     showcontent = true },
+  { name = "Trivial Changes",           directory = "trivial", showcontent = false },
+]
