@@ -64,10 +64,11 @@ can_not_depend_on_purelib = (
     sys.version_info[:2] == (2, 7) or
     platform.python_implementation().lower() == "pypy"
 )
+site_packages = None  # type: Optional[str]
 if can_not_depend_on_purelib:
-    site_packages = distutils_sysconfig.get_python_lib()  # type: Optional[str]
+    site_packages = distutils_sysconfig.get_python_lib()
 else:
-    site_packages = sysconfig.get_path("purelib")  # type: Optional[str]
+    site_packages = sysconfig.get_path("purelib")
 
 try:
     # Use getusersitepackages if this is present, as it ensures that the
