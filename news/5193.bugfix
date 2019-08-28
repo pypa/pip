@@ -1,0 +1,3 @@
+Allow uninstalling editable installs on python 2.7 under debian.
+Workaround for how sysconfig reports "purelib" path in a virtualenv
+under debian.

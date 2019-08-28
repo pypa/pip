@@ -56,13 +56,19 @@ def get_src_prefix():
 
 # FIXME doesn't account for venv linked to global site-packages
 
-site_packages = sysconfig.get_path("purelib")  # type: Optional[str]
-
-# This is because of a bug in PyPy's sysconfig module, see
+# This is needed as Debian-patched virtualenv and PyPy
+# have a bug in sysconfig module.
+# https://github.com/pypa/pip/issues/5193
 # https://bitbucket.org/pypy/pypy/issues/2506/sysconfig-returns-incorrect-paths
-# for more information.
-if platform.python_implementation().lower() == "pypy":
-    site_packages = distutils_sysconfig.get_python_lib()
+can_not_depend_on_purelib = (
+    sys.version_info[:2] == (2, 7) or
+    platform.python_implementation().lower() == "pypy"
+)
+if can_not_depend_on_purelib:
+    site_packages = distutils_sysconfig.get_python_lib()  # type: Optional[str]
+else:
+    site_packages = sysconfig.get_path("purelib")  # type: Optional[str]
+
 try:
     # Use getusersitepackages if this is present, as it ensures that the
     # value is initialised properly.
