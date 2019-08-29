@@ -143,7 +143,7 @@ def _is_running_32bit():
 
 
 def _get_aix_pep425():
-    '''
+    """
     AIX filesets are identified by four decimal values aka VRMF.
     V (version) is the value returned by "uname -v"
     R (release) is the value returned by "uname -r"
@@ -157,7 +157,7 @@ def _get_aix_pep425():
     The program lslpp is used to gather these values.
     The pep425 platform tag for AIX becomes:
     AIX_V_R_M_YYWW_bitness
-    '''
+    """
 
     from subprocess import Popen, PIPE, DEVNULL
     p = Popen(["/usr/bin/lslpp", "-Lqc", "bos.mp64"],
@@ -167,7 +167,8 @@ def _get_aix_pep425():
     p.wait()
     (lpp, vrmf, bd) = list(_lslppLqc[index] for index in [0, 2, -1])
     assert lpp == "bos.mp64", "%s != %s" % (lpp, "bos.mp64")
-    tag = "AIX.%s.%s" % (".".join(vrmf.split(".")[:3]), bd)
+    # format string using '_', rather than '.' to stop need for str.replace()
+    tag = "AIX_%s_%s" % (".".join(vrmf.split(".")[:3]), bd)
     if _is_running_32bit:
         return("%s_b%s" % (tag, 32))
     else:
@@ -193,7 +194,7 @@ def get_platform():
 
     # XXX remove distutils dependency
     elif sys.platform[:3] == 'aix':
-        result = _get_aix_pep425().replace('.', '_').replace('-', '_')
+        result = _get_aix_pep425()
     else:
         result = distutils.util.get_platform().replace('.', '_').replace('-', '_')
         if result == "linux_x86_64" and _is_running_32bit():
