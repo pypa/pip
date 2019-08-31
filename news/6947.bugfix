@@ -1,0 +1,1 @@
+Fix not displaying all dependent packages under "Required-by:" in pip show.
