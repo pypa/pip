@@ -233,7 +233,6 @@ def test_show_required_by_packages_capitalized(script, data):
 
     result = script.pip('show', 'simple')
     lines = result.stdout.splitlines()
-    print(lines)
 
     assert 'Name: simple' in lines
     assert 'Required-by: Requires-Capitalized' in lines
