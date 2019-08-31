@@ -949,39 +949,25 @@ def test_request_retries(caplog):
          "https://localhost.localdomain/T%3A/path/"),
         # VCS URL containing revision string.
         ("git+ssh://example.com/path to/repo.git@1.0#egg=my-package-1.0",
-         "git+ssh://example.com/path%20to/repo.git@1.0#egg=my-package-1.0")
-    ]
-)
-def test_clean_link(url, clean_url):
-    assert(_clean_link(url) == clean_url)
-
-
-@pytest.mark.parametrize(
-    ("url", "clean_url"),
-    [
+         "git+ssh://example.com/path%20to/repo.git@1.0#egg=my-package-1.0"),
         # URL with Windows drive letter. The `:` after the drive
         # letter should not be quoted. The trailing `/` should be
         # removed.
-        ("file:///T:/path/with spaces/",
-         "file:///T:/path/with%20spaces")
-    ]
-)
-@pytest.mark.skipif("sys.platform != 'win32'")
-def test_clean_link_windows(url, clean_url):
-    assert(_clean_link(url) == clean_url)
-
-
-@pytest.mark.parametrize(
-    ("url", "clean_url"),
-    [
+        pytest.param(
+            "file:///T:/path/with spaces/",
+            "file:///T:/path/with%20spaces",
+            marks=pytest.mark.skipif("sys.platform != 'win32'"),
+        ),
         # URL with Windows drive letter, running on non-windows
         # platform. The `:` after the drive should be quoted.
-        ("file:///T:/path/with spaces/",
-         "file:///T%3A/path/with%20spaces/")
+        pytest.param(
+            "file:///T:/path/with spaces/",
+            "file:///T%3A/path/with%20spaces/",
+            marks=pytest.mark.skipif("sys.platform == 'win32'"),
+        ),
     ]
 )
-@pytest.mark.skipif("sys.platform == 'win32'")
-def test_clean_link_non_windows(url, clean_url):
+def test_clean_link(url, clean_url):
     assert(_clean_link(url) == clean_url)
 
 
