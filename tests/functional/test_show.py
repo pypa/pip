@@ -223,7 +223,8 @@ def test_show_required_by_packages_simple(script, data):
 
 def test_show_required_by_packages_capitalized(script, data):
     """
-    Test that installed packages that depend on this package are shown where the package has a capital letter
+    Test that installed packages that depend on this package are shown
+    where the package has a capital letter
     """
     editable_path = os.path.join(data.src, 'requires_capitalized')
     script.pip(
