@@ -205,7 +205,7 @@ def test_package_name_is_canonicalized(script, data):
     assert underscore_upper_show_result.stdout == dash_show_result.stdout
 
 
-def test_show_required_by_packages(script, data):
+def test_show_required_by_packages_simple(script, data):
     """
     Test that installed packages that depend on this package are shown
     """
@@ -219,3 +219,20 @@ def test_show_required_by_packages(script, data):
 
     assert 'Name: simple' in lines
     assert 'Required-by: requires-simple' in lines
+
+
+def test_show_required_by_packages_capitalized(script, data):
+    """
+    Test that installed packages that depend on this package are shown where the package has a capital letter
+    """
+    editable_path = os.path.join(data.src, 'requires_capitalized')
+    script.pip(
+        'install', '--no-index', '-f', data.find_links, editable_path
+    )
+
+    result = script.pip('show', 'simple')
+    lines = result.stdout.splitlines()
+    print(lines)
+
+    assert 'Name: simple' in lines
+    assert 'Required-by: Requires-Capitalized' in lines
