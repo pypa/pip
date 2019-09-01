@@ -522,11 +522,11 @@ class InstallRequirement(object):
             str(self)
         )
 
-        self.use_pep517 = (pyproject_toml_data is not None)
-
-        if not self.use_pep517:
+        if pyproject_toml_data is None:
+            self.use_pep517 = False
             return
 
+        self.use_pep517 = True
         requires, backend, check = pyproject_toml_data
         self.requirements_to_check = check
         self.pyproject_requires = requires
