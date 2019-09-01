@@ -236,3 +236,21 @@ def test_show_required_by_packages_capitalized(script, data):
 
     assert 'Name: simple' in lines
     assert 'Required-by: Requires-Capitalized' in lines
+
+
+def test_show_required_by_with_mixed_capitalization(script, data):
+    """
+    Test that installed packages that depend on this package are shown
+    where the package requires a name with a mix of
+    lower and upper case letters
+    """
+    editable_path = os.path.join(data.src, 'required_by_mixed_capitalization')
+    script.pip(
+        'install', '--no-index', '-f', data.find_links, editable_path
+    )
+
+    result = script.pip('show', 'Requires_CapitalizeD')
+    lines = result.stdout.splitlines()
+
+    assert 'Name: Requires-Capitalized' in lines
+    assert 'Required-by: simple' in lines
