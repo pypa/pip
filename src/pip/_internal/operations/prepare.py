@@ -76,6 +76,8 @@ class RequirementPreparer(object):
 
         # Where still packed archives should be written to. If None, they are
         # not saved, and are deleted immediately after unpacking.
+        if download_dir:
+            download_dir = expanduser(download_dir)
         self.download_dir = download_dir
 
         # Where still-packed .whl files should be written to. If None, they are
@@ -100,7 +102,6 @@ class RequirementPreparer(object):
         # type: () -> bool
         # TODO: Modify to reduce indentation needed
         if self.download_dir:
-            self.download_dir = expanduser(self.download_dir)
             if os.path.exists(self.download_dir):
                 return True
             else:
