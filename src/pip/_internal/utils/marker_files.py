@@ -10,6 +10,10 @@ deleted (unless you remove this file).
 PIP_DELETE_MARKER_FILENAME = 'pip-delete-this-directory.txt'
 
 
+def has_delete_marker_file(directory):
+    return os.path.exists(os.path.join(directory, PIP_DELETE_MARKER_FILENAME))
+
+
 def write_delete_marker_file(directory):
     # type: (str) -> None
     """

@@ -27,7 +27,10 @@ from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.compat import native_str
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.marker_files import PIP_DELETE_MARKER_FILENAME
+from pip._internal.utils.marker_files import (
+    PIP_DELETE_MARKER_FILENAME,
+    has_delete_marker_file,
+)
 from pip._internal.utils.misc import (
     _make_build_dir,
     ask_path_exists,
@@ -398,8 +401,7 @@ class InstallRequirement(object):
         # type: () -> None
         """Remove the source files from this requirement, if they are marked
         for deletion"""
-        if self.source_dir and os.path.exists(
-                os.path.join(self.source_dir, PIP_DELETE_MARKER_FILENAME)):
+        if self.source_dir and has_delete_marker_file(self.source_dir):
             logger.debug('Removing source in %s', self.source_dir)
             rmtree(self.source_dir)
         self.source_dir = None

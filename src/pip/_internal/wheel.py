@@ -36,7 +36,7 @@ from pip._internal.exceptions import (
 from pip._internal.locations import distutils_scheme, get_major_minor_version
 from pip._internal.models.link import Link
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.marker_files import PIP_DELETE_MARKER_FILENAME
+from pip._internal.utils.marker_files import has_delete_marker_file
 from pip._internal.utils.misc import (
     LOG_DIVIDER,
     call_subprocess,
@@ -1123,8 +1123,10 @@ class WheelBuilder(object):
                         # method.
                         # The code below assumes temporary source dirs -
                         # prevent it doing bad things.
-                        if req.source_dir and not os.path.exists(os.path.join(
-                                req.source_dir, PIP_DELETE_MARKER_FILENAME)):
+                        if (
+                            req.source_dir and
+                            not has_delete_marker_file(req.source_dir)
+                        ):
                             raise AssertionError(
                                 "bad source dir - missing marker")
                         # Delete the source we built the wheel from
