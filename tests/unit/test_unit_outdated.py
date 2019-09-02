@@ -10,7 +10,7 @@ from pip._vendor import lockfile, pkg_resources
 
 from pip._internal.index import InstallationCandidate
 from pip._internal.utils import outdated
-from outdated import pip_version_check, SelfCheckState, logger
+from pip._internal.utils.outdated import pip_version_check, SelfCheckState, logger
 
 
 class MockBestCandidateResult(object):
