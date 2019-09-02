@@ -1,6 +1,7 @@
 appdirs==1.4.3
 CacheControl==0.12.5
 colorama==0.4.1
+contextlib2==0.5.5
 distlib==0.2.9.post0
 distro==1.4.0
 html5lib==1.0.1
