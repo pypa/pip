@@ -321,179 +321,180 @@ class InstallCommand(RequirementCommand):
 
         global_options = options.global_options or []
 
-        with self._build_session(options) as session:
-            target_python = make_target_python(options)
-            finder = self._build_package_finder(
-                options=options,
-                session=session,
-                target_python=target_python,
-                ignore_requires_python=options.ignore_requires_python,
+        session = self.get_default_session(options)
+
+        target_python = make_target_python(options)
+        finder = self._build_package_finder(
+            options=options,
+            session=session,
+            target_python=target_python,
+            ignore_requires_python=options.ignore_requires_python,
+        )
+        build_delete = (not (options.no_clean or options.build_dir))
+        wheel_cache = WheelCache(options.cache_dir, options.format_control)
+
+        if options.cache_dir and not check_path_owner(options.cache_dir):
+            logger.warning(
+                "The directory '%s' or its parent directory is not owned "
+                "by the current user and caching wheels has been "
+                "disabled. check the permissions and owner of that "
+                "directory. If executing pip with sudo, you may want "
+                "sudo's -H flag.",
+                options.cache_dir,
             )
-            build_delete = (not (options.no_clean or options.build_dir))
-            wheel_cache = WheelCache(options.cache_dir, options.format_control)
+            options.cache_dir = None
 
-            if options.cache_dir and not check_path_owner(options.cache_dir):
-                logger.warning(
-                    "The directory '%s' or its parent directory is not owned "
-                    "by the current user and caching wheels has been "
-                    "disabled. check the permissions and owner of that "
-                    "directory. If executing pip with sudo, you may want "
-                    "sudo's -H flag.",
-                    options.cache_dir,
-                )
-                options.cache_dir = None
+        with RequirementTracker() as req_tracker, TempDirectory(
+            options.build_dir, delete=build_delete, kind="install"
+        ) as directory:
+            requirement_set = RequirementSet(
+                require_hashes=options.require_hashes,
+                check_supported_wheels=not options.target_dir,
+            )
 
-            with RequirementTracker() as req_tracker, TempDirectory(
-                options.build_dir, delete=build_delete, kind="install"
-            ) as directory:
-                requirement_set = RequirementSet(
-                    require_hashes=options.require_hashes,
-                    check_supported_wheels=not options.target_dir,
+            try:
+                self.populate_requirement_set(
+                    requirement_set, args, options, finder, session,
+                    wheel_cache
                 )
+                preparer = self.make_requirement_preparer(
+                    temp_directory=directory,
+                    options=options,
+                    req_tracker=req_tracker,
+                )
+                resolver = self.make_resolver(
+                    preparer=preparer,
+                    finder=finder,
+                    session=session,
+                    options=options,
+                    wheel_cache=wheel_cache,
+                    use_user_site=options.use_user_site,
+                    ignore_installed=options.ignore_installed,
+                    ignore_requires_python=options.ignore_requires_python,
+                    force_reinstall=options.force_reinstall,
+                    upgrade_strategy=upgrade_strategy,
+                    use_pep517=options.use_pep517,
+                )
+                resolver.resolve(requirement_set)
 
                 try:
-                    self.populate_requirement_set(
-                        requirement_set, args, options, finder, session,
-                        wheel_cache
-                    )
-                    preparer = self.make_requirement_preparer(
-                        temp_directory=directory,
-                        options=options,
-                        req_tracker=req_tracker,
-                    )
-                    resolver = self.make_resolver(
-                        preparer=preparer,
-                        finder=finder,
-                        session=session,
-                        options=options,
-                        wheel_cache=wheel_cache,
-                        use_user_site=options.use_user_site,
-                        ignore_installed=options.ignore_installed,
-                        ignore_requires_python=options.ignore_requires_python,
-                        force_reinstall=options.force_reinstall,
-                        upgrade_strategy=upgrade_strategy,
-                        use_pep517=options.use_pep517,
-                    )
-                    resolver.resolve(requirement_set)
+                    pip_req = requirement_set.get_requirement("pip")
+                except KeyError:
+                    modifying_pip = None
+                else:
+                    # If we're not replacing an already installed pip,
+                    # we're not modifying it.
+                    modifying_pip = pip_req.satisfied_by is None
+                protect_pip_from_modification_on_windows(
+                    modifying_pip=modifying_pip
+                )
 
-                    try:
-                        pip_req = requirement_set.get_requirement("pip")
-                    except KeyError:
-                        modifying_pip = None
+                check_binary_allowed = get_check_binary_allowed(
+                    finder.format_control
+                )
+                # Consider legacy and PEP517-using requirements separately
+                legacy_requirements = []
+                pep517_requirements = []
+                for req in requirement_set.requirements.values():
+                    if req.use_pep517:
+                        pep517_requirements.append(req)
                     else:
-                        # If we're not replacing an already installed pip,
-                        # we're not modifying it.
-                        modifying_pip = pip_req.satisfied_by is None
-                    protect_pip_from_modification_on_windows(
-                        modifying_pip=modifying_pip
-                    )
+                        legacy_requirements.append(req)
 
-                    check_binary_allowed = get_check_binary_allowed(
-                        finder.format_control
-                    )
-                    # Consider legacy and PEP517-using requirements separately
-                    legacy_requirements = []
-                    pep517_requirements = []
-                    for req in requirement_set.requirements.values():
-                        if req.use_pep517:
-                            pep517_requirements.append(req)
-                        else:
-                            legacy_requirements.append(req)
+                wheel_builder = WheelBuilder(
+                    preparer, wheel_cache,
+                    build_options=[], global_options=[],
+                    check_binary_allowed=check_binary_allowed,
+                )
 
-                    wheel_builder = WheelBuilder(
-                        preparer, wheel_cache,
-                        build_options=[], global_options=[],
-                        check_binary_allowed=check_binary_allowed,
-                    )
+                build_failures = build_wheels(
+                    builder=wheel_builder,
+                    pep517_requirements=pep517_requirements,
+                    legacy_requirements=legacy_requirements,
+                )
 
-                    build_failures = build_wheels(
-                        builder=wheel_builder,
-                        pep517_requirements=pep517_requirements,
-                        legacy_requirements=legacy_requirements,
-                    )
+                # If we're using PEP 517, we cannot do a direct install
+                # so we fail here.
+                if build_failures:
+                    raise InstallationError(
+                        "Could not build wheels for {} which use"
+                        " PEP 517 and cannot be installed directly".format(
+                            ", ".join(r.name for r in build_failures)))
 
-                    # If we're using PEP 517, we cannot do a direct install
-                    # so we fail here.
-                    if build_failures:
-                        raise InstallationError(
-                            "Could not build wheels for {} which use"
-                            " PEP 517 and cannot be installed directly".format(
-                                ", ".join(r.name for r in build_failures)))
+                to_install = resolver.get_installation_order(
+                    requirement_set
+                )
 
-                    to_install = resolver.get_installation_order(
-                        requirement_set
-                    )
+                # Consistency Checking of the package set we're installing.
+                should_warn_about_conflicts = (
+                    not options.ignore_dependencies and
+                    options.warn_about_conflicts
+                )
+                if should_warn_about_conflicts:
+                    self._warn_about_conflicts(to_install)
 
-                    # Consistency Checking of the package set we're installing.
-                    should_warn_about_conflicts = (
-                        not options.ignore_dependencies and
-                        options.warn_about_conflicts
-                    )
-                    if should_warn_about_conflicts:
-                        self._warn_about_conflicts(to_install)
+                # Don't warn about script install locations if
+                # --target has been specified
+                warn_script_location = options.warn_script_location
+                if options.target_dir:
+                    warn_script_location = False
 
-                    # Don't warn about script install locations if
-                    # --target has been specified
-                    warn_script_location = options.warn_script_location
-                    if options.target_dir:
-                        warn_script_location = False
+                installed = install_given_reqs(
+                    to_install,
+                    install_options,
+                    global_options,
+                    root=options.root_path,
+                    home=target_temp_dir.path,
+                    prefix=options.prefix_path,
+                    pycompile=options.compile,
+                    warn_script_location=warn_script_location,
+                    use_user_site=options.use_user_site,
+                )
 
-                    installed = install_given_reqs(
-                        to_install,
-                        install_options,
-                        global_options,
-                        root=options.root_path,
-                        home=target_temp_dir.path,
-                        prefix=options.prefix_path,
-                        pycompile=options.compile,
-                        warn_script_location=warn_script_location,
-                        use_user_site=options.use_user_site,
-                    )
+                lib_locations = get_lib_location_guesses(
+                    user=options.use_user_site,
+                    home=target_temp_dir.path,
+                    root=options.root_path,
+                    prefix=options.prefix_path,
+                    isolated=options.isolated_mode,
+                )
+                working_set = pkg_resources.WorkingSet(lib_locations)
 
-                    lib_locations = get_lib_location_guesses(
-                        user=options.use_user_site,
-                        home=target_temp_dir.path,
-                        root=options.root_path,
-                        prefix=options.prefix_path,
-                        isolated=options.isolated_mode,
-                    )
-                    working_set = pkg_resources.WorkingSet(lib_locations)
-
-                    reqs = sorted(installed, key=operator.attrgetter('name'))
-                    items = []
-                    for req in reqs:
-                        item = req.name
-                        try:
-                            installed_version = get_installed_version(
-                                req.name, working_set=working_set
-                            )
-                            if installed_version:
-                                item += '-' + installed_version
-                        except Exception:
-                            pass
-                        items.append(item)
-                    installed_desc = ' '.join(items)
-                    if installed_desc:
-                        write_output(
-                            'Successfully installed %s', installed_desc,
+                reqs = sorted(installed, key=operator.attrgetter('name'))
+                items = []
+                for req in reqs:
+                    item = req.name
+                    try:
+                        installed_version = get_installed_version(
+                            req.name, working_set=working_set
                         )
-                except EnvironmentError as error:
-                    show_traceback = (self.verbosity >= 1)
-
-                    message = create_env_error_message(
-                        error, show_traceback, options.use_user_site,
+                        if installed_version:
+                            item += '-' + installed_version
+                    except Exception:
+                        pass
+                    items.append(item)
+                installed_desc = ' '.join(items)
+                if installed_desc:
+                    write_output(
+                        'Successfully installed %s', installed_desc,
                     )
-                    logger.error(message, exc_info=show_traceback)
+            except EnvironmentError as error:
+                show_traceback = (self.verbosity >= 1)
 
-                    return ERROR
-                except PreviousBuildDirError:
-                    options.no_clean = True
-                    raise
-                finally:
-                    # Clean up
-                    if not options.no_clean:
-                        requirement_set.cleanup_files()
-                        wheel_cache.cleanup()
+                message = create_env_error_message(
+                    error, show_traceback, options.use_user_site,
+                )
+                logger.error(message, exc_info=show_traceback)
+
+                return ERROR
+            except PreviousBuildDirError:
+                options.no_clean = True
+                raise
+            finally:
+                # Clean up
+                if not options.no_clean:
+                    requirement_set.cleanup_files()
+                    wheel_cache.cleanup()
 
         if options.target_dir:
             self._handle_target_dir(

@@ -10,7 +10,7 @@ from pip._internal.req.constructors import install_req_from_line
 from pip._internal.utils.misc import protect_pip_from_modification_on_windows
 
 
-class UninstallCommand(SessionCommandMixin, Command):
+class UninstallCommand(Command, SessionCommandMixin):
     """
     Uninstall packages.
 
@@ -45,34 +45,35 @@ class UninstallCommand(SessionCommandMixin, Command):
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
-        with self._build_session(options) as session:
-            reqs_to_uninstall = {}
-            for name in args:
-                req = install_req_from_line(
-                    name, isolated=options.isolated_mode,
-                )
+        session = self.get_default_session(options)
+
+        reqs_to_uninstall = {}
+        for name in args:
+            req = install_req_from_line(
+                name, isolated=options.isolated_mode,
+            )
+            if req.name:
+                reqs_to_uninstall[canonicalize_name(req.name)] = req
+        for filename in options.requirements:
+            for req in parse_requirements(
+                    filename,
+                    options=options,
+                    session=session):
                 if req.name:
                     reqs_to_uninstall[canonicalize_name(req.name)] = req
-            for filename in options.requirements:
-                for req in parse_requirements(
-                        filename,
-                        options=options,
-                        session=session):
-                    if req.name:
-                        reqs_to_uninstall[canonicalize_name(req.name)] = req
-            if not reqs_to_uninstall:
-                raise InstallationError(
-                    'You must give at least one requirement to %(name)s (see '
-                    '"pip help %(name)s")' % dict(name=self.name)
-                )
-
-            protect_pip_from_modification_on_windows(
-                modifying_pip="pip" in reqs_to_uninstall
+        if not reqs_to_uninstall:
+            raise InstallationError(
+                'You must give at least one requirement to %(name)s (see '
+                '"pip help %(name)s")' % dict(name=self.name)
             )
 
-            for req in reqs_to_uninstall.values():
-                uninstall_pathset = req.uninstall(
-                    auto_confirm=options.yes, verbose=self.verbosity > 0,
-                )
-                if uninstall_pathset:
-                    uninstall_pathset.commit()
+        protect_pip_from_modification_on_windows(
+            modifying_pip="pip" in reqs_to_uninstall
+        )
+
+        for req in reqs_to_uninstall.values():
+            uninstall_pathset = req.uninstall(
+                auto_confirm=options.yes, verbose=self.verbosity > 0,
+            )
+            if uninstall_pathset:
+                uninstall_pathset.commit()

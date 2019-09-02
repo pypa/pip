@@ -24,7 +24,7 @@ from pip._internal.utils.misc import write_output
 logger = logging.getLogger(__name__)
 
 
-class SearchCommand(SessionCommandMixin, Command):
+class SearchCommand(Command, SessionCommandMixin):
     """Search for PyPI packages whose name or summary contains <query>."""
 
     usage = """
@@ -60,11 +60,13 @@ class SearchCommand(SessionCommandMixin, Command):
 
     def search(self, query, options):
         index_url = options.index
-        with self._build_session(options) as session:
-            transport = PipXmlrpcTransport(index_url, session)
-            pypi = xmlrpc_client.ServerProxy(index_url, transport)
-            hits = pypi.search({'name': query, 'summary': query}, 'or')
-            return hits
+
+        session = self.get_default_session(options)
+
+        transport = PipXmlrpcTransport(index_url, session)
+        pypi = xmlrpc_client.ServerProxy(index_url, transport)
+        hits = pypi.search({'name': query, 'summary': query}, 'or')
+        return hits
 
 
 def transform_hits(hits):
