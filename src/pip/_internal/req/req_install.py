@@ -648,6 +648,12 @@ class InstallRequirement(object):
     @property
     def egg_info_path(self):
         # type: () -> str
+        def looks_like_virtual_env(path):
+            return (
+                os.path.lexists(os.path.join(path, 'bin', 'python')) or
+                os.path.exists(os.path.join(path, 'Scripts', 'Python.exe'))
+            )
+
         if self._egg_info_path is None:
             if self.editable:
                 base = self.source_dir
@@ -664,17 +670,7 @@ class InstallRequirement(object):
                     # a list while iterating over it can cause trouble.
                     # (See https://github.com/pypa/pip/pull/462.)
                     for dir in list(dirs):
-                        # Don't search in anything that looks like a virtualenv
-                        # environment
-                        if (
-                                os.path.lexists(
-                                    os.path.join(root, dir, 'bin', 'python')
-                                ) or
-                                os.path.exists(
-                                    os.path.join(
-                                        root, dir, 'Scripts', 'Python.exe'
-                                    )
-                                )):
+                        if looks_like_virtual_env(os.path.join(root, dir)):
                             dirs.remove(dir)
                         # Also don't search through tests
                         elif dir == 'test' or dir == 'tests':
