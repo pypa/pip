@@ -1,6 +1,6 @@
 from setuptools import setup
 
-setup(name='requires_Capitalized',
-      version='0.1',
-      install_requires=['simple==1.0']
+setup(name='simple',
+      version='1.0',
+      install_requires=['required_by_Capitalized==1.0']
       )

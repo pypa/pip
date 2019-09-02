@@ -141,7 +141,7 @@ def print_results(distributions, list_files=False, verbose=False):
         canonical_name = canonicalize_name(name)
         required_by = [
             pkg.project_name for pkg in pkg_resources.working_set
-            if canonical_name in [required.name for required in pkg.requires()]
+            if canonical_name in [canonicalize_name(required.name) for required in pkg.requires()]
         ]
 
         write_output("Name: %s", name)
