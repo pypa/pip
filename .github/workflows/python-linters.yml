@@ -38,9 +38,9 @@ jobs:
         tools/travis/install.sh
     - name: 'Initialize tox envs: ${{ matrix.env.TOXENV }}'
       run: >-
-        python -m tox --parallel auto --notest
+        TOX_PARALLEL_NO_SPINNER=1 python -m tox --parallel auto --notest
       env: ${{ matrix.env }}
     - name: Test with tox
       run: >-
-        python -m tox --parallel 0
+        TOX_PARALLEL_NO_SPINNER=1 python -m tox --parallel auto
       env: ${{ matrix.env }}
