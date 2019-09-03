@@ -1003,8 +1003,6 @@ def _download_url(
     else:
         logger.info("Downloading %s", url)
 
-    logger.debug('Downloading from URL %s', link)
-
     downloaded_chunks = written_chunks(
         progress_indicator(
             resp_read(CONTENT_CHUNK_SIZE),
