@@ -68,9 +68,10 @@ def search_packages_info(query):
         logger.warning('Package(s) not found: %s', ', '.join(missing))
 
     def get_requiring_packages(package_name):
+        canonical_name = canonicalize_name(package_name)
         return [
             pkg.project_name for pkg in pkg_resources.working_set
-            if canonicalize_name(package_name) in
+            if canonical_name in
                [canonicalize_name(required.name) for required in
                 pkg.requires()]
         ]

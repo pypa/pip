@@ -244,17 +244,18 @@ def test_show_required_by_packages_requiring_capitalized(script, data):
     where the package has a name with a mix of
     lower and upper case letters
     """
-    required_package_path = os.path.join(data.src, 'required_by_capitalized')
+    required_package_path = os.path.join(data.src, 'requires_capitalized')
     script.pip(
         'install', '--no-index', '-f', data.find_links, required_package_path
     )
-    editable_path = os.path.join(data.src, 'required_by_mixed_capitalization')
+    editable_path = os.path.join(data.src, 'requires_requires_capitalized')
     script.pip(
         'install', '--no-index', '-f', data.find_links, editable_path
     )
 
-    result = script.pip('show', 'Required_By_Capitalized')
+    result = script.pip('show', 'Requires_Capitalized')
     lines = result.stdout.splitlines()
+    print(lines)
 
-    assert 'Name: Required-By-Capitalized' in lines
-    assert 'Required-by: simple' in lines
+    assert 'Name: Requires-Capitalized' in lines
+    assert 'Required-by: requires-requires-capitalized' in lines
