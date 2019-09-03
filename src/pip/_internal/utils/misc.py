@@ -89,6 +89,10 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
 logger = logging.getLogger(__name__)
 subprocess_logger = logging.getLogger('pip.subprocessor')
 
+command_logger = logging.getLogger('pip.command')
+log_command = command_logger.debug #TODO check if this should be defined here
+used_level = logging.DEBUG
+
 LOG_DIVIDER = '----------------------------------------'
 
 WHEEL_EXTENSION = '.whl'
@@ -993,7 +997,11 @@ def call_subprocess(
 
 def write_output(msg, *args):
     # type: (str, str) -> None
-    logger.info(msg, *args)
+    log_command(msg, *args)
+    if args == ():
+        print(msg)
+    else:
+        print(msg % args)
 
 
 def _make_build_dir(build_dir):
