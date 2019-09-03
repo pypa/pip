@@ -13,6 +13,7 @@ from pip._internal.utils import outdated
 from pip._internal.utils.outdated import (pip_version_check,
                                           SelfCheckState, logger)
 
+
 class MockBestCandidateResult(object):
     def __init__(self, best):
         self.best_candidate = best
