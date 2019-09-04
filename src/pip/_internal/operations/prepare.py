@@ -140,7 +140,7 @@ class RequirementPreparer(object):
             # inconsistencies are logged later, but do not fail the
             # installation.
             # FIXME: this won't upgrade when there's an existing
-            #  package unpacked in `req.source_dir`
+            # package unpacked in `req.source_dir`
             if os.path.exists(os.path.join(req.source_dir, 'setup.py')):
                 raise PreviousBuildDirError(
                     "pip can't proceed with requirements '%s' due to a"
