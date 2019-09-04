@@ -3,15 +3,18 @@ import os
 import sys
 from contextlib import contextmanager
 
-from pip._internal.index import InstallationCandidate
-from pip._internal.utils import outdated
-from pip._internal.utils.outdated import (SelfCheckState, logger,
-                                          pip_version_check)
-from pip._vendor import lockfile, pkg_resources
-
 import freezegun
 import pretend
 import pytest
+from pip._vendor import lockfile, pkg_resources
+
+from pip._internal.index import InstallationCandidate
+from pip._internal.utils import outdated
+from pip._internal.utils.outdated import (
+    SelfCheckState,
+    logger,
+    pip_version_check,
+)
 
 
 class MockBestCandidateResult(object):
