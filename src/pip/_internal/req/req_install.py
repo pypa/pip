@@ -749,7 +749,7 @@ class InstallRequirement(object):
 
     # For both source distributions and editables
     def ensure_has_source_dir(self, parent_dir):
-        # type: (str) -> str
+        # type: (str) -> None
         """Ensure that a source_dir is set.
 
         This will create a temporary build dir if the name of the requirement
@@ -761,7 +761,6 @@ class InstallRequirement(object):
         """
         if self.source_dir is None:
             self.source_dir = self.build_location(parent_dir)
-        return self.source_dir
 
     # For editable installations
     def install_editable(
