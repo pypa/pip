@@ -8,6 +8,7 @@ from tempfile import NamedTemporaryFile
 # NOTE: retrying is not annotated in typeshed as on 2017-07-17, which is
 #       why we ignore the type on this import.
 from pip._vendor.retrying import retry  # type: ignore
+from pip._vendor.six import PY2
 
 from pip._internal.utils.compat import get_path_uid
 from pip._internal.utils.misc import cast
@@ -98,11 +99,17 @@ def adjacent_tmp_file(path):
             os.fsync(result.file.fileno())
 
 
-@retry(stop_max_delay=1000, wait_fixed=250)
-def replace(src, dest):
-    # type: (str, str) -> None
-    try:
-        os.rename(src, dest)
-    except OSError:
-        os.remove(dest)
-        os.rename(src, dest)
+_replace_retry = retry(stop_max_delay=1000, wait_fixed=250)
+
+if PY2:
+    @_replace_retry
+    def replace(src, dest):
+        # type: (str, str) -> None
+        try:
+            os.rename(src, dest)
+        except OSError:
+            os.remove(dest)
+            os.rename(src, dest)
+
+else:
+    replace = _replace_retry(os.replace)
