@@ -74,8 +74,10 @@ class RequirementPreparer(object):
         self.build_dir = build_dir
         self.req_tracker = req_tracker
 
-        # Where still packed archives should be written to. If None, they are
+        # Where still-packed archives should be written to. If None, they are
         # not saved, and are deleted immediately after unpacking.
+        if download_dir:
+            download_dir = expanduser(download_dir)
         self.download_dir = download_dir
 
         # Where still-packed .whl files should be written to. If None, they are
@@ -98,17 +100,16 @@ class RequirementPreparer(object):
     @property
     def _download_should_save(self):
         # type: () -> bool
-        # TODO: Modify to reduce indentation needed
-        if self.download_dir:
-            self.download_dir = expanduser(self.download_dir)
-            if os.path.exists(self.download_dir):
-                return True
-            else:
-                logger.critical('Could not find download directory')
-                raise InstallationError(
-                    "Could not find or access download directory '%s'"
-                    % display_path(self.download_dir))
-        return False
+        if not self.download_dir:
+            return False
+
+        if os.path.exists(self.download_dir):
+            return True
+
+        logger.critical('Could not find download directory')
+        raise InstallationError(
+            "Could not find or access download directory '%s'"
+            % display_path(self.download_dir))
 
     def prepare_linked_requirement(
         self,
