@@ -90,7 +90,7 @@ logger = logging.getLogger(__name__)
 subprocess_logger = logging.getLogger('pip.subprocessor')
 
 command_logger = logging.getLogger('pip.command')
-log_command = command_logger.debug #TODO check if this should be defined here
+log_command = command_logger.debug
 used_level = logging.DEBUG
 
 LOG_DIVIDER = '----------------------------------------'
