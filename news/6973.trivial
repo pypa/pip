@@ -1,0 +1,1 @@
+Update %-format call to use str.format in src/pip/_internal/operations/prepare.py
