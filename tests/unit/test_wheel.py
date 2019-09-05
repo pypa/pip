@@ -101,9 +101,12 @@ def test_should_use_ephemeral_cache__issue_6197(
     assert req.link.is_artifact
 
     format_control = FormatControl()
+
+    always_true = Mock(return_value=True)
+
     ephem_cache = wheel.should_use_ephemeral_cache(
         req, format_control=format_control, should_unpack=should_unpack,
-        cache_available=cache_available,
+        cache_available=cache_available, check_binary_allowed=always_true,
     )
     assert ephem_cache is expected
 
@@ -142,10 +145,12 @@ def test_should_use_ephemeral_cache__disallow_binaries_and_vcs_checkout(
     if disallow_binaries:
         format_control.disallow_binaries()
 
+    check_binary_allowed = Mock(return_value=not disallow_binaries)
+
     # The cache_available value doesn't matter for this test.
     ephem_cache = wheel.should_use_ephemeral_cache(
         req, format_control=format_control, should_unpack=True,
-        cache_available=True,
+        cache_available=True, check_binary_allowed=check_binary_allowed,
     )
     assert ephem_cache is expected
 
