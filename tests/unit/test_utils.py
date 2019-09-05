@@ -421,19 +421,15 @@ def test_rmtree_errorhandler_reraises_error(tmpdir):
     """
     # Create directory without read permission
     path = str((tmpdir / 'subdir').mkdir())
-    os.chmod(path, ~stat.S_IREAD)
+    os.chmod(path, stat.S_IWRITE)
 
     mock_func = Mock()
-    try:
-        # Make sure the handler reraises an exception.
-        # Note that the raise statement without expression and
-        # active exception in the current scope throws
-        # the RuntimeError on Python3 and the TypeError on Python2.
-        with pytest.raises((RuntimeError, TypeError)):
-            rmtree_errorhandler(mock_func, path, None)
-    finally:
-        # Restore the read permission to let the pytest to clean up temp dirs
-        os.chmod(path, stat.S_IREAD)
+    # Make sure the handler reraises an exception.
+    # Note that the raise statement without expression and
+    # active exception in the current scope throws
+    # the RuntimeError on Python3 and the TypeError on Python2.
+    with pytest.raises((RuntimeError, TypeError)):
+        rmtree_errorhandler(mock_func, path, None)
 
     mock_func.assert_not_called()
 
