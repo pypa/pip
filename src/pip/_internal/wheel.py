@@ -1076,11 +1076,6 @@ class WheelBuilder(object):
         if not buildset:
             return []
 
-        # Is any wheel build not using the ephemeral cache?
-        if any(not ephem_cache for _, ephem_cache in buildset):
-            if should_unpack:
-                assert self.wheel_cache.cache_dir
-
         # TODO by @pradyunsg
         # Should break up this method into 2 separate methods.
 
