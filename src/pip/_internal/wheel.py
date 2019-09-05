@@ -1071,7 +1071,15 @@ class WheelBuilder(object):
             if ephem_cache is None:
                 continue
 
-            buildset.append((req, ephem_cache))
+            if should_unpack:
+                if ephem_cache:
+                    output_dir = self.wheel_cache.get_ephem_path_for_link(req.link)
+                else:
+                    output_dir = self.wheel_cache.get_path_for_link(req.link)
+            else:
+                output_dir = self._wheel_dir
+
+            buildset.append((req, output_dir))
 
         if not buildset:
             return []
@@ -1091,15 +1099,7 @@ class WheelBuilder(object):
 
         with indent_log():
             build_success, build_failure = [], []
-            for req, ephem in buildset:
-                if should_unpack:
-                    if ephem:
-                        output_dir = self.wheel_cache.get_ephem_path_for_link(req.link)
-                    else:
-                        output_dir = self.wheel_cache.get_path_for_link(req.link)
-                else:
-                    output_dir = self._wheel_dir
-
+            for req, output_dir in buildset:
                 try:
                     ensure_dir(output_dir)
                 except OSError as e:
