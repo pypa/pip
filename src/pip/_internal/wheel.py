@@ -1089,15 +1089,14 @@ class WheelBuilder(object):
         if should_unpack:
             python_tag = pep425tags.implementation_tag
 
-        _cache = self.wheel_cache  # shorter name
         with indent_log():
             build_success, build_failure = [], []
             for req, ephem in buildset:
                 if should_unpack:
                     if ephem:
-                        output_dir = _cache.get_ephem_path_for_link(req.link)
+                        output_dir = self.wheel_cache.get_ephem_path_for_link(req.link)
                     else:
-                        output_dir = _cache.get_path_for_link(req.link)
+                        output_dir = self.wheel_cache.get_path_for_link(req.link)
                 else:
                     output_dir = self._wheel_dir
 
