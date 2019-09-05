@@ -17,6 +17,7 @@ exclude .appveyor.yml
 exclude .travis.yml
 exclude .readthedocs.yml
 exclude tox.ini
+exclude noxfile.py
 
 recursive-include src/pip/_vendor *.pem
 recursive-include docs Makefile *.rst *.py *.bat
