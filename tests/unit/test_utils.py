@@ -387,13 +387,13 @@ class TestUnpackArchives(object):
         self.confirm_files()
 
 
-def test_rmtree_errorhandler_not_existing_directory(tmpdir):
+def test_rmtree_errorhandler_nonexistent_directory(tmpdir):
     """
     Test rmtree_errorhandler ignores the given non-existing directory.
     """
-    not_existing_path = str(tmpdir / 'foo')
+    nonexistent_path = str(tmpdir / 'foo')
     mock_func = Mock()
-    rmtree_errorhandler(mock_func, not_existing_path, None)
+    rmtree_errorhandler(mock_func, nonexistent_path, None)
     mock_func.assert_not_called()
 
 
@@ -410,36 +410,37 @@ def test_rmtree_errorhandler_readonly_directory(tmpdir):
     rmtree_errorhandler(mock_func, path, None)
     mock_func.assert_called_with(path)
 
-    # Make sure the path is become writable
+    # Make sure the path is now writable
     assert os.stat(path).st_mode & stat.S_IWRITE
 
 
 def test_rmtree_errorhandler_reraises_error(tmpdir):
     """
     Test rmtree_errorhandler reraises an exception
-    by the given non-readonly directory.
+    by the given unreadable directory.
     """
     # Create directory without read permission
     path = str((tmpdir / 'subdir').mkdir())
     os.chmod(path, stat.S_IWRITE)
 
     mock_func = Mock()
-    # Make sure the handler reraises an exception.
-    # Note that the raise statement without expression and
-    # active exception in the current scope throws
-    # the RuntimeError on Python3 and the TypeError on Python2.
-    with pytest.raises((RuntimeError, TypeError)):
-        rmtree_errorhandler(mock_func, path, None)
+
+    try:
+        raise RuntimeError('test message')
+    except RuntimeError:
+        # Make sure the handler reraises an exception
+        with pytest.raises(RuntimeError, match='test message'):
+            rmtree_errorhandler(mock_func, path, None)
 
     mock_func.assert_not_called()
 
 
-def test_rmtree_skips_not_existing_directory():
+def test_rmtree_skips_nonexistent_directory():
     """
     Test wrapped rmtree doesn't raise an error
-    by the given non-existing directory.
+    by the given nonexistent directory.
     """
-    rmtree.__wrapped__('non-existing-subdir')
+    rmtree.__wrapped__('nonexistent-subdir')
 
 
 class Failer:
