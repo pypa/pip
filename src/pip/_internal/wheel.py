@@ -1084,13 +1084,16 @@ class WheelBuilder(object):
             'Building wheels for collected packages: %s',
             ', '.join([req.name for (req, _) in buildset]),
         )
+
+        python_tag = None
+        if should_unpack:
+            python_tag = pep425tags.implementation_tag
+
         _cache = self.wheel_cache  # shorter name
         with indent_log():
             build_success, build_failure = [], []
             for req, ephem in buildset:
-                python_tag = None
                 if should_unpack:
-                    python_tag = pep425tags.implementation_tag
                     if ephem:
                         output_dir = _cache.get_ephem_path_for_link(req.link)
                     else:
