@@ -812,7 +812,7 @@ def should_use_ephemeral_cache(
     if "binary" not in format_control.get_allowed_formats(
             canonicalize_name(req.name)):
         logger.info(
-            "Skipping bdist_wheel for %s, due to binaries "
+            "Skipping wheel build for %s, due to binaries "
             "being disabled for it.", req.name,
         )
         return None
