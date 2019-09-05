@@ -1073,7 +1073,9 @@ class WheelBuilder(object):
 
             if should_unpack:
                 if ephem_cache:
-                    output_dir = self.wheel_cache.get_ephem_path_for_link(req.link)
+                    output_dir = self.wheel_cache.get_ephem_path_for_link(
+                        req.link
+                    )
                 else:
                     output_dir = self.wheel_cache.get_path_for_link(req.link)
             else:
