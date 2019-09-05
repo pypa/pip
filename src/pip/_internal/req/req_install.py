@@ -3,6 +3,7 @@
 
 from __future__ import absolute_import
 
+import atexit
 import logging
 import os
 import shutil
@@ -591,14 +592,24 @@ class InstallRequirement(object):
                 )
                 self.req = Requirement(metadata_name)
 
+    def cleanup(self):
+        # type: () -> None
+        if self._temp_dir is not None:
+            self._temp_dir.cleanup()
+
     def prepare_pep517_metadata(self):
         # type: () -> None
         assert self.pep517_backend is not None
 
+        # NOTE: This needs to be refactored to stop using atexit
+        self._temp_dir = TempDirectory(delete=False, kind="req-install")
+        self._temp_dir.create()
         metadata_dir = os.path.join(
-            self.setup_py_dir,
-            'pip-wheel-metadata'
+            self._temp_dir.path,
+            'pip-wheel-metadata',
         )
+        atexit.register(self.cleanup)
+
         ensure_dir(metadata_dir)
 
         with self.build_env:
