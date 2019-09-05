@@ -12,10 +12,12 @@ def make_distribution_for_install_requirement(install_req):
     # type: (InstallRequirement) -> AbstractDistribution
     """Returns a Distribution for the given InstallRequirement
     """
-    # If it's not an editable, is a wheel, it's a WheelDistribution
+    # Editable requirements will always be source distributions. They use the
+    # legacy logic until we create a modern standard for them.
     if install_req.editable:
         return SourceDistribution(install_req)
 
+    # If it's a wheel, it's a WheelDistribution
     if install_req.is_wheel:
         return WheelDistribution(install_req)
 
