@@ -16,7 +16,7 @@ def make_distribution_for_install_requirement(install_req):
     if install_req.editable:
         return SourceDistribution(install_req)
 
-    if install_req.link and install_req.is_wheel:
+    if install_req.is_wheel:
         return WheelDistribution(install_req)
 
     # Otherwise, a SourceDistribution
