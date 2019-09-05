@@ -393,7 +393,7 @@ class InstallCommand(RequirementCommand):
                             legacy_requirements.append(req)
 
                     wheel_builder = WheelBuilder(
-                        finder, preparer, wheel_cache,
+                        preparer, wheel_cache,
                         build_options=[], global_options=[],
                         check_binary_allowed=check_binary_allowed,
                     )

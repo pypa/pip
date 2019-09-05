@@ -58,7 +58,6 @@ if MYPY_CHECK_RUNNING:
     )
     from pip._vendor.packaging.requirements import Requirement
     from pip._internal.req.req_install import InstallRequirement
-    from pip._internal.index import FormatControl, PackageFinder
     from pip._internal.operations.prepare import (
         RequirementPreparer
     )
@@ -778,7 +777,6 @@ def _contains_egg_info(
 
 def should_use_ephemeral_cache(
     req,  # type: InstallRequirement
-    format_control,  # type: FormatControl
     should_unpack,  # type: bool
     cache_available,  # type: bool
     check_binary_allowed,  # type: BinaryAllowedPredicate
@@ -899,7 +897,6 @@ class WheelBuilder(object):
 
     def __init__(
         self,
-        finder,  # type: PackageFinder
         preparer,  # type: RequirementPreparer
         wheel_cache,  # type: WheelCache
         build_options=None,  # type: Optional[List[str]]
@@ -908,7 +905,6 @@ class WheelBuilder(object):
         no_clean=False  # type: bool
     ):
         # type: (...) -> None
-        self.finder = finder
         if check_binary_allowed is None:
             # Binaries allowed by default.
             check_binary_allowed = _always_true
@@ -1071,13 +1067,11 @@ class WheelBuilder(object):
         )
 
         buildset = []
-        format_control = self.finder.format_control
         cache_available = bool(self.wheel_cache.cache_dir)
 
         for req in requirements:
             ephem_cache = should_use_ephemeral_cache(
                 req,
-                format_control=format_control,
                 should_unpack=should_unpack,
                 cache_available=cache_available,
                 check_binary_allowed=self.check_binary_allowed,
