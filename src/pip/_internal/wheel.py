@@ -1095,15 +1095,17 @@ class WheelBuilder(object):
                         output_dir = _cache.get_ephem_path_for_link(req.link)
                     else:
                         output_dir = _cache.get_path_for_link(req.link)
-                    try:
-                        ensure_dir(output_dir)
-                    except OSError as e:
-                        logger.warning("Building wheel for %s failed: %s",
-                                       req.name, e)
-                        build_failure.append(req)
-                        continue
                 else:
                     output_dir = self._wheel_dir
+
+                try:
+                    ensure_dir(output_dir)
+                except OSError as e:
+                    logger.warning("Building wheel for %s failed: %s",
+                                   req.name, e)
+                    build_failure.append(req)
+                    continue
+
                 wheel_file = self._build_one(
                     req, output_dir,
                     python_tag=python_tag,
