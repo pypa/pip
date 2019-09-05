@@ -53,11 +53,11 @@ from pip._internal.utils.ui import open_spinner
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Dict, List, Optional, Sequence, Mapping, Tuple, IO, Text, Any, Iterable
+        Dict, List, Optional, Sequence, Mapping, Tuple, IO, Text, Any,
+        Iterable, Callable,
     )
     from pip._vendor.packaging.requirements import Requirement
     from pip._internal.req.req_install import InstallRequirement
-    from pip._internal.index import FormatControl, PackageFinder
     from pip._internal.operations.prepare import (
         RequirementPreparer
     )
@@ -65,6 +65,8 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.pep425tags import Pep425Tag
 
     InstalledCSVRow = Tuple[str, ...]
+
+    BinaryAllowedPredicate = Callable[[InstallRequirement], bool]
 
 
 VERSION_COMPATIBLE = (1, 0)
@@ -775,9 +777,9 @@ def _contains_egg_info(
 
 def should_use_ephemeral_cache(
     req,  # type: InstallRequirement
-    format_control,  # type: FormatControl
     should_unpack,  # type: bool
-    cache_available  # type: bool
+    cache_available,  # type: bool
+    check_binary_allowed,  # type: BinaryAllowedPredicate
 ):
     # type: (...) -> Optional[bool]
     """
@@ -809,10 +811,9 @@ def should_use_ephemeral_cache(
     if req.editable or not req.source_dir:
         return None
 
-    if "binary" not in format_control.get_allowed_formats(
-            canonicalize_name(req.name)):
+    if not check_binary_allowed(req):
         logger.info(
-            "Skipping bdist_wheel for %s, due to binaries "
+            "Skipping wheel build for %s, due to binaries "
             "being disabled for it.", req.name,
         )
         return None
@@ -887,20 +888,27 @@ def get_legacy_build_wheel_path(
     return os.path.join(temp_dir, names[0])
 
 
+def _always_true(_):
+    return True
+
+
 class WheelBuilder(object):
     """Build wheels from a RequirementSet."""
 
     def __init__(
         self,
-        finder,  # type: PackageFinder
         preparer,  # type: RequirementPreparer
         wheel_cache,  # type: WheelCache
         build_options=None,  # type: Optional[List[str]]
         global_options=None,  # type: Optional[List[str]]
+        check_binary_allowed=None,  # type: Optional[BinaryAllowedPredicate]
         no_clean=False  # type: bool
     ):
         # type: (...) -> None
-        self.finder = finder
+        if check_binary_allowed is None:
+            # Binaries allowed by default.
+            check_binary_allowed = _always_true
+
         self.preparer = preparer
         self.wheel_cache = wheel_cache
 
@@ -908,6 +916,7 @@ class WheelBuilder(object):
 
         self.build_options = build_options or []
         self.global_options = global_options or []
+        self.check_binary_allowed = check_binary_allowed
         self.no_clean = no_clean
 
     def _build_one(self, req, output_dir, python_tag=None):
@@ -1058,15 +1067,14 @@ class WheelBuilder(object):
         )
 
         buildset = []
-        format_control = self.finder.format_control
         cache_available = bool(self.wheel_cache.cache_dir)
 
         for req in requirements:
             ephem_cache = should_use_ephemeral_cache(
                 req,
-                format_control=format_control,
                 should_unpack=should_unpack,
                 cache_available=cache_available,
+                check_binary_allowed=self.check_binary_allowed,
             )
             if ephem_cache is None:
                 continue

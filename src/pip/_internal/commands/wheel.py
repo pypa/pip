@@ -154,7 +154,7 @@ class WheelCommand(RequirementCommand):
 
                     # build wheels
                     wb = WheelBuilder(
-                        finder, preparer, wheel_cache,
+                        preparer, wheel_cache,
                         build_options=options.build_options or [],
                         global_options=options.global_options or [],
                         no_clean=options.no_clean,

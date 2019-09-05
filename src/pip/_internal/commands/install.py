@@ -15,6 +15,7 @@ import shutil
 from optparse import SUPPRESS_HELP
 
 from pip._vendor import pkg_resources
+from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
@@ -46,7 +47,9 @@ if MYPY_CHECK_RUNNING:
     from optparse import Values
     from typing import Any, List
 
+    from pip._internal.models.format_control import FormatControl
     from pip._internal.req.req_install import InstallRequirement
+    from pip._internal.wheel import BinaryAllowedPredicate
 
 
 logger = logging.getLogger(__name__)
@@ -92,6 +95,17 @@ def build_wheels(
         )
 
     return build_failures
+
+
+def get_check_binary_allowed(format_control):
+    # type: (FormatControl) -> BinaryAllowedPredicate
+    def check_binary_allowed(req):
+        # type: (InstallRequirement) -> bool
+        canonical_name = canonicalize_name(req.name)
+        allowed_formats = format_control.get_allowed_formats(canonical_name)
+        return "binary" in allowed_formats
+
+    return check_binary_allowed
 
 
 class InstallCommand(RequirementCommand):
@@ -366,6 +380,9 @@ class InstallCommand(RequirementCommand):
                         modifying_pip=requirement_set.has_requirement("pip")
                     )
 
+                    check_binary_allowed = get_check_binary_allowed(
+                        finder.format_control
+                    )
                     # Consider legacy and PEP517-using requirements separately
                     legacy_requirements = []
                     pep517_requirements = []
@@ -376,8 +393,9 @@ class InstallCommand(RequirementCommand):
                             legacy_requirements.append(req)
 
                     wheel_builder = WheelBuilder(
-                        finder, preparer, wheel_cache,
+                        preparer, wheel_cache,
                         build_options=[], global_options=[],
+                        check_binary_allowed=check_binary_allowed,
                     )
 
                     build_failures = build_wheels(

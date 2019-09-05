@@ -10,7 +10,6 @@ from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal import pep425tags, wheel
 from pip._internal.exceptions import InvalidWheelFilename, UnsupportedWheel
-from pip._internal.index import FormatControl
 from pip._internal.models.link import Link
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.compat import WINDOWS
@@ -100,10 +99,11 @@ def test_should_use_ephemeral_cache__issue_6197(
     assert not req.is_wheel
     assert req.link.is_artifact
 
-    format_control = FormatControl()
+    always_true = Mock(return_value=True)
+
     ephem_cache = wheel.should_use_ephemeral_cache(
-        req, format_control=format_control, should_unpack=should_unpack,
-        cache_available=cache_available,
+        req, should_unpack=should_unpack,
+        cache_available=cache_available, check_binary_allowed=always_true,
     )
     assert ephem_cache is expected
 
@@ -138,14 +138,12 @@ def test_should_use_ephemeral_cache__disallow_binaries_and_vcs_checkout(
     assert not req.is_wheel
     assert req.link.is_vcs
 
-    format_control = FormatControl()
-    if disallow_binaries:
-        format_control.disallow_binaries()
+    check_binary_allowed = Mock(return_value=not disallow_binaries)
 
     # The cache_available value doesn't matter for this test.
     ephem_cache = wheel.should_use_ephemeral_cache(
-        req, format_control=format_control, should_unpack=True,
-        cache_available=True,
+        req, should_unpack=True,
+        cache_available=True, check_binary_allowed=check_binary_allowed,
     )
     assert ephem_cache is expected
 
@@ -696,7 +694,6 @@ class TestWheelBuilder(object):
                 as mock_build_one:
             wheel_req = Mock(is_wheel=True, editable=False, constraint=False)
             wb = wheel.WheelBuilder(
-                finder=Mock(),
                 preparer=Mock(),
                 wheel_cache=Mock(cache_dir=None),
             )
