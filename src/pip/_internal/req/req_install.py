@@ -657,10 +657,6 @@ class InstallRequirement(object):
         if self._egg_info_path is None:
             if self.editable:
                 base = self.source_dir
-            else:
-                base = os.path.join(self.setup_py_dir, 'pip-egg-info')
-            filenames = os.listdir(base)
-            if self.editable:
                 filenames = []
                 for root, dirs, files in os.walk(base):
                     for dir in vcs.dirnames:
@@ -678,6 +674,9 @@ class InstallRequirement(object):
                     filenames.extend([os.path.join(root, dir)
                                       for dir in dirs])
                 filenames = [f for f in filenames if f.endswith('.egg-info')]
+            else:
+                base = os.path.join(self.setup_py_dir, 'pip-egg-info')
+                filenames = os.listdir(base)
 
             if not filenames:
                 raise InstallationError(
