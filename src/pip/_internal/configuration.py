@@ -360,6 +360,8 @@ class Configuration(object):
     def _get_environ_vars(self):
         # type: () -> Iterable[Tuple[str, str]]
         """Returns a generator with all environmental vars with prefix PIP_"""
+        if 'VIRTUAL_ENV' in os.environ:
+            os.environ['PIP_USER'] = 'no'
         for key, val in os.environ.items():
             should_be_yielded = (
                 key.startswith("PIP_") and
