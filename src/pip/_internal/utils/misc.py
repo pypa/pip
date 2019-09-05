@@ -90,8 +90,7 @@ logger = logging.getLogger(__name__)
 subprocess_logger = logging.getLogger('pip.subprocessor')
 
 command_logger = logging.getLogger('pip.command')
-log_command = command_logger.debug
-used_level = logging.DEBUG
+
 
 LOG_DIVIDER = '----------------------------------------'
 
@@ -997,7 +996,7 @@ def call_subprocess(
 
 def write_output(msg, *args):
     # type: (str, str) -> None
-    log_command(msg, *args)
+    command_logger.info(msg, *args)
     if args == ():
         print(msg)
     else:

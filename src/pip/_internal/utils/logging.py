@@ -12,7 +12,7 @@ from pip._vendor.six import PY2
 
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
-from pip._internal.utils.misc import ensure_dir, subprocess_logger
+from pip._internal.utils.misc import ensure_dir, subprocess_logger, command_logger
 
 try:
     import threading
@@ -333,6 +333,10 @@ def setup_logging(verbosity, no_color, user_log_file):
                 "()": "pip._internal.utils.logging.ExcludeLoggerFilter",
                 "name": subprocess_logger.name,
             },
+            "exclude_command": {
+                "()": "pip._internal.utils.logging.ExcludeLoggerFilter",
+                "name": command_logger.name,
+            },
         },
         "formatters": {
             "indent": {
@@ -351,7 +355,7 @@ def setup_logging(verbosity, no_color, user_log_file):
                 "class": handler_classes["stream"],
                 "no_color": no_color,
                 "stream": log_streams["stdout"],
-                "filters": ["exclude_subprocess", "exclude_warnings"],
+                "filters": ["exclude_subprocess", "exclude_warnings", "exclude_command"],
                 "formatter": "indent",
             },
             "console_errors": {
@@ -359,7 +363,7 @@ def setup_logging(verbosity, no_color, user_log_file):
                 "class": handler_classes["stream"],
                 "no_color": no_color,
                 "stream": log_streams["stderr"],
-                "filters": ["exclude_subprocess"],
+                "filters": ["exclude_subprocess", "exclude_command"],
                 "formatter": "indent",
             },
             # A handler responsible for logging to the console messages
