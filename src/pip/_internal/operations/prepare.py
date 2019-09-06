@@ -193,6 +193,13 @@ class RequirementPreparer(object):
                     # when doing 'pip wheel` we download wheels to a
                     # dedicated dir.
                     download_dir = self.wheel_download_dir
+
+                unpack_url(
+                    link, req.source_dir, download_dir,
+                    session=session, hashes=hashes,
+                    progress_bar=self.progress_bar
+                )
+
                 if link.is_wheel:
                     if download_dir:
                         # When downloading, we only unpack wheels to get
@@ -202,11 +209,6 @@ class RequirementPreparer(object):
                         # When installing a wheel, we use the unpacked
                         # wheel.
                         autodelete_unpacked = False
-                unpack_url(
-                    link, req.source_dir, download_dir,
-                    session=session, hashes=hashes,
-                    progress_bar=self.progress_bar
-                )
                 if autodelete_unpacked:
                     write_delete_marker_file(req.source_dir)
 
