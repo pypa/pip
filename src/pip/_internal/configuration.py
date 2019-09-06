@@ -29,6 +29,7 @@ from pip._internal.utils import appdirs
 from pip._internal.utils.compat import WINDOWS, expanduser
 from pip._internal.utils.misc import ensure_dir, enum
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.virtualenv import running_under_virtualenv
 
 if MYPY_CHECK_RUNNING:
     from typing import (
@@ -360,7 +361,7 @@ class Configuration(object):
     def _get_environ_vars(self):
         # type: () -> Iterable[Tuple[str, str]]
         """Returns a generator with all environmental vars with prefix PIP_"""
-        if 'VIRTUAL_ENV' in os.environ:
+        if running_under_virtualenv:
             os.environ['PIP_USER'] = 'no'
         for key, val in os.environ.items():
             should_be_yielded = (
