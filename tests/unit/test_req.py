@@ -2,6 +2,7 @@ import os
 import shutil
 import sys
 import tempfile
+from functools import partial
 
 import pytest
 from mock import patch
@@ -23,6 +24,7 @@ from pip._internal.req import InstallRequirement, RequirementSet
 from pip._internal.req.constructors import (
     install_req_from_editable,
     install_req_from_line,
+    install_req_from_req_string,
     parse_editable,
 )
 from pip._internal.req.req_file import process_line
@@ -61,8 +63,15 @@ class TestRequirementSet(object):
             build_isolation=True,
             req_tracker=RequirementTracker(),
         )
+        make_install_req = partial(
+            install_req_from_req_string,
+            isolated=False,
+            wheel_cache=None,
+            use_pep517=None,
+        )
         return Resolver(
             preparer=preparer, wheel_cache=None,
+            make_install_req=make_install_req,
             session=PipSession(), finder=finder,
             use_user_site=False, upgrade_strategy="to-satisfy-only",
             ignore_dependencies=False, ignore_installed=False,

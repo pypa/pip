@@ -42,7 +42,7 @@ from pip._internal.utils.packaging import (
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import DefaultDict, List, Optional, Set, Tuple
+    from typing import Callable, DefaultDict, List, Optional, Set, Tuple
     from pip._vendor import pkg_resources
 
     from pip._internal.cache import WheelCache
@@ -52,6 +52,10 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.operations.prepare import RequirementPreparer
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.req.req_set import RequirementSet
+
+    InstallRequirementProvider = Callable[
+        [str, InstallRequirement], InstallRequirement
+    ]
 
 logger = logging.getLogger(__name__)
 
@@ -116,6 +120,7 @@ class Resolver(object):
         preparer,  # type: RequirementPreparer
         session,  # type: PipSession
         finder,  # type: PackageFinder
+        make_install_req,  # type: InstallRequirementProvider
         wheel_cache,  # type: Optional[WheelCache]
         use_user_site,  # type: bool
         ignore_dependencies,  # type: bool
@@ -157,12 +162,7 @@ class Resolver(object):
         self.ignore_requires_python = ignore_requires_python
         self.use_user_site = use_user_site
         self.use_pep517 = use_pep517
-        self._make_install_req = partial(
-            install_req_from_req_string,
-            isolated=self.isolated,
-            wheel_cache=self.wheel_cache,
-            use_pep517=self.use_pep517,
-        )
+        self._make_install_req = make_install_req
 
         self._discovered_dependencies = \
             defaultdict(list)  # type: DefaultDict[str, List]
