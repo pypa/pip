@@ -29,6 +29,7 @@ from pip._internal.exceptions import (
 from pip._internal.utils.compat import expanduser
 from pip._internal.utils.hashes import MissingHashes
 from pip._internal.utils.logging import indent_log
+from pip._internal.utils.marker_files import write_delete_marker_file
 from pip._internal.utils.misc import display_path, normalize_path
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -207,6 +208,9 @@ class RequirementPreparer(object):
                     session=session, hashes=hashes,
                     progress_bar=self.progress_bar
                 )
+                if autodelete_unpacked:
+                    write_delete_marker_file(req.source_dir)
+
             except requests.HTTPError as exc:
                 logger.critical(
                     'Could not install requirement %s because of error %s',

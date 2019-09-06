@@ -36,7 +36,6 @@ from pip._internal.utils.compat import HAS_TLS, ipaddress, ssl
 from pip._internal.utils.encoding import auto_decode
 from pip._internal.utils.filesystem import check_path_owner, copy2_fixed
 from pip._internal.utils.glibc import libc_ver
-from pip._internal.utils.marker_files import write_delete_marker_file
 from pip._internal.utils.misc import (
     ARCHIVE_EXTENSIONS,
     ask,
@@ -1254,8 +1253,6 @@ def unpack_url(
             hashes=hashes,
             progress_bar=progress_bar
         )
-    if only_download:
-        write_delete_marker_file(location)
 
 
 def sanitize_content_filename(filename):
