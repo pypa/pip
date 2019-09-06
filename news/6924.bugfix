@@ -1,2 +1,1 @@
-Fix an error when upgrade pip using ``pip.exe`` on Windows fails
-if the requirement already satisfied.
+Don't fail installation using pip.exe on Windows when pip wouldn't be upgraded.
