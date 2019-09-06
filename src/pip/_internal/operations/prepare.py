@@ -203,8 +203,7 @@ class RequirementPreparer(object):
                         # wheel.
                         autodelete_unpacked = False
                 unpack_url(
-                    link, req.source_dir,
-                    download_dir, autodelete_unpacked,
+                    link, req.source_dir, download_dir,
                     session=session, hashes=hashes,
                     progress_bar=self.progress_bar
                 )

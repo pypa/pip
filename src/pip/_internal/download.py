@@ -1212,7 +1212,6 @@ def unpack_url(
     link,  # type: Link
     location,  # type: str
     download_dir=None,  # type: Optional[str]
-    only_download=False,  # type: bool
     session=None,  # type: Optional[PipSession]
     hashes=None,  # type: Optional[Hashes]
     progress_bar="on"  # type: str
