@@ -203,10 +203,6 @@ class Path(_base):
         with open(self, "w") as fp:
             fp.write(content)
 
-    def append_text(self, content):
-        with open(self, "a") as fp:
-            fp.write(content)
-
     def touch(self):
         with open(self, "a") as fp:
             path = fp.fileno() if os.utime in supports_fd else self

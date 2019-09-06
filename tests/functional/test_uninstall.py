@@ -473,7 +473,8 @@ def test_uninstall_with_symlink(script, data, tmpdir):
     st_mode = symlink_target.stat().st_mode
     distinfo_path = script.site_packages_path / 'simple.dist-0.1.dist-info'
     record_path = distinfo_path / 'RECORD'
-    record_path.append_text("symlink,,\n")
+    with open(record_path, "a") as f:
+        f.write("symlink,,\n")
     uninstall_result = script.pip('uninstall', 'simple.dist', '-y')
     assert symlink_source in uninstall_result.files_deleted
     assert symlink_target.stat().st_mode == st_mode
