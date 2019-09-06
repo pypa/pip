@@ -187,8 +187,6 @@ class RequirementPreparer(object):
 
             try:
                 download_dir = self.download_dir
-                # We always delete unpacked sdists after pip ran.
-                autodelete_unpacked = True
                 if link.is_wheel and self.wheel_download_dir:
                     # when doing 'pip wheel` we download wheels to a
                     # dedicated dir.
@@ -209,6 +207,9 @@ class RequirementPreparer(object):
                         # When installing a wheel, we use the unpacked
                         # wheel.
                         autodelete_unpacked = False
+                else:
+                    # We always delete unpacked sdists after pip runs.
+                    autodelete_unpacked = True
                 if autodelete_unpacked:
                     write_delete_marker_file(req.source_dir)
 
