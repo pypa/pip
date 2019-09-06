@@ -156,6 +156,7 @@ class Resolver(object):
         self.ignore_requires_python = ignore_requires_python
         self.use_user_site = use_user_site
         self.use_pep517 = use_pep517
+        self._make_install_req = install_req_from_req_string
 
         self._discovered_dependencies = \
             defaultdict(list)  # type: DefaultDict[str, List]
@@ -381,7 +382,7 @@ class Resolver(object):
         more_reqs = []  # type: List[InstallRequirement]
 
         def add_req(subreq, extras_requested):
-            sub_install_req = install_req_from_req_string(
+            sub_install_req = self._make_install_req(
                 str(subreq),
                 req_to_install,
                 isolated=self.isolated,
