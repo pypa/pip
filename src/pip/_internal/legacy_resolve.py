@@ -16,6 +16,7 @@ for sub-dependencies
 import logging
 import sys
 from collections import defaultdict
+from functools import partial
 from itertools import chain
 
 from pip._vendor.packaging import specifiers
@@ -156,7 +157,12 @@ class Resolver(object):
         self.ignore_requires_python = ignore_requires_python
         self.use_user_site = use_user_site
         self.use_pep517 = use_pep517
-        self._make_install_req = install_req_from_req_string
+        self._make_install_req = partial(
+            install_req_from_req_string,
+            isolated=self.isolated,
+            wheel_cache=self.wheel_cache,
+            use_pep517=self.use_pep517,
+        )
 
         self._discovered_dependencies = \
             defaultdict(list)  # type: DefaultDict[str, List]
@@ -385,9 +391,6 @@ class Resolver(object):
             sub_install_req = self._make_install_req(
                 str(subreq),
                 req_to_install,
-                isolated=self.isolated,
-                wheel_cache=self.wheel_cache,
-                use_pep517=self.use_pep517
             )
             parent_req_name = req_to_install.name
             to_scan_again, add_to_parent = requirement_set.add_requirement(
