@@ -16,7 +16,6 @@ for sub-dependencies
 import logging
 import sys
 from collections import defaultdict
-from functools import partial
 from itertools import chain
 
 from pip._vendor.packaging import specifiers
@@ -28,7 +27,6 @@ from pip._internal.exceptions import (
     HashErrors,
     UnsupportedPythonVersion,
 )
-from pip._internal.req.constructors import install_req_from_req_string
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     dist_in_usersite,
@@ -45,7 +43,6 @@ if MYPY_CHECK_RUNNING:
     from typing import Callable, DefaultDict, List, Optional, Set, Tuple
     from pip._vendor import pkg_resources
 
-    from pip._internal.cache import WheelCache
     from pip._internal.distributions import AbstractDistribution
     from pip._internal.download import PipSession
     from pip._internal.index import PackageFinder
@@ -121,15 +118,12 @@ class Resolver(object):
         session,  # type: PipSession
         finder,  # type: PackageFinder
         make_install_req,  # type: InstallRequirementProvider
-        wheel_cache,  # type: Optional[WheelCache]
         use_user_site,  # type: bool
         ignore_dependencies,  # type: bool
         ignore_installed,  # type: bool
         ignore_requires_python,  # type: bool
         force_reinstall,  # type: bool
-        isolated,  # type: bool
         upgrade_strategy,  # type: str
-        use_pep517=None,  # type: Optional[bool]
         py_version_info=None,  # type: Optional[Tuple[int, ...]]
     ):
         # type: (...) -> None
@@ -147,21 +141,15 @@ class Resolver(object):
         self.finder = finder
         self.session = session
 
-        # NOTE: This would eventually be replaced with a cache that can give
-        #       information about both sdist and wheels transparently.
-        self.wheel_cache = wheel_cache
-
         # This is set in resolve
         self.require_hashes = None  # type: Optional[bool]
 
         self.upgrade_strategy = upgrade_strategy
         self.force_reinstall = force_reinstall
-        self.isolated = isolated
         self.ignore_dependencies = ignore_dependencies
         self.ignore_installed = ignore_installed
         self.ignore_requires_python = ignore_requires_python
         self.use_user_site = use_user_site
-        self.use_pep517 = use_pep517
         self._make_install_req = make_install_req
 
         self._discovered_dependencies = \

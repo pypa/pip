@@ -70,13 +70,12 @@ class TestRequirementSet(object):
             use_pep517=None,
         )
         return Resolver(
-            preparer=preparer, wheel_cache=None,
+            preparer=preparer,
             make_install_req=make_install_req,
             session=PipSession(), finder=finder,
             use_user_site=False, upgrade_strategy="to-satisfy-only",
             ignore_dependencies=False, ignore_installed=False,
             ignore_requires_python=False, force_reinstall=False,
-            isolated=False,
         )
 
     def test_no_reuse_existing_build_dir(self, data):
