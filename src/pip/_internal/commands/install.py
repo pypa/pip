@@ -376,8 +376,16 @@ class InstallCommand(RequirementCommand):
                     )
                     resolver.resolve(requirement_set)
 
+                    try:
+                        pip_req = requirement_set.get_requirement("pip")
+                    except KeyError:
+                        modifying_pip = None
+                    else:
+                        # If we're not replacing an already installed pip,
+                        # we're not modifying it.
+                        modifying_pip = pip_req.satisfied_by is None
                     protect_pip_from_modification_on_windows(
-                        modifying_pip=requirement_set.has_requirement("pip")
+                        modifying_pip=modifying_pip
                     )
 
                     check_binary_allowed = get_check_binary_allowed(
