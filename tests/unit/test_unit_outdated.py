@@ -1,4 +1,5 @@
 import datetime
+import json
 import os
 import sys
 from contextlib import contextmanager
@@ -10,6 +11,7 @@ from pip._vendor import lockfile, pkg_resources
 
 from pip._internal.index import InstallationCandidate
 from pip._internal.utils import outdated
+from tests.lib.path import Path
 
 
 class MockBestCandidateResult(object):
@@ -132,9 +134,32 @@ def test_pip_version_check(monkeypatch, stored_time, installed_ver, new_ver,
         assert len(outdated.logger.warning.calls) == 0
 
 
+statefile_name_case_1 = (
+    "fcd2d5175dd33d5df759ee7b045264230205ef837bf9f582f7c3ada7"
+)
+
+statefile_name_case_2 = (
+    "902cecc0745b8ecf2509ba473f3556f0ba222fedc6df433acda24aa5"
+)
+
+
+@pytest.mark.parametrize("key,expected", [
+    ("/hello/world/venv", statefile_name_case_1),
+    ("C:\\Users\\User\\Desktop\\venv", statefile_name_case_2),
+])
+def test_get_statefile_name_known_values(key, expected):
+    assert expected == outdated._get_statefile_name(key)
+
+
+def _get_statefile_path(cache_dir, key):
+    return os.path.join(
+        cache_dir, "selfcheck", outdated._get_statefile_name(key)
+    )
+
+
 def test_self_check_state(monkeypatch, tmpdir):
-    CONTENT = '''{"pip_prefix": {"last_check": "1970-01-02T11:00:00Z",
-        "pypi_version": "1.0"}}'''
+    CONTENT = '''{"key": "pip_prefix", "last_check": "1970-01-02T11:00:00Z",
+        "pypi_version": "1.0"}'''
     fake_file = pretend.stub(
         read=pretend.call_recorder(lambda: CONTENT),
         write=pretend.call_recorder(lambda s: None),
@@ -155,19 +180,18 @@ def test_self_check_state(monkeypatch, tmpdir):
     monkeypatch.setattr(outdated, "check_path_owner", lambda p: True)
 
     monkeypatch.setattr(lockfile, 'LockFile', fake_lock)
-    monkeypatch.setattr(os.path, "exists", lambda p: True)
 
     cache_dir = tmpdir / 'cache_dir'
-    monkeypatch.setattr(sys, 'prefix', tmpdir / 'pip_prefix')
+    key = 'pip_prefix'
+    monkeypatch.setattr(sys, 'prefix', key)
 
     state = outdated.SelfCheckState(cache_dir=cache_dir)
     state.save('2.0', datetime.datetime.utcnow())
 
-    expected_path = cache_dir / 'selfcheck.json'
+    expected_path = _get_statefile_path(str(cache_dir), key)
     assert fake_lock.calls == [pretend.call(expected_path)]
 
     assert fake_open.calls == [
-        pretend.call(expected_path),
         pretend.call(expected_path),
         pretend.call(expected_path, 'w'),
     ]
@@ -180,3 +204,64 @@ def test_self_check_state_no_cache_dir():
     state = outdated.SelfCheckState(cache_dir=False)
     assert state.state == {}
     assert state.statefile_path is None
+
+
+def test_self_check_state_key_uses_sys_prefix(monkeypatch):
+    key = "helloworld"
+
+    monkeypatch.setattr(sys, "prefix", key)
+    state = outdated.SelfCheckState("")
+
+    assert state.key == key
+
+
+def test_self_check_state_reads_expected_statefile(monkeypatch, tmpdir):
+    cache_dir = tmpdir / "cache_dir"
+    cache_dir.mkdir()
+    key = "helloworld"
+    statefile_path = _get_statefile_path(str(cache_dir), key)
+
+    last_check = "1970-01-02T11:00:00Z"
+    pypi_version = "1.0"
+    content = {
+        "key": key,
+        "last_check": last_check,
+        "pypi_version": pypi_version,
+    }
+
+    Path(statefile_path).parent.mkdir()
+
+    with open(statefile_path, "w") as f:
+        json.dump(content, f)
+
+    monkeypatch.setattr(sys, "prefix", key)
+    state = outdated.SelfCheckState(str(cache_dir))
+
+    assert state.state["last_check"] == last_check
+    assert state.state["pypi_version"] == pypi_version
+
+
+def test_self_check_state_writes_expected_statefile(monkeypatch, tmpdir):
+    cache_dir = tmpdir / "cache_dir"
+    cache_dir.mkdir()
+    key = "helloworld"
+    statefile_path = _get_statefile_path(str(cache_dir), key)
+
+    last_check = datetime.datetime.strptime(
+        "1970-01-02T11:00:00Z", outdated.SELFCHECK_DATE_FMT
+    )
+    pypi_version = "1.0"
+
+    monkeypatch.setattr(sys, "prefix", key)
+    state = outdated.SelfCheckState(str(cache_dir))
+
+    state.save(pypi_version, last_check)
+    with open(statefile_path) as f:
+        saved = json.load(f)
+
+    expected = {
+        "key": key,
+        "last_check": last_check.strftime(outdated.SELFCHECK_DATE_FMT),
+        "pypi_version": pypi_version,
+    }
+    assert expected == saved

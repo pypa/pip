@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import datetime
+import hashlib
 import json
 import logging
 import os.path
@@ -8,6 +9,7 @@ import sys
 
 from pip._vendor import lockfile, pkg_resources
 from pip._vendor.packaging import version as packaging_version
+from pip._vendor.six import ensure_binary
 
 from pip._internal.cli.cmdoptions import make_search_scope
 from pip._internal.index import PackageFinder
@@ -20,7 +22,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     import optparse
-    from typing import Any, Dict
+    from typing import Any, Dict, Text, Union
     from pip._internal.download import PipSession
 
 
@@ -28,6 +30,13 @@ SELFCHECK_DATE_FMT = "%Y-%m-%dT%H:%M:%SZ"
 
 
 logger = logging.getLogger(__name__)
+
+
+def _get_statefile_name(key):
+    # type: (Union[str, Text]) -> str
+    key_bytes = ensure_binary(key)
+    name = hashlib.sha224(key_bytes).hexdigest()
+    return name
 
 
 class SelfCheckState(object):
@@ -38,14 +47,20 @@ class SelfCheckState(object):
 
         # Try to load the existing state
         if cache_dir:
-            self.statefile_path = os.path.join(cache_dir, "selfcheck.json")
+            self.statefile_path = os.path.join(
+                cache_dir, "selfcheck", _get_statefile_name(self.key)
+            )
             try:
                 with open(self.statefile_path) as statefile:
-                    self.state = json.load(statefile)[sys.prefix]
+                    self.state = json.load(statefile)
             except (IOError, ValueError, KeyError):
                 # Explicitly suppressing exceptions, since we don't want to
                 # error out if the cache file is invalid.
                 pass
+
+    @property
+    def key(self):
+        return sys.prefix
 
     def save(self, pypi_version, current_time):
         # type: (str, datetime.datetime) -> None
@@ -61,22 +76,22 @@ class SelfCheckState(object):
         # ahead and make sure that all our directories are created.
         ensure_dir(os.path.dirname(self.statefile_path))
 
+        state = {
+            # Include the key so it's easy to tell which pip wrote the
+            # file.
+            "key": self.key,
+            "last_check": current_time.strftime(SELFCHECK_DATE_FMT),
+            "pypi_version": pypi_version,
+        }
+
+        text = json.dumps(state, sort_keys=True, separators=(",", ":"))
+
         # Attempt to write out our version check file
         with lockfile.LockFile(self.statefile_path):
-            if os.path.exists(self.statefile_path):
-                with open(self.statefile_path) as statefile:
-                    state = json.load(statefile)
-            else:
-                state = {}
-
-            state[sys.prefix] = {
-                "last_check": current_time.strftime(SELFCHECK_DATE_FMT),
-                "pypi_version": pypi_version,
-            }
-
+            # Since we have a prefix-specific state file, we can just
+            # overwrite whatever is there, no need to check.
             with open(self.statefile_path, "w") as statefile:
-                json.dump(state, statefile, sort_keys=True,
-                          separators=(",", ":"))
+                statefile.write(text)
 
 
 def was_installed_by_pip(pkg):
