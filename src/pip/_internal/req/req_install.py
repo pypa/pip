@@ -876,9 +876,11 @@ class InstallRequirement(object):
     def archive(self, build_dir):
         # type: (str) -> None
         assert self.source_dir
+
         create_archive = True
         archive_name = '%s-%s.zip' % (self.name, self.metadata["version"])
         archive_path = os.path.join(build_dir, archive_name)
+
         if os.path.exists(archive_path):
             response = ask_path_exists(
                 'The file %s exists. (i)gnore, (w)ipe, (b)ackup, (a)bort ' %
@@ -902,28 +904,29 @@ class InstallRequirement(object):
         if not create_archive:
             return
 
-        with zipfile.ZipFile(
-            archive_path, 'w', zipfile.ZIP_DEFLATED, allowZip64=True
-        ) as zip:
+        zip_output = zipfile.ZipFile(
+            archive_path, 'w', zipfile.ZIP_DEFLATED, allowZip64=True,
+        )
+        with zip_output:
             dir = os.path.normcase(os.path.abspath(self.setup_py_dir))
             for dirpath, dirnames, filenames in os.walk(dir):
                 if 'pip-egg-info' in dirnames:
                     dirnames.remove('pip-egg-info')
                 for dirname in dirnames:
-                    dir_arcname = self._get_archive_name(dirname,
-                                                         parentdir=dirpath,
-                                                         rootdir=dir)
+                    dir_arcname = self._get_archive_name(
+                        dirname, parentdir=dirpath, rootdir=dir,
+                    )
                     zipdir = zipfile.ZipInfo(dir_arcname + '/')
                     zipdir.external_attr = 0x1ED << 16  # 0o755
-                    zip.writestr(zipdir, '')
+                    zip_output.writestr(zipdir, '')
                 for filename in filenames:
                     if filename == PIP_DELETE_MARKER_FILENAME:
                         continue
-                    file_arcname = self._get_archive_name(filename,
-                                                          parentdir=dirpath,
-                                                          rootdir=dir)
+                    file_arcname = self._get_archive_name(
+                        filename, parentdir=dirpath, rootdir=dir,
+                    )
                     filename = os.path.join(dirpath, filename)
-                    zip.write(filename, file_arcname)
+                    zip_output.write(filename, file_arcname)
 
         logger.info('Saved %s', display_path(archive_path))
 
