@@ -71,7 +71,8 @@ In addition, there are several standalone labels:
   default label given to issues when they are created
 
 **trivial**
-  special label that when used on a PR removes the news file requirement
+  special label for pull requests that removes the
+  :ref:`news file requirement <choosing-news-entry-type>`
 
 **needs rebase or merge**
   this is a special label used by BrownTruck to mark PRs that have merge
@@ -149,8 +150,7 @@ The lifecycle of an issue (bug or support) generally looks like:
    * could not be reproduced, no more details could be obtained, and no
      progress can be made
    * actual issue was with another project or related to system
-     configuration that pip cannot improve its behavior in the context
-     of
+     configuration and pip cannot (or will not) be adapted for it
 
 
 Requesting information
@@ -160,6 +160,7 @@ Requesting more information to better understand the context and environment
 that led to the issue. Examples of specific information that may be useful
 depending on the situation:
 
+* pip debug: ``pip debug``
 * pip version: ``pip -V``
 * Python version: ``python -VV``
 * Python path: ``python -c 'import sys; print(sys.executable)'``
