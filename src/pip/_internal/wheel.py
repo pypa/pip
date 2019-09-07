@@ -598,10 +598,10 @@ def move_wheel_files(
     except MissingCallableSuffix as e:
         entry = e.args[0]
         raise InstallationError(
-            "Invalid script entry point: %s for req: %s - A callable "
+            "Invalid script entry point: {} for req: {} - A callable "
             "suffix is required. Cf https://packaging.python.org/en/"
             "latest/distributing.html#console-scripts for more "
-            "information." % (entry, req)
+            "information.".format(entry, req)
         )
 
     if warn_script_location:
