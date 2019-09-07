@@ -11,6 +11,11 @@ from pip._vendor import lockfile, pkg_resources
 
 from pip._internal.index import InstallationCandidate
 from pip._internal.utils import outdated
+from pip._internal.utils.outdated import (
+    SelfCheckState,
+    logger,
+    pip_version_check,
+)
 from tests.lib.path import Path
 
 
@@ -88,9 +93,9 @@ def test_pip_version_check(monkeypatch, stored_time, installed_ver, new_ver,
     monkeypatch.setattr(outdated, 'get_installed_version',
                         lambda name: installed_ver)
     monkeypatch.setattr(outdated, 'PackageFinder', MockPackageFinder)
-    monkeypatch.setattr(outdated.logger, 'warning',
+    monkeypatch.setattr(logger, 'warning',
                         pretend.call_recorder(lambda *a, **kw: None))
-    monkeypatch.setattr(outdated.logger, 'debug',
+    monkeypatch.setattr(logger, 'debug',
                         pretend.call_recorder(lambda s, exc_info=None: None))
     monkeypatch.setattr(pkg_resources, 'get_distribution',
                         lambda name: MockDistribution(installer))
@@ -111,7 +116,7 @@ def test_pip_version_check(monkeypatch, stored_time, installed_ver, new_ver,
             "pip._vendor.requests.packages.urllib3.packages.six.moves",
         ]
     ):
-        latest_pypi_version = outdated.pip_version_check(None, _options())
+        latest_pypi_version = pip_version_check(None, _options())
 
     # See we return None if not installed_version
     if not installed_ver:
@@ -123,15 +128,15 @@ def test_pip_version_check(monkeypatch, stored_time, installed_ver, new_ver,
         ]
     else:
         # Make sure no Exceptions
-        assert not outdated.logger.debug.calls
+        assert not logger.debug.calls
         # See that save was not called
         assert fake_state.save.calls == []
 
     # Ensure we warn the user or not
     if check_warn_logs:
-        assert len(outdated.logger.warning.calls) == 1
+        assert len(logger.warning.calls) == 1
     else:
-        assert len(outdated.logger.warning.calls) == 0
+        assert len(logger.warning.calls) == 0
 
 
 statefile_name_case_1 = (
@@ -185,7 +190,7 @@ def test_self_check_state(monkeypatch, tmpdir):
     key = 'pip_prefix'
     monkeypatch.setattr(sys, 'prefix', key)
 
-    state = outdated.SelfCheckState(cache_dir=cache_dir)
+    state = SelfCheckState(cache_dir=cache_dir)
     state.save('2.0', datetime.datetime.utcnow())
 
     expected_path = _get_statefile_path(str(cache_dir), key)
@@ -201,7 +206,7 @@ def test_self_check_state(monkeypatch, tmpdir):
 
 
 def test_self_check_state_no_cache_dir():
-    state = outdated.SelfCheckState(cache_dir=False)
+    state = SelfCheckState(cache_dir=False)
     assert state.state == {}
     assert state.statefile_path is None
 
