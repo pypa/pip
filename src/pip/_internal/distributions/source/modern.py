@@ -24,11 +24,15 @@ class ModernSourceDistribution(AbstractDistribution):
 
     def _setup_isolation(self, finder):
         def _raise_conflicts(conflicting_with, conflicting_reqs):
+            incompatibility_message = ', '.join(
+                '%s is incompatible with %s' % (installed, wanted)
+                for installed, wanted in sorted(conflicting)
+            )
             raise InstallationError(
                 "Some build dependencies for %s conflict with %s: %s." % (
-                    self.req, conflicting_with, ', '.join(
-                        '%s is incompatible with %s' % (installed, wanted)
-                        for installed, wanted in sorted(conflicting))))
+                    self.req, conflicting_with, incompatibility_message,
+                )
+            )
 
         # Isolate in a BuildEnvironment and install the build-time
         # requirements.
