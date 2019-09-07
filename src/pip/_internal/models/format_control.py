@@ -3,6 +3,7 @@
 
 from pip._vendor.packaging.utils import canonicalize_name
 
+from pip._internal.exceptions import CommandError
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -39,6 +40,10 @@ class FormatControl(object):
     @staticmethod
     def handle_mutual_excludes(value, target, other):
         # type: (str, Optional[Set], Optional[Set]) -> None
+        if value.startswith('-'):
+            raise CommandError(
+                "--no-binary / --only-binary option requires 1 argument."
+            )
         new = value.split(',')
         while ':all:' in new:
             other.clear()

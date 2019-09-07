@@ -3,6 +3,7 @@
 
 from __future__ import absolute_import
 
+import atexit
 import logging
 import os
 import shutil
@@ -27,7 +28,10 @@ from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.compat import native_str
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.marker_files import PIP_DELETE_MARKER_FILENAME
+from pip._internal.utils.marker_files import (
+    PIP_DELETE_MARKER_FILENAME,
+    has_delete_marker_file,
+)
 from pip._internal.utils.misc import (
     _make_build_dir,
     ask_path_exists,
@@ -79,7 +83,6 @@ class InstallRequirement(object):
         source_dir=None,  # type: Optional[str]
         editable=False,  # type: bool
         link=None,  # type: Optional[Link]
-        update=True,  # type: bool
         markers=None,  # type: Optional[Marker]
         use_pep517=None,  # type: Optional[bool]
         isolated=False,  # type: bool
@@ -129,8 +132,6 @@ class InstallRequirement(object):
         # Used to store the global directory where the _temp_build_dir should
         # have been created. Cf _correct_build_location method.
         self._ideal_build_dir = None  # type: Optional[str]
-        # True if the editable should be updated:
-        self.update = update
         # Set to True after successful installation
         self.install_succeeded = None  # type: Optional[bool]
         # UninstallPathSet of uninstalled distribution (for possible rollback)
@@ -398,8 +399,7 @@ class InstallRequirement(object):
         # type: () -> None
         """Remove the source files from this requirement, if they are marked
         for deletion"""
-        if self.source_dir and os.path.exists(
-                os.path.join(self.source_dir, PIP_DELETE_MARKER_FILENAME)):
+        if self.source_dir and has_delete_marker_file(self.source_dir):
             logger.debug('Removing source in %s', self.source_dir)
             rmtree(self.source_dir)
         self.source_dir = None
@@ -591,14 +591,24 @@ class InstallRequirement(object):
                 )
                 self.req = Requirement(metadata_name)
 
+    def cleanup(self):
+        # type: () -> None
+        if self._temp_dir is not None:
+            self._temp_dir.cleanup()
+
     def prepare_pep517_metadata(self):
         # type: () -> None
         assert self.pep517_backend is not None
 
+        # NOTE: This needs to be refactored to stop using atexit
+        self._temp_dir = TempDirectory(delete=False, kind="req-install")
+        self._temp_dir.create()
         metadata_dir = os.path.join(
-            self.setup_py_dir,
-            'pip-wheel-metadata'
+            self._temp_dir.path,
+            'pip-wheel-metadata',
         )
+        atexit.register(self.cleanup)
+
         ensure_dir(metadata_dir)
 
         with self.build_env:
@@ -648,13 +658,15 @@ class InstallRequirement(object):
     @property
     def egg_info_path(self):
         # type: () -> str
+        def looks_like_virtual_env(path):
+            return (
+                os.path.lexists(os.path.join(path, 'bin', 'python')) or
+                os.path.exists(os.path.join(path, 'Scripts', 'Python.exe'))
+            )
+
         if self._egg_info_path is None:
             if self.editable:
                 base = self.source_dir
-            else:
-                base = os.path.join(self.setup_py_dir, 'pip-egg-info')
-            filenames = os.listdir(base)
-            if self.editable:
                 filenames = []
                 for root, dirs, files in os.walk(base):
                     for dir in vcs.dirnames:
@@ -664,17 +676,7 @@ class InstallRequirement(object):
                     # a list while iterating over it can cause trouble.
                     # (See https://github.com/pypa/pip/pull/462.)
                     for dir in list(dirs):
-                        # Don't search in anything that looks like a virtualenv
-                        # environment
-                        if (
-                                os.path.lexists(
-                                    os.path.join(root, dir, 'bin', 'python')
-                                ) or
-                                os.path.exists(
-                                    os.path.join(
-                                        root, dir, 'Scripts', 'Python.exe'
-                                    )
-                                )):
+                        if looks_like_virtual_env(os.path.join(root, dir)):
                             dirs.remove(dir)
                         # Also don't search through tests
                         elif dir == 'test' or dir == 'tests':
@@ -682,6 +684,9 @@ class InstallRequirement(object):
                     filenames.extend([os.path.join(root, dir)
                                       for dir in dirs])
                 filenames = [f for f in filenames if f.endswith('.egg-info')]
+            else:
+                base = os.path.join(self.setup_py_dir, 'pip-egg-info')
+                filenames = os.listdir(base)
 
             if not filenames:
                 raise InstallationError(
@@ -749,7 +754,7 @@ class InstallRequirement(object):
 
     # For both source distributions and editables
     def ensure_has_source_dir(self, parent_dir):
-        # type: (str) -> str
+        # type: (str) -> None
         """Ensure that a source_dir is set.
 
         This will create a temporary build dir if the name of the requirement
@@ -761,7 +766,6 @@ class InstallRequirement(object):
         """
         if self.source_dir is None:
             self.source_dir = self.build_location(parent_dir)
-        return self.source_dir
 
     # For editable installations
     def install_editable(
@@ -809,8 +813,6 @@ class InstallRequirement(object):
             # Static paths don't get updated
             return
         assert '+' in self.link.url, "bad url: %r" % self.link.url
-        if not self.update:
-            return
         vc_type, url = self.link.url.split('+', 1)
         vcs_backend = vcs.get_backend(vc_type)
         if vcs_backend:

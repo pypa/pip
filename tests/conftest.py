@@ -169,10 +169,16 @@ def isolate(tmpdir):
 @pytest.fixture(scope='session')
 def pip_src(tmpdir_factory):
     def not_code_files_and_folders(path, names):
-        # In the root directory, ignore all folders except "src"
+        # In the root directory...
         if path == SRC_DIR:
+            # ignore all folders except "src"
             folders = {name for name in names if os.path.isdir(path / name)}
-            return folders - {"src"}
+            to_ignore = folders - {"src"}
+            # and ignore ".git" if present (which may be a file if in a linked
+            # worktree).
+            if ".git" in names:
+                to_ignore.add(".git")
+            return to_ignore
 
         # Ignore all compiled files and egg-info.
         ignored = list()

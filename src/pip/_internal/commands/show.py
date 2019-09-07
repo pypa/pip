@@ -67,12 +67,22 @@ def search_packages_info(query):
     if missing:
         logger.warning('Package(s) not found: %s', ', '.join(missing))
 
+    def get_requiring_packages(package_name):
+        canonical_name = canonicalize_name(package_name)
+        return [
+            pkg.project_name for pkg in pkg_resources.working_set
+            if canonical_name in
+               [canonicalize_name(required.name) for required in
+                pkg.requires()]
+        ]
+
     for dist in [installed[pkg] for pkg in query_names if pkg in installed]:
         package = {
             'name': dist.project_name,
             'version': dist.version,
             'location': dist.location,
             'requires': [dep.project_name for dep in dist.requires()],
+            'required_by': get_requiring_packages(dist.project_name)
         }
         file_list = None
         metadata = None
@@ -137,13 +147,7 @@ def print_results(distributions, list_files=False, verbose=False):
         if i > 0:
             write_output("---")
 
-        name = dist.get('name', '')
-        required_by = [
-            pkg.project_name for pkg in pkg_resources.working_set
-            if name in [required.name for required in pkg.requires()]
-        ]
-
-        write_output("Name: %s", name)
+        write_output("Name: %s", dist.get('name', ''))
         write_output("Version: %s", dist.get('version', ''))
         write_output("Summary: %s", dist.get('summary', ''))
         write_output("Home-page: %s", dist.get('home-page', ''))
@@ -152,7 +156,7 @@ def print_results(distributions, list_files=False, verbose=False):
         write_output("License: %s", dist.get('license', ''))
         write_output("Location: %s", dist.get('location', ''))
         write_output("Requires: %s", ', '.join(dist.get('requires', [])))
-        write_output("Required-by: %s", ', '.join(required_by))
+        write_output("Required-by: %s", ', '.join(dist.get('required_by', [])))
 
         if verbose:
             write_output("Metadata-Version: %s",
