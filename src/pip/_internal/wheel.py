@@ -1079,17 +1079,21 @@ class WheelBuilder(object):
             if ephem_cache is None:
                 continue
 
-            buildset.append((req, ephem_cache))
+            # Determine where the wheel should go.
+            if should_unpack:
+                if ephem_cache:
+                    output_dir = self.wheel_cache.get_ephem_path_for_link(
+                        req.link
+                    )
+                else:
+                    output_dir = self.wheel_cache.get_path_for_link(req.link)
+            else:
+                output_dir = self._wheel_dir
+
+            buildset.append((req, output_dir))
 
         if not buildset:
             return []
-
-        # Is any wheel build not using the ephemeral cache?
-        if any(not ephem_cache for _, ephem_cache in buildset):
-            have_directory_for_build = self._wheel_dir or (
-                should_unpack and self.wheel_cache.cache_dir
-            )
-            assert have_directory_for_build
 
         # TODO by @pradyunsg
         # Should break up this method into 2 separate methods.
@@ -1099,26 +1103,24 @@ class WheelBuilder(object):
             'Building wheels for collected packages: %s',
             ', '.join([req.name for (req, _) in buildset]),
         )
-        _cache = self.wheel_cache  # shorter name
+
+        python_tag = None
+        if should_unpack:
+            python_tag = pep425tags.implementation_tag
+
         with indent_log():
             build_success, build_failure = [], []
-            for req, ephem in buildset:
-                python_tag = None
-                if should_unpack:
-                    python_tag = pep425tags.implementation_tag
-                    if ephem:
-                        output_dir = _cache.get_ephem_path_for_link(req.link)
-                    else:
-                        output_dir = _cache.get_path_for_link(req.link)
-                    try:
-                        ensure_dir(output_dir)
-                    except OSError as e:
-                        logger.warning("Building wheel for %s failed: %s",
-                                       req.name, e)
-                        build_failure.append(req)
-                        continue
-                else:
-                    output_dir = self._wheel_dir
+            for req, output_dir in buildset:
+                try:
+                    ensure_dir(output_dir)
+                except OSError as e:
+                    logger.warning(
+                        "Building wheel for %s failed: %s",
+                        req.name, e,
+                    )
+                    build_failure.append(req)
+                    continue
+
                 wheel_file = self._build_one(
                     req, output_dir,
                     python_tag=python_tag,
