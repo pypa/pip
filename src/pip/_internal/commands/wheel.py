@@ -115,61 +115,62 @@ class WheelCommand(RequirementCommand):
 
         options.src_dir = os.path.abspath(options.src_dir)
 
-        with self._build_session(options) as session:
-            finder = self._build_package_finder(options, session)
-            build_delete = (not (options.no_clean or options.build_dir))
-            wheel_cache = WheelCache(options.cache_dir, options.format_control)
+        session = self.get_default_session(options)
 
-            with RequirementTracker() as req_tracker, TempDirectory(
-                options.build_dir, delete=build_delete, kind="wheel"
-            ) as directory:
+        finder = self._build_package_finder(options, session)
+        build_delete = (not (options.no_clean or options.build_dir))
+        wheel_cache = WheelCache(options.cache_dir, options.format_control)
 
-                requirement_set = RequirementSet(
-                    require_hashes=options.require_hashes,
+        with RequirementTracker() as req_tracker, TempDirectory(
+            options.build_dir, delete=build_delete, kind="wheel"
+        ) as directory:
+
+            requirement_set = RequirementSet(
+                require_hashes=options.require_hashes,
+            )
+
+            try:
+                self.populate_requirement_set(
+                    requirement_set, args, options, finder, session,
+                    wheel_cache
                 )
 
-                try:
-                    self.populate_requirement_set(
-                        requirement_set, args, options, finder, session,
-                        wheel_cache
-                    )
+                preparer = self.make_requirement_preparer(
+                    temp_directory=directory,
+                    options=options,
+                    req_tracker=req_tracker,
+                    wheel_download_dir=options.wheel_dir,
+                )
 
-                    preparer = self.make_requirement_preparer(
-                        temp_directory=directory,
-                        options=options,
-                        req_tracker=req_tracker,
-                        wheel_download_dir=options.wheel_dir,
-                    )
+                resolver = self.make_resolver(
+                    preparer=preparer,
+                    finder=finder,
+                    session=session,
+                    options=options,
+                    wheel_cache=wheel_cache,
+                    ignore_requires_python=options.ignore_requires_python,
+                    use_pep517=options.use_pep517,
+                )
+                resolver.resolve(requirement_set)
 
-                    resolver = self.make_resolver(
-                        preparer=preparer,
-                        finder=finder,
-                        session=session,
-                        options=options,
-                        wheel_cache=wheel_cache,
-                        ignore_requires_python=options.ignore_requires_python,
-                        use_pep517=options.use_pep517,
+                # build wheels
+                wb = WheelBuilder(
+                    preparer, wheel_cache,
+                    build_options=options.build_options or [],
+                    global_options=options.global_options or [],
+                    no_clean=options.no_clean,
+                )
+                build_failures = wb.build(
+                    requirement_set.requirements.values(),
+                )
+                if len(build_failures) != 0:
+                    raise CommandError(
+                        "Failed to build one or more wheels"
                     )
-                    resolver.resolve(requirement_set)
-
-                    # build wheels
-                    wb = WheelBuilder(
-                        preparer, wheel_cache,
-                        build_options=options.build_options or [],
-                        global_options=options.global_options or [],
-                        no_clean=options.no_clean,
-                    )
-                    build_failures = wb.build(
-                        requirement_set.requirements.values(),
-                    )
-                    if len(build_failures) != 0:
-                        raise CommandError(
-                            "Failed to build one or more wheels"
-                        )
-                except PreviousBuildDirError:
-                    options.no_clean = True
-                    raise
-                finally:
-                    if not options.no_clean:
-                        requirement_set.cleanup_files()
-                        wheel_cache.cleanup()
+            except PreviousBuildDirError:
+                options.no_clean = True
+                raise
+            finally:
+                if not options.no_clean:
+                    requirement_set.cleanup_files()
+                    wheel_cache.cleanup()

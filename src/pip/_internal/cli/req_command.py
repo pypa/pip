@@ -10,6 +10,7 @@ from functools import partial
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.cmdoptions import make_search_scope
+from pip._internal.cli.command_context import CommandContextMixIn
 from pip._internal.download import PipSession
 from pip._internal.exceptions import CommandError
 from pip._internal.index import PackageFinder
@@ -36,11 +37,14 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.utils.temp_dir import TempDirectory
 
 
-class SessionCommandMixin(object):
+class SessionCommandMixin(CommandContextMixIn):
 
     """
     A class mixin for command classes needing _build_session().
     """
+    def __init__(self):
+        super(SessionCommandMixin, self).__init__()
+        self._session = None  # Optional[PipSession]
 
     @classmethod
     def _get_index_urls(cls, options):
@@ -55,6 +59,13 @@ class SessionCommandMixin(object):
             index_urls.extend(urls)
         # Return None rather than an empty list
         return index_urls or None
+
+    def get_default_session(self, options):
+        # type: (Values) -> PipSession
+        """Get a default-managed session."""
+        if self._session is None:
+            self._session = self.enter_context(self._build_session(options))
+        return self._session
 
     def _build_session(self, options, retries=None, timeout=None):
         # type: (Values, Optional[int], Optional[int]) -> PipSession
@@ -95,7 +106,7 @@ class SessionCommandMixin(object):
         return session
 
 
-class IndexGroupCommand(SessionCommandMixin, Command):
+class IndexGroupCommand(Command, SessionCommandMixin):
 
     """
     Abstract base class for commands with the index_group options.

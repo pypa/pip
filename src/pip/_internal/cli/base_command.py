@@ -11,6 +11,7 @@ import sys
 import traceback
 
 from pip._internal.cli import cmdoptions
+from pip._internal.cli.command_context import CommandContextMixIn
 from pip._internal.cli.parser import (
     ConfigOptionParser,
     UpdatingDefaultsHelpFormatter,
@@ -44,12 +45,13 @@ __all__ = ['Command']
 logger = logging.getLogger(__name__)
 
 
-class Command(object):
+class Command(CommandContextMixIn):
     usage = None  # type: str
     ignore_require_venv = False  # type: bool
 
     def __init__(self, name, summary, isolated=False):
         # type: (str, str, bool) -> None
+        super(Command, self).__init__()
         parser_kw = {
             'usage': self.usage,
             'prog': '%s %s' % (get_prog(), name),
@@ -95,6 +97,14 @@ class Command(object):
         return self.parser.parse_args(args)
 
     def main(self, args):
+        # type: (List[str]) -> int
+        try:
+            with self.main_context():
+                return self._main(args)
+        finally:
+            logging.shutdown()
+
+    def _main(self, args):
         # type: (List[str]) -> int
         options, args = self.parse_args(args)
 
@@ -179,8 +189,5 @@ class Command(object):
             return UNKNOWN_ERROR
         finally:
             self.handle_pip_version_check(options)
-
-            # Shutdown the logging module
-            logging.shutdown()
 
         return SUCCESS
