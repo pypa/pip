@@ -83,7 +83,6 @@ class InstallRequirement(object):
         source_dir=None,  # type: Optional[str]
         editable=False,  # type: bool
         link=None,  # type: Optional[Link]
-        update=True,  # type: bool
         markers=None,  # type: Optional[Marker]
         use_pep517=None,  # type: Optional[bool]
         isolated=False,  # type: bool
@@ -133,8 +132,6 @@ class InstallRequirement(object):
         # Used to store the global directory where the _temp_build_dir should
         # have been created. Cf _correct_build_location method.
         self._ideal_build_dir = None  # type: Optional[str]
-        # True if the editable should be updated:
-        self.update = update
         # Set to True after successful installation
         self.install_succeeded = None  # type: Optional[bool]
         # UninstallPathSet of uninstalled distribution (for possible rollback)
@@ -816,8 +813,6 @@ class InstallRequirement(object):
             # Static paths don't get updated
             return
         assert '+' in self.link.url, "bad url: %r" % self.link.url
-        if not self.update:
-            return
         vc_type, url = self.link.url.split('+', 1)
         vcs_backend = vcs.get_backend(vc_type)
         if vcs_backend:
