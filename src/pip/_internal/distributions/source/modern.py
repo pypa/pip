@@ -7,7 +7,7 @@ from pip._internal.exceptions import InstallationError
 logger = logging.getLogger(__name__)
 
 
-class LegacySourceDistribution(AbstractDistribution):
+class ModernSourceDistribution(AbstractDistribution):
     """Represents a source distribution.
 
     The preparation step for these needs metadata for the packages to be
