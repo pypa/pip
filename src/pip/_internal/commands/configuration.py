@@ -34,6 +34,7 @@ class ConfigurationCommand(Command):
         default.
     """
 
+    ignore_require_venv = True
     usage = """
         %prog [<file-option>] list
         %prog [<file-option>] [--editor <editor-path>] edit
