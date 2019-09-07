@@ -23,11 +23,6 @@ class LegacySourceDistribution(AbstractDistribution):
         return self.req.get_dist()
 
     def prepare_distribution_metadata(self, finder, build_isolation):
-        # Prepare for building. We need to:
-        #   1. Load pyproject.toml (if it exists)
-        #   2. Set up the build environment
-
-        self.req.load_pyproject_toml()
         should_isolate = self.req.use_pep517 and build_isolation
 
         def _raise_conflicts(conflicting_with, conflicting_reqs):
