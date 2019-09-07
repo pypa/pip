@@ -1071,6 +1071,7 @@ class WheelBuilder(object):
             if ephem_cache is None:
                 continue
 
+            # Determine where the wheel should go.
             if should_unpack:
                 if ephem_cache:
                     output_dir = self.wheel_cache.get_ephem_path_for_link(
@@ -1105,8 +1106,10 @@ class WheelBuilder(object):
                 try:
                     ensure_dir(output_dir)
                 except OSError as e:
-                    logger.warning("Building wheel for %s failed: %s",
-                                   req.name, e)
+                    logger.warning(
+                        "Building wheel for %s failed: %s",
+                        req.name, e,
+                    )
                     build_failure.append(req)
                     continue
 
