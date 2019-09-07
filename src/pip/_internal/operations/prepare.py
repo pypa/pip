@@ -29,6 +29,7 @@ from pip._internal.exceptions import (
 from pip._internal.utils.compat import expanduser
 from pip._internal.utils.hashes import MissingHashes
 from pip._internal.utils.logging import indent_log
+from pip._internal.utils.marker_files import write_delete_marker_file
 from pip._internal.utils.misc import display_path, normalize_path
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -184,26 +185,15 @@ class RequirementPreparer(object):
                 # showing the user what the hash should be.
                 hashes = MissingHashes()
 
+            download_dir = self.download_dir
+            if link.is_wheel and self.wheel_download_dir:
+                # when doing 'pip wheel` we download wheels to a
+                # dedicated dir.
+                download_dir = self.wheel_download_dir
+
             try:
-                download_dir = self.download_dir
-                # We always delete unpacked sdists after pip ran.
-                autodelete_unpacked = True
-                if link.is_wheel and self.wheel_download_dir:
-                    # when doing 'pip wheel` we download wheels to a
-                    # dedicated dir.
-                    download_dir = self.wheel_download_dir
-                if link.is_wheel:
-                    if download_dir:
-                        # When downloading, we only unpack wheels to get
-                        # metadata.
-                        autodelete_unpacked = True
-                    else:
-                        # When installing a wheel, we use the unpacked
-                        # wheel.
-                        autodelete_unpacked = False
                 unpack_url(
-                    link, req.source_dir,
-                    download_dir, autodelete_unpacked,
+                    link, req.source_dir, download_dir,
                     session=session, hashes=hashes,
                     progress_bar=self.progress_bar
                 )
@@ -218,6 +208,21 @@ class RequirementPreparer(object):
                     'error %s for URL %s' %
                     (req, exc, link)
                 )
+
+            if link.is_wheel:
+                if download_dir:
+                    # When downloading, we only unpack wheels to get
+                    # metadata.
+                    autodelete_unpacked = True
+                else:
+                    # When installing a wheel, we use the unpacked
+                    # wheel.
+                    autodelete_unpacked = False
+            else:
+                # We always delete unpacked sdists after pip runs.
+                autodelete_unpacked = True
+            if autodelete_unpacked:
+                write_delete_marker_file(req.source_dir)
 
             abstract_dist = _get_prepared_distribution(
                 req, self.req_tracker, finder, self.build_isolation,
