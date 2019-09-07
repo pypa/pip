@@ -27,7 +27,6 @@ from pip._internal.exceptions import (
     HashErrors,
     UnsupportedPythonVersion,
 )
-from pip._internal.req.constructors import install_req_from_req_string
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     dist_in_usersite,
@@ -41,16 +40,19 @@ from pip._internal.utils.packaging import (
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import DefaultDict, List, Optional, Set, Tuple
+    from typing import Callable, DefaultDict, List, Optional, Set, Tuple
     from pip._vendor import pkg_resources
 
-    from pip._internal.cache import WheelCache
     from pip._internal.distributions import AbstractDistribution
     from pip._internal.download import PipSession
     from pip._internal.index import PackageFinder
     from pip._internal.operations.prepare import RequirementPreparer
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.req.req_set import RequirementSet
+
+    InstallRequirementProvider = Callable[
+        [str, InstallRequirement], InstallRequirement
+    ]
 
 logger = logging.getLogger(__name__)
 
@@ -115,15 +117,13 @@ class Resolver(object):
         preparer,  # type: RequirementPreparer
         session,  # type: PipSession
         finder,  # type: PackageFinder
-        wheel_cache,  # type: Optional[WheelCache]
+        make_install_req,  # type: InstallRequirementProvider
         use_user_site,  # type: bool
         ignore_dependencies,  # type: bool
         ignore_installed,  # type: bool
         ignore_requires_python,  # type: bool
         force_reinstall,  # type: bool
-        isolated,  # type: bool
         upgrade_strategy,  # type: str
-        use_pep517=None,  # type: Optional[bool]
         py_version_info=None,  # type: Optional[Tuple[int, ...]]
     ):
         # type: (...) -> None
@@ -141,21 +141,16 @@ class Resolver(object):
         self.finder = finder
         self.session = session
 
-        # NOTE: This would eventually be replaced with a cache that can give
-        #       information about both sdist and wheels transparently.
-        self.wheel_cache = wheel_cache
-
         # This is set in resolve
         self.require_hashes = None  # type: Optional[bool]
 
         self.upgrade_strategy = upgrade_strategy
         self.force_reinstall = force_reinstall
-        self.isolated = isolated
         self.ignore_dependencies = ignore_dependencies
         self.ignore_installed = ignore_installed
         self.ignore_requires_python = ignore_requires_python
         self.use_user_site = use_user_site
-        self.use_pep517 = use_pep517
+        self._make_install_req = make_install_req
 
         self._discovered_dependencies = \
             defaultdict(list)  # type: DefaultDict[str, List]
@@ -381,12 +376,9 @@ class Resolver(object):
         more_reqs = []  # type: List[InstallRequirement]
 
         def add_req(subreq, extras_requested):
-            sub_install_req = install_req_from_req_string(
+            sub_install_req = self._make_install_req(
                 str(subreq),
                 req_to_install,
-                isolated=self.isolated,
-                wheel_cache=self.wheel_cache,
-                use_pep517=self.use_pep517
             )
             parent_req_name = req_to_install.name
             to_scan_again, add_to_parent = requirement_set.add_requirement(

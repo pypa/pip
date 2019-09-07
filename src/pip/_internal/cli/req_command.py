@@ -6,6 +6,7 @@ PackageFinder machinery and all its vendored dependencies, etc.
 """
 
 import os
+from functools import partial
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.cmdoptions import make_search_scope
@@ -18,6 +19,7 @@ from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req.constructors import (
     install_req_from_editable,
     install_req_from_line,
+    install_req_from_req_string,
 )
 from pip._internal.req.req_file import parse_requirements
 from pip._internal.utils.misc import normalize_path
@@ -167,19 +169,23 @@ class RequirementCommand(IndexGroupCommand):
         """
         Create a Resolver instance for the given parameters.
         """
+        make_install_req = partial(
+            install_req_from_req_string,
+            isolated=options.isolated_mode,
+            wheel_cache=wheel_cache,
+            use_pep517=use_pep517,
+        )
         return Resolver(
             preparer=preparer,
             session=session,
             finder=finder,
-            wheel_cache=wheel_cache,
+            make_install_req=make_install_req,
             use_user_site=use_user_site,
             ignore_dependencies=options.ignore_dependencies,
             ignore_installed=ignore_installed,
             ignore_requires_python=ignore_requires_python,
             force_reinstall=force_reinstall,
-            isolated=options.isolated_mode,
             upgrade_strategy=upgrade_strategy,
-            use_pep517=use_pep517,
             py_version_info=py_version_info
         )
 
