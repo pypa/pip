@@ -316,7 +316,7 @@ class MissingCallableSuffix(Exception):
     pass
 
 
-def _assert_valid_entrypoint(specification):
+def _raise_for_invalid_entrypoint(specification):
     entry = get_export_entry(specification)
     if entry is not None and entry.suffix is None:
         raise MissingCallableSuffix(str(entry))
@@ -324,7 +324,7 @@ def _assert_valid_entrypoint(specification):
 
 class PipScriptMaker(ScriptMaker):
     def make(self, specification, options=None):
-        _assert_valid_entrypoint(specification)
+        _raise_for_invalid_entrypoint(specification)
         return super(PipScriptMaker, self).make(specification, options)
 
 
