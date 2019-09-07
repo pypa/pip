@@ -74,7 +74,7 @@ class ModernSourceDistribution(AbstractDistribution):
 
         self.req.build_env.install_requirements(
             finder, missing, 'normal',
-            "Installing backend dependencies"
+            "Installing backend dependencies",
         )
 
     def prepare_distribution_metadata(self, finder, build_isolation):
