@@ -898,11 +898,13 @@ class InstallRequirement(object):
                 shutil.move(archive_path, dest_file)
             elif response == 'a':
                 sys.exit(-1)
-        if create_archive:
-            zip = zipfile.ZipFile(
-                archive_path, 'w', zipfile.ZIP_DEFLATED,
-                allowZip64=True
-            )
+
+        if not create_archive:
+            return
+
+        with zipfile.ZipFile(
+            archive_path, 'w', zipfile.ZIP_DEFLATED, allowZip64=True
+        ) as zip:
             dir = os.path.normcase(os.path.abspath(self.setup_py_dir))
             for dirpath, dirnames, filenames in os.walk(dir):
                 if 'pip-egg-info' in dirnames:
@@ -922,8 +924,8 @@ class InstallRequirement(object):
                                                           rootdir=dir)
                     filename = os.path.join(dirpath, filename)
                     zip.write(filename, file_arcname)
-            zip.close()
-            logger.info('Saved %s', display_path(archive_path))
+
+        logger.info('Saved %s', display_path(archive_path))
 
     def install(
         self,
