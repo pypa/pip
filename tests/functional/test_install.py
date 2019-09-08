@@ -5,9 +5,8 @@ import sys
 import textwrap
 from os.path import curdir, join, pardir
 
-# Ignore because flake8 can't detect the use inside skipif().
-import pip._vendor.six  # noqa: F401
 import pytest
+from pip._vendor.six import PY2
 
 from pip._internal import pep425tags
 from pip._internal.cli.status_codes import ERROR, SUCCESS
@@ -20,6 +19,8 @@ from tests.lib import (
 )
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
+
+python2_only = pytest.mark.skipif(not PY2, reason="Python 2 only")
 
 
 @pytest.mark.parametrize('command', ('install', 'wheel'))
@@ -530,7 +531,7 @@ def test_editable_install__local_dir_no_setup_py_with_pyproject(
     assert 'A "pyproject.toml" file was found' in msg
 
 
-@pytest.mark.skipif("pip._vendor.six.PY3")
+@python2_only
 @pytest.mark.xfail
 def test_install_argparse_shadowed(script):
     # When argparse is in the stdlib, we support installing it
