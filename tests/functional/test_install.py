@@ -21,6 +21,7 @@ from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
 
 python2_only = pytest.mark.skipif(not PY2, reason="Python 2 only")
+non_python2_only = pytest.mark.skipif(PY2, reason="Non-Python 2 only")
 
 
 @pytest.mark.parametrize('command', ('install', 'wheel'))
@@ -546,7 +547,7 @@ def test_install_argparse_shadowed(script):
 
 
 @pytest.mark.network
-@pytest.mark.skipif("pip._vendor.six.PY2")
+@non_python2_only
 def test_upgrade_argparse_shadowed(script):
     # If argparse is installed - even if shadowed for imported - we support
     # upgrading it and properly remove the older versions files.
