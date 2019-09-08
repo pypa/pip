@@ -134,8 +134,6 @@ class InstallRequirement(object):
         self._ideal_build_dir = None  # type: Optional[str]
         # Set to True after successful installation
         self.install_succeeded = None  # type: Optional[bool]
-        # UninstallPathSet of uninstalled distribution (for possible rollback)
-        self.uninstalled_pathset = None
         self.options = options if options else {}
         # Set to True after successful preparation of this requirement
         self.prepared = False
