@@ -9,7 +9,7 @@ import os
 import shutil
 import sys
 
-from pip._vendor.six import PY3, text_type
+from pip._vendor.six import PY2, text_type
 from pip._vendor.urllib3.util import IS_PYOPENSSL
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -47,10 +47,7 @@ logger = logging.getLogger(__name__)
 
 HAS_TLS = (ssl is not None) or IS_PYOPENSSL
 
-if PY3:
-    uses_pycache = True
-    from importlib.util import cache_from_source
-else:
+if PY2:
     import imp
 
     try:
@@ -60,11 +57,12 @@ else:
         cache_from_source = None
 
     uses_pycache = cache_from_source is not None
-
-
-if PY3:
-    backslashreplace_decode = "backslashreplace"
 else:
+    uses_pycache = True
+    from importlib.util import cache_from_source
+
+
+if PY2:
     # In version 3.4 and older, backslashreplace exists
     # but does not support use for decoding.
     # We implement our own replace handler for this
@@ -80,6 +78,8 @@ else:
         backslashreplace_decode_fn,
     )
     backslashreplace_decode = "backslashreplace_decode"
+else:
+    backslashreplace_decode = "backslashreplace"
 
 
 def str_to_display(data, desc=None):
@@ -155,19 +155,19 @@ def console_to_str(data):
     return str_to_display(data, desc='Subprocess output')
 
 
-if PY3:
-    def native_str(s, replace=False):
-        # type: (str, bool) -> str
-        if isinstance(s, bytes):
-            return s.decode('utf-8', 'replace' if replace else 'strict')
-        return s
-
-else:
+if PY2:
     def native_str(s, replace=False):
         # type: (str, bool) -> str
         # Replace is ignored -- unicode to UTF-8 can't fail
         if isinstance(s, text_type):
             return s.encode('utf-8')
+        return s
+
+else:
+    def native_str(s, replace=False):
+        # type: (str, bool) -> str
+        if isinstance(s, bytes):
+            return s.decode('utf-8', 'replace' if replace else 'strict')
         return s
 
 
@@ -201,16 +201,17 @@ def get_path_uid(path):
     return file_uid
 
 
-if PY3:
-    from importlib.machinery import EXTENSION_SUFFIXES
-
-    def get_extension_suffixes():
-        return EXTENSION_SUFFIXES
-else:
+if PY2:
     from imp import get_suffixes
 
     def get_extension_suffixes():
         return [suffix[0] for suffix in get_suffixes()]
+
+else:
+    from importlib.machinery import EXTENSION_SUFFIXES
+
+    def get_extension_suffixes():
+        return EXTENSION_SUFFIXES
 
 
 def expanduser(path):
