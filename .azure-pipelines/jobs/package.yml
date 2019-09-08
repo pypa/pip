@@ -21,7 +21,7 @@ jobs:
   - bash: nox -s generate_authors
     displayName: Generate AUTHORS.txt
 
-  - bash: nox -s generate_news --yes
+  - bash: nox -s generate_news -- --yes
     displayName: Generate NEWS.rst
 
   - bash: tox -e packaging
