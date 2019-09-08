@@ -63,7 +63,7 @@ else:
 
 
 if PY2:
-    # In version 3.4 and older, backslashreplace exists
+    # In Python 2.7, backslashreplace exists
     # but does not support use for decoding.
     # We implement our own replace handler for this
     # situation, so that we can consistently use
