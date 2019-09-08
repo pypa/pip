@@ -9,7 +9,7 @@ import os
 import shutil
 import sys
 
-from pip._vendor.six import PY2, PY3, text_type
+from pip._vendor.six import PY3, text_type
 from pip._vendor.urllib3.util import IS_PYOPENSSL
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -72,9 +72,8 @@ else:
     # backslash replacement for all versions.
     def backslashreplace_decode_fn(err):
         raw_bytes = (err.object[i] for i in range(err.start, err.end))
-        if PY2:
-            # Python 2 gave us characters - convert to numeric bytes
-            raw_bytes = (ord(b) for b in raw_bytes)
+        # Python 2 gave us characters - convert to numeric bytes
+        raw_bytes = (ord(b) for b in raw_bytes)
         return u"".join(u"\\x%x" % c for c in raw_bytes), err.end
     codecs.register_error(
         "backslashreplace_decode",
