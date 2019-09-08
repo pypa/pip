@@ -1598,6 +1598,7 @@ def test_protect_pip_from_modification_via_deps_on_windows(script):
     result = script.pip(*args, expect_error=True, use_module=False)
     new_command = [sys.executable, '-m', 'pip'] + args
     expected_message = (
+        'pip is being modified because it is listed as a dependency. '
         'To modify pip, please run the following command:\n{}'
         .format(' '.join(new_command))
     )
@@ -1632,6 +1633,7 @@ def test_protect_pip_from_modification_via_sub_deps_on_windows(script):
     result = script.pip(*args, expect_error=True, use_module=False)
     new_command = [sys.executable, '-m', 'pip'] + args
     expected_message = (
+        'pip is being modified because it is listed as a dependency. '
         'To modify pip, please run the following command:\n{}'
         .format(' '.join(new_command))
     )

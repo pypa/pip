@@ -1313,8 +1313,11 @@ def hide_url(url):
     return HiddenText(url, redacted=redacted)
 
 
-def protect_pip_from_modification_on_windows(modifying_pip):
-    # type: (bool) -> None
+def protect_pip_from_modification_on_windows(
+    modifying_pip,        # type: bool
+    as_dependency=False,  # type: bool
+):
+    # type: (...) -> None
     """Protection of pip.exe from modification on Windows
 
     On Windows, any operation modifying pip should be run as:
@@ -1337,7 +1340,14 @@ def protect_pip_from_modification_on_windows(modifying_pip):
         new_command = [
             sys.executable, "-m", "pip"
         ] + sys.argv[1:]
-        raise CommandError(
+        error_message = (
             'To modify pip, please run the following command:\n{}'
             .format(" ".join(new_command))
         )
+        if as_dependency:
+            error_message = (
+                'pip is being modified because it is '
+                'listed as a dependency. ' +
+                error_message
+            )
+        raise CommandError(error_message)
