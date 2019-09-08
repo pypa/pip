@@ -1,0 +1,2 @@
+Switch to new ``distlib`` wheel script template. This should be functionally
+equivalent for end users.

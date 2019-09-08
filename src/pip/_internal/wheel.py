@@ -23,6 +23,7 @@ from email.parser import Parser
 
 from pip._vendor import pkg_resources
 from pip._vendor.distlib.scripts import ScriptMaker
+from pip._vendor.distlib.util import get_export_entry
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.six import StringIO
 
@@ -313,6 +314,22 @@ def get_csv_rows_for_installed(
     return installed_rows
 
 
+class MissingCallableSuffix(Exception):
+    pass
+
+
+def _raise_for_invalid_entrypoint(specification):
+    entry = get_export_entry(specification)
+    if entry is not None and entry.suffix is None:
+        raise MissingCallableSuffix(str(entry))
+
+
+class PipScriptMaker(ScriptMaker):
+    def make(self, specification, options=None):
+        _raise_for_invalid_entrypoint(specification)
+        return super(PipScriptMaker, self).make(specification, options)
+
+
 def move_wheel_files(
     name,  # type: str
     req,  # type: Requirement
@@ -475,7 +492,7 @@ def move_wheel_files(
             dest = scheme[subdir]
             clobber(source, dest, False, fixer=fixer, filter=filter)
 
-    maker = ScriptMaker(None, scheme['scripts'])
+    maker = PipScriptMaker(None, scheme['scripts'])
 
     # Ensure old scripts are overwritten.
     # See https://github.com/pypa/pip/issues/1800
@@ -491,36 +508,7 @@ def move_wheel_files(
     # See https://bitbucket.org/pypa/distlib/issue/32/
     maker.set_mode = True
 
-    # Simplify the script and fix the fact that the default script swallows
-    # every single stack trace.
-    # See https://bitbucket.org/pypa/distlib/issue/34/
-    # See https://bitbucket.org/pypa/distlib/issue/33/
-    def _get_script_text(entry):
-        if entry.suffix is None:
-            raise InstallationError(
-                "Invalid script entry point: %s for req: %s - A callable "
-                "suffix is required. Cf https://packaging.python.org/en/"
-                "latest/distributing.html#console-scripts for more "
-                "information." % (entry, req)
-            )
-        return maker.script_template % {
-            "module": entry.prefix,
-            "import_name": entry.suffix.split(".")[0],
-            "func": entry.suffix,
-        }
-    # ignore type, because mypy disallows assigning to a method,
-    # see https://github.com/python/mypy/issues/2427
-    maker._get_script_text = _get_script_text  # type: ignore
-    maker.script_template = r"""# -*- coding: utf-8 -*-
-import re
-import sys
-
-from %(module)s import %(import_name)s
-
-if __name__ == '__main__':
-    sys.argv[0] = re.sub(r'(-script\.pyw?|\.exe)?$', '', sys.argv[0])
-    sys.exit(%(func)s())
-"""
+    scripts_to_generate = []
 
     # Special case pip and setuptools to generate versioned wrappers
     #
@@ -558,15 +546,16 @@ if __name__ == '__main__':
     pip_script = console.pop('pip', None)
     if pip_script:
         if "ENSUREPIP_OPTIONS" not in os.environ:
-            spec = 'pip = ' + pip_script
-            generated.extend(maker.make(spec))
+            scripts_to_generate.append('pip = ' + pip_script)
 
         if os.environ.get("ENSUREPIP_OPTIONS", "") != "altinstall":
-            spec = 'pip%s = %s' % (sys.version_info[0], pip_script)
-            generated.extend(maker.make(spec))
+            scripts_to_generate.append(
+                'pip%s = %s' % (sys.version_info[0], pip_script)
+            )
 
-        spec = 'pip%s = %s' % (get_major_minor_version(), pip_script)
-        generated.extend(maker.make(spec))
+        scripts_to_generate.append(
+            'pip%s = %s' % (get_major_minor_version(), pip_script)
+        )
         # Delete any other versioned pip entry points
         pip_ep = [k for k in console if re.match(r'pip(\d(\.\d)?)?$', k)]
         for k in pip_ep:
@@ -574,13 +563,15 @@ if __name__ == '__main__':
     easy_install_script = console.pop('easy_install', None)
     if easy_install_script:
         if "ENSUREPIP_OPTIONS" not in os.environ:
-            spec = 'easy_install = ' + easy_install_script
-            generated.extend(maker.make(spec))
+            scripts_to_generate.append(
+                'easy_install = ' + easy_install_script
+            )
 
-        spec = 'easy_install-%s = %s' % (
-            get_major_minor_version(), easy_install_script,
+        scripts_to_generate.append(
+            'easy_install-%s = %s' % (
+                get_major_minor_version(), easy_install_script
+            )
         )
-        generated.extend(maker.make(spec))
         # Delete any other versioned easy_install entry points
         easy_install_ep = [
             k for k in console if re.match(r'easy_install(-\d\.\d)?$', k)
@@ -589,24 +580,36 @@ if __name__ == '__main__':
             del console[k]
 
     # Generate the console and GUI entry points specified in the wheel
-    if len(console) > 0:
-        generated_console_scripts = maker.make_multiple(
-            ['%s = %s' % kv for kv in console.items()]
-        )
+    scripts_to_generate.extend(
+        '%s = %s' % kv for kv in console.items()
+    )
+
+    gui_scripts_to_generate = [
+        '%s = %s' % kv for kv in gui.items()
+    ]
+
+    generated_console_scripts = []  # type: List[str]
+
+    try:
+        generated_console_scripts = maker.make_multiple(scripts_to_generate)
         generated.extend(generated_console_scripts)
 
-        if warn_script_location:
-            msg = message_about_scripts_not_on_PATH(generated_console_scripts)
-            if msg is not None:
-                logger.warning(msg)
-
-    if len(gui) > 0:
         generated.extend(
-            maker.make_multiple(
-                ['%s = %s' % kv for kv in gui.items()],
-                {'gui': True}
-            )
+            maker.make_multiple(gui_scripts_to_generate, {'gui': True})
         )
+    except MissingCallableSuffix as e:
+        entry = e.args[0]
+        raise InstallationError(
+            "Invalid script entry point: {} for req: {} - A callable "
+            "suffix is required. Cf https://packaging.python.org/en/"
+            "latest/distributing.html#console-scripts for more "
+            "information.".format(entry, req)
+        )
+
+    if warn_script_location:
+        msg = message_about_scripts_not_on_PATH(generated_console_scripts)
+        if msg is not None:
+            logger.warning(msg)
 
     # Record pip as the installer
     installer = os.path.join(info_dir[0], 'INSTALLER')
