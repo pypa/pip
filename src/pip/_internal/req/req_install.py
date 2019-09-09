@@ -1000,7 +1000,6 @@ class InstallRequirement(object):
                         self,
                     )
                     # FIXME: put the record somewhere
-                    # FIXME: should this be an error?
                     return
             new_lines = []
             with open(record_filename) as f:
