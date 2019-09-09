@@ -12,6 +12,7 @@ import logging
 import operator
 import os
 import shutil
+import site
 from optparse import SUPPRESS_HELP
 
 from pip._vendor import pkg_resources
@@ -27,11 +28,11 @@ from pip._internal.exceptions import (
     InstallationError,
     PreviousBuildDirError,
 )
-from pip._internal.locations import distutils_scheme
+from pip._internal.locations import distutils_scheme, site_packages
 from pip._internal.operations.check import check_install_conflicts
 from pip._internal.req import RequirementSet, install_given_reqs
 from pip._internal.req.req_tracker import RequirementTracker
-from pip._internal.utils.filesystem import check_path_owner
+from pip._internal.utils.filesystem import check_path_owner, test_writable_dir
 from pip._internal.utils.misc import (
     ensure_dir,
     get_installed_version,
@@ -305,6 +306,17 @@ class InstallCommand(RequirementCommand):
                 )
             install_options.append('--user')
             install_options.append('--prefix=')
+
+        elif options.use_user_site is None:
+            if options.prefix_path or options.target_dir:
+                options.use_user_site = False
+            elif site_packages_writable(
+                    root=options.root_path,
+                    isolated=options.isolated_mode
+            ):
+                options.use_user_site = False
+            elif site.ENABLE_USER_SITE:
+                options.use_user_site = True
 
         target_temp_dir = None  # type: Optional[TempDirectory]
         target_temp_dir_path = None  # type: Optional[str]
@@ -592,6 +604,10 @@ class InstallCommand(RequirementCommand):
 def get_lib_location_guesses(*args, **kwargs):
     scheme = distutils_scheme('', *args, **kwargs)
     return [scheme['purelib'], scheme['platlib']]
+
+
+def site_packages_writable(**kwargs):
+    return all(test_writable_dir(d) for d in get_lib_location_guesses(**kwargs))
 
 
 def create_env_error_message(error, show_traceback, using_user_site):

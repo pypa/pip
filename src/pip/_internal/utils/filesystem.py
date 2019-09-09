@@ -1,5 +1,6 @@
 import os
 import os.path
+import random
 import shutil
 import stat
 from contextlib import contextmanager
@@ -113,3 +114,42 @@ if PY2:
 
 else:
     replace = _replace_retry(os.replace)
+
+
+# test_writable_dir and _test_writable_dir_win are copied from Flit,
+# with the author's agreement to also place them under pip's license.
+def test_writable_dir(path):
+    """Check if a directory is writable.
+
+    Uses os.access() on POSIX, tries creating files on Windows.
+    """
+    if os.name == 'posix':
+        return os.access(path, os.W_OK)
+
+    return _test_writable_dir_win(path)
+
+
+def _test_writable_dir_win(path):
+    # os.access doesn't work on Windows: http://bugs.python.org/issue2528
+    # and we can't use tempfile: http://bugs.python.org/issue22107
+    basename = 'accesstest_deleteme_fishfingers_custard_'
+    alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789'
+    for i in range(10):
+        name = basename + ''.join(random.choice(alphabet) for _ in range(6))
+        file = os.path.join(path, name)
+        try:
+            with open(file, mode='xb'):
+                pass
+        except FileExistsError:
+            continue
+        except PermissionError:
+            # This could be because there's a directory with the same name.
+            # But it's highly unlikely there's a directory called that,
+            # so we'll assume it's because the parent directory is not writable.
+            return False
+        else:
+            os.unlink(file)
+            return True
+
+    # This should never be reached
+    raise EnvironmentError('Unexpected condition testing for writable directory')
