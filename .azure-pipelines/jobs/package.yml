@@ -15,13 +15,13 @@ jobs:
     inputs:
       versionSpec: '3'
 
-  - bash: pip install setuptools tox wheel invoke towncrier requests
+  - bash: pip install tox nox setuptools wheel
     displayName: Install dependencies
 
-  - bash: invoke generate.authors
+  - bash: nox -s generate_authors
     displayName: Generate AUTHORS.txt
 
-  - bash: invoke generate.news --yes
+  - bash: nox -s generate_news -- --yes
     displayName: Generate NEWS.rst
 
   - bash: tox -e packaging
