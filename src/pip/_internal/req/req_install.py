@@ -786,7 +786,6 @@ class InstallRequirement(object):
             no_user_config=self.isolated
         )
         with indent_log():
-            # FIXME: should we do --install-headers here too?
             with self.build_env:
                 call_subprocess(
                     base_cmd +
