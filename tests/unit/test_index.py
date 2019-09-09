@@ -1131,6 +1131,19 @@ def test_clean_url_path_non_windows(path, expected):
             "file:///T%3A/path/with%20spaces/",
             marks=pytest.mark.skipif("sys.platform == 'win32'"),
         ),
+        # Test a VCS URL with a Windows drive letter and revision.
+        pytest.param(
+            "git+file:///T:/with space/repo.git@1.0#egg=my-package-1.0",
+            "git+file:///T:/with%20space/repo.git@1.0#egg=my-package-1.0",
+            marks=pytest.mark.skipif("sys.platform != 'win32'"),
+        ),
+        # Test a VCS URL with a Windows drive letter and revision,
+        # running on non-windows platform.
+        pytest.param(
+            "git+file:///T:/with space/repo.git@1.0#egg=my-package-1.0",
+            "git+file:/T%3A/with%20space/repo.git@1.0#egg=my-package-1.0",
+            marks=pytest.mark.skipif("sys.platform == 'win32'"),
+        ),
     ]
 )
 def test_clean_link(url, clean_url):
