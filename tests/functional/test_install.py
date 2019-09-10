@@ -7,6 +7,7 @@ import textwrap
 from os.path import curdir, join, pardir
 
 import pytest
+from pip._vendor.six import PY2
 
 from pip import __version__ as pip_current_version
 from pip._internal import pep425tags
@@ -28,6 +29,9 @@ from tests.lib import (
 from tests.lib.filesystem import make_socket_file
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
+
+skip_if_python2 = pytest.mark.skipif(PY2, reason="Non-Python 2 only")
+skip_if_not_python2 = pytest.mark.skipif(not PY2, reason="Python 2 only")
 
 
 @pytest.mark.parametrize('command', ('install', 'wheel'))
@@ -561,7 +565,7 @@ def test_editable_install__local_dir_no_setup_py_with_pyproject(
     assert 'A "pyproject.toml" file was found' in msg
 
 
-@pytest.mark.skipif("sys.version_info >= (3,4)")
+@skip_if_not_python2
 @pytest.mark.xfail
 def test_install_argparse_shadowed(script):
     # When argparse is in the stdlib, we support installing it
@@ -576,7 +580,7 @@ def test_install_argparse_shadowed(script):
 
 
 @pytest.mark.network
-@pytest.mark.skipif("sys.version_info < (3,4)")
+@skip_if_python2
 def test_upgrade_argparse_shadowed(script):
     # If argparse is installed - even if shadowed for imported - we support
     # upgrading it and properly remove the older versions files.

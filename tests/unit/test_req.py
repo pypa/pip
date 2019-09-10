@@ -99,7 +99,7 @@ class TestRequirementSet(object):
             reqset,
         )
 
-    # TODO: Update test when Python 2.7 or Python 3.4 is dropped.
+    # TODO: Update test when Python 2.7 is dropped.
     def test_environment_marker_extras(self, data):
         """
         Test that the environment marker extras are used with
@@ -115,7 +115,7 @@ class TestRequirementSet(object):
         resolver = self._basic_resolver(finder)
         resolver.resolve(reqset)
         # This is hacky but does test both case in py2 and py3
-        if sys.version_info[:2] in ((2, 7), (3, 4)):
+        if sys.version_info[:2] == (2, 7):
             assert reqset.has_requirement('simple')
         else:
             assert not reqset.has_requirement('simple')
