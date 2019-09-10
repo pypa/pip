@@ -24,6 +24,8 @@ file to download for a package, given a requirement:
    is an HTML page of anchor links.
 2. Collect together all of the links (e.g. by parsing the anchor links
    from the HTML pages) and create ``Link`` objects from each of these.
+   The :ref:`LinkCollector <link-collector-class>` class is responsible
+   for both this step and the previous.
 3. Determine which of the links are minimally relevant, using the
    :ref:`LinkEvaluator <link-evaluator-class>` class.  Create an
    ``InstallationCandidate`` object (aka candidate for install) for each
@@ -39,6 +41,7 @@ The remainder of this section is organized by documenting some of the
 classes inside ``index.py``, in the following order:
 
 * the main :ref:`PackageFinder <package-finder-class>` class,
+* the :ref:`LinkCollector <link-collector-class>` class,
 * the :ref:`LinkEvaluator <link-evaluator-class>` class,
 * the :ref:`CandidateEvaluator <candidate-evaluator-class>` class,
 * the :ref:`CandidatePreferences <candidate-preferences-class>` class, and
@@ -95,16 +98,45 @@ links.
 One of ``PackageFinder``'s main top-level methods is
 ``find_best_candidate()``. This method does the following two things:
 
-1. Calls its ``find_all_candidates()`` method, which reads and parses all the
-   index URL's provided by the user, constructs a :ref:`LinkEvaluator
-   <link-evaluator-class>` object to filter out some of those links, and then
-   returns a list of ``InstallationCandidates`` (aka candidates for install).
-   This corresponds to steps 1-3 of the :ref:`Overview <index-py-overview>`
-   above.
+1. Calls its ``find_all_candidates()`` method, which gathers all
+   possible package links by reading and parsing the index URL's and
+   locations provided by the user (the :ref:`LinkCollector
+   <link-collector-class>` class's ``collect_links()`` method), constructs a
+   :ref:`LinkEvaluator <link-evaluator-class>` object to filter out some of
+   those links, and then returns a list of ``InstallationCandidates`` (aka
+   candidates for install). This corresponds to steps 1-3 of the
+   :ref:`Overview <index-py-overview>` above.
 2. Constructs a ``CandidateEvaluator`` object and uses that to determine
    the best candidate. It does this by calling the ``CandidateEvaluator``
    class's ``compute_best_candidate()`` method on the return value of
    ``find_all_candidates()``. This corresponds to steps 4-5 of the Overview.
+
+
+.. _link-collector-class:
+
+The ``LinkCollector`` class
+***************************
+
+The :ref:`LinkCollector <link-collector-class>` class is the class
+responsible for collecting the raw list of "links" to package files
+(represented as ``Link`` objects). An instance of the class accesses the
+various `PEP 503`_ HTML "simple repository" pages, parses their HTML,
+extracts the links from the anchor elements, and creates ``Link`` objects
+from that information. The ``LinkCollector`` class is "unintelligent" in that
+it doesn't do any evaluation of whether the links are relevant to the
+original requirement; it just collects them.
+
+The ``LinkCollector`` class takes into account the user's :ref:`--find-links
+<--find-links>`, :ref:`--extra-index-url <--extra-index-url>`, and related
+options when deciding which locations to collect links from. The class's main
+method is the ``collect_links()`` method. The :ref:`PackageFinder
+<package-finder-class>` class invokes this method as the first step of its
+``find_all_candidates()`` method.
+
+The ``LinkCollector`` class is the only class in the ``index.py`` module that
+makes network requests and is the only class in the module that depends
+directly on ``PipSession``, which stores pip's configuration options and
+state for making requests.
 
 
 .. _link-evaluator-class:
@@ -191,7 +223,8 @@ The ``BestCandidateResult`` class
 The ``BestCandidateResult`` class is a convenience "container" class that
 encapsulates the result of finding the best candidate for a requirement.
 (By "container" we mean an object that simply contains data and has no
-business logic or state-changing methods of its own.)
+business logic or state-changing methods of its own.) It stores not just the
+final result but also intermediate values used to determine the result.
 
 The class is the return type of both the ``CandidateEvaluator`` class's
 ``compute_best_candidate()`` method and the ``PackageFinder`` class's
