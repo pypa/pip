@@ -1,8 +1,9 @@
 import logging
 import os.path
+from textwrap import dedent
 
 import pytest
-from mock import Mock
+from mock import Mock, patch
 from pip._vendor import html5lib, requests
 from pip._vendor.packaging.specifiers import SpecifierSet
 
@@ -25,13 +26,94 @@ from pip._internal.index import (
     group_locations,
 )
 from pip._internal.models.candidate import InstallationCandidate
+from pip._internal.models.index import PyPI
 from pip._internal.models.link import Link
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.pep425tags import get_supported
 from pip._internal.utils.hashes import Hashes
-from tests.lib import CURRENT_PY_VERSION_INFO
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from tests.lib import CURRENT_PY_VERSION_INFO, make_test_search_scope
+
+if MYPY_CHECK_RUNNING:
+    from typing import List, Optional
+
+
+def make_fake_html_page(url):
+    html = dedent(u"""\
+    <html><head><meta name="api-version" value="2" /></head>
+    <body>
+    <a href="/abc-1.0.tar.gz#md5=000000000">abc-1.0.tar.gz</a>
+    </body></html>
+    """)
+    content = html.encode('utf-8')
+    headers = {}
+    return HTMLPage(content, url=url, headers=headers)
+
+
+def make_test_link_collector(
+    find_links=None,  # type: Optional[List[str]]
+):
+    # type: (...) -> LinkCollector
+    """
+    Create a LinkCollector object for testing purposes.
+    """
+    session = PipSession()
+    search_scope = make_test_search_scope(
+        find_links=find_links,
+        index_urls=[PyPI.simple_url],
+    )
+
+    return LinkCollector(
+        session=session,
+        search_scope=search_scope,
+    )
+
+
+def check_links_include(links, names):
+    """
+    Assert that the given list of Link objects includes, for each of the
+    given names, a link whose URL has a base name matching that name.
+    """
+    for name in names:
+        assert any(link.url.endswith(name) for link in links), (
+            'name {!r} not among links: {}'.format(name, links)
+        )
+
+
+class TestLinkCollector(object):
+
+    @patch('pip._internal.index._get_html_response')
+    def test_collect_links(self, mock_get_html_response, data):
+        expected_url = 'https://pypi.org/simple/twine/'
+
+        fake_page = make_fake_html_page(expected_url)
+        mock_get_html_response.return_value = fake_page
+
+        link_collector = make_test_link_collector(
+            find_links=[data.find_links]
+        )
+        actual = link_collector.collect_links('twine')
+
+        mock_get_html_response.assert_called_once_with(
+            expected_url, session=link_collector.session,
+        )
+
+        # Spot-check the CollectedLinks return value.
+        assert len(actual.files) > 20
+        check_links_include(actual.files, names=['simple-1.0.tar.gz'])
+
+        assert len(actual.find_links) == 1
+        check_links_include(actual.find_links, names=['packages'])
+
+        actual_pages = actual.pages
+        assert list(actual_pages) == [expected_url]
+        actual_page_links = actual_pages[expected_url]
+        assert len(actual_page_links) == 1
+        assert actual_page_links[0].url == (
+            'https://pypi.org/abc-1.0.tar.gz#md5=000000000'
+        )
 
 
 def make_mock_candidate(version, yanked_reason=None, hex_digest=None):
@@ -585,6 +667,22 @@ class TestPackageFinder:
         candidate_prefs = finder._candidate_prefs
         assert candidate_prefs.allow_all_prereleases == allow_all_prereleases
         assert candidate_prefs.prefer_binary == prefer_binary
+
+    def test_create__link_collector(self):
+        """
+        Test that the _link_collector attribute is set correctly.
+        """
+        search_scope = SearchScope([], [])
+        session = PipSession()
+        finder = PackageFinder.create(
+            search_scope=search_scope,
+            selection_prefs=SelectionPreferences(allow_yanked=True),
+            session=session,
+        )
+
+        actual_link_collector = finder._link_collector
+        assert actual_link_collector.search_scope is search_scope
+        assert actual_link_collector.session is session
 
     def test_create__target_python(self):
         """
