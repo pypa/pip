@@ -1022,14 +1022,18 @@ class PackageFinder(object):
             version=str(result),
         )
 
-    def _package_versions(self, link_evaluator, links):
+    def evaluate_links(self, link_evaluator, links):
         # type: (LinkEvaluator, Iterable[Link]) -> List[InstallationCandidate]
-        result = []
+        """
+        Convert links that are candidates to InstallationCandidate objects.
+        """
+        candidates = []
         for link in self._sort_links(links):
             candidate = self.get_install_candidate(link_evaluator, link)
             if candidate is not None:
-                result.append(candidate)
-        return result
+                candidates.append(candidate)
+
+        return candidates
 
     def find_all_candidates(self, project_name):
         # type: (str) -> List[InstallationCandidate]
@@ -1070,21 +1074,26 @@ class PackageFinder(object):
             logger.debug('* %s', location)
 
         link_evaluator = self.make_link_evaluator(project_name)
-        find_links_versions = self._package_versions(
+        find_links_versions = self.evaluate_links(
             link_evaluator,
             # We trust every directly linked archive in find_links
-            (Link(url, '-f') for url in self.find_links),
+            links=(Link(url, '-f') for url in self.find_links),
         )
 
         page_versions = []
         for page in self._get_pages(url_locations, project_name):
             logger.debug('Analyzing links from page %s', page.url)
             with indent_log():
-                page_versions.extend(
-                    self._package_versions(link_evaluator, page.iter_links())
+                new_versions = self.evaluate_links(
+                    link_evaluator,
+                    links=page.iter_links(),
                 )
+                page_versions.extend(new_versions)
 
-        file_versions = self._package_versions(link_evaluator, file_locations)
+        file_versions = self.evaluate_links(
+            link_evaluator,
+            links=file_locations,
+        )
         if file_versions:
             file_versions.sort(reverse=True)
             logger.debug(
