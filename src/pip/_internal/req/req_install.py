@@ -863,10 +863,12 @@ class InstallRequirement(object):
         name = self._clean_zip_name(path, rootdir)
         return self.name + '/' + name
 
-    # TODO: Investigate if this should be kept in InstallRequirement
-    #       Seems to be used only when VCS + downloads
     def archive(self, build_dir):
         # type: (str) -> None
+        """Saves archive to provided build_dir.
+
+        Used for saving downloaded VCS requirements as part of `pip download`.
+        """
         assert self.source_dir
         create_archive = True
         archive_name = '%s-%s.zip' % (self.name, self.metadata["version"])
