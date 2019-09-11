@@ -141,7 +141,7 @@ class RequirementCommand(IndexGroupCommand):
 
     @staticmethod
     def make_requirement_preparer(
-        temp_directory,           # type: TempDirectory
+        temp_build_dir,           # type: TempDirectory
         options,                  # type: Values
         req_tracker,              # type: RequirementTracker
         download_dir=None,        # type: str
@@ -151,8 +151,10 @@ class RequirementCommand(IndexGroupCommand):
         """
         Create a RequirementPreparer instance for the given parameters.
         """
+        temp_build_dir_path = temp_build_dir.path
+        assert temp_build_dir_path is not None
         return RequirementPreparer(
-            build_dir=temp_directory.path,
+            build_dir=temp_build_dir_path,
             src_dir=options.src_dir,
             download_dir=download_dir,
             wheel_download_dir=wheel_download_dir,

@@ -358,7 +358,7 @@ class InstallCommand(RequirementCommand):
                     wheel_cache
                 )
                 preparer = self.make_requirement_preparer(
-                    temp_directory=directory,
+                    temp_build_dir=directory,
                     options=options,
                     req_tracker=req_tracker,
                 )
