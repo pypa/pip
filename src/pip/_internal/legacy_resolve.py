@@ -227,7 +227,6 @@ class Resolver(object):
             req.conflicts_with = req.satisfied_by
         req.satisfied_by = None
 
-    # XXX: Stop passing requirement_set for options
     def _check_skip_installed(self, req_to_install):
         # type: (InstallRequirement) -> Optional[str]
         """Check if req_to_install should be skipped.
