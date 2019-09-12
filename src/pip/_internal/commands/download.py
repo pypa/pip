@@ -125,7 +125,7 @@ class DownloadCommand(RequirementCommand):
             )
 
             preparer = self.make_requirement_preparer(
-                temp_directory=directory,
+                temp_build_dir=directory,
                 options=options,
                 req_tracker=req_tracker,
                 download_dir=options.download_dir,
