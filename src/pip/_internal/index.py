@@ -1428,8 +1428,8 @@ def _clean_file_url_path(part):
     return urllib_request.pathname2url(urllib_request.url2pathname(part))
 
 
-# percent-encoded:                      /   @
-_reserved_chars_re = re.compile('([/@]|%2F|%40)', re.IGNORECASE)
+# percent-encoded:                   /
+_reserved_chars_re = re.compile('(@|%2F)', re.IGNORECASE)
 
 
 def _clean_url_path(path, is_local_path):
