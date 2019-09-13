@@ -1046,10 +1046,9 @@ def test_request_retries(caplog):
         ('a %40@b %40@c %40', 'a%20%40@b%20%40@c%20%40'),
     ]
 )
-def test_clean_url_path(path, expected):
-    for is_local_path in (True, False):
-        actual = _clean_url_path(path, is_local_path=is_local_path)
-        assert actual == expected, 'is_local_path: {}'.format(is_local_path)
+@pytest.mark.parametrize('is_local_path', [True, False])
+def test_clean_url_path(path, expected, is_local_path):
+    assert _clean_url_path(path, is_local_path=is_local_path) == expected
 
 
 @pytest.mark.parametrize(
