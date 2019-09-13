@@ -39,6 +39,7 @@ from pip._internal.utils.misc import (
     SUPPORTED_EXTENSIONS,
     WHEEL_EXTENSION,
     build_netloc,
+    pairwise,
     path_to_url,
     redact_auth_from_url,
 )
@@ -1427,24 +1428,30 @@ def _clean_file_url_path(part):
     return urllib_request.pathname2url(urllib_request.url2pathname(part))
 
 
+# percent-encoded:                      /   @
+_reserved_chars_re = re.compile('([/@]|%2F|%40)', re.IGNORECASE)
+
+
 def _clean_url_path(path, is_local_path):
     """
     Clean the path portion of a URL.
     """
     if is_local_path:
-        clean_start = _clean_file_url_path
+        clean_func = _clean_file_url_path
     else:
-        clean_start = _clean_url_path_part
+        clean_func = _clean_url_path_part
 
-    # Split on the reserved character "@" prior to cleaning so that
+    # Split on the reserved characters prior to cleaning so that
     # revision strings in VCS URLs are properly preserved.
-    parts = path.split('@')
-    # Treat the first path part differently because it's the part that
-    # can contain a Windows drive letter.
-    cleaned_parts = [clean_start(parts[0])]
-    cleaned_parts.extend(_clean_url_path_part(part) for part in parts[1:])
+    parts = _reserved_chars_re.split(path)
 
-    return '@'.join(cleaned_parts)
+    cleaned_parts = []
+    for to_clean, reserved in pairwise(itertools.chain(parts, [''])):
+        cleaned_parts.append(clean_func(to_clean))
+        # Normalize %xx escapes (e.g. %2f -> %2F)
+        cleaned_parts.append(reserved.upper())
+
+    return ''.join(cleaned_parts)
 
 
 def _clean_link(url):

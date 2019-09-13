@@ -1056,6 +1056,10 @@ def test_request_retries(caplog):
         ('a /b%2F c', 'a%20/b%2F%20c'),
         # Test alternating quoted and unquoted "/".
         ('a %2F/b %2F/c %2F', 'a%20%2F/b%20%2F/c%20%2F'),
+        # Test normalizing non-reserved quoted characters "[" and "]"
+        ('a %5b %5d b', 'a%20%5B%20%5D%20b'),
+        # Test normalizing a reserved quoted "/"
+        ('a %2f b', 'a%20%2F%20b'),
     ]
 )
 @pytest.mark.parametrize('is_local_path', [True, False])
