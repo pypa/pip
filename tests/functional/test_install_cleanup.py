@@ -47,10 +47,7 @@ def test_cleanup_after_install_editable_from_hg(script, tmpdir):
         'install',
         '-e',
         '%s#egg=ScriptTest' %
-        local_checkout(
-            'hg+https://bitbucket.org/ianb/scripttest',
-            tmpdir.joinpath("cache"),
-        ),
+        local_checkout('hg+https://bitbucket.org/ianb/scripttest', tmpdir),
     )
     build = script.venv_path / 'build'
     src = script.venv_path / 'src'

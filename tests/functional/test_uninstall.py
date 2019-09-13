@@ -296,8 +296,7 @@ def test_uninstall_editable_from_svn(script, tmpdir):
     result = script.pip(
         'install', '-e',
         '%s#egg=initools' % local_checkout(
-            'svn+http://svn.colorstudy.com/INITools/trunk',
-            tmpdir.joinpath("cache"),
+            'svn+http://svn.colorstudy.com/INITools/trunk', tmpdir,
         ),
     )
     result.assert_installed('INITools')
@@ -318,34 +317,29 @@ def test_uninstall_editable_from_svn(script, tmpdir):
 def test_uninstall_editable_with_source_outside_venv(script, tmpdir):
     """
     Test uninstalling editable install from existing source outside the venv.
-
     """
-    cache_dir = tmpdir.joinpath("cache")
-
     try:
         temp = mkdtemp()
-        tmpdir = join(temp, 'pip-test-package')
+        temp_pkg_dir = join(temp, 'pip-test-package')
         _test_uninstall_editable_with_source_outside_venv(
             script,
             tmpdir,
-            cache_dir,
+            temp_pkg_dir,
         )
     finally:
         rmtree(temp)
 
 
 def _test_uninstall_editable_with_source_outside_venv(
-        script, tmpdir, cache_dir):
+    script, tmpdir, temp_pkg_dir,
+):
     result = script.run(
         'git', 'clone',
-        local_repo(
-            'git+git://github.com/pypa/pip-test-package',
-            cache_dir,
-        ),
-        tmpdir,
+        local_repo('git+git://github.com/pypa/pip-test-package', tmpdir),
+        temp_pkg_dir,
         expect_stderr=True,
     )
-    result2 = script.pip('install', '-e', tmpdir)
+    result2 = script.pip('install', '-e', temp_pkg_dir)
     assert join(
         script.site_packages, 'pip-test-package.egg-link'
     ) in result2.files_created, list(result2.files_created.keys())
@@ -370,10 +364,7 @@ def test_uninstall_from_reqs_file(script, tmpdir):
             # and something else to test out:
             PyLogo<0.4
         """) %
-        local_checkout(
-            'svn+http://svn.colorstudy.com/INITools/trunk',
-            tmpdir.joinpath("cache")
-        )
+        local_checkout('svn+http://svn.colorstudy.com/INITools/trunk', tmpdir)
     )
     result = script.pip('install', '-r', 'test-req.txt')
     script.scratch_path.joinpath("test-req.txt").write_text(
@@ -387,10 +378,7 @@ def test_uninstall_from_reqs_file(script, tmpdir):
             # and something else to test out:
             PyLogo<0.4
         """) %
-        local_checkout(
-            'svn+http://svn.colorstudy.com/INITools/trunk',
-            tmpdir.joinpath("cache")
-        )
+        local_checkout('svn+http://svn.colorstudy.com/INITools/trunk', tmpdir)
     )
     result2 = script.pip('uninstall', '-r', 'test-req.txt', '-y')
     assert_all_changes(

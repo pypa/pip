@@ -6,8 +6,12 @@ import subprocess
 from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip._internal.utils.misc import hide_url
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs import bazaar, git, mercurial, subversion
 from tests.lib import path_to_url
+
+if MYPY_CHECK_RUNNING:
+    from tests.lib.path import Path
 
 
 def _create_initools_repository(directory):
@@ -68,7 +72,17 @@ def _get_vcs_and_checkout_url(remote_repository, directory):
     )
 
 
-def local_checkout(remote_repo, directory):
+def local_checkout(
+    remote_repo,  # type: str
+    temp_path,    # type: Path
+):
+    # type: (...) -> str
+    """
+    :param temp_path: the return value of the tmpdir fixture, which is a
+        temp directory Path object unique to each test function invocation,
+        created as a sub directory of the base temp directory.
+    """
+    directory = temp_path.joinpath('cache')
     if not os.path.exists(directory):
         os.mkdir(directory)
         # os.makedirs(directory)
@@ -78,5 +92,5 @@ def local_checkout(remote_repo, directory):
     return _get_vcs_and_checkout_url(remote_repo, directory)
 
 
-def local_repo(remote_repo, directory):
-    return local_checkout(remote_repo, directory).split('+', 1)[1]
+def local_repo(remote_repo, temp_path):
+    return local_checkout(remote_repo, temp_path).split('+', 1)[1]
