@@ -52,6 +52,7 @@ from pip._internal.utils.misc import (
     make_subprocess_output_error,
     normalize_path,
     normalize_version_info,
+    pairwise,
     parse_netloc,
     path_to_display,
     path_to_url,
@@ -1578,3 +1579,21 @@ def test_make_setuptools_shim_args__unbuffered_output(unbuffered_output):
         unbuffered_output=unbuffered_output
     )
     assert ('-u' in args) == unbuffered_output
+
+
+@pytest.mark.parametrize('iterable, expected', [
+    # Test an empty list
+    ([], []),
+    # Test a single element list
+    ([0], [(0, None)]),
+    # Test an even length list
+    ([0, 1], [(0, 1)]),
+    # Test an odd length list
+    ([0, 1, 2], [(0, 1), (2, None)]),
+    # Test a quite long list
+    ([0, 1, 2, 3, 4, 5, 6, 7], [(0, 1), (2, 3), (4, 5), (6, 7)]),
+    # Test a generator comprehension
+    ((x for x in range(6)), [(0, 1), (2, 3), (4, 5)]),
+])
+def test_pairwise(iterable, expected):
+    assert list(pairwise(iterable)) == expected

@@ -24,7 +24,7 @@ from pip._vendor import pkg_resources
 #       why we ignore the type on this import.
 from pip._vendor.retrying import retry  # type: ignore
 from pip._vendor.six import PY2, text_type
-from pip._vendor.six.moves import input, shlex_quote
+from pip._vendor.six.moves import input, shlex_quote, zip_longest
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
@@ -57,8 +57,8 @@ else:
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, AnyStr, Container, Iterable, List, Mapping, Match, Optional, Text,
-        Tuple, Union, cast,
+        Any, AnyStr, Container, Iterable, Iterator, List, Mapping, Match,
+        Optional, Text, Tuple, Union, cast,
     )
     from pip._vendor.pkg_resources import Distribution
     from pip._internal.models.link import Link
@@ -1341,3 +1341,16 @@ def protect_pip_from_modification_on_windows(modifying_pip):
             'To modify pip, please run the following command:\n{}'
             .format(" ".join(new_command))
         )
+
+
+def pairwise(iterable):
+    # type: (Iterable[Any]) -> Iterator[Tuple[Any, Any]]
+    """
+    Return paired elements.
+
+    For example:
+        s -> (s0, s1), (s2, s3), (s4, s5), ...
+
+    """
+    iterable = iter(iterable)
+    return zip_longest(iterable, iterable)
