@@ -1044,6 +1044,18 @@ def test_request_retries(caplog):
         ('a @b%40 c', 'a%20@b%40%20c'),
         # Test alternating quoted and unquoted "@".
         ('a %40@b %40@c %40', 'a%20%40@b%20%40@c%20%40'),
+        # Test an unquoted "/".
+        ('a / b', 'a%20/%20b'),
+        # Test multiple unquoted "/".
+        ('a / / b', 'a%20/%20/%20b'),
+        # Test a quoted "/".
+        ('a %2F b', 'a%20%2F%20b'),
+        # Test a quoted "/" before an unquoted "/".
+        ('a %2Fb/ c', 'a%20%2Fb/%20c'),
+        # Test a quoted "/" after an unquoted "/".
+        ('a /b%2F c', 'a%20/b%2F%20c'),
+        # Test alternating quoted and unquoted "/".
+        ('a %2F/b %2F/c %2F', 'a%20%2F/b%20%2F/c%20%2F'),
     ]
 )
 @pytest.mark.parametrize('is_local_path', [True, False])
