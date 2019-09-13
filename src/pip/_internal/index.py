@@ -48,8 +48,8 @@ from pip._internal.wheel import Wheel
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, Callable, FrozenSet, Iterable, List, MutableMapping, Optional,
-        Sequence, Set, Text, Tuple, Union,
+        Any, Callable, Dict, FrozenSet, Iterable, List, MutableMapping,
+        Optional, Sequence, Set, Text, Tuple, Union,
     )
     import xml.etree.ElementTree
     from pip._vendor.packaging.version import _BaseVersion
@@ -310,6 +310,123 @@ def group_locations(locations, expand_dir=False):
             )
 
     return files, urls
+
+
+class CollectedLinks(object):
+
+    """
+    Encapsulates all the Link objects collected by a call to
+    LinkCollector.collect_links(), stored separately as--
+
+    (1) links from the configured file locations,
+    (2) links from the configured find_links, and
+    (3) a dict mapping HTML page url to links from that page.
+    """
+
+    def __init__(
+        self,
+        files,       # type: List[Link]
+        find_links,  # type: List[Link]
+        pages,       # type: Dict[str, List[Link]]
+    ):
+        # type: (...) -> None
+        """
+        :param files: Links from file locations.
+        :param find_links: Links from find_links.
+        :param pages: A dict mapping HTML page url to links from that page.
+        """
+        self.files = files
+        self.find_links = find_links
+        self.pages = pages
+
+
+class LinkCollector(object):
+
+    """
+    Responsible for collecting Link objects from all configured locations,
+    making network requests as needed.
+
+    The class's main method is its collect_links() method.
+    """
+
+    def __init__(
+        self,
+        session,       # type: PipSession
+        search_scope,  # type: SearchScope
+    ):
+        # type: (...) -> None
+        self.search_scope = search_scope
+        self.session = session
+
+    @property
+    def find_links(self):
+        # type: () -> List[str]
+        return self.search_scope.find_links
+
+    def _get_pages(self, locations, project_name):
+        # type: (Iterable[Link], str) -> Iterable[HTMLPage]
+        """
+        Yields (page, page_url) from the given locations, skipping
+        locations that have errors.
+        """
+        seen = set()  # type: Set[Link]
+        for location in locations:
+            if location in seen:
+                continue
+            seen.add(location)
+
+            page = _get_html_page(location, session=self.session)
+            if page is None:
+                continue
+
+            yield page
+
+    def collect_links(self, project_name):
+        # type: (str) -> CollectedLinks
+        """Find all available links for the given project name.
+
+        :return: All the Link objects (unfiltered), as a CollectedLinks object.
+        """
+        search_scope = self.search_scope
+        index_locations = search_scope.get_index_urls_locations(project_name)
+        index_file_loc, index_url_loc = group_locations(index_locations)
+        fl_file_loc, fl_url_loc = group_locations(
+            self.find_links, expand_dir=True,
+        )
+
+        file_links = [
+            Link(url) for url in itertools.chain(index_file_loc, fl_file_loc)
+        ]
+
+        # We trust every directly linked archive in find_links
+        find_link_links = [Link(url, '-f') for url in self.find_links]
+
+        # We trust every url that the user has given us whether it was given
+        # via --index-url or --find-links.
+        # We want to filter out anything that does not have a secure origin.
+        url_locations = [
+            link for link in itertools.chain(
+                (Link(url) for url in index_url_loc),
+                (Link(url) for url in fl_url_loc),
+            )
+            if self.session.is_secure_origin(link)
+        ]
+
+        logger.debug('%d location(s) to search for versions of %s:',
+                     len(url_locations), project_name)
+
+        for location in url_locations:
+            logger.debug('* %s', location)
+
+        pages_links = {}
+        for page in self._get_pages(url_locations, project_name):
+            pages_links[page.url] = list(page.iter_links())
+
+        return CollectedLinks(
+            files=file_links,
+            find_links=find_link_links,
+            pages=pages_links,
+        )
 
 
 def _check_link_requires_python(
@@ -853,8 +970,7 @@ class PackageFinder(object):
 
     def __init__(
         self,
-        search_scope,         # type: SearchScope
-        session,  # type: PipSession
+        link_collector,       # type: LinkCollector
         target_python,        # type: TargetPython
         allow_yanked,         # type: bool
         format_control=None,  # type: Optional[FormatControl]
@@ -866,7 +982,6 @@ class PackageFinder(object):
         This constructor is primarily meant to be used by the create() class
         method and from tests.
 
-        :param session: The Session to use to make requests.
         :param format_control: A FormatControl object, used to control
             the selection of source packages / binary packages when consulting
             the index and links.
@@ -881,10 +996,9 @@ class PackageFinder(object):
         self._allow_yanked = allow_yanked
         self._candidate_prefs = candidate_prefs
         self._ignore_requires_python = ignore_requires_python
+        self._link_collector = link_collector
         self._target_python = target_python
 
-        self.search_scope = search_scope
-        self.session = session
         self.format_control = format_control
 
         # These are boring links that have already been logged somehow.
@@ -925,10 +1039,14 @@ class PackageFinder(object):
             allow_all_prereleases=selection_prefs.allow_all_prereleases,
         )
 
+        link_collector = LinkCollector(
+            session=session,
+            search_scope=search_scope,
+        )
+
         return cls(
             candidate_prefs=candidate_prefs,
-            search_scope=search_scope,
-            session=session,
+            link_collector=link_collector,
             target_python=target_python,
             allow_yanked=selection_prefs.allow_yanked,
             format_control=selection_prefs.format_control,
@@ -936,9 +1054,19 @@ class PackageFinder(object):
         )
 
     @property
+    def search_scope(self):
+        # type: () -> SearchScope
+        return self._link_collector.search_scope
+
+    @search_scope.setter
+    def search_scope(self, search_scope):
+        # type: (SearchScope) -> None
+        self._link_collector.search_scope = search_scope
+
+    @property
     def find_links(self):
         # type: () -> List[str]
-        return self.search_scope.find_links
+        return self._link_collector.find_links
 
     @property
     def index_urls(self):
@@ -948,7 +1076,7 @@ class PackageFinder(object):
     @property
     def trusted_hosts(self):
         # type: () -> Iterable[str]
-        for host_port in self.session.pip_trusted_origins:
+        for host_port in self._link_collector.session.pip_trusted_origins:
             yield build_netloc(*host_port)
 
     @property
@@ -1022,14 +1150,18 @@ class PackageFinder(object):
             version=str(result),
         )
 
-    def _package_versions(self, link_evaluator, links):
+    def evaluate_links(self, link_evaluator, links):
         # type: (LinkEvaluator, Iterable[Link]) -> List[InstallationCandidate]
-        result = []
+        """
+        Convert links that are candidates to InstallationCandidate objects.
+        """
+        candidates = []
         for link in self._sort_links(links):
             candidate = self.get_install_candidate(link_evaluator, link)
             if candidate is not None:
-                result.append(candidate)
-        return result
+                candidates.append(candidate)
+
+        return candidates
 
     def find_all_candidates(self, project_name):
         # type: (str) -> List[InstallationCandidate]
@@ -1041,50 +1173,29 @@ class PackageFinder(object):
         See LinkEvaluator.evaluate_link() for details on which files
         are accepted.
         """
-        search_scope = self.search_scope
-        index_locations = search_scope.get_index_urls_locations(project_name)
-        index_file_loc, index_url_loc = group_locations(index_locations)
-        fl_file_loc, fl_url_loc = group_locations(
-            self.find_links, expand_dir=True,
-        )
-
-        file_locations = (Link(url) for url in itertools.chain(
-            index_file_loc, fl_file_loc,
-        ))
-
-        # We trust every url that the user has given us whether it was given
-        #   via --index-url or --find-links.
-        # We want to filter out any thing which does not have a secure origin.
-        url_locations = [
-            link for link in itertools.chain(
-                (Link(url) for url in index_url_loc),
-                (Link(url) for url in fl_url_loc),
-            )
-            if self.session.is_secure_origin(link)
-        ]
-
-        logger.debug('%d location(s) to search for versions of %s:',
-                     len(url_locations), project_name)
-
-        for location in url_locations:
-            logger.debug('* %s', location)
+        collected_links = self._link_collector.collect_links(project_name)
 
         link_evaluator = self.make_link_evaluator(project_name)
-        find_links_versions = self._package_versions(
+
+        find_links_versions = self.evaluate_links(
             link_evaluator,
-            # We trust every directly linked archive in find_links
-            (Link(url, '-f') for url in self.find_links),
+            links=collected_links.find_links,
         )
 
         page_versions = []
-        for page in self._get_pages(url_locations, project_name):
-            logger.debug('Analyzing links from page %s', page.url)
+        for page_url, page_links in collected_links.pages.items():
+            logger.debug('Analyzing links from page %s', page_url)
             with indent_log():
-                page_versions.extend(
-                    self._package_versions(link_evaluator, page.iter_links())
+                new_versions = self.evaluate_links(
+                    link_evaluator,
+                    links=page_links,
                 )
+                page_versions.extend(new_versions)
 
-        file_versions = self._package_versions(link_evaluator, file_locations)
+        file_versions = self.evaluate_links(
+            link_evaluator,
+            links=collected_links.files,
+        )
         if file_versions:
             file_versions.sort(reverse=True)
             logger.debug(
@@ -1218,24 +1329,6 @@ class PackageFinder(object):
             _format_versions(best_candidate_result.iter_applicable()),
         )
         return best_candidate.link
-
-    def _get_pages(self, locations, project_name):
-        # type: (Iterable[Link], str) -> Iterable[HTMLPage]
-        """
-        Yields (page, page_url) from the given locations, skipping
-        locations that have errors.
-        """
-        seen = set()  # type: Set[Link]
-        for location in locations:
-            if location in seen:
-                continue
-            seen.add(location)
-
-            page = _get_html_page(location, session=self.session)
-            if page is None:
-                continue
-
-            yield page
 
 
 def _find_name_version_sep(fragment, canonical_name):

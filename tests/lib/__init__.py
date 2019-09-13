@@ -80,6 +80,21 @@ def create_file(path, contents=None):
             f.write("\n")
 
 
+def make_test_search_scope(
+    find_links=None,  # type: Optional[List[str]]
+    index_urls=None,  # type: Optional[List[str]]
+):
+    if find_links is None:
+        find_links = []
+    if index_urls is None:
+        index_urls = []
+
+    return SearchScope.create(
+        find_links=find_links,
+        index_urls=index_urls,
+    )
+
+
 def make_test_finder(
     find_links=None,  # type: Optional[List[str]]
     index_urls=None,  # type: Optional[List[str]]
@@ -91,14 +106,10 @@ def make_test_finder(
     """
     Create a PackageFinder for testing purposes.
     """
-    if find_links is None:
-        find_links = []
-    if index_urls is None:
-        index_urls = []
     if session is None:
         session = PipSession()
 
-    search_scope = SearchScope.create(
+    search_scope = make_test_search_scope(
         find_links=find_links,
         index_urls=index_urls,
     )
