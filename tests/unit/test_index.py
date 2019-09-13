@@ -1117,6 +1117,9 @@ def test_clean_url_path_with_local_path(path, expected):
         # not. The `:` should be quoted.
         ("https://localhost.localdomain/T:/path/",
          "https://localhost.localdomain/T%3A/path/"),
+        # URL with a quoted "/" in the path portion.
+        ("https://example.com/access%2Ftoken/path/",
+         "https://example.com/access%2Ftoken/path/"),
         # VCS URL containing revision string.
         ("git+ssh://example.com/path to/repo.git@1.0#egg=my-package-1.0",
          "git+ssh://example.com/path%20to/repo.git@1.0#egg=my-package-1.0"),
