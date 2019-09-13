@@ -1055,26 +1055,21 @@ def test_clean_url_path(path, expected, is_local_path):
     ('path', 'expected'),
     [
         # Test a VCS path with a Windows drive letter and revision.
-        ('/T:/with space/repo.git@1.0',
-         '///T:/with%20space/repo.git@1.0'),
+        pytest.param(
+            '/T:/with space/repo.git@1.0',
+            '///T:/with%20space/repo.git@1.0',
+            marks=pytest.mark.skipif("sys.platform != 'win32'"),
+        ),
+        # Test a VCS path with a Windows drive letter and revision,
+        # running on non-windows platform.
+        pytest.param(
+            '/T:/with space/repo.git@1.0',
+            '/T%3A/with%20space/repo.git@1.0',
+            marks=pytest.mark.skipif("sys.platform == 'win32'"),
+        ),
     ]
 )
-@pytest.mark.skipif("sys.platform != 'win32'")
-def test_clean_url_path_windows(path, expected):
-    actual = _clean_url_path(path, is_local_path=True)
-    assert actual == expected
-
-
-@pytest.mark.parametrize(
-    ('path', 'expected'),
-    [
-        # Test a VCS path with a Windows drive letter and revision.
-        ('/T:/with space/repo.git@1.0',
-         '/T%3A/with%20space/repo.git@1.0'),
-    ]
-)
-@pytest.mark.skipif("sys.platform == 'win32'")
-def test_clean_url_path_non_windows(path, expected):
+def test_clean_url_path_with_local_path(path, expected):
     actual = _clean_url_path(path, is_local_path=True)
     assert actual == expected
 
