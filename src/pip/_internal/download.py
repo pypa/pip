@@ -26,7 +26,6 @@ from pip._vendor.six import PY2
 #       why we ignore the type on this import
 from pip._vendor.six.moves import xmlrpc_client  # type: ignore
 from pip._vendor.six.moves.urllib import parse as urllib_parse
-from pip._vendor.six.moves.urllib import request as urllib_request
 
 import pip
 from pip._internal.exceptions import HashMismatch, InstallationError
@@ -37,7 +36,6 @@ from pip._internal.utils.encoding import auto_decode
 from pip._internal.utils.filesystem import check_path_owner, copy2_fixed
 from pip._internal.utils.glibc import libc_ver
 from pip._internal.utils.misc import (
-    ARCHIVE_EXTENSIONS,
     ask,
     ask_input,
     ask_password,
@@ -61,6 +59,7 @@ from pip._internal.utils.misc import (
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import DownloadProgressProvider
+from pip._internal.utils.urls import get_url_scheme, url_to_path
 from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
@@ -101,8 +100,8 @@ if MYPY_CHECK_RUNNING:
 
 
 __all__ = ['get_file_content',
-           'is_url', 'url_to_path', 'path_to_url',
-           'is_archive_file', 'unpack_vcs_link',
+           'path_to_url',
+           'unpack_vcs_link',
            'unpack_file_url', 'is_file_url',
            'unpack_http_url', 'unpack_url',
            'parse_content_disposition', 'sanitize_content_filename']
@@ -787,7 +786,7 @@ def get_file_content(url, comes_from=None, session=None):
             "get_file_content() missing 1 required keyword argument: 'session'"
         )
 
-    scheme = _get_url_scheme(url)
+    scheme = get_url_scheme(url)
 
     if scheme in ['http', 'https']:
         # FIXME: catch some errors
@@ -822,57 +821,6 @@ def get_file_content(url, comes_from=None, session=None):
 
 
 _url_slash_drive_re = re.compile(r'/*([a-z])\|', re.I)
-
-
-def _get_url_scheme(url):
-    # type: (Union[str, Text]) -> Optional[Text]
-    if ':' not in url:
-        return None
-    return url.split(':', 1)[0].lower()
-
-
-def is_url(name):
-    # type: (Union[str, Text]) -> bool
-    """Returns true if the name looks like a URL"""
-    scheme = _get_url_scheme(name)
-    if scheme is None:
-        return False
-    return scheme in ['http', 'https', 'file', 'ftp'] + vcs.all_schemes
-
-
-def url_to_path(url):
-    # type: (str) -> str
-    """
-    Convert a file: URL to a path.
-    """
-    assert url.startswith('file:'), (
-        "You can only turn file: urls into filenames (not %r)" % url)
-
-    _, netloc, path, _, _ = urllib_parse.urlsplit(url)
-
-    if not netloc or netloc == 'localhost':
-        # According to RFC 8089, same as empty authority.
-        netloc = ''
-    elif sys.platform == 'win32':
-        # If we have a UNC path, prepend UNC share notation.
-        netloc = '\\\\' + netloc
-    else:
-        raise ValueError(
-            'non-local file URIs are not supported on this platform: %r'
-            % url
-        )
-
-    path = urllib_request.url2pathname(netloc + path)
-    return path
-
-
-def is_archive_file(name):
-    # type: (str) -> bool
-    """Return True if `name` is a considered as an archive file."""
-    ext = splitext(name)[1].lower()
-    if ext in ARCHIVE_EXTENSIONS:
-        return True
-    return False
 
 
 def unpack_vcs_link(link, location):

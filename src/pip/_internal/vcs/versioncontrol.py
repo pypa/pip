@@ -22,6 +22,7 @@ from pip._internal.utils.misc import (
     rmtree,
 )
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.urls import get_url_scheme
 
 if MYPY_CHECK_RUNNING:
     from typing import (
@@ -37,6 +38,17 @@ __all__ = ['vcs']
 
 
 logger = logging.getLogger(__name__)
+
+
+def is_url(name):
+    # type: (Union[str, Text]) -> bool
+    """
+    Return true if the name looks like a URL.
+    """
+    scheme = get_url_scheme(name)
+    if scheme is None:
+        return False
+    return scheme in ['http', 'https', 'file', 'ftp'] + vcs.all_schemes
 
 
 def make_vcs_requirement_url(repo_url, rev, project_name, subdir=None):

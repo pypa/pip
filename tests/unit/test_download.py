@@ -19,12 +19,10 @@ from pip._internal.download import (
     SafeFileCache,
     _copy_source_tree,
     _download_http_url,
-    _get_url_scheme,
     parse_content_disposition,
     sanitize_content_filename,
     unpack_file_url,
     unpack_http_url,
-    url_to_path,
 )
 from pip._internal.exceptions import HashMismatch
 from pip._internal.models.link import Link
@@ -299,48 +297,6 @@ def test_download_http_url__no_directory_traversal(tmpdir):
     # The file should be downloaded to download_dir.
     actual = os.listdir(download_dir)
     assert actual == ['out_dir_file']
-
-
-@pytest.mark.parametrize("url,expected", [
-    ('http://localhost:8080/', 'http'),
-    ('file:c:/path/to/file', 'file'),
-    ('file:/dev/null', 'file'),
-    ('', None),
-])
-def test__get_url_scheme(url, expected):
-    assert _get_url_scheme(url) == expected
-
-
-@pytest.mark.parametrize("url,win_expected,non_win_expected", [
-    ('file:tmp', 'tmp', 'tmp'),
-    ('file:c:/path/to/file', r'C:\path\to\file', 'c:/path/to/file'),
-    ('file:/path/to/file', r'\path\to\file', '/path/to/file'),
-    ('file://localhost/tmp/file', r'\tmp\file', '/tmp/file'),
-    ('file://localhost/c:/tmp/file', r'C:\tmp\file', '/c:/tmp/file'),
-    ('file://somehost/tmp/file', r'\\somehost\tmp\file', None),
-    ('file:///tmp/file', r'\tmp\file', '/tmp/file'),
-    ('file:///c:/tmp/file', r'C:\tmp\file', '/c:/tmp/file'),
-])
-def test_url_to_path(url, win_expected, non_win_expected):
-    if sys.platform == 'win32':
-        expected_path = win_expected
-    else:
-        expected_path = non_win_expected
-
-    if expected_path is None:
-        with pytest.raises(ValueError):
-            url_to_path(url)
-    else:
-        assert url_to_path(url) == expected_path
-
-
-@pytest.mark.skipif("sys.platform != 'win32'")
-def test_url_to_path_path_to_url_symmetry_win():
-    path = r'C:\tmp\file'
-    assert url_to_path(path_to_url(path)) == path
-
-    unc_path = r'\\unc\share\path'
-    assert url_to_path(path_to_url(unc_path)) == unc_path
 
 
 @pytest.fixture

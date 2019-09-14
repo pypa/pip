@@ -21,7 +21,6 @@ from pip._vendor.requests.exceptions import HTTPError, RetryError, SSLError
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
-from pip._internal.download import is_url, url_to_path
 from pip._internal.exceptions import (
     BestVersionAlreadyInstalled,
     DistributionNotFound,
@@ -44,6 +43,8 @@ from pip._internal.utils.misc import (
 )
 from pip._internal.utils.packaging import check_requires_python
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.urls import url_to_path
+from pip._internal.vcs import is_url, vcs
 from pip._internal.wheel import Wheel
 
 if MYPY_CHECK_RUNNING:
@@ -79,7 +80,6 @@ def _match_vcs_scheme(url):
 
     Returns the matched VCS scheme, or None if there's no match.
     """
-    from pip._internal.vcs import vcs
     for scheme in vcs.schemes:
         if url.lower().startswith(scheme) and url[len(scheme)] in '+:':
             return scheme

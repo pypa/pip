@@ -3,7 +3,7 @@
 # (The test directory and imports protected by MYPY_CHECK_RUNNING may
 # still need to import from a vcs sub-package.)
 from pip._internal.vcs.versioncontrol import (  # noqa: F401
-    RemoteNotFoundError, make_vcs_requirement_url, vcs,
+    RemoteNotFoundError, is_url, make_vcs_requirement_url, vcs,
 )
 # Import all vcs modules to register each VCS in the VcsSupport object.
 import pip._internal.vcs.bazaar
