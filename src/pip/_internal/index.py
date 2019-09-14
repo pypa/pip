@@ -363,8 +363,8 @@ class LinkCollector(object):
         # type: () -> List[str]
         return self.search_scope.find_links
 
-    def _get_pages(self, locations, project_name):
-        # type: (Iterable[Link], str) -> Iterable[HTMLPage]
+    def _get_pages(self, locations):
+        # type: (Iterable[Link]) -> Iterable[HTMLPage]
         """
         Yields (page, page_url) from the given locations, skipping
         locations that have errors.
@@ -419,7 +419,7 @@ class LinkCollector(object):
             logger.debug('* %s', location)
 
         pages_links = {}
-        for page in self._get_pages(url_locations, project_name):
+        for page in self._get_pages(url_locations):
             pages_links[page.url] = list(page.iter_links())
 
         return CollectedLinks(

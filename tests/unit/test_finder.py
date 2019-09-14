@@ -37,7 +37,7 @@ def make_no_network_finder(
     )
     # Replace the PackageFinder._link_collector's _get_pages() with a no-op.
     link_collector = finder._link_collector
-    link_collector._get_pages = lambda locations, project_name: []
+    link_collector._get_pages = lambda locations: []
 
     return finder
 
