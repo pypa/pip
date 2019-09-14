@@ -349,8 +349,7 @@ def test_install_with_ignoreinstalled_requested(script):
 def test_upgrade_vcs_req_with_no_dists_found(script, tmpdir):
     """It can upgrade a VCS requirement that has no distributions otherwise."""
     req = "%s#egg=pip-test-package" % local_checkout(
-        "git+https://github.com/pypa/pip-test-package.git",
-        tmpdir.joinpath("cache"),
+        "git+https://github.com/pypa/pip-test-package.git", tmpdir,
     )
     script.pip("install", req)
     result = script.pip("install", "-U", req)

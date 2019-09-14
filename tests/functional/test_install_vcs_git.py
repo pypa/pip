@@ -58,7 +58,7 @@ def _github_checkout(url_path, temp_dir, rev=None, egg=None, scheme=None):
     if scheme is None:
         scheme = 'https'
     url = 'git+{}://github.com/{}'.format(scheme, url_path)
-    local_url = local_checkout(url, temp_dir.joinpath('cache'))
+    local_url = local_checkout(url, temp_dir)
     if rev is not None:
         local_url += '@{}'.format(rev)
     if egg is not None:
