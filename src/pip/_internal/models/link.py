@@ -15,7 +15,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import Optional, Text, Tuple, Union
-    from pip._internal.index import HTMLPage
+    from pip._internal.collector import HTMLPage
     from pip._internal.utils.hashes import Hashes
 
 

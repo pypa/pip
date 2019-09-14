@@ -218,6 +218,7 @@ def test_get_legacy_build_wheel_path(caplog):
 
 
 def test_get_legacy_build_wheel_path__no_names(caplog):
+    caplog.set_level(logging.INFO)
     actual = call_get_legacy_build_wheel_path(caplog, names=[])
     assert actual is None
     assert len(caplog.records) == 1
@@ -231,6 +232,7 @@ def test_get_legacy_build_wheel_path__no_names(caplog):
 
 
 def test_get_legacy_build_wheel_path__multiple_names(caplog):
+    caplog.set_level(logging.INFO)
     # Deliberately pass the names in non-sorted order.
     actual = call_get_legacy_build_wheel_path(
         caplog, names=['name2', 'name1'],
