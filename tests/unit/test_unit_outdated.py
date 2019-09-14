@@ -9,12 +9,13 @@ import pytest
 from mock import patch
 from pip._vendor import pkg_resources
 
+from pip._internal.download import PipSession
 from pip._internal.index import InstallationCandidate
 from pip._internal.utils import outdated
 from pip._internal.utils.outdated import (
     SelfCheckState,
     logger,
-    make_search_scope,
+    make_link_collector,
     pip_version_check,
 )
 from tests.lib.path import Path
@@ -32,26 +33,33 @@ from tests.lib.path import Path
         (False, False, False, ([], ['default_url', 'url1', 'url2'])),
     ],
 )
-def test_make_search_scope(find_links, no_index, suppress_no_index, expected):
+def test_make_link_collector(
+    find_links, no_index, suppress_no_index, expected,
+):
     """
     :param expected: the expected (find_links, index_urls) values.
     """
     expected_find_links, expected_index_urls = expected
+    session = PipSession()
     options = pretend.stub(
         find_links=find_links,
         index_url='default_url',
         extra_index_urls=['url1', 'url2'],
         no_index=no_index,
     )
-    search_scope = make_search_scope(
-        options, suppress_no_index=suppress_no_index,
+    link_collector = make_link_collector(
+        session, options=options, suppress_no_index=suppress_no_index,
     )
+
+    assert link_collector.session is session
+
+    search_scope = link_collector.search_scope
     assert search_scope.find_links == expected_find_links
     assert search_scope.index_urls == expected_index_urls
 
 
 @patch('pip._internal.utils.misc.expanduser')
-def test_make_search_scope__find_links_expansion(mock_expanduser, tmpdir):
+def test_make_link_collector__find_links_expansion(mock_expanduser, tmpdir):
     """
     Test "~" expansion in --find-links paths.
     """
@@ -63,6 +71,7 @@ def test_make_search_scope__find_links_expansion(mock_expanduser, tmpdir):
 
     mock_expanduser.side_effect = expand_path
 
+    session = PipSession()
     options = pretend.stub(
         find_links=['~/temp1', '~/temp2'],
         index_url='default_url',
@@ -74,8 +83,9 @@ def test_make_search_scope__find_links_expansion(mock_expanduser, tmpdir):
     temp2_dir = os.path.join(tmpdir, 'temp2')
     os.mkdir(temp2_dir)
 
-    search_scope = make_search_scope(options)
+    link_collector = make_link_collector(session, options=options)
 
+    search_scope = link_collector.search_scope
     # Only ~/temp2 gets expanded. Also, the path is normalized when expanded.
     expected_temp2_dir = os.path.normcase(temp2_dir)
     assert search_scope.find_links == ['~/temp1', expected_temp2_dir]

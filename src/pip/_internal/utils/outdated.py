@@ -11,6 +11,7 @@ from pip._vendor import pkg_resources
 from pip._vendor.packaging import version as packaging_version
 from pip._vendor.six import ensure_binary
 
+from pip._internal.collector import LinkCollector
 from pip._internal.index import PackageFinder
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
@@ -41,9 +42,14 @@ SELFCHECK_DATE_FMT = "%Y-%m-%dT%H:%M:%SZ"
 logger = logging.getLogger(__name__)
 
 
-def make_search_scope(options, suppress_no_index=False):
-    # type: (Values, bool) -> SearchScope
+def make_link_collector(
+    session,  # type: PipSession
+    options,  # type: Values
+    suppress_no_index=False,  # type: bool
+):
+    # type: (...) -> LinkCollector
     """
+    :param session: The Session to use to make requests.
     :param suppress_no_index: Whether to ignore the --no-index option
         when constructing the SearchScope object.
     """
@@ -62,7 +68,9 @@ def make_search_scope(options, suppress_no_index=False):
         find_links=find_links, index_urls=index_urls,
     )
 
-    return search_scope
+    link_collector = LinkCollector(session=session, search_scope=search_scope)
+
+    return link_collector
 
 
 def _get_statefile_name(key):
@@ -176,7 +184,11 @@ def pip_version_check(session, options):
         # Refresh the version if we need to or just see if we need to warn
         if pypi_version is None:
             # Lets use PackageFinder to see what the latest pip version is
-            search_scope = make_search_scope(options, suppress_no_index=True)
+            link_collector = make_link_collector(
+                session,
+                options=options,
+                suppress_no_index=True,
+            )
 
             # Pass allow_yanked=False so we don't suggest upgrading to a
             # yanked version.
@@ -186,9 +198,8 @@ def pip_version_check(session, options):
             )
 
             finder = PackageFinder.create(
-                search_scope=search_scope,
+                link_collector=link_collector,
                 selection_prefs=selection_prefs,
-                session=session,
             )
             best_candidate = finder.find_best_candidate("pip").best_candidate
             if best_candidate is None:

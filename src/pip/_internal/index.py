@@ -12,7 +12,6 @@ from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import parse as parse_version
 
-from pip._internal.collector import LinkCollector
 from pip._internal.exceptions import (
     BestVersionAlreadyInstalled,
     DistributionNotFound,
@@ -38,9 +37,9 @@ if MYPY_CHECK_RUNNING:
         Any, FrozenSet, Iterable, List, Optional, Set, Text, Tuple,
     )
     from pip._vendor.packaging.version import _BaseVersion
+    from pip._internal.collector import LinkCollector
     from pip._internal.models.search_scope import SearchScope
     from pip._internal.req import InstallRequirement
-    from pip._internal.download import PipSession
     from pip._internal.pep425tags import Pep425Tag
     from pip._internal.utils.hashes import Hashes
 
@@ -638,9 +637,8 @@ class PackageFinder(object):
     @classmethod
     def create(
         cls,
-        search_scope,  # type: SearchScope
+        link_collector,      # type: LinkCollector
         selection_prefs,     # type: SelectionPreferences
-        session=None,        # type: Optional[PipSession]
         target_python=None,  # type: Optional[TargetPython]
     ):
         # type: (...) -> PackageFinder
@@ -648,27 +646,16 @@ class PackageFinder(object):
 
         :param selection_prefs: The candidate selection preferences, as a
             SelectionPreferences object.
-        :param session: The Session to use to make requests.
         :param target_python: The target Python interpreter to use when
             checking compatibility. If None (the default), a TargetPython
             object will be constructed from the running Python.
         """
-        if session is None:
-            raise TypeError(
-                "PackageFinder.create() missing 1 required keyword argument: "
-                "'session'"
-            )
         if target_python is None:
             target_python = TargetPython()
 
         candidate_prefs = CandidatePreferences(
             prefer_binary=selection_prefs.prefer_binary,
             allow_all_prereleases=selection_prefs.allow_all_prereleases,
-        )
-
-        link_collector = LinkCollector(
-            session=session,
-            search_scope=search_scope,
         )
 
         return cls(

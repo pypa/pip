@@ -23,7 +23,7 @@ from pip._internal.req.constructors import (
 )
 from pip._internal.req.req_file import parse_requirements
 from pip._internal.utils.misc import normalize_path
-from pip._internal.utils.outdated import make_search_scope, pip_version_check
+from pip._internal.utils.outdated import make_link_collector, pip_version_check
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -282,7 +282,7 @@ class RequirementCommand(IndexGroupCommand):
         :param ignore_requires_python: Whether to ignore incompatible
             "Requires-Python" values in links. Defaults to False.
         """
-        search_scope = make_search_scope(options)
+        link_collector = make_link_collector(session, options=options)
         selection_prefs = SelectionPreferences(
             allow_yanked=True,
             format_control=options.format_control,
@@ -292,8 +292,7 @@ class RequirementCommand(IndexGroupCommand):
         )
 
         return PackageFinder.create(
-            search_scope=search_scope,
+            link_collector=link_collector,
             selection_prefs=selection_prefs,
-            session=session,
             target_python=target_python,
         )
