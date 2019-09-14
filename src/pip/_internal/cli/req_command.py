@@ -9,7 +9,6 @@ import os
 from functools import partial
 
 from pip._internal.cli.base_command import Command
-from pip._internal.cli.cmdoptions import make_search_scope
 from pip._internal.cli.command_context import CommandContextMixIn
 from pip._internal.download import PipSession
 from pip._internal.exceptions import CommandError
@@ -24,7 +23,7 @@ from pip._internal.req.constructors import (
 )
 from pip._internal.req.req_file import parse_requirements
 from pip._internal.utils.misc import normalize_path
-from pip._internal.utils.outdated import pip_version_check
+from pip._internal.utils.outdated import make_search_scope, pip_version_check
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
