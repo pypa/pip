@@ -10,6 +10,7 @@ from tempfile import mkdtemp
 
 import pytest
 from mock import Mock, patch
+from pip._vendor.cachecontrol.caches import FileCache
 
 import pip
 from pip._internal.download import (
@@ -548,6 +549,11 @@ class TestSafeFileCache:
 
         cache = SafeFileCache(cache_tmpdir)
         cache.delete("foo")
+
+    def test_cache_hashes_are_same(self, cache_tmpdir):
+        cache = SafeFileCache(cache_tmpdir)
+        key = "test key"
+        assert cache._get_cache_path(key) == FileCache._fn(cache, key)
 
 
 class TestPipSession:

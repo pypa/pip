@@ -547,6 +547,15 @@ class SafeFileCache(FileCache):
         assert directory is not None, "Cache directory must not be None."
         super(SafeFileCache, self).__init__(directory, use_dir_lock)
 
+    def _get_cache_path(self, name):
+        # type: (str) -> str
+        # From cachecontrol.caches.file_cache.FileCache._fn, brought into our
+        # class for backwards-compatibility and to avoid using a non-public
+        # method.
+        hashed = FileCache.encode(name)
+        parts = list(hashed[:5]) + [hashed]
+        return os.path.join(self.directory, *parts)
+
     def get(self, key):
         # type: (str) -> Optional[bytes]
         with suppressed_cache_errors():
