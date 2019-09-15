@@ -64,7 +64,6 @@ if DEBUNDLED:
     vendored("distlib")
     vendored("distro")
     vendored("html5lib")
-    vendored("lockfile")
     vendored("six")
     vendored("six.moves")
     vendored("six.moves.urllib")
