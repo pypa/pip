@@ -14,6 +14,7 @@ from contextlib import contextmanager
 
 from pip._vendor import requests, six, urllib3
 from pip._vendor.cachecontrol import CacheControlAdapter
+from pip._vendor.cachecontrol.cache import BaseCache
 from pip._vendor.cachecontrol.caches import FileCache
 from pip._vendor.lockfile import LockError
 from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
@@ -33,7 +34,12 @@ from pip._internal.models.index import PyPI
 # Import ssl from compat so the initial import occurs in only one place.
 from pip._internal.utils.compat import HAS_TLS, ipaddress, ssl
 from pip._internal.utils.encoding import auto_decode
-from pip._internal.utils.filesystem import check_path_owner, copy2_fixed
+from pip._internal.utils.filesystem import (
+    adjacent_tmp_file,
+    check_path_owner,
+    copy2_fixed,
+    replace,
+)
 from pip._internal.utils.glibc import libc_ver
 from pip._internal.utils.misc import (
     ask,
@@ -44,6 +50,7 @@ from pip._internal.utils.misc import (
     build_url_from_netloc,
     consume,
     display_path,
+    ensure_dir,
     format_size,
     get_installed_version,
     hide_url,
@@ -536,7 +543,7 @@ def suppressed_cache_errors():
         pass
 
 
-class SafeFileCache(FileCache):
+class SafeFileCache(BaseCache):
     """
     A file based cache which is safe to use even when the target directory may
     not be accessible or writable.
@@ -545,7 +552,8 @@ class SafeFileCache(FileCache):
     def __init__(self, directory, use_dir_lock=False):
         # type: (str, bool) -> None
         assert directory is not None, "Cache directory must not be None."
-        super(SafeFileCache, self).__init__(directory, use_dir_lock)
+        super(SafeFileCache, self).__init__()
+        self.directory = directory
 
     def _get_cache_path(self, name):
         # type: (str) -> str
@@ -558,18 +566,27 @@ class SafeFileCache(FileCache):
 
     def get(self, key):
         # type: (str) -> Optional[bytes]
+        path = self._get_cache_path(key)
         with suppressed_cache_errors():
-            return super(SafeFileCache, self).get(key)
+            with open(path, 'rb') as f:
+                return f.read()
 
     def set(self, key, value):
         # type: (str, bytes) -> None
+        path = self._get_cache_path(key)
         with suppressed_cache_errors():
-            return super(SafeFileCache, self).set(key, value)
+            ensure_dir(os.path.dirname(path))
+
+            with adjacent_tmp_file(path) as f:
+                f.write(value)
+
+            replace(f.name, path)
 
     def delete(self, key):
         # type: (str) -> None
+        path = self._get_cache_path(key)
         with suppressed_cache_errors():
-            return super(SafeFileCache, self).delete(key)
+            os.remove(path)
 
 
 class InsecureHTTPAdapter(HTTPAdapter):
