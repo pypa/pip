@@ -239,24 +239,25 @@ def install_req_from_line(
 
     link = req.link
 
+    def get_install_error(text):
+        return InstallationError(with_source(text))
+
     if link and link.scheme == 'file':
         p = link.path
         if not os.path.exists(p):
-            raise InstallationError(
-                with_source(
-                    "Requirement '{}' looks like a path, but the "
-                    'file/directory does not exist'.format(name)
-                )
+            raise get_install_error(
+                "Requirement '{}' looks like a path, but the "
+                'file/directory does not exist'.format(name)
             )
 
         if os.path.isdir(p):
             if not is_installable_dir(p):
-                raise InstallationError(
+                raise get_install_error(
                     "Directory %r is not installable. Neither 'setup.py' "
-                    "nor 'pyproject.toml' found." % name
+                    "nor 'pyproject.toml' found.".format(name)
                 )
         elif not is_archive_file(p) and not link.is_wheel:
-            raise InstallationError(
+            raise get_install_error(
                 "Invalid requirement: {!r}, files must be wheels or "
                 'archives'.format(name) + deduce_helpful_msg(p)
             )
