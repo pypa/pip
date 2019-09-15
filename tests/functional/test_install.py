@@ -406,9 +406,7 @@ def test_basic_install_relative_directory(script, data):
 
     # Compute relative install path to FSPkg from scratch path.
     full_rel_path = data.packages.joinpath('FSPkg') - script.scratch_path
-    full_rel_url = (
-        'file:' + full_rel_path.replace(os.path.sep, '/') + '#egg=FSPkg'
-    )
+    full_rel_url = full_rel_path.replace(os.path.sep, '/')
     embedded_rel_path = script.scratch_path.joinpath(full_rel_path)
 
     # For each relative path, install as either editable or not using either

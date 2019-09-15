@@ -57,9 +57,7 @@ def test_schema_check_in_requirements_file(script):
 
 def test_relative_requirements_file(script, data):
     """
-    Test installing from a requirements file with a relative path. For path
-    URLs, use an egg= definition.
-
+    Test installing from a requirements file with a relative path.
     """
     egg_info_file = (
         script.site_packages / 'FSPkg-0.1.dev0-py%s.egg-info' % pyversion
@@ -71,7 +69,7 @@ def test_relative_requirements_file(script, data):
 
     # Compute relative install path to FSPkg from scratch path.
     full_rel_path = data.packages.joinpath('FSPkg') - script.scratch_path
-    full_rel_url = 'file:' + full_rel_path + '#egg=FSPkg'
+    full_rel_url = full_rel_path
     embedded_rel_path = script.scratch_path.joinpath(full_rel_path)
 
     # For each relative path, install as either editable or not using either

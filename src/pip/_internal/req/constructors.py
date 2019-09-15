@@ -23,7 +23,11 @@ from pip._internal.exceptions import InstallationError
 from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.models.link import Link
 from pip._internal.pyproject import make_pyproject_path
-from pip._internal.req.parsing import _strip_extras
+from pip._internal.req.parsing import (
+    RequirementParsingError,
+    _strip_extras,
+    parse_requirement_text,
+)
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.misc import (
     ARCHIVE_EXTENSIONS,
@@ -219,6 +223,16 @@ def install_req_from_line(
     :param line_source: An optional string describing where the line is from,
         for logging purposes in case of an error.
     """
+    def with_source(text):
+        if not line_source:
+            return text
+        return '{} (from {})'.format(text, line_source)
+
+    try:
+        req = parse_requirement_text(name)
+    except RequirementParsingError as e:
+        msg = with_source('Invalid requirement: {!r}'.format(name))
+        raise InstallationError(msg)
     if is_url(name):
         marker_sep = '; '
     else:
@@ -234,14 +248,11 @@ def install_req_from_line(
         markers = None
     name = name.strip()
     req_as_string = None
-    path = os.path.normpath(os.path.abspath(name))
-    link = None
+    link = req.link
     extras_as_string = None
 
-    if is_url(name):
-        link = Link(name)
-    else:
-        p, extras_as_string = _strip_extras(path)
+    if link and link.scheme == 'file':
+        p = link.path
         looks_like_dir = os.path.isdir(p) and (
             os.path.sep in name or
             (os.path.altsep is not None and os.path.altsep in name) or
@@ -253,7 +264,6 @@ def install_req_from_line(
                     "Directory %r is not installable. Neither 'setup.py' "
                     "nor 'pyproject.toml' found." % name
                 )
-            link = Link(path_to_url(p))
         elif is_archive_file(p):
             if not os.path.isfile(p):
                 logger.warning(
@@ -261,14 +271,9 @@ def install_req_from_line(
                     'file does not exist',
                     name
                 )
-            link = Link(path_to_url(p))
 
     # it's a local file, dir, or url
     if link:
-        # Handle relative file URLs
-        if link.scheme == 'file' and re.search(r'\.\./', link.url):
-            link = Link(
-                path_to_url(os.path.normpath(os.path.abspath(link.path))))
         # wheel file
         if link.is_wheel:
             wheel = Wheel(link.filename)  # can raise InvalidWheelFilename
@@ -288,8 +293,9 @@ def install_req_from_line(
         extras = ()
     if req_as_string is not None:
         try:
-            req = Requirement(req_as_string)
+            _req = Requirement(req_as_string)
         except InvalidRequirement:
+            # !under construction! this section being moved above
             if os.path.sep in req_as_string:
                 add_msg = "It looks like a path."
                 add_msg += deduce_helpful_msg(req_as_string)
@@ -298,21 +304,15 @@ def install_req_from_line(
                 add_msg = "= is not a valid operator. Did you mean == ?"
             else:
                 add_msg = ''
-            if line_source is None:
-                source = ''
-            else:
-                source = ' (from {})'.format(line_source)
-            msg = (
-                'Invalid requirement: {!r}{}'.format(req_as_string, source)
-            )
+            msg = ''
             if add_msg:
                 msg += '\nHint: {}'.format(add_msg)
             raise InstallationError(msg)
     else:
-        req = None
+        _req = None
 
     return InstallRequirement(
-        req, comes_from, link=link, markers=markers,
+        req.requirement, comes_from, link=link, markers=markers,
         use_pep517=use_pep517, isolated=isolated,
         options=options if options else {},
         wheel_cache=wheel_cache,
