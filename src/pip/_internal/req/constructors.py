@@ -13,7 +13,6 @@ InstallRequirement.
 
 import logging
 import os
-import re
 
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
@@ -24,6 +23,7 @@ from pip._internal.exceptions import InstallationError
 from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.models.link import Link
 from pip._internal.pyproject import make_pyproject_path
+from pip._internal.req.parsing import _strip_extras
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.misc import (
     ARCHIVE_EXTENSIONS,
@@ -59,19 +59,6 @@ def is_archive_file(name):
     if ext in ARCHIVE_EXTENSIONS:
         return True
     return False
-
-
-def _strip_extras(path):
-    # type: (str) -> Tuple[str, Optional[str]]
-    m = re.match(r'^(.+)(\[[^\]]+\])$', path)
-    extras = None
-    if m:
-        path_no_extras = m.group(1)
-        extras = m.group(2)
-    else:
-        path_no_extras = path
-
-    return path_no_extras, extras
 
 
 def parse_editable(editable_req):

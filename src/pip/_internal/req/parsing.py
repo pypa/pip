@@ -1,11 +1,11 @@
 import os.path
+import re
 from contextlib import contextmanager
 
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.models.link import Link
-from pip._internal.req.constructors import _strip_extras
 from pip._internal.utils.misc import path_to_url
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -30,6 +30,19 @@ def convert_extras(extras):
         return Requirement("placeholder" + extras.lower()).extras
     else:
         return set()
+
+
+def _strip_extras(path):
+    # type: (str) -> Tuple[str, Optional[str]]
+    m = re.match(r'^(.+)(\[[^\]]+\])$', path)
+    extras = None
+    if m:
+        path_no_extras = m.group(1)
+        extras = m.group(2)
+    else:
+        path_no_extras = path
+
+    return path_no_extras, extras
 
 
 def strip_and_convert_extras(text):
