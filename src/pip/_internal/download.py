@@ -542,21 +542,25 @@ class SafeFileCache(FileCache):
     not be accessible or writable.
     """
 
-    def __init__(self, directory, *args, **kwargs):
+    def __init__(self, directory, use_dir_lock=False):
+        # type: (str, bool) -> None
         assert directory is not None, "Cache directory must not be None."
-        super(SafeFileCache, self).__init__(directory, *args, **kwargs)
+        super(SafeFileCache, self).__init__(directory, use_dir_lock)
 
-    def get(self, *args, **kwargs):
+    def get(self, key):
+        # type: (str) -> Optional[bytes]
         with suppressed_cache_errors():
-            return super(SafeFileCache, self).get(*args, **kwargs)
+            return super(SafeFileCache, self).get(key)
 
-    def set(self, *args, **kwargs):
+    def set(self, key, value):
+        # type: (str, bytes) -> None
         with suppressed_cache_errors():
-            return super(SafeFileCache, self).set(*args, **kwargs)
+            return super(SafeFileCache, self).set(key, value)
 
-    def delete(self, *args, **kwargs):
+    def delete(self, key):
+        # type: (str) -> None
         with suppressed_cache_errors():
-            return super(SafeFileCache, self).delete(*args, **kwargs)
+            return super(SafeFileCache, self).delete(key)
 
 
 class InsecureHTTPAdapter(HTTPAdapter):
