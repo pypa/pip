@@ -16,7 +16,6 @@ from pip._vendor import requests, six, urllib3
 from pip._vendor.cachecontrol import CacheControlAdapter
 from pip._vendor.cachecontrol.cache import BaseCache
 from pip._vendor.cachecontrol.caches import FileCache
-from pip._vendor.lockfile import LockError
 from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
@@ -539,7 +538,7 @@ def suppressed_cache_errors():
     """
     try:
         yield
-    except (LockError, OSError, IOError):
+    except (OSError, IOError):
         pass
 
 
