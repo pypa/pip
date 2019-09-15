@@ -1146,7 +1146,7 @@ class WheelBuilder(object):
                         req.remove_temporary_source()
                         # set the build directory again - name is known from
                         # the work prepare_files did.
-                        req.source_dir = req.build_location(
+                        req.source_dir = req.ensure_build_location(
                             self.preparer.build_dir
                         )
                         # Update the link for this.
