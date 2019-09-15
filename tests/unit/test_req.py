@@ -563,7 +563,6 @@ class TestInstallRequirement(object):
             install_req_from_line(req_file_path)
         err_msg = e.value.args[0]
         assert "Invalid requirement" in err_msg
-        assert "It looks like a path. It does exist." in err_msg
         assert "appears to be a requirements file." in err_msg
         assert "If that is the case, use the '-r' flag to install" in err_msg
 

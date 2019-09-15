@@ -14,7 +14,6 @@ InstallRequirement.
 import logging
 import os
 
-from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 from pip._vendor.packaging.specifiers import Specifier
 from pip._vendor.pkg_resources import RequirementParseError, parse_requirements
@@ -37,7 +36,7 @@ from pip._internal.utils.misc import (
 )
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import url_to_path
-from pip._internal.vcs import is_url, vcs
+from pip._internal.vcs import vcs
 from pip._internal.wheel import Wheel
 
 if MYPY_CHECK_RUNNING:
@@ -237,23 +236,8 @@ def install_req_from_line(
         msg = with_source('Invalid requirement: {!r}'.format(name))
         msg += '\nHint: {}'.format(add_msg)
         raise InstallationError(msg)
-    if is_url(name):
-        marker_sep = '; '
-    else:
-        marker_sep = ';'
-    if marker_sep in name:
-        name, markers_as_string = name.split(marker_sep, 1)
-        markers_as_string = markers_as_string.strip()
-        if not markers_as_string:
-            markers = None
-        else:
-            markers = Marker(markers_as_string)
-    else:
-        markers = None
-    name = name.strip()
-    req_as_string = None
+
     link = req.link
-    extras_as_string = None
 
     if link and link.scheme == 'file':
         p = link.path
@@ -277,10 +261,6 @@ def install_req_from_line(
                 'archives'.format(name) + deduce_helpful_msg(p)
             )
 
-    if extras_as_string:
-        extras = Requirement("placeholder" + extras_as_string.lower()).extras
-    else:
-        extras = ()
     # wheel file
     if link and link.is_wheel:
         wheel = Wheel(link.filename)  # can raise InvalidWheelFilename
@@ -291,12 +271,12 @@ def install_req_from_line(
             pass
 
     return InstallRequirement(
-        req.requirement, comes_from, link=link, markers=markers,
+        req.requirement, comes_from, link=link, markers=req.markers,
         use_pep517=use_pep517, isolated=isolated,
         options=options if options else {},
         wheel_cache=wheel_cache,
         constraint=constraint,
-        extras=extras,
+        extras=req.extras,
     )
 
 
