@@ -277,34 +277,18 @@ def install_req_from_line(
                 'archives'.format(name) + deduce_helpful_msg(p)
             )
 
-    # it's a local file, dir, or url
-    if link:
-        # wheel file
-        if link.is_wheel:
-            wheel = Wheel(link.filename)  # can raise InvalidWheelFilename
-            req_as_string = "%s==%s" % (wheel.name, wheel.version)
-        else:
-            # set the req to the egg fragment.  when it's not there, this
-            # will become an 'unnamed' requirement
-            req_as_string = link.egg_fragment
-
-    # a requirement specifier
-    else:
-        req_as_string = name
-
     if extras_as_string:
         extras = Requirement("placeholder" + extras_as_string.lower()).extras
     else:
         extras = ()
-    if req_as_string is not None:
+    # wheel file
+    if link and link.is_wheel:
+        wheel = Wheel(link.filename)  # can raise InvalidWheelFilename
+        wheel_req = "%s==%s" % (wheel.name, wheel.version)
         try:
-            _req = Requirement(req_as_string)
+            req.requirement = Requirement(wheel_req)
         except InvalidRequirement:
-            # !under construction! this section being moved above
-            msg = ''
-            raise InstallationError(msg)
-    else:
-        _req = None
+            pass
 
     return InstallRequirement(
         req.requirement, comes_from, link=link, markers=markers,
