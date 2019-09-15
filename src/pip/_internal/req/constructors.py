@@ -253,12 +253,7 @@ def install_req_from_line(
 
     if link and link.scheme == 'file':
         p = link.path
-        looks_like_dir = os.path.isdir(p) and (
-            os.path.sep in name or
-            (os.path.altsep is not None and os.path.altsep in name) or
-            name.startswith('.')
-        )
-        if looks_like_dir:
+        if os.path.isdir(p):
             if not is_installable_dir(p):
                 raise InstallationError(
                     "Directory %r is not installable. Neither 'setup.py' "
