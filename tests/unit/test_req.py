@@ -381,14 +381,18 @@ class TestInstallRequirement(object):
             '<InstallRequirement object: simple==0.1 editable=False>'
         )
 
-    def test_invalid_wheel_requirement_raises(self):
+    def test_invalid_wheel_requirement_raises(self, data):
+        invalid_wheel_path = data.packages.joinpath('invalid.whl')
         with pytest.raises(InvalidWheelFilename):
-            install_req_from_line('invalid.whl')
+            install_req_from_line(invalid_wheel_path)
 
-    def test_wheel_requirement_sets_req_attribute(self):
-        req = install_req_from_line('simple-0.1-py2.py3-none-any.whl')
+    def test_wheel_requirement_sets_req_attribute(self, data):
+        wheel_path = data.packages.joinpath(
+            'simplewheel-1.0-py2.py3-none-any.whl'
+        )
+        req = install_req_from_line(wheel_path)
         assert isinstance(req.req, Requirement)
-        assert str(req.req) == 'simple==0.1'
+        assert str(req.req) == 'simplewheel==1.0'
 
     def test_url_preserved_line_req(self):
         """Confirm the url is preserved in a non-editable requirement"""
@@ -530,8 +534,8 @@ class TestInstallRequirement(object):
             install_req_from_line(
                 os.path.join('this', 'path', 'does', 'not', 'exist'))
         err_msg = e.value.args[0]
-        assert "Invalid requirement" in err_msg
-        assert "It looks like a path." in err_msg
+        assert "looks like a path" in err_msg
+        assert "does not exist" in err_msg
 
     def test_single_equal_sign(self):
         with pytest.raises(InstallationError) as e:

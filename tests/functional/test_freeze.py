@@ -473,13 +473,15 @@ _freeze_req_opts = textwrap.dedent("""\
 
 
 def test_freeze_with_requirement_option_file_url_egg_not_installed(
-        script, deprecated_python):
+        script, data, deprecated_python):
     """
     Test "freeze -r requirements.txt" with a local file URL whose egg name
     is not installed.
     """
 
-    url = path_to_url('my-package.tar.gz') + '#egg=Does.Not-Exist'
+    url = path_to_url(
+        str(data.packages.joinpath('test_tar.tgz'))
+    ) + '#egg=Does.Not-Exist'
     requirements_path = script.scratch_path.joinpath('requirements.txt')
     requirements_path.write_text(url + '\n')
 

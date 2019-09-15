@@ -147,23 +147,19 @@ def deduce_helpful_msg(req):
     :params req: Requirements file path
     """
     msg = ""
-    if os.path.exists(req):
-        msg = " It does exist."
-        # Try to parse and check if it is a requirements file.
-        try:
-            with open(req, 'r') as fp:
-                # parse first line only
-                next(parse_requirements(fp.read()))
-                msg += " The argument you provided " + \
-                    "(%s) appears to be a" % (req) + \
-                    " requirements file. If that is the" + \
-                    " case, use the '-r' flag to install" + \
-                    " the packages specified within it."
-        except RequirementParseError:
-            logger.debug("Cannot parse '%s' as requirements \
-            file" % (req), exc_info=True)
-    else:
-        msg += " File '%s' does not exist." % (req)
+    # Try to parse and check if it is a requirements file.
+    try:
+        with open(req, 'r') as fp:
+            # parse first line only
+            next(parse_requirements(fp.read()))
+            msg += " The argument you provided " + \
+                "(%s) appears to be a" % (req) + \
+                " requirements file. If that is the" + \
+                " case, use the '-r' flag to install" + \
+                " the packages specified within it."
+    except RequirementParseError:
+        logger.debug("Cannot parse '%s' as requirements \
+        file" % (req), exc_info=True)
     return msg
 
 
@@ -261,19 +257,25 @@ def install_req_from_line(
 
     if link and link.scheme == 'file':
         p = link.path
+        if not os.path.exists(p):
+            raise InstallationError(
+                with_source(
+                    "Requirement '{}' looks like a path, but the "
+                    'file/directory does not exist'.format(name)
+                )
+            )
+
         if os.path.isdir(p):
             if not is_installable_dir(p):
                 raise InstallationError(
                     "Directory %r is not installable. Neither 'setup.py' "
                     "nor 'pyproject.toml' found." % name
                 )
-        elif is_archive_file(p):
-            if not os.path.isfile(p):
-                logger.warning(
-                    'Requirement %r looks like a filename, but the '
-                    'file does not exist',
-                    name
-                )
+        elif not is_archive_file(p) and not link.is_wheel:
+            raise InstallationError(
+                "Invalid requirement: {!r}, files must be wheels or "
+                'archives'.format(name) + deduce_helpful_msg(p)
+            )
 
     # it's a local file, dir, or url
     if link:
@@ -299,9 +301,6 @@ def install_req_from_line(
             _req = Requirement(req_as_string)
         except InvalidRequirement:
             # !under construction! this section being moved above
-            if os.path.sep in req_as_string:
-                add_msg = "It looks like a path."
-                add_msg += deduce_helpful_msg(req_as_string)
             msg = ''
             raise InstallationError(msg)
     else:
