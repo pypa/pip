@@ -7,7 +7,7 @@ import logging
 import os.path
 import sys
 
-from pip._vendor import lockfile, pkg_resources
+from pip._vendor import pkg_resources
 from pip._vendor.packaging import version as packaging_version
 from pip._vendor.six import ensure_binary
 
@@ -15,7 +15,11 @@ from pip._internal.cli.cmdoptions import make_search_scope
 from pip._internal.index import PackageFinder
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.utils.compat import WINDOWS
-from pip._internal.utils.filesystem import check_path_owner
+from pip._internal.utils.filesystem import (
+    adjacent_tmp_file,
+    check_path_owner,
+    replace,
+)
 from pip._internal.utils.misc import ensure_dir, get_installed_version
 from pip._internal.utils.packaging import get_installer
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -86,12 +90,16 @@ class SelfCheckState(object):
 
         text = json.dumps(state, sort_keys=True, separators=(",", ":"))
 
-        # Attempt to write out our version check file
-        with lockfile.LockFile(self.statefile_path):
+        with adjacent_tmp_file(self.statefile_path) as f:
+            f.write(ensure_binary(text))
+
+        try:
             # Since we have a prefix-specific state file, we can just
             # overwrite whatever is there, no need to check.
-            with open(self.statefile_path, "w") as statefile:
-                statefile.write(text)
+            replace(f.name, self.statefile_path)
+        except OSError:
+            # Best effort.
+            pass
 
 
 def was_installed_by_pip(pkg):

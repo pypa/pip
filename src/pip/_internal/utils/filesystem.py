@@ -2,8 +2,26 @@ import os
 import os.path
 import shutil
 import stat
+from contextlib import contextmanager
+from tempfile import NamedTemporaryFile
+
+# NOTE: retrying is not annotated in typeshed as on 2017-07-17, which is
+#       why we ignore the type on this import.
+from pip._vendor.retrying import retry  # type: ignore
+from pip._vendor.six import PY2
 
 from pip._internal.utils.compat import get_path_uid
+from pip._internal.utils.misc import cast
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from typing import BinaryIO, Iterator
+
+    class NamedTemporaryFileResult(BinaryIO):
+        @property
+        def file(self):
+            # type: () -> BinaryIO
+            pass
 
 
 def check_path_owner(path):
@@ -59,3 +77,39 @@ def copy2_fixed(src, dest):
 def is_socket(path):
     # type: (str) -> bool
     return stat.S_ISSOCK(os.lstat(path).st_mode)
+
+
+@contextmanager
+def adjacent_tmp_file(path):
+    # type: (str) -> Iterator[NamedTemporaryFileResult]
+    """Given a path to a file, open a temp file next to it securely and ensure
+    it is written to disk after the context reaches its end.
+    """
+    with NamedTemporaryFile(
+        delete=False,
+        dir=os.path.dirname(path),
+        prefix=os.path.basename(path),
+        suffix='.tmp',
+    ) as f:
+        result = cast('NamedTemporaryFileResult', f)
+        try:
+            yield result
+        finally:
+            result.file.flush()
+            os.fsync(result.file.fileno())
+
+
+_replace_retry = retry(stop_max_delay=1000, wait_fixed=250)
+
+if PY2:
+    @_replace_retry
+    def replace(src, dest):
+        # type: (str, str) -> None
+        try:
+            os.rename(src, dest)
+        except OSError:
+            os.remove(dest)
+            os.rename(src, dest)
+
+else:
+    replace = _replace_retry(os.replace)
