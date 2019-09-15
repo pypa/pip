@@ -549,8 +549,8 @@ class SafeFileCache(BaseCache):
     not be accessible or writable.
     """
 
-    def __init__(self, directory, use_dir_lock=False):
-        # type: (str, bool) -> None
+    def __init__(self, directory):
+        # type: (str) -> None
         assert directory is not None, "Cache directory must not be None."
         super(SafeFileCache, self).__init__()
         self.directory = directory
@@ -661,7 +661,7 @@ class PipSession(requests.Session):
         # require manual eviction from the cache to fix it.
         if cache:
             secure_adapter = CacheControlAdapter(
-                cache=SafeFileCache(cache, use_dir_lock=True),
+                cache=SafeFileCache(cache),
                 max_retries=retries,
             )
         else:
