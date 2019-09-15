@@ -545,7 +545,11 @@ class TestInstallRequirement(object):
         with pytest.raises(InstallationError) as e:
             install_req_from_line(test_name)
         err_msg = e.value.args[0]
-        assert "Invalid requirement: '{}'".format(test_name) == err_msg
+        expected = (
+            "Invalid requirement: '{}'\n"
+            'Hint: (tried parsing as name-based reference)'
+        ).format(test_name)
+        assert expected == err_msg
 
     def test_requirement_file(self):
         req_file_path = os.path.join(self.tempdir, 'test.txt')

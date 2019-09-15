@@ -231,7 +231,15 @@ def install_req_from_line(
     try:
         req = parse_requirement_text(name)
     except RequirementParsingError as e:
+        if e.type_tried not in ['path', 'url'] and (
+            '=' in name and not any(op in name for op in operators)
+        ):
+            add_msg = "= is not a valid operator. Did you mean == ?"
+        else:
+            add_msg = "(tried parsing as {})".format(e.type_tried)
+
         msg = with_source('Invalid requirement: {!r}'.format(name))
+        msg += '\nHint: {}'.format(add_msg)
         raise InstallationError(msg)
     if is_url(name):
         marker_sep = '; '
@@ -294,14 +302,7 @@ def install_req_from_line(
             if os.path.sep in req_as_string:
                 add_msg = "It looks like a path."
                 add_msg += deduce_helpful_msg(req_as_string)
-            elif ('=' in req_as_string and
-                  not any(op in req_as_string for op in operators)):
-                add_msg = "= is not a valid operator. Did you mean == ?"
-            else:
-                add_msg = ''
             msg = ''
-            if add_msg:
-                msg += '\nHint: {}'.format(add_msg)
             raise InstallationError(msg)
     else:
         _req = None
