@@ -74,6 +74,14 @@ def _strip_extras(path):
     return path_no_extras, extras
 
 
+def convert_extras(extras):
+    # type: (Optional[str]) -> Set[str]
+    if extras:
+        return Requirement("placeholder" + extras.lower()).extras
+    else:
+        return set()
+
+
 def parse_editable(editable_req):
     # type: (str) -> Tuple[Optional[str], str, Optional[Set[str]]]
     """Parses an editable requirement into:
@@ -332,10 +340,7 @@ def install_req_from_line(
     else:
         req_as_string = name
 
-    if extras_as_string:
-        extras = Requirement("placeholder" + extras_as_string.lower()).extras
-    else:
-        extras = ()
+    extras = convert_extras(extras_as_string)
 
     def with_source(text):
         if not line_source:
