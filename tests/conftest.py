@@ -74,7 +74,7 @@ def tmpdir_factory(request, tmpdir_factory):
         tmpdir_factory.getbasetemp().remove(ignore_errors=True)
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def tmpdir(request, tmpdir):
     """
     Return a temporary directory path object which is unique to each test
@@ -227,7 +227,7 @@ def install_egg_link(venv, project_name, egg_info_dir):
         fp.write(str(egg_info_dir) + '\n.')
 
 
-@pytest.yield_fixture(scope='session')
+@pytest.fixture(scope='session')
 def virtualenv_template(request, tmpdir_factory, pip_src,
                         setuptools_install, common_wheels):
 
@@ -268,7 +268,7 @@ def virtualenv_template(request, tmpdir_factory, pip_src,
     yield venv
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def virtualenv(virtualenv_template, tmpdir, isolate):
     """
     Return a virtual environment which is unique to each test function
