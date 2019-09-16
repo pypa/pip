@@ -215,6 +215,60 @@ def install_req_from_editable(
     )
 
 
+def _looks_like_path(name):
+    # type: (str) -> bool
+    """Checks whether the string "looks like" a path on the filesystem.
+
+    This does not check whether the target actually exists, only judge from the
+    appearance.
+
+    Returns true if any of the following conditions is true:
+    * a path separator is found (either os.path.sep or os.path.altsep);
+    * a dot is found (which represents the current directory).
+    """
+    if os.path.sep in name:
+        return True
+    if os.path.altsep is not None and os.path.altsep in name:
+        return True
+    if name.startswith("."):
+        return True
+    return False
+
+
+def _get_url_from_path(path, name):
+    # type: (str, str) -> str
+    """
+    First, it checks whether a provided path is an installable directory
+    (e.g. it has a setup.py). If it is, returns the path.
+
+    If false, check if the path is an archive file (such as a .whl).
+    The function checks if the path is a file. If false, if the path has
+    an @, it will treat it as a PEP 440 URL requirement and return the path.
+    """
+    if _looks_like_path(name) and os.path.isdir(path):
+        if is_installable_dir(path):
+            return path_to_url(path)
+        raise InstallationError(
+            "Directory %r is not installable. Neither 'setup.py' "
+            "nor 'pyproject.toml' found." % name
+        )
+    if not is_archive_file(path):
+        return None
+    if os.path.isfile(path):
+        return path_to_url(path)
+    urlreq_parts = name.split('@', 1)
+    if len(urlreq_parts) >= 2 and not _looks_like_path(urlreq_parts[0]):
+        # If the path contains '@' and the part before it does not look
+        # like a path, try to treat it as a PEP 440 URL req instead.
+        return None
+    logger.warning(
+        'Requirement %r looks like a filename, but the '
+        'file does not exist',
+        name
+    )
+    return path_to_url(path)
+
+
 def install_req_from_line(
     name,  # type: str
     comes_from=None,  # type: Optional[Union[str, InstallRequirement]]
@@ -255,26 +309,9 @@ def install_req_from_line(
         link = Link(name)
     else:
         p, extras_as_string = _strip_extras(path)
-        looks_like_dir = os.path.isdir(p) and (
-            os.path.sep in name or
-            (os.path.altsep is not None and os.path.altsep in name) or
-            name.startswith('.')
-        )
-        if looks_like_dir:
-            if not is_installable_dir(p):
-                raise InstallationError(
-                    "Directory %r is not installable. Neither 'setup.py' "
-                    "nor 'pyproject.toml' found." % name
-                )
-            link = Link(path_to_url(p))
-        elif is_archive_file(p):
-            if not os.path.isfile(p):
-                logger.warning(
-                    'Requirement %r looks like a filename, but the '
-                    'file does not exist',
-                    name
-                )
-            link = Link(path_to_url(p))
+        url = _get_url_from_path(p, name)
+        if url is not None:
+            link = Link(url)
 
     # it's a local file, dir, or url
     if link:
