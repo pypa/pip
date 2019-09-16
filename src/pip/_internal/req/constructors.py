@@ -336,6 +336,12 @@ def install_req_from_line(
         extras = Requirement("placeholder" + extras_as_string.lower()).extras
     else:
         extras = ()
+
+    def with_source(text):
+        if not line_source:
+            return text
+        return '{} (from {})'.format(text, line_source)
+
     if req_as_string is not None:
         try:
             req = Requirement(req_as_string)
@@ -348,12 +354,8 @@ def install_req_from_line(
                 add_msg = "= is not a valid operator. Did you mean == ?"
             else:
                 add_msg = ''
-            if line_source is None:
-                source = ''
-            else:
-                source = ' (from {})'.format(line_source)
-            msg = (
-                'Invalid requirement: {!r}{}'.format(req_as_string, source)
+            msg = with_source(
+                'Invalid requirement: {!r}'.format(req_as_string)
             )
             if add_msg:
                 msg += '\nHint: {}'.format(add_msg)
