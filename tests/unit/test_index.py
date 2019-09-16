@@ -533,6 +533,7 @@ class TestCandidateEvaluator:
         """
         Test the best candidates being yanked, but not all.
         """
+        caplog.set_level(logging.INFO)
         candidates = [
             make_mock_candidate('4.0', yanked_reason='bad metadata #4'),
             # Put the best candidate in the middle, to test sorting.
