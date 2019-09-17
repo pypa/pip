@@ -322,7 +322,7 @@ class InstallRequirement(object):
                 s += '->' + comes_from
         return s
 
-    def build_location(self, build_dir):
+    def ensure_build_location(self, build_dir):
         # type: (str) -> str
         assert build_dir is not None
         if self._temp_build_dir.path is not None:
@@ -370,7 +370,7 @@ class InstallRequirement(object):
         old_location = self._temp_build_dir.path
         self._temp_build_dir.path = None
 
-        new_location = self.build_location(self._ideal_build_dir)
+        new_location = self.ensure_build_location(self._ideal_build_dir)
         if os.path.exists(new_location):
             raise InstallationError(
                 'A package already exists in %s; please remove it to continue'
@@ -763,7 +763,7 @@ class InstallRequirement(object):
         :return: self.source_dir
         """
         if self.source_dir is None:
-            self.source_dir = self.build_location(parent_dir)
+            self.source_dir = self.ensure_build_location(parent_dir)
 
     # For editable installations
     def install_editable(
