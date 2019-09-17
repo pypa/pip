@@ -8,7 +8,7 @@ filename = "NEWS.rst"
 directory = "news/"
 title_format = "{version} ({project_date})"
 issue_format = "`#{issue} <https://github.com/pypa/pip/issues/{issue}>`_"
-template = "news/_template.rst"
+template = "tools/automation/news/template.rst"
 type = [
   { name = "Process",                   directory = "process", showcontent = true },
   { name = "Deprecations and Removals", directory = "removal", showcontent = true },
