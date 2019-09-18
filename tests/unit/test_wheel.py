@@ -13,7 +13,7 @@ from pip._internal.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip._internal.models.link import Link
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.compat import WINDOWS
-from pip._internal.utils.misc import unpack_file
+from pip._internal.utils.unpacking import unpack_file
 from pip._internal.wheel import (
     MissingCallableSuffix,
     _raise_for_invalid_entrypoint,
