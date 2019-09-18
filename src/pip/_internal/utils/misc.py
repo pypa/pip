@@ -427,10 +427,12 @@ def is_local(path):
 
     If we're not in a virtualenv, all paths are considered "local."
 
+    Caution: this function assumes the head of path has been normalized
+    with normalize_path.
     """
     if not running_under_virtualenv():
         return True
-    return normalize_path(path).startswith(normalize_path(sys.prefix))
+    return path.startswith(normalize_path(sys.prefix))
 
 
 def dist_is_local(dist):
@@ -450,8 +452,7 @@ def dist_in_usersite(dist):
     """
     Return True if given Distribution is installed in user site.
     """
-    norm_path = normalize_path(dist_location(dist))
-    return norm_path.startswith(normalize_path(user_site))
+    return dist_location(dist).startswith(normalize_path(user_site))
 
 
 def dist_in_site_packages(dist):
@@ -460,9 +461,7 @@ def dist_in_site_packages(dist):
     Return True if given Distribution is installed in
     sysconfig.get_python_lib().
     """
-    return normalize_path(
-        dist_location(dist)
-    ).startswith(normalize_path(site_packages))
+    return dist_location(dist).startswith(normalize_path(site_packages))
 
 
 def dist_is_editable(dist):
@@ -593,11 +592,12 @@ def dist_location(dist):
     packages, where dist.location is the source code location, and we
     want to know where the egg-link file is.
 
+    The returned location is normalized (in particular, with symlinks removed).
     """
     egg_link = egg_link_path(dist)
     if egg_link:
-        return egg_link
-    return dist.location
+        return normalize_path(egg_link)
+    return normalize_path(dist.location)
 
 
 def current_umask():

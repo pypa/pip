@@ -446,6 +446,28 @@ def test_uninstall_wheel(script, data):
     assert_all_changes(result, result2, [])
 
 
+@pytest.mark.skipif("sys.platform == 'win32'")
+def test_uninstall_with_symlink(script, data, tmpdir):
+    """
+    Test uninstalling a wheel, with an additional symlink
+    https://github.com/pypa/pip/issues/6892
+    """
+    package = data.packages.joinpath("simple.dist-0.1-py2.py3-none-any.whl")
+    script.pip('install', package, '--no-index')
+    symlink_target = tmpdir / "target"
+    symlink_target.mkdir()
+    symlink_source = script.site_packages / "symlink"
+    (script.base_path / symlink_source).symlink_to(symlink_target)
+    st_mode = symlink_target.stat().st_mode
+    distinfo_path = script.site_packages_path / 'simple.dist-0.1.dist-info'
+    record_path = distinfo_path / 'RECORD'
+    with open(record_path, "a") as f:
+        f.write("symlink,,\n")
+    uninstall_result = script.pip('uninstall', 'simple.dist', '-y')
+    assert symlink_source in uninstall_result.files_deleted
+    assert symlink_target.stat().st_mode == st_mode
+
+
 def test_uninstall_setuptools_develop_install(script, data):
     """Try uninstall after setup.py develop followed of setup.py install"""
     pkg_path = data.packages.joinpath("FSPkg")

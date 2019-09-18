@@ -267,14 +267,16 @@ class StashedUninstallPathSet(object):
     def stash(self, path):
         # type: (str) -> str
         """Stashes the directory or file and returns its new location.
+        Handle symlinks as files to avoid modifying the symlink targets.
         """
-        if os.path.isdir(path):
+        path_is_dir = os.path.isdir(path) and not os.path.islink(path)
+        if path_is_dir:
             new_path = self._get_directory_stash(path)
         else:
             new_path = self._get_file_stash(path)
 
         self._moves.append((path, new_path))
-        if os.path.isdir(path) and os.path.isdir(new_path):
+        if (path_is_dir and os.path.isdir(new_path)):
             # If we're moving a directory, we need to
             # remove the destination first or else it will be
             # moved to inside the existing directory.
@@ -301,7 +303,7 @@ class StashedUninstallPathSet(object):
         for new_path, path in self._moves:
             try:
                 logger.debug('Replacing %s from %s', new_path, path)
-                if os.path.isfile(new_path):
+                if os.path.isfile(new_path) or os.path.islink(new_path):
                     os.unlink(new_path)
                 elif os.path.isdir(new_path):
                     rmtree(new_path)

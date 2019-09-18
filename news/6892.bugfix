@@ -1,0 +1,2 @@
+Correctly uninstall symlinks that were installed in a virtualenv,
+by tools such as ``flit install --symlink``.
