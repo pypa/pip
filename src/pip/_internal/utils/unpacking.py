@@ -67,15 +67,21 @@ def is_svn_page(html):
     """
     Returns true if the page appears to be the index page of an svn repository
     """
-    return (re.search(r'<title>[^<]*Revision \d+:', html) and
-            re.search(r'Powered by (?:<a[^>]*?>)?Subversion', html, re.I))
+    return (
+        re.search(r'<title>[^<]*Revision \d+:', html) and
+        re.search(r'Powered by (?:<a[^>]*?>)?Subversion', html, re.I)
+    )
 
 
 def split_leading_dir(path):
     # type: (Union[str, Text]) -> List[Union[str, Text]]
     path = path.lstrip('/').lstrip('\\')
-    if '/' in path and (('\\' in path and path.find('/') < path.find('\\')) or
-                        '\\' not in path):
+    if (
+        '/' in path and (
+            ('\\' in path and path.find('/') < path.find('\\')) or
+            '\\' not in path
+        )
+    ):
         return path.split('/', 1)
     elif '\\' in path:
         return path.split('\\', 1)
@@ -229,21 +235,28 @@ def unpack_file(
 ):
     # type: (...) -> None
     filename = os.path.realpath(filename)
-    if (content_type == 'application/zip' or
-            filename.lower().endswith(ZIP_EXTENSIONS) or
-            zipfile.is_zipfile(filename)):
+    if (
+        content_type == 'application/zip' or
+        filename.lower().endswith(ZIP_EXTENSIONS) or
+        zipfile.is_zipfile(filename)
+    ):
         unzip_file(
             filename,
             location,
             flatten=not filename.endswith('.whl')
         )
-    elif (content_type == 'application/x-gzip' or
-          tarfile.is_tarfile(filename) or
-          filename.lower().endswith(
-              TAR_EXTENSIONS + BZ2_EXTENSIONS + XZ_EXTENSIONS)):
+    elif (
+        content_type == 'application/x-gzip' or
+        tarfile.is_tarfile(filename) or
+        filename.lower().endswith(
+            TAR_EXTENSIONS + BZ2_EXTENSIONS + XZ_EXTENSIONS
+        )
+    ):
         untar_file(filename, location)
-    elif (content_type and content_type.startswith('text/html') and
-          is_svn_page(file_contents(filename))):
+    elif (
+        content_type and content_type.startswith('text/html') and
+        is_svn_page(file_contents(filename))
+    ):
         # We don't really care about this
         from pip._internal.vcs.subversion import Subversion
         hidden_url = hide_url('svn+' + link.url)
@@ -257,5 +270,5 @@ def unpack_file(
             filename, location, content_type,
         )
         raise InstallationError(
-            'Cannot determine archive format of %s' % location
+            'Cannot determine archive format of {}'.format(location)
         )
