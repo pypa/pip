@@ -54,11 +54,11 @@ from pip._internal.utils.misc import (
     rmtree,
     split_auth_netloc_from_url,
     splitext,
-    unpack_file,
 )
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import DownloadProgressProvider
+from pip._internal.utils.unpacking import unpack_file
 from pip._internal.utils.urls import get_url_scheme, url_to_path
 from pip._internal.vcs import vcs
 
