@@ -26,9 +26,10 @@ from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.utils.filetypes import WHEEL_EXTENSION
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import SUPPORTED_EXTENSIONS, build_netloc
+from pip._internal.utils.misc import build_netloc
 from pip._internal.utils.packaging import check_requires_python
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.unpacking import SUPPORTED_EXTENSIONS
 from pip._internal.utils.urls import url_to_path
 from pip._internal.wheel import Wheel
 
