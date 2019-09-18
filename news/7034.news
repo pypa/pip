@@ -1,0 +1,1 @@
+Fix import failing when sys.stdin is detached
