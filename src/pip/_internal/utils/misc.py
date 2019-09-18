@@ -181,8 +181,13 @@ def rmtree_errorhandler(func, path, exc_info):
     """On Windows, the files in .svn are read-only, so when rmtree() tries to
     remove them, an exception is thrown.  We catch that here, remove the
     read-only attribute, and hopefully continue without problems."""
-    # if file type currently read only
-    if os.stat(path).st_mode & stat.S_IREAD:
+    try:
+        has_attr_readonly = not (os.stat(path).st_mode & stat.S_IWRITE)
+    except (IOError, OSError):
+        # it's equivalent to os.path.exists
+        return
+
+    if has_attr_readonly:
         # convert to read/write
         os.chmod(path, stat.S_IWRITE)
         # use the original function to repeat the operation

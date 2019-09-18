@@ -59,6 +59,7 @@ from pip._internal.utils.misc import (
     redact_netloc,
     remove_auth_from_url,
     rmtree,
+    rmtree_errorhandler,
     split_auth_from_netloc,
     split_auth_netloc_from_url,
     untar_file,
@@ -384,6 +385,62 @@ class TestUnpackArchives(object):
         test_file = data.packages.joinpath("test_zip.zip")
         unzip_file(test_file, self.tempdir)
         self.confirm_files()
+
+
+def test_rmtree_errorhandler_nonexistent_directory(tmpdir):
+    """
+    Test rmtree_errorhandler ignores the given non-existing directory.
+    """
+    nonexistent_path = str(tmpdir / 'foo')
+    mock_func = Mock()
+    rmtree_errorhandler(mock_func, nonexistent_path, None)
+    mock_func.assert_not_called()
+
+
+def test_rmtree_errorhandler_readonly_directory(tmpdir):
+    """
+    Test rmtree_errorhandler makes the given read-only directory writable.
+    """
+    # Create read only directory
+    path = str((tmpdir / 'subdir').mkdir())
+    os.chmod(path, stat.S_IREAD)
+
+    # Make sure mock_func is called with the given path
+    mock_func = Mock()
+    rmtree_errorhandler(mock_func, path, None)
+    mock_func.assert_called_with(path)
+
+    # Make sure the path is now writable
+    assert os.stat(path).st_mode & stat.S_IWRITE
+
+
+def test_rmtree_errorhandler_reraises_error(tmpdir):
+    """
+    Test rmtree_errorhandler reraises an exception
+    by the given unreadable directory.
+    """
+    # Create directory without read permission
+    path = str((tmpdir / 'subdir').mkdir())
+    os.chmod(path, stat.S_IWRITE)
+
+    mock_func = Mock()
+
+    try:
+        raise RuntimeError('test message')
+    except RuntimeError:
+        # Make sure the handler reraises an exception
+        with pytest.raises(RuntimeError, match='test message'):
+            rmtree_errorhandler(mock_func, path, None)
+
+    mock_func.assert_not_called()
+
+
+def test_rmtree_skips_nonexistent_directory():
+    """
+    Test wrapped rmtree doesn't raise an error
+    by the given nonexistent directory.
+    """
+    rmtree.__wrapped__('nonexistent-subdir')
 
 
 class Failer:
