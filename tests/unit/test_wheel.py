@@ -590,20 +590,11 @@ class TestWheelFile(object):
         with pytest.raises(ValueError):
             w.support_index_min(tags=[])
 
-    def test_unpack_wheel_no_flatten(self):
-        from pip._internal.utils import misc as utils
-        from tempfile import mkdtemp
-        from shutil import rmtree
-
+    def test_unpack_wheel_no_flatten(self, tmpdir):
         filepath = os.path.join(DATA_DIR, 'packages',
                                 'meta-1.0-py2.py3-none-any.whl')
-        try:
-            tmpdir = mkdtemp()
-            utils.unpack_file(filepath, tmpdir, 'application/zip', None)
-            assert os.path.isdir(os.path.join(tmpdir, 'meta-1.0.dist-info'))
-        finally:
-            rmtree(tmpdir)
-            pass
+        unpack_file(filepath, tmpdir, 'application/zip', None)
+        assert os.path.isdir(os.path.join(tmpdir, 'meta-1.0.dist-info'))
 
     def test_purelib_platlib(self, data):
         """
