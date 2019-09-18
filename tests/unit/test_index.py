@@ -3,12 +3,12 @@ import logging
 import pytest
 from pip._vendor.packaging.specifiers import SpecifierSet
 
+from pip._internal.collector import LinkCollector
 from pip._internal.download import PipSession
 from pip._internal.index import (
     CandidateEvaluator,
     CandidatePreferences,
     FormatControl,
-    LinkCollector,
     LinkEvaluator,
     PackageFinder,
     _check_link_requires_python,
@@ -564,15 +564,18 @@ class TestPackageFinder:
         """
         Test that the _candidate_prefs attribute is set correctly.
         """
+        link_collector = LinkCollector(
+            session=PipSession(),
+            search_scope=SearchScope([], []),
+        )
         selection_prefs = SelectionPreferences(
             allow_yanked=True,
             allow_all_prereleases=allow_all_prereleases,
             prefer_binary=prefer_binary,
         )
         finder = PackageFinder.create(
-            search_scope=SearchScope([], []),
+            link_collector=link_collector,
             selection_prefs=selection_prefs,
-            session=PipSession(),
         )
         candidate_prefs = finder._candidate_prefs
         assert candidate_prefs.allow_all_prereleases == allow_all_prereleases
@@ -582,27 +585,29 @@ class TestPackageFinder:
         """
         Test that the _link_collector attribute is set correctly.
         """
-        search_scope = SearchScope([], [])
-        session = PipSession()
+        link_collector = LinkCollector(
+            session=PipSession(),
+            search_scope=SearchScope([], []),
+        )
         finder = PackageFinder.create(
-            search_scope=search_scope,
+            link_collector=link_collector,
             selection_prefs=SelectionPreferences(allow_yanked=True),
-            session=session,
         )
 
-        actual_link_collector = finder._link_collector
-        assert actual_link_collector.search_scope is search_scope
-        assert actual_link_collector.session is session
+        assert finder._link_collector is link_collector
 
     def test_create__target_python(self):
         """
         Test that the _target_python attribute is set correctly.
         """
+        link_collector = LinkCollector(
+            session=PipSession(),
+            search_scope=SearchScope([], []),
+        )
         target_python = TargetPython(py_version_info=(3, 7, 3))
         finder = PackageFinder.create(
-            search_scope=SearchScope([], []),
+            link_collector=link_collector,
             selection_prefs=SelectionPreferences(allow_yanked=True),
-            session=PipSession(),
             target_python=target_python,
         )
         actual_target_python = finder._target_python
@@ -615,10 +620,13 @@ class TestPackageFinder:
         """
         Test passing target_python=None.
         """
-        finder = PackageFinder.create(
-            search_scope=SearchScope([], []),
-            selection_prefs=SelectionPreferences(allow_yanked=True),
+        link_collector = LinkCollector(
             session=PipSession(),
+            search_scope=SearchScope([], []),
+        )
+        finder = PackageFinder.create(
+            link_collector=link_collector,
+            selection_prefs=SelectionPreferences(allow_yanked=True),
             target_python=None,
         )
         # Spot-check the default TargetPython object.
@@ -631,11 +639,14 @@ class TestPackageFinder:
         """
         Test that the _allow_yanked attribute is set correctly.
         """
+        link_collector = LinkCollector(
+            session=PipSession(),
+            search_scope=SearchScope([], []),
+        )
         selection_prefs = SelectionPreferences(allow_yanked=allow_yanked)
         finder = PackageFinder.create(
-            search_scope=SearchScope([], []),
+            link_collector=link_collector,
             selection_prefs=selection_prefs,
-            session=PipSession(),
         )
         assert finder._allow_yanked == allow_yanked
 
@@ -644,14 +655,17 @@ class TestPackageFinder:
         """
         Test that the _ignore_requires_python attribute is set correctly.
         """
+        link_collector = LinkCollector(
+            session=PipSession(),
+            search_scope=SearchScope([], []),
+        )
         selection_prefs = SelectionPreferences(
             allow_yanked=True,
             ignore_requires_python=ignore_requires_python,
         )
         finder = PackageFinder.create(
-            search_scope=SearchScope([], []),
+            link_collector=link_collector,
             selection_prefs=selection_prefs,
-            session=PipSession(),
         )
         assert finder._ignore_requires_python == ignore_requires_python
 
@@ -659,15 +673,18 @@ class TestPackageFinder:
         """
         Test that the format_control attribute is set correctly.
         """
+        link_collector = LinkCollector(
+            session=PipSession(),
+            search_scope=SearchScope([], []),
+        )
         format_control = FormatControl(set(), {':all:'})
         selection_prefs = SelectionPreferences(
             allow_yanked=True,
             format_control=format_control,
         )
         finder = PackageFinder.create(
-            search_scope=SearchScope([], []),
+            link_collector=link_collector,
             selection_prefs=selection_prefs,
-            session=PipSession(),
         )
         actual_format_control = finder.format_control
         assert actual_format_control is format_control

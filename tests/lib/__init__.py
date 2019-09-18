@@ -13,6 +13,7 @@ import subprocess
 import pytest
 from scripttest import FoundDir, TestFileEnvironment
 
+from pip._internal.collector import LinkCollector
 from pip._internal.download import PipSession
 from pip._internal.index import PackageFinder
 from pip._internal.locations import get_major_minor_version
@@ -89,10 +90,27 @@ def make_test_search_scope(
     if index_urls is None:
         index_urls = []
 
-    return SearchScope.create(
+    return SearchScope.create(find_links=find_links, index_urls=index_urls)
+
+
+def make_test_link_collector(
+    find_links=None,  # type: Optional[List[str]]
+    index_urls=None,  # type: Optional[List[str]]
+    session=None,     # type: Optional[PipSession]
+):
+    # type: (...) -> LinkCollector
+    """
+    Create a LinkCollector object for testing purposes.
+    """
+    if session is None:
+        session = PipSession()
+
+    search_scope = make_test_search_scope(
         find_links=find_links,
         index_urls=index_urls,
     )
+
+    return LinkCollector(session=session, search_scope=search_scope)
 
 
 def make_test_finder(
@@ -106,12 +124,10 @@ def make_test_finder(
     """
     Create a PackageFinder for testing purposes.
     """
-    if session is None:
-        session = PipSession()
-
-    search_scope = make_test_search_scope(
+    link_collector = make_test_link_collector(
         find_links=find_links,
         index_urls=index_urls,
+        session=session,
     )
     selection_prefs = SelectionPreferences(
         allow_yanked=True,
@@ -119,9 +135,8 @@ def make_test_finder(
     )
 
     return PackageFinder.create(
-        search_scope=search_scope,
+        link_collector=link_collector,
         selection_prefs=selection_prefs,
-        session=session,
         target_python=target_python,
     )
 

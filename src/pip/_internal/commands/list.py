@@ -7,7 +7,6 @@ from pip._vendor import six
 from pip._vendor.six.moves import zip_longest
 
 from pip._internal.cli import cmdoptions
-from pip._internal.cli.cmdoptions import make_search_scope
 from pip._internal.cli.req_command import IndexGroupCommand
 from pip._internal.exceptions import CommandError
 from pip._internal.index import PackageFinder
@@ -17,6 +16,7 @@ from pip._internal.utils.misc import (
     get_installed_distributions,
     write_output,
 )
+from pip._internal.utils.outdated import make_link_collector
 from pip._internal.utils.packaging import get_installer
 
 logger = logging.getLogger(__name__)
@@ -116,7 +116,7 @@ class ListCommand(IndexGroupCommand):
         """
         Create a package finder appropriate to this list command.
         """
-        search_scope = make_search_scope(options)
+        link_collector = make_link_collector(session, options=options)
 
         # Pass allow_yanked=False to ignore yanked versions.
         selection_prefs = SelectionPreferences(
@@ -125,9 +125,8 @@ class ListCommand(IndexGroupCommand):
         )
 
         return PackageFinder.create(
-            search_scope=search_scope,
+            link_collector=link_collector,
             selection_prefs=selection_prefs,
-            session=session,
         )
 
     def run(self, options, args):

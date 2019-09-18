@@ -10,7 +10,6 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip._internal.collector import (
     HTMLPage,
-    LinkCollector,
     _clean_link,
     _determine_base_url,
     _get_html_page,
@@ -22,11 +21,7 @@ from pip._internal.collector import (
 from pip._internal.download import PipSession
 from pip._internal.models.index import PyPI
 from pip._internal.models.link import Link
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from tests.lib import make_test_search_scope
-
-if MYPY_CHECK_RUNNING:
-    from typing import List, Optional
+from tests.lib import make_test_link_collector
 
 
 @pytest.mark.parametrize(
@@ -388,25 +383,6 @@ def make_fake_html_page(url):
     return HTMLPage(content, url=url, headers=headers)
 
 
-def make_test_link_collector(
-    find_links=None,  # type: Optional[List[str]]
-):
-    # type: (...) -> LinkCollector
-    """
-    Create a LinkCollector object for testing purposes.
-    """
-    session = PipSession()
-    search_scope = make_test_search_scope(
-        find_links=find_links,
-        index_urls=[PyPI.simple_url],
-    )
-
-    return LinkCollector(
-        session=session,
-        search_scope=search_scope,
-    )
-
-
 def check_links_include(links, names):
     """
     Assert that the given list of Link objects includes, for each of the
@@ -428,7 +404,8 @@ class TestLinkCollector(object):
         mock_get_html_response.return_value = fake_page
 
         link_collector = make_test_link_collector(
-            find_links=[data.find_links]
+            find_links=[data.find_links],
+            index_urls=[PyPI.simple_url],
         )
         actual = link_collector.collect_links('twine')
 

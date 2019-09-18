@@ -11,8 +11,9 @@ from pip._vendor import pkg_resources
 from pip._vendor.packaging import version as packaging_version
 from pip._vendor.six import ensure_binary
 
-from pip._internal.cli.cmdoptions import make_search_scope
+from pip._internal.collector import LinkCollector
 from pip._internal.index import PackageFinder
+from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.filesystem import (
@@ -20,12 +21,17 @@ from pip._internal.utils.filesystem import (
     check_path_owner,
     replace,
 )
-from pip._internal.utils.misc import ensure_dir, get_installed_version
+from pip._internal.utils.misc import (
+    ensure_dir,
+    get_installed_version,
+    redact_auth_from_url,
+)
 from pip._internal.utils.packaging import get_installer
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     import optparse
+    from optparse import Values
     from typing import Any, Dict, Text, Union
     from pip._internal.download import PipSession
 
@@ -34,6 +40,37 @@ SELFCHECK_DATE_FMT = "%Y-%m-%dT%H:%M:%SZ"
 
 
 logger = logging.getLogger(__name__)
+
+
+def make_link_collector(
+    session,  # type: PipSession
+    options,  # type: Values
+    suppress_no_index=False,  # type: bool
+):
+    # type: (...) -> LinkCollector
+    """
+    :param session: The Session to use to make requests.
+    :param suppress_no_index: Whether to ignore the --no-index option
+        when constructing the SearchScope object.
+    """
+    index_urls = [options.index_url] + options.extra_index_urls
+    if options.no_index and not suppress_no_index:
+        logger.debug(
+            'Ignoring indexes: %s',
+            ','.join(redact_auth_from_url(url) for url in index_urls),
+        )
+        index_urls = []
+
+    # Make sure find_links is a list before passing to create().
+    find_links = options.find_links or []
+
+    search_scope = SearchScope.create(
+        find_links=find_links, index_urls=index_urls,
+    )
+
+    link_collector = LinkCollector(session=session, search_scope=search_scope)
+
+    return link_collector
 
 
 def _get_statefile_name(key):
@@ -147,7 +184,11 @@ def pip_version_check(session, options):
         # Refresh the version if we need to or just see if we need to warn
         if pypi_version is None:
             # Lets use PackageFinder to see what the latest pip version is
-            search_scope = make_search_scope(options, suppress_no_index=True)
+            link_collector = make_link_collector(
+                session,
+                options=options,
+                suppress_no_index=True,
+            )
 
             # Pass allow_yanked=False so we don't suggest upgrading to a
             # yanked version.
@@ -157,9 +198,8 @@ def pip_version_check(session, options):
             )
 
             finder = PackageFinder.create(
-                search_scope=search_scope,
+                link_collector=link_collector,
                 selection_prefs=selection_prefs,
-                session=session,
             )
             best_candidate = finder.find_best_candidate("pip").best_candidate
             if best_candidate is None:
