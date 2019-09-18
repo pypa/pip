@@ -14,11 +14,13 @@ import tarfile
 import zipfile
 
 from pip._internal.exceptions import InstallationError
-from pip._internal.utils.misc import (
+from pip._internal.utils.filetypes import (
     BZ2_EXTENSIONS,
     TAR_EXTENSIONS,
     XZ_EXTENSIONS,
     ZIP_EXTENSIONS,
+)
+from pip._internal.utils.misc import (
     current_umask,
     ensure_dir,
     file_contents,

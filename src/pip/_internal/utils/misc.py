@@ -41,6 +41,12 @@ from pip._internal.utils.compat import (
     stdlib_pkgs,
     str_to_display,
 )
+from pip._internal.utils.filetypes import (
+    BZ2_EXTENSIONS,
+    TAR_EXTENSIONS,
+    XZ_EXTENSIONS,
+    ZIP_EXTENSIONS,
+)
 from pip._internal.utils.marker_files import write_delete_marker_file
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.virtualenv import (
@@ -79,7 +85,7 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'renames', 'get_prog',
            'call_subprocess',
            'captured_stdout', 'ensure_dir',
-           'ARCHIVE_EXTENSIONS', 'SUPPORTED_EXTENSIONS', 'WHEEL_EXTENSION',
+           'SUPPORTED_EXTENSIONS',
            'get_installed_version', 'remove_auth_from_url']
 
 
@@ -88,13 +94,6 @@ subprocess_logger = logging.getLogger('pip.subprocessor')
 
 LOG_DIVIDER = '----------------------------------------'
 
-WHEEL_EXTENSION = '.whl'
-BZ2_EXTENSIONS = ('.tar.bz2', '.tbz')
-XZ_EXTENSIONS = ('.tar.xz', '.txz', '.tlz', '.tar.lz', '.tar.lzma')
-ZIP_EXTENSIONS = ('.zip', WHEEL_EXTENSION)
-TAR_EXTENSIONS = ('.tar.gz', '.tgz', '.tar')
-ARCHIVE_EXTENSIONS = (
-    ZIP_EXTENSIONS + BZ2_EXTENSIONS + TAR_EXTENSIONS + XZ_EXTENSIONS)
 SUPPORTED_EXTENSIONS = ZIP_EXTENSIONS + TAR_EXTENSIONS
 
 try:

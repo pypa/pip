@@ -15,11 +15,8 @@ from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip._internal.models.link import Link
-from pip._internal.utils.misc import (
-    ARCHIVE_EXTENSIONS,
-    path_to_url,
-    redact_auth_from_url,
-)
+from pip._internal.utils.filetypes import ARCHIVE_EXTENSIONS
+from pip._internal.utils.misc import path_to_url, redact_auth_from_url
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import url_to_path
 from pip._internal.vcs import is_url, vcs

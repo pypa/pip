@@ -25,12 +25,8 @@ from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.models.link import Link
 from pip._internal.pyproject import make_pyproject_path
 from pip._internal.req.req_install import InstallRequirement
-from pip._internal.utils.misc import (
-    ARCHIVE_EXTENSIONS,
-    is_installable_dir,
-    path_to_url,
-    splitext,
-)
+from pip._internal.utils.filetypes import ARCHIVE_EXTENSIONS
+from pip._internal.utils.misc import is_installable_dir, path_to_url, splitext
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import url_to_path
 from pip._internal.vcs import is_url, vcs
