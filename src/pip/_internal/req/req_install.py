@@ -562,7 +562,7 @@ class InstallRequirement(object):
 
         metadata_generator = get_metadata_generator(self)
         with indent_log():
-            metadata_generator()
+            metadata_generator(self)
 
         if not self.req:
             if isinstance(parse_version(self.metadata["Version"]), Version):
