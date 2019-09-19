@@ -31,11 +31,19 @@ class SourceDistribution(AbstractDistribution):
         should_isolate = self.req.use_pep517 and build_isolation
 
         def _raise_conflicts(conflicting_with, conflicting_reqs):
-            raise InstallationError(
-                "Some build dependencies for %s conflict with %s: %s." % (
-                    self.req, conflicting_with, ', '.join(
-                        '%s is incompatible with %s' % (installed, wanted)
-                        for installed, wanted in sorted(conflicting))))
+            format_string = (
+                "Some build dependencies for {requirement} "
+                "conflict with {conflicting_with}: {description}."
+            )
+            error_message = format_string.format(
+                requirement=self.req,
+                conflicting_with=conflicting_with,
+                description=', '.join(
+                    '%s is incompatible with %s' % (installed, wanted)
+                    for installed, wanted in sorted(conflicting)
+                )
+            )
+            raise InstallationError(error_message)
 
         if should_isolate:
             # Isolate in a BuildEnvironment and install the build-time
