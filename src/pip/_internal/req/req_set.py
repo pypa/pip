@@ -6,6 +6,8 @@ from __future__ import absolute_import
 import logging
 from collections import OrderedDict
 
+from pip._vendor.packaging.utils import canonicalize_name
+
 from pip._internal import pep425tags
 from pip._internal.exceptions import InstallationError
 from pip._internal.utils.logging import indent_log
@@ -31,8 +33,6 @@ class RequirementSet(object):
         self.require_hashes = require_hashes
         self.check_supported_wheels = check_supported_wheels
 
-        # Mapping of alias: real_name
-        self.requirement_aliases = {}  # type: Dict[str, str]
         self.unnamed_requirements = []  # type: List[InstallRequirement]
         self.successfully_downloaded = []  # type: List[InstallRequirement]
         self.reqs_to_cleanup = []  # type: List[InstallRequirement]
@@ -41,7 +41,7 @@ class RequirementSet(object):
         # type: () -> str
         requirements = sorted(
             (req for req in self.requirements.values() if not req.comes_from),
-            key=lambda req: req.name.lower(),
+            key=lambda req: canonicalize_name(req.name),
         )
         return ' '.join(str(req.req) for req in requirements)
 
@@ -49,7 +49,7 @@ class RequirementSet(object):
         # type: () -> str
         requirements = sorted(
             self.requirements.values(),
-            key=lambda req: req.name.lower(),
+            key=lambda req: canonicalize_name(req.name),
         )
 
         format_string = '<{classname} object; {count} requirement(s): {reqs}>'
@@ -67,12 +67,9 @@ class RequirementSet(object):
     def add_named_requirement(self, install_req):
         # type: (InstallRequirement) -> None
         assert install_req.name
-        name = install_req.name
 
-        self.requirements[name] = install_req
-        # FIXME: what about other normalizations?  E.g., _ vs. -?
-        if name.lower() != name:
-            self.requirement_aliases[name.lower()] = name
+        project_name = canonicalize_name(install_req.name)
+        self.requirements[project_name] = install_req
 
     def add_requirement(
         self,
@@ -186,24 +183,23 @@ class RequirementSet(object):
         # scanning again.
         return [existing_req], existing_req
 
-    def has_requirement(self, project_name):
+    def has_requirement(self, name):
         # type: (str) -> bool
-        name = project_name.lower()
-        if (name in self.requirements and
-           not self.requirements[name].constraint or
-           name in self.requirement_aliases and
-           not self.requirements[self.requirement_aliases[name]].constraint):
-            return True
-        return False
+        project_name = canonicalize_name(name)
 
-    def get_requirement(self, project_name):
+        return (
+            project_name in self.requirements and
+            not self.requirements[project_name].constraint
+        )
+
+    def get_requirement(self, name):
         # type: (str) -> InstallRequirement
-        for name in project_name, project_name.lower():
-            if name in self.requirements:
-                return self.requirements[name]
-            if name in self.requirement_aliases:
-                return self.requirements[self.requirement_aliases[name]]
-        raise KeyError("No project with the name %r" % project_name)
+        project_name = canonicalize_name(name)
+
+        if project_name in self.requirements:
+            return self.requirements[project_name]
+
+        raise KeyError("No project with the name %r" % name)
 
     def cleanup_files(self):
         # type: () -> None
