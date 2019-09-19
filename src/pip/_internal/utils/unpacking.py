@@ -21,7 +21,7 @@ from pip._internal.utils.filetypes import (
     XZ_EXTENSIONS,
     ZIP_EXTENSIONS,
 )
-from pip._internal.utils.misc import ensure_dir, hide_url
+from pip._internal.utils.misc import ensure_dir
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -253,14 +253,6 @@ def unpack_file(
         )
     ):
         untar_file(filename, location)
-    elif (
-        content_type and content_type.startswith('text/html') and
-        is_svn_page(file_contents(filename))
-    ):
-        # We don't really care about this
-        from pip._internal.vcs.subversion import Subversion
-        hidden_url = hide_url('svn+' + link.url)
-        Subversion().unpack(location, url=hidden_url)
     else:
         # FIXME: handle?
         # FIXME: magic signatures?
