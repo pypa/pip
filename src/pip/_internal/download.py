@@ -1038,19 +1038,21 @@ def _check_download_dir(link, download_dir, hashes):
         If a correct file is found return its path else None
     """
     download_path = os.path.join(download_dir, link.filename)
-    if os.path.exists(download_path):
-        # If already downloaded, does its hash match?
-        logger.info('File was already downloaded %s', download_path)
-        if hashes:
-            try:
-                hashes.check_against_path(download_path)
-            except HashMismatch:
-                logger.warning(
-                    'Previously-downloaded file %s has bad hash. '
-                    'Re-downloading.',
-                    download_path
-                )
-                os.unlink(download_path)
-                return None
-        return download_path
-    return None
+
+    if not os.path.exists(download_path):
+        return None
+
+    # If already downloaded, does its hash match?
+    logger.info('File was already downloaded %s', download_path)
+    if hashes:
+        try:
+            hashes.check_against_path(download_path)
+        except HashMismatch:
+            logger.warning(
+                'Previously-downloaded file %s has bad hash. '
+                'Re-downloading.',
+                download_path
+            )
+            os.unlink(download_path)
+            return None
+    return download_path
