@@ -39,18 +39,25 @@ class RequirementSet(object):
 
     def __str__(self):
         # type: () -> str
-        reqs = [req for req in self.requirements.values()
-                if not req.comes_from]
-        reqs.sort(key=lambda req: req.name.lower())
-        return ' '.join([str(req.req) for req in reqs])
+        requirements = sorted(
+            (req for req in self.requirements.values() if not req.comes_from),
+            key=lambda req: req.name.lower(),
+        )
+        return ' '.join(str(req.req) for req in requirements)
 
     def __repr__(self):
         # type: () -> str
-        reqs = [req for req in self.requirements.values()]
-        reqs.sort(key=lambda req: req.name.lower())
-        reqs_str = ', '.join([str(req.req) for req in reqs])
-        return ('<%s object; %d requirement(s): %s>'
-                % (self.__class__.__name__, len(reqs), reqs_str))
+        requirements = sorted(
+            self.requirements.values(),
+            key=lambda req: req.name.lower(),
+        )
+
+        format_string = '<{classname} object; {count} requirement(s): {reqs}>'
+        return format_string.format(
+            classname=self.__class__.__name__,
+            count=len(requirements),
+            reqs=', '.join(str(req.req) for req in requirements),
+        )
 
     def add_unnamed_requirement(self, install_req):
         # type: (InstallRequirement) -> None
