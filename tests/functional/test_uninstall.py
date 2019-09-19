@@ -358,13 +358,16 @@ def test_uninstall_from_reqs_file(script, tmpdir):
     Test uninstall from a requirements file.
 
     """
+    local_svn_url = local_checkout(
+        'svn+http://svn.colorstudy.com/INITools/trunk',
+        tmpdir,
+    )
     script.scratch_path.joinpath("test-req.txt").write_text(
         textwrap.dedent("""
             -e %s#egg=initools
             # and something else to test out:
             PyLogo<0.4
-        """) %
-        local_checkout('svn+http://svn.colorstudy.com/INITools/trunk', tmpdir)
+        """) % local_svn_url
     )
     result = script.pip('install', '-r', 'test-req.txt')
     script.scratch_path.joinpath("test-req.txt").write_text(
@@ -377,8 +380,7 @@ def test_uninstall_from_reqs_file(script, tmpdir):
             -e %s#egg=initools
             # and something else to test out:
             PyLogo<0.4
-        """) %
-        local_checkout('svn+http://svn.colorstudy.com/INITools/trunk', tmpdir)
+        """) % local_svn_url
     )
     result2 = script.pip('uninstall', '-r', 'test-req.txt', '-y')
     assert_all_changes(

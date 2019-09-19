@@ -14,14 +14,12 @@ if MYPY_CHECK_RUNNING:
     from tests.lib.path import Path
 
 
-def _ensure_svn_initools_repo(directory):
+def _create_svn_initools_repo(directory):
     """
-    Create the SVN INITools repo if it doesn't already exist.
+    Create the SVN INITools repo.
     """
     initools_dir = os.path.join(directory, 'INITools')
-    repo_url_path = os.path.join(initools_dir, 'trunk')
-    if os.path.exists(initools_dir):
-        return repo_url_path
+    assert not os.path.exists(initools_dir)
 
     subprocess.check_call('svnadmin create INITools'.split(), cwd=directory)
 
@@ -40,7 +38,7 @@ def _ensure_svn_initools_repo(directory):
     devnull.close()
     os.remove(filename)
 
-    return repo_url_path
+    return os.path.join(initools_dir, 'trunk')
 
 
 def local_checkout(
@@ -62,7 +60,7 @@ def local_checkout(
 
     if vcs_name == 'svn':
         assert remote_repo.endswith('/INITools/trunk')
-        repo_url_path = _ensure_svn_initools_repo(directory)
+        repo_url_path = _create_svn_initools_repo(directory)
     else:
         repository_name = os.path.basename(remote_repo)
         repo_url_path = os.path.join(directory, repository_name)
