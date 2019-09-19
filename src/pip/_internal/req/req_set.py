@@ -95,13 +95,11 @@ class RequirementSet(object):
             the requirement is not applicable, or [install_req] if the
             requirement is applicable and has just been added.
         """
-        name = install_req.name
-
         # If the markers do not match, ignore this requirement.
         if not install_req.match_markers(extras_requested):
             logger.info(
                 "Ignoring %s: markers '%s' don't match your environment",
-                name, install_req.markers,
+                install_req.name, install_req.markers,
             )
             return [], None
 
@@ -126,12 +124,12 @@ class RequirementSet(object):
 
         # Unnamed requirements are scanned again and the requirement won't be
         # added as a dependency until after scanning.
-        if not name:
+        if not install_req.name:
             self.add_unnamed_requirement(install_req)
             return [install_req], None
 
         try:
-            existing_req = self.get_requirement(name)
+            existing_req = self.get_requirement(install_req.name)
         except KeyError:
             existing_req = None
 
@@ -145,7 +143,7 @@ class RequirementSet(object):
         if has_conflicting_requirement:
             raise InstallationError(
                 "Double requirement given: %s (already in %s, name=%r)"
-                % (install_req, existing_req, name)
+                % (install_req, existing_req, install_req.name)
             )
 
         # When no existing requirement exists, add the requirement as a
@@ -172,7 +170,7 @@ class RequirementSet(object):
             raise InstallationError(
                 "Could not satisfy constraints for '%s': "
                 "installation from path or url cannot be "
-                "constrained to a version" % name,
+                "constrained to a version" % install_req.name,
             )
         # If we're now installing a constraint, mark the existing
         # object for real installation.
