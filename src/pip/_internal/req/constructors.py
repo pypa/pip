@@ -72,10 +72,9 @@ def _strip_extras(path):
 
 def convert_extras(extras):
     # type: (Optional[str]) -> Set[str]
-    if extras:
-        return Requirement("placeholder" + extras.lower()).extras
-    else:
+    if not extras:
         return set()
+    return Requirement("placeholder" + extras.lower()).extras
 
 
 def parse_editable(editable_req):
