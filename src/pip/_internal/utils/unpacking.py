@@ -8,7 +8,6 @@ from __future__ import absolute_import
 
 import logging
 import os
-import re
 import shutil
 import stat
 import tarfile
@@ -21,13 +20,11 @@ from pip._internal.utils.filetypes import (
     XZ_EXTENSIONS,
     ZIP_EXTENSIONS,
 )
-from pip._internal.utils.misc import ensure_dir, hide_url
+from pip._internal.utils.misc import ensure_dir
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Iterable, List, Optional, Match, Text, Union
-
-    from pip._internal.models.link import Link
+    from typing import Iterable, List, Optional, Text, Union
 
 
 logger = logging.getLogger(__name__)
@@ -54,23 +51,6 @@ def current_umask():
     mask = os.umask(0)
     os.umask(mask)
     return mask
-
-
-def file_contents(filename):
-    # type: (str) -> Text
-    with open(filename, 'rb') as fp:
-        return fp.read().decode('utf-8')
-
-
-def is_svn_page(html):
-    # type: (Union[str, Text]) -> Optional[Match[Union[str, Text]]]
-    """
-    Returns true if the page appears to be the index page of an svn repository
-    """
-    return (
-        re.search(r'<title>[^<]*Revision \d+:', html) and
-        re.search(r'Powered by (?:<a[^>]*?>)?Subversion', html, re.I)
-    )
 
 
 def split_leading_dir(path):
@@ -231,7 +211,6 @@ def unpack_file(
         filename,  # type: str
         location,  # type: str
         content_type,  # type: Optional[str]
-        link  # type: Optional[Link]
 ):
     # type: (...) -> None
     filename = os.path.realpath(filename)
@@ -253,14 +232,6 @@ def unpack_file(
         )
     ):
         untar_file(filename, location)
-    elif (
-        content_type and content_type.startswith('text/html') and
-        is_svn_page(file_contents(filename))
-    ):
-        # We don't really care about this
-        from pip._internal.vcs.subversion import Subversion
-        hidden_url = hide_url('svn+' + link.url)
-        Subversion().unpack(location, url=hidden_url)
     else:
         # FIXME: handle?
         # FIXME: magic signatures?

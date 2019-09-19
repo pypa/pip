@@ -1053,7 +1053,7 @@ def unpack_http_url(
 
         # unpack the archive to the build dir location. even when only
         # downloading archives, they have to be unpacked to parse dependencies
-        unpack_file(from_path, location, content_type, link)
+        unpack_file(from_path, location, content_type)
 
         # a download dir is specified; let's copy the archive there
         if download_dir and not already_downloaded_path:
@@ -1149,7 +1149,7 @@ def unpack_file_url(
 
     # unpack the archive to the build dir location. even when only downloading
     # archives, they have to be unpacked to parse dependencies
-    unpack_file(from_path, location, content_type, link)
+    unpack_file(from_path, location, content_type)
 
     # a download dir is specified and not already downloaded
     if download_dir and not already_downloaded_path:
