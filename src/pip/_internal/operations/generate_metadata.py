@@ -3,7 +3,7 @@
 
 
 def get_metadata_generator(install_req):
-    if install_req.use_pep517:
-        return install_req.prepare_pep517_metadata
-    else:
+    if not install_req.use_pep517:
         return install_req.run_egg_info
+
+    return install_req.prepare_pep517_metadata
