@@ -34,6 +34,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.download import PipSession
 
     HTMLElement = xml.etree.ElementTree.Element
+    ResponseHeaders = MutableMapping[str, str]
 
 
 logger = logging.getLogger(__name__)
@@ -154,6 +155,7 @@ def _get_html_response(url, session):
 
 
 def _get_encoding_from_headers(headers):
+    # type: (Optional[ResponseHeaders]) -> Optional[str]
     """Determine if we have any encoding information in our headers.
     """
     if headers and "Content-Type" in headers:
@@ -164,6 +166,7 @@ def _get_encoding_from_headers(headers):
 
 
 def _determine_base_url(document, page_url):
+    # type: (HTMLElement, str) -> str
     """Determine the HTML document's base URL.
 
     This looks for a ``<base>`` tag in the HTML document. If present, its href
@@ -240,11 +243,39 @@ def _create_link_from_element(
     return link
 
 
+def parse_links(
+    html,      # type: bytes
+    encoding,  # type: Optional[str]
+    url,       # type: str
+):
+    # type: (...) -> Iterable[Link]
+    """
+    Parse an HTML document, and yield its anchor elements as Link objects.
+
+    :param url: the URL from which the HTML was downloaded.
+    """
+    document = html5lib.parse(
+        html,
+        transport_encoding=encoding,
+        namespaceHTMLElements=False,
+    )
+    base_url = _determine_base_url(document, url)
+    for anchor in document.findall(".//a"):
+        link = _create_link_from_element(
+            anchor,
+            page_url=url,
+            base_url=base_url,
+        )
+        if link is None:
+            continue
+        yield link
+
+
 class HTMLPage(object):
     """Represents one page, along with its URL"""
 
     def __init__(self, content, url, headers=None):
-        # type: (bytes, str, MutableMapping[str, str]) -> None
+        # type: (bytes, str, ResponseHeaders) -> None
         self.content = content
         self.url = url
         self.headers = headers
@@ -255,20 +286,8 @@ class HTMLPage(object):
     def iter_links(self):
         # type: () -> Iterable[Link]
         """Yields all links in the page"""
-        document = html5lib.parse(
-            self.content,
-            transport_encoding=_get_encoding_from_headers(self.headers),
-            namespaceHTMLElements=False,
-        )
-        base_url = _determine_base_url(document, self.url)
-        for anchor in document.findall(".//a"):
-            link = _create_link_from_element(
-                anchor,
-                page_url=self.url,
-                base_url=base_url,
-            )
-            if link is None:
-                continue
+        encoding = _get_encoding_from_headers(self.headers)
+        for link in parse_links(self.content, encoding=encoding, url=self.url):
             yield link
 
 
