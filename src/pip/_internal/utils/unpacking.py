@@ -27,8 +27,6 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 if MYPY_CHECK_RUNNING:
     from typing import Iterable, List, Optional, Match, Text, Union
 
-    from pip._internal.models.link import Link
-
 
 logger = logging.getLogger(__name__)
 
@@ -231,7 +229,6 @@ def unpack_file(
         filename,  # type: str
         location,  # type: str
         content_type,  # type: Optional[str]
-        link  # type: Optional[Link]
 ):
     # type: (...) -> None
     filename = os.path.realpath(filename)
