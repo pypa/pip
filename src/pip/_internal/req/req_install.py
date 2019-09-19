@@ -23,6 +23,7 @@ from pip._internal import pep425tags, wheel
 from pip._internal.build_env import NoOpBuildEnvironment
 from pip._internal.exceptions import InstallationError
 from pip._internal.models.link import Link
+from pip._internal.operations.generate_metadata import get_metadata_generator
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.compat import native_str
@@ -559,11 +560,9 @@ class InstallRequirement(object):
         """
         assert self.source_dir
 
+        metadata_generator = get_metadata_generator(self)
         with indent_log():
-            if self.use_pep517:
-                self.prepare_pep517_metadata()
-            else:
-                self.run_egg_info()
+            metadata_generator()
 
         if not self.req:
             if isinstance(parse_version(self.metadata["Version"]), Version):
