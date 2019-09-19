@@ -70,6 +70,14 @@ def _strip_extras(path):
     return path_no_extras, extras
 
 
+def convert_extras(extras):
+    # type: (Optional[str]) -> Set[str]
+    if extras:
+        return Requirement("placeholder" + extras.lower()).extras
+    else:
+        return set()
+
+
 def parse_editable(editable_req):
     # type: (str) -> Tuple[Optional[str], str, Optional[Set[str]]]
     """Parses an editable requirement into:
@@ -328,10 +336,13 @@ def install_req_from_line(
     else:
         req_as_string = name
 
-    if extras_as_string:
-        extras = Requirement("placeholder" + extras_as_string.lower()).extras
-    else:
-        extras = ()
+    extras = convert_extras(extras_as_string)
+
+    def with_source(text):
+        if not line_source:
+            return text
+        return '{} (from {})'.format(text, line_source)
+
     if req_as_string is not None:
         try:
             req = Requirement(req_as_string)
@@ -344,12 +355,8 @@ def install_req_from_line(
                 add_msg = "= is not a valid operator. Did you mean == ?"
             else:
                 add_msg = ''
-            if line_source is None:
-                source = ''
-            else:
-                source = ' (from {})'.format(line_source)
-            msg = (
-                'Invalid requirement: {!r}{}'.format(req_as_string, source)
+            msg = with_source(
+                'Invalid requirement: {!r}'.format(req_as_string)
             )
             if add_msg:
                 msg += '\nHint: {}'.format(add_msg)
