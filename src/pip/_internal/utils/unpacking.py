@@ -8,7 +8,6 @@ from __future__ import absolute_import
 
 import logging
 import os
-import re
 import shutil
 import stat
 import tarfile
@@ -25,7 +24,7 @@ from pip._internal.utils.misc import ensure_dir
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Iterable, List, Optional, Match, Text, Union
+    from typing import Iterable, List, Optional, Text, Union
 
 
 logger = logging.getLogger(__name__)
@@ -52,23 +51,6 @@ def current_umask():
     mask = os.umask(0)
     os.umask(mask)
     return mask
-
-
-def file_contents(filename):
-    # type: (str) -> Text
-    with open(filename, 'rb') as fp:
-        return fp.read().decode('utf-8')
-
-
-def is_svn_page(html):
-    # type: (Union[str, Text]) -> Optional[Match[Union[str, Text]]]
-    """
-    Returns true if the page appears to be the index page of an svn repository
-    """
-    return (
-        re.search(r'<title>[^<]*Revision \d+:', html) and
-        re.search(r'Powered by (?:<a[^>]*?>)?Subversion', html, re.I)
-    )
 
 
 def split_leading_dir(path):
