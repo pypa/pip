@@ -29,7 +29,12 @@ class SourceDistribution(AbstractDistribution):
 
         self.req.load_pyproject_toml()
         should_isolate = self.req.use_pep517 and build_isolation
+        self._setup_isolation(should_isolate, finder)
 
+        self.req.prepare_metadata()
+        self.req.assert_source_matches_version()
+
+    def _setup_isolation(self, should_isolate, finder):
         def _raise_conflicts(conflicting_with, conflicting_reqs):
             raise InstallationError(
                 "Some build dependencies for %s conflict with %s: %s." % (
@@ -75,6 +80,3 @@ class SourceDistribution(AbstractDistribution):
                 finder, missing, 'normal',
                 "Installing backend dependencies"
             )
-
-        self.req.prepare_metadata()
-        self.req.assert_source_matches_version()
