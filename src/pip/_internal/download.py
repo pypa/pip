@@ -28,7 +28,7 @@ from pip._vendor.six.moves.urllib import parse as urllib_parse
 import pip
 from pip._internal.exceptions import HashMismatch, InstallationError
 from pip._internal.models.index import PyPI
-from pip._internal.networking.auth import MultiDomainBasicAuth
+from pip._internal.network.auth import MultiDomainBasicAuth
 # Import ssl from compat so the initial import occurs in only one place.
 from pip._internal.utils.compat import HAS_TLS, ipaddress, ssl
 from pip._internal.utils.encoding import auto_decode

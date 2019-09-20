@@ -2,8 +2,8 @@ import functools
 
 import pytest
 
-import pip._internal.networking.auth
-from pip._internal.networking.auth import MultiDomainBasicAuth
+import pip._internal.network.auth
+from pip._internal.network.auth import MultiDomainBasicAuth
 from tests.unit.test_download import MockConnection, MockRequest, MockResponse
 
 
@@ -101,7 +101,7 @@ class KeyringModuleV1(object):
 ))
 def test_keyring_get_password(monkeypatch, url, expect):
     keyring = KeyringModuleV1()
-    monkeypatch.setattr('pip._internal.networking.auth.keyring', keyring)
+    monkeypatch.setattr('pip._internal.network.auth.keyring', keyring)
     auth = MultiDomainBasicAuth(index_urls=["http://example.com/path2"])
 
     actual = auth._get_new_credentials(url, allow_netrc=False,
@@ -111,21 +111,21 @@ def test_keyring_get_password(monkeypatch, url, expect):
 
 def test_keyring_get_password_after_prompt(monkeypatch):
     keyring = KeyringModuleV1()
-    monkeypatch.setattr('pip._internal.networking.auth.keyring', keyring)
+    monkeypatch.setattr('pip._internal.network.auth.keyring', keyring)
     auth = MultiDomainBasicAuth()
 
     def ask_input(prompt):
         assert prompt == "User for example.com: "
         return "user"
 
-    monkeypatch.setattr('pip._internal.networking.auth.ask_input', ask_input)
+    monkeypatch.setattr('pip._internal.network.auth.ask_input', ask_input)
     actual = auth._prompt_for_password("example.com")
     assert actual == ("user", "user!netloc", False)
 
 
 def test_keyring_get_password_username_in_index(monkeypatch):
     keyring = KeyringModuleV1()
-    monkeypatch.setattr('pip._internal.networking.auth.keyring', keyring)
+    monkeypatch.setattr('pip._internal.network.auth.keyring', keyring)
     auth = MultiDomainBasicAuth(index_urls=["http://user@example.com/path2"])
     get = functools.partial(
         auth._get_new_credentials,
@@ -145,7 +145,7 @@ def test_keyring_get_password_username_in_index(monkeypatch):
 def test_keyring_set_password(monkeypatch, response_status, creds,
                               expect_save):
     keyring = KeyringModuleV1()
-    monkeypatch.setattr('pip._internal.networking.auth.keyring', keyring)
+    monkeypatch.setattr('pip._internal.network.auth.keyring', keyring)
     auth = MultiDomainBasicAuth(prompting=True)
     monkeypatch.setattr(auth, '_get_url_and_credentials',
                         lambda u: (u, None, None))
@@ -215,7 +215,7 @@ class KeyringModuleV2(object):
 ))
 def test_keyring_get_credential(monkeypatch, url, expect):
     monkeypatch.setattr(
-        pip._internal.networking.auth, 'keyring', KeyringModuleV2()
+        pip._internal.network.auth, 'keyring', KeyringModuleV2()
     )
     auth = MultiDomainBasicAuth(index_urls=["http://example.com/path2"])
 
