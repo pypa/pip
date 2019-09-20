@@ -1,4 +1,3 @@
-import functools
 import hashlib
 import logging
 import os
@@ -15,7 +14,6 @@ from pip._vendor.cachecontrol.caches import FileCache
 import pip
 from pip._internal.download import (
     CI_ENVIRONMENT_VARIABLES,
-    MultiDomainBasicAuth,
     PipSession,
     SafeFileCache,
     _copy_source_tree,
@@ -727,67 +725,3 @@ class TestPipSession:
         actual_level, actual_message = log_records[0]
         assert actual_level == 'WARNING'
         assert 'is not a trusted or secure host' in actual_message
-
-
-@pytest.mark.parametrize(["input_url", "url", "username", "password"], [
-    (
-        "http://user%40email.com:password@example.com/path",
-        "http://example.com/path",
-        "user@email.com",
-        "password",
-    ),
-    (
-        "http://username:password@example.com/path",
-        "http://example.com/path",
-        "username",
-        "password",
-    ),
-    (
-        "http://token@example.com/path",
-        "http://example.com/path",
-        "token",
-        "",
-    ),
-    (
-        "http://example.com/path",
-        "http://example.com/path",
-        None,
-        None,
-    ),
-])
-def test_get_credentials_parses_correctly(input_url, url, username, password):
-    auth = MultiDomainBasicAuth()
-    get = auth._get_url_and_credentials
-
-    # Check URL parsing
-    assert get(input_url) == (url, username, password)
-    assert (
-        # There are no credentials in the URL
-        (username is None and password is None) or
-        # Credentials were found and "cached" appropriately
-        auth.passwords['example.com'] == (username, password)
-    )
-
-
-def test_get_credentials_uses_cached_credentials():
-    auth = MultiDomainBasicAuth()
-    auth.passwords['example.com'] = ('user', 'pass')
-
-    got = auth._get_url_and_credentials("http://foo:bar@example.com/path")
-    expected = ('http://example.com/path', 'user', 'pass')
-    assert got == expected
-
-
-def test_get_index_url_credentials():
-    auth = MultiDomainBasicAuth(index_urls=[
-        "http://foo:bar@example.com/path"
-    ])
-    get = functools.partial(
-        auth._get_new_credentials,
-        allow_netrc=False,
-        allow_keyring=False
-    )
-
-    # Check resolution of indexes
-    assert get("http://example.com/path/path2") == ('foo', 'bar')
-    assert get("http://example.com/path3/path2") == (None, None)

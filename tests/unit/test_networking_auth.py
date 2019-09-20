@@ -3,8 +3,72 @@ import functools
 import pytest
 
 import pip._internal.networking.auth
-from pip._internal.download import MultiDomainBasicAuth
+from pip._internal.networking.auth import MultiDomainBasicAuth
 from tests.unit.test_download import MockConnection, MockRequest, MockResponse
+
+
+@pytest.mark.parametrize(["input_url", "url", "username", "password"], [
+    (
+        "http://user%40email.com:password@example.com/path",
+        "http://example.com/path",
+        "user@email.com",
+        "password",
+    ),
+    (
+        "http://username:password@example.com/path",
+        "http://example.com/path",
+        "username",
+        "password",
+    ),
+    (
+        "http://token@example.com/path",
+        "http://example.com/path",
+        "token",
+        "",
+    ),
+    (
+        "http://example.com/path",
+        "http://example.com/path",
+        None,
+        None,
+    ),
+])
+def test_get_credentials_parses_correctly(input_url, url, username, password):
+    auth = MultiDomainBasicAuth()
+    get = auth._get_url_and_credentials
+
+    # Check URL parsing
+    assert get(input_url) == (url, username, password)
+    assert (
+        # There are no credentials in the URL
+        (username is None and password is None) or
+        # Credentials were found and "cached" appropriately
+        auth.passwords['example.com'] == (username, password)
+    )
+
+
+def test_get_credentials_uses_cached_credentials():
+    auth = MultiDomainBasicAuth()
+    auth.passwords['example.com'] = ('user', 'pass')
+
+    got = auth._get_url_and_credentials("http://foo:bar@example.com/path")
+    expected = ('http://example.com/path', 'user', 'pass')
+    assert got == expected
+
+
+def test_get_index_url_credentials():
+    auth = MultiDomainBasicAuth(index_urls=[
+        "http://foo:bar@example.com/path"
+    ])
+    get = functools.partial(
+        auth._get_new_credentials,
+        allow_netrc=False,
+        allow_keyring=False
+    )
+
+    # Check resolution of indexes
+    assert get("http://example.com/path/path2") == ('foo', 'bar')
+    assert get("http://example.com/path3/path2") == (None, None)
 
 
 class KeyringModuleV1(object):
@@ -38,7 +102,6 @@ class KeyringModuleV1(object):
 def test_keyring_get_password(monkeypatch, url, expect):
     keyring = KeyringModuleV1()
     monkeypatch.setattr('pip._internal.networking.auth.keyring', keyring)
-    monkeypatch.setattr('pip._internal.download.keyring', keyring)
     auth = MultiDomainBasicAuth(index_urls=["http://example.com/path2"])
 
     actual = auth._get_new_credentials(url, allow_netrc=False,
@@ -49,14 +112,13 @@ def test_keyring_get_password(monkeypatch, url, expect):
 def test_keyring_get_password_after_prompt(monkeypatch):
     keyring = KeyringModuleV1()
     monkeypatch.setattr('pip._internal.networking.auth.keyring', keyring)
-    monkeypatch.setattr('pip._internal.download.keyring', keyring)
     auth = MultiDomainBasicAuth()
 
     def ask_input(prompt):
         assert prompt == "User for example.com: "
         return "user"
 
-    monkeypatch.setattr('pip._internal.download.ask_input', ask_input)
+    monkeypatch.setattr('pip._internal.networking.auth.ask_input', ask_input)
     actual = auth._prompt_for_password("example.com")
     assert actual == ("user", "user!netloc", False)
 
@@ -64,7 +126,6 @@ def test_keyring_get_password_after_prompt(monkeypatch):
 def test_keyring_get_password_username_in_index(monkeypatch):
     keyring = KeyringModuleV1()
     monkeypatch.setattr('pip._internal.networking.auth.keyring', keyring)
-    monkeypatch.setattr('pip._internal.download.keyring', keyring)
     auth = MultiDomainBasicAuth(index_urls=["http://user@example.com/path2"])
     get = functools.partial(
         auth._get_new_credentials,
@@ -85,7 +146,6 @@ def test_keyring_set_password(monkeypatch, response_status, creds,
                               expect_save):
     keyring = KeyringModuleV1()
     monkeypatch.setattr('pip._internal.networking.auth.keyring', keyring)
-    monkeypatch.setattr('pip._internal.download.keyring', keyring)
     auth = MultiDomainBasicAuth(prompting=True)
     monkeypatch.setattr(auth, '_get_url_and_credentials',
                         lambda u: (u, None, None))
