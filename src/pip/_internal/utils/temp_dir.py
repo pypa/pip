@@ -7,6 +7,11 @@ import os.path
 import tempfile
 
 from pip._internal.utils.misc import rmtree
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from typing import Optional
+
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +37,12 @@ class TempDirectory(object):
     exiting the context the temporary directory is deleted.
     """
 
-    def __init__(self, path=None, delete=None, kind="temp"):
+    def __init__(
+        self,
+        path=None,    # type: Optional[str]
+        delete=None,  # type: Optional[bool]
+        kind="temp"
+    ):
         super(TempDirectory, self).__init__()
 
         if path is None and delete is None:
