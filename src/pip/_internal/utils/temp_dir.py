@@ -60,21 +60,25 @@ class TempDirectory(object):
             self.cleanup()
 
     def create(self):
+        self.path = self._create()
+
+    def _create(self):
         """Create a temporary directory and store its path in self.path
         """
         if self.path is not None:
             logger.debug(
                 "Skipped creation of temporary directory: {}".format(self.path)
             )
-            return
+            return self.path
         # We realpath here because some systems have their default tmpdir
         # symlinked to another directory.  This tends to confuse build
         # scripts, so we canonicalize the path by traversing potential
         # symlinks here.
-        self.path = os.path.realpath(
+        path = os.path.realpath(
             tempfile.mkdtemp(prefix="pip-{}-".format(self.kind))
         )
-        logger.debug("Created temporary directory: {}".format(self.path))
+        logger.debug("Created temporary directory: {}".format(path))
+        return path
 
     def cleanup(self):
         """Remove the temporary directory created and reset state
@@ -133,7 +137,7 @@ class AdjacentTempDirectory(TempDirectory):
                 if new_name != name:
                     yield new_name
 
-    def create(self):
+    def _create(self):
         root, name = os.path.split(self.original)
         for candidate in self._generate_names(name):
             path = os.path.join(root, candidate)
@@ -144,12 +148,13 @@ class AdjacentTempDirectory(TempDirectory):
                 if ex.errno != errno.EEXIST:
                     raise
             else:
-                self.path = os.path.realpath(path)
+                path = os.path.realpath(path)
                 break
-
-        if not self.path:
+        else:
             # Final fallback on the default behavior.
-            self.path = os.path.realpath(
+            path = os.path.realpath(
                 tempfile.mkdtemp(prefix="pip-{}-".format(self.kind))
             )
-        logger.debug("Created temporary directory: {}".format(self.path))
+
+        logger.debug("Created temporary directory: {}".format(path))
+        return path
