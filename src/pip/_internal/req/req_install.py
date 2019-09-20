@@ -128,7 +128,7 @@ class InstallRequirement(object):
         # conflicts with another installed distribution:
         self.conflicts_with = None
         # Temporary build location
-        self._temp_build_dir = TempDirectory(kind="req-build")
+        self._temp_build_dir = None  # type: Optional[TempDirectory]
         # Used to store the global directory where the _temp_build_dir should
         # have been created. Cf _correct_build_location method.
         self._ideal_build_dir = None  # type: Optional[str]
@@ -325,7 +325,8 @@ class InstallRequirement(object):
     def ensure_build_location(self, build_dir):
         # type: (str) -> str
         assert build_dir is not None
-        if self._temp_build_dir.path is not None:
+        if self._temp_build_dir is not None:
+            assert self._temp_build_dir.path
             return self._temp_build_dir.path
         if self.req is None:
             # for requirement via a path to a directory: the name of the
@@ -335,6 +336,7 @@ class InstallRequirement(object):
             # Some systems have /tmp as a symlink which confuses custom
             # builds (such as numpy). Thus, we ensure that the real path
             # is returned.
+            self._temp_build_dir = TempDirectory(kind="req-build")
             self._temp_build_dir.create()
             self._ideal_build_dir = build_dir
 
@@ -364,11 +366,11 @@ class InstallRequirement(object):
         if self.source_dir is not None:
             return
         assert self.req is not None
-        assert self._temp_build_dir.path
+        assert self._temp_build_dir
         assert (self._ideal_build_dir is not None and
                 self._ideal_build_dir.path)  # type: ignore
-        old_location = self._temp_build_dir.path
-        self._temp_build_dir.path = None
+        old_location = self._temp_build_dir
+        self._temp_build_dir = None
 
         new_location = self.ensure_build_location(self._ideal_build_dir)
         if os.path.exists(new_location):
@@ -377,10 +379,13 @@ class InstallRequirement(object):
                 % display_path(new_location))
         logger.debug(
             'Moving package %s from %s to new location %s',
-            self, display_path(old_location), display_path(new_location),
+            self, display_path(old_location.path), display_path(new_location),
         )
-        shutil.move(old_location, new_location)
-        self._temp_build_dir.path = new_location
+        shutil.move(old_location.path, new_location)
+        self._temp_build_dir = TempDirectory(
+            path=new_location, kind="req-install",
+        )
+
         self._ideal_build_dir = None
         self.source_dir = os.path.normpath(os.path.abspath(new_location))
         self._egg_info_path = None
@@ -388,7 +393,7 @@ class InstallRequirement(object):
         # Correct the metadata directory, if it exists
         if self.metadata_directory:
             old_meta = self.metadata_directory
-            rel = os.path.relpath(old_meta, start=old_location)
+            rel = os.path.relpath(old_meta, start=old_location.path)
             new_meta = os.path.join(new_location, rel)
             new_meta = os.path.normpath(os.path.abspath(new_meta))
             self.metadata_directory = new_meta
@@ -401,7 +406,9 @@ class InstallRequirement(object):
             logger.debug('Removing source in %s', self.source_dir)
             rmtree(self.source_dir)
         self.source_dir = None
-        self._temp_build_dir.cleanup()
+        if self._temp_build_dir:
+            self._temp_build_dir.cleanup()
+            self._temp_build_dir = None
         self.build_env.cleanup()
 
     def check_if_exists(self, use_user_site):
