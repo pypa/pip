@@ -28,8 +28,9 @@ try:
 except ImportError:
     keyring = None
 except Exception as exc:
-    logger.warning("Keyring is skipped due to an exception: %s",
-                   str(exc))
+    logger.warning(
+        "Keyring is skipped due to an exception: %s", str(exc),
+    )
     keyring = None
 
 
@@ -57,8 +58,9 @@ def get_keyring_auth(url, username):
                 return username, password
 
     except Exception as exc:
-        logger.warning("Keyring is skipped due to an exception: %s",
-                       str(exc))
+        logger.warning(
+            "Keyring is skipped due to an exception: %s", str(exc),
+        )
 
 
 class MultiDomainBasicAuth(AuthBase):
@@ -101,7 +103,8 @@ class MultiDomainBasicAuth(AuthBase):
         """Find and return credentials for the specified URL."""
         # Split the credentials and netloc from the url.
         url, netloc, url_user_password = split_auth_netloc_from_url(
-            original_url)
+            original_url,
+        )
 
         # Start with the credentials embedded in the url
         username, password = url_user_password
@@ -135,8 +138,10 @@ class MultiDomainBasicAuth(AuthBase):
         # If we don't have a password and keyring is available, use it.
         if allow_keyring:
             # The index url is more specific than the netloc, so try it first
-            kr_auth = (get_keyring_auth(index_url, username) or
-                       get_keyring_auth(netloc, username))
+            kr_auth = (
+                get_keyring_auth(index_url, username) or
+                get_keyring_auth(netloc, username)
+            )
             if kr_auth:
                 logger.debug("Found credentials in keyring for %s", netloc)
                 return kr_auth
@@ -264,8 +269,9 @@ class MultiDomainBasicAuth(AuthBase):
     def warn_on_401(self, resp, **kwargs):
         """Response callback to warn about incorrect credentials."""
         if resp.status_code == 401:
-            logger.warning('401 Error, Credentials not correct for %s',
-                           resp.request.url)
+            logger.warning(
+                '401 Error, Credentials not correct for %s', resp.request.url,
+            )
 
     def save_credentials(self, resp, **kwargs):
         """Response callback to save credentials on success."""
