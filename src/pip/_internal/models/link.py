@@ -1,3 +1,4 @@
+import os
 import posixpath
 import re
 
@@ -179,6 +180,15 @@ class Link(KeyBasedCompareMixin):
     def show_url(self):
         # type: () -> Optional[str]
         return posixpath.basename(self._url.split('#', 1)[0].split('?', 1)[0])
+
+    @property
+    def is_file(self):
+        # type: () -> bool
+        return self.scheme == 'file'
+
+    def is_existing_dir(self):
+        # type: () -> bool
+        return self.is_file and os.path.isdir(self.file_path)
 
     @property
     def is_wheel(self):

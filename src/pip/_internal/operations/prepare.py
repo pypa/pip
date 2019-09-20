@@ -13,7 +13,7 @@ from pip._internal.distributions import (
     make_distribution_for_install_requirement,
 )
 from pip._internal.distributions.installed import InstalledDistribution
-from pip._internal.download import is_dir_url, is_file_url, unpack_url
+from pip._internal.download import unpack_url
 from pip._internal.exceptions import (
     DirectoryUrlHashUnsupported,
     HashUnpinned,
@@ -160,7 +160,7 @@ class RequirementPreparer(object):
                 # hash provided.
                 if link.is_vcs:
                     raise VcsHashUnsupported()
-                elif is_file_url(link) and is_dir_url(link):
+                elif link.is_existing_dir():
                     raise DirectoryUrlHashUnsupported()
                 if not req.original_link and not req.is_pinned:
                     # Unpinned packages are asking for trouble when a new
