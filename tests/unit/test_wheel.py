@@ -369,10 +369,8 @@ def test_wheel_version(tmpdir, data):
     broken_wheel = 'brokenwheel-1.0-py2.py3-none-any.whl'
     future_version = (1, 9)
 
-    unpack_file(data.packages.joinpath(future_wheel),
-                tmpdir + 'future', None)
-    unpack_file(data.packages.joinpath(broken_wheel),
-                tmpdir + 'broken', None)
+    unpack_file(data.packages.joinpath(future_wheel), tmpdir + 'future')
+    unpack_file(data.packages.joinpath(broken_wheel), tmpdir + 'broken')
 
     assert wheel.wheel_version(tmpdir + 'future') == future_version
     assert not wheel.wheel_version(tmpdir + 'broken')
@@ -593,7 +591,7 @@ class TestWheelFile(object):
     def test_unpack_wheel_no_flatten(self, tmpdir):
         filepath = os.path.join(DATA_DIR, 'packages',
                                 'meta-1.0-py2.py3-none-any.whl')
-        unpack_file(filepath, tmpdir, 'application/zip')
+        unpack_file(filepath, tmpdir)
         assert os.path.isdir(os.path.join(tmpdir, 'meta-1.0.dist-info'))
 
     def test_purelib_platlib(self, data):
@@ -633,7 +631,7 @@ class TestMoveWheelFiles(object):
         self.req = Requirement('sample')
         self.src = os.path.join(tmpdir, 'src')
         self.dest = os.path.join(tmpdir, 'dest')
-        unpack_file(self.wheelpath, self.src, None)
+        unpack_file(self.wheelpath, self.src)
         self.scheme = {
             'scripts': os.path.join(self.dest, 'bin'),
             'purelib': os.path.join(self.dest, 'lib'),

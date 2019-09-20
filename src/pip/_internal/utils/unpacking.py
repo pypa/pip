@@ -210,7 +210,7 @@ def untar_file(filename, location):
 def unpack_file(
         filename,  # type: str
         location,  # type: str
-        content_type,  # type: Optional[str]
+        content_type=None,  # type: Optional[str]
 ):
     # type: (...) -> None
     filename = os.path.realpath(filename)
