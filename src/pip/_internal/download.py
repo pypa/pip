@@ -883,7 +883,7 @@ def is_dir_url(link):
     first.
 
     """
-    link_path = url_to_path(link.url)
+    link_path = link.file_path
     return os.path.isdir(link_path)
 
 
@@ -1115,7 +1115,7 @@ def unpack_file_url(
     If download_dir is provided and link points to a file, make a copy
     of the link file inside download_dir.
     """
-    link_path = url_to_path(link.url)
+    link_path = link.file_path
     # If it's a url to a local directory
     if is_dir_url(link):
         if os.path.isdir(location):

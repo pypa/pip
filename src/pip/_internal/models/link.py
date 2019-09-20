@@ -12,6 +12,7 @@ from pip._internal.utils.misc import (
 )
 from pip._internal.utils.models import KeyBasedCompareMixin
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.urls import url_to_path
 
 if MYPY_CHECK_RUNNING:
     from typing import Optional, Text, Tuple, Union
@@ -95,6 +96,11 @@ class Link(KeyBasedCompareMixin):
         name = urllib_parse.unquote(name)
         assert name, ('URL %r produced no filename' % self._url)
         return name
+
+    @property
+    def file_path(self):
+        # type: () -> str
+        return url_to_path(self.url)
 
     @property
     def scheme(self):

@@ -123,7 +123,7 @@ class RequirementPreparer(object):
 
         # TODO: Breakup into smaller functions
         if link.scheme == 'file':
-            path = url_to_path(link.url)
+            path = link.file_path
             logger.info('Processing %s', display_path(path))
         else:
             logger.info('Collecting %s', req.req or req)
