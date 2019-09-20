@@ -30,6 +30,7 @@ from pip._vendor.six.moves.urllib import parse as urllib_parse
 import pip
 from pip._internal.exceptions import HashMismatch, InstallationError
 from pip._internal.models.index import PyPI
+from pip._internal.networking.auth import get_keyring_auth, keyring
 # Import ssl from compat so the initial import occurs in only one place.
 from pip._internal.utils.compat import HAS_TLS, ipaddress, ssl
 from pip._internal.utils.encoding import auto_decode
@@ -114,16 +115,6 @@ __all__ = ['get_file_content',
 
 
 logger = logging.getLogger(__name__)
-
-
-try:
-    import keyring  # noqa
-except ImportError:
-    keyring = None
-except Exception as exc:
-    logger.warning("Keyring is skipped due to an exception: %s",
-                   str(exc))
-    keyring = None
 
 
 SECURE_ORIGINS = [
@@ -248,34 +239,6 @@ def user_agent():
     )
 
 
-def _get_keyring_auth(url, username):
-    """Return the tuple auth for a given url from keyring."""
-    if not url or not keyring:
-        return None
-
-    try:
-        try:
-            get_credential = keyring.get_credential
-        except AttributeError:
-            pass
-        else:
-            logger.debug("Getting credentials from keyring for %s", url)
-            cred = get_credential(url, username)
-            if cred is not None:
-                return cred.username, cred.password
-            return None
-
-        if username:
-            logger.debug("Getting password from keyring for %s", url)
-            password = keyring.get_password(url, username)
-            if password:
-                return username, password
-
-    except Exception as exc:
-        logger.warning("Keyring is skipped due to an exception: %s",
-                       str(exc))
-
-
 class MultiDomainBasicAuth(AuthBase):
 
     def __init__(self, prompting=True, index_urls=None):
@@ -350,8 +313,8 @@ class MultiDomainBasicAuth(AuthBase):
         # If we don't have a password and keyring is available, use it.
         if allow_keyring:
             # The index url is more specific than the netloc, so try it first
-            kr_auth = (_get_keyring_auth(index_url, username) or
-                       _get_keyring_auth(netloc, username))
+            kr_auth = (get_keyring_auth(index_url, username) or
+                       get_keyring_auth(netloc, username))
             if kr_auth:
                 logger.debug("Found credentials in keyring for %s", netloc)
                 return kr_auth
@@ -419,7 +382,7 @@ class MultiDomainBasicAuth(AuthBase):
         username = ask_input("User for %s: " % netloc)
         if not username:
             return None, None
-        auth = _get_keyring_auth(netloc, username)
+        auth = get_keyring_auth(netloc, username)
         if auth:
             return auth[0], auth[1], False
         password = ask_password("Password: ")
