@@ -272,23 +272,22 @@ def _get_url_from_path(path, name):
     return path_to_url(path)
 
 
-def install_req_from_line(
-    name,  # type: str
-    comes_from=None,  # type: Optional[Union[str, InstallRequirement]]
-    use_pep517=None,  # type: Optional[bool]
-    isolated=False,  # type: bool
-    options=None,  # type: Optional[Dict[str, Any]]
-    wheel_cache=None,  # type: Optional[WheelCache]
-    constraint=False,  # type: bool
-    line_source=None,  # type: Optional[str]
-):
-    # type: (...) -> InstallRequirement
-    """Creates an InstallRequirement from a name, which might be a
-    requirement, directory containing 'setup.py', filename, or URL.
+class RequirementParts(object):
+    def __init__(
+        self,
+        requirement,  # type: Optional[Requirement]
+        link,         # type: Optional[Link]
+        markers,      # type: Optional[Marker]
+        extras,       # type: Set[str]
+    ):
+        self.requirement = requirement
+        self.link = link
+        self.markers = markers
+        self.extras = extras
 
-    :param line_source: An optional string describing where the line is from,
-        for logging purposes in case of an error.
-    """
+
+def parse_req_from_line(name, line_source):
+    # type: (str, Optional[str]) -> RequirementParts
     if is_url(name):
         marker_sep = '; '
     else:
@@ -363,13 +362,35 @@ def install_req_from_line(
     else:
         req = None
 
+    return RequirementParts(req, link, markers, extras)
+
+
+def install_req_from_line(
+    name,  # type: str
+    comes_from=None,  # type: Optional[Union[str, InstallRequirement]]
+    use_pep517=None,  # type: Optional[bool]
+    isolated=False,  # type: bool
+    options=None,  # type: Optional[Dict[str, Any]]
+    wheel_cache=None,  # type: Optional[WheelCache]
+    constraint=False,  # type: bool
+    line_source=None,  # type: Optional[str]
+):
+    # type: (...) -> InstallRequirement
+    """Creates an InstallRequirement from a name, which might be a
+    requirement, directory containing 'setup.py', filename, or URL.
+
+    :param line_source: An optional string describing where the line is from,
+        for logging purposes in case of an error.
+    """
+    parts = parse_req_from_line(name, line_source)
+
     return InstallRequirement(
-        req, comes_from, link=link, markers=markers,
+        parts.requirement, comes_from, link=parts.link, markers=parts.markers,
         use_pep517=use_pep517, isolated=isolated,
         options=options if options else {},
         wheel_cache=wheel_cache,
         constraint=constraint,
-        extras=extras,
+        extras=parts.extras,
     )
 
 
