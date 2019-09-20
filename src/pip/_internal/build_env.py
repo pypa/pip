@@ -54,7 +54,6 @@ class BuildEnvironment(object):
     def __init__(self):
         # type: () -> None
         self._temp_dir = TempDirectory(kind="build-env")
-        self._temp_dir.create()
 
         self._prefixes = OrderedDict((
             (name, _Prefix(os.path.join(self._temp_dir.path, name)))

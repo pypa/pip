@@ -588,19 +588,17 @@ class TestTempDirectory(object):
             create_file(tmp_dir.path, "subfolder", "readonly-file")
             readonly_file(tmp_dir.path, "subfolder", "readonly-file")
 
-        assert tmp_dir.path is None
+        assert not os.path.exists(tmp_dir.path)
 
     def test_create_and_cleanup_work(self):
         tmp_dir = TempDirectory()
-        assert tmp_dir.path is None
-
-        tmp_dir.create()
         created_path = tmp_dir.path
+
         assert tmp_dir.path is not None
         assert os.path.exists(created_path)
 
         tmp_dir.cleanup()
-        assert tmp_dir.path is None
+        assert tmp_dir.path is not None
         assert not os.path.exists(created_path)
 
     @pytest.mark.parametrize("name", [

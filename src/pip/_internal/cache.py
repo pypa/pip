@@ -193,7 +193,6 @@ class EphemWheelCache(SimpleWheelCache):
     def __init__(self, format_control):
         # type: (FormatControl) -> None
         self._temp_dir = TempDirectory(kind="ephem-wheel-cache")
-        self._temp_dir.create()
 
         super(EphemWheelCache, self).__init__(
             self._temp_dir.path, format_control
