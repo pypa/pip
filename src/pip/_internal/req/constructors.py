@@ -273,6 +273,20 @@ def _get_url_from_path(path, name):
     return path_to_url(path)
 
 
+class RequirementParts(object):
+    def __init__(
+        self,
+        requirement,  # type: Optional[Requirement]
+        link,         # type: Optional[Link]
+        markers,      # type: Optional[Marker]
+        extras,       # type: Set[str]
+    ):
+        self.requirement = requirement
+        self.link = link
+        self.markers = markers
+        self.extras = extras
+
+
 def install_req_from_line(
     name,  # type: str
     comes_from=None,  # type: Optional[Union[str, InstallRequirement]]
@@ -364,13 +378,15 @@ def install_req_from_line(
     else:
         req = None
 
+    parts = RequirementParts(req, link, markers, extras)
+
     return InstallRequirement(
-        req, comes_from, link=link, markers=markers,
+        parts.requirement, comes_from, link=parts.link, markers=parts.markers,
         use_pep517=use_pep517, isolated=isolated,
         options=options if options else {},
         wheel_cache=wheel_cache,
         constraint=constraint,
-        extras=extras,
+        extras=parts.extras,
     )
 
 
