@@ -27,7 +27,6 @@ from pip._internal.utils.logging import indent_log
 from pip._internal.utils.marker_files import write_delete_marker_file
 from pip._internal.utils.misc import display_path, normalize_path
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pip._internal.utils.urls import url_to_path
 
 if MYPY_CHECK_RUNNING:
     from typing import Optional
@@ -123,7 +122,7 @@ class RequirementPreparer(object):
 
         # TODO: Breakup into smaller functions
         if link.scheme == 'file':
-            path = url_to_path(link.url)
+            path = link.file_path
             logger.info('Processing %s', display_path(path))
         else:
             logger.info('Collecting %s', req.req or req)
