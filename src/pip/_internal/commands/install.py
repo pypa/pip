@@ -45,7 +45,7 @@ from pip._internal.wheel import WheelBuilder
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
-    from typing import Any, List
+    from typing import Any, List, Optional
 
     from pip._internal.models.format_control import FormatControl
     from pip._internal.req.req_install import InstallRequirement
@@ -304,7 +304,8 @@ class InstallCommand(RequirementCommand):
             install_options.append('--user')
             install_options.append('--prefix=')
 
-        target_temp_dir = TempDirectory(kind="target")
+        target_temp_dir = None  # type: Optional[TempDirectory]
+        target_temp_dir_path = None  # type: Optional[str]
         if options.target_dir:
             options.ignore_installed = True
             options.target_dir = os.path.abspath(options.target_dir)
@@ -316,8 +317,10 @@ class InstallCommand(RequirementCommand):
                 )
 
             # Create a target directory for using with the target option
+            target_temp_dir = TempDirectory(kind="target")
             target_temp_dir.create()
-            install_options.append('--home=' + target_temp_dir.path)
+            target_temp_dir_path = target_temp_dir.path
+            install_options.append('--home=' + target_temp_dir_path)
 
         global_options = options.global_options or []
 
@@ -444,7 +447,7 @@ class InstallCommand(RequirementCommand):
                     install_options,
                     global_options,
                     root=options.root_path,
-                    home=target_temp_dir.path,
+                    home=target_temp_dir_path,
                     prefix=options.prefix_path,
                     pycompile=options.compile,
                     warn_script_location=warn_script_location,
@@ -453,7 +456,7 @@ class InstallCommand(RequirementCommand):
 
                 lib_locations = get_lib_location_guesses(
                     user=options.use_user_site,
-                    home=target_temp_dir.path,
+                    home=target_temp_dir_path,
                     root=options.root_path,
                     prefix=options.prefix_path,
                     isolated=options.isolated_mode,
