@@ -274,11 +274,16 @@ def parse_links(
 class HTMLPage(object):
     """Represents one page, along with its URL"""
 
-    def __init__(self, content, url, headers=None):
-        # type: (bytes, str, ResponseHeaders) -> None
+    def __init__(
+        self,
+        content,   # type: bytes
+        encoding,  # type: Optional[str]
+        url,       # type: str
+    ):
+        # type: (...) -> None
         self.content = content
+        self.encoding = encoding
         self.url = url
-        self.headers = headers
 
     def __str__(self):
         return redact_auth_from_url(self.url)
@@ -286,7 +291,7 @@ class HTMLPage(object):
     def iter_links(self):
         # type: () -> Iterable[Link]
         """Yields all links in the page"""
-        encoding = _get_encoding_from_headers(self.headers)
+        encoding = self.encoding
         for link in parse_links(self.content, encoding=encoding, url=self.url):
             yield link
 
@@ -300,6 +305,12 @@ def _handle_get_page_fail(
     if meth is None:
         meth = logger.debug
     meth("Could not fetch URL %s: %s - skipping", link, reason)
+
+
+def _make_html_page(response):
+    # type: (Response) -> HTMLPage
+    encoding = _get_encoding_from_headers(response.headers)
+    return HTMLPage(response.content, encoding=encoding, url=response.url)
 
 
 def _get_html_page(link, session=None):
@@ -352,7 +363,7 @@ def _get_html_page(link, session=None):
     except requests.Timeout:
         _handle_get_page_fail(link, "timed out")
     else:
-        return HTMLPage(resp.content, resp.url, resp.headers)
+        return _make_html_page(resp)
     return None
 
 
