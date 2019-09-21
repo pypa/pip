@@ -11,7 +11,6 @@ from pip._vendor.urllib3.exceptions import (
 )
 
 import pip._internal.utils.inject_securetransport  # noqa
-from pip._internal.cli.autocompletion import autocomplete
 
 # Raised when using --trusted-host.
 warnings.filterwarnings("ignore", category=InsecureRequestWarning)
