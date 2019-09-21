@@ -25,7 +25,7 @@ from pip._internal.vcs import is_url, vcs
 if MYPY_CHECK_RUNNING:
     from typing import (
         Callable, Dict, Iterable, List, MutableMapping, Optional, Sequence,
-        Set, Tuple, Union,
+        Tuple, Union,
     )
     import xml.etree.ElementTree
 
@@ -482,12 +482,7 @@ class LinkCollector(object):
         Yields (page, page_url) from the given locations, skipping
         locations that have errors.
         """
-        seen = set()  # type: Set[Link]
         for location in locations:
-            if location in seen:
-                continue
-            seen.add(location)
-
             page = _get_html_page(location, session=self.session)
             if page is None:
                 continue
@@ -525,6 +520,7 @@ class LinkCollector(object):
             if self.session.is_secure_origin(link)
         ]
 
+        url_locations = _remove_duplicate_links(url_locations)
         logger.debug('%d location(s) to search for versions of %s:',
                      len(url_locations), project_name)
 
