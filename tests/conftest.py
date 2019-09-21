@@ -10,7 +10,7 @@ import pytest
 import six
 from setuptools.wheel import Wheel
 
-import pip._internal
+import pip._internal.main
 from tests.lib import DATA_DIR, SRC_DIR, TestData
 from tests.lib.path import Path
 from tests.lib.scripttest import PipTestEnvironment
@@ -342,7 +342,7 @@ class InMemoryPip(object):
             stdout = io.BytesIO()
         sys.stdout = stdout
         try:
-            returncode = pip._internal.main(list(args))
+            returncode = pip._internal.main.main(list(args))
         except SystemExit as e:
             returncode = e.code or 0
         finally:
