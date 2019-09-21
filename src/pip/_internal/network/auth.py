@@ -1,3 +1,9 @@
+"""Network Authentication Helpers
+
+Contains interface (MultiDomainBasicAuth) and associated glue code for
+providing credentials in the context of network requests.
+"""
+
 import logging
 
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
