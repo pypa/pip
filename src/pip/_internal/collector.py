@@ -155,7 +155,7 @@ def _get_html_response(url, session):
 
 
 def _get_encoding_from_headers(headers):
-    # type: (Optional[ResponseHeaders]) -> Optional[str]
+    # type: (ResponseHeaders) -> Optional[str]
     """Determine if we have any encoding information in our headers.
     """
     if headers and "Content-Type" in headers:
