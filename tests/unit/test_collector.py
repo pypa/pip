@@ -16,6 +16,7 @@ from pip._internal.collector import (
     _get_html_response,
     _NotHTML,
     _NotHTTP,
+    _remove_duplicate_links,
     group_locations,
 )
 from pip._internal.download import PipSession
@@ -341,6 +342,20 @@ def test_get_html_page_directory_append_index(tmpdir):
                 session=session,
             ),
         ]
+
+
+def test_remove_duplicate_links():
+    links = [
+        # We choose Links that will test that ordering is preserved.
+        Link('https://example.com/2'),
+        Link('https://example.com/1'),
+        Link('https://example.com/2'),
+    ]
+    actual = _remove_duplicate_links(links)
+    assert actual == [
+        Link('https://example.com/2'),
+        Link('https://example.com/1'),
+    ]
 
 
 def test_group_locations__file_expand_dir(data):

@@ -7,6 +7,7 @@ import itertools
 import logging
 import mimetypes
 import os
+from collections import OrderedDict
 
 from pip._vendor import html5lib, requests
 from pip._vendor.distlib.compat import unescape
@@ -354,6 +355,15 @@ def _get_html_page(link, session=None):
     else:
         return HTMLPage(resp.content, resp.url, resp.headers)
     return None
+
+
+def _remove_duplicate_links(links):
+    # type: (Iterable[Link]) -> List[Link]
+    """
+    Return a list of links, with duplicates removed and ordering preserved.
+    """
+    # We preserve the ordering when removing duplicates because we can.
+    return list(OrderedDict.fromkeys(links))
 
 
 def group_locations(locations, expand_dir=False):
