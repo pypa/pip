@@ -521,11 +521,14 @@ class LinkCollector(object):
         ]
 
         url_locations = _remove_duplicate_links(url_locations)
-        logger.debug('%d location(s) to search for versions of %s:',
-                     len(url_locations), project_name)
-
-        for location in url_locations:
-            logger.debug('* %s', location)
+        lines = [
+            '{} location(s) to search for versions of {}:'.format(
+                len(url_locations), project_name,
+            ),
+        ]
+        for link in url_locations:
+            lines.append('* {}'.format(link))
+        logger.debug('\n'.join(lines))
 
         pages_links = {}
         for page in self._get_pages(url_locations):

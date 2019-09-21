@@ -447,8 +447,9 @@ class TestLinkCollector(object):
             'https://pypi.org/abc-1.0.tar.gz#md5=000000000'
         )
 
-        actual = [record_tuple[1:] for record_tuple in caplog.record_tuples]
-        assert actual == [
-            (logging.DEBUG, '1 location(s) to search for versions of twine:'),
-            (logging.DEBUG, '* https://pypi.org/simple/twine/'),
+        expected_message = dedent("""\
+        1 location(s) to search for versions of twine:
+        * https://pypi.org/simple/twine/""")
+        assert caplog.record_tuples == [
+            ('pip._internal.collector', logging.DEBUG, expected_message),
         ]
