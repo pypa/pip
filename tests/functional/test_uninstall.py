@@ -295,8 +295,8 @@ def test_uninstall_editable_from_svn(script, tmpdir):
     """
     result = script.pip(
         'install', '-e',
-        '%s#egg=initools' % local_checkout(
-            'svn+http://svn.colorstudy.com/INITools/trunk', tmpdir,
+        '%s#egg=initools' % (
+            local_checkout('svn+http://svn.colorstudy.com/INITools', tmpdir)
         ),
     )
     result.assert_installed('INITools')
@@ -359,8 +359,7 @@ def test_uninstall_from_reqs_file(script, tmpdir):
 
     """
     local_svn_url = local_checkout(
-        'svn+http://svn.colorstudy.com/INITools/trunk',
-        tmpdir,
+        'svn+http://svn.colorstudy.com/INITools', tmpdir,
     )
     script.scratch_path.joinpath("test-req.txt").write_text(
         textwrap.dedent("""

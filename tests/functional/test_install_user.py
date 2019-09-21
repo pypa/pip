@@ -51,9 +51,7 @@ class Tests_UserSite:
         result = script.pip(
             'install', '--user', '-e',
             '%s#egg=initools' %
-            local_checkout(
-                'svn+http://svn.colorstudy.com/INITools/trunk', tmpdir,
-            )
+            local_checkout('svn+http://svn.colorstudy.com/INITools', tmpdir)
         )
         result.assert_installed('INITools', use_user_site=True)
 
