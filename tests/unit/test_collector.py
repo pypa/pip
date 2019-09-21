@@ -16,6 +16,7 @@ from pip._internal.collector import (
     _get_html_response,
     _NotHTML,
     _NotHTTP,
+    _remove_duplicate_links,
     group_locations,
 )
 from pip._internal.download import PipSession
@@ -343,6 +344,20 @@ def test_get_html_page_directory_append_index(tmpdir):
         ]
 
 
+def test_remove_duplicate_links():
+    links = [
+        # We choose Links that will test that ordering is preserved.
+        Link('https://example.com/2'),
+        Link('https://example.com/1'),
+        Link('https://example.com/2'),
+    ]
+    actual = _remove_duplicate_links(links)
+    assert actual == [
+        Link('https://example.com/2'),
+        Link('https://example.com/1'),
+    ]
+
+
 def test_group_locations__file_expand_dir(data):
     """
     Test that a file:// dir gets listdir run with expand_dir
@@ -397,7 +412,9 @@ def check_links_include(links, names):
 class TestLinkCollector(object):
 
     @patch('pip._internal.collector._get_html_response')
-    def test_collect_links(self, mock_get_html_response, data):
+    def test_collect_links(self, mock_get_html_response, caplog, data):
+        caplog.set_level(logging.DEBUG)
+
         expected_url = 'https://pypi.org/simple/twine/'
 
         fake_page = make_fake_html_page(expected_url)
@@ -405,7 +422,9 @@ class TestLinkCollector(object):
 
         link_collector = make_test_link_collector(
             find_links=[data.find_links],
-            index_urls=[PyPI.simple_url],
+            # Include two copies of the URL to check that the second one
+            # is skipped.
+            index_urls=[PyPI.simple_url, PyPI.simple_url],
         )
         actual = link_collector.collect_links('twine')
 
@@ -427,3 +446,10 @@ class TestLinkCollector(object):
         assert actual_page_links[0].url == (
             'https://pypi.org/abc-1.0.tar.gz#md5=000000000'
         )
+
+        expected_message = dedent("""\
+        1 location(s) to search for versions of twine:
+        * https://pypi.org/simple/twine/""")
+        assert caplog.record_tuples == [
+            ('pip._internal.collector', logging.DEBUG, expected_message),
+        ]

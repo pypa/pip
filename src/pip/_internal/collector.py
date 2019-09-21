@@ -7,6 +7,7 @@ import itertools
 import logging
 import mimetypes
 import os
+from collections import OrderedDict
 
 from pip._vendor import html5lib, requests
 from pip._vendor.distlib.compat import unescape
@@ -24,7 +25,7 @@ from pip._internal.vcs import is_url, vcs
 if MYPY_CHECK_RUNNING:
     from typing import (
         Callable, Dict, Iterable, List, MutableMapping, Optional, Sequence,
-        Set, Tuple, Union,
+        Tuple, Union,
     )
     import xml.etree.ElementTree
 
@@ -356,6 +357,15 @@ def _get_html_page(link, session=None):
     return None
 
 
+def _remove_duplicate_links(links):
+    # type: (Iterable[Link]) -> List[Link]
+    """
+    Return a list of links, with duplicates removed and ordering preserved.
+    """
+    # We preserve the ordering when removing duplicates because we can.
+    return list(OrderedDict.fromkeys(links))
+
+
 def group_locations(locations, expand_dir=False):
     # type: (Sequence[str], bool) -> Tuple[List[str], List[str]]
     """
@@ -472,12 +482,7 @@ class LinkCollector(object):
         Yields (page, page_url) from the given locations, skipping
         locations that have errors.
         """
-        seen = set()  # type: Set[Link]
         for location in locations:
-            if location in seen:
-                continue
-            seen.add(location)
-
             page = _get_html_page(location, session=self.session)
             if page is None:
                 continue
@@ -515,11 +520,15 @@ class LinkCollector(object):
             if self.session.is_secure_origin(link)
         ]
 
-        logger.debug('%d location(s) to search for versions of %s:',
-                     len(url_locations), project_name)
-
-        for location in url_locations:
-            logger.debug('* %s', location)
+        url_locations = _remove_duplicate_links(url_locations)
+        lines = [
+            '{} location(s) to search for versions of {}:'.format(
+                len(url_locations), project_name,
+            ),
+        ]
+        for link in url_locations:
+            lines.append('* {}'.format(link))
+        logger.debug('\n'.join(lines))
 
         pages_links = {}
         for page in self._get_pages(url_locations):
