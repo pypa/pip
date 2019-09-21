@@ -193,15 +193,6 @@ class Link(KeyBasedCompareMixin):
         return self.scheme in vcs.all_schemes
 
     @property
-    def is_artifact(self):
-        # type: () -> bool
-        """
-        Determines if this points to an actual artifact (e.g. a tarball) or if
-        it points to an "abstract" thing like a path or a VCS location.
-        """
-        return not self.is_vcs
-
-    @property
     def is_yanked(self):
         # type: () -> bool
         return self.yanked_reason is not None

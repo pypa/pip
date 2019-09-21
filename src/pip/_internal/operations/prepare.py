@@ -225,7 +225,7 @@ class RequirementPreparer(object):
 
             if self._download_should_save:
                 # Make a .zip of the source_dir we already created.
-                if not link.is_artifact:
+                if link.is_vcs:
                     req.archive(self.download_dir)
         return abstract_dist
 
