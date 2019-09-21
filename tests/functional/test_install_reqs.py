@@ -110,9 +110,7 @@ def test_multiple_requirements_files(script, tmpdir):
             -r %s-req.txt
         """) %
         (
-            local_checkout(
-                'svn+http://svn.colorstudy.com/INITools/trunk', tmpdir,
-            ),
+            local_checkout('svn+http://svn.colorstudy.com/INITools', tmpdir),
             other_lib_name
         ),
     )

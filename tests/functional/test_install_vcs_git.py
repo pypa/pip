@@ -276,12 +276,13 @@ def test_git_with_tag_name_and_update(script, tmpdir):
     Test cloning a git repository and updating to a different version.
     """
     url_path = 'pypa/pip-test-package.git'
-    local_url = _github_checkout(url_path, tmpdir, egg='pip-test-package')
+    base_local_url = _github_checkout(url_path, tmpdir)
+
+    local_url = '{}#egg=pip-test-package'.format(base_local_url)
     result = script.pip('install', '-e', local_url)
     result.assert_installed('pip-test-package', with_files=['.git'])
 
-    new_local_url = _github_checkout(url_path, tmpdir)
-    new_local_url += '@0.1.2#egg=pip-test-package'
+    new_local_url = '{}@0.1.2#egg=pip-test-package'.format(base_local_url)
     result = script.pip(
         'install', '--global-option=--version', '-e', new_local_url,
     )
