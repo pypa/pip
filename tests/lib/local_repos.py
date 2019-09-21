@@ -66,6 +66,7 @@ def local_checkout(
     else:
         repository_name = os.path.basename(remote_repo)
         repo_url_path = os.path.join(directory, repository_name)
+        assert not os.path.exists(repo_url_path)
         vcs_backend = vcs.get_backend(vcs_name)
         vcs_backend.obtain(repo_url_path, url=hide_url(remote_repo))
 
