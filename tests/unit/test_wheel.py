@@ -101,7 +101,7 @@ def test_should_use_ephemeral_cache__issue_6197(
     """
     req = make_test_install_req(base_name=base_name)
     assert not req.is_wheel
-    assert req.link.is_artifact
+    assert not req.link.is_vcs
 
     always_true = Mock(return_value=True)
 
