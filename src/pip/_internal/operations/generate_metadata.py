@@ -25,35 +25,34 @@ def get_metadata_generator(install_req):
 
 def _generate_metadata_legacy(install_req):
     # type: (InstallRequirement) -> None
-    if install_req.name:
-        logger.debug(
-            'Running setup.py (path:%s) egg_info for package %s',
-            install_req.setup_py_path, install_req.name,
-        )
-    else:
-        logger.debug(
-            'Running setup.py (path:%s) egg_info for package from %s',
-            install_req.setup_py_path, install_req.link,
-        )
+    req_details_str = install_req.name or "from {}".format(install_req.link)
+    logger.debug(
+        'Running setup.py (path:%s) egg_info for package %s',
+        install_req.setup_py_path, req_details_str,
+    )
 
+    # Compose arguments for subprocess call
     base_cmd = make_setuptools_shim_args(install_req.setup_py_path)
     if install_req.isolated:
         base_cmd += ["--no-user-cfg"]
-    egg_info_cmd = base_cmd + ['egg_info']
-    # We can't put the .egg-info files at the root, because then the
-    # source code will be mistaken for an installed egg, causing
-    # problems
-    if install_req.editable:
-        egg_base_option = []  # type: List[str]
-    else:
+
+    # For non-editable installed, don't put the .egg-info files at the root,
+    # to avoid confusion due to the source code being considered an installed
+    # egg.
+    egg_base_option = []  # type: List[str]
+    if not install_req.editable:
         egg_info_dir = os.path.join(install_req.setup_py_dir, 'pip-egg-info')
+        egg_base_option = ['--egg-base', egg_info_dir]
+
+        # setuptools complains if the target directory does not exist.
         ensure_dir(egg_info_dir)
-        egg_base_option = ['--egg-base', 'pip-egg-info']
+
     with install_req.build_env:
         call_subprocess(
-            egg_info_cmd + egg_base_option,
+            base_cmd + ["egg_info"] + egg_base_option,
             cwd=install_req.setup_py_dir,
-            command_desc='python setup.py egg_info')
+            command_desc='python setup.py egg_info',
+        )
 
 
 def _generate_metadata(install_req):
