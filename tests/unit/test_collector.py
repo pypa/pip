@@ -19,6 +19,7 @@ from pip._internal.collector import (
     _NotHTML,
     _NotHTTP,
     group_locations,
+    parse_links,
 )
 from pip._internal.download import PipSession
 from pip._internal.models.index import PyPI
@@ -240,44 +241,39 @@ def test_clean_link(url, clean_url):
     assert(_clean_link(url) == clean_url)
 
 
-class TestHTMLPage:
-
-    @pytest.mark.parametrize(
-        ('anchor_html, expected'),
-        [
-            # Test not present.
-            ('<a href="/pkg1-1.0.tar.gz"></a>', None),
-            # Test present with no value.
-            ('<a href="/pkg2-1.0.tar.gz" data-yanked></a>', ''),
-            # Test the empty string.
-            ('<a href="/pkg3-1.0.tar.gz" data-yanked=""></a>', ''),
-            # Test a non-empty string.
-            ('<a href="/pkg4-1.0.tar.gz" data-yanked="error"></a>', 'error'),
-            # Test a value with an escaped character.
-            ('<a href="/pkg4-1.0.tar.gz" data-yanked="version &lt 1"></a>',
-                'version < 1'),
-            # Test a yanked reason with a non-ascii character.
-            (u'<a href="/pkg-1.0.tar.gz" data-yanked="curlyquote \u2018"></a>',
-                u'curlyquote \u2018'),
-        ]
+@pytest.mark.parametrize('anchor_html, expected', [
+    # Test not present.
+    ('<a href="/pkg1-1.0.tar.gz"></a>', None),
+    # Test present with no value.
+    ('<a href="/pkg2-1.0.tar.gz" data-yanked></a>', ''),
+    # Test the empty string.
+    ('<a href="/pkg3-1.0.tar.gz" data-yanked=""></a>', ''),
+    # Test a non-empty string.
+    ('<a href="/pkg4-1.0.tar.gz" data-yanked="error"></a>', 'error'),
+    # Test a value with an escaped character.
+    ('<a href="/pkg4-1.0.tar.gz" data-yanked="version &lt 1"></a>',
+        'version < 1'),
+    # Test a yanked reason with a non-ascii character.
+    (u'<a href="/pkg-1.0.tar.gz" data-yanked="curlyquote \u2018"></a>',
+        u'curlyquote \u2018'),
+])
+def test_parse_links__yanked_reason(anchor_html, expected):
+    html = (
+        # Mark this as a unicode string for Python 2 since anchor_html
+        # can contain non-ascii.
+        u'<html><head><meta charset="utf-8"><head>'
+        '<body>{}</body></html>'
+    ).format(anchor_html)
+    html_bytes = html.encode('utf-8')
+    page = HTMLPage(
+        html_bytes,
+        encoding=None,
+        url='https://example.com/simple/',
     )
-    def test_iter_links__yanked_reason(self, anchor_html, expected):
-        html = (
-            # Mark this as a unicode string for Python 2 since anchor_html
-            # can contain non-ascii.
-            u'<html><head><meta charset="utf-8"><head>'
-            '<body>{}</body></html>'
-        ).format(anchor_html)
-        html_bytes = html.encode('utf-8')
-        page = HTMLPage(
-            html_bytes,
-            encoding=None,
-            url='https://example.com/simple/',
-        )
-        links = list(page.iter_links())
-        link, = links
-        actual = link.yanked_reason
-        assert actual == expected
+    links = list(parse_links(page))
+    link, = links
+    actual = link.yanked_reason
+    assert actual == expected
 
 
 def test_request_http_error(caplog):

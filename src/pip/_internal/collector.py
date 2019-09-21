@@ -243,22 +243,18 @@ def _create_link_from_element(
     return link
 
 
-def parse_links(
-    html,      # type: bytes
-    encoding,  # type: Optional[str]
-    url,       # type: str
-):
-    # type: (...) -> Iterable[Link]
+def parse_links(page):
+    # type: (HTMLPage) -> Iterable[Link]
     """
     Parse an HTML document, and yield its anchor elements as Link objects.
-
-    :param url: the URL from which the HTML was downloaded.
     """
     document = html5lib.parse(
-        html,
-        transport_encoding=encoding,
+        page.content,
+        transport_encoding=page.encoding,
         namespaceHTMLElements=False,
     )
+
+    url = page.url
     base_url = _determine_base_url(document, url)
     for anchor in document.findall(".//a"):
         link = _create_link_from_element(
@@ -281,19 +277,16 @@ class HTMLPage(object):
         url,       # type: str
     ):
         # type: (...) -> None
+        """
+        :param encoding: the encoding to decode the given content.
+        :param url: the URL from which the HTML was downloaded.
+        """
         self.content = content
         self.encoding = encoding
         self.url = url
 
     def __str__(self):
         return redact_auth_from_url(self.url)
-
-    def iter_links(self):
-        # type: () -> Iterable[Link]
-        """Yields all links in the page"""
-        encoding = self.encoding
-        for link in parse_links(self.content, encoding=encoding, url=self.url):
-            yield link
 
 
 def _handle_get_page_fail(
@@ -534,7 +527,7 @@ class LinkCollector(object):
 
         pages_links = {}
         for page in self._get_pages(url_locations):
-            pages_links[page.url] = list(page.iter_links())
+            pages_links[page.url] = list(parse_links(page))
 
         return CollectedLinks(
             files=file_links,
