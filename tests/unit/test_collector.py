@@ -397,7 +397,9 @@ def check_links_include(links, names):
 class TestLinkCollector(object):
 
     @patch('pip._internal.collector._get_html_response')
-    def test_collect_links(self, mock_get_html_response, data):
+    def test_collect_links(self, mock_get_html_response, caplog, data):
+        caplog.set_level(logging.DEBUG)
+
         expected_url = 'https://pypi.org/simple/twine/'
 
         fake_page = make_fake_html_page(expected_url)
@@ -405,7 +407,9 @@ class TestLinkCollector(object):
 
         link_collector = make_test_link_collector(
             find_links=[data.find_links],
-            index_urls=[PyPI.simple_url],
+            # Include two copies of the URL to check that the second one
+            # is skipped.
+            index_urls=[PyPI.simple_url, PyPI.simple_url],
         )
         actual = link_collector.collect_links('twine')
 
@@ -427,3 +431,10 @@ class TestLinkCollector(object):
         assert actual_page_links[0].url == (
             'https://pypi.org/abc-1.0.tar.gz#md5=000000000'
         )
+
+        actual = [record_tuple[1:] for record_tuple in caplog.record_tuples]
+        assert actual == [
+            (logging.DEBUG, '2 location(s) to search for versions of twine:'),
+            (logging.DEBUG, '* https://pypi.org/simple/twine/'),
+            (logging.DEBUG, '* https://pypi.org/simple/twine/'),
+        ]
