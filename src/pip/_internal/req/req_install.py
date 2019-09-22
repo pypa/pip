@@ -627,38 +627,6 @@ class InstallRequirement(object):
 
         self.metadata_directory = os.path.join(metadata_dir, distinfo_dir)
 
-    def run_egg_info(self):
-        # type: () -> None
-        if self.name:
-            logger.debug(
-                'Running setup.py (path:%s) egg_info for package %s',
-                self.setup_py_path, self.name,
-            )
-        else:
-            logger.debug(
-                'Running setup.py (path:%s) egg_info for package from %s',
-                self.setup_py_path, self.link,
-            )
-        base_cmd = make_setuptools_shim_args(
-            self.setup_py_path,
-            no_user_config=self.isolated
-        )
-        egg_info_cmd = base_cmd + ['egg_info']
-        # We can't put the .egg-info files at the root, because then the
-        # source code will be mistaken for an installed egg, causing
-        # problems
-        if self.editable:
-            egg_base_option = []  # type: List[str]
-        else:
-            egg_info_dir = os.path.join(self.setup_py_dir, 'pip-egg-info')
-            ensure_dir(egg_info_dir)
-            egg_base_option = ['--egg-base', 'pip-egg-info']
-        with self.build_env:
-            call_subprocess(
-                egg_info_cmd + egg_base_option,
-                cwd=self.setup_py_dir,
-                command_desc='python setup.py egg_info')
-
     @property
     def egg_info_path(self):
         # type: () -> str
