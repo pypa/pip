@@ -630,49 +630,52 @@ class InstallRequirement(object):
     @property
     def egg_info_path(self):
         # type: () -> str
+        if self._egg_info_path is not None:
+            return self._egg_info_path
+
         def looks_like_virtual_env(path):
             return (
                 os.path.lexists(os.path.join(path, 'bin', 'python')) or
                 os.path.exists(os.path.join(path, 'Scripts', 'Python.exe'))
             )
 
-        if self._egg_info_path is None:
-            if self.editable:
-                base = self.source_dir
-                filenames = []
-                for root, dirs, files in os.walk(base):
-                    for dir in vcs.dirnames:
-                        if dir in dirs:
-                            dirs.remove(dir)
-                    # Iterate over a copy of ``dirs``, since mutating
-                    # a list while iterating over it can cause trouble.
-                    # (See https://github.com/pypa/pip/pull/462.)
-                    for dir in list(dirs):
-                        if looks_like_virtual_env(os.path.join(root, dir)):
-                            dirs.remove(dir)
-                        # Also don't search through tests
-                        elif dir == 'test' or dir == 'tests':
-                            dirs.remove(dir)
-                    filenames.extend([os.path.join(root, dir)
-                                      for dir in dirs])
-                filenames = [f for f in filenames if f.endswith('.egg-info')]
-            else:
-                base = os.path.join(self.setup_py_dir, 'pip-egg-info')
-                filenames = os.listdir(base)
+        if self.editable:
+            base = self.source_dir
+            filenames = []
+            for root, dirs, files in os.walk(base):
+                for dir in vcs.dirnames:
+                    if dir in dirs:
+                        dirs.remove(dir)
+                # Iterate over a copy of ``dirs``, since mutating
+                # a list while iterating over it can cause trouble.
+                # (See https://github.com/pypa/pip/pull/462.)
+                for dir in list(dirs):
+                    if looks_like_virtual_env(os.path.join(root, dir)):
+                        dirs.remove(dir)
+                    # Also don't search through tests
+                    elif dir == 'test' or dir == 'tests':
+                        dirs.remove(dir)
+                filenames.extend([os.path.join(root, dir)
+                                    for dir in dirs])
+            filenames = [f for f in filenames if f.endswith('.egg-info')]
+        else:
+            base = os.path.join(self.setup_py_dir, 'pip-egg-info')
+            filenames = os.listdir(base)
 
-            if not filenames:
-                raise InstallationError(
-                    "Files/directories not found in %s" % base
-                )
-            # if we have more than one match, we pick the toplevel one.  This
-            # can easily be the case if there is a dist folder which contains
-            # an extracted tarball for testing purposes.
-            if len(filenames) > 1:
-                filenames.sort(
-                    key=lambda x: x.count(os.path.sep) +
-                    (os.path.altsep and x.count(os.path.altsep) or 0)
-                )
-            self._egg_info_path = os.path.join(base, filenames[0])
+        if not filenames:
+            raise InstallationError(
+                "Files/directories not found in %s" % base
+            )
+        # if we have more than one match, we pick the toplevel one.  This
+        # can easily be the case if there is a dist folder which contains
+        # an extracted tarball for testing purposes.
+        if len(filenames) > 1:
+            filenames.sort(
+                key=lambda x: x.count(os.path.sep) +
+                (os.path.altsep and x.count(os.path.altsep) or 0)
+            )
+        self._egg_info_path = os.path.join(base, filenames[0])
+
         return self._egg_info_path
 
     @property
