@@ -205,16 +205,23 @@ def install_req_from_editable(
             raise InstallationError("Invalid requirement: '%s'" % name)
     else:
         req = None
+
+    link = Link(url)
+
+    parts = RequirementParts(req, link, None, extras_override)
+
+    source_dir = parts.link.file_path if parts.link.scheme == 'file' else None
+
     return InstallRequirement(
-        req, comes_from, source_dir=source_dir,
+        parts.requirement, comes_from, source_dir=source_dir,
         editable=True,
-        link=Link(url),
+        link=parts.link,
         constraint=constraint,
         use_pep517=use_pep517,
         isolated=isolated,
         options=options if options else {},
         wheel_cache=wheel_cache,
-        extras=extras_override or (),
+        extras=parts.extras,
     )
 
 
