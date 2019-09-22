@@ -1,4 +1,3 @@
-
 # The following comment should be removed at some point in the future.
 # It's included for now because without it InstallCommand.run() has a
 # couple errors where we have to know req.name is str rather than
@@ -103,7 +102,7 @@ def get_check_binary_allowed(format_control):
         # type: (InstallRequirement) -> bool
         canonical_name = canonicalize_name(req.name)
         allowed_formats = format_control.get_allowed_formats(canonical_name)
-        return "binary" in allowed_formats
+        return "binary" in allowed_formats or req.use_pep517
 
     return check_binary_allowed
 
@@ -392,9 +391,8 @@ class InstallCommand(RequirementCommand):
                     modifying_pip=modifying_pip
                 )
 
-                check_binary_allowed = get_check_binary_allowed(
-                    finder.format_control
-                )
+                check_binary_allowed = get_check_binary_allowed(finder.format_control)
+
                 # Consider legacy and PEP517-using requirements separately
                 legacy_requirements = []
                 pep517_requirements = []
