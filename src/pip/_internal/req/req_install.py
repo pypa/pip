@@ -639,6 +639,12 @@ class InstallRequirement(object):
                 os.path.exists(os.path.join(path, 'Scripts', 'Python.exe'))
             )
 
+        def depth_of_directory(dir_):
+            return (
+                dir_.count(os.path.sep) +
+                (os.path.altsep and dir_.count(os.path.altsep) or 0)
+            )
+
         if self.editable:
             base = self.source_dir
             filenames = []
@@ -666,16 +672,14 @@ class InstallRequirement(object):
             raise InstallationError(
                 "Files/directories not found in %s" % base
             )
-        # if we have more than one match, we pick the toplevel one.  This
+
+        # If we have more than one match, we pick the toplevel one.  This
         # can easily be the case if there is a dist folder which contains
         # an extracted tarball for testing purposes.
         if len(filenames) > 1:
-            filenames.sort(
-                key=lambda x: x.count(os.path.sep) +
-                (os.path.altsep and x.count(os.path.altsep) or 0)
-            )
-        self._egg_info_path = os.path.join(base, filenames[0])
+            filenames.sort(key=depth_of_directory)
 
+        self._egg_info_path = os.path.join(base, filenames[0])
         return self._egg_info_path
 
     @property
