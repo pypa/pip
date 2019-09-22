@@ -131,7 +131,7 @@ class InstallRequirement(object):
         # Temporary build location
         self._temp_build_dir = None  # type: Optional[TempDirectory]
         # Used to store the global directory where the _temp_build_dir should
-        # have been created. Cf _correct_build_location method.
+        # have been created. Cf move_to_correct_build_directory method.
         self._ideal_build_dir = None  # type: Optional[str]
         # Set to True after successful installation
         self.install_succeeded = None  # type: Optional[bool]
@@ -332,8 +332,8 @@ class InstallRequirement(object):
         if self.req is None:
             # for requirement via a path to a directory: the name of the
             # package is not available yet so we create a temp directory
-            # Once run_egg_info will have run, we'll be able
-            # to fix it via _correct_build_location
+            # Once run_egg_info will have run, we'll be able to fix it via
+            # move_to_correct_build_directory().
             # Some systems have /tmp as a symlink which confuses custom
             # builds (such as numpy). Thus, we ensure that the real path
             # is returned.
@@ -353,16 +353,16 @@ class InstallRequirement(object):
             _make_build_dir(build_dir)
         return os.path.join(build_dir, name)
 
-    def _correct_build_location(self):
+    def move_to_correct_build_directory(self):
         # type: () -> None
-        """Move self._temp_build_dir to self._ideal_build_dir/self.req.name
+        """Move self._temp_build_dir to "self._ideal_build_dir/self.req.name"
 
         For some requirements (e.g. a path to a directory), the name of the
         package is not available until we run egg_info, so the build_location
         will return a temporary directory and store the _ideal_build_dir.
 
-        This is only called by self.run_egg_info to fix the temporary build
-        directory.
+        This is only called to "fix" the build directory after generating
+        metadata.
         """
         if self.source_dir is not None:
             return
@@ -583,7 +583,7 @@ class InstallRequirement(object):
                     self.metadata["Version"],
                 ])
             )
-            self._correct_build_location()
+            self.move_to_correct_build_directory()
         else:
             metadata_name = canonicalize_name(self.metadata["Name"])
             if canonicalize_name(self.req.name) != metadata_name:
