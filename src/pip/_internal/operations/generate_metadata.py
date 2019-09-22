@@ -36,7 +36,7 @@ def _generate_metadata_legacy(install_req):
     if install_req.isolated:
         base_cmd += ["--no-user-cfg"]
 
-    # For non-editable installed, don't put the .egg-info files at the root,
+    # For non-editable installs, don't put the .egg-info files at the root,
     # to avoid confusion due to the source code being considered an installed
     # egg.
     egg_base_option = []  # type: List[str]
