@@ -28,7 +28,6 @@ from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.filetypes import ARCHIVE_EXTENSIONS
 from pip._internal.utils.misc import is_installable_dir, path_to_url, splitext
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pip._internal.utils.urls import url_to_path
 from pip._internal.vcs import is_url, vcs
 from pip._internal.wheel import Wheel
 
@@ -179,6 +178,37 @@ def deduce_helpful_msg(req):
     return msg
 
 
+class RequirementParts(object):
+    def __init__(
+            self,
+            requirement,  # type: Optional[Requirement]
+            link,         # type: Optional[Link]
+            markers,      # type: Optional[Marker]
+            extras,       # type: Set[str]
+    ):
+        self.requirement = requirement
+        self.link = link
+        self.markers = markers
+        self.extras = extras
+
+
+def parse_req_from_editable(editable_req):
+    # type: (str) -> RequirementParts
+    name, url, extras_override = parse_editable(editable_req)
+
+    if name is not None:
+        try:
+            req = Requirement(name)
+        except InvalidRequirement:
+            raise InstallationError("Invalid requirement: '%s'" % name)
+    else:
+        req = None
+
+    link = Link(url)
+
+    return RequirementParts(req, link, None, extras_override)
+
+
 # ---- The actual constructors follow ----
 
 
@@ -192,29 +222,21 @@ def install_req_from_editable(
     constraint=False  # type: bool
 ):
     # type: (...) -> InstallRequirement
-    name, url, extras_override = parse_editable(editable_req)
-    if url.startswith('file:'):
-        source_dir = url_to_path(url)
-    else:
-        source_dir = None
 
-    if name is not None:
-        try:
-            req = Requirement(name)
-        except InvalidRequirement:
-            raise InstallationError("Invalid requirement: '%s'" % name)
-    else:
-        req = None
+    parts = parse_req_from_editable(editable_req)
+
+    source_dir = parts.link.file_path if parts.link.scheme == 'file' else None
+
     return InstallRequirement(
-        req, comes_from, source_dir=source_dir,
+        parts.requirement, comes_from, source_dir=source_dir,
         editable=True,
-        link=Link(url),
+        link=parts.link,
         constraint=constraint,
         use_pep517=use_pep517,
         isolated=isolated,
         options=options if options else {},
         wheel_cache=wheel_cache,
-        extras=extras_override or (),
+        extras=parts.extras,
     )
 
 
@@ -270,20 +292,6 @@ def _get_url_from_path(path, name):
         name
     )
     return path_to_url(path)
-
-
-class RequirementParts(object):
-    def __init__(
-        self,
-        requirement,  # type: Optional[Requirement]
-        link,         # type: Optional[Link]
-        markers,      # type: Optional[Marker]
-        extras,       # type: Set[str]
-    ):
-        self.requirement = requirement
-        self.link = link
-        self.markers = markers
-        self.extras = extras
 
 
 def parse_req_from_line(name, line_source):
