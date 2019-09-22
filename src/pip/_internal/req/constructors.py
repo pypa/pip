@@ -178,6 +178,20 @@ def deduce_helpful_msg(req):
     return msg
 
 
+class RequirementParts(object):
+    def __init__(
+            self,
+            requirement,  # type: Optional[Requirement]
+            link,         # type: Optional[Link]
+            markers,      # type: Optional[Marker]
+            extras,       # type: Set[str]
+    ):
+        self.requirement = requirement
+        self.link = link
+        self.markers = markers
+        self.extras = extras
+
+
 def parse_req_from_editable(editable_req):
     # type: (str) -> RequirementParts
     name, url, extras_override = parse_editable(editable_req)
@@ -278,20 +292,6 @@ def _get_url_from_path(path, name):
         name
     )
     return path_to_url(path)
-
-
-class RequirementParts(object):
-    def __init__(
-        self,
-        requirement,  # type: Optional[Requirement]
-        link,         # type: Optional[Link]
-        markers,      # type: Optional[Marker]
-        extras,       # type: Set[str]
-    ):
-        self.requirement = requirement
-        self.link = link
-        self.markers = markers
-        self.extras = extras
 
 
 def parse_req_from_line(name, line_source):
