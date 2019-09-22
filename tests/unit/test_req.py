@@ -172,7 +172,7 @@ class TestRequirementSet(object):
         """Setting --require-hashes explicitly should raise errors if hashes
         are missing.
         """
-        reqset = RequirementSet(require_hashes=True)
+        reqset = RequirementSet()
         reqset.add_requirement(get_processed_req_from_line(
             'simple==1.0', lineno=1
         ))
@@ -194,7 +194,7 @@ class TestRequirementSet(object):
         """--require-hashes in a requirements file should make its way to the
         RequirementSet.
         """
-        req_set = RequirementSet(require_hashes=False)
+        req_set = RequirementSet()
         finder = make_test_finder(find_links=[data.find_links])
         session = finder._link_collector.session
         command = create_command('install')
@@ -203,7 +203,7 @@ class TestRequirementSet(object):
             command.populate_requirement_set(
                 req_set, args, options, finder, session, wheel_cache=None,
             )
-        assert req_set.require_hashes
+        assert options.require_hashes
 
     def test_unsupported_hashes(self, data):
         """VCS and dir links should raise errors when --require-hashes is
@@ -213,7 +213,7 @@ class TestRequirementSet(object):
         should trump the presence or absence of a hash.
 
         """
-        reqset = RequirementSet(require_hashes=True)
+        reqset = RequirementSet()
         reqset.add_requirement(get_processed_req_from_line(
             'git+git://github.com/pypa/pip-test-package --hash=sha256:123',
             lineno=1,
@@ -272,7 +272,7 @@ class TestRequirementSet(object):
         """A hash mismatch should raise an error."""
         file_url = path_to_url(
             (data.packages / 'simple-1.0.tar.gz').resolve())
-        reqset = RequirementSet(require_hashes=True)
+        reqset = RequirementSet()
         reqset.add_requirement(get_processed_req_from_line(
             '%s --hash=sha256:badbad' % file_url, lineno=1,
         ))

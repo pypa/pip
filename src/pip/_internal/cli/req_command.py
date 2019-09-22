@@ -259,9 +259,6 @@ class RequirementCommand(IndexGroupCommand):
                     use_pep517=options.use_pep517):
                 req_to_add.is_direct = True
                 requirement_set.add_requirement(req_to_add)
-        # If --require-hashes was a line in a requirements file, tell
-        # RequirementSet about it:
-        requirement_set.require_hashes = options.require_hashes
 
         if not (args or options.editables or options.requirements):
             opts = {'name': self.name}

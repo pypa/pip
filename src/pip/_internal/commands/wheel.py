@@ -129,9 +129,7 @@ class WheelCommand(RequirementCommand):
             options.build_dir, delete=build_delete, kind="wheel"
         ) as directory:
 
-            requirement_set = RequirementSet(
-                require_hashes=options.require_hashes,
-            )
+            requirement_set = RequirementSet()
 
             try:
                 self.populate_requirement_set(
