@@ -336,10 +336,11 @@ def test_install_editable_uninstalls_existing_from_path(script, data):
 def test_basic_install_editable_from_hg(script, tmpdir):
     """Test cloning and hg+file install from Mercurial."""
     pkg_path = _create_test_package(script, name='testpackage', vcs='hg')
-    args = ['install', '-e', 'hg+%s#egg=testpackage' % path_to_url(pkg_path)]
+    url = 'hg+{}#egg=testpackage'.format(path_to_url(pkg_path))
+    assert url.startswith('hg+file')
+    args = ['install', '-e', url]
     result = script.pip(*args)
     result.assert_installed('testpackage', with_files=['.hg'])
-    assert path_to_url(pkg_path).startswith("file://")
 
 
 @need_mercurial
