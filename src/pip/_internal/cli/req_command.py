@@ -204,7 +204,8 @@ class RequirementCommand(IndexGroupCommand):
             ignore_requires_python=ignore_requires_python,
             force_reinstall=force_reinstall,
             upgrade_strategy=upgrade_strategy,
-            py_version_info=py_version_info
+            py_version_info=py_version_info,
+            require_hashes=options.require_hashes,
         )
 
     def populate_requirement_set(

@@ -126,6 +126,7 @@ class Resolver(object):
         force_reinstall,  # type: bool
         upgrade_strategy,  # type: str
         py_version_info=None,  # type: Optional[Tuple[int, ...]]
+        require_hashes=False,  # type: bool
     ):
         # type: (...) -> None
         super(Resolver, self).__init__()
@@ -141,6 +142,8 @@ class Resolver(object):
         self.preparer = preparer
         self.finder = finder
         self.session = session
+
+        self.require_hashes_option = require_hashes
 
         self.upgrade_strategy = upgrade_strategy
         self.force_reinstall = force_reinstall
@@ -176,9 +179,8 @@ class Resolver(object):
             list(requirement_set.requirements.values())
         )
 
-        require_hashes_option = requirement_set.require_hashes
         require_hashes = (
-            require_hashes_option or
+            self.require_hashes_option or
             any(req.has_hash_options for req in root_reqs)
         )
 

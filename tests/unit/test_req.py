@@ -55,7 +55,7 @@ class TestRequirementSet(object):
     def teardown(self):
         shutil.rmtree(self.tempdir, ignore_errors=True)
 
-    def _basic_resolver(self, finder):
+    def _basic_resolver(self, finder, require_hashes=False):
         preparer = RequirementPreparer(
             build_dir=os.path.join(self.tempdir, 'build'),
             src_dir=os.path.join(self.tempdir, 'src'),
@@ -78,6 +78,7 @@ class TestRequirementSet(object):
             use_user_site=False, upgrade_strategy="to-satisfy-only",
             ignore_dependencies=False, ignore_installed=False,
             ignore_requires_python=False, force_reinstall=False,
+            require_hashes=require_hashes,
         )
 
     def test_no_reuse_existing_build_dir(self, data):
@@ -177,7 +178,7 @@ class TestRequirementSet(object):
         ))
 
         finder = make_test_finder(find_links=[data.find_links])
-        resolver = self._basic_resolver(finder)
+        resolver = self._basic_resolver(finder, require_hashes=True)
 
         assert_raises_regexp(
             HashErrors,
