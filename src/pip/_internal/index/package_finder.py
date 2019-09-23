@@ -779,6 +779,25 @@ class PackageFinder(object):
 
         return candidates
 
+    def process_project_url(self, project_url, link_evaluator):
+        # type: (Link, LinkEvaluator) -> List[InstallationCandidate]
+        logger.debug(
+            'Fetching project page and analyzing links: %s', project_url,
+        )
+        html_page = self._link_collector.fetch_page(project_url)
+        if html_page is None:
+            return []
+
+        page_links = list(parse_links(html_page))
+
+        with indent_log():
+            package_links = self.evaluate_links(
+                link_evaluator,
+                links=page_links,
+            )
+
+        return package_links
+
     def find_all_candidates(self, project_name):
         # type: (str) -> List[InstallationCandidate]
         """Find all available InstallationCandidate for project_name
@@ -789,8 +808,7 @@ class PackageFinder(object):
         See LinkEvaluator.evaluate_link() for details on which files
         are accepted.
         """
-        link_collector = self._link_collector
-        collected_links = link_collector.collect_links(project_name)
+        collected_links = self._link_collector.collect_links(project_name)
 
         link_evaluator = self.make_link_evaluator(project_name)
 
@@ -801,21 +819,10 @@ class PackageFinder(object):
 
         page_versions = []
         for project_url in collected_links.project_urls:
-            logger.debug(
-                'Fetching project page and analyzing links: %s', project_url,
+            package_links = self.process_project_url(
+                project_url, link_evaluator=link_evaluator,
             )
-            html_page = link_collector.fetch_page(project_url)
-            if html_page is None:
-                continue
-
-            page_links = list(parse_links(html_page))
-
-            with indent_log():
-                new_versions = self.evaluate_links(
-                    link_evaluator,
-                    links=page_links,
-                )
-                page_versions.extend(new_versions)
+            page_versions.extend(package_links)
 
         file_versions = self.evaluate_links(
             link_evaluator,
