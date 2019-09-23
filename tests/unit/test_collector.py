@@ -324,6 +324,18 @@ def test_get_html_page_invalid_scheme(caplog, url, vcs_scheme):
     ]
 
 
+def make_fake_html_page(url):
+    html = dedent(u"""\
+    <html><head><meta name="api-version" value="2" /></head>
+    <body>
+    <a href="/abc-1.0.tar.gz#md5=000000000">abc-1.0.tar.gz</a>
+    </body></html>
+    """)
+    content = html.encode('utf-8')
+    headers = {}
+    return HTMLPage(content, url=url, headers=headers)
+
+
 def test_get_html_page_directory_append_index(tmpdir):
     """`_get_html_page()` should append "index.html" to a directory URL.
     """
@@ -369,18 +381,6 @@ def test_group_locations__non_existing_path():
     """
     files, urls = group_locations([os.path.join('this', 'doesnt', 'exist')])
     assert not urls and not files, "nothing should have been found"
-
-
-def make_fake_html_page(url):
-    html = dedent(u"""\
-    <html><head><meta name="api-version" value="2" /></head>
-    <body>
-    <a href="/abc-1.0.tar.gz#md5=000000000">abc-1.0.tar.gz</a>
-    </body></html>
-    """)
-    content = html.encode('utf-8')
-    headers = {}
-    return HTMLPage(content, url=url, headers=headers)
 
 
 def check_links_include(links, names):
