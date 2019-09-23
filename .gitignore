@@ -4,8 +4,8 @@ __pycache__/
 *$py.class
 
 # Distribution / packaging
-build/
-dist/
+/build/
+/dist/
 *.egg
 *.eggs
 *.egg-info/
@@ -18,7 +18,7 @@ docs/build/
 .mypy_cache/
 
 # Unit test / coverage reports
-.tox/
+.[nt]ox/
 htmlcov/
 .coverage
 .coverage.*
@@ -27,7 +27,6 @@ nosetests.xml
 coverage.xml
 *.cover
 tests/data/common_wheels/
-pip-wheel-metadata
 
 # Misc
 *~

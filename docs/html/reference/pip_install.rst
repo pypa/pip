@@ -244,8 +244,7 @@ pip supports installing from a package index using a :term:`requirement
 specifier <pypug:Requirement Specifier>`. Generally speaking, a requirement
 specifier is composed of a project name followed by optional :term:`version
 specifiers <pypug:Version Specifier>`.  :pep:`508` contains a full specification
-of the format of a requirement (pip does not support the ``url_req`` form
-of specifier at this time).
+of the format of a requirement.
 
 Some examples:
 
@@ -264,6 +263,13 @@ Since version 6.0, pip also supports specifiers containing `environment markers
 
   SomeProject ==5.4 ; python_version < '2.7'
   SomeProject; sys_platform == 'win32'
+
+Since version 19.1, pip also supports `direct references
+<https://www.python.org/dev/peps/pep-0440/#direct-references>`__ like so:
+
+ ::
+
+  SomeProject @ file:///somewhere/...
 
 Environment markers are supported in the command line and in requirements files.
 
@@ -694,10 +700,21 @@ does not satisfy the ``--require-hashes`` demand that every package have a
 local hash.
 
 
+Local project installs
+++++++++++++++++++++++
+pip supports installing local project in both regular mode and editable mode.
+You can install local projects by specifying the project path to pip::
+
+$ pip install path/to/SomeProject
+
+During regular installation, pip will copy the entire project directory to a temporary location and install from there.
+The exception is that pip will exclude .tox and .nox directories present in the top level of the project from being copied.
+
+
 .. _`editable-installs`:
 
 "Editable" Installs
-+++++++++++++++++++
+~~~~~~~~~~~~~~~~~~~
 
 "Editable" installs are fundamentally `"setuptools develop mode"
 <https://setuptools.readthedocs.io/en/latest/setuptools.html#development-mode>`_
@@ -867,6 +884,14 @@ Examples
 
       $ pip install ./downloads/SomePackage-1.0.4.tar.gz
       $ pip install http://my.package.repo/SomePackage-1.0.4.zip
+
+
+#. Install a particular source archive file following :pep:`440` direct references.
+
+    ::
+
+      $ pip install SomeProject==1.0.4@http://my.package.repo//SomeProject-1.2.3-py33-none-any.whl
+      $ pip install "SomeProject==1.0.4 @ http://my.package.repo//SomeProject-1.2.3-py33-none-any.whl"
 
 
 #. Install from alternative package repositories.

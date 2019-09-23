@@ -1,6 +1,7 @@
-import functools
 import hashlib
+import logging
 import os
+import shutil
 import sys
 from io import BytesIO
 from shutil import copy, rmtree
@@ -8,25 +9,31 @@ from tempfile import mkdtemp
 
 import pytest
 from mock import Mock, patch
+from pip._vendor.cachecontrol.caches import FileCache
 
 import pip
 from pip._internal.download import (
     CI_ENVIRONMENT_VARIABLES,
-    MultiDomainBasicAuth,
     PipSession,
     SafeFileCache,
+    _copy_source_tree,
     _download_http_url,
     parse_content_disposition,
     sanitize_content_filename,
     unpack_file_url,
     unpack_http_url,
-    url_to_path,
 )
 from pip._internal.exceptions import HashMismatch
 from pip._internal.models.link import Link
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.misc import path_to_url
 from tests.lib import create_file
+from tests.lib.filesystem import (
+    get_filelist,
+    make_socket_file,
+    make_unreadable_file,
+)
+from tests.lib.path import Path
 
 
 @pytest.fixture(scope="function")
@@ -291,36 +298,83 @@ def test_download_http_url__no_directory_traversal(tmpdir):
     assert actual == ['out_dir_file']
 
 
-@pytest.mark.parametrize("url,win_expected,non_win_expected", [
-    ('file:tmp', 'tmp', 'tmp'),
-    ('file:c:/path/to/file', r'C:\path\to\file', 'c:/path/to/file'),
-    ('file:/path/to/file', r'\path\to\file', '/path/to/file'),
-    ('file://localhost/tmp/file', r'\tmp\file', '/tmp/file'),
-    ('file://localhost/c:/tmp/file', r'C:\tmp\file', '/c:/tmp/file'),
-    ('file://somehost/tmp/file', r'\\somehost\tmp\file', None),
-    ('file:///tmp/file', r'\tmp\file', '/tmp/file'),
-    ('file:///c:/tmp/file', r'C:\tmp\file', '/c:/tmp/file'),
-])
-def test_url_to_path(url, win_expected, non_win_expected):
-    if sys.platform == 'win32':
-        expected_path = win_expected
-    else:
-        expected_path = non_win_expected
-
-    if expected_path is None:
-        with pytest.raises(ValueError):
-            url_to_path(url)
-    else:
-        assert url_to_path(url) == expected_path
+@pytest.fixture
+def clean_project(tmpdir_factory, data):
+    tmpdir = Path(str(tmpdir_factory.mktemp("clean_project")))
+    new_project_dir = tmpdir.joinpath("FSPkg")
+    path = data.packages.joinpath("FSPkg")
+    shutil.copytree(path, new_project_dir)
+    return new_project_dir
 
 
-@pytest.mark.skipif("sys.platform != 'win32'")
-def test_url_to_path_path_to_url_symmetry_win():
-    path = r'C:\tmp\file'
-    assert url_to_path(path_to_url(path)) == path
+def test_copy_source_tree(clean_project, tmpdir):
+    target = tmpdir.joinpath("target")
+    expected_files = get_filelist(clean_project)
+    assert len(expected_files) == 3
 
-    unc_path = r'\\unc\share\path'
-    assert url_to_path(path_to_url(unc_path)) == unc_path
+    _copy_source_tree(clean_project, target)
+
+    copied_files = get_filelist(target)
+    assert expected_files == copied_files
+
+
+@pytest.mark.skipif("sys.platform == 'win32' or sys.version_info < (3,)")
+def test_copy_source_tree_with_socket(clean_project, tmpdir, caplog):
+    target = tmpdir.joinpath("target")
+    expected_files = get_filelist(clean_project)
+    socket_path = str(clean_project.joinpath("aaa"))
+    make_socket_file(socket_path)
+
+    _copy_source_tree(clean_project, target)
+
+    copied_files = get_filelist(target)
+    assert expected_files == copied_files
+
+    # Warning should have been logged.
+    assert len(caplog.records) == 1
+    record = caplog.records[0]
+    assert record.levelname == 'WARNING'
+    assert socket_path in record.message
+
+
+@pytest.mark.skipif("sys.platform == 'win32' or sys.version_info < (3,)")
+def test_copy_source_tree_with_socket_fails_with_no_socket_error(
+    clean_project, tmpdir
+):
+    target = tmpdir.joinpath("target")
+    expected_files = get_filelist(clean_project)
+    make_socket_file(clean_project.joinpath("aaa"))
+    unreadable_file = clean_project.joinpath("bbb")
+    make_unreadable_file(unreadable_file)
+
+    with pytest.raises(shutil.Error) as e:
+        _copy_source_tree(clean_project, target)
+
+    errored_files = [err[0] for err in e.value.args[0]]
+    assert len(errored_files) == 1
+    assert unreadable_file in errored_files
+
+    copied_files = get_filelist(target)
+    # All files without errors should have been copied.
+    assert expected_files == copied_files
+
+
+def test_copy_source_tree_with_unreadable_dir_fails(clean_project, tmpdir):
+    target = tmpdir.joinpath("target")
+    expected_files = get_filelist(clean_project)
+    unreadable_file = clean_project.joinpath("bbb")
+    make_unreadable_file(unreadable_file)
+
+    with pytest.raises(shutil.Error) as e:
+        _copy_source_tree(clean_project, target)
+
+    errored_files = [err[0] for err in e.value.args[0]]
+    assert len(errored_files) == 1
+    assert unreadable_file in errored_files
+
+    copied_files = get_filelist(target)
+    # All files without errors should have been copied.
+    assert expected_files == copied_files
 
 
 class Test_unpack_file_url(object):
@@ -420,6 +474,41 @@ class Test_unpack_file_url(object):
         assert os.path.isdir(os.path.join(self.build_dir, 'fspkg'))
 
 
+@pytest.mark.parametrize('exclude_dir', [
+    '.nox',
+    '.tox'
+])
+def test_unpack_file_url_excludes_expected_dirs(tmpdir, exclude_dir):
+    src_dir = tmpdir / 'src'
+    dst_dir = tmpdir / 'dst'
+    src_included_file = src_dir.joinpath('file.txt')
+    src_excluded_dir = src_dir.joinpath(exclude_dir)
+    src_excluded_file = src_dir.joinpath(exclude_dir, 'file.txt')
+    src_included_dir = src_dir.joinpath('subdir', exclude_dir)
+
+    # set up source directory
+    src_excluded_dir.mkdir(parents=True)
+    src_included_dir.mkdir(parents=True)
+    src_included_file.touch()
+    src_excluded_file.touch()
+
+    dst_included_file = dst_dir.joinpath('file.txt')
+    dst_excluded_dir = dst_dir.joinpath(exclude_dir)
+    dst_excluded_file = dst_dir.joinpath(exclude_dir, 'file.txt')
+    dst_included_dir = dst_dir.joinpath('subdir', exclude_dir)
+
+    src_link = Link(path_to_url(src_dir))
+    unpack_file_url(
+        src_link,
+        dst_dir,
+        download_dir=None
+    )
+    assert not os.path.isdir(dst_excluded_dir)
+    assert not os.path.isfile(dst_excluded_file)
+    assert os.path.isfile(dst_included_file)
+    assert os.path.isdir(dst_included_dir)
+
+
 class TestSafeFileCache:
     """
     The no_perms test are useless on Windows since SafeFileCache uses
@@ -459,6 +548,14 @@ class TestSafeFileCache:
         cache = SafeFileCache(cache_tmpdir)
         cache.delete("foo")
 
+    def test_cache_hashes_are_same(self, cache_tmpdir):
+        cache = SafeFileCache(cache_tmpdir)
+        key = "test key"
+        fake_cache = Mock(
+            FileCache, directory=cache.directory, encode=FileCache.encode
+        )
+        assert cache._get_cache_path(key) == FileCache._fn(fake_cache, key)
+
 
 class TestPipSession:
 
@@ -481,187 +578,150 @@ class TestPipSession:
 
         assert not hasattr(session.adapters["http://"], "cache")
 
-    def test_insecure_host_cache_is_not_enabled(self, tmpdir):
+    def test_insecure_host_adapter(self, tmpdir):
         session = PipSession(
             cache=tmpdir.joinpath("test-cache"),
-            insecure_hosts=["example.com"],
+            trusted_hosts=["example.com"],
         )
 
+        assert "https://example.com/" in session.adapters
+        # Check that the "port wildcard" is present.
+        assert "https://example.com:" in session.adapters
+        # Check that the cache isn't enabled.
         assert not hasattr(session.adapters["https://example.com/"], "cache")
 
+    def test_add_trusted_host(self):
+        # Leave a gap to test how the ordering is affected.
+        trusted_hosts = ['host1', 'host3']
+        session = PipSession(trusted_hosts=trusted_hosts)
+        insecure_adapter = session._insecure_adapter
+        prefix2 = 'https://host2/'
+        prefix3 = 'https://host3/'
+        prefix3_wildcard = 'https://host3:'
 
-def test_get_credentials():
-    auth = MultiDomainBasicAuth()
-    get = auth._get_url_and_credentials
+        # Confirm some initial conditions as a baseline.
+        assert session.pip_trusted_origins == [
+            ('host1', None), ('host3', None)
+        ]
+        assert session.adapters[prefix3] is insecure_adapter
+        assert session.adapters[prefix3_wildcard] is insecure_adapter
 
-    # Check URL parsing
-    assert get("http://foo:bar@example.com/path") \
-        == ('http://example.com/path', 'foo', 'bar')
-    assert auth.passwords['example.com'] == ('foo', 'bar')
+        assert prefix2 not in session.adapters
 
-    auth.passwords['example.com'] = ('user', 'pass')
-    assert get("http://foo:bar@example.com/path") \
-        == ('http://example.com/path', 'user', 'pass')
+        # Test adding a new host.
+        session.add_trusted_host('host2')
+        assert session.pip_trusted_origins == [
+            ('host1', None), ('host3', None), ('host2', None)
+        ]
+        # Check that prefix3 is still present.
+        assert session.adapters[prefix3] is insecure_adapter
+        assert session.adapters[prefix2] is insecure_adapter
 
+        # Test that adding the same host doesn't create a duplicate.
+        session.add_trusted_host('host3')
+        assert session.pip_trusted_origins == [
+            ('host1', None), ('host3', None), ('host2', None)
+        ], 'actual: {}'.format(session.pip_trusted_origins)
 
-def test_get_index_url_credentials():
-    auth = MultiDomainBasicAuth(index_urls=[
-        "http://foo:bar@example.com/path"
-    ])
-    get = functools.partial(
-        auth._get_new_credentials,
-        allow_netrc=False,
-        allow_keyring=False
+        session.add_trusted_host('host4:8080')
+        prefix4 = 'https://host4:8080/'
+        assert session.pip_trusted_origins == [
+            ('host1', None), ('host3', None),
+            ('host2', None), ('host4', 8080)
+        ]
+        assert session.adapters[prefix4] is insecure_adapter
+
+    def test_add_trusted_host__logging(self, caplog):
+        """
+        Test logging when add_trusted_host() is called.
+        """
+        trusted_hosts = ['host0', 'host1']
+        session = PipSession(trusted_hosts=trusted_hosts)
+        with caplog.at_level(logging.INFO):
+            # Test adding an existing host.
+            session.add_trusted_host('host1', source='somewhere')
+            session.add_trusted_host('host2')
+            # Test calling add_trusted_host() on the same host twice.
+            session.add_trusted_host('host2')
+
+        actual = [(r.levelname, r.message) for r in caplog.records]
+        # Observe that "host0" isn't included in the logs.
+        expected = [
+            ('INFO', "adding trusted host: 'host1' (from somewhere)"),
+            ('INFO', "adding trusted host: 'host2'"),
+            ('INFO', "adding trusted host: 'host2'"),
+        ]
+        assert actual == expected
+
+    def test_iter_secure_origins(self):
+        trusted_hosts = ['host1', 'host2', 'host3:8080']
+        session = PipSession(trusted_hosts=trusted_hosts)
+
+        actual = list(session.iter_secure_origins())
+        assert len(actual) == 9
+        # Spot-check that SECURE_ORIGINS is included.
+        assert actual[0] == ('https', '*', '*')
+        assert actual[-3:] == [
+            ('*', 'host1', '*'),
+            ('*', 'host2', '*'),
+            ('*', 'host3', 8080)
+        ]
+
+    def test_iter_secure_origins__trusted_hosts_empty(self):
+        """
+        Test iter_secure_origins() after passing trusted_hosts=[].
+        """
+        session = PipSession(trusted_hosts=[])
+
+        actual = list(session.iter_secure_origins())
+        assert len(actual) == 6
+        # Spot-check that SECURE_ORIGINS is included.
+        assert actual[0] == ('https', '*', '*')
+
+    @pytest.mark.parametrize(
+        'location, trusted, expected',
+        [
+            ("http://pypi.org/something", [], False),
+            ("https://pypi.org/something", [], True),
+            ("git+http://pypi.org/something", [], False),
+            ("git+https://pypi.org/something", [], True),
+            ("git+ssh://git@pypi.org/something", [], True),
+            ("http://localhost", [], True),
+            ("http://127.0.0.1", [], True),
+            ("http://example.com/something/", [], False),
+            ("http://example.com/something/", ["example.com"], True),
+            # Try changing the case.
+            ("http://eXample.com/something/", ["example.cOm"], True),
+            # Test hosts with port.
+            ("http://example.com:8080/something/", ["example.com"], True),
+            # Test a trusted_host with a port.
+            ("http://example.com:8080/something/", ["example.com:8080"], True),
+            ("http://example.com/something/", ["example.com:8080"], False),
+            (
+                "http://example.com:8888/something/",
+                ["example.com:8080"],
+                False
+            ),
+        ],
     )
+    def test_is_secure_origin(self, caplog, location, trusted, expected):
+        class MockLogger(object):
+            def __init__(self):
+                self.called = False
 
-    # Check resolution of indexes
-    assert get("http://example.com/path/path2") == ('foo', 'bar')
-    assert get("http://example.com/path3/path2") == (None, None)
+            def warning(self, *args, **kwargs):
+                self.called = True
 
+        session = PipSession(trusted_hosts=trusted)
+        actual = session.is_secure_origin(location)
+        assert actual == expected
 
-class KeyringModuleV1(object):
-    """Represents the supported API of keyring before get_credential
-    was added.
-    """
+        log_records = [(r.levelname, r.message) for r in caplog.records]
+        if expected:
+            assert not log_records
+            return
 
-    def __init__(self):
-        self.saved_passwords = []
-
-    def get_password(self, system, username):
-        if system == "example.com" and username:
-            return username + "!netloc"
-        if system == "http://example.com/path2" and username:
-            return username + "!url"
-        return None
-
-    def set_password(self, system, username, password):
-        self.saved_passwords.append((system, username, password))
-
-
-@pytest.mark.parametrize('url, expect', (
-    ("http://example.com/path1", (None, None)),
-    # path1 URLs will be resolved by netloc
-    ("http://user@example.com/path1", ("user", "user!netloc")),
-    ("http://user2@example.com/path1", ("user2", "user2!netloc")),
-    # path2 URLs will be resolved by index URL
-    ("http://example.com/path2/path3", (None, None)),
-    ("http://foo@example.com/path2/path3", ("foo", "foo!url")),
-))
-def test_keyring_get_password(monkeypatch, url, expect):
-    monkeypatch.setattr('pip._internal.download.keyring', KeyringModuleV1())
-    auth = MultiDomainBasicAuth(index_urls=["http://example.com/path2"])
-
-    actual = auth._get_new_credentials(url, allow_netrc=False,
-                                       allow_keyring=True)
-    assert actual == expect
-
-
-def test_keyring_get_password_after_prompt(monkeypatch):
-    monkeypatch.setattr('pip._internal.download.keyring', KeyringModuleV1())
-    auth = MultiDomainBasicAuth()
-
-    def ask_input(prompt):
-        assert prompt == "User for example.com: "
-        return "user"
-
-    monkeypatch.setattr('pip._internal.download.ask_input', ask_input)
-    actual = auth._prompt_for_password("example.com")
-    assert actual == ("user", "user!netloc", False)
-
-
-def test_keyring_get_password_username_in_index(monkeypatch):
-    monkeypatch.setattr('pip._internal.download.keyring', KeyringModuleV1())
-    auth = MultiDomainBasicAuth(index_urls=["http://user@example.com/path2"])
-    get = functools.partial(
-        auth._get_new_credentials,
-        allow_netrc=False,
-        allow_keyring=True
-    )
-
-    assert get("http://example.com/path2/path3") == ("user", "user!url")
-    assert get("http://example.com/path4/path1") == (None, None)
-
-
-@pytest.mark.parametrize("response_status, creds, expect_save", (
-    (403, ("user", "pass", True), False),
-    (200, ("user", "pass", True), True,),
-    (200, ("user", "pass", False), False,),
-))
-def test_keyring_set_password(monkeypatch, response_status, creds,
-                              expect_save):
-    keyring = KeyringModuleV1()
-    monkeypatch.setattr('pip._internal.download.keyring', keyring)
-    auth = MultiDomainBasicAuth(prompting=True)
-    monkeypatch.setattr(auth, '_get_url_and_credentials',
-                        lambda u: (u, None, None))
-    monkeypatch.setattr(auth, '_prompt_for_password', lambda *a: creds)
-    if creds[2]:
-        # when _prompt_for_password indicates to save, we should save
-        def should_save_password_to_keyring(*a):
-            return True
-    else:
-        # when _prompt_for_password indicates not to save, we should
-        # never call this function
-        def should_save_password_to_keyring(*a):
-            assert False, ("_should_save_password_to_keyring should not be " +
-                           "called")
-    monkeypatch.setattr(auth, '_should_save_password_to_keyring',
-                        should_save_password_to_keyring)
-
-    req = MockRequest("https://example.com")
-    resp = MockResponse(b"")
-    resp.url = req.url
-    connection = MockConnection()
-
-    def _send(sent_req, **kwargs):
-        assert sent_req is req
-        assert "Authorization" in sent_req.headers
-        r = MockResponse(b"")
-        r.status_code = response_status
-        return r
-
-    connection._send = _send
-
-    resp.request = req
-    resp.status_code = 401
-    resp.connection = connection
-
-    auth.handle_401(resp)
-
-    if expect_save:
-        assert keyring.saved_passwords == [("example.com", creds[0], creds[1])]
-    else:
-        assert keyring.saved_passwords == []
-
-
-class KeyringModuleV2(object):
-    """Represents the current supported API of keyring"""
-
-    class Credential(object):
-        def __init__(self, username, password):
-            self.username = username
-            self.password = password
-
-    def get_password(self, system, username):
-        assert False, "get_password should not ever be called"
-
-    def get_credential(self, system, username):
-        if system == "http://example.com/path2":
-            return self.Credential("username", "url")
-        if system == "example.com":
-            return self.Credential("username", "netloc")
-        return None
-
-
-@pytest.mark.parametrize('url, expect', (
-    ("http://example.com/path1", ("username", "netloc")),
-    ("http://example.com/path2/path3", ("username", "url")),
-    ("http://user2@example.com/path2/path3", ("username", "url")),
-))
-def test_keyring_get_credential(monkeypatch, url, expect):
-    monkeypatch.setattr(pip._internal.download, 'keyring', KeyringModuleV2())
-    auth = MultiDomainBasicAuth(index_urls=["http://example.com/path2"])
-
-    assert auth._get_new_credentials(url, allow_netrc=False,
-                                     allow_keyring=True) \
-        == expect
+        assert len(log_records) == 1
+        actual_level, actual_message = log_records[0]
+        assert actual_level == 'WARNING'
+        assert 'is not a trusted or secure host' in actual_message

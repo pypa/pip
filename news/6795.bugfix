@@ -1,0 +1,1 @@
+ Fix handling of tokens (single part credentials) in URLs.

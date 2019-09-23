@@ -37,25 +37,31 @@ from pip._internal.utils.glibc import (
 )
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.misc import (
+    HiddenText,
+    build_netloc,
+    build_url_from_netloc,
     call_subprocess,
     egg_link_path,
     ensure_dir,
     format_command_args,
     get_installed_distributions,
     get_prog,
+    hide_url,
+    hide_value,
+    make_command,
     make_subprocess_output_error,
     normalize_path,
     normalize_version_info,
+    parse_netloc,
     path_to_display,
     path_to_url,
+    redact_auth_from_url,
     redact_netloc,
-    redact_password_from_url,
     remove_auth_from_url,
     rmtree,
+    rmtree_errorhandler,
     split_auth_from_netloc,
     split_auth_netloc_from_url,
-    untar_file,
-    unzip_file,
 )
 from pip._internal.utils.setuptools_build import make_setuptools_shim_args
 from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
@@ -295,88 +301,60 @@ class Tests_get_installed_distributions:
         assert len(dists) == 0
 
 
-class TestUnpackArchives(object):
+def test_rmtree_errorhandler_nonexistent_directory(tmpdir):
     """
-    test_tar.tgz/test_tar.zip have content as follows engineered to confirm 3
-    things:
-     1) confirm that reg files, dirs, and symlinks get unpacked
-     2) permissions are not preserved (and go by the 022 umask)
-     3) reg files with *any* execute perms, get chmod +x
-
-       file.txt         600 regular file
-       symlink.txt      777 symlink to file.txt
-       script_owner.sh  700 script where owner can execute
-       script_group.sh  610 script where group can execute
-       script_world.sh  601 script where world can execute
-       dir              744 directory
-       dir/dirfile      622 regular file
-     4) the file contents are extracted correctly (though the content of
-        each file isn't currently unique)
-
+    Test rmtree_errorhandler ignores the given non-existing directory.
     """
+    nonexistent_path = str(tmpdir / 'foo')
+    mock_func = Mock()
+    rmtree_errorhandler(mock_func, nonexistent_path, None)
+    mock_func.assert_not_called()
 
-    def setup(self):
-        self.tempdir = tempfile.mkdtemp()
-        self.old_mask = os.umask(0o022)
-        self.symlink_expected_mode = None
 
-    def teardown(self):
-        os.umask(self.old_mask)
-        shutil.rmtree(self.tempdir, ignore_errors=True)
+def test_rmtree_errorhandler_readonly_directory(tmpdir):
+    """
+    Test rmtree_errorhandler makes the given read-only directory writable.
+    """
+    # Create read only directory
+    path = str((tmpdir / 'subdir').mkdir())
+    os.chmod(path, stat.S_IREAD)
 
-    def mode(self, path):
-        return stat.S_IMODE(os.stat(path).st_mode)
+    # Make sure mock_func is called with the given path
+    mock_func = Mock()
+    rmtree_errorhandler(mock_func, path, None)
+    mock_func.assert_called_with(path)
 
-    def confirm_files(self):
-        # expectations based on 022 umask set above and the unpack logic that
-        # sets execute permissions, not preservation
-        for fname, expected_mode, test, expected_contents in [
-                ('file.txt', 0o644, os.path.isfile, b'file\n'),
-                # We don't test the "symlink.txt" contents for now.
-                ('symlink.txt', 0o644, os.path.isfile, None),
-                ('script_owner.sh', 0o755, os.path.isfile, b'file\n'),
-                ('script_group.sh', 0o755, os.path.isfile, b'file\n'),
-                ('script_world.sh', 0o755, os.path.isfile, b'file\n'),
-                ('dir', 0o755, os.path.isdir, None),
-                (os.path.join('dir', 'dirfile'), 0o644, os.path.isfile, b''),
-        ]:
-            path = os.path.join(self.tempdir, fname)
-            if path.endswith('symlink.txt') and sys.platform == 'win32':
-                # no symlinks created on windows
-                continue
-            assert test(path), path
-            if expected_contents is not None:
-                with open(path, mode='rb') as f:
-                    contents = f.read()
-                assert contents == expected_contents, 'fname: {}'.format(fname)
-            if sys.platform == 'win32':
-                # the permissions tests below don't apply in windows
-                # due to os.chmod being a noop
-                continue
-            mode = self.mode(path)
-            assert mode == expected_mode, (
-                "mode: %s, expected mode: %s" % (mode, expected_mode)
-            )
+    # Make sure the path is now writable
+    assert os.stat(path).st_mode & stat.S_IWRITE
 
-    def test_unpack_tgz(self, data):
-        """
-        Test unpacking a *.tgz, and setting execute permissions
-        """
-        test_file = data.packages.joinpath("test_tar.tgz")
-        untar_file(test_file, self.tempdir)
-        self.confirm_files()
-        # Check the timestamp of an extracted file
-        file_txt_path = os.path.join(self.tempdir, 'file.txt')
-        mtime = time.gmtime(os.stat(file_txt_path).st_mtime)
-        assert mtime[0:6] == (2013, 8, 16, 5, 13, 37), mtime
 
-    def test_unpack_zip(self, data):
-        """
-        Test unpacking a *.zip, and setting execute permissions
-        """
-        test_file = data.packages.joinpath("test_zip.zip")
-        unzip_file(test_file, self.tempdir)
-        self.confirm_files()
+def test_rmtree_errorhandler_reraises_error(tmpdir):
+    """
+    Test rmtree_errorhandler reraises an exception
+    by the given unreadable directory.
+    """
+    # Create directory without read permission
+    path = str((tmpdir / 'subdir').mkdir())
+    os.chmod(path, stat.S_IWRITE)
+
+    mock_func = Mock()
+
+    try:
+        raise RuntimeError('test message')
+    except RuntimeError:
+        # Make sure the handler reraises an exception
+        with pytest.raises(RuntimeError, match='test message'):
+            rmtree_errorhandler(mock_func, path, None)
+
+    mock_func.assert_not_called()
+
+
+def test_rmtree_skips_nonexistent_directory():
+    """
+    Test wrapped rmtree doesn't raise an error
+    by the given nonexistent directory.
+    """
+    rmtree.__wrapped__('nonexistent-subdir')
 
 
 class Failer:
@@ -828,6 +806,9 @@ class TestGetProg(object):
     (['pip', 'list'], 'pip list'),
     (['foo', 'space space', 'new\nline', 'double"quote', "single'quote"],
      """foo 'space space' 'new\nline' 'double"quote' 'single'"'"'quote'"""),
+    # Test HiddenText arguments.
+    (make_command(hide_value('secret1'), 'foo', hide_value('secret2')),
+        "'****' foo '****'"),
 ])
 def test_format_command_args(args, expected):
     actual = format_command_args(args)
@@ -1223,6 +1204,51 @@ def test_path_to_url_win():
     assert path_to_url('file') == 'file:' + urllib_request.pathname2url(path)
 
 
+@pytest.mark.parametrize('host_port, expected_netloc', [
+    # Test domain name.
+    (('example.com', None), 'example.com'),
+    (('example.com', 5000), 'example.com:5000'),
+    # Test IPv4 address.
+    (('127.0.0.1', None), '127.0.0.1'),
+    (('127.0.0.1', 5000), '127.0.0.1:5000'),
+    # Test bare IPv6 address.
+    (('2001:db6::1', None), '2001:db6::1'),
+    # Test IPv6 with port.
+    (('2001:db6::1', 5000), '[2001:db6::1]:5000'),
+])
+def test_build_netloc(host_port, expected_netloc):
+    assert build_netloc(*host_port) == expected_netloc
+
+
+@pytest.mark.parametrize('netloc, expected_url, expected_host_port', [
+    # Test domain name.
+    ('example.com', 'https://example.com', ('example.com', None)),
+    ('example.com:5000', 'https://example.com:5000', ('example.com', 5000)),
+    # Test IPv4 address.
+    ('127.0.0.1', 'https://127.0.0.1', ('127.0.0.1', None)),
+    ('127.0.0.1:5000', 'https://127.0.0.1:5000', ('127.0.0.1', 5000)),
+    # Test bare IPv6 address.
+    ('2001:db6::1', 'https://[2001:db6::1]', ('2001:db6::1', None)),
+    # Test IPv6 with port.
+    (
+        '[2001:db6::1]:5000',
+        'https://[2001:db6::1]:5000',
+        ('2001:db6::1', 5000)
+    ),
+    # Test netloc with auth.
+    (
+        'user:password@localhost:5000',
+        'https://user:password@localhost:5000',
+        ('localhost', 5000)
+    )
+])
+def test_build_url_from_netloc_and_parse_netloc(
+    netloc, expected_url, expected_host_port,
+):
+    assert build_url_from_netloc(netloc) == expected_url
+    assert parse_netloc(netloc) == expected_host_port
+
+
 @pytest.mark.parametrize('netloc, expected', [
     # Test a basic case.
     ('example.com', ('example.com', (None, None))),
@@ -1277,7 +1303,7 @@ def test_split_auth_netloc_from_url(url, expected):
     # Test a basic case.
     ('example.com', 'example.com'),
     # Test with username and no password.
-    ('user@example.com', 'user@example.com'),
+    ('accesstoken@example.com', '****@example.com'),
     # Test with username and password.
     ('user:pass@example.com', 'user:****@example.com'),
     # Test with username and empty password.
@@ -1316,7 +1342,7 @@ def test_remove_auth_from_url(auth_url, expected_url):
 
 
 @pytest.mark.parametrize('auth_url, expected_url', [
-    ('https://user@example.com/abc', 'https://user@example.com/abc'),
+    ('https://accesstoken@example.com/abc', 'https://****@example.com/abc'),
     ('https://user:password@example.com', 'https://user:****@example.com'),
     ('https://user:@example.com', 'https://user:****@example.com'),
     ('https://example.com', 'https://example.com'),
@@ -1324,9 +1350,76 @@ def test_remove_auth_from_url(auth_url, expected_url):
     ('https://user%3Aname:%23%40%5E@example.com',
      'https://user%3Aname:****@example.com'),
 ])
-def test_redact_password_from_url(auth_url, expected_url):
-    url = redact_password_from_url(auth_url)
+def test_redact_auth_from_url(auth_url, expected_url):
+    url = redact_auth_from_url(auth_url)
     assert url == expected_url
+
+
+class TestHiddenText:
+
+    def test_basic(self):
+        """
+        Test str(), repr(), and attribute access.
+        """
+        hidden = HiddenText('my-secret', redacted='######')
+        assert repr(hidden) == "<HiddenText '######'>"
+        assert str(hidden) == '######'
+        assert hidden.redacted == '######'
+        assert hidden.secret == 'my-secret'
+
+    def test_equality_with_str(self):
+        """
+        Test equality (and inequality) with str objects.
+        """
+        hidden = HiddenText('secret', redacted='****')
+
+        # Test that the object doesn't compare equal to either its original
+        # or redacted forms.
+        assert hidden != hidden.secret
+        assert hidden.secret != hidden
+
+        assert hidden != hidden.redacted
+        assert hidden.redacted != hidden
+
+    def test_equality_same_secret(self):
+        """
+        Test equality with an object having the same secret.
+        """
+        # Choose different redactions for the two objects.
+        hidden1 = HiddenText('secret', redacted='****')
+        hidden2 = HiddenText('secret', redacted='####')
+
+        assert hidden1 == hidden2
+        # Also test __ne__.  This assertion fails in Python 2 without
+        # defining HiddenText.__ne__.
+        assert not hidden1 != hidden2
+
+    def test_equality_different_secret(self):
+        """
+        Test equality with an object having a different secret.
+        """
+        hidden1 = HiddenText('secret-1', redacted='****')
+        hidden2 = HiddenText('secret-2', redacted='****')
+
+        assert hidden1 != hidden2
+        # Also test __eq__.
+        assert not hidden1 == hidden2
+
+
+def test_hide_value():
+    hidden = hide_value('my-secret')
+    assert repr(hidden) == "<HiddenText '****'>"
+    assert str(hidden) == '****'
+    assert hidden.redacted == '****'
+    assert hidden.secret == 'my-secret'
+
+
+def test_hide_url():
+    hidden_url = hide_url('https://user:password@example.com')
+    assert repr(hidden_url) == "<HiddenText 'https://user:****@example.com'>"
+    assert str(hidden_url) == 'https://user:****@example.com'
+    assert hidden_url.redacted == 'https://user:****@example.com'
+    assert hidden_url.secret == 'https://user:password@example.com'
 
 
 @pytest.fixture()
@@ -1405,16 +1498,54 @@ def test_deprecated_message_reads_well():
     )
 
 
-@pytest.mark.parametrize("unbuffered_output", [False, True])
-def test_make_setuptools_shim_args(unbuffered_output):
+def test_make_setuptools_shim_args():
+    # Test all arguments at once, including the overall ordering.
     args = make_setuptools_shim_args(
-        "/dir/path/setup.py",
-        unbuffered_output=unbuffered_output
+        '/dir/path/setup.py',
+        global_options=['--some', '--option'],
+        no_user_config=True,
+        unbuffered_output=True,
     )
 
-    assert ("-u" in args) == unbuffered_output
+    assert args[1:3] == ['-u', '-c']
+    # Spot-check key aspects of the command string.
+    assert "sys.argv[0] = '/dir/path/setup.py'" in args[3]
+    assert "__file__='/dir/path/setup.py'" in args[3]
+    assert args[4:] == ['--some', '--option', '--no-user-cfg']
 
-    assert args[-2] == "-c"
 
-    assert "sys.argv[0] = '/dir/path/setup.py'" in args[-1]
-    assert "__file__='/dir/path/setup.py'" in args[-1]
+@pytest.mark.parametrize('global_options', [
+    None,
+    [],
+    ['--some', '--option']
+])
+def test_make_setuptools_shim_args__global_options(global_options):
+    args = make_setuptools_shim_args(
+        '/dir/path/setup.py',
+        global_options=global_options,
+    )
+
+    if global_options:
+        assert len(args) == 5
+        for option in global_options:
+            assert option in args
+    else:
+        assert len(args) == 3
+
+
+@pytest.mark.parametrize('no_user_config', [False, True])
+def test_make_setuptools_shim_args__no_user_config(no_user_config):
+    args = make_setuptools_shim_args(
+        '/dir/path/setup.py',
+        no_user_config=no_user_config,
+    )
+    assert ('--no-user-cfg' in args) == no_user_config
+
+
+@pytest.mark.parametrize('unbuffered_output', [False, True])
+def test_make_setuptools_shim_args__unbuffered_output(unbuffered_output):
+    args = make_setuptools_shim_args(
+        '/dir/path/setup.py',
+        unbuffered_output=unbuffered_output
+    )
+    assert ('-u' in args) == unbuffered_output

@@ -80,14 +80,13 @@ Creating a new release
 ----------------------
 
 #. Checkout the current pip ``master`` branch.
-#. Ensure you have the latest ``wheel``, ``setuptools``, ``twine``, ``invoke``
-   and ``towncrier`` packages installed.
-#. Generate a new ``AUTHORS.txt`` (``invoke generate.authors``) and commit the
+#. Ensure you have the latest ``wheel``, ``setuptools``, ``twine`` and ``nox`` packages installed.
+#. Generate a new ``AUTHORS.txt`` (``nox -s generate_authors``) and commit the
    results.
 #. Bump the version in ``pip/__init__.py`` to the release version and commit
    the results. Usually this involves dropping just the ``.devN`` suffix on the
    version.
-#. Generate a new ``NEWS.rst`` (``invoke generate.news``) and commit the
+#. Generate a new ``NEWS.rst`` (``nox -s generate_news``) and commit the
    results.
 #. Create a tag at the current commit, of the form ``YY.N``
    (``git tag YY.N``).

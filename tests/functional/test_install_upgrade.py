@@ -13,8 +13,8 @@ def test_no_upgrade_unless_requested(script):
     No upgrade if not specifically requested.
 
     """
-    script.pip('install', 'INITools==0.1', expect_error=True)
-    result = script.pip('install', 'INITools', expect_error=True)
+    script.pip('install', 'INITools==0.1')
+    result = script.pip('install', 'INITools')
     assert not result.files_created, (
         'pip install INITools upgraded when it should not have'
     )
@@ -39,10 +39,9 @@ def test_only_if_needed_does_not_upgrade_deps_when_satisfied(script):
     It doesn't upgrade a dependency if it already satisfies the requirements.
 
     """
-    script.pip_install_local('simple==2.0', expect_error=True)
+    script.pip_install_local('simple==2.0')
     result = script.pip_install_local(
-        '--upgrade', '--upgrade-strategy=only-if-needed', 'require_simple',
-        expect_error=True
+        '--upgrade', '--upgrade-strategy=only-if-needed', 'require_simple'
     )
 
     assert (
@@ -64,10 +63,9 @@ def test_only_if_needed_does_upgrade_deps_when_no_longer_satisfied(script):
     It does upgrade a dependency if it no longer satisfies the requirements.
 
     """
-    script.pip_install_local('simple==1.0', expect_error=True)
+    script.pip_install_local('simple==1.0')
     result = script.pip_install_local(
-        '--upgrade', '--upgrade-strategy=only-if-needed', 'require_simple',
-        expect_error=True
+        '--upgrade', '--upgrade-strategy=only-if-needed', 'require_simple'
     )
 
     assert (
@@ -89,10 +87,9 @@ def test_eager_does_upgrade_dependecies_when_currently_satisfied(script):
     It does upgrade a dependency even if it already satisfies the requirements.
 
     """
-    script.pip_install_local('simple==2.0', expect_error=True)
+    script.pip_install_local('simple==2.0')
     result = script.pip_install_local(
-        '--upgrade', '--upgrade-strategy=eager', 'require_simple',
-        expect_error=True
+        '--upgrade', '--upgrade-strategy=eager', 'require_simple'
     )
 
     assert (
@@ -110,10 +107,9 @@ def test_eager_does_upgrade_dependecies_when_no_longer_satisfied(script):
     It does upgrade a dependency if it no longer satisfies the requirements.
 
     """
-    script.pip_install_local('simple==1.0', expect_error=True)
+    script.pip_install_local('simple==1.0')
     result = script.pip_install_local(
-        '--upgrade', '--upgrade-strategy=eager', 'require_simple',
-        expect_error=True
+        '--upgrade', '--upgrade-strategy=eager', 'require_simple'
     )
 
     assert (
@@ -136,8 +132,8 @@ def test_upgrade_to_specific_version(script):
     It does upgrade to specific version requested.
 
     """
-    script.pip('install', 'INITools==0.1', expect_error=True)
-    result = script.pip('install', 'INITools==0.2', expect_error=True)
+    script.pip('install', 'INITools==0.1')
+    result = script.pip('install', 'INITools==0.2')
     assert result.files_created, (
         'pip install with specific version did not upgrade'
     )
@@ -157,8 +153,8 @@ def test_upgrade_if_requested(script):
     And it does upgrade if requested.
 
     """
-    script.pip('install', 'INITools==0.1', expect_error=True)
-    result = script.pip('install', '--upgrade', 'INITools', expect_error=True)
+    script.pip('install', 'INITools==0.1')
+    result = script.pip('install', '--upgrade', 'INITools')
     assert result.files_created, 'pip install --upgrade did not upgrade'
     assert (
         script.site_packages / 'INITools-0.1-py%s.egg-info' %
@@ -193,7 +189,7 @@ def test_upgrade_force_reinstall_newest(script):
         'install', '--upgrade', '--force-reinstall', 'INITools'
     )
     assert result2.files_updated, 'upgrade to INITools 0.3 failed'
-    result3 = script.pip('uninstall', 'initools', '-y', expect_error=True)
+    result3 = script.pip('uninstall', 'initools', '-y')
     assert_all_changes(result, result3, [script.venv / 'build', 'cache'])
 
 
@@ -203,13 +199,13 @@ def test_uninstall_before_upgrade(script):
     Automatic uninstall-before-upgrade.
 
     """
-    result = script.pip('install', 'INITools==0.2', expect_error=True)
+    result = script.pip('install', 'INITools==0.2')
     assert script.site_packages / 'initools' in result.files_created, (
         sorted(result.files_created.keys())
     )
-    result2 = script.pip('install', 'INITools==0.3', expect_error=True)
+    result2 = script.pip('install', 'INITools==0.3')
     assert result2.files_created, 'upgrade to INITools 0.3 failed'
-    result3 = script.pip('uninstall', 'initools', '-y', expect_error=True)
+    result3 = script.pip('uninstall', 'initools', '-y')
     assert_all_changes(result, result3, [script.venv / 'build', 'cache'])
 
 
@@ -219,7 +215,7 @@ def test_uninstall_before_upgrade_from_url(script):
     Automatic uninstall-before-upgrade from URL.
 
     """
-    result = script.pip('install', 'INITools==0.2', expect_error=True)
+    result = script.pip('install', 'INITools==0.2')
     assert script.site_packages / 'initools' in result.files_created, (
         sorted(result.files_created.keys())
     )
@@ -227,10 +223,9 @@ def test_uninstall_before_upgrade_from_url(script):
         'install',
         'https://files.pythonhosted.org/packages/source/I/INITools/INITools-'
         '0.3.tar.gz',
-        expect_error=True,
     )
     assert result2.files_created, 'upgrade to INITools 0.3 failed'
-    result3 = script.pip('uninstall', 'initools', '-y', expect_error=True)
+    result3 = script.pip('uninstall', 'initools', '-y')
     assert_all_changes(result, result3, [script.venv / 'build', 'cache'])
 
 
@@ -241,7 +236,7 @@ def test_upgrade_to_same_version_from_url(script):
     need to uninstall and reinstall if --upgrade is not specified.
 
     """
-    result = script.pip('install', 'INITools==0.3', expect_error=True)
+    result = script.pip('install', 'INITools==0.3')
     assert script.site_packages / 'initools' in result.files_created, (
         sorted(result.files_created.keys())
     )
@@ -249,10 +244,9 @@ def test_upgrade_to_same_version_from_url(script):
         'install',
         'https://files.pythonhosted.org/packages/source/I/INITools/INITools-'
         '0.3.tar.gz',
-        expect_error=True,
     )
     assert not result2.files_updated, 'INITools 0.3 reinstalled same version'
-    result3 = script.pip('uninstall', 'initools', '-y', expect_error=True)
+    result3 = script.pip('uninstall', 'initools', '-y')
     assert_all_changes(result, result3, [script.venv / 'build', 'cache'])
 
 
@@ -321,9 +315,9 @@ def test_should_not_install_always_from_cache(script):
     If there is an old cached package, pip should download the newer version
     Related to issue #175
     """
-    script.pip('install', 'INITools==0.2', expect_error=True)
+    script.pip('install', 'INITools==0.2')
     script.pip('uninstall', '-y', 'INITools')
-    result = script.pip('install', 'INITools==0.1', expect_error=True)
+    result = script.pip('install', 'INITools==0.1')
     assert (
         script.site_packages / 'INITools-0.2-py%s.egg-info' %
         pyversion not in result.files_created
@@ -339,8 +333,8 @@ def test_install_with_ignoreinstalled_requested(script):
     """
     Test old conflicting package is completely ignored
     """
-    script.pip('install', 'INITools==0.1', expect_error=True)
-    result = script.pip('install', '-I', 'INITools==0.3', expect_error=True)
+    script.pip('install', 'INITools==0.1')
+    result = script.pip('install', '-I', 'INITools==0.3')
     assert result.files_created, 'pip install -I did not install'
     # both the old and new metadata should be present.
     assert os.path.exists(
@@ -355,8 +349,7 @@ def test_install_with_ignoreinstalled_requested(script):
 def test_upgrade_vcs_req_with_no_dists_found(script, tmpdir):
     """It can upgrade a VCS requirement that has no distributions otherwise."""
     req = "%s#egg=pip-test-package" % local_checkout(
-        "git+https://github.com/pypa/pip-test-package.git",
-        tmpdir.joinpath("cache"),
+        "git+https://github.com/pypa/pip-test-package.git", tmpdir,
     )
     script.pip("install", req)
     result = script.pip("install", "-U", req)

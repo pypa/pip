@@ -1,7 +1,7 @@
 language: python
 cache: pip
 dist: xenial
-python: 3.6
+python: 3.7
 addons:
   apt:
     packages:
@@ -16,9 +16,9 @@ jobs:
     # Basic Checks
     - stage: primary
       env: TOXENV=docs
+    - env: TOXENV=lint
     - env: TOXENV=lint-py2
       python: 2.7
-    - env: TOXENV=lint-py3
     - env: TOXENV=mypy
     - env: TOXENV=packaging
     # Latest CPython
@@ -27,9 +27,7 @@ jobs:
     - env: GROUP=2
       python: 2.7
     - env: GROUP=1
-      python: 3.6
     - env: GROUP=2
-      python: 3.6
 
     # Complete checking for ensuring compatibility
     # PyPy
@@ -44,9 +42,9 @@ jobs:
       python: pypy2.7-6.0
     # Other Supported CPython
     - env: GROUP=1
-      python: 3.7
+      python: 3.6
     - env: GROUP=2
-      python: 3.7
+      python: 3.6
     - env: GROUP=1
       python: 3.5
     - env: GROUP=2

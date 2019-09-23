@@ -16,22 +16,39 @@ from pip._internal.utils.misc import (
     backup_dir,
     call_subprocess,
     display_path,
+    hide_url,
+    hide_value,
+    make_command,
     rmtree,
 )
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.urls import get_url_scheme
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, Dict, Iterable, List, Mapping, Optional, Text, Tuple, Type
+        Any, Dict, Iterable, List, Mapping, Optional, Text, Tuple, Type, Union
     )
     from pip._internal.utils.ui import SpinnerInterface
+    from pip._internal.utils.misc import CommandArgs, HiddenText
 
     AuthInfo = Tuple[Optional[str], Optional[str]]
+
 
 __all__ = ['vcs']
 
 
 logger = logging.getLogger(__name__)
+
+
+def is_url(name):
+    # type: (Union[str, Text]) -> bool
+    """
+    Return true if the name looks like a URL.
+    """
+    scheme = get_url_scheme(name)
+    if scheme is None:
+        return False
+    return scheme in ['http', 'https', 'file', 'ftp'] + vcs.all_schemes
 
 
 def make_vcs_requirement_url(repo_url, rev, project_name, subdir=None):
@@ -67,7 +84,7 @@ class RevOptions(object):
         self,
         vc_class,  # type: Type[VersionControl]
         rev=None,  # type: Optional[str]
-        extra_args=None,  # type: Optional[List[str]]
+        extra_args=None,  # type: Optional[CommandArgs]
     ):
         # type: (...) -> None
         """
@@ -82,6 +99,7 @@ class RevOptions(object):
         self.extra_args = extra_args
         self.rev = rev
         self.vc_class = vc_class
+        self.branch_name = None  # type: Optional[str]
 
     def __repr__(self):
         return '<RevOptions {}: rev={!r}>'.format(self.vc_class.name, self.rev)
@@ -95,11 +113,11 @@ class RevOptions(object):
         return self.rev
 
     def to_args(self):
-        # type: () -> List[str]
+        # type: () -> CommandArgs
         """
         Return the VCS-specific command arguments.
         """
-        args = []  # type: List[str]
+        args = []  # type: CommandArgs
         rev = self.arg_rev
         if rev is not None:
             args += self.vc_class.get_base_rev_args(rev)
@@ -270,7 +288,7 @@ class VersionControl(object):
 
     @classmethod
     def make_rev_options(cls, rev=None, extra_args=None):
-        # type: (Optional[str], Optional[List[str]]) -> RevOptions
+        # type: (Optional[str], Optional[CommandArgs]) -> RevOptions
         """
         Return a RevOptions object.
 
@@ -291,6 +309,7 @@ class VersionControl(object):
         return repo.startswith(os.path.sep) or bool(drive)
 
     def export(self, location, url):
+        # type: (str, HiddenText) -> None
         """
         Export the repository at the url to the destination location
         i.e. only download the files, without vcs informations
@@ -345,23 +364,27 @@ class VersionControl(object):
 
     @staticmethod
     def make_rev_args(username, password):
+        # type: (Optional[str], Optional[HiddenText]) -> CommandArgs
         """
         Return the RevOptions "extra arguments" to use in obtain().
         """
         return []
 
     def get_url_rev_options(self, url):
-        # type: (str) -> Tuple[str, RevOptions]
+        # type: (HiddenText) -> Tuple[HiddenText, RevOptions]
         """
         Return the URL and RevOptions object to use in obtain() and in
         some cases export(), as a tuple (url, rev_options).
         """
-        url, rev, user_pass = self.get_url_rev_and_auth(url)
-        username, password = user_pass
+        secret_url, rev, user_pass = self.get_url_rev_and_auth(url.secret)
+        username, secret_password = user_pass
+        password = None  # type: Optional[HiddenText]
+        if secret_password is not None:
+            password = hide_value(secret_password)
         extra_args = self.make_rev_args(username, password)
         rev_options = self.make_rev_options(rev, extra_args=extra_args)
 
-        return url, rev_options
+        return hide_url(secret_url), rev_options
 
     @staticmethod
     def normalize_url(url):
@@ -381,6 +404,7 @@ class VersionControl(object):
         return (cls.normalize_url(url1) == cls.normalize_url(url2))
 
     def fetch_new(self, dest, url, rev_options):
+        # type: (str, HiddenText, RevOptions) -> None
         """
         Fetch a revision from a repository, in the case that this is the
         first fetch from the repository.
@@ -392,6 +416,7 @@ class VersionControl(object):
         raise NotImplementedError
 
     def switch(self, dest, url, rev_options):
+        # type: (str, HiddenText, RevOptions) -> None
         """
         Switch the repo at ``dest`` to point to ``URL``.
 
@@ -401,6 +426,7 @@ class VersionControl(object):
         raise NotImplementedError
 
     def update(self, dest, url, rev_options):
+        # type: (str, HiddenText, RevOptions) -> None
         """
         Update an already-existing repo to the given ``rev_options``.
 
@@ -421,7 +447,7 @@ class VersionControl(object):
         raise NotImplementedError
 
     def obtain(self, dest, url):
-        # type: (str, str) -> None
+        # type: (str, HiddenText) -> None
         """
         Install or update in editable mode the package represented by this
         VersionControl object.
@@ -438,7 +464,7 @@ class VersionControl(object):
         rev_display = rev_options.to_display()
         if self.is_repository_directory(dest):
             existing_url = self.get_remote_url(dest)
-            if self.compare_urls(existing_url, url):
+            if self.compare_urls(existing_url, url.secret):
                 logger.debug(
                     '%s in %s exists, and has correct URL (%s)',
                     self.repo_name.title(),
@@ -514,7 +540,7 @@ class VersionControl(object):
             self.switch(dest, url, rev_options)
 
     def unpack(self, location, url):
-        # type: (str, str) -> None
+        # type: (str, HiddenText) -> None
         """
         Clean up current location and download the url repository
         (and vcs infos) into location
@@ -545,7 +571,7 @@ class VersionControl(object):
     @classmethod
     def run_command(
         cls,
-        cmd,  # type: List[str]
+        cmd,  # type: Union[List[str], CommandArgs]
         show_stdout=True,  # type: bool
         cwd=None,  # type: Optional[str]
         on_returncode='raise',  # type: str
@@ -560,7 +586,7 @@ class VersionControl(object):
         This is simply a wrapper around call_subprocess that adds the VCS
         command name, and checks that the VCS is available
         """
-        cmd = [cls.name] + cmd
+        cmd = make_command(cls.name, *cmd)
         try:
             return call_subprocess(cmd, show_stdout, cwd,
                                    on_returncode=on_returncode,

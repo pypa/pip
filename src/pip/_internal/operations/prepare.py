@@ -1,6 +1,9 @@
 """Prepares a distribution for installation
 """
 
+# The following comment should be removed at some point in the future.
+# mypy: strict-optional=False
+
 import logging
 import os
 
@@ -10,13 +13,7 @@ from pip._internal.distributions import (
     make_distribution_for_install_requirement,
 )
 from pip._internal.distributions.installed import InstalledDistribution
-from pip._internal.download import (
-    is_dir_url,
-    is_file_url,
-    is_vcs_url,
-    unpack_url,
-    url_to_path,
-)
+from pip._internal.download import is_dir_url, is_file_url, unpack_url
 from pip._internal.exceptions import (
     DirectoryUrlHashUnsupported,
     HashUnpinned,
@@ -27,6 +24,7 @@ from pip._internal.exceptions import (
 from pip._internal.utils.compat import expanduser
 from pip._internal.utils.hashes import MissingHashes
 from pip._internal.utils.logging import indent_log
+from pip._internal.utils.marker_files import write_delete_marker_file
 from pip._internal.utils.misc import display_path, normalize_path
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -40,6 +38,15 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.req.req_tracker import RequirementTracker
 
 logger = logging.getLogger(__name__)
+
+
+def _get_prepared_distribution(req, req_tracker, finder, build_isolation):
+    """Prepare a distribution for installation.
+    """
+    abstract_dist = make_distribution_for_install_requirement(req)
+    with req_tracker.track(req):
+        abstract_dist.prepare_distribution_metadata(finder, build_isolation)
+    return abstract_dist
 
 
 class RequirementPreparer(object):
@@ -63,8 +70,10 @@ class RequirementPreparer(object):
         self.build_dir = build_dir
         self.req_tracker = req_tracker
 
-        # Where still packed archives should be written to. If None, they are
+        # Where still-packed archives should be written to. If None, they are
         # not saved, and are deleted immediately after unpacking.
+        if download_dir:
+            download_dir = expanduser(download_dir)
         self.download_dir = download_dir
 
         # Where still-packed .whl files should be written to. If None, they are
@@ -87,35 +96,36 @@ class RequirementPreparer(object):
     @property
     def _download_should_save(self):
         # type: () -> bool
-        # TODO: Modify to reduce indentation needed
-        if self.download_dir:
-            self.download_dir = expanduser(self.download_dir)
-            if os.path.exists(self.download_dir):
-                return True
-            else:
-                logger.critical('Could not find download directory')
-                raise InstallationError(
-                    "Could not find or access download directory '%s'"
-                    % display_path(self.download_dir))
-        return False
+        if not self.download_dir:
+            return False
+
+        if os.path.exists(self.download_dir):
+            return True
+
+        logger.critical('Could not find download directory')
+        raise InstallationError(
+            "Could not find or access download directory '%s'"
+            % display_path(self.download_dir))
 
     def prepare_linked_requirement(
         self,
         req,  # type: InstallRequirement
         session,  # type: PipSession
         finder,  # type: PackageFinder
-        upgrade_allowed,  # type: bool
-        require_hashes  # type: bool
+        require_hashes,  # type: bool
     ):
         # type: (...) -> AbstractDistribution
         """Prepare a requirement that would be obtained from req.link
         """
+        assert req.link
+        link = req.link
+
         # TODO: Breakup into smaller functions
-        if req.link and req.link.scheme == 'file':
-            path = url_to_path(req.link.url)
+        if link.scheme == 'file':
+            path = link.file_path
             logger.info('Processing %s', display_path(path))
         else:
-            logger.info('Collecting %s', req)
+            logger.info('Collecting %s', req.req or req)
 
         with indent_log():
             # @@ if filesystem packages are not marked
@@ -128,7 +138,6 @@ class RequirementPreparer(object):
             # installation.
             # FIXME: this won't upgrade when there's an existing
             # package unpacked in `req.source_dir`
-            # package unpacked in `req.source_dir`
             if os.path.exists(os.path.join(req.source_dir, 'setup.py')):
                 raise PreviousBuildDirError(
                     "pip can't proceed with requirements '%s' due to a"
@@ -138,17 +147,6 @@ class RequirementPreparer(object):
                     "can delete this. Please delete it and try again."
                     % (req, req.source_dir)
                 )
-            req.populate_link(finder, upgrade_allowed, require_hashes)
-
-            # We can't hit this spot and have populate_link return None.
-            # req.satisfied_by is None here (because we're
-            # guarded) and upgrade has no impact except when satisfied_by
-            # is not None.
-            # Then inside find_requirement existing_applicable -> False
-            # If no new versions are found, DistributionNotFound is raised,
-            # otherwise a result is guaranteed.
-            assert req.link
-            link = req.link
 
             # Now that we have the real link, we can tell what kind of
             # requirements we have and raise some more informative errors
@@ -160,7 +158,7 @@ class RequirementPreparer(object):
                 # we would report less-useful error messages for
                 # unhashable requirements, complaining that there's no
                 # hash provided.
-                if is_vcs_url(link):
+                if link.is_vcs:
                     raise VcsHashUnsupported()
                 elif is_file_url(link) and is_dir_url(link):
                     raise DirectoryUrlHashUnsupported()
@@ -182,26 +180,15 @@ class RequirementPreparer(object):
                 # showing the user what the hash should be.
                 hashes = MissingHashes()
 
+            download_dir = self.download_dir
+            if link.is_wheel and self.wheel_download_dir:
+                # when doing 'pip wheel` we download wheels to a
+                # dedicated dir.
+                download_dir = self.wheel_download_dir
+
             try:
-                download_dir = self.download_dir
-                # We always delete unpacked sdists after pip ran.
-                autodelete_unpacked = True
-                if req.link.is_wheel and self.wheel_download_dir:
-                    # when doing 'pip wheel` we download wheels to a
-                    # dedicated dir.
-                    download_dir = self.wheel_download_dir
-                if req.link.is_wheel:
-                    if download_dir:
-                        # When downloading, we only unpack wheels to get
-                        # metadata.
-                        autodelete_unpacked = True
-                    else:
-                        # When installing a wheel, we use the unpacked
-                        # wheel.
-                        autodelete_unpacked = False
                 unpack_url(
-                    req.link, req.source_dir,
-                    download_dir, autodelete_unpacked,
+                    link, req.source_dir, download_dir,
                     session=session, hashes=hashes,
                     progress_bar=self.progress_bar
                 )
@@ -214,16 +201,31 @@ class RequirementPreparer(object):
                 raise InstallationError(
                     'Could not install requirement %s because of HTTP '
                     'error %s for URL %s' %
-                    (req, exc, req.link)
+                    (req, exc, link)
                 )
-            abstract_dist = make_distribution_for_install_requirement(req)
-            with self.req_tracker.track(req):
-                abstract_dist.prepare_distribution_metadata(
-                    finder, self.build_isolation,
-                )
+
+            if link.is_wheel:
+                if download_dir:
+                    # When downloading, we only unpack wheels to get
+                    # metadata.
+                    autodelete_unpacked = True
+                else:
+                    # When installing a wheel, we use the unpacked
+                    # wheel.
+                    autodelete_unpacked = False
+            else:
+                # We always delete unpacked sdists after pip runs.
+                autodelete_unpacked = True
+            if autodelete_unpacked:
+                write_delete_marker_file(req.source_dir)
+
+            abstract_dist = _get_prepared_distribution(
+                req, self.req_tracker, finder, self.build_isolation,
+            )
+
             if self._download_should_save:
                 # Make a .zip of the source_dir we already created.
-                if not req.link.is_artifact:
+                if link.is_vcs:
                     req.archive(self.download_dir)
         return abstract_dist
 
@@ -251,11 +253,9 @@ class RequirementPreparer(object):
             req.ensure_has_source_dir(self.src_dir)
             req.update_editable(not self._download_should_save)
 
-            abstract_dist = make_distribution_for_install_requirement(req)
-            with self.req_tracker.track(req):
-                abstract_dist.prepare_distribution_metadata(
-                    finder, self.build_isolation,
-                )
+            abstract_dist = _get_prepared_distribution(
+                req, self.req_tracker, finder, self.build_isolation,
+            )
 
             if self._download_should_save:
                 req.archive(self.download_dir)

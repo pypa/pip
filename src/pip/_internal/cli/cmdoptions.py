@@ -5,8 +5,11 @@ The principle here is to define options once, but *not* instantiate them
 globally. One reason being that options with action='append' can carry state
 between parses. pip parses general options twice internally, and shouldn't
 pass on state. To be consistent, all options will follow this design.
-
 """
+
+# The following comment should be removed at some point in the future.
+# mypy: strict-optional=False
+
 from __future__ import absolute_import
 
 import logging
@@ -21,10 +24,8 @@ from pip._internal.exceptions import CommandError
 from pip._internal.locations import USER_CACHE_DIR, get_src_prefix
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.index import PyPI
-from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.target_python import TargetPython
 from pip._internal.utils.hashes import STRONG_HASHES
-from pip._internal.utils.misc import redact_password_from_url
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import BAR_TYPES
 
@@ -356,28 +357,6 @@ def find_links():
     )
 
 
-def make_search_scope(options, suppress_no_index=False):
-    # type: (Values, bool) -> SearchScope
-    """
-    :param suppress_no_index: Whether to ignore the --no-index option
-        when constructing the SearchScope object.
-    """
-    index_urls = [options.index_url] + options.extra_index_urls
-    if options.no_index and not suppress_no_index:
-        logger.debug(
-            'Ignoring indexes: %s',
-            ','.join(redact_password_from_url(url) for url in index_urls),
-        )
-        index_urls = []
-
-    search_scope = SearchScope(
-        find_links=options.find_links,
-        index_urls=index_urls,
-    )
-
-    return search_scope
-
-
 def trusted_host():
     # type: () -> Option
     return Option(
@@ -386,8 +365,8 @@ def trusted_host():
         action="append",
         metavar="HOSTNAME",
         default=[],
-        help="Mark this host as trusted, even though it does not have valid "
-             "or any HTTPS.",
+        help="Mark this host or host:port pair as trusted, even though it "
+             "does not have valid or any HTTPS.",
     )
 
 

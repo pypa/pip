@@ -1,4 +1,8 @@
 """Locations where we look for configs, install stuff, etc"""
+
+# The following comment should be removed at some point in the future.
+# mypy: strict-optional=False
+
 from __future__ import absolute_import
 
 import os
@@ -21,6 +25,15 @@ if MYPY_CHECK_RUNNING:
 
 # Application Directories
 USER_CACHE_DIR = appdirs.user_cache_dir("pip")
+
+
+def get_major_minor_version():
+    # type: () -> str
+    """
+    Return the major-minor version of the current Python as a string, e.g.
+    "3.7" or "3.10".
+    """
+    return '{}.{}'.format(*sys.version_info)
 
 
 def get_src_prefix():
@@ -127,7 +140,7 @@ def distutils_scheme(dist_name, user=False, home=None, root=None,
             sys.prefix,
             'include',
             'site',
-            'python' + sys.version[:3],
+            'python{}'.format(get_major_minor_version()),
             dist_name,
         )
 

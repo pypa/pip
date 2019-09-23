@@ -13,8 +13,10 @@ import subprocess
 import pytest
 from scripttest import FoundDir, TestFileEnvironment
 
+from pip._internal.collector import LinkCollector
 from pip._internal.download import PipSession
 from pip._internal.index import PackageFinder
+from pip._internal.locations import get_major_minor_version
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
@@ -22,14 +24,14 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from tests.lib.path import Path, curdir
 
 if MYPY_CHECK_RUNNING:
-    from typing import Iterable, List, Optional
+    from typing import List, Optional
     from pip._internal.models.target_python import TargetPython
 
 
 DATA_DIR = Path(__file__).parent.parent.joinpath("data").abspath
 SRC_DIR = Path(__file__).abspath.parent.parent.parent
 
-pyversion = sys.version[:3]
+pyversion = get_major_minor_version()
 pyversion_tuple = sys.version_info
 
 CURRENT_PY_VERSION_INFO = sys.version_info[:3]
@@ -79,11 +81,42 @@ def create_file(path, contents=None):
             f.write("\n")
 
 
+def make_test_search_scope(
+    find_links=None,  # type: Optional[List[str]]
+    index_urls=None,  # type: Optional[List[str]]
+):
+    if find_links is None:
+        find_links = []
+    if index_urls is None:
+        index_urls = []
+
+    return SearchScope.create(find_links=find_links, index_urls=index_urls)
+
+
+def make_test_link_collector(
+    find_links=None,  # type: Optional[List[str]]
+    index_urls=None,  # type: Optional[List[str]]
+    session=None,     # type: Optional[PipSession]
+):
+    # type: (...) -> LinkCollector
+    """
+    Create a LinkCollector object for testing purposes.
+    """
+    if session is None:
+        session = PipSession()
+
+    search_scope = make_test_search_scope(
+        find_links=find_links,
+        index_urls=index_urls,
+    )
+
+    return LinkCollector(session=session, search_scope=search_scope)
+
+
 def make_test_finder(
     find_links=None,  # type: Optional[List[str]]
     index_urls=None,  # type: Optional[List[str]]
     allow_all_prereleases=False,  # type: bool
-    trusted_hosts=None,           # type: Optional[Iterable[str]]
     session=None,                 # type: Optional[PipSession]
     target_python=None,           # type: Optional[TargetPython]
 ):
@@ -91,16 +124,10 @@ def make_test_finder(
     """
     Create a PackageFinder for testing purposes.
     """
-    if find_links is None:
-        find_links = []
-    if index_urls is None:
-        index_urls = []
-    if session is None:
-        session = PipSession()
-
-    search_scope = SearchScope.create(
+    link_collector = make_test_link_collector(
         find_links=find_links,
         index_urls=index_urls,
+        session=session,
     )
     selection_prefs = SelectionPreferences(
         allow_yanked=True,
@@ -108,10 +135,8 @@ def make_test_finder(
     )
 
     return PackageFinder.create(
-        search_scope=search_scope,
+        link_collector=link_collector,
         selection_prefs=selection_prefs,
-        trusted_hosts=trusted_hosts,
-        session=session,
         target_python=target_python,
     )
 
@@ -329,30 +354,18 @@ def make_check_stderr_message(stderr, line, reason):
     """).format(stderr=stderr, line=line, reason=reason)
 
 
-def check_stderr(
-    stderr, allow_stderr_warning=None, allow_stderr_error=None,
+def _check_stderr(
+    stderr, allow_stderr_warning, allow_stderr_error,
 ):
     """
     Check the given stderr for logged warnings and errors.
 
     :param stderr: stderr output as a string.
     :param allow_stderr_warning: whether a logged warning (or deprecation
-        message) is allowed.  Defaults to `allow_stderr_error`.
-    :param allow_stderr_error: whether a logged error is allowed.  Passing
-        True for this argument implies that warnings are also allowed.
-        Defaults to False.
+        message) is allowed. Must be True if allow_stderr_error is True.
+    :param allow_stderr_error: whether a logged error is allowed.
     """
-    if allow_stderr_error is None:
-        allow_stderr_error = False
-
-    if allow_stderr_warning is None:
-        allow_stderr_warning = allow_stderr_error
-
-    if allow_stderr_error and not allow_stderr_warning:
-        raise RuntimeError(
-            'cannot pass allow_stderr_warning=False with '
-            'allow_stderr_error=True'
-        )
+    assert not (allow_stderr_error and not allow_stderr_warning)
 
     lines = stderr.splitlines()
     for line in lines:
@@ -500,11 +513,15 @@ class PipTestEnvironment(TestFileEnvironment):
 
     def run(self, *args, **kw):
         """
-        :param allow_stderr_warning: whether a logged warning (or
-            deprecation message) is allowed in stderr.
         :param allow_stderr_error: whether a logged error is allowed in
             stderr.  Passing True for this argument implies
             `allow_stderr_warning` since warnings are weaker than errors.
+        :param allow_stderr_warning: whether a logged warning (or
+            deprecation message) is allowed in stderr.
+        :param expect_error: if False (the default), asserts that the command
+            exits with 0.  Otherwise, asserts that the command exits with a
+            non-zero exit code.  Passing True also implies allow_stderr_error
+            and allow_stderr_warning.
         :param expect_stderr: whether to allow warnings in stderr (equivalent
             to `allow_stderr_warning`).  This argument is an abbreviated
             version of `allow_stderr_warning` and is also kept for backwards
@@ -512,6 +529,7 @@ class PipTestEnvironment(TestFileEnvironment):
         """
         if self.verbose:
             print('>> running %s %s' % (args, kw))
+
         cwd = kw.pop('cwd', None)
         run_from = kw.pop('run_from', None)
         assert not cwd or not run_from, "Don't use run_from; it's going away"
@@ -525,7 +543,9 @@ class PipTestEnvironment(TestFileEnvironment):
         allow_stderr_error = kw.pop('allow_stderr_error', None)
         allow_stderr_warning = kw.pop('allow_stderr_warning', None)
 
-        if kw.get('expect_error'):
+        # Propagate default values.
+        expect_error = kw.get('expect_error')
+        if expect_error:
             # Then default to allowing logged errors.
             if allow_stderr_error is not None and not allow_stderr_error:
                 raise RuntimeError(
@@ -533,6 +553,7 @@ class PipTestEnvironment(TestFileEnvironment):
                     'expect_error=True'
                 )
             allow_stderr_error = True
+
         elif kw.get('expect_stderr'):
             # Then default to allowing logged warnings.
             if allow_stderr_warning is not None and not allow_stderr_warning:
@@ -542,12 +563,30 @@ class PipTestEnvironment(TestFileEnvironment):
                 )
             allow_stderr_warning = True
 
+        if allow_stderr_error:
+            if allow_stderr_warning is not None and not allow_stderr_warning:
+                raise RuntimeError(
+                    'cannot pass allow_stderr_warning=False with '
+                    'allow_stderr_error=True'
+                )
+
+        # Default values if not set.
+        if allow_stderr_error is None:
+            allow_stderr_error = False
+        if allow_stderr_warning is None:
+            allow_stderr_warning = allow_stderr_error
+
         # Pass expect_stderr=True to allow any stderr.  We do this because
         # we do our checking of stderr further on in check_stderr().
         kw['expect_stderr'] = True
         result = super(PipTestEnvironment, self).run(cwd=cwd, *args, **kw)
 
-        check_stderr(
+        if expect_error:
+            if result.returncode == 0:
+                __tracebackhide__ = True
+                raise AssertionError("Script passed unexpectedly.")
+
+        _check_stderr(
             result.stderr, allow_stderr_error=allow_stderr_error,
             allow_stderr_warning=allow_stderr_warning,
         )
@@ -555,6 +594,7 @@ class PipTestEnvironment(TestFileEnvironment):
         return TestPipResult(result, verbose=self.verbose)
 
     def pip(self, *args, **kwargs):
+        __tracebackhide__ = True
         if self.pip_expect_warning:
             kwargs['allow_stderr_warning'] = True
         if kwargs.pop('use_module', True):

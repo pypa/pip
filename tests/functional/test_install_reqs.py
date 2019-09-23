@@ -110,10 +110,7 @@ def test_multiple_requirements_files(script, tmpdir):
             -r %s-req.txt
         """) %
         (
-            local_checkout(
-                'svn+http://svn.colorstudy.com/INITools/trunk',
-                tmpdir.joinpath("cache"),
-            ),
+            local_checkout('svn+http://svn.colorstudy.com/INITools', tmpdir),
             other_lib_name
         ),
     )
@@ -162,7 +159,7 @@ def test_respect_order_in_requirements_file(script, data):
     )
 
     downloaded = [line for line in result.stdout.split('\n')
-                  if 'Collecting' in line]
+                  if 'Processing' in line]
 
     assert 'parent' in downloaded[0], (
         'First download should be "parent" but was "%s"' % downloaded[0]
@@ -534,7 +531,6 @@ def test_install_options_local_to_package(script, data):
         'install',
         '--no-index', '-f', data.find_links,
         '-r', reqs_file,
-        expect_error=True,
     )
 
     simple = test_simple / 'lib' / 'python' / 'simple'

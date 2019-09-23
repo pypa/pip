@@ -4,14 +4,12 @@ import logging
 import os
 
 from pip._internal.cli import cmdoptions
-from pip._internal.cli.base_command import RequirementCommand
 from pip._internal.cli.cmdoptions import make_target_python
-from pip._internal.legacy_resolve import Resolver
-from pip._internal.operations.prepare import RequirementPreparer
+from pip._internal.cli.req_command import RequirementCommand
 from pip._internal.req import RequirementSet
 from pip._internal.req.req_tracker import RequirementTracker
 from pip._internal.utils.filesystem import check_path_owner
-from pip._internal.utils.misc import ensure_dir, normalize_path
+from pip._internal.utils.misc import ensure_dir, normalize_path, write_output
 from pip._internal.utils.temp_dir import TempDirectory
 
 logger = logging.getLogger(__name__)
@@ -90,76 +88,66 @@ class DownloadCommand(RequirementCommand):
 
         ensure_dir(options.download_dir)
 
-        with self._build_session(options) as session:
-            target_python = make_target_python(options)
-            finder = self._build_package_finder(
-                options=options,
-                session=session,
-                target_python=target_python,
+        session = self.get_default_session(options)
+
+        target_python = make_target_python(options)
+        finder = self._build_package_finder(
+            options=options,
+            session=session,
+            target_python=target_python,
+        )
+        build_delete = (not (options.no_clean or options.build_dir))
+        if options.cache_dir and not check_path_owner(options.cache_dir):
+            logger.warning(
+                "The directory '%s' or its parent directory is not owned "
+                "by the current user and caching wheels has been "
+                "disabled. check the permissions and owner of that "
+                "directory. If executing pip with sudo, you may want "
+                "sudo's -H flag.",
+                options.cache_dir,
             )
-            build_delete = (not (options.no_clean or options.build_dir))
-            if options.cache_dir and not check_path_owner(options.cache_dir):
-                logger.warning(
-                    "The directory '%s' or its parent directory is not owned "
-                    "by the current user and caching wheels has been "
-                    "disabled. check the permissions and owner of that "
-                    "directory. If executing pip with sudo, you may want "
-                    "sudo's -H flag.",
-                    options.cache_dir,
-                )
-                options.cache_dir = None
+            options.cache_dir = None
 
-            with RequirementTracker() as req_tracker, TempDirectory(
-                options.build_dir, delete=build_delete, kind="download"
-            ) as directory:
+        with RequirementTracker() as req_tracker, TempDirectory(
+            options.build_dir, delete=build_delete, kind="download"
+        ) as directory:
 
-                requirement_set = RequirementSet(
-                    require_hashes=options.require_hashes,
-                )
-                self.populate_requirement_set(
-                    requirement_set,
-                    args,
-                    options,
-                    finder,
-                    session,
-                    self.name,
-                    None
-                )
+            requirement_set = RequirementSet(
+                require_hashes=options.require_hashes,
+            )
+            self.populate_requirement_set(
+                requirement_set,
+                args,
+                options,
+                finder,
+                session,
+                None
+            )
 
-                preparer = RequirementPreparer(
-                    build_dir=directory.path,
-                    src_dir=options.src_dir,
-                    download_dir=options.download_dir,
-                    wheel_download_dir=None,
-                    progress_bar=options.progress_bar,
-                    build_isolation=options.build_isolation,
-                    req_tracker=req_tracker,
-                )
+            preparer = self.make_requirement_preparer(
+                temp_build_dir=directory,
+                options=options,
+                req_tracker=req_tracker,
+                download_dir=options.download_dir,
+            )
 
-                resolver = Resolver(
-                    preparer=preparer,
-                    finder=finder,
-                    session=session,
-                    wheel_cache=None,
-                    use_user_site=False,
-                    upgrade_strategy="to-satisfy-only",
-                    force_reinstall=False,
-                    ignore_dependencies=options.ignore_dependencies,
-                    py_version_info=options.python_version,
-                    ignore_requires_python=False,
-                    ignore_installed=True,
-                    isolated=options.isolated_mode,
-                )
-                resolver.resolve(requirement_set)
+            resolver = self.make_resolver(
+                preparer=preparer,
+                finder=finder,
+                session=session,
+                options=options,
+                py_version_info=options.python_version,
+            )
+            resolver.resolve(requirement_set)
 
-                downloaded = ' '.join([
-                    req.name for req in requirement_set.successfully_downloaded
-                ])
-                if downloaded:
-                    logger.info('Successfully downloaded %s', downloaded)
+            downloaded = ' '.join([
+                req.name for req in requirement_set.successfully_downloaded
+            ])
+            if downloaded:
+                write_output('Successfully downloaded %s', downloaded)
 
-                # Clean up
-                if not options.no_clean:
-                    requirement_set.cleanup_files()
+            # Clean up
+            if not options.no_clean:
+                requirement_set.cleanup_files()
 
         return requirement_set

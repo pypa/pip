@@ -9,7 +9,7 @@ import os
 import shutil
 import sys
 
-from pip._vendor.six import text_type
+from pip._vendor.six import PY2, text_type
 from pip._vendor.urllib3.util import IS_PYOPENSSL
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -47,10 +47,7 @@ logger = logging.getLogger(__name__)
 
 HAS_TLS = (ssl is not None) or IS_PYOPENSSL
 
-if sys.version_info >= (3, 4):
-    uses_pycache = True
-    from importlib.util import cache_from_source
-else:
+if PY2:
     import imp
 
     try:
@@ -60,27 +57,29 @@ else:
         cache_from_source = None
 
     uses_pycache = cache_from_source is not None
-
-
-if sys.version_info >= (3, 5):
-    backslashreplace_decode = "backslashreplace"
 else:
-    # In version 3.4 and older, backslashreplace exists
+    uses_pycache = True
+    from importlib.util import cache_from_source
+
+
+if PY2:
+    # In Python 2.7, backslashreplace exists
     # but does not support use for decoding.
     # We implement our own replace handler for this
     # situation, so that we can consistently use
     # backslash replacement for all versions.
     def backslashreplace_decode_fn(err):
         raw_bytes = (err.object[i] for i in range(err.start, err.end))
-        if sys.version_info[0] == 2:
-            # Python 2 gave us characters - convert to numeric bytes
-            raw_bytes = (ord(b) for b in raw_bytes)
+        # Python 2 gave us characters - convert to numeric bytes
+        raw_bytes = (ord(b) for b in raw_bytes)
         return u"".join(u"\\x%x" % c for c in raw_bytes), err.end
     codecs.register_error(
         "backslashreplace_decode",
         backslashreplace_decode_fn,
     )
     backslashreplace_decode = "backslashreplace_decode"
+else:
+    backslashreplace_decode = "backslashreplace"
 
 
 def str_to_display(data, desc=None):
@@ -156,19 +155,19 @@ def console_to_str(data):
     return str_to_display(data, desc='Subprocess output')
 
 
-if sys.version_info >= (3,):
-    def native_str(s, replace=False):
-        # type: (str, bool) -> str
-        if isinstance(s, bytes):
-            return s.decode('utf-8', 'replace' if replace else 'strict')
-        return s
-
-else:
+if PY2:
     def native_str(s, replace=False):
         # type: (str, bool) -> str
         # Replace is ignored -- unicode to UTF-8 can't fail
         if isinstance(s, text_type):
             return s.encode('utf-8')
+        return s
+
+else:
+    def native_str(s, replace=False):
+        # type: (str, bool) -> str
+        if isinstance(s, bytes):
+            return s.decode('utf-8', 'replace' if replace else 'strict')
         return s
 
 
@@ -202,16 +201,17 @@ def get_path_uid(path):
     return file_uid
 
 
-if sys.version_info >= (3, 4):
-    from importlib.machinery import EXTENSION_SUFFIXES
-
-    def get_extension_suffixes():
-        return EXTENSION_SUFFIXES
-else:
+if PY2:
     from imp import get_suffixes
 
     def get_extension_suffixes():
         return [suffix[0] for suffix in get_suffixes()]
+
+else:
+    from importlib.machinery import EXTENSION_SUFFIXES
+
+    def get_extension_suffixes():
+        return EXTENSION_SUFFIXES
 
 
 def expanduser(path):

@@ -9,7 +9,6 @@ class TestWheelCache:
         self,
         pep517_requirements,
         legacy_requirements,
-        session,
     ):
         """
         Return: (mock_calls, return_value).
@@ -25,8 +24,6 @@ class TestWheelCache:
             builder=builder,
             pep517_requirements=pep517_requirements,
             legacy_requirements=legacy_requirements,
-            # A session value isn't needed.
-            session='<session>',
         )
 
         return (builder.build.mock_calls, build_failures)
@@ -38,13 +35,12 @@ class TestWheelCache:
         mock_calls, build_failures = self.check_build_wheels(
             pep517_requirements=['a', 'b'],
             legacy_requirements=['c', 'd'],
-            session='<session>',
         )
 
         # Legacy requirements were built.
         assert mock_calls == [
-            call(['a', 'b'], autobuilding=True, session='<session>'),
-            call(['c', 'd'], autobuilding=True, session='<session>'),
+            call(['a', 'b'], should_unpack=True),
+            call(['c', 'd'], should_unpack=True),
         ]
 
         # Legacy build failures are not included in the return value.
@@ -57,12 +53,11 @@ class TestWheelCache:
         mock_calls, build_failures = self.check_build_wheels(
             pep517_requirements=['a', 'b'],
             legacy_requirements=['c', 'd'],
-            session='<session>',
         )
 
         # Legacy requirements were not built.
         assert mock_calls == [
-            call(['a', 'b'], autobuilding=True, session='<session>'),
+            call(['a', 'b'], should_unpack=True),
         ]
 
         assert build_failures == ['a']

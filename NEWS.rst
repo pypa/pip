@@ -7,6 +7,26 @@
 
 .. towncrier release notes start
 
+19.2.3 (2019-08-25)
+===================
+
+Bug Fixes
+---------
+
+- Fix 'm' flag erroneously being appended to ABI tag in Python 3.8 on platforms that do not provide SOABI (`#6885 <https://github.com/pypa/pip/issues/6885>`_)
+
+
+19.2.2 (2019-08-11)
+===================
+
+Bug Fixes
+---------
+
+- Fix handling of tokens (single part credentials) in URLs. (`#6795 <https://github.com/pypa/pip/issues/6795>`_)
+- Fix a regression that caused ``~`` expansion not to occur in ``--find-links``
+  paths. (`#6804 <https://github.com/pypa/pip/issues/6804>`_)
+
+
 19.2.1 (2019-07-23)
 ===================
 

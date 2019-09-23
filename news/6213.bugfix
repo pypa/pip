@@ -1,0 +1,1 @@
+The ``pip-wheel-metadata`` directory does not need to persist between invocations of pip, use a temporary directory instead of the current ``setup.py`` directory.

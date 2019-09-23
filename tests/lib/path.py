@@ -208,4 +208,10 @@ class Path(_base):
             path = fp.fileno() if os.utime in supports_fd else self
             os.utime(path, None)  # times is not optional on Python 2.7
 
+    def symlink_to(self, target):
+        os.symlink(target, self)
+
+    def stat(self):
+        return os.stat(self)
+
 curdir = Path(os.path.curdir)

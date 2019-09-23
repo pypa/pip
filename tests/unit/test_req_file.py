@@ -225,6 +225,13 @@ class TestProcessLine(object):
         req = install_req_from_line(line, comes_from=comes_from)
         assert repr(list(process_line(line, filename, 1))[0]) == repr(req)
 
+    def test_yield_pep440_line_requirement(self):
+        line = 'SomeProject @ https://url/SomeProject-py2-py3-none-any.whl'
+        filename = 'filename'
+        comes_from = '-r %s (line %s)' % (filename, 1)
+        req = install_req_from_line(line, comes_from=comes_from)
+        assert repr(list(process_line(line, filename, 1))[0]) == repr(req)
+
     def test_yield_line_constraint(self):
         line = 'SomeProject'
         filename = 'filename'
@@ -342,21 +349,26 @@ class TestProcessLine(object):
         list(process_line("--extra-index-url=url", "file", 1, finder=finder))
         assert finder.index_urls == ['url']
 
-    def test_set_finder_trusted_host(self, caplog, finder):
+    def test_set_finder_trusted_host(self, caplog, session, finder):
         with caplog.at_level(logging.INFO):
             list(process_line(
-                "--trusted-host=host", "file.txt", 1, finder=finder,
+                "--trusted-host=host1 --trusted-host=host2:8080",
+                "file.txt", 1, finder=finder, session=session,
             ))
-        assert finder.trusted_hosts == ['host']
-        session = finder.session
-        assert session.adapters['https://host/'] is session._insecure_adapter
+        assert list(finder.trusted_hosts) == ['host1', 'host2:8080']
+        session = finder._link_collector.session
+        assert session.adapters['https://host1/'] is session._insecure_adapter
+        assert (
+            session.adapters['https://host2:8080/']
+            is session._insecure_adapter
+        )
 
         # Test the log message.
         actual = [(r.levelname, r.message) for r in caplog.records]
-        expected = [
-            ('INFO', "adding trusted host: 'host' (from line 1 of file.txt)"),
-        ]
-        assert actual == expected
+        expected = (
+            'INFO', "adding trusted host: 'host1' (from line 1 of file.txt)"
+        )
+        assert expected in actual
 
     def test_noop_always_unzip(self, finder):
         # noop, but confirm it can be set

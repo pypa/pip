@@ -1,12 +1,15 @@
 import distutils
 import glob
 import os
+import shutil
 import sys
 import textwrap
 from os.path import curdir, join, pardir
 
 import pytest
+from pip._vendor.six import PY2
 
+from pip import __version__ as pip_current_version
 from pip._internal import pep425tags
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.models.index import PyPI, TestPyPI
@@ -23,8 +26,12 @@ from tests.lib import (
     pyversion_tuple,
     requirements_file,
 )
+from tests.lib.filesystem import make_socket_file
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
+
+skip_if_python2 = pytest.mark.skipif(PY2, reason="Non-Python 2 only")
+skip_if_not_python2 = pytest.mark.skipif(not PY2, reason="Python 2 only")
 
 
 @pytest.mark.parametrize('command', ('install', 'wheel'))
@@ -159,7 +166,7 @@ def test_pep518_with_namespace_package(script, data, common_wheels):
 def test_pep518_forkbombs(script, data, common_wheels, command, package):
     package_source = next(data.packages.glob(package + '-[0-9]*.tar.gz'))
     result = script.pip(
-        'wheel', '--no-index', '-v',
+        command, '--no-index', '-v',
         '-f', common_wheels,
         '-f', data.find_links,
         package,
@@ -262,7 +269,7 @@ def _test_install_editable_from_git(script, tmpdir):
     """Test cloning from Git."""
     pkg_path = _create_test_package(script, name='testpackage', vcs='git')
     args = ['install', '-e', 'git+%s#egg=testpackage' % path_to_url(pkg_path)]
-    result = script.pip(*args, **{"expect_error": True})
+    result = script.pip(*args)
     result.assert_installed('testpackage', with_files=['.git'])
 
 
@@ -292,8 +299,7 @@ def test_install_editable_uninstalls_existing(data, script, tmpdir):
         'install', '-e',
         '%s#egg=pip-test-package' %
         local_checkout(
-            'git+https://github.com/pypa/pip-test-package.git',
-            tmpdir.joinpath("cache"),
+            'git+https://github.com/pypa/pip-test-package.git', tmpdir,
         ),
     )
     result.assert_installed('pip-test-package', with_files=['.git'])
@@ -331,7 +337,7 @@ def test_basic_install_editable_from_hg(script, tmpdir):
     """Test cloning from Mercurial."""
     pkg_path = _create_test_package(script, name='testpackage', vcs='hg')
     args = ['install', '-e', 'hg+%s#egg=testpackage' % path_to_url(pkg_path)]
-    result = script.pip(*args, **{"expect_error": True})
+    result = script.pip(*args)
     result.assert_installed('testpackage', with_files=['.hg'])
 
 
@@ -342,7 +348,7 @@ def test_vcs_url_final_slash_normalization(script, tmpdir):
     """
     pkg_path = _create_test_package(script, name='testpackage', vcs='hg')
     args = ['install', '-e', 'hg+%s/#egg=testpackage' % path_to_url(pkg_path)]
-    result = script.pip(*args, **{"expect_error": True})
+    result = script.pip(*args)
     result.assert_installed('testpackage', with_files=['.hg'])
 
 
@@ -351,7 +357,7 @@ def test_install_editable_from_bazaar(script, tmpdir):
     """Test checking out from Bazaar."""
     pkg_path = _create_test_package(script, name='testpackage', vcs='bazaar')
     args = ['install', '-e', 'bzr+%s/#egg=testpackage' % path_to_url(pkg_path)]
-    result = script.pip(*args, **{"expect_error": True})
+    result = script.pip(*args)
     result.assert_installed('testpackage', with_files=['.bzr'])
 
 
@@ -367,7 +373,7 @@ def test_vcs_url_urlquote_normalization(script, tmpdir):
         local_checkout(
             'bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp'
             '/release-0.1',
-            tmpdir.joinpath("cache"),
+            tmpdir,
         ),
     )
 
@@ -488,6 +494,29 @@ def test_install_from_local_directory_with_symlinks_to_directories(
     assert egg_info_folder in result.files_created, str(result)
 
 
+@pytest.mark.skipif("sys.platform == 'win32' or sys.version_info < (3,)")
+def test_install_from_local_directory_with_socket_file(script, data, tmpdir):
+    """
+    Test installing from a local directory containing a socket file.
+    """
+    egg_info_file = (
+        script.site_packages / "FSPkg-0.1.dev0-py%s.egg-info" % pyversion
+    )
+    package_folder = script.site_packages / "fspkg"
+    to_copy = data.packages.joinpath("FSPkg")
+    to_install = tmpdir.joinpath("src")
+
+    shutil.copytree(to_copy, to_install)
+    # Socket file, should be ignored.
+    socket_file_path = os.path.join(to_install, "example")
+    make_socket_file(socket_file_path)
+
+    result = script.pip("install", "--verbose", to_install, expect_error=False)
+    assert package_folder in result.files_created, str(result.stdout)
+    assert egg_info_file in result.files_created, str(result)
+    assert str(socket_file_path) in result.stderr
+
+
 def test_install_from_local_directory_with_no_setup_py(script, data):
     """
     Test installing from a local directory with no 'setup.py'.
@@ -535,7 +564,7 @@ def test_editable_install__local_dir_no_setup_py_with_pyproject(
     assert 'A "pyproject.toml" file was found' in msg
 
 
-@pytest.mark.skipif("sys.version_info >= (3,4)")
+@skip_if_not_python2
 @pytest.mark.xfail
 def test_install_argparse_shadowed(script):
     # When argparse is in the stdlib, we support installing it
@@ -550,7 +579,7 @@ def test_install_argparse_shadowed(script):
 
 
 @pytest.mark.network
-@pytest.mark.skipif("sys.version_info < (3,4)")
+@skip_if_python2
 def test_upgrade_argparse_shadowed(script):
     # If argparse is installed - even if shadowed for imported - we support
     # upgrading it and properly remove the older versions files.
@@ -600,7 +629,7 @@ def test_install_global_option(script):
     result = script.pip(
         'install', '--global-option=--version', "INITools==0.1",
         expect_stderr=True)
-    assert '0.1\n' in result.stdout
+    assert 'INITools==0.1\n' in result.stdout
 
 
 def test_install_with_hacked_egg_info(script, data):
@@ -622,7 +651,7 @@ def test_install_using_install_option_and_editable(script, tmpdir):
     url = 'git+git://github.com/pypa/pip-test-package'
     result = script.pip(
         'install', '-e', '%s#egg=pip-test-package' %
-        local_checkout(url, tmpdir.joinpath("cache")),
+        local_checkout(url, tmpdir),
         '--install-option=--script-dir=%s' % folder,
         expect_stderr=True)
     script_file = (
@@ -641,7 +670,7 @@ def test_install_global_option_using_editable(script, tmpdir):
     url = 'hg+http://bitbucket.org/runeh/anyjson'
     result = script.pip(
         'install', '--global-option=--version', '-e',
-        '%s@0.2.5#egg=anyjson' % local_checkout(url, tmpdir.joinpath("cache")),
+        '%s@0.2.5#egg=anyjson' % local_checkout(url, tmpdir),
         expect_stderr=True)
     assert 'Successfully installed anyjson' in result.stdout
 
@@ -1264,8 +1293,8 @@ def test_install_editable_with_wrong_egg_name(script):
               version='0.1')
     """))
     result = script.pip(
-        'install', '--editable', 'file://%s#egg=pkgb' % pkga_path,
-        expect_error=True)
+        'install', '--editable', 'file://%s#egg=pkgb' % pkga_path
+    )
     assert ("Generating metadata for package pkgb produced metadata "
             "for project name pkga. Fix your #egg=pkgb "
             "fragments.") in result.stderr
@@ -1368,7 +1397,7 @@ def test_install_compatible_python_requires(script):
               python_requires='>1.0',
               version='0.1')
     """))
-    res = script.pip('install', pkga_path, expect_error=True)
+    res = script.pip('install', pkga_path)
     assert "Successfully installed pkga-0.1" in res.stdout, res
 
 
@@ -1424,7 +1453,7 @@ def test_install_from_test_pypi_with_ext_url_dep_is_blocked(script, index):
 
 def test_installing_scripts_outside_path_prints_warning(script):
     result = script.pip_install_local(
-        "--prefix", script.scratch_path, "script_wheel1", expect_error=True
+        "--prefix", script.scratch_path, "script_wheel1"
     )
     assert "Successfully installed script-wheel1" in result.stdout, str(result)
     assert "--no-warn-script-location" in result.stderr
@@ -1527,3 +1556,104 @@ def test_target_install_ignores_distutils_config_install_prefix(script):
         (target - script.base_path) in result.files_created and
         (prefix - script.base_path) not in result.files_created
     ), str(result)
+
+
+@pytest.mark.network
+@pytest.mark.skipif("sys.platform != 'win32'")
+@pytest.mark.parametrize('pip_name', [
+    'pip',
+    'pip{}'.format(sys.version_info[0]),
+    'pip{}.{}'.format(*sys.version_info[:2]),
+    'pip.exe',
+    'pip{}.exe'.format(sys.version_info[0]),
+    'pip{}.{}.exe'.format(*sys.version_info[:2])
+])
+def test_protect_pip_from_modification_on_windows(script, pip_name):
+    """
+    Test that pip modification command using ``pip install ...``
+    raises an error on Windows.
+    """
+    command = [pip_name, 'install', 'pip != {}'.format(pip_current_version)]
+    result = script.run(*command, expect_error=True)
+    new_command = [sys.executable, '-m', 'pip'] + command[1:]
+    expected_message = (
+        'To modify pip, please run the following command:\n{}'
+        .format(' '.join(new_command))
+    )
+    assert expected_message in result.stderr, str(result)
+
+
+@pytest.mark.network
+@pytest.mark.skipif("sys.platform != 'win32'")
+def test_protect_pip_from_modification_via_deps_on_windows(script):
+    """
+    Test ``pip install pkga`` raises an error on Windows
+    if `pkga` implicitly tries to upgrade pip.
+    """
+    pkga_wheel_path = create_basic_wheel_for_package(
+        script,
+        'pkga', '0.1',
+        depends=['pip != {}'.format(pip_current_version)],
+    )
+
+    # Make sure pip install pkga raises an error
+    args = ['install', pkga_wheel_path]
+    result = script.pip(*args, expect_error=True, use_module=False)
+    new_command = [sys.executable, '-m', 'pip'] + args
+    expected_message = (
+        'To modify pip, please run the following command:\n{}'
+        .format(' '.join(new_command))
+    )
+    assert expected_message in result.stderr, str(result)
+
+
+@pytest.mark.network
+@pytest.mark.skipif("sys.platform != 'win32'")
+def test_protect_pip_from_modification_via_sub_deps_on_windows(script):
+    """
+    Test ``pip install pkga`` raises an error on Windows
+    if sub-dependencies of `pkga` implicitly tries to upgrade pip.
+    """
+    # Make a wheel for pkga which requires pkgb
+    pkga_wheel_path = create_basic_wheel_for_package(
+        script,
+        'pkga', '0.1',
+        depends=['pkgb'],
+    )
+
+    # Make a wheel for pkgb which requires pip
+    pkgb_wheel_path = create_basic_wheel_for_package(
+        script,
+        'pkgb', '0.1',
+        depends=['pip != {}'.format(pip_current_version)],
+    )
+
+    # Make sure pip install pkga raises an error
+    args = [
+        'install', pkga_wheel_path, '--find-links', pkgb_wheel_path.parent
+    ]
+    result = script.pip(*args, expect_error=True, use_module=False)
+    new_command = [sys.executable, '-m', 'pip'] + args
+    expected_message = (
+        'To modify pip, please run the following command:\n{}'
+        .format(' '.join(new_command))
+    )
+    assert expected_message in result.stderr, str(result)
+
+
+@pytest.mark.parametrize(
+    'install_args, expected_message', [
+        ([], 'Requirement already satisfied: pip in'),
+        (['--upgrade'], 'Requirement already up-to-date: pip in'),
+    ]
+)
+@pytest.mark.parametrize("use_module", [True, False])
+def test_install_pip_does_not_modify_pip_when_satisfied(
+        script, install_args, expected_message, use_module):
+    """
+    Test it doesn't upgrade the pip if it already satisfies the requirement.
+    """
+    result = script.pip_install_local(
+        'pip', *install_args, use_module=use_module
+    )
+    assert expected_message in result.stdout, str(result)

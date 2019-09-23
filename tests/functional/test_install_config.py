@@ -74,7 +74,7 @@ def _test_env_vars_override_config_file(script, virtualenv, config_file):
     )
     script.environ['PIP_NO_INDEX'] = '0'
     virtualenv.clear()
-    result = script.pip('install', '-vvv', 'INITools', expect_error=True)
+    result = script.pip('install', '-vvv', 'INITools')
     assert "Successfully installed INITools" in result.stdout
 
 
@@ -89,7 +89,6 @@ def test_command_line_append_flags(script, virtualenv, data):
     result = script.pip(
         'install', '-vvv', 'INITools', '--trusted-host',
         'test.pypi.org',
-        expect_error=True,
     )
     assert (
         "Analyzing links from page https://test.pypi.org"
@@ -99,7 +98,6 @@ def test_command_line_append_flags(script, virtualenv, data):
     result = script.pip(
         'install', '-vvv', '--find-links', data.find_links, 'INITools',
         '--trusted-host', 'test.pypi.org',
-        expect_error=True,
     )
     assert (
         "Analyzing links from page https://test.pypi.org"
@@ -123,7 +121,6 @@ def test_command_line_appends_correctly(script, data):
     result = script.pip(
         'install', '-vvv', 'INITools', '--trusted-host',
         'test.pypi.org',
-        expect_error=True,
     )
 
     assert (
@@ -175,7 +172,6 @@ def _test_config_file_override_stack(script, virtualenv, config_file):
     result = script.pip(
         'install', '-vvv', '--index-url', 'https://pypi.org/simple/',
         'INITools',
-        expect_error=True,
     )
     assert (
         "Getting page http://download.zope.org/ppix/INITools"

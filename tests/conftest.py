@@ -74,7 +74,7 @@ def tmpdir_factory(request, tmpdir_factory):
         tmpdir_factory.getbasetemp().remove(ignore_errors=True)
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def tmpdir(request, tmpdir):
     """
     Return a temporary directory path object which is unique to each test
@@ -169,10 +169,16 @@ def isolate(tmpdir):
 @pytest.fixture(scope='session')
 def pip_src(tmpdir_factory):
     def not_code_files_and_folders(path, names):
-        # In the root directory, ignore all folders except "src"
+        # In the root directory...
         if path == SRC_DIR:
+            # ignore all folders except "src"
             folders = {name for name in names if os.path.isdir(path / name)}
-            return folders - {"src"}
+            to_ignore = folders - {"src"}
+            # and ignore ".git" if present (which may be a file if in a linked
+            # worktree).
+            if ".git" in names:
+                to_ignore.add(".git")
+            return to_ignore
 
         # Ignore all compiled files and egg-info.
         ignored = list()
@@ -221,7 +227,7 @@ def install_egg_link(venv, project_name, egg_info_dir):
         fp.write(str(egg_info_dir) + '\n.')
 
 
-@pytest.yield_fixture(scope='session')
+@pytest.fixture(scope='session')
 def virtualenv_template(request, tmpdir_factory, pip_src,
                         setuptools_install, common_wheels):
 
@@ -262,7 +268,7 @@ def virtualenv_template(request, tmpdir_factory, pip_src,
     yield venv
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def virtualenv(virtualenv_template, tmpdir, isolate):
     """
     Return a virtual environment which is unique to each test function
@@ -352,4 +358,4 @@ def in_memory_pip():
 @pytest.fixture
 def deprecated_python():
     """Used to indicate whether pip deprecated this python version"""
-    return sys.version_info[:2] in [(3, 4), (2, 7)]
+    return sys.version_info[:2] in [(2, 7)]

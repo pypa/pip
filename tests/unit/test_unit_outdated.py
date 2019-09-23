@@ -1,23 +1,100 @@
 import datetime
+import json
 import os
 import sys
-from contextlib import contextmanager
 
 import freezegun
 import pretend
 import pytest
-from pip._vendor import lockfile, pkg_resources
+from mock import patch
+from pip._vendor import pkg_resources
 
+from pip._internal.download import PipSession
 from pip._internal.index import InstallationCandidate
 from pip._internal.utils import outdated
+from pip._internal.utils.outdated import (
+    SelfCheckState,
+    logger,
+    make_link_collector,
+    pip_version_check,
+)
+from tests.lib.path import Path
 
 
-class MockFoundCandidates(object):
+@pytest.mark.parametrize(
+    'find_links, no_index, suppress_no_index, expected', [
+        (['link1'], False, False,
+         (['link1'], ['default_url', 'url1', 'url2'])),
+        (['link1'], False, True, (['link1'], ['default_url', 'url1', 'url2'])),
+        (['link1'], True, False, (['link1'], [])),
+        # Passing suppress_no_index=True suppresses no_index=True.
+        (['link1'], True, True, (['link1'], ['default_url', 'url1', 'url2'])),
+        # Test options.find_links=False.
+        (False, False, False, ([], ['default_url', 'url1', 'url2'])),
+    ],
+)
+def test_make_link_collector(
+    find_links, no_index, suppress_no_index, expected,
+):
+    """
+    :param expected: the expected (find_links, index_urls) values.
+    """
+    expected_find_links, expected_index_urls = expected
+    session = PipSession()
+    options = pretend.stub(
+        find_links=find_links,
+        index_url='default_url',
+        extra_index_urls=['url1', 'url2'],
+        no_index=no_index,
+    )
+    link_collector = make_link_collector(
+        session, options=options, suppress_no_index=suppress_no_index,
+    )
+
+    assert link_collector.session is session
+
+    search_scope = link_collector.search_scope
+    assert search_scope.find_links == expected_find_links
+    assert search_scope.index_urls == expected_index_urls
+
+
+@patch('pip._internal.utils.misc.expanduser')
+def test_make_link_collector__find_links_expansion(mock_expanduser, tmpdir):
+    """
+    Test "~" expansion in --find-links paths.
+    """
+    # This is a mock version of expanduser() that expands "~" to the tmpdir.
+    def expand_path(path):
+        if path.startswith('~/'):
+            path = os.path.join(tmpdir, path[2:])
+        return path
+
+    mock_expanduser.side_effect = expand_path
+
+    session = PipSession()
+    options = pretend.stub(
+        find_links=['~/temp1', '~/temp2'],
+        index_url='default_url',
+        extra_index_urls=[],
+        no_index=False,
+    )
+    # Only create temp2 and not temp1 to test that "~" expansion only occurs
+    # when the directory exists.
+    temp2_dir = os.path.join(tmpdir, 'temp2')
+    os.mkdir(temp2_dir)
+
+    link_collector = make_link_collector(session, options=options)
+
+    search_scope = link_collector.search_scope
+    # Only ~/temp2 gets expanded. Also, the path is normalized when expanded.
+    expected_temp2_dir = os.path.normcase(temp2_dir)
+    assert search_scope.find_links == ['~/temp1', expected_temp2_dir]
+    assert search_scope.index_urls == ['default_url']
+
+
+class MockBestCandidateResult(object):
     def __init__(self, best):
-        self._best = best
-
-    def get_best(self):
-        return self._best
+        self.best_candidate = best
 
 
 class MockPackageFinder(object):
@@ -37,8 +114,8 @@ class MockPackageFinder(object):
     def create(cls, *args, **kwargs):
         return cls()
 
-    def find_candidates(self, project_name):
-        return MockFoundCandidates(self.INSTALLATION_CANDIDATES[0])
+    def find_best_candidate(self, project_name):
+        return MockBestCandidateResult(self.INSTALLATION_CANDIDATES[0])
 
 
 class MockDistribution(object):
@@ -58,8 +135,8 @@ class MockDistribution(object):
 def _options():
     ''' Some default options that we pass to outdated.pip_version_check '''
     return pretend.stub(
-        find_links=False, index_url='default_url', extra_index_urls=[],
-        no_index=False, pre=False, trusted_hosts=False, cache_dir='',
+        find_links=[], index_url='default_url', extra_index_urls=[],
+        no_index=False, pre=False, cache_dir='',
     )
 
 
@@ -89,9 +166,9 @@ def test_pip_version_check(monkeypatch, stored_time, installed_ver, new_ver,
     monkeypatch.setattr(outdated, 'get_installed_version',
                         lambda name: installed_ver)
     monkeypatch.setattr(outdated, 'PackageFinder', MockPackageFinder)
-    monkeypatch.setattr(outdated.logger, 'warning',
+    monkeypatch.setattr(logger, 'warning',
                         pretend.call_recorder(lambda *a, **kw: None))
-    monkeypatch.setattr(outdated.logger, 'debug',
+    monkeypatch.setattr(logger, 'debug',
                         pretend.call_recorder(lambda s, exc_info=None: None))
     monkeypatch.setattr(pkg_resources, 'get_distribution',
                         lambda name: MockDistribution(installer))
@@ -112,7 +189,7 @@ def test_pip_version_check(monkeypatch, stored_time, installed_ver, new_ver,
             "pip._vendor.requests.packages.urllib3.packages.six.moves",
         ]
     ):
-        latest_pypi_version = outdated.pip_version_check(None, _options())
+        latest_pypi_version = pip_version_check(None, _options())
 
     # See we return None if not installed_version
     if not installed_ver:
@@ -124,62 +201,102 @@ def test_pip_version_check(monkeypatch, stored_time, installed_ver, new_ver,
         ]
     else:
         # Make sure no Exceptions
-        assert not outdated.logger.debug.calls
+        assert not logger.debug.calls
         # See that save was not called
         assert fake_state.save.calls == []
 
     # Ensure we warn the user or not
     if check_warn_logs:
-        assert len(outdated.logger.warning.calls) == 1
+        assert len(logger.warning.calls) == 1
     else:
-        assert len(outdated.logger.warning.calls) == 0
+        assert len(logger.warning.calls) == 0
 
 
-def test_self_check_state(monkeypatch, tmpdir):
-    CONTENT = '''{"pip_prefix": {"last_check": "1970-01-02T11:00:00Z",
-        "pypi_version": "1.0"}}'''
-    fake_file = pretend.stub(
-        read=pretend.call_recorder(lambda: CONTENT),
-        write=pretend.call_recorder(lambda s: None),
+statefile_name_case_1 = (
+    "fcd2d5175dd33d5df759ee7b045264230205ef837bf9f582f7c3ada7"
+)
+
+statefile_name_case_2 = (
+    "902cecc0745b8ecf2509ba473f3556f0ba222fedc6df433acda24aa5"
+)
+
+
+@pytest.mark.parametrize("key,expected", [
+    ("/hello/world/venv", statefile_name_case_1),
+    ("C:\\Users\\User\\Desktop\\venv", statefile_name_case_2),
+])
+def test_get_statefile_name_known_values(key, expected):
+    assert expected == outdated._get_statefile_name(key)
+
+
+def _get_statefile_path(cache_dir, key):
+    return os.path.join(
+        cache_dir, "selfcheck", outdated._get_statefile_name(key)
     )
-
-    @pretend.call_recorder
-    @contextmanager
-    def fake_open(filename, mode='r'):
-        yield fake_file
-
-    monkeypatch.setattr(outdated, 'open', fake_open, raising=False)
-
-    @pretend.call_recorder
-    @contextmanager
-    def fake_lock(filename):
-        yield
-
-    monkeypatch.setattr(outdated, "check_path_owner", lambda p: True)
-
-    monkeypatch.setattr(lockfile, 'LockFile', fake_lock)
-    monkeypatch.setattr(os.path, "exists", lambda p: True)
-
-    cache_dir = tmpdir / 'cache_dir'
-    monkeypatch.setattr(sys, 'prefix', tmpdir / 'pip_prefix')
-
-    state = outdated.SelfCheckState(cache_dir=cache_dir)
-    state.save('2.0', datetime.datetime.utcnow())
-
-    expected_path = cache_dir / 'selfcheck.json'
-    assert fake_lock.calls == [pretend.call(expected_path)]
-
-    assert fake_open.calls == [
-        pretend.call(expected_path),
-        pretend.call(expected_path),
-        pretend.call(expected_path, 'w'),
-    ]
-
-    # json.dumps will call this a number of times
-    assert len(fake_file.write.calls)
 
 
 def test_self_check_state_no_cache_dir():
-    state = outdated.SelfCheckState(cache_dir=False)
+    state = SelfCheckState(cache_dir=False)
     assert state.state == {}
     assert state.statefile_path is None
+
+
+def test_self_check_state_key_uses_sys_prefix(monkeypatch):
+    key = "helloworld"
+
+    monkeypatch.setattr(sys, "prefix", key)
+    state = outdated.SelfCheckState("")
+
+    assert state.key == key
+
+
+def test_self_check_state_reads_expected_statefile(monkeypatch, tmpdir):
+    cache_dir = tmpdir / "cache_dir"
+    cache_dir.mkdir()
+    key = "helloworld"
+    statefile_path = _get_statefile_path(str(cache_dir), key)
+
+    last_check = "1970-01-02T11:00:00Z"
+    pypi_version = "1.0"
+    content = {
+        "key": key,
+        "last_check": last_check,
+        "pypi_version": pypi_version,
+    }
+
+    Path(statefile_path).parent.mkdir()
+
+    with open(statefile_path, "w") as f:
+        json.dump(content, f)
+
+    monkeypatch.setattr(sys, "prefix", key)
+    state = outdated.SelfCheckState(str(cache_dir))
+
+    assert state.state["last_check"] == last_check
+    assert state.state["pypi_version"] == pypi_version
+
+
+def test_self_check_state_writes_expected_statefile(monkeypatch, tmpdir):
+    cache_dir = tmpdir / "cache_dir"
+    cache_dir.mkdir()
+    key = "helloworld"
+    statefile_path = _get_statefile_path(str(cache_dir), key)
+
+    last_check = datetime.datetime.strptime(
+        "1970-01-02T11:00:00Z", outdated.SELFCHECK_DATE_FMT
+    )
+    pypi_version = "1.0"
+
+    monkeypatch.setattr(sys, "prefix", key)
+    state = outdated.SelfCheckState(str(cache_dir))
+
+    state.save(pypi_version, last_check)
+    with open(statefile_path) as f:
+        saved = json.load(f)
+
+    expected = {
+        "key": key,
+        "last_check": last_check.strftime(outdated.SELFCHECK_DATE_FMT),
+        "pypi_version": pypi_version,
+    }
+    assert expected == saved

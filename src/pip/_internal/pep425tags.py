@@ -16,7 +16,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Tuple, Callable, List, Optional, Union, Dict
+        Tuple, Callable, List, Optional, Union, Dict, Set
     )
 
     Pep425Tag = Tuple[str, str, str]
@@ -105,32 +105,30 @@ def get_abi_tag():
     (CPython 2, PyPy)."""
     soabi = get_config_var('SOABI')
     impl = get_abbr_impl()
+    abi = None  # type: Optional[str]
+
     if not soabi and impl in {'cp', 'pp'} and hasattr(sys, 'maxunicode'):
         d = ''
         m = ''
         u = ''
-        if get_flag('Py_DEBUG',
-                    lambda: hasattr(sys, 'gettotalrefcount'),
-                    warn=(impl == 'cp')):
+        is_cpython = (impl == 'cp')
+        if get_flag(
+                'Py_DEBUG', lambda: hasattr(sys, 'gettotalrefcount'),
+                warn=is_cpython):
             d = 'd'
-        if get_flag('WITH_PYMALLOC',
-                    lambda: impl == 'cp',
-                    warn=(impl == 'cp')):
+        if sys.version_info < (3, 8) and get_flag(
+                'WITH_PYMALLOC', lambda: is_cpython, warn=is_cpython):
             m = 'm'
-        if get_flag('Py_UNICODE_SIZE',
-                    lambda: sys.maxunicode == 0x10ffff,
-                    expected=4,
-                    warn=(impl == 'cp' and
-                          sys.version_info < (3, 3))) \
-                and sys.version_info < (3, 3):
+        if sys.version_info < (3, 3) and get_flag(
+                'Py_UNICODE_SIZE', lambda: sys.maxunicode == 0x10ffff,
+                expected=4, warn=is_cpython):
             u = 'u'
         abi = '%s%s%s%s%s' % (impl, get_impl_ver(), d, m, u)
     elif soabi and soabi.startswith('cpython-'):
         abi = 'cp' + soabi.split('-')[1]
     elif soabi:
         abi = soabi.replace('.', '_').replace('-', '_')
-    else:
-        abi = None
+
     return abi
 
 
@@ -310,7 +308,7 @@ def get_supported(
     if abi:
         abis[0:0] = [abi]
 
-    abi3s = set()
+    abi3s = set()  # type: Set[str]
     for suffix in get_extension_suffixes():
         if suffix.startswith('.abi'):
             abi3s.add(suffix.split('.', 2)[1])

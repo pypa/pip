@@ -1,0 +1,1 @@
+pip's CLI completion code no longer prints a Traceback if it is interrupted.

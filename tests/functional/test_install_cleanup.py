@@ -47,11 +47,7 @@ def test_cleanup_after_install_editable_from_hg(script, tmpdir):
         'install',
         '-e',
         '%s#egg=ScriptTest' %
-        local_checkout(
-            'hg+https://bitbucket.org/ianb/scripttest',
-            tmpdir.joinpath("cache"),
-        ),
-        expect_error=True,
+        local_checkout('hg+https://bitbucket.org/ianb/scripttest', tmpdir),
     )
     build = script.venv_path / 'build'
     src = script.venv_path / 'src'
@@ -73,7 +69,7 @@ def test_cleanup_after_install_from_local_directory(script, data):
     script.assert_no_temp()
 
 
-def test_cleanup_req_satisifed_no_name(script, data):
+def test_cleanup_req_satisfied_no_name(script, data):
     """
     Test cleanup when req is already satisfied, and req has no 'name'
     """

@@ -3,19 +3,20 @@ import re
 
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
+from pip._internal.utils.filetypes import WHEEL_EXTENSION
 from pip._internal.utils.misc import (
-    WHEEL_EXTENSION,
     path_to_url,
-    redact_password_from_url,
+    redact_auth_from_url,
     split_auth_from_netloc,
     splitext,
 )
 from pip._internal.utils.models import KeyBasedCompareMixin
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.urls import url_to_path
 
 if MYPY_CHECK_RUNNING:
     from typing import Optional, Text, Tuple, Union
-    from pip._internal.index import HTMLPage
+    from pip._internal.collector import HTMLPage
     from pip._internal.utils.hashes import Hashes
 
 
@@ -68,10 +69,10 @@ class Link(KeyBasedCompareMixin):
         else:
             rp = ''
         if self.comes_from:
-            return '%s (from %s)%s' % (redact_password_from_url(self._url),
+            return '%s (from %s)%s' % (redact_auth_from_url(self._url),
                                        self.comes_from, rp)
         else:
-            return redact_password_from_url(str(self._url))
+            return redact_auth_from_url(str(self._url))
 
     def __repr__(self):
         return '<Link %s>' % self
@@ -95,6 +96,11 @@ class Link(KeyBasedCompareMixin):
         name = urllib_parse.unquote(name)
         assert name, ('URL %r produced no filename' % self._url)
         return name
+
+    @property
+    def file_path(self):
+        # type: () -> str
+        return url_to_path(self.url)
 
     @property
     def scheme(self):
@@ -180,18 +186,11 @@ class Link(KeyBasedCompareMixin):
         return self.ext == WHEEL_EXTENSION
 
     @property
-    def is_artifact(self):
+    def is_vcs(self):
         # type: () -> bool
-        """
-        Determines if this points to an actual artifact (e.g. a tarball) or if
-        it points to an "abstract" thing like a path or a VCS location.
-        """
         from pip._internal.vcs import vcs
 
-        if self.scheme in vcs.all_schemes:
-            return False
-
-        return True
+        return self.scheme in vcs.all_schemes
 
     @property
     def is_yanked(self):

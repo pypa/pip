@@ -1,36 +1,6 @@
-import pretend
 import pytest
 
-from pip._internal.cli.cmdoptions import (
-    _convert_python_version,
-    make_search_scope,
-)
-
-
-@pytest.mark.parametrize(
-    'no_index, suppress_no_index, expected_index_urls', [
-        (False, False, ['default_url', 'url1', 'url2']),
-        (False, True, ['default_url', 'url1', 'url2']),
-        (True, False, []),
-        # Passing suppress_no_index=True suppresses no_index=True.
-        (True, True, ['default_url', 'url1', 'url2']),
-    ],
-)
-def test_make_search_scope(no_index, suppress_no_index, expected_index_urls):
-    """
-    :param expected: the expected index_urls value.
-    """
-    options = pretend.stub(
-        find_links=['link1'],
-        index_url='default_url',
-        extra_index_urls=['url1', 'url2'],
-        no_index=no_index,
-    )
-    search_scope = make_search_scope(
-        options, suppress_no_index=suppress_no_index,
-    )
-    assert search_scope.find_links == ['link1']
-    assert search_scope.index_urls == expected_index_urls
+from pip._internal.cli.cmdoptions import _convert_python_version
 
 
 @pytest.mark.parametrize('value, expected', [

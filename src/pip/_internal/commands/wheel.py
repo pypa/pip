@@ -6,14 +6,18 @@ import os
 
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
-from pip._internal.cli.base_command import RequirementCommand
+from pip._internal.cli.req_command import RequirementCommand
 from pip._internal.exceptions import CommandError, PreviousBuildDirError
-from pip._internal.legacy_resolve import Resolver
-from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import RequirementSet
 from pip._internal.req.req_tracker import RequirementTracker
 from pip._internal.utils.temp_dir import TempDirectory
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.wheel import WheelBuilder
+
+if MYPY_CHECK_RUNNING:
+    from optparse import Values
+    from typing import Any, List
+
 
 logger = logging.getLogger(__name__)
 
@@ -103,6 +107,7 @@ class WheelCommand(RequirementCommand):
         self.parser.insert_option_group(0, cmd_opts)
 
     def run(self, options, args):
+        # type: (Values, List[Any]) -> None
         cmdoptions.check_install_build_global(options)
 
         if options.build_dir:
@@ -110,69 +115,62 @@ class WheelCommand(RequirementCommand):
 
         options.src_dir = os.path.abspath(options.src_dir)
 
-        with self._build_session(options) as session:
-            finder = self._build_package_finder(options, session)
-            build_delete = (not (options.no_clean or options.build_dir))
-            wheel_cache = WheelCache(options.cache_dir, options.format_control)
+        session = self.get_default_session(options)
 
-            with RequirementTracker() as req_tracker, TempDirectory(
-                options.build_dir, delete=build_delete, kind="wheel"
-            ) as directory:
+        finder = self._build_package_finder(options, session)
+        build_delete = (not (options.no_clean or options.build_dir))
+        wheel_cache = WheelCache(options.cache_dir, options.format_control)
 
-                requirement_set = RequirementSet(
-                    require_hashes=options.require_hashes,
+        with RequirementTracker() as req_tracker, TempDirectory(
+            options.build_dir, delete=build_delete, kind="wheel"
+        ) as directory:
+
+            requirement_set = RequirementSet(
+                require_hashes=options.require_hashes,
+            )
+
+            try:
+                self.populate_requirement_set(
+                    requirement_set, args, options, finder, session,
+                    wheel_cache
                 )
 
-                try:
-                    self.populate_requirement_set(
-                        requirement_set, args, options, finder, session,
-                        self.name, wheel_cache
-                    )
+                preparer = self.make_requirement_preparer(
+                    temp_build_dir=directory,
+                    options=options,
+                    req_tracker=req_tracker,
+                    wheel_download_dir=options.wheel_dir,
+                )
 
-                    preparer = RequirementPreparer(
-                        build_dir=directory.path,
-                        src_dir=options.src_dir,
-                        download_dir=None,
-                        wheel_download_dir=options.wheel_dir,
-                        progress_bar=options.progress_bar,
-                        build_isolation=options.build_isolation,
-                        req_tracker=req_tracker,
-                    )
+                resolver = self.make_resolver(
+                    preparer=preparer,
+                    finder=finder,
+                    session=session,
+                    options=options,
+                    wheel_cache=wheel_cache,
+                    ignore_requires_python=options.ignore_requires_python,
+                    use_pep517=options.use_pep517,
+                )
+                resolver.resolve(requirement_set)
 
-                    resolver = Resolver(
-                        preparer=preparer,
-                        finder=finder,
-                        session=session,
-                        wheel_cache=wheel_cache,
-                        use_user_site=False,
-                        upgrade_strategy="to-satisfy-only",
-                        force_reinstall=False,
-                        ignore_dependencies=options.ignore_dependencies,
-                        ignore_requires_python=options.ignore_requires_python,
-                        ignore_installed=True,
-                        isolated=options.isolated_mode,
-                        use_pep517=options.use_pep517
+                # build wheels
+                wb = WheelBuilder(
+                    preparer, wheel_cache,
+                    build_options=options.build_options or [],
+                    global_options=options.global_options or [],
+                    no_clean=options.no_clean,
+                )
+                build_failures = wb.build(
+                    requirement_set.requirements.values(),
+                )
+                if len(build_failures) != 0:
+                    raise CommandError(
+                        "Failed to build one or more wheels"
                     )
-                    resolver.resolve(requirement_set)
-
-                    # build wheels
-                    wb = WheelBuilder(
-                        finder, preparer, wheel_cache,
-                        build_options=options.build_options or [],
-                        global_options=options.global_options or [],
-                        no_clean=options.no_clean,
-                    )
-                    build_failures = wb.build(
-                        requirement_set.requirements.values(), session=session,
-                    )
-                    if len(build_failures) != 0:
-                        raise CommandError(
-                            "Failed to build one or more wheels"
-                        )
-                except PreviousBuildDirError:
-                    options.no_clean = True
-                    raise
-                finally:
-                    if not options.no_clean:
-                        requirement_set.cleanup_files()
-                        wheel_cache.cleanup()
+            except PreviousBuildDirError:
+                options.no_clean = True
+                raise
+            finally:
+                if not options.no_clean:
+                    requirement_set.cleanup_files()
+                    wheel_cache.cleanup()
