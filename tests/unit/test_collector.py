@@ -436,13 +436,34 @@ def check_links_include(links, names):
 class TestLinkCollector(object):
 
     @patch('pip._internal.index.collector._get_html_response')
+    def test_fetch_page(self, mock_get_html_response):
+        url = 'https://pypi.org/simple/twine/'
+
+        fake_response = make_fake_html_response(url)
+        mock_get_html_response.return_value = fake_response
+
+        location = Link(url)
+        link_collector = make_test_link_collector()
+        actual = link_collector.fetch_page(location)
+
+        assert actual.content == fake_response.content
+        assert actual.encoding is None
+        assert actual.url == url
+
+        # Also check that the right session object was passed to
+        # _get_html_response().
+        mock_get_html_response.assert_called_once_with(
+            url, session=link_collector.session,
+        )
+
+    @patch('pip._internal.index.collector._get_html_response')
     def test_collect_links(self, mock_get_html_response, caplog, data):
         caplog.set_level(logging.DEBUG)
 
         expected_url = 'https://pypi.org/simple/twine/'
 
-        fake_page = make_fake_html_response(expected_url)
-        mock_get_html_response.return_value = fake_page
+        fake_response = make_fake_html_response(expected_url)
+        mock_get_html_response.return_value = fake_response
 
         link_collector = make_test_link_collector(
             find_links=[data.find_links],

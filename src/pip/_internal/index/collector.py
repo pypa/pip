@@ -483,6 +483,13 @@ class LinkCollector(object):
         # type: () -> List[str]
         return self.search_scope.find_links
 
+    def fetch_page(self, location):
+        # type: (Link) -> Optional[HTMLPage]
+        """
+        Fetch an HTML page containing package links.
+        """
+        return _get_html_page(location, session=self.session)
+
     def _get_pages(self, locations):
         # type: (Iterable[Link]) -> Iterable[HTMLPage]
         """
@@ -490,7 +497,7 @@ class LinkCollector(object):
         locations that have errors.
         """
         for location in locations:
-            page = _get_html_page(location, session=self.session)
+            page = self.fetch_page(location)
             if page is None:
                 continue
 
