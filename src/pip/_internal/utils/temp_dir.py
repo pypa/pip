@@ -53,9 +53,14 @@ class TempDirectory(object):
         if path is None:
             path = self._create(kind)
 
-        self.path = path
+        self._path = path
         self.delete = delete
         self.kind = kind
+
+    @property
+    def path(self):
+        # type: () -> str
+        return self._path
 
     def __repr__(self):
         return "<{} {!r}>".format(self.__class__.__name__, self.path)
