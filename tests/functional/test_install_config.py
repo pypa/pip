@@ -91,7 +91,7 @@ def test_command_line_append_flags(script, virtualenv, data):
         'test.pypi.org',
     )
     assert (
-        "Analyzing links from page https://test.pypi.org"
+        "Fetching project page and analyzing links: https://test.pypi.org"
         in result.stdout
     ), str(result)
     virtualenv.clear()
@@ -100,7 +100,7 @@ def test_command_line_append_flags(script, virtualenv, data):
         '--trusted-host', 'test.pypi.org',
     )
     assert (
-        "Analyzing links from page https://test.pypi.org"
+        "Fetching project page and analyzing links: https://test.pypi.org"
         in result.stdout
     )
     assert (
@@ -124,7 +124,7 @@ def test_command_line_appends_correctly(script, data):
     )
 
     assert (
-        "Analyzing links from page https://test.pypi.org"
+        "Fetching project page and analyzing links: https://test.pypi.org"
         in result.stdout
     ), result.stdout
     assert (

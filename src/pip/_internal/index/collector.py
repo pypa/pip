@@ -27,8 +27,8 @@ from pip._internal.vcs import is_url, vcs
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Callable, Dict, Iterable, List, MutableMapping, Optional, Sequence,
-        Tuple, Union,
+        Callable, Iterable, List, MutableMapping, Optional, Sequence, Tuple,
+        Union,
     )
     import xml.etree.ElementTree
 
@@ -435,29 +435,36 @@ def group_locations(locations, expand_dir=False):
 class CollectedLinks(object):
 
     """
-    Encapsulates all the Link objects collected by a call to
-    LinkCollector.collect_links(), stored separately as--
+    Encapsulates the return value of a call to LinkCollector.collect_links().
+
+    The return value includes both URLs to project pages containing package
+    links, as well as individual package Link objects collected from other
+    sources.
+
+    This info is stored separately as:
 
     (1) links from the configured file locations,
     (2) links from the configured find_links, and
-    (3) a dict mapping HTML page url to links from that page.
+    (3) urls to HTML project pages, as described by the PEP 503 simple
+        repository API.
     """
 
     def __init__(
         self,
-        files,       # type: List[Link]
-        find_links,  # type: List[Link]
-        pages,       # type: Dict[str, List[Link]]
+        files,         # type: List[Link]
+        find_links,    # type: List[Link]
+        project_urls,  # type: List[Link]
     ):
         # type: (...) -> None
         """
         :param files: Links from file locations.
         :param find_links: Links from find_links.
-        :param pages: A dict mapping HTML page url to links from that page.
+        :param project_urls: URLs to HTML project pages, as described by
+            the PEP 503 simple repository API.
         """
         self.files = files
         self.find_links = find_links
-        self.pages = pages
+        self.project_urls = project_urls
 
 
 class LinkCollector(object):
@@ -489,19 +496,6 @@ class LinkCollector(object):
         Fetch an HTML page containing package links.
         """
         return _get_html_page(location, session=self.session)
-
-    def _get_pages(self, locations):
-        # type: (Iterable[Link]) -> Iterable[HTMLPage]
-        """
-        Yields (page, page_url) from the given locations, skipping
-        locations that have errors.
-        """
-        for location in locations:
-            page = self.fetch_page(location)
-            if page is None:
-                continue
-
-            yield page
 
     def collect_links(self, project_name):
         # type: (str) -> CollectedLinks
@@ -544,12 +538,8 @@ class LinkCollector(object):
             lines.append('* {}'.format(link))
         logger.debug('\n'.join(lines))
 
-        pages_links = {}
-        for page in self._get_pages(url_locations):
-            pages_links[page.url] = list(parse_links(page))
-
         return CollectedLinks(
             files=file_links,
             find_links=find_link_links,
-            pages=pages_links,
+            project_urls=url_locations,
         )

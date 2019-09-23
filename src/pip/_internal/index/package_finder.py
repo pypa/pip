@@ -19,6 +19,7 @@ from pip._internal.exceptions import (
     InvalidWheelFilename,
     UnsupportedWheel,
 )
+from pip._internal.index.collector import parse_links
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.link import Link
@@ -788,7 +789,8 @@ class PackageFinder(object):
         See LinkEvaluator.evaluate_link() for details on which files
         are accepted.
         """
-        collected_links = self._link_collector.collect_links(project_name)
+        link_collector = self._link_collector
+        collected_links = link_collector.collect_links(project_name)
 
         link_evaluator = self.make_link_evaluator(project_name)
 
@@ -798,8 +800,16 @@ class PackageFinder(object):
         )
 
         page_versions = []
-        for page_url, page_links in collected_links.pages.items():
-            logger.debug('Analyzing links from page %s', page_url)
+        for project_url in collected_links.project_urls:
+            logger.debug(
+                'Fetching project page and analyzing links: %s', project_url,
+            )
+            html_page = link_collector.fetch_page(project_url)
+            if html_page is None:
+                continue
+
+            page_links = list(parse_links(html_page))
+
             with indent_log():
                 new_versions = self.evaluate_links(
                     link_evaluator,

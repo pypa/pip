@@ -456,14 +456,8 @@ class TestLinkCollector(object):
             url, session=link_collector.session,
         )
 
-    @patch('pip._internal.index.collector._get_html_response')
-    def test_collect_links(self, mock_get_html_response, caplog, data):
+    def test_collect_links(self, caplog, data):
         caplog.set_level(logging.DEBUG)
-
-        expected_url = 'https://pypi.org/simple/twine/'
-
-        fake_response = make_fake_html_response(expected_url)
-        mock_get_html_response.return_value = fake_response
 
         link_collector = make_test_link_collector(
             find_links=[data.find_links],
@@ -473,10 +467,6 @@ class TestLinkCollector(object):
         )
         actual = link_collector.collect_links('twine')
 
-        mock_get_html_response.assert_called_once_with(
-            expected_url, session=link_collector.session,
-        )
-
         # Spot-check the CollectedLinks return value.
         assert len(actual.files) > 20
         check_links_include(actual.files, names=['simple-1.0.tar.gz'])
@@ -484,13 +474,7 @@ class TestLinkCollector(object):
         assert len(actual.find_links) == 1
         check_links_include(actual.find_links, names=['packages'])
 
-        actual_pages = actual.pages
-        assert list(actual_pages) == [expected_url]
-        actual_page_links = actual_pages[expected_url]
-        assert len(actual_page_links) == 1
-        assert actual_page_links[0].url == (
-            'https://pypi.org/abc-1.0.tar.gz#md5=000000000'
-        )
+        assert actual.project_urls == [Link('https://pypi.org/simple/twine/')]
 
         expected_message = dedent("""\
         1 location(s) to search for versions of twine:
