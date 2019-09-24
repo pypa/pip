@@ -17,9 +17,6 @@ jobs:
     - stage: primary
       env: TOXENV=docs
     - env: TOXENV=lint
-    - env: TOXENV=lint-py2
-      python: 2.7
-    - env: TOXENV=mypy
     - env: TOXENV=packaging
     # Latest CPython
     - env: GROUP=1
