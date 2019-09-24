@@ -35,4 +35,9 @@ repos:
   hooks:
     - id: python-no-log-warn
     - id: python-no-eval
-    # - id: rst-backticks  # TODO: enable when fixed.
+    - id: rst-backticks
+      # Validate existing ReST files and NEWS fragments.
+      files: .*\.rst$|^news/.*
+      types: [file]
+      # The errors flagged in NEWS.rst are old.
+      exclude: NEWS.rst

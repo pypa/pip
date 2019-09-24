@@ -90,7 +90,7 @@ In practice, there are 4 common uses of Requirements files:
 1. Requirements files are used to hold the result from :ref:`pip freeze` for the
    purpose of achieving :ref:`repeatable installations <Repeatability>`.  In
    this case, your requirement file contains a pinned version of everything that
-   was installed when `pip freeze` was run.
+   was installed when ``pip freeze`` was run.
 
    ::
 
@@ -100,11 +100,11 @@ In practice, there are 4 common uses of Requirements files:
 2. Requirements files are used to force pip to properly resolve dependencies.
    As it is now, pip `doesn't have true dependency resolution
    <https://github.com/pypa/pip/issues/988>`_, but instead simply uses the first
-   specification it finds for a project. E.g. if `pkg1` requires `pkg3>=1.0` and
-   `pkg2` requires `pkg3>=1.0,<=2.0`, and if `pkg1` is resolved first, pip will
-   only use `pkg3>=1.0`, and could easily end up installing a version of `pkg3`
-   that conflicts with the needs of `pkg2`.  To solve this problem, you can
-   place `pkg3>=1.0,<=2.0` (i.e. the correct specification) into your
+   specification it finds for a project. E.g. if ``pkg1`` requires ``pkg3>=1.0`` and
+   ``pkg2`` requires ``pkg3>=1.0,<=2.0``, and if ``pkg1`` is resolved first, pip will
+   only use ``pkg3>=1.0``, and could easily end up installing a version of ``pkg3``
+   that conflicts with the needs of ``pkg2``.  To solve this problem, you can
+   place ``pkg3>=1.0,<=2.0`` (i.e. the correct specification) into your
    requirements file directly along with the other top level requirements. Like
    so:
 
@@ -115,8 +115,8 @@ In practice, there are 4 common uses of Requirements files:
      pkg3>=1.0,<=2.0
 
 3. Requirements files are used to force pip to install an alternate version of a
-   sub-dependency.  For example, suppose `ProjectA` in your requirements file
-   requires `ProjectB`, but the latest version (v1.3) has a bug, you can force
+   sub-dependency.  For example, suppose ``ProjectA`` in your requirements file
+   requires ``ProjectB``, but the latest version (v1.3) has a bug, you can force
    pip to accept earlier versions like so:
 
    ::
@@ -126,23 +126,23 @@ In practice, there are 4 common uses of Requirements files:
 
 4. Requirements files are used to override a dependency with a local patch that
    lives in version control.  For example, suppose a dependency,
-   `SomeDependency` from PyPI has a bug, and you can't wait for an upstream fix.
+   ``SomeDependency`` from PyPI has a bug, and you can't wait for an upstream fix.
    You could clone/copy the src, make the fix, and place it in VCS with the tag
-   `sometag`.  You'd reference it in your requirements file with a line like so:
+   ``sometag``.  You'd reference it in your requirements file with a line like so:
 
    ::
 
      git+https://myvcs.com/some_dependency@sometag#egg=SomeDependency
 
-   If `SomeDependency` was previously a top-level requirement in your
+   If ``SomeDependency`` was previously a top-level requirement in your
    requirements file, then **replace** that line with the new line. If
-   `SomeDependency` is a sub-dependency, then **add** the new line.
+   ``SomeDependency`` is a sub-dependency, then **add** the new line.
 
 
 It's important to be clear that pip determines package dependencies using
 `install_requires metadata
 <https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-dependencies>`_,
-not by discovering `requirements.txt` files embedded in projects.
+not by discovering ``requirements.txt`` files embedded in projects.
 
 See also:
 
@@ -374,7 +374,7 @@ look like this:
 
 Each subcommand can be configured optionally in its own section so that every
 global setting with the same name will be overridden; e.g. decreasing the
-``timeout`` to ``10`` seconds when running the `freeze`
+``timeout`` to ``10`` seconds when running the ``freeze``
 (`Freezing Requirements <./#freezing-requirements>`_) command and using
 ``60`` seconds for all other commands is possible with:
 
