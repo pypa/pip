@@ -29,6 +29,11 @@ repos:
   hooks:
     - id: mypy
       exclude: docs|tests
+      args: []
+    - id: mypy
+      name: mypy, for Py2
+      args: ["-2"]
+      exclude: docs|tests
 
 - repo: https://github.com/pre-commit/pygrep-hooks
   rev: v1.4.1
