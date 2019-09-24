@@ -1,0 +1,38 @@
+exclude: 'src/pip/_vendor/'
+
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v2.3.0
+  hooks:
+    # - id: check-builtin-literals  # TODO: enable when fixed.
+    - id: check-added-large-files
+    - id: check-case-conflict
+    - id: check-toml
+    - id: check-yaml
+    - id: debug-statements
+    # - id: end-of-file-fixer  # TODO: enable when fixed.
+    - id: flake8
+      exclude: tests/data
+    - id: forbid-new-submodules
+    # - id: trailing-whitespace  # TODO: enable when fixed.
+    #   exclude: .patch
+
+# TODO: enable when fixed.
+# - repo: https://github.com/timothycrosley/isort
+#   rev: 4.3.21
+#   hooks:
+#     - id: isort
+#       files: \.py$
+
+- repo: https://github.com/pre-commit/mirrors-mypy
+  rev: v0.720
+  hooks:
+    - id: mypy
+      exclude: docs|tests
+
+- repo: https://github.com/pre-commit/pygrep-hooks
+  rev: v1.4.1
+  hooks:
+    - id: python-no-log-warn
+    - id: python-no-eval
+    # - id: rst-backticks  # TODO: enable when fixed.
