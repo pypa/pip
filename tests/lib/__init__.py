@@ -355,22 +355,22 @@ def make_check_stderr_message(stderr, line, reason):
 
 
 def _check_stderr(
-    stderr, expect_stderr_warning, allow_stderr_error,
+    stderr, expect_stderr_warning, expect_stderr_error,
 ):
     """
     Check the given stderr for logged warnings and errors.
 
     :param stderr: stderr output as a string.
     :param expect_stderr_warning: whether a logged warning (or deprecation
-        message) is allowed. Must be True if allow_stderr_error is True.
-    :param allow_stderr_error: whether a logged error is allowed.
+        message) is allowed. Must be True if expect_stderr_error is True.
+    :param expect_stderr_error: whether a logged error is allowed.
     """
-    assert not (allow_stderr_error and not expect_stderr_warning)
+    assert not (expect_stderr_error and not expect_stderr_warning)
 
     lines = stderr.splitlines()
     for line in lines:
         # First check for logging errors, which we don't allow during
-        # tests even if allow_stderr_error=True (since a logging error
+        # tests even if expect_stderr_error=True (since a logging error
         # would signal a bug in pip's code).
         #    Unlike errors logged with logger.error(), these errors are
         # sent directly to stderr and so bypass any configured log formatter.
@@ -381,13 +381,13 @@ def _check_stderr(
             reason = 'stderr has a logging error, which is never allowed'
             msg = make_check_stderr_message(stderr, line=line, reason=reason)
             raise RuntimeError(msg)
-        if allow_stderr_error:
+        if expect_stderr_error:
             continue
 
         if line.startswith('ERROR: '):
             reason = (
                 'stderr has an unexpected error '
-                '(pass allow_stderr_error=True to permit this)'
+                '(pass expect_stderr_error=True to permit this)'
             )
             msg = make_check_stderr_message(stderr, line=line, reason=reason)
             raise RuntimeError(msg)
@@ -513,14 +513,14 @@ class PipTestEnvironment(TestFileEnvironment):
 
     def run(self, *args, **kw):
         """
-        :param allow_stderr_error: whether a logged error is allowed in
+        :param expect_stderr_error: whether a logged error is allowed in
             stderr.  Passing True for this argument implies
             `expect_stderr_warning` since warnings are weaker than errors.
         :param expect_stderr_warning: whether a logged warning (or
             deprecation message) is allowed in stderr.
         :param expect_error: if False (the default), asserts that the command
             exits with 0.  Otherwise, asserts that the command exits with a
-            non-zero exit code.  Passing True also implies allow_stderr_error
+            non-zero exit code.  Passing True also implies expect_stderr_error
             and expect_stderr_warning.
         :param expect_stderr: whether to allow warnings in stderr (equivalent
             to `expect_stderr_warning`).  This argument is an abbreviated
@@ -538,21 +538,21 @@ class PipTestEnvironment(TestFileEnvironment):
             # Partial fix for ScriptTest.run using `shell=True` on Windows.
             args = [str(a).replace('^', '^^').replace('&', '^&') for a in args]
 
-        # Remove `allow_stderr_error` and `expect_stderr_warning` before
+        # Remove `expect_stderr_error` and `expect_stderr_warning` before
         # calling run() because PipTestEnvironment doesn't support them.
-        allow_stderr_error = kw.pop('allow_stderr_error', None)
+        expect_stderr_error = kw.pop('expect_stderr_error', None)
         expect_stderr_warning = kw.pop('expect_stderr_warning', None)
 
         # Propagate default values.
         expect_error = kw.get('expect_error')
         if expect_error:
             # Then default to allowing logged errors.
-            if allow_stderr_error is not None and not allow_stderr_error:
+            if expect_stderr_error is not None and not expect_stderr_error:
                 raise RuntimeError(
-                    'cannot pass allow_stderr_error=False with '
+                    'cannot pass expect_stderr_error=False with '
                     'expect_error=True'
                 )
-            allow_stderr_error = True
+            expect_stderr_error = True
 
         elif kw.get('expect_stderr'):
             # Then default to allowing logged warnings.
@@ -563,18 +563,18 @@ class PipTestEnvironment(TestFileEnvironment):
                 )
             expect_stderr_warning = True
 
-        if allow_stderr_error:
+        if expect_stderr_error:
             if expect_stderr_warning is not None and not expect_stderr_warning:
                 raise RuntimeError(
                     'cannot pass expect_stderr_warning=False with '
-                    'allow_stderr_error=True'
+                    'expect_stderr_error=True'
                 )
 
         # Default values if not set.
-        if allow_stderr_error is None:
-            allow_stderr_error = False
+        if expect_stderr_error is None:
+            expect_stderr_error = False
         if expect_stderr_warning is None:
-            expect_stderr_warning = allow_stderr_error
+            expect_stderr_warning = expect_stderr_error
 
         # Pass expect_stderr=True to allow any stderr.  We do this because
         # we do our checking of stderr further on in check_stderr().
@@ -587,7 +587,7 @@ class PipTestEnvironment(TestFileEnvironment):
                 raise AssertionError("Script passed unexpectedly.")
 
         _check_stderr(
-            result.stderr, allow_stderr_error=allow_stderr_error,
+            result.stderr, expect_stderr_error=expect_stderr_error,
             expect_stderr_warning=expect_stderr_warning,
         )
 

@@ -1512,7 +1512,7 @@ def test_install_conflict_results_in_warning(script, data):
 
     # Then install an incorrect version of the dependency
     result2 = script.pip(
-        'install', '--no-index', pkgB_path, allow_stderr_error=True,
+        'install', '--no-index', pkgB_path, expect_stderr_error=True,
     )
     assert "pkga 1.0 has requirement pkgb==1.0" in result2.stderr, str(result2)
     assert "Successfully installed pkgB-2.0" in result2.stdout, str(result2)

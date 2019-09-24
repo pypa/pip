@@ -35,7 +35,7 @@ def test_check_install_canonicalization(script, deprecated_python):
         '--no-index',
         normal_path,
         '--quiet',
-        allow_stderr_error=True,
+        expect_stderr_error=True,
     )
     expected_lines = [
         "ERROR: pkga 1.0 requires SPECIAL.missing, which is not installed.",
@@ -91,7 +91,7 @@ def test_check_install_does_not_warn_for_out_of_graph_issues(
 
     # Install conflict package
     result = script.pip(
-        'install', '--no-index', pkg_conflict_path, allow_stderr_error=True,
+        'install', '--no-index', pkg_conflict_path, expect_stderr_error=True,
     )
     assert matches_expected_lines(result.stderr, [
         "ERROR: broken 1.0 requires missing, which is not installed.",

@@ -134,12 +134,12 @@ class TestPipTestEnvironment:
         'WARNING',
         'ERROR',
     ))
-    def test_run__allow_stderr_error(self, script, prefix):
+    def test_run__expect_stderr_error(self, script, prefix):
         """
-        Test passing allow_stderr_error=True.
+        Test passing expect_stderr_error=True.
         """
         # Check that no error happens.
-        self.run_stderr_with_prefix(script, prefix, allow_stderr_error=True)
+        self.run_stderr_with_prefix(script, prefix, expect_stderr_error=True)
 
     @pytest.mark.parametrize('prefix, expected_start', (
         ('DEPRECATION', 'stderr has an unexpected warning'),
@@ -163,24 +163,24 @@ class TestPipTestEnvironment:
         expected_start = 'stderr has a logging error, which is never allowed'
         with assert_error_startswith(RuntimeError, expected_start):
             # Pass a bad substitution string.  Also, pass
-            # allow_stderr_error=True to check that the RuntimeError occurs
+            # expect_stderr_error=True to check that the RuntimeError occurs
             # even under the stricter test condition of when we are allowing
             # other types of errors.
             self.run_with_log_command(
-                script, sub_string='{!r}', allow_stderr_error=True,
+                script, sub_string='{!r}', expect_stderr_error=True,
             )
 
-    def test_run__allow_stderr_error_false_error_with_expect_error(
+    def test_run__expect_stderr_error_false_error_with_expect_error(
         self, script,
     ):
         """
-        Test passing allow_stderr_error=False with expect_error=True.
+        Test passing expect_stderr_error=False with expect_error=True.
         """
         expected_start = (
-            'cannot pass allow_stderr_error=False with expect_error=True'
+            'cannot pass expect_stderr_error=False with expect_error=True'
         )
         with assert_error_startswith(RuntimeError, expected_start):
-            script.run('python', allow_stderr_error=False, expect_error=True)
+            script.run('python', expect_stderr_error=False, expect_error=True)
 
     def test_run__expect_stderr_warning_false_error_with_expect_stderr(
         self, script,
@@ -198,7 +198,7 @@ class TestPipTestEnvironment:
 
     @pytest.mark.parametrize('arg_name', (
         'expect_error',
-        'allow_stderr_error',
+        'expect_stderr_error',
     ))
     def test_run__expect_stderr_warning_false_error(self, script, arg_name):
         """
@@ -207,7 +207,7 @@ class TestPipTestEnvironment:
         kwargs = {'expect_stderr_warning': False, arg_name: True}
         expected_start = (
             'cannot pass expect_stderr_warning=False with '
-            'allow_stderr_error=True'
+            'expect_stderr_error=True'
         )
         with assert_error_startswith(RuntimeError, expected_start):
             script.run('python', **kwargs)
