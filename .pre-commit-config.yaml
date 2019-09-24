@@ -15,8 +15,8 @@ repos:
     - id: flake8
       exclude: tests/data
     - id: forbid-new-submodules
-    # - id: trailing-whitespace  # TODO: enable when fixed.
-    #   exclude: .patch
+    - id: trailing-whitespace
+      exclude: .patch
 
 # TODO: enable when fixed.
 # - repo: https://github.com/timothycrosley/isort
