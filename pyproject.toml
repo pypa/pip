@@ -1,6 +1,26 @@
 [build-system]
 requires = ["setuptools", "wheel"]
 
+[tool.black]
+exclude = '''
+/(
+  # Re-enable Black default
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+
+  # pip specific: exclude vendored
+  | src/pip/_vendor
+)/
+'''
+
 [tool.towncrier]
 package = "pip"
 package_dir = "src"
