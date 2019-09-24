@@ -76,26 +76,6 @@ To use linters locally, run:
 .. code-block:: console
 
     $ tox -e lint
-    $ tox -e lint-py2
-
-The above commands run the linters on Python 3 followed by Python 2.
-
-.. note::
-
-    Do not silence errors from flake8 with ``# noqa`` comments or otherwise.
-
-Running mypy
-------------
-
-pip uses :pypi:`mypy` to run static type analysis, which helps catch certain
-kinds of bugs. The codebase uses `PEP 484 type-comments`_ due to compatibility
-requirements with Python 2.7.
-
-To run the ``mypy`` type checker, run:
-
-.. code-block:: console
-
-    $ tox -e mypy
 
 Building Documentation
 ----------------------
