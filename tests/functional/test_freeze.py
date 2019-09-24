@@ -322,7 +322,7 @@ def test_freeze_git_clone_srcdir(script, tmpdir):
     _check_output(result.stdout, expected)
 
 @need_mercurial
-def test_freeze_mrecurial_clone_srcdir(script, tmpdir):
+def test_freeze_mercurial_clone_srcdir(script, tmpdir):
     """
     Test freezing a Mercurial clone where setup.py is in a subdirectory
     relative to the repo root and the source code is in a subdirectory
