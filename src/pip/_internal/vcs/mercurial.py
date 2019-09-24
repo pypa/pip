@@ -5,12 +5,12 @@ import os
 
 from pip._vendor.six.moves import configparser
 
+from pip._internal.exceptions import BadCommand
+from pip._internal.utils.compat import samefile
 from pip._internal.utils.misc import display_path, make_command, path_to_url
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs.versioncontrol import VersionControl, vcs
-from pip._internal.utils.compat import samefile
-from pip._internal.exceptions import BadCommand
 
 if MYPY_CHECK_RUNNING:
     from pip._internal.utils.misc import HiddenText
@@ -117,7 +117,7 @@ class Mercurial(VersionControl):
     def get_subdirectory(cls, location):
         # find the repo root
         root_dir = cls.run_command(['root'],
-                                  show_stdout=False, cwd=location).strip()
+                                   show_stdout=False, cwd=location).strip()
         if not os.path.isabs(root_dir):
             root_dir = os.path.join(location, root_dir)
         # find setup.py
@@ -144,11 +144,16 @@ class Mercurial(VersionControl):
         if super(Mercurial, cls).controls_location(location):
             return True
         try:
-            r = cls.run_command(['identify'], cwd=location, show_stdout=False, extra_ok_returncodes=[255])
+            r = cls.run_command(['identify'],
+                                cwd=location,
+                                show_stdout=False,
+                                on_returncode='ignore',
+                                extra_ok_returncodes=[255])
             return not r.startswith('abort:')
         except BadCommand:
             logger.debug("could not determine if %s is under hg control "
                          "because hg is not available", location)
             return False
+
 
 vcs.register(Mercurial)

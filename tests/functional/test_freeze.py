@@ -321,6 +321,7 @@ def test_freeze_git_clone_srcdir(script, tmpdir):
     ).strip()
     _check_output(result.stdout, expected)
 
+
 @need_mercurial
 def test_freeze_mercurial_clone_srcdir(script, tmpdir):
     """
@@ -330,7 +331,7 @@ def test_freeze_mercurial_clone_srcdir(script, tmpdir):
     """
     # Returns path to a generated package called "version_pkg"
     pkg_version = _create_test_package_with_srcdir(script, vcs='hg')
- 
+
     result = script.run(
         'hg', 'clone', pkg_version, 'pip-test-package',
         expect_stderr=True,
@@ -349,7 +350,7 @@ def test_freeze_mercurial_clone_srcdir(script, tmpdir):
         """
     ).strip()
     _check_output(result.stdout, expected)
- 
+
     result = script.pip(
         'freeze', '-f', '%s#egg=pip_test_package' % repo_dir,
         expect_stderr=True,
@@ -362,6 +363,7 @@ def test_freeze_mercurial_clone_srcdir(script, tmpdir):
         """ % {'repo': repo_dir},
     ).strip()
     _check_output(result.stdout, expected)
+
 
 @pytest.mark.git
 def test_freeze_git_remote(script, tmpdir):
