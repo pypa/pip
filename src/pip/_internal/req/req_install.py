@@ -338,7 +338,6 @@ class InstallRequirement(object):
             # builds (such as numpy). Thus, we ensure that the real path
             # is returned.
             self._temp_build_dir = TempDirectory(kind="req-build")
-            self._temp_build_dir.create()
             self._ideal_build_dir = build_dir
 
             return self._temp_build_dir.path
@@ -606,7 +605,6 @@ class InstallRequirement(object):
 
         # NOTE: This needs to be refactored to stop using atexit
         self._temp_dir = TempDirectory(delete=False, kind="req-install")
-        self._temp_dir.create()
         metadata_dir = os.path.join(
             self._temp_dir.path,
             'pip-wheel-metadata',
