@@ -287,6 +287,7 @@ def test_completion_uses_same_executable_name(script, flag, deprecated_python):
     executable_name = 'pip{}'.format(sys.version_info[0])
     # Deprecated python versions produce an extra deprecation warning
     result = script.run(
-        executable_name, 'completion', flag, expect_stderr=deprecated_python,
+        executable_name, 'completion', flag,
+        expect_stderr_warning=deprecated_python,
     )
     assert executable_name in result.stdout

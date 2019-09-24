@@ -83,7 +83,8 @@ def _make_version_pkg_url(path, rev=None):
     return url
 
 
-def _install_version_pkg_only(script, path, rev=None, expect_stderr=False):
+def _install_version_pkg_only(script, path, rev=None,
+                              expect_stderr_warning=False):
     """
     Install the version_pkg package in editable mode (without returning
     the version).
@@ -94,10 +95,13 @@ def _install_version_pkg_only(script, path, rev=None, expect_stderr=False):
       rev: an optional revision to install like a branch name or tag.
     """
     version_pkg_url = _make_version_pkg_url(path, rev=rev)
-    script.pip('install', '-e', version_pkg_url, expect_stderr=expect_stderr)
+    script.pip(
+        'install', '-e', version_pkg_url,
+        expect_stderr_warning=expect_stderr_warning,
+    )
 
 
-def _install_version_pkg(script, path, rev=None, expect_stderr=False):
+def _install_version_pkg(script, path, rev=None, expect_stderr_warning=False):
     """
     Install the version_pkg package in editable mode, and return the version
     installed.
@@ -108,7 +112,7 @@ def _install_version_pkg(script, path, rev=None, expect_stderr=False):
       rev: an optional revision to install like a branch name or tag.
     """
     _install_version_pkg_only(
-        script, path, rev=rev, expect_stderr=expect_stderr,
+        script, path, rev=rev, expect_stderr_warning=expect_stderr_warning,
     )
     result = script.run('version_pkg')
     version = result.stdout.strip()

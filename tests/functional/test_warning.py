@@ -13,7 +13,7 @@ def test_environ(script, tmpdir):
         deprecation.deprecated("deprecated!", replacement=None, gone_in=None)
     '''))
 
-    result = script.run('python', demo, expect_stderr=True)
+    result = script.run('python', demo, expect_stderr_warning=True)
     expected = 'WARNING:pip._internal.deprecations:DEPRECATION: deprecated!\n'
     assert result.stderr == expected
 

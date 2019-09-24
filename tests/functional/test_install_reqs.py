@@ -177,7 +177,7 @@ def test_install_local_editable_with_extras(script, data):
     res = script.pip_install_local(
         '-e', to_install + '[bar]',
         expect_error=False,
-        expect_stderr=True,
+        expect_stderr_warning=True,
     )
     assert script.site_packages / 'easy-install.pth' in res.files_updated, (
         str(res)
@@ -262,7 +262,7 @@ def test_install_option_in_requirements_file(script, data, virtualenv):
         'install', '--no-index', '-f', data.find_links, '-r',
         script.scratch_path / 'reqs.txt',
         '--install-option=--home=%s' % script.scratch_path.joinpath("home2"),
-        expect_stderr=True)
+        expect_stderr_warning=True)
 
     package_dir = script.scratch / 'home1' / 'lib' / 'python' / 'simple'
     assert package_dir in result.files_created
@@ -503,7 +503,7 @@ def test_install_unsupported_wheel_file(script, data):
     result = script.pip(
         'install', '-r', script.scratch_path / 'wheel-file.txt',
         expect_error=True,
-        expect_stderr=True,
+        expect_stderr_warning=True,
     )
     assert ("simple.dist-0.1-py1-none-invalid.whl is not a supported " +
             "wheel on this platform" in result.stderr)

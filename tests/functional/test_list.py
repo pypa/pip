@@ -60,7 +60,7 @@ def test_format_priority(script, data):
         'simple2==3.0',
     )
     result = script.pip('list', '--format=columns', '--format=freeze',
-                        expect_stderr=True)
+                        expect_stderr_warning=True)
     assert 'simple==1.0' in result.stdout, str(result)
     assert 'simple2==3.0' in result.stdout, str(result)
     assert 'simple     1.0' not in result.stdout, str(result)
@@ -472,7 +472,7 @@ def test_not_required_flag(script, data):
     script.pip(
         'install', '-f', data.find_links, '--no-index', 'TopoRequires4'
     )
-    result = script.pip('list', '--not-required', expect_stderr=True)
+    result = script.pip('list', '--not-required', expect_stderr_warning=True)
     assert 'TopoRequires4 ' in result.stdout, str(result)
     assert 'TopoRequires ' not in result.stdout
     assert 'TopoRequires2 ' not in result.stdout

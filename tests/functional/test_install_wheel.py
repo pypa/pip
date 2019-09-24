@@ -22,7 +22,7 @@ def test_install_from_future_wheel_version(script, data):
     package = data.packages.joinpath("futurewheel-1.9-py2.py3-none-any.whl")
     result = script.pip(
         'install', package, '--no-index', expect_error=False,
-        expect_stderr=True,
+        expect_stderr_warning=True,
     )
     result.assert_installed('futurewheel', without_egg_link=True,
                             editable=False)

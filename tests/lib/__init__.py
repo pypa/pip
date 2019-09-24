@@ -522,10 +522,6 @@ class PipTestEnvironment(TestFileEnvironment):
             exits with 0.  Otherwise, asserts that the command exits with a
             non-zero exit code.  Passing True also implies expect_stderr_error
             and expect_stderr_warning.
-        :param expect_stderr: whether to allow warnings in stderr (equivalent
-            to `expect_stderr_warning`).  This argument is an abbreviated
-            version of `expect_stderr_warning` and is also kept for backwards
-            compatibility.
         """
         if self.verbose:
             print('>> running %s %s' % (args, kw))
@@ -553,15 +549,6 @@ class PipTestEnvironment(TestFileEnvironment):
                     'expect_error=True'
                 )
             expect_stderr_error = True
-
-        elif kw.get('expect_stderr'):
-            # Then default to allowing logged warnings.
-            if expect_stderr_warning is not None and not expect_stderr_warning:
-                raise RuntimeError(
-                    'cannot pass expect_stderr_warning=False with '
-                    'expect_stderr=True'
-                )
-            expect_stderr_warning = True
 
         if expect_stderr_error:
             if expect_stderr_warning is not None and not expect_stderr_warning:
@@ -712,7 +699,7 @@ def _create_main_file(dir_path, name=None, output=None):
 
 
 def _git_commit(env_or_script, repo_dir, message=None, args=None,
-                expect_stderr=False):
+                expect_stderr_warning=False):
     """
     Run git-commit.
 
@@ -732,7 +719,10 @@ def _git_commit(env_or_script, repo_dir, message=None, args=None,
     ]
     new_args.extend(args)
     new_args.extend(['-m', message])
-    env_or_script.run(*new_args, cwd=repo_dir, expect_stderr=expect_stderr)
+    env_or_script.run(
+        *new_args, cwd=repo_dir,
+        expect_stderr_warning=expect_stderr_warning
+    )
 
 
 def _vcs_add(script, version_pkg_path, vcs='git'):
@@ -872,7 +862,7 @@ def _change_test_package_version(script, version_pkg_path):
     # Pass -a to stage the change to the main file.
     _git_commit(
         script, version_pkg_path, message='messed version', args=['-a'],
-        expect_stderr=True,
+        expect_stderr_warning=True,
     )
 
 

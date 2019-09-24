@@ -53,7 +53,7 @@ def test_basic_uninstall_distutils(script):
     assert {"name": "distutils-install", "version": "0.1"} \
         in json.loads(result.stdout)
     result = script.pip('uninstall', 'distutils_install', '-y',
-                        expect_stderr=True, expect_error=True)
+                        expect_stderr_warning=True, expect_error=True)
     assert (
         "Cannot uninstall 'distutils-install'. It is a distutils installed "
         "project and thus we cannot accurately determine which files belong "
@@ -67,7 +67,7 @@ def test_basic_uninstall_with_scripts(script):
     Uninstall an easy_installed package with scripts.
 
     """
-    result = script.easy_install('PyLogo', expect_stderr=True)
+    result = script.easy_install('PyLogo', expect_stderr_warning=True)
     easy_install_pth = script.site_packages / 'easy-install.pth'
     pylogo = sys.platform == 'win32' and 'pylogo' or 'PyLogo'
     assert(pylogo in result.files_updated[easy_install_pth].bytes)
@@ -86,7 +86,7 @@ def test_uninstall_easy_install_after_import(script):
 
     """
     result = script.easy_install('--always-unzip', 'INITools==0.2',
-                                 expect_stderr=True)
+                                 expect_stderr_warning=True)
     # the import forces the generation of __pycache__ if the version of python
     # supports it
     script.run('python', '-c', "import initools")
@@ -109,8 +109,8 @@ def test_uninstall_trailing_newline(script):
     lacks a trailing newline
 
     """
-    script.easy_install('INITools==0.2', expect_stderr=True)
-    script.easy_install('PyLogo', expect_stderr=True)
+    script.easy_install('INITools==0.2', expect_stderr_warning=True)
+    script.easy_install('PyLogo', expect_stderr_warning=True)
     easy_install_pth = script.site_packages_path / 'easy-install.pth'
 
     # trim trailing newline from easy-install.pth
@@ -337,7 +337,7 @@ def _test_uninstall_editable_with_source_outside_venv(
         'git', 'clone',
         local_repo('git+git://github.com/pypa/pip-test-package', tmpdir),
         temp_pkg_dir,
-        expect_stderr=True,
+        expect_stderr_warning=True,
     )
     result2 = script.pip('install', '-e', temp_pkg_dir)
     assert join(
@@ -473,9 +473,9 @@ def test_uninstall_setuptools_develop_install(script, data):
     """Try uninstall after setup.py develop followed of setup.py install"""
     pkg_path = data.packages.joinpath("FSPkg")
     script.run('python', 'setup.py', 'develop',
-               expect_stderr=True, cwd=pkg_path)
+               expect_stderr_warning=True, cwd=pkg_path)
     script.run('python', 'setup.py', 'install',
-               expect_stderr=True, cwd=pkg_path)
+               expect_stderr_warning=True, cwd=pkg_path)
     list_result = script.pip('list', '--format=json')
     assert {"name": os.path.normcase("FSPkg"), "version": "0.1.dev0"} \
         in json.loads(list_result.stdout), str(list_result)
@@ -500,10 +500,10 @@ def test_uninstall_editable_and_pip_install(script, data):
 
     pkg_path = data.packages.joinpath("FSPkg")
     script.pip('install', '-e', '.',
-               expect_stderr=True, cwd=pkg_path)
+               expect_stderr_warning=True, cwd=pkg_path)
     # ensure both are installed with --ignore-installed:
     script.pip('install', '--ignore-installed', '.',
-               expect_stderr=True, cwd=pkg_path)
+               expect_stderr_warning=True, cwd=pkg_path)
     list_result = script.pip('list', '--format=json')
     assert {"name": "FSPkg", "version": "0.1.dev0"} \
         in json.loads(list_result.stdout)
@@ -523,7 +523,7 @@ def test_uninstall_ignores_missing_packages(script, data):
     """Uninstall of a non existent package prints a warning and exits cleanly
     """
     result = script.pip(
-        'uninstall', '-y', 'non-existent-pkg', expect_stderr=True,
+        'uninstall', '-y', 'non-existent-pkg', expect_stderr_warning=True,
     )
 
     assert "Skipping non-existent-pkg as it is not installed." in result.stderr
@@ -533,7 +533,8 @@ def test_uninstall_ignores_missing_packages(script, data):
 def test_uninstall_ignores_missing_packages_and_uninstalls_rest(script, data):
     script.pip_install_local('simple')
     result = script.pip(
-        'uninstall', '-y', 'non-existent-pkg', 'simple', expect_stderr=True,
+        'uninstall', '-y', 'non-existent-pkg', 'simple',
+        expect_stderr_warning=True,
     )
 
     assert "Skipping non-existent-pkg as it is not installed." in result.stderr

@@ -10,7 +10,7 @@ def test_simple_extras_install_from_pypi(script):
     Test installing a package from PyPI using extras dependency Paste[openid].
     """
     result = script.pip(
-        'install', 'Paste[openid]==1.7.5.1', expect_stderr=True,
+        'install', 'Paste[openid]==1.7.5.1', expect_stderr_warning=True,
     )
     initools_folder = script.site_packages / 'openid'
     assert initools_folder in result.files_created, result.files_created
@@ -24,13 +24,13 @@ def test_extras_after_wheel(script, data):
 
     no_extra = script.pip(
         'install', '--no-index', '-f', data.find_links,
-        'requires_simple_extra', expect_stderr=True,
+        'requires_simple_extra', expect_stderr_warning=True,
     )
     assert simple not in no_extra.files_created, no_extra.files_created
 
     extra = script.pip(
         'install', '--no-index', '-f', data.find_links,
-        'requires_simple_extra[extra]', expect_stderr=True,
+        'requires_simple_extra[extra]', expect_stderr_warning=True,
     )
     assert simple in extra.files_created, extra.files_created
 
@@ -41,7 +41,7 @@ def test_no_extras_uninstall(script):
     No extras dependency gets uninstalled when the root package is uninstalled
     """
     result = script.pip(
-        'install', 'Paste[openid]==1.7.5.1', expect_stderr=True,
+        'install', 'Paste[openid]==1.7.5.1', expect_stderr_warning=True,
     )
     assert join(script.site_packages, 'paste') in result.files_created, (
         sorted(result.files_created.keys())
@@ -65,7 +65,7 @@ def test_nonexistent_extra_warns_user_no_wheel(script, data):
     result = script.pip(
         'install', '--no-binary=:all:', '--no-index',
         '--find-links=' + data.find_links,
-        'simple[nonexistent]', expect_stderr=True,
+        'simple[nonexistent]', expect_stderr_warning=True,
     )
     assert (
         "simple 3.0 does not provide the extra 'nonexistent'"
@@ -83,7 +83,7 @@ def test_nonexistent_extra_warns_user_with_wheel(script, data):
     result = script.pip(
         'install', '--no-index',
         '--find-links=' + data.find_links,
-        'simplewheel[nonexistent]', expect_stderr=True,
+        'simplewheel[nonexistent]', expect_stderr_warning=True,
     )
     assert (
         "simplewheel 2.0 does not provide the extra 'nonexistent'"
@@ -98,7 +98,7 @@ def test_nonexistent_options_listed_in_order(script, data):
     result = script.pip(
         'install', '--no-index',
         '--find-links=' + data.find_links,
-        'simplewheel[nonexistent, nope]', expect_stderr=True,
+        'simplewheel[nonexistent, nope]', expect_stderr_warning=True,
     )
     msg = (
         "  WARNING: simplewheel 2.0 does not provide the extra 'nonexistent'\n"

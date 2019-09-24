@@ -368,8 +368,8 @@ def test_upgrade_vcs_req_with_dist_found(script):
             "743aad47656b27"
         )
     )
-    script.pip("install", req, expect_stderr=True)
-    result = script.pip("install", "-U", req, expect_stderr=True)
+    script.pip("install", req, expect_stderr_warning=True)
+    result = script.pip("install", "-U", req, expect_stderr_warning=True)
     assert "pypi.org" not in result.stdout, result.stdout
 
 
@@ -415,5 +415,5 @@ class TestUpgradeDistributeToSetuptools(object):
         self.script.run(
             self.ve_bin / 'python', 'setup.py', 'install',
             cwd=pip_src,
-            expect_stderr=True,
+            expect_stderr_warning=True,
         )
