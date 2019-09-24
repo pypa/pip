@@ -11,11 +11,11 @@ process, please `open an issue`_ about it on the issue tracker.
 Development Environment
 -----------------------
 
-pip uses :pypi:`tox` for testing against multiple different Python environments
-and ensuring reproducible environments for linting and building documentation.
+pip is a command line application written in Python. For developing pip,
+you should `install Python`_ on your computer.
 
-For developing pip, you need to install ``tox`` on your system. Often, you can
-just do ``python -m pip install tox`` to install and use it.
+For developing pip, you need to install :pypi:`tox`.Often, you can run
+``python -m pip install tox`` to install and use it.
 
 Running pip From Source Tree
 ----------------------------
@@ -112,5 +112,6 @@ To build it locally, run:
 The built documentation can be found in the ``docs/build`` folder.
 
 .. _`open an issue`: https://github.com/pypa/pip/issues/new?title=Trouble+with+pip+development+environment
+.. _`install Python`: https://realpython.com/installing-python/
 .. _`PEP 484 type-comments`: https://www.python.org/dev/peps/pep-0484/#suggested-syntax-for-python-2-7-and-straddling-code
 .. _`rich CLI`: https://docs.pytest.org/en/latest/usage.html#specifying-tests-selecting-tests
