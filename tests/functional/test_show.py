@@ -87,7 +87,7 @@ def test_report_single_not_found(script):
     # form is logged.
     # Also, the following should report an error as there are no results
     # to print. Consequently, there is no need to pass
-    # allow_stderr_warning=True since this is implied by expect_error=True.
+    # expect_stderr_warning=True since this is implied by expect_error=True.
     result = script.pip('show', 'Abcd-3', expect_error=True)
     assert 'WARNING: Package(s) not found: Abcd-3' in result.stderr
     assert not result.stdout.splitlines()
@@ -99,7 +99,7 @@ def test_report_mixed_not_found(script):
     """
     # We test passing non-canonicalized names.
     result = script.pip(
-        'show', 'Abcd3', 'A-B-C', 'pip', allow_stderr_warning=True
+        'show', 'Abcd3', 'A-B-C', 'pip', expect_stderr_warning=True
     )
     assert 'WARNING: Package(s) not found: A-B-C, Abcd3' in result.stderr
     lines = result.stdout.splitlines()
