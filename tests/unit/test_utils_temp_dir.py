@@ -55,7 +55,26 @@ def test_deletes_readonly_files():
         create_file(tmp_dir.path, "subfolder", "readonly-file")
         readonly_file(tmp_dir.path, "subfolder", "readonly-file")
 
-    assert not os.path.exists(tmp_dir.path)
+
+def test_path_access_after_context_raises():
+    with TempDirectory() as tmp_dir:
+        path = tmp_dir.path
+
+    with pytest.raises(AssertionError) as e:
+        _ = tmp_dir.path
+
+    assert path in str(e.value)
+
+
+def test_path_access_after_clean_raises():
+    tmp_dir = TempDirectory()
+    path = tmp_dir.path
+    tmp_dir.cleanup()
+
+    with pytest.raises(AssertionError) as e:
+        _ = tmp_dir.path
+
+    assert path in str(e.value)
 
 
 def test_create_and_cleanup_work():
@@ -66,7 +85,6 @@ def test_create_and_cleanup_work():
     assert os.path.exists(created_path)
 
     tmp_dir.cleanup()
-    assert tmp_dir.path is not None
     assert not os.path.exists(created_path)
 
 

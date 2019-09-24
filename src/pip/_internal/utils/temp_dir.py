@@ -54,12 +54,16 @@ class TempDirectory(object):
             path = self._create(kind)
 
         self._path = path
+        self._deleted = False
         self.delete = delete
         self.kind = kind
 
     @property
     def path(self):
         # type: () -> str
+        assert not self._deleted, (
+            "Attempted to access deleted path: {}".format(self._path)
+        )
         return self._path
 
     def __repr__(self):
@@ -88,8 +92,9 @@ class TempDirectory(object):
     def cleanup(self):
         """Remove the temporary directory created and reset state
         """
-        if os.path.exists(self.path):
-            rmtree(self.path)
+        self._deleted = True
+        if os.path.exists(self._path):
+            rmtree(self._path)
 
 
 class AdjacentTempDirectory(TempDirectory):
