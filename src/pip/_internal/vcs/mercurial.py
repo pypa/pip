@@ -141,8 +141,8 @@ class Mercurial(VersionControl):
 
     @classmethod
     def controls_location(cls, location):
-        if super(Mercurial, cls).controls_location(location):
-            return True
+        if not super(Mercurial, cls).controls_location(location):
+            return False
         try:
             r = cls.run_command(['identify'],
                                 cwd=location,

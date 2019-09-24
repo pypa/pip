@@ -362,8 +362,8 @@ class Git(VersionControl):
 
     @classmethod
     def controls_location(cls, location):
-        if super(Git, cls).controls_location(location):
-            return True
+        if not super(Git, cls).controls_location(location):
+            return False
         try:
             r = cls.run_command(['rev-parse'],
                                 cwd=location,

@@ -621,10 +621,17 @@ class VersionControl(object):
         # type: (str) -> bool
         """
         Check if a location is controlled by the vcs.
-        It is meant to be overridden to implement smarter detection
-        mechanisms for specific vcs.
 
-        This can do more than is_repository_directory() alone.  For example,
-        the Git override checks that Git is actually available.
+        Searches up the filesystem and checks is_repository_directory().
+
+        It is meant to be extended to add smarter detection mechanisms for
+        specific vcs.  For example, the Git override checks that Git is
+        actually available.
         """
-        return cls.is_repository_directory(location)
+        while not cls.is_repository_directory(location):
+            last_location = location
+            location = os.path.dirname(location)
+            if location == last_location:
+                # We've traversed up to the root of the filesystem.
+                return False
+        return True
