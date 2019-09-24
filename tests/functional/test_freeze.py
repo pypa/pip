@@ -321,6 +321,47 @@ def test_freeze_git_clone_srcdir(script, tmpdir):
     ).strip()
     _check_output(result.stdout, expected)
 
+@need_mercurial
+def test_freeze_mrecurial_clone_srcdir(script, tmpdir):
+    """
+    Test freezing a Mercurial clone where setup.py is in a subdirectory
+    relative to the repo root and the source code is in a subdirectory
+    relative to setup.py.
+    """
+    # Returns path to a generated package called "version_pkg"
+    pkg_version = _create_test_package_with_srcdir(script, vcs='hg')
+ 
+    result = script.run(
+        'hg', 'clone', pkg_version, 'pip-test-package',
+        expect_stderr=True,
+    )
+    repo_dir = script.scratch_path / 'pip-test-package'
+    result = script.run(
+        'python', 'setup.py', 'develop',
+        cwd=repo_dir / 'subdir',
+        expect_stderr=True,
+    )
+    result = script.pip('freeze', expect_stderr=True)
+    expected = textwrap.dedent(
+        """
+            ...-e hg+...#egg=version_pkg&subdirectory=subdir
+            ...
+        """
+    ).strip()
+    _check_output(result.stdout, expected)
+ 
+    result = script.pip(
+        'freeze', '-f', '%s#egg=pip_test_package' % repo_dir,
+        expect_stderr=True,
+    )
+    expected = textwrap.dedent(
+        """
+            -f %(repo)s#egg=pip_test_package...
+            -e hg+...#egg=version_pkg&subdirectory=subdir
+            ...
+        """ % {'repo': repo_dir},
+    ).strip()
+    _check_output(result.stdout, expected)
 
 @pytest.mark.git
 def test_freeze_git_remote(script, tmpdir):
