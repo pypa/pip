@@ -42,7 +42,7 @@ To run tests locally, run:
 The example above runs tests against Python 3.6. You can also use other
 versions like ``py27`` and ``pypy3``.
 
-``tox`` has been configured to any additional arguments it is given to
+``tox`` has been configured to forward any additional arguments it is given to
 ``pytest``. This enables the use of pytest's `rich CLI`_. As an example, you
 can select tests using the various ways that pytest provides:
 
