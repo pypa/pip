@@ -1,11 +1,11 @@
 """"Vendoring script, python 3.5 with requests needed"""
 
-from pathlib import Path
 import os
 import re
 import shutil
 import tarfile
 import zipfile
+from pathlib import Path
 
 import invoke
 import requests
