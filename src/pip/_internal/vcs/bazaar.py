@@ -5,13 +5,9 @@ import os
 
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
-from pip._internal.utils.misc import (
-    display_path,
-    make_command,
-    path_to_url,
-    rmtree,
-)
+from pip._internal.utils.misc import display_path, make_command, rmtree
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.urls import path_to_url
 from pip._internal.vcs.versioncontrol import VersionControl, vcs
 
 if MYPY_CHECK_RUNNING:

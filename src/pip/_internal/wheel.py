@@ -43,7 +43,6 @@ from pip._internal.utils.misc import (
     captured_stdout,
     ensure_dir,
     format_command_args,
-    path_to_url,
     read_chunks,
 )
 from pip._internal.utils.setuptools_build import make_setuptools_shim_args
@@ -51,6 +50,7 @@ from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import open_spinner
 from pip._internal.utils.unpacking import unpack_file
+from pip._internal.utils.urls import path_to_url
 
 if MYPY_CHECK_RUNNING:
     from typing import (

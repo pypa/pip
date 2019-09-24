@@ -51,7 +51,6 @@ from pip._internal.utils.misc import (
     hide_url,
     parse_netloc,
     path_to_display,
-    path_to_url,
     rmtree,
     splitext,
 )
@@ -98,7 +97,6 @@ if MYPY_CHECK_RUNNING:
 
 
 __all__ = ['get_file_content',
-           'path_to_url',
            'unpack_vcs_link',
            'unpack_file_url', 'is_file_url',
            'unpack_http_url', 'unpack_url',
