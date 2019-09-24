@@ -10,7 +10,8 @@ repos:
     - id: check-toml
     - id: check-yaml
     - id: debug-statements
-    # - id: end-of-file-fixer  # TODO: enable when fixed.
+    - id: end-of-file-fixer
+      exclude: WHEEL
     - id: flake8
       exclude: tests/data
     - id: forbid-new-submodules
