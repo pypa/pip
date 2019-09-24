@@ -100,7 +100,7 @@ if MYPY_CHECK_RUNNING:
 __all__ = ['get_file_content',
            'path_to_url',
            'unpack_vcs_link',
-           'unpack_file_url', 'is_file_url',
+           'unpack_file_url',
            'unpack_http_url', 'unpack_url',
            'parse_content_disposition', 'sanitize_content_filename']
 
@@ -602,23 +602,6 @@ def _get_used_vcs_backend(link):
     return None
 
 
-def is_file_url(link):
-    # type: (Link) -> bool
-    return link.url.lower().startswith('file:')
-
-
-def is_dir_url(link):
-    # type: (Link) -> bool
-    """Return whether a file:// Link points to a directory.
-
-    ``link`` must not have any other scheme but file://. Call is_file_url()
-    first.
-
-    """
-    link_path = link.file_path
-    return os.path.isdir(link_path)
-
-
 def _progress_indicator(iterable, *args, **kwargs):
     return iterable
 
@@ -849,7 +832,7 @@ def unpack_file_url(
     """
     link_path = link.file_path
     # If it's a url to a local directory
-    if is_dir_url(link):
+    if link.is_existing_dir():
         if os.path.isdir(location):
             rmtree(location)
         _copy_source_tree(link_path, location)
@@ -945,7 +928,7 @@ def unpack_url(
         unpack_vcs_link(link, location)
 
     # file urls
-    elif is_file_url(link):
+    elif link.is_file:
         unpack_file_url(link, location, download_dir, hashes=hashes)
 
     # http urls
@@ -1055,19 +1038,21 @@ def _check_download_dir(link, download_dir, hashes):
         If a correct file is found return its path else None
     """
     download_path = os.path.join(download_dir, link.filename)
-    if os.path.exists(download_path):
-        # If already downloaded, does its hash match?
-        logger.info('File was already downloaded %s', download_path)
-        if hashes:
-            try:
-                hashes.check_against_path(download_path)
-            except HashMismatch:
-                logger.warning(
-                    'Previously-downloaded file %s has bad hash. '
-                    'Re-downloading.',
-                    download_path
-                )
-                os.unlink(download_path)
-                return None
-        return download_path
-    return None
+
+    if not os.path.exists(download_path):
+        return None
+
+    # If already downloaded, does its hash match?
+    logger.info('File was already downloaded %s', download_path)
+    if hashes:
+        try:
+            hashes.check_against_path(download_path)
+        except HashMismatch:
+            logger.warning(
+                'Previously-downloaded file %s has bad hash. '
+                'Re-downloading.',
+                download_path
+            )
+            os.unlink(download_path)
+            return None
+    return download_path
