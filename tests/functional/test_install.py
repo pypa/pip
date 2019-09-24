@@ -1657,3 +1657,33 @@ def test_install_pip_does_not_modify_pip_when_satisfied(
         'pip', *install_args, use_module=use_module
     )
     assert expected_message in result.stdout, str(result)
+
+
+def test_ignore_yanked_file(script, data):
+    """
+    Test ignore a "yanked" file.
+    """
+    result = script.pip(
+        'install', 'simple',
+        '--index-url', data.index_url('yanked'),
+    )
+    # Make sure a "yanked" release ignored
+    assert 'Successfully installed simple-2.0\n' in result.stdout, str(result)
+
+
+def test_install_yanked_file_and_print_warning(script, data):
+    """
+    Test install a "yanked" file and warn a reason.
+
+    Yanked files are always ignored, unless they are the only file that
+    matches a version specifier that "pins" to an exact version (PEP 592).
+    """
+    result = script.pip(
+        'install', 'simple==3.0',
+        '--index-url', data.index_url('yanked'),
+        expect_stderr=True,
+    )
+    expected_warning = 'Reason for being yanked: test reason message'
+    assert expected_warning in result.stderr, str(result)
+    # Make sure a "yanked" release installed
+    assert 'Successfully installed simple-3.0\n' in result.stdout, str(result)
