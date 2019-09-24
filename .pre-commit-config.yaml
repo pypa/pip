@@ -41,3 +41,8 @@ repos:
       types: [file]
       # The errors flagged in NEWS.rst are old.
       exclude: NEWS.rst
+
+- repo: https://github.com/mgedmin/check-manifest
+  rev: '0.39'
+  hooks:
+    - id: check-manifest
