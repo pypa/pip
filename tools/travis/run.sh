@@ -2,7 +2,7 @@
 set -e
 
 # Short circuit test runs if there are no code changes involved.
-if ! [[ $TOXENV ~= ^(docs|lint|packaging)$ ]]; then
+if [[ $TOXENV != docs ]] || [[ $TOXENV != lint ]]; then
     if [[ "$TRAVIS_PULL_REQUEST" == "false" ]]
     then
         echo "This is not a PR -- will do a complete build."

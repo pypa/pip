@@ -24,9 +24,6 @@ jobs:
   - bash: nox -s generate_news -- --yes
     displayName: Generate NEWS.rst
 
-  - bash: tox -e packaging
-    displayName: Run Tox packaging
-
   - bash: python setup.py sdist bdist_wheel
     displayName: Create sdist and wheel
 
