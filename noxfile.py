@@ -1,7 +1,6 @@
 """Release time helpers, executed using nox.
 """
 
-import glob
 import io
 import subprocess
 
@@ -29,18 +28,6 @@ def get_author_list():
 
     # Sort our list of Authors by their case insensitive name
     return sorted(authors, key=lambda x: x.lower())
-
-
-# -----------------------------------------------------------------------------
-# Ad-hoc commands
-# -----------------------------------------------------------------------------
-@nox.session
-def validate_news(session):
-    session.install("rstcheck")
-
-    news_files = sorted(glob.glob("news/*"))
-
-    session.run("rstcheck", *news_files)
 
 
 # -----------------------------------------------------------------------------
