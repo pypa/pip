@@ -67,9 +67,9 @@ tools, you can tell pip to skip those tests:
 Running Linters
 ---------------
 
-pip uses :pypi:`flake8` and :pypi:`isort` for linting the codebase. These
-ensure that the codebase is in compliance with :pep:`8` and the imports are
-consistently ordered and styled.
+pip uses :pypi:`pre-commit` for managing linting of the codebase.
+``pre-commit`` performs various checks on all files in pip and uses tools that
+help follow a consistent code style within the codebase.
 
 To use linters locally, run:
 
