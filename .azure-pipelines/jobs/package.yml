@@ -15,7 +15,7 @@ jobs:
     inputs:
       versionSpec: '3'
 
-  - bash: pip install tox nox setuptools wheel
+  - bash: pip install twine nox setuptools wheel
     displayName: Install dependencies
 
   - bash: nox -s generate_authors
@@ -29,6 +29,9 @@ jobs:
 
   - bash: python setup.py sdist bdist_wheel
     displayName: Create sdist and wheel
+
+  - bash: twine check dist/*
+    displayName: Check distributions with twine
 
   - task: PublishBuildArtifacts@1
     displayName: 'Publish Artifact: dist'
