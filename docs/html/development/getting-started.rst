@@ -30,8 +30,9 @@ from the ``src`` directory:
 Running Tests
 -------------
 
-pip uses the :pypi:`pytest` test framework, :pypi:`mock` and :pypi:`pretend`
-for testing. These are automatically installed by tox for running the tests.
+pip's tests are written using the :pypi:`pytest` test framework, :pypi:`mock`
+and :pypi:`pretend`. :pypi:`tox` is used to automate the setup and execution of
+pip's tests.
 
 To run tests locally, run:
 
