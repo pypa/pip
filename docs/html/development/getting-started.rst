@@ -14,7 +14,7 @@ Development Environment
 pip is a command line application written in Python. For developing pip,
 you should `install Python`_ on your computer.
 
-For developing pip, you need to install :pypi:`tox`.Often, you can run
+For developing pip, you need to install :pypi:`tox`. Often, you can run
 ``python -m pip install tox`` to install and use it.
 
 Running pip From Source Tree
