@@ -9,6 +9,7 @@ from pip._internal.utils.misc import display_path, make_command, path_to_url
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs.versioncontrol import VersionControl, vcs
+from pip._internal.utils.compat import samefile
 from pip._internal.exceptions import BadCommand
 
 if MYPY_CHECK_RUNNING:
@@ -111,6 +112,32 @@ class Mercurial(VersionControl):
     def is_commit_id_equal(cls, dest, name):
         """Always assume the versions don't match"""
         return False
+
+    @classmethod
+    def get_subdirectory(cls, location):
+        # find the repo root
+        root_dir = cls.run_command(['root'],
+                                  show_stdout=False, cwd=location).strip()
+        if not os.path.isabs(root_dir):
+            root_dir = os.path.join(location, root_dir)
+        # find setup.py
+        orig_location = location
+        while not os.path.exists(os.path.join(location, 'setup.py')):
+            last_location = location
+            location = os.path.dirname(location)
+            if location == last_location:
+                # We've traversed up to the root of the filesystem without
+                # finding setup.py
+                logger.warning(
+                    "Could not find setup.py for directory %s (tried all "
+                    "parent directories)",
+                    orig_location,
+                )
+                return None
+        # relative path of setup.py to repo root
+        if samefile(root_dir, location):
+            return None
+        return os.path.relpath(location, root_dir)
 
     @classmethod
     def controls_location(cls, location):
