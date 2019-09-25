@@ -1,0 +1,1 @@
+Make ``PipTestEnvironment`` stderr checks more assertive.
