@@ -100,9 +100,11 @@ def get_check_binary_allowed(format_control):
     # type: (FormatControl) -> BinaryAllowedPredicate
     def check_binary_allowed(req):
         # type: (InstallRequirement) -> bool
+        if req.use_pep517:
+            return True
         canonical_name = canonicalize_name(req.name)
         allowed_formats = format_control.get_allowed_formats(canonical_name)
-        return "binary" in allowed_formats or req.use_pep517
+        return "binary" in allowed_formats
 
     return check_binary_allowed
 
