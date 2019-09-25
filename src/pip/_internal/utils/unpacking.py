@@ -120,11 +120,11 @@ def unzip_file(filename, location, flatten=True):
             fn = os.path.join(location, fn)
             dir = os.path.dirname(fn)
             if not is_within_directory(location, fn):
-                raise InstallationError(
-                    'The zip file (%s) has a file (%s) trying to install '
-                    'outside target directory (%s)' %
-                    (filename, fn, location)
+                message = (
+                    'The zip file ({}) has a file ({}) trying to install '
+                    'outside target directory ({})'
                 )
+                raise InstallationError(message.format(filename, fn, location))
             if fn.endswith('/') or fn.endswith('\\'):
                 # A directory
                 ensure_dir(fn)
@@ -185,10 +185,12 @@ def untar_file(filename, location):
                 fn = split_leading_dir(fn)[1]  # type: ignore
             path = os.path.join(location, fn)
             if not is_within_directory(location, path):
+                message = (
+                    'The tar file ({}) has a file ({}) trying to install '
+                    'outside target directory ({})'
+                )
                 raise InstallationError(
-                    'The tar file (%s) has a file (%s) trying to install '
-                    'outside target directory (%s)' %
-                    (filename, path, location)
+                    message.format(filename, path, location)
                 )
             if member.isdir():
                 ensure_dir(path)

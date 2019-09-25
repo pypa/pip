@@ -1,1 +1,2 @@
-Abort the installation process and raise an exception if one of the tar/zip file will be placed outside of target location causing security issue.
+Abort installation if any archive contains a file which would be placed
+outside the extraction location.

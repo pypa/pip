@@ -126,13 +126,11 @@ class TestUnpackArchives(object):
         Test unpacking a *.zip with file containing .. path
         and expect exception
         """
-        test_zip = self.make_zip_file('test_zip.zip',
-                                      ['regular_file.txt',
-                                       os.path.join('..', 'outside_file.txt')])
-        with pytest.raises(
-                InstallationError,
-                match=r'.*trying to install outside target directory.*'):
+        files = ['regular_file.txt', os.path.join('..', 'outside_file.txt')]
+        test_zip = self.make_zip_file('test_zip.zip', files)
+        with pytest.raises(InstallationError) as e:
             unzip_file(test_zip, self.tempdir)
+        assert 'trying to install outside target directory' in str(e.value)
 
     def test_unpack_zip_success(self):
         """
@@ -140,11 +138,12 @@ class TestUnpackArchives(object):
         no file will be installed outside target directory after unpack
         so no exception raised
         """
-        test_zip = self.make_zip_file(
-            'test_zip.zip',
-            ['regular_file1.txt',
-             os.path.join('dir', 'dir_file1.txt'),
-             os.path.join('dir', '..', 'dir_file2.txt')])
+        files = [
+            'regular_file1.txt',
+            os.path.join('dir', 'dir_file1.txt'),
+            os.path.join('dir', '..', 'dir_file2.txt'),
+        ]
+        test_zip = self.make_zip_file('test_zip.zip', files)
         unzip_file(test_zip, self.tempdir)
 
     def test_unpack_tar_failure(self):
@@ -152,13 +151,11 @@ class TestUnpackArchives(object):
         Test unpacking a *.tar with file containing .. path
         and expect exception
         """
-        test_tar = self.make_tar_file('test_tar.tar',
-                                      ['regular_file.txt',
-                                       os.path.join('..', 'outside_file.txt')])
-        with pytest.raises(
-                InstallationError,
-                match=r'.*trying to install outside target directory.*'):
+        files = ['regular_file.txt', os.path.join('..', 'outside_file.txt')]
+        test_tar = self.make_tar_file('test_tar.tar', files)
+        with pytest.raises(InstallationError) as e:
             untar_file(test_tar, self.tempdir)
+        assert 'trying to install outside target directory' in str(e.value)
 
     def test_unpack_tar_success(self):
         """
@@ -166,11 +163,12 @@ class TestUnpackArchives(object):
         no file will be installed outside target directory after unpack
         so no exception raised
         """
-        test_tar = self.make_tar_file(
-            'test_tar.tar',
-            ['regular_file1.txt',
-             os.path.join('dir', 'dir_file1.txt'),
-             os.path.join('dir', '..', 'dir_file2.txt')])
+        files = [
+            'regular_file1.txt',
+            os.path.join('dir', 'dir_file1.txt'),
+            os.path.join('dir', '..', 'dir_file2.txt'),
+        ]
+        test_tar = self.make_tar_file('test_tar.tar', files)
         untar_file(test_tar, self.tempdir)
 
 
