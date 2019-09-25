@@ -1277,12 +1277,8 @@ def test_install_no_binary_builds_pep_517_wheel(script, data, with_wheel):
     # Must have installed the package
     assert expected in str(res), str(res)
 
-    assert "Building wheel for pep517-setup-and-pyproject" in str(res), str(res)
-    assert (
-        "Running setup.py install for pep517-setup-and-pyproject" \
-            not in str(res),
-        str(res)
-    )
+    assert "Building wheel for pep517-setup" in str(res), str(res)
+    assert "Running setup.py install for pep517-set" not in str(res), str(res)
 
 
 def test_install_no_binary_disables_cached_wheels(script, data, with_wheel):
