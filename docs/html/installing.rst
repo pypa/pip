@@ -120,7 +120,7 @@ pip works on Unix/Linux, macOS, and Windows.
 ----
 
 .. [1] "Secure" in this context means using a modern browser or a
-       tool like `curl` that verifies SSL certificates when downloading from
+       tool like ``curl`` that verifies SSL certificates when downloading from
        https URLs.
 
 .. [2] Beginning with pip v1.5.1, ``get-pip.py`` stopped requiring setuptools to

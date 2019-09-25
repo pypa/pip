@@ -16,6 +16,7 @@ exclude .mailmap
 exclude .appveyor.yml
 exclude .travis.yml
 exclude .readthedocs.yml
+exclude .pre-commit-config.yaml
 exclude tox.ini
 exclude noxfile.py
 

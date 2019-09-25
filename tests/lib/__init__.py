@@ -1,14 +1,14 @@
 from __future__ import absolute_import
 
+import os
+import re
+import shutil
+import site
+import subprocess
+import sys
+import textwrap
 from contextlib import contextmanager
 from textwrap import dedent
-import os
-import sys
-import re
-import textwrap
-import site
-import shutil
-import subprocess
 
 import pytest
 from scripttest import FoundDir, TestFileEnvironment

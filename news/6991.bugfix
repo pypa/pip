@@ -1,1 +1,1 @@
- Ignore "require_virtualenv" in `pip config`
+Ignore "require_virtualenv" in ``pip config``

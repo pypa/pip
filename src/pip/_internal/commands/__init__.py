@@ -4,7 +4,7 @@ Package containing all pip commands
 from __future__ import absolute_import
 
 import importlib
-from collections import namedtuple, OrderedDict
+from collections import OrderedDict, namedtuple
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 

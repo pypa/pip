@@ -5,11 +5,12 @@ from __future__ import absolute_import
 
 import logging
 
-from .req_install import InstallRequirement
-from .req_set import RequirementSet
-from .req_file import parse_requirements
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+from .req_file import parse_requirements
+from .req_install import InstallRequirement
+from .req_set import RequirementSet
 
 if MYPY_CHECK_RUNNING:
     from typing import Any, List, Sequence
