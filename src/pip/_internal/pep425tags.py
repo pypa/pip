@@ -200,6 +200,26 @@ def is_manylinux2010_compatible():
     return pip._internal.utils.glibc.have_compatible_glibc(2, 12)
 
 
+def is_manylinux2014_compatible():
+    # type: () -> bool
+    # Only Linux and only x86-64, i686, aarch64, armv7l, ppc64, ppc64le, s390x
+    if get_platform() not in {"linux_x86_64", "linux_i686", "linux_aarch64",
+                              "linux_armv7l", "linux_ppc64", "linux_ppc64le",
+                              "linux_s390x"}:
+        return False
+
+    # Check for presence of _manylinux module
+    try:
+        import _manylinux
+        return bool(_manylinux.manylinux2014_compatible)
+    except (ImportError, AttributeError):
+        # Fall through to heuristic check below
+        pass
+
+    # Check glibc version. CentOS 7 uses glibc 2.17.
+    return pip._internal.utils.glibc.have_compatible_glibc(2, 17)
+
+
 def get_darwin_arches(major, minor, machine):
     # type: (int, int, str) -> List[str]
     """Return a list of supported arches (including group arches) for
@@ -333,6 +353,16 @@ def get_supported(
             else:
                 # arch pattern didn't match (?!)
                 arches = [arch]
+        elif arch_prefix == 'manylinux2014':
+            arches = [arch]
+            # manylinux1/manylinux2010 wheels run on most manylinux2014 systems
+            # with the exception of wheels depending on ncurses. PEP 599 states
+            # manylinux1/manylinux2010 wheels should be considered
+            # manylinux2014 wheels:
+            # https://www.python.org/dev/peps/pep-0599/#backwards-compatibility-with-manylinux2010-wheels
+            if arch_suffix in {'i686', 'x86_64'}:
+                arches.append('manylinux2010' + arch_sep + arch_suffix)
+                arches.append('manylinux1' + arch_sep + arch_suffix)
         elif arch_prefix == 'manylinux2010':
             # manylinux1 wheels run on most manylinux2010 systems with the
             # exception of wheels depending on ncurses. PEP 571 states
@@ -341,6 +371,8 @@ def get_supported(
             arches = [arch, 'manylinux1' + arch_sep + arch_suffix]
         elif platform is None:
             arches = []
+            if is_manylinux2014_compatible():
+                arches.append('manylinux2014' + arch_sep + arch_suffix)
             if is_manylinux2010_compatible():
                 arches.append('manylinux2010' + arch_sep + arch_suffix)
             if is_manylinux1_compatible():

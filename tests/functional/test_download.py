@@ -331,6 +331,7 @@ class TestDownloadPlatformManylinuxes(object):
         "linux_x86_64",
         "manylinux1_x86_64",
         "manylinux2010_x86_64",
+        "manylinux2014_x86_64",
     ])
     def test_download_universal(self, platform, script, data):
         """
@@ -353,6 +354,9 @@ class TestDownloadPlatformManylinuxes(object):
         ("manylinux1_x86_64", "manylinux1_x86_64"),
         ("manylinux1_x86_64", "manylinux2010_x86_64"),
         ("manylinux2010_x86_64", "manylinux2010_x86_64"),
+        ("manylinux1_x86_64", "manylinux2014_x86_64"),
+        ("manylinux2010_x86_64", "manylinux2014_x86_64"),
+        ("manylinux2014_x86_64", "manylinux2014_x86_64"),
     ])
     def test_download_compatible_manylinuxes(
             self, wheel_abi, platform, script, data,
