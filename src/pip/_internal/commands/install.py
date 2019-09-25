@@ -396,7 +396,6 @@ class InstallCommand(RequirementCommand):
                 check_binary_allowed = get_check_binary_allowed(
                     finder.format_control
                 )
-
                 # Consider legacy and PEP517-using requirements separately
                 legacy_requirements = []
                 pep517_requirements = []
