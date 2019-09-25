@@ -6,14 +6,13 @@ from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip._internal.utils.filetypes import WHEEL_EXTENSION
 from pip._internal.utils.misc import (
-    path_to_url,
     redact_auth_from_url,
     split_auth_from_netloc,
     splitext,
 )
 from pip._internal.utils.models import KeyBasedCompareMixin
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pip._internal.utils.urls import url_to_path
+from pip._internal.utils.urls import path_to_url, url_to_path
 
 if MYPY_CHECK_RUNNING:
     from typing import Optional, Text, Tuple, Union

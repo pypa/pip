@@ -18,7 +18,6 @@ from textwrap import dedent
 
 import pytest
 from mock import Mock, patch
-from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip._internal.exceptions import (
     HashMismatch,
@@ -51,7 +50,6 @@ from pip._internal.utils.misc import (
     normalize_version_info,
     parse_netloc,
     path_to_display,
-    path_to_url,
     redact_auth_from_url,
     redact_netloc,
     remove_auth_from_url,
@@ -1020,22 +1018,6 @@ class TestCallSubprocess(object):
                 [sys.executable, '-c', 'input()'],
                 show_stdout=True,
             )
-
-
-@pytest.mark.skipif("sys.platform == 'win32'")
-def test_path_to_url_unix():
-    assert path_to_url('/tmp/file') == 'file:///tmp/file'
-    path = os.path.join(os.getcwd(), 'file')
-    assert path_to_url('file') == 'file://' + urllib_request.pathname2url(path)
-
-
-@pytest.mark.skipif("sys.platform != 'win32'")
-def test_path_to_url_win():
-    assert path_to_url('c:/tmp/file') == 'file:///C:/tmp/file'
-    assert path_to_url('c:\\tmp\\file') == 'file:///C:/tmp/file'
-    assert path_to_url(r'\\unc\as\path') == 'file://unc/as/path'
-    path = os.path.join(os.getcwd(), 'file')
-    assert path_to_url('file') == 'file:' + urllib_request.pathname2url(path)
 
 
 @pytest.mark.parametrize('host_port, expected_netloc', [

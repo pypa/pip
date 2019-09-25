@@ -31,7 +31,7 @@ from pip._internal.req.constructors import (
 )
 from pip._internal.req.req_file import process_line
 from pip._internal.req.req_tracker import RequirementTracker
-from pip._internal.utils.misc import path_to_url
+from pip._internal.utils.urls import path_to_url
 from tests.lib import (
     DATA_DIR,
     assert_raises_regexp,
