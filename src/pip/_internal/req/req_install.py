@@ -628,49 +628,58 @@ class InstallRequirement(object):
     @property
     def egg_info_path(self):
         # type: () -> str
+        if self._egg_info_path is not None:
+            return self._egg_info_path
+
         def looks_like_virtual_env(path):
             return (
                 os.path.lexists(os.path.join(path, 'bin', 'python')) or
                 os.path.exists(os.path.join(path, 'Scripts', 'Python.exe'))
             )
 
-        if self._egg_info_path is None:
-            if self.editable:
-                base = self.source_dir
-                filenames = []
-                for root, dirs, files in os.walk(base):
-                    for dir in vcs.dirnames:
-                        if dir in dirs:
-                            dirs.remove(dir)
-                    # Iterate over a copy of ``dirs``, since mutating
-                    # a list while iterating over it can cause trouble.
-                    # (See https://github.com/pypa/pip/pull/462.)
-                    for dir in list(dirs):
-                        if looks_like_virtual_env(os.path.join(root, dir)):
-                            dirs.remove(dir)
-                        # Also don't search through tests
-                        elif dir == 'test' or dir == 'tests':
-                            dirs.remove(dir)
-                    filenames.extend([os.path.join(root, dir)
-                                      for dir in dirs])
-                filenames = [f for f in filenames if f.endswith('.egg-info')]
-            else:
-                base = os.path.join(self.setup_py_dir, 'pip-egg-info')
-                filenames = os.listdir(base)
+        def locate_editable_egg_info(base):
+            candidates = []
+            for root, dirs, files in os.walk(base):
+                for dir_ in vcs.dirnames:
+                    if dir_ in dirs:
+                        dirs.remove(dir_)
+                # Iterate over a copy of ``dirs``, since mutating
+                # a list while iterating over it can cause trouble.
+                # (See https://github.com/pypa/pip/pull/462.)
+                for dir_ in list(dirs):
+                    if looks_like_virtual_env(os.path.join(root, dir_)):
+                        dirs.remove(dir_)
+                    # Also don't search through tests
+                    elif dir_ == 'test' or dir_ == 'tests':
+                        dirs.remove(dir_)
+                candidates.extend(os.path.join(root, dir_) for dir_ in dirs)
+            return [f for f in candidates if f.endswith('.egg-info')]
 
-            if not filenames:
-                raise InstallationError(
-                    "Files/directories not found in %s" % base
-                )
-            # if we have more than one match, we pick the toplevel one.  This
-            # can easily be the case if there is a dist folder which contains
-            # an extracted tarball for testing purposes.
-            if len(filenames) > 1:
-                filenames.sort(
-                    key=lambda x: x.count(os.path.sep) +
-                    (os.path.altsep and x.count(os.path.altsep) or 0)
-                )
-            self._egg_info_path = os.path.join(base, filenames[0])
+        def depth_of_directory(dir_):
+            return (
+                dir_.count(os.path.sep) +
+                (os.path.altsep and dir_.count(os.path.altsep) or 0)
+            )
+
+        if self.editable:
+            base = self.source_dir
+            filenames = locate_editable_egg_info(base)
+        else:
+            base = os.path.join(self.setup_py_dir, 'pip-egg-info')
+            filenames = os.listdir(base)
+
+        if not filenames:
+            raise InstallationError(
+                "Files/directories not found in %s" % base
+            )
+
+        # If we have more than one match, we pick the toplevel one.  This
+        # can easily be the case if there is a dist folder which contains
+        # an extracted tarball for testing purposes.
+        if len(filenames) > 1:
+            filenames.sort(key=depth_of_directory)
+
+        self._egg_info_path = os.path.join(base, filenames[0])
         return self._egg_info_path
 
     @property
