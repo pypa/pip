@@ -55,7 +55,7 @@ from pip._internal.utils.urls import path_to_url
 if MYPY_CHECK_RUNNING:
     from typing import (
         Dict, List, Optional, Sequence, Mapping, Tuple, IO, Text, Any,
-        Iterable, Callable,
+        Iterable, Callable, Union,
     )
     from pip._vendor.packaging.requirements import Requirement
     from pip._internal.req.req_install import InstallRequirement
@@ -905,7 +905,8 @@ class WheelBuilder(object):
         build_options=None,  # type: Optional[List[str]]
         global_options=None,  # type: Optional[List[str]]
         check_binary_allowed=None,  # type: Optional[BinaryAllowedPredicate]
-        no_clean=False  # type: bool
+        no_clean=False,  # type: bool
+        path_to_wheelnames=None,  # type: Optional[Union[bytes, Text]]
     ):
         # type: (...) -> None
         if check_binary_allowed is None:
@@ -921,6 +922,10 @@ class WheelBuilder(object):
         self.global_options = global_options or []
         self.check_binary_allowed = check_binary_allowed
         self.no_clean = no_clean
+        # path where to save built names of built wheels
+        self.path_to_wheelnames = path_to_wheelnames
+        # file names of built wheel names
+        self.wheel_filenames = []  # type: List[Union[bytes, Text]]
 
     def _build_one(self, req, output_dir, python_tag=None):
         """Build one wheel.
@@ -1130,6 +1135,9 @@ class WheelBuilder(object):
                 )
                 if wheel_file:
                     build_success.append(req)
+                    self.wheel_filenames.append(
+                        os.path.relpath(wheel_file, output_dir)
+                    )
                     if should_unpack:
                         # XXX: This is mildly duplicative with prepare_files,
                         # but not close enough to pull out to a single common
