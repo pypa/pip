@@ -438,7 +438,7 @@ class TestInstallRequirement(object):
     ))
     def test_get_dist(self, path):
         req = install_req_from_line('foo')
-        req._egg_info_path = path
+        req.metadata_directory = path
         dist = req.get_dist()
         assert isinstance(dist, pkg_resources.Distribution)
         assert dist.project_name == 'foo'

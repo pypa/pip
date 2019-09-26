@@ -688,16 +688,16 @@ class InstallRequirement(object):
     def get_dist(self):
         # type: () -> Distribution
         """Return a pkg_resources.Distribution for this requirement"""
-        if self.metadata_directory:
-            dist_dir = self.metadata_directory
-            dist_cls = pkg_resources.DistInfoDistribution
-        else:
-            dist_dir = self.egg_info_path.rstrip(os.path.sep)
-            # https://github.com/python/mypy/issues/1174
-            dist_cls = pkg_resources.Distribution  # type: ignore
+        dist_dir = self.metadata_directory.rstrip(os.sep)
 
-        # dist_dir_name can be of the form "<project>.dist-info" or
-        # e.g. "<project>.egg-info".
+        # Determine the correct Distribution object type.
+        if dist_dir.endswith(".egg-info"):
+            dist_cls = pkg_resources.Distribution
+        else:
+            assert dist_dir.endswith(".dist-info")
+            dist_cls = pkg_resources.DistInfoDistribution
+
+        # Build a PathMetadata object, from path to metadata. :wink:
         base_dir, dist_dir_name = os.path.split(dist_dir)
         dist_name = os.path.splitext(dist_dir_name)[0]
         metadata = pkg_resources.PathMetadata(base_dir, dist_dir)
