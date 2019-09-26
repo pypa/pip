@@ -568,7 +568,7 @@ class InstallRequirement(object):
 
         metadata_generator = get_metadata_generator(self)
         with indent_log():
-            metadata_generator(self)
+            self.metadata_directory = metadata_generator(self)
 
         if not self.req:
             if isinstance(parse_version(self.metadata["Version"]), Version):
@@ -623,15 +623,10 @@ class InstallRequirement(object):
                 metadata_dir
             )
 
-        self.metadata_directory = os.path.join(metadata_dir, distinfo_dir)
-        return self.metadata_directory
+        return os.path.join(metadata_dir, distinfo_dir)
 
-    @property
-    def egg_info_path(self):
+    def find_egg_info(self):
         # type: () -> str
-        if self._egg_info_path is not None:
-            return self._egg_info_path
-
         def looks_like_virtual_env(path):
             return (
                 os.path.lexists(os.path.join(path, 'bin', 'python')) or
@@ -680,8 +675,7 @@ class InstallRequirement(object):
         if len(filenames) > 1:
             filenames.sort(key=depth_of_directory)
 
-        self._egg_info_path = os.path.join(base, filenames[0])
-        return self._egg_info_path
+        return os.path.join(base, filenames[0])
 
     @property
     def metadata(self):

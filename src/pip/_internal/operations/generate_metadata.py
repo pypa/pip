@@ -63,7 +63,7 @@ def _generate_metadata_legacy(install_req):
         )
 
     # Return the metadata directory.
-    return install_req.egg_info_path
+    return install_req.find_egg_info()
 
 
 def _generate_metadata(install_req):
